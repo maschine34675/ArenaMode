@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <!-- Game binaries + BepInEx (EscapeFromTarkov.exe, Managed/, BepInEx/) -->
+    <SPTPath>$(MSBuildThisFileDirectory)..\..</SPTPath>
+    <!-- Profiles, server mods, configs (user/) — 4.1 renamed the nested folder SPT -> SPT_Runtime -->
+    <SPTUserPath>$(MSBuildThisFileDirectory)..\..\SPT_Runtime</SPTUserPath>
+    <AssemblySearchPaths>
+      $(SPTPath)\EscapeFromTarkov_Data\Managed;
+      $(SPTPath)\BepInEx\plugins\spt;
+      $(AssemblySearchPaths)
+    </AssemblySearchPaths>
+  </PropertyGroup>
+
+  <Import Project="Shared.props.user" Condition="Exists('Shared.props.user')" />
+
+  <Target Name="SPTClientDeploy" AfterTargets="PostBuildEvent" Condition="'$(SPTModType)'=='Client'">
+    <Exec
+      Command='
+        xcopy /F /Y "$(TargetPath)" "$(SPTPath)\BepInEx\plugins\"
+
+        if $(ConfigurationName) == Debug (
+          xcopy /F /Y "$(ProjectDir)$(OutDir)$(TargetName).pdb" "$(SPTPath)\BepInEx\plugins\"
+        )'
+    />
+  </Target>
+</Project>
