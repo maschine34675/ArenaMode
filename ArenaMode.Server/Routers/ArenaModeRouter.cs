@@ -64,9 +64,17 @@ public sealed class ArenaModeRouter : StaticRouter
             Protocol.RaidCancelRoute,
             (url, info, sessionId, output, _) =>
             {
-                Snapshots?.DiscardSnapshot(sessionId);
-                Sessions?.MarkIdle(sessionId);
-                return new ValueTask<string>(Json(new { disarmed = true }));
+                // Cancel only ever applies to an armed-but-not-started raid. A running
+                // raid keeps its snapshot — the post-raid skip patch consumes it.
+                var state = Sessions?.GetStatus(sessionId).state ?? ArenaSessionState.Idle;
+                if (state == ArenaSessionState.Armed)
+                {
+                    Snapshots?.DiscardSnapshot(sessionId);
+                    Sessions?.MarkIdle(sessionId);
+                    return new ValueTask<string>(Json(new { disarmed = true }));
+                }
+
+                return new ValueTask<string>(Json(new { disarmed = false, state = state.ToString() }));
             }),
 
         new RouteAction<EmptyRequestData>(
@@ -115,10 +123,30 @@ public sealed class ArenaModeRouter : StaticRouter
         if (Sessions == null || Snapshots == null)
             return Json(new { restored = false });
 
-        // Normal path: PostRaidPmcSkipPatch already restored the snapshot and the
-        // profile was saved by EndLocalRaidAsync — this is a no-op confirmation.
-        // Fallback path (e.g. the raid ended without PMC post-raid processing):
-        // restore and persist here.
+        var state = Sessions.GetStatus(sessionId).state;
+
+        // The client fires this at GameEnd, which is BEFORE its /client/match/local/end
+        // request goes out. While the session is InRaid the snapshot and the state MUST
+        // stay untouched: the authoritative restore runs inside the HandlePostRaidPmc
+        // skip patch when local/end is processed. Consuming the state here would make
+        // that patch think it is a normal raid and let full post-raid processing through
+        // (the exact race the first playtest hit).
+        if (state == ArenaSessionState.InRaid)
+        {
+            _logger.Info("[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.");
+            return Json(new { restored = false, deferred = true });
+        }
+
+        // Armed-but-never-started leftovers: discard, nothing was mutated yet.
+        if (state == ArenaSessionState.Armed)
+        {
+            Snapshots.DiscardSnapshot(sessionId);
+            Sessions.MarkIdle(sessionId);
+            return Json(new { restored = false, disarmed = true });
+        }
+
+        // Idle: the skip patch already restored (normal path) — or a stale snapshot
+        // survived an unusual flow; restore it defensively.
         var restored = false;
         if (Snapshots.HasSnapshot(sessionId))
         {
@@ -127,7 +155,6 @@ public sealed class ArenaModeRouter : StaticRouter
                 await _saveServer.SaveProfileAsync(sessionId, ct);
         }
 
-        Sessions.MarkIdle(sessionId);
         return Json(new { restored });
     }
 
