@@ -7,6 +7,8 @@ public static class Settings
 {
     public static ConfigEntry<bool> Enabled { get; private set; }
     public static ConfigEntry<string> Maps { get; private set; }
+    public static ConfigEntry<string> SelectedKit { get; private set; }
+    public static ConfigEntry<float> SpawnProtectionSeconds { get; private set; }
 
     public static void Init(ConfigFile config)
     {
@@ -22,6 +24,19 @@ public static class Settings
             "Maps",
             "factory4_day",
             "Comma-separated location ids arena mode activates on.");
+
+        SelectedKit = config.Bind(
+            "Kits",
+            "SelectedKit",
+            "",
+            "Kit id from the server catalog (user/mods/ArenaMode/config/kits.json). " +
+            "Empty = first kit in the catalog.");
+
+        SpawnProtectionSeconds = config.Bind(
+            "Respawn",
+            "SpawnProtectionSeconds",
+            3f,
+            "Invulnerability after an arena respawn (0 = disabled).");
     }
 
     public static bool IsArenaMap(string locationId)

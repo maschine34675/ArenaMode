@@ -31,6 +31,28 @@ public sealed class StartLocalRaidPatch : AbstractPatch
         {
             ArenaContext.Logger?.Info(
                 $"[ArenaMode] Arena raid starting on {request?.Location} — profile protection active.");
+            return;
+        }
+
+        // A raid starting WITHOUT consuming an arm while the session still reads InRaid
+        // means the previous arena raid never reached its post-raid restore (client
+        // crash / Alt-F4). Without this, the post-raid skip patch would eat THIS normal
+        // raid's results and roll the profile back to the stale snapshot.
+        if (sessions.IsInRaid(sessionId))
+        {
+            ArenaContext.Logger?.Warning(
+                "[ArenaMode] Crashed arena raid detected — restoring stale snapshot before this raid starts.");
+            ArenaContext.Snapshots?.RestoreSnapshot(sessionId);
+            sessions.MarkIdle(sessionId);
+            return;
+        }
+
+        // Arm expired or map mismatched (TryConsumeArm idled the session): its snapshot
+        // must not survive to be restored over later legitimate progress.
+        if (ArenaContext.Snapshots != null && ArenaContext.Snapshots.HasSnapshot(sessionId))
+        {
+            ArenaContext.Logger?.Info("[ArenaMode] Discarding snapshot of an unconsumed arena arm.");
+            ArenaContext.Snapshots.DiscardSnapshot(sessionId);
         }
     }
 }

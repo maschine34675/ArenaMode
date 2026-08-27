@@ -1,0 +1,46 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+
+namespace ArenaMode.Kits;
+
+/// <summary>
+/// A kit is an SPT preset-style flat item tree (the DefaultEquipmentPreset shape —
+/// covers arbitrary mod trees, armor plates, chambered rounds and upd variants
+/// natively) plus a small declarative fill section for grid contents, which the
+/// preset shape cannot express.
+/// </summary>
+public class KitDefinition
+{
+    [JsonProperty("id")] public string Id;
+    [JsonProperty("name")] public string Name;
+    [JsonProperty("order")] public int Order;
+    [JsonProperty("items")] public List<KitItemNode> Items = new List<KitItemNode>();
+    [JsonProperty("fill")] public KitFill Fill = new KitFill();
+}
+
+public class KitItemNode
+{
+    /// <summary>Template-local id — NEVER used as a live item id; the builder generates
+    /// fresh ids per instantiation and remaps parent references.</summary>
+    [JsonProperty("_id")] public string Id;
+
+    [JsonProperty("_tpl")] public string Tpl;
+    [JsonProperty("parentId")] public string ParentId;
+    [JsonProperty("slotId")] public string SlotId;
+    [JsonProperty("upd")] public JObject Upd;
+}
+
+public class KitFill
+{
+    /// <summary>Extra loaded magazines for the primary weapon, placed in rig/pockets.</summary>
+    [JsonProperty("spareMagazines")] public int SpareMagazines = 3;
+
+    [JsonProperty("rigContents")] public List<KitStackedItem> RigContents = new List<KitStackedItem>();
+}
+
+public class KitStackedItem
+{
+    [JsonProperty("tpl")] public string Tpl;
+    [JsonProperty("count")] public int Count = 1;
+}

@@ -55,6 +55,7 @@ public static class ArenaSession
         }
 
         IsActive = true;
+        Respawn.ArenaRespawnDriver.ResetSession();
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
         try
         {
@@ -67,6 +68,14 @@ public static class ArenaSession
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena toast failed: {ex.Message}");
+        }
+
+        // Pre-warm the spawn system (respawns need it) and swap the real gear for
+        // the selected kit via an in-place respawn.
+        if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
+        {
+            Redeploy.Core.Spawning.SpawnSystemCache.Warm(game);
+            Respawn.RaidStartKitSwap.Run(game);
         }
     }
 

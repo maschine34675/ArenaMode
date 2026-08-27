@@ -35,6 +35,9 @@
   <Target Name="DeployToSpt" AfterTargets="Build" Condition="Exists('$(SPTUserMods)')">
     <MakeDir Directories="$(SPTUserMods)ArenaMode\" />
     <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(SPTUserMods)ArenaMode\" SkipUnchangedFiles="true" />
+    <!-- Default kit catalog: deployed once, user edits are never overwritten. -->
+    <MakeDir Directories="$(SPTUserMods)ArenaMode\config\" Condition="!Exists('$(SPTUserMods)ArenaMode\config\kits.json')" />
+    <Copy SourceFiles="defaults\kits.json" DestinationFolder="$(SPTUserMods)ArenaMode\config\" Condition="!Exists('$(SPTUserMods)ArenaMode\config\kits.json')" />
   </Target>
 
 </Project>

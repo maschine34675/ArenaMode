@@ -49,7 +49,12 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
                 return;
 
             if (ArenaServerClient.PostRaidStart(settings.location, "endless"))
+            {
                 ArenaSession.MarkArmed(settings.location);
+                // Fetch the kit catalog now (loading screen) instead of inside the
+                // raid-start gameplay frame.
+                Kits.KitCatalog.Preload();
+            }
         }
         catch (System.Exception ex)
         {

@@ -1,8 +1,11 @@
 using ArenaMode.Config;
+using ArenaMode.Respawn;
 using ArenaMode.Session;
 using BepInEx;
 using BepInEx.Logging;
 using Redeploy.Core;
+using Redeploy.Core.Compat;
+using Redeploy.Core.Engine;
 
 namespace ArenaMode;
 
@@ -24,6 +27,10 @@ public class Plugin : BaseUnityPlugin
 
         ArenaSession.Initialize();
         LocalRaidStartedPatch.EnablePatch();
+
+        DeathInterception.EnsurePatched();
+        DeathInterception.Register(new ArenaRespawnDriver());
+        PerfectCullingFix.EnableOnce();
 
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version})");
     }
