@@ -60,6 +60,10 @@ internal static class RaidStartKitSwap
             yield return null;
         }
 
+        // Kit items never existed in this raid — their bundles/pools must be loaded
+        // BEFORE the pipeline, or the replacement's weapon auto-draw NREs.
+        yield return KitBundlePreloader.Preload(kit);
+
         ArenaRespawnDriver.BeginPipelineUse();
 
         var request = new RespawnRequest
@@ -111,13 +115,24 @@ internal static class RaidStartKitSwap
     /// <summary>
     /// The engine's teardown (owner destroyed, death handler unsubscribed, player
     /// unregistered) ran before the failure surfaced — without recovery the raid is
-    /// alive but unplayable: no input, and dying would never end it. Rewire the old
-    /// body; if even that fails, end the raid (the profile is snapshot-protected).
+    /// alive but unplayable: no input, and dying would never end it. Two cases:
+    /// the failure hit BEFORE the replacement took over (rewire the old body), or
+    /// DURING its wiring — game.LocalPlayer already points at the replacement
+    /// (finish wiring THAT body; rewiring the old one would leave the half-installed
+    /// replacement as MainPlayer NRE-spamming every LateUpdate — first playtest bug).
+    /// If everything fails, end the raid (the profile is snapshot-protected).
     /// </summary>
     private static void RecoverOldBody(LocalGame game, LocalPlayer oldBody)
     {
         try
         {
+            var current = game.LocalPlayer;
+            if (current != null && !ReferenceEquals(current, oldBody))
+            {
+                RecoverReplacementBody(game, current, oldBody);
+                return;
+            }
+
             LocalGameAccessor.UnsubscribeDeathHandler(game, oldBody);
             LocalGameAccessor.SubscribeDeathHandler(game, oldBody);
 
@@ -137,15 +152,58 @@ internal static class RaidStartKitSwap
         catch (Exception ex)
         {
             Plugin.ModLogger.LogError($"Arena: old-body recovery failed ({ex.Message}) — ending raid.");
-            ArenaRespawnDriver.StandDown = true;
-            try
+            EndRaidAsLastResort(game);
+        }
+    }
+
+    /// <summary>The engine failed mid-rewire: complete the replacement's wiring instead.</summary>
+    private static void RecoverReplacementBody(LocalGame game, LocalPlayer replacement, LocalPlayer oldBody)
+    {
+        try
+        {
+            var owner = LocalGameAccessor.GetPlayerOwner(game);
+            if (owner == null || !ReferenceEquals(owner.Player, replacement))
             {
-                LocalGameAccessor.InvokeDeathScreen(game);
+                owner = LocalGameAccessor.CreatePlayerOwner(game, replacement);
+                LocalGameAccessor.SetPlayerOwner(game, owner);
             }
-            catch (Exception inner)
+
+            Redeploy.Core.GameAccess.GamePlayerOwnerHelper.SetMyPlayer(replacement);
+            Redeploy.Core.View.CameraRebindHelper.RebindToPlayer(replacement);
+            Redeploy.Core.View.DeathEffectsHelper.RebindEffectsController(replacement);
+
+            if (owner.State != PlayerOwner.EState.Started)
+                owner.vmethod_0();
+
+            // The pre-swap body is unregistered and ownerless — remove it unless it
+            // somehow became a corpse in the failure window.
+            if (oldBody != null
+                && oldBody.HealthController != null
+                && oldBody.HealthController.IsAlive
+                && CorpseField(oldBody) == null)
             {
-                Plugin.ModLogger.LogError($"Arena: could not end raid either: {inner.Message}");
+                UnityEngine.Object.Destroy(oldBody.gameObject);
             }
+
+            Plugin.ModLogger.LogWarning("Arena: kit swap failed mid-rewire — recovered onto the replacement body.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError($"Arena: replacement-body recovery failed ({ex.Message}) — ending raid.");
+            EndRaidAsLastResort(game);
+        }
+    }
+
+    private static void EndRaidAsLastResort(LocalGame game)
+    {
+        ArenaRespawnDriver.StandDown = true;
+        try
+        {
+            LocalGameAccessor.InvokeDeathScreen(game);
+        }
+        catch (Exception inner)
+        {
+            Plugin.ModLogger.LogError($"Arena: could not end raid either: {inner.Message}");
         }
     }
 }

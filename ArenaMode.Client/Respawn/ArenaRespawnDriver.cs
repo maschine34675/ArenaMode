@@ -62,6 +62,10 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
     {
         var kit = KitCatalog.GetSelectedKit();
 
+        // No-op when this kit was already preloaded this raid (raid-start swap);
+        // covers a mid-raid kit switch via F12.
+        yield return KitBundlePreloader.Preload(kit);
+
         var request = new RespawnRequest
         {
             Game = game,
@@ -154,6 +158,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         IsRespawnInProgress = false;
         StandDown = false;
         DeathsThisSession = 0;
+        KitBundlePreloader.Reset();
     }
 
     internal static void BeginPipelineUse() => IsRespawnInProgress = true;
