@@ -13,6 +13,7 @@ internal static class ModeRegistry
         new Dictionary<string, Func<IArenaMode>>(StringComparer.OrdinalIgnoreCase)
         {
             ["endless"] = () => new EndlessDeathmatchMode(),
+            ["rounds"] = () => new RoundsMode(),
         };
 
     public const string DefaultId = "endless";

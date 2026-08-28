@@ -1,5 +1,6 @@
 using BepInEx.Configuration;
 using System;
+using UnityEngine;
 
 namespace ArenaMode.Config;
 
@@ -40,9 +41,18 @@ public static class Settings
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
     public static ConfigEntry<bool> HuntPlayer { get; private set; }
+    public static ConfigEntry<int> RoundKillTarget { get; private set; }
+    public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
+    public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
+    public static ConfigEntry<KeyboardShortcut> PanelHotkey { get; private set; }
+
+    /// <summary>The plugin's config file — panels batch writes through it.</summary>
+    public static ConfigFile File { get; private set; }
 
     public static void Init(ConfigFile config)
     {
+        File = config;
+
         Enabled = config.Bind(
             "General",
             "Enabled",
@@ -226,7 +236,38 @@ public static class Settings
             "Match",
             "GameMode",
             "endless",
-            "Arena game mode for the next raid (v1: only \"endless\").");
+            "Arena game mode for the next raid: \"endless\" (pure counter) or " +
+            "\"rounds\" (kill target / time limit with a scoreboard between rounds).");
+
+        RoundKillTarget = config.Bind(
+            "Match",
+            "RoundKillTarget",
+            20,
+            new ConfigDescription(
+                "Rounds mode: kills that end a round (0 = time limit only).",
+                new AcceptableValueRange<int>(0, 200)));
+
+        RoundTimeLimitSeconds = config.Bind(
+            "Match",
+            "RoundTimeLimitSeconds",
+            300,
+            new ConfigDescription(
+                "Rounds mode: seconds that end a round (0 = kill target only).",
+                new AcceptableValueRange<int>(0, 1800)));
+
+        RoundIntermissionSeconds = config.Bind(
+            "Match",
+            "RoundIntermissionSeconds",
+            15,
+            new ConfigDescription(
+                "Rounds mode: scoreboard time between rounds.",
+                new AcceptableValueRange<int>(3, 60)));
+
+        PanelHotkey = config.Bind(
+            "General",
+            "PanelHotkey",
+            new KeyboardShortcut(KeyCode.F9),
+            "Opens the in-raid arena panel (scoreboard and live settings).");
 
         HudEnabled = config.Bind(
             "HUD",

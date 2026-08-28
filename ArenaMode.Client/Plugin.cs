@@ -46,7 +46,9 @@ public class Plugin : BaseUnityPlugin
         Loot.AutoSearchService.Initialize();
         PerfectCullingFix.EnableOnce();
 
+        Hud.ArenaInputBlocker.Apply();
         gameObject.AddComponent<ArenaController>();
+        gameObject.AddComponent<Hud.ArenaPanel>();
 
         Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 
