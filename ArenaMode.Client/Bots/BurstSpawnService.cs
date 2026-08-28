@@ -2,6 +2,7 @@ using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -16,9 +17,23 @@ namespace ArenaMode.Bots;
 /// </summary>
 internal static class BurstSpawnService
 {
+    private const float InFlightSeconds = 20f;
+    private const int BotsPerBurst = 2;
+
     private static float _nextAttemptAt;
 
-    public static void Reset() => _nextAttemptAt = 0f;
+    /// <summary>
+    /// Our own in-flight ledger: injection timestamps. The engine's counter for
+    /// pending spawns can leak permanently, so we track what WE injected instead
+    /// and let entries age out — a wrong entry costs at most one late burst.
+    /// </summary>
+    private static readonly List<float> RecentInjections = new List<float>(8);
+
+    public static void Reset()
+    {
+        _nextAttemptAt = 0f;
+        RecentInjections.Clear();
+    }
 
     public static void Tick()
     {
@@ -52,7 +67,12 @@ internal static class BurstSpawnService
             // the post-burst cooldown instead. Both numbers are logged so a
             // drifting counter stays visible.
             var alive = CountAliveBots(spawner);
-            if (alive >= target)
+
+            // Bots we injected seconds ago are not registered yet (profile
+            // generation is a server round trip) — without this the gap looks
+            // unchanged for several ticks and we over-inject.
+            var pending = CountPendingInjections();
+            if (alive + pending * BotsPerBurst >= target)
                 return;
 
             var counterAlive = controller.AliveLoadingDelayedBotsCount;
@@ -83,8 +103,10 @@ internal static class BurstSpawnService
             wave.ShallSpawn = true;
 
             spawner.ActivateBotsByWave(wave);
+            RecentInjections.Add(Time.time);
             Plugin.ModLogger.LogInfo(
-                $"Arena burst spawn: {alive}/{target} bots alive (spawner counter {counterAlive}) — injecting assault pair.");
+                $"Arena burst spawn: {alive}/{target} bots alive, {pending} injection(s) in flight "
+                + $"(spawner counter {counterAlive}) — injecting assault pair.");
 
             _nextAttemptAt = Time.time + ArenaClientConfig.GetBurstCooldownSeconds(map);
         }
@@ -93,6 +115,19 @@ internal static class BurstSpawnService
             Plugin.ModLogger.LogWarning($"Arena burst spawn failed: {ex.Message}");
             _nextAttemptAt = Time.time + 10f;
         }
+    }
+
+    /// <summary>Injections young enough that their bots may not be registered yet.</summary>
+    private static int CountPendingInjections()
+    {
+        var cutoff = Time.time - InFlightSeconds;
+        for (var i = RecentInjections.Count - 1; i >= 0; i--)
+        {
+            if (RecentInjections[i] < cutoff)
+                RecentInjections.RemoveAt(i);
+        }
+
+        return RecentInjections.Count;
     }
 
     /// <summary>Living bot owners only. Unreadable registry = assume full (never spam).</summary>

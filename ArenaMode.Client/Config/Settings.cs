@@ -200,7 +200,8 @@ public static class Settings
             "MaxCorpses",
             10,
             new ConfigDescription(
-                "Oldest corpses beyond this count are removed for performance (0 = unlimited).",
+                "Visible corpses kept. Older ones are hidden for performance — they stay " +
+                "in the world but become invisible and can no longer be looted (0 = keep all).",
                 new AcceptableValueRange<int>(0, 50)));
 
         GameMode = config.Bind(

@@ -127,10 +127,15 @@ internal static class CorpseCleanupService
     /// Renderers and colliders off — the body object, its item tree, its ragdoll
     /// and every registry entry stay exactly as they are.
     ///
-    /// NOTE the renderers are collected from the hierarchy, NOT via
-    /// LootItem.MakeVisible: Corpse overrides CacheComponents() with an empty
-    /// body, so a corpse's cached renderer/LOD lists are always empty and
-    /// MakeVisible is a no-op on exactly this type.
+    /// Both primitives are the POOL-RESTORED ones on purpose: the asset pool
+    /// resets forceRenderingOff and every StoreCollider'd collider when a body
+    /// goes back in, so a trimmed body can never be handed out later as an
+    /// invisible or non-collidable bot. Plain renderer.enabled/collider.enabled
+    /// writes would leak exactly that way.
+    ///
+    /// NOTE renderers do NOT come from LootItem.MakeVisible: Corpse overrides
+    /// CacheComponents() with an empty body, so a corpse's cached renderer/LOD
+    /// lists are always empty and MakeVisible is a no-op on exactly this type.
     /// </summary>
     private static bool TrimCorpse(Corpse corpse)
     {
@@ -143,20 +148,30 @@ internal static class CorpseCleanupService
             if (ragdoll != null && !ragdoll._isPhysicsDone)
                 return false;
 
-            var renderers = corpse.GetComponentsInChildren<Renderer>(true);
+            var pool = corpse.GetComponent<AssetPoolObject>();
+
+            // The pool object caches the whole body's renderers; fall back to the
+            // hierarchy if a body ever arrives without that cache.
+            var renderers = pool?.Renderers != null && pool.Renderers.Count > 0
+                ? pool.Renderers.ToArray()
+                : corpse.GetComponentsInChildren<Renderer>(true);
+
             foreach (var renderer in renderers)
             {
                 if (renderer != null)
-                    renderer.enabled = false;
+                    renderer.forceRenderingOff = true;
             }
 
-            var pool = corpse.GetComponent<AssetPoolObject>();
             if (pool?.Colliders != null)
             {
                 foreach (var collider in pool.Colliders)
                 {
-                    if (collider != null)
-                        collider.enabled = false;
+                    if (collider == null || !collider.enabled)
+                        continue;
+
+                    // Records the pre-trim state so the pool restores it.
+                    pool.StoreCollider(collider);
+                    collider.enabled = false;
                 }
             }
 
@@ -198,8 +213,8 @@ internal static class CorpseCleanupService
             for (var i = 0; i < renderers.Length; i++)
             {
                 var renderer = renderers[i];
-                if (renderer != null && renderer.enabled)
-                    renderer.enabled = false;
+                if (renderer != null && !renderer.forceRenderingOff)
+                    renderer.forceRenderingOff = true;
             }
         }
 
