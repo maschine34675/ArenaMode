@@ -29,6 +29,15 @@ public static class Settings
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
+    public static ConfigEntry<string> GameMode { get; private set; }
+    public static ConfigEntry<bool> HudEnabled { get; private set; }
+    public static ConfigEntry<bool> ShowKillfeed { get; private set; }
+    public static ConfigEntry<bool> KillfeedOtherKills { get; private set; }
+    public static ConfigEntry<bool> ShowHitmarker { get; private set; }
+    public static ConfigEntry<bool> ShowDamageNumbers { get; private set; }
+    public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
+    public static ConfigEntry<float> AnnouncerVolume { get; private set; }
+    public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
 
     public static void Init(ConfigFile config)
     {
@@ -193,6 +202,63 @@ public static class Settings
             new ConfigDescription(
                 "Oldest corpses beyond this count are removed for performance (0 = unlimited).",
                 new AcceptableValueRange<int>(0, 50)));
+
+        GameMode = config.Bind(
+            "Match",
+            "GameMode",
+            "endless",
+            "Arena game mode for the next raid (v1: only \"endless\").");
+
+        HudEnabled = config.Bind(
+            "HUD",
+            "Enabled",
+            true,
+            "Arena HUD (score panel, killfeed, callouts) during arena sessions.");
+
+        ShowKillfeed = config.Bind(
+            "HUD",
+            "Killfeed",
+            true,
+            "Killfeed lines (victim, weapon, distance) in the top-right corner.");
+
+        KillfeedOtherKills = config.Bind(
+            "HUD",
+            "KillfeedOtherKills",
+            false,
+            "Also show bot-vs-bot kills in the killfeed.");
+
+        ShowHitmarker = config.Bind(
+            "HUD",
+            "Hitmarker",
+            true,
+            "Crosshair hitmarker on dealt damage (kill and headshot variants).");
+
+        ShowDamageNumbers = config.Bind(
+            "HUD",
+            "DamageNumbers",
+            true,
+            "Floating damage numbers at the hit position.");
+
+        AnnouncerEnabled = config.Bind(
+            "Audio",
+            "Announcer",
+            true,
+            "Announcer stingers (multi-kills, streaks) — plays .ogg files from " +
+            "BepInEx/plugins/ArenaMode/sounds/, silently disabled when absent.");
+
+        AnnouncerVolume = config.Bind(
+            "Audio",
+            "AnnouncerVolume",
+            0.8f,
+            new ConfigDescription("Announcer volume.", new AcceptableValueRange<float>(0f, 1f)));
+
+        RagdollImpulseScale = config.Bind(
+            "Effects",
+            "RagdollImpulseScale",
+            3f,
+            new ConfigDescription(
+                "Fatal-shot ragdoll impulse multiplier (1 = vanilla, punchy deaths above).",
+                new AcceptableValueRange<float>(1f, 10f)));
     }
 
     public static bool IsArenaMap(string locationId)

@@ -29,10 +29,14 @@ public class Plugin : BaseUnityPlugin
         Settings.Init(Config);
 
         ArenaSession.Initialize();
+        // After ArenaSession: RaidLifecycle handlers run in subscription order and
+        // the match service needs IsActive already latched when its handler fires.
+        Modes.ArenaMatchService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
 
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());
+        Combat.CombatPatches.Enable();
         Bots.ArenaBotPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.SprintAdsPatches.Enable();
@@ -43,6 +47,8 @@ public class Plugin : BaseUnityPlugin
         PerfectCullingFix.EnableOnce();
 
         gameObject.AddComponent<ArenaController>();
+
+        Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version})");
     }

@@ -1,3 +1,4 @@
+using ArenaMode.Combat;
 using ArenaMode.Kits;
 using EFT;
 using System;
@@ -19,9 +20,13 @@ public static class ArenaEvents
     /// <summary>A kit was applied (raid start, respawn, or swap).</summary>
     public static event Action<KitDefinition> OnKitApplied;
 
+    /// <summary>The local player dealt damage (hitmarker/damage-number feed).</summary>
+    public static event Action<ArenaDamage> OnLocalDamageDealt;
+
     internal static void RaisePlayerDied(Player player) => Raise(() => OnPlayerDied?.Invoke(player), nameof(OnPlayerDied));
     internal static void RaisePlayerRespawned(Player player) => Raise(() => OnPlayerRespawned?.Invoke(player), nameof(OnPlayerRespawned));
     internal static void RaiseKitApplied(KitDefinition kit) => Raise(() => OnKitApplied?.Invoke(kit), nameof(OnKitApplied));
+    internal static void RaiseLocalDamageDealt(ArenaDamage damage) => Raise(() => OnLocalDamageDealt?.Invoke(damage), nameof(OnLocalDamageDealt));
 
     private static void Raise(Action action, string name)
     {

@@ -59,6 +59,14 @@ public static class ArenaSession
         if (!ArmedForNextRaid)
         {
             // A raid that was never armed is by definition not an arena raid.
+            // Self-heal a stale latch (missed GameEnd after a crash) so it can
+            // never arena-ize a normal raid.
+            if (IsActive)
+            {
+                IsActive = false;
+                Plugin.ModLogger.LogWarning("Stale arena latch cleared at raid start.");
+            }
+
             LastRaidWasArena = false;
             return;
         }
