@@ -33,6 +33,16 @@ internal static class MovementRuntime
 
         try
         {
+            // Slide controller lives on the player object and dies with each respawn —
+            // (re)attach lazily (absorbed CombatSlide behavior, arena-only now).
+            if (Settings.SlideEnabled.Value
+                && player.MovementContext != null
+                && player.GetComponent<ArenaSlideController>() == null)
+            {
+                var slide = player.gameObject.AddComponent<ArenaSlideController>();
+                slide.Init(player, player.MovementContext);
+            }
+
             if (Settings.InfiniteStamina.Value && player.Physical != null)
             {
                 player.Physical.Stamina.Current = player.Physical.Stamina.TotalCapacity;

@@ -18,6 +18,7 @@ public static class Settings
     public static ConfigEntry<bool> InfiniteStamina { get; private set; }
     public static ConfigEntry<bool> NoInertia { get; private set; }
     public static ConfigEntry<bool> InstantLean { get; private set; }
+    public static ConfigEntry<bool> SlideEnabled { get; private set; }
     public static ConfigEntry<bool> NoBushSlowdown { get; private set; }
     public static ConfigEntry<float> JumpHeightMult { get; private set; }
     public static ConfigEntry<bool> NoFallDamage { get; private set; }
@@ -110,6 +111,12 @@ public static class Settings
             "InstantLean",
             true,
             "Use the game's legacy (pre-inertia) fast lean.");
+
+        SlideEnabled = config.Bind(
+            "Movement",
+            "SlideEnabled",
+            true,
+            "Sprint-into-crouch combat slide (absorbed from CombatSlide, arena-only).");
 
         NoBushSlowdown = config.Bind(
             "Movement",

@@ -49,6 +49,7 @@ internal static class ArenaMovementPatches
         new InertiaGetterPatch("WalkInertia").Enable();
         new InertiaGetterPatch("SprintBrakeInertia").Enable();
         new InstantLeanPatch().Enable();
+        new SlideAnimPatch().Enable();
         new BushSlowdownPatch().Enable();
         new JumpHeightPatch().Enable();
         new FallDamagePatch().Enable();
@@ -97,31 +98,48 @@ internal static class ArenaMovementPatches
     }
 
     /// <summary>
-    /// Displacement beyond what the animator blend tree expresses (CombatSlide's
-    /// proven hook incl. the SpeedLimit bypass). Leaves motion.y alone so gravity
-    /// and slope projection keep working.
+    /// The ONE arena bracket on DirectApplyMotion: slide velocity injection
+    /// (absorbed CombatSlide) plus displacement scale beyond the animator blend
+    /// tree. Leaves motion.y alone so gravity and slope projection keep working.
+    /// Merging both into a single save/set(-1)/restore avoids the two-mods-two-
+    /// brackets SpeedLimit interleave permanently; the guard + Priority.Last stay
+    /// as defense against any future third bracket.
     /// </summary>
     private sealed class MotionScalePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.DirectApplyMotion));
 
-        // Priority.Last on BOTH callbacks: CombatSlide brackets the same method with
-        // the same save/set(-1)/restore pattern, and Harmony runs postfixes in the
-        // SAME priority order as prefixes (not reversed). Running strictly inside
-        // CombatSlide's bracket plus the skip-when-already-bypassed guard keeps the
-        // two restores from stranding the controller cap at -1.
         [PatchPrefix]
         [HarmonyPriority(Priority.Last)]
-        private static void Prefix(MovementContext __instance, ref Vector3 motion, out float __state)
+        private static void Prefix(MovementContext __instance, ref Vector3 motion, float deltaTime, out float __state)
         {
             __state = float.NaN;
-            var scale = Settings.ExtraMotionScale.Value;
-            if (scale <= 1f || !IsArenaMovement(__instance))
+            if (!IsArenaMovement(__instance))
                 return;
 
-            motion.x *= scale;
-            motion.z *= scale;
+            var touched = false;
+
+            if (Settings.SlideEnabled.Value)
+            {
+                var slide = PlayerField(__instance)?.GetComponent<ArenaSlideController>();
+                if (slide != null && slide.IsSliding)
+                {
+                    motion += slide.SlideVelocity * deltaTime;
+                    touched = true;
+                }
+            }
+
+            var scale = Settings.ExtraMotionScale.Value;
+            if (scale > 1f)
+            {
+                motion.x *= scale;
+                motion.z *= scale;
+                touched = true;
+            }
+
+            if (!touched)
+                return;
 
             var controller = __instance.CharacterController;
             if (controller != null && controller.SpeedLimit >= 0f)
@@ -141,6 +159,47 @@ internal static class ArenaMovementPatches
             var controller = __instance.CharacterController;
             if (controller != null)
                 controller.SpeedLimit = __state;
+        }
+    }
+
+    /// <summary>
+    /// Animator blend-tree speed while sliding / fading out of a slide
+    /// (absorbed CombatSlide AnimSpeedPatch, arena-gated).
+    /// </summary>
+    private sealed class SlideAnimPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.PlayerAnimatorSetCharacterMovementSpeed));
+
+        [PatchPrefix]
+        private static void Prefix(MovementContext __instance, ref float smoothedCharacterMovementSpeed)
+        {
+            if (!Settings.SlideEnabled.Value || !IsArenaMovement(__instance))
+                return;
+
+            var slide = PlayerField(__instance)?.GetComponent<ArenaSlideController>();
+            if (slide == null)
+                return;
+
+            if (slide.IsSliding)
+            {
+                var speed = slide.NormalizedSlideAnimSpeed;
+                if (speed >= 0f)
+                    smoothedCharacterMovementSpeed = speed;
+                return;
+            }
+
+            if (slide.IsFadingOut)
+            {
+                var t = Mathf.Clamp01((Time.time - slide.FadeStartTime) / ArenaSlideController.FadeOutDuration);
+                if (t >= 1f)
+                {
+                    slide.IsFadingOut = false;
+                    return;
+                }
+
+                smoothedCharacterMovementSpeed = Mathf.Lerp(slide.FadeLastSpeed, smoothedCharacterMovementSpeed, t);
+            }
         }
     }
 
