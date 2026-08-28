@@ -18,7 +18,6 @@ public static class Settings
     public static ConfigEntry<bool> InfiniteStamina { get; private set; }
     public static ConfigEntry<bool> NoInertia { get; private set; }
     public static ConfigEntry<bool> InstantLean { get; private set; }
-    public static ConfigEntry<float> AccelFactor { get; private set; }
     public static ConfigEntry<bool> NoBushSlowdown { get; private set; }
     public static ConfigEntry<float> JumpHeightMult { get; private set; }
     public static ConfigEntry<bool> NoFallDamage { get; private set; }
@@ -61,7 +60,10 @@ public static class Settings
             "Movement",
             "WalkSpeedMult",
             1.25f,
-            new ConfigDescription("Base movement speed multiplier.", new AcceptableValueRange<float>(1f, 2f)));
+            new ConfigDescription(
+                "Base movement speed multiplier (effect tops out at an internal cap of 1.0 total — " +
+                "values much above ~1.4 change little; sprint scales separately).",
+                new AcceptableValueRange<float>(1f, 1.5f)));
 
         SprintSpeedMult = config.Bind(
             "Movement",
@@ -108,14 +110,6 @@ public static class Settings
             "InstantLean",
             true,
             "Use the game's legacy (pre-inertia) fast lean.");
-
-        AccelFactor = config.Bind(
-            "Movement",
-            "AccelFactor",
-            3f,
-            new ConfigDescription(
-                "Extra acceleration towards target speed (1 = vanilla ramp-up).",
-                new AcceptableValueRange<float>(1f, 10f)));
 
         NoBushSlowdown = config.Bind(
             "Movement",

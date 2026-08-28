@@ -17,11 +17,10 @@ namespace ArenaMode.Movement;
 /// </summary>
 internal static class MovementRuntime
 {
-    private static readonly FieldInfo RunDirectionBlendVelocityField =
-        AccessTools.Field(typeof(MovePlayerState), "RunDirectionBlendVelocity");
-
-    private static readonly FieldInfo RunDiscreteDirectionDelayField =
-        AccessTools.Field(typeof(MovePlayerState), "RunDiscreteDirectionDelay");
+    // The SmoothDamp velocity of the direction blend (the FieldKit reference targets
+    // field names that no longer exist in 4.1 — _velocity2 is the live one).
+    private static readonly AccessTools.FieldRef<MovePlayerState, Vector2> DirectionBlendVelocityField =
+        AccessTools.FieldRefAccess<MovePlayerState, Vector2>("_velocity2");
 
     public static void Tick()
     {
@@ -48,8 +47,8 @@ internal static class MovementRuntime
                 state.LastNonZeroDirectionInput = state.LastDirectionInput;
                 state.smoothMovementDirectionTime = 0f;
                 state.smoothMovementDirectionDuration = 0f;
-                RunDirectionBlendVelocityField?.SetValue(state, Vector2.zero);
-                RunDiscreteDirectionDelayField?.SetValue(state, 0f);
+                state.TransitionCoef = 1f;
+                DirectionBlendVelocityField(state) = Vector2.zero;
             }
         }
         catch (Exception)

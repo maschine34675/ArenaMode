@@ -32,6 +32,9 @@ internal static class ArenaMovementPatches
     private static readonly AccessTools.FieldRef<ProceduralWeaponAnimation, Player.ValueBlender> AimSwayBlenderField =
         AccessTools.FieldRefAccess<ProceduralWeaponAnimation, Player.ValueBlender>("_aimSwayBlender");
 
+    private static readonly FieldInfo FirearmAnimationDataField =
+        AccessTools.Field(typeof(ProceduralWeaponAnimation), "_firearmAnimationData");
+
     public static void Enable()
     {
         new MaxSpeedPatch().Enable();
@@ -46,7 +49,6 @@ internal static class ArenaMovementPatches
         new InertiaGetterPatch("WalkInertia").Enable();
         new InertiaGetterPatch("SprintBrakeInertia").Enable();
         new InstantLeanPatch().Enable();
-        new AccelPatch().Enable();
         new BushSlowdownPatch().Enable();
         new JumpHeightPatch().Enable();
         new FallDamagePatch().Enable();
@@ -104,7 +106,13 @@ internal static class ArenaMovementPatches
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.DirectApplyMotion));
 
+        // Priority.Last on BOTH callbacks: CombatSlide brackets the same method with
+        // the same save/set(-1)/restore pattern, and Harmony runs postfixes in the
+        // SAME priority order as prefixes (not reversed). Running strictly inside
+        // CombatSlide's bracket plus the skip-when-already-bypassed guard keeps the
+        // two restores from stranding the controller cap at -1.
         [PatchPrefix]
+        [HarmonyPriority(Priority.Last)]
         private static void Prefix(MovementContext __instance, ref Vector3 motion, out float __state)
         {
             __state = float.NaN;
@@ -116,7 +124,7 @@ internal static class ArenaMovementPatches
             motion.z *= scale;
 
             var controller = __instance.CharacterController;
-            if (controller != null)
+            if (controller != null && controller.SpeedLimit >= 0f)
             {
                 __state = controller.SpeedLimit;
                 controller.SpeedLimit = -1f;
@@ -124,6 +132,7 @@ internal static class ArenaMovementPatches
         }
 
         [PatchPostfix]
+        [HarmonyPriority(Priority.Last)]
         private static void Postfix(MovementContext __instance, float __state)
         {
             if (float.IsNaN(__state))
@@ -163,6 +172,12 @@ internal static class ArenaMovementPatches
             {
                 var mainPlayer = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;
                 if (mainPlayer == null || !ReferenceEquals(mainPlayer.ProceduralWeaponAnimation, __instance))
+                    return;
+
+                // The game only reassigns _aimingSpeed when firearm data is present —
+                // multiplying on other invocations (grenade/melee/empty hands) would
+                // compound the factor call after call.
+                if (FirearmAnimationDataField?.GetValue(__instance) == null)
                     return;
 
                 ref var aimingSpeed = ref AimingSpeedField(__instance);
@@ -220,44 +235,12 @@ internal static class ArenaMovementPatches
         }
     }
 
-    /// <summary>
-    /// Speed getters only raise the CEILING — the ramp towards it is a separate
-    /// lerp in ManualUpdate. Adds (AccelFactor-1)x extra convergence per frame.
-    /// </summary>
-    private sealed class AccelPatch : ModulePatch
-    {
-        protected override MethodBase GetTargetMethod()
-            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.ManualUpdate));
-
-        [PatchPostfix]
-        private static void Postfix(MovementContext __instance, float deltaTime)
-        {
-            var factor = Settings.AccelFactor.Value;
-            if (factor <= 1f || !IsArenaMovement(__instance))
-                return;
-
-            try
-            {
-                var player = PlayerField(__instance);
-                if (player.Physical.Sprinting)
-                    return;
-
-                var current = __instance.SmoothedCharacterMovementSpeed;
-                var target = __instance.ClampedSpeed;
-                if (Mathf.Abs(target - current) < 0.001f)
-                    return;
-
-                __instance.SmoothedCharacterMovementSpeed = Mathf.Lerp(
-                    current,
-                    target,
-                    deltaTime * EFTHardSettings.Instance.CHARACTER_SPEED_CHANGING_SPEED * (factor - 1f));
-            }
-            catch
-            {
-                // Fail open — vanilla ramp continues.
-            }
-        }
-    }
+    // NOTE: no separate acceleration patch. The reviewed ClassicMovement hook
+    // (ManualUpdate + CHARACTER_SPEED_CHANGING_SPEED) has ZERO consumers in the 4.1
+    // client — the real ramp is MovePlayerState.UpdateMovementDirection's SmoothDamp,
+    // whose time constant is WalkInertia: the NoInertia getter patch already makes
+    // ramp-up effectively instant. An extra lerp here would fight the state machine
+    // (walk-bob while standing still, defeated landing deceleration).
 
     /// <summary>Foliage slowdown lives in the obstacle list, not in any speed getter.</summary>
     private sealed class BushSlowdownPatch : ModulePatch
