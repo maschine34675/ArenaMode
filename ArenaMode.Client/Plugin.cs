@@ -31,6 +31,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());
         Bots.ArenaBotPatches.Enable();
+        Movement.ArenaMovementPatches.Enable();
         PerfectCullingFix.EnableOnce();
 
         gameObject.AddComponent<ArenaController>();
