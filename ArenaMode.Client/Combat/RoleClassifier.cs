@@ -39,6 +39,10 @@ internal static class RoleClassifier
             case WildSpawnType.followerBigPipe:
             case WildSpawnType.followerBirdEye:
                 return ArenaRole.Boss;
+
+            // BSG typo ("sectact") defeats the StartsWith("sectant") fallback.
+            case WildSpawnType.sectactPriestEvent:
+                return ArenaRole.Follower;
         }
 
         var name = role.ToString();
