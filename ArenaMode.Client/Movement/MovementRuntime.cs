@@ -20,14 +20,23 @@ internal static class MovementRuntime
     // NOTE: the FieldKit-style per-frame MovePlayerState direction snap
     // (InertiaDirection/_velocity2/smoothMovementDirectionTime zeroing) was removed:
     // it made walking strafes flip with zero animation blend — the "choppy" feel
-    // from the first M4 playtest. The inertia getter patches carry the feature.
+    // from the first M4 playtest. Inertia values are written by the
+    // InertiaValuesPatch on WeightRelatedValuesUpdated; the trigger below re-runs
+    // that recompute when the F12 knobs change (and once per raid), because no
+    // natural weight update fires on a config edit.
+
+    private static bool _lastNoInertia;
+    private static float _lastStrafeSmoothing = -1f;
 
     public static void Tick()
     {
         SprintAdsPatches.ClearBypassSafety();
 
         if (!ArenaSession.IsActive || !Settings.MovementEnabled.Value || !Singleton<GameWorld>.Instantiated)
+        {
+            _lastStrafeSmoothing = -1f;
             return;
+        }
 
         var player = Singleton<GameWorld>.Instance.MainPlayer;
         if (player == null || player.HealthController == null || !player.HealthController.IsAlive)
@@ -52,6 +61,14 @@ internal static class MovementRuntime
                 player.Physical.Oxygen.Current = player.Physical.Oxygen.TotalCapacity;
             }
 
+            if (player.Physical != null
+                && (Settings.NoInertia.Value != _lastNoInertia
+                    || !Mathf.Approximately(Settings.StrafeSmoothing.Value, _lastStrafeSmoothing)))
+            {
+                _lastNoInertia = Settings.NoInertia.Value;
+                _lastStrafeSmoothing = Settings.StrafeSmoothing.Value;
+                player.Physical.OnWeightUpdated();
+            }
         }
         catch (Exception)
         {

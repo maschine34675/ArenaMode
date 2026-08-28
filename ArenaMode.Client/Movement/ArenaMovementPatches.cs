@@ -42,12 +42,7 @@ internal static class ArenaMovementPatches
         new MotionScalePatch().Enable();
         new AdsSlowdownPatch().Enable();
         new AdsTransitionPatch().Enable();
-        new InertiaGetterPatch("Inertia").Enable();
-        new InertiaGetterPatch("PoseInertia").Enable();
-        new InertiaGetterPatch("WalkInertia").Enable();
-        new InertiaGetterPatch("SprintBrakeInertia").Enable();
-        new StrafeInertiaPatch("MoveSideInertia").Enable();
-        new StrafeInertiaPatch("MoveDiagonalInertia").Enable();
+        new InertiaValuesPatch().Enable();
         new InstantLeanPatch().Enable();
         new SlideAnimPatch().Enable();
         new BushSlowdownPatch().Enable();
@@ -254,53 +249,55 @@ internal static class ArenaMovementPatches
     }
 
     /// <summary>
-    /// Inertia is SIX MovementContext getters, not one value — patching the getters
-    /// wins over every weight-driven recompute because all consumers read through them.
+    /// Inertia removal writes VALUES, not getter patches: the inertia getters are
+    /// tiny non-virtual bodies (field loads) the Mono JIT inlines at the
+    /// MovePlayerState call sites, so Harmony postfixes on them never fire there —
+    /// the original getter approach only appeared to work while the per-frame state
+    /// snap was still doing everything. WeightRelatedValuesUpdated IS virtual, runs
+    /// after every PhysicalBase weight recompute, and consumers read the very
+    /// fields/backing fields overwritten here — inlined call sites included.
+    ///
+    /// MovePlayerState blends with smoothTime = TransitionCoef * WalkInertia *
+    /// (side/diagonal factor). WalkInertia gets floored to near-zero (instant
+    /// accelerate/stop), the side factors are rescaled so StrafeSmoothing is a true
+    /// fraction of the VANILLA direction blend independent of that floor, and
+    /// Physical.Inertia = 0 kills the direction-reversal dead-stop
+    /// (MoveTimeRange.Evaluate) plus the diagonal stay time. ProcessDirection's
+    /// MinDirectionBlendTime floor keeps dial 0 from snapping the animation the way
+    /// the removed state snap did. Every value is freshly recomputed from weight
+    /// before this postfix runs, so the in-place scaling never compounds.
     /// </summary>
-    private sealed class InertiaGetterPatch : ModulePatch
+    private sealed class InertiaValuesPatch : ModulePatch
     {
-        private readonly string _property;
-
-        public InertiaGetterPatch(string property)
-        {
-            _property = property;
-        }
+        internal const float WalkInertiaFloor = 0.005f;
 
         protected override MethodBase GetTargetMethod()
-            => AccessTools.PropertyGetter(typeof(MovementContext), _property);
+            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.WeightRelatedValuesUpdated));
 
         [PatchPostfix]
-        private static void Postfix(MovementContext __instance, ref float __result)
+        private static void Postfix(MovementContext __instance)
         {
-            if (Settings.NoInertia.Value && IsArenaMovement(__instance))
-                __result = 0f;
-        }
-    }
+            if (!Settings.NoInertia.Value || !IsArenaMovement(__instance))
+                return;
 
-    /// <summary>
-    /// Strafe direction blending gets its OWN dial: forcing the side/diagonal
-    /// inertia to 0 (like the other getters) made walking strafes flip without
-    /// any animation blend — visibly choppy (first playtest). A small residual
-    /// smoothing keeps the responsiveness while the animator can still blend;
-    /// sprint feels fine either way (it blends via SprintAcceleration).
-    /// </summary>
-    private sealed class StrafeInertiaPatch : ModulePatch
-    {
-        private readonly string _property;
+            try
+            {
+                var physical = PlayerField(__instance).Physical;
+                var vanillaWalk = __instance.WalkInertia;
 
-        public StrafeInertiaPatch(string property)
-        {
-            _property = property;
-        }
+                __instance.WalkInertia = WalkInertiaFloor;
+                __instance.SprintBrakeInertia = 0f;
 
-        protected override MethodBase GetTargetMethod()
-            => AccessTools.PropertyGetter(typeof(MovementContext), _property);
+                var strafeScale = vanillaWalk * Mathf.Clamp01(Settings.StrafeSmoothing.Value) / WalkInertiaFloor;
+                physical.MoveSideInertia *= strafeScale;
+                physical.MoveDiagonalInertia *= strafeScale;
 
-        [PatchPostfix]
-        private static void Postfix(MovementContext __instance, ref float __result)
-        {
-            if (Settings.NoInertia.Value && IsArenaMovement(__instance))
-                __result *= Settings.StrafeSmoothing.Value;
+                physical.Inertia = 0f;
+            }
+            catch (Exception)
+            {
+                // Fail open — the vanilla values stay.
+            }
         }
     }
 

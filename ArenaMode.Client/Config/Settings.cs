@@ -118,8 +118,8 @@ public static class Settings
             "StrafeSmoothing",
             0.25f,
             new ConfigDescription(
-                "Residual direction-blend while walking (0 = instant but visibly choppy " +
-                "strafe animation, 1 = vanilla blend). Only applies with NoInertia on.",
+                "Fraction of the vanilla walking direction-blend kept with NoInertia on " +
+                "(0 = near-instant strafes, 1 = full vanilla blend). Applies immediately.",
                 new AcceptableValueRange<float>(0f, 1f)));
 
         InstantLean = config.Bind(
