@@ -3,6 +3,7 @@ using ArenaMode.Loot;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
+using EFT.Animations;
 using EFT.Interactive;
 using System;
 using System.Collections.Generic;
@@ -85,6 +86,7 @@ internal static class CorpseCleanupService
                     continue;
                 }
 
+                SanitizePooledBodyState(corpse);
                 RemoveFromDeadBodiesController(corpse.PlayerProfileID);
                 world.DestroyLoot(corpse);
                 overflow--;
@@ -97,6 +99,49 @@ internal static class CorpseCleanupService
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena corpse cleanup failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// DestroyLoot pushes the whole skeleton — ProceduralWeaponAnimation included —
+    /// back onto the SHARED player asset pool, and the pool reset never touches the
+    /// PWA effectors. A bot body carries a DrawDown-only procedural mask
+    /// (BotOwner.Create) that would kill ALL recoil for a local player respawning
+    /// onto it later, plus possibly a latched lame walk preset and breath tremor
+    /// from bot health. Scrub before returning: bots re-strip their own mask on
+    /// spawn, so a clean body is correct for every future pool consumer.
+    /// </summary>
+    private static void SanitizePooledBodyState(Corpse corpse)
+    {
+        try
+        {
+            var weaponAnimation = corpse.GetComponentInChildren<ProceduralWeaponAnimation>(true);
+            if (weaponAnimation == null)
+                return;
+
+            // HandShake stays clear: vanilla steady state is off (raised only
+            // transiently by StartHandShake, lowered only by its coroutine).
+            weaponAnimation.Mask =
+                EProceduralAnimationMask.Breathing
+                | EProceduralAnimationMask.Walking
+                | EProceduralAnimationMask.MotionReaction
+                | EProceduralAnimationMask.ForceReaction
+                | EProceduralAnimationMask.Shooting
+                | EProceduralAnimationMask.DrawDown
+                | EProceduralAnimationMask.Aiming;
+
+            if (weaponAnimation.Walk != null)
+                weaponAnimation.Walk.CurrentWalkPreset = WalkEffector.EWalkPreset.normal;
+
+            if (weaponAnimation.Breath != null)
+            {
+                weaponAnimation.Breath.TremorOn = false;
+                weaponAnimation.Breath.Fracture = false;
+            }
+        }
+        catch
+        {
+            // Best effort — the respawn-side mask restore covers a missed scrub.
         }
     }
 

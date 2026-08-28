@@ -37,18 +37,20 @@ internal static class ArenaMovementPatches
 
     public static void Enable()
     {
-        new MaxSpeedPatch().Enable();
-        new SprintSpeedPatch().Enable();
         new MotionScalePatch().Enable();
+        new SprintSpeedTargetPatch().Enable();
         new AdsSlowdownPatch().Enable();
         new AdsTransitionPatch().Enable();
         new InertiaValuesPatch().Enable();
+        new StrafeBlendPatch().Enable();
         new InstantLeanPatch().Enable();
         new SlideAnimPatch().Enable();
         new BushSlowdownPatch().Enable();
         new JumpHeightPatch().Enable();
         new FallDamagePatch().Enable();
     }
+
+    internal static void ResetPerRaidState() => InertiaValuesPatch.LoggedThisRaid = false;
 
     private static bool IsArenaMovement(MovementContext context)
     {
@@ -66,29 +68,54 @@ internal static class ArenaMovementPatches
         }
     }
 
-    private sealed class MaxSpeedPatch : ModulePatch
+    /// <summary>
+    /// Sprint speed rides the animator 'SprintSpeed' root-motion parameter whose
+    /// per-frame target is (Physical.SprintSpeed * SprintingSpeed + 1) *
+    /// StateSprintSpeedLimit — bracketing the limit scales the target AND the leg
+    /// animation together (no foot slide). The SprintingSpeed getter postfix this
+    /// replaces was structurally swallowed: displacement is clamped in m/s by the
+    /// CharacterController SpeedLimit, which the DirectApplyMotion bracket lifts.
+    /// </summary>
+    private sealed class SprintSpeedTargetPatch : ModulePatch
     {
-        protected override MethodBase GetTargetMethod()
-            => AccessTools.PropertyGetter(typeof(MovementContext), nameof(MovementContext.MaxSpeed));
+        private static MovementContext _restoreContext;
+        private static float _restoreValue;
 
-        [PatchPostfix]
-        private static void Postfix(MovementContext __instance, ref float __result)
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.SprintAcceleration));
+
+        [PatchPrefix]
+        private static void Prefix(MovementContext __instance, out float __state)
         {
-            if (IsArenaMovement(__instance))
-                __result *= Settings.WalkSpeedMult.Value;
+            __state = float.NaN;
+
+            // Self-heal: if the original threw last frame the postfix was skipped
+            // and the inflated limit would become the next baseline — restoring
+            // here caps the damage at one frame instead of compounding.
+            if (ReferenceEquals(_restoreContext, __instance))
+            {
+                __instance.StateSprintSpeedLimit = _restoreValue;
+                _restoreContext = null;
+            }
+
+            var mult = Settings.SprintSpeedMult.Value;
+            if (mult <= 1f || !IsArenaMovement(__instance))
+                return;
+
+            __state = __instance.StateSprintSpeedLimit;
+            _restoreContext = __instance;
+            _restoreValue = __state;
+            __instance.StateSprintSpeedLimit = __state * mult;
         }
-    }
-
-    private sealed class SprintSpeedPatch : ModulePatch
-    {
-        protected override MethodBase GetTargetMethod()
-            => AccessTools.PropertyGetter(typeof(MovementContext), nameof(MovementContext.SprintingSpeed));
 
         [PatchPostfix]
-        private static void Postfix(MovementContext __instance, ref float __result)
+        private static void Postfix(MovementContext __instance, float __state)
         {
-            if (IsArenaMovement(__instance))
-                __result *= Settings.SprintSpeedMult.Value;
+            if (float.IsNaN(__state))
+                return;
+
+            __instance.StateSprintSpeedLimit = __state;
+            _restoreContext = null;
         }
     }
 
@@ -102,6 +129,9 @@ internal static class ArenaMovementPatches
     /// </summary>
     private sealed class MotionScalePatch : ModulePatch
     {
+        private static MovementContext _limitRestoreContext;
+        private static float _limitRestoreValue;
+
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.DirectApplyMotion));
 
@@ -110,11 +140,52 @@ internal static class ArenaMovementPatches
         private static void Prefix(MovementContext __instance, ref Vector3 motion, float deltaTime, out float __state)
         {
             __state = float.NaN;
+
+            // Self-heal: a plain postfix is skipped when the original throws — a
+            // stuck SpeedLimit of -1 would disable the m/s clamp until the next
+            // state transition. Restore any missed bracket before opening a new one.
+            if (ReferenceEquals(_limitRestoreContext, __instance))
+            {
+                var healController = __instance.CharacterController;
+                if (healController != null)
+                    healController.SpeedLimit = _limitRestoreValue;
+                _limitRestoreContext = null;
+            }
+
             if (!IsArenaMovement(__instance))
                 return;
 
             var touched = false;
 
+            // Displacement is animator root motion and the walk chain is triple-
+            // clamped at a normalized 1.0 (MovePlayerState constant clamp,
+            // StateSpeedLimit, animator 'Speed' param) — the walk multiplier can
+            // ONLY exist here, post-clamp. Sprint displacement is raised through
+            // the animator target instead (SprintSpeedTargetPatch, legs keep up),
+            // so it is not double-scaled here — but the m/s SpeedLimit bracket
+            // below must still engage for the faster sprint to be visible.
+            // Jump/fall frames inherit the treatment of the state they launched
+            // from: a sprint jump's air motion already carries the raised sprint
+            // momentum, so adding the walk factor would accelerate it mid-air.
+            var stateName = __instance.CurrentState != null
+                ? __instance.CurrentState.Name
+                : EPlayerState.Idle;
+            var airborne = stateName == EPlayerState.Jump || stateName == EPlayerState.FallDown;
+            var sprinting = stateName == EPlayerState.Sprint
+                || (airborne
+                    && __instance.PreviousState != null
+                    && __instance.PreviousState.Name == EPlayerState.Sprint);
+            var scale = Settings.ExtraMotionScale.Value
+                * (sprinting ? 1f : Settings.WalkSpeedMult.Value);
+            if (scale > 1f)
+            {
+                motion.x *= scale;
+                motion.z *= scale;
+                touched = true;
+            }
+
+            // The slide controller's velocities are tuned in real m/s — add them
+            // AFTER the root-motion scaling so they are not stretched by it.
             if (Settings.SlideEnabled.Value)
             {
                 var slide = PlayerField(__instance)?.GetComponent<ArenaSlideController>();
@@ -125,13 +196,8 @@ internal static class ArenaMovementPatches
                 }
             }
 
-            var scale = Settings.ExtraMotionScale.Value;
-            if (scale > 1f)
-            {
-                motion.x *= scale;
-                motion.z *= scale;
+            if (sprinting && Settings.SprintSpeedMult.Value > 1f)
                 touched = true;
-            }
 
             if (!touched)
                 return;
@@ -140,6 +206,8 @@ internal static class ArenaMovementPatches
             if (controller != null && controller.SpeedLimit >= 0f)
             {
                 __state = controller.SpeedLimit;
+                _limitRestoreContext = __instance;
+                _limitRestoreValue = __state;
                 controller.SpeedLimit = -1f;
             }
         }
@@ -154,6 +222,7 @@ internal static class ArenaMovementPatches
             var controller = __instance.CharacterController;
             if (controller != null)
                 controller.SpeedLimit = __state;
+            _limitRestoreContext = null;
         }
     }
 
@@ -198,16 +267,25 @@ internal static class ArenaMovementPatches
         }
     }
 
+    /// <summary>
+    /// The ADS movement penalty lands as a state speed limit. The former
+    /// SetAimingSlowdown prefix sat right at Mono's ~20-byte inline threshold and
+    /// could silently never fire; AddStateSpeedLimit is safely above it and the
+    /// Aiming cause uniquely identifies the path.
+    /// </summary>
     private sealed class AdsSlowdownPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
-            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.SetAimingSlowdown));
+            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.AddStateSpeedLimit),
+                new[] { typeof(float), typeof(Player.ESpeedLimit) });
 
         [PatchPrefix]
-        private static void Prefix(MovementContext __instance, ref float slow)
+        private static void Prefix(MovementContext __instance, ref float speedLimit, Player.ESpeedLimit cause)
         {
-            if (IsArenaMovement(__instance))
-                slow = Mathf.Lerp(slow, 1f, Settings.AdsMoveFactor.Value);
+            if (cause != Player.ESpeedLimit.Aiming || !IsArenaMovement(__instance))
+                return;
+
+            speedLimit = Mathf.Lerp(speedLimit, 1f, Settings.AdsMoveFactor.Value);
         }
     }
 
@@ -228,10 +306,15 @@ internal static class ArenaMovementPatches
                 if (mainPlayer == null || !ReferenceEquals(mainPlayer.ProceduralWeaponAnimation, __instance))
                     return;
 
-                // The game only reassigns _aimingSpeed when firearm data is present —
-                // multiplying on other invocations (grenade/melee/empty hands) would
-                // compound the factor call after call.
-                if (FirearmAnimationDataField?.GetValue(__instance) == null)
+                // The game only reassigns _aimingSpeed when firearm data AND its
+                // Weapon are present — multiplying on any other invocation
+                // (grenade/melee/empty hands, weaponless data) would compound the
+                // factor call after call.
+                var animationData = FirearmAnimationDataField?.GetValue(__instance);
+                if (animationData == null)
+                    return;
+
+                if (AccessTools.Property(animationData.GetType(), "Weapon")?.GetValue(animationData) == null)
                     return;
 
                 ref var aimingSpeed = ref AimingSpeedField(__instance);
@@ -258,18 +341,19 @@ internal static class ArenaMovementPatches
     /// fields/backing fields overwritten here — inlined call sites included.
     ///
     /// MovePlayerState blends with smoothTime = TransitionCoef * WalkInertia *
-    /// (side/diagonal factor). WalkInertia gets floored to near-zero (instant
-    /// accelerate/stop), the side factors are rescaled so StrafeSmoothing is a true
-    /// fraction of the VANILLA direction blend independent of that floor, and
-    /// Physical.Inertia = 0 kills the direction-reversal dead-stop
-    /// (MoveTimeRange.Evaluate) plus the diagonal stay time. ProcessDirection's
-    /// MinDirectionBlendTime floor keeps dial 0 from snapping the animation the way
-    /// the removed state snap did. Every value is freshly recomputed from weight
-    /// before this postfix runs, so the in-place scaling never compounds.
+    /// (side/diagonal factor). WalkInertia gets floored to its zero-inertia vanilla
+    /// value (instant accelerate/stop), and Physical.Inertia = 0 kills the
+    /// direction-reversal dead-stop (MoveTimeRange.Evaluate) plus the diagonal stay
+    /// time. The strafe dial does NOT live here: the direction blend is dominated
+    /// by the MinDirectionBlendTime floor, which only StrafeBlendPatch can scale.
+    /// Every value is freshly recomputed from weight before this postfix runs, so
+    /// the writes never compound.
     /// </summary>
     private sealed class InertiaValuesPatch : ModulePatch
     {
         internal const float WalkInertiaFloor = 0.005f;
+
+        internal static bool LoggedThisRaid;
 
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.WeightRelatedValuesUpdated));
@@ -287,16 +371,88 @@ internal static class ArenaMovementPatches
 
                 __instance.WalkInertia = WalkInertiaFloor;
                 __instance.SprintBrakeInertia = 0f;
-
-                var strafeScale = vanillaWalk * Mathf.Clamp01(Settings.StrafeSmoothing.Value) / WalkInertiaFloor;
-                physical.MoveSideInertia *= strafeScale;
-                physical.MoveDiagonalInertia *= strafeScale;
-
                 physical.Inertia = 0f;
+
+                if (!LoggedThisRaid)
+                {
+                    LoggedThisRaid = true;
+                    Plugin.ModLogger.LogInfo(
+                        $"Arena inertia values applied (WalkInertia {vanillaWalk:0.###} -> {WalkInertiaFloor}, SprintBrakeInertia -> 0, Inertia -> 0).");
+                }
             }
             catch (Exception)
             {
                 // Fail open — the vanilla values stay.
+            }
+        }
+    }
+
+    private static readonly AccessTools.FieldRef<MovePlayerState, float> DirectionSpeedAccelField =
+        AccessTools.FieldRefAccess<MovePlayerState, float>("_directionSpeedAcceleration");
+
+    private static readonly AccessTools.FieldRef<MovePlayerState, Vector2> DirectionBlendVelocityField =
+        AccessTools.FieldRefAccess<MovePlayerState, Vector2>("_velocity2");
+
+    /// <summary>
+    /// The strafe dial has to scale the game's own FLOOR: the walking direction
+    /// blend is SmoothDamp with time Max(MinDirectionBlendTime = 0.15s, smoothTime)
+    /// and with NoInertia the incoming smoothTime is already ~0 — every value-level
+    /// dial lands below the floor and changes nothing (the earlier playtests).
+    /// Reimplements the five-line ProcessDirection body with the floor scaled by
+    /// StrafeSmoothing: 1 = the vanilla path bit-for-bit (prefix falls through),
+    /// 0 = instant flip. Prone falls through to vanilla entirely.
+    /// </summary>
+    private sealed class StrafeBlendPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(MovePlayerState), nameof(MovePlayerState.ProcessDirection));
+
+        [PatchPrefix]
+        private static bool Prefix(MovePlayerState __instance, float deltaTime, float smoothTime)
+        {
+            if (!Settings.NoInertia.Value)
+                return true;
+
+            var context = __instance.MovementContext;
+            if (context == null || context.IsInPronePose || !IsArenaMovement(context))
+                return true;
+
+            var dial = Mathf.Clamp01(Settings.StrafeSmoothing.Value);
+            if (dial >= 1f)
+                return true;
+
+            try
+            {
+                var direction = __instance.Direction;
+                __instance.LastDirectionInput = direction;
+                if (direction.sqrMagnitude > 1e-8f)
+                    __instance.LastNonZeroDirectionInput = direction;
+
+                var floor = Singleton<GlobalConfiguration>.Instance.Inertia.MinDirectionBlendTime * dial;
+                __instance.InertiaDirection = Vector2.SmoothDamp(
+                    __instance.InertiaDirection,
+                    direction,
+                    ref DirectionBlendVelocityField(__instance),
+                    Mathf.Max(floor, smoothTime) / DirectionSpeedAccelField(__instance),
+                    EFTHardSettings.Instance.InertiaInputMaxSpeed,
+                    deltaTime);
+                __instance.InverseTransformDirection(__instance.InertiaDirection);
+
+                // InverseTransformDirection just restored Direction to the player-
+                // LOCAL input; the discrete animator direction must be built from
+                // THAT (the capture above is world-space — using it would make the
+                // strafe animation facing-dependent).
+                var localDirection = __instance.Direction;
+                var movementDirection = localDirection.sqrMagnitude > 1e-8f
+                    ? localDirection
+                    : context.MovementDirection;
+                __instance.SetSmoothDiscreteDirection(
+                    MovementDirectionExtension.ConvertToMovementDirection(movementDirection), deltaTime);
+                return false;
+            }
+            catch (Exception)
+            {
+                return true; // fail open — the vanilla path runs
             }
         }
     }

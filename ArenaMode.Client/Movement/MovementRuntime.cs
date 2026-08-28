@@ -17,16 +17,15 @@ namespace ArenaMode.Movement;
 /// </summary>
 internal static class MovementRuntime
 {
-    // NOTE: the FieldKit-style per-frame MovePlayerState direction snap
-    // (InertiaDirection/_velocity2/smoothMovementDirectionTime zeroing) was removed:
-    // it made walking strafes flip with zero animation blend — the "choppy" feel
-    // from the first M4 playtest. Inertia values are written by the
-    // InertiaValuesPatch on WeightRelatedValuesUpdated; the trigger below re-runs
-    // that recompute when the F12 knobs change (and once per raid), because no
-    // natural weight update fires on a config edit.
+    // NOTE: the FieldKit-style per-frame MovePlayerState direction snap was
+    // removed (choppy strafes); direction-blend responsiveness now lives in
+    // StrafeBlendPatch (per-frame dial read, no re-trigger needed). Inertia VALUES
+    // are written by InertiaValuesPatch on WeightRelatedValuesUpdated; the trigger
+    // below runs that recompute once per raid and when NoInertia is toggled,
+    // because no natural weight update fires on a config edit.
 
     private static bool _lastNoInertia;
-    private static float _lastStrafeSmoothing = -1f;
+    private static bool _weightValuesApplied;
 
     public static void Tick()
     {
@@ -34,7 +33,31 @@ internal static class MovementRuntime
 
         if (!ArenaSession.IsActive || !Settings.MovementEnabled.Value || !Singleton<GameWorld>.Instantiated)
         {
-            _lastStrafeSmoothing = -1f;
+            if (_weightValuesApplied)
+            {
+                _weightValuesApplied = false;
+                // Bring the vanilla inertia values back immediately (e.g. the
+                // MovementEnabled master switch flipped off mid-raid) — without
+                // this they stay latched until the next natural weight update.
+                try
+                {
+                    var mainPlayer = Singleton<GameWorld>.Instantiated
+                        ? Singleton<GameWorld>.Instance.MainPlayer
+                        : null;
+                    if (mainPlayer != null
+                        && mainPlayer.HealthController != null
+                        && mainPlayer.HealthController.IsAlive)
+                    {
+                        mainPlayer.Physical?.OnWeightUpdated();
+                    }
+                }
+                catch (Exception)
+                {
+                    // Raid teardown — the next raid starts from vanilla anyway.
+                }
+            }
+
+            ArenaMovementPatches.ResetPerRaidState();
             return;
         }
 
@@ -62,11 +85,10 @@ internal static class MovementRuntime
             }
 
             if (player.Physical != null
-                && (Settings.NoInertia.Value != _lastNoInertia
-                    || !Mathf.Approximately(Settings.StrafeSmoothing.Value, _lastStrafeSmoothing)))
+                && (!_weightValuesApplied || Settings.NoInertia.Value != _lastNoInertia))
             {
+                _weightValuesApplied = true;
                 _lastNoInertia = Settings.NoInertia.Value;
-                _lastStrafeSmoothing = Settings.StrafeSmoothing.Value;
                 player.Physical.OnWeightUpdated();
             }
         }

@@ -3,6 +3,7 @@ using ArenaMode.Session;
 using EFT;
 using EFT.InventoryLogic;
 using EFT.InventoryLogic.Operations;
+using EFT.UI;
 using EFT.UI.SessionEnd;
 using HarmonyLib;
 using SPT.Reflection.Patching;
@@ -24,15 +25,23 @@ internal static class ArenaLootPatches
     /// Instant search rides the elite lucky-search mechanism, which stings its
     /// "looting_luck2" jingle on every operation — three times per corpse with
     /// the auto-search chain. Mute it while the arena drives instant searches.
+    /// Targets GUISounds.PlayItemSound instead of PlayInstantSearchSound: that
+    /// wrapper is an ~18-byte static body under Mono's inline threshold with its
+    /// only caller in the same class, so a prefix on it can silently never fire.
+    /// The sound-group filter keeps every other item sound untouched.
     /// </summary>
     private sealed class MuteInstantSearchJinglePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
-            => AccessTools.Method(typeof(SinglePlayerSearchContentOperation), "PlayInstantSearchSound");
+            => AccessTools.Method(typeof(GUISounds), nameof(GUISounds.PlayItemSound),
+                new[] { typeof(string), typeof(EInventorySoundType), typeof(bool) });
 
         [PatchPrefix]
-        private static bool Prefix()
+        private static bool Prefix(string soundGroup)
         {
+            if (soundGroup != "looting_luck2")
+                return true;
+
             return !(ArenaSession.IsActive && Settings.InstantSearch.Value);
         }
     }

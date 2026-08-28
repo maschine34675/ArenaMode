@@ -69,15 +69,18 @@ public static class Settings
             "WalkSpeedMult",
             1.25f,
             new ConfigDescription(
-                "Base movement speed multiplier (effect tops out at an internal cap of 1.0 total — " +
-                "values much above ~1.4 change little; sprint scales separately).",
+                "Walk/strafe displacement multiplier (stacks with ExtraMotionScale; " +
+                "legs animate at vanilla pace, so high values show light foot-slide).",
                 new AcceptableValueRange<float>(1f, 1.5f)));
 
         SprintSpeedMult = config.Bind(
             "Movement",
             "SprintSpeedMult",
             1.3f,
-            new ConfigDescription("Sprint speed multiplier.", new AcceptableValueRange<float>(1f, 2f)));
+            new ConfigDescription(
+                "Sprint speed multiplier (raises the sprint animation target too, " +
+                "so the legs keep up with the speed).",
+                new AcceptableValueRange<float>(1f, 2f)));
 
         ExtraMotionScale = config.Bind(
             "Movement",
@@ -118,8 +121,8 @@ public static class Settings
             "StrafeSmoothing",
             0.25f,
             new ConfigDescription(
-                "Fraction of the vanilla walking direction-blend kept with NoInertia on " +
-                "(0 = near-instant strafes, 1 = full vanilla blend). Applies immediately.",
+                "Scales the game's 0.15s walking direction-blend floor with NoInertia on " +
+                "(0 = instant strafe flips, 1 = full vanilla blend). Applies immediately.",
                 new AcceptableValueRange<float>(0f, 1f)));
 
         InstantLean = config.Bind(
