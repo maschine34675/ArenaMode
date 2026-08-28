@@ -150,11 +150,13 @@ internal static class CorpseCleanupService
 
             var pool = corpse.GetComponent<AssetPoolObject>();
 
-            // The pool object caches the whole body's renderers; fall back to the
-            // hierarchy if a body ever arrives without that cache.
-            var renderers = pool?.Renderers != null && pool.Renderers.Count > 0
-                ? pool.Renderers.ToArray()
-                : corpse.GetComponentsInChildren<Renderer>(true);
+            // Always walk the hierarchy: the pool object caches its renderer list
+            // when the role model is created, which is BEFORE PlayerBody.Init
+            // instantiates the actual body skins — so the cached list misses
+            // exactly the meshes that make a corpse visible. (Hiding those is
+            // leak-free anyway: Dispose destroys the skins, the next body gets
+            // fresh ones.)
+            var renderers = corpse.GetComponentsInChildren<Renderer>(true);
 
             foreach (var renderer in renderers)
             {
