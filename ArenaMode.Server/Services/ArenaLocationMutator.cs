@@ -39,7 +39,11 @@ public static class ArenaLocationMutator
         location.EscapeTimeLimit = config.RaidTimeMinutes;
         location.EscapeTimeLimitPVE = config.RaidTimeMinutes;
 
-        // Alive caps and spawn cadence (read by vanilla scheduler AND ABPS's pump).
+        // Alive caps (BotMax feeds the maxCap route; the client-side cap patch is the
+        // authority when ABPS is installed — its pump reads _maxCount, not the clone)
+        // and spawn cadence. Note BotSpawnPeriodCheck is floored to 10-15s by both the
+        // vanilla scheduler and ABPS's pump — the density beyond that comes from the
+        // client burst spawner.
         location.BotMax = map.BotMax;
         location.BotMaxPvE = map.BotMax;
         location.MaxBotPerZone = map.MaxBotPerZone;
@@ -51,6 +55,12 @@ public static class ArenaLocationMutator
         location.BotSpawnTimeOffMin = 0;
         location.BotSpawnTimeOffMax = 0;
         location.BotSpawnCountStep = 1;
+
+        // The continuous (non-waves) spawner only RUNS when these flags are set —
+        // ABPS's server turns them off when its scav waves are disabled in config,
+        // which would leave the arena with no scav spawn source at all.
+        location.NewSpawn = true;
+        location.OfflineNewSpawn = true;
 
         if (location.BotLocationModifier != null)
         {

@@ -36,6 +36,17 @@ public static class ArenaSession
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map}.");
     }
 
+    /// <summary>Drops a stale armed flag and tells the server to discard its snapshot.</summary>
+    public static void ClearArmed(string reason)
+    {
+        if (!ArmedForNextRaid)
+            return;
+
+        ArmedForNextRaid = false;
+        Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
+        ArenaServerClient.PostRaidCancel();
+    }
+
     private static void OnRaidStarted(GameWorld world)
     {
         if (!ArmedForNextRaid)
@@ -45,12 +56,16 @@ public static class ArenaSession
         ArmedForNextRaid = false;
 
         if (FikaCompatCheck.IsFikaLoaded)
+        {
+            ArenaServerClient.PostRaidCancel();
             return;
+        }
 
         if (!string.Equals(location, ArmedMap, StringComparison.OrdinalIgnoreCase))
         {
             Plugin.ModLogger.LogWarning(
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
+            ArenaServerClient.PostRaidCancel();
             return;
         }
 
@@ -70,12 +85,46 @@ public static class ArenaSession
             Plugin.ModLogger.LogWarning($"Arena toast failed: {ex.Message}");
         }
 
+        // Bot groups created during the deploy countdown predate the IsActive latch —
+        // their one-time hostility decision missed the IsPlayerEnemy patch. Force the
+        // human into every existing group's enemy list once.
+        ForceExistingGroupsHostile(world);
+
         // Pre-warm the spawn system (respawns need it) and swap the real gear for
         // the selected kit via an in-place respawn.
         if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
         {
             Redeploy.Core.Spawning.SpawnSystemCache.Warm(game);
             Respawn.RaidStartKitSwap.Run(game);
+        }
+    }
+
+    private static void ForceExistingGroupsHostile(GameWorld world)
+    {
+        try
+        {
+            var mainPlayer = world?.MainPlayer;
+            var spawner = (Comfort.Common.Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;
+            if (mainPlayer == null || spawner?._bots?.BotOwners == null)
+                return;
+
+            var forced = 0;
+            foreach (var bot in spawner._bots.BotOwners)
+            {
+                var group = bot?.BotsGroup;
+                if (group == null || group.IsEnemy(mainPlayer))
+                    continue;
+
+                if (group.AddEnemy(mainPlayer, EBotEnemyCause.initial))
+                    forced++;
+            }
+
+            if (forced > 0)
+                Plugin.ModLogger.LogInfo($"Arena: forced {forced} pre-start bot group(s) hostile.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena: pre-start hostility sweep failed: {ex.Message}");
         }
     }
 

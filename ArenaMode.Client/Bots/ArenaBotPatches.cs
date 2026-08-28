@@ -39,9 +39,11 @@ internal static class ArenaBotPatches
     }
 
     /// <summary>
-    /// Bosses skip their warn phase and attack immediately — nobody gets escorted
-    /// off Tagilla's turf in an arena. (ShallBossAttack==true means attack; the
-    /// warn flow only runs on false.)
+    /// ShallBossAttack==true means "loyal player, boss must NOT attack" — the
+    /// warn-and-escalate pipeline (CollectWarnTargets → AddPlayersToEnemies) only
+    /// processes a player when it returns FALSE. Forcing false for the human makes
+    /// bosses treat them as an intruder and escalate to hostile — the fallback for
+    /// any boss group whose creation predates the arena hostility patches.
     /// </summary>
     private sealed class ArenaBossAttackPatch : ModulePatch
     {
@@ -49,12 +51,12 @@ internal static class ArenaBotPatches
             => AccessTools.Method(typeof(BotGroupWarnData), nameof(BotGroupWarnData.ShallBossAttack));
 
         [PatchPostfix]
-        private static void Postfix(ref bool __result)
+        private static void Postfix(Player enemyInfo, ref bool __result)
         {
-            if (!ArenaSession.IsActive)
+            if (!ArenaSession.IsActive || enemyInfo == null || !enemyInfo.IsYourPlayer)
                 return;
 
-            __result = true;
+            __result = false;
         }
     }
 

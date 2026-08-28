@@ -35,9 +35,13 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
 
         foreach (var entry in settings)
         {
-            // Every role always hates the player's PMC side.
+            // Every role always hates the player's PMC side — and unconditionally:
+            // the *EnemyChance values are only consulted under the ChancedEnemies
+            // behaviour, so force the behaviour itself.
             entry.BearEnemyChance = 100;
             entry.UsecEnemyChance = 100;
+            entry.BearPlayerBehaviour = "AlwaysEnemies";
+            entry.UsecPlayerBehaviour = "AlwaysEnemies";
 
             if (freeForAll)
             {
@@ -45,10 +49,15 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
                 entry.SavagePlayerBehaviour = "AlwaysEnemies";
                 entry.AlwaysFriends?.Clear();
 
+                // COPY-ON-WRITE, never mutate in place: SPT's own hostility rewrite
+                // fills this list with the pmcConfig SINGLETON's ChancedEnemy records
+                // (added by reference) — writing into them would leak EnemyChance=100
+                // into every subsequent NORMAL raid for the rest of the server session.
                 if (entry.ChancedEnemies != null)
                 {
-                    foreach (var chanced in entry.ChancedEnemies)
-                        chanced.EnemyChance = 100;
+                    entry.ChancedEnemies = entry.ChancedEnemies
+                        .Select(chanced => chanced with { EnemyChance = 100 })
+                        .ToList();
                 }
             }
         }

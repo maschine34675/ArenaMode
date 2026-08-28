@@ -25,6 +25,12 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
     {
         try
         {
+            // A surviving armed flag means the previously announced raid never
+            // reached OnGameStarted (aborted load) — this is a NEW negotiation.
+            // Clearing here (before any gate) keeps a stale factory arming from
+            // arena-izing an unrelated raid (wrong map, or a scav run).
+            ArenaSession.ClearArmed("new raid negotiation started");
+
             if (!Settings.Enabled.Value)
                 return;
 

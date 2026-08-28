@@ -39,7 +39,10 @@ internal static class BurstSpawnService
             if (target <= 0)
                 return;
 
-            var alive = world.AllAlivePlayersList?.Count(p => p != null && p.IsAI) ?? 0;
+            // Alive + loading + delayed (the counter ABPS's own pump uses): counting
+            // only activated bots would keep injecting cap-immune pairs while earlier
+            // spawns are still in flight and overshoot the target badly.
+            var alive = botGame.BotsController?.AliveLoadingDelayedBotsCount ?? int.MaxValue;
             if (alive >= target)
                 return;
 

@@ -13,8 +13,13 @@ namespace ArenaMode.Session;
 public static class ArenaClientConfig
 {
     private static JObject _config;
+    private static float _nextAttemptAt;
 
-    public static void Preload() => EnsureLoaded();
+    public static void Preload()
+    {
+        _nextAttemptAt = 0f;
+        EnsureLoaded();
+    }
 
     public static int GetBotCap(string map, int fallback = 24)
         => GetMapValue<int?>(map, "botMax") ?? fallback;
@@ -44,8 +49,12 @@ public static class ArenaClientConfig
 
     private static void EnsureLoaded()
     {
-        if (_config != null)
+        // Backoff: callers include per-frame gameplay code (burst ticks) — a failing
+        // synchronous HTTP request must not be retried every access.
+        if (_config != null || UnityEngine.Time.realtimeSinceStartup < _nextAttemptAt)
             return;
+
+        _nextAttemptAt = UnityEngine.Time.realtimeSinceStartup + 30f;
 
         try
         {
@@ -54,7 +63,7 @@ public static class ArenaClientConfig
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Arena server config load failed ({ex.Message}) — using defaults.");
+            Plugin.ModLogger.LogWarning($"Arena server config load failed ({ex.Message}) — using defaults for now.");
         }
     }
 }
