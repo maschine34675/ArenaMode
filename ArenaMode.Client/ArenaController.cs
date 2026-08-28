@@ -14,5 +14,6 @@ internal sealed class ArenaController : MonoBehaviour
     {
         BurstSpawnService.Tick();
         Movement.MovementRuntime.Tick();
+        CorpseCleanupService.Tick();
     }
 }

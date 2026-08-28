@@ -22,6 +22,12 @@ public static class Settings
     public static ConfigEntry<bool> NoBushSlowdown { get; private set; }
     public static ConfigEntry<float> JumpHeightMult { get; private set; }
     public static ConfigEntry<bool> NoFallDamage { get; private set; }
+    public static ConfigEntry<bool> SprintToAds { get; private set; }
+    public static ConfigEntry<bool> FastDeploy { get; private set; }
+    public static ConfigEntry<bool> InstantSearch { get; private set; }
+    public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
+    public static ConfigEntry<bool> ShowVictimNames { get; private set; }
+    public static ConfigEntry<int> MaxCorpses { get; private set; }
 
     public static void Init(ConfigFile config)
     {
@@ -135,6 +141,45 @@ public static class Settings
             "NoFallDamage",
             true,
             "Disable fall damage (pairs with the jump boost).");
+
+        SprintToAds = config.Bind(
+            "Movement",
+            "SprintToAds",
+            true,
+            "Aim input during a sprint cancels the sprint and enters ADS in one motion.");
+
+        FastDeploy = config.Bind(
+            "General",
+            "FastDeploy",
+            true,
+            "Shorten the pre-raid deploy countdown to 2s for arena raids.");
+
+        InstantSearch = config.Bind(
+            "Loot",
+            "InstantSearch",
+            true,
+            "Corpse/container searches complete instantly during arena sessions.");
+
+        AutoSearchCorpses = config.Bind(
+            "Loot",
+            "AutoSearchCorpses",
+            true,
+            "Auto-search rig/pockets/backpack when opening a corpse (absorbed AutoCorpseSearch; " +
+            "defers to the standalone mod when that is installed).");
+
+        ShowVictimNames = config.Bind(
+            "Loot",
+            "ShowVictimNames",
+            true,
+            "End-of-raid kill list shows PMC names without requiring their dogtags.");
+
+        MaxCorpses = config.Bind(
+            "Performance",
+            "MaxCorpses",
+            10,
+            new ConfigDescription(
+                "Oldest corpses beyond this count are removed for performance (0 = unlimited).",
+                new AcceptableValueRange<int>(0, 50)));
     }
 
     public static bool IsArenaMap(string locationId)

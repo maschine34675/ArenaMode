@@ -19,8 +19,11 @@ public class Plugin : BaseUnityPlugin
 
     public static ManualLogSource ModLogger { get; private set; }
 
+    public static Plugin Instance { get; private set; }
+
     private void Awake()
     {
+        Instance = this;
         ModLogger = base.Logger;
         RedeployCore.Init(ModLogger);
         Settings.Init(Config);
@@ -32,6 +35,11 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.Register(new ArenaRespawnDriver());
         Bots.ArenaBotPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
+        Movement.SprintAdsPatches.Enable();
+        Movement.FastDeployPatches.Enable();
+        Loot.OpenLootTracker.Enable();
+        Loot.ArenaLootPatches.Enable();
+        Loot.AutoSearchService.Initialize();
         PerfectCullingFix.EnableOnce();
 
         gameObject.AddComponent<ArenaController>();

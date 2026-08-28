@@ -22,6 +22,13 @@ public static class ArenaSession
 
     public static bool IsActive { get; private set; }
 
+    /// <summary>
+    /// Survives past raid end (IsActive is cleared at GameEnd) — the session-result
+    /// screens render AFTER that and need to know whether they show an arena raid.
+    /// Cleared when the next non-arena raid starts.
+    /// </summary>
+    public static bool LastRaidWasArena { get; private set; }
+
     public static void Initialize()
     {
         RaidLifecycle.EnsurePatched();
@@ -50,10 +57,15 @@ public static class ArenaSession
     private static void OnRaidStarted(GameWorld world)
     {
         if (!ArmedForNextRaid)
+        {
+            // A raid that was never armed is by definition not an arena raid.
+            LastRaidWasArena = false;
             return;
+        }
 
         var location = world?.LocationId;
         ArmedForNextRaid = false;
+        LastRaidWasArena = false;
 
         if (FikaCompatCheck.IsFikaLoaded)
         {
@@ -70,6 +82,7 @@ public static class ArenaSession
         }
 
         IsActive = true;
+        LastRaidWasArena = true;
         Respawn.ArenaRespawnDriver.ResetSession();
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
         try
@@ -135,6 +148,10 @@ public static class ArenaSession
 
         IsActive = false;
         ArmedForNextRaid = false;
+
+        // Defensive: an aborted load between the countdown patch and its restore
+        // must never leave the shortened value in the shared config.
+        Movement.FastDeployPatches.Restore();
 
         // Best-effort confirmation; the authoritative snapshot restore already ran
         // server-side inside the post-raid skip patch.
