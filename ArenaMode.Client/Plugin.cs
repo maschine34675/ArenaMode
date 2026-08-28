@@ -30,7 +30,10 @@ public class Plugin : BaseUnityPlugin
 
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());
+        Bots.ArenaBotPatches.Enable();
         PerfectCullingFix.EnableOnce();
+
+        gameObject.AddComponent<ArenaController>();
 
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version})");
     }

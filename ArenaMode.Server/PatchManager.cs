@@ -27,6 +27,9 @@ public sealed class PatchManager(
         new StartLocalRaidPatch().Enable();
         new PostRaidPmcSkipPatch().Enable();
         new PreRaidWipeSkipPatch().Enable();
+        new GenerateLocationAndLootPatch().Enable();
+        new AdjustBotHostilityPatch().Enable();
+        new BotCapPatch().Enable();
 
         logger.Info("[ArenaMode] Server patches enabled.");
         return Task.CompletedTask;

@@ -30,11 +30,17 @@ public sealed class ArenaModeRouter : StaticRouter
 
     private readonly SaveServer _saveServer;
     private readonly ISptLogger<ArenaModeRouter> _logger;
+    private readonly SPTarkov.Server.Core.Models.Spt.Config.InRaidConfig _inRaidConfig;
 
-    public ArenaModeRouter(JsonUtil jsonUtil, SaveServer saveServer, ISptLogger<ArenaModeRouter> logger)
+    public ArenaModeRouter(
+        JsonUtil jsonUtil,
+        SaveServer saveServer,
+        SPTarkov.Server.Core.Models.Spt.Config.InRaidConfig inRaidConfig,
+        ISptLogger<ArenaModeRouter> logger)
         : base(jsonUtil, GetRoutes())
     {
         _saveServer = saveServer;
+        _inRaidConfig = inRaidConfig;
         _logger = logger;
         Instance = this;
     }
@@ -115,6 +121,14 @@ public sealed class ArenaModeRouter : StaticRouter
 
         if (!ArenaContext.Config.IsMapEnabled(request.Map))
             return Json(new { armed = false, reason = $"map '{request.Map}' not enabled for arena" });
+
+        // SVM (or any config tool) forcing the raid-menu AI amount to "NoBots" would
+        // short-circuit spawn systems upstream of every cap we set. Warn loudly.
+        if (string.Equals(_inRaidConfig.RaidMenuSettings?.AiAmount, "NoBots", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.Warning(
+                "[ArenaMode] inraid config forces AiAmount=NoBots (SVM preset?) — the arena will have NO bots!");
+        }
 
         if (!Snapshots.TakeSnapshot(sessionId))
             return Json(new { armed = false, reason = "profile snapshot failed" });

@@ -54,4 +54,32 @@ public class ArenaMapConfig
 
     [JsonPropertyName("disableBosses")]
     public bool DisableBosses { get; set; } = true;
+
+    /// <summary>Spawn zone(s) for generated waves (factory has exactly one).</summary>
+    [JsonPropertyName("spawnZones")]
+    public string SpawnZones { get; set; } = "BotZone";
+
+    /// <summary>Fallback wave schedule when BotPlacementSystem is NOT installed.</summary>
+    [JsonPropertyName("assaultWaveIntervalSeconds")]
+    public int AssaultWaveIntervalSeconds { get; set; } = 30;
+
+    [JsonPropertyName("assaultSlotsMin")]
+    public int AssaultSlotsMin { get; set; } = 3;
+
+    [JsonPropertyName("assaultSlotsMax")]
+    public int AssaultSlotsMax { get; set; } = 4;
+
+    [JsonPropertyName("maxScheduledWaves")]
+    public int MaxScheduledWaves { get; set; } = 60;
+
+    /// <summary>PMC pressure via BossLocationSpawn appends (0 = none).</summary>
+    [JsonPropertyName("pmcWaveIntervalSeconds")]
+    public int PmcWaveIntervalSeconds { get; set; } = 240;
+
+    /// <summary>Client burst top-up: keep at least this many bots alive.</summary>
+    [JsonPropertyName("burstMinAliveBots")]
+    public int BurstMinAliveBots { get; set; } = 12;
+
+    [JsonPropertyName("burstCooldownSeconds")]
+    public int BurstCooldownSeconds { get; set; } = 8;
 }

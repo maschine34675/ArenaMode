@@ -27,6 +27,7 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         public string? Map;
         public string? Mode;
         public DateTime ArmedAtUtc;
+        public object? LocationClone;
     }
 
     private readonly Dictionary<string, SessionEntry> _sessions = new();
@@ -105,7 +106,56 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         lock (_lock)
         {
             if (_sessions.TryGetValue(sessionId.ToString(), out var entry))
+            {
                 entry.State = ArenaSessionState.Idle;
+                entry.LocationClone = null;
+            }
+        }
+    }
+
+    /// <summary>Remember the per-raid LocationBase clone so the hostility postfix can
+    /// verify by reference that it is adjusting OUR arena clone, not a normal raid's.</summary>
+    public void StashLocationClone(MongoId sessionId, object clone)
+    {
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(sessionId.ToString(), out var entry))
+                entry.LocationClone = clone;
+        }
+    }
+
+    public bool IsStashedClone(object candidate)
+    {
+        lock (_lock)
+        {
+            foreach (var entry in _sessions.Values)
+            {
+                if (entry.State == ArenaSessionState.InRaid && ReferenceEquals(entry.LocationClone, candidate))
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>Any session currently in an arena raid on the given location?</summary>
+    public bool AnyInRaidOnMap(string? location)
+    {
+        if (location == null)
+            return false;
+
+        lock (_lock)
+        {
+            foreach (var entry in _sessions.Values)
+            {
+                if (entry.State == ArenaSessionState.InRaid
+                    && string.Equals(entry.Map, location, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 

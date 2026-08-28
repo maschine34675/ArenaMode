@@ -159,6 +159,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         StandDown = false;
         DeathsThisSession = 0;
         KitBundlePreloader.Reset();
+        Bots.BurstSpawnService.Reset();
     }
 
     internal static void BeginPipelineUse() => IsRespawnInProgress = true;
