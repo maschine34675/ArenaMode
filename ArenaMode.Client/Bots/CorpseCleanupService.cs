@@ -3,7 +3,7 @@ using ArenaMode.Loot;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
-using EFT.Animations;
+using EFT.AssetsManager;
 using EFT.Interactive;
 using System;
 using System.Collections.Generic;
@@ -13,12 +13,20 @@ using UnityEngine;
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Corpse cap for arena performance: dozens of kills per raid pile up bodies
-/// (renderers, colliders, loot registries). Evicts the OLDEST ragdoll corpses
-/// beyond the cap through the game's own GameWorld.DestroyLoot path — the exact
-/// teardown the engine runs for every corpse at raid end — never a raw Destroy.
-/// Keeps the player's most recent corpse (kit retrieval) and anything close,
-/// aimed at, or currently open in the loot screen.
+/// Corpse budget for arena performance: dozens of kills per raid pile up bodies
+/// (renderers, LOD groups, colliders, ragdoll rigs). Oldest bodies beyond the
+/// budget are TRIMMED — renderers and colliders off, ragdoll physics stopped —
+/// never destroyed.
+///
+/// Destroying them mid-raid (the previous GameWorld.DestroyLoot approach) looked
+/// clean but recycled the whole skeleton through the shared player asset pool
+/// while its Player component had never been disposed. That produced a chain of
+/// wreckage: stale sound-event delegates firing on recycled bodies
+/// (PlaySoundBank NREs), a ragdoll coroutine outliving its PlayerBody
+/// (KeyNotFoundException 'Body'), an NRE storm in BaseLocalGame.CleanUp at raid
+/// end (one per destroyed corpse), and leaked spawner bookkeeping that starves
+/// bot refills after a few minutes. Trimming keeps every registry intact and
+/// still removes the per-frame render and physics cost, which is the whole point.
 /// </summary>
 internal static class CorpseCleanupService
 {
@@ -26,9 +34,21 @@ internal static class CorpseCleanupService
     private const float MinDistanceMeters = 15f;
     private const int KeepOwnCorpses = 1;
 
+    /// <summary>
+    /// Bodies already trimmed (they stay in the world's loot list) with their
+    /// renderer set, so the sweep can re-assert the disabled state cheaply —
+    /// the culling system flips renderers back on when a body enters view.
+    /// </summary>
+    private static readonly Dictionary<Corpse, Renderer[]> Trimmed =
+        new Dictionary<Corpse, Renderer[]>();
+
     private static float _nextSweepAt;
 
-    public static void Reset() => _nextSweepAt = 0f;
+    public static void Reset()
+    {
+        _nextSweepAt = 0f;
+        Trimmed.Clear();
+    }
 
     public static void Tick()
     {
@@ -48,10 +68,11 @@ internal static class CorpseCleanupService
             if (mainPlayer == null)
                 return;
 
+            ReassertTrimmed();
+
             // LootList is append-ordered (RegisterLoot) => already oldest-first.
-            // Snapshot before destroying: DestroyLoot mutates the list.
             var corpses = world.LootList.OfType<Corpse>()
-                .Where(c => c != null && c.HasRagdoll)
+                .Where(c => c != null && c.HasRagdoll && !Trimmed.ContainsKey(c))
                 .ToList();
 
             var overflow = corpses.Count - maxCorpses;
@@ -65,7 +86,7 @@ internal static class CorpseCleanupService
                     .Reverse()
                     .Take(KeepOwnCorpses));
 
-            var removed = 0;
+            var trimmed = 0;
             foreach (var corpse in corpses)
             {
                 if (overflow <= 0)
@@ -86,15 +107,15 @@ internal static class CorpseCleanupService
                     continue;
                 }
 
-                SanitizePooledBodyState(corpse);
-                RemoveFromDeadBodiesController(corpse.PlayerProfileID);
-                world.DestroyLoot(corpse);
+                if (!TrimCorpse(corpse))
+                    continue;
+
                 overflow--;
-                removed++;
+                trimmed++;
             }
 
-            if (removed > 0)
-                Plugin.ModLogger.LogInfo($"Arena corpse cleanup: removed {removed} old corpse(s), {maxCorpses} kept.");
+            if (trimmed > 0)
+                Plugin.ModLogger.LogInfo($"Arena corpse cleanup: trimmed {trimmed} old corpse(s), {maxCorpses} kept visible.");
         }
         catch (Exception ex)
         {
@@ -103,66 +124,116 @@ internal static class CorpseCleanupService
     }
 
     /// <summary>
-    /// DestroyLoot pushes the whole skeleton — ProceduralWeaponAnimation included —
-    /// back onto the SHARED player asset pool, and the pool reset never touches the
-    /// PWA effectors. A bot body carries a DrawDown-only procedural mask
-    /// (BotOwner.Create) that would kill ALL recoil for a local player respawning
-    /// onto it later, plus possibly a latched lame walk preset and breath tremor
-    /// from bot health. Scrub before returning: bots re-strip their own mask on
-    /// spawn, so a clean body is correct for every future pool consumer.
+    /// Renderers and colliders off — the body object, its item tree, its ragdoll
+    /// and every registry entry stay exactly as they are.
+    ///
+    /// NOTE the renderers are collected from the hierarchy, NOT via
+    /// LootItem.MakeVisible: Corpse overrides CacheComponents() with an empty
+    /// body, so a corpse's cached renderer/LOD lists are always empty and
+    /// MakeVisible is a no-op on exactly this type.
     /// </summary>
-    private static void SanitizePooledBodyState(Corpse corpse)
+    private static bool TrimCorpse(Corpse corpse)
     {
         try
         {
-            var weaponAnimation = corpse.GetComponentInChildren<ProceduralWeaponAnimation>(true);
-            if (weaponAnimation == null)
-                return;
+            // Only settled bodies. Disabling colliders under a live ragdoll drops
+            // it through the floor, freezing one mid-flight looks broken, and
+            // touching a running working cycle is what raced PlayerBody before.
+            var ragdoll = corpse.Ragdoll;
+            if (ragdoll != null && !ragdoll._isPhysicsDone)
+                return false;
 
-            // HandShake stays clear: vanilla steady state is off (raised only
-            // transiently by StartHandShake, lowered only by its coroutine).
-            weaponAnimation.Mask =
-                EProceduralAnimationMask.Breathing
-                | EProceduralAnimationMask.Walking
-                | EProceduralAnimationMask.MotionReaction
-                | EProceduralAnimationMask.ForceReaction
-                | EProceduralAnimationMask.Shooting
-                | EProceduralAnimationMask.DrawDown
-                | EProceduralAnimationMask.Aiming;
-
-            if (weaponAnimation.Walk != null)
-                weaponAnimation.Walk.CurrentWalkPreset = WalkEffector.EWalkPreset.normal;
-
-            if (weaponAnimation.Breath != null)
+            var renderers = corpse.GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
             {
-                weaponAnimation.Breath.TremorOn = false;
-                weaponAnimation.Breath.Fracture = false;
+                if (renderer != null)
+                    renderer.enabled = false;
             }
+
+            var pool = corpse.GetComponent<AssetPoolObject>();
+            if (pool?.Colliders != null)
+            {
+                foreach (var collider in pool.Colliders)
+                {
+                    if (collider != null)
+                        collider.enabled = false;
+                }
+            }
+
+            // A body nobody can see should not attract loot trips either.
+            RemoveDeadBodyRecord(corpse);
+
+            Trimmed[corpse] = renderers;
+            return true;
         }
-        catch
+        catch (Exception ex)
         {
-            // Best effort — the respawn-side mask restore covers a missed scrub.
+            Plugin.ModLogger.LogWarning($"Arena corpse trim failed: {ex.Message}");
+            // Remember it anyway — retrying a failing body every 5s is worse.
+            Trimmed[corpse] = new Renderer[0];
+            return false;
         }
     }
 
     /// <summary>
-    /// The AI keeps its own body registry (bots path to bodies to loot/inspect
-    /// them) — drop the matching record so nobody walks to a ghost.
+    /// Re-disable renderers the culling system turned back on, and drop entries
+    /// whose body the game destroyed (raid teardown, vanilla despawn).
     /// </summary>
-    private static void RemoveFromDeadBodiesController(string profileId)
+    private static void ReassertTrimmed()
+    {
+        if (Trimmed.Count == 0)
+            return;
+
+        List<Corpse> stale = null;
+        foreach (var entry in Trimmed)
+        {
+            // Unity's lifetime check: a destroyed corpse compares equal to null.
+            if (entry.Key == null)
+            {
+                (stale ??= new List<Corpse>()).Add(entry.Key);
+                continue;
+            }
+
+            var renderers = entry.Value;
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                if (renderer != null && renderer.enabled)
+                    renderer.enabled = false;
+            }
+        }
+
+        if (stale == null)
+            return;
+
+        foreach (var corpse in stale)
+            Trimmed.Remove(corpse);
+    }
+
+    /// <summary>
+    /// The AI keeps its own body registry (bots path to bodies to loot them).
+    /// Matching is by OBJECT IDENTITY, never by profile id: the local player
+    /// keeps one profile id across every respawn, so an id match could drop the
+    /// record of a completely different body.
+    /// </summary>
+    private static void RemoveDeadBodyRecord(Corpse corpse)
     {
         try
         {
-            // Direct field on the spawner — reachable even when zero bots are alive
-            // (which is exactly when the corpse pile is largest).
             var spawner = (Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;
             var controller = spawner?._deadBodiesController;
             if (controller?.Bodies == null)
                 return;
 
-            var body = controller.Bodies.FirstOrDefault(b => b?.Player != null && b.Player.ProfileId == profileId);
-            if (body != null)
-                controller.RemoveBody(body);
+            for (var i = controller.Bodies.Count - 1; i >= 0; i--)
+            {
+                var body = controller.Bodies[i];
+                if (body?.Player == null)
+                    continue;
+
+                if (ReferenceEquals(body.Player.gameObject, corpse.gameObject))
+                    controller.RemoveBody(body);
+            }
         }
         catch
         {

@@ -39,16 +39,23 @@ internal static class BurstSpawnService
             if (target <= 0)
                 return;
 
-            // Alive + loading + delayed (the counter ABPS's own pump uses): counting
-            // only activated bots would keep injecting cap-immune pairs while earlier
-            // spawns are still in flight and overshoot the target badly.
-            var alive = botGame.BotsController?.AliveLoadingDelayedBotsCount ?? int.MaxValue;
+            var controller = botGame.BotsController;
+            var spawner = controller?.BotSpawner;
+            if (spawner == null)
+                return;
+
+            // Decide on REAL alive bots, not on AliveLoadingDelayedBotsCount:
+            // that counter sums loading + delayed + in-spawn terms which have no
+            // in-raid recovery path, so a single leaked spawn pins it above the
+            // target and silently starves every refill for the rest of the raid
+            // (the "no bots after ~10 minutes" playtest). Overshoot is paced by
+            // the post-burst cooldown instead. Both numbers are logged so a
+            // drifting counter stays visible.
+            var alive = CountAliveBots(spawner);
             if (alive >= target)
                 return;
 
-            var spawner = botGame.BotsController?.BotSpawner;
-            if (spawner == null)
-                return;
+            var counterAlive = controller.AliveLoadingDelayedBotsCount;
 
             var zone = spawner.SpawnZones(false).FirstOrDefault();
             if (zone == null)
@@ -76,7 +83,8 @@ internal static class BurstSpawnService
             wave.ShallSpawn = true;
 
             spawner.ActivateBotsByWave(wave);
-            Plugin.ModLogger.LogInfo($"Arena burst spawn: {alive}/{target} bots alive — injecting assault pair.");
+            Plugin.ModLogger.LogInfo(
+                $"Arena burst spawn: {alive}/{target} bots alive (spawner counter {counterAlive}) — injecting assault pair.");
 
             _nextAttemptAt = Time.time + ArenaClientConfig.GetBurstCooldownSeconds(map);
         }
@@ -85,5 +93,22 @@ internal static class BurstSpawnService
             Plugin.ModLogger.LogWarning($"Arena burst spawn failed: {ex.Message}");
             _nextAttemptAt = Time.time + 10f;
         }
+    }
+
+    /// <summary>Living bot owners only. Unreadable registry = assume full (never spam).</summary>
+    private static int CountAliveBots(BotSpawner spawner)
+    {
+        var owners = spawner?._bots?.BotOwners;
+        if (owners == null)
+            return int.MaxValue;
+
+        var alive = 0;
+        foreach (var bot in owners)
+        {
+            if (bot != null && bot.HealthController != null && bot.HealthController.IsAlive)
+                alive++;
+        }
+
+        return alive;
     }
 }
