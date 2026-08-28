@@ -17,10 +17,10 @@ namespace ArenaMode.Movement;
 /// </summary>
 internal static class MovementRuntime
 {
-    // The SmoothDamp velocity of the direction blend (the FieldKit reference targets
-    // field names that no longer exist in 4.1 — _velocity2 is the live one).
-    private static readonly AccessTools.FieldRef<MovePlayerState, Vector2> DirectionBlendVelocityField =
-        AccessTools.FieldRefAccess<MovePlayerState, Vector2>("_velocity2");
+    // NOTE: the FieldKit-style per-frame MovePlayerState direction snap
+    // (InertiaDirection/_velocity2/smoothMovementDirectionTime zeroing) was removed:
+    // it made walking strafes flip with zero animation blend — the "choppy" feel
+    // from the first M4 playtest. The inertia getter patches carry the feature.
 
     public static void Tick()
     {
@@ -52,16 +52,6 @@ internal static class MovementRuntime
                 player.Physical.Oxygen.Current = player.Physical.Oxygen.TotalCapacity;
             }
 
-            if (Settings.NoInertia.Value
-                && player.MovementContext?.CurrentState is MovePlayerState state)
-            {
-                state.InertiaDirection = state.LastDirectionInput;
-                state.LastNonZeroDirectionInput = state.LastDirectionInput;
-                state.smoothMovementDirectionTime = 0f;
-                state.smoothMovementDirectionDuration = 0f;
-                state.TransitionCoef = 1f;
-                DirectionBlendVelocityField(state) = Vector2.zero;
-            }
         }
         catch (Exception)
         {

@@ -16,7 +16,25 @@ internal static class ArenaLootPatches
     public static void Enable()
     {
         new InstantSearchPatch().Enable();
+        new MuteInstantSearchJinglePatch().Enable();
         new KillListNamesPatch().Enable();
+    }
+
+    /// <summary>
+    /// Instant search rides the elite lucky-search mechanism, which stings its
+    /// "looting_luck2" jingle on every operation — three times per corpse with
+    /// the auto-search chain. Mute it while the arena drives instant searches.
+    /// </summary>
+    private sealed class MuteInstantSearchJinglePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(SinglePlayerSearchContentOperation), "PlayInstantSearchSound");
+
+        [PatchPrefix]
+        private static bool Prefix()
+        {
+            return !(ArenaSession.IsActive && Settings.InstantSearch.Value);
+        }
     }
 
     /// <summary>

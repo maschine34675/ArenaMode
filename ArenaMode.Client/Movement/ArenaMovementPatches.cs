@@ -43,11 +43,11 @@ internal static class ArenaMovementPatches
         new AdsSlowdownPatch().Enable();
         new AdsTransitionPatch().Enable();
         new InertiaGetterPatch("Inertia").Enable();
-        new InertiaGetterPatch("MoveSideInertia").Enable();
-        new InertiaGetterPatch("MoveDiagonalInertia").Enable();
         new InertiaGetterPatch("PoseInertia").Enable();
         new InertiaGetterPatch("WalkInertia").Enable();
         new InertiaGetterPatch("SprintBrakeInertia").Enable();
+        new StrafeInertiaPatch("MoveSideInertia").Enable();
+        new StrafeInertiaPatch("MoveDiagonalInertia").Enable();
         new InstantLeanPatch().Enable();
         new SlideAnimPatch().Enable();
         new BushSlowdownPatch().Enable();
@@ -274,6 +274,33 @@ internal static class ArenaMovementPatches
         {
             if (Settings.NoInertia.Value && IsArenaMovement(__instance))
                 __result = 0f;
+        }
+    }
+
+    /// <summary>
+    /// Strafe direction blending gets its OWN dial: forcing the side/diagonal
+    /// inertia to 0 (like the other getters) made walking strafes flip without
+    /// any animation blend — visibly choppy (first playtest). A small residual
+    /// smoothing keeps the responsiveness while the animator can still blend;
+    /// sprint feels fine either way (it blends via SprintAcceleration).
+    /// </summary>
+    private sealed class StrafeInertiaPatch : ModulePatch
+    {
+        private readonly string _property;
+
+        public StrafeInertiaPatch(string property)
+        {
+            _property = property;
+        }
+
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.PropertyGetter(typeof(MovementContext), _property);
+
+        [PatchPostfix]
+        private static void Postfix(MovementContext __instance, ref float __result)
+        {
+            if (Settings.NoInertia.Value && IsArenaMovement(__instance))
+                __result *= Settings.StrafeSmoothing.Value;
         }
     }
 

@@ -17,6 +17,7 @@ public static class Settings
     public static ConfigEntry<float> AdsTransitionMult { get; private set; }
     public static ConfigEntry<bool> InfiniteStamina { get; private set; }
     public static ConfigEntry<bool> NoInertia { get; private set; }
+    public static ConfigEntry<float> StrafeSmoothing { get; private set; }
     public static ConfigEntry<bool> InstantLean { get; private set; }
     public static ConfigEntry<bool> SlideEnabled { get; private set; }
     public static ConfigEntry<bool> NoBushSlowdown { get; private set; }
@@ -111,6 +112,15 @@ public static class Settings
             "NoInertia",
             true,
             "Remove movement inertia (direction changes, pose changes, sprint braking).");
+
+        StrafeSmoothing = config.Bind(
+            "Movement",
+            "StrafeSmoothing",
+            0.25f,
+            new ConfigDescription(
+                "Residual direction-blend while walking (0 = instant but visibly choppy " +
+                "strafe animation, 1 = vanilla blend). Only applies with NoInertia on.",
+                new AcceptableValueRange<float>(0f, 1f)));
 
         InstantLean = config.Bind(
             "Movement",
