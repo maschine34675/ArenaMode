@@ -38,6 +38,8 @@ public static class Settings
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
+    public static ConfigEntry<int> PmcFloor { get; private set; }
+    public static ConfigEntry<bool> HuntPlayer { get; private set; }
 
     public static void Init(ConfigFile config)
     {
@@ -203,6 +205,22 @@ public static class Settings
                 "Visible corpses kept. Older ones are hidden for performance — they stay " +
                 "in the world but become invisible and can no longer be looted (0 = keep all).",
                 new AcceptableValueRange<int>(0, 50)));
+
+        PmcFloor = config.Bind(
+            "Bots",
+            "PmcFloor",
+            8,
+            new ConfigDescription(
+                "Minimum PMCs alive. Top-up waves spawn PMCs (alternating USEC/BEAR) " +
+                "until this many are around, and only fill up with scavs after that.",
+                new AcceptableValueRange<int>(0, 20)));
+
+        HuntPlayer = config.Bind(
+            "Bots",
+            "HuntPlayer",
+            true,
+            "Keep pointing every living bot at the player's position, so they " +
+            "actively close in instead of patrolling until they happen to see you.");
 
         GameMode = config.Bind(
             "Match",

@@ -17,6 +17,66 @@ internal static class ArenaBotPatches
         new ArenaIsPlayerEnemyPatch().Enable();
         new ArenaBossAttackPatch().Enable();
         new ArenaBotCapPatch().Enable();
+        new NoAccidentalBossPatch().Enable();
+    }
+
+    public static void ResetRaidState() => NoAccidentalBossPatch.ResetRaidState();
+
+    /// <summary>
+    /// Keeps ordinary bots from being promoted to squad bosses.
+    ///
+    /// Every mid-raid injection goes through ActivateBotsByWave, which is a BOSS
+    /// spawn path: it sets ShallBeGroup(bossGroup: true), so the spawn callback
+    /// calls SetBoss on a plain scav. That flips the bot to IamBoss, replaces its
+    /// roaming patrol with a zone-guard loop (and on a "reserved" patrol way the
+    /// guard move returns immediately — literally zero movement), and lets it
+    /// recruit every other scav in the zone as a follower. The result was the
+    /// playtest's cluster of a dozen scavs standing around doing nothing.
+    ///
+    /// Skipping the promotion leaves the patrol mode the bot already got from
+    /// PatrollingData.Activate: plain roaming. Real bosses are untouched.
+    /// </summary>
+    private sealed class NoAccidentalBossPatch : ModulePatch
+    {
+        private static bool _loggedThisRaid;
+
+        public static void ResetRaidState() => _loggedThisRaid = false;
+
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotBoss), nameof(BotBoss.SetBoss), new[] { typeof(int) });
+
+        [PatchPrefix]
+        private static bool Prefix(BotBoss __instance)
+        {
+            // Armed too: bots spawn during the deploy countdown, before IsActive
+            // latches, and a promotion granted there sticks for the whole raid
+            // (the later activation only sets a patrol mode if none was set).
+            if (!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid)
+                return true;
+
+            var role = __instance?.Owner?.Profile?.Info?.Settings?.Role;
+            if (role == null)
+                return true;
+
+            // CAREFUL: BSG's IsBoss flag is set for pmcUSEC/pmcBEAR, pmcBot,
+            // exUsec, arenaFighter, assaultGroup and shooterBTR as well — gating
+            // on it would have promoted exactly the roles this patch exists to
+            // protect. IsPureBoss additionally demands "not a follower", which
+            // sorts all of those out; the two Goons are genuine bosses that BSG
+            // files under followers, so they get named explicitly.
+            var keepsBossBehavior = role.Value.IsPureBoss()
+                || role.Value.IsSectant()
+                || role.Value == WildSpawnType.followerBigPipe
+                || role.Value == WildSpawnType.followerBirdEye;
+
+            if (!keepsBossBehavior && !_loggedThisRaid)
+            {
+                _loggedThisRaid = true;
+                Plugin.ModLogger.LogInfo($"Arena: denied boss promotion for role {role.Value} (first of raid).");
+            }
+
+            return keepsBossBehavior;
+        }
     }
 
     /// <summary>

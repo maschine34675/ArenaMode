@@ -13,6 +13,7 @@ internal sealed class ArenaController : MonoBehaviour
     private void Update()
     {
         BurstSpawnService.Tick();
+        ArenaHostility.Tick();
         Movement.MovementRuntime.Tick();
         CorpseCleanupService.Tick();
         Modes.ArenaMatchService.Tick();

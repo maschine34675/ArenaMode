@@ -111,6 +111,10 @@ public static class ArenaSession
         // human into every existing group's enemy list once.
         ForceExistingGroupsHostile(world);
 
+        // Keep PMC profiles cached so the first PMC top-up wave does not stall on
+        // a server-side batch generation.
+        Bots.BurstSpawnService.PrewarmPmcProfiles();
+
         // Pre-warm the spawn system (respawns need it) and swap the real gear for
         // the selected kit via an in-place respawn.
         if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
