@@ -38,7 +38,6 @@ internal static class ArenaMovementPatches
     public static void Enable()
     {
         new MotionScalePatch().Enable();
-        new SprintSpeedTargetPatch().Enable();
         new AdsSlowdownPatch().Enable();
         new AdsTransitionPatch().Enable();
         new InertiaValuesPatch().Enable();
@@ -68,56 +67,13 @@ internal static class ArenaMovementPatches
         }
     }
 
-    /// <summary>
-    /// Sprint speed rides the animator 'SprintSpeed' root-motion parameter whose
-    /// per-frame target is (Physical.SprintSpeed * SprintingSpeed + 1) *
-    /// StateSprintSpeedLimit — bracketing the limit scales the target AND the leg
-    /// animation together (no foot slide). The SprintingSpeed getter postfix this
-    /// replaces was structurally swallowed: displacement is clamped in m/s by the
-    /// CharacterController SpeedLimit, which the DirectApplyMotion bracket lifts.
-    /// </summary>
-    private sealed class SprintSpeedTargetPatch : ModulePatch
-    {
-        private static MovementContext _restoreContext;
-        private static float _restoreValue;
-
-        protected override MethodBase GetTargetMethod()
-            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.SprintAcceleration));
-
-        [PatchPrefix]
-        private static void Prefix(MovementContext __instance, out float __state)
-        {
-            __state = float.NaN;
-
-            // Self-heal: if the original threw last frame the postfix was skipped
-            // and the inflated limit would become the next baseline — restoring
-            // here caps the damage at one frame instead of compounding.
-            if (ReferenceEquals(_restoreContext, __instance))
-            {
-                __instance.StateSprintSpeedLimit = _restoreValue;
-                _restoreContext = null;
-            }
-
-            var mult = Settings.SprintSpeedMult.Value;
-            if (mult <= 1f || !IsArenaMovement(__instance))
-                return;
-
-            __state = __instance.StateSprintSpeedLimit;
-            _restoreContext = __instance;
-            _restoreValue = __state;
-            __instance.StateSprintSpeedLimit = __state * mult;
-        }
-
-        [PatchPostfix]
-        private static void Postfix(MovementContext __instance, float __state)
-        {
-            if (float.IsNaN(__state))
-                return;
-
-            __instance.StateSprintSpeedLimit = __state;
-            _restoreContext = null;
-        }
-    }
+    // NOTE: no animator-target sprint patch. Bracketing StateSprintSpeedLimit in
+    // SprintAcceleration to raise the animator 'SprintSpeed' root-motion target
+    // was mechanically sound (verified: setter unclamped, ramp reaches the raised
+    // target, m/s cap lifted) but produced ZERO visible speed change in playtest —
+    // the sprint blend's root motion saturates near its vanilla range, which no
+    // C#-side value can push past. Sprint speed therefore scales displacement in
+    // MotionScalePatch like walk does.
 
     /// <summary>
     /// The ONE arena bracket on DirectApplyMotion: slide velocity injection
@@ -159,14 +115,15 @@ internal static class ArenaMovementPatches
 
             // Displacement is animator root motion and the walk chain is triple-
             // clamped at a normalized 1.0 (MovePlayerState constant clamp,
-            // StateSpeedLimit, animator 'Speed' param) — the walk multiplier can
-            // ONLY exist here, post-clamp. Sprint displacement is raised through
-            // the animator target instead (SprintSpeedTargetPatch, legs keep up),
-            // so it is not double-scaled here — but the m/s SpeedLimit bracket
-            // below must still engage for the faster sprint to be visible.
-            // Jump/fall frames inherit the treatment of the state they launched
-            // from: a sprint jump's air motion already carries the raised sprint
-            // momentum, so adding the walk factor would accelerate it mid-air.
+            // StateSpeedLimit, animator 'Speed' param) — speed multipliers can
+            // ONLY exist here, post-clamp. Sprint uses the same displacement route:
+            // raising the animator 'SprintSpeed' target instead (the elegant
+            // variant) proved invisible in playtest — the sprint blend saturates —
+            // so both multipliers scale the actual motion and the m/s SpeedLimit
+            // bracket below lifts the CharacterController cap.
+            // Jump/fall frames inherit the multiplier of the state they launched
+            // from so airborne momentum stays continuous (no mid-air accelerate
+            // or brake on sprint jumps).
             var stateName = __instance.CurrentState != null
                 ? __instance.CurrentState.Name
                 : EPlayerState.Idle;
@@ -176,7 +133,7 @@ internal static class ArenaMovementPatches
                     && __instance.PreviousState != null
                     && __instance.PreviousState.Name == EPlayerState.Sprint);
             var scale = Settings.ExtraMotionScale.Value
-                * (sprinting ? 1f : Settings.WalkSpeedMult.Value);
+                * (sprinting ? Settings.SprintSpeedMult.Value : Settings.WalkSpeedMult.Value);
             if (scale > 1f)
             {
                 motion.x *= scale;
@@ -195,9 +152,6 @@ internal static class ArenaMovementPatches
                     touched = true;
                 }
             }
-
-            if (sprinting && Settings.SprintSpeedMult.Value > 1f)
-                touched = true;
 
             if (!touched)
                 return;

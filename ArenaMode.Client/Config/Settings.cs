@@ -78,8 +78,8 @@ public static class Settings
             "SprintSpeedMult",
             1.3f,
             new ConfigDescription(
-                "Sprint speed multiplier (raises the sprint animation target too, " +
-                "so the legs keep up with the speed).",
+                "Sprint displacement multiplier (stacks with ExtraMotionScale; legs " +
+                "animate at vanilla pace, so high values show light foot-slide).",
                 new AcceptableValueRange<float>(1f, 2f)));
 
         ExtraMotionScale = config.Bind(
