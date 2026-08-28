@@ -52,6 +52,13 @@ internal static class FastDeployPatches
         [PatchPrefix]
         private static void Prefix()
         {
+            // Heal-first, BEFORE any gate: an aborted load can die between this
+            // prefix and the vmethod_6 restore without ever reaching GameEnd —
+            // no other hook fires in that window. Since this prefix runs for
+            // EVERY local raid's countdown before the value is read, restoring
+            // here guarantees a leaked 2s can never reach a normal raid.
+            Restore();
+
             // ArmedForNextRaid, NOT IsActive: the IsActive latch fires after this
             // countdown (GameWorld.OnGameStarted).
             if (!ArenaSession.ArmedForNextRaid || !Settings.FastDeploy.Value)

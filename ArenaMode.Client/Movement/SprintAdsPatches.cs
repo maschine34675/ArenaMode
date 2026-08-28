@@ -1,6 +1,7 @@
 using ArenaMode.Config;
 using ArenaMode.Session;
 using EFT;
+using EFT.InventoryLogic;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System.Reflection;
@@ -25,6 +26,13 @@ internal static class SprintAdsPatches
         AccessTools.FieldRefAccess<Player.FirearmController, Player>("_player");
 
     private static bool _bypassing;
+
+    /// <summary>
+    /// Safety net ticked per frame: the prefix/postfix bracket around ToggleAim is
+    /// one synchronous call, but a throw inside it skips the postfix — a stuck flag
+    /// would otherwise force-aim without the sprint-kill half for the whole session.
+    /// </summary>
+    public static void ClearBypassSafety() => _bypassing = false;
 
     public static void Enable()
     {
@@ -105,6 +113,19 @@ internal static class SprintAdsPatches
             // Mirror the remaining vanilla clauses that must still deny the aim.
             if (controller.Blindfire)
                 return true;
+
+            // Vanilla also denies while the firearm animator is mid-animation for
+            // OnlyBarrel-reload weapons (double barrels) and belt machine guns —
+            // granting aim there glitches those weapon classes.
+            var animatorIdling = controller.FirearmsAnimator?.IsIdling() ?? false;
+            if (!animatorIdling && controller.Item is Weapon weapon)
+            {
+                if (weapon.ReloadMode == Weapon.EReloadMode.OnlyBarrel && !(weapon is RocketLauncher))
+                    return true;
+
+                if (weapon.IsBeltMachineGun)
+                    return true;
+            }
 
             if (OverlapValueField?.GetValue(controller) is float overlap
                 && overlap > EFTHardSettings.Instance.STOP_AIMING_AT

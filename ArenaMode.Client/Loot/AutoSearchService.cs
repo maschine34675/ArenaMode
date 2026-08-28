@@ -92,10 +92,21 @@ internal static class AutoSearchService
             while (previous != null && searchController.SearchOperations.Any(op => op.Item == previous))
                 yield return null;
 
+            // Raid may have torn down while waiting (screen-close normally cancels,
+            // this closes the residual window for free).
+            if (!ArenaSession.IsActive)
+            {
+                _activeSearch = null;
+                yield break;
+            }
+
             // A cancelled slot still contains unknown items; a completed one does
             // not — respect a manual cancel by stopping the chain.
             if (previous != null && searchController.ContainsUnknownItems(previous))
+            {
+                _activeSearch = null;
                 yield break;
+            }
 
             if (!searchController.IsSearched(item) || searchController.ContainsUnknownItems(item))
             {

@@ -24,6 +24,8 @@ internal static class MovementRuntime
 
     public static void Tick()
     {
+        SprintAdsPatches.ClearBypassSafety();
+
         if (!ArenaSession.IsActive || !Settings.MovementEnabled.Value || !Singleton<GameWorld>.Instantiated)
             return;
 

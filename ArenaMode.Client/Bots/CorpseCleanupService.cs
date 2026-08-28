@@ -108,9 +108,10 @@ internal static class CorpseCleanupService
     {
         try
         {
+            // Direct field on the spawner — reachable even when zero bots are alive
+            // (which is exactly when the corpse pile is largest).
             var spawner = (Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;
-            var anyGroup = spawner?._bots?.BotOwners?.FirstOrDefault()?.BotsGroup;
-            var controller = anyGroup?.DeadBodiesController;
+            var controller = spawner?._deadBodiesController;
             if (controller?.Bodies == null)
                 return;
 
