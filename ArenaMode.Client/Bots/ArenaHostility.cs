@@ -24,7 +24,15 @@ namespace ArenaMode.Bots;
 /// </summary>
 internal static class ArenaHostility
 {
-    private const float SweepIntervalSeconds = 6f;
+    private const float SweepIntervalSeconds = 15f;
+
+    /// <summary>
+    /// Only groups with a bot inside this radius get told. Dragging distant
+    /// groups into the fight keeps more bots simultaneously in the state that
+    /// switches on the expensive AI machinery (cover finding, path-vision
+    /// raycasts) — and on factory 60m already covers most of the map.
+    /// </summary>
+    private const float SweepRadius = 60f;
 
     private static readonly HashSet<BotsGroup> SweepGroups = new HashSet<BotsGroup>();
 
@@ -60,6 +68,9 @@ internal static class ArenaHostility
             if (owners == null)
                 return;
 
+            var playerPosition = player.Position;
+            var radiusSqr = SweepRadius * SweepRadius;
+
             SweepGroups.Clear();
             foreach (var bot in owners)
             {
@@ -69,8 +80,13 @@ internal static class ArenaHostility
                 if (bot.HealthController == null || !bot.HealthController.IsAlive)
                     continue;
 
-                if (bot.BotsGroup != null)
-                    SweepGroups.Add(bot.BotsGroup);
+                if (bot.BotsGroup == null)
+                    continue;
+
+                if ((bot.Position - playerPosition).sqrMagnitude > radiusSqr)
+                    continue;
+
+                SweepGroups.Add(bot.BotsGroup);
             }
 
             foreach (var group in SweepGroups)
