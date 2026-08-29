@@ -1,0 +1,2065 @@
+[
+  {
+    "id": "rung01",
+    "name": "Makarov PM 9x18PM pistol",
+    "order": 0,
+    "items": [
+      {
+        "_id": "de9b0f44610f4024a08539f3",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "faac8d6986e44fa895f592db",
+        "_tpl": "5448bd6b4bdc2dfc2f8b4569",
+        "parentId": "de9b0f44610f4024a08539f3",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "2fc5ad0e36b140cb8cb6feae",
+        "_tpl": "5448c12b4bdc2d02308b456f",
+        "parentId": "faac8d6986e44fa895f592db",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "902922ce06cc4626b656ce8a",
+        "_tpl": "6374a822e629013b9c0645c8",
+        "parentId": "faac8d6986e44fa895f592db",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "d1d2303ecbd94395923dddc9",
+        "_tpl": "63c6adcfb4ba094317063742",
+        "parentId": "902922ce06cc4626b656ce8a",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "79246e14ac294305947f24e2",
+        "_tpl": "6374a7e7417239a7bf00f042",
+        "parentId": "faac8d6986e44fa895f592db",
+        "slotId": "mod_pistolgrip"
+      },
+      {
+        "_id": "50b963e6bd584b8cadccc39c",
+        "_tpl": "5737201124597760fc4431f1",
+        "parentId": "2fc5ad0e36b140cb8cb6feae",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 8
+        }
+      },
+      {
+        "_id": "ac45a6c7723644bca39523c5",
+        "_tpl": "5737201124597760fc4431f1",
+        "parentId": "faac8d6986e44fa895f592db",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung02",
+    "name": "PP-91-01 Kedr-B 9x18PM submachine gun",
+    "order": 1,
+    "items": [
+      {
+        "_id": "0c3ff6d84700472a886f7d13",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "39345d420d37408596150c5b",
+        "_tpl": "57f3c6bd24597738e730fa2f",
+        "parentId": "0c3ff6d84700472a886f7d13",
+        "slotId": "FirstPrimaryWeapon"
+      },
+      {
+        "_id": "24acb5f0b0d24914aa4aadec",
+        "_tpl": "57d152ec245977144076ccdf",
+        "parentId": "39345d420d37408596150c5b",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "2d9e2e5bbc5643099962fc26",
+        "_tpl": "57f3c7e024597738ea4ba286",
+        "parentId": "39345d420d37408596150c5b",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "0a09976f66c040aa81b42c23",
+        "_tpl": "57f3c8cc2459773ec4480328",
+        "parentId": "2d9e2e5bbc5643099962fc26",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "eed885574e534bd4af1d84de",
+        "_tpl": "57d1519e24597714373db79d",
+        "parentId": "39345d420d37408596150c5b",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "fcab8a170b9744fb8f67c0af",
+        "_tpl": "5737201124597760fc4431f1",
+        "parentId": "eed885574e534bd4af1d84de",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "633f923104ce4da68d77d5c4",
+        "_tpl": "5737201124597760fc4431f1",
+        "parentId": "39345d420d37408596150c5b",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung03",
+    "name": "Chiappa Rhino 200DS 9x19 revolver",
+    "order": 2,
+    "items": [
+      {
+        "_id": "e51625d60b834ff5891fd79e",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "b2835ba6689f4a84881bc109",
+        "_tpl": "624c2e8614da335f1e034d8c",
+        "parentId": "e51625d60b834ff5891fd79e",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "b5984c56aec24e198e159726",
+        "_tpl": "624c3074dbbd335e8e6becf3",
+        "parentId": "b2835ba6689f4a84881bc109",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "8ab3cce7b3754c30ac509a02",
+        "_tpl": "619f4d304c58466fe1228437",
+        "parentId": "b2835ba6689f4a84881bc109",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "7c38fe533b8d47739f3d9e82",
+        "_tpl": "619f4bffd25cbd424731fb97",
+        "parentId": "b2835ba6689f4a84881bc109",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "987bcf0518bc4315a738da9c",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "b5984c56aec24e198e159726",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 6
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung04",
+    "name": "Saiga-9 9x19 carbine",
+    "order": 3,
+    "items": [
+      {
+        "_id": "49ba761484974885b69bc7ef",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "e5a4dc1d91bb4ce5928d6ef0",
+        "_tpl": "59f9cabd86f7743a10721f46",
+        "parentId": "49ba761484974885b69bc7ef",
+        "slotId": "FirstPrimaryWeapon"
+      },
+      {
+        "_id": "3d58452bc0de43b6b4c43109",
+        "_tpl": "5998517986f7746017232f7e",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "bf6a02260b1d4792b0e6f086",
+        "_tpl": "599851db86f77467372f0a18",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "2e181b16a93a4c96868abf31",
+        "_tpl": "5998529a86f774647f44f421",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "d35295e12086424f9610f87d",
+        "_tpl": "5998598e86f7740b3f498a86",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "4c8a15762910489599458962",
+        "_tpl": "59985a8086f77414ec448d1a",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "87eb3ca8caf441a4ab8388db",
+        "_tpl": "599860e986f7743bb57573a6",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "b775cbf7eec1449f9f36640c",
+        "_tpl": "59ccd11386f77428f24a488f",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "5e1df1cd8ed6489191dbb2ab",
+        "_tpl": "5648b1504bdc2d9d488b4584",
+        "parentId": "b775cbf7eec1449f9f36640c",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "1309bbd2a0bc43c8aff605b1",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "2e181b16a93a4c96868abf31",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 10
+        }
+      },
+      {
+        "_id": "d9f6a3973afd419a966ad0a8",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "e5a4dc1d91bb4ce5928d6ef0",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung05",
+    "name": "Glock 18C 9x19 machine pistol",
+    "order": 4,
+    "items": [
+      {
+        "_id": "2359c1907c3f4b5e9a622524",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "5c68aa23738f490eb1b9187c",
+        "_tpl": "5b1fa9b25acfc40018633c01",
+        "parentId": "2359c1907c3f4b5e9a622524",
+        "slotId": "FirstPrimaryWeapon"
+      },
+      {
+        "_id": "b085e00f7a61498397ba4512",
+        "_tpl": "5b1fa9ea5acfc40018633c0a",
+        "parentId": "5c68aa23738f490eb1b9187c",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "c576416b92f8494e96dbc753",
+        "_tpl": "5b1faa0f5acfc40dc528aeb5",
+        "parentId": "5c68aa23738f490eb1b9187c",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "f7d7f7768a4545aeaf5292fc",
+        "_tpl": "5a6f5d528dc32e00094b97d9",
+        "parentId": "c576416b92f8494e96dbc753",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "531ac93c91f047afa0979fab",
+        "_tpl": "5a6f58f68dc32e000a311390",
+        "parentId": "c576416b92f8494e96dbc753",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "c69722de416b43ec9360b5cc",
+        "_tpl": "5a718b548dc32e000d46d262",
+        "parentId": "5c68aa23738f490eb1b9187c",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "34d84daedb95426a94a9fffd",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "c69722de416b43ec9360b5cc",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 17
+        }
+      },
+      {
+        "_id": "3e6ed7b7ac1744cd806b5203",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "5c68aa23738f490eb1b9187c",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung06",
+    "name": "TDI KRISS Vector Gen.2 9x19 submachine gun",
+    "order": 5,
+    "items": [
+      {
+        "_id": "e10e6d1bb8074909a19b3763",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "7b77538bf77b46fc9410a386",
+        "_tpl": "5fc3f2d5900b1d5091531e57",
+        "parentId": "e10e6d1bb8074909a19b3763",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          },
+          "Foldable": {
+            "Folded": false
+          }
+        }
+      },
+      {
+        "_id": "5e25bff91af44f4e89b69a08",
+        "_tpl": "5a718b548dc32e000d46d262",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "11362e9a8a924852886d1988",
+        "_tpl": "5fb6567747ce63734e3fa1dc",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "bb7aa5aae76d47edb206b2a4",
+        "_tpl": "5fb6564947ce63734e3fa1da",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "e642e0799744419ebfccbbcb",
+        "_tpl": "5fb6558ad6f0b2136f2d7eb7",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "bf5aaad7ba2f4776a3fe1ecb",
+        "_tpl": "5fbbc366ca32ed67276c1557",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "dca1b3bf708e412f9880b0fe",
+        "_tpl": "5fbbc34106bde7524f03cbe9",
+        "parentId": "bf5aaad7ba2f4776a3fe1ecb",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "8958020096574a1eb1a19def",
+        "_tpl": "5fbb976df9986c4cff3fe5f2",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_mount"
+      },
+      {
+        "_id": "bffe5e9f12b7465f9d434a24",
+        "_tpl": "5fce0f9b55375d18a253eff2",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_mount_001"
+      },
+      {
+        "_id": "93d24ceda8f54f288f3ccc4f",
+        "_tpl": "5fce0f9b55375d18a253eff2",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "mod_mount_002"
+      },
+      {
+        "_id": "6c3f9102948d4a4eae42d0a5",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "5e25bff91af44f4e89b69a08",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 17
+        }
+      },
+      {
+        "_id": "8414045b5fe849fd82262e31",
+        "_tpl": "64b7bbb74b75259c590fa897",
+        "parentId": "7b77538bf77b46fc9410a386",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung07",
+    "name": "Colt M45A1 .45 ACP pistol",
+    "order": 6,
+    "items": [
+      {
+        "_id": "44db4014245a4772891ac298",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "5426fbb238314fc28aad17b9",
+        "_tpl": "5f36a0e5fbf956000b716b65",
+        "parentId": "44db4014245a4772891ac298",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "66b6dfa6bc2645798e21894b",
+        "_tpl": "5f3e7801153b8571434a924c",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "934a0993179a418d9e3f44e7",
+        "_tpl": "5f3e778efcd9b651187d7201",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "412c246e8e8941da9f89ef02",
+        "_tpl": "5f3e7823ddc4f03b010e2045",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "c32c64314fb04bed98f72941",
+        "_tpl": "5f3e7897ddc4f03b010e204a",
+        "parentId": "412c246e8e8941da9f89ef02",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "bd8b574ffd7e48f98f058156",
+        "_tpl": "5f3e78a7fbf956000b716b8e",
+        "parentId": "412c246e8e8941da9f89ef02",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "54734305c8e142f2b258cd63",
+        "_tpl": "5f3e77b26cda304dcc634057",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "295220e96f744a3e83818ecb",
+        "_tpl": "5f3e772a670e2a7b01739a52",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_trigger"
+      },
+      {
+        "_id": "80b1a11e3a3143d2bb0f33a4",
+        "_tpl": "5f3e76d86cda304dcc634054",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_hammer"
+      },
+      {
+        "_id": "891d56b1b9e241a7915ca3b3",
+        "_tpl": "5f3e777688ca2d00ad199d25",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "mod_catch"
+      },
+      {
+        "_id": "8ffb674c2a7946dba1966837",
+        "_tpl": "5e81f423763d9f754677bf2e",
+        "parentId": "54734305c8e142f2b258cd63",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 7
+        }
+      },
+      {
+        "_id": "723c3d855ad74fc0ae985a84",
+        "_tpl": "5e81f423763d9f754677bf2e",
+        "parentId": "5426fbb238314fc28aad17b9",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung08",
+    "name": "Magnum Research Desert Eagle L5 .357 pistol",
+    "order": 7,
+    "items": [
+      {
+        "_id": "3b7930576832497e9a05465d",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "2bfad3bbf838424382a2c5fe",
+        "_tpl": "669fa409933e898cce0c2166",
+        "parentId": "3b7930576832497e9a05465d",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "18d857dc8e4a4a6fb8e1a1a5",
+        "_tpl": "669fa4c61bd4416eaa09b3ca",
+        "parentId": "2bfad3bbf838424382a2c5fe",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "a881f7873568421db97c45ce",
+        "_tpl": "668fe5ec4315934ba10c6f96",
+        "parentId": "18d857dc8e4a4a6fb8e1a1a5",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "c4436693d1f94cac8f94c5e2",
+        "_tpl": "66a0da76b6f47fcfeb025e96",
+        "parentId": "2bfad3bbf838424382a2c5fe",
+        "slotId": "mod_pistolgrip"
+      },
+      {
+        "_id": "3875755f6ed14f60936a9b7d",
+        "_tpl": "669fa5127a09bc295603b499",
+        "parentId": "2bfad3bbf838424382a2c5fe",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "927ee4e49c124e56bfa0e3ac",
+        "_tpl": "668fe5e1800f0244f9036e46",
+        "parentId": "3875755f6ed14f60936a9b7d",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "1506890885a448388ca52791",
+        "_tpl": "669fa435803b94fb5d0e3a76",
+        "parentId": "2bfad3bbf838424382a2c5fe",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "fee1e0b99f35422390ea7375",
+        "_tpl": "62330c18744e5e31df12f516",
+        "parentId": "1506890885a448388ca52791",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 9
+        }
+      },
+      {
+        "_id": "21e993d65aab451e98702cf6",
+        "_tpl": "62330c18744e5e31df12f516",
+        "parentId": "2bfad3bbf838424382a2c5fe",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung09",
+    "name": "HK 416A5 5.56x45 assault rifle",
+    "order": 8,
+    "items": [
+      {
+        "_id": "7d5cc28464d14b0fa22b9a54",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "cefc167597bc44299df3d7ce",
+        "_tpl": "5bb2475ed4351e00853264e3",
+        "parentId": "7d5cc28464d14b0fa22b9a54",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "46ef842d70f94e2a99fb8f94",
+        "_tpl": "5bb20e0ed4351e3bac1212dc",
+        "parentId": "cefc167597bc44299df3d7ce",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "8e948cb4af944528860362dc",
+        "_tpl": "5c05413a0db834001c390617",
+        "parentId": "cefc167597bc44299df3d7ce",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "80efffd9eb224d07bd7f2247",
+        "_tpl": "5bb20d53d4351e4502010a69",
+        "parentId": "cefc167597bc44299df3d7ce",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "e52c0daff8b94e21a5ca4599",
+        "_tpl": "5bb20d9cd4351e00334c9d8a",
+        "parentId": "80efffd9eb224d07bd7f2247",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "1bb1d03f977a4e578dd04817",
+        "_tpl": "544a38634bdc2d58388b4568",
+        "parentId": "e52c0daff8b94e21a5ca4599",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "73db8e95867f4c2cad77d980",
+        "_tpl": "5bb20dcad4351e3bac1212da",
+        "parentId": "e52c0daff8b94e21a5ca4599",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "ba071b39dd034037aa7b0bc8",
+        "_tpl": "5bb20de5d4351e0035629e59",
+        "parentId": "80efffd9eb224d07bd7f2247",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "189747cc826241d68c8c3120",
+        "_tpl": "5bb20e49d4351e3bac1212de",
+        "parentId": "80efffd9eb224d07bd7f2247",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "f455c306ef9145929e9fc526",
+        "_tpl": "5bb20e58d4351e00320205d7",
+        "parentId": "cefc167597bc44299df3d7ce",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "94f147d73d03461ea9db113f",
+        "_tpl": "5bb20e70d4351e0035629f8f",
+        "parentId": "f455c306ef9145929e9fc526",
+        "slotId": "mod_stock_000"
+      },
+      {
+        "_id": "c8fb67cb3bc94523a209f33d",
+        "_tpl": "5bb20dbcd4351e44f824c04e",
+        "parentId": "cefc167597bc44299df3d7ce",
+        "slotId": "mod_charge"
+      },
+      {
+        "_id": "4c803554bb114a728bcf69fe",
+        "_tpl": "60194943740c5d77f6705eea",
+        "parentId": "8e948cb4af944528860362dc",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "c3c95cb10ea341c399d27e14",
+        "_tpl": "60194943740c5d77f6705eea",
+        "parentId": "cefc167597bc44299df3d7ce",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung10",
+    "name": "Steyr AUG A3 5.56x45 assault rifle (Black)",
+    "order": 9,
+    "items": [
+      {
+        "_id": "b674f4c42ed64c80a33e197d",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "489f575a17d24c50976f0708",
+        "_tpl": "6718817435e3cfd9550d2c27",
+        "parentId": "b674f4c42ed64c80a33e197d",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "c9626f5f93004c8eb4b407fb",
+        "_tpl": "62e7c98b550c8218d602cbb4",
+        "parentId": "489f575a17d24c50976f0708",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "e069dd8bc8f34a6eba768933",
+        "_tpl": "62ebbc53e3c1e1ec7c02c44f",
+        "parentId": "489f575a17d24c50976f0708",
+        "slotId": "mod_charge"
+      },
+      {
+        "_id": "3b6e4f1ffd444522a12bca05",
+        "_tpl": "62e7c72df68e7a0676050c77",
+        "parentId": "489f575a17d24c50976f0708",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "71a57579b9044403b706756a",
+        "_tpl": "630e39c3bd357927e4007c15",
+        "parentId": "3b6e4f1ffd444522a12bca05",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "c956e15a2cb14533913f4ea1",
+        "_tpl": "630f28f0cadb1fe05e06f004",
+        "parentId": "71a57579b9044403b706756a",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "fbc3a348151744359e84fa44",
+        "_tpl": "671883292e2eeb98d406f3b8",
+        "parentId": "71a57579b9044403b706756a",
+        "slotId": "mod_foregrip"
+      },
+      {
+        "_id": "bdcb2e277044469d82553d9a",
+        "_tpl": "62ebd290c427473eff0baafb",
+        "parentId": "3b6e4f1ffd444522a12bca05",
+        "slotId": "mod_mount"
+      },
+      {
+        "_id": "6e25f6b67e7a44389f610609",
+        "_tpl": "60194943740c5d77f6705eea",
+        "parentId": "c9626f5f93004c8eb4b407fb",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "2432542d38934bbe961eccfa",
+        "_tpl": "60194943740c5d77f6705eea",
+        "parentId": "489f575a17d24c50976f0708",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung11",
+    "name": "Kalashnikov AK-74N 5.45x39 assault rifle",
+    "order": 10,
+    "items": [
+      {
+        "_id": "df8f004bfe8345099a498621",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "7f8abd45063641ab898ea45e",
+        "_tpl": "5644bd2b4bdc2d3b4c8b4572",
+        "parentId": "df8f004bfe8345099a498621",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "918d131747474a03926662bb",
+        "_tpl": "59c6633186f7740cf0493bb9",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "3b8cd9d924c14349b40c9c9d",
+        "_tpl": "5648b0744bdc2d363b8b4578",
+        "parentId": "918d131747474a03926662bb",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "75238638c02744819759eb54",
+        "_tpl": "5649aa744bdc2ded0b8b457e",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "6e960902bbf84a10afdb25e5",
+        "_tpl": "5649ad3f4bdc2df8348b4585",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "6f3ae9ac16fc4c028b134da2",
+        "_tpl": "5649af094bdc2df8348b4586",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "b07c453524324813ae0a64a2",
+        "_tpl": "5649b0544bdc2d1b2b8b458a",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "84304948089447388b84305c",
+        "_tpl": "5649b1c04bdc2d16268b457c",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "437b2a88462b4d1cb416a8e3",
+        "_tpl": "564ca99c4bdc2d16268b4589",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "9ebada920e394dce9b2083e8",
+        "_tpl": "56dff2ced2720bb4668b4567",
+        "parentId": "437b2a88462b4d1cb416a8e3",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "d0a5934ae94243a5b3f6bf32",
+        "_tpl": "56dff2ced2720bb4668b4567",
+        "parentId": "7f8abd45063641ab898ea45e",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung12",
+    "name": "Desert Tech MDR 5.56x45 assault rifle",
+    "order": 11,
+    "items": [
+      {
+        "_id": "8392ad9503664c75816b15c4",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "550deabc9ee34a60be0909c7",
+        "_tpl": "5c488a752e221602b412af63",
+        "parentId": "8392ad9503664c75816b15c4",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "6ac23213023647f5ac577677",
+        "_tpl": "5c48a2c22e221602b313fb6c",
+        "parentId": "550deabc9ee34a60be0909c7",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "9421e2a4e2244daa961d18fa",
+        "_tpl": "55802d5f4bdc2dac148b458e",
+        "parentId": "550deabc9ee34a60be0909c7",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "49555112277142b2adc32b38",
+        "_tpl": "5c48a14f2e2216152006edd7",
+        "parentId": "550deabc9ee34a60be0909c7",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "a5948bbfb60a4f5fac1234fb",
+        "_tpl": "5c48a2852e221602b21d5923",
+        "parentId": "550deabc9ee34a60be0909c7",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "162cd565e158449a9d747ce4",
+        "_tpl": "5c48a2a42e221602b66d1e07",
+        "parentId": "a5948bbfb60a4f5fac1234fb",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "effd73cc54634b578834e581",
+        "_tpl": "60194943740c5d77f6705eea",
+        "parentId": "9421e2a4e2244daa961d18fa",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "26b018b9aebc49e1b759670a",
+        "_tpl": "60194943740c5d77f6705eea",
+        "parentId": "550deabc9ee34a60be0909c7",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung13",
+    "name": "MP-133 12ga pump-action shotgun",
+    "order": 12,
+    "items": [
+      {
+        "_id": "ed329a23dea34c52b6f71cbf",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "639fa26029d54ef0acf3a2cf",
+        "_tpl": "54491c4f4bdc2db1078b4568",
+        "parentId": "ed329a23dea34c52b6f71cbf",
+        "slotId": "FirstPrimaryWeapon"
+      },
+      {
+        "_id": "268fbed6dbd24d528ec2b896",
+        "_tpl": "55d4491a4bdc2d882f8b456e",
+        "parentId": "639fa26029d54ef0acf3a2cf",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "683f7280d29246a697fb89c3",
+        "_tpl": "55d45d3f4bdc2d972f8b456c",
+        "parentId": "639fa26029d54ef0acf3a2cf",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "60957007b1264923b5e0e1d8",
+        "_tpl": "55d484b44bdc2d1d4e8b456d",
+        "parentId": "639fa26029d54ef0acf3a2cf",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "b7dc8cdf4919489f97e36765",
+        "_tpl": "56083cba4bdc2de22e8b456f",
+        "parentId": "639fa26029d54ef0acf3a2cf",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "02a3355ae338435c8d7b220e",
+        "_tpl": "5d6e6891a4b9361bd473feea",
+        "parentId": "60957007b1264923b5e0e1d8",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 6
+        }
+      },
+      {
+        "_id": "3633a84b037041de85a6c82c",
+        "_tpl": "5d6e6891a4b9361bd473feea",
+        "parentId": "639fa26029d54ef0acf3a2cf",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung14",
+    "name": "Kalashnikov AK-12 5.45x39 assault rifle",
+    "order": 13,
+    "items": [
+      {
+        "_id": "6d04bf83c5aa44efb8129bab",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "5a7080e095934d1486cd85b2",
+        "_tpl": "6499849fc93611967b034949",
+        "parentId": "6d04bf83c5aa44efb8129bab",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "eca9c335a647404a9e10caa7",
+        "_tpl": "649ec107961514b22506b10c",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "6cd2a889c3c34bb8a214ba68",
+        "_tpl": "5beec8ea0db834001a6f9dbf",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "c8a0466b566e4d40a32321cb",
+        "_tpl": "649ec127c93611967b034957",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "095ed224623b45dbade2900c",
+        "_tpl": "5beecbb80db834001d2c465e",
+        "parentId": "c8a0466b566e4d40a32321cb",
+        "slotId": "mod_mount_001"
+      },
+      {
+        "_id": "d62fe67c61904512b318ad33",
+        "_tpl": "649ec2af961514b22506b10f",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "c19767e18a9c4e6caf9e82a9",
+        "_tpl": "649ec2f3961514b22506b111",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "17522d526bc1459383fe6d4d",
+        "_tpl": "649ec2da59cbb3c813042dca",
+        "parentId": "c19767e18a9c4e6caf9e82a9",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "f523c48001db48f2b1d793fe",
+        "_tpl": "649ec2cec93611967b03495e",
+        "parentId": "17522d526bc1459383fe6d4d",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "3c7323d9cca74e8ea587bc03",
+        "_tpl": "649ec30cb013f04a700e60fb",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "f01c6928d3204034be226b9e",
+        "_tpl": "649ec87d8007560a9001ab36",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "mod_stock_001"
+      },
+      {
+        "_id": "1b02333ed69c47b8b9fec566",
+        "_tpl": "5beec8c20db834001d2c465c",
+        "parentId": "f01c6928d3204034be226b9e",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "914f01ecae5e4e48b0f3fadc",
+        "_tpl": "56dff2ced2720bb4668b4567",
+        "parentId": "3c7323d9cca74e8ea587bc03",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "9b1d169a88204021a5ad4a6f",
+        "_tpl": "56dff2ced2720bb4668b4567",
+        "parentId": "5a7080e095934d1486cd85b2",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung15",
+    "name": "Molot Arms VPO-136 Vepr-KM 7.62x39 carbine",
+    "order": 14,
+    "items": [
+      {
+        "_id": "0e17511f3a3d46aaa4859516",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "cc121202f136447ba36ae07b",
+        "_tpl": "59e6152586f77473dc057aa1",
+        "parentId": "0e17511f3a3d46aaa4859516",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "1d71e27f275441608c6a4339",
+        "_tpl": "59e649f986f77411d949b246",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "23561f9d284b4386ade2a79f",
+        "_tpl": "59e6284f86f77440d569536f",
+        "parentId": "1d71e27f275441608c6a4339",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "245bb50dfa1347379d7923ea",
+        "_tpl": "59e61eb386f77440d64f5daf",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "19bce276b0ff4d328e9aa0e4",
+        "_tpl": "59e6318286f77444dd62c4cc",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "5866d6a63a0f44dcbbe9bff6",
+        "_tpl": "59e6449086f7746c9f75e822",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "24ce9b28d7cc400595532999",
+        "_tpl": "59d650cf86f7741b846413a4",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "16d841bb2e45430384bfbdb3",
+        "_tpl": "59e6227d86f77440d64f5dc2",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "f88ae97f2df644cd8709888d",
+        "_tpl": "5b1fd4e35acfc40018633c39",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "664c2249d0b14f24b58cb4a7",
+        "_tpl": "5656d7c34bdc2d9d198b4587",
+        "parentId": "f88ae97f2df644cd8709888d",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 10
+        }
+      },
+      {
+        "_id": "e1b5c41c213241d3b3153851",
+        "_tpl": "5656d7c34bdc2d9d198b4587",
+        "parentId": "cc121202f136447ba36ae07b",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung16",
+    "name": "Kalashnikov AKMS 7.62x39 assault rifle",
+    "order": 15,
+    "items": [
+      {
+        "_id": "b86146adce594c40b9c6b202",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "3adafd48dd3e4f49a9204b80",
+        "_tpl": "59ff346386f77477562ff5e2",
+        "parentId": "b86146adce594c40b9c6b202",
+        "slotId": "FirstPrimaryWeapon"
+      },
+      {
+        "_id": "f7a2ebf43b7b4b7988e8e0be",
+        "_tpl": "59d64ec286f774171d1e0a42",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "8d8f203d9ab94c6ea9dd8b9c",
+        "_tpl": "59d64f2f86f77417193ef8b3",
+        "parentId": "f7a2ebf43b7b4b7988e8e0be",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "912034875cb04505bd0eb960",
+        "_tpl": "59d64fc686f774171b243fe2",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "771842b0def34c3faa3e2ab3",
+        "_tpl": "5a0071d486f77404e23a12b2",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_pistol_grip_akms"
+      },
+      {
+        "_id": "69b210b0063640318aac03bd",
+        "_tpl": "59d6507c86f7741b846413a2",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "7b97febbe739417babad9f3a",
+        "_tpl": "59d650cf86f7741b846413a4",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "ffdee43656be4663b8d10862",
+        "_tpl": "59ff3b6a86f77477562ff5ed",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_stock_akms"
+      },
+      {
+        "_id": "8fd9f96aa7df42669c2aca82",
+        "_tpl": "5a0060fc86f7745793204432",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "6ae200247442433ab0319f88",
+        "_tpl": "5656d7c34bdc2d9d198b4587",
+        "parentId": "8fd9f96aa7df42669c2aca82",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "3d19c0999e7142948c3a4d53",
+        "_tpl": "5656d7c34bdc2d9d198b4587",
+        "parentId": "3adafd48dd3e4f49a9204b80",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung17",
+    "name": "Rifle Dynamics RD-704 7.62x39 assault rifle",
+    "order": 16,
+    "items": [
+      {
+        "_id": "3c2c04925d7c40319b529372",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "91c0c646425846d5bd7cedcc",
+        "_tpl": "628a60ae6b1d481ff772e9c8",
+        "parentId": "3c2c04925d7c40319b529372",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "379b9f3fa72144d5b23ecd51",
+        "_tpl": "628a83c29179c324ed269508",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "abf899a87dc64a15a54b1220",
+        "_tpl": "628a66b41d5e41750e314f34",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "4280691078d2423a89031553",
+        "_tpl": "628a664bccaab13006640e47",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "f2e098d6929a41e78f154e4d",
+        "_tpl": "628a665a86cbd9750d2ff5e5",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "fb45548a62a74516a6d159e5",
+        "_tpl": "628a7b23b0f75035732dd565",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "6d7f8dd3e09a47aa8d4eefc0",
+        "_tpl": "628a6678ccaab13006640e49",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_stock_000"
+      },
+      {
+        "_id": "f12de9e9bf0e4ac48e8a4669",
+        "_tpl": "5649be884bdc2d79388b4577",
+        "parentId": "6d7f8dd3e09a47aa8d4eefc0",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "14af9cd4aca54112b2dec056",
+        "_tpl": "628a85ee6b1d481ff772e9d5",
+        "parentId": "f12de9e9bf0e4ac48e8a4669",
+        "slotId": "mod_stock_000"
+      },
+      {
+        "_id": "1be5bee1387941b291d435c3",
+        "_tpl": "59d625f086f774661516605d",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "c61a5e9bc3ba4799b2ba3f0a",
+        "_tpl": "5656d7c34bdc2d9d198b4587",
+        "parentId": "1be5bee1387941b291d435c3",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 30
+        }
+      },
+      {
+        "_id": "f65224213f7a44f8b939d3db",
+        "_tpl": "5656d7c34bdc2d9d198b4587",
+        "parentId": "91c0c646425846d5bd7cedcc",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung18",
+    "name": "Magnum Research Desert Eagle L6 .50 AE pistol",
+    "order": 17,
+    "items": [
+      {
+        "_id": "a1c75642ad1747ccb6590468",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "4c28eda224714e298bee5fbb",
+        "_tpl": "669fa39b48fc9f8db6035a0c",
+        "parentId": "a1c75642ad1747ccb6590468",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "6bb1473d939040a1b320a5d5",
+        "_tpl": "669fa47da0bab4e8510d9526",
+        "parentId": "4c28eda224714e298bee5fbb",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "8880c9d1cc0248609e26c8bb",
+        "_tpl": "668fe5ec4315934ba10c6f96",
+        "parentId": "6bb1473d939040a1b320a5d5",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "761021a42e67461085a3f01d",
+        "_tpl": "66a0da76b6f47fcfeb025e96",
+        "parentId": "4c28eda224714e298bee5fbb",
+        "slotId": "mod_pistolgrip"
+      },
+      {
+        "_id": "09210f23dedb4680ae465057",
+        "_tpl": "669fa4d97a09bc295603b496",
+        "parentId": "4c28eda224714e298bee5fbb",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "7f28bae8fb7a4d2b99eb79cf",
+        "_tpl": "668fe5e1800f0244f9036e46",
+        "parentId": "09210f23dedb4680ae465057",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "70379571a5d4417582328d65",
+        "_tpl": "668fe5c5f35310705d02b696",
+        "parentId": "4c28eda224714e298bee5fbb",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "26f783fefd3a45a9be972f9c",
+        "_tpl": "66a0d1e0ed648d72fe064d06",
+        "parentId": "70379571a5d4417582328d65",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 7
+        }
+      },
+      {
+        "_id": "3cc5f4ae5cae4c83af9adb57",
+        "_tpl": "66a0d1e0ed648d72fe064d06",
+        "parentId": "4c28eda224714e298bee5fbb",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung19",
+    "name": "VSS Vintorez 9x39 special sniper rifle",
+    "order": 18,
+    "items": [
+      {
+        "_id": "1dc5a813b07f441db2b610ed",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "ed7b2dfe568441a1b3c0d4f5",
+        "_tpl": "57838ad32459774a17445cd2",
+        "parentId": "1dc5a813b07f441db2b610ed",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "f3d56ab57c0e441a9bb7a855",
+        "_tpl": "57838f0b2459774a256959b2",
+        "parentId": "ed7b2dfe568441a1b3c0d4f5",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "e7a1a67aa7484fe39c24cf58",
+        "_tpl": "57838c962459774a1651ec63",
+        "parentId": "ed7b2dfe568441a1b3c0d4f5",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "c654f4d9949147f18592891c",
+        "_tpl": "57838e1b2459774a256959b1",
+        "parentId": "e7a1a67aa7484fe39c24cf58",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "c36bf749832e4338af2e9ccf",
+        "_tpl": "578395402459774a256959b5",
+        "parentId": "ed7b2dfe568441a1b3c0d4f5",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "18ddbcf6fe6b4f76864587ca",
+        "_tpl": "578395e82459774a0e553c7b",
+        "parentId": "ed7b2dfe568441a1b3c0d4f5",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "f80dc4db43f248d3a4f1c25b",
+        "_tpl": "6565bb7eb4b12a56eb04b084",
+        "parentId": "ed7b2dfe568441a1b3c0d4f5",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "4ca00c8ec2be4cf98f4b24a8",
+        "_tpl": "61962d879bb3d20b0946d385",
+        "parentId": "f3d56ab57c0e441a9bb7a855",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 10
+        }
+      },
+      {
+        "_id": "967743ff3638417c9ffcaa5a",
+        "_tpl": "61962d879bb3d20b0946d385",
+        "parentId": "ed7b2dfe568441a1b3c0d4f5",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung20",
+    "name": "Knight's Armament Company SR-25 7.62x51 marksman rifle",
+    "order": 19,
+    "items": [
+      {
+        "_id": "9c2a857f3b034752a76c1e7a",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "3aa8202d873d4e12b6ba0967",
+        "_tpl": "5df8ce05b11454561e39243b",
+        "parentId": "9c2a857f3b034752a76c1e7a",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "9da24d7cd04346b9aeb40bb0",
+        "_tpl": "55d4b9964bdc2d1d4e8b456e",
+        "parentId": "3aa8202d873d4e12b6ba0967",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "655875641c8b4e1c8138d5f0",
+        "_tpl": "5df8f541c41b2312ea3335e3",
+        "parentId": "3aa8202d873d4e12b6ba0967",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "22b51e7dd08f4e5b9cf8b594",
+        "_tpl": "5649be884bdc2d79388b4577",
+        "parentId": "3aa8202d873d4e12b6ba0967",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "d41d63e3c4fe4e8bb12fb23f",
+        "_tpl": "5ae30c9a5acfc408fb139a03",
+        "parentId": "22b51e7dd08f4e5b9cf8b594",
+        "slotId": "mod_stock_000"
+      },
+      {
+        "_id": "456f2a6c94914ef4a7e42744",
+        "_tpl": "5df8e4080b92095fd441e594",
+        "parentId": "3aa8202d873d4e12b6ba0967",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "af664f855adf4174add2e788",
+        "_tpl": "5df917564a9f347bc92edca3",
+        "parentId": "456f2a6c94914ef4a7e42744",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "3a2cbf63639343e5b9b5ad15",
+        "_tpl": "5dfa3cd1b33c0951220c079b",
+        "parentId": "af664f855adf4174add2e788",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "675af705da2a47579b463c3f",
+        "_tpl": "5dfa3d45dfc58d14537c20b0",
+        "parentId": "af664f855adf4174add2e788",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "2f8fc6286e014ea29238bd9a",
+        "_tpl": "5df916dfbb49d91fb446d6b9",
+        "parentId": "456f2a6c94914ef4a7e42744",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "7a8e71c08bdc418fac7048fe",
+        "_tpl": "5dfa3d950dee1b22f862eae0",
+        "parentId": "2f8fc6286e014ea29238bd9a",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "dc8b6cbbbea24e339d0eb381",
+        "_tpl": "5dfa3d7ac41b2312ea33362a",
+        "parentId": "456f2a6c94914ef4a7e42744",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "33de90b4cb2a4334899e3717",
+        "_tpl": "5df8e053bb49d91fb446d6a6",
+        "parentId": "3aa8202d873d4e12b6ba0967",
+        "slotId": "mod_charge"
+      },
+      {
+        "_id": "971345b65833485aa8d13357",
+        "_tpl": "58dd3ad986f77403051cba8f",
+        "parentId": "655875641c8b4e1c8138d5f0",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 20
+        }
+      },
+      {
+        "_id": "44bd1f692832488b9a4caa9b",
+        "_tpl": "58dd3ad986f77403051cba8f",
+        "parentId": "3aa8202d873d4e12b6ba0967",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung21",
+    "name": "Molot Arms VPO-101 Vepr-Hunter 7.62x51 carbine",
+    "order": 20,
+    "items": [
+      {
+        "_id": "cb483247baaa495b9e82354f",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "765ad1be9a0845e0bcd55674",
+        "_tpl": "5c501a4d2e221602b412b540",
+        "parentId": "cb483247baaa495b9e82354f",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "3ff4221f31c64fa9909c996b",
+        "_tpl": "5c5039be2e221602b177c9ff",
+        "parentId": "765ad1be9a0845e0bcd55674",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "92a5caae0a3e449dab469e1e",
+        "_tpl": "5c503d0a2e221602b542b7ef",
+        "parentId": "765ad1be9a0845e0bcd55674",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "d092428d7d14455291461900",
+        "_tpl": "5c503b1c2e221602b21d6e9d",
+        "parentId": "765ad1be9a0845e0bcd55674",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "357b876548894a48b461870b",
+        "_tpl": "5c503af12e221602b177ca02",
+        "parentId": "765ad1be9a0845e0bcd55674",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "4c480c147db84e16af3a356c",
+        "_tpl": "5c503ac82e221602b21d6e9a",
+        "parentId": "765ad1be9a0845e0bcd55674",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "e860efc73c024d63be6bbed4",
+        "_tpl": "58dd3ad986f77403051cba8f",
+        "parentId": "4c480c147db84e16af3a356c",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 5
+        }
+      },
+      {
+        "_id": "5165df3b0db949ebac14791a",
+        "_tpl": "58dd3ad986f77403051cba8f",
+        "parentId": "765ad1be9a0845e0bcd55674",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung22",
+    "name": "U.S. Ordnance M60E6 7.62x51 light machine gun",
+    "order": 21,
+    "items": [
+      {
+        "_id": "443e4d443a1a4273bbbbd565",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "42532cfab8824becbfdcae0c",
+        "_tpl": "661ceb1b9311543c7104149b",
+        "parentId": "443e4d443a1a4273bbbbd565",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "Repairable": {
+            "Durability": 100,
+            "MaxDurability": 100
+          }
+        }
+      },
+      {
+        "_id": "5894770727064d9aa9ddeb09",
+        "_tpl": "660ea4453786cc0af808a1be",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "a525e9a7d16d4c279df00b13",
+        "_tpl": "6615202b96461aa8360271eb",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "6c1922694e874d47a9c4c70d",
+        "_tpl": "66225d88a1c7e3b81600c76f",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "fcc0fba5f3294ead8461e834",
+        "_tpl": "66012a1d3dff5074ed002e2a",
+        "parentId": "6c1922694e874d47a9c4c70d",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "48a4fcb01a3643b68b1f64e6",
+        "_tpl": "6601268bc752a02bbe05e686",
+        "parentId": "6c1922694e874d47a9c4c70d",
+        "slotId": "mod_sight_front"
+      },
+      {
+        "_id": "28268bf740574141ad4ce50e",
+        "_tpl": "66012d003dff5074ed002e2c",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "fa0cae0a56c141889ec32a09",
+        "_tpl": "6601265f98a610c1aa0ea637",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "6c1b27a479e6442397fc79c1",
+        "_tpl": "6615208aa031cbb5570e346a",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_pistolgrip_000"
+      },
+      {
+        "_id": "3da3b826a40e4ddaba9a2551",
+        "_tpl": "66152060a031cbb5570e3466",
+        "parentId": "6c1b27a479e6442397fc79c1",
+        "slotId": "mod_pistolgrip_001"
+      },
+      {
+        "_id": "3d38bf90189243caaa80fc19",
+        "_tpl": "66012d9a3dff5074ed002e33",
+        "parentId": "42532cfab8824becbfdcae0c",
+        "slotId": "mod_bipod"
+      },
+      {
+        "_id": "c0cc6303de4e4fff92c2a22f",
+        "_tpl": "58dd3ad986f77403051cba8f",
+        "parentId": "5894770727064d9aa9ddeb09",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 100
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 2,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung23",
+    "name": "SV-98 7.62x54R bolt-action sniper rifle",
+    "order": 22,
+    "items": [
+      {
+        "_id": "2324fba670f14c9889742a26",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "d350c216f96b4508873ec44c",
+        "_tpl": "55801eed4bdc2d89578b4588",
+        "parentId": "2324fba670f14c9889742a26",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "b71348a3579f499fa24e82cc",
+        "_tpl": "559ba5b34bdc2d1f1a8b4582",
+        "parentId": "d350c216f96b4508873ec44c",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "5e780e31953c48d2a4ea45c1",
+        "_tpl": "56083e1b4bdc2dc8488b4572",
+        "parentId": "d350c216f96b4508873ec44c",
+        "slotId": "mod_sight_rear"
+      },
+      {
+        "_id": "6033d82fa4d84c6ebc2a1e29",
+        "_tpl": "56083eab4bdc2d26448b456a",
+        "parentId": "d350c216f96b4508873ec44c",
+        "slotId": "mod_tactical"
+      },
+      {
+        "_id": "4ae42b9d26a94d84b6c163dd",
+        "_tpl": "560e620e4bdc2d724b8b456b",
+        "parentId": "d350c216f96b4508873ec44c",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "1792499a9d574b66a39afb44",
+        "_tpl": "61faa91878830f069b6b7967",
+        "parentId": "d350c216f96b4508873ec44c",
+        "slotId": "mod_stock"
+      },
+      {
+        "_id": "812b0e68e84b47ce992a4c42",
+        "_tpl": "56ea8222d2720b69698b4567",
+        "parentId": "1792499a9d574b66a39afb44",
+        "slotId": "mod_bipod"
+      },
+      {
+        "_id": "e07d2cd790ff4ef995512632",
+        "_tpl": "59e77a2386f7742ee578960a",
+        "parentId": "b71348a3579f499fa24e82cc",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 10
+        }
+      },
+      {
+        "_id": "af671c03ae5b4f82b08a3bbc",
+        "_tpl": "59e77a2386f7742ee578960a",
+        "parentId": "d350c216f96b4508873ec44c",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  },
+  {
+    "id": "rung24",
+    "name": "SWORD International Mk-18 .338 LM marksman rifle",
+    "order": 23,
+    "items": [
+      {
+        "_id": "efca6ce0a9cf4434b43d1b3f",
+        "_tpl": "55d7217a4bdc2d86028b456d"
+      },
+      {
+        "_id": "553d150da99643faa66cd8ff",
+        "_tpl": "5fc22d7c187fea44d52eda44",
+        "parentId": "efca6ce0a9cf4434b43d1b3f",
+        "slotId": "FirstPrimaryWeapon",
+        "upd": {
+          "FireMode": {
+            "FireMode": "single"
+          }
+        }
+      },
+      {
+        "_id": "a18e9cdd707b4dea8f078764",
+        "_tpl": "57c55efc2459772d2c6271e7",
+        "parentId": "553d150da99643faa66cd8ff",
+        "slotId": "mod_pistol_grip"
+      },
+      {
+        "_id": "c67d9a626d9840be878a4e84",
+        "_tpl": "5fc23426900b1d5091531e15",
+        "parentId": "553d150da99643faa66cd8ff",
+        "slotId": "mod_magazine"
+      },
+      {
+        "_id": "789d59df0aab482b888c1644",
+        "_tpl": "5649be884bdc2d79388b4577",
+        "parentId": "553d150da99643faa66cd8ff",
+        "slotId": "mod_stock_001"
+      },
+      {
+        "_id": "d91818e77ef54b68b7143716",
+        "_tpl": "5fc2369685fd526b824a5713",
+        "parentId": "789d59df0aab482b888c1644",
+        "slotId": "mod_stock_000"
+      },
+      {
+        "_id": "a78a2bc308964288874a858d",
+        "_tpl": "5fc278107283c4046c581489",
+        "parentId": "553d150da99643faa66cd8ff",
+        "slotId": "mod_reciever"
+      },
+      {
+        "_id": "1c096392e0a447a8a41293bb",
+        "_tpl": "5fc23678ab884124df0cd590",
+        "parentId": "a78a2bc308964288874a858d",
+        "slotId": "mod_barrel"
+      },
+      {
+        "_id": "796c563e91d044e5824c5380",
+        "_tpl": "5fc23636016cce60e8341b05",
+        "parentId": "1c096392e0a447a8a41293bb",
+        "slotId": "mod_muzzle"
+      },
+      {
+        "_id": "dcb961f5b91e46938acf602d",
+        "_tpl": "5fc2360f900b1d5091531e19",
+        "parentId": "1c096392e0a447a8a41293bb",
+        "slotId": "mod_gas_block"
+      },
+      {
+        "_id": "92f88aaf51534712a81dd5f4",
+        "_tpl": "5fc235db2770a0045c59c683",
+        "parentId": "a78a2bc308964288874a858d",
+        "slotId": "mod_handguard"
+      },
+      {
+        "_id": "98d7772bcdf846ceadd4473d",
+        "_tpl": "5fc275cf85fd526b824a571a",
+        "parentId": "c67d9a626d9840be878a4e84",
+        "slotId": "cartridges",
+        "upd": {
+          "StackObjectsCount": 10
+        }
+      },
+      {
+        "_id": "5fa65721023445568c506e85",
+        "_tpl": "5fc275cf85fd526b824a571a",
+        "parentId": "553d150da99643faa66cd8ff",
+        "slotId": "patron_in_weapon",
+        "upd": {
+          "StackObjectsCount": 1
+        }
+      }
+    ],
+    "fill": {
+      "spareMagazines": 3,
+      "rigContents": []
+    }
+  }
+]

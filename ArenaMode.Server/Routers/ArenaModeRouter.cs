@@ -66,6 +66,11 @@ public sealed class ArenaModeRouter : StaticRouter
             (url, info, sessionId, output, _) =>
                 new ValueTask<string>(ArenaContext.KitsJson)),
 
+        new RouteAction<EmptyRequestData>(
+            Protocol.LadderRoute,
+            (url, info, sessionId, output, _) =>
+                new ValueTask<string>(ArenaContext.LadderJson)),
+
         new RouteAction<ArenaRaidStartRequest>(
             Protocol.RaidStartRoute,
             async (url, info, sessionId, output, ct) =>

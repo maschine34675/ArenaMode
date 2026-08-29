@@ -20,4 +20,11 @@ public static class ArenaContext
 
     /// <summary>Raw kit catalog JSON served verbatim to the client (config/kits.json).</summary>
     public static string KitsJson { get; internal set; } = "[]";
+
+    /// <summary>
+    /// Gun Game weapon ladder, same shape as a kit but carrying only a primary
+    /// weapon (config/ladder.json). Generated from the game's own weapon presets
+    /// by tools/generate-ladder.py and shipped as data, so it stays editable.
+    /// </summary>
+    public static string LadderJson { get; internal set; } = "[]";
 }

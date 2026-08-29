@@ -38,6 +38,13 @@ public sealed class GunGameMode : IArenaMode
 
     private ArenaMatch _match;
     private List<KitDefinition> _ladder = new List<KitDefinition>();
+
+    /// <summary>
+    /// True when the rungs carry a weapon and nothing else, so a respawn has to
+    /// be given the rung spliced into an ordinary kit. False for the fallback
+    /// ladder built from whole kits, where the rung IS the loadout.
+    /// </summary>
+    private bool _rungsAreWeaponsOnly;
     private int _tier;
     private int _wins;
     private bool _loadoutDirty;
@@ -60,8 +67,25 @@ public sealed class GunGameMode : IArenaMode
 
     public int TierCount => _ladder.Count;
 
-    public KitDefinition CurrentKit =>
+    /// <summary>The rung itself — the weapon the player has earned.</summary>
+    public KitDefinition CurrentRung =>
         _ladder.Count > 0 ? _ladder[Mathf.Clamp(_tier, 0, _ladder.Count - 1)] : null;
+
+    /// <summary>
+    /// What a respawn should hand out: the ordinary kit for this life with the
+    /// earned weapon in it. Only the gun is the ladder's business.
+    /// </summary>
+    public KitDefinition CurrentKit
+    {
+        get
+        {
+            var rung = CurrentRung;
+            if (rung == null || !_rungsAreWeaponsOnly)
+                return rung;
+
+            return KitMerge.WithPrimaryWeapon(KitCatalog.GetBaseKit(), rung);
+        }
+    }
 
     public string HudStatusLine
     {
@@ -85,7 +109,7 @@ public sealed class GunGameMode : IArenaMode
     public void OnMatchStart(ArenaMatch match)
     {
         _match = match;
-        _ladder = BuildLadder();
+        _ladder = BuildLadder(out _rungsAreWeaponsOnly);
         _tier = 0;
         _wins = 0;
         _loadoutDirty = false;
@@ -118,13 +142,21 @@ public sealed class GunGameMode : IArenaMode
     }
 
     /// <summary>
-    /// The configured ladder, or the whole catalog in its own order. Only kits
-    /// that actually build are allowed in: a tier that throws halfway through
-    /// the equipment swap would strand the player mid-ladder.
+    /// The generated weapon ladder, or the kit catalog when there is none. Only
+    /// entries that actually build are allowed in: a rung that throws halfway
+    /// through the equipment swap would strand the player mid-ladder.
     /// </summary>
-    private static List<KitDefinition> BuildLadder()
+    private static List<KitDefinition> BuildLadder(out bool weaponsOnly)
     {
-        var catalog = KitCatalog.Kits;
+        var catalog = LadderCatalog.Rungs;
+        weaponsOnly = catalog != null && catalog.Count > 0;
+
+        if (!weaponsOnly)
+        {
+            catalog = KitCatalog.Kits;
+            Plugin.ModLogger.LogInfo("Gun Game: no weapon ladder — laddering through the kit catalog instead.");
+        }
+
         if (catalog == null || catalog.Count == 0)
             return new List<KitDefinition>();
 
@@ -144,7 +176,7 @@ public sealed class GunGameMode : IArenaMode
                 if (kit != null)
                     picked.Add(kit);
                 else
-                    Plugin.ModLogger.LogWarning($"Gun Game ladder: no kit '{id}' in the catalog — skipped.");
+                    Plugin.ModLogger.LogWarning($"Gun Game ladder: no rung '{id}' — skipped.");
             }
 
             // An entirely unusable ladder setting must not leave the mode dead.
@@ -158,7 +190,7 @@ public sealed class GunGameMode : IArenaMode
             if (invalid.Count == 0)
                 ladder.Add(kit);
             else
-                Plugin.ModLogger.LogWarning($"Gun Game ladder: kit '{kit.Id}' left out — unknown templates.");
+                Plugin.ModLogger.LogWarning($"Gun Game ladder: rung '{kit.Id}' left out — unknown templates.");
         }
 
         return ladder;
@@ -186,7 +218,7 @@ public sealed class GunGameMode : IArenaMode
 
     private void TrySwapToCurrentTier(Player player)
     {
-        var kit = CurrentKit;
+        var kit = CurrentRung;
         if (kit == null)
         {
             _loadoutDirty = false;
@@ -234,7 +266,7 @@ public sealed class GunGameMode : IArenaMode
         // Built here rather than when the kill landed: whatever the tier is NOW
         // is what the player gets, so a burst of kills collapses into one swap.
         var tierAtSwap = _tier;
-        var current = CurrentKit;
+        var current = CurrentRung;
         if (current == null)
         {
             _loadoutDirty = false;

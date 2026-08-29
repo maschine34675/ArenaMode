@@ -65,11 +65,25 @@ public static class KitBundlePreloader
     public static IEnumerator PreloadAll()
     {
         var kits = KitCatalog.Kits;
-        if (kits == null)
+        if (kits != null)
+        {
+            foreach (var kit in kits)
+                yield return Preload(kit);
+        }
+
+        // Gun Game is the one mode that meets a cold bundle mid-fight: every
+        // rung is a weapon this raid has never seen, and the promotion waits for
+        // it. Warmed only for that mode — two dozen weapons is a lot of pool to
+        // build for a raid that will never draw them.
+        if (!(Modes.ArenaMatchService.Current?.Mode is Modes.GunGameMode))
             yield break;
 
-        foreach (var kit in kits)
-            yield return Preload(kit);
+        var rungs = LadderCatalog.Rungs;
+        if (rungs == null)
+            yield break;
+
+        foreach (var rung in rungs)
+            yield return Preload(rung);
     }
 
     private static Task PreloadAsync(KitDefinition kit)

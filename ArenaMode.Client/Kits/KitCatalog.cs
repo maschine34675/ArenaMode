@@ -48,10 +48,6 @@ public static class KitCatalog
     /// </summary>
     public static KitDefinition GetSelectedKit()
     {
-        EnsureLoaded();
-        if (_kits == null || _kits.Count == 0)
-            return null;
-
         // A mode that owns the loadout outranks both the random draw and the
         // configured kit; a provider that returns nothing falls through.
         var provider = KitProvider;
@@ -68,6 +64,21 @@ public static class KitCatalog
                 Plugin.ModLogger.LogWarning($"Arena kit provider failed ({ex.Message}) — falling back.");
             }
         }
+
+        return GetBaseKit();
+    }
+
+    /// <summary>
+    /// The kit the raid would hand out on its own — the random draw or the
+    /// configured one, ignoring any mode that has taken the choice over.
+    /// Gun Game builds on this: it decides the gun and nothing else, so it needs
+    /// to ask what the armour and rig would have been without asking itself.
+    /// </summary>
+    public static KitDefinition GetBaseKit()
+    {
+        EnsureLoaded();
+        if (_kits == null || _kits.Count == 0)
+            return null;
 
         if (Settings.RandomKit.Value)
             return PickRandomKit();

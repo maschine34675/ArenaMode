@@ -9,6 +9,7 @@ public static class Protocol
     public const string PingRoute = "/arenamode/ping";
     public const string ConfigRoute = "/arenamode/config";
     public const string KitsRoute = "/arenamode/kits";
+    public const string LadderRoute = "/arenamode/ladder";
     public const string RaidStartRoute = "/arenamode/raid-start";
     public const string RaidCancelRoute = "/arenamode/raid-cancel";
     public const string RaidEndRoute = "/arenamode/raid-end";

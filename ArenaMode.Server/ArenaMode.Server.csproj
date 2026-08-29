@@ -38,6 +38,7 @@
     <!-- Default kit catalog: deployed once, user edits are never overwritten. -->
     <MakeDir Directories="$(SPTUserMods)ArenaMode\config\" Condition="!Exists('$(SPTUserMods)ArenaMode\config\kits.json')" />
     <Copy SourceFiles="defaults\kits.json" DestinationFolder="$(SPTUserMods)ArenaMode\config\" Condition="!Exists('$(SPTUserMods)ArenaMode\config\kits.json')" />
+    <Copy SourceFiles="defaults\ladder.json" DestinationFolder="$(SPTUserMods)ArenaMode\config\" Condition="!Exists('$(SPTUserMods)ArenaMode\config\ladder.json')" />
   </Target>
 
 </Project>

@@ -314,8 +314,8 @@ public static class Settings
             "Gun Game",
             "GunGameLadder",
             "",
-            "Kit ids in ladder order, comma separated. Empty uses the whole kit " +
-            "catalog in its own order.");
+            "Rung ids in ladder order, comma separated. Empty uses the generated " +
+            "weapon ladder (config/ladder.json), or the kit catalog if there is none.");
 
         GunGameSpareMagazines = config.Bind(
             "Gun Game",
