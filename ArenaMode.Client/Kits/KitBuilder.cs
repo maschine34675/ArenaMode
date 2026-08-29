@@ -253,6 +253,46 @@ public static class KitBuilder
         }
     }
 
+    private static void FillSpareMagazines(List<CompoundItem> containers, ItemFactory factory, Magazine template,
+        string ammoTpl, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            var magazine = factory.CreateItem(factory.NextId, template.TemplateId, null) as Magazine;
+            if (magazine == null)
+                break;
+
+            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+            ammo.StackObjectsCount = magazine.MaxCount;
+            var loadResult = magazine.Cartridges.Add(ammo, false);
+            if (loadResult.Failed)
+                Plugin.ModLogger.LogWarning($"Kit: loading spare magazine failed: {loadResult.Error}");
+
+            if (!AddToAnyGrid(containers, magazine))
+            {
+                Plugin.ModLogger.LogWarning("Kit: no grid space for spare magazine.");
+                break;
+            }
+        }
+    }
+
+    /// <summary>Loose rounds for fixed-magazine weapons, one magazine worth per stack.</summary>
+    private static void FillLooseAmmo(List<CompoundItem> containers, ItemFactory factory, string ammoTpl,
+        int roundsPerStack, int stacks)
+    {
+        for (var i = 0; i < stacks; i++)
+        {
+            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+            ammo.StackObjectsCount = Math.Max(1, Math.Min(roundsPerStack, ammo.StackMaxSize));
+
+            if (!AddToAnyGrid(containers, ammo))
+            {
+                Plugin.ModLogger.LogWarning("Kit: no grid space for spare ammunition.");
+                break;
+            }
+        }
+    }
+
     private static void FillGrids(InventoryEquipment equipment, ItemFactory factory, KitDefinition kit, Dictionary<string, Item> created)
     {
         if (kit.Fill == null)
@@ -260,29 +300,20 @@ public static class KitBuilder
 
         var containers = GridContainers(equipment);
 
-        // Spare loaded magazines cloned from the primary weapon's magazine.
+        // Reload supply, cloned from the primary weapon's magazine.
         var template = created.Values.OfType<Magazine>().FirstOrDefault(m => m.Cartridges.Items.Any());
         if (template != null && kit.Fill.SpareMagazines > 0)
         {
             var ammoTpl = template.Cartridges.Items.First().TemplateId;
-            for (var i = 0; i < kit.Fill.SpareMagazines; i++)
-            {
-                var magazine = factory.CreateItem(factory.NextId, template.TemplateId, null) as Magazine;
-                if (magazine == null)
-                    break;
 
-                var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-                ammo.StackObjectsCount = magazine.MaxCount;
-                var loadResult = magazine.Cartridges.Add(ammo, false);
-                if (loadResult.Failed)
-                    Plugin.ModLogger.LogWarning($"Kit: loading spare magazine failed: {loadResult.Error}");
-
-                if (!AddToAnyGrid(containers, magazine))
-                {
-                    Plugin.ModLogger.LogWarning("Kit: no grid space for spare magazine.");
-                    break;
-                }
-            }
+            // A weapon with a FIXED magazine is reloaded round by round, so spare
+            // magazines are worse than useless there: they cannot be swapped in,
+            // they clutter the rig, and the reload has nothing to draw from. Those
+            // kits get loose ammunition instead — one stack per magazine asked for.
+            if (template.ReloadMagType == Weapon.EReloadMode.InternalMagazine)
+                FillLooseAmmo(containers, factory, ammoTpl, template.MaxCount, kit.Fill.SpareMagazines);
+            else
+                FillSpareMagazines(containers, factory, template, ammoTpl, kit.Fill.SpareMagazines);
         }
 
         foreach (var entry in kit.Fill.RigContents ?? Enumerable.Empty<KitStackedItem>())
