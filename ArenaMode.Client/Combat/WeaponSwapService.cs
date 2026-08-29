@@ -123,7 +123,7 @@ internal static class WeaponSwapService
             yield break;
         }
 
-        if (!Exchange(inventory, slot, weapon, spares))
+        if (!Exchange(player, inventory, slot, weapon, spares))
         {
             Finish(onComplete, false);
             yield break;
@@ -165,7 +165,7 @@ internal static class WeaponSwapService
     /// between taking the old weapon out and putting the new one in, so there is
     /// no frame in which the player owns neither.
     /// </summary>
-    private static bool Exchange(InventoryController inventory, Slot slot, Weapon weapon, IList<Item> spares)
+    private static bool Exchange(Player player, InventoryController inventory, Slot slot, Weapon weapon, IList<Item> spares)
     {
         Item removed = null;
 
@@ -221,6 +221,18 @@ internal static class WeaponSwapService
             Plugin.ModLogger.LogWarning($"Gun Game: spare magazines failed ({ex.Message}).");
         }
 
+        // The round counts, same as the kit path does for a respawn — without
+        // this every new magazine reads as an unknown quantity until inspected.
+        try
+        {
+            if (player.Profile != null)
+                Kits.KitBuilder.RegisterMagazinesAsChecked(player.Profile);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Gun Game: registering magazine counts failed ({ex.Message}).");
+        }
+
         return true;
     }
 
@@ -264,6 +276,8 @@ internal static class WeaponSwapService
                     var result = ItemManipulator.RemoveWithoutRestrictions(spare, inventory);
                     if (result.Failed)
                         Plugin.ModLogger.LogWarning($"Gun Game: removing a stale spare failed: {result.Error}");
+                    else
+                        ForgetKnown(inventory, spare);
                 }
                 catch (Exception ex)
                 {
@@ -276,6 +290,57 @@ internal static class WeaponSwapService
             // Cleared no matter what — a list that survives a failure would try
             // the same doomed removal on every promotion from here on.
             HandedOutSpares.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Tells the player they own this.
+    ///
+    /// Anything sitting in a grid starts out UNKNOWN — that is the same
+    /// machinery that hides a corpse's pockets until you search them, and it
+    /// does not care that the container is your own rig. The game normally
+    /// clears it as a side effect of adding through ItemManipulator, whose
+    /// AddResult marks the item known when the operation reports success. The
+    /// grid-level add used here is a layer below that and knows nothing about
+    /// searching, so the magazines landed in the rig greyed out and the player
+    /// had to search their own vest before they could reload from them.
+    ///
+    /// Events stay off deliberately. They exist for a genuine find: they credit
+    /// search XP and file the item under raid loot. None of that is true of a
+    /// magazine this mod put there — the only thing lost is a live cell refresh
+    /// on an inventory screen that happens to be open during a firefight.
+    /// </summary>
+    private static void MarkKnown(InventoryController inventory, Item item)
+    {
+        try
+        {
+            var search = inventory.SearchController as IPlayerSearchController;
+            search?.SetItemAsKnown(item, raiseEvents: false);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Gun Game: marking a spare as known failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The counterpart to MarkKnown, and the reason it exists is cost rather
+    /// than correctness: the known-item record is a plain dictionary that every
+    /// item view searches LINEARLY. Nothing removes an entry when the item goes
+    /// away — the engine only does it as a side effect of its own remove
+    /// pipeline, which the direct removal here bypasses — so a full ladder would
+    /// leave a growing pile of records for magazines that no longer exist.
+    /// </summary>
+    private static void ForgetKnown(InventoryController inventory, Item item)
+    {
+        try
+        {
+            var search = inventory.SearchController as ActiveSearchController;
+            search?.ForgetItem(item);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Gun Game: forgetting a spare failed: {ex.Message}");
         }
     }
 
@@ -315,9 +380,14 @@ internal static class WeaponSwapService
                 continue;
 
             if (Kits.KitBuilder.AddToAnyGridOf(containers, spare))
+            {
+                MarkKnown(inventory, spare);
                 HandedOutSpares.Add(spare);
+            }
             else
+            {
                 Plugin.ModLogger.LogWarning("Gun Game: no rig space for a spare magazine.");
+            }
         }
     }
 

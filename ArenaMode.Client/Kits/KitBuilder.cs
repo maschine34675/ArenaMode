@@ -494,7 +494,7 @@ public static class KitBuilder
     /// Register kit magazines/chambers as inspected so ammo counts display normally.
     /// Runs AFTER the surgeon's sanitize (which only prunes stale entries).
     /// </summary>
-    private static void RegisterMagazinesAsChecked(Profile profile)
+    public static void RegisterMagazinesAsChecked(Profile profile)
     {
         try
         {
