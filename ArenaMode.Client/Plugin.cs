@@ -37,6 +37,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
+        Combat.ArenaFracturePatches.Enable();
         Bots.ArenaBotPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.SprintAdsPatches.Enable();

@@ -42,6 +42,8 @@ public static class Settings
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
     public static ConfigEntry<bool> HuntPlayer { get; private set; }
+    public static ConfigEntry<bool> MaxSkills { get; private set; }
+    public static ConfigEntry<bool> NoFractures { get; private set; }
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
@@ -240,6 +242,22 @@ public static class Settings
             "Switch off flashlights and lasers on corpses. Shadow-casting lights " +
             "are expensive and dead bodies keep theirs on forever; a looted " +
             "flashlight still works normally.");
+
+        MaxSkills = config.Bind(
+            "Character",
+            "MaxSkills",
+            true,
+            "Run every character skill at elite level during an arena raid (kit " +
+            "weapons count as mastered too). Reverted when the raid ends; the " +
+            "saved profile is never touched.");
+
+        NoFractures = config.Bind(
+            "Character",
+            "NoFractures",
+            true,
+            "Limbs never fracture during an arena raid. The Health skill alone " +
+            "only cuts the chance by about a third, which is not enough for an " +
+            "arcade mode.");
 
         GameMode = config.Bind(
             "Match",

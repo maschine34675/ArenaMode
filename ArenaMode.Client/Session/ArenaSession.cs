@@ -111,6 +111,10 @@ public static class ArenaSession
         // human into every existing group's enemy list once.
         ForceExistingGroupsHostile(world);
 
+        // Before the kit swap: that swap rebuilds the player in place, so it
+        // already picks up the boosted values with no extra work.
+        Combat.ArenaSkills.Apply(world);
+
         // Keep PMC profiles cached so the first PMC top-up wave does not stall on
         // a server-side batch generation.
         Bots.BurstSpawnService.PrewarmPmcProfiles();
@@ -155,6 +159,11 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        // FIRST, and outside the latch guard: the client reuses one profile for
+        // the whole session, so boosted skills must come back even if the latch
+        // was cleared abnormally. Self-noops when nothing was boosted.
+        Combat.ArenaSkills.Restore();
+
         if (!IsActive && !ArmedForNextRaid)
             return;
 
