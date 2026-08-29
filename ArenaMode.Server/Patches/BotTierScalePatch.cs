@@ -47,6 +47,22 @@ public sealed class BotTierScalePatch : AbstractPatch
     /// </summary>
     private const int Spread = 5;
 
+    /// <summary>
+    /// The highest level this may ever claim, and it is a hard safety bound
+    /// rather than a taste.
+    ///
+    /// The ramp writes a level the bot system then looks up in its tier table,
+    /// and that lookup throws rather than shrugging when no row matches — inside
+    /// their code, well outside this patch's own guard. A config value past the
+    /// end of that table would therefore not degrade the ramp, it would kill
+    /// every bot in the raid and leave an empty arena with nothing in the log to
+    /// explain it. The experience table runs out first, at 79, and past roughly
+    /// 84 the range quietly collapses back onto a single level — the exact fault
+    /// this class was last fixed for. So 79 it is, and the config is clamped to
+    /// it instead of being trusted.
+    /// </summary>
+    private const int MaxUsableLevel = 79;
+
     protected override MethodBase GetTargetMethod()
     {
         return typeof(BotController).GetMethod(
@@ -76,8 +92,8 @@ public sealed class BotTierScalePatch : AbstractPatch
             var rampMinutes = Math.Max(1, map.BotTierRampMinutes);
             var progress = Math.Clamp(elapsed.TotalMinutes / rampMinutes, 0d, 1d);
 
-            var start = Math.Max(1, map.BotTierStartLevel);
-            var end = Math.Max(start, map.BotTierEndLevel);
+            var start = Math.Clamp(map.BotTierStartLevel, 1, MaxUsableLevel);
+            var end = Math.Clamp(map.BotTierEndLevel, start, MaxUsableLevel);
             var here = (int)Math.Round(start + (end - start) * progress);
 
             // Both together, and neither works alone: the level the window is
