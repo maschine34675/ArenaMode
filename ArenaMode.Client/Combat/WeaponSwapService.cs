@@ -1,3 +1,4 @@
+using Comfort.Common;
 using EFT;
 using EFT.InventoryLogic;
 using System;
@@ -67,8 +68,16 @@ internal static class WeaponSwapService
         if (slot == null)
             return false;
 
+        // Hosted on the GAME, never on the player: the raid-start kit swap and
+        // the respawn recovery paths DESTROY the player body, and a coroutine
+        // that dies with its host never reaches its own cleanup — which would
+        // leave the busy flag latched and the mode silently dead for the raid.
+        var host = Singleton<AbstractGame>.Instance as LocalGame;
+        if (host == null)
+            return false;
+
         IsSwapping = true;
-        player.StartCoroutine(SwapRoutine(player, inventory, slot, weapon, spares, onComplete));
+        host.StartCoroutine(SwapRoutine(player, inventory, slot, weapon, spares, onComplete));
         return true;
     }
 
@@ -87,7 +96,16 @@ internal static class WeaponSwapService
 
         var deadline = Time.time + StepTimeoutSeconds;
         while (!empty.Done && Time.time < deadline)
+        {
+            // The body can be destroyed or replaced under us at any yield.
+            if (Gone(player))
+            {
+                Finish(onComplete, false);
+                yield break;
+            }
+
             yield return null;
+        }
 
         if (!empty.Done || empty.Error != null)
         {
@@ -99,7 +117,7 @@ internal static class WeaponSwapService
 
         // Dying during the holster animation hands the body to the respawn
         // driver, which is about to replace the whole inventory anyway.
-        if (player.HealthController == null || !player.HealthController.IsAlive)
+        if (Gone(player))
         {
             Finish(onComplete, false);
             yield break;
@@ -116,14 +134,27 @@ internal static class WeaponSwapService
 
         deadline = Time.time + StepTimeoutSeconds;
         while (!draw.Done && Time.time < deadline)
-            yield return null;
+        {
+            if (Gone(player))
+            {
+                Finish(onComplete, false);
+                yield break;
+            }
 
-        // The weapon is seated in the slot either way, so a failed draw leaves
-        // the player able to pull it out by hand — not worth undoing the swap.
+            yield return null;
+        }
+
+        // The weapon IS seated, so nothing is lost — but the hands are empty,
+        // and reporting success here would clear the mode's dirty flag and end
+        // the story there: a player standing in a firefight holding nothing,
+        // with no retry coming. Report the failure and let the mode try again;
+        // the next attempt removes this weapon and seats a fresh one.
         if (!draw.Done || draw.Error != null)
         {
             Plugin.ModLogger.LogWarning(
-                $"Gun Game: new weapon seated but not drawn ({draw.Error ?? "timed out"}).");
+                $"Gun Game: new weapon seated but not drawn ({draw.Error ?? "timed out"}) — will retry.");
+            Finish(onComplete, false);
+            yield break;
         }
 
         Finish(onComplete, true);
@@ -137,6 +168,19 @@ internal static class WeaponSwapService
     private static bool Exchange(InventoryController inventory, Slot slot, Weapon weapon, IList<Item> spares)
     {
         Item removed = null;
+
+        // BEFORE the weapon comes out. A magazine the player reloaded from is
+        // inside that weapon, and once the weapon is detached its contents keep
+        // pointing at addresses that no longer lead anywhere — removing one
+        // then throws, and the throw used to take the fresh spares with it.
+        try
+        {
+            ClearHandedOutSpares(inventory);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Gun Game: clearing old spares failed ({ex.Message}).");
+        }
 
         try
         {
@@ -170,7 +214,6 @@ internal static class WeaponSwapService
         // succeeded — the player has a gun with a loaded magazine either way.
         try
         {
-            ClearHandedOutSpares(inventory);
             HandOutSpares(inventory, spares);
         }
         catch (Exception ex)
@@ -200,20 +243,65 @@ internal static class WeaponSwapService
 
     private static void ClearHandedOutSpares(InventoryController inventory)
     {
-        foreach (var spare in HandedOutSpares)
+        try
         {
-            // Looted, dropped or already gone — the address check keeps this from
-            // reaching into an inventory the item no longer belongs to.
-            if (spare == null || spare.CurrentAddress == null)
-                continue;
+            foreach (var spare in HandedOutSpares)
+            {
+                if (spare == null)
+                    continue;
 
-            var result = ItemManipulator.RemoveWithoutRestrictions(spare, inventory);
-            if (result.Failed)
-                Plugin.ModLogger.LogWarning($"Gun Game: removing a stale spare failed: {result.Error}");
+                // The remembered list outlives a life: after a death the old
+                // spares are lying in a corpse, in an inventory this controller
+                // does not own. Reaching into that would delete items out of
+                // someone else's body. Only what is demonstrably still carried
+                // HERE may be taken away.
+                if (!StillCarried(inventory, spare))
+                    continue;
+
+                // One awkward spare must not cost the player the rest of them.
+                try
+                {
+                    var result = ItemManipulator.RemoveWithoutRestrictions(spare, inventory);
+                    if (result.Failed)
+                        Plugin.ModLogger.LogWarning($"Gun Game: removing a stale spare failed: {result.Error}");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.ModLogger.LogWarning($"Gun Game: removing a stale spare threw: {ex.Message}");
+                }
+            }
         }
-
-        HandedOutSpares.Clear();
+        finally
+        {
+            // Cleared no matter what — a list that survives a failure would try
+            // the same doomed removal on every promotion from here on.
+            HandedOutSpares.Clear();
+        }
     }
+
+    private static bool StillCarried(InventoryController inventory, Item item)
+    {
+        try
+        {
+            var carried = inventory.Inventory?.GetPlayerItems(EPlayerItems.Equipment);
+            return carried != null && System.Linq.Enumerable.Contains(carried, item);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Drops the memory of handed-out spares without touching them — for when
+    /// they are gone from this player's reach anyway (a death leaves them on the
+    /// corpse) and the next promotion must not go looking for them.
+    /// </summary>
+    public static void ForgetSpares() => HandedOutSpares.Clear();
+
+    /// <summary>Destroyed, replaced, or dead — all three mean: stop.</summary>
+    private static bool Gone(Player player)
+        => player == null || player.HealthController == null || !player.HealthController.IsAlive;
 
     private static void HandOutSpares(InventoryController inventory, IList<Item> spares)
     {

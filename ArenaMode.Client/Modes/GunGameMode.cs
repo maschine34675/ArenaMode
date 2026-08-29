@@ -5,6 +5,7 @@ using Comfort.Common;
 using EFT;
 using EFT.InventoryLogic;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -43,6 +44,10 @@ public sealed class GunGameMode : IArenaMode
     private float _nextSwapAt;
     private int _consecutiveFailures;
     private bool _givenUp;
+    private bool _preloading;
+
+    /// <summary>Which tier the respawn was handed, so a kill during it is not lost.</summary>
+    private int _tierHandedToRespawn = -1;
 
     public string Id => "gungame";
 
@@ -86,6 +91,8 @@ public sealed class GunGameMode : IArenaMode
         _loadoutDirty = false;
         _consecutiveFailures = 0;
         _givenUp = false;
+        _preloading = false;
+        _tierHandedToRespawn = -1;
 
         if (_ladder.Count == 0)
         {
@@ -99,7 +106,13 @@ public sealed class GunGameMode : IArenaMode
         // dying costs progress only if the config says it should. Installed
         // before the raid-start kit swap runs, which is what puts the player on
         // tier 1 in the first place.
-        KitCatalog.KitProvider = () => CurrentKit;
+        KitCatalog.KitProvider = () =>
+        {
+            // Remembered, because a kill can land between here and the moment
+            // the player is standing again — see OnLocalRespawn.
+            _tierHandedToRespawn = _tier;
+            return CurrentKit;
+        };
 
         Plugin.ModLogger.LogInfo($"Gun Game ladder: {_ladder.Count} tiers — {string.Join(" > ", _ladder.Select(k => k.Id))}");
     }
@@ -156,7 +169,7 @@ public sealed class GunGameMode : IArenaMode
         if (_match == null || !_loadoutDirty || _givenUp || _ladder.Count == 0)
             return;
 
-        if (Time.time < _nextSwapAt || Combat.WeaponSwapService.IsSwapping)
+        if (Time.time < _nextSwapAt || _preloading || Combat.WeaponSwapService.IsSwapping)
             return;
 
         // A respawn is already handing out the current tier's whole kit; swapping
@@ -180,37 +193,79 @@ public sealed class GunGameMode : IArenaMode
             return;
         }
 
+        var host = Comfort.Common.Singleton<AbstractGame>.Instance as LocalGame;
+        if (host == null)
+            return;
+
+        _preloading = true;
+        host.StartCoroutine(SwapAfterPreload(host, player, kit));
+    }
+
+    /// <summary>
+    /// The bundles come first, always.
+    ///
+    /// A weapon whose assets were never loaded into this raid has no prefab
+    /// pool, so the hands-controller factory hands back null and the draw dies
+    /// on it — and it dies AFTER the game has already opened a weapon-change
+    /// operation and before anything closes it. The player is then left with
+    /// empty hands and a change that never finishes, which blocks every weapon,
+    /// medkit and grenade for the rest of the raid. Both respawn paths preload
+    /// for exactly this reason; the promotion path has to as well, and it cannot
+    /// lean on the background warmup, which only runs for random kits.
+    /// </summary>
+    private IEnumerator SwapAfterPreload(LocalGame host, Player player, KitDefinition kit)
+    {
+        // A no-op once this kit is warm, which it is for all but the first promotion.
+        yield return KitBundlePreloader.Preload(kit);
+
+        _preloading = false;
+
+        // The preload yields, sometimes for seconds. Re-check everything.
+        if (player == null
+            || player.HealthController == null
+            || !player.HealthController.IsAlive
+            || Combat.WeaponSwapService.IsSwapping
+            || Respawn.ArenaRespawnDriver.IsRespawnInProgress
+            || !ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer, player))
+        {
+            yield break;
+        }
+
         // Built here rather than when the kill landed: whatever the tier is NOW
         // is what the player gets, so a burst of kills collapses into one swap.
         var tierAtSwap = _tier;
+        var current = CurrentKit;
+        if (current == null)
+        {
+            _loadoutDirty = false;
+            yield break;
+        }
+
         Weapon weapon;
         List<Item> spares;
 
         try
         {
-            weapon = KitBuilder.BuildPrimaryWeapon(kit, Settings.GunGameSpareMagazines.Value, out spares);
+            weapon = KitBuilder.BuildPrimaryWeapon(current, Settings.GunGameSpareMagazines.Value, out spares);
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Gun Game: building tier {tierAtSwap + 1} ({kit.Id}) failed: {ex.Message}");
+            Plugin.ModLogger.LogWarning($"Gun Game: building tier {tierAtSwap + 1} ({current.Id}) failed: {ex.Message}");
             weapon = null;
             spares = null;
         }
 
         if (weapon == null)
         {
-            OnSwapFailed(kit);
-            return;
+            OnSwapFailed(current);
+            yield break;
         }
 
         _nextSwapAt = Time.time + SwapRetrySeconds;
 
-        if (!Combat.WeaponSwapService.Swap(player, weapon, spares, success => OnSwapFinished(success, tierAtSwap, kit)))
-        {
-            // Busy right now (reloading, mid weapon change) — not a failure worth
-            // counting, just try again shortly.
-            return;
-        }
+        // A refusal here means "busy" (reloading, mid weapon change) — not a
+        // failure worth counting, the dirty flag brings us back in a moment.
+        Combat.WeaponSwapService.Swap(player, weapon, spares, success => OnSwapFinished(success, tierAtSwap, current));
     }
 
     private void OnSwapFinished(bool success, int tierAtSwap, KitDefinition kit)
@@ -297,17 +352,28 @@ public sealed class GunGameMode : IArenaMode
         // nothing left for a weapon swap to do.
         _loadoutDirty = false;
         _givenUp = false;
+        _preloading = false;
         _consecutiveFailures = 0;
+
+        // The spares handed out in this life stay with the corpse. Forgetting
+        // them is the point: the next promotion must not go looking for
+        // magazines that now belong to a body on the floor.
+        Combat.WeaponSwapService.ForgetSpares();
     }
 
     public void OnLocalRespawn()
     {
-        // Whatever the respawn handed out came from CurrentKit — already correct.
-        _loadoutDirty = false;
+        // The respawn handed out whatever tier was current when it ASKED, and a
+        // kill can land in the seconds between that question and the player
+        // standing again. Clearing the flag unconditionally would leave them
+        // holding one rung below what the scoreboard says until their next kill.
+        _loadoutDirty = _tierHandedToRespawn >= 0 && _tier != _tierHandedToRespawn;
+        _tierHandedToRespawn = -1;
     }
 
     public void OnMatchEnd()
     {
+        _preloading = false;
         KitCatalog.KitProvider = null;
         Combat.WeaponSwapService.Reset();
         Plugin.ModLogger.LogInfo($"Gun Game ended on tier {_tier + 1}/{Mathf.Max(1, _ladder.Count)}, {_wins} ladders completed.");

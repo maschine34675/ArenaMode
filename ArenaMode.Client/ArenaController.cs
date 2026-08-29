@@ -42,7 +42,13 @@ internal sealed class ArenaController : MonoBehaviour
             return;
         }
 
-        if (_kitWarmupStarted || !Config.Settings.RandomKit.Value)
+        if (_kitWarmupStarted)
+            return;
+
+        // Random kits need every bundle warm because any of them can come up on
+        // the next life. So does a mode that hands out kits itself (Gun Game
+        // walks the whole ladder), even with the random draw switched off.
+        if (!Config.Settings.RandomKit.Value && Kits.KitCatalog.KitProvider == null)
             return;
 
         if (_kitWarmupAt <= 0f)
