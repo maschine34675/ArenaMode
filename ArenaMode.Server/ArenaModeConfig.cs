@@ -83,9 +83,15 @@ public class ArenaMapConfig
     [JsonPropertyName("botTierStartLevel")]
     public int BotTierStartLevel { get; set; } = 1;
 
-    /// <summary>Bot level once the ramp is finished. 45 lands in tier 5.</summary>
+    /// <summary>
+    /// Bot level once the ramp is finished. The band spreads five levels either
+    /// side, so aim at the MIDDLE of the tier you want: 45 straddles tiers 4
+    /// and 5, while 66 sits entirely inside tier 7, the top one. Values above
+    /// 79 are clamped — the experience table ends there, and past it the band
+    /// collapses back onto a single level.
+    /// </summary>
     [JsonPropertyName("botTierEndLevel")]
-    public int BotTierEndLevel { get; set; } = 45;
+    public int BotTierEndLevel { get; set; } = 66;
 
     [JsonPropertyName("botTierRampMinutes")]
     public int BotTierRampMinutes { get; set; } = 15;
