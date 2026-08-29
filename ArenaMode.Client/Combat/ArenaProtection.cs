@@ -19,8 +19,37 @@ namespace ArenaMode.Combat;
 internal static class ArenaProtection
 {
     /// <summary>
-    /// Returns whether protection is actually running now — callers that freeze
-    /// the player must not do so on a refusal.
+    /// Whether the player is invulnerable at this very moment.
+    ///
+    /// Ask this instead of remembering what Begin() said. Begin reports that
+    /// SOMEBODY is protecting the player, never for how much longer — a three
+    /// second respawn protection answers yes to a fifteen second round break,
+    /// and a caller that freezes the player on that remembered yes is still
+    /// holding them still, in the open, twelve seconds after it ran out.
+    /// </summary>
+    public static bool IsProtectedNow
+    {
+        get
+        {
+            try
+            {
+                var player = Singleton<GameWorld>.Instantiated
+                    ? Singleton<GameWorld>.Instance.MainPlayer
+                    : null;
+
+                return player?.ActiveHealthController != null
+                       && player.ActiveHealthController.DamageCoeff <= 0f;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns whether protection is running now — but says nothing about how
+    /// long it lasts. Use IsProtectedNow for anything that must stay true.
     /// </summary>
     public static bool Begin(float seconds)
     {

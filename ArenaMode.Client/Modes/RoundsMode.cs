@@ -24,7 +24,11 @@ public sealed class RoundsMode : IArenaMode
         public float StartedAt;
     }
 
+    /// <summary>How long a break waits on a respawn that never reports back.</summary>
+    private const float StuckRespawnGraceSeconds = 30f;
+
     private ArenaMatch _match;
+    private bool _breakRespawnPending;
     private float _intermissionEndsAt;
     private int _killsAtRoundStart;
     private int _deathsAtRoundStart;
@@ -43,12 +47,14 @@ public sealed class RoundsMode : IArenaMode
     public bool InIntermission { get; private set; }
 
     /// <summary>
-    /// True only while the player is actually invulnerable for the pause. The
-    /// panel freezes input during an intermission, so it must not do that when
-    /// protection was refused — a frozen, vulnerable player with every bot
-    /// hunting them is worse than no scoreboard at all.
+    /// Whether the player is invulnerable RIGHT NOW. Asked live rather than
+    /// remembered, because protection can run out mid-break — the leftover of a
+    /// respawn, say — and the panel freezes input on this answer. A frozen,
+    /// vulnerable player with every bot hunting them is worse than no
+    /// scoreboard at all, so this has to stop being true the moment it stops
+    /// being true.
     /// </summary>
-    public bool IntermissionProtected { get; private set; }
+    public bool IntermissionProtected => InIntermission && Combat.ArenaProtection.IsProtectedNow;
 
     public float IntermissionRemaining =>
         InIntermission ? Mathf.Max(0f, _intermissionEndsAt - Time.time) : 0f;
@@ -120,6 +126,22 @@ public sealed class RoundsMode : IArenaMode
             if (Respawn.ArenaRespawnDriver.IsRespawnInProgress)
                 return;
 
+            // The break respawn spends its first seconds waiting — for a draw
+            // animation to finish, for the kit's bundles to load — and during
+            // those seconds it has not claimed the body yet, so the flag above
+            // is still false. Starting the round in that window is how the swap
+            // ends up landing in the middle of the next round. The grace period
+            // is the backstop for a coroutine that dies without reporting.
+            if (_breakRespawnPending)
+            {
+                if (Time.time < _intermissionEndsAt + StuckRespawnGraceSeconds)
+                    return;
+
+                Plugin.ModLogger.LogWarning(
+                    "Arena round break respawn never reported back — starting the next round without it.");
+                _breakRespawnPending = false;
+            }
+
             if (Time.time >= _intermissionEndsAt)
                 StartRound(Round.Number + 1);
 
@@ -166,6 +188,10 @@ public sealed class RoundsMode : IArenaMode
     /// </summary>
     private void OnRoundBreakRespawn(bool success)
     {
+        // First, and outside every other condition: a break that is somehow
+        // already over must not leave the pause holding on this forever.
+        _breakRespawnPending = false;
+
         if (!InIntermission)
             return;
 
@@ -173,13 +199,10 @@ public sealed class RoundsMode : IArenaMode
         _intermissionEndsAt = Time.time + duration;
 
         if (success)
-        {
-            IntermissionProtected = true;
             return;
-        }
 
         HealForNewRound();
-        IntermissionProtected = Combat.ArenaProtection.Begin(duration);
+        Combat.ArenaProtection.Begin(duration);
     }
 
     private bool IsRoundOver()
@@ -200,7 +223,6 @@ public sealed class RoundsMode : IArenaMode
         InIntermission = true;
         var duration = Mathf.Max(3f, Settings.RoundIntermissionSeconds.Value);
         _intermissionEndsAt = Time.time + duration;
-        IntermissionProtected = false;
 
         // The break is where the next round's body comes from: a fresh kit at a
         // spawn point away from the fight that just ended. Standing invulnerable
@@ -214,7 +236,10 @@ public sealed class RoundsMode : IArenaMode
             && Settings.RoundRespawn.Value
             && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is EFT.LocalGame game
             && game.Status == EFT.GameStatus.Started
-            && Respawn.LiveKitRespawn.AtRoundBreak(game, duration, OnRoundBreakRespawn);
+            && Respawn.LiveKitRespawn.AtRoundBreak(game, duration, () => InIntermission, OnRoundBreakRespawn);
+
+        // Holds the pause open until the respawn reports back — see Tick.
+        _breakRespawnPending = respawning;
 
         if (!respawning && !matchEnding)
         {
@@ -222,8 +247,7 @@ public sealed class RoundsMode : IArenaMode
             // death already being handled). Fall back to the old behaviour:
             // patch the player up where they stand and make them untouchable.
             HealForNewRound();
-            IntermissionProtected = Combat.ArenaProtection.Begin(duration);
-            if (!IntermissionProtected)
+            if (!Combat.ArenaProtection.Begin(duration))
                 Plugin.ModLogger.LogWarning("Arena intermission without protection — input stays free.");
         }
 
@@ -289,7 +313,7 @@ public sealed class RoundsMode : IArenaMode
     private void StartRound(int number)
     {
         InIntermission = false;
-        IntermissionProtected = false;
+        _breakRespawnPending = false;
         Round.Number = number;
         Round.Kills = 0;
         Round.Deaths = 0;

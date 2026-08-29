@@ -7,6 +7,7 @@ using EFT;
 using System;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace ArenaMode.Combat;
 
@@ -32,6 +33,14 @@ internal static class ArenaGiveUp
     public static void Tick()
     {
         if (!ArenaSession.IsActive)
+            return;
+
+        // Raw key reads do not care that the player is typing, and the default
+        // binding is Backspace — the key you press to fix a typo. There are text
+        // fields reachable in a raid (the map's marker note, the item tag
+        // window) and IMGUI ones on top (the F12 config manager), and correcting
+        // a letter in one of them must not cost a life.
+        if (EventSystem.current?.currentSelectedGameObject != null || GUIUtility.keyboardControl != 0)
             return;
 
         // BepInEx's KeyboardShortcut.IsDown() reports false while any unrelated

@@ -48,8 +48,11 @@ internal static class LiveKitRespawn
             return;
         }
 
-        var here = new FixedSpawnSelector(game.LocalPlayer.Position, game.LocalPlayer.Transform.rotation);
-        game.StartCoroutine(SwapRoutine(game, kit, here, null, "raid-start kit swap", null));
+        // No selector: "in place" has to mean the place the player is standing
+        // when the swap actually lands, and everything before that point waits
+        // (for the draw animation, for the kit's bundles). Deciding the spot up
+        // here would teleport them back to where the raid started.
+        game.StartCoroutine(SwapRoutine(game, kit, null, null, "raid-start kit swap", null, null));
     }
 
     /// <summary>
@@ -61,7 +64,11 @@ internal static class LiveKitRespawn
     /// Returns whether the respawn was actually started. The callback reports
     /// the outcome (true = the player is standing in a new body, protected).
     /// </summary>
-    public static bool AtRoundBreak(LocalGame game, float protectionSeconds, Action<bool> onComplete)
+    public static bool AtRoundBreak(
+        LocalGame game,
+        float protectionSeconds,
+        Func<bool> stillWanted,
+        Action<bool> onComplete)
     {
         if (game?.LocalPlayer == null || ArenaRespawnDriver.IsRespawnInProgress || ArenaRespawnDriver.StandDown)
             return false;
@@ -85,7 +92,7 @@ internal static class LiveKitRespawn
             ShowToasts = false,
         };
 
-        game.StartCoroutine(SwapRoutine(game, kit, spawn, protection, "round respawn", onComplete));
+        game.StartCoroutine(SwapRoutine(game, kit, spawn, protection, "round respawn", stillWanted, onComplete));
         return true;
     }
 
@@ -95,6 +102,7 @@ internal static class LiveKitRespawn
         ISpawnSelector spawn,
         SpawnProtectionOptions protection,
         string what,
+        Func<bool> stillWanted,
         Action<bool> onComplete)
     {
         var oldBody = game.LocalPlayer;
@@ -124,6 +132,7 @@ internal static class LiveKitRespawn
         // two players. Re-check the ground truth right before taking over.
         if (ArenaRespawnDriver.IsRespawnInProgress
             || ArenaRespawnDriver.StandDown
+            || !StillWanted(stillWanted)
             || !ReferenceEquals(game.LocalPlayer, oldBody)
             || oldBody.HealthController == null
             || !oldBody.HealthController.IsAlive)
@@ -139,7 +148,9 @@ internal static class LiveKitRespawn
         {
             Game = game,
             DeadPlayer = oldBody,
-            SpawnSelector = spawn,
+            // Resolved here, not by the caller: for the raid-start swap "where
+            // the player is" means where they are NOW, after the waits above.
+            SpawnSelector = spawn ?? new FixedSpawnSelector(oldBody.Position, oldBody.Transform.rotation),
             EquipmentStrategy = (profile, dead) => KitBuilder.ApplyToProfile(profile, dead, kit, requireCorpse: false),
             HealthPercent = 100f,
             Protection = protection,
@@ -178,6 +189,30 @@ internal static class LiveKitRespawn
 
         Plugin.ModLogger.LogInfo($"Arena {what} complete: {kit.Name}.");
         Report(onComplete, true);
+    }
+
+    /// <summary>
+    /// Whether the reason for this respawn still holds. A round break can expire
+    /// while the swap is still preparing — the driver's flag is not raised until
+    /// the takeover, so nothing else stops the next round from starting — and
+    /// landing the pipeline after that would teleport the player out of a live
+    /// fight and hand them a protection nobody asked for. A predicate that
+    /// throws counts as "no": standing down is always the safe answer.
+    /// </summary>
+    private static bool StillWanted(Func<bool> predicate)
+    {
+        if (predicate == null)
+            return true;
+
+        try
+        {
+            return predicate();
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena respawn precondition threw ({ex.Message}) — standing down.");
+            return false;
+        }
     }
 
     /// <summary>A throwing subscriber must never take the pipeline down with it.</summary>
