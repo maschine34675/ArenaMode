@@ -220,6 +220,16 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.Space(10);
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
+
+        if (GUILayout.Button("Give up", _buttonStyle, GUILayout.Width(120f), GUILayout.Height(30f)))
+        {
+            _autoOpened = false;
+            SetOpen(false);
+            Combat.ArenaGiveUp.Request();
+        }
+
+        GUILayout.Space(12);
+
         if (GUILayout.Button("Close", _buttonStyle, GUILayout.Width(120f), GUILayout.Height(30f)))
         {
             _autoOpened = false;

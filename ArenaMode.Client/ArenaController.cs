@@ -23,6 +23,7 @@ internal sealed class ArenaController : MonoBehaviour
         CorpseLightService.Tick();
         CorpseCleanupService.Tick();
         Combat.ArenaSkills.Tick();
+        Combat.ArenaGiveUp.Tick();
         Modes.ArenaMatchService.Tick();
         Hud.ArenaHud.Tick();
     }

@@ -49,6 +49,7 @@ public static class Settings
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
     public static ConfigEntry<KeyboardShortcut> PanelHotkey { get; private set; }
+    public static ConfigEntry<KeyboardShortcut> GiveUpHotkey { get; private set; }
 
     /// <summary>The plugin's config file — panels batch writes through it.</summary>
     public static ConfigFile File { get; private set; }
@@ -303,6 +304,13 @@ public static class Settings
             "PanelHotkey",
             new KeyboardShortcut(KeyCode.F9),
             "Opens the in-raid arena panel (scoreboard and live settings).");
+
+        GiveUpHotkey = config.Bind(
+            "General",
+            "GiveUpHotkey",
+            new KeyboardShortcut(KeyCode.Backspace),
+            "Ends the current life and respawns immediately — for when you are " +
+            "bleeding out with nothing left to do. Counts as a death.");
 
         HudEnabled = config.Bind(
             "HUD",

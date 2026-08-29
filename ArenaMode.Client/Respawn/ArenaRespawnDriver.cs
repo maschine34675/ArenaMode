@@ -165,6 +165,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Bots.CorpseWeaponRegistry.Reset();
         Bots.ArenaHostility.Reset();
         Bots.ArenaBotPatches.ResetRaidState();
+        Combat.ArenaGiveUp.Reset();
     }
 
     internal static void BeginPipelineUse() => IsRespawnInProgress = true;
