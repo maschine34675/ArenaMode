@@ -30,6 +30,7 @@ public static class Settings
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
+    public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
     public static ConfigEntry<bool> ShowKillfeed { get; private set; }
@@ -231,6 +232,14 @@ public static class Settings
             true,
             "Keep pointing every living bot at the player's position, so they " +
             "actively close in instead of patrolling until they happen to see you.");
+
+        CorpseLightsOff = config.Bind(
+            "Performance",
+            "CorpseLightsOff",
+            true,
+            "Switch off flashlights and lasers on corpses. Shadow-casting lights " +
+            "are expensive and dead bodies keep theirs on forever; a looted " +
+            "flashlight still works normally.");
 
         GameMode = config.Bind(
             "Match",
