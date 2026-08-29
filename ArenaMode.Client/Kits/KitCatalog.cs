@@ -18,6 +18,13 @@ public static class KitCatalog
     /// <summary>Last kit handed out, so random mode does not repeat it back to back.</summary>
     private static string _lastKitId;
 
+    /// <summary>
+    /// Lets a mode decide what the next life gets. Gun Game owns this while it
+    /// runs, so a respawn hands back the tier the player had reached instead of
+    /// starting them over on a random loadout. Cleared at raid end.
+    /// </summary>
+    public static Func<KitDefinition> KitProvider { get; set; }
+
     public static IReadOnlyList<KitDefinition> Kits
     {
         get
@@ -44,6 +51,23 @@ public static class KitCatalog
         EnsureLoaded();
         if (_kits == null || _kits.Count == 0)
             return null;
+
+        // A mode that owns the loadout outranks both the random draw and the
+        // configured kit; a provider that returns nothing falls through.
+        var provider = KitProvider;
+        if (provider != null)
+        {
+            try
+            {
+                var supplied = provider();
+                if (supplied != null)
+                    return supplied;
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogWarning($"Arena kit provider failed ({ex.Message}) — falling back.");
+            }
+        }
 
         if (Settings.RandomKit.Value)
             return PickRandomKit();

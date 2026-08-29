@@ -52,6 +52,14 @@ internal static class ArenaHostility
         if (!ArenaSession.IsActive || !Config.Settings.HuntPlayer.Value || Time.time < _nextSweepAt)
             return;
 
+        // A round break is a pause, so stop handing out the player's position.
+        // Old sightings still stand — the bots go on searching where the round
+        // ended, which is exactly where the player no longer is. Deliberately
+        // without touching _nextSweepAt: the sweep resumes the moment the next
+        // round starts.
+        if (Modes.ArenaMatchService.Current?.Mode is Modes.RoundsMode rounds && rounds.InIntermission)
+            return;
+
         _nextSweepAt = Time.time + SweepIntervalSeconds;
 
         try

@@ -53,9 +53,14 @@ internal sealed class ArenaPanel : MonoBehaviour
         // Only auto-open when the pause actually grants invulnerability: the
         // open panel freezes input, and freezing a vulnerable player while every
         // bot hunts them is worse than showing no scoreboard.
+        // Also waits out the round break respawn: opening the panel over a
+        // black screen would freeze input around a body that is still being
+        // built. The check is edge-triggered on the whole condition, so the
+        // scoreboard still shows itself once the player is standing.
         var intermission = ArenaMatchService.Current?.Mode is RoundsMode rounds
             && rounds.InIntermission
-            && rounds.IntermissionProtected;
+            && rounds.IntermissionProtected
+            && !Respawn.ArenaRespawnDriver.IsRespawnInProgress;
         if (intermission)
         {
             if (!_autoOpenHandled)

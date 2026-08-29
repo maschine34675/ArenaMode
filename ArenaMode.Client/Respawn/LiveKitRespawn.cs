@@ -11,12 +11,18 @@ using UnityEngine;
 namespace ArenaMode.Respawn;
 
 /// <summary>
-/// At arena raid start the player is respawned in place with the selected kit:
-/// the battle-tested engine pipeline rebuilds the body from the kit profile, so
-/// the real stash gear never enters the raid. The old (alive) body is destroyed
-/// after the takeover — unlike a death respawn there is no corpse to keep.
+/// Respawns a LIVING player with a fresh kit.
+///
+/// Two occasions need this, and they only differ in where the player lands:
+/// the arena raid start (in place — the point is the kit, not the position) and
+/// the break between rounds (at a spawn point, deliberately away from the fight
+/// that just ended). Everything else is the same battle-tested engine pipeline
+/// that a death respawn uses, so the real stash gear never enters the raid.
+///
+/// Unlike a death respawn there is no corpse to keep, so the old body is
+/// destroyed after the takeover.
 /// </summary>
-internal static class RaidStartKitSwap
+internal static class LiveKitRespawn
 {
     private sealed class FixedSpawnSelector : ISpawnSelector
     {
@@ -32,7 +38,8 @@ internal static class RaidStartKitSwap
         public (Vector3 position, Quaternion rotation) Resolve(LocalGame game) => (_position, _rotation);
     }
 
-    public static void Run(LocalGame game)
+    /// <summary>Raid start: same spot, fresh kit, no protection.</summary>
+    public static void AtRaidStart(LocalGame game)
     {
         var kit = KitCatalog.GetSelectedKit();
         if (kit == null)
@@ -41,14 +48,61 @@ internal static class RaidStartKitSwap
             return;
         }
 
-        game.StartCoroutine(SwapRoutine(game, kit));
+        var here = new FixedSpawnSelector(game.LocalPlayer.Position, game.LocalPlayer.Transform.rotation);
+        game.StartCoroutine(SwapRoutine(game, kit, here, null, "raid-start kit swap", null));
     }
 
-    private static IEnumerator SwapRoutine(LocalGame game, KitDefinition kit)
+    /// <summary>
+    /// Round break: a spawn point instead of the spot where the round ended,
+    /// with protection that covers the whole pause. Landing somewhere else is
+    /// the point — the bots that were shooting at you go on searching the place
+    /// you left, which is what makes the pause feel like a pause.
+    ///
+    /// Returns whether the respawn was actually started. The callback reports
+    /// the outcome (true = the player is standing in a new body, protected).
+    /// </summary>
+    public static bool AtRoundBreak(LocalGame game, float protectionSeconds, Action<bool> onComplete)
+    {
+        if (game?.LocalPlayer == null || ArenaRespawnDriver.IsRespawnInProgress || ArenaRespawnDriver.StandDown)
+            return false;
+
+        if (game.LocalPlayer.HealthController == null || !game.LocalPlayer.HealthController.IsAlive)
+            return false;
+
+        var kit = KitCatalog.GetSelectedKit();
+        if (kit == null)
+            return false;
+
+        var spawn = new InfilSpawnSelector(
+            new NearPositionSpawnSelector(() => game.LocalPlayer.Position, () => 25f));
+
+        var protection = new SpawnProtectionOptions
+        {
+            DurationSeconds = protectionSeconds,
+            // A scoreboard is not a fight: drawing a weapon must not end it.
+            EndEarlyOnWeapon = false,
+            StowAutoDrawnWeapon = false,
+            ShowToasts = false,
+        };
+
+        game.StartCoroutine(SwapRoutine(game, kit, spawn, protection, "round respawn", onComplete));
+        return true;
+    }
+
+    private static IEnumerator SwapRoutine(
+        LocalGame game,
+        KitDefinition kit,
+        ISpawnSelector spawn,
+        SpawnProtectionOptions protection,
+        string what,
+        Action<bool> onComplete)
     {
         var oldBody = game.LocalPlayer;
         if (oldBody == null)
+        {
+            Report(onComplete, false);
             yield break;
+        }
 
         // The game auto-draws a weapon right before OnGameStarted; never start the
         // swap while that hands animation is in flight (HandsController trap).
@@ -64,16 +118,31 @@ internal static class RaidStartKitSwap
         // BEFORE the pipeline, or the replacement's weapon auto-draw NREs.
         yield return KitBundlePreloader.Preload(kit);
 
+        // Everything above yields, and a lot can happen in those frames — most
+        // of all dying, which hands the body to the death driver and starts ITS
+        // pipeline. Running a second one on top of that is how you end up with
+        // two players. Re-check the ground truth right before taking over.
+        if (ArenaRespawnDriver.IsRespawnInProgress
+            || ArenaRespawnDriver.StandDown
+            || !ReferenceEquals(game.LocalPlayer, oldBody)
+            || oldBody.HealthController == null
+            || !oldBody.HealthController.IsAlive)
+        {
+            Plugin.ModLogger.LogInfo($"Arena {what} stood down — the body changed hands while it was preparing.");
+            Report(onComplete, false);
+            yield break;
+        }
+
         ArenaRespawnDriver.BeginPipelineUse();
 
         var request = new RespawnRequest
         {
             Game = game,
             DeadPlayer = oldBody,
-            SpawnSelector = new FixedSpawnSelector(oldBody.Position, oldBody.Transform.rotation),
+            SpawnSelector = spawn,
             EquipmentStrategy = (profile, dead) => KitBuilder.ApplyToProfile(profile, dead, kit, requireCorpse: false),
             HealthPercent = 100f,
-            Protection = null,
+            Protection = protection,
         };
 
         Exception failure = null;
@@ -83,8 +152,9 @@ internal static class RaidStartKitSwap
 
         if (failure != null)
         {
-            Plugin.ModLogger.LogError($"Arena raid-start kit swap failed: {failure}");
+            Plugin.ModLogger.LogError($"Arena {what} failed: {failure}");
             RecoverOldBody(game, oldBody);
+            Report(onComplete, false);
             yield break;
         }
 
@@ -106,7 +176,21 @@ internal static class RaidStartKitSwap
             Plugin.ModLogger.LogWarning($"Arena: destroying pre-swap body failed: {ex.Message}");
         }
 
-        Plugin.ModLogger.LogInfo($"Arena raid-start kit swap complete: {kit.Name}.");
+        Plugin.ModLogger.LogInfo($"Arena {what} complete: {kit.Name}.");
+        Report(onComplete, true);
+    }
+
+    /// <summary>A throwing subscriber must never take the pipeline down with it.</summary>
+    private static void Report(Action<bool> onComplete, bool success)
+    {
+        try
+        {
+            onComplete?.Invoke(success);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena respawn callback failed: {ex.Message}");
+        }
     }
 
     private static readonly HarmonyLib.AccessTools.FieldRef<Player, EFT.Interactive.Corpse> CorpseField =
@@ -147,7 +231,7 @@ internal static class RaidStartKitSwap
             Redeploy.Core.GameAccess.GamePlayerOwnerHelper.SetMyPlayer(oldBody);
             owner.vmethod_0();
 
-            Plugin.ModLogger.LogWarning("Arena: kit swap failed — old body rewired, raid continues with real gear.");
+            Plugin.ModLogger.LogWarning("Arena: live respawn failed — old body rewired, raid continues with real gear.");
         }
         catch (Exception ex)
         {
@@ -185,7 +269,7 @@ internal static class RaidStartKitSwap
                 UnityEngine.Object.Destroy(oldBody.gameObject);
             }
 
-            Plugin.ModLogger.LogWarning("Arena: kit swap failed mid-rewire — recovered onto the replacement body.");
+            Plugin.ModLogger.LogWarning("Arena: live respawn failed mid-rewire — recovered onto the replacement body.");
         }
         catch (Exception ex)
         {

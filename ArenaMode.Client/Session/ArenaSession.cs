@@ -119,12 +119,17 @@ public static class ArenaSession
         // a server-side batch generation.
         Bots.BurstSpawnService.PrewarmPmcProfiles();
 
+        // BEFORE the kit swap, because the swap asks for a kit: a mode that owns
+        // the loadout (Gun Game picks the first rung of its ladder) has to exist
+        // by then, or the player would start the raid on someone else's gun.
+        Modes.ArenaMatchService.StartMatch(world);
+
         // Pre-warm the spawn system (respawns need it) and swap the real gear for
         // the selected kit via an in-place respawn.
         if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
         {
             Redeploy.Core.Spawning.SpawnSystemCache.Warm(game);
-            Respawn.RaidStartKitSwap.Run(game);
+            Respawn.LiveKitRespawn.AtRaidStart(game);
         }
     }
 

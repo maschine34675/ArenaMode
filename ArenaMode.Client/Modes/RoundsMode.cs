@@ -114,6 +114,12 @@ public sealed class RoundsMode : IArenaMode
 
         if (InIntermission)
         {
+            // Never start a round on top of a running respawn — the round break
+            // respawn, or a death during the pause. Both end with the player in
+            // a body that is only finished once the pipeline says so.
+            if (Respawn.ArenaRespawnDriver.IsRespawnInProgress)
+                return;
+
             if (Time.time >= _intermissionEndsAt)
                 StartRound(Round.Number + 1);
 
@@ -152,6 +158,30 @@ public sealed class RoundsMode : IArenaMode
         EndRound(matchEnding: true);
     }
 
+    /// <summary>
+    /// The break only really starts once the player is standing again: the
+    /// pipeline runs behind a black screen, and counting that time against the
+    /// scoreboard would leave nothing to look at. A failed respawn falls back to
+    /// the old behaviour so the pause is never spent lying in the open.
+    /// </summary>
+    private void OnRoundBreakRespawn(bool success)
+    {
+        if (!InIntermission)
+            return;
+
+        var duration = Mathf.Max(3f, Settings.RoundIntermissionSeconds.Value);
+        _intermissionEndsAt = Time.time + duration;
+
+        if (success)
+        {
+            IntermissionProtected = true;
+            return;
+        }
+
+        HealForNewRound();
+        IntermissionProtected = Combat.ArenaProtection.Begin(duration);
+    }
+
     private bool IsRoundOver()
     {
         var target = KillTarget;
@@ -170,13 +200,32 @@ public sealed class RoundsMode : IArenaMode
         InIntermission = true;
         var duration = Mathf.Max(3f, Settings.RoundIntermissionSeconds.Value);
         _intermissionEndsAt = Time.time + duration;
+        IntermissionProtected = false;
 
-        // Nobody should lose a round on the scoreboard screen — but not while
-        // the raid is tearing down: the protection coroutine has no teardown
-        // guard and would be left holding a zeroed damage coefficient.
-        IntermissionProtected = !matchEnding && Combat.ArenaProtection.Begin(duration);
-        if (!matchEnding && !IntermissionProtected)
-            Plugin.ModLogger.LogWarning("Arena intermission without protection — input stays free.");
+        // The break is where the next round's body comes from: a fresh kit at a
+        // spawn point away from the fight that just ended. Standing invulnerable
+        // in the middle of the bots that were shooting at you is technically
+        // safe and reads as broken — being somewhere else is what makes a pause
+        // feel like one. The pipeline brings its own protection, so nothing is
+        // applied here that a body swap would throw away.
+        // Not while the raid is tearing down: the protection coroutine has no
+        // teardown guard and would be left holding a zeroed damage coefficient.
+        var respawning = !matchEnding
+            && Settings.RoundRespawn.Value
+            && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is EFT.LocalGame game
+            && game.Status == EFT.GameStatus.Started
+            && Respawn.LiveKitRespawn.AtRoundBreak(game, duration, OnRoundBreakRespawn);
+
+        if (!respawning && !matchEnding)
+        {
+            // Either the respawn is switched off or it could not run (no kit, a
+            // death already being handled). Fall back to the old behaviour:
+            // patch the player up where they stand and make them untouchable.
+            HealForNewRound();
+            IntermissionProtected = Combat.ArenaProtection.Begin(duration);
+            if (!IntermissionProtected)
+                Plugin.ModLogger.LogWarning("Arena intermission without protection — input stays free.");
+        }
 
         Plugin.ModLogger.LogInfo(
             $"Arena round {Round.Number} ended: {Round.Kills} kills / {Round.Deaths} deaths, score {Round.Score}.");
@@ -193,11 +242,10 @@ public sealed class RoundsMode : IArenaMode
     }
 
     /// <summary>
-    /// Every round starts from a clean slate. Only the player's condition is
-    /// touched: the world, the bots and the inventory stay exactly as they are
-    /// — a round is a scoring bracket, not a map restart. A player who died
-    /// during the intermission is skipped; the respawn driver owns them and has
-    /// already healed and protected them.
+    /// The fallback for a break without a respawn: patch the player up where
+    /// they stand. Only their condition is touched — the world, the bots and the
+    /// inventory stay exactly as they are. A player who died during the break is
+    /// skipped; the respawn driver owns them and has already healed them.
     /// </summary>
     private static void HealForNewRound()
     {
@@ -254,10 +302,7 @@ public sealed class RoundsMode : IArenaMode
 
         Plugin.ModLogger.LogInfo($"Arena round {number} started.");
         if (number > 1)
-        {
-            HealForNewRound();
             ArenaToasts.Show($"Round {number} — fight!");
-        }
 
         try
         {

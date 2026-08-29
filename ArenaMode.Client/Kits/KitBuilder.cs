@@ -78,6 +78,127 @@ public static class KitBuilder
         return invalid;
     }
 
+    /// <summary>
+    /// Builds ONLY the kit's primary weapon, detached from any inventory, plus a
+    /// few loaded spares to go with it.
+    ///
+    /// Gun Game promotes the player on every kill, and rebuilding the whole body
+    /// for each promotion would mean a black screen after every fight. So the
+    /// weapon is grown on its own from the same kit tree — same nodes, same
+    /// attachments, same chambered round — and handed to the live player.
+    /// Nodes outside the weapon simply never find a parent and are ignored.
+    /// </summary>
+    public static Weapon BuildPrimaryWeapon(KitDefinition kit, int spareMagazines, out List<Item> spares)
+    {
+        spares = new List<Item>();
+
+        var factory = Comfort.Common.Singleton<ItemFactory>.Instance;
+        if (factory == null || kit?.Items == null)
+            return null;
+
+        var rootNode = kit.Items.FirstOrDefault(
+            n => string.Equals(n.SlotId, "FirstPrimaryWeapon", StringComparison.OrdinalIgnoreCase));
+
+        if (rootNode == null)
+        {
+            Plugin.ModLogger.LogWarning($"Kit '{kit.Id}' has no primary weapon to hand out.");
+            return null;
+        }
+
+        var weapon = factory.CreateItem(factory.NextId, rootNode.Tpl, null) as Weapon;
+        if (weapon == null)
+        {
+            Plugin.ModLogger.LogWarning($"Kit '{kit.Id}': {rootNode.Tpl} is not a weapon.");
+            return null;
+        }
+
+        ApplyUpd(weapon, rootNode.Upd);
+
+        var created = new Dictionary<string, Item>(StringComparer.Ordinal) { [rootNode.Id] = weapon };
+        var pending = kit.Items
+            .Where(n => !ReferenceEquals(n, rootNode) && !string.IsNullOrEmpty(n.ParentId))
+            .ToList();
+
+        var guard = 0;
+        while (pending.Count > 0 && guard++ < 64)
+        {
+            var attachedAny = false;
+            for (var i = pending.Count - 1; i >= 0; i--)
+            {
+                var node = pending[i];
+                if (!created.TryGetValue(node.ParentId, out var parent))
+                    continue;
+
+                var attached = CreateAndAttach(parent, node, factory);
+                if (attached != null)
+                    created[node.Id] = attached;
+
+                pending.RemoveAt(i);
+                attachedAny = true;
+            }
+
+            // What is left belongs to the rest of the kit — armour, rig, meds.
+            if (!attachedAny)
+                break;
+        }
+
+        BuildSpareAmmo(factory, created, spareMagazines, spares);
+        return weapon;
+    }
+
+    /// <summary>
+    /// Reload supply for a handed-out weapon, cloned from its own magazine — the
+    /// same fixed-magazine distinction the full kit builder makes, because a
+    /// spare magazine for a weapon that is fed round by round is dead weight.
+    /// </summary>
+    private static void BuildSpareAmmo(ItemFactory factory, Dictionary<string, Item> created, int count, List<Item> spares)
+    {
+        if (count <= 0)
+            return;
+
+        var template = created.Values.OfType<Magazine>().FirstOrDefault(m => m.Cartridges.Items.Any());
+        if (template == null)
+            return;
+
+        var ammoTpl = template.Cartridges.Items.First().TemplateId;
+
+        if (template.ReloadMagType == Weapon.EReloadMode.InternalMagazine)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+                ammo.StackObjectsCount = Math.Max(template.MaxCount, ammo.StackMaxSize);
+                spares.Add(ammo);
+            }
+
+            return;
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            var magazine = factory.CreateItem(factory.NextId, template.TemplateId, null) as Magazine;
+            if (magazine == null)
+                break;
+
+            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+            ammo.StackObjectsCount = Math.Max(1, Math.Min(magazine.MaxCount, ammo.StackMaxSize));
+
+            var loadResult = magazine.Cartridges.Add(ammo, false);
+            if (loadResult.Failed)
+                Plugin.ModLogger.LogWarning($"Kit: loading a handed-out magazine failed: {loadResult.Error}");
+
+            spares.Add(magazine);
+        }
+    }
+
+    /// <summary>The rig/pockets/backpack of a live inventory, for callers outside the builder.</summary>
+    public static List<CompoundItem> GridContainersOf(InventoryEquipment equipment)
+        => equipment == null ? new List<CompoundItem>() : GridContainers(equipment);
+
+    /// <summary>Places an item in the first grid cell that will take it.</summary>
+    public static bool AddToAnyGridOf(List<CompoundItem> containers, Item item)
+        => containers != null && item != null && AddToAnyGrid(containers, item);
+
     private static void Populate(InventoryEquipment equipment, ItemFactory factory, KitDefinition kit)
     {
         var created = new Dictionary<string, Item>(StringComparer.Ordinal);

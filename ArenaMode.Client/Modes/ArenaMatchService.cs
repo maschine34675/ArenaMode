@@ -26,7 +26,7 @@ internal static class ArenaMatchService
             return;
 
         _initialized = true;
-        RaidLifecycle.OnRaidStarted += OnRaidStarted;
+        RaidLifecycle.OnRaidStarted += world => StartMatch(world);
         RaidLifecycle.OnRaidEnded += OnRaidEnded;
         ArenaEvents.OnPlayerDied += OnLocalDied;
         ArenaEvents.OnPlayerRespawned += OnLocalRespawned;
@@ -41,8 +41,17 @@ internal static class ArenaMatchService
         match.Tick(Time.deltaTime);
     }
 
-    private static void OnRaidStarted(GameWorld world)
+    /// <summary>
+    /// Called explicitly by ArenaSession before it swaps in the raid-start kit,
+    /// and again by the lifecycle event as a backstop. Starting twice would tear
+    /// the first match's HUD off its own match object, so the second call is a
+    /// no-op.
+    /// </summary>
+    public static void StartMatch(GameWorld world)
     {
+        if (Current != null)
+            return;
+
         // ArenaSession's own OnRaidStarted handler decides IsActive; subscription
         // order between the two handlers is not guaranteed, so defer one frame
         // via the controller: cheapest is to check lazily here — IsActive is set

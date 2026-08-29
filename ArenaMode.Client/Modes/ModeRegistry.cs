@@ -4,8 +4,7 @@ using System.Collections.Generic;
 namespace ArenaMode.Modes;
 
 /// <summary>
-/// Mode factory keyed by stable id. v1 ships Endless only; Rounds (M6) and
-/// Gun Game (M7) register here.
+/// Mode factory keyed by stable id.
 /// </summary>
 internal static class ModeRegistry
 {
@@ -14,6 +13,7 @@ internal static class ModeRegistry
         {
             ["endless"] = () => new EndlessDeathmatchMode(),
             ["rounds"] = () => new RoundsMode(),
+            ["gungame"] = () => new GunGameMode(),
         };
 
     public const string DefaultId = "endless";

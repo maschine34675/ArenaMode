@@ -48,6 +48,10 @@ public static class Settings
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
+    public static ConfigEntry<bool> RoundRespawn { get; private set; }
+    public static ConfigEntry<string> GunGameLadder { get; private set; }
+    public static ConfigEntry<int> GunGameSpareMagazines { get; private set; }
+    public static ConfigEntry<bool> GunGameLoseTierOnDeath { get; private set; }
     public static ConfigEntry<KeyboardShortcut> PanelHotkey { get; private set; }
     public static ConfigEntry<KeyboardShortcut> GiveUpHotkey { get; private set; }
 
@@ -298,6 +302,35 @@ public static class Settings
             new ConfigDescription(
                 "Rounds mode: scoreboard time between rounds.",
                 new AcceptableValueRange<int>(3, 60)));
+
+        RoundRespawn = config.Bind(
+            "Rounds",
+            "RoundRespawn",
+            true,
+            "Respawn with a fresh kit when a round ends, at a spawn point away " +
+            "from the fight. Off: keep standing where the round ended, healed up.");
+
+        GunGameLadder = config.Bind(
+            "Gun Game",
+            "GunGameLadder",
+            "",
+            "Kit ids in ladder order, comma separated. Empty uses the whole kit " +
+            "catalog in its own order.");
+
+        GunGameSpareMagazines = config.Bind(
+            "Gun Game",
+            "GunGameSpareMagazines",
+            2,
+            new ConfigDescription(
+                "Loaded magazines handed out with each new gun.",
+                new AcceptableValueRange<int>(0, 6)));
+
+        GunGameLoseTierOnDeath = config.Bind(
+            "Gun Game",
+            "GunGameLoseTierOnDeath",
+            false,
+            "Drop back one tier when you die. Off by default — losing progress " +
+            "to a grenade you never saw is not what makes gun game fun.");
 
         PanelHotkey = config.Bind(
             "General",
