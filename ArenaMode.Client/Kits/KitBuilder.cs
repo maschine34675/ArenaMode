@@ -138,6 +138,15 @@ public static class KitBuilder
         // Magazine ammo lives in a StackSlot, which is not a Slot.
         if (parent is Magazine magazine && node.SlotId == "cartridges")
         {
+            // The stack slot rejects anything over the remaining capacity, and a
+            // rejected load is quiet: the magazine stays empty, and the later
+            // "find a loaded magazine" probe then skips the spare ammo entirely.
+            // One mistyped round count in a kit would leave an empty gun with a
+            // single chambered round — clamp instead.
+            var room = magazine.MaxCount - magazine.Cartridges.Count;
+            if (room > 0 && item.StackObjectsCount > room)
+                item.StackObjectsCount = room;
+
             var stackResult = magazine.Cartridges.Add(item, false);
             if (stackResult.Failed)
             {
@@ -263,7 +272,7 @@ public static class KitBuilder
                 break;
 
             var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-            ammo.StackObjectsCount = magazine.MaxCount;
+            ammo.StackObjectsCount = Math.Max(1, Math.Min(magazine.MaxCount, ammo.StackMaxSize));
             var loadResult = magazine.Cartridges.Add(ammo, false);
             if (loadResult.Failed)
                 Plugin.ModLogger.LogWarning($"Kit: loading spare magazine failed: {loadResult.Error}");
@@ -276,14 +285,18 @@ public static class KitBuilder
         }
     }
 
-    /// <summary>Loose rounds for fixed-magazine weapons, one magazine worth per stack.</summary>
+    /// <summary>
+    /// Loose rounds for fixed-magazine weapons — FULL stacks. Such a weapon is
+    /// fed round by round, so handing out one magazine worth per stack would be
+    /// a rounding error of a reserve.
+    /// </summary>
     private static void FillLooseAmmo(List<CompoundItem> containers, ItemFactory factory, string ammoTpl,
         int roundsPerStack, int stacks)
     {
         for (var i = 0; i < stacks; i++)
         {
             var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-            ammo.StackObjectsCount = Math.Max(1, Math.Min(roundsPerStack, ammo.StackMaxSize));
+            ammo.StackObjectsCount = Math.Max(roundsPerStack, ammo.StackMaxSize);
 
             if (!AddToAnyGrid(containers, ammo))
             {

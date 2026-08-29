@@ -694,7 +694,7 @@
       },
       {
         "_id": "84cbb5946d204030899ee970",
-        "_tpl": "5b432b965acfc47a8774094e",
+        "_tpl": "68bf405779c8186398099017",
         "parentId": "c6f7e65be74c478a9c794414",
         "slotId": "Earpiece"
       }
@@ -756,7 +756,7 @@
       },
       {
         "_id": "ff5c754a6b964299be1fee82",
-        "_tpl": "5998529a86f774647f44f421",
+        "_tpl": "599860ac86f77436b225ed1a",
         "parentId": "550c56bac88e4b47971d55a4",
         "slotId": "mod_magazine"
       },
@@ -778,7 +778,7 @@
         "parentId": "ff5c754a6b964299be1fee82",
         "slotId": "cartridges",
         "upd": {
-          "StackObjectsCount": 10
+          "StackObjectsCount": 30
         }
       },
       {
@@ -896,7 +896,7 @@
       },
       {
         "_id": "24bd3996630749f8ad9aa321",
-        "_tpl": "5b432b965acfc47a8774094e",
+        "_tpl": "68bf405779c8186398099017",
         "parentId": "b9713b6eba3642a3b9929c40",
         "slotId": "Earpiece"
       }
