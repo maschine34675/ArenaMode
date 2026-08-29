@@ -164,6 +164,24 @@ internal static class CorpseCleanupService
                     renderer.forceRenderingOff = true;
             }
 
+            // The weapon in the corpse's hands is a separate scene object hanging
+            // off the ragdoll, so hiding the body alone left a weapon lying in
+            // mid-air where a body used to be — and kept its flashlight visible.
+            var weapon = corpse.Ragdoll?.WeaponRigidbody;
+            if (weapon != null)
+            {
+                var weaponRenderers = weapon.GetComponentsInChildren<Renderer>(true);
+                foreach (var renderer in weaponRenderers)
+                {
+                    if (renderer != null)
+                        renderer.forceRenderingOff = true;
+                }
+
+                // Re-asserted with the body's, so the culling system cannot bring
+                // either of them back when the spot comes into view.
+                renderers = renderers.Concat(weaponRenderers).ToArray();
+            }
+
             if (pool?.Colliders != null)
             {
                 foreach (var collider in pool.Colliders)

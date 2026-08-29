@@ -10,8 +10,13 @@ using UnityEngine;
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Switches the tactical devices off on corpses — weapon flashlights, lasers,
-/// helmet lamps.
+/// Switches the tactical devices off on corpses AND on the weapons they leave
+/// lying around — flashlights, lasers, helmet lamps.
+///
+/// The weapons matter more than the bodies: a corpse's weapon is a separate
+/// scene object hanging off the ragdoll, so hiding the body leaves its lit
+/// weapon on the floor. Over a long raid that is dozens of shadow-casting
+/// lights from bodies the player can no longer even see.
 ///
 /// A dead bot leaves behind a shadow-casting spot light that, unlike map lamps,
 /// is exempt from the distance-based shadow culling (the engine flags weapon
@@ -44,8 +49,8 @@ internal static class CorpseLightService
     /// </summary>
     private const int MaxAttempts = 5;
 
-    private static readonly Dictionary<Corpse, int> Attempts = new Dictionary<Corpse, int>();
-    private static readonly HashSet<Corpse> Done = new HashSet<Corpse>();
+    private static readonly Dictionary<LootItem, int> Attempts = new Dictionary<LootItem, int>();
+    private static readonly HashSet<LootItem> Done = new HashSet<LootItem>();
 
     private static float _nextSweepAt;
 
@@ -71,17 +76,19 @@ internal static class CorpseLightService
             var lootList = Singleton<GameWorld>.Instance.LootList;
             for (var i = 0; i < lootList.Count; i++)
             {
-                // Unity lifetime check: a destroyed corpse compares equal to null.
-                if (!(lootList[i] is Corpse corpse) || corpse == null || Done.Contains(corpse))
+                var loot = lootList[i] as LootItem;
+
+                // Unity lifetime check: a destroyed object compares equal to null.
+                if (loot == null || Done.Contains(loot))
                     continue;
 
-                var attempt = Attempts.TryGetValue(corpse, out var seen) ? seen + 1 : 1;
-                Attempts[corpse] = attempt;
+                var attempt = Attempts.TryGetValue(loot, out var seen) ? seen + 1 : 1;
+                Attempts[loot] = attempt;
 
-                if (DouseCorpse(corpse) || attempt >= MaxAttempts)
+                if (DouseLoot(loot) || attempt >= MaxAttempts)
                 {
-                    Done.Add(corpse);
-                    Attempts.Remove(corpse);
+                    Done.Add(loot);
+                    Attempts.Remove(loot);
                 }
             }
         }
@@ -92,25 +99,32 @@ internal static class CorpseLightService
     }
 
     /// <summary>
-    /// Returns true once the body is fully handled — i.e. the held weapon was
-    /// reachable (or there is none), so a later pass would find nothing new.
+    /// Handles any lit loot: a corpse (worn gear plus the weapon hanging off its
+    /// ragdoll) or a weapon lying on the ground in its own right. Returns true
+    /// once nothing more can be found, so the entry can be retired.
     /// </summary>
-    private static bool DouseCorpse(Corpse corpse)
+    private static bool DouseLoot(LootItem loot)
     {
         var complete = true;
 
         try
         {
-            // Gear worn on the body: slot views are parented onto bones, so a
-            // helmet lamp or a slung weapon IS a descendant of the corpse.
-            foreach (var controller in corpse.GetComponentsInChildren<TacticalComboVisualController>(true))
+            // Anything parented to the object itself. For a corpse that covers the
+            // worn gear, because slot views are parented onto bones — a helmet lamp
+            // and a slung weapon ARE descendants. For a dropped weapon it is the
+            // weapon's own mods.
+            foreach (var controller in loot.GetComponentsInChildren<TacticalComboVisualController>(true))
                 Douse(controller);
 
-            // The weapon in the hands is a scene ROOT, not a child — it hangs off
-            // the ragdoll. Taking it from the ragdoll rather than from the dead
-            // player's weapon-root pointer matters: that pointer is reassigned to
-            // whatever weapon is built next, so on a looted corpse it can aim
-            // straight into a prefab a LIVING bot is holding.
+            if (!(loot is Corpse corpse))
+                return true;
+
+            // The weapon in a corpse's hands is a scene ROOT, not a child — it
+            // hangs off the ragdoll, which is why it keeps lying there (and lit)
+            // after the body itself was hidden. Taking it from the ragdoll rather
+            // than from the dead player's weapon-root pointer matters: that
+            // pointer is reassigned to whatever weapon is built next, so on a
+            // looted corpse it can aim into a prefab a LIVING bot is holding.
             var weapon = corpse.Ragdoll?.WeaponRigidbody;
             if (weapon != null)
             {
@@ -125,7 +139,7 @@ internal static class CorpseLightService
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Arena corpse light pass failed: {ex.Message}");
+            Plugin.ModLogger.LogWarning($"Arena loot light pass failed: {ex.Message}");
         }
 
         return complete;
