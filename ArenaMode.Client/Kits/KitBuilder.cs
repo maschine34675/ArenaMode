@@ -498,31 +498,47 @@ public static class KitBuilder
     {
         try
         {
-            foreach (var item in profile.Inventory.GetPlayerItems(EPlayerItems.Equipment))
-            {
-                switch (item)
-                {
-                    case Magazine magazine:
-                        // Value semantics are the mag-check SKILL LEVEL (display precision),
-                        // not the ammo count — a high constant always shows exact counts.
-                        profile.CheckedMagazines[magazine.Id] = 60;
-                        break;
-                    case Weapon weapon:
-                        // CheckedChambers is keyed by WEAPON id (Profile.CheckChamber),
-                        // not by the chambered round's id.
-                        if (weapon.Chambers.Any(c => c.ContainedItem != null)
-                            && !profile.CheckedChambers.Contains(weapon.Id))
-                        {
-                            profile.CheckedChambers.Add(weapon.Id);
-                        }
-
-                        break;
-                }
-            }
+            RegisterAsChecked(profile, profile.Inventory.GetPlayerItems(EPlayerItems.Equipment));
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Kit: magazine registration failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The same registration for a NAMED set of items.
+    ///
+    /// Mid-raid the difference matters: sweeping the whole inventory would also
+    /// reveal the round count of every magazine the player looted off a corpse
+    /// and never inspected — information the game deliberately withheld. Only
+    /// what this mod handed out is ours to declare inspected.
+    /// </summary>
+    public static void RegisterAsChecked(Profile profile, IEnumerable<Item> items)
+    {
+        if (profile == null || items == null)
+            return;
+
+        foreach (var item in items)
+        {
+            switch (item)
+            {
+                case Magazine magazine:
+                    // Value semantics are the mag-check SKILL LEVEL (display precision),
+                    // not the ammo count — a high constant always shows exact counts.
+                    profile.CheckedMagazines[magazine.Id] = 60;
+                    break;
+                case Weapon weapon:
+                    // CheckedChambers is keyed by WEAPON id (Profile.CheckChamber),
+                    // not by the chambered round's id.
+                    if (weapon.Chambers.Any(c => c.ContainedItem != null)
+                        && !profile.CheckedChambers.Contains(weapon.Id))
+                    {
+                        profile.CheckedChambers.Add(weapon.Id);
+                    }
+
+                    break;
+            }
         }
     }
 }

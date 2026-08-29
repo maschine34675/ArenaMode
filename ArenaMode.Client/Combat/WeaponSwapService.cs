@@ -223,10 +223,19 @@ internal static class WeaponSwapService
 
         // The round counts, same as the kit path does for a respawn — without
         // this every new magazine reads as an unknown quantity until inspected.
+        // Scoped to what we just handed out: sweeping the whole inventory would
+        // also uncover the count of every magazine the player looted and chose
+        // not to inspect.
         try
         {
             if (player.Profile != null)
-                Kits.KitBuilder.RegisterMagazinesAsChecked(player.Profile);
+            {
+                var handedOut = new List<Item>(weapon.GetAllItems());
+                if (spares != null)
+                    handedOut.AddRange(spares);
+
+                Kits.KitBuilder.RegisterAsChecked(player.Profile, handedOut);
+            }
         }
         catch (Exception ex)
         {
@@ -330,13 +339,21 @@ internal static class WeaponSwapService
     /// away — the engine only does it as a side effect of its own remove
     /// pipeline, which the direct removal here bypasses — so a full ladder would
     /// leave a growing pile of records for magazines that no longer exist.
+    ///
+    /// Discovering an item writes TWO records and the engine's own forget clears
+    /// only one, so the second is cleared by hand. It holds a reference to a
+    /// magazine that has just been thrown away; leaving it there would keep the
+    /// whole discarded item alive for the rest of the raid.
     /// </summary>
     private static void ForgetKnown(InventoryController inventory, Item item)
     {
         try
         {
-            var search = inventory.SearchController as ActiveSearchController;
-            search?.ForgetItem(item);
+            if (!(inventory.SearchController is ActiveSearchController search))
+                return;
+
+            search.ForgetItem(item);
+            search._discoveredItems?.Remove(item);
         }
         catch (Exception ex)
         {
