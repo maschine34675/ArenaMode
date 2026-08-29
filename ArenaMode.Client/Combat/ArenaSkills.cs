@@ -9,31 +9,44 @@ namespace ArenaMode.Combat;
 /// <summary>
 /// Runs the player at elite skill level for the duration of an arena raid.
 ///
-/// The profile on disk is never at risk — the server snapshots it when the
-/// arena is armed and skips the post-raid processing entirely. But the CLIENT
-/// keeps ONE Profile object for the whole session and the raid shares it with
-/// the menu, so maxed skills would leak straight into the next normal raid.
-/// That is what the snapshot and restore here are for.
+/// The boost is applied through each skill's BUFF, never by writing its stored
+/// progress. That choice is load-bearing:
+///  - Progress above level 50 makes the game UNSUBSCRIBE the skill from its own
+///    XP sources, and only a constructor ever subscribes them again. One arena
+///    raid would have left every skill permanently deaf to its XP actions, so a
+///    later normal raid could end with no skill progress at all and nothing in
+///    the log to explain it.
+///  - The buff field is not serialised, so it cannot travel anywhere.
+///  - Its setter recomputes the buffs AND raises the level-up event the stamina
+///    and weight limits listen to, without raising the level-CHANGED event that
+///    would spray four dozen "skill increased" toasts across the screen.
 ///
-/// Level 51 is the ceiling that matters: progress is clamped at 5100 (= level
-/// 51), the linear bonuses are evaluated at min(level, 50), and 51 is exactly
-/// the elite threshold. Anything above buys nothing.
+/// Summary level lands on 51: that is the elite threshold, and the linear
+/// bonuses are evaluated at min(level, 50) anyway. Deliberately not pushed to
+/// the absolute 60 ceiling — that would raise the base movement speed, which
+/// the arena movement patches already multiply.
+///
+/// The saved profile is never at risk (the server snapshots it when the arena
+/// is armed and skips the post-raid processing), but the CLIENT shares one
+/// profile object with the menu, so everything is put back at raid end.
 /// </summary>
 internal static class ArenaSkills
 {
-    /// <summary>Progress value for level 51 — the game's own clamp ceiling.</summary>
-    private const float EliteCurrent = 5100f;
-
-    private sealed class SkillSnapshot
-    {
-        public float Current;
-        public DateTime LastCall;
-    }
-
-    private static readonly Dictionary<Skill, SkillSnapshot> Snapshot = new Dictionary<Skill, SkillSnapshot>();
-    private static readonly Dictionary<Mastering, float> MasterySnapshot = new Dictionary<Mastering, float>();
+    /// <summary>Elite threshold: above 50, at the level where nothing more is gained.</summary>
+    private const int EliteSummaryLevel = 51;
 
     private const float MasteryTickSeconds = 3f;
+
+    private static readonly Dictionary<Skill, int> BuffSnapshot = new Dictionary<Skill, int>();
+    private static readonly Dictionary<Mastering, float> MasterySnapshot = new Dictionary<Mastering, float>();
+
+    /// <summary>
+    /// Elite bonuses that the game can raise but never lower: their rules only
+    /// exist for the elite case, so dropping back below the threshold leaves
+    /// them standing. They have to be put back by hand.
+    /// </summary>
+    private static readonly List<Tuple<SkillManager.FloatBuff, float>> StickyEliteBuffs =
+        new List<Tuple<SkillManager.FloatBuff, float>>();
 
     private static float _nextMasteryTickAt;
 
@@ -51,6 +64,7 @@ internal static class ArenaSkills
 
             // A raid that ended abnormally must not stack on top of its own boost.
             Restore();
+            SnapshotStickyEliteBuffs(skills);
 
             var applied = 0;
             foreach (var skill in EnumerateSkills(skills))
@@ -58,21 +72,19 @@ internal static class ArenaSkills
                 if (skill == null)
                     continue;
 
-                Snapshot[skill] = new SkillSnapshot { Current = skill.Current, LastCall = skill.LastCall };
+                var boost = EliteSummaryLevel - skill.Level;
+                if (boost <= 0)
+                    continue;
 
-                // Written directly rather than through SetLevel: that path raises
-                // the level-up event for every single skill, which would bury the
-                // screen under four dozen "skill increased" toasts.
-                skill.Current = EliteCurrent;
-                skill.SetPointsEarnedInSession(0f);
-                skill.UpdateRules();
+                BuffSnapshot[skill] = skill.Buff;
+                skill.Buff = boost;
                 applied++;
             }
 
             ApplyMastering(skills);
             RefreshCachedConsumers(player);
 
-            Plugin.ModLogger.LogInfo($"Arena: {applied} skills set to elite for this raid.");
+            Plugin.ModLogger.LogInfo($"Arena: {applied} skills raised to elite for this raid.");
         }
         catch (Exception ex)
         {
@@ -83,20 +95,24 @@ internal static class ArenaSkills
 
     public static void Restore()
     {
-        if (Snapshot.Count == 0 && MasterySnapshot.Count == 0)
+        if (BuffSnapshot.Count == 0 && MasterySnapshot.Count == 0 && StickyEliteBuffs.Count == 0)
             return;
 
         try
         {
-            foreach (var pair in Snapshot)
+            // The setter recomputes every rule, so this also walks the ordinary
+            // buffs back down on its own.
+            foreach (var pair in BuffSnapshot)
             {
-                var skill = pair.Key;
-                if (skill == null)
-                    continue;
+                if (pair.Key != null)
+                    pair.Key.Buff = pair.Value;
+            }
 
-                skill.Current = pair.Value.Current;
-                skill.LastCall = pair.Value.LastCall;
-                skill.UpdateRules();
+            // AFTER the recompute: these are the ones it cannot undo.
+            foreach (var sticky in StickyEliteBuffs)
+            {
+                if (sticky.Item1 != null)
+                    sticky.Item1.Value = sticky.Item2;
             }
 
             foreach (var pair in MasterySnapshot)
@@ -113,10 +129,31 @@ internal static class ArenaSkills
         }
         finally
         {
-            Snapshot.Clear();
+            BuffSnapshot.Clear();
             MasterySnapshot.Clear();
+            StickyEliteBuffs.Clear();
             _nextMasteryTickAt = 0f;
         }
+    }
+
+    /// <summary>
+    /// Elite bonuses without a non-elite rule. Everything else reverts by itself
+    /// when the level drops, either through a base rule or because the buff is a
+    /// boolean whose default rule clears it.
+    /// </summary>
+    private static void SnapshotStickyEliteBuffs(SkillManager skills)
+    {
+        Snap(skills.ImmunityAvoidPoisonChance);
+        Snap(skills.ImmunityAvoidMiscEffectsChance);
+        Snap(skills.CharismaEliteScavCaseDiscount);
+        Snap(skills.CharismaEliteFenceRepPenaltyReduction);
+        Snap(skills.CharismaEliteAdditionalDailyQuests);
+    }
+
+    private static void Snap(SkillManager.FloatBuff buff)
+    {
+        if (buff != null)
+            StickyEliteBuffs.Add(Tuple.Create(buff, buff.Value));
     }
 
     /// <summary>
@@ -140,7 +177,6 @@ internal static class ArenaSkills
     /// <summary>
     /// Kits hand out weapons the profile has never fired, so without this the
     /// arena would punish every kit weapon with unmastered recoil and handling.
-    /// Entries only exist once a weapon has been drawn, hence the periodic re-run.
     /// </summary>
     private static void ApplyMastering(SkillManager skills)
     {
@@ -164,7 +200,7 @@ internal static class ArenaSkills
     /// </summary>
     public static void Tick()
     {
-        if (Snapshot.Count == 0 || !Settings.MaxSkills.Value || Time.time < _nextMasteryTickAt)
+        if (BuffSnapshot.Count == 0 || !Settings.MaxSkills.Value || Time.time < _nextMasteryTickAt)
             return;
 
         _nextMasteryTickAt = Time.time + MasteryTickSeconds;
@@ -185,14 +221,12 @@ internal static class ArenaSkills
     }
 
     /// <summary>
-    /// Most consumers read the buffs live, but stamina and weight limits, armor
-    /// speed penalties and the weapon buff snapshot are cached — and the game's
-    /// own refresh rides on the level-up events this deliberately does not raise.
+    /// The buff setter already refreshes stamina and weight limits through the
+    /// level-up event. The weapon buff snapshot rides on the level-CHANGED event
+    /// instead, which is deliberately not raised, so it is refreshed by hand.
     /// </summary>
     private static void RefreshCachedConsumers(Player player)
     {
-        TryRefresh(() => (player.Physical as Physical)?.OnEnduranceLevelUp(), "stamina limits");
-        TryRefresh(() => player.Physical?.OnWeightLimitsUpdated(), "weight limits");
         TryRefresh(player.RecalculateEquipmentParams, "equipment params");
         TryRefresh(() => (player.HandsController as Player.FirearmController)?.SyncWithCharacterSkills(),
             "weapon buffs");
