@@ -102,7 +102,7 @@ internal static class BurstSpawnService
             // PMCs are the pressure that makes the arena fun; scavs only fill the
             // rest. Without a separate floor the single "alive" target is met by
             // whatever spawns fastest — which was scavs, every time.
-            var pmcFloor = Mathf.Min(Settings.PmcFloor.Value, target);
+            var pmcFloor = Mathf.Min(ArenaPressure.PmcFloor(Settings.PmcFloor.Value), target);
             var wantPmc = alivePmc + pendingPmc < pmcFloor;
             if (!wantPmc && projected >= target)
                 return;
@@ -117,12 +117,15 @@ internal static class BurstSpawnService
                 ? (_nextPmcIsBear ? WildSpawnType.pmcBEAR : WildSpawnType.pmcUSEC)
                 : WildSpawnType.assault;
 
-            var difficulty = wantPmc ? BotDifficulty.hard : BotDifficulty.normal;
+            // Baselines are what this line used to hardcode; pressure only
+            // ever raises them, so a raid never starts easier than it did.
+            var difficulty = ArenaPressure.DifficultyFor(wantPmc);
 
             Plugin.ModLogger.LogInfo(
                 $"Arena burst spawn: {alive} alive ({alivePmc} PMC) / target {target} (PMC floor {pmcFloor}), "
                 + $"in flight {pendingPmc} PMC + {pendingScav} scav (spawner counter {counterAlive}) "
-                + $"— requesting {role}. Others alive: {DescribeRoles()}");
+                + $"— requesting {role} ({difficulty}, pressure {ArenaPressure.Describe()}). "
+                + $"Others alive: {DescribeRoles()}");
 
             if (wantPmc)
                 _nextPmcIsBear = !_nextPmcIsBear;
@@ -131,7 +134,8 @@ internal static class BurstSpawnService
             // place that knows how many bots were actually dispatched.
             SpawnPair(spawner, zone, role, difficulty, wantPmc);
 
-            _nextAttemptAt = Time.time + ArenaClientConfig.GetBurstCooldownSeconds(map);
+            _nextAttemptAt = Time.time
+                + ArenaPressure.BurstCooldown(ArenaClientConfig.GetBurstCooldownSeconds(map));
         }
         catch (Exception ex)
         {

@@ -52,6 +52,11 @@ public static class Settings
     public static ConfigEntry<string> GunGameLadder { get; private set; }
     public static ConfigEntry<int> GunGameSpareMagazines { get; private set; }
     public static ConfigEntry<bool> GunGameLoseTierOnDeath { get; private set; }
+    public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
+    public static ConfigEntry<int> PressureRampMinutes { get; private set; }
+    public static ConfigEntry<int> PressureStreakPercent { get; private set; }
+    public static ConfigEntry<int> PressurePmcBonus { get; private set; }
+    public static ConfigEntry<BotDifficulty> MaxBotDifficulty { get; private set; }
     public static ConfigEntry<KeyboardShortcut> PanelHotkey { get; private set; }
     public static ConfigEntry<KeyboardShortcut> GiveUpHotkey { get; private set; }
 
@@ -331,6 +336,48 @@ public static class Settings
             false,
             "Drop back one tier when you die. Off by default — losing progress " +
             "to a grenade you never saw is not what makes gun game fun.");
+
+        ScaleDifficulty = config.Bind(
+            "Difficulty",
+            "ScaleDifficulty",
+            true,
+            "Let the arena push back harder as the raid goes on and as you go on " +
+            "a run. Off: the fixed difficulties this mod used before.");
+
+        PressureRampMinutes = config.Bind(
+            "Difficulty",
+            "PressureRampMinutes",
+            12,
+            new ConfigDescription(
+                "Minutes of raid time to reach full pressure on the clock alone. " +
+                "This half only ever climbs — it is what stops a long raid from " +
+                "getting easier as you settle in.",
+                new AcceptableValueRange<int>(1, 60)));
+
+        PressureStreakPercent = config.Bind(
+            "Difficulty",
+            "PressureStreakPercent",
+            35,
+            new ConfigDescription(
+                "How much a kill streak adds on top of the clock, at eight kills " +
+                "without dying. Dying clears this part, never the clock.",
+                new AcceptableValueRange<int>(0, 100)));
+
+        PressurePmcBonus = config.Bind(
+            "Difficulty",
+            "PressurePmcBonus",
+            4,
+            new ConfigDescription(
+                "Extra PMCs kept alive at full pressure, on top of the PMC floor. " +
+                "A heavier mix is the gentlest way to make a raid harder.",
+                new AcceptableValueRange<int>(0, 12)));
+
+        MaxBotDifficulty = config.Bind(
+            "Difficulty",
+            "MaxBotDifficulty",
+            BotDifficulty.impossible,
+            "Ceiling for the scaling. PMCs reach it late in a hot raid; drop this " +
+            "to hard if the top end is too much.");
 
         PanelHotkey = config.Bind(
             "General",

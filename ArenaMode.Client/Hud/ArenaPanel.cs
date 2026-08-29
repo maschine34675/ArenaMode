@@ -204,6 +204,7 @@ internal sealed class ArenaPanel : MonoBehaviour
             ? ((float)match.Kills / match.Deaths).ToString("0.00")
             : match.Kills.ToString("0.00"));
         DrawStat("Time", $"{Mathf.FloorToInt(match.Elapsed / 60f):00}:{Mathf.FloorToInt(match.Elapsed % 60f):00}");
+        DrawStat("Pressure", Bots.ArenaPressure.Describe());
 
         GUILayout.Space(10);
         GUILayout.Label("Live settings", _titleStyle);
@@ -211,6 +212,8 @@ internal sealed class ArenaPanel : MonoBehaviour
 
         Settings.HuntPlayer.Value = GUILayout.Toggle(
             Settings.HuntPlayer.Value, " Bots keep hunting the player", _bodyStyle);
+        Settings.ScaleDifficulty.Value = GUILayout.Toggle(
+            Settings.ScaleDifficulty.Value, " Arena pushes back harder over time", _bodyStyle);
         Settings.ShowKillfeed.Value = GUILayout.Toggle(
             Settings.ShowKillfeed.Value, " Killfeed", _bodyStyle);
         Settings.ShowHitmarker.Value = GUILayout.Toggle(
