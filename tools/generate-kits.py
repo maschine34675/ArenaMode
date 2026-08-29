@@ -27,7 +27,16 @@ loc = json.load(io.open(DB + r'\locales\global\en.json', encoding='utf-8-sig'))
 ARMOR = '5448e54d4bdc2dcc718b4568'
 VEST = '5448e5284bdc2dcb718b4567'
 HEAD = '5a341c4086f77401f2541505'
-EARPIECE_TEP300 = '68bf405779c8186398099017'   # in-ear, conflicts with no helmet
+# Hearing matters in a corridor arena, so a kit gets ear protection where the
+# helmet allows one. The GSSh-01 is the ordinary choice and is sold, looted and
+# long-established. The TEP-300 is in-ear and conflicts with nothing, which
+# makes it the only option under a Maska or a Rys-T — but it appears in no
+# trader assort and no loot table in this version, so it is used ONLY where the
+# ordinary one cannot go. Leaning on an item the game does not distribute is
+# fine for one kit and reckless for a whole catalogue: if it ever disappears,
+# every kit that names it stops building.
+EARPIECE_PREFERRED = '5b432b965acfc47a8774094e'   # GSSh-01 active headset
+EARPIECE_FALLBACK = '68bf405779c8186398099017'    # Peltor TEP-300 earplugs
 BACKPACK = '5ab8ebf186f7742d8b372e80'          # Transformer bag, as before
 
 # Kept from the original kit rather than generated: the medical loadout lives in
@@ -152,6 +161,28 @@ def graft(out, preset, root_id, slot):
         out.append(entry)
 
 
+def pick_earpiece(nodes):
+    """The ordinary headset unless something already in the kit refuses it."""
+    worn = {n['_tpl'] for n in nodes}
+    for candidate in (EARPIECE_PREFERRED, EARPIECE_FALLBACK):
+        if candidate not in items:
+            continue
+
+        conflicts = set(items[candidate]['_props'].get('ConflictingItems') or [])
+        if conflicts & worn:
+            continue
+
+        # The other direction counts too: a helmet may refuse the headset even
+        # when the headset lists no objection to it.
+        if any(candidate in set(items.get(t, {}).get('_props', {}).get('ConflictingItems') or [])
+               for t in worn):
+            continue
+
+        return candidate
+
+    return None
+
+
 def spare_capacity(rig_tpl, mag_tpl):
     """How many spares fit in the RIG, which is where you reload from.
 
@@ -213,8 +244,10 @@ def rebuild():
         if gear['helmet']:
             graft(out, gear['helmet'][1], root_id, 'Headwear')
 
-        out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=EARPIECE_TEP300,
-                        parentId=root_id, slotId='Earpiece'))
+        ear = pick_earpiece(out)
+        if ear:
+            out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=ear,
+                            parentId=root_id, slotId='Earpiece'))
         out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=BACKPACK,
                         parentId=root_id, slotId='Backpack'))
 

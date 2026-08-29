@@ -5,13 +5,13 @@
     "order": 0,
     "items": [
       {
-        "_id": "e278ffacb8ec403db1a53ab6",
+        "_id": "7f9b202578404bc299f412a4",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "70bddaab217e40d39647ed9c",
         "_tpl": "5447a9cd4bdc2dbd208b4567",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "Repairable": {
@@ -110,13 +110,13 @@
       {
         "_id": "227a112f67fe4e52832aeca2",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "d44487e4007b4377ad97df13",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "Pockets"
       },
       {
@@ -149,63 +149,63 @@
         }
       },
       {
-        "_id": "f0dca3b088294fb48304280f",
+        "_id": "ea2c0a6515bf44a2b9489b3a",
         "_tpl": "5df8a2ca86f7740bfe6df777",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "b57e948ef4454dcfb12b2a72",
+        "_id": "6505b9467fe14a79a109a378",
         "_tpl": "656fd7c32668ef0402028fb9",
-        "parentId": "f0dca3b088294fb48304280f",
+        "parentId": "ea2c0a6515bf44a2b9489b3a",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "466a5196f002478286ce4015",
+        "_id": "6a2336ee8e09453a87df05a4",
         "_tpl": "656fd89bf5a9631d4e042575",
-        "parentId": "f0dca3b088294fb48304280f",
+        "parentId": "ea2c0a6515bf44a2b9489b3a",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "6415e8d25d3c4736b12da4c9",
+        "_id": "592175ff0d81461994d509a6",
         "_tpl": "5c0e6a1586f77404597b4965",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "272ea324f4e74bdfb0691ca7",
+        "_id": "a58a7effadb64a829f5e5206",
         "_tpl": "59e7711e86f7746cae05fbe1",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "Headwear"
       },
       {
-        "_id": "bdf9b3c2c16e438cad4047cf",
+        "_id": "e31dba800ffb40c0a779c4b9",
         "_tpl": "657ba50c23918923cb0df56c",
-        "parentId": "272ea324f4e74bdfb0691ca7",
+        "parentId": "a58a7effadb64a829f5e5206",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "ed2700c1e9eb4f30b8ecd2e4",
+        "_id": "3b0d2dee51514ee29e112719",
         "_tpl": "657ba5439ba22f103e08139f",
-        "parentId": "272ea324f4e74bdfb0691ca7",
+        "parentId": "a58a7effadb64a829f5e5206",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "7dc5031be82144fc8ae20b5b",
+        "_id": "1c16b5ae1d4748a291aceec4",
         "_tpl": "657ba57af58ba5a62501079e",
-        "parentId": "272ea324f4e74bdfb0691ca7",
+        "parentId": "a58a7effadb64a829f5e5206",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "6ea8d6fd2d3e4e4388fc71a6",
+        "_id": "1b81ff58c59f4b27bb49162c",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "Earpiece"
       },
       {
-        "_id": "ef711d37b4bb49198e3512f8",
+        "_id": "43769f384d264a469f1cf51d",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "e278ffacb8ec403db1a53ab6",
+        "parentId": "7f9b202578404bc299f412a4",
         "slotId": "Backpack"
       }
     ],
@@ -225,13 +225,13 @@
     "order": 1,
     "items": [
       {
-        "_id": "8082293056e9477aa68330d3",
+        "_id": "e6f1a87164394e3bb85b5069",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "67095be60e444ac3b12b5420",
         "_tpl": "5bb2475ed4351e00853264e3",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -323,13 +323,13 @@
       {
         "_id": "b8062717f22441a49a12f7cb",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "cd1279115d3d432fb190b6c1",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "Pockets"
       },
       {
@@ -362,57 +362,57 @@
         }
       },
       {
-        "_id": "c27f46aaeb244251a457f8cf",
+        "_id": "88f950a28982420fad67a3b1",
         "_tpl": "64be79c487d1510151095552",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "6cd59a728d194419901ef29a",
+        "_id": "1287489294d04dee9b8bbc65",
         "_tpl": "6570495b45d573133d0d6adb",
-        "parentId": "c27f46aaeb244251a457f8cf",
+        "parentId": "88f950a28982420fad67a3b1",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "aa48cfd9b77f4362b9d16301",
+        "_id": "766a7988750d4c4386e0f202",
         "_tpl": "657049d23425b19bbc0502f0",
-        "parentId": "c27f46aaeb244251a457f8cf",
+        "parentId": "88f950a28982420fad67a3b1",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "e75bb7be6b004f3c9d53217a",
+        "_id": "856cc74bdc2c488597744fe6",
         "_tpl": "5df8a42886f77412640e2e75",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "76f53e3cb79d4e55889defa5",
+        "_id": "3336da927e6246c2b88808e9",
         "_tpl": "5b432d215acfc4771e1c6624",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "Headwear"
       },
       {
-        "_id": "fd1b44308881473a9132c216",
+        "_id": "b446b77d50824817858c9443",
         "_tpl": "657bb92fa1c61ee0c303631f",
-        "parentId": "76f53e3cb79d4e55889defa5",
+        "parentId": "3336da927e6246c2b88808e9",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "1155ada2ceab404b8d1f93d5",
+        "_id": "695b604a0ade42c19711512d",
         "_tpl": "657bb99db30eca976305117f",
-        "parentId": "76f53e3cb79d4e55889defa5",
+        "parentId": "3336da927e6246c2b88808e9",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "b28e19faa4ac4f1abf9b328c",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "8082293056e9477aa68330d3",
+        "_id": "7b9c48040e444c4f963aed70",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "Earpiece"
       },
       {
-        "_id": "e677e9530fd44e7fa2d7ba24",
+        "_id": "e46fa189fec24156a12f3adf",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "8082293056e9477aa68330d3",
+        "parentId": "e6f1a87164394e3bb85b5069",
         "slotId": "Backpack"
       }
     ],
@@ -432,13 +432,13 @@
     "order": 2,
     "items": [
       {
-        "_id": "0869529b599b4edf8f8c6ed3",
+        "_id": "420ba89eab234b718531412d",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "537cd3b93a6a4e419fd5dc8f",
         "_tpl": "5644bd2b4bdc2d3b4c8b4572",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -512,13 +512,13 @@
       {
         "_id": "d24e101f1c464301b940aca3",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "3d847a7c1cc14b9cb57ac0b2",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "Pockets"
       },
       {
@@ -551,63 +551,63 @@
         }
       },
       {
-        "_id": "5dab53e7354344b089199ede",
+        "_id": "317445f22b8f4d58bb40bc9c",
         "_tpl": "64a536392d2c4e6e970f4121",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "28447c9697cb4b16a6533e17",
+        "_id": "e278db39896342e5bfe43f9d",
         "_tpl": "6570653e89fd4926380b733e",
-        "parentId": "5dab53e7354344b089199ede",
+        "parentId": "317445f22b8f4d58bb40bc9c",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "c96240f7bf414bbea03709fd",
+        "_id": "670e9a5b30cd4f679e9d057d",
         "_tpl": "6570658a89fd4926380b7346",
-        "parentId": "5dab53e7354344b089199ede",
+        "parentId": "317445f22b8f4d58bb40bc9c",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "022c50595e184b7a93501814",
+        "_id": "40cd9ed1a6bd43a78f8cd118",
         "_tpl": "656fac30c6baea13cd07e10c",
-        "parentId": "5dab53e7354344b089199ede",
+        "parentId": "317445f22b8f4d58bb40bc9c",
         "slotId": "Front_plate"
       },
       {
-        "_id": "1a650576df024c4791c162de",
+        "_id": "c0889cab5ec6460c871cc8ae",
         "_tpl": "656fac30c6baea13cd07e10c",
-        "parentId": "5dab53e7354344b089199ede",
+        "parentId": "317445f22b8f4d58bb40bc9c",
         "slotId": "Back_plate"
       },
       {
-        "_id": "cbe4115d6d68408e8c0290e0",
+        "_id": "7760a33aa2b6454c92da88dd",
         "_tpl": "5b432d215acfc4771e1c6624",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "Headwear"
       },
       {
-        "_id": "b68bf521116e46688042e6be",
+        "_id": "cadd66c5a45144ed99028348",
         "_tpl": "657bb92fa1c61ee0c303631f",
-        "parentId": "cbe4115d6d68408e8c0290e0",
+        "parentId": "7760a33aa2b6454c92da88dd",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "9d75b1388f53406fb9da092d",
+        "_id": "1373932832d5431a85e99bde",
         "_tpl": "657bb99db30eca976305117f",
-        "parentId": "cbe4115d6d68408e8c0290e0",
+        "parentId": "7760a33aa2b6454c92da88dd",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "b92d677cd5db40bd8f3cd4da",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "_id": "27f05870237844cca77246b7",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "Earpiece"
       },
       {
-        "_id": "0cfe5f753f21457c8c3e9383",
+        "_id": "ef537386fc61466fbc3576c7",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "0869529b599b4edf8f8c6ed3",
+        "parentId": "420ba89eab234b718531412d",
         "slotId": "Backpack"
       }
     ],
@@ -627,13 +627,13 @@
     "order": 3,
     "items": [
       {
-        "_id": "cc3b5334919f4aaca0d03792",
+        "_id": "b37f2e0415804abb9bda7f65",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "345a723a4bbd443795dc7b1b",
         "_tpl": "5ac66d2e5acfc43b321d4b53",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "FirstPrimaryWeapon"
       },
       {
@@ -702,13 +702,13 @@
       {
         "_id": "fbbc16d23feb4c17a593fd64",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "62e667f1582548088f46a2ae",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "Pockets"
       },
       {
@@ -741,69 +741,69 @@
         }
       },
       {
-        "_id": "8e9f12ae33f041afb5219bb9",
+        "_id": "bb8199384632442488d96cae",
         "_tpl": "5c0e655586f774045612eeb2",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "5f53fc9c0bcf4142ae9967a8",
+        "_id": "3703848b6e5f4f4abfc576c6",
         "_tpl": "6570e025615f54368b04fcb0",
-        "parentId": "8e9f12ae33f041afb5219bb9",
+        "parentId": "bb8199384632442488d96cae",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "cd32210c52b746a6b967c95e",
+        "_id": "7c94b922afeb4798b2cdf7cf",
         "_tpl": "6570e0610b57c03ec90b96ef",
-        "parentId": "8e9f12ae33f041afb5219bb9",
+        "parentId": "bb8199384632442488d96cae",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "1dcd71e189054004b92329ca",
+        "_id": "2532a34abcda414caa87a7b5",
         "_tpl": "656fad8c498d1b7e3e071da0",
-        "parentId": "8e9f12ae33f041afb5219bb9",
+        "parentId": "bb8199384632442488d96cae",
         "slotId": "Front_plate"
       },
       {
-        "_id": "bc22db29b43c4a27b54d50f0",
+        "_id": "c6c8c17a6ee046a1ad9f6ab5",
         "_tpl": "656fad8c498d1b7e3e071da0",
-        "parentId": "8e9f12ae33f041afb5219bb9",
+        "parentId": "bb8199384632442488d96cae",
         "slotId": "Back_plate"
       },
       {
-        "_id": "eac4eccaabe44873b2da65e2",
+        "_id": "445fedf5366e427ba4aefde6",
         "_tpl": "5e9db13186f7742f845ee9d3",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "89995ce1ac204a92949d3c66",
+        "_id": "99f391dbe4a1475b9a910070",
         "_tpl": "5e00c1ad86f774747333222c",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "Headwear"
       },
       {
-        "_id": "0e43c137ce0944ff8e5b046b",
+        "_id": "18814f198cab434ba42f0fce",
         "_tpl": "6551fec55d0cf82e51014288",
-        "parentId": "89995ce1ac204a92949d3c66",
+        "parentId": "99f391dbe4a1475b9a910070",
         "slotId": "helmet_top"
       },
       {
-        "_id": "77baf2de3268442e980f2e93",
+        "_id": "cf5f79d9b086466e9c32ddbb",
         "_tpl": "655200ba0ef76cf7be09d528",
-        "parentId": "89995ce1ac204a92949d3c66",
+        "parentId": "99f391dbe4a1475b9a910070",
         "slotId": "helmet_back"
       },
       {
-        "_id": "79ac3eb5186845249eb53d20",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "_id": "762d5283996a4cd98ff55388",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "Earpiece"
       },
       {
-        "_id": "3ad543cbbcf342c9a05510e3",
+        "_id": "d4717aec759f417682d1c6e5",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "cc3b5334919f4aaca0d03792",
+        "parentId": "b37f2e0415804abb9bda7f65",
         "slotId": "Backpack"
       }
     ],
@@ -823,13 +823,13 @@
     "order": 4,
     "items": [
       {
-        "_id": "486381e0c8f84e6a9ed4f883",
+        "_id": "e0294242cf684c818ddbb1db",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "19951e0b935b41aaa85616aa",
         "_tpl": "6499849fc93611967b034949",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "Repairable": {
@@ -922,13 +922,13 @@
       {
         "_id": "28c4b9a714ae43d79d9a63b9",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "f1b007cb0db542b0aa231c99",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "Pockets"
       },
       {
@@ -961,93 +961,93 @@
         }
       },
       {
-        "_id": "244769510d4549648fd05011",
+        "_id": "5cb5a2cacc9e4562a21f6035",
         "_tpl": "60a3c70cde5f453f634816a3",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "0cbd3f7ab7bb4adc82bd8caf",
+        "_id": "290c9a7e00664c81acf9d986",
         "_tpl": "6570fae34c65ab77a6015146",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "b70c9f7fb7f548308df69656",
+        "_id": "b9b2ceb1fc124dfdb62b6626",
         "_tpl": "6570fa1f4c65ab77a601512f",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "661fac577e00429988cf4dca",
+        "_id": "868e5fd70ba24606802b3855",
         "_tpl": "6570fb22584a51c23e03251f",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Soft_armor_left"
       },
       {
-        "_id": "fe3e3c2904244e14bec5a3a7",
+        "_id": "128870d9285d4b77983f33de",
         "_tpl": "6570fb6ad3eefd23430f8c7c",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "soft_armor_right"
       },
       {
-        "_id": "f103feec092b49669bd41ef7",
+        "_id": "65c96e9b8e5b42d8bd1ae2d7",
         "_tpl": "6570fb8f4c65ab77a601514d",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Collar"
       },
       {
-        "_id": "9658c59aada241ff87443891",
+        "_id": "284060d36ff14b738b0e3517",
         "_tpl": "6570fbdd74d84423df065f60",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Shoulder_l"
       },
       {
-        "_id": "8c596d9c4ac6420880725361",
+        "_id": "b521a3ab273f4d4e9fe58c7c",
         "_tpl": "6570fc41d3eefd23430f8c83",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Shoulder_r"
       },
       {
-        "_id": "940bb385d3c84cf897a601a3",
+        "_id": "ac0fe26d3bbb4024be5751c9",
         "_tpl": "656fb21fa0dce000a2020f7c",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Front_plate"
       },
       {
-        "_id": "9723a1f4a9274644836257ec",
+        "_id": "e4d931215ed846ff9cc8fc6b",
         "_tpl": "656fb21fa0dce000a2020f7c",
-        "parentId": "244769510d4549648fd05011",
+        "parentId": "5cb5a2cacc9e4562a21f6035",
         "slotId": "Back_plate"
       },
       {
-        "_id": "bd480761ac71406b9b770ea6",
+        "_id": "6b62f42e782c49258d2c8ffc",
         "_tpl": "5e00c1ad86f774747333222c",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "Headwear"
       },
       {
-        "_id": "3d98595414bd44dea726dddf",
+        "_id": "77c2528db1b0474bb48f27a7",
         "_tpl": "6551fec55d0cf82e51014288",
-        "parentId": "bd480761ac71406b9b770ea6",
+        "parentId": "6b62f42e782c49258d2c8ffc",
         "slotId": "helmet_top"
       },
       {
-        "_id": "22815f98ba83425fb46a0b41",
+        "_id": "9f318c0f885a40dda8e14296",
         "_tpl": "655200ba0ef76cf7be09d528",
-        "parentId": "bd480761ac71406b9b770ea6",
+        "parentId": "6b62f42e782c49258d2c8ffc",
         "slotId": "helmet_back"
       },
       {
-        "_id": "ca94db3750d44b41ba4c49f4",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "_id": "7a116e79b7944caba19fd72e",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "Earpiece"
       },
       {
-        "_id": "282df9db37dc474daf5d6b92",
+        "_id": "defd155af11a4a55b92c1d20",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "486381e0c8f84e6a9ed4f883",
+        "parentId": "e0294242cf684c818ddbb1db",
         "slotId": "Backpack"
       }
     ],
@@ -1067,13 +1067,13 @@
     "order": 5,
     "items": [
       {
-        "_id": "d75c181cbc5f4058b37f88ac",
+        "_id": "2187146522ad4c3f871616cf",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "420a70379cc842e6af4b549c",
         "_tpl": "628a60ae6b1d481ff772e9c8",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "Repairable": {
@@ -1154,13 +1154,13 @@
       {
         "_id": "cb6e65ec271c40a9941710d1",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "6b2eff43a3384cd39c0f9990",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "Pockets"
       },
       {
@@ -1193,63 +1193,63 @@
         }
       },
       {
-        "_id": "43d70a58e5e240989f1cad0c",
+        "_id": "ded397a2e91c4bb4829b03e4",
         "_tpl": "63737f448b28897f2802b874",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "0bb7bd6ac6bd4dc5b547da47",
+        "_id": "ee2e1f6e40224e7eb3f3fcde",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "43d70a58e5e240989f1cad0c",
+        "parentId": "ded397a2e91c4bb4829b03e4",
         "slotId": "Front_plate"
       },
       {
-        "_id": "d1234c91c0034d54872a6fb5",
+        "_id": "c917de0f0e57463ea8d1f11c",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "43d70a58e5e240989f1cad0c",
+        "parentId": "ded397a2e91c4bb4829b03e4",
         "slotId": "Back_plate"
       },
       {
-        "_id": "be077df5d9474994a3053d5f",
+        "_id": "845e7b6248954be691f1d18e",
         "_tpl": "5e4abfed86f77406a2713cf7",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "c5d1d1408d28405087791da6",
+        "_id": "f97780595fc94be7b1434308",
         "_tpl": "5f60c74e3b85f6263c145586",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "Headwear"
       },
       {
-        "_id": "8677427ee6be4ec6b15e332e",
+        "_id": "fa10792dc4f94436950fa06d",
         "_tpl": "657bc285aab96fccee08bea3",
-        "parentId": "c5d1d1408d28405087791da6",
+        "parentId": "f97780595fc94be7b1434308",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "54cbfbe85e264861b5a43166",
+        "_id": "a97be3b8faf7438594e481f5",
         "_tpl": "657bc2c5a1c61ee0c3036333",
-        "parentId": "c5d1d1408d28405087791da6",
+        "parentId": "f97780595fc94be7b1434308",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "6db4754df0084fb2990754c0",
+        "_id": "4eddb9a40f504bbc99c657bd",
         "_tpl": "657bc2e7b30eca976305118d",
-        "parentId": "c5d1d1408d28405087791da6",
+        "parentId": "f97780595fc94be7b1434308",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "47a9c4e01078453d81e8da5b",
+        "_id": "e30f0d6d0a9347169f13056b",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "Earpiece"
       },
       {
-        "_id": "3a46bd5c22a644ceb3694691",
+        "_id": "ac25509c5be545b7878559a6",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "d75c181cbc5f4058b37f88ac",
+        "parentId": "2187146522ad4c3f871616cf",
         "slotId": "Backpack"
       }
     ],
@@ -1269,13 +1269,13 @@
     "order": 6,
     "items": [
       {
-        "_id": "e734c536169c4ee7837730f3",
+        "_id": "1a81f90aedff41c782551424",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "37faf5772af74de4a6d45aa3",
         "_tpl": "5df8ce05b11454561e39243b",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -1373,13 +1373,13 @@
       {
         "_id": "a139a2b4a6034d0d9a1ac319",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "93d3a2b5f05148cfb62f0736",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "Pockets"
       },
       {
@@ -1412,69 +1412,69 @@
         }
       },
       {
-        "_id": "dbe30ca65a024359a102f69e",
+        "_id": "1a8eec337e40431a96f37530",
         "_tpl": "628b9784bcf6e2659e09b8a2",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "de71087d28ad4f8998b967e1",
+        "_id": "e665c8010edc4c31822da637",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "dbe30ca65a024359a102f69e",
+        "parentId": "1a8eec337e40431a96f37530",
         "slotId": "Front_plate"
       },
       {
-        "_id": "9ab5da01bca7430b99974a00",
+        "_id": "355ace6ace1e4b628c275a1f",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "dbe30ca65a024359a102f69e",
+        "parentId": "1a8eec337e40431a96f37530",
         "slotId": "Back_plate"
       },
       {
-        "_id": "0848303786704f8db05e32e1",
+        "_id": "286dab7d1e3740d38bd5ab82",
         "_tpl": "6557458f83942d705f0c4962",
-        "parentId": "dbe30ca65a024359a102f69e",
+        "parentId": "1a8eec337e40431a96f37530",
         "slotId": "Left_side_plate"
       },
       {
-        "_id": "5e70979573124642ad058e9d",
+        "_id": "e09bcf6f98704b63adfc1605",
         "_tpl": "6557458f83942d705f0c4962",
-        "parentId": "dbe30ca65a024359a102f69e",
+        "parentId": "1a8eec337e40431a96f37530",
         "slotId": "Right_side_plate"
       },
       {
-        "_id": "1a08df94cc2d4cbaa9e22337",
+        "_id": "dbb9273e16cb4aef999868cc",
         "_tpl": "5f60c74e3b85f6263c145586",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "Headwear"
       },
       {
-        "_id": "ccec3ab1f997457f8656563d",
+        "_id": "3460666cd8fb4dd585f82979",
         "_tpl": "657bc285aab96fccee08bea3",
-        "parentId": "1a08df94cc2d4cbaa9e22337",
+        "parentId": "dbb9273e16cb4aef999868cc",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "936472a00a834928b59f15ee",
+        "_id": "7ec067fc20cf4243b3247e22",
         "_tpl": "657bc2c5a1c61ee0c3036333",
-        "parentId": "1a08df94cc2d4cbaa9e22337",
+        "parentId": "dbb9273e16cb4aef999868cc",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "1578a674c17c465cb9c20c8e",
+        "_id": "6434dad5ab4049008627c16c",
         "_tpl": "657bc2e7b30eca976305118d",
-        "parentId": "1a08df94cc2d4cbaa9e22337",
+        "parentId": "dbb9273e16cb4aef999868cc",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "3bc61eed3a294289ad4c16df",
+        "_id": "fe0ccf3d96154fb4905a43ec",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "Earpiece"
       },
       {
-        "_id": "fd78bab503ba40de94819d5f",
+        "_id": "7631f7db948c4ba6801d3718",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "e734c536169c4ee7837730f3",
+        "parentId": "1a81f90aedff41c782551424",
         "slotId": "Backpack"
       }
     ],
@@ -1494,13 +1494,13 @@
     "order": 7,
     "items": [
       {
-        "_id": "5cc528e13a884cccaefcd442",
+        "_id": "3c34d23d1195462b90901e5b",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "5fd6c80f7804421b9534ce0c",
         "_tpl": "5a367e5dc4a282000e49738f",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "Repairable": {
@@ -1575,13 +1575,13 @@
       {
         "_id": "23eef91a78b0415c8cadcd27",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "589ed43f66134407b00d98cc",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "Pockets"
       },
       {
@@ -1614,69 +1614,69 @@
         }
       },
       {
-        "_id": "b418e69e0449447cb32f750f",
+        "_id": "37719abc365745bebbf92132",
         "_tpl": "5fd4c474dd870108a754b241",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "6dcc3dd5f1ef4536a1217fee",
+        "_id": "d822469134e440998839928a",
         "_tpl": "656faf0ca0dce000a2020f77",
-        "parentId": "b418e69e0449447cb32f750f",
+        "parentId": "37719abc365745bebbf92132",
         "slotId": "front_plate"
       },
       {
-        "_id": "2edaab6d6dfe42128bacf3d1",
+        "_id": "a5599fd13b844067b30080b0",
         "_tpl": "656faf0ca0dce000a2020f77",
-        "parentId": "b418e69e0449447cb32f750f",
+        "parentId": "37719abc365745bebbf92132",
         "slotId": "back_plate"
       },
       {
-        "_id": "7c0487e2ba09482b81eaaf82",
+        "_id": "0fe3f1a6d7284df19cb88e10",
         "_tpl": "59e7643b86f7742cbf2c109a",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "c2f3f529d6d14826a7cd27a5",
+        "_id": "895db01bf3e149e6a8c6a746",
         "_tpl": "5c0e874186f7745dc7616606",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "Headwear"
       },
       {
-        "_id": "fafb1c5213274bc8bc387b91",
+        "_id": "04c3e2fc2b234e05acc4eaa4",
         "_tpl": "6571133d22996eaf11088200",
-        "parentId": "c2f3f529d6d14826a7cd27a5",
+        "parentId": "895db01bf3e149e6a8c6a746",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "cb1afb0657ca434a9e0a64f3",
+        "_id": "25acfb170f7743a3ab3d1d27",
         "_tpl": "6571138e818110db4600aa71",
-        "parentId": "c2f3f529d6d14826a7cd27a5",
+        "parentId": "895db01bf3e149e6a8c6a746",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "d179f737b2e94dd0801b02cd",
+        "_id": "9281b8460fef4fbcb640f69d",
         "_tpl": "657112fa818110db4600aa6b",
-        "parentId": "c2f3f529d6d14826a7cd27a5",
+        "parentId": "895db01bf3e149e6a8c6a746",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "958ac7a5160649d4895c9e18",
+        "_id": "d1963ac4114e4fd29f688cef",
         "_tpl": "5c0e842486f77443a74d2976",
-        "parentId": "c2f3f529d6d14826a7cd27a5",
+        "parentId": "895db01bf3e149e6a8c6a746",
         "slotId": "mod_equipment"
       },
       {
-        "_id": "ffdce266686343b58adba5ec",
+        "_id": "a01708d553854a63867334a8",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "Earpiece"
       },
       {
-        "_id": "0f857a78dc7a4e228bdd02ab",
+        "_id": "8ad2b2583950414aa60fa03b",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "5cc528e13a884cccaefcd442",
+        "parentId": "3c34d23d1195462b90901e5b",
         "slotId": "Backpack"
       }
     ],
@@ -1696,13 +1696,13 @@
     "order": 8,
     "items": [
       {
-        "_id": "cca72d9db871434ead45419b",
+        "_id": "31c9b3b5be674cefa15b104b",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "288af5dd211440d0b8667089",
         "_tpl": "6165ac306ef05c2ce828ef74",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -1815,13 +1815,13 @@
       {
         "_id": "a7de49db142c485cba0dac20",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "d2331c30b2cb40a3a2d23d2c",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "Pockets"
       },
       {
@@ -1854,63 +1854,63 @@
         }
       },
       {
-        "_id": "097325a254a1463ca913324d",
+        "_id": "d1720b3db38647abb99a40ea",
         "_tpl": "628cd624459354321c4b7fa2",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "fc1df680badf4e42b22c052b",
+        "_id": "b73614e0a67d4facb1e2db23",
         "_tpl": "64afdcb83efdfea28601d041",
-        "parentId": "097325a254a1463ca913324d",
+        "parentId": "d1720b3db38647abb99a40ea",
         "slotId": "Front_plate"
       },
       {
-        "_id": "7a59cd9a6ebe44cdb894e716",
+        "_id": "b2106002b2484b4fb78893ce",
         "_tpl": "64afdcb83efdfea28601d041",
-        "parentId": "097325a254a1463ca913324d",
+        "parentId": "d1720b3db38647abb99a40ea",
         "slotId": "Back_plate"
       },
       {
-        "_id": "1beb168593884fdbb3688c5e",
+        "_id": "0404c99e838048cf8cb9c3f8",
         "_tpl": "5c0e874186f7745dc7616606",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "Headwear"
       },
       {
-        "_id": "7afcbb7730c6412e9c5f7dca",
+        "_id": "278e11dfcc2b482ab65a3721",
         "_tpl": "6571133d22996eaf11088200",
-        "parentId": "1beb168593884fdbb3688c5e",
+        "parentId": "0404c99e838048cf8cb9c3f8",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "24be6bb640f14ae78c4a1a38",
+        "_id": "d2925fb3556f45a39c6d6917",
         "_tpl": "6571138e818110db4600aa71",
-        "parentId": "1beb168593884fdbb3688c5e",
+        "parentId": "0404c99e838048cf8cb9c3f8",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "ec9345e99e724e0c862f2318",
+        "_id": "4ecf89f6ce7247209109f778",
         "_tpl": "657112fa818110db4600aa6b",
-        "parentId": "1beb168593884fdbb3688c5e",
+        "parentId": "0404c99e838048cf8cb9c3f8",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "d6833901cf03493bbaba4090",
+        "_id": "0b0ccaeaa97a4895895fa746",
         "_tpl": "5c0e842486f77443a74d2976",
-        "parentId": "1beb168593884fdbb3688c5e",
+        "parentId": "0404c99e838048cf8cb9c3f8",
         "slotId": "mod_equipment"
       },
       {
-        "_id": "cab1f9dac6b7458da5dc1943",
+        "_id": "8d7fef532f6d49229582e9cb",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "Earpiece"
       },
       {
-        "_id": "65ae08203c5247789ec08f1a",
+        "_id": "8e8196fd8fb54792b32a60c6",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "cca72d9db871434ead45419b",
+        "parentId": "31c9b3b5be674cefa15b104b",
         "slotId": "Backpack"
       }
     ],
@@ -1930,13 +1930,13 @@
     "order": 9,
     "items": [
       {
-        "_id": "ce859c5e67bd472bb07b3fb2",
+        "_id": "92586aab75dc4941a5828a13",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "2b0033290402434aa1002ed1",
         "_tpl": "5fbcc1d9016cce60e8341ab3",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -2034,13 +2034,13 @@
       {
         "_id": "08d8695539f34fb39e86ad3a",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "64baffc0e71b404c97929bb4",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "Pockets"
       },
       {
@@ -2073,63 +2073,63 @@
         }
       },
       {
-        "_id": "adf9a1b5c4894dad85269c3e",
+        "_id": "047fe2acaf744d5bbc0f3d5a",
         "_tpl": "5df8a2ca86f7740bfe6df777",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "3864055f7e3f45d8a66782f3",
+        "_id": "3bdd078ac7214724923a4074",
         "_tpl": "656fd7c32668ef0402028fb9",
-        "parentId": "adf9a1b5c4894dad85269c3e",
+        "parentId": "047fe2acaf744d5bbc0f3d5a",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "6bb3b900ee6342a2bad5d296",
+        "_id": "6a9cee2980bf45ca927a8286",
         "_tpl": "656fd89bf5a9631d4e042575",
-        "parentId": "adf9a1b5c4894dad85269c3e",
+        "parentId": "047fe2acaf744d5bbc0f3d5a",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "4378099cde654adc87bd687e",
+        "_id": "9dad7c4c436e4523b88a50d5",
         "_tpl": "5c0e6a1586f77404597b4965",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "6f56aacbb51c4b8f914de68c",
+        "_id": "bb97c8df9e0f46d788d23fe3",
         "_tpl": "59e7711e86f7746cae05fbe1",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "Headwear"
       },
       {
-        "_id": "1e255bffe0794126acc3c6db",
+        "_id": "e25d49e93c634134a9bf432d",
         "_tpl": "657ba50c23918923cb0df56c",
-        "parentId": "6f56aacbb51c4b8f914de68c",
+        "parentId": "bb97c8df9e0f46d788d23fe3",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "bc197e8a990a4436a90995bd",
+        "_id": "e9b26aeea67444788aaf3fee",
         "_tpl": "657ba5439ba22f103e08139f",
-        "parentId": "6f56aacbb51c4b8f914de68c",
+        "parentId": "bb97c8df9e0f46d788d23fe3",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "4fdd32fdafe24d6a8413d410",
+        "_id": "83a1d8cf5e0a4e87baa58323",
         "_tpl": "657ba57af58ba5a62501079e",
-        "parentId": "6f56aacbb51c4b8f914de68c",
+        "parentId": "bb97c8df9e0f46d788d23fe3",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "0eaf929b88a54a0b845e2c26",
+        "_id": "59b3cbf0780542c68df9a16e",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "Earpiece"
       },
       {
-        "_id": "d56217111dea43e6940a0c07",
+        "_id": "8afa8117b72944e68187e7ee",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "ce859c5e67bd472bb07b3fb2",
+        "parentId": "92586aab75dc4941a5828a13",
         "slotId": "Backpack"
       }
     ],
@@ -2149,13 +2149,13 @@
     "order": 10,
     "items": [
       {
-        "_id": "f860de7ece1c44bab6c56093",
+        "_id": "78ef575aff8e4680a174166e",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "d833ebb843c545b49d9415ee",
         "_tpl": "57838ad32459774a17445cd2",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "Repairable": {
@@ -2218,13 +2218,13 @@
       {
         "_id": "898dd922fa624788bcfec3d6",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "f59af53814e94dd99c490ce5",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "Pockets"
       },
       {
@@ -2257,57 +2257,57 @@
         }
       },
       {
-        "_id": "21b183ecf18a4c9181c955b9",
+        "_id": "cdabe98e85564c38a9826bf3",
         "_tpl": "64be79c487d1510151095552",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "2e4a292394e04831aeec0c73",
+        "_id": "66826a263fbb4b9d8b919924",
         "_tpl": "6570495b45d573133d0d6adb",
-        "parentId": "21b183ecf18a4c9181c955b9",
+        "parentId": "cdabe98e85564c38a9826bf3",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "6b140545bbe640eebf5858ae",
+        "_id": "7c854286bbcb4a178f4ae680",
         "_tpl": "657049d23425b19bbc0502f0",
-        "parentId": "21b183ecf18a4c9181c955b9",
+        "parentId": "cdabe98e85564c38a9826bf3",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "41d09c26d9014ecaa58c9e91",
+        "_id": "16cfe4bb49f8470aa15bc062",
         "_tpl": "5df8a42886f77412640e2e75",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "edad44f47d1b4f3c8fecf07e",
+        "_id": "fdf87e6ac29046bd8bcdc15b",
         "_tpl": "5b432d215acfc4771e1c6624",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "Headwear"
       },
       {
-        "_id": "0b2632d886684114806dd92a",
+        "_id": "38385dfbe6f34162b08208e6",
         "_tpl": "657bb92fa1c61ee0c303631f",
-        "parentId": "edad44f47d1b4f3c8fecf07e",
+        "parentId": "fdf87e6ac29046bd8bcdc15b",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "dbb7496f454542c79b8beead",
+        "_id": "f583e6a8646446ffb3aa2cff",
         "_tpl": "657bb99db30eca976305117f",
-        "parentId": "edad44f47d1b4f3c8fecf07e",
+        "parentId": "fdf87e6ac29046bd8bcdc15b",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "7121dcd58de34c35b015fb12",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "_id": "6577c08f7f574ed39558ce8c",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "Earpiece"
       },
       {
-        "_id": "701be8f58cea4c529cee1827",
+        "_id": "94b6fae375724501bafd73e9",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "f860de7ece1c44bab6c56093",
+        "parentId": "78ef575aff8e4680a174166e",
         "slotId": "Backpack"
       }
     ],
@@ -2327,13 +2327,13 @@
     "order": 11,
     "items": [
       {
-        "_id": "ba82739cfe6f4025b6de2440",
+        "_id": "d39807b6c44b4ed1b1e914aa",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "5d8d79abf24045e4a9ff79b1",
         "_tpl": "5c46fbd72e2216398b5a8c9c",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -2428,13 +2428,13 @@
       {
         "_id": "040c8ca9fef94f12a8b40650",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "2059cda63f7c4b61a06bbfdd",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "Pockets"
       },
       {
@@ -2467,63 +2467,63 @@
         }
       },
       {
-        "_id": "63bd008e89a34bd795a004d3",
+        "_id": "0f6b8512aab04e4499666913",
         "_tpl": "64a536392d2c4e6e970f4121",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "4d13a23fa5a744bb915a2e81",
+        "_id": "51894f2f6c074a2aabccb84f",
         "_tpl": "6570653e89fd4926380b733e",
-        "parentId": "63bd008e89a34bd795a004d3",
+        "parentId": "0f6b8512aab04e4499666913",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "8a97e99ad0d2438fa139814d",
+        "_id": "b19ca9048fc248c0aba5a317",
         "_tpl": "6570658a89fd4926380b7346",
-        "parentId": "63bd008e89a34bd795a004d3",
+        "parentId": "0f6b8512aab04e4499666913",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "8aa1c878f883480f972b4089",
+        "_id": "cb124a609b4b4d83a08af0a8",
         "_tpl": "656fac30c6baea13cd07e10c",
-        "parentId": "63bd008e89a34bd795a004d3",
+        "parentId": "0f6b8512aab04e4499666913",
         "slotId": "Front_plate"
       },
       {
-        "_id": "3776893afd404086a514286f",
+        "_id": "773283c41e3c430ba1583d14",
         "_tpl": "656fac30c6baea13cd07e10c",
-        "parentId": "63bd008e89a34bd795a004d3",
+        "parentId": "0f6b8512aab04e4499666913",
         "slotId": "Back_plate"
       },
       {
-        "_id": "76b235d378914788a68025da",
+        "_id": "aba8c68bc4f24c74b24a815d",
         "_tpl": "5b432d215acfc4771e1c6624",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "Headwear"
       },
       {
-        "_id": "3e739429969b475fbad909e2",
+        "_id": "df8647fd3d174a978e2030df",
         "_tpl": "657bb92fa1c61ee0c303631f",
-        "parentId": "76b235d378914788a68025da",
+        "parentId": "aba8c68bc4f24c74b24a815d",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "84adf666904644c195f52aba",
+        "_id": "0b6c923934d34c1c829715b7",
         "_tpl": "657bb99db30eca976305117f",
-        "parentId": "76b235d378914788a68025da",
+        "parentId": "aba8c68bc4f24c74b24a815d",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "8dfef0f9a21a47c790d6e61c",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "_id": "8cad670407fe4376a80ceab0",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "Earpiece"
       },
       {
-        "_id": "d258867db7ef49228d844332",
+        "_id": "5cfd90782e644bb0adf61447",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "ba82739cfe6f4025b6de2440",
+        "parentId": "d39807b6c44b4ed1b1e914aa",
         "slotId": "Backpack"
       }
     ],
@@ -2543,13 +2543,13 @@
     "order": 12,
     "items": [
       {
-        "_id": "112532a1d9de451d91021397",
+        "_id": "3fbfe11a7c12425185c15d41",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "c6b148f375054c1ab9db3248",
         "_tpl": "5c07c60e0db834002330051f",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -2629,13 +2629,13 @@
       {
         "_id": "f04166cd0efe41d0aef14d15",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "19bd1c40b7df482f8f581df6",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "Pockets"
       },
       {
@@ -2668,69 +2668,69 @@
         }
       },
       {
-        "_id": "889435c9bb254bea8ef738fe",
+        "_id": "dd01c5c56045425ebf691a60",
         "_tpl": "5c0e655586f774045612eeb2",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "6aeff734db1546d392d85745",
+        "_id": "931e473aadfa4979b171b621",
         "_tpl": "6570e025615f54368b04fcb0",
-        "parentId": "889435c9bb254bea8ef738fe",
+        "parentId": "dd01c5c56045425ebf691a60",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "9e6e476e83df4ad2b624d249",
+        "_id": "ad0d8556edfb492794e428a4",
         "_tpl": "6570e0610b57c03ec90b96ef",
-        "parentId": "889435c9bb254bea8ef738fe",
+        "parentId": "dd01c5c56045425ebf691a60",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "0bef8c04f0964a9384b57384",
+        "_id": "7b8956ada7844a8a92e49882",
         "_tpl": "656fad8c498d1b7e3e071da0",
-        "parentId": "889435c9bb254bea8ef738fe",
+        "parentId": "dd01c5c56045425ebf691a60",
         "slotId": "Front_plate"
       },
       {
-        "_id": "ebcf0f788dd94d5d84292b10",
+        "_id": "907c3686c9d347af9dd4193b",
         "_tpl": "656fad8c498d1b7e3e071da0",
-        "parentId": "889435c9bb254bea8ef738fe",
+        "parentId": "dd01c5c56045425ebf691a60",
         "slotId": "Back_plate"
       },
       {
-        "_id": "d6292963ccf544aea4cdb092",
+        "_id": "7674874852ed48b3b75b1848",
         "_tpl": "5e9db13186f7742f845ee9d3",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "05f8f6a6147d469581baf081",
+        "_id": "1c7e9f3c88e6464e8370c5ca",
         "_tpl": "5e00c1ad86f774747333222c",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "Headwear"
       },
       {
-        "_id": "29e9f4983d664683817a8947",
+        "_id": "b854a2126327435dab9a6423",
         "_tpl": "6551fec55d0cf82e51014288",
-        "parentId": "05f8f6a6147d469581baf081",
+        "parentId": "1c7e9f3c88e6464e8370c5ca",
         "slotId": "helmet_top"
       },
       {
-        "_id": "6b9bfb8ddfe54966af9c13ba",
+        "_id": "6605e885ac14492eb525b2e6",
         "_tpl": "655200ba0ef76cf7be09d528",
-        "parentId": "05f8f6a6147d469581baf081",
+        "parentId": "1c7e9f3c88e6464e8370c5ca",
         "slotId": "helmet_back"
       },
       {
-        "_id": "4296effcc6594a51b6716caa",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "112532a1d9de451d91021397",
+        "_id": "c2870a6079554e6a8964b162",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "Earpiece"
       },
       {
-        "_id": "3bac256542b64462bbb5743a",
+        "_id": "6f20981e4236416584668929",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "112532a1d9de451d91021397",
+        "parentId": "3fbfe11a7c12425185c15d41",
         "slotId": "Backpack"
       }
     ],
@@ -2750,13 +2750,13 @@
     "order": 13,
     "items": [
       {
-        "_id": "805411b2a86340ebb1933967",
+        "_id": "0ff6767362a54f919f37a153",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "49c7acb5dfb34793b1150647",
         "_tpl": "574d967124597745970e7c94",
-        "parentId": "805411b2a86340ebb1933967",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -2834,13 +2834,13 @@
       {
         "_id": "1c79b292556b45b19022c668",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "805411b2a86340ebb1933967",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "e7585cd2a5b54397a258cbff",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "805411b2a86340ebb1933967",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "Pockets"
       },
       {
@@ -2873,93 +2873,93 @@
         }
       },
       {
-        "_id": "3a17d11f0a7947229c721a6c",
+        "_id": "a3fc030fb90e4827ab1511ca",
         "_tpl": "60a3c70cde5f453f634816a3",
-        "parentId": "805411b2a86340ebb1933967",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "3ea2a80198084d4b99fa8343",
+        "_id": "303dc84b16a94e3884a677b6",
         "_tpl": "6570fae34c65ab77a6015146",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "26bac1d941d243cebaad01d8",
+        "_id": "9e6a01bdcd994e6a80dceace",
         "_tpl": "6570fa1f4c65ab77a601512f",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "cba082be8fec4c1895726644",
+        "_id": "fbe17a80d8c04f888b4148fc",
         "_tpl": "6570fb22584a51c23e03251f",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Soft_armor_left"
       },
       {
-        "_id": "f0ebca4759804fbc81167413",
+        "_id": "ce4d25f1ef614692aca84697",
         "_tpl": "6570fb6ad3eefd23430f8c7c",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "soft_armor_right"
       },
       {
-        "_id": "0c411f09c4dc4f7f8cfb4310",
+        "_id": "7f8563b034474fedb5ed72aa",
         "_tpl": "6570fb8f4c65ab77a601514d",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Collar"
       },
       {
-        "_id": "7f00c0b31ebf421b809a8185",
+        "_id": "8814fa12f1b24514b93d96ed",
         "_tpl": "6570fbdd74d84423df065f60",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Shoulder_l"
       },
       {
-        "_id": "796ee1a95f534e4abd18a866",
+        "_id": "db02044993ae4d8282ba2958",
         "_tpl": "6570fc41d3eefd23430f8c83",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Shoulder_r"
       },
       {
-        "_id": "f34162f7e9594e42b54d144f",
+        "_id": "f2fb75802e164d1e9eed0e5b",
         "_tpl": "656fb21fa0dce000a2020f7c",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Front_plate"
       },
       {
-        "_id": "5fb8111ea44146459e9e7d68",
+        "_id": "771137edd4c8469b853700c3",
         "_tpl": "656fb21fa0dce000a2020f7c",
-        "parentId": "3a17d11f0a7947229c721a6c",
+        "parentId": "a3fc030fb90e4827ab1511ca",
         "slotId": "Back_plate"
       },
       {
-        "_id": "7dcf0a0177204949bd664c90",
+        "_id": "f1834255d5114f0990aca2d4",
         "_tpl": "5e00c1ad86f774747333222c",
-        "parentId": "805411b2a86340ebb1933967",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "Headwear"
       },
       {
-        "_id": "0ced6c1a4b764cc3a5baf487",
+        "_id": "81686631c7dd485cb933bb37",
         "_tpl": "6551fec55d0cf82e51014288",
-        "parentId": "7dcf0a0177204949bd664c90",
+        "parentId": "f1834255d5114f0990aca2d4",
         "slotId": "helmet_top"
       },
       {
-        "_id": "e4657892f37a4f4484e85a78",
+        "_id": "23548afcd8ef48379fab7741",
         "_tpl": "655200ba0ef76cf7be09d528",
-        "parentId": "7dcf0a0177204949bd664c90",
+        "parentId": "f1834255d5114f0990aca2d4",
         "slotId": "helmet_back"
       },
       {
-        "_id": "d564f033fc2c4059a269b13b",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "805411b2a86340ebb1933967",
+        "_id": "fac1752e79d64f29ac57ae09",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "Earpiece"
       },
       {
-        "_id": "f8a41c4c42f0497c8106346a",
+        "_id": "0f3eb38b2ca04ce4960d6f22",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "805411b2a86340ebb1933967",
+        "parentId": "0ff6767362a54f919f37a153",
         "slotId": "Backpack"
       }
     ],
@@ -2979,13 +2979,13 @@
     "order": 14,
     "items": [
       {
-        "_id": "c230ce543ee94757b5b2c69d",
+        "_id": "6b2695ab262f4a6188031682",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "648ae19a3d574c4ea956f443",
         "_tpl": "59d6088586f774275f37482f",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "FirstPrimaryWeapon"
       },
       {
@@ -3054,13 +3054,13 @@
       {
         "_id": "2079e9c5ebf54958a33387c5",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "8f1eaac5893848e0881b8cc0",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "Pockets"
       },
       {
@@ -3093,63 +3093,63 @@
         }
       },
       {
-        "_id": "8b41e69eedf0448385eb9bd0",
+        "_id": "062a9db0640a488da0bf1bf3",
         "_tpl": "63737f448b28897f2802b874",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "3e080d1e98514a338ebc4b85",
+        "_id": "40c832a9992f4d8088bf2a8e",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "8b41e69eedf0448385eb9bd0",
+        "parentId": "062a9db0640a488da0bf1bf3",
         "slotId": "Front_plate"
       },
       {
-        "_id": "99e652e24c3d4a49ae05778a",
+        "_id": "2f0d8bc373ea4246827c0fa8",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "8b41e69eedf0448385eb9bd0",
+        "parentId": "062a9db0640a488da0bf1bf3",
         "slotId": "Back_plate"
       },
       {
-        "_id": "ffe680fa79534a7f806e9499",
+        "_id": "8c8e698b010a43dba3126545",
         "_tpl": "5e4abfed86f77406a2713cf7",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "84db8dc60fa1464b8562902f",
+        "_id": "fbd83c2364e04751a11860fa",
         "_tpl": "5f60c74e3b85f6263c145586",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "Headwear"
       },
       {
-        "_id": "2f388e3edd1a40d69fed98c6",
+        "_id": "7014dc8b68ca4220a56519fe",
         "_tpl": "657bc285aab96fccee08bea3",
-        "parentId": "84db8dc60fa1464b8562902f",
+        "parentId": "fbd83c2364e04751a11860fa",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "084d62c7550e45a69e663889",
+        "_id": "985782e1af604c089520a4a6",
         "_tpl": "657bc2c5a1c61ee0c3036333",
-        "parentId": "84db8dc60fa1464b8562902f",
+        "parentId": "fbd83c2364e04751a11860fa",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "c86fec67d2f64fb8b7713798",
+        "_id": "a8e366d2d23644c18d1ca29e",
         "_tpl": "657bc2e7b30eca976305118d",
-        "parentId": "84db8dc60fa1464b8562902f",
+        "parentId": "fbd83c2364e04751a11860fa",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "0fc7e1a3058c470da7328542",
+        "_id": "97b5494a287249f2bdbc304b",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "Earpiece"
       },
       {
-        "_id": "6d42dba939ff40b7b16b46f4",
+        "_id": "69109ac8790f4520b7e339a9",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "c230ce543ee94757b5b2c69d",
+        "parentId": "6b2695ab262f4a6188031682",
         "slotId": "Backpack"
       }
     ],
@@ -3169,13 +3169,13 @@
     "order": 15,
     "items": [
       {
-        "_id": "397780319661488c9e4b2d08",
+        "_id": "0d074862809346a1aa4c0b14",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "ec29f352d78b45a98c4f460e",
         "_tpl": "5bf3e0490db83400196199af",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "FireMode": {
@@ -3252,13 +3252,13 @@
       {
         "_id": "a6732c7732554eba932cd7af",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "66cb3f459bc84d55a13726a2",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "Pockets"
       },
       {
@@ -3291,69 +3291,69 @@
         }
       },
       {
-        "_id": "4d8264fac6634723a2a00ab2",
+        "_id": "e7d54b870f9549ef8b868d29",
         "_tpl": "628b9784bcf6e2659e09b8a2",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "b5c07294d624414c85a4eb62",
+        "_id": "d414ae7a5c504586aeb00874",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "4d8264fac6634723a2a00ab2",
+        "parentId": "e7d54b870f9549ef8b868d29",
         "slotId": "Front_plate"
       },
       {
-        "_id": "269f1e6e3ab044d8ad981b4b",
+        "_id": "036f33b5164d461e98a283f6",
         "_tpl": "656fae5f7c2d57afe200c0d7",
-        "parentId": "4d8264fac6634723a2a00ab2",
+        "parentId": "e7d54b870f9549ef8b868d29",
         "slotId": "Back_plate"
       },
       {
-        "_id": "3e8704823b0742929c85dbd8",
+        "_id": "5aaa1a659d234deaa84b1711",
         "_tpl": "6557458f83942d705f0c4962",
-        "parentId": "4d8264fac6634723a2a00ab2",
+        "parentId": "e7d54b870f9549ef8b868d29",
         "slotId": "Left_side_plate"
       },
       {
-        "_id": "c9d12384dba64d3d9265e9c5",
+        "_id": "8d8b46b5bfe9427490cb7ff7",
         "_tpl": "6557458f83942d705f0c4962",
-        "parentId": "4d8264fac6634723a2a00ab2",
+        "parentId": "e7d54b870f9549ef8b868d29",
         "slotId": "Right_side_plate"
       },
       {
-        "_id": "12161e0909f94c9882727787",
+        "_id": "3fc0155357534b5989b9daaa",
         "_tpl": "5f60c74e3b85f6263c145586",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "Headwear"
       },
       {
-        "_id": "ce5ea59a8d14485d8afbafac",
+        "_id": "585855860c6c4a5f8fc893cb",
         "_tpl": "657bc285aab96fccee08bea3",
-        "parentId": "12161e0909f94c9882727787",
+        "parentId": "3fc0155357534b5989b9daaa",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "13efd6ae5d154046ae9a15b6",
+        "_id": "49a48d4966fb450ca35d8a17",
         "_tpl": "657bc2c5a1c61ee0c3036333",
-        "parentId": "12161e0909f94c9882727787",
+        "parentId": "3fc0155357534b5989b9daaa",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "596920917cab479a8ee6db45",
+        "_id": "5673e476a3b04608adade847",
         "_tpl": "657bc2e7b30eca976305118d",
-        "parentId": "12161e0909f94c9882727787",
+        "parentId": "3fc0155357534b5989b9daaa",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "f851d9f781fa444e989dd09b",
+        "_id": "374886a61fe14ad289067d8a",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "Earpiece"
       },
       {
-        "_id": "88336c956425422fb523ef0e",
+        "_id": "48d3f3666b5645f4a31574cd",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "397780319661488c9e4b2d08",
+        "parentId": "0d074862809346a1aa4c0b14",
         "slotId": "Backpack"
       }
     ],
@@ -3373,13 +3373,13 @@
     "order": 16,
     "items": [
       {
-        "_id": "823bae4dd8da4d559ccd8c81",
+        "_id": "49d411ae78d243bdb683f542",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "94a9934b48f44728a8eef393",
         "_tpl": "56dee2bdd2720bc8328b4567",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "FirstPrimaryWeapon"
       },
       {
@@ -3424,13 +3424,13 @@
       {
         "_id": "d28244a79ed647478e349076",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "41f2cdbd9a8941bda6e2bd65",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "Pockets"
       },
       {
@@ -3463,69 +3463,69 @@
         }
       },
       {
-        "_id": "389d4b0438014b8caa78baee",
+        "_id": "e0fa1abad0844709b7456bb6",
         "_tpl": "5fd4c474dd870108a754b241",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "82724cbd261c46a19cb3aad6",
+        "_id": "908ac43e718943eea4f08023",
         "_tpl": "656faf0ca0dce000a2020f77",
-        "parentId": "389d4b0438014b8caa78baee",
+        "parentId": "e0fa1abad0844709b7456bb6",
         "slotId": "front_plate"
       },
       {
-        "_id": "6c36d2ae3ff24a50bf144a10",
+        "_id": "be09f29822b64ed59d37c425",
         "_tpl": "656faf0ca0dce000a2020f77",
-        "parentId": "389d4b0438014b8caa78baee",
+        "parentId": "e0fa1abad0844709b7456bb6",
         "slotId": "back_plate"
       },
       {
-        "_id": "fce82ebc0b04450ab11cb21b",
+        "_id": "0fda02a4d5e542f09ec5a7f8",
         "_tpl": "59e7643b86f7742cbf2c109a",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "ea7be390cee74546a408baa8",
+        "_id": "699af686514a4891b5dc1969",
         "_tpl": "5c0e874186f7745dc7616606",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "Headwear"
       },
       {
-        "_id": "fef4eb39cf0a48ac90cd4467",
+        "_id": "c28bade0a3b14a4b81f435e0",
         "_tpl": "6571133d22996eaf11088200",
-        "parentId": "ea7be390cee74546a408baa8",
+        "parentId": "699af686514a4891b5dc1969",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "515449673ca54077a4bbb0f5",
+        "_id": "43243632db4047a2adaf9bd9",
         "_tpl": "6571138e818110db4600aa71",
-        "parentId": "ea7be390cee74546a408baa8",
+        "parentId": "699af686514a4891b5dc1969",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "85885a555fa54f64b6e2cc95",
+        "_id": "901fbbdd9d744eba82ea0171",
         "_tpl": "657112fa818110db4600aa6b",
-        "parentId": "ea7be390cee74546a408baa8",
+        "parentId": "699af686514a4891b5dc1969",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "460e1d4434bd4c4eb9389a81",
+        "_id": "83ea1588c25147039acc2b82",
         "_tpl": "5c0e842486f77443a74d2976",
-        "parentId": "ea7be390cee74546a408baa8",
+        "parentId": "699af686514a4891b5dc1969",
         "slotId": "mod_equipment"
       },
       {
-        "_id": "9a273e929e884c87882ee196",
+        "_id": "3dd02bd71f854f428b287bad",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "Earpiece"
       },
       {
-        "_id": "96b38ea7e2dc40e09c3111c0",
+        "_id": "1b1fc8caaecf468f8e827620",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "823bae4dd8da4d559ccd8c81",
+        "parentId": "49d411ae78d243bdb683f542",
         "slotId": "Backpack"
       }
     ],
@@ -3545,13 +3545,13 @@
     "order": 17,
     "items": [
       {
-        "_id": "2abc7b7a8786459e800927fb",
+        "_id": "667916246a444ceeb2cb088f",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "550c56bac88e4b47971d55a4",
         "_tpl": "59f9cabd86f7743a10721f46",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "FirstPrimaryWeapon"
       },
       {
@@ -3620,13 +3620,13 @@
       {
         "_id": "d6d7a5a288cc4a48b636e771",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "480f69c87676408992f905ed",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "Pockets"
       },
       {
@@ -3659,63 +3659,63 @@
         }
       },
       {
-        "_id": "ffb57069093747998901dbc1",
+        "_id": "28672b919b734430a98cd984",
         "_tpl": "628cd624459354321c4b7fa2",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "23006cee13d248538f845b22",
+        "_id": "a7cfe13ae2864bd98d3f37ac",
         "_tpl": "64afdcb83efdfea28601d041",
-        "parentId": "ffb57069093747998901dbc1",
+        "parentId": "28672b919b734430a98cd984",
         "slotId": "Front_plate"
       },
       {
-        "_id": "ccbbb41edd3344919b94a8bb",
+        "_id": "50a3285a9355412aa4f3f736",
         "_tpl": "64afdcb83efdfea28601d041",
-        "parentId": "ffb57069093747998901dbc1",
+        "parentId": "28672b919b734430a98cd984",
         "slotId": "Back_plate"
       },
       {
-        "_id": "ef869c577ead49ae86e502ce",
+        "_id": "6bf00758a2e4484b93c2f454",
         "_tpl": "5c0e874186f7745dc7616606",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "Headwear"
       },
       {
-        "_id": "bce9d00149374d36873a2000",
+        "_id": "b144bc170bdb40fc9be54c15",
         "_tpl": "6571133d22996eaf11088200",
-        "parentId": "ef869c577ead49ae86e502ce",
+        "parentId": "6bf00758a2e4484b93c2f454",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "84d48e4896764c0ba8ee8211",
+        "_id": "b31106791d0a491b8453a757",
         "_tpl": "6571138e818110db4600aa71",
-        "parentId": "ef869c577ead49ae86e502ce",
+        "parentId": "6bf00758a2e4484b93c2f454",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "1ac6dda859864d749d667419",
+        "_id": "f7114540da7d4c4a8ae95d2f",
         "_tpl": "657112fa818110db4600aa6b",
-        "parentId": "ef869c577ead49ae86e502ce",
+        "parentId": "6bf00758a2e4484b93c2f454",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "aac08fdb094640e98ef24713",
+        "_id": "0bfdf1a2149d40baaf22851b",
         "_tpl": "5c0e842486f77443a74d2976",
-        "parentId": "ef869c577ead49ae86e502ce",
+        "parentId": "6bf00758a2e4484b93c2f454",
         "slotId": "mod_equipment"
       },
       {
-        "_id": "0183456bec114c13966f96a2",
+        "_id": "9443718d064741318f482a68",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "Earpiece"
       },
       {
-        "_id": "555fcffcc27b4992a9967c3c",
+        "_id": "993872465e42444c8023523a",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "2abc7b7a8786459e800927fb",
+        "parentId": "667916246a444ceeb2cb088f",
         "slotId": "Backpack"
       }
     ],
@@ -3735,13 +3735,13 @@
     "order": 18,
     "items": [
       {
-        "_id": "178302f9d0954cb08a543bab",
+        "_id": "a250584fd6dc4e6f84d548f8",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "35e3b3c93a3b4c988aef2fbc",
         "_tpl": "59e6687d86f77411d949b251",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "FirstPrimaryWeapon",
         "upd": {
           "Repairable": {
@@ -3816,13 +3816,13 @@
       {
         "_id": "b3b6a517665f46229cdb1823",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "ffe084a030dd4339867684a5",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "Pockets"
       },
       {
@@ -3855,63 +3855,63 @@
         }
       },
       {
-        "_id": "7fe4d5a4e2c24eb2ac3dba44",
+        "_id": "91ae4033f5414e0d86cbae7f",
         "_tpl": "5df8a2ca86f7740bfe6df777",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "c8fc1eadec964722bbeb7586",
+        "_id": "e9867207025c476f97d2dbfe",
         "_tpl": "656fd7c32668ef0402028fb9",
-        "parentId": "7fe4d5a4e2c24eb2ac3dba44",
+        "parentId": "91ae4033f5414e0d86cbae7f",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "0bc465419bd24734a222edf5",
+        "_id": "4b385d4ac9254d93bc0317dc",
         "_tpl": "656fd89bf5a9631d4e042575",
-        "parentId": "7fe4d5a4e2c24eb2ac3dba44",
+        "parentId": "91ae4033f5414e0d86cbae7f",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "bceefce01458436ab8169466",
+        "_id": "64039e40cb6f4d7da97b04ff",
         "_tpl": "5c0e6a1586f77404597b4965",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "21a3c0c25f194d0481117c5d",
+        "_id": "148fdc9f4cc8481b9c34abd4",
         "_tpl": "59e7711e86f7746cae05fbe1",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "Headwear"
       },
       {
-        "_id": "b0c2e0d91470467ab3734cf2",
+        "_id": "01a1b9f3f49b4f7ebdebf322",
         "_tpl": "657ba50c23918923cb0df56c",
-        "parentId": "21a3c0c25f194d0481117c5d",
+        "parentId": "148fdc9f4cc8481b9c34abd4",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "7483214bc3484803bd9b6f5c",
+        "_id": "9fa52db98fc34f23bf2e4988",
         "_tpl": "657ba5439ba22f103e08139f",
-        "parentId": "21a3c0c25f194d0481117c5d",
+        "parentId": "148fdc9f4cc8481b9c34abd4",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "86bd7356c3c4408e97eeca47",
+        "_id": "747a2e78d65d4fe6aee5f4fd",
         "_tpl": "657ba57af58ba5a62501079e",
-        "parentId": "21a3c0c25f194d0481117c5d",
+        "parentId": "148fdc9f4cc8481b9c34abd4",
         "slotId": "Helmet_ears"
       },
       {
-        "_id": "8e5d8724f41240c2be7057f0",
+        "_id": "0f2d5ea6a2214430b845a3ed",
         "_tpl": "68bf405779c8186398099017",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "Earpiece"
       },
       {
-        "_id": "4db4008f64b34ab8ba2e4500",
+        "_id": "c37e62787c154393ac9b754f",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "178302f9d0954cb08a543bab",
+        "parentId": "a250584fd6dc4e6f84d548f8",
         "slotId": "Backpack"
       }
     ],
@@ -3931,13 +3931,13 @@
     "order": 19,
     "items": [
       {
-        "_id": "e422e0fba7ba4eb5bb8d1dd5",
+        "_id": "42b4cb74c64b4606990e5383",
         "_tpl": "55d7217a4bdc2d86028b456d"
       },
       {
         "_id": "390c673979ca4b9da75294a2",
         "_tpl": "5ae08f0a5acfc408fb1398a1",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "FirstPrimaryWeapon"
       },
       {
@@ -3988,13 +3988,13 @@
       {
         "_id": "26180001747648fc9a8a4cdf",
         "_tpl": "544a11ac4bdc2d470e8b456a",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "SecuredContainer"
       },
       {
         "_id": "8967daceef8f47ce886d80c7",
         "_tpl": "627a4e6b255f7527fb05a0f6",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "Pockets"
       },
       {
@@ -4027,57 +4027,57 @@
         }
       },
       {
-        "_id": "6cabc42b90bd4c24970897f2",
+        "_id": "b487cc9bed994577bb613325",
         "_tpl": "64be79c487d1510151095552",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "ArmorVest"
       },
       {
-        "_id": "ef475cc316b740969466a619",
+        "_id": "d9074dd8496b4a04a709480d",
         "_tpl": "6570495b45d573133d0d6adb",
-        "parentId": "6cabc42b90bd4c24970897f2",
+        "parentId": "b487cc9bed994577bb613325",
         "slotId": "Soft_armor_front"
       },
       {
-        "_id": "394ccfc2c96b497598f8fbe7",
+        "_id": "5a18a85a49ee4f0c9e289de0",
         "_tpl": "657049d23425b19bbc0502f0",
-        "parentId": "6cabc42b90bd4c24970897f2",
+        "parentId": "b487cc9bed994577bb613325",
         "slotId": "Soft_armor_back"
       },
       {
-        "_id": "760da34f69bc4e5fb4e4be89",
+        "_id": "6bfc9708f7a6438885175805",
         "_tpl": "5df8a42886f77412640e2e75",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "TacticalVest"
       },
       {
-        "_id": "34e870ad967d4d0e9341cfce",
+        "_id": "afe422e296154386ad310c41",
         "_tpl": "5b432d215acfc4771e1c6624",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "Headwear"
       },
       {
-        "_id": "66dc2e6d1da44120bf0a1a73",
+        "_id": "477fa2650654462e80e75e66",
         "_tpl": "657bb92fa1c61ee0c303631f",
-        "parentId": "34e870ad967d4d0e9341cfce",
+        "parentId": "afe422e296154386ad310c41",
         "slotId": "Helmet_top"
       },
       {
-        "_id": "90141c565ece44fb9c05ced3",
+        "_id": "96d23d49b06840018de91959",
         "_tpl": "657bb99db30eca976305117f",
-        "parentId": "34e870ad967d4d0e9341cfce",
+        "parentId": "afe422e296154386ad310c41",
         "slotId": "Helmet_back"
       },
       {
-        "_id": "5fb740d2f93d45bf8c27dda7",
-        "_tpl": "68bf405779c8186398099017",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "_id": "e5233416d16648d4a373b160",
+        "_tpl": "5b432b965acfc47a8774094e",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "Earpiece"
       },
       {
-        "_id": "e29c48920e754b65a7b8ef59",
+        "_id": "70e9fc3598684609a5ffdd87",
         "_tpl": "5ab8ebf186f7742d8b372e80",
-        "parentId": "e422e0fba7ba4eb5bb8d1dd5",
+        "parentId": "42b4cb74c64b4606990e5383",
         "slotId": "Backpack"
       }
     ],
