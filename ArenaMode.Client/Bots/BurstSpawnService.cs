@@ -2,6 +2,7 @@ using ArenaMode.Config;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
+using EFT.Game.Spawning;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,9 +22,14 @@ internal static class BurstSpawnService
     private const float InFlightSeconds = 20f;
     private const int BotsPerBurst = 2;
 
+    /// <summary>Spawn band around the player: far enough to not pop into view, near enough to matter.</summary>
+    private const float MinSpawnDistance = 25f;
+    private const float MaxSpawnDistance = 70f;
+
     private static float _nextAttemptAt;
     private static bool _nextPmcIsBear;
     private static int _zoneCursor;
+    private static int _pointCursor;
 
     /// <summary>
     /// Our own in-flight ledger: injection timestamps, split by kind. The
@@ -37,10 +43,14 @@ internal static class BurstSpawnService
 
     private static readonly List<float> RecentScavInjections = new List<float>(8);
 
+    /// <summary>Non-PMC roles alive, rebuilt per count — diagnostics for the burst log.</summary>
+    private static readonly Dictionary<WildSpawnType, int> RoleTally = new Dictionary<WildSpawnType, int>();
+
     public static void Reset()
     {
         _nextAttemptAt = 0f;
         _zoneCursor = 0;
+        _pointCursor = 0;
         RecentPmcInjections.Clear();
         RecentScavInjections.Clear();
     }
@@ -120,7 +130,7 @@ internal static class BurstSpawnService
             Plugin.ModLogger.LogInfo(
                 $"Arena burst spawn: {alive} alive ({alivePmc} PMC) / target {target} (PMC floor {pmcFloor}), "
                 + $"in flight {pendingPmc} PMC + {pendingScav} scav (spawner counter {counterAlive}) "
-                + $"— injecting {role} pair.");
+                + $"— injecting {role} pair. Others alive: {DescribeRoles()}");
 
             _nextAttemptAt = Time.time + ArenaClientConfig.GetBurstCooldownSeconds(map);
         }
@@ -132,15 +142,17 @@ internal static class BurstSpawnService
     }
 
     /// <summary>
-    /// Spawns a pair through the plain zone path instead of ActivateBotsByWave.
+    /// Spawns a pair on spawn points WE pick, bypassing every placement filter.
     ///
-    /// ActivateBotsByWave routes through BotBossSpawn.TrySpawn — which ABPS
-    /// prefix-patches and owns entirely for PMC roles. On factory it demands a
-    /// spawn point far from every living bot AND from the player; with a dozen
-    /// bots around it finds none, reports success anyway and drops the wave, so
-    /// PMC top-ups silently never happened. This path never reaches that hook.
-    /// withCheckMinMax:false + forcedSpawn:true keep the cap immunity the old
-    /// IgnoreMaxBots gave us.
+    /// Two filters had to go. ActivateBotsByWave routes through
+    /// BotBossSpawn.TrySpawn, which ABPS prefix-patches and owns for PMC roles:
+    /// on factory it demands a point far from every living bot and from the
+    /// player, finds none with a dozen bots around, reports success anyway and
+    /// drops the wave. And letting the engine choose points (pointsToSpawn null)
+    /// runs its own category and proximity filters, which fail for the same
+    /// reason — that is why dozens of logged PMC injections produced 16 PMCs.
+    /// Handing over explicit points skips both: the engine just adds them to the
+    /// creation data and spawns.
     /// </summary>
     private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role, BotDifficulty difficulty)
     {
@@ -160,13 +172,107 @@ internal static class BurstSpawnService
                 return;
             }
 
-            spawner.TryToSpawnInZoneAndDelay(zone, data, withCheckMinMax: false, newWave: true,
-                pointsToSpawn: null, forcedSpawn: true);
+            var points = PickSpawnPoints(zone, BotsPerBurst);
+            if (points == null || points.Count == 0)
+            {
+                Plugin.ModLogger.LogWarning($"Arena burst spawn: no usable spawn point for {role}.");
+                return;
+            }
+
+            spawner.SpawnBotsInZoneOnPositions(points, zone, data, OnBotSpawned);
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena burst spawn of {role} failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Spawn points from the zone, preferring a band that is far enough away to
+    /// not materialise in the player's face but close enough to reach the fight
+    /// in seconds. PMCs appearing right next to the player was the engine's own
+    /// point picking; ours is deliberate.
+    /// </summary>
+    private static List<ISpawnPoint> PickSpawnPoints(BotZone zone, int count)
+    {
+        var all = zone?.SpawnPoints;
+        if (all == null || all.Length == 0)
+            return null;
+
+        var player = Singleton<GameWorld>.Instantiated
+            ? Singleton<GameWorld>.Instance.MainPlayer
+            : null;
+
+        var result = new List<ISpawnPoint>(count);
+        if (player == null)
+        {
+            for (var i = 0; i < all.Length && result.Count < count; i++)
+            {
+                if (all[i] != null && !all[i].SpawnBlocked)
+                    result.Add(all[i]);
+            }
+
+            return result;
+        }
+
+        var position = player.Position;
+        var candidates = new List<ISpawnPoint>(all.Length);
+        var fallback = new List<ISpawnPoint>(all.Length);
+
+        foreach (var point in all)
+        {
+            if (point == null || point.SpawnBlocked)
+                continue;
+
+            var distance = Vector3.Distance(point.Position, position);
+            if (distance >= MinSpawnDistance && distance <= MaxSpawnDistance)
+                candidates.Add(point);
+            else if (distance >= MinSpawnDistance)
+                fallback.Add(point);
+        }
+
+        var source = candidates.Count > 0 ? candidates : fallback;
+        if (source.Count == 0)
+            return null;
+
+        // Spread the pairs around instead of stacking them on one point.
+        for (var i = 0; i < count; i++)
+        {
+            _pointCursor = (_pointCursor + 1) % source.Count;
+            result.Add(source[_pointCursor]);
+        }
+
+        return result;
+    }
+
+    /// <summary>Fires as each injected bot activates — point it at the player right away.</summary>
+    private static void OnBotSpawned(BotOwner bot)
+    {
+        try
+        {
+            if (bot == null || !Settings.HuntPlayer.Value)
+                return;
+
+            var player = Singleton<GameWorld>.Instantiated
+                ? Singleton<GameWorld>.Instance.MainPlayer
+                : null;
+            if (player == null || player.HealthController == null || !player.HealthController.IsAlive)
+                return;
+
+            ArenaHostility.ReportPlayerTo(bot.BotsGroup, player);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena burst spawn callback failed: {ex.Message}");
+        }
+    }
+
+    private static string DescribeRoles()
+    {
+        if (RoleTally.Count == 0)
+            return "none";
+
+        return string.Join(", ", RoleTally.Select(pair => $"{pair.Key} x{pair.Value}"));
     }
 
     /// <summary>Injections young enough that their bots may not be registered yet.</summary>
@@ -196,6 +302,7 @@ internal static class BurstSpawnService
         if (owners == null)
             return false;
 
+        RoleTally.Clear();
         var alive = 0;
         var pmc = 0;
         foreach (var bot in owners)
@@ -208,6 +315,8 @@ internal static class BurstSpawnService
             var role = bot.Profile?.Info?.Settings?.Role;
             if (role == WildSpawnType.pmcUSEC || role == WildSpawnType.pmcBEAR)
                 pmc++;
+            else if (role.HasValue)
+                RoleTally[role.Value] = RoleTally.TryGetValue(role.Value, out var seen) ? seen + 1 : 1;
         }
 
         aliveTotal = alive;

@@ -38,9 +38,9 @@ internal static class ArenaBotPatches
     /// </summary>
     private sealed class NoAccidentalBossPatch : ModulePatch
     {
-        private static bool _loggedThisRaid;
+        private static int _deniedThisRaid;
 
-        public static void ResetRaidState() => _loggedThisRaid = false;
+        public static void ResetRaidState() => _deniedThisRaid = 0;
 
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotBoss), nameof(BotBoss.SetBoss), new[] { typeof(int) });
@@ -69,10 +69,17 @@ internal static class ArenaBotPatches
                 || role.Value == WildSpawnType.followerBigPipe
                 || role.Value == WildSpawnType.followerBirdEye;
 
-            if (!keepsBossBehavior && !_loggedThisRaid)
+            if (!keepsBossBehavior)
             {
-                _loggedThisRaid = true;
-                Plugin.ModLogger.LogInfo($"Arena: denied boss promotion for role {role.Value} (first of raid).");
+                _deniedThisRaid++;
+
+                // Counted, not one-shot: the count is the only way to tell from a
+                // log whether idle bot clusters are still boss-promoted.
+                if (_deniedThisRaid <= 3 || _deniedThisRaid % 10 == 0)
+                {
+                    Plugin.ModLogger.LogInfo(
+                        $"Arena: denied boss promotion #{_deniedThisRaid} (role {role.Value}).");
+                }
             }
 
             return keepsBossBehavior;

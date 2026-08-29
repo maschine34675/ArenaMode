@@ -102,6 +102,13 @@ internal static class ArenaHostility
         }
     }
 
+    /// <summary>Public entry for freshly spawned bots (their group may be brand new).</summary>
+    public static void ReportPlayerTo(BotsGroup group, Player player)
+    {
+        if (group != null && player != null)
+            ReportPlayer(group, player);
+    }
+
     private static void ReportPlayer(BotsGroup group, Player player)
     {
         try
