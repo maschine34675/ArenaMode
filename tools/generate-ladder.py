@@ -104,6 +104,58 @@ for r in rungs:
     seen.add(r['weapon']); unique.append(r)
 rungs = unique
 
+
+# ---- sights ----------------------------------------------------------------
+SIGHT_BASES = {t for t, v in items.items()
+               if v.get('_type') == 'Node' and any(k in v.get('_name', '') for k in
+                  ('Collimator', 'OpticScope', 'AssaultScope', 'SpecialScope', 'IronSight', 'Sights'))}
+
+def is_sight(tpl):
+    return bool(SIGHT_BASES & set(chain(tpl)[1:]))
+
+def ensure_sight(out):
+    """A weapon you cannot aim is a rung nobody wants to reach.
+
+    Some of the game's own presets ship with every sight slot empty — the RSASS
+    is the notorious one, and our ladder had the MDR and the Mk-18. Nothing in
+    the data forbids it: on those weapons the sight slots are optional, so a
+    build is 'complete' without any way to aim. Weapons with fixed iron sights
+    have no such slot at all, which is exactly how they are told apart here.
+    """
+    if any(is_sight(n['_tpl']) for n in out):
+        return None
+
+    for slot_name in ('mod_scope', 'mod_sight_rear'):
+        for node in list(out):
+            for s in items.get(node['_tpl'], {}).get('_props', {}).get('Slots', []):
+                if s['_name'] != slot_name:
+                    continue
+                if any(n.get('parentId') == node['_id'] and n.get('slotId') == slot_name for n in out):
+                    continue
+
+                # Reflex sights first, then price: this is a close-quarters
+                # arena, where magnification is a handicap, not a reward.
+                COLLIMATORS = {t for t in SIGHT_BASES
+                               if 'Collimator' in items[t].get('_name', '')}
+                cands = []
+                for f in s['_props']['filters'][0]['Filter']:
+                    if not is_sight(f):
+                        continue
+                    # A mount that needs its own optic just moves the hole down.
+                    if [x for x in items.get(f, {}).get('_props', {}).get('Slots', []) if x.get('_required')]:
+                        continue
+                    reflex = bool(COLLIMATORS & set(chain(f)[1:]))
+                    cands.append((not reflex, price.get(f, 10 ** 9), f))
+
+                if not cands:
+                    continue
+
+                cands.sort()
+                out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=cands[0][2],
+                                parentId=node['_id'], slotId=slot_name))
+                return cands[0][2]
+    return None
+
 def build_entry(order, c):
     """Weapon-only kit entry: synthetic equipment root + the preset subtree."""
     remap, out = {}, []
@@ -149,6 +201,10 @@ def build_entry(order, c):
         out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=c['ammo'],
                         parentId=remap[preset_root['_id']], slotId='patron_in_weapon',
                         upd=dict(StackObjectsCount=1)))
+
+    added = ensure_sight(out)
+    if added:
+        print(f"   Visier ergaenzt fuer {c['name'][:34]}: {name_of(added)}")
 
     spares = 3 if c['cap'] < 20 else 2
     return dict(id='rung' + str(order + 1).zfill(2), name=c['name'], order=order,
