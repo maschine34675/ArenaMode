@@ -11,11 +11,11 @@ using UnityEngine;
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Top-up burst spawner: whenever the alive-bot count drops below the target,
-/// inject an immediate assault wave via BotSpawner.ActivateBotsByWave with
-/// ForceSpawn + IgnoreMaxBots — cap-immune and without a server round trip.
-/// The ABPS pump (or the generated wave plan) is the baseline pressure; this
-/// closes the refill gap after a killing spree.
+/// Top-up burst spawner: whenever the alive population drops below the target,
+/// inject bots directly on spawn points we choose ourselves — no wave, no boss
+/// path, none of the engine's placement filters. The ABPS pump is the baseline
+/// pressure; this closes the refill gap after a killing spree and holds the PMC
+/// floor that makes the arena worth playing.
 /// </summary>
 internal static class BurstSpawnService
 {
@@ -92,15 +92,18 @@ internal static class BurstSpawnService
             // Bots we injected seconds ago are not registered yet (profile
             // generation is a server round trip) — without this the gap looks
             // unchanged for several ticks and we over-inject.
+            // The ledger counts expected BOTS, not injections: a request can come
+            // back with fewer profiles than asked for, and multiplying a pair
+            // count would then invent bots that never arrive.
             var pendingPmc = CountPending(RecentPmcInjections);
             var pendingScav = CountPending(RecentScavInjections);
-            var projected = alive + (pendingPmc + pendingScav) * BotsPerBurst;
+            var projected = alive + pendingPmc + pendingScav;
 
             // PMCs are the pressure that makes the arena fun; scavs only fill the
             // rest. Without a separate floor the single "alive" target is met by
             // whatever spawns fastest — which was scavs, every time.
             var pmcFloor = Mathf.Min(Settings.PmcFloor.Value, target);
-            var wantPmc = alivePmc + pendingPmc * BotsPerBurst < pmcFloor;
+            var wantPmc = alivePmc + pendingPmc < pmcFloor;
             if (!wantPmc && projected >= target)
                 return;
 
@@ -115,22 +118,18 @@ internal static class BurstSpawnService
                 : WildSpawnType.assault;
 
             var difficulty = wantPmc ? BotDifficulty.hard : BotDifficulty.normal;
-            SpawnPair(spawner, zone, role, difficulty);
-
-            if (wantPmc)
-            {
-                _nextPmcIsBear = !_nextPmcIsBear;
-                RecentPmcInjections.Add(Time.time);
-            }
-            else
-            {
-                RecentScavInjections.Add(Time.time);
-            }
 
             Plugin.ModLogger.LogInfo(
                 $"Arena burst spawn: {alive} alive ({alivePmc} PMC) / target {target} (PMC floor {pmcFloor}), "
                 + $"in flight {pendingPmc} PMC + {pendingScav} scav (spawner counter {counterAlive}) "
-                + $"— injecting {role} pair. Others alive: {DescribeRoles()}");
+                + $"— requesting {role}. Others alive: {DescribeRoles()}");
+
+            if (wantPmc)
+                _nextPmcIsBear = !_nextPmcIsBear;
+
+            // The ledger and the outcome log live in SpawnPair, which is the only
+            // place that knows how many bots were actually dispatched.
+            SpawnPair(spawner, zone, role, difficulty, wantPmc);
 
             _nextAttemptAt = Time.time + ArenaClientConfig.GetBurstCooldownSeconds(map);
         }
@@ -154,8 +153,12 @@ internal static class BurstSpawnService
     /// Handing over explicit points skips both: the engine just adds them to the
     /// creation data and spawns.
     /// </summary>
-    private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role, BotDifficulty difficulty)
+    private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role,
+        BotDifficulty difficulty, bool isPmc)
     {
+        var ledger = isPmc ? RecentPmcInjections : RecentScavInjections;
+        var reserved = 0;
+
         try
         {
             var profileParams = new GetProfileDataParams(
@@ -165,26 +168,59 @@ internal static class BurstSpawnService
                 -1f,
                 new BotSpawnParams());
 
+            // Profile generation is best-effort: the request can come back with
+            // fewer profiles than asked for, or with none at all.
             var data = await BotCreationData.Create(profileParams, spawner._botCreator, BotsPerBurst, spawner);
-            if (data == null)
+            if (data == null || data.Count == 0)
             {
-                Plugin.ModLogger.LogWarning($"Arena burst spawn: no profile data for {role}.");
+                Plugin.ModLogger.LogWarning($"Arena burst spawn: no profiles for {role} — request dropped.");
+                RetrySoon();
                 return;
             }
 
-            var points = PickSpawnPoints(zone, BotsPerBurst);
+            // EXACTLY one point per profile. Handing over more charges the
+            // engine's in-spawn counter per POINT while it only ever decrements
+            // per created bot — every surplus point permanently shrinks the
+            // headroom the engine grants its own spawns. (A stray point would
+            // also hit an unguarded Profiles[0] in another mod's hook.)
+            var points = PickSpawnPoints(zone, data.Count);
             if (points == null || points.Count == 0)
             {
-                Plugin.ModLogger.LogWarning($"Arena burst spawn: no usable spawn point for {role}.");
+                Plugin.ModLogger.LogWarning($"Arena burst spawn: no usable spawn point for {role} — request dropped.");
+                RetrySoon();
                 return;
             }
 
-            spawner.SpawnBotsInZoneOnPositions(points, zone, data, OnBotSpawned);
+            if (points.Count > data.Count)
+                points.RemoveRange(data.Count, points.Count - data.Count);
+
+            reserved = points.Count;
+            for (var i = 0; i < reserved; i++)
+                ledger.Add(Time.time);
+
+            spawner.SpawnBotsInZoneOnPositions(points, zone, data, bot => OnBotSpawned(bot, ledger, role));
+            Plugin.ModLogger.LogInfo($"Arena burst spawn: dispatched {reserved}x {role}.");
         }
         catch (Exception ex)
         {
+            ReleaseReserved(ledger, reserved);
             Plugin.ModLogger.LogWarning($"Arena burst spawn of {role} failed: {ex.Message}");
+            RetrySoon();
         }
+    }
+
+    /// <summary>A dropped request must not cost a full cooldown.</summary>
+    private static void RetrySoon()
+    {
+        var soon = Time.time + 3f;
+        if (_nextAttemptAt > soon)
+            _nextAttemptAt = soon;
+    }
+
+    private static void ReleaseReserved(List<float> ledger, int count)
+    {
+        for (var i = 0; i < count && ledger.Count > 0; i++)
+            ledger.RemoveAt(ledger.Count - 1);
     }
 
     /// <summary>
@@ -245,12 +281,25 @@ internal static class BurstSpawnService
         return result;
     }
 
-    /// <summary>Fires as each injected bot activates — point it at the player right away.</summary>
-    private static void OnBotSpawned(BotOwner bot)
+    /// <summary>
+    /// Fires as each injected bot actually activates: clears its reservation
+    /// (it now shows up in the alive count) and points it at the player. This is
+    /// the ONLY place that knows a bot really arrived — the request log above is
+    /// intent, this is outcome, and the gap between them is the diagnostic.
+    /// </summary>
+    private static void OnBotSpawned(BotOwner bot, List<float> ledger, WildSpawnType role)
     {
         try
         {
-            if (bot == null || !Settings.HuntPlayer.Value)
+            if (ledger.Count > 0)
+                ledger.RemoveAt(0);
+
+            if (bot == null)
+                return;
+
+            Plugin.ModLogger.LogInfo($"Arena burst spawn: {role} arrived.");
+
+            if (!Settings.HuntPlayer.Value)
                 return;
 
             var player = Singleton<GameWorld>.Instantiated
