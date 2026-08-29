@@ -81,6 +81,7 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
 
             entry.State = ArenaSessionState.InRaid;
             entry.InRaidAtUtc = DateTime.UtcNow;
+            Patches.BotTierScalePatch.ResetReporting();
             return true;
         }
     }

@@ -34,8 +34,18 @@ namespace ArenaMode.Server.Patches;
 /// </summary>
 public sealed class BotTierScalePatch : AbstractPatch
 {
-    /// <summary>A tier band is ten levels wide; handing out one keeps a wave from being uniform.</summary>
-    private const int BandWidth = 9;
+    /// <summary>
+    /// How far a bot's level may sit either side of where the ramp currently is.
+    ///
+    /// This has to be spent on BOTH halves of the range, because the field we
+    /// set is not an instruction — it is a clamp. The system builds its own
+    /// window around the PLAYER's level and then clamps that window into ours,
+    /// so on a level one profile both ends of the window land on our minimum and
+    /// every bot in the raid comes out at exactly the same level. Moving the
+    /// player level the window is built around is what makes the range real
+    /// again.
+    /// </summary>
+    private const int Spread = 5;
 
     protected override MethodBase GetTargetMethod()
     {
@@ -68,9 +78,15 @@ public sealed class BotTierScalePatch : AbstractPatch
 
             var start = Math.Max(1, map.BotTierStartLevel);
             var end = Math.Max(start, map.BotTierEndLevel);
-            var min = (int)Math.Round(start + (end - start) * progress);
+            var here = (int)Math.Round(start + (end - start) * progress);
 
-            __result.LocationSpecificPmcLevelOverride = new MinMax<int>(min, min + BandWidth);
+            // Both together, and neither works alone: the level the window is
+            // built around, and the bounds that window is then clamped into.
+            __result.PlayerLevel = here;
+            __result.LocationSpecificPmcLevelOverride =
+                new MinMax<int>(Math.Max(1, here - Spread), here + Spread);
+
+            Report(location!, elapsed, here);
         }
         catch (Exception ex)
         {
@@ -78,4 +94,29 @@ public sealed class BotTierScalePatch : AbstractPatch
             ArenaContext.Logger?.Warning($"[ArenaMode] Bot tier scaling skipped: {ex.Message}");
         }
     }
+
+    private static int _lastReported = -1;
+
+    /// <summary>
+    /// Says where the ramp is, once per level it passes through.
+    ///
+    /// Bot generation happens many times a minute and the answer barely moves
+    /// between two of them, so logging every request would bury the raid. But
+    /// logging NOTHING is worse, and was: the first question asked of this
+    /// feature after a playtest was what levels it had actually handed out, and
+    /// the log had nothing to say.
+    /// </summary>
+    private static void Report(string location, TimeSpan elapsed, int level)
+    {
+        if (level == _lastReported)
+            return;
+
+        _lastReported = level;
+        ArenaContext.Logger?.Info(
+            $"[ArenaMode] Bot tier ramp on {location}: {elapsed.TotalMinutes:0} min in, "
+            + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}.");
+    }
+
+    /// <summary>A new raid starts the ramp over, so it should report from the bottom again.</summary>
+    public static void ResetReporting() => _lastReported = -1;
 }
