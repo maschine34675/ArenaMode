@@ -71,6 +71,25 @@ public class ArenaMapConfig
     [JsonPropertyName("disableBosses")]
     public bool DisableBosses { get; set; } = true;
 
+    /// <summary>
+    /// Let the bots' GEAR climb over the raid by raising the level range the
+    /// progressive bot system derives its tiers from. Off: whatever tier the
+    /// player's profile level happens to sit in, for the whole raid.
+    /// </summary>
+    [JsonPropertyName("scaleBotTier")]
+    public bool ScaleBotTier { get; set; } = true;
+
+    /// <summary>Bot level at the start of a raid — tier 1 territory.</summary>
+    [JsonPropertyName("botTierStartLevel")]
+    public int BotTierStartLevel { get; set; } = 1;
+
+    /// <summary>Bot level once the ramp is finished. 45 lands in tier 5.</summary>
+    [JsonPropertyName("botTierEndLevel")]
+    public int BotTierEndLevel { get; set; } = 45;
+
+    [JsonPropertyName("botTierRampMinutes")]
+    public int BotTierRampMinutes { get; set; } = 15;
+
     /// <summary>Spawn zone(s) for generated waves (factory has exactly one).</summary>
     [JsonPropertyName("spawnZones")]
     public string SpawnZones { get; set; } = "BotZone";

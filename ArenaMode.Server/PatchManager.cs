@@ -30,6 +30,7 @@ public sealed class PatchManager(
         new GenerateLocationAndLootPatch().Enable();
         new AdjustBotHostilityPatch().Enable();
         new BotCapPatch().Enable();
+        new BotTierScalePatch().Enable();
 
         logger.Info("[ArenaMode] Server patches enabled.");
         return Task.CompletedTask;

@@ -27,6 +27,7 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         public string? Map;
         public string? Mode;
         public DateTime ArmedAtUtc;
+        public DateTime InRaidAtUtc;
         public object? LocationClone;
     }
 
@@ -79,6 +80,7 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
             }
 
             entry.State = ArenaSessionState.InRaid;
+            entry.InRaidAtUtc = DateTime.UtcNow;
             return true;
         }
     }
@@ -139,6 +141,41 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
     }
 
     /// <summary>Any session currently in an arena raid on the given location?</summary>
+    /// <summary>
+    /// How long the arena raid on this map has been running. The bot tier ramp
+    /// rides on this: it is read fresh on every bot generation request, so the
+    /// answer moving is the whole point.
+    /// </summary>
+    public bool TryGetRaidElapsed(string? location, out TimeSpan elapsed)
+    {
+        elapsed = TimeSpan.Zero;
+        if (string.IsNullOrEmpty(location))
+            return false;
+
+        var wanted = location!.ToLowerInvariant();
+        lock (_lock)
+        {
+            foreach (var entry in _sessions.Values)
+            {
+                if (entry.State != ArenaSessionState.InRaid
+                    || !string.Equals(entry.Map, wanted, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // A clock that never started would report the epoch and pin the
+                // ramp to its maximum from the first wave.
+                if (entry.InRaidAtUtc == default)
+                    return false;
+
+                elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public bool AnyInRaidOnMap(string? location)
     {
         if (location == null)
