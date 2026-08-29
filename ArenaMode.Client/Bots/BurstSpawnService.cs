@@ -403,8 +403,15 @@ internal static class BurstSpawnService
             if (spawner == null)
                 return;
 
-            spawner.AddToTargetBackup(BotDifficulty.hard, WildSpawnType.pmcUSEC, 6);
-            spawner.AddToTargetBackup(BotDifficulty.hard, WildSpawnType.pmcBEAR, 6);
+            // Keyed by (role, difficulty) with exact equality, so every difficulty
+            // we might ASK for needs its own backup — otherwise the pre-warm
+            // stops covering PMC refills at exactly the moment pressure peaks
+            // and the refills matter most.
+            foreach (var difficulty in new[] { BotDifficulty.hard, BotDifficulty.impossible })
+            {
+                spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);
+                spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcBEAR, 6);
+            }
             Plugin.ModLogger.LogInfo("Arena: PMC profile backup pre-warmed.");
         }
         catch (Exception ex)

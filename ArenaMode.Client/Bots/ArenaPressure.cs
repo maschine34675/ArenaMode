@@ -27,6 +27,12 @@ namespace ArenaMode.Bots;
 /// away with it and the arena leans on you within seconds. Dying clears the
 /// surge but never the backbone, so a bad patch is a breather, not a reset.
 ///
+/// One asymmetry worth knowing, because it cannot be designed away: difficulty
+/// is baked into a bot when it spawns, and nothing re-rates one that is already
+/// walking around. The climb therefore arrives within a burst, while the drop
+/// after a death only reaches bots that have not spawned yet — the ones already
+/// hunting you stay as hard as the moment that produced them.
+///
 /// Nothing here ever makes the arena EASIER than it was before this existed:
 /// the baselines are the difficulties the spawner used to hardcode, and pressure
 /// only climbs above them.
@@ -84,8 +90,12 @@ internal static class ArenaPressure
             ? (level >= PmcPeakAt ? BotDifficulty.impossible : BotDifficulty.hard)
             : (level >= ScavPeakAt ? BotDifficulty.hard : BotDifficulty.normal);
 
-        var cap = Settings.MaxBotDifficulty.Value;
-        return (BotDifficulty)Math.Min((int)wanted, (int)cap);
+        // The cap bounds the CLIMB, never the baseline. Its setting only offers
+        // hard and impossible, but an old config file or a hand edit can still
+        // carry something lower, and that must not undercut the floor.
+        var cap = (int)Settings.MaxBotDifficulty.Value;
+        var floor = isPmc ? (int)BotDifficulty.hard : (int)BotDifficulty.normal;
+        return (BotDifficulty)Math.Max(floor, Math.Min((int)wanted, cap));
     }
 
     /// <summary>
@@ -94,7 +104,15 @@ internal static class ArenaPressure
     /// any single bot into something that kills through a wall.
     /// </summary>
     public static int PmcFloor(int configured)
-        => configured + Mathf.RoundToInt(Level * Mathf.Max(0, Settings.PressurePmcBonus.Value));
+    {
+        // A floor of zero is the panel slider's way of saying "stop forcing PMC
+        // top-ups at all". Adding pressure on top would quietly override the one
+        // control a player reaches for when a raid has become too much.
+        if (configured <= 0)
+            return 0;
+
+        return configured + Mathf.RoundToInt(Level * Mathf.Max(0, Settings.PressurePmcBonus.Value));
+    }
 
     /// <summary>Refills come faster under pressure, down to half the configured wait.</summary>
     public static float BurstCooldown(float configured)

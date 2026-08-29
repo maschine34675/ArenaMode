@@ -377,7 +377,9 @@ public static class Settings
             "MaxBotDifficulty",
             BotDifficulty.impossible,
             "Ceiling for the scaling. PMCs reach it late in a hot raid; drop this " +
-            "to hard if the top end is too much.");
+            "to hard if the top end is too much. Only hard and impossible do " +
+            "anything: this bounds the CLIMB, and anything lower is ignored rather " +
+            "than quietly making the arena easier than it has ever been.");
 
         PanelHotkey = config.Bind(
             "General",
