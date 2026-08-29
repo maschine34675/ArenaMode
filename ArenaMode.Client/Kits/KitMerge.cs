@@ -53,10 +53,12 @@ internal static class KitMerge
             Items = new List<KitItemNode>(baseKit.Items.Count + rung.Items.Count),
             Fill = new KitFill
             {
-                // The rig contents belong to the base kit; how many magazines to
-                // carry belongs to the weapon, since it is the one that decides
-                // what a magazine even is.
-                SpareMagazines = rung.Fill?.SpareMagazines ?? baseKit.Fill?.SpareMagazines ?? 0,
+                // Both halves have a say and the smaller one wins: the rung knows
+                // what a magazine for THIS weapon is, the base kit knows how many
+                // its rig can actually hold. Taking the rung's number alone put
+                // the old "every kit asks for three regardless" straight back —
+                // and an eight-cell plate carrier holds one.
+                SpareMagazines = SmallerAsk(rung.Fill?.SpareMagazines, baseKit.Fill?.SpareMagazines),
                 RigContents = baseKit.Fill?.RigContents ?? new List<KitStackedItem>(),
             },
         };
@@ -92,6 +94,15 @@ internal static class KitMerge
         }
 
         return merged;
+    }
+
+    /// <summary>Whichever side asked for less, or the only side that asked.</summary>
+    private static int SmallerAsk(int? fromRung, int? fromKit)
+    {
+        if (fromRung.HasValue && fromKit.HasValue)
+            return Math.Min(fromRung.Value, fromKit.Value);
+
+        return fromRung ?? fromKit ?? 0;
     }
 
     /// <summary>Every node at or below the given roots, by id.</summary>

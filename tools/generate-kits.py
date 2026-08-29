@@ -37,7 +37,11 @@ HEAD = '5a341c4086f77401f2541505'
 # every kit that names it stops building.
 EARPIECE_PREFERRED = '5b432b965acfc47a8774094e'   # GSSh-01 active headset
 EARPIECE_FALLBACK = '68bf405779c8186398099017'    # Peltor TEP-300 earplugs
-BACKPACK = '5ab8ebf186f7742d8b372e80'          # Transformer bag, as before
+# The Transformer Bag, as the hand-built corpus had it: nine cells, under a
+# kilo, no penalties. The bag this generator first reached for was the SSO
+# Attack 2 — thirty-five cells, 2.8 kg, and -5% movement with -3 mouse control,
+# which is a strange thing to hand every kit in an arena built around moving.
+BACKPACK = '56e33680d2720be2748b4576'
 
 # Kept from the original kit rather than generated: the medical loadout lives in
 # the pockets, and the secure container and armband are the surgeon's business.
@@ -70,6 +74,21 @@ def armor_class(tpl):
 
 def preset_class(preset):
     return max((armor_class(n['_tpl']) for n in preset['_items']), default=0)
+
+
+def coverage(preset):
+    """Which body zones the preset's armour actually protects.
+
+    The class number alone is a trap: it is the best plate ANYWHERE in the
+    build, so a bare two-plate carrier and a full vest both read "class 6".
+    Sorting by component count then quietly preferred the emptiest one at every
+    rung — the class went up and the protection did not."""
+    zones = set()
+    for n in preset['_items']:
+        p = items.get(n['_tpl'], {}).get('_props', {})
+        for key in ('armorColliders', 'armorPlateColliders'):
+            zones.update(p.get(key) or [])
+    return len(zones)
 
 
 def cells(tpl):
@@ -124,7 +143,7 @@ def build_sets():
         # shape A: body armour of this class + the roomiest plain rig
         pool = [a for a in armors if preset_class(a[1]) == cls]
         if pool:
-            pool.sort(key=lambda a: len(a[1]['_items']))
+            pool.sort(key=lambda a: (-coverage(a[1]), len(a[1]['_items'])))
             # The trade-off that gives a set its character: the better protected
             # you are, the less you carry. Weight barely bites in this arena, so
             # without this every kit would just be "the good one, plus a gun".
@@ -137,7 +156,7 @@ def build_sets():
         if pool:
             # Same idea from the other side: among rigs of one class, the
             # roomiest for the light ones and the leanest for the heavy ones.
-            pool.sort(key=lambda v: cells(v[0]) if cls >= 5 else -cells(v[0]))
+            pool.sort(key=lambda v: (-coverage(v[1]), cells(v[0]) if cls >= 5 else -cells(v[0])))
             out.append(dict(cls=cls, armor=None, rig=pool[0][0], rig_preset=pool[0][1],
                             helmet=pick_helmet(cls)))
     return out
@@ -159,6 +178,36 @@ def graft(out, preset, root_id, slot):
         if node.get('upd'):
             entry['upd'] = node['upd']
         out.append(entry)
+
+
+def fill_empty_plates(out, root_id):
+    """Some presets ship a carrier with slots still open.
+
+    The generator's whole premise is that a preset arrives fully built, and for
+    most of them it does — but the Osprey MK4A leaves both side plates out, and
+    an unplated flank on an otherwise class 5 rig is the kind of hole nobody
+    would notice until it killed them. Anything still empty gets the cheapest
+    plate its own filter accepts.
+    """
+    added = []
+    for node in list(out):
+        for slot in items.get(node['_tpl'], {}).get('_props', {}).get('Slots', []):
+            name = slot['_name']
+            if 'plate' not in name.lower():
+                continue
+            if any(n.get('parentId') == node['_id'] and n.get('slotId') == name for n in out):
+                continue
+
+            candidates = slot['_props']['filters'][0].get('Filter') or []
+            plates = [c for c in candidates if armor_class(c) > 0]
+            if not plates:
+                continue
+
+            plates.sort(key=lambda c: (-armor_class(c), c))
+            out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=plates[0],
+                            parentId=node['_id'], slotId=name))
+            added.append(name)
+    return added
 
 
 def pick_earpiece(nodes):
@@ -243,6 +292,8 @@ def rebuild():
                             parentId=root_id, slotId='TacticalVest'))
         if gear['helmet']:
             graft(out, gear['helmet'][1], root_id, 'Headwear')
+
+        fill_empty_plates(out, root_id)
 
         ear = pick_earpiece(out)
         if ear:
