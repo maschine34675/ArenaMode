@@ -34,13 +34,24 @@ internal static class CorpseCleanupService
     private const float MinDistanceMeters = 15f;
     private const int KeepOwnCorpses = 1;
 
+    /// <summary>What was hidden for one body, so the sweep can maintain it.</summary>
+    private sealed class TrimState
+    {
+        public Renderer[] Body;
+
+        /// <summary>Tracked apart from the body: a weapon can change hands.</summary>
+        public Renderer[] Weapon;
+
+        public GameObject WeaponObject;
+    }
+
     /// <summary>
-    /// Bodies already trimmed (they stay in the world's loot list) with their
-    /// renderer set, so the sweep can re-assert the disabled state cheaply —
-    /// the culling system flips renderers back on when a body enters view.
+    /// Bodies already trimmed — they stay in the world's loot list, so the sweep
+    /// re-asserts the hidden state cheaply (the culling system turns renderers
+    /// back on when a spot comes into view).
     /// </summary>
-    private static readonly Dictionary<Corpse, Renderer[]> Trimmed =
-        new Dictionary<Corpse, Renderer[]>();
+    private static readonly Dictionary<Corpse, TrimState> Trimmed =
+        new Dictionary<Corpse, TrimState>();
 
     private static float _nextSweepAt;
 
@@ -170,19 +181,19 @@ internal static class CorpseCleanupService
             // enough: the ragdoll destroys the weapon link once the body stops
             // being visible, which our own hiding brings about — hence the
             // registry, filled by the light sweep while the link still exists.
+            // Tracked separately from the body: the registry only hands it over
+            // while the corpse still owns it, and if it later changes hands the
+            // sweep has to make it visible again.
             var weapon = CorpseWeaponRegistry.Get(corpse);
+            Renderer[] weaponRenderers = null;
             if (weapon != null)
             {
-                var weaponRenderers = weapon.GetComponentsInChildren<Renderer>(true);
+                weaponRenderers = weapon.GetComponentsInChildren<Renderer>(true);
                 foreach (var renderer in weaponRenderers)
                 {
                     if (renderer != null)
                         renderer.forceRenderingOff = true;
                 }
-
-                // Re-asserted with the body's, so the culling system cannot bring
-                // either of them back when the spot comes into view.
-                renderers = renderers.Concat(weaponRenderers).ToArray();
             }
 
             if (pool?.Colliders != null)
@@ -201,21 +212,28 @@ internal static class CorpseCleanupService
             // A body nobody can see should not attract loot trips either.
             RemoveDeadBodyRecord(corpse);
 
-            Trimmed[corpse] = renderers;
+            Trimmed[corpse] = new TrimState
+            {
+                Body = renderers,
+                Weapon = weaponRenderers,
+                WeaponObject = weapon,
+            };
             return true;
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena corpse trim failed: {ex.Message}");
             // Remember it anyway — retrying a failing body every 5s is worse.
-            Trimmed[corpse] = new Renderer[0];
+            Trimmed[corpse] = new TrimState { Body = new Renderer[0] };
             return false;
         }
     }
 
     /// <summary>
-    /// Re-disable renderers the culling system turned back on, and drop entries
-    /// whose body the game destroyed (raid teardown, vanilla despawn).
+    /// Keeps the hidden state honest: re-disables renderers the culling system
+    /// turned back on, hands a weapon back its visibility the moment it stops
+    /// belonging to the corpse (somebody looted it — carrying an invisible gun
+    /// would be a fine bug to ship), and drops bodies the game destroyed.
     /// </summary>
     private static void ReassertTrimmed()
     {
@@ -232,13 +250,22 @@ internal static class CorpseCleanupService
                 continue;
             }
 
-            var renderers = entry.Value;
-            for (var i = 0; i < renderers.Length; i++)
+            var state = entry.Value;
+            Hide(state.Body);
+
+            if (state.Weapon == null)
+                continue;
+
+            if (ReferenceEquals(CorpseWeaponRegistry.Get(entry.Key), state.WeaponObject)
+                && state.WeaponObject != null)
             {
-                var renderer = renderers[i];
-                if (renderer != null && !renderer.forceRenderingOff)
-                    renderer.forceRenderingOff = true;
+                Hide(state.Weapon);
+                continue;
             }
+
+            Show(state.Weapon);
+            state.Weapon = null;
+            state.WeaponObject = null;
         }
 
         if (stale == null)
@@ -246,6 +273,32 @@ internal static class CorpseCleanupService
 
         foreach (var corpse in stale)
             Trimmed.Remove(corpse);
+    }
+
+    private static void Hide(Renderer[] renderers)
+    {
+        if (renderers == null)
+            return;
+
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            var renderer = renderers[i];
+            if (renderer != null && !renderer.forceRenderingOff)
+                renderer.forceRenderingOff = true;
+        }
+    }
+
+    private static void Show(Renderer[] renderers)
+    {
+        if (renderers == null)
+            return;
+
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            var renderer = renderers[i];
+            if (renderer != null && renderer.forceRenderingOff)
+                renderer.forceRenderingOff = false;
+        }
     }
 
     /// <summary>

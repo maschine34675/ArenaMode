@@ -18,10 +18,22 @@ namespace ArenaMode.Bots;
 /// corpse trim was accelerating exactly the condition that took the weapon out
 /// of its reach. Hence this registry — filled by the light sweep, which visits
 /// every corpse within a second of its death, long before the link is cut.
+///
+/// A remembered object is NEVER trusted on its own. Weapon objects are pooled:
+/// once someone loots the weapon it goes back into the pool and can be handed
+/// straight to another bot — or to the player, who would then be carrying an
+/// invisible gun. Every lookup therefore has to prove the corpse still owns the
+/// thing before anyone is allowed to touch it.
 /// </summary>
 internal static class CorpseWeaponRegistry
 {
-    private static readonly Dictionary<Corpse, GameObject> Weapons = new Dictionary<Corpse, GameObject>();
+    private sealed class Entry
+    {
+        public GameObject Weapon;
+        public string ItemId;
+    }
+
+    private static readonly Dictionary<Corpse, Entry> Weapons = new Dictionary<Corpse, Entry>();
 
     public static void Reset() => Weapons.Clear();
 
@@ -35,24 +47,45 @@ internal static class CorpseWeaponRegistry
         if (rigidbody == null)
             return;
 
-        Weapons[corpse] = rigidbody.gameObject;
+        Weapons[corpse] = new Entry
+        {
+            Weapon = rigidbody.gameObject,
+            ItemId = corpse.ItemInHands?.Value?.Id,
+        };
     }
 
-    /// <summary>The weapon object, or null once it is gone for good.</summary>
+    /// <summary>
+    /// The weapon object while it still belongs to this corpse — null once it
+    /// has been looted, destroyed, or recycled into somebody else's hands.
+    /// </summary>
     public static GameObject Get(Corpse corpse)
     {
         if (corpse == null)
             return null;
 
-        // The live link first — it is authoritative while it lasts.
+        // Looting nulls the held item, which is the earliest and cleanest signal
+        // that the weapon is no longer the corpse's to hide.
+        var heldId = corpse.ItemInHands?.Value?.Id;
+        if (heldId == null)
+            return null;
+
+        // The live link first — authoritative while it lasts.
         var rigidbody = corpse.Ragdoll?.WeaponRigidbody;
         if (rigidbody != null)
             return rigidbody.gameObject;
 
-        if (!Weapons.TryGetValue(corpse, out var remembered))
+        if (!Weapons.TryGetValue(corpse, out var entry) || entry.Weapon == null)
             return null;
 
-        // Unity lifetime check: the object may have been destroyed since.
-        return remembered == null ? null : remembered;
+        // The remembered object must still carry the very item this corpse
+        // reports holding; a pooled rig handed to someone else carries another.
+        if (entry.ItemId != null && entry.ItemId != heldId)
+            return null;
+
+        var loot = entry.Weapon.GetComponent<LootItem>();
+        if (loot != null && loot.Item != null && loot.Item.Id != heldId)
+            return null;
+
+        return entry.Weapon;
     }
 }
