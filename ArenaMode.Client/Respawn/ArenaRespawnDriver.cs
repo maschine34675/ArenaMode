@@ -70,8 +70,13 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         {
             Game = game,
             DeadPlayer = game.LocalPlayer,
-            SpawnSelector = new InfilSpawnSelector(
-                new NearPositionSpawnSelector(() => corpsePosition, () => 25f)),
+            // Random and away from the body, rather than the engine's "farthest
+            // from everyone", which is stable enough to hand out the same corner
+            // over and over.
+            SpawnSelector = new ArenaSpawnSelector(
+                new InfilSpawnSelector(new NearPositionSpawnSelector(() => corpsePosition, () => 25f)),
+                () => corpsePosition,
+                Settings.RespawnMinDistance.Value),
             EquipmentStrategy = (profile, dead) =>
             {
                 if (kit != null)
@@ -167,6 +172,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Bots.ArenaBotPatches.ResetRaidState();
         Combat.ArenaGiveUp.Reset();
         Combat.WeaponSwapService.Reset();
+        ArenaSpawnSelector.Reset();
         KitCatalog.KitProvider = null;
     }
 

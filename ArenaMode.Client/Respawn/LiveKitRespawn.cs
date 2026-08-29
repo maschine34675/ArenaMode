@@ -80,8 +80,11 @@ internal static class LiveKitRespawn
         if (kit == null)
             return false;
 
-        var spawn = new InfilSpawnSelector(
-            new NearPositionSpawnSelector(() => game.LocalPlayer.Position, () => 25f));
+        var here = game.LocalPlayer.Position;
+        var spawn = new ArenaSpawnSelector(
+            new InfilSpawnSelector(new NearPositionSpawnSelector(() => here, () => 25f)),
+            () => here,
+            Config.Settings.RespawnMinDistance.Value);
 
         var protection = new SpawnProtectionOptions
         {

@@ -53,6 +53,7 @@ public static class Settings
     public static ConfigEntry<int> GunGameSpareMagazines { get; private set; }
     public static ConfigEntry<bool> GunGameLoseTierOnDeath { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
+    public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
     public static ConfigEntry<int> PressureStreakPercent { get; private set; }
     public static ConfigEntry<int> PressurePmcBonus { get; private set; }
@@ -343,6 +344,15 @@ public static class Settings
             true,
             "Let the arena push back harder as the raid goes on and as you go on " +
             "a run. Off: the fixed difficulties this mod used before.");
+
+        RespawnMinDistance = config.Bind(
+            "General",
+            "RespawnMinDistance",
+            40,
+            new ConfigDescription(
+                "How far a respawn point has to be from where you died. Points " +
+                "closer than this are only used when nothing else is left.",
+                new AcceptableValueRange<int>(0, 150)));
 
         PressureRampMinutes = config.Bind(
             "Difficulty",

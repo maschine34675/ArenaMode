@@ -44,6 +44,9 @@ internal static class BurstSpawnService
     private static readonly List<float> RecentScavInjections = new List<float>(8);
 
     /// <summary>Non-PMC roles alive, rebuilt per count — diagnostics for the burst log.</summary>
+    /// <summary>How far a PMC shortfall may push the population past its target.</summary>
+    private const int PmcOvershootAllowance = 2;
+
     private static readonly Dictionary<WildSpawnType, int> RoleTally = new Dictionary<WildSpawnType, int>();
 
     public static void Reset()
@@ -104,7 +107,17 @@ internal static class BurstSpawnService
             // whatever spawns fastest — which was scavs, every time.
             var pmcFloor = Mathf.Min(ArenaPressure.PmcFloor(Settings.PmcFloor.Value), target);
             var wantPmc = alivePmc + pendingPmc < pmcFloor;
-            if (!wantPmc && projected >= target)
+
+            // The target bounds the POPULATION; the PMC floor only decides what
+            // the next spawn should be. Skipping the bound whenever PMCs were
+            // short worked while the floor sat safely below the target — but
+            // pressure raises the floor, and once it CATCHES the target the
+            // bound never fires again: a map asking for ten was carrying
+            // fourteen, on a corridor map, with SAIN thinking for all of them.
+            // A PMC deficit may still overshoot a little, so a scav-filled map
+            // can be corrected, but it can no longer run away.
+            var ceiling = wantPmc ? target + PmcOvershootAllowance : target;
+            if (projected >= ceiling)
                 return;
 
             var counterAlive = controller.AliveLoadingDelayedBotsCount;
