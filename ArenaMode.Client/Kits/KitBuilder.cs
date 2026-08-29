@@ -156,11 +156,11 @@ public static class KitBuilder
         if (count <= 0)
             return;
 
-        var template = created.Values.OfType<Magazine>().FirstOrDefault(m => m.Cartridges.Items.Any());
+        var template = created.Values.OfType<Magazine>().FirstOrDefault(m => LoadedRound(m) != null);
         if (template == null)
             return;
 
-        var ammoTpl = template.Cartridges.Items.First().TemplateId;
+        var ammoTpl = LoadedRound(template).TemplateId;
 
         if (template.ReloadMagType == Weapon.EReloadMode.InternalMagazine)
         {
@@ -383,6 +383,23 @@ public static class KitBuilder
         }
     }
 
+    /// <summary>
+    /// A round from a loaded magazine, whichever way it holds them. Ordinary
+    /// magazines keep one stack; a revolver cylinder keeps a round per camora
+    /// slot and its cartridge stack stays empty — probing only the stack would
+    /// decide a loaded revolver has no ammunition and hand out no reserve.
+    /// </summary>
+    private static Item LoadedRound(Magazine magazine)
+    {
+        var stacked = magazine.Cartridges?.Items?.FirstOrDefault();
+        if (stacked != null)
+            return stacked;
+
+        return magazine.AllSlots?
+            .Select(slot => slot.ContainedItem)
+            .FirstOrDefault(item => item != null);
+    }
+
     private static void FillSpareMagazines(List<CompoundItem> containers, ItemFactory factory, Magazine template,
         string ammoTpl, int count)
     {
@@ -435,10 +452,10 @@ public static class KitBuilder
         var containers = GridContainers(equipment);
 
         // Reload supply, cloned from the primary weapon's magazine.
-        var template = created.Values.OfType<Magazine>().FirstOrDefault(m => m.Cartridges.Items.Any());
+        var template = created.Values.OfType<Magazine>().FirstOrDefault(m => LoadedRound(m) != null);
         if (template != null && kit.Fill.SpareMagazines > 0)
         {
-            var ammoTpl = template.Cartridges.Items.First().TemplateId;
+            var ammoTpl = LoadedRound(template).TemplateId;
 
             // A weapon with a FIXED magazine is reloaded round by round, so spare
             // magazines are worse than useless there: they cannot be swapped in,

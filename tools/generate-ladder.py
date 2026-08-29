@@ -129,9 +129,22 @@ def build_entry(order, c):
     # Presets ship empty: load the magazine and chamber a round.
     mag_node = next((n for n in out if n.get('slotId') == 'mod_magazine'), None)
     if mag_node:
-        out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=c['ammo'],
-                        parentId=mag_node['_id'], slotId='cartridges',
-                        upd=dict(StackObjectsCount=c['cap'])))
+        # A revolver cylinder holds one round per camora SLOT and never reads the
+        # cartridge stack — a stack put there is invisible to the weapon, which
+        # then arrives with an empty gun and no warning anywhere.
+        mag_props = items[mag_node['_tpl']].get('_props', {})
+        camoras = [s['_name'] for s in mag_props.get('Slots', [])
+                   if s.get('_name', '').startswith('camora_')]
+
+        if camoras:
+            for cam in camoras:
+                out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=c['ammo'],
+                                parentId=mag_node['_id'], slotId=cam,
+                                upd=dict(StackObjectsCount=1)))
+        else:
+            out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=c['ammo'],
+                            parentId=mag_node['_id'], slotId='cartridges',
+                            upd=dict(StackObjectsCount=c['cap'])))
     if items[c['weapon']].get('_props', {}).get('Chambers'):
         out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=c['ammo'],
                         parentId=remap[preset_root['_id']], slotId='patron_in_weapon',

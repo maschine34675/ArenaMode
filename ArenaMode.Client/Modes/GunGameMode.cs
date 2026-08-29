@@ -94,7 +94,10 @@ public sealed class GunGameMode : IArenaMode
             if (_ladder.Count == 0)
                 return "Gun Game — no ladder";
 
-            var kit = CurrentKit;
+            // The RUNG, deliberately: CurrentKit builds a merged loadout on every
+            // read, and reading it four times a second would re-roll the random
+            // base kit, flood the log and hammer the catalog fetch.
+            var kit = CurrentRung;
             var line = $"Tier {_tier + 1}/{_ladder.Count}";
             if (kit != null)
                 line += $"   {kit.Name ?? kit.Id}";
