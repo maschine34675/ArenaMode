@@ -142,6 +142,29 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
 
     /// <summary>Any session currently in an arena raid on the given location?</summary>
     /// <summary>
+    /// Whether an InRaid entry can still plausibly BE a raid.
+    ///
+    /// Nothing removes session entries and only the armed flag has a deadline,
+    /// so a raid that ended by crash or Alt-F4 leaves its entry claiming to be
+    /// in progress for the life of the server. The map-wide lookups below would
+    /// then answer for a raid that finished hours ago — and since the tier ramp
+    /// clamps at its maximum, a later NORMAL raid on the same map would face
+    /// fully kitted bots. The same shape of deadline the armed flag already has,
+    /// with slack for a raid that ran into overtime.
+    /// </summary>
+    private static bool IsLiveRaid(SessionEntry entry)
+    {
+        if (entry.State != ArenaSessionState.InRaid)
+            return false;
+
+        if (entry.InRaidAtUtc == default)
+            return false;
+
+        var limit = TimeSpan.FromMinutes(Math.Max(1, ArenaContext.Config.RaidTimeMinutes) + 15);
+        return DateTime.UtcNow - entry.InRaidAtUtc <= limit;
+    }
+
+    /// <summary>
     /// How long the arena raid on this map has been running. The bot tier ramp
     /// rides on this: it is read fresh on every bot generation request, so the
     /// answer moving is the whole point.
@@ -157,16 +180,8 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         {
             foreach (var entry in _sessions.Values)
             {
-                if (entry.State != ArenaSessionState.InRaid
-                    || !string.Equals(entry.Map, wanted, StringComparison.Ordinal))
-                {
+                if (!IsLiveRaid(entry) || !string.Equals(entry.Map, wanted, StringComparison.Ordinal))
                     continue;
-                }
-
-                // A clock that never started would report the epoch and pin the
-                // ramp to its maximum from the first wave.
-                if (entry.InRaidAtUtc == default)
-                    return false;
 
                 elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
                 return true;
@@ -185,7 +200,9 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         {
             foreach (var entry in _sessions.Values)
             {
-                if (entry.State == ArenaSessionState.InRaid
+                // Same staleness guard: a crashed raid must not keep raising the
+                // bot cap for every ordinary raid on this map afterwards.
+                if (IsLiveRaid(entry)
                     && string.Equals(entry.Map, location, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
