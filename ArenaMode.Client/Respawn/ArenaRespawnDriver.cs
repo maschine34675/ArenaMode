@@ -162,6 +162,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Bots.BurstSpawnService.Reset();
         Bots.CorpseCleanupService.Reset();
         Bots.CorpseLightService.Reset();
+        Bots.CorpseWeaponRegistry.Reset();
         Bots.ArenaHostility.Reset();
         Bots.ArenaBotPatches.ResetRaidState();
     }

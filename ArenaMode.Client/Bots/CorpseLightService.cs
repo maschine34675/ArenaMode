@@ -119,6 +119,11 @@ internal static class CorpseLightService
             if (!(loot is Corpse corpse))
                 return true;
 
+            // Record the weapon while the corpse can still name it: the ragdoll
+            // destroys that link the moment the body stops being visible, and
+            // the corpse trim needs it later to hide the weapon too.
+            CorpseWeaponRegistry.Observe(corpse);
+
             // The weapon in a corpse's hands is a scene ROOT, not a child — it
             // hangs off the ragdoll, which is why it keeps lying there (and lit)
             // after the body itself was hidden. Taking it from the ragdoll rather

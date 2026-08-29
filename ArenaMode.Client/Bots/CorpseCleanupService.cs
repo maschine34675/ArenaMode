@@ -165,9 +165,12 @@ internal static class CorpseCleanupService
             }
 
             // The weapon in the corpse's hands is a separate scene object hanging
-            // off the ragdoll, so hiding the body alone left a weapon lying in
-            // mid-air where a body used to be — and kept its flashlight visible.
-            var weapon = corpse.Ragdoll?.WeaponRigidbody;
+            // off the ragdoll, so hiding the body alone left a weapon floating in
+            // mid-air where the hand used to be. Asking the corpse directly is not
+            // enough: the ragdoll destroys the weapon link once the body stops
+            // being visible, which our own hiding brings about — hence the
+            // registry, filled by the light sweep while the link still exists.
+            var weapon = CorpseWeaponRegistry.Get(corpse);
             if (weapon != null)
             {
                 var weaponRenderers = weapon.GetComponentsInChildren<Renderer>(true);
