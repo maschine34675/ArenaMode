@@ -15,6 +15,9 @@ public static class KitCatalog
 {
     private static List<KitDefinition> _kits;
 
+    /// <summary>Last kit handed out, so random mode does not repeat it back to back.</summary>
+    private static string _lastKitId;
+
     public static IReadOnlyList<KitDefinition> Kits
     {
         get
@@ -28,15 +31,22 @@ public static class KitCatalog
     public static void Preload() => EnsureLoaded();
 
     /// <summary>
-    /// The configured kit, or the first BUILDABLE catalog entry, or null (naked
-    /// respawns). Kits referencing unknown templates (user-edited kits.json, removed
-    /// item mods) are skipped — building one would abort mid-equipment-swap.
+    /// The kit for the next life: a random one, the configured one, or the first
+    /// BUILDABLE catalog entry — null means a naked respawn. Kits referencing
+    /// unknown templates (hand-edited kits.json, removed item mods) are skipped;
+    /// building one would abort halfway through the equipment swap.
+    ///
+    /// Asked once per raid start and once per respawn, so random mode hands out
+    /// a fresh loadout every life.
     /// </summary>
     public static KitDefinition GetSelectedKit()
     {
         EnsureLoaded();
         if (_kits == null || _kits.Count == 0)
             return null;
+
+        if (Settings.RandomKit.Value)
+            return PickRandomKit();
 
         var wanted = Settings.SelectedKit.Value;
         KitDefinition preferred = null;
@@ -58,6 +68,57 @@ public static class KitCatalog
         }
 
         Plugin.ModLogger.LogError("No buildable kit in the catalog — arena respawns will be naked.");
+        return null;
+    }
+
+    /// <summary>
+    /// A random buildable kit, avoiding an immediate repeat while more than one
+    /// kit exists — with a handful of kits, true randomness feels broken when it
+    /// deals the same loadout twice in a row. The previous kit stays in the draw
+    /// as a last resort, so a catalog with one usable entry still works.
+    /// </summary>
+    private static KitDefinition PickRandomKit()
+    {
+        var fresh = new List<KitDefinition>(_kits.Count);
+        var repeats = new List<KitDefinition>(1);
+
+        foreach (var kit in _kits)
+        {
+            if (_lastKitId != null && string.Equals(kit.Id, _lastKitId, StringComparison.OrdinalIgnoreCase))
+                repeats.Add(kit);
+            else
+                fresh.Add(kit);
+        }
+
+        var picked = DrawBuildable(fresh) ?? DrawBuildable(repeats);
+        if (picked == null)
+        {
+            Plugin.ModLogger.LogError("No buildable kit in the catalog — arena respawns will be naked.");
+            return null;
+        }
+
+        _lastKitId = picked.Id;
+        Plugin.ModLogger.LogInfo($"Arena kit drawn: {picked.Name ?? picked.Id}.");
+        return picked;
+    }
+
+    /// <summary>Draws in random order and returns the first kit that builds.</summary>
+    private static KitDefinition DrawBuildable(List<KitDefinition> candidates)
+    {
+        while (candidates.Count > 0)
+        {
+            var index = UnityEngine.Random.Range(0, candidates.Count);
+            var kit = candidates[index];
+            candidates.RemoveAt(index);
+
+            var invalid = KitBuilder.ValidateKit(kit);
+            if (invalid.Count == 0)
+                return kit;
+
+            Plugin.ModLogger.LogError(
+                $"Kit '{kit.Id}' skipped — unknown templates: {string.Join(", ", invalid)}");
+        }
+
         return null;
     }
 

@@ -9,6 +9,7 @@ public static class Settings
     public static ConfigEntry<bool> Enabled { get; private set; }
     public static ConfigEntry<string> Maps { get; private set; }
     public static ConfigEntry<string> SelectedKit { get; private set; }
+    public static ConfigEntry<bool> RandomKit { get; private set; }
     public static ConfigEntry<float> SpawnProtectionSeconds { get; private set; }
     public static ConfigEntry<bool> MovementEnabled { get; private set; }
     public static ConfigEntry<float> WalkSpeedMult { get; private set; }
@@ -69,12 +70,19 @@ public static class Settings
             "factory4_day",
             "Comma-separated location ids arena mode activates on.");
 
+        RandomKit = config.Bind(
+            "Kits",
+            "RandomKit",
+            true,
+            "Draw a random kit for every life instead of a fixed one, avoiding the " +
+            "same loadout twice in a row. Overrides SelectedKit while on.");
+
         SelectedKit = config.Bind(
             "Kits",
             "SelectedKit",
             "",
             "Kit id from the server catalog (user/mods/ArenaMode/config/kits.json). " +
-            "Empty = first kit in the catalog.");
+            "Empty = first kit in the catalog. Ignored while RandomKit is on.");
 
         SpawnProtectionSeconds = config.Bind(
             "Respawn",

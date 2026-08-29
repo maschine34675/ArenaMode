@@ -54,6 +54,24 @@ public static class KitBundlePreloader
         }
     }
 
+    /// <summary>
+    /// Warms every catalog kit in the background, one after another.
+    ///
+    /// Random kits are drawn per life, and a kit is only preloaded the first time
+    /// it comes up — which would stall that respawn while its bundles load. Doing
+    /// it up front costs nothing noticeable: the loads are sequential, already-warm
+    /// kits are skipped, and the raid is playable throughout.
+    /// </summary>
+    public static IEnumerator PreloadAll()
+    {
+        var kits = KitCatalog.Kits;
+        if (kits == null)
+            yield break;
+
+        foreach (var kit in kits)
+            yield return Preload(kit);
+    }
+
     private static Task PreloadAsync(KitDefinition kit)
     {
         var factory = Singleton<ItemFactory>.Instance;
