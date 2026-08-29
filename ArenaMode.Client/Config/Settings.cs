@@ -77,7 +77,7 @@ public static class Settings
         Maps = config.Bind(
             "General",
             "Maps",
-            "factory4_day",
+            "factory4_day,labyrinth",
             "Comma-separated location ids arena mode activates on.");
 
         RandomKit = config.Bind(
