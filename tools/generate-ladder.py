@@ -67,6 +67,7 @@ def plainest(ps):
 
 # ---- score and build --------------------------------------------------------
 EXCLUDE_CAL = {'Caliber40mmRU', 'Caliber26x75', 'Caliber30x29'}   # launchers/flares
+BOLT_ACTION = '5447b6254bdc2dc3278b4568'   # SniperRifle: the category BSG ships without irons
 candidates = []
 for weap, ps in presets_by_weapon.items():
     props = items[weap].get('_props', {})
@@ -120,7 +121,7 @@ SIGHT_BASES = {t for t, v in items.items()
 def is_sight(tpl):
     return bool(SIGHT_BASES & set(chain(tpl)[1:]))
 
-def ensure_sight(out):
+def ensure_sight(out, weapon_tpl):
     """A weapon you cannot aim is a rung nobody wants to reach.
 
     Some of the game's own presets ship with every sight slot empty — the RSASS
@@ -132,6 +133,58 @@ def ensure_sight(out):
     if any(is_sight(n['_tpl']) for n in out):
         return None
 
+    fitted = fit_sight(out)
+    if fitted:
+        return fitted
+
+    # Nothing took directly. Some weapons have no sight slot of their own and
+    # reach an optic only through a RAIL — the Remington 700 is the one in this
+    # pool, and its default preset ships without the rail. Bolt it on, then try
+    # again: the rail brings the slot the weapon lacks.
+    #
+    # This is also where the usual discriminator breaks down. Everywhere else
+    # "no sight slot at all" means fixed iron sights and nothing to do; here it
+    # means no sights and no way to fit any, which looks identical from the
+    # slot list and is the opposite situation.
+    # Only for bolt-action rifles. Everywhere else "no sight slot" really does
+    # mean fixed irons, and bolting a rail and a red dot onto a Kedr or an UZI
+    # would change sixty weapons to fix one.
+    if is_kind(weapon_tpl, BOLT_ACTION) and fit_mount(out):
+        return fit_sight(out)
+
+    return None
+
+
+def fit_mount(out):
+    """Adds the cheapest rail that carries an optic slot of its own."""
+    for node in list(out):
+        for s in items.get(node['_tpl'], {}).get('_props', {}).get('Slots', []):
+            if not s['_name'].startswith('mod_mount'):
+                continue
+            if any(n.get('parentId') == node['_id'] and n.get('slotId') == s['_name'] for n in out):
+                continue
+
+            cands = []
+            for f in s['_props']['filters'][0]['Filter']:
+                slots = items.get(f, {}).get('_props', {}).get('Slots', [])
+                if not any(x['_name'] == 'mod_scope' for x in slots):
+                    continue
+                if [x for x in slots if x.get('_required')]:
+                    continue
+                cands.append((price.get(f, 10 ** 9), f))
+
+            if not cands:
+                continue
+
+            cands.sort()
+            out.append(dict(_id=str(uuid.uuid4().hex[:24]), _tpl=cands[0][1],
+                            parentId=node['_id'], slotId=s['_name']))
+            return cands[0][1]
+    return None
+
+
+def fit_sight(out):
+    """Puts an optic into the first sight slot anything in the build offers."""
     for slot_name in ('mod_scope', 'mod_sight_rear'):
         for node in list(out):
             for s in items.get(node['_tpl'], {}).get('_props', {}).get('Slots', []):
@@ -209,7 +262,7 @@ def build_entry(order, c):
                         parentId=remap[preset_root['_id']], slotId='patron_in_weapon',
                         upd=dict(StackObjectsCount=1)))
 
-    added = ensure_sight(out)
+    added = ensure_sight(out, c['weapon'])
     if added:
         print(f"   Visier ergaenzt fuer {c['name'][:34]}: {name_of(added)}")
 
