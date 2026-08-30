@@ -229,6 +229,13 @@ internal static class CorpseCleanupService
             // other components rather than through this one's update loop.
             StopTicking(corpse);
 
+            // And it should stop carrying a wardrobe. This is the part that grew
+            // worst: every piece of gear on a corpse is an instantiated model,
+            // and the bot gear ramp means late-raid bodies wear far more of them
+            // than early ones. Taking the gear off hands each model back to the
+            // pool it came from, where a living bot can use it again.
+            StripGear(corpse);
+
             Trimmed[corpse] = new TrimState
             {
                 Body = renderers,
@@ -290,6 +297,63 @@ internal static class CorpseCleanupService
 
         foreach (var corpse in stale)
             Trimmed.Remove(corpse);
+    }
+
+    /// <summary>
+    /// Takes the gear off a corpse nobody can see any more.
+    ///
+    /// The models are the growth term. A body wears a helmet, armour, a rig, a
+    /// backpack and a weapon, each an instantiated prefab, and the bot gear
+    /// ramp means a body from minute twenty carries considerably more of them
+    /// than one from minute two. Removing an item makes the body's own slot
+    /// view destroy the model and hand the prefab back to its pool — so this
+    /// does not merely hide the cost, it returns something living bots can use.
+    ///
+    /// Chosen over destroying the corpse outright, which is the obvious move and
+    /// the one that failed before: this touches no registry, leaves the Player
+    /// component in place and cannot produce the wreckage that attempt did. The
+    /// bodies are already invisible and already dropped from the loot records,
+    /// so nothing is taken away that anyone could still have reached — and bots
+    /// no longer loot corpses at all.
+    /// </summary>
+    private static void StripGear(Corpse corpse)
+    {
+        if (!Settings.StripCorpseGear.Value)
+            return;
+
+        try
+        {
+            var controller = corpse.ItemOwner;
+            if (!(corpse.Item is EFT.InventoryLogic.InventoryEquipment equipment) || controller == null)
+                return;
+
+            // The first level only: the gear itself, not what is inside it.
+            foreach (var slot in equipment.Slots)
+            {
+                var item = slot?.ContainedItem;
+                if (item == null)
+                    continue;
+
+                // Left alone: the secure container is special-cased throughout
+                // the game, and the weapon the ragdoll is holding belongs to the
+                // registry that keeps it from floating in mid-air.
+                if (slot.ID == "SecuredContainer" || ReferenceEquals(item, corpse.ItemInHands?.Value))
+                    continue;
+
+                try
+                {
+                    EFT.InventoryLogic.ItemManipulator.RemoveWithoutRestrictions(item, controller);
+                }
+                catch (Exception inner)
+                {
+                    Plugin.ModLogger.LogWarning($"Arena corpse strip: {item.TemplateId} stayed on: {inner.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena corpse strip failed: {ex.Message}");
+        }
     }
 
     /// <summary>

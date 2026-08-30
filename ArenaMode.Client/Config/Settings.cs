@@ -31,6 +31,7 @@ public static class Settings
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
+    public static ConfigEntry<bool> StripCorpseGear { get; private set; }
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
@@ -237,6 +238,14 @@ public static class Settings
                 "Visible corpses kept. Older ones are hidden for performance — they stay " +
                 "in the world but become invisible and can no longer be looted (0 = keep all).",
                 new AcceptableValueRange<int>(0, 50)));
+
+        StripCorpseGear = config.Bind(
+            "Performance",
+            "StripCorpseGear",
+            true,
+            "Take the gear off corpses once they are hidden. Every worn item is " +
+            "an instantiated model, and late-raid bodies wear far more of them " +
+            "than early ones — removing it hands each model back to its pool.");
 
         PmcFloor = config.Bind(
             "Bots",
