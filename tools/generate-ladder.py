@@ -1,4 +1,15 @@
-"""Builds the Gun Game weapon POOL from the live SPT database.
+"""Offline fallback generator for the Gun Game weapon pool.
+
+NOT the authority any more. ArenaMode.Server/Services/LadderGenerator.cs builds
+the pool at server load, where content mods have already injected their items —
+which is the only place it can see them. This script reads the database FILE and
+therefore only ever sees what BSG ships.
+
+It stays for two jobs: producing the ladder.json that is shipped as the fallback
+for a server where generation fails, and inspecting the ordering by hand without
+starting a server. Keep the two in step; the C# side is the one that runs.
+"""
+_ORIGINAL_DOC = """Builds the Gun Game weapon POOL from the live SPT database.
 
 Every weapon the game can build a working example of, emitted as a weapon-only
 entry in ArenaMode's kit format and ordered weakest to strongest. The server
