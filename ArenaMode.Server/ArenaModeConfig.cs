@@ -26,6 +26,14 @@ public class ArenaModeConfig
     [JsonPropertyName("stripLoot")]
     public bool StripLoot { get; set; } = true;
 
+    /// <summary>
+    /// How many rungs a Gun Game ladder has. The weapon pool is drawn into this
+    /// many equal power bands, one weapon taken at random from each, so a longer
+    /// ladder is also a finer-grained climb.
+    /// </summary>
+    [JsonPropertyName("gunGameRungs")]
+    public int GunGameRungs { get; set; } = 24;
+
     [JsonPropertyName("maps")]
     public Dictionary<string, ArenaMapConfig> Maps { get; set; } = new()
     {

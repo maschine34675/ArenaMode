@@ -82,6 +82,13 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
             entry.State = ArenaSessionState.InRaid;
             entry.InRaidAtUtc = DateTime.UtcNow;
             Patches.BotTierScalePatch.ResetReporting();
+
+            // A fresh ladder per raid, cut here rather than when the client asks
+            // for it: the ask happens while the raid loads and can repeat.
+            LadderPicker.DrawForRaid(
+                ArenaContext.LadderJson,
+                ArenaContext.Config.GunGameRungs,
+                message => logger.Info(message));
             return true;
         }
     }

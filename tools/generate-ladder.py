@@ -1,8 +1,15 @@
-"""Prototype of the Gun Game ladder generator.
+"""Builds the Gun Game weapon POOL from the live SPT database.
 
-Reads the live SPT database and emits weapon-only ladder entries in ArenaMode's
-kit format. Prototyped here so the ORDERING can be judged before it is written
-into the server; the algorithm ports to C# as-is.
+Every weapon the game can build a working example of, emitted as a weapon-only
+entry in ArenaMode's kit format and ordered weakest to strongest. The server
+draws the raid's ladder from this pool, one rung per power band, so no two
+raids climb the same twenty-four guns.
+
+The hard part stays here rather than in the server: walking the preset trees,
+loading magazines (and revolver cylinders, which hold a round per chamber and
+ignore the cartridge stack), chambering a round, and fitting a sight to the
+weapons whose own presets ship without one. Picking from a sorted list is the
+easy half, and that is all the server has to do per raid.
 """
 import json, io, collections, uuid
 
@@ -94,15 +101,15 @@ for weap, ps in presets_by_weapon.items():
 
 candidates.sort(key=lambda c: c['score'])
 
-# evenly spaced rungs across the whole power range
-step = (len(candidates) - 1) / float(RUNGS - 1)
-rungs = [candidates[int(round(i * step))] for i in range(RUNGS)]
-seen, unique = set(), []
-for r in rungs:
-    if r['weapon'] in seen:
+# The whole pool, weakest first. One entry per weapon: several presets of the
+# same gun would otherwise crowd a band and make a "random" ladder keep dealing
+# the same rifle in three finishes.
+seen, rungs = set(), []
+for c in candidates:
+    if c['weapon'] in seen:
         continue
-    seen.add(r['weapon']); unique.append(r)
-rungs = unique
+    seen.add(c['weapon'])
+    rungs.append(c)
 
 
 # ---- sights ----------------------------------------------------------------
@@ -207,15 +214,21 @@ def build_entry(order, c):
         print(f"   Visier ergaenzt fuer {c['name'][:34]}: {name_of(added)}")
 
     spares = 3 if c['cap'] < 20 else 2
-    return dict(id='rung' + str(order + 1).zfill(2), name=c['name'], order=order,
+    return dict(id='rung' + str(order + 1).zfill(3), name=c['name'], order=order,
                 items=out, fill=dict(spareMagazines=spares, rigContents=[]))
 
 ladder = [build_entry(i, c) for i, c in enumerate(rungs)]
 io.open(OUT, 'w', encoding='utf-8').write(json.dumps(ladder, indent=2))
 
-print(f"Kandidaten: {len(candidates)} Waffen  ->  {len(ladder)} Sprossen\n")
-print(f"{'#':>2}  {'Waffe':34} {'Kaliber':20} {'Pen':>3} {'Dmg':>4} {'Mag':>3} {'Preis':>7}")
-for i, c in enumerate(rungs):
-    print(f"{i+1:>2}. {c['name'][:34]:34} {c['cal'].replace('Caliber',''):20} "
-          f"{c['pen']:>3} {c['dmg']:>4} {c['cap']:>3} {c['price']:>7}")
+print(f"Kandidaten: {len(candidates)}  ->  {len(ladder)} Pool-Eintraege (je Waffe einer)\n")
+bands = 24
+print(f"So saehe eine gezogene Leiter aus ({bands} Sprossen, ein Band je Sprosse):")
+for i in range(bands):
+    lo = i * len(rungs) // bands
+    hi = max(lo + 1, (i + 1) * len(rungs) // bands)
+    band = rungs[lo:hi]
+    names = ' | '.join(c['name'][:22] for c in band[:3])
+    if len(band) > 3:
+        names += f' | +{len(band) - 3}'
+    print(f"  {i+1:>2}. aus {len(band)}: {names}")
 print(f"\ngeschrieben: {OUT}")

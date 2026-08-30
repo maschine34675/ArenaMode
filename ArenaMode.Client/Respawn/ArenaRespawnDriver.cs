@@ -174,6 +174,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Combat.WeaponSwapService.Reset();
         ArenaSpawnSelector.Reset();
         KitCatalog.KitProvider = null;
+        LadderCatalog.Reset();
     }
 
     internal static void BeginPipelineUse() => IsRespawnInProgress = true;
