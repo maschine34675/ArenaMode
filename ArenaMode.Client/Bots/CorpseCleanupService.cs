@@ -126,7 +126,7 @@ internal static class CorpseCleanupService
             }
 
             if (trimmed > 0)
-                Plugin.ModLogger.LogInfo($"Arena corpse cleanup: trimmed {trimmed} old corpse(s), {maxCorpses} kept visible.");
+                Plugin.ModLogger.LogInfo($"Arena corpse cleanup: trimmed {trimmed} old corpse(s), {maxCorpses} kept visible, {Trimmed.Count} trimmed in total.");
         }
         catch (Exception ex)
         {
@@ -212,6 +212,23 @@ internal static class CorpseCleanupService
             // A body nobody can see should not attract loot trips either.
             RemoveDeadBodyRecord(corpse);
 
+            // And it should stop being asked what it is doing sixty times a
+            // second. Nothing in the game ever disables a corpse's Player
+            // component: the body leaves the alive list, so the world stops
+            // ticking it by hand, but Unity keeps dispatching FixedUpdate and
+            // LateUpdate to the component itself for the rest of the raid. Worse,
+            // that LateUpdate is not gated on being alive — it still runs the
+            // hands controller's event and ballistic updates, because the
+            // controller is only released when somebody loots the body.
+            //
+            // At fifty fixed updates a second across two hundred bodies, this is
+            // the cost that actually grows with a long raid. Renderers and
+            // physics were already dealt with; this is what was left, and it is
+            // safe because everything reached through the corpse afterwards —
+            // looting, the inventory, the ragdoll — goes through fields and
+            // other components rather than through this one's update loop.
+            StopTicking(corpse);
+
             Trimmed[corpse] = new TrimState
             {
                 Body = renderers,
@@ -273,6 +290,25 @@ internal static class CorpseCleanupService
 
         foreach (var corpse in stale)
             Trimmed.Remove(corpse);
+    }
+
+    /// <summary>
+    /// Stops Unity dispatching update messages to a corpse. Deliberately after
+    /// the ragdoll has settled — the trim only runs on a finished body — so no
+    /// coroutine hosted on the component is cut off half way.
+    /// </summary>
+    private static void StopTicking(Corpse corpse)
+    {
+        try
+        {
+            var player = corpse.GetComponent<Player>();
+            if (player != null && player.enabled)
+                player.enabled = false;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena corpse tick stop failed: {ex.Message}");
+        }
     }
 
     private static void Hide(Renderer[] renderers)
