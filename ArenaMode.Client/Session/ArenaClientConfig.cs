@@ -21,6 +21,33 @@ public static class ArenaClientConfig
         EnsureLoaded();
     }
 
+    /// <summary>
+    /// Whether the SERVER has this map enabled for the arena.
+    ///
+    /// The keycard waiver asks this before it opens a locked map. Without it the
+    /// waiver was gated on the client's map list alone, so a one-sided config
+    /// drift — the map named on the client, disabled or missing on the server —
+    /// would have unlocked the Lab and then dropped the player into a fully
+    /// vanilla raid there, with their real kit and their real profile at stake.
+    ///
+    /// Unknown means NO: failing closed costs a keycard the player was never
+    /// going to have, and failing open costs a stash.
+    /// </summary>
+    public static bool IsMapEnabledOnServer(string map)
+    {
+        EnsureLoaded();
+
+        try
+        {
+            var token = _config?["maps"]?[map?.ToLowerInvariant() ?? string.Empty];
+            return token != null && (token["enabled"]?.Value<bool>() ?? true);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static int GetBotCap(string map, int fallback = 24)
         => GetMapValue<int?>(map, "botMax") ?? fallback;
 

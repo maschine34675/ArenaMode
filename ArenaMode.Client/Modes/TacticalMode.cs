@@ -57,6 +57,7 @@ public sealed class TacticalMode : IArenaMode
     private float _phaseEndsAt;
     private float _squadDeadlineAt;
     private int _squadRequested;
+    private int _squadEpoch;
 
     private KitDefinition _bought;
     private bool _playerDown;
@@ -158,7 +159,10 @@ public sealed class TacticalMode : IArenaMode
 
         // Every respawn and every round-start swap asks this, so the player is
         // always handed what they bought rather than the config's selected kit.
-        KitCatalog.KitProvider = () => _bought ?? KitCatalog.GetSelectedKit();
+        // GetBaseKit, not GetSelectedKit: the latter asks the provider, so this
+        // lambda would have called itself for as long as _bought was null — an
+        // unbounded recursion, and a StackOverflowException is not catchable.
+        KitCatalog.KitProvider = () => _bought ?? KitCatalog.GetBaseKit();
 
         EnterBuy();
         Plugin.ModLogger.LogInfo($"Tactical: match started with {Money:N0} roubles.");
@@ -218,6 +222,10 @@ public sealed class TacticalMode : IArenaMode
             if (Time.time >= _squadDeadlineAt)
             {
                 Plugin.ModLogger.LogWarning("Tactical: no squad arrived — replaying the round.");
+
+                // Bumped so the in-flight request, if it ever lands, is retired
+                // rather than joining a round that has already moved on.
+                _squadEpoch++;
                 EnterBuy();
             }
 
@@ -336,6 +344,16 @@ public sealed class TacticalMode : IArenaMode
 
         _roundStartPending = false;
 
+        // THE hold is released here, and this is the only place that can do it.
+        // _playerDown was cleared in OnLocalRespawn, which is raised by the tail
+        // of the very respawn routine the hold parks — a circular wait that left
+        // the first death in a Tactical raid permanently dead behind a black
+        // screen. Captured first, because the round-break swap below still needs
+        // to know whether this player survived the last round or is being handed
+        // back a body.
+        var wasDown = _playerDown;
+        _playerDown = false;
+
         // Charged now rather than at the click, so browsing the menu is free and
         // a round that never starts costs nothing.
         var price = PriceOf(_bought);
@@ -347,6 +365,12 @@ public sealed class TacticalMode : IArenaMode
         _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
         _squadDeadlineAt = Time.time + SquadGraceSeconds;
 
+        // The epoch is what makes an abandoned request harmless. The no-contest
+        // path can start a new round while the last request is still in flight —
+        // profile generation is a server round trip — and without this those bots
+        // would arrive onto a map the new round believes is empty.
+        var epoch = ++_squadEpoch;
+
         var size = Mathf.Max(1, Settings.TacticalSquadSize.Value);
         _squadRequested = BurstSpawnService.SpawnSquad(
             size,
@@ -354,7 +378,29 @@ public sealed class TacticalMode : IArenaMode
             difficulty: ArenaPressure.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
             observer: bot =>
             {
-                if (bot != null && !_squad.Contains(bot))
+                if (bot == null)
+                    return;
+
+                if (epoch != _squadEpoch)
+                {
+                    // A superseded request. Killing rather than adopting: adopting
+                    // would silently inflate a round the player was told holds a
+                    // specific number of enemies.
+                    try
+                    {
+                        var stale = bot.GetPlayer?.ActiveHealthController;
+                        if (stale != null && stale.IsAlive)
+                            stale.Kill(EFT.EDamageType.Undefined);
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.ModLogger.LogWarning($"Tactical: stale squad member survived: {ex.Message}");
+                    }
+
+                    return;
+                }
+
+                if (!_squad.Contains(bot))
                     _squad.Add(bot);
             });
 
@@ -362,7 +408,7 @@ public sealed class TacticalMode : IArenaMode
         // gear; the round-break swap puts them in what they just bought. One who
         // died is handled by the held respawn instead, which picks the same kit
         // through the same provider once HoldRespawn lets go.
-        if (!_playerDown
+        if (!wasDown
             && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game
             && game.Status == GameStatus.Started)
         {
@@ -380,10 +426,42 @@ public sealed class TacticalMode : IArenaMode
         ArenaToasts.Show($"Round {RoundNumber} — {_squadRequested} enemies");
     }
 
+    /// <summary>
+    /// Clears the map of whatever is left of the round's squad.
+    ///
+    /// A LOST round leaves its survivors standing, and the old code only forgot
+    /// about them — so they became uncounted permanent residents hunting a
+    /// player frozen in the buy menu, and the mode's "the map is empty
+    /// otherwise" promise held for round one only.
+    /// </summary>
+    private void RetireSquad()
+    {
+        foreach (var bot in _squad)
+        {
+            try
+            {
+                // Through the PLAYER's ActiveHealthController: BotOwner.HealthController
+                // is the IHealthController interface, which has no Kill. Same
+                // route ArenaGiveUp uses on the human.
+                var health = bot?.GetPlayer?.ActiveHealthController;
+                if (health != null && health.IsAlive)
+                    health.Kill(EFT.EDamageType.Undefined);
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogWarning($"Tactical: could not retire a squad member: {ex.Message}");
+            }
+        }
+
+        _squad.Clear();
+    }
+
     private void EndRound(bool won)
     {
         if (_phase != Phase.Live)
             return;
+
+        RetireSquad();
 
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;

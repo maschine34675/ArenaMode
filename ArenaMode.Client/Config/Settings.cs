@@ -438,9 +438,11 @@ public static class Settings
         TacticalStartMoney = config.Bind(
             "Tactical",
             "StartMoney",
-            400000,
+            250000,
             "Roubles at the first buy phase. Kits are priced at their handbook " +
-            "value, so this is a currency you already have a feel for.");
+            "value minus the secure container, so this is a currency you already " +
+            "have a feel for. The catalogue runs from about 180k to 590k, so this " +
+            "buys the bottom third — round one is a choice, not a handout.");
 
         TacticalKillReward = config.Bind(
             "Tactical",

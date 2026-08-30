@@ -54,6 +54,12 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (!ArenaServerClient.IsServerModAvailable)
                 return;
 
+            // BEFORE the announcement, not after. The server shapes the raid's
+            // location clone from the mode it is told — Tactical needs a silent
+            // map — so announcing first would have run the new mode on a clone
+            // built for the old one.
+            Config.SettingsSync.SyncNow();
+
             // The mode the player actually picked, not a literal. The server
             // only logs it, which is precisely why it has to be true: a status
             // line reading "mode=endless" over a Gun Game raid is a false clue
@@ -61,11 +67,6 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (ArenaServerClient.PostRaidStart(settings.location, Settings.GameMode.Value))
             {
                 ArenaSession.MarkArmed(settings.location);
-
-                // Anything the config page changed lands here, before the kit
-                // catalogue and the client config are read — those reads must see
-                // the settings this raid is actually going to run with.
-                Config.SettingsSync.SyncNow();
 
                 // Fetch catalog + config now (loading screen) instead of inside a
                 // gameplay frame.

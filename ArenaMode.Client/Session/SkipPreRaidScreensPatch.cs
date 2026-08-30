@@ -59,8 +59,10 @@ internal static class SkipPreRaidScreensPatch
                 RestoreBots(__instance.raidSettings_1);
 
                 // Carried over from the delegate we are bypassing, so that
-                // skipping the screen changes nothing except the clicking. Moot
-                // while Labs is unsupported; wrong the day it is not.
+                // skipping the screen changes nothing except the clicking. Live
+                // now that laboratory is a default arena map — and load-bearing
+                // there: the engine discards the whole boss-spawn array when
+                // IsBosses is false, which would take the PMC entries with it.
                 if (string.Equals(__instance.raidSettings_0?.SelectedLocation?.Id, "laboratory",
                         StringComparison.OrdinalIgnoreCase))
                 {

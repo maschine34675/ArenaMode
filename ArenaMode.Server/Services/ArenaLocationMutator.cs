@@ -121,26 +121,41 @@ public static class ArenaLocationMutator
 
     private static IEnumerable<Wave> GenerateAssaultWaves(ArenaMapConfig map, int raidSeconds)
     {
+        // ONE zone per wave, round-robin. Wave.SpawnPoints is matched against a
+        // zone name by exact string, so writing the whole comma-separated list
+        // into it matches no zone at all and the wave is silently dropped. That
+        // did not show on Factory or Labyrinth, where the list is a single name;
+        // the Lab has five, and every generated wave there would have vanished.
+        var zones = (map.SpawnZones ?? string.Empty)
+            .Split([','], StringSplitOptions.RemoveEmptyEntries)
+            .Select(zone => zone.Trim())
+            .Where(zone => zone.Length > 0)
+            .ToArray();
+
+        if (zones.Length == 0)
+            zones = ["BotZone"];
+
         // Wave 0: instant opening pressure.
-        yield return MakeAssaultWave(0, -1, -1, 4, map);
+        yield return MakeAssaultWave(0, -1, -1, 4, map, zones[0]);
 
         var interval = Math.Max(10, map.AssaultWaveIntervalSeconds);
         var count = Math.Min(map.MaxScheduledWaves, raidSeconds / interval);
         for (var i = 0; i < count; i++)
         {
             var time = 15 + i * interval;
-            yield return MakeAssaultWave(i + 1, time, time + 15, map.AssaultSlotsMax, map);
+            yield return MakeAssaultWave(i + 1, time, time + 15, map.AssaultSlotsMax, map, zones[(i + 1) % zones.Length]);
         }
     }
 
-    private static Wave MakeAssaultWave(int number, int timeMin, int timeMax, int slotsMax, ArenaMapConfig map)
+    private static Wave MakeAssaultWave(int number, int timeMin, int timeMax, int slotsMax, ArenaMapConfig map,
+        string zone)
     {
         return new Wave
         {
             BotPreset = "normal",
             BotSide = "Savage",
             WildSpawnType = WildSpawnType.assault,
-            SpawnPoints = map.SpawnZones,
+            SpawnPoints = zone,
             IsPlayers = false,
             KeepZoneOnSpawn = false,
             Number = number,

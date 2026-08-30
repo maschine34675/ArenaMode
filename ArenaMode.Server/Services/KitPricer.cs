@@ -46,6 +46,43 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The secure container and everything in it, which is not gear anyone buys.
+    ///
+    /// It is the arena's own plumbing — every kit carries the same one — and at
+    /// 360,000 roubles the Alpha was two thirds of what a kit appeared to cost.
+    /// Counting it put the CHEAPEST kit at 540,000 and made the starting budget
+    /// unable to buy anything at all: twenty disabled buttons on round one.
+    /// Without it the catalogue spans 180,000 to 592,000, which is a ladder.
+    /// </summary>
+    private static HashSet<string> SecureContainerSubtree(JsonArray items)
+    {
+        var skipped = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var item in items)
+        {
+            if (string.Equals(item?["slotId"]?.GetValue<string>(), "SecuredContainer", StringComparison.OrdinalIgnoreCase)
+                && item?["_id"]?.GetValue<string>() is { } id)
+                skipped.Add(id);
+        }
+
+        // Whatever hangs off it goes too, however deep.
+        var grew = true;
+        while (grew)
+        {
+            grew = false;
+            foreach (var item in items)
+            {
+                var id = item?["_id"]?.GetValue<string>();
+                var parent = item?["parentId"]?.GetValue<string>();
+                if (id != null && parent != null && skipped.Contains(parent) && skipped.Add(id))
+                    grew = true;
+            }
+        }
+
+        return skipped;
+    }
+
     private string? Price(string kitsJson, out int count, out double cheapest, out double dearest)
     {
         count = 0;
@@ -80,8 +117,14 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
             var total = 0d;
             if (kit["items"] is JsonArray items)
             {
+                var skipped = SecureContainerSubtree(items);
+
                 foreach (var item in items)
                 {
+                    var id = item?["_id"]?.GetValue<string>();
+                    if (id != null && skipped.Contains(id))
+                        continue;
+
                     var tpl = item?["_tpl"]?.GetValue<string>();
                     if (tpl != null && prices.TryGetValue(tpl, out var price))
                         total += price;

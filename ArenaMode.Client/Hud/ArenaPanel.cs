@@ -33,10 +33,10 @@ internal sealed class ArenaPanel : MonoBehaviour
     private void OnDestroy()
     {
         SetCursor(false);
-        ArenaInputBlocker.Blocked = false;
+        ArenaInputBlocker.Request(this, false);
     }
 
-    private static void SetCursor(bool show) => CursorRequestNode.Want(show);
+    private void SetCursor(bool show) => CursorVote.Set(this, show);
 
     private void Update()
     {
@@ -119,7 +119,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         // The cursor vote frees the pointer; it does not stop the game from
         // consuming clicks and mouse axes — without this, clicking a toggle
         // fires the weapon and dragging the window turns the character.
-        ArenaInputBlocker.Blocked = open;
+        ArenaInputBlocker.Request(this, open);
         if (open)
             _nextCursorRetry = Time.unscaledTime + 0.5f;
 

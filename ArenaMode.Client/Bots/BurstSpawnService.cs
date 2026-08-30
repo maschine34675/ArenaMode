@@ -60,10 +60,12 @@ internal static class BurstSpawnService
 
     /// <summary>
     /// Whether a mode has taken the population over, in which case this service
-    /// stays out of the way. Tactical does: its round ends when the squad it
-    /// spawned is dead, so an ambient top-up would mean the round never ends.
-    /// The server silences the engine's own pumps for that mode; this silences
-    /// ours.
+    /// stays out of the way. Tactical does: it tells the player how many enemies
+    /// a round holds and ends the round when THOSE are dead, so an ambient
+    /// top-up would put uncounted bots on the map — and, since ambient PMCs can
+    /// wipe the squad themselves, could hand the player a round they never
+    /// fought. The server silences the engine's own pumps for that mode; this
+    /// silences ours.
     ///
     /// Derived from the running mode rather than latched: Reset() clears every
     /// flag in this class and runs from ArenaSession's raid-start handler, which
@@ -223,8 +225,17 @@ internal static class BurstSpawnService
                 return;
             }
 
+            // Trimmed in BOTH directions, because the two are counted differently
+            // by the engine: it charges its in-spawn counter per POINT and
+            // decrements per created BOT. Surplus points permanently shrink the
+            // headroom it grants its own spawns; surplus profiles get a random
+            // position from the list instead — re-stacking exactly what the
+            // point picker just took care to avoid — and drive that counter
+            // negative on the way.
             if (points.Count > data.Count)
                 points.RemoveRange(data.Count, points.Count - data.Count);
+            else if (data.Count > points.Count)
+                data.Profiles.RemoveRange(points.Count, data.Count - points.Count);
 
             reserved = points.Count;
             for (var i = 0; i < reserved; i++)
@@ -368,8 +379,13 @@ internal static class BurstSpawnService
         if (source.Count == 0)
             return null;
 
-        // Spread the pairs around instead of stacking them on one point.
-        for (var i = 0; i < count; i++)
+        // Spread them around instead of stacking them on one point — and never
+        // hand the same point out twice. The cursor wraps, so asking for more
+        // than the zone has usable points used to return duplicates: harmless
+        // for a pair, but a squad of fifteen on a four-point zone arrived three
+        // and four deep on the same coordinates.
+        var wanted = Mathf.Min(count, source.Count);
+        for (var i = 0; i < wanted; i++)
         {
             _pointCursor = (_pointCursor + 1) % source.Count;
             result.Add(source[_pointCursor]);

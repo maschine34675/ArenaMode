@@ -72,6 +72,21 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         while (Modes.ArenaMatchService.Current?.Mode?.HoldRespawn == true)
             yield return null;
 
+        // The loop ALSO exits when the match is gone, because Current then
+        // null-propagates to false — and that is a raid ending, not a release.
+        // Without this the routine would wake up and run the whole respawn
+        // pipeline into a raid already in teardown, with the owner-cleanup guard
+        // switched off. LiveKitRespawn re-checks after its waits for exactly this
+        // reason; this wait is unbounded and had no equivalent.
+        //
+        // Status rather than StandDown: by the time the coroutine resumes,
+        // ResetSession has already cleared StandDown.
+        if (game == null || game.Status != GameStatus.Started || !ArenaSession.IsActive)
+        {
+            IsRespawnInProgress = false;
+            yield break;
+        }
+
         // Timed in three parts because the whole thing grows: measured from a
         // playtest log, death to new gear went from 0.09s early in a raid to
         // 10.9s by minute twenty-three. Corpses looked like the culprit and were

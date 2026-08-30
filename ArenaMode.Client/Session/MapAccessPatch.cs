@@ -44,6 +44,20 @@ internal static class MapAccessPatch
                 if (keys == null || keys.Length == 0)
                     return true;
 
+                // The SERVER has to agree that this map is an arena map. The
+                // client list alone is not enough: if the two drifted apart, the
+                // waiver would unlock the map and the raid would then run as an
+                // ordinary one — real kit, real profile, on a map the player has
+                // no key for and no business being on.
+                var map = settings.SelectedLocation?.Id;
+                if (!ArenaClientConfig.IsMapEnabledOnServer(map))
+                {
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena: '{map}' is keycard-locked and the server does not have it enabled — "
+                        + "leaving the lock in place.");
+                    return true;
+                }
+
                 // Cleared the way the original clears it: KeyId names the key that
                 // was found and consumed, and leaving a stale one behind would have
                 // the raid claim a keycard the player is not carrying.

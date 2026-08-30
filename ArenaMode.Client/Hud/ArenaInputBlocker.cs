@@ -21,6 +21,34 @@ internal static class ArenaInputBlocker
 {
     internal static volatile bool Blocked;
 
+    /// <summary>
+    /// Who currently wants input blocked. Two panels can be up at once — the
+    /// scoreboard over the buy menu — and a plain bool let whichever CLOSED
+    /// first hand live game input to the one still open. That is the exact
+    /// condition these panels exist to prevent: a click on a kit fires the
+    /// weapon and a drag on the window turns the character.
+    ///
+    /// The bool stays the thing the patch reads; this only decides its value.
+    /// </summary>
+    private static readonly HashSet<object> Owners = new HashSet<object>();
+
+    /// <summary>Blocked while ANY owner still wants it.</summary>
+    internal static void Request(object owner, bool wanted)
+    {
+        if (owner == null)
+            return;
+
+        lock (Owners)
+        {
+            if (wanted)
+                Owners.Add(owner);
+            else
+                Owners.Remove(owner);
+
+            Blocked = Owners.Count > 0;
+        }
+    }
+
     private static bool _attempted;
 
     /// <summary>

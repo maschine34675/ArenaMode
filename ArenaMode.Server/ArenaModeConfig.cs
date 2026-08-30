@@ -60,9 +60,14 @@ public class ArenaModeConfig
         // the menu (MapAccessPatch) — the location itself is enabled already.
         //
         // Five bot zones here, not one: unlike Factory and Labyrinth the Lab
-        // spreads its spawns over Basement, Floor1, Floor2 and two gates, and
-        // the burst spawner needs all of them by name or it will keep feeding
-        // bots into a single corner of the map.
+        // spreads its spawns over Basement, Floor1, Floor2 and two gates.
+        //
+        // This setting feeds the SERVER side only — the generated fallback waves
+        // and the boss spawn entries, both matched against a zone by exact name,
+        // which is why the waves take one entry from this list each rather than
+        // the list itself. The client's burst spawner does NOT read it: it picks
+        // zones from BotSpawner's own list of every zone in the loaded scene, so
+        // it already had all five here.
         ["laboratory"] = new ArenaMapConfig
         {
             SpawnZones = "BotZoneFloor1,BotZoneFloor2,BotZoneBasement,BotZoneGate1,BotZoneGate2",

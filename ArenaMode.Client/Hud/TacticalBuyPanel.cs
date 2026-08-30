@@ -43,10 +43,10 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
     private void OnDestroy()
     {
         SetCursor(false);
-        ArenaInputBlocker.Blocked = false;
+        ArenaInputBlocker.Request(this, false);
     }
 
-    private static void SetCursor(bool show) => CursorRequestNode.Want(show);
+    private void SetCursor(bool show) => CursorVote.Set(this, show);
 
     private static TacticalMode Mode =>
         ArenaSession.IsActive ? ArenaMatchService.Current?.Mode as TacticalMode : null;
@@ -115,7 +115,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         // Set first and unconditionally, driven off the state rather than the
         // transition: a stranded block would leave the player unable to move or
         // shoot for the rest of the raid, and this way any desync self-heals.
-        ArenaInputBlocker.Blocked = open;
+        ArenaInputBlocker.Request(this, open);
 
         if (open)
             _nextCursorRetry = Time.unscaledTime + 0.5f;
