@@ -46,6 +46,44 @@ public static class LadderPicker
             _current = drawn;
     }
 
+    /// <summary>
+    /// Swaps one of the entry's interchangeable cartridges into every place it
+    /// holds ammunition.
+    ///
+    /// Without this a weapon carries the same round in every raid it ever
+    /// appears in, because the pool is generated once. It shows worst on
+    /// shotguns, where the choice between buckshot and a slug is most of what
+    /// the gun feels like.
+    ///
+    /// Every ammunition site is rewritten together — the magazine's stack, the
+    /// chambered round, and a revolver's individual chambers — because a
+    /// cylinder loaded with one round and chambered with another is not a
+    /// weapon anyone wants to be handed.
+    /// </summary>
+    private static void LoadWithOneOf(JsonNode entry)
+    {
+        if (entry["ammoChoices"] is not JsonArray choices || choices.Count == 0)
+            return;
+
+        int pick;
+        lock (Rng)
+            pick = Rng.Next(0, choices.Count);
+
+        var ammo = choices[pick]?.GetValue<string>();
+        if (string.IsNullOrEmpty(ammo) || entry["items"] is not JsonArray nodes)
+            return;
+
+        foreach (var node in nodes)
+        {
+            var slot = node?["slotId"]?.GetValue<string>();
+            if (slot == null)
+                continue;
+
+            if (slot == "cartridges" || slot == "patron_in_weapon" || slot.StartsWith("camora_"))
+                node!["_tpl"] = ammo;
+        }
+    }
+
     private static string Draw(string poolJson, int rungs, Action<string>? log)
     {
         try
@@ -73,6 +111,7 @@ public static class LadderPicker
                 var picked = pool[index]!.DeepClone();
                 picked["order"] = i;
                 picked["id"] = $"rung{i + 1:00}";
+                LoadWithOneOf(picked);
                 ladder.Add(picked);
             }
 

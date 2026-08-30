@@ -44,16 +44,61 @@ ammo_by_cal = collections.defaultdict(list)
 for tpl, t in items.items():
     p = t.get('_props', {})
     if p.get('Caliber') and is_kind(tpl, AMMO):
-        ammo_by_cal[p['Caliber']].append((tpl, p.get('PenetrationPower', 0), p.get('Damage', 0)))
-for cal in ammo_by_cal:
-    ammo_by_cal[cal].sort(key=lambda a: (a[1], a[2]))
+        pen = p.get('PenetrationPower', 0)
+        dmg = p.get('Damage', 0)
+        shots = max(1, p.get('ProjectileCount', 1))
+        # Ranked on what a round actually DOES, which is not its penetration.
+        # Sorting on penetration alone put buckshot at the bottom of every
+        # shotgun's list and handed out slugs every time — 8.5mm Magnum throws
+        # eight pellets for four hundred damage and reads as "penetration 2",
+        # while a Poleva slug reads as 17 and does a third of the work at the
+        # range this arena is fought at.
+        score = pen * 2.0 + dmg * shots * 0.25
+        ammo_by_cal[p['Caliber']].append((tpl, pen, dmg, shots, score))
 
-def pick_ammo(cal):
-    """Mid-upper of the caliber: capable without handing out the rarest AP."""
+for cal in ammo_by_cal:
+    ammo_by_cal[cal].sort(key=lambda a: a[4])
+
+
+def accepted_rounds(mag_tpl, weapon_tpl):
+    """What the magazine will actually take.
+
+    Calibre alone is not a filter. Grenade shrapnel carries a calibre field and
+    a high projectile count, so ranking by what a round DOES promoted F1 and
+    VOG-30 fragments above real cartridges and would have handed out a pistol
+    loaded with grenade splinters. The magazine's own filter is the authority on
+    what fits, so ask it.
+    """
+    for tpl in (mag_tpl, weapon_tpl):
+        carts = items.get(tpl, {}).get('_props', {}).get('Cartridges')
+        if carts:
+            allowed = carts[0].get('_props', {}).get('filters', [{}])[0].get('Filter')
+            if allowed:
+                return set(allowed)
+    return None
+
+
+def pick_ammo(cal, accepted=None):
+    """A few capable choices for this calibre, not one.
+
+    The pool is generated once and a weapon would otherwise carry the same
+    cartridge in every raid it ever appears in. Handing the server a short list
+    lets it draw one per raid, so a shotgun is buckshot one evening and slugs
+    the next. Taken from the upper middle of the calibre: capable, without
+    dealing out the rarest armour-piercing round every time.
+    """
     pool = ammo_by_cal.get(cal)
     if not pool:
         return None
-    return pool[min(len(pool) - 1, int(len(pool) * 0.6))]
+
+    if accepted:
+        narrowed = [c for c in pool if c[0] in accepted]
+        if narrowed:
+            pool = narrowed
+
+    top = min(len(pool) - 1, int(len(pool) * 0.75))
+    low = max(0, top - 2)
+    return pool[top], [c[0] for c in pool[low:top + 1]]
 
 # ---- one preset per weapon: the plainest build ------------------------------
 presets_by_weapon = collections.defaultdict(list)
@@ -74,11 +119,13 @@ for weap, ps in presets_by_weapon.items():
     cal = props.get('ammoCaliber')
     if not cal or cal in EXCLUDE_CAL:
         continue
-    ammo = pick_ammo(cal)
-    if not ammo:
-        continue
     preset = plainest(ps)
     mag = next((i for i in preset['_items'] if i.get('slotId') == 'mod_magazine'), None)
+
+    picked = pick_ammo(cal, accepted_rounds(mag['_tpl'] if mag else None, weap))
+    if not picked:
+        continue
+    ammo, ammo_choices = picked
     cap = 0
     if mag:
         carts = items.get(mag['_tpl'], {}).get('_props', {}).get('Cartridges')
@@ -90,13 +137,14 @@ for weap, ps in presets_by_weapon.items():
     if cap <= 0:
         continue
 
-    ammo_tpl, pen, dmg = ammo
+    ammo_tpl, pen, dmg, shots, _score = ammo
     # A rung you cannot get a kill with is a rung the ladder never leaves —
     # the toy gun (damage 1) would end the mode at tier one.
     if dmg < 20:
         continue
     score = pen * 2.0 + dmg * 0.4 + price.get(weap, 0) / 12000.0
-    candidates.append(dict(weapon=weap, preset=preset, cal=cal, ammo=ammo_tpl, pen=pen, dmg=dmg,
+    candidates.append(dict(weapon=weap, preset=preset, cal=cal, ammo=ammo_tpl,
+                           ammo_choices=ammo_choices, pen=pen, dmg=dmg,
                            cap=cap, mag=mag, internal=internal, score=score,
                            price=price.get(weap, 0), name=name_of(weap)))
 
@@ -268,7 +316,10 @@ def build_entry(order, c):
 
     spares = 3 if c['cap'] < 20 else 2
     return dict(id='rung' + str(order + 1).zfill(3), name=c['name'], order=order,
-                items=out, fill=dict(spareMagazines=spares, rigContents=[]))
+                items=out, fill=dict(spareMagazines=spares, rigContents=[]),
+                # Interchangeable cartridges for this weapon; the server swaps
+                # one in per raid so the same gun is not always loaded the same.
+                ammoChoices=c['ammo_choices'])
 
 ladder = [build_entry(i, c) for i, c in enumerate(rungs)]
 io.open(OUT, 'w', encoding='utf-8').write(json.dumps(ladder, indent=2))
