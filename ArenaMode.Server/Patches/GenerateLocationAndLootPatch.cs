@@ -34,11 +34,17 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
 
         try
         {
-            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config);
+            var mode = sessions.GetStatus(sessionId).mode;
+            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode);
             sessions.StashLocationClone(sessionId, __result);
+
+            var strategy = ArenaLocationMutator.IsQuietMap(mode)
+                ? "silent (the mode spawns its own squads)"
+                : ArenaLocationMutator.AbpsPresent ? "ABPS pump" : "generated waves";
+
             ArenaContext.Logger?.Info(
-                $"[ArenaMode] Location clone mutated for arena ({name}): botMax={mapConfig.BotMax}, " +
-                $"spawn strategy={(ArenaLocationMutator.AbpsPresent ? "ABPS pump" : "generated waves")}, " +
+                $"[ArenaMode] Location clone mutated for arena ({name}, mode={mode ?? "?"}): botMax={mapConfig.BotMax}, " +
+                $"spawn strategy={strategy}, " +
                 $"raid={ArenaContext.Config.RaidTimeMinutes}min, stripLoot={ArenaContext.Config.StripLoot}.");
         }
         catch (Exception ex)

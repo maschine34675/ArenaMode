@@ -52,6 +52,7 @@ public class Plugin : BaseUnityPlugin
         Hud.ArenaInputBlocker.Apply();
         gameObject.AddComponent<ArenaController>();
         gameObject.AddComponent<Hud.ArenaPanel>();
+        gameObject.AddComponent<Hud.TacticalBuyPanel>();
 
         Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 

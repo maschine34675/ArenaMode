@@ -14,6 +14,13 @@ public class KitDefinition
 {
     [JsonProperty("id")] public string Id;
     [JsonProperty("name")] public string Name;
+
+    /// <summary>
+    /// What this kit costs in a mode with an economy, in roubles. Filled in
+    /// by the server from the handbook sum unless the kit names its own, so a
+    /// hand-written kit is priced by its contents like every other.
+    /// </summary>
+    [JsonProperty("price")] public int Price;
     [JsonProperty("order")] public int Order;
     [JsonProperty("items")] public List<KitItemNode> Items = new List<KitItemNode>();
     [JsonProperty("fill")] public KitFill Fill = new KitFill();

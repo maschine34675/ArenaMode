@@ -14,6 +14,7 @@ internal static class ModeRegistry
             ["endless"] = () => new EndlessDeathmatchMode(),
             ["rounds"] = () => new RoundsMode(),
             ["gungame"] = () => new GunGameMode(),
+            ["tactical"] = () => new TacticalMode(),
         };
 
     public const string DefaultId = "endless";

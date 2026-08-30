@@ -60,6 +60,18 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
     private static IEnumerator RespawnRoutine(LocalGame game, Vector3 corpsePosition)
     {
+        // A mode may keep the player down. Tactical does: death costs you the
+        // round, and the next one is when you come back. Waited out BEFORE the
+        // kit is chosen, so whatever gets bought during the wait is what the
+        // player is handed — picking first would hand them the loadout they had
+        // when they died.
+        //
+        // The mode is re-read every frame rather than captured: it is a per-raid
+        // object, and holding a reference across a wait of unknown length is how
+        // a mode that ended keeps a player dead.
+        while (Modes.ArenaMatchService.Current?.Mode?.HoldRespawn == true)
+            yield return null;
+
         // Timed in three parts because the whole thing grows: measured from a
         // playtest log, death to new gear went from 0.09s early in a raid to
         // 10.9s by minute twenty-three. Corpses looked like the culprit and were

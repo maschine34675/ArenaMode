@@ -82,6 +82,12 @@ public sealed class RoundsMode : IArenaMode
     /// <summary>Instant respawn leaves no room for one.</summary>
     public float DeathReplaySeconds => 0f;
 
+    /// <summary>Death costs nothing here — you are back before the body lands.</summary>
+    public bool HoldRespawn => false;
+
+    /// <summary>Population comes from the ambient burst spawner.</summary>
+    public bool ControlsOwnSpawns => false;
+
     public string HudStatusLine
     {
         get

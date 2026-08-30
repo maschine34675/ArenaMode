@@ -58,6 +58,15 @@ public static class Settings
     public static ConfigEntry<int> GunGameSpareMagazines { get; private set; }
     public static ConfigEntry<bool> GunGameLoseTierOnDeath { get; private set; }
     public static ConfigEntry<bool> GunGameRedrawLadder { get; private set; }
+    public static ConfigEntry<int> TacticalSquadSize { get; private set; }
+    public static ConfigEntry<bool> TacticalSquadIsPmc { get; private set; }
+    public static ConfigEntry<float> TacticalBuySeconds { get; private set; }
+    public static ConfigEntry<float> TacticalRoundSeconds { get; private set; }
+    public static ConfigEntry<int> TacticalStartMoney { get; private set; }
+    public static ConfigEntry<int> TacticalKillReward { get; private set; }
+    public static ConfigEntry<int> TacticalWinBonus { get; private set; }
+    public static ConfigEntry<int> TacticalLossBonus { get; private set; }
+    public static ConfigEntry<float> TacticalReplaySeconds { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
@@ -335,8 +344,12 @@ public static class Settings
             "Match",
             "GameMode",
             "endless",
-            "Arena game mode for the next raid: \"endless\" (pure counter) or " +
-            "\"rounds\" (kill target / time limit with a scoreboard between rounds).");
+            new ConfigDescription(
+                "Arena game mode for the next raid. endless: a pure counter. " +
+                "rounds: kill target or time limit with a scoreboard between rounds. " +
+                "gungame: climb a ladder of weapons, one rung per kill. " +
+                "tactical: buy a loadout, fight one squad, and sit the round out if you fall.",
+                new AcceptableValueList<string>("endless", "rounds", "gungame", "tactical")));
 
         RoundKillTarget = config.Bind(
             "Match",
@@ -390,6 +403,74 @@ public static class Settings
             false,
             "Drop back one tier when you die. Off by default — losing progress " +
             "to a grenade you never saw is not what makes gun game fun.");
+
+        TacticalSquadSize = config.Bind(
+            "Tactical",
+            "SquadSize",
+            5,
+            new ConfigDescription(
+                "How many enemies a round spawns. The round is over when they are " +
+                "all dead — or when you are.",
+                new AcceptableValueRange<int>(1, 15)));
+
+        TacticalSquadIsPmc = config.Bind(
+            "Tactical",
+            "SquadIsPmc",
+            true,
+            "Send PMCs rather than scavs. PMCs are the fight this mode is built " +
+            "around; scavs make a round short and cheap.");
+
+        TacticalBuySeconds = config.Bind(
+            "Tactical",
+            "BuySeconds",
+            20f,
+            new ConfigDescription("How long the buy phase lasts.", new AcceptableValueRange<float>(5f, 90f)));
+
+        TacticalRoundSeconds = config.Bind(
+            "Tactical",
+            "RoundSeconds",
+            240f,
+            new ConfigDescription(
+                "Safety net on a round that never resolves — a squad member stuck " +
+                "somewhere unreachable would otherwise hold the match open forever.",
+                new AcceptableValueRange<float>(60f, 900f)));
+
+        TacticalStartMoney = config.Bind(
+            "Tactical",
+            "StartMoney",
+            400000,
+            "Roubles at the first buy phase. Kits are priced at their handbook " +
+            "value, so this is a currency you already have a feel for.");
+
+        TacticalKillReward = config.Bind(
+            "Tactical",
+            "KillReward",
+            35000,
+            "Roubles per kill.");
+
+        TacticalWinBonus = config.Bind(
+            "Tactical",
+            "WinBonus",
+            150000,
+            "Roubles for taking a round.");
+
+        TacticalLossBonus = config.Bind(
+            "Tactical",
+            "LossBonus",
+            80000,
+            "Roubles for losing one. Not charity: without it a bad round becomes " +
+            "an unrecoverable one, which is the failure mode every game with an " +
+            "economy has to design against.");
+
+        TacticalReplaySeconds = config.Bind(
+            "Tactical",
+            "ReplaySeconds",
+            3f,
+            new ConfigDescription(
+                "Seconds of KillcamReplay after you go down. This is the one mode " +
+                "with room for it — everywhere else you respawn before it could " +
+                "play. 0 switches it off. Needs the KillcamReplay mod installed.",
+                new AcceptableValueRange<float>(0f, 10f)));
 
         GunGameRedrawLadder = config.Bind(
             "Gun Game",

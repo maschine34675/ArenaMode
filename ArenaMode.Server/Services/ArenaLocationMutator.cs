@@ -31,9 +31,20 @@ public static class ArenaLocationMutator
         }
     }
 
-    public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config)
+    /// <summary>
+    /// Tactical wants an empty map between rounds, which is the opposite of what
+    /// every other mode wants. It spawns its own squad and the round ends when
+    /// that squad is dead — so a pump quietly feeding fresh bots in would mean
+    /// the round never ends. The mode reaches here because the client announces
+    /// it at raid start and the session remembers it.
+    /// </summary>
+    public static bool IsQuietMap(string? mode)
+        => string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase);
+
+    public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config, string? mode = null)
     {
         var raidSeconds = Math.Max(60, config.RaidTimeMinutes * 60);
+        var quiet = IsQuietMap(mode);
 
         // Raid timing: the clock must never pressure an arena session.
         location.EscapeTimeLimit = config.RaidTimeMinutes;
@@ -48,30 +59,61 @@ public static class ArenaLocationMutator
         location.BotMaxPvE = map.BotMax;
         location.MaxBotPerZone = map.MaxBotPerZone;
         location.BotSpawnPeriodCheck = map.BotSpawnPeriodCheckSeconds;
-        location.BotStart = 0;
-        location.BotStop = raidSeconds;
-        location.BotSpawnTimeOnMin = raidSeconds;
-        location.BotSpawnTimeOnMax = raidSeconds;
-        location.BotSpawnTimeOffMin = 0;
-        location.BotSpawnTimeOffMax = 0;
-        location.BotSpawnCountStep = 1;
-
-        // The continuous (non-waves) spawner only RUNS when these flags are set —
-        // ABPS's server turns them off when its scav waves are disabled in config,
-        // which would leave the arena with no scav spawn source at all.
-        location.NewSpawn = true;
-        location.OfflineNewSpawn = true;
-
-        if (location.BotLocationModifier != null)
+        if (quiet)
         {
-            location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayer = 999;
-            location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE = 999;
+            // A window that never opens. BotStart after BotStop leaves the pump
+            // — vanilla's and ABPS's alike — with no interval to spawn in, and
+            // clearing the flags stops the continuous spawner outright. Both,
+            // because either one alone is a single point of failure for a mode
+            // whose rounds cannot end while bots keep arriving.
+            location.BotStart = raidSeconds;
+            location.BotStop = 0;
+            location.BotSpawnTimeOnMin = 0;
+            location.BotSpawnTimeOnMax = 0;
+            location.BotSpawnTimeOffMin = raidSeconds;
+            location.BotSpawnTimeOffMax = raidSeconds;
+            location.BotSpawnCountStep = 0;
+            location.NewSpawn = false;
+            location.OfflineNewSpawn = false;
+
+            if (location.BotLocationModifier != null)
+            {
+                location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayer = 0;
+                location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE = 0;
+            }
+
+            // No scheduled waves either — the squad is the round.
+            location.Waves = [];
+        }
+        else
+        {
+            location.BotStart = 0;
+            location.BotStop = raidSeconds;
+            location.BotSpawnTimeOnMin = raidSeconds;
+            location.BotSpawnTimeOnMax = raidSeconds;
+            location.BotSpawnTimeOffMin = 0;
+            location.BotSpawnTimeOffMax = 0;
+            location.BotSpawnCountStep = 1;
+
+            // The continuous (non-waves) spawner only RUNS when these flags are set —
+            // ABPS's server turns them off when its scav waves are disabled in config,
+            // which would leave the arena with no scav spawn source at all.
+            location.NewSpawn = true;
+            location.OfflineNewSpawn = true;
+
+            if (location.BotLocationModifier != null)
+            {
+                location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayer = 999;
+                location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE = 999;
+            }
+
+            if (!AbpsPresent)
+                location.Waves = GenerateAssaultWaves(map, raidSeconds).ToList();
         }
 
-        if (!AbpsPresent)
-            location.Waves = GenerateAssaultWaves(map, raidSeconds).ToList();
-
-        MutateBossSpawns(location, map, raidSeconds);
+        // Bosses are off in a quiet map for the same reason as the waves: a boss
+        // arriving unbidden is a bot the round is not counting.
+        MutateBossSpawns(location, map, raidSeconds, quiet || map.DisableBosses, quiet);
 
         if (config.StripLoot)
             location.Loot = [];
@@ -111,24 +153,34 @@ public static class ArenaLocationMutator
         };
     }
 
-    private static void MutateBossSpawns(LocationBase location, ArenaMapConfig map, int raidSeconds)
+    private static void MutateBossSpawns(LocationBase location, ArenaMapConfig map, int raidSeconds,
+        bool disableBosses, bool quietMap)
     {
         var spawns = location.BossLocationSpawn?.ToList() ?? [];
 
         foreach (var spawn in spawns)
         {
+            // In a quiet map even the PMC entries are silenced: the round counts
+            // the squad it spawned, and anything arriving on its own is a bot the
+            // count does not know about.
+            if (disableBosses && quietMap)
+            {
+                spawn.BossChance = 0;
+                continue;
+            }
+
             if (IsPmc(spawn.BossName))
             {
                 spawn.BossChance = 100;
                 spawn.BossEscortAmount = "1";
             }
-            else if (map.DisableBosses)
+            else if (disableBosses)
             {
                 spawn.BossChance = 0;
             }
         }
 
-        if (map.PmcWaveIntervalSeconds > 0)
+        if (!quietMap && map.PmcWaveIntervalSeconds > 0)
         {
             var slots = Math.Min(10, Math.Max(0, (raidSeconds - 120) / map.PmcWaveIntervalSeconds));
             for (var i = 0; i < slots; i++)

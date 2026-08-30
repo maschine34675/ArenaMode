@@ -58,9 +58,24 @@ internal static class BurstSpawnService
         RecentScavInjections.Clear();
     }
 
+    /// <summary>
+    /// Whether a mode has taken the population over, in which case this service
+    /// stays out of the way. Tactical does: its round ends when the squad it
+    /// spawned is dead, so an ambient top-up would mean the round never ends.
+    /// The server silences the engine's own pumps for that mode; this silences
+    /// ours.
+    ///
+    /// Derived from the running mode rather than latched: Reset() clears every
+    /// flag in this class and runs from ArenaSession's raid-start handler, which
+    /// fires in the same event as the one that starts the match. A latched flag
+    /// would depend on those two subscriptions keeping their order.
+    /// </summary>
+    public static bool ManualControl =>
+        Modes.ArenaMatchService.Current?.Mode?.ControlsOwnSpawns == true;
+
     public static void Tick()
     {
-        if (!ArenaSession.IsActive || Time.time < _nextAttemptAt)
+        if (ManualControl || !ArenaSession.IsActive || Time.time < _nextAttemptAt)
             return;
 
         // Re-check at most every 2s even when nothing needs spawning.
@@ -171,7 +186,7 @@ internal static class BurstSpawnService
     /// creation data and spawns.
     /// </summary>
     private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role,
-        BotDifficulty difficulty, bool isPmc)
+        BotDifficulty difficulty, bool isPmc, int count = BotsPerBurst, Action<BotOwner> observer = null)
     {
         var ledger = isPmc ? RecentPmcInjections : RecentScavInjections;
         var reserved = 0;
@@ -187,7 +202,7 @@ internal static class BurstSpawnService
 
             // Profile generation is best-effort: the request can come back with
             // fewer profiles than asked for, or with none at all.
-            var data = await BotCreationData.Create(profileParams, spawner._botCreator, BotsPerBurst, spawner);
+            var data = await BotCreationData.Create(profileParams, spawner._botCreator, count, spawner);
             if (data == null || data.Count == 0)
             {
                 Plugin.ModLogger.LogWarning($"Arena burst spawn: no profiles for {role} — request dropped.");
@@ -215,7 +230,23 @@ internal static class BurstSpawnService
             for (var i = 0; i < reserved; i++)
                 ledger.Add(Time.time);
 
-            spawner.SpawnBotsInZoneOnPositions(points, zone, data, bot => OnBotSpawned(bot, ledger, role));
+            spawner.SpawnBotsInZoneOnPositions(points, zone, data, bot =>
+            {
+                OnBotSpawned(bot, ledger, role);
+
+                // The observer is how a mode learns WHICH bots are its squad.
+                // Wrapped so a throw in someone else's callback cannot take the
+                // ledger bookkeeping down with it.
+                try
+                {
+                    observer?.Invoke(bot);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.ModLogger.LogWarning($"Arena spawn observer failed: {ex.Message}");
+                }
+            });
+
             Plugin.ModLogger.LogInfo($"Arena burst spawn: dispatched {reserved}x {role}.");
         }
         catch (Exception ex)
@@ -223,6 +254,55 @@ internal static class BurstSpawnService
             ReleaseReserved(ledger, reserved);
             Plugin.ModLogger.LogWarning($"Arena burst spawn of {role} failed: {ex.Message}");
             RetrySoon();
+        }
+    }
+
+    /// <summary>
+    /// Spawns one squad now and reports each bot as it arrives.
+    ///
+    /// Deliberately built on the same path as the ambient burst: that path
+    /// already knows the two placement filters it has to bypass, and a second
+    /// implementation would have to learn them again the hard way. Returns how
+    /// many bots were REQUESTED — profile generation is a server round trip and
+    /// can come back short, so the caller counts arrivals through the observer
+    /// rather than trusting this number.
+    /// </summary>
+    public static int SpawnSquad(int count, bool asPmc, BotDifficulty difficulty, Action<BotOwner> observer)
+    {
+        if (count <= 0)
+            return 0;
+
+        try
+        {
+            if (!Singleton<GameWorld>.Instantiated || !(Singleton<IBotGame>.Instance is { } botGame))
+                return 0;
+
+            var spawner = botGame.BotsController?.BotSpawner;
+            if (spawner == null)
+                return 0;
+
+            var zone = PickZone(spawner);
+            if (zone == null)
+            {
+                Plugin.ModLogger.LogWarning("Arena squad spawn: no bot zone — squad not dispatched.");
+                return 0;
+            }
+
+            var role = asPmc
+                ? (_nextPmcIsBear ? WildSpawnType.pmcBEAR : WildSpawnType.pmcUSEC)
+                : WildSpawnType.assault;
+
+            if (asPmc)
+                _nextPmcIsBear = !_nextPmcIsBear;
+
+            Plugin.ModLogger.LogInfo($"Arena squad spawn: requesting {count}x {role} ({difficulty}).");
+            SpawnPair(spawner, zone, role, difficulty, asPmc, count, observer);
+            return count;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena squad spawn failed: {ex.Message}");
+            return 0;
         }
     }
 

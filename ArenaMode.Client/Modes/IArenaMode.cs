@@ -34,6 +34,29 @@ public interface IArenaMode
     /// </summary>
     float DeathReplaySeconds { get; }
 
+    /// <summary>
+    /// True while the mode wants the player to stay dead.
+    ///
+    /// The arena's whole identity is instant respawn, so this is false almost
+    /// everywhere. Tactical inverts it on purpose: dying costs you the round,
+    /// and you come back when the next one starts. The respawn routine waits on
+    /// this BEFORE it picks a kit, so whatever the player buys while dead is
+    /// what they are handed.
+    /// </summary>
+    bool HoldRespawn { get; }
+
+    /// <summary>
+    /// True when the mode spawns its own bots and the ambient top-up must stay
+    /// out of the way.
+    ///
+    /// Asked, not announced. A mode that switched a flag on at match start would
+    /// depend on running after ArenaSession's raid-start reset, which clears the
+    /// burst service — an ordering that holds today and would break silently the
+    /// day the two subscriptions are reordered. Asking the running mode cannot
+    /// go out of date.
+    /// </summary>
+    bool ControlsOwnSpawns { get; }
+
     void OnMatchStart(ArenaMatch match);
 
     /// <summary>Per-frame while the match runs (main thread).</summary>
