@@ -250,31 +250,56 @@ public sealed class GunGameMode : IArenaMode
     /// </summary>
     private IEnumerator SwapAfterPreload(LocalGame host, Player player, KitDefinition kit)
     {
-        // A no-op once this kit is warm, which it is for all but the first promotion.
-        yield return KitBundlePreloader.Preload(kit);
+        KitDefinition current;
 
-        _preloading = false;
-
-        // The preload yields, sometimes for seconds. Re-check everything.
-        if (player == null
-            || player.HealthController == null
-            || !player.HealthController.IsAlive
-            || Combat.WeaponSwapService.IsSwapping
-            || Respawn.ArenaRespawnDriver.IsRespawnInProgress
-            || !ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer, player))
+        // try/finally, not a flag cleared on each exit: every path out of this
+        // loop — including the coroutine being stopped when the player object
+        // dies — has to release the gate, or Tick never starts another swap.
+        try
         {
-            yield break;
+            while (true)
+            {
+                // A no-op once this kit is warm.
+                yield return KitBundlePreloader.Preload(kit);
+
+                // The preload yields, sometimes for seconds. Re-check everything.
+                if (player == null
+                    || player.HealthController == null
+                    || !player.HealthController.IsAlive
+                    || Combat.WeaponSwapService.IsSwapping
+                    || Respawn.ArenaRespawnDriver.IsRespawnInProgress
+                    || !ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer, player))
+                {
+                    yield break;
+                }
+
+                current = CurrentRung;
+                if (current == null)
+                {
+                    _loadoutDirty = false;
+                    yield break;
+                }
+
+                // Whatever the tier is NOW is what the player gets, so a burst of
+                // kills collapses into one swap — but it has to be a rung THIS
+                // routine warmed. Kills land freely across the yield above, and
+                // after a ladder redraw every rung is a weapon the raid has never
+                // built, so taking the new tier without warming it would hand the
+                // draw a weapon with no prefab pool: exactly the softlock the
+                // comment above this method exists to prevent. Loop instead, and
+                // it converges — each pass warms one more rung.
+                if (ReferenceEquals(current, kit))
+                    break;
+
+                kit = current;
+            }
+        }
+        finally
+        {
+            _preloading = false;
         }
 
-        // Built here rather than when the kill landed: whatever the tier is NOW
-        // is what the player gets, so a burst of kills collapses into one swap.
         var tierAtSwap = _tier;
-        var current = CurrentRung;
-        if (current == null)
-        {
-            _loadoutDirty = false;
-            yield break;
-        }
 
         Weapon weapon;
         List<Item> spares;

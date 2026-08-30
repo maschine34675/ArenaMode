@@ -88,8 +88,36 @@ def armor_class(tpl):
         return 0
 
 
+def covers_eyes(tpl):
+    """Whether the item armours the eye zone — i.e. sits in front of them.
+
+    BSG's Maska preset ships with its face shield fitted, and the generator took
+    it along without asking what it was. It is genuine class 6 protection, and
+    in an arena it is a bad trade: it stands between the player and the fight,
+    most visibly while falling over dead, and it was never chosen. Detected by
+    the zone it protects rather than by name, so a modded shield is caught too.
+    """
+    p = items.get(tpl, {}).get('_props', {})
+    zones = set(p.get('armorColliders') or []) | set(p.get('armorPlateColliders') or [])
+    return 'Eyes' in zones
+
+
+def surviving(preset):
+    """The preset items that will still be there after graft() has run.
+
+    graft() drops anything that armours the eyes, and everything hanging off it.
+    Ranking a preset by parts it is about to lose is how the Maska came to be
+    scored class 6: the only class-6 thing in that build is the face shield this
+    generator removes. What the player actually receives is class 4 — the same
+    class as a dozen helmets that leave the ears free.
+    """
+    dropped = {n['_id'] for n in preset['_items'] if covers_eyes(n['_tpl'])}
+    return [n for n in preset['_items']
+            if n['_id'] not in dropped and n.get('parentId') not in dropped]
+
+
 def preset_class(preset):
-    return max((armor_class(n['_tpl']) for n in preset['_items']), default=0)
+    return max((armor_class(n['_tpl']) for n in surviving(preset)), default=0)
 
 
 def coverage(preset):
@@ -100,7 +128,7 @@ def coverage(preset):
     Sorting by component count then quietly preferred the emptiest one at every
     rung — the class went up and the protection did not."""
     zones = set()
-    for n in preset['_items']:
+    for n in surviving(preset):
         p = items.get(n['_tpl'], {}).get('_props', {})
         for key in ('armorColliders', 'armorPlateColliders'):
             zones.update(p.get(key) or [])
@@ -185,12 +213,19 @@ def pick_helmet(target, used):
     helmet one class off the target wins over a closed one that hits it exactly,
     and an ear-free helmet two classes off does not.
 
-    That is not a free win everywhere. Among the helmets BSG ships a preset for,
-    classes 2, 5 and 6 have NO ear-free option at all — the pool there is the
-    Kolpak, the Rys-T, the Altyn and the Maska. Classes 2 and 5 can reach a
-    neighbouring class and get their hearing back; class 6 cannot, and keeps its
-    closed helmet. At the top of the ladder that reads correctly: wearing a Maska
-    means wearing an earplug, and the kit is honest about the trade.
+    Where it costs something is class 5: no helmet at that class leaves the ears
+    free, so those sets drop to a class-4 one. That is the single real trade in
+    the table, and it is the trade this rule exists to make.
+
+    Class 6 costs nothing, which took a second look to see. The only class-6
+    helmet in the pool is the Maska, and it reads class 6 solely because of the
+    face shield graft() removes — see surviving(). What it actually delivered was
+    class 4, the same as the ear-free helmets that now take its place. The four
+    kits at the top of the ladder had been giving up every real headset for a
+    class they were never getting.
+
+    Class 2 gains rather than loses: no ear-free helmet exists that low either,
+    so those sets reach UP to a class-3 one.
 
     Then variety: a helmet this run has already used loses to one it has not.
     """
@@ -236,20 +271,6 @@ def build_sets():
 
 
 # ------------------------------------------------------------ assembling
-def covers_eyes(tpl):
-    """Whether the item armours the eye zone — i.e. sits in front of them.
-
-    BSG's Maska preset ships with its face shield fitted, and the generator took
-    it along without asking what it was. It is genuine class 6 protection, and
-    in an arena it is a bad trade: it stands between the player and the fight,
-    most visibly while falling over dead, and it was never chosen. Detected by
-    the zone it protects rather than by name, so a modded shield is caught too.
-    """
-    p = items.get(tpl, {}).get('_props', {})
-    zones = set(p.get('armorColliders') or []) | set(p.get('armorPlateColliders') or [])
-    return 'Eyes' in zones
-
-
 def graft(out, preset, root_id, slot):
     """Copy a preset tree in, reparented onto the equipment root."""
     dropped = {n['_id'] for n in preset['_items'] if covers_eyes(n['_tpl'])}
@@ -313,10 +334,16 @@ def pick_earpiece(nodes, used):
     """
     worn = {n['_tpl'] for n in nodes}
     fits = [e for e in EARPIECES if compatible(e, worn)]
-    if not fits:
+
+    # The last resort really is one: it is in no trader assort and no loot table
+    # in this version, so it is reached only when the helmet leaves no other
+    # option. Keeping it in the rotation handed it a kit whose helmet was
+    # perfectly open, which is not what "last resort" means.
+    pool = [e for e in fits if e != EARPIECE_LAST_RESORT] or fits
+    if not pool:
         return None
 
-    chosen = min(fits, key=lambda e: (used[e], EARPIECES.index(e)))
+    chosen = min(pool, key=lambda e: (used[e], EARPIECES.index(e)))
     used[chosen] += 1
     return chosen
 
