@@ -55,6 +55,20 @@ public class ArenaModeConfig
             DisableBosses = false,
             BurstMinAliveBots = 10,
         },
+
+        // The Lab. Selectable only because an arena raid waives its keycard in
+        // the menu (MapAccessPatch) — the location itself is enabled already.
+        //
+        // Five bot zones here, not one: unlike Factory and Labyrinth the Lab
+        // spreads its spawns over Basement, Floor1, Floor2 and two gates, and
+        // the burst spawner needs all of them by name or it will keep feeding
+        // bots into a single corner of the map.
+        ["laboratory"] = new ArenaMapConfig
+        {
+            SpawnZones = "BotZoneFloor1,BotZoneFloor2,BotZoneBasement,BotZoneGate1,BotZoneGate2",
+            BotMax = 20,
+            BurstMinAliveBots = 10,
+        },
     };
 
     public bool IsMapEnabled(string? map)

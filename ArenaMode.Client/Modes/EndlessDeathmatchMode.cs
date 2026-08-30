@@ -19,6 +19,9 @@ public sealed class EndlessDeathmatchMode : IArenaMode
 
     public bool IsComplete => false;
 
+    /// <summary>Instant respawn leaves no room for one.</summary>
+    public float DeathReplaySeconds => 0f;
+
     public string HudStatusLine => null;
 
     public void OnMatchStart(ArenaMatch match) => _match = match;

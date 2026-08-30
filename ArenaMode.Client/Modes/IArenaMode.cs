@@ -23,6 +23,17 @@ public interface IArenaMode
     /// </summary>
     string HudStatusLine { get; }
 
+    /// <summary>
+    /// How many seconds of death replay this mode wants, or 0 for none.
+    ///
+    /// Zero everywhere the player respawns instantly: a replay would play over a
+    /// live body already standing somewhere else. A mode that makes death COST
+    /// something — a wait for the next round — is the one place a replay has
+    /// room, and it says so here. Read through ArenaSession.ReplaySeconds, which
+    /// is the surface KillcamReplay reflects on.
+    /// </summary>
+    float DeathReplaySeconds { get; }
+
     void OnMatchStart(ArenaMatch match);
 
     /// <summary>Per-frame while the match runs (main thread).</summary>

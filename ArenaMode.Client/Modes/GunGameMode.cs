@@ -87,6 +87,9 @@ public sealed class GunGameMode : IArenaMode
         }
     }
 
+    /// <summary>Instant respawn leaves no room for one.</summary>
+    public float DeathReplaySeconds => 0f;
+
     public string HudStatusLine
     {
         get

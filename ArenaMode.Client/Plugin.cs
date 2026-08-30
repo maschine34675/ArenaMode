@@ -34,6 +34,7 @@ public class Plugin : BaseUnityPlugin
         Modes.ArenaMatchService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
         SkipPreRaidScreensPatch.Enable();
+        MapAccessPatch.Enable();
 
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());

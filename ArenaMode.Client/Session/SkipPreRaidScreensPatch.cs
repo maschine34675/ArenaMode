@@ -35,29 +35,8 @@ internal static class SkipPreRaidScreensPatch
         new SkipConfirmationPatch().Enable();
     }
 
-    /// <summary>
-    /// Whether this raid, as configured right now, is the one ArenaMode will take
-    /// over. The session is not armed yet at menu time — LocalRaidStarted, which
-    /// arms it, is several screens downstream — so the same conditions have to be
-    /// read off the raid settings instead.
-    /// </summary>
     private static bool WouldBeArena(RaidSettings settings)
-    {
-        if (!Settings.Enabled.Value || !Settings.SkipPreRaidScreens.Value || settings == null)
-            return false;
-
-        // PMC only, matching the raid-start gate: a scav run's post-raid path
-        // does not go through the profile-protection patch, so the arena never
-        // claims one — and must not skip its screens either.
-        if (!settings.IsPmc)
-            return false;
-
-        var location = settings.SelectedLocation?.Id;
-        if (!Settings.IsArenaMap(location))
-            return false;
-
-        return !FikaCompatCheck.IsFikaLoaded && ArenaServerClient.IsServerModAvailable;
-    }
+        => Settings.SkipPreRaidScreens.Value && ArenaClaim.WouldTakeOver(settings);
 
     private sealed class SkipGameSettingsPatch : ModulePatch
     {

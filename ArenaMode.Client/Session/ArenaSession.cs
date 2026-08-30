@@ -23,6 +23,27 @@ public static class ArenaSession
     public static bool IsActive { get; private set; }
 
     /// <summary>
+    /// How long a death replay may run right now, in seconds. Zero means none.
+    ///
+    /// This is API. KillcamReplay reflects on the type and property NAMES, so
+    /// they cannot be renamed without changing that mod in the same commit — the
+    /// same contract IsActive already carries. Answered live from the running
+    /// mode rather than latched: modes are per-raid objects, and a stale answer
+    /// here shows up as a replay over a live body.
+    /// </summary>
+    public static float ReplaySeconds
+    {
+        get
+        {
+            if (!IsActive)
+                return 0f;
+
+            var mode = Modes.ArenaMatchService.Current?.Mode;
+            return mode?.DeathReplaySeconds ?? 0f;
+        }
+    }
+
+    /// <summary>
     /// Survives past raid end (IsActive is cleared at GameEnd) — the session-result
     /// screens render AFTER that and need to know whether they show an arena raid.
     /// Cleared when the next non-arena raid starts.

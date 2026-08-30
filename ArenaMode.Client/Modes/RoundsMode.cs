@@ -79,6 +79,9 @@ public sealed class RoundsMode : IArenaMode
 
     public event Action<int> OnRoundStarted;
 
+    /// <summary>Instant respawn leaves no room for one.</summary>
+    public float DeathReplaySeconds => 0f;
+
     public string HudStatusLine
     {
         get
