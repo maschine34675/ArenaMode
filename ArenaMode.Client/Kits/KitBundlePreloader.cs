@@ -18,21 +18,40 @@ namespace ArenaMode.Kits;
 /// </summary>
 public static class KitBundlePreloader
 {
-    // Pools are per-raid (PoolsCategory.Raid) — cleared on raid end via ResetSession.
-    private static readonly HashSet<string> PreloadedThisRaid = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// What has already been warmed, tracked by TEMPLATE rather than by kit.
+    ///
+    /// Keying this on the kit's id looked equivalent and was not. Gun Game
+    /// assembles its loadout — KitMerge names the result "basekit+rung" — and
+    /// with random kits the base is redrawn every life, so the id was new every
+    /// single time and the cache never once hit. Every respawn therefore paid
+    /// for a full pool build, which is why death-to-respawn grew from under a
+    /// second to thirteen over one raid while the respawn pipeline itself stayed
+    /// flat at a third of a second.
+    ///
+    /// Templates are the honest unit anyway: kits share armour, magazines and
+    /// ammunition, so warming by content skips work that warming by name could
+    /// never see was already done.
+    /// </summary>
+    private static readonly HashSet<string> WarmedTemplates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-    public static void Reset() => PreloadedThisRaid.Clear();
+    // Pools are per-raid (PoolsCategory.Raid) — cleared on raid end via ResetSession.
+    public static void Reset() => WarmedTemplates.Clear();
 
     /// <summary>Coroutine: resolves all kit templates and awaits the bundle/pool load.</summary>
     public static IEnumerator Preload(KitDefinition kit)
     {
-        if (kit == null || PreloadedThisRaid.Contains(kit.Id))
+        if (kit == null)
+            yield break;
+
+        var cold = ColdTemplates(kit);
+        if (cold.Count == 0)
             yield break;
 
         Task task = null;
         try
         {
-            task = PreloadAsync(kit);
+            task = PreloadAsync(cold);
         }
         catch (Exception ex)
         {
@@ -49,9 +68,35 @@ public static class KitBundlePreloader
         }
         else
         {
-            PreloadedThisRaid.Add(kit.Id);
-            Plugin.ModLogger.LogInfo($"Kit '{kit.Id}': item bundles preloaded.");
+            foreach (var tpl in cold)
+                WarmedTemplates.Add(tpl);
+
+            Plugin.ModLogger.LogInfo($"Kit '{kit.Id}': {cold.Count} new item bundles preloaded.");
         }
+    }
+
+    /// <summary>The kit's templates that have not been warmed yet.</summary>
+    private static List<string> ColdTemplates(KitDefinition kit)
+    {
+        var cold = new List<string>();
+
+        void Consider(string tpl)
+        {
+            if (!string.IsNullOrEmpty(tpl) && !WarmedTemplates.Contains(tpl) && !cold.Contains(tpl))
+                cold.Add(tpl);
+        }
+
+        foreach (var node in kit.Items)
+        {
+            // The root maps onto the live equipment and has nothing to load.
+            if (!string.IsNullOrEmpty(node.ParentId))
+                Consider(node.Tpl);
+        }
+
+        foreach (var entry in kit.Fill?.RigContents ?? new List<KitStackedItem>())
+            Consider(entry.Tpl);
+
+        return cold;
     }
 
     /// <summary>
@@ -86,7 +131,7 @@ public static class KitBundlePreloader
             yield return Preload(rung);
     }
 
-    private static Task PreloadAsync(KitDefinition kit)
+    private static Task PreloadAsync(List<string> templates)
     {
         var factory = Singleton<ItemFactory>.Instance;
         var objectsFactory = Singleton<ObjectsFactory>.Instance;
@@ -111,14 +156,8 @@ public static class KitBundlePreloader
             }
         }
 
-        foreach (var node in kit.Items)
-        {
-            if (!string.IsNullOrEmpty(node.ParentId))
-                Collect(node.Tpl);
-        }
-
-        foreach (var entry in kit.Fill?.RigContents ?? new List<KitStackedItem>())
-            Collect(entry.Tpl);
+        foreach (var tpl in templates)
+            Collect(tpl);
 
         var keys = resources
             .Where(resource => resource != ResourceKey.EmptyResourceKey)

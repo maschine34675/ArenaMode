@@ -163,11 +163,28 @@ def build_sets():
 
 
 # ------------------------------------------------------------ assembling
+def covers_eyes(tpl):
+    """Whether the item armours the eye zone — i.e. sits in front of them.
+
+    BSG's Maska preset ships with its face shield fitted, and the generator took
+    it along without asking what it was. It is genuine class 6 protection, and
+    in an arena it is a bad trade: it stands between the player and the fight,
+    most visibly while falling over dead, and it was never chosen. Detected by
+    the zone it protects rather than by name, so a modded shield is caught too.
+    """
+    p = items.get(tpl, {}).get('_props', {})
+    zones = set(p.get('armorColliders') or []) | set(p.get('armorPlateColliders') or [])
+    return 'Eyes' in zones
+
+
 def graft(out, preset, root_id, slot):
     """Copy a preset tree in, reparented onto the equipment root."""
+    dropped = {n['_id'] for n in preset['_items'] if covers_eyes(n['_tpl'])}
     remap = {n['_id']: uuid.uuid4().hex[:24] for n in preset['_items']}
     proot = next(i for i in preset['_items'] if not i.get('parentId'))
     for node in preset['_items']:
+        if node['_id'] in dropped or node.get('parentId') in dropped:
+            continue
         entry = dict(_id=remap[node['_id']], _tpl=node['_tpl'])
         if node is proot:
             entry['parentId'] = root_id
