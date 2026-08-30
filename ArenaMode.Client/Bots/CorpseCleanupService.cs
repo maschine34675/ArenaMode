@@ -236,9 +236,17 @@ internal static class CorpseCleanupService
             // pool it came from, where a living bot can use it again.
             StripGear(corpse);
 
+            // AFTER the strip, and this matters: the captured list included the
+            // renderers of every worn model, and those models have just gone
+            // back to their pools for living bots to use. Re-asserting the
+            // hidden state on them later would blank a piece of armour on
+            // somebody who is still walking around — the same recycling trap the
+            // weapon registry exists for. What is left belongs to the corpse.
             Trimmed[corpse] = new TrimState
             {
-                Body = renderers,
+                Body = Settings.StripCorpseGear.Value
+                    ? corpse.GetComponentsInChildren<Renderer>(true)
+                    : renderers,
                 Weapon = weaponRenderers,
                 WeaponObject = weapon,
             };
@@ -342,7 +350,19 @@ internal static class CorpseCleanupService
 
                 try
                 {
-                    EFT.InventoryLogic.ItemManipulator.RemoveWithoutRestrictions(item, controller);
+                    var result = EFT.InventoryLogic.ItemManipulator
+                        .RemoveWithoutRestrictions(item, controller);
+
+                    // Taking the item out of the slot is only half of it. The
+                    // container is changed immediately, but the NOTIFICATION
+                    // rides on the returned result — and the body's slot view
+                    // destroys its model and hands the prefab back only when it
+                    // hears about it. Discarding the result, which is what this
+                    // did at first, detaches the gear and frees nothing at all.
+                    if (result.Succeeded)
+                        result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);
+                    else
+                        Plugin.ModLogger.LogWarning($"Arena corpse strip: {item.TemplateId} stayed on: {result.Error}");
                 }
                 catch (Exception inner)
                 {

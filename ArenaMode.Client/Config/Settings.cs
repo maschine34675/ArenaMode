@@ -32,6 +32,7 @@ public static class Settings
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
     public static ConfigEntry<bool> StripCorpseGear { get; private set; }
+    public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
@@ -246,6 +247,13 @@ public static class Settings
             "Take the gear off corpses once they are hidden. Every worn item is " +
             "an instantiated model, and late-raid bodies wear far more of them " +
             "than early ones — removing it hands each model back to its pool.");
+
+        NoCorpseLooting = config.Bind(
+            "Performance",
+            "NoCorpseLooting",
+            true,
+            "Stop bots working over corpses. They swap gear on the spot and drop " +
+            "what they were wearing, and nothing ever cleans a dropped item up.");
 
         PmcFloor = config.Bind(
             "Bots",

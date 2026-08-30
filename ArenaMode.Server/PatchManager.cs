@@ -31,7 +31,6 @@ public sealed class PatchManager(
         new AdjustBotHostilityPatch().Enable();
         new BotCapPatch().Enable();
         new BotTierScalePatch().Enable();
-        new NoCorpseLootingPatch().Enable();
 
         logger.Info("[ArenaMode] Server patches enabled.");
         return Task.CompletedTask;
