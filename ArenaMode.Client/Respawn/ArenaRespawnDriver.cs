@@ -60,11 +60,20 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
     private static IEnumerator RespawnRoutine(LocalGame game, Vector3 corpsePosition)
     {
+        // Timed in three parts because the whole thing grows: measured from a
+        // playtest log, death to new gear went from 0.09s early in a raid to
+        // 10.9s by minute twenty-three. Corpses looked like the culprit and were
+        // not — clearing them changed nothing — so the next guess gets measured
+        // rather than argued about. Whichever number climbs is the answer.
+        var startedAt = Time.realtimeSinceStartup;
+
         var kit = KitCatalog.GetSelectedKit();
+        var kitPickedAt = Time.realtimeSinceStartup;
 
         // No-op when this kit was already preloaded this raid (raid-start swap);
         // covers a mid-raid kit switch via F12.
         yield return KitBundlePreloader.Preload(kit);
+        var preloadedAt = Time.realtimeSinceStartup;
 
         var request = new RespawnRequest
         {
@@ -107,6 +116,13 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         }
 
         IsRespawnInProgress = false;
+
+        var now = Time.realtimeSinceStartup;
+        Plugin.ModLogger.LogInfo(
+            $"Arena respawn timing: kit {kitPickedAt - startedAt:0.00}s, "
+            + $"bundles {preloadedAt - kitPickedAt:0.00}s, "
+            + $"pipeline {now - preloadedAt:0.00}s, total {now - startedAt:0.00}s.");
+
         ArenaEvents.RaisePlayerRespawned(RespawnEngineState.LastRespawnedPlayer);
     }
 

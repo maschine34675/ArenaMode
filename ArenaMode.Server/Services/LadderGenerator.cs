@@ -32,6 +32,7 @@ namespace ArenaMode.Server.Services;
 public class LadderGenerator(
     TemplateTable templateTable,
     GlobalTable globalTable,
+    LocaleTable localeTable,
     ISptLogger<LadderGenerator> logger)
     : IOnLoad
 {
@@ -101,6 +102,28 @@ public class LadderGenerator(
         => templateTable.Handbook?.Items?.FirstOrDefault(i => i.Id == tpl)?.Price ?? 0d;
 
     private static string NewId() => Guid.NewGuid().ToString("N")[..24];
+
+    private Dictionary<string, string>? _names;
+
+    /// <summary>
+    /// The name the game shows, not the one the database files use internally.
+    ///
+    /// This is the rung title the player reads on every promotion, and reading
+    /// the template's own field gives "weapon_izhmash_aks74u_545x39" where the
+    /// offline generator gave "Kalashnikov AKS-74U". Falls back to the internal
+    /// name, because not every template has a locale entry.
+    /// </summary>
+    private string NameOf(MongoId tpl)
+    {
+        _names ??= localeTable.Global.TryGetValue("en", out var lazy)
+            ? lazy.Value as Dictionary<string, string> ?? []
+            : [];
+
+        if (_names.TryGetValue($"{tpl} Name", out var localised) && !string.IsNullOrWhiteSpace(localised))
+            return localised;
+
+        return _items.TryGetValue(tpl, out var item) ? item.Name ?? tpl.ToString() : tpl.ToString();
+    }
 
     // ------------------------------------------------------------ ammunition
 
@@ -307,7 +330,7 @@ public class LadderGenerator(
         return new JsonObject
         {
             ["id"] = $"rung{(order + 1):000}",
-            ["name"] = _items.TryGetValue(c.Weapon, out var w) ? w.Name : c.Weapon.ToString(),
+            ["name"] = NameOf(c.Weapon),
             ["order"] = order,
             ["items"] = nodes,
             ["fill"] = new JsonObject
@@ -435,19 +458,28 @@ public class LadderGenerator(
             if (slot == null || Occupied(nodes, hostId, slotName))
                 continue;
 
-            var best = slot.Properties?.Filters?.FirstOrDefault()?.Filter?
+            // Materialised and tested with Any(), NOT FirstOrDefault: MongoId is
+            // a STRUCT, so an empty result is twenty-four zeroes rather than
+            // null. A null check would have passed it straight through, written
+            // a node with a template id that does not exist, and — because this
+            // then reports success — skipped the rear-sight attempt that might
+            // actually have worked. The client drops the whole rung when it
+            // meets an unknown template, so the weapon would silently vanish
+            // from the ladder. No vanilla weapon reaches it; modded ones can,
+            // which is the entire reason this generator moved here.
+            var candidates = slot.Properties?.Filters?.FirstOrDefault()?.Filter?
                 .Where(IsSight)
                 .Where(f => Props(f)?.Slots?.Any(s => s.Required == true) != true)
                 // Reflex sights first, then price: this is a close-quarters
                 // arena, where magnification is a handicap.
                 .OrderBy(f => IsReflex(f) ? 0 : 1)
                 .ThenBy(Price)
-                .FirstOrDefault();
+                .ToList();
 
-            if (best == null)
+            if (candidates is not { Count: > 0 })
                 continue;
 
-            nodes.Add(Node(NewId(), best.Value, hostId, slotName));
+            nodes.Add(Node(NewId(), candidates[0], hostId, slotName));
             return true;
         }
 
@@ -470,16 +502,17 @@ public class LadderGenerator(
                 if (Occupied(nodes, hostId, slot.Name!))
                     continue;
 
-                var rail = slot.Properties?.Filters?.FirstOrDefault()?.Filter?
+                // Same struct trap as above.
+                var rails = slot.Properties?.Filters?.FirstOrDefault()?.Filter?
                     .Where(f => Props(f)?.Slots?.Any(s => s.Name == "mod_scope") == true)
                     .Where(f => Props(f)?.Slots?.Any(s => s.Required == true) != true)
                     .OrderBy(Price)
-                    .FirstOrDefault();
+                    .ToList();
 
-                if (rail == null)
+                if (rails is not { Count: > 0 })
                     continue;
 
-                nodes.Add(Node(NewId(), rail.Value, hostId, slot.Name!));
+                nodes.Add(Node(NewId(), rails[0], hostId, slot.Name!));
                 return true;
             }
         }
