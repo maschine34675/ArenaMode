@@ -82,6 +82,7 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
             entry.State = ArenaSessionState.InRaid;
             entry.InRaidAtUtc = DateTime.UtcNow;
             Patches.BotTierScalePatch.ResetReporting();
+            Patches.NoCorpseLootingPatch.ResetReporting();
 
             // A fresh ladder per raid, cut here rather than when the client asks
             // for it: the ask happens while the raid loads and can repeat.
@@ -193,6 +194,32 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
 
                 elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether any arena raid is armed or running. Coarser than the per-session
+    /// checks on purpose: some client requests carry no session id — the bulk
+    /// bot-difficulty fetch is one — and still need answering for this raid.
+    /// </summary>
+    public bool AnyArmedOrInRaid()
+    {
+        lock (_lock)
+        {
+            foreach (var entry in _sessions.Values)
+            {
+                if (IsLiveRaid(entry))
+                    return true;
+
+                if (entry.State == ArenaSessionState.Armed
+                    && (DateTime.UtcNow - entry.ArmedAtUtc).TotalSeconds
+                        <= ArenaContext.Config.ArmedFlagTtlSeconds)
+                {
+                    return true;
+                }
             }
         }
 

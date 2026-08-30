@@ -34,6 +34,15 @@ public class ArenaModeConfig
     [JsonPropertyName("gunGameRungs")]
     public int GunGameRungs { get; set; } = 24;
 
+    /// <summary>
+    /// Stop bots looting corpses during an arena raid. They swap gear on the
+    /// spot and drop what they were wearing, and nothing in an offline raid ever
+    /// cleans a dropped item up — so in a mode that makes hundreds of corpses it
+    /// is a leak as well as time not spent fighting.
+    /// </summary>
+    [JsonPropertyName("disableCorpseLooting")]
+    public bool DisableCorpseLooting { get; set; } = true;
+
     [JsonPropertyName("maps")]
     public Dictionary<string, ArenaMapConfig> Maps { get; set; } = new()
     {
