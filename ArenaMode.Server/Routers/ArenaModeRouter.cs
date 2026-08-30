@@ -22,6 +22,15 @@ public record ArenaRaidStartRequest : IRequestData
     public string? Mode { get; set; }
 }
 
+/// <summary>
+/// The client's settings as it currently has them, for the config page to show.
+/// A class, not a record: the shared schema type is a plain class, and a record
+/// may only inherit from object or another record.
+/// </summary>
+public class ArenaClientSettingsRequest : ArenaMode.Shared.ClientSettingsSchema, IRequestData
+{
+}
+
 [Injectable(TypePriority = OnLoadOrder.Routers + 1)]
 public sealed class ArenaModeRouter : StaticRouter
 {
@@ -70,6 +79,19 @@ public sealed class ArenaModeRouter : StaticRouter
             Protocol.LadderRoute,
             (url, info, sessionId, output, _) =>
                 new ValueTask<string>(Services.LadderPicker.Current)),
+
+        new RouteAction<EmptyRequestData>(
+            Protocol.ClientSettingsRoute,
+            (url, info, sessionId, output, _) =>
+                new ValueTask<string>(Services.ClientSettingsStore.Serialize())),
+
+        new RouteAction<ArenaClientSettingsRequest>(
+            Protocol.ClientSettingsPushRoute,
+            (url, info, sessionId, output, _) =>
+            {
+                Services.ClientSettingsStore.AcceptFromClient(info);
+                return new ValueTask<string>(Json(new { accepted = true }));
+            }),
 
         new RouteAction<ArenaRaidStartRequest>(
             Protocol.RaidStartRoute,

@@ -61,6 +61,12 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (ArenaServerClient.PostRaidStart(settings.location, Settings.GameMode.Value))
             {
                 ArenaSession.MarkArmed(settings.location);
+
+                // Anything the config page changed lands here, before the kit
+                // catalogue and the client config are read — those reads must see
+                // the settings this raid is actually going to run with.
+                Config.SettingsSync.SyncNow();
+
                 // Fetch catalog + config now (loading screen) instead of inside a
                 // gameplay frame.
                 Kits.KitCatalog.Preload();

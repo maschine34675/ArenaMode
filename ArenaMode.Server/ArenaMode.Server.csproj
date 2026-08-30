@@ -1,4 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<!-- Sdk.Web, not Sdk: the Blazor config page needs the Razor compiler and
+     the ASP.NET reference assemblies. OutputType stays Library - this is
+     still a mod the server loads, not a host that runs itself. -->
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <Import Project="..\Shared.props" />
 
@@ -23,6 +26,7 @@
 
   <ItemGroup>
     <Compile Include="..\ArenaMode.Shared\Protocol.cs" Link="Shared\Protocol.cs" />
+    <Compile Include="..\ArenaMode.Shared\ClientSettingsModels.cs" Link="Shared\ClientSettingsModels.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,7 +34,15 @@
     <PackageReference Include="SPTarkov.DI" Version="4.1.0" ExcludeAssets="runtime" />
     <PackageReference Include="SPTarkov.Server.Core" Version="4.1.0" ExcludeAssets="runtime" />
     <PackageReference Include="SPTarkov.Reflection" Version="4.1.0" ExcludeAssets="runtime" />
+    <PackageReference Include="SPTarkov.Server.Web" Version="4.1.0" ExcludeAssets="runtime" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
 
   <Target Name="DeployToSpt" AfterTargets="Build" Condition="Exists('$(SPTUserMods)')">
     <MakeDir Directories="$(SPTUserMods)ArenaMode\" />

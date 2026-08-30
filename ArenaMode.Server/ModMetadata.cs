@@ -1,9 +1,12 @@
 using SPTarkov.Server.Core.Models.Spt.Mod;
+using SPTarkov.Server.Web;
 using Range = SemanticVersioning.Range;
 
 namespace ArenaMode.Server;
 
-public record ModMetadata : IModMetadata
+// IModBlazorMetadata is a marker: implementing it is what makes the server
+// add this assembly to its Blazor router and serve our wwwroot.
+public record ModMetadata : IModMetadata, IModBlazorMetadata
 {
     public string ModGuid { get; init; } = "com.maschine.ArenaMode";
     public string Name { get; init; } = "ArenaMode";
@@ -16,4 +19,8 @@ public record ModMetadata : IModMetadata
     public Dictionary<string, Range>? ModDependencies { get; init; }
     public string? Url { get; init; } = "https://github.com/maschine34675/ArenaMode";
     public string License { get; init; } = "MIT";
+
+    public string? WWWRootUrl { get; init; }
+    public string? HomePage { get; init; } = "/arenamode";
+    public string? HomePageDescription { get; init; } = "Configure ArenaMode — server and client, one page.";
 }

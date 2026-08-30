@@ -17,6 +17,9 @@ internal sealed class ArenaController : MonoBehaviour
     {
         TickKitWarmup();
 
+        // Outside a raid only; the service enforces that itself.
+        Config.SettingsSync.Tick();
+
         BurstSpawnService.Tick();
         ArenaHostility.Tick();
         Movement.MovementRuntime.Tick();

@@ -1,0 +1,220 @@
+@page "/arenamode"
+@layout SPTarkov.Server.Web.Layout.BaseMudBlazorLayout
+@inject ISnackbar Snackbar
+
+<PageTitle>ArenaMode</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 mb-16">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">ArenaMode</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Color="Color.Default"
+                   Disabled="@_busy"
+                   OnClick="Reload">Reload from disk</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Color="Color.Primary"
+                   Disabled="@_busy"
+                   OnClick="Save">Save</MudButton>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+        Saving takes effect on the <b>next</b> raid. A raid that is already running keeps the
+        settings it started with: its map is cloned once, when it starts, and that clone is
+        fixed for the duration.
+    </MudAlert>
+
+    @if (_message != null)
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Class="mb-4">@_message</MudAlert>
+    }
+
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+
+        <MudTabPanel Text="Match" Icon="@Icons.Material.Filled.Tune">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int" Label="Raid time (minutes)" @bind-Value="_config.RaidTimeMinutes"
+                                     Min="5" Max="180" Variant="Variant.Outlined"
+                                     HelperText="How long an arena raid runs before the timer ends it." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int" Label="Gun Game rungs" @bind-Value="_config.GunGameRungs"
+                                     Min="4" Max="60" Variant="Variant.Outlined"
+                                     HelperText="The weapon pool is split into this many equal power bands, one weapon drawn per band. More rungs is a finer climb." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" Label="Hostility" @bind-Value="_config.HostilityMode" Variant="Variant.Outlined"
+                               HelperText="Free-for-all: everyone fights everyone. Otherwise the bots only want you.">
+                        <MudSelectItem T="string" Value="@("ffa")">Free-for-all</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("all_vs_player")">Everyone versus the player</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int" Label="Armed flag TTL (seconds)" @bind-Value="_config.ArmedFlagTtlSeconds"
+                                     Min="30" Max="1800" Variant="Variant.Outlined"
+                                     HelperText="How long the server waits for an announced raid to actually start before forgetting it." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSwitch T="bool" @bind-Value="_config.StripLoot" Color="Color.Primary"
+                               Label="Strip loot from the map" />
+                    <MudText Typo="Typo.caption">An arena has nothing to loot, and skipping generation shortens the load.</MudText>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSwitch T="bool" @bind-Value="_config.Debug" Color="Color.Primary" Label="Debug logging" />
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Maps" Icon="@Icons.Material.Filled.Map">
+            <MudExpansionPanels MultiExpansion="true">
+                @foreach (var entry in _config.Maps)
+                {
+                    var map = entry.Value;
+                    <MudExpansionPanel Text="@entry.Key" Expanded="@(entry.Key == "factory4_day")">
+                        <MudGrid>
+                            <MudItem xs="12">
+                                <MudSwitch T="bool" @bind-Value="map.Enabled" Color="Color.Primary" Label="Enabled" />
+                            </MudItem>
+
+                            <MudItem xs="12"><MudText Typo="Typo.subtitle2">Bot pressure</MudText><MudDivider /></MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Bot cap" @bind-Value="map.BotMax" Min="1" Max="60"
+                                                 Variant="Variant.Outlined" HelperText="Ceiling on bots alive at once." />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Keep alive (burst floor)" @bind-Value="map.BurstMinAliveBots"
+                                                 Min="0" Max="60" Variant="Variant.Outlined"
+                                                 HelperText="The client tops up whenever fewer than this are alive." />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Burst cooldown (s)" @bind-Value="map.BurstCooldownSeconds"
+                                                 Min="1" Max="120" Variant="Variant.Outlined"
+                                                 HelperText="Minimum gap between top-ups." />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Max bots per zone" @bind-Value="map.MaxBotPerZone"
+                                                 Min="1" Max="60" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Spawn period check (s)" @bind-Value="map.BotSpawnPeriodCheckSeconds"
+                                                 Min="1" Max="60" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudTextField T="string" Label="Spawn zones" @bind-Value="map.SpawnZones"
+                                              Variant="Variant.Outlined"
+                                              HelperText="Comma separated. Factory and Labyrinth both have exactly one, named BotZone." />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudSwitch T="bool" @bind-Value="map.DisableBosses" Color="Color.Primary" Label="Disable bosses" />
+                                <MudText Typo="Typo.caption">Left on for Labyrinth: Shadow of Tagilla and Killa are its content.</MudText>
+                            </MudItem>
+
+                            <MudItem xs="12" Class="mt-4"><MudText Typo="Typo.subtitle2">Gear ramp</MudText><MudDivider /></MudItem>
+                            <MudItem xs="12">
+                                <MudSwitch T="bool" @bind-Value="map.ScaleBotTier" Color="Color.Primary"
+                                           Label="Let bot gear climb over the raid" />
+                                <MudText Typo="Typo.caption">
+                                    Off: the bots stay in whichever tier your profile level happens to sit in, for the whole raid.
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Start level" @bind-Value="map.BotTierStartLevel"
+                                                 Min="1" Max="79" Variant="Variant.Outlined" Disabled="@(!map.ScaleBotTier)" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="End level" @bind-Value="map.BotTierEndLevel"
+                                                 Min="1" Max="79" Variant="Variant.Outlined" Disabled="@(!map.ScaleBotTier)"
+                                                 HelperText="The band spreads five levels either side, so aim at the MIDDLE of the tier you want. 66 sits entirely inside the top tier; above 79 is clamped." />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int" Label="Ramp length (minutes)" @bind-Value="map.BotTierRampMinutes"
+                                                 Min="1" Max="120" Variant="Variant.Outlined" Disabled="@(!map.ScaleBotTier)" />
+                            </MudItem>
+
+                            <MudItem xs="12" Class="mt-4"><MudText Typo="Typo.subtitle2">Fallback waves</MudText><MudDivider /></MudItem>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.caption">
+                                    Only used when BotPlacementSystem is not installed. With it, its spawn pump drives the population instead.
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudNumericField T="int" Label="Wave interval (s)" @bind-Value="map.AssaultWaveIntervalSeconds"
+                                                 Min="5" Max="600" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudNumericField T="int" Label="Slots min" @bind-Value="map.AssaultSlotsMin" Min="1" Max="20" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudNumericField T="int" Label="Slots max" @bind-Value="map.AssaultSlotsMax" Min="1" Max="20" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudNumericField T="int" Label="Max waves" @bind-Value="map.MaxScheduledWaves" Min="1" Max="300" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudNumericField T="int" Label="PMC wave interval (s)" @bind-Value="map.PmcWaveIntervalSeconds"
+                                                 Min="0" Max="1800" Variant="Variant.Outlined" HelperText="0 disables PMC appends." />
+                            </MudItem>
+                        </MudGrid>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+        </MudTabPanel>
+
+        <MudTabPanel Text="In-game" Icon="@Icons.Material.Filled.SportsEsports">
+            <ClientSettingsPanel />
+        </MudTabPanel>
+
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private ArenaModeConfig _config = new();
+    private bool _busy;
+    private string? _message;
+    private Severity _messageSeverity = Severity.Normal;
+
+    protected override void OnInitialized() => _config = ConfigStore.Copy();
+
+    private void Save()
+    {
+        _busy = true;
+        try
+        {
+            var result = ConfigStore.Save(_config, out var message);
+            Report(result, message);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Reload()
+    {
+        _busy = true;
+        try
+        {
+            var result = ConfigStore.Reload(out var message);
+
+            // Re-read whatever the reload actually installed, so a FAILED reload
+            // does not leave the form claiming to show what is on disk.
+            _config = ConfigStore.Copy();
+            Report(result, message);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Report(ConfigResult result, string message)
+    {
+        _messageSeverity = result == ConfigResult.Success ? Severity.Success : Severity.Error;
+        _message = message;
+        Snackbar.Add(message, _messageSeverity);
+    }
+}

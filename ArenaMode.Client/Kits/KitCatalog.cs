@@ -35,7 +35,20 @@ public static class KitCatalog
     }
 
     /// <summary>Fetch the catalog during a loading screen instead of a gameplay frame.</summary>
-    public static void Preload() => EnsureLoaded();
+    /// <summary>
+    /// Re-fetches the catalogue for the coming raid.
+    ///
+    /// The clear is the point. EnsureLoaded returns immediately once _kits is
+    /// set, so without it this cached the catalogue for the whole GAME process
+    /// and an edit to kits.json needed the game restarted, not just the server —
+    /// while LadderCatalog, four files away, already reset itself every raid.
+    /// One raid is the right lifetime for both.
+    /// </summary>
+    public static void Preload()
+    {
+        _kits = null;
+        EnsureLoaded();
+    }
 
     /// <summary>
     /// The kit for the next life: a random one, the configured one, or the first

@@ -19,6 +19,10 @@ public class ConfigLoader(ModHelper modHelper, ISptLogger<ConfigLoader> logger) 
             var configDir = Path.Combine(modPath, "config");
             var configFile = Path.Combine(configDir, "config.json");
 
+            // The web page writes through this, so it has to know where the
+            // files are before anything can be saved or reloaded.
+            Services.ConfigStore.Initialize(configDir);
+
             if (!File.Exists(configFile))
             {
                 Directory.CreateDirectory(configDir);
@@ -57,6 +61,10 @@ public class ConfigLoader(ModHelper modHelper, ISptLogger<ConfigLoader> logger) 
             {
                 logger.Info("[ArenaMode] config/ladder.json missing — Gun Game will ladder through the kit catalog.");
             }
+
+            // The client's own settings, as last reported. Restored here so the
+            // config page has something to show before the game is even started.
+            Services.ClientSettingsStore.LoadFromDisk();
         }
         catch (Exception ex)
         {

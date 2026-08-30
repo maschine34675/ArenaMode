@@ -1,0 +1,114 @@
+@inject ISnackbar Snackbar
+
+@*
+    The in-game half of the mod, edited from the same page as the server half.
+
+    The client stays the owner of these values -- they live in its BepInEx config
+    and F12 still edits them. What is shown here is what the client last reported;
+    what Apply does is bump a revision number the client watches. That asymmetry
+    is deliberate: if this page pushed values continuously, an F12 edit made after
+    a page edit would be silently reverted the next time the client looked. It
+    applies only when the number changes, so the last person to press a button wins,
+    which is the behaviour a person expects from a remote control.
+*@
+
+@if (!_schema.Known || _schema.Entries.Count == 0)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true">
+        The game has not reported its settings yet. Start the game once with ArenaMode installed
+        and reopen this page: the client uploads them on startup and after every raid.
+    </MudAlert>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.body2">
+            Reported by the game at @_schema.UpdatedAt &middot; revision @_schema.Revision
+        </MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="Refresh">Refresh</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Send"
+                   OnClick="Apply">Send to game</MudButton>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+        The game picks these up at the start of the next raid. Anything changed with F12 in the
+        meantime wins until you press this button again.
+    </MudAlert>
+
+    <MudExpansionPanels MultiExpansion="true">
+        @foreach (var section in _schema.Entries.GroupBy(e => e.Section).OrderBy(g => g.Key))
+        {
+            <MudExpansionPanel Text="@section.Key">
+                <MudGrid>
+                    @foreach (var entry in section)
+                    {
+                        <MudItem xs="12" md="6">
+                            @switch (entry.Type)
+                            {
+                                case "bool":
+                                    <MudSwitch T="bool"
+                                               Value="@(ParseBool(entry.Value))"
+                                               ValueChanged="@(v => entry.Value = v ? "true" : "false")"
+                                               Color="Color.Primary"
+                                               Label="@entry.Key" />
+                                    <MudText Typo="Typo.caption">@entry.Description</MudText>
+                                    break;
+
+                                case "enum":
+                                    <MudSelect T="string" Label="@entry.Key" Value="@entry.Value"
+                                               ValueChanged="@(v => entry.Value = v)"
+                                               Variant="Variant.Outlined" HelperText="@entry.Description">
+                                        @foreach (var option in entry.Options ?? new List<string>())
+                                        {
+                                            <MudSelectItem T="string" Value="@option">@option</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                    break;
+
+                                default:
+                                    <MudTextField T="string" Label="@entry.Key" @bind-Value="entry.Value"
+                                                  Variant="Variant.Outlined"
+                                                  HelperText="@Helper(entry)" />
+                                    break;
+                            }
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+@code {
+    private ClientSettingsSchema _schema = new();
+
+    protected override void OnInitialized() => Refresh();
+
+    private void Refresh() => _schema = ClientSettingsStore.Snapshot();
+
+    private void Apply()
+    {
+        ClientSettingsStore.SaveFromPage(_schema.Entries);
+        Refresh();
+        Snackbar.Add("Sent. The game applies it at the start of the next raid.", Severity.Success);
+    }
+
+    // Numbers and free text share the text field on purpose: the client parses
+    // them back against its own AcceptableValueRange and clamps there, which is
+    // the only place that knows the real bounds. Showing them here is a hint, not
+    // a second validator that could disagree with the first.
+    private static string Helper(ClientSettingEntry entry)
+    {
+        var bounds = entry.Min != null && entry.Max != null
+            ? $" ({entry.Min} to {entry.Max}, default {entry.Default})"
+            : $" (default {entry.Default})";
+
+        return entry.Description + bounds;
+    }
+
+    private static bool ParseBool(string value)
+        => bool.TryParse(value, out var parsed) && parsed;
+}

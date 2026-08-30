@@ -14,4 +14,10 @@ public static class Protocol
     public const string RaidCancelRoute = "/arenamode/raid-cancel";
     public const string RaidEndRoute = "/arenamode/raid-end";
     public const string StatusRoute = "/arenamode/status";
+
+    /// <summary>The client uploads its own BepInEx settings here so the config page can show them.</summary>
+    public const string ClientSettingsPushRoute = "/arenamode/client-settings/push";
+
+    /// <summary>The client asks here whether the page changed anything since it last looked.</summary>
+    public const string ClientSettingsRoute = "/arenamode/client-settings";
 }
