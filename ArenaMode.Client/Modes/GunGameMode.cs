@@ -367,6 +367,13 @@ public sealed class GunGameMode : IArenaMode
 
         _loadoutDirty = true;
 
+        // Named, not numbered. Without this the spare-magazine warnings that fire
+        // during a promotion sit in the log next to nothing that says which weapon
+        // was being handed over, which made seven of them unattributable across a
+        // whole raid.
+        Plugin.ModLogger.LogInfo(
+            $"Gun Game: promoted to tier {_tier + 1}/{_ladder.Count} - {CurrentRung?.Name ?? CurrentRung?.Id}.");
+
         // The swap itself waits out the kill animation on its own; this just
         // keeps it from starting in the same frame as the shot that earned it.
         _nextSwapAt = Mathf.Max(_nextSwapAt, Time.time + 0.25f);

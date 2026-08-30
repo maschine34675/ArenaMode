@@ -33,6 +33,11 @@ internal static class MovementRuntime
 
         if (!ArenaSession.IsActive || !Settings.MovementEnabled.Value || !Singleton<GameWorld>.Instantiated)
         {
+            // BSG's vaulting limits go back the moment the arena stops running.
+            // They live in GlobalConfiguration, so leaving them widened would
+            // follow the player into the next, ordinary raid.
+            VaultingTuning.Restore();
+
             if (_weightValuesApplied)
             {
                 _weightValuesApplied = false;
@@ -83,6 +88,14 @@ internal static class MovementRuntime
                 player.Physical.HandsStamina.Current = player.Physical.HandsStamina.TotalCapacity;
                 player.Physical.Oxygen.Current = player.Physical.Oxygen.TotalCapacity;
             }
+
+            // Re-applied every tick rather than once: Apply() is a no-op unless
+            // the multiplier changed, which is what makes an F12 edit land
+            // mid-raid instead of at the next respawn.
+            if (VaultingTuning.Wanted)
+                VaultingTuning.Apply();
+            else
+                VaultingTuning.Restore();
 
             if (player.Physical != null
                 && (!_weightValuesApplied || Settings.NoInertia.Value != _lastNoInertia))

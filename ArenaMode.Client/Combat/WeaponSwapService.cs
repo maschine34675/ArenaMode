@@ -391,20 +391,36 @@ internal static class WeaponSwapService
             return;
 
         var containers = Kits.KitBuilder.GridContainersOf(inventory.Inventory?.Equipment);
+        var placed = 0;
+        string lastRefusal = null;
+        Item lastRefused = null;
+
         foreach (var spare in spares)
         {
             if (spare == null)
                 continue;
 
-            if (Kits.KitBuilder.AddToAnyGridOf(containers, spare))
+            if (Kits.KitBuilder.AddToAnyGridOf(containers, spare, out var reason))
             {
                 MarkKnown(inventory, spare);
                 HandedOutSpares.Add(spare);
+                placed++;
             }
             else
             {
-                Plugin.ModLogger.LogWarning("Gun Game: no rig space for a spare magazine.");
+                lastRefusal = reason;
+                lastRefused = spare;
             }
+        }
+
+        // One line per promotion instead of one per magazine, and it names the
+        // magazine and the refusal. The old message said only "no rig space",
+        // which was both unactionable and, on the kits that hit it, wrong.
+        if (lastRefused != null)
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Gun Game: only {placed} of {spares.Count} spare magazines fit - "
+                + $"{Kits.KitBuilder.DescribeItem(lastRefused)} was refused: {lastRefusal}");
         }
     }
 

@@ -33,6 +33,7 @@ public class Plugin : BaseUnityPlugin
         // the match service needs IsActive already latched when its handler fires.
         Modes.ArenaMatchService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
+        SkipPreRaidScreensPatch.Enable();
 
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());

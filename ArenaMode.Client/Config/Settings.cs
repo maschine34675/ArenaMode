@@ -25,8 +25,11 @@ public static class Settings
     public static ConfigEntry<bool> NoBushSlowdown { get; private set; }
     public static ConfigEntry<float> JumpHeightMult { get; private set; }
     public static ConfigEntry<bool> NoFallDamage { get; private set; }
+    public static ConfigEntry<float> VaultSpeedMult { get; private set; }
+    public static ConfigEntry<float> VaultReachMult { get; private set; }
     public static ConfigEntry<bool> SprintToAds { get; private set; }
     public static ConfigEntry<bool> FastDeploy { get; private set; }
+    public static ConfigEntry<bool> SkipPreRaidScreens { get; private set; }
     public static ConfigEntry<bool> InstantSearch { get; private set; }
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
@@ -200,6 +203,27 @@ public static class Settings
             true,
             "Disable fall damage (pairs with the jump boost).");
 
+        VaultSpeedMult = config.Bind(
+            "Movement",
+            "VaultSpeedMult",
+            1.6f,
+            new ConfigDescription(
+                "How much faster vaulting and climbing play out. Scales the whole " +
+                "speed range, so an injured or overloaded vault stays slower than a " +
+                "healthy one - it is just faster than it was.",
+                new AcceptableValueRange<float>(1f, 2.5f)));
+
+        VaultReachMult = config.Bind(
+            "Movement",
+            "VaultReachMult",
+            1.3f,
+            new ConfigDescription(
+                "How much taller, longer and further away an obstacle may be and " +
+                "still be vaultable. Only the upper limits move; the lower ones stay " +
+                "put, so kerbs do not suddenly become vaults. The search grid is a " +
+                "hard ceiling on this - see VaultingTuning.",
+                new AcceptableValueRange<float>(1f, 1.6f)));
+
         SprintToAds = config.Bind(
             "Movement",
             "SprintToAds",
@@ -211,6 +235,16 @@ public static class Settings
             "FastDeploy",
             true,
             "Shorten the pre-raid deploy countdown to 2s for arena raids.");
+
+        SkipPreRaidScreens = config.Bind(
+            "General",
+            "SkipPreRaidScreens",
+            true,
+            "Go straight from the map to the loading screen for arena raids, past " +
+            "Game Settings, Insurance and Confirmation. Nothing on those screens " +
+            "survives an arena raid: bot amount and raid time are overwritten " +
+            "server-side, insurance is void when the profile is restored afterwards, " +
+            "and the loadout being confirmed is replaced by a kit on the first second.");
 
         InstantSearch = config.Bind(
             "Loot",

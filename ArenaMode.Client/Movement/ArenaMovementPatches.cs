@@ -47,6 +47,8 @@ internal static class ArenaMovementPatches
         new BushSlowdownPatch().Enable();
         new JumpHeightPatch().Enable();
         new FallDamagePatch().Enable();
+        new VaultSpeedPatch().Enable();
+        new VaultingReachPatch().Enable();
     }
 
     internal static void ResetPerRaidState() => InertiaValuesPatch.LoggedThisRaid = false;
@@ -467,6 +469,59 @@ internal static class ArenaMovementPatches
                 return;
 
             __instance._liftForce *= Mathf.Sqrt(mult);
+        }
+    }
+
+    /// <summary>
+    /// Vaulting and climbing, faster.
+    ///
+    /// SetVaultingSpeed is the single choke point: whatever range it is handed
+    /// feeds BOTH the animator's Vaulting_speed float (how fast the motion plays)
+    /// and MovementContext.VaultingSpeed. Scaling the range rather than the
+    /// result keeps the shape of it — Evaluate lerps from x (healthy) to y
+    /// (overloaded or injured), so a hurt vault stays slower than a healthy one
+    /// instead of every vault collapsing onto one speed.
+    /// </summary>
+    private sealed class VaultSpeedPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.SetVaultingSpeed));
+
+        [PatchPrefix]
+        private static void Prefix(MovementContext __instance, ref Vector2 speedRange)
+        {
+            var mult = Settings.VaultSpeedMult.Value;
+            if (mult <= 1f || !IsArenaMovement(__instance))
+                return;
+
+            speedRange *= mult;
+        }
+    }
+
+    /// <summary>
+    /// Widens the vaulting limits before the component that snapshots them exists.
+    ///
+    /// The timing is the whole point. VaultingMovesModel's constructor copies the
+    /// height and length bounds into the obstacle SEARCH, so applying this on the
+    /// first frame of the raid would leave the search narrow and only the verdict
+    /// wide. Every respawn builds a new player and runs this again, which is also
+    /// how the setting reaches a player who died before it was changed.
+    /// </summary>
+    private sealed class VaultingReachPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(Player), nameof(Player.InitVaultingComponent));
+
+        [PatchPrefix]
+        private static void Prefix(bool aiControlled)
+        {
+            // Bots return out of this method immediately, so they never read the
+            // values at all — but gating here as well keeps the exception to the
+            // no-globals rule narrow enough to state in one line.
+            if (aiControlled || !VaultingTuning.Wanted)
+                return;
+
+            VaultingTuning.Apply();
         }
     }
 

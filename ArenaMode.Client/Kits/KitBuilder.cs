@@ -197,7 +197,17 @@ public static class KitBuilder
 
     /// <summary>Places an item in the first grid cell that will take it.</summary>
     public static bool AddToAnyGridOf(List<CompoundItem> containers, Item item)
-        => containers != null && item != null && AddToAnyGrid(containers, item);
+        => AddToAnyGridOf(containers, item, out _);
+
+    /// <summary>As above, and says why not when nothing took it.</summary>
+    public static bool AddToAnyGridOf(List<CompoundItem> containers, Item item, out string reason)
+    {
+        reason = null;
+        return containers != null && item != null && AddToAnyGrid(containers, item, out reason);
+    }
+
+    /// <summary>Item name and cell size, for callers writing their own message.</summary>
+    public static string DescribeItem(Item item) => Describe(item);
 
     private static void Populate(InventoryEquipment equipment, ItemFactory factory, KitDefinition kit)
     {
@@ -407,7 +417,10 @@ public static class KitBuilder
         {
             var magazine = factory.CreateItem(factory.NextId, template.TemplateId, null) as Magazine;
             if (magazine == null)
+            {
+                Plugin.ModLogger.LogWarning($"Kit: could not create a spare of {template.TemplateId}.");
                 break;
+            }
 
             var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
             ammo.StackObjectsCount = Math.Max(1, Math.Min(magazine.MaxCount, ammo.StackMaxSize));
@@ -415,9 +428,12 @@ public static class KitBuilder
             if (loadResult.Failed)
                 Plugin.ModLogger.LogWarning($"Kit: loading spare magazine failed: {loadResult.Error}");
 
-            if (!AddToAnyGrid(containers, magazine))
+            if (!AddToAnyGrid(containers, magazine, out var reason))
             {
-                Plugin.ModLogger.LogWarning("Kit: no grid space for spare magazine.");
+                // The count matters as much as the failure: three of five spares
+                // is a nuisance, none of five is a kit that cannot reload.
+                Plugin.ModLogger.LogWarning(
+                    $"Kit: only {i} of {count} spare magazines fit - {Describe(magazine)} was refused: {reason}");
                 break;
             }
         }
@@ -436,9 +452,10 @@ public static class KitBuilder
             var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
             ammo.StackObjectsCount = Math.Max(roundsPerStack, ammo.StackMaxSize);
 
-            if (!AddToAnyGrid(containers, ammo))
+            if (!AddToAnyGrid(containers, ammo, out var reason))
             {
-                Plugin.ModLogger.LogWarning("Kit: no grid space for spare ammunition.");
+                Plugin.ModLogger.LogWarning(
+                    $"Kit: only {i} of {stacks} ammunition stacks fit - {Describe(ammo)} was refused: {reason}");
                 break;
             }
         }
@@ -472,9 +489,9 @@ public static class KitBuilder
             for (var i = 0; i < Math.Max(1, entry.Count); i++)
             {
                 var item = factory.CreateItem(factory.NextId, entry.Tpl, null);
-                if (!AddToAnyGrid(containers, item))
+                if (!AddToAnyGrid(containers, item, out var reason))
                 {
-                    Plugin.ModLogger.LogWarning($"Kit: no grid space for {entry.Tpl}.");
+                    Plugin.ModLogger.LogWarning($"Kit: {Describe(item)} did not fit - {reason}");
                     break;
                 }
             }
@@ -494,17 +511,62 @@ public static class KitBuilder
     }
 
     private static bool AddToAnyGrid(List<CompoundItem> containers, Item item)
+        => AddToAnyGrid(containers, item, out _);
+
+    /// <summary>
+    /// Places an item in the first grid cell that will take it, and says why not
+    /// when none will.
+    ///
+    /// The reason is an out-parameter rather than a discarded return value on
+    /// purpose. "No grid space" was the only thing seven of these failures said
+    /// in a whole raid, and it turned out not to be true: the two kits that hit it
+    /// carry four and six free 1x2 pockets for a 1x2 magazine. So the message was
+    /// not merely unhelpful, it was pointing at the wrong cause. AddAnywhere
+    /// distinguishes a full grid from a rejecting filter; this kept only the
+    /// boolean and threw the distinction away.
+    /// </summary>
+    private static bool AddToAnyGrid(List<CompoundItem> containers, Item item, out string reason)
     {
+        reason = containers == null || containers.Count == 0
+            ? "the kit has no rig, pockets or backpack to put it in"
+            : null;
+
+        if (containers == null)
+            return false;
+
         foreach (var container in containers)
         {
             foreach (var grid in container.Grids)
             {
-                if (!grid.AddAnywhere(item, EErrorHandlingType.Ignore).Failed)
+                var result = grid.AddAnywhere(item, EErrorHandlingType.Ignore);
+                if (!result.Failed)
                     return true;
+
+                // Last one wins: the containers are tried best-first, so the final
+                // refusal is the one from the least suitable place — but any of
+                // them names the kind of refusal, which is what is missing today.
+                reason = result.Error?.ToString() ?? reason;
             }
         }
 
         return false;
+    }
+
+    /// <summary>What an item is called and how big it is, for a message a human reads.</summary>
+    private static string Describe(Item item)
+    {
+        if (item == null)
+            return "(null)";
+
+        try
+        {
+            var size = item.CalculateCellSize();
+            return $"{item.ShortName?.Localized() ?? item.TemplateId.ToString()} ({size.X}x{size.Y})";
+        }
+        catch
+        {
+            return item.TemplateId.ToString();
+        }
     }
 
     /// <summary>
