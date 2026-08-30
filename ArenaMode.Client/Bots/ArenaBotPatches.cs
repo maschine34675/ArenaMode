@@ -96,9 +96,15 @@ internal static class ArenaBotPatches
             => AccessTools.Method(typeof(BotsGroup), nameof(BotsGroup.IsPlayerEnemy));
 
         [PatchPostfix]
-        private static void Postfix(IPlayer player, ref bool __result)
+        private static void Postfix(BotsGroup __instance, IPlayer player, ref bool __result)
         {
             if (!ArenaSession.IsActive || player == null || player.IsAI)
+                return;
+
+            // A group that counts the player among its allies is a TEAM. Without
+            // this, a teammate mod's followers would be told every frame that the
+            // human they are escorting is an enemy.
+            if (ArenaHostility.CountsAsAlly(__instance, player))
                 return;
 
             __result = true;

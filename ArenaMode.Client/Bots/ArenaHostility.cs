@@ -110,6 +110,40 @@ internal static class ArenaHostility
         }
     }
 
+    /// <summary>
+    /// Whether this group counts the player as one of its own.
+    ///
+    /// The arena makes every bot hostile to the human, which is right until the
+    /// human brings friends: a teammate mod (Pit Fire Team is the one this was
+    /// written against) puts the player into its followers' group as an ALLY,
+    /// and forcing hostility over the top of that turns your own squad on you.
+    ///
+    /// Asked through BSG's own Allies list rather than through anything the
+    /// teammate mod exposes, so this needs no reference to it and holds for any
+    /// friendly-bot mod that uses the game's concept of an ally.
+    ///
+    /// One definition, called from all three places that force hostility — the
+    /// IsPlayerEnemy postfix, the raid-start sweep and this service's own tick.
+    /// Three copies of a rule like this drift, and the drift would show up as
+    /// teammates that shoot you only sometimes.
+    /// </summary>
+    public static bool CountsAsAlly(BotsGroup group, IPlayer player)
+    {
+        var allies = group?.Allies;
+        if (allies == null || player == null)
+            return false;
+
+        // Reference equality by hand: IPlayer implementations are free to define
+        // their own Equals, and "is this the same body" is the question here.
+        for (var i = 0; i < allies.Count; i++)
+        {
+            if (ReferenceEquals(allies[i], player))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>Public entry for freshly spawned bots (their group may be brand new).</summary>
     public static void ReportPlayerTo(BotsGroup group, Player player)
     {
@@ -121,7 +155,7 @@ internal static class ArenaHostility
     {
         try
         {
-            if (group.Enemies == null)
+            if (group.Enemies == null || CountsAsAlly(group, player))
                 return;
 
             if (!group.Enemies.ContainsKey(player))

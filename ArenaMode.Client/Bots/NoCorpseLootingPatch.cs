@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Session;
+using EFT;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System.Reflection;
@@ -25,6 +26,11 @@ namespace ArenaMode.Bots;
 /// The behaviour itself is per-call and asks nothing that was cached, so gating
 /// it here is exact: the routine simply does not start while the arena is
 /// running, and the moment the raid ends it works again.
+///
+/// The player's own teammates are exempt. A friendly-bot mod's followers loot on
+/// command, and the reasons above do not apply to them: there are a handful of
+/// them rather than two hundred, and what they pick up is picked up because the
+/// player asked for it.
 /// </summary>
 internal sealed class NoCorpseLootingPatch : ModulePatch
 {
@@ -32,6 +38,34 @@ internal sealed class NoCorpseLootingPatch : ModulePatch
         => AccessTools.Method(typeof(BotDeadBodyWork), nameof(BotDeadBodyWork.StartLook));
 
     [PatchPrefix]
-    private static bool Prefix()
-        => !(ArenaSession.IsActive && Settings.NoCorpseLooting.Value);
+    private static bool Prefix(BotDeadBodyWork __instance)
+    {
+        if (!ArenaSession.IsActive || !Settings.NoCorpseLooting.Value)
+            return true;
+
+        return IsPlayerTeammate(__instance);
+    }
+
+    /// <summary>
+    /// Whether this bot is on the player's side, asked through the group's own
+    /// ally list — the same question ArenaHostility asks, and for the same
+    /// reason: it needs no reference to whichever teammate mod is installed.
+    /// </summary>
+    private static bool IsPlayerTeammate(BotDeadBodyWork work)
+    {
+        try
+        {
+            var mainPlayer = Comfort.Common.Singleton<GameWorld>.Instantiated
+                ? Comfort.Common.Singleton<GameWorld>.Instance.MainPlayer
+                : null;
+
+            return mainPlayer != null && ArenaHostility.CountsAsAlly(work?._owner?.BotsGroup, mainPlayer);
+        }
+        catch
+        {
+            // Fail toward the arena's own behaviour: blocking a loot is a
+            // nuisance, an exception in a per-bot hook is a raid.
+            return false;
+        }
+    }
 }

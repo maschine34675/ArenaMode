@@ -170,6 +170,13 @@ public static class ArenaSession
                 if (group == null || group.IsEnemy(mainPlayer))
                     continue;
 
+                // Teammates spawned before the latch are in this list too, and
+                // this sweep is the one hostility path that runs BEFORE any of
+                // them could have been made hostile — so it is the one that
+                // would silently recruit them against you.
+                if (Bots.ArenaHostility.CountsAsAlly(group, mainPlayer))
+                    continue;
+
                 if (group.AddEnemy(mainPlayer, EBotEnemyCause.initial))
                     forced++;
             }
