@@ -54,7 +54,11 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (!ArenaServerClient.IsServerModAvailable)
                 return;
 
-            if (ArenaServerClient.PostRaidStart(settings.location, "endless"))
+            // The mode the player actually picked, not a literal. The server
+            // only logs it, which is precisely why it has to be true: a status
+            // line reading "mode=endless" over a Gun Game raid is a false clue
+            // left behind for whoever reads the log next.
+            if (ArenaServerClient.PostRaidStart(settings.location, Settings.GameMode.Value))
             {
                 ArenaSession.MarkArmed(settings.location);
                 // Fetch catalog + config now (loading screen) instead of inside a
