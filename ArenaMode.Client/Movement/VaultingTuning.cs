@@ -26,8 +26,14 @@ namespace ArenaMode.Movement;
 ///      the bounds that <c>WeightCalculatorModel</c> uses to decide which points
 ///      are even candidate obstacles — the search.
 /// A verdict on an obstacle the search never found is no verdict at all, which is
-/// why VaultingInitPatch applies this before the component is built rather than
+/// why VaultingReachPatch applies this before the component is built rather than
 /// leaving it to the first frame of the raid.
+///
+/// The same asymmetry is why nothing calls Apply or Restore mid-raid. The snapshot
+/// cannot be taken back once the component exists, so narrowing only the live
+/// limits would leave the player refusing obstacles VANILLA vaults - worse than
+/// either setting. A changed multiplier lands on the next respawn, when a new
+/// player and a new component are built.
 /// </summary>
 internal static class VaultingTuning
 {
@@ -61,11 +67,11 @@ internal static class VaultingTuning
                 return;
             }
 
-            // The search grid is a hard ceiling. It is 1.8 m tall and 2 m deep
-            // (globals GridSettings), and a limit raised past the grid is a limit
-            // on nothing: the obstacle simply never appears in the point cloud.
-            // Clamping here rather than in the config range keeps the promise
-            // honest even if BSG reshapes the grid in a later patch.
+            // The search grid is a hard ceiling on HEIGHT: it is 1.8 m tall
+            // (globals GridSettings.GridSizeY), and a limit raised past the grid
+            // is a limit on nothing, because the obstacle never appears in the
+            // point cloud to be measured. Clamping here rather than in the config
+            // range keeps the promise honest if BSG reshapes the grid later.
             var maxHeight = settings.GridSettings?.GridSizeY ?? 1.8f;
             var maxDepth = settings.GridSettings?.GridSizeZ ?? 2f;
 
@@ -75,12 +81,18 @@ internal static class VaultingTuning
             // Only the upper bounds and the trigger distance move. MinHeight and
             // MinLength stay where BSG put them — dropping the floor would turn
             // kerbs and door sills into vaults, which is a different mod.
+            //
+            // MaxLength is scaled but NOT clamped to the grid depth. Climb's
+            // vanilla MaxLength is 10, far past the 2 m grid, so clamping it
+            // would read as cutting the limit by five — when in truth both 10 and
+            // 2 are already beyond any length the grid can measure. Scaling a
+            // no-op keeps it a no-op instead of dressing one up as a tightening.
             vault.MaxHeight = Mathf.Min(_vaultMaxHeight * mult, maxHeight);
-            vault.MaxLength = Mathf.Min(_vaultMaxLength * mult, maxDepth);
+            vault.MaxLength = _vaultMaxLength * mult;
             vault.MinDistantToInteract = Mathf.Min(_vaultReach * mult, maxDepth);
 
             climb.MaxHeight = Mathf.Min(_climbMaxHeight * mult, maxHeight);
-            climb.MaxLength = Mathf.Min(_climbMaxLength * mult, maxDepth);
+            climb.MaxLength = _climbMaxLength * mult;
             climb.MinDistantToInteract = Mathf.Min(_climbReach * mult, maxDepth);
 
             if (!_applied)
@@ -105,9 +117,9 @@ internal static class VaultingTuning
     }
 
     /// <summary>
-    /// Puts BSG's numbers back. Called every tick the arena is not running, so a
-    /// raid that ends in a crash costs at most one stale process — and the
-    /// globals arrive fresh from the server on the next session anyway.
+    /// Puts BSG's numbers back. Called on every tick that finds no arena session
+    /// running or armed, so a raid that ends in a crash costs at most one stale
+    /// process — and the globals arrive fresh from the server on the next session.
     /// </summary>
     public static void Restore()
     {

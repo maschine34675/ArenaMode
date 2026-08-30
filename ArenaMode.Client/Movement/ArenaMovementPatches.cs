@@ -48,6 +48,7 @@ internal static class ArenaMovementPatches
         new JumpHeightPatch().Enable();
         new FallDamagePatch().Enable();
         new VaultSpeedPatch().Enable();
+        new VaultMotionPatch().Enable();
         new VaultingReachPatch().Enable();
     }
 
@@ -495,6 +496,76 @@ internal static class ArenaMovementPatches
                 return;
 
             speedRange *= mult;
+        }
+    }
+
+    /// <summary>
+    /// Lets the body keep up with the sped-up vault animation.
+    ///
+    /// Playing the clip faster is only half a vault. The motion it produces still
+    /// goes through CharacterController.Move, which clamps to SpeedLimit — set for
+    /// the vault states by UpdateVaultingSpeedLimit and never told the animation
+    /// got quicker. The body would fall progressively behind the clip and finish
+    /// short of where the animation put it, which is how a mantle turns into a
+    /// climb back down.
+    ///
+    /// VaultingMovementState.ApplyMotion is the choke point, and neither VaultState
+    /// nor ClimbState overrides it, so one patch covers both. The bracket is the
+    /// same shape as MotionScalePatch's, self-heal included: a plain postfix is
+    /// skipped when the original throws, and a SpeedLimit stranded at -1 would
+    /// disable the metres-per-second clamp for the rest of the raid.
+    /// </summary>
+    private sealed class VaultMotionPatch : ModulePatch
+    {
+        private static MovementContext _limitRestoreContext;
+        private static float _limitRestoreValue;
+
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(VaultingMovementState), nameof(VaultingMovementState.ApplyMotion));
+
+        [PatchPrefix]
+        [HarmonyPriority(Priority.Last)]
+        private static void Prefix(VaultingMovementState __instance, out float __state)
+        {
+            __state = float.NaN;
+
+            var context = __instance?.MovementContext;
+            if (context == null)
+                return;
+
+            if (ReferenceEquals(_limitRestoreContext, context))
+            {
+                var healController = context.CharacterController;
+                if (healController != null)
+                    healController.SpeedLimit = _limitRestoreValue;
+                _limitRestoreContext = null;
+            }
+
+            if (Settings.VaultSpeedMult.Value <= 1f || !IsArenaMovement(context))
+                return;
+
+            var controller = context.CharacterController;
+            if (controller != null && controller.SpeedLimit >= 0f)
+            {
+                __state = controller.SpeedLimit;
+                _limitRestoreContext = context;
+                _limitRestoreValue = __state;
+                controller.SpeedLimit = -1f;
+            }
+        }
+
+        [PatchPostfix]
+        [HarmonyPriority(Priority.Last)]
+        private static void Postfix(VaultingMovementState __instance, float __state)
+        {
+            if (float.IsNaN(__state))
+                return;
+
+            var controller = __instance?.MovementContext?.CharacterController;
+            if (controller != null)
+                controller.SpeedLimit = __state;
+
+            _limitRestoreContext = null;
         }
     }
 

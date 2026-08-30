@@ -430,10 +430,19 @@ public static class KitBuilder
 
             if (!AddToAnyGrid(containers, magazine, out var reason))
             {
-                // The count matters as much as the failure: three of five spares
-                // is a nuisance, none of five is a kit that cannot reload.
-                Plugin.ModLogger.LogWarning(
-                    $"Kit: only {i} of {count} spare magazines fit - {Describe(magazine)} was refused: {reason}");
+                // Info when some fit, warning only when none did. A belt-fed
+                // weapon carrying a 2x2 box genuinely cannot stow a second one in
+                // a rig made of 1x2 cells; that is the loadout being honest about
+                // itself, not something going wrong. Ending up with NO reserve at
+                // all is the case worth raising a voice over.
+                var message = $"Kit: {i} of {count} spare magazines fit — {Describe(magazine)} fits no "
+                              + $"remaining cell ({reason})";
+
+                if (i > 0)
+                    Plugin.ModLogger.LogInfo(message + ".");
+                else
+                    Plugin.ModLogger.LogWarning(message + " — this loadout has no reserve at all.");
+
                 break;
             }
         }
@@ -514,16 +523,21 @@ public static class KitBuilder
         => AddToAnyGrid(containers, item, out _);
 
     /// <summary>
-    /// Places an item in the first grid cell that will take it, and says why not
-    /// when none will.
+    /// Places an item in the first grid cell that will take it, and says what it
+    /// was that nothing would take.
     ///
-    /// The reason is an out-parameter rather than a discarded return value on
-    /// purpose. "No grid space" was the only thing seven of these failures said
-    /// in a whole raid, and it turned out not to be true: the two kits that hit it
-    /// carry four and six free 1x2 pockets for a 1x2 magazine. So the message was
-    /// not merely unhelpful, it was pointing at the wrong cause. AddAnywhere
-    /// distinguishes a full grid from a rejecting filter; this kept only the
-    /// boolean and threw the distinction away.
+    /// "No grid space" turned out to be literally true, and the information
+    /// actually missing was the item's SIZE. In Gun Game the spare is cloned
+    /// from the RUNG's weapon, not the base kit's, and eight of the 139 pool
+    /// weapons feed from a 2x2 belt box or drum - RPD/RPDN, PKM/PKP, M60E4/E6
+    /// and the Saiga-12K drum. The rigs are built from 1x2 and 1x1 cells and the
+    /// pockets are 1x1, so the only grid in the whole loadout that can hold one
+    /// is the backpack's single 3x3, which holds exactly one.
+    ///
+    /// Note that `reason` cannot tell a full grid from a rejecting filter:
+    /// Grid.FindFreeSpace returns null for both and AddInternal turns a null
+    /// location into NoFreeSpaceError either way. Describe()'s cell size is what
+    /// carries the answer.
     /// </summary>
     private static bool AddToAnyGrid(List<CompoundItem> containers, Item item, out string reason)
     {

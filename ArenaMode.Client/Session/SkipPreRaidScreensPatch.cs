@@ -101,18 +101,35 @@ internal static class SkipPreRaidScreensPatch
             }
         }
 
-        // WavesSettings is a STRUCT held in a field, so this writes through to the
-        // real settings — the same assignment via a property would have modified a
-        // copy and silently done nothing.
+        /// <summary>
+        /// Undoes an AI amount of "none", which the skipped screen is the only
+        /// place to undo.
+        ///
+        /// TWO fields, not one. WavesSettings.BotAmount is what the dropdown
+        /// reads and writes, but BotControllerSettings.BotAmount is the one with
+        /// teeth: IsEnabled is defined as `BotAmount != NoBots`, and LocalGame
+        /// passes it to BotsController.Init as botEnable, which sets _canSpawn.
+        /// With only the first restored, the server's waves, the PMC spawns and
+        /// the engine's spawn pump all stay switched off and the arena runs on
+        /// nothing but our own burst spawner trickling bots in.
+        ///
+        /// Both are STRUCTS held in fields, so these assignments write through to
+        /// the real settings — the same writes via a property would have modified
+        /// a copy and silently done nothing.
+        /// </summary>
         private static void RestoreBots(RaidSettings settings)
         {
-            if (settings == null || settings.WavesSettings.BotAmount != EBotAmount.NoBots)
+            if (settings == null
+                || (settings.WavesSettings.BotAmount != EBotAmount.NoBots
+                    && settings.BotSettings.BotAmount != EBotAmount.NoBots))
                 return;
 
             settings.WavesSettings.BotAmount = EBotAmount.AsOnline;
+            settings.BotSettings.BotAmount = EBotAmount.AsOnline;
+
             Plugin.ModLogger.LogWarning(
                 "Arena: raid menu had AI amount set to none — restored to 'as online', "
-                + "otherwise the arena would start empty.");
+                + "otherwise the arena would start with its bot spawning switched off.");
         }
 
         private static void SetBosses(RaidSettings settings)

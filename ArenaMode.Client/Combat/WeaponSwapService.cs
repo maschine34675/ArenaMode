@@ -413,14 +413,21 @@ internal static class WeaponSwapService
             }
         }
 
-        // One line per promotion instead of one per magazine, and it names the
-        // magazine and the refusal. The old message said only "no rig space",
-        // which was both unactionable and, on the kits that hit it, wrong.
+        // One line per promotion instead of one per magazine, naming the magazine
+        // and its SIZE — which is the part that was missing. Eight of the 139
+        // ladder weapons feed from a 2x2 belt box or drum, and a rig built from
+        // 1x2 cells cannot hold one; only the backpack's 3x3 can, and only one.
+        // So this is Info when at least one got stowed and a warning only when
+        // the player is going into a fight on the loaded magazine alone.
         if (lastRefused != null)
         {
-            Plugin.ModLogger.LogWarning(
-                $"Gun Game: only {placed} of {spares.Count} spare magazines fit - "
-                + $"{Kits.KitBuilder.DescribeItem(lastRefused)} was refused: {lastRefusal}");
+            var message = $"Gun Game: {placed} of {spares.Count} spare magazines fit — "
+                          + $"{Kits.KitBuilder.DescribeItem(lastRefused)} fits no free cell ({lastRefusal})";
+
+            if (placed > 0)
+                Plugin.ModLogger.LogInfo(message + ".");
+            else
+                Plugin.ModLogger.LogWarning(message + " — no reserve for this rung.");
         }
     }
 
