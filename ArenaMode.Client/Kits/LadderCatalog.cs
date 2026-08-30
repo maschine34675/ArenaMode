@@ -41,6 +41,39 @@ public static class LadderCatalog
     /// </summary>
     public static void Reset() => _rungs = null;
 
+    /// <summary>
+    /// Asks the server to cut a fresh ladder and installs it, for a player who
+    /// has just climbed the whole of the last one.
+    ///
+    /// Synchronous, and deliberately so: it is called at the completion of a
+    /// ladder, a moment that already stops to congratulate the player and swap
+    /// their weapon, so a few milliseconds on the loopback disappear into it.
+    /// Returns false and leaves the old ladder in place on any failure — the
+    /// player keeps climbing something rather than nothing.
+    /// </summary>
+    public static bool Redraw()
+    {
+        try
+        {
+            var json = RequestHandler.PostJson(Protocol.LadderRedrawRoute, "{}");
+            var rungs = JsonConvert.DeserializeObject<List<KitDefinition>>(json);
+            if (rungs == null || rungs.Count == 0)
+            {
+                Plugin.ModLogger.LogWarning("Gun Game: the server returned no new ladder — keeping the current one.");
+                return false;
+            }
+
+            rungs.Sort((a, b) => a.Order.CompareTo(b.Order));
+            _rungs = rungs;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Gun Game: could not draw a new ladder ({ex.Message}) — keeping the current one.");
+            return false;
+        }
+    }
+
     private static void EnsureLoaded()
     {
         if (_rungs != null)

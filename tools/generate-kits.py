@@ -23,20 +23,36 @@ KITS = r'D:\SPT41\Development\ArenaMode\ArenaMode.Server\defaults\kits.json'
 items = json.load(io.open(DB + r'\templates\items.json', encoding='utf-8-sig'))
 glob = json.load(io.open(DB + r'\globals.json', encoding='utf-8-sig'))
 loc = json.load(io.open(DB + r'\locales\global\en.json', encoding='utf-8-sig'))
+_handbook = json.load(io.open(DB + r'\templates\handbook.json', encoding='utf-8-sig'))
+PRICES = {e['Id']: e['Price'] for e in _handbook['Items']}
+
+
+def handbook_price(tpl):
+    return PRICES.get(tpl, 0)
+
+# The default inventory template: every kit is grafted onto one, and its slot
+# filters are the authority on what each slot accepts.
+ROOT_TPL = '55d7217a4bdc2d86028b456d'
 
 ARMOR = '5448e54d4bdc2dcc718b4568'
 VEST = '5448e5284bdc2dcb718b4567'
 HEAD = '5a341c4086f77401f2541505'
-# Hearing matters in a corridor arena, so a kit gets ear protection where the
-# helmet allows one. The GSSh-01 is the ordinary choice and is sold, looted and
-# long-established. The TEP-300 is in-ear and conflicts with nothing, which
-# makes it the only option under a Maska or a Rys-T — but it appears in no
-# trader assort and no loot table in this version, so it is used ONLY where the
-# ordinary one cannot go. Leaning on an item the game does not distribute is
-# fine for one kit and reckless for a whole catalogue: if it ever disappears,
-# every kit that names it stops building.
-EARPIECE_PREFERRED = '5b432b965acfc47a8774094e'   # GSSh-01 active headset
-EARPIECE_FALLBACK = '68bf405779c8186398099017'    # Peltor TEP-300 earplugs
+# Hearing matters in a corridor arena, so a kit gets the best ear protection its
+# helmet allows — and a DIFFERENT one from the kit before it where possible.
+#
+# The catalogue used to hold two headsets across twenty kits: the GSSh-01, which
+# is the cheapest in the game, wherever a helmet permitted anything, and the
+# TEP-300 earplug everywhere else. Both halves of that were a mistake. The
+# GSSh-01 won because it has the fewest conflicts, which optimised for "always
+# fits" rather than "worth wearing"; the TEP-300 won eleven kits only because
+# those kits had closed helmets, which the helmet picker never knew to avoid.
+#
+# Ranked by handbook price rather than by an opinion of mine about how each one
+# sounds — it tracks the community ordering closely enough and it comes from the
+# game's own data. The TEP-300 is forced last regardless: it is in no trader
+# assort and no loot table in this version, so it stays a last resort rather
+# than something the catalogue leans on.
+EARPIECE_LAST_RESORT = '68bf405779c8186398099017'    # Peltor TEP-300 earplugs
 # The Transformer Bag, as the hand-built corpus had it: nine cells, under a
 # kilo, no penalties. The bag this generator first reached for was the SSO
 # Attack 2 — thirty-five cells, 2.8 kg, and -5% movement with -3 mouse control,
@@ -129,16 +145,73 @@ plain_rigs = [t for t, v in items.items()
 plain_rigs.sort(key=cells, reverse=True)
 
 
-def pick_helmet(target):
-    """A helmet near the body's class, so a set reads as one idea."""
-    ranked = sorted(helmets, key=lambda h: (abs(preset_class(h[1]) - target), len(h[1]['_items'])))
-    return ranked[0] if ranked else None
+# Every headset the Earpiece slot accepts, best first. Taken from the slot's own
+# filter so a headset added by a mod joins the rotation without an edit here.
+_ear_slot = next(sl for sl in items[ROOT_TPL]['_props']['Slots'] if sl['_name'] == 'Earpiece')
+EARPIECES = [t for t in _ear_slot['_props']['filters'][0]['Filter'] if t in items]
+EARPIECES.sort(key=lambda t: (t == EARPIECE_LAST_RESORT, -handbook_price(t)))
+
+
+def compatible(candidate, worn):
+    """Whether a headset can be worn with what the kit already has on.
+
+    Both directions matter: a helmet may refuse a headset that lists no
+    objection to the helmet.
+    """
+    if set(items[candidate]['_props'].get('ConflictingItems') or []) & worn:
+        return False
+
+    return not any(candidate in set(items.get(t, {}).get('_props', {}).get('ConflictingItems') or [])
+                   for t in worn)
+
+
+def open_eared(preset):
+    """How many real headsets this helmet build would still let you wear.
+
+    Counted over the whole preset, not just its base item: an ear cover fitted
+    to a helmet is what does the blocking, and it is a separate template.
+    """
+    worn = {i['_tpl'] for i in preset['_items']}
+    return sum(1 for e in EARPIECES if e != EARPIECE_LAST_RESORT and compatible(e, worn))
+
+
+def pick_helmet(target, used):
+    """A helmet near the body's class that still leaves the ears free.
+
+    Closed ears cost one and a half classes, which is a deliberate price rather
+    than a tie-break. In a corridor arena with instant respawn, hearing someone
+    come round the corner is worth more than one step of helmet class: a headshot
+    tends to end you at these ranges whatever you are wearing. So an ear-free
+    helmet one class off the target wins over a closed one that hits it exactly,
+    and an ear-free helmet two classes off does not.
+
+    That is not a free win everywhere. Among the helmets BSG ships a preset for,
+    classes 2, 5 and 6 have NO ear-free option at all — the pool there is the
+    Kolpak, the Rys-T, the Altyn and the Maska. Classes 2 and 5 can reach a
+    neighbouring class and get their hearing back; class 6 cannot, and keeps its
+    closed helmet. At the top of the ladder that reads correctly: wearing a Maska
+    means wearing an earplug, and the kit is honest about the trade.
+
+    Then variety: a helmet this run has already used loses to one it has not.
+    """
+    ranked = sorted(helmets, key=lambda h: (
+        abs(preset_class(h[1]) - target) + (0 if open_eared(h[1]) else 1.5),
+        1 if h[0] in used else 0,
+        -coverage(h[1]),
+        len(h[1]['_items'])))
+
+    if not ranked:
+        return None
+
+    used.add(ranked[0][0])
+    return ranked[0]
 
 
 # ------------------------------------------------------------- gear sets
 def build_sets():
     """Light to heavy, alternating the two legal shapes."""
     out = []
+    used_helmets = set()
     for cls in (2, 3, 4, 5, 6):
         # shape A: body armour of this class + the roomiest plain rig
         pool = [a for a in armors if preset_class(a[1]) == cls]
@@ -150,7 +223,7 @@ def build_sets():
             want = 26 - (cls - 2) * 4
             rig = min(plain_rigs, key=lambda t: abs(cells(t) - want))
             out.append(dict(cls=cls, armor=pool[0], rig=rig, rig_preset=None,
-                            helmet=pick_helmet(cls)))
+                            helmet=pick_helmet(cls, used_helmets)))
         # shape B: an armoured rig of this class, carrying its own protection
         pool = [v for v in armored_rigs if preset_class(v[1]) == cls]
         if pool:
@@ -158,7 +231,7 @@ def build_sets():
             # roomiest for the light ones and the leanest for the heavy ones.
             pool.sort(key=lambda v: (-coverage(v[1]), cells(v[0]) if cls >= 5 else -cells(v[0])))
             out.append(dict(cls=cls, armor=None, rig=pool[0][0], rig_preset=pool[0][1],
-                            helmet=pick_helmet(cls)))
+                            helmet=pick_helmet(cls, used_helmets)))
     return out
 
 
@@ -227,26 +300,25 @@ def fill_empty_plates(out, root_id):
     return added
 
 
-def pick_earpiece(nodes):
-    """The ordinary headset unless something already in the kit refuses it."""
+def pick_earpiece(nodes, used):
+    """The least-worn headset this kit can actually wear, quality breaking ties.
+
+    Least-worn rather than first-unworn. Kits do not all offer the same choice —
+    a helmet can rule out some headsets without ruling out all of them — so a
+    "have we used this yet" flag empties unevenly and then has to be reset, and
+    the resets bunch the top of the list onto the last few kits. Counting uses
+    spreads them evenly whatever subset each kit allows, with no special case.
+
+    `used` is a Counter carried across the whole run.
+    """
     worn = {n['_tpl'] for n in nodes}
-    for candidate in (EARPIECE_PREFERRED, EARPIECE_FALLBACK):
-        if candidate not in items:
-            continue
+    fits = [e for e in EARPIECES if compatible(e, worn)]
+    if not fits:
+        return None
 
-        conflicts = set(items[candidate]['_props'].get('ConflictingItems') or [])
-        if conflicts & worn:
-            continue
-
-        # The other direction counts too: a helmet may refuse the headset even
-        # when the headset lists no objection to it.
-        if any(candidate in set(items.get(t, {}).get('_props', {}).get('ConflictingItems') or [])
-               for t in worn):
-            continue
-
-        return candidate
-
-    return None
+    chosen = min(fits, key=lambda e: (used[e], EARPIECES.index(e)))
+    used[chosen] += 1
+    return chosen
 
 
 def spare_capacity(rig_tpl, mag_tpl):
@@ -269,6 +341,7 @@ def rebuild():
     print(f"{'Kit':12} {'Kl':>2} {'Panzerung / Panzer-Rig':34} {'Rig':26} {'Zellen':>6} {'Mags':>4}")
 
     result = []
+    used_earpieces = collections.Counter()
     for i, kit in enumerate(old):
         gear = sets[i % len(sets)]
         weapon_root = next(n for n in kit['items'] if (n.get('slotId') or '') == 'FirstPrimaryWeapon')
@@ -291,7 +364,7 @@ def rebuild():
                     grew = True
 
         root_id = uuid.uuid4().hex[:24]
-        out = [dict(_id=root_id, _tpl='55d7217a4bdc2d86028b456d')]
+        out = [dict(_id=root_id, _tpl=ROOT_TPL)]
         for n in kit['items']:
             if n['_id'] not in keep:
                 continue
@@ -312,7 +385,7 @@ def rebuild():
 
         fill_empty_plates(out, root_id)
 
-        ear = pick_earpiece(out)
+        ear = pick_earpiece(out, used_earpieces)
         if ear:
             out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=ear,
                             parentId=root_id, slotId='Earpiece'))

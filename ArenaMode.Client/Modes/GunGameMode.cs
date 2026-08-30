@@ -360,9 +360,11 @@ public sealed class GunGameMode : IArenaMode
             _wins++;
             _tier = 0;
             Plugin.ModLogger.LogInfo($"Gun Game ladder completed ({_wins}x).");
-            ArenaToasts.Show(_wins == 1
-                ? "Ladder complete — starting over!"
-                : $"Ladder complete x{_wins} — starting over!");
+
+            var fresh = RedrawLadder();
+            ArenaToasts.Show(fresh
+                ? $"Ladder complete x{_wins} — new weapons!"
+                : (_wins == 1 ? "Ladder complete — starting over!" : $"Ladder complete x{_wins} — starting over!"));
         }
 
         _loadoutDirty = true;
@@ -377,6 +379,51 @@ public sealed class GunGameMode : IArenaMode
         // The swap itself waits out the kill animation on its own; this just
         // keeps it from starting in the same frame as the shot that earned it.
         _nextSwapAt = Mathf.Max(_nextSwapAt, Time.time + 0.25f);
+    }
+
+    /// <summary>
+    /// Cuts a fresh ladder for the next climb.
+    ///
+    /// Only for a real weapon ladder: when Gun Game is walking the KIT catalogue
+    /// instead — which it does when no ladder.json exists — there is no pool to
+    /// draw a different one from, and asking would return the same list.
+    ///
+    /// The tier has already wrapped to zero by the time this runs, so replacing
+    /// the list underneath is safe; and _loadoutDirty is set by the caller, so
+    /// the swap that follows picks up the new rung one rather than the old one.
+    /// </summary>
+    private bool RedrawLadder()
+    {
+        if (!_rungsAreWeaponsOnly || !Settings.GunGameRedrawLadder.Value)
+            return false;
+
+        if (!LadderCatalog.Redraw())
+            return false;
+
+        // Built into a local first. BuildLadder drops rungs whose templates the
+        // client cannot resolve, so a fresh draw can in principle come back
+        // empty — and committing that would leave the mode with nothing to hand
+        // out for the rest of the raid. The old ladder is a worse prize than a
+        // new one, but it is not nothing.
+        var rebuilt = BuildLadder(out var weaponsOnly);
+        if (rebuilt.Count == 0)
+        {
+            Plugin.ModLogger.LogWarning("Gun Game: the new ladder had no buildable rungs — keeping the old one.");
+            return false;
+        }
+
+        _ladder = rebuilt;
+        _rungsAreWeaponsOnly = weaponsOnly;
+
+        // The new rungs are weapons this raid has never built. Warming them now,
+        // while the player is on rung one with a pistol, is what keeps the
+        // promotions that follow from waiting on a cold bundle.
+        ArenaController.RequestKitWarmup();
+
+        Plugin.ModLogger.LogInfo(
+            $"Gun Game: new ladder drawn — {string.Join(" > ", _ladder.Select(k => k.Name ?? k.Id))}");
+
+        return true;
     }
 
     public void OnLocalDeath()

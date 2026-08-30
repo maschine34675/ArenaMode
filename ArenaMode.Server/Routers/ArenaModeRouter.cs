@@ -81,6 +81,14 @@ public sealed class ArenaModeRouter : StaticRouter
                 new ValueTask<string>(Services.LadderPicker.Current)),
 
         new RouteAction<EmptyRequestData>(
+            Protocol.LadderRedrawRoute,
+            (url, info, sessionId, output, _) =>
+                new ValueTask<string>(Services.LadderPicker.Redraw(
+                    ArenaContext.LadderJson,
+                    ArenaContext.Config.GunGameRungs,
+                    message => Instance?._logger.Info(message)))),
+
+        new RouteAction<EmptyRequestData>(
             Protocol.ClientSettingsRoute,
             (url, info, sessionId, output, _) =>
                 new ValueTask<string>(Services.ClientSettingsStore.Serialize())),

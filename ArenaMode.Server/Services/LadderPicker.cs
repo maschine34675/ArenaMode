@@ -40,10 +40,23 @@ public static class LadderPicker
     /// unchanged, which also keeps a hand-written ladder.json working.
     /// </summary>
     public static void DrawForRaid(string poolJson, int rungs, Action<string>? log = null)
+        => Redraw(poolJson, rungs, log);
+
+    /// <summary>
+    /// Cuts a new ladder and returns it, for a player who has climbed the whole
+    /// of the last one and would otherwise walk the same twenty-four weapons a
+    /// second time in the same raid.
+    ///
+    /// Installs it as Current as well, so a respawn asking for the ladder after
+    /// this point gets the one the player is actually climbing.
+    /// </summary>
+    public static string Redraw(string poolJson, int rungs, Action<string>? log = null)
     {
         var drawn = Draw(poolJson, rungs, log);
         lock (Lock)
             _current = drawn;
+
+        return drawn;
     }
 
     /// <summary>

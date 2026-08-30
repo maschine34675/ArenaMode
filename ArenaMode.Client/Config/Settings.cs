@@ -57,6 +57,7 @@ public static class Settings
     public static ConfigEntry<string> GunGameLadder { get; private set; }
     public static ConfigEntry<int> GunGameSpareMagazines { get; private set; }
     public static ConfigEntry<bool> GunGameLoseTierOnDeath { get; private set; }
+    public static ConfigEntry<bool> GunGameRedrawLadder { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
@@ -388,6 +389,14 @@ public static class Settings
             false,
             "Drop back one tier when you die. Off by default — losing progress " +
             "to a grenade you never saw is not what makes gun game fun.");
+
+        GunGameRedrawLadder = config.Bind(
+            "Gun Game",
+            "GunGameRedrawLadder",
+            true,
+            "Cut a fresh ladder when you finish one, instead of climbing the same " +
+            "weapons a second time in the same raid. The new rungs are warmed in " +
+            "the background, so the promotions that follow do not wait for them.");
 
         ScaleDifficulty = config.Bind(
             "Difficulty",

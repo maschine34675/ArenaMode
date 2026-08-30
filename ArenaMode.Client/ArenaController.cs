@@ -32,12 +32,32 @@ internal sealed class ArenaController : MonoBehaviour
     }
 
     /// <summary>
+    /// Ask for the warm-up to run again, for when the set of kits that can come
+    /// up has changed mid-raid — a fresh Gun Game ladder is the case that needs
+    /// it. Cheap to repeat: the preloader tracks warmed TEMPLATES, so a second
+    /// pass only builds what is genuinely new.
+    /// </summary>
+    public static void RequestKitWarmup() => _rewarmRequested = true;
+
+    private static bool _rewarmRequested;
+
+    /// <summary>
     /// Warms the other kits shortly after the raid settles, so a random draw
     /// never stalls a respawn waiting for bundles. Deliberately late: the
     /// raid-start kit swap runs its own respawn first.
     /// </summary>
     private void TickKitWarmup()
     {
+        if (_rewarmRequested)
+        {
+            _rewarmRequested = false;
+            _kitWarmupStarted = false;
+
+            // Short, not the eight seconds a raid start waits: nothing is
+            // loading, the player is simply standing in a fight.
+            _kitWarmupAt = Time.time + 1f;
+        }
+
         if (!Session.ArenaSession.IsActive)
         {
             _kitWarmupStarted = false;
