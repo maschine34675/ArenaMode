@@ -59,20 +59,25 @@ public class ArenaModeConfig
         // The Lab. Selectable only because an arena raid waives its keycard in
         // the menu (MapAccessPatch) — the location itself is enabled already.
         //
-        // Five bot zones here, not one: unlike Factory and Labyrinth the Lab
-        // spreads its spawns over Basement, Floor1, Floor2 and two gates.
-        //
-        // This setting feeds the SERVER side only — the generated fallback waves
-        // and the boss spawn entries, both matched against a zone by exact name,
-        // which is why the waves take one entry from this list each rather than
-        // the list itself. The client's burst spawner does NOT read it: it picks
-        // zones from BotSpawner's own list of every zone in the loaded scene, so
-        // it already had all five here.
+        // Keep the three accessible bot areas. Gate1/Gate2 are behind extraction
+        // doors and strand arena bots until someone activates those extracts.
+        // ArenaBotSpawnPolicy also excludes them from older saved configs and
+        // the client's independent scene-zone selection. Player spawns stay as-is.
         ["laboratory"] = new ArenaMapConfig
         {
-            SpawnZones = "BotZoneFloor1,BotZoneFloor2,BotZoneBasement,BotZoneGate1,BotZoneGate2",
+            SpawnZones = "BotZoneFloor1,BotZoneFloor2,BotZoneBasement",
             BotMax = 20,
             BurstMinAliveBots = 10,
+
+            // The Lab is large and stacked over three levels, so the Factory
+            // numbers leave bots patrolling a floor you are not on while you
+            // spend a round looking for them. Every group is told, and told four
+            // times as often. The cost argument behind the radius — more bots at
+            // once in the state that switches on cover-finding and path-vision
+            // raycasts — is weaker here, because the Lab runs a smaller
+            // population than Factory does.
+            HuntSweepSeconds = 5,
+            HuntRadius = 0,
         },
     };
 
@@ -144,6 +149,21 @@ public class ArenaMapConfig
     /// <summary>PMC pressure via BossLocationSpawn appends (0 = none).</summary>
     [JsonPropertyName("pmcWaveIntervalSeconds")]
     public int PmcWaveIntervalSeconds { get; set; } = 240;
+
+    /// <summary>
+    /// How often the client tells nearby bot groups where the player is.
+    ///
+    /// Sixty metres every fifteen seconds is a Factory number: there, that radius
+    /// is most of the map and a bot that has not found you soon will. On a large,
+    /// multi-storey map it is the difference between a fight and a search — which
+    /// is why the Lab overrides both.
+    /// </summary>
+    [JsonPropertyName("huntSweepSeconds")]
+    public int HuntSweepSeconds { get; set; } = 15;
+
+    /// <summary>Only groups with a bot this close are told. 0 means every group, at any range.</summary>
+    [JsonPropertyName("huntRadius")]
+    public int HuntRadius { get; set; } = 60;
 
     /// <summary>Client burst top-up: keep at least this many bots alive.</summary>
     [JsonPropertyName("burstMinAliveBots")]

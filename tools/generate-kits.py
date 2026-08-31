@@ -59,9 +59,57 @@ EARPIECE_LAST_RESORT = '68bf405779c8186398099017'    # Peltor TEP-300 earplugs
 # which is a strange thing to hand every kit in an arena built around moving.
 BACKPACK = '56e33680d2720be2748b4576'
 
-# Kept from the original kit rather than generated: the medical loadout lives in
-# the pockets, and the secure container and armband are the surgeon's business.
+# Kept from the original kit rather than generated: the secure container and the
+# armband are the surgeon's business. The pockets CONTAINER is kept too, because
+# it is the right template for this profile — but its CONTENTS are now generated.
+# Carrying those over is why every kit in the catalogue, class 2 and class 6
+# alike, held the same bandage, tourniquet, splint and AI-2.
 CARRY_OVER_SLOTS = {'Pockets', 'SecuredContainer', 'Scabbard', 'ArmBand'}
+
+# One item per condition that can end a round, getting better as the armour does.
+#
+# The conditions worth carrying for are a light bleed, a heavy bleed, a fracture
+# and pain; at the top a destroyed part as well. The ladder walks from gauze and
+# a stick to the injectors that fix the same thing in a second — which is most of
+# what the higher tiers are buying, because in a mode with no respawn the time a
+# heal takes is the thing that kills you.
+#
+# Four small items go in the pockets, which are four single cells; anything
+# larger rides in the rig. Zagustin earns the top two tiers a free pocket by
+# covering BOTH bleeds, and Surv12 covers a fracture and surgery together.
+POCKET_MEDICAL = {
+    2: ['544fb25a4bdc2dfb738b4567',   # Aseptic bandage
+        '5e831507ea0a7c419c2f9bd9',   # Esmarch tourniquet
+        '544fb3364bdc2d34748b456a',   # Immobilizing splint
+        '544fb37f4bdc2dee738b4567'],  # Analgin painkillers
+    3: ['5751a25924597722c463c472',   # Army bandage
+        '60098af40accd37ef2175f27',   # CAT hemostatic tourniquet
+        '5af0454c86f7746bf20992e8',   # Aluminum splint
+        '544fb37f4bdc2dee738b4567'],  # Analgin painkillers
+    4: ['5751a25924597722c463c472',   # Army bandage
+        '5e8488fa988a8701445df1e4',   # CALOK-B hemostatic applicator
+        '5af0454c86f7746bf20992e8',   # Aluminum splint
+        '5af0548586f7743a532b7e99'],  # Ibuprofen painkillers
+    5: ['5c0e533786f7747fa23f4d47',   # Zagustin — both bleeds in one injector
+        '5af0454c86f7746bf20992e8',   # Aluminum splint
+        '544fb3f34bdc2d03748b456a',   # Morphine injector
+        '590c678286f77426c9660122'],  # IFAK
+    6: ['5c0e533786f7747fa23f4d47',   # Zagustin — both bleeds
+        '544fb3f34bdc2d03748b456a',   # Morphine injector
+        '5c0e530286f7747fa1419862',   # Propital regenerative injector
+        '5af0454c86f7746bf20992e8'],  # Aluminum splint
+}
+
+# The bulky half, carried in the rig because it does not fit a pocket.
+RIG_MEDICAL = {
+    2: ['5755356824597772cb798962'],  # AI-2 medkit
+    3: ['590c661e86f7741e566b646a'],  # Car first aid kit
+    4: ['544fb45d4bdc2dee738b4568'],  # Salewa first aid kit
+    5: ['544fb45d4bdc2dee738b4568',   # Salewa
+        '5d02778e86f774203e7dedbe'],  # CMS surgical kit
+    6: ['590c657e86f77412b013051d',   # Grizzly medical kit
+        '5d02797c86f774203f38e30a'],  # Surv12 — fracture AND surgery
+}
 
 
 def chain(tpl):
@@ -361,6 +409,45 @@ def spare_capacity(rig_tpl, mag_tpl):
     return max(1, min(5, int(room * 0.5 // footprint)))
 
 
+def tier_list(table, cls):
+    """The entry for this class, falling back to the nearest one below it."""
+    for candidate in range(cls, 1, -1):
+        if candidate in table:
+            return table[candidate]
+
+    return next(iter(table.values()))
+
+
+def stock_medicine(out, cls):
+    """Empty the pockets and refill them for this tier.
+
+    Emptying first is the point: the pockets arrive carried over from the old
+    corpus with the old corpus's medicine in them, and adding on top would leave
+    a class 6 kit holding morphine AND the analgin it replaces — in four cells
+    that only hold four things.
+    """
+    pockets = next((n for n in out if n.get('slotId') == 'Pockets'), None)
+    if not pockets:
+        return
+
+    inside = {n['_id'] for n in out if n.get('parentId') == pockets['_id']}
+    grew = True
+    while grew:
+        grew = False
+        for n in list(out):
+            if n.get('parentId') in inside and n['_id'] not in inside:
+                inside.add(n['_id'])
+                grew = True
+
+    out[:] = [n for n in out if n['_id'] not in inside]
+
+    # One per cell, in order. The pockets are four single cells, so a fifth item
+    # would silently have nowhere to go.
+    for slot, tpl in enumerate(tier_list(POCKET_MEDICAL, cls)[:4], start=1):
+        out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=tpl,
+                        parentId=pockets['_id'], slotId=f'pocket{slot}'))
+
+
 def rebuild():
     old = json.load(io.open(KITS, encoding='utf-8-sig'))
     sets = build_sets()
@@ -419,13 +506,16 @@ def rebuild():
         out.append(dict(_id=uuid.uuid4().hex[:24], _tpl=BACKPACK,
                         parentId=root_id, slotId='Backpack'))
 
+        stock_medicine(out, gear['cls'])
+
         mag = next((n['_tpl'] for n in out if n.get('slotId') == 'mod_magazine'), None)
         spares = spare_capacity(gear['rig'], mag) if mag else 2
 
         result.append(dict(id=kit['id'], name=kit['name'], order=kit['order'],
                            items=out,
                            fill=dict(spareMagazines=spares,
-                                     rigContents=(kit.get('fill') or {}).get('rigContents', []))))
+                                     rigContents=[dict(_tpl=t, count=1)
+                                                  for t in tier_list(RIG_MEDICAL, gear['cls'])])))
 
         armour_name = nm(gear['armor'][0]) if gear['armor'] else nm(gear['rig']) + ' (Rig)'
         print(f"{kit['id'][:12]:12} {gear['cls']:>2} {armour_name[:34]:34} "

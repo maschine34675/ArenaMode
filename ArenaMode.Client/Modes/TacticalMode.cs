@@ -60,6 +60,13 @@ public sealed class TacticalMode : IArenaMode
     private int _squadEpoch;
 
     private KitDefinition _bought;
+
+    /// <summary>
+    /// The kit the player is actually wearing, as opposed to one they just paid
+    /// for. Keeping it is what lets a survivor be re-issued exactly what they
+    /// have rather than the catalogue's default.
+    /// </summary>
+    private KitDefinition _worn;
     private bool _playerDown;
     private bool _roundStartPending;
 
@@ -180,7 +187,11 @@ public sealed class TacticalMode : IArenaMode
         // GetBaseKit, not GetSelectedKit: the latter asks the provider, so this
         // lambda would have called itself for as long as _bought was null — an
         // unbounded recursion, and a StackOverflowException is not catchable.
-        KitCatalog.KitProvider = () => _bought ?? KitCatalog.GetBaseKit();
+        // _worn before the base kit: a survivor who bought nothing must be
+        // re-issued the kit they are standing in, not the catalogue's first
+        // entry. GetBaseKit remains the floor for the opening round, when
+        // nothing has been worn yet.
+        KitCatalog.KitProvider = () => _bought ?? _worn ?? KitCatalog.GetBaseKit();
 
         EnterBuy();
         Plugin.ModLogger.LogInfo($"Tactical: match started with {Money:N0} roubles.");
@@ -441,11 +452,18 @@ public sealed class TacticalMode : IArenaMode
         // gear; the round-break swap puts them in what they just bought. One who
         // died is handled by the held respawn instead, which picks the same kit
         // through the same provider once HoldRespawn lets go.
-        // _bought != null is the condition, not merely surviving: swapping a
-        // survivor who bought nothing would take the gear they just earned and
-        // hand it straight back, which is the downgrade this mode used to do.
+        // The kit this round runs on, remembered before the swap so the NEXT
+        // round can re-issue it.
+        _worn = _bought ?? _worn;
+
+        // Survivors are re-issued their kit too, not skipped. "Keeping your
+        // gear" has to mean keeping the LOADOUT, not keeping the wounds and the
+        // empty magazines it ended the round with — a round that starts with a
+        // fractured leg and one round in the chamber is not a round. Re-applying
+        // the same kit is exactly a heal and a resupply, through the path that
+        // is already tested for it, and it changes nothing about the gear
+        // because it is the same kit definition.
         if (!wasDown
-            && _bought != null
             && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game
             && game.Status == GameStatus.Started)
         {

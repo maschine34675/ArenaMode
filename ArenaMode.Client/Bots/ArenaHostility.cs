@@ -24,15 +24,28 @@ namespace ArenaMode.Bots;
 /// </summary>
 internal static class ArenaHostility
 {
-    private const float SweepIntervalSeconds = 15f;
+    /// <summary>
+    /// Factory's numbers, and the fallback everywhere the server does not say
+    /// otherwise. Sixty metres is most of that map, and a bot that has not found
+    /// you within fifteen seconds there soon will.
+    ///
+    /// Both are per-map on the server, because they do not travel: the Lab is
+    /// large and stacked over three floors, where this pair leaves bots
+    /// patrolling a level you are not on. See ArenaMapConfig.
+    /// </summary>
+    private const float DefaultSweepSeconds = 15f;
+
+    private const float DefaultSweepRadius = 60f;
 
     /// <summary>
-    /// Only groups with a bot inside this radius get told. Dragging distant
-    /// groups into the fight keeps more bots simultaneously in the state that
-    /// switches on the expensive AI machinery (cover finding, path-vision
-    /// raycasts) — and on factory 60m already covers most of the map.
+    /// A radius of zero means every group, at any range.
+    ///
+    /// The radius exists to keep bots out of the state that switches on the
+    /// expensive AI machinery — cover finding, path-vision raycasts — so lifting
+    /// it is a real cost. It is worth paying where a round cannot END until the
+    /// bots are found, and where the population is a handful rather than twenty.
     /// </summary>
-    private const float SweepRadius = 60f;
+    private const float Unlimited = 0f;
 
     private static readonly HashSet<BotsGroup> SweepGroups = new HashSet<BotsGroup>();
 
@@ -60,7 +73,17 @@ internal static class ArenaHostility
         if (Modes.ArenaMatchService.Current?.Mode is Modes.RoundsMode rounds && rounds.InIntermission)
             return;
 
-        _nextSweepAt = Time.time + SweepIntervalSeconds;
+        var map = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.LocationId : null;
+        float interval = Session.ArenaClientConfig.GetHuntSweepSeconds(map, (int)DefaultSweepSeconds);
+
+        // A mode that owns the population sweeps twice as often whatever the map
+        // says. Tactical spawns one squad and the round runs until it is dead, so
+        // a bot nobody can find is not a quiet map — it is a round that will not
+        // end, and the player waiting it out is the whole cost.
+        if (Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode)
+            interval = Mathf.Max(2f, interval / 2f);
+
+        _nextSweepAt = Time.time + Mathf.Max(1f, interval);
 
         try
         {
@@ -77,7 +100,8 @@ internal static class ArenaHostility
                 return;
 
             var playerPosition = player.Position;
-            var radiusSqr = SweepRadius * SweepRadius;
+            var radius = Session.ArenaClientConfig.GetHuntRadius(map, (int)DefaultSweepRadius);
+            var radiusSqr = radius * (float)radius;
 
             SweepGroups.Clear();
             foreach (var bot in owners)
@@ -91,7 +115,7 @@ internal static class ArenaHostility
                 if (bot.BotsGroup == null)
                     continue;
 
-                if ((bot.Position - playerPosition).sqrMagnitude > radiusSqr)
+                if (radius > Unlimited && (bot.Position - playerPosition).sqrMagnitude > radiusSqr)
                     continue;
 
                 SweepGroups.Add(bot.BotsGroup);

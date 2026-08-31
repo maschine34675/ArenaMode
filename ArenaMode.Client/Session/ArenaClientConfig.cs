@@ -60,6 +60,14 @@ public static class ArenaClientConfig
     public static int GetBotCap(string map, int fallback = 24)
         => GetMapValue<int?>(map, "botMax") ?? fallback;
 
+    /// <summary>How often to tell bot groups where the player is, in seconds.</summary>
+    public static int GetHuntSweepSeconds(string map, int fallback = 15)
+        => GetMapValue<int?>(map, "huntSweepSeconds") ?? fallback;
+
+    /// <summary>How near a group must be to be told. 0 means every group, at any range.</summary>
+    public static int GetHuntRadius(string map, int fallback = 60)
+        => GetMapValue<int?>(map, "huntRadius") ?? fallback;
+
     public static int GetBurstMinAliveBots(string map, int fallback = 12)
         => GetMapValue<int?>(map, "burstMinAliveBots") ?? fallback;
 

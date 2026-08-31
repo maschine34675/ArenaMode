@@ -32,8 +32,13 @@ public class ConfigLoader(ModHelper modHelper, ISptLogger<ConfigLoader> logger) 
                 logger.Info("[ArenaMode] Default config written to config/config.json");
             }
 
-            ArenaContext.Config = modHelper.GetJsonDataFromModFile<ArenaModeConfig>(configDir, "config.json")
-                                  ?? new ArenaModeConfig();
+            // Through ConfigStore rather than straight off disk: it tops up keys
+            // this version added and the saved file predates. A per-map field is
+            // the case that needs it — the Maps dictionary is replaced wholesale
+            // by the file, so an old section keeps the generic default rather
+            // than that map's override, silently.
+            if (Services.ConfigStore.Reload(out var repaired) != Services.ConfigResult.Success)
+                logger.Warning($"[ArenaMode] {repaired}");
             logger.Info($"[ArenaMode] Config loaded — maps: {string.Join(", ", ArenaContext.Config.Maps.Keys)}");
 
             // Kit catalog: served verbatim to the client. The default file is deployed
