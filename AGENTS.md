@@ -156,7 +156,9 @@ Open:
 
 ## How to work here
 
-Small, self-contained commits with a message that explains the reasoning. Verify game
+Create a commit after every completed change, including its tests and documentation;
+do not leave finished work uncommitted or combine unrelated changes. Use small,
+self-contained commits with a message that explains the reasoning. Verify game
 internals against `../_decompiled/` rather than assuming — the decompiled source is
 complete and it has contradicted confident guesses many times. When a playtest disagrees
 with your explanation, the explanation is wrong; measure before you theorise again.
