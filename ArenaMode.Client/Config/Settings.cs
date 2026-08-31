@@ -576,7 +576,7 @@ public static class Settings
             "Announcer",
             true,
             "Announcer stingers (multi-kills, streaks) — plays .ogg files from " +
-            "BepInEx/plugins/ArenaMode/sounds/, silently disabled when absent.");
+            "BepInEx/plugins/ArenaMode/sounds/. Missing sounds are skipped and logged.");
 
         AnnouncerVolume = config.Bind(
             "Audio",

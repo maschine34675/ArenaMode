@@ -3,11 +3,13 @@ using ArenaMode.Config;
 using ArenaMode.Modes;
 using Comfort.Common;
 using EFT.UI;
+using UnityEngine;
 using UnityEngine.Networking;
 
 internal static class Program
 {
     private static int _assertions;
+    private static readonly List<string> CreatedFiles = new();
 
     private static void Assert(bool condition, string message)
     {
@@ -34,9 +36,18 @@ internal static class Program
             // Placeholder bytes: the controlled transport, not an Ogg decoder,
             // supplies clips. Real asset decode validation is a separate check.
             foreach (var path in paths)
+            {
                 File.WriteAllText(path, "controlled fake audio request");
+                CreatedFiles.Add(path);
+            }
             SynchronizationContext.SetSynchronizationContext(context);
             Verify(pluginDir, paths, context);
+            VerifyRecovery(pluginDir, context);
+            VerifyDecoderFailures(pluginDir, context);
+            VerifyMissingFolder(pluginDir, context);
+            VerifyDiagnosticsAndRepairThrottle(context);
+            VerifyLateReadinessRace(pluginDir, context);
+            VerifyOutputDiagnostics();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -50,11 +61,17 @@ internal static class Program
             AnnouncerService.Detach();
             SynchronizationContext.SetSynchronizationContext(previousContext);
             // Delete only our individually named fixture files and empty folders.
-            foreach (var path in paths)
+            foreach (var path in CreatedFiles)
                 if (File.Exists(path)) File.Delete(path);
-            if (Directory.Exists(soundDir)) Directory.Delete(soundDir);
-            var arenaDir = Path.Combine(pluginDir, "ArenaMode");
-            if (Directory.Exists(arenaDir)) Directory.Delete(arenaDir);
+            if (Directory.Exists(pluginDir))
+                foreach (var directory in Directory.GetDirectories(pluginDir, "*", SearchOption.AllDirectories)
+                    .OrderByDescending(path => path.Length))
+                {
+                    if (!Path.GetFullPath(directory).StartsWith(Path.GetFullPath(pluginDir) + Path.DirectorySeparatorChar,
+                        StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Fixture cleanup escaped its owned directory.");
+                    Directory.Delete(directory, recursive: false);
+                }
             if (Directory.Exists(pluginDir)) Directory.Delete(pluginDir);
         }
     }
@@ -139,6 +156,350 @@ internal static class Program
         nextMatch.Callout(firstLabel);
         Assert(sounds.Played.Count == 3, "Attaching null must detach the active match.");
         AnnouncerService.EnsureLoaded();
-        Assert(requests.Count == 3, "A completed load must stay cached across later matches.");
+        Assert(requests.Count == 4 && Label(requests[3]) == Label(failed),
+            "A failed first load must retry only its failed clip; healthy cached clips must survive.");
+        var beforeCompletion = sounds.Played.Count;
+        FinishLoads(context);
+        Assert(sounds.Played.Count == beforeCompletion, "Repair completion must not replay a skipped old callout.");
+        var recoveredMatch = new ArenaMatch();
+        AnnouncerService.Attach(recoveredMatch);
+        recoveredMatch.Callout(Label(failed));
+        Assert(sounds.Played.Count == beforeCompletion + 1, "A recovered first-load failure must play on the next callout.");
+        AnnouncerService.Detach();
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == 4, "Healthy cached clips remain reused after a successful repair.");
+        Assert(requests.All(request => request.timeout == 10), "Each native request has a ten-second timeout.");
+    }
+
+    private static void VerifyRecovery(string pluginDir, QueuedContext context)
+    {
+        var sounds = Singleton<GUISounds>.Instance;
+        var requests = UnityWebRequestMultimedia.Requests;
+        var label = Label(requests[0]);
+        var originalClip = requests[0].Content;
+        var count = requests.Count;
+        UnityEngine.Object.Destroy(originalClip);
+        Assert(originalClip == null && !ReferenceEquals(originalClip, null),
+            "Destroyed clip fixture preserves managed identity while behaving like Unity-null.");
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count + 1 && Label(requests[^1]) == label,
+            "Next-match validation reloads a destroyed Unity clip, not healthy siblings.");
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count + 1, "Repeated validation deduplicates an in-flight repair.");
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        var plays = sounds.Played.Count;
+        match.Callout(label);
+        AnnouncerService.Detach();
+        FinishLoads(context);
+        match.Callout(label);
+        Assert(sounds.Played.Count == plays, "A detached match stays silent throughout late repair completion.");
+        var nextMatch = new ArenaMatch();
+        AnnouncerService.Attach(nextMatch);
+        nextMatch.Callout(label);
+        var restored = sounds.Played[^1].Clip;
+        Assert(sounds.Played.Count == plays + 1 && restored != null && !ReferenceEquals(restored, originalClip),
+            "Replacement match plays the repaired native clip, never a destroyed wrapper.");
+
+        AnnouncerService.Detach();
+        restored.loadState = AudioDataLoadState.Loading;
+        count = requests.Count;
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count && context.OutstandingAsyncVoids > 0,
+            "A still-loading cached clip is awaited rather than immediately replaced.");
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count, "Concurrent readiness checks do not duplicate a cached-clip load.");
+        restored.loadState = AudioDataLoadState.Loaded;
+        context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
+        AnnouncerService.Attach(nextMatch);
+        nextMatch.Callout(label);
+        Assert(ReferenceEquals(sounds.Played[^1].Clip, restored), "A recovered cached Loading clip retains identity.");
+
+        restored.loadState = AudioDataLoadState.Unloaded;
+        AnnouncerService.Detach();
+        AnnouncerService.EnsureLoaded();
+        FinishLoads(context);
+        AnnouncerService.Attach(nextMatch);
+        nextMatch.Callout(label);
+        Assert(sounds.Played[^1].Clip.loadState == AudioDataLoadState.Loaded,
+            "An Unloaded cached clip is made ready before playback in the next match.");
+        AnnouncerService.Detach();
+    }
+
+    private static void VerifyDecoderFailures(string pluginDir, QueuedContext context)
+    {
+        var sounds = Singleton<GUISounds>.Instance;
+        var requests = UnityWebRequestMultimedia.Requests;
+        AddClip(pluginDir, "decode_throw");
+        AddClip(pluginDir, "following_clip");
+        var count = requests.Count;
+        AnnouncerService.EnsureLoaded();
+        var failed = requests[^1];
+        failed.ThrowOnGetContent = true;
+        failed.Complete(UnityWebRequest.Result.Success);
+        context.PumpUntil(() => requests.Count == count + 2 || context.OutstandingAsyncVoids == 0);
+        Assert(requests.Count == count + 2 && failed.Disposed && failed.ContentReadCount == 1,
+            "GetContent throwing for one file must not abort loading subsequent files.");
+        var following = requests[^1];
+        FinishLoads(context);
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        var plays = sounds.Played.Count;
+        match.Callout(Label(following));
+        Assert(sounds.Played.Count == plays + 1, "A later file remains playable after a GetContent exception.");
+        AnnouncerService.Detach();
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count + 3 && Label(requests[^1]) == Label(failed),
+            "Next-match loading retries only the file whose decoder threw.");
+        FinishLoads(context);
+
+        AddClip(pluginDir, "needs_audio_data");
+        AnnouncerService.EnsureLoaded();
+        var unloaded = requests[^1];
+        unloaded.Content = new AudioClip { Name = "needs_audio_data", loadState = AudioDataLoadState.Unloaded };
+        FinishLoads(context);
+        Assert(unloaded.Content.LoadAudioDataCalls == 1 && unloaded.Content.loadState == AudioDataLoadState.Loaded,
+            "Success with Unloaded audio requires LoadAudioData before entering the playable cache.");
+
+        AddClip(pluginDir, "slow_decoder");
+        AnnouncerService.EnsureLoaded();
+        var slow = requests[^1];
+        var loadingClip = new AudioClip { Name = "slow_decoder", loadState = AudioDataLoadState.Loading };
+        slow.Content = loadingClip;
+        slow.Complete(UnityWebRequest.Result.Success);
+        context.PumpUntil(() => slow.ContentReadCount == 1);
+        Time.realtimeSinceStartup += 11f;
+        context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
+        Assert(slow.Disposed && loadingClip == null,
+            "A clip stuck Loading times out and its owned native object is discarded.");
+        AnnouncerService.EnsureLoaded();
+        Assert(!ReferenceEquals(requests[^1], slow) && Label(requests[^1]) == "SLOW DECODER",
+            "A readiness timeout leaves the affected file retryable at the next match.");
+        FinishLoads(context);
+    }
+
+    private static void VerifyMissingFolder(string pluginDir, QueuedContext context)
+    {
+        var alternative = Path.Combine(pluginDir, "later installation");
+        var sounds = Singleton<GUISounds>.Instance;
+        var requests = UnityWebRequestMultimedia.Requests;
+        var count = requests.Count;
+        AnnouncerService.SetPluginDirectory(alternative);
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count, "A missing optional audio folder creates no request.");
+        var oldMatch = new ArenaMatch();
+        AnnouncerService.Attach(oldMatch);
+        oldMatch.Callout("FOLDER REPAIR");
+        AnnouncerService.Detach();
+        AddClip(alternative, "folder_repair");
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count + 1 && Label(requests[^1]) == "FOLDER REPAIR",
+            "A previously missing folder is scanned again at the next match.");
+        var nextMatch = new ArenaMatch();
+        AnnouncerService.Attach(nextMatch);
+        var plays = sounds.Played.Count;
+        nextMatch.Callout("FOLDER REPAIR");
+        FinishLoads(context);
+        oldMatch.Callout("FOLDER REPAIR");
+        Assert(sounds.Played.Count == plays, "Installing a folder never replays skipped or detached callouts.");
+        nextMatch.Callout("FOLDER REPAIR");
+        Assert(sounds.Played.Count == plays + 1, "The next live callout uses newly installed audio.");
+        AnnouncerService.Detach();
+        AnnouncerService.SetPluginDirectory(pluginDir);
+    }
+
+    private static void VerifyDiagnosticsAndRepairThrottle(QueuedContext context)
+    {
+        var sounds = Singleton<GUISounds>.Instance;
+        var requests = UnityWebRequestMultimedia.Requests;
+        var healthy = requests.First(request => request.Content != null && request.Content.loadState == AudioDataLoadState.Loaded);
+        var label = Label(healthy);
+        var key = Path.GetFileNameWithoutExtension(new Uri(healthy.Url).LocalPath);
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        var logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
+        var plays = sounds.Played.Count;
+        Settings.AnnouncerEnabled.Value = false;
+        Repeat(() => match.Callout(label));
+        Assert(ReasonCount(logStart, key, "disabled") == 1, "Disabled diagnostics are limited to one key/reason per match.");
+        Settings.AnnouncerEnabled.Value = true;
+        var volume = Settings.AnnouncerVolume.Value;
+        Settings.AnnouncerVolume.Value = 0;
+        Repeat(() => match.Callout(label));
+        Assert(ReasonCount(logStart, key, "volume_zero") == 1, "Zero-volume diagnostics are limited per match.");
+        Settings.AnnouncerVolume.Value = volume;
+        Singleton<GUISounds>.Instance = null;
+        Repeat(() => match.Callout(label));
+        Assert(ReasonCount(logStart, key, "ui_unavailable") == 1, "Missing native UI audio is diagnosed without flooding.");
+        Singleton<GUISounds>.Instance = sounds;
+        sounds.ThrowOnPlay = true;
+        Repeat(() => match.Callout(label));
+        Assert(ReasonCount(logStart, key, "play_failed") == 1, "Repeated native playback failures log once per match.");
+        sounds.ThrowOnPlay = false;
+        var count = requests.Count;
+        Repeat(() => match.Callout("MONSTER KILL"));
+        Assert(ReasonCount(logStart, "monster_kill", "missing_clip") == 1 && requests.Count == count,
+            "Known missing pack labels are diagnosed without launching repeated disk/network scans.");
+        Assert(sounds.Played.Count == plays, "Diagnostic skip paths never request substitute audio.");
+
+        AnnouncerService.Detach();
+        match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
+        Settings.AnnouncerEnabled.Value = false;
+        match.Callout(label);
+        Assert(ReasonCount(logStart, key, "disabled") == 1, "Skip diagnostics reset for a new match.");
+        Settings.AnnouncerEnabled.Value = true;
+
+        healthy.Content.loadState = AudioDataLoadState.Failed;
+        Time.realtimeSinceStartup += 100f;
+        count = requests.Count;
+        plays = sounds.Played.Count;
+        Repeat(() => match.Callout(label));
+        Assert(requests.Count == count + 1, "Repeated invalid-clip callouts start only one in-flight repair.");
+        Assert(ReasonCount(logStart, key, "invalid_clip") == 1
+            && ReasonCount(logStart, key, "loading") == 1,
+            "Invalid and loading diagnostics are each bounded per key/reason.");
+        requests[^1].Complete(UnityWebRequest.Result.ConnectionError);
+        context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
+        Repeat(() => match.Callout(label));
+        Assert(requests.Count == count + 1, "A failed repair does not restart repeatedly at the same clock time.");
+        Time.realtimeSinceStartup += 9f;
+        match.Callout(label);
+        Assert(requests.Count == count + 1, "Repair attempts remain throttled for at least ten seconds.");
+        Time.realtimeSinceStartup += 1.1f;
+        match.Callout(label);
+        Assert(requests.Count == count + 2, "A known failed clip becomes retryable after the repair interval.");
+        FinishLoads(context);
+        Assert(sounds.Played.Count == plays, "Repair completion alone does not enqueue late playback.");
+        match.Callout(label);
+        Assert(sounds.Played.Count == plays + 1, "A repaired clip plays on the next new callout.");
+        AnnouncerService.Detach();
+    }
+
+    private static int ReasonCount(int start, string key, string reason)
+        => ArenaMode.Plugin.ModLogger.Messages.Skip(start)
+            .Count(message => message.Contains(key, StringComparison.OrdinalIgnoreCase)
+                && message.Contains("reason=" + reason, StringComparison.Ordinal));
+
+    private static void VerifyLateReadinessRace(string pluginDir, QueuedContext context)
+    {
+        var sounds = Singleton<GUISounds>.Instance;
+        var requests = UnityWebRequestMultimedia.Requests;
+        var nativePath = Path.Combine(pluginDir, "ArenaMode", "sounds") + Path.DirectorySeparatorChar;
+        var cached = requests.Last(request => request.Content != null
+            && request.Content.loadState == AudioDataLoadState.Loaded
+            && new Uri(request.Url).LocalPath.StartsWith(nativePath, StringComparison.OrdinalIgnoreCase));
+        var oldClip = cached.Content;
+        var label = Label(cached);
+        oldClip.loadState = AudioDataLoadState.Loading;
+        var count = requests.Count;
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == count && context.OutstandingAsyncVoids > 0,
+            "Late-readiness race first waits for the existing Loading clip.");
+        Time.realtimeSinceStartup += 11f;
+        context.PumpUntil(() => requests.Count > count);
+        var replacement = requests[^1];
+        Assert(Label(replacement) == label, "Readiness timeout starts a replacement request for the affected clip only.");
+        oldClip.loadState = AudioDataLoadState.Loaded;
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        match.Callout(label);
+        Assert(ReferenceEquals(sounds.Played[^1].Clip, oldClip),
+            "The original clip can recover and play while its replacement request is in flight.");
+        FinishLoads(context);
+        Assert(oldClip != null && replacement.Content == null && !ReferenceEquals(replacement.Content, null),
+            "Late-ready cached clip survives; its unnecessary downloaded replacement is destroyed.");
+        match.Callout(label);
+        Assert(ReferenceEquals(sounds.Played[^1].Clip, oldClip),
+            "Subsequent callouts retain the original late-ready native clip.");
+        AnnouncerService.Detach();
+    }
+
+    private static void VerifyOutputDiagnostics()
+    {
+        var sounds = Singleton<GUISounds>.Instance;
+        var healthy = UnityWebRequestMultimedia.Requests.Last(request => request.Content != null
+            && request.Content.loadState == AudioDataLoadState.Loaded);
+        var label = Label(healthy);
+        var messages = ArenaMode.Plugin.ModLogger.Messages;
+        var start = messages.Count;
+        var match = new ArenaMatch();
+        AudioListener.volume = 0.8f;
+        AudioListener.pause = false;
+        AnnouncerService.Attach(match);
+        Assert(messages.Skip(start).Any(message => message.StartsWith("Arena announcer attached:")
+            && message.Contains("enabled=True") && message.Contains("volume=") && message.Contains("ready=")),
+            "Attach reports enabled setting, volume and cache readiness.");
+        var calls = 0;
+        void Call() { match.Callout(label); calls++; }
+        int OutputLogs() => messages.Skip(start).Count(message => message.StartsWith("Arena announcer play request:"));
+        Call(); Call(); Call(); Call();
+        Assert(OutputLogs() == 3, "Stable output logs exactly the first three successful playback requests.");
+        Assert(messages.Skip(start).Where(message => message.StartsWith("Arena announcer play request:"))
+            .All(message => message.Contains("uiActive=True") && message.Contains("uiDb=-4")
+                && message.Contains("masterDb=-2") && message.Contains("listenerVolume=0.8")
+                && message.Contains("listenerPaused=False")),
+            "Playback diagnostics include native mixer levels and listener state.");
+
+        AudioListener.pause = true;
+        Call(); Call();
+        Assert(OutputLogs() == 4 && AudioListener.pause,
+            "A changed listener pause is reported once without unpausing the user's audio.");
+        AudioListener.volume = 0;
+        Call(); Call();
+        Assert(OutputLogs() == 5 && AudioListener.volume == 0,
+            "A listener mute is observable without the announcer overriding it.");
+        sounds.MasterMixer.Parameters["UIVolume"] = -80;
+        Call(); Call();
+        Assert(OutputLogs() == 6 && sounds.MasterMixer.Parameters["UIVolume"] == -80,
+            "A changed Interface mixer level is reported once and left untouched.");
+        var originalMixer = sounds.MasterMixer;
+        sounds.MasterMixer = null;
+        Call();
+        Assert(OutputLogs() == 7 && messages[^1].Contains("uiDb=unknown") && messages[^1].Contains("masterDb=unknown"),
+            "An unavailable mixer is diagnosed without suppressing an otherwise valid native playback request.");
+        sounds.MasterMixer = originalMixer;
+
+        Settings.AnnouncerEnabled.Value = false;
+        Call(); Call();
+        Settings.AnnouncerEnabled.Value = true;
+        AnnouncerService.Detach();
+        Assert(messages[^1] == $"Arena announcer detached: callouts={calls}, playRequests={calls - 2}, skipped=2.",
+            "Detach counts every received/requested/skipped callout even when skip logs are deduplicated.");
+        var plays = sounds.Played.Count;
+        match.Callout(label);
+        Assert(sounds.Played.Count == plays, "Detached callouts cannot produce playback or update diagnostics.");
+        AudioListener.volume = 0.8f;
+        AudioListener.pause = false;
+        sounds.MasterMixer.Parameters["UIVolume"] = -4;
+    }
+
+    private static void Repeat(Action action)
+    {
+        for (var i = 0; i < 20; i++) action();
+    }
+
+    private static void AddClip(string pluginDirectory, string key)
+    {
+        var path = Path.Combine(pluginDirectory, "ArenaMode", "sounds", key + ".ogg");
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        File.WriteAllText(path, "controlled fake audio request");
+        CreatedFiles.Add(path);
+    }
+
+    private static void FinishLoads(QueuedContext context)
+    {
+        for (var attempt = 0; attempt < 100 && context.OutstandingAsyncVoids > 0; attempt++)
+        {
+            var current = UnityWebRequestMultimedia.Requests.LastOrDefault(request => !request.Operation.isDone);
+            if (current == null)
+                throw new InvalidOperationException("Expected a pending transport request, not an unbounded audio-readiness wait.");
+            var requestCount = UnityWebRequestMultimedia.Requests.Count;
+            current.Complete(UnityWebRequest.Result.Success);
+            context.PumpUntil(() => context.OutstandingAsyncVoids == 0
+                || UnityWebRequestMultimedia.Requests.Count != requestCount);
+        }
+        Assert(context.OutstandingAsyncVoids == 0, "All controlled audio loads finish within the bounded request pump.");
     }
 }

@@ -69,6 +69,16 @@ subscribe to the callouts; normal raids do not use this announcer.
 Clips load asynchronously at the first arena match. A callout that occurs before
 its clip has finished loading is skipped, without queueing a stale announcement.
 Once loaded, clips remain available for subsequent arena matches in that process.
+Each match rechecks the cache and retries missing or unusable recordings. Invalid
+clips encountered during a match can also recover, with at least ten seconds
+between retry attempts. A recovery does not replay the missed announcement.
+
+Client logs include match attachment, loading results, and a summary of received,
+requested and skipped callouts. Each skip reason is logged once per clip and match.
+The first three playback requests, and later changes in output settings, include
+the Interface/master mixer levels and listener state. A logged playback request
+means that audio was submitted to the native UI sound system, not that it was
+audible on the player's device. These diagnostics do not change mixer settings.
 
 The headless lifecycle regression is runnable from the repository root:
 

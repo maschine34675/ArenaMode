@@ -4,6 +4,7 @@ using Comfort.Common;
 using EFT.UI;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -14,31 +15,42 @@ namespace ArenaMode.Audio;
 /// <summary>
 /// Announcer stingers: .ogg files from &lt;plugin dir&gt;/ArenaMode/sounds keyed by
 /// filename (callout label lowercased, spaces to underscores — "double_kill.ogg").
-/// Loading is async at the first arena match and the whole service
-/// no-ops silently when the folder is missing — sounds are optional content.
+/// Clips load asynchronously and are revalidated at each match. Missing optional
+/// sounds never block a raid; bounded diagnostics explain skipped callouts.
 /// </summary>
 internal static class AnnouncerService
 {
     private static readonly Dictionary<string, AudioClip> Clips =
         new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> AvailableFiles = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> ReportedSkips = new(StringComparer.OrdinalIgnoreCase);
 
     private static ArenaMatch _match;
-    private static bool _loadStarted;
+    private static bool _loading;
+    private static bool _directoryScanned;
+    private static float _nextRecoveryAt;
     private static string _pluginDirectory;
+    private static int _received;
+    private static int _requested;
+    private static int _skipped;
+    private static string _lastOutputState;
+    private const float RecoveryIntervalSeconds = 10f;
+    private const float LoadTimeoutSeconds = 10f;
 
     public static void SetPluginDirectory(string pluginDirectory)
         => _pluginDirectory = pluginDirectory;
 
     /// <summary>
-    /// Lazy first-use load at match start — the proven in-raid context for
-    /// UnityWebRequest awaits (chainloader-time sync-context behavior is murky).
+    /// Called at each Arena match start. Healthy clips stay cached; a previous
+    /// failure or an invalid Unity object must not disable loading forever.
     /// </summary>
     public static void EnsureLoaded()
     {
-        if (_loadStarted || string.IsNullOrEmpty(_pluginDirectory))
+        if (_loading || string.IsNullOrEmpty(_pluginDirectory))
             return;
 
-        _loadStarted = true;
+        _loading = true;
+        _nextRecoveryAt = Time.realtimeSinceStartup + RecoveryIntervalSeconds;
         LoadAsync(_pluginDirectory);
     }
 
@@ -48,21 +60,80 @@ internal static class AnnouncerService
         {
             var soundsDir = Path.Combine(pluginDirectory, "ArenaMode", "sounds");
             if (!Directory.Exists(soundsDir))
-                return;
-
-            foreach (var file in Directory.GetFiles(soundsDir, "*.ogg"))
             {
-                var clip = await LoadClip(file);
-                if (clip != null)
-                    Clips[Path.GetFileNameWithoutExtension(file)] = clip;
+                _directoryScanned = false;
+                Plugin.ModLogger.LogWarning($"Arena announcer: sounds folder missing: {soundsDir}");
+                return;
             }
 
-            if (Clips.Count > 0)
-                Plugin.ModLogger.LogInfo($"Arena announcer: {Clips.Count} clip(s) loaded.");
+            var files = Directory.GetFiles(soundsDir, "*.ogg");
+            AvailableFiles.Clear();
+            foreach (var file in files)
+                AvailableFiles.Add(Path.GetFileNameWithoutExtension(file));
+            _directoryScanned = true;
+            var loaded = 0;
+            var reused = 0;
+            var failed = 0;
+            foreach (var file in files)
+            {
+                var key = Path.GetFileNameWithoutExtension(file);
+                try
+                {
+                    Clips.TryGetValue(key, out var previous);
+                    if (IsReady(previous) || (previous != null
+                        && previous.loadState == AudioDataLoadState.Loading
+                        && await WaitForClipReady(previous)))
+                    {
+                        reused++;
+                        continue;
+                    }
+
+                    if (Clips.ContainsKey(key))
+                        Plugin.ModLogger.LogWarning($"Arena announcer: reloading '{key}', state={ClipState(previous)}.");
+                    var clip = await LoadClip(file);
+                    if (clip == null)
+                    {
+                        failed++;
+                        continue;
+                    }
+
+                    // The previous clip may finish its own load while the file
+                    // request is awaiting. It can already be playing again;
+                    // never destroy that recovered clip to install a duplicate.
+                    if (IsReady(previous))
+                    {
+                        if (clip != previous)
+                            UnityEngine.Object.Destroy(clip);
+                        reused++;
+                        continue;
+                    }
+
+                    Clips[key] = clip;
+                    loaded++;
+                    // These are exclusively our downloaded clips, never assets
+                    // owned by GUISounds or the game. Publish a usable replacement
+                    // first, then dispose the old, unusable native object.
+                    if (previous != null && previous != clip)
+                        UnityEngine.Object.Destroy(previous);
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    Plugin.ModLogger.LogWarning($"Arena announcer clip failed: '{key}': {ex.Message}");
+                }
+            }
+
+            Plugin.ModLogger.LogInfo($"Arena announcer load check: loaded={loaded}, reused={reused}, "
+                + $"failed={failed}, ready={ReadyCount()}, files={files.Length}.");
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena announcer load failed: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+            _nextRecoveryAt = Time.realtimeSinceStartup + RecoveryIntervalSeconds;
         }
     }
 
@@ -76,7 +147,12 @@ internal static class AnnouncerService
         // unavailable clips; waiting for a populated cache here loses the whole
         // first match because nobody calls Attach again when loading completes.
         _match = match;
+        _received = _requested = _skipped = 0;
+        _lastOutputState = null;
+        ReportedSkips.Clear();
         match.OnCallout += OnCallout;
+        Plugin.ModLogger.LogInfo($"Arena announcer attached: enabled={Settings.AnnouncerEnabled.Value}, "
+            + $"volume={Number(Settings.AnnouncerVolume.Value)}, ready={ReadyCount()}, loading={_loading}.");
     }
 
     public static void Detach()
@@ -86,25 +162,54 @@ internal static class AnnouncerService
 
         _match.OnCallout -= OnCallout;
         _match = null;
+        Plugin.ModLogger.LogInfo($"Arena announcer detached: callouts={_received}, "
+            + $"playRequests={_requested}, skipped={_skipped}.");
     }
 
     private static void OnCallout(string label)
     {
-        if (!Settings.AnnouncerEnabled.Value || string.IsNullOrEmpty(label))
+        if (string.IsNullOrEmpty(label))
             return;
 
-        Play(label.ToLowerInvariant().Replace(' ', '_'));
+        _received++;
+        var key = label.ToLowerInvariant().Replace(' ', '_');
+        if (!Settings.AnnouncerEnabled.Value)
+        {
+            Skip(key, "disabled");
+            return;
+        }
+        if (Settings.AnnouncerVolume.Value <= 0f)
+        {
+            Skip(key, "volume_zero");
+            return;
+        }
+        Play(key);
     }
 
     private static void Play(string key)
     {
         try
         {
-            if (!Clips.TryGetValue(key, out var clip) || clip == null)
+            var found = Clips.TryGetValue(key, out var clip);
+            if (!IsReady(clip))
+            {
+                var pending = _loading || (clip != null && clip.loadState == AudioDataLoadState.Loading);
+                Skip(key, pending ? "loading" : found ? "invalid_clip" : "missing_clip",
+                    $"state={ClipState(clip)}");
+                // Never retry absent pack phrases on every kill. Known failed or
+                // invalid clips can recover, as can a folder installed late.
+                if ((found || AvailableFiles.Contains(key) || !_directoryScanned)
+                    && !_loading && Time.realtimeSinceStartup >= _nextRecoveryAt)
+                    EnsureLoaded();
+                // A late load is for future callouts; do not replay this kill.
                 return;
+            }
 
             if (!Singleton<GUISounds>.Instantiated)
+            {
+                Skip(key, "ui_unavailable");
                 return;
+            }
 
             // Default routing = the persistent UI mixer group (obeys the Interface
             // volume slider); single:true stops the previous stinger so overlapping
@@ -112,11 +217,74 @@ internal static class AnnouncerService
             // fixed low volume — deliberately not used.
             Singleton<GUISounds>.Instance.PlaySound(clip, single: true, commonUiSound: false,
                 volume: Settings.AnnouncerVolume.Value);
+            _requested++;
+            var outputState = $"volume={Number(Settings.AnnouncerVolume.Value)}, {DescribeOutput()}";
+            if (_requested <= 3 || outputState != _lastOutputState)
+                Plugin.ModLogger.LogInfo($"Arena announcer play request: '{key}', "
+                    + outputState + ".");
+            _lastOutputState = outputState;
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Arena announcer play failed: {ex.Message}");
+            Skip(key, "play_failed", ex.Message);
         }
+    }
+
+    private static void Skip(string key, string reason, string detail = null)
+    {
+        _skipped++;
+        if (ReportedSkips.Add(key + ":" + reason))
+            Plugin.ModLogger.LogWarning($"Arena announcer skipped: '{key}', reason={reason}"
+                + (string.IsNullOrEmpty(detail) ? "." : $", {detail}."));
+    }
+
+    private static bool IsReady(AudioClip clip)
+        => clip != null && clip.loadState == AudioDataLoadState.Loaded;
+
+    private static string ClipState(AudioClip clip)
+        => clip == null ? "missing_or_destroyed" : clip.loadState.ToString();
+
+    private static int ReadyCount()
+    {
+        var count = 0;
+        foreach (var clip in Clips.Values)
+            if (IsReady(clip)) count++;
+        return count;
+    }
+
+    private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    private static string DescribeOutput()
+    {
+        // Diagnosis must never change mixer settings, bypass mute or turn a
+        // successful playback request into an exception. A request is not proof
+        // of audibility; the native source/device can still be muted or stopped.
+        try
+        {
+            var ui = Singleton<GUISounds>.Instance;
+            var mixer = ui.MasterMixer;
+            var uiDb = mixer != null && mixer.GetFloat("UIVolume", out var u) ? Number(u) : "unknown";
+            var masterDb = mixer != null && mixer.GetFloat("MasterVolume", out var m) ? Number(m) : "unknown";
+            return $"uiActive={ui.isActiveAndEnabled}, uiDb={uiDb}, masterDb={masterDb}, "
+                + $"listenerVolume={Number(AudioListener.volume)}, listenerPaused={AudioListener.pause}";
+        }
+        catch
+        {
+            return "outputState=unavailable";
+        }
+    }
+
+    private static async Task<bool> WaitForClipReady(AudioClip clip)
+    {
+        if (clip == null)
+            return false;
+        if (clip.loadState == AudioDataLoadState.Unloaded && !clip.LoadAudioData())
+            return false;
+        var deadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
+        while (clip != null && clip.loadState == AudioDataLoadState.Loading
+            && Time.realtimeSinceStartup < deadline)
+            await Task.Yield();
+        return IsReady(clip);
     }
 
     private static async Task<AudioClip> LoadClip(string path)
@@ -124,6 +292,7 @@ internal static class AnnouncerService
         var uri = new Uri(Path.GetFullPath(path)).AbsoluteUri;
         using (var request = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS))
         {
+            request.timeout = (int)LoadTimeoutSeconds;
             var operation = request.SendWebRequest();
             while (!operation.isDone)
                 await Task.Yield();
@@ -134,7 +303,24 @@ internal static class AnnouncerService
                 return null;
             }
 
-            return DownloadHandlerAudioClip.GetContent(request);
+            var clip = DownloadHandlerAudioClip.GetContent(request);
+            var retained = false;
+            try
+            {
+                if (!await WaitForClipReady(clip))
+                {
+                    Plugin.ModLogger.LogWarning($"Arena announcer clip not ready: '{Path.GetFileNameWithoutExtension(path)}', "
+                        + $"state={ClipState(clip)}.");
+                    return null;
+                }
+                retained = true;
+                return clip;
+            }
+            finally
+            {
+                if (!retained && clip != null)
+                    UnityEngine.Object.Destroy(clip);
+            }
         }
     }
 }
