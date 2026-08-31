@@ -15,6 +15,15 @@ public static class ArenaClientConfig
     private static JObject _config;
     private static float _nextAttemptAt;
 
+    /// <summary>Refresh at an explicit menu choice / raid start; hot-reloaded server settings must win.</summary>
+    public static bool Refresh()
+    {
+        _config = null;
+        _nextAttemptAt = 0f;
+        EnsureLoaded();
+        return _config != null;
+    }
+
     public static void Preload()
     {
         _nextAttemptAt = 0f;

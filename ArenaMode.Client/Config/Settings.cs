@@ -6,7 +6,6 @@ namespace ArenaMode.Config;
 
 public static class Settings
 {
-    public static ConfigEntry<bool> Enabled { get; private set; }
     public static ConfigEntry<string> Maps { get; private set; }
     public static ConfigEntry<string> SelectedKit { get; private set; }
     public static ConfigEntry<bool> RandomKit { get; private set; }
@@ -83,18 +82,12 @@ public static class Settings
     {
         File = config;
 
-        Enabled = config.Bind(
-            "General",
-            "Enabled",
-            false,
-            "Arena mode: the next raid on an arena map runs as an arena session " +
-            "(arcade — nothing is gained or lost, the profile stays untouched).");
-
         Maps = config.Bind(
             "General",
             "Maps",
             "factory4_day,labyrinth,laboratory",
-            "Comma-separated location ids arena mode activates on. The Lab is " +
+            "Arena map allowlist for the native Arena choice (Factory day, Labyrinth, The Lab). " +
+            "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
 
         RandomKit = config.Bind(
@@ -603,6 +596,13 @@ public static class Settings
     public static bool IsArenaMap(string locationId)
     {
         if (string.IsNullOrEmpty(locationId))
+            return false;
+
+        // The native Arena flow supports exactly these three locations. An old
+        // or remotely edited allowlist must not expose unsupported normal maps.
+        if (!string.Equals(locationId, "factory4_day", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(locationId, "labyrinth", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(locationId, "laboratory", StringComparison.OrdinalIgnoreCase))
             return false;
 
         foreach (var entry in Maps.Value.Split(','))

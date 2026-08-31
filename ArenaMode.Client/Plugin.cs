@@ -33,6 +33,8 @@ public class Plugin : BaseUnityPlugin
         // the match service needs IsActive already latched when its handler fires.
         Modes.ArenaMatchService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
+        ArenaSideSelectionPatch.Enable();
+        ArenaLocationSelectionPatch.Enable();
         SkipPreRaidScreensPatch.Enable();
         MapAccessPatch.Enable();
 

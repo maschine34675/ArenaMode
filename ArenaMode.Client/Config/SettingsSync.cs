@@ -47,10 +47,8 @@ internal static class SettingsSync
         _nextPollAt = Time.realtimeSinceStartup + MenuPollSeconds;
 
         // KnownAvailable, not IsServerModAvailable: the latter probes and then
-        // latches its answer forever. Letting a menu poll be the first to ask
-        // would disable arena mode for the whole session if the game happened to
-        // start before the server. Raid start does the probing; this only rides
-        // along once it has succeeded.
+        // caches its answer. Let the explicit Arena selection or raid start do
+        // the probing; this passive poll only rides along once it has succeeded.
         if (!ArenaServerClient.IsServerModKnownAvailable)
             return;
 

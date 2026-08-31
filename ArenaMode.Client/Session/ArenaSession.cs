@@ -111,6 +111,7 @@ public static class ArenaSession
         }
 
         IsActive = true;
+        ArenaServerClient.ConfirmRaidStarted();
         LastRaidWasArena = true;
         Respawn.ArenaRespawnDriver.ResetSession();
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");

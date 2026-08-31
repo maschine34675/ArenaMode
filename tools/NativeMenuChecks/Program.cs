@@ -1,0 +1,140 @@
+using System;
+using System.Reflection;
+using System.Threading.Tasks;
+using ArenaMode.Session;
+using ArenaMode.Shared;
+using EFT;
+using JsonType;
+using SPT.Common.Http;
+
+// Fault-injection checks compile the actual selection/HTTP/negotiation files.
+// Only game, BepInEx and transport dependencies are stand-ins; this is not a
+// substitute for Harmony binding, Unity layout or a real raid/profile diff.
+internal static class Program
+{
+    private static int _checks;
+    private static readonly MethodInfo Hook = typeof(LocalRaidStartedPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
+
+    private static void Assert(bool condition, string scenario)
+    {
+        if (!condition) throw new Exception(scenario);
+        _checks++;
+    }
+
+    private static bool Start(LocalRaidSettings request, out Task<LocalSettings> task)
+    {
+        var args = new object[] { request, null };
+        var runOriginal = (bool)Hook.Invoke(null, args);
+        task = (Task<LocalSettings>)args[1];
+        if (task?.IsFaulted == true) _ = task.Exception;
+        return runOriginal;
+    }
+
+    private static RaidSettings Select(string map = "factory4_day")
+    {
+        ArenaMenuSelection.EndFlow();
+        var settings = new RaidSettings { Side = ESideType.Pmc };
+        ArenaMenuSelection.Begin(new object(), settings);
+        ArenaMenuSelection.Select();
+        settings.SelectedLocation = new LocationSettings.Location { Id = map };
+        settings.transitionType = ELocationTransition.Common;
+        return settings;
+    }
+
+    private static LocalRaidSettings Request(ESideType side = ESideType.Pmc, string map = "factory4_day")
+        => new() { playerSide = side, location = map, transitionType = ELocationTransition.Common };
+
+    public static void Main()
+    {
+        var controller = new object();
+        var remembered = new LocationSettings.Location { Id = "Woods" };
+        var settings = new RaidSettings
+        {
+            Side = ESideType.Pmc, SelectedLocation = remembered,
+            SelectedDateTime = EDateTime.PAST, transitionType = ELocationTransition.Event, KeyId = "normal-key"
+        };
+        ArenaMenuSelection.Begin(controller, settings);
+        ArenaMenuSelection.Select();
+        settings.SelectedLocation = new LocationSettings.Location { Id = "laboratory" };
+        settings.SelectedDateTime = EDateTime.CURR;
+        settings.transitionType = ELocationTransition.Common;
+        settings.KeyId = "";
+        ArenaMenuSelection.Begin(controller, settings);
+        Assert(ArenaMenuSelection.IsSelectedFor(settings), "Back must preserve Arena within the same controller");
+        Assert(!ArenaMenuSelection.IsSelectedFor(new RaidSettings { Side = ESideType.Pmc }), "Another settings object must not inherit Arena");
+        ArenaMenuSelection.Clear();
+        Assert(settings.SelectedLocation == remembered && settings.SelectedDateTime == EDateTime.PAST
+            && settings.transitionType == ELocationTransition.Event && settings.KeyId == "normal-key", "Normal map/time/transition/key must be restored");
+        Assert(Start(Request(), out var task) && task == null && RequestHandler.StartCount == 0, "Ordinary raid must not announce Arena");
+        Assert(RequestHandler.PostCount == 1 && !ArenaServerClient.NeedsInitialReconciliation, "First ordinary raid must reconcile an arm surviving a client restart");
+        Assert(Start(Request(), out task) && RequestHandler.PostCount == 1, "Confirmed normal raids need no repeated startup reconciliation");
+
+        Select();
+        Assert(!Start(Request(ESideType.Savage), out task) && task.IsFaulted, "Scav cannot enter an explicitly selected Arena");
+        Assert(RequestHandler.StartCount == 0 && !InGameStatus.InRaid, "Rejected Scav request must not arm server or leave in-raid flag");
+        Select();
+        Assert(!Start(Request(map: "Woods"), out task) && task.IsFaulted, "Changed map cannot enter Arena");
+        Assert(RequestHandler.StartCount == 0, "Changed map must be rejected before announcement");
+
+        // Server received the announcement, but BOTH its reply and our cancel
+        // response are lost. A later ordinary raid must still be blocked.
+        Select();
+        RequestHandler.Post = (route, body) => throw new InvalidOperationException("simulated lost response");
+        InGameStatus.InRaid = true;
+        Assert(!Start(Request(), out task) && task.IsFaulted, "Lost announcement response must block original local/start");
+        Assert(ArenaServerClient.HasPendingArm && !InGameStatus.InRaid, "Uncertain server arm must survive cancellation failure");
+        ArenaMenuSelection.EndFlow();
+        Assert(!Start(Request(ESideType.Savage), out task) && task.IsFaulted, "Pending cancellation must block a later normal Scav");
+        Assert(!Start(Request(), out task) && task.IsFaulted, "Pending cancellation must block a later normal PMC");
+        Assert(ArenaServerClient.HasPendingArm, "Repeated failures must not forget uncertainty");
+        RequestHandler.Post = (route, body) => "{\"disarmed\":false,\"state\":\"Idle\"}";
+        Assert(Start(Request(), out task) && task == null, "Confirmed idle must restore normal raid start");
+        Assert(!ArenaServerClient.HasPendingArm, "Idle acknowledgement must settle pending arm");
+
+        // JSON property order and whitespace must not affect acknowledgement.
+        Select();
+        RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
+            ? "{ \"snapshotTaken\": true, \"armed\": true }" : "{\"disarmed\":true}";
+        Assert(Start(Request(), out task) && task == null && ArenaSession.ArmedForNextRaid, "Valid server acknowledgement must arm Arena");
+        ArenaServerClient.ConfirmRaidStarted();
+        Assert(!ArenaServerClient.HasPendingArm, "Started raid must settle announcement");
+        ArenaSession.ClearArmed("test cleanup");
+        ArenaMenuSelection.Begin(new object(), settings);
+        Assert(!ArenaMenuSelection.IsSelected, "A fresh setup controller must reset Arena");
+
+        var solo = true;
+        ArenaMenuSelection.Begin(new object(), settings, () => solo);
+        ArenaMenuSelection.Select();
+        settings.SelectedLocation = new LocationSettings.Location { Id = "factory4_day" };
+        settings.transitionType = ELocationTransition.Common;
+        solo = false;
+        Assert(!Start(Request(), out task) && task.IsFaulted, "A party joined after selection must not start Arena");
+        ArenaMenuSelection.EndFlow();
+
+        // Simulate a new client process with an old server arm: reconciliation
+        // must fail closed even though no in-memory pending flag exists yet.
+        typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
+        RequestHandler.Post = (route, body) => throw new InvalidOperationException("server cancellation unavailable");
+        Assert(!Start(Request(), out task) && task.IsFaulted, "Client restart cannot bypass failed server reconciliation");
+        Assert(ArenaServerClient.NeedsInitialReconciliation && ArenaServerClient.HasPendingArm, "Startup uncertainty must remain pending");
+        RequestHandler.Post = (route, body) => "{\"disarmed\":false,\"state\":\"Idle\"}";
+        Assert(Start(Request(ESideType.Savage), out task) && task == null, "Retry after client restart must recover normal Scav start");
+
+        typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
+        RequestHandler.Get = route => throw new AggregateException(new Exception("Http response status code: NotFound"));
+        Assert(Start(Request(), out task) && task == null, "Confirmed 404 absence must allow normal raids without server mod");
+        Assert(!ArenaServerClient.NeedsInitialReconciliation, "Confirmed absent server mod must settle startup check");
+
+        typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
+        RequestHandler.Get = route => throw new Exception("simulated transport timeout");
+        Assert(!Start(Request(), out task) && task.IsFaulted, "Transport timeout is uncertain, not a missing server mod");
+        Assert(ArenaServerClient.NeedsInitialReconciliation, "Failed probe must remain retryable");
+        RequestHandler.Get = route => throw new Exception("Http response status code: InternalServerError");
+        Assert(!Start(Request(), out task) && task.IsFaulted, "HTTP 500 must not be treated as absent server mod");
+        RequestHandler.Get = route => "{\"wrongResponse\":true}";
+        Assert(!Start(Request(), out task) && task.IsFaulted, "Malformed ping payload cannot settle server state");
+        RequestHandler.Get = route => "{\"version\":\"test\"}";
+        Assert(Start(Request(), out task) && task == null, "Probe must recover after temporary failure");
+        Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
+    }
+}

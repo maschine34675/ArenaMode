@@ -1,4 +1,3 @@
-using ArenaMode.Config;
 using EFT;
 using Redeploy.Core.Compat;
 
@@ -18,16 +17,13 @@ internal static class ArenaClaim
 {
     public static bool WouldTakeOver(RaidSettings settings)
     {
-        if (!Settings.Enabled.Value || settings == null)
+        if (!ArenaMenuSelection.IsSelectedFor(settings))
             return false;
 
-        // PMC only, matching the raid-start gate: a scav run's post-raid path
-        // does not go through the profile-protection patch, so the arena never
-        // claims one.
-        if (!settings.IsPmc)
+        if (!ArenaMenuSelection.CanStart)
             return false;
 
-        if (!Settings.IsArenaMap(settings.SelectedLocation?.Id))
+        if (!ArenaMenuSelection.IsMapAvailable(settings.SelectedLocation?.Id))
             return false;
 
         return !FikaCompatCheck.IsFikaLoaded && ArenaServerClient.IsServerModAvailable;

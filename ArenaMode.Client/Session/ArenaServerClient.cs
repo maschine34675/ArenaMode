@@ -1,5 +1,6 @@
 using ArenaMode.Shared;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SPT.Common.Http;
 using System;
 
@@ -13,6 +14,19 @@ namespace ArenaMode.Session;
 public static class ArenaServerClient
 {
     private static bool? _available;
+    private static bool _initialStateReconciled;
+    private static bool _probeFailed;
+
+    public static bool NeedsInitialReconciliation => !_initialStateReconciled;
+
+    /// <summary>An announcement may have reached the server even if its reply was lost.</summary>
+    public static bool HasPendingArm { get; private set; }
+
+    public static bool RefreshAvailability()
+    {
+        _available = null;
+        return IsServerModAvailable;
+    }
 
     public static bool IsServerModAvailable
     {
@@ -22,11 +36,19 @@ public static class ArenaServerClient
             {
                 try
                 {
+                    _probeFailed = false;
                     var response = RequestHandler.GetJson(Protocol.PingRoute);
-                    _available = !string.IsNullOrEmpty(response) && response.Contains("version");
+                    var version = JObject.Parse(response)["version"];
+                    _available = version?.Type == JTokenType.String && !string.IsNullOrEmpty(version.Value<string>());
+                    _probeFailed = !_available.Value;
                 }
                 catch (Exception ex)
                 {
+                    // SPT 4.1's installed Client.SendAsync throws this generic
+                    // exception for a 404; GetJson wraps it in AggregateException.
+                    // There is no status-code property on that exception. Only
+                    // this exact confirmed absence is safe to treat as no mod.
+                    _probeFailed = ex.GetBaseException().Message != "Http response status code: NotFound";
                     Plugin.ModLogger.LogError(
                         $"ArenaMode server mod not reachable ({ex.Message}) — arena stays disabled.");
                     _available = false;
@@ -40,21 +62,45 @@ public static class ArenaServerClient
     /// <summary>
     /// Whether the server mod is ALREADY known to be there — never probes.
     ///
-    /// The difference matters. IsServerModAvailable latches its answer on the
-    /// first call, so anything that asks it early decides for the whole session.
-    /// The menu-time settings poll must not be that thing: a game started before
-    /// the server would latch "no" and leave arena mode switched off until the
-    /// game is restarted, when waiting until raid start would have found it up.
+    /// Passive menu-time settings polling must not probe before the backend is
+    /// ready. Explicit Arena selection and raid negotiation refresh the cached
+    /// result and can therefore recover from a transient outage.
     /// </summary>
     public static bool IsServerModKnownAvailable => _available == true;
 
+    /// <summary>
+    /// A restarted client has forgotten its pending flag, but the server may
+    /// still hold an arm. Reconcile once before ANY first local raid, including
+    /// Scav. A missing server mod is fine; an unreachable server is uncertain.
+    /// </summary>
+    public static bool ReconcileInitialState()
+    {
+        if (_initialStateReconciled)
+            return true;
+
+        if (RefreshAvailability())
+        {
+            HasPendingArm = true;
+            if (!PostRaidCancel())
+                return false;
+        }
+        else if (_probeFailed)
+        {
+            return false;
+        }
+
+        _initialStateReconciled = true;
+        return true;
+    }
+
     public static bool PostRaidStart(string map, string mode)
     {
+        HasPendingArm = true;
         try
         {
             var body = JsonConvert.SerializeObject(new { map, mode });
             var response = RequestHandler.PostJson(Protocol.RaidStartRoute, body);
-            var ok = response != null && response.Contains("\"armed\":true");
+            var ok = !string.IsNullOrEmpty(response) && JObject.Parse(response)["armed"]?.Value<bool>() == true;
             if (!ok)
                 Plugin.ModLogger.LogWarning($"Arena raid-start rejected by server: {response}");
             return ok;
@@ -96,17 +142,29 @@ public static class ArenaServerClient
         }
     }
 
-    public static void PostRaidCancel()
+    public static bool PostRaidCancel()
     {
         try
         {
-            RequestHandler.PostJson(Protocol.RaidCancelRoute, "{}");
+            var response = JObject.Parse(RequestHandler.PostJson(Protocol.RaidCancelRoute, "{}"));
+            // Idempotent retries return Idle rather than disarmed=true. InRaid
+            // must keep its snapshot; StartLocalRaidPatch restores that stale
+            // running raid before allowing the next ordinary raid to start.
+            var state = response["state"]?.Value<string>();
+            var confirmed = response["disarmed"]?.Value<bool>() == true
+                || state == "Idle" || state == "InRaid";
+            if (confirmed)
+                HasPendingArm = false;
+            return confirmed;
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena raid-cancel failed: {ex.Message}");
+            return false;
         }
     }
+
+    public static void ConfirmRaidStarted() => HasPendingArm = false;
 
     public static void PostRaidEnd()
     {
