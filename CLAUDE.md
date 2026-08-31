@@ -29,11 +29,14 @@ External, outside the repo:
 ## Build and deploy
 
 ```bash
-dotnet build ArenaMode.sln -c Release
+dotnet build ArenaMode.sln -c Release   # builds and deploys both halves
+dotnet test  ArenaMode.Tests            # ~30 tests, under a second
 ```
 
-That is the whole loop — both projects copy themselves into place on build. There is
-no test suite; verification is a raid.
+Both mod projects copy themselves into place on build. The tests cover the SERVER
+half and the generated data; the client half is Harmony patches against Unity and EFT
+types that cannot load outside the game, so **for anything client-side, verification is
+still a raid.**
 
 - **Client changes** need the game restarted, nothing else.
 - **`config.json` changes** need nothing: hot-reload via the config page.
@@ -45,6 +48,28 @@ no test suite; verification is a raid.
 Logs: client `D:\SPT41\BepInEx\LogOutput.log` (local time), server
 `D:\SPT41\SPT_Runtime\user\logs\spt\sptYYYYMMDD.log` (**UTC** — the two disagree by
 your offset, which has cost hours before).
+
+## Tests
+
+`ArenaMode.Tests/` — xunit, no game required (checks that need the item database skip
+themselves; point `SPT_DATABASE` at it to run them elsewhere).
+
+They exist because these are the things that broke repeatedly and quietly:
+
+- **Kit catalogue invariants** — unique ids, one root, one primary weapon, no orphaned
+  parents, no slot filled twice, every template real. The client REFUSES a kit that
+  breaks these, so the symptom is a player respawning naked mid-raid rather than an
+  error at build time.
+- **Ladder draw** — the right number of rungs, still ordered weakest to strongest, and
+  every ammunition site on a weapon holding the same cartridge. A revolver whose camoras
+  disagreed with its chamber shipped once and threw nothing.
+- **Location mutation** — raid time, bot cap, boss handling, and that every generated
+  wave names exactly ONE real zone. The engine matches a zone by exact string, so a
+  comma-separated list matches nothing and the wave is dropped in silence; that shipped,
+  and it emptied the Lab.
+
+When adding a test here, check it fails against the bug it claims to catch. The zone
+test above was verified that way — reintroduce the comma and three tests go red.
 
 ## Non-negotiable
 
@@ -60,7 +85,8 @@ your offset, which has cost hours before).
    attribution. LacywayPvETweaks and LetMeRightClick are proprietary: do not touch.
 4. **Adversarial review after every implementation.** This has caught a genuine
    critical bug in nearly every milestone — a hands softlock, a permanent-invulnerability
-   latch, a deadlocked game mode. Do not skip it because a change looks small.
+   latch, a deadlocked game mode. Do not skip it because a change looks small. The tests
+   are a floor, not a substitute: none of those three would have been caught by one.
 
 ## Traps this project has already fallen into
 

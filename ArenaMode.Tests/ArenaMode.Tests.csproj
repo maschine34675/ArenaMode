@@ -1,0 +1,44 @@
+<!-- Tests cover the SERVER half and the generated data. The client half is not
+     here on purpose: it is Harmony patches against Unity and EFT types that
+     cannot be loaded outside the game, so anything testable there would be a
+     mock of the game rather than the game. What IS here is everything that
+     broke repeatedly during development, all of which is pure data. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+
+    <!-- Not deployed anywhere; keep it out of the mod output folders. -->
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!-- Skippable tests: the template-existence checks need the game database,
+         which only exists on a machine with Tarkov installed. Skipping is
+         honest there; passing silently is not. -->
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArenaMode.Server\ArenaMode.Server.csproj" />
+  </ItemGroup>
+
+  <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets
+       because the live server already provides these at runtime. A test host does
+       not, so without this every test that touches an SPT model type fails to
+       load the assembly rather than failing an assertion. -->
+  <ItemGroup>
+    <PackageReference Include="SPTarkov.Common" Version="4.1.0" />
+    <PackageReference Include="SPTarkov.DI" Version="4.1.0" />
+    <PackageReference Include="SPTarkov.Reflection" Version="4.1.0" />
+    <PackageReference Include="SPTarkov.Server.Core" Version="4.1.0" />
+  </ItemGroup>
+
+</Project>
