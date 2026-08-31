@@ -42,3 +42,48 @@ powershell -NoProfile -File tools/Verify-NativeMenuDeployment.ps1
 The runtime attempt loaded the native menu Harmony patches successfully, but the existing `spt41dev` profile remained at **Loading profile data...** before reaching the main menu. No raid was started. The client log showed no Arena initialization error. The user subsequently confirmed that this server has no GPU and cannot run the game. Further game-launch attempts were stopped; visual/gameplay acceptance requires a GPU-equipped machine. The final negotiation hardening was verified offline and is included in the final build, not in that earlier startup attempt.
 
 Required live acceptance: restart the game with the final DLL; verify Arena/PMC/Scav selection, all three Arena maps, Factory day, map Back, taskbar/main-menu return, normal PMC/Scav maps and Lab key requirements; then compare the profile before/after a short Arena raid and confirm an ordinary raid still processes normally. Do not treat the source review and fault-injection harness as completion of this live check.
+
+## Follow-up: third button invisible in the user's playtest
+
+The user's 2026-08-31 test reached the side-selection screen but showed only PMC and Scav. The supplied client log registered the Arena menu patches without an initialization error. The original implementation enabled `_randomButton.gameObject`, but source review alone had missed its serialized parent state.
+
+Read-only inspection of the actual EFT 0.16.9.5.40743 files (SPT 4.1.3, Unity 2022.3.43f1) found:
+
+| Object in `EscapeFromTarkov_Data/level48` | Serialized state |
+| --- | --- |
+| Side screen component 25165 on GameObject 364 | `_randomButton` references component 25177. |
+| RandomToggleSpawner, GameObject 385 | Under `AlphaBlocker`; its own `_canvasGroup` reference is null. Vanilla `Show` hides this spawner. |
+| AlphaBlocker, GameObject 368 | Inactive; direct child of the screen; its only child is RandomToggleSpawner. |
+| Wrapper CanvasGroup 23550 | Alpha 0.3, interactable false, blocksRaycasts true. |
+| Wrapper HoverTooltipArea 25204 | Enabled, with the obsolete message `Not available in alpha`. |
+
+The shared toggle prefab in `sharedassets44.assets` (component 8925, GameObject 1051) is active and is the same prefab used by PMC and Scav. Activating only RandomToggleSpawner can therefore never show the button while AlphaBlocker remains inactive. Merely activating AlphaBlocker would still leave the button dim and unclickable.
+
+`ArenaSideSelectionView` now validates that the wrapper belongs exclusively to Arena, enables both wrapper and spawner, sets its CanvasGroup to full opacity and the current solo availability, and disables the obsolete tooltip. It retains native placement, ToggleGroup and listeners. It never unlocks ancestors or the Scav cooldown group. Unexpected hierarchy fails with a logged error and hides only Arena; it does not modify the ordinary sides. No scene asset is modified or distributed. Each menu opening logs `Arena side button: active=..., interactable=..., wrapper=...` for the next live test.
+
+An independent adversarial review found no remaining correction to make in the helper or its integration. Release build and installed-file hash verification succeeded; server tests (31), selection/negotiation assertions (31) and announcer assertions (17) passed. The installed client SHA-256 is `FDBDD0F6B0ED90EEC4B9C50497CEB05DBC7E70D0C9045B8CA458684E69A51550`; the server is unchanged at `D1F6603F7CB15CF3FCD578CF8F24C0A83064F8E328F01637084077ED896904F5`.
+
+`dotnet run --project tools/NativeSideViewChecks -c Release` also passes 29 focused checks. It compiles the real view helper with Unity/EFT stand-ins and a fixture based on the inspected scene. Coverage includes the inactive parent, disabled CanvasGroup, obsolete tooltip, solo availability, repeated opening, unchanged PMC/Scav controls and safe rejection of shared or unknown hierarchy. These checks verify the helper's state changes, not actual Unity rendering or native event delivery.
+
+Mutation verification used temporary source copies, never the deployed source: removing wrapper activation and canvas unlocking fails the visibility check; retaining activation but removing canvas unlocking fails the opacity/input check. The production source hash was unchanged, and the final normal run passed again.
+
+Visual acceptance remains pending a fresh user test with this DLL. No game was launched on the GPU-less server during this diagnosis.
+
+## Follow-up: Arena map screen empty
+
+The next user test confirmed the Arena side button is visible, but no maps appeared on the following screen. The updated log confirms a visible/interactable side button and successful Arena configuration requests. The installed client allowlist and server configuration enable Factory day, Labyrinth and The Lab.
+
+Actual scene inspection found the cause in `level48`: MatchMakerSelectionLocationScreen component 25068 on GameObject 305 has **both** `_locationButtonsContainer` and `_locationPathsContainer` pointing at Transform 15523 / GameObject 269 (`Paths Container`). The former postfix disabled that shared container to remove transit lines, also hiding every map button. The path template (component 25098 / GameObject 276) is a separate sibling outside the shared container.
+
+`ArenaLocationSelectionView` now hides only individual generated `LocationPath` GameObjects and Marathon. It preserves each original `activeSelf` value, restores before another `ShowInternal` and before native `Close`, and skips views that Unity has already destroyed. The shared container and map buttons are never toggled. The existing map filter, selection guards and both profile protection layers are unchanged. A diagnostic logs native button count, visible-in-hierarchy count and whether the two containers are shared.
+
+Independent adversarial review found no remaining issue in this helper or its integration. The Release solution builds with four existing CS8632 warnings and no errors. The 31 server tests, 31 menu/negotiation assertions, 29 side-button assertions and 17 announcer assertions pass again. Build and installed client SHA-256 match at `4454634119025A2903E0757B608DF43C3E69D6224A9B08960C8E58A760C6517A`; the server hash is unchanged. The installed client was also decompiled to verify that it contains the per-path fix.
+
+`dotnet run --project tools/NativeMapViewChecks -c Release` passes 40 additional checks against the linked production helper with Unity/EFT stand-ins. They cover the shared-container regression, unchanged map buttons/template/ancestors, exact restoration of active and inactive views, reopening, new or destroyed path views, duplicate references and separate-container layouts. A temporary source-copy mutant that hides the entire container fails the map-visibility assertion; the production source hash stays unchanged and the final normal run passes. The test code was inspected independently of its author. These checks do not execute native map filtering, click listeners or Unity rendering.
+
+The user's side-button confirmation is a passed visual check for that button only. The corrected map screen and subsequent raid/profile flow still need a game restart and live retest; no game was launched on this server.
+
+Subsequent user confirmation: the corrected map selection works on the gaming PC.
+Both reported visibility regressions are therefore confirmed fixed by the user.
+This does not close the broader navigation, ordinary-raid and profile-integrity
+acceptance checks above.

@@ -49,20 +49,22 @@ internal static class ArenaSideSelectionPatch
                 // animation listeners and native placement intact; translate its
                 // otherwise unused Random selection to PMC in SelectPatch.
                 var arena = __instance._randomButton;
-                arena.vmethod_0("Arena", arena._headerFontSize);
-                arena.gameObject.SetActive(true);
-                arena.SpawnedObject.interactable = !FikaCompatCheck.IsFikaLoaded
-                    && Controller(__instance).MatchmakerPlayersController.GroupPlayers.Count == 1;
+                var canSelect = !FikaCompatCheck.IsFikaLoaded
+                    && Controller(__instance).MatchmakerPlayersController.GroupPlayers.Count == 1
+                    && Controller(__instance).RaidSettings.RaidMode != ERaidMode.Coop;
+                ArenaSideSelectionView.Show(__instance.transform, arena, canSelect);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     arena.IsToggled = true;
                     SetDescription(__instance);
                 }
+                Plugin.ModLogger.LogInfo($"Arena side button: active={arena.gameObject.activeInHierarchy}, "
+                    + $"interactable={arena.SpawnedObject.IsInteractable()}, wrapper={arena.transform.parent.name}");
             }
             catch (Exception ex)
             {
                 ArenaMenuSelection.Clear();
-                __instance._randomButton.gameObject.SetActive(false);
+                ArenaSideSelectionView.Hide(__instance.transform, __instance._randomButton);
                 Plugin.ModLogger.LogError($"Arena side selection unavailable: {ex}");
             }
             finally

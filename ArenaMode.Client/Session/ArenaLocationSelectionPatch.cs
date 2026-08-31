@@ -1,8 +1,10 @@
 using EFT;
+using EFT.UI;
 using EFT.UI.Matchmaker;
 using HarmonyLib;
 using JsonType;
 using SPT.Reflection.Patching;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -16,14 +18,7 @@ internal static class ArenaLocationSelectionPatch
         AccessTools.FieldRefAccess<MatchMakerSelectionLocationScreen,
             MatchMakerSelectionLocationScreen.SelectionLocationScreenController>("ScreenController");
 
-    private sealed class Visibility
-    {
-        public bool Changed;
-        public bool Paths;
-        public bool Marathon;
-    }
-
-    private static readonly ConditionalWeakTable<MatchMakerSelectionLocationScreen, Visibility> States = new();
+    private static readonly ConditionalWeakTable<MatchMakerSelectionLocationScreen, ArenaLocationSelectionView> States = new();
 
     public static void Enable()
     {
@@ -40,11 +35,8 @@ internal static class ArenaLocationSelectionPatch
 
     private static void Restore(MatchMakerSelectionLocationScreen screen)
     {
-        if (!States.TryGetValue(screen, out var state) || !state.Changed)
-            return;
-        screen._locationPathsContainer.gameObject.SetActive(state.Paths);
-        screen._marathonButton.gameObject.SetActive(state.Marathon);
-        state.Changed = false;
+        if (States.TryGetValue(screen, out var state))
+            state.Restore();
     }
 
     private sealed class ShowPatch : ModulePatch
@@ -75,11 +67,12 @@ internal static class ArenaLocationSelectionPatch
                 return;
 
             var state = States.GetOrCreateValue(__instance);
-            state.Paths = __instance._locationPathsContainer.gameObject.activeSelf;
-            state.Marathon = __instance._marathonButton.gameObject.activeSelf;
-            state.Changed = true;
-            __instance._locationPathsContainer.gameObject.SetActive(false);
-            __instance._marathonButton.gameObject.SetActive(false);
+            state.HideExtras(__instance._locationPathsContainer, __instance._marathonButton.gameObject);
+
+            var buttons = __instance._locationButtonsContainer.GetComponentsInChildren<LocationButton>(true);
+            Plugin.ModLogger.LogInfo($"Arena map view: buttons={buttons.Length}, "
+                + $"visible={buttons.Count(button => button.gameObject.activeInHierarchy)}, "
+                + $"sharedContainer={__instance._locationButtonsContainer == __instance._locationPathsContainer}");
         }
     }
 
