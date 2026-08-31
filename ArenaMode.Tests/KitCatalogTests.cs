@@ -177,6 +177,58 @@ public class KitCatalogTests
         }
     }
 
+    /// <summary>
+    /// The fill section is a DIFFERENT schema from the item tree above it, and
+    /// the difference is one underscore.
+    ///
+    /// The tree is SPT's preset shape, where a template is "_tpl". This section
+    /// is our own declarative one, where it is "tpl". Writing the tree's key here
+    /// deserialises to a null template and the client then asks ItemFactory for
+    /// an item with an empty id — which throws out of the whole kit application,
+    /// so every swap and every respawn in the raid fails, not merely the rig
+    /// contents. That shipped, and none of the tests above saw it because they
+    /// all read "items" and never looked at "fill".
+    /// </summary>
+    [Fact]
+    public void RigContentsUseTheFillSchemaKeyNotTheItemTreeKey()
+    {
+        foreach (var kit in Kits)
+        {
+            var kitId = kit?["id"]?.GetValue<string>();
+
+            foreach (var entry in kit?["fill"]?["rigContents"] as JsonArray ?? [])
+            {
+                Assert.True(entry?["_tpl"] is null,
+                    $"kit '{kitId}': a rigContents entry uses '_tpl'; this section's key is 'tpl'");
+
+                var tpl = entry?["tpl"]?.GetValue<string>();
+                Assert.False(string.IsNullOrWhiteSpace(tpl),
+                    $"kit '{kitId}': a rigContents entry has no 'tpl'");
+            }
+        }
+    }
+
+    [SkippableFact]
+    public void EveryRigContentTemplateExists()
+    {
+        var databasePath = RepoFiles.ItemDatabase;
+        Skip.If(databasePath is null, "no item database on this machine");
+
+        var items = JsonNode.Parse(File.ReadAllText(databasePath!))!.AsObject();
+
+        foreach (var kit in Kits)
+        {
+            var kitId = kit?["id"]?.GetValue<string>();
+
+            foreach (var entry in kit?["fill"]?["rigContents"] as JsonArray ?? [])
+            {
+                var tpl = entry?["tpl"]?.GetValue<string>();
+                Assert.True(tpl is not null && items.ContainsKey(tpl),
+                    $"kit '{kitId}': rigContents names {tpl}, which the item database does not have");
+            }
+        }
+    }
+
     private static IEnumerable<JsonNode> Items(JsonNode? kit)
         => (kit?["items"] as JsonArray ?? []).Where(node => node is not null)!;
 

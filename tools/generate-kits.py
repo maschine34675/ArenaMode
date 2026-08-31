@@ -514,7 +514,16 @@ def rebuild():
         result.append(dict(id=kit['id'], name=kit['name'], order=kit['order'],
                            items=out,
                            fill=dict(spareMagazines=spares,
-                                     rigContents=[dict(_tpl=t, count=1)
+                                     # 'tpl', NOT '_tpl'. The item TREE uses SPT's
+                                     # preset shape where the key is _tpl; this
+                                     # fill section is our own declarative schema
+                                     # and its key is tpl. Writing the wrong one
+                                     # deserialises to a null template, and the
+                                     # client then asks ItemFactory for an item
+                                     # with an empty id — which throws out of the
+                                     # whole kit application, so EVERY swap and
+                                     # respawn fails, not just the rig contents.
+                                     rigContents=[dict(tpl=t, count=1)
                                                   for t in tier_list(RIG_MEDICAL, gear['cls'])])))
 
         armour_name = nm(gear['armor'][0]) if gear['armor'] else nm(gear['rig']) + ' (Rig)'
