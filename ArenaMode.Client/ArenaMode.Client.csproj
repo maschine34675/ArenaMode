@@ -21,6 +21,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Keep voice clips and their attribution together in build/publish output. -->
+    <ArenaAudioAsset Include="Assets\ArenaMode\**\*" />
+    <Content Include="@(ArenaAudioAsset)">
+      <Link>ArenaMode\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target Name="DeployArenaAudioAssets" AfterTargets="SPTClientDeploy">
+    <Copy SourceFiles="@(ArenaAudioAsset)"
+          DestinationFiles="@(ArenaAudioAsset->'$(SPTPath)\BepInEx\plugins\ArenaMode\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
     <!-- Private="false": Redeploy.Core deploys itself flat to BepInEx/plugins via its
          own SPTClientDeploy target; a copy here would deploy a duplicate. -->
     <ProjectReference Include="..\..\Redeploy\Redeploy.Core\Redeploy.Core.csproj" Private="false" />

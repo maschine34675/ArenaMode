@@ -14,7 +14,7 @@ namespace ArenaMode.Audio;
 /// <summary>
 /// Announcer stingers: .ogg files from &lt;plugin dir&gt;/ArenaMode/sounds keyed by
 /// filename (callout label lowercased, spaces to underscores — "double_kill.ogg").
-/// Loading is async at plugin start (bullettime pattern) and the whole service
+/// Loading is async at the first arena match and the whole service
 /// no-ops silently when the folder is missing — sounds are optional content.
 /// </summary>
 internal static class AnnouncerService
@@ -69,9 +69,12 @@ internal static class AnnouncerService
     public static void Attach(ArenaMatch match)
     {
         Detach();
-        if (match == null || Clips.Count == 0)
+        if (match == null)
             return;
 
+        // Subscribe even while the first async load is pending. Play safely skips
+        // unavailable clips; waiting for a populated cache here loses the whole
+        // first match because nobody calls Attach again when loading completes.
         _match = match;
         match.OnCallout += OnCallout;
     }
@@ -118,14 +121,14 @@ internal static class AnnouncerService
 
     private static async Task<AudioClip> LoadClip(string path)
     {
-        using (var request = UnityWebRequestMultimedia.GetAudioClip("file://" + path, AudioType.OGGVORBIS))
+        var uri = new Uri(Path.GetFullPath(path)).AbsoluteUri;
+        using (var request = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS))
         {
             var operation = request.SendWebRequest();
             while (!operation.isDone)
                 await Task.Yield();
 
-            if (request.result == UnityWebRequest.Result.ConnectionError
-                || request.result == UnityWebRequest.Result.ProtocolError)
+            if (request.result != UnityWebRequest.Result.Success)
             {
                 Plugin.ModLogger.LogWarning($"Arena announcer clip failed: {path}: {request.error}");
                 return null;
