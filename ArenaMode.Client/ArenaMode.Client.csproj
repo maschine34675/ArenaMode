@@ -18,6 +18,7 @@
   <ItemGroup>
     <Compile Include="..\ArenaMode.Shared\Protocol.cs" Link="Shared\Protocol.cs" />
     <Compile Include="..\ArenaMode.Shared\ClientSettingsModels.cs" Link="Shared\ClientSettingsModels.cs" />
+    <Compile Include="..\ArenaMode.Shared\ArenaBotSpawnPolicy.cs" Link="Shared\ArenaBotSpawnPolicy.cs" />
   </ItemGroup>
 
   <ItemGroup>

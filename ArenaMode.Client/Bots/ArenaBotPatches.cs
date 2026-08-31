@@ -18,9 +18,14 @@ internal static class ArenaBotPatches
         new ArenaBossAttackPatch().Enable();
         new ArenaBotCapPatch().Enable();
         new NoAccidentalBossPatch().Enable();
+        ArenaBotSpawnPatches.Enable();
     }
 
-    public static void ResetRaidState() => NoAccidentalBossPatch.ResetRaidState();
+    public static void ResetRaidState()
+    {
+        NoAccidentalBossPatch.ResetRaidState();
+        ArenaBotSpawnPatches.ResetRaidState();
+    }
 
     /// <summary>
     /// Keeps ordinary bots from being promoted to squad bosses.

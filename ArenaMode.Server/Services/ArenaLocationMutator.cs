@@ -1,3 +1,4 @@
+using ArenaMode.Shared;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Models.Enums;
 
@@ -45,6 +46,9 @@ public static class ArenaLocationMutator
     {
         var raidSeconds = Math.Max(60, config.RaidTimeMinutes * 60);
         var quiet = IsQuietMap(mode);
+        var spawnZones = ArenaBotSpawnPolicy.FilterZones(location.Id, map.SpawnZones);
+
+        ExcludeSealedLabsBotSpawns(location);
 
         // Raid timing: the clock must never pressure an arena session.
         location.EscapeTimeLimit = config.RaidTimeMinutes;
@@ -108,32 +112,39 @@ public static class ArenaLocationMutator
             }
 
             if (!AbpsPresent)
-                location.Waves = GenerateAssaultWaves(map, raidSeconds).ToList();
+                location.Waves = GenerateAssaultWaves(map, raidSeconds, spawnZones, location.Id).ToList();
         }
 
         // Bosses are off in a quiet map for the same reason as the waves: a boss
         // arriving unbidden is a bot the round is not counting.
-        MutateBossSpawns(location, map, raidSeconds, quiet || map.DisableBosses, quiet);
+        MutateBossSpawns(location, map, raidSeconds, quiet || map.DisableBosses, quiet, spawnZones);
 
         if (config.StripLoot)
             location.Loot = [];
     }
 
-    private static IEnumerable<Wave> GenerateAssaultWaves(ArenaMapConfig map, int raidSeconds)
+    private static IEnumerable<Wave> GenerateAssaultWaves(ArenaMapConfig map, int raidSeconds,
+        string spawnZones, string mapId)
     {
         // ONE zone per wave, round-robin. Wave.SpawnPoints is matched against a
         // zone name by exact string, so writing the whole comma-separated list
         // into it matches no zone at all and the wave is silently dropped. That
         // did not show on Factory or Labyrinth, where the list is a single name;
-        // the Lab has five, and every generated wave there would have vanished.
-        var zones = (map.SpawnZones ?? string.Empty)
+        // the Lab has several, and every generated wave there would have vanished.
+        var zones = spawnZones
             .Split([','], StringSplitOptions.RemoveEmptyEntries)
             .Select(zone => zone.Trim())
             .Where(zone => zone.Length > 0)
             .ToArray();
 
         if (zones.Length == 0)
+        {
+            // An old config may contain only the two excluded gate zones. Do not
+            // turn the empty filtered result into an unrestricted random spawn.
+            if (ArenaBotSpawnPolicy.IsRestrictedMap(mapId))
+                yield break;
             zones = ["BotZone"];
+        }
 
         // Wave 0: instant opening pressure.
         yield return MakeAssaultWave(0, -1, -1, 4, map, zones[0]);
@@ -169,7 +180,7 @@ public static class ArenaLocationMutator
     }
 
     private static void MutateBossSpawns(LocationBase location, ArenaMapConfig map, int raidSeconds,
-        bool disableBosses, bool quietMap)
+        bool disableBosses, bool quietMap, string spawnZones)
     {
         var spawns = location.BossLocationSpawn?.ToList() ?? [];
 
@@ -195,7 +206,9 @@ public static class ArenaLocationMutator
             }
         }
 
-        if (!quietMap && map.PmcWaveIntervalSeconds > 0)
+        if (!quietMap && map.PmcWaveIntervalSeconds > 0
+            && (!ArenaBotSpawnPolicy.IsRestrictedMap(location.Id)
+                || spawnZones.Length > 0))
         {
             var slots = Math.Min(10, Math.Max(0, (raidSeconds - 120) / map.PmcWaveIntervalSeconds));
             for (var i = 0; i < slots; i++)
@@ -205,7 +218,7 @@ public static class ArenaLocationMutator
                 {
                     BossName = side,
                     BossChance = 100,
-                    BossZone = map.SpawnZones,
+                    BossZone = spawnZones,
                     BossDifficulty = "normal",
                     BossEscortType = side,
                     BossEscortAmount = "1",
@@ -222,6 +235,54 @@ public static class ArenaLocationMutator
         }
 
         location.BossLocationSpawn = spawns;
+    }
+
+    private static void ExcludeSealedLabsBotSpawns(LocationBase location)
+    {
+        if (!ArenaBotSpawnPolicy.IsRestrictedMap(location.Id))
+            return;
+
+        // The response is the per-raid clone. Filter complete bot-only markers,
+        // never Player/Coop/Group (or an unknown/shared category). No marker fields
+        // are changed, so player spawn and respawn consumers retain their data.
+        if (location.SpawnPointParams != null)
+            location.SpawnPointParams = location.SpawnPointParams.Where(point =>
+                !ArenaBotSpawnPolicy.IsExcludedZone(location.Id, point.BotZoneName)
+                || !IsBotOnlySpawn(point)).ToList();
+
+        // ABPS can retain the existing wave plan instead of our generated one.
+        // Filter that plan too, without changing the normal-map wave behavior.
+        if (location.Waves != null)
+            location.Waves = location.Waves.Where(wave =>
+            {
+                var filtered = ArenaBotSpawnPolicy.FilterZones(location.Id, wave.SpawnPoints);
+                if (filtered.Length == 0 && !string.IsNullOrWhiteSpace(wave.SpawnPoints))
+                    return false;
+                wave.SpawnPoints = filtered;
+                return true;
+            }).ToList();
+
+        // This includes vanilla extract-triggered raiders and entries added by
+        // other server mods. An entry naming only gates must be removed: a blank
+        // BossZone tells EFT to pick a random marked zone, reopening the gates.
+        if (location.BossLocationSpawn != null)
+            location.BossLocationSpawn = location.BossLocationSpawn.Where(spawn =>
+            {
+                var filtered = ArenaBotSpawnPolicy.FilterZones(location.Id, spawn.BossZone);
+                if (filtered.Length == 0 && !string.IsNullOrWhiteSpace(spawn.BossZone))
+                    return false;
+                spawn.BossZone = filtered;
+                return true;
+            }).ToList();
+    }
+
+    private static bool IsBotOnlySpawn(SpawnPointParam point)
+    {
+        var categories = point.Categories?.ToArray();
+        return categories is { Length: > 0 } && categories.All(category =>
+            string.Equals(category, "Bot", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(category, "Boss", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(category, "BotPmc", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsPmc(string? bossName)

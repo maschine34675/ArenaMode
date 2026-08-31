@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>annotations</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ProductionPolicySource Condition="'$(ProductionPolicySource)' == ''">../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs</ProductionPolicySource>
+    <ProductionFilterSource Condition="'$(ProductionFilterSource)' == ''">../../ArenaMode.Client/Bots/ArenaBotSpawnFilter.cs</ProductionFilterSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionFilterSource)" Link="Production/ArenaBotSpawnFilter.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/ArenaBotSpawnPatches.cs" Link="Production/ArenaBotSpawnPatches.cs" />
+    <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaBotSpawnPolicy.cs" />
+  </ItemGroup>
+</Project>
