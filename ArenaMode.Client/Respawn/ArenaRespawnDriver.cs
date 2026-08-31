@@ -218,6 +218,10 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         ArenaSpawnSelector.Reset();
         KitCatalog.KitProvider = null;
         LadderCatalog.Reset();
+
+        // The summaries describe kits from the catalogue that is about to be
+        // re-fetched, so they expire with it.
+        KitSummary.Reset();
     }
 
     internal static void BeginPipelineUse() => IsRespawnInProgress = true;

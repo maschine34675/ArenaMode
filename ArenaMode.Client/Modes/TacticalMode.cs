@@ -92,6 +92,15 @@ public sealed class TacticalMode : IArenaMode
     /// <summary>What the player will be handed when the round starts.</summary>
     public KitDefinition Bought => _bought;
 
+    /// <summary>
+    /// Whether buying nothing means walking into the round with what you have.
+    ///
+    /// True for a player who survived the last round: the gear is still on them
+    /// and nothing will replace it. False for one who died — they have no gear,
+    /// so the round start hands them the best they can afford.
+    /// </summary>
+    public bool KeepsCurrentGear => !_playerDown;
+
     /// <summary>Squad members still standing. Counted live — bots die to each other too.</summary>
     public int SquadAlive
     {
@@ -127,8 +136,17 @@ public sealed class TacticalMode : IArenaMode
             {
                 case Phase.Buy:
                     line += $"   BUY  {PhaseRemaining:0}s";
+
+                    // Says what you will actually walk out with, which is not the
+                    // same question as what you bought: buying nothing means
+                    // keeping your gear if you lived, and being handed the best
+                    // you can afford if you did not.
                     if (_bought != null)
                         line += $"   [{_bought.Name ?? _bought.Id}]";
+                    else if (_playerDown)
+                        line += "   [nothing bought yet]";
+                    else
+                        line += "   [keeping your gear]";
                     break;
 
                 case Phase.Live:
@@ -301,12 +319,20 @@ public sealed class TacticalMode : IArenaMode
         _phaseEndsAt = Time.time + Mathf.Max(3f, Settings.TacticalBuySeconds.Value);
         _roundStartPending = true;
 
-        // The last choice carries over when it is still affordable — re-picking
-        // the same kit every round would be busywork, not a decision.
-        if (_bought == null || !CanAfford(_bought))
-            _bought = Affordable();
+        // Nothing is pre-selected. _bought means "I chose to buy this", not "the
+        // kit I will be wearing", and the difference is the whole point: a player
+        // who SURVIVED keeps what they are carrying unless they deliberately
+        // replace it.
+        //
+        // Auto-picking the best affordable kit here was a real downgrade
+        // machine. Win a round with something good on your body, spend down to
+        // where it is no longer affordable, and the next round handed you the
+        // cheap thing you could still pay for — punishing the win.
+        _bought = null;
 
-        ArenaToasts.Show($"Round {RoundNumber} — buy phase");
+        ArenaToasts.Show(_playerDown
+            ? $"Round {RoundNumber} — buy phase"
+            : $"Round {RoundNumber} — buy phase (you keep your gear)");
     }
 
     /// <summary>The dearest kit the player can afford, so being broke still arms them.</summary>
@@ -353,6 +379,13 @@ public sealed class TacticalMode : IArenaMode
         // back a body.
         var wasDown = _playerDown;
         _playerDown = false;
+
+        // A player who died has nothing to stand up in, so if they bought nothing
+        // they get the best they can afford rather than a naked round. A player
+        // who survived and bought nothing keeps what they are wearing — that is
+        // what winning is for.
+        if (wasDown && _bought == null)
+            _bought = Affordable();
 
         // Charged now rather than at the click, so browsing the menu is free and
         // a round that never starts costs nothing.
@@ -408,7 +441,11 @@ public sealed class TacticalMode : IArenaMode
         // gear; the round-break swap puts them in what they just bought. One who
         // died is handled by the held respawn instead, which picks the same kit
         // through the same provider once HoldRespawn lets go.
+        // _bought != null is the condition, not merely surviving: swapping a
+        // survivor who bought nothing would take the gear they just earned and
+        // hand it straight back, which is the downgrade this mode used to do.
         if (!wasDown
+            && _bought != null
             && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game
             && game.Status == GameStatus.Started)
         {

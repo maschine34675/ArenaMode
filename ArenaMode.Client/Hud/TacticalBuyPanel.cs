@@ -39,6 +39,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
     private GUIStyle _bodyStyle;
     private GUIStyle _buttonStyle;
     private GUIStyle _pickedStyle;
+    private GUIStyle _detailStyle;
 
     private void OnDestroy()
     {
@@ -167,6 +168,17 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         GUILayout.Label(
             $"{mode.Money:N0} ₽    starting in {mode.PhaseRemaining:0}s", _bodyStyle);
 
+        // What happens if you buy nothing, said plainly. Surviving a round keeps
+        // your gear, and a menu that only ever showed things to buy made that
+        // look like an omission rather than the reward it is.
+        GUILayout.Label(
+            mode.Bought != null
+                ? $"Buying: {mode.Bought.Name ?? mode.Bought.Id}"
+                : mode.KeepsCurrentGear
+                    ? "Buy nothing and you keep what you are carrying."
+                    : "You have no gear — buy something or you start with the cheapest you can afford.",
+            _bodyStyle);
+
         GUILayout.Space(8f);
 
         _scroll = GUILayout.BeginScrollView(_scroll);
@@ -191,6 +203,15 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
             GUI.enabled = true;
             GUILayout.Label(affordable ? cost : $"{cost}  (short)", _bodyStyle, GUILayout.Width(150f));
             GUILayout.EndHorizontal();
+
+            // The contents under the name. Twenty invented names and twenty
+            // prices is not enough to choose with — the price only says which is
+            // dearer, never what the extra money buys.
+            var summary = KitSummary.For(kit);
+            if (!string.IsNullOrEmpty(summary))
+                GUILayout.Label($"      {summary}", _detailStyle);
+
+            GUILayout.Space(4f);
         }
 
         GUILayout.EndScrollView();
@@ -240,5 +261,14 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         _bodyStyle = new GUIStyle(GUI.skin.label) { fontSize = 13 };
         _buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 13, alignment = TextAnchor.MiddleLeft };
         _pickedStyle = new GUIStyle(_buttonStyle) { fontStyle = FontStyle.Bold };
+
+        // Dimmer and smaller than the row above it: the contents line is there
+        // to be scanned while comparing kits, not read one at a time.
+        _detailStyle = new GUIStyle(_bodyStyle)
+        {
+            fontSize = Mathf.Max(10, _bodyStyle.fontSize - 2),
+            wordWrap = true,
+        };
+        _detailStyle.normal.textColor = new Color(0.72f, 0.74f, 0.78f, 1f);
     }
 }
