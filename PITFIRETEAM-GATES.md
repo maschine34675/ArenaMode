@@ -92,6 +92,9 @@ be marked complete from a successful build alone.
   A guard exception remains fail-closed without scoring a second result. If the hostility matrix
   becomes unverifiable after live play begins, the result is no-contest rather than a guessed
   win or loss.
+  The direct squad planner must choose one allowed zone that can hold all five distinct
+  points at least 25 m from the player. It consumes the preferred 25-70 m band first and
+  then fills from farther points; a short profile or point plan dispatches no partial team.
   A server-side location-mutator failure is reported to the client and ends the protected
   raid as no-contest before play; team Arena never continues with vanilla waves plus its five
   requested opponents. Any protected match-initialization failure blocks damage, preserves
@@ -165,9 +168,9 @@ be marked complete from a successful build alone.
   EXPECT: LABS_BOT_SPAWN_CHECKS_PASSED
   CHECK: dotnet run --project tools/AnnouncerChecks/AnnouncerChecks.csproj -c Release
   EXPECT: ARENA_ANNOUNCER_CHECKS_PASSED
-  VERIFIED 2026-09-01 after the M2 local-ready fix: Release build 0 errors; unit 91/91;
+  VERIFIED 2026-09-01 after the M2 opponent-allocation fix: Release build 0 errors; unit 92/92;
   PitFireTeam 199/199; native menu 48/48; map view 40/40; side view 29/29;
-  Labs bot spawns 65/65;
+  Labs bot spawns 75/75;
   announcer 78/78.
 
 - [x] P10: The deployed Arena client and server DLLs are byte-for-byte identical to the
@@ -176,9 +179,9 @@ be marked complete from a successful build alone.
   build output, deployment tree, or tracked files.
   CHECK: powershell -NoProfile -File tools/Verify-PitFireTeamDeployment.ps1
   EXPECT: PITFIRETEAM_DEPLOYMENT_VERIFIED
-  VERIFIED 2026-09-01 after the M2 local-ready fix: client build/deployed
-  `71E5CBE934F8E78CDC7352D563C5EA497A31629F68908EEDD0223C6C58912CE5`; server
-  build/deployed `565D3C89B26A7854E9051A0697022EC43110D18CFFFE290E283B41046C5F0634`.
+  VERIFIED 2026-09-01 after the M2 opponent-allocation fix: client build/deployed
+  `7DC1679E3B0C47890CC311F38107D4A74C9E780EFBF36BD4A3E59E23EABCDA85`; server
+  build/deployed `2528835212D286D90D84184C932EFB2129E86C91B012F407ED51E2DD35DB1B8A`.
 
 - [x] P11: An independent adversarial review finds no path that can arm team Arena with an
   unauthenticated/stale group, strand followers on an old player body, leak Arena hostility
@@ -190,6 +193,10 @@ be marked complete from a successful build alone.
   M2 FOLLOW-UP REVIEW 2026-09-01: the exact post-`Apply` repair, Harmony binding,
   reference identity, Back/cancel cleanup and ordinary/solo isolation were independently
   rechecked with no remaining High/Medium finding.
+  M2 OPPONENT FOLLOW-UP REVIEW 2026-09-01: two independent final rereads found no
+  remaining High/Medium issue after physical-point deduplication and post-profile-load
+  zone replanning. Exact rejection occurs before native spawn accounting; solo, ambient
+  and ordinary paths retain their prior best-effort behavior.
 
 ## Manual GPU gates
 
@@ -208,6 +215,19 @@ be marked complete from a successful build alone.
   `None`. Arena now restores only that proven `Common`-to-`None` change immediately after
   vanilla applies the clone; the clone itself stays untouched, the final request gate remains
   strict, and Back/cancel cannot leak the repair into an ordinary raid.
+  RETEST REQUIRED 2026-09-01 after second live attempt: Labs loaded and all four followers
+  arrived friendly, proving the local-ready repair. Arena requested five cached hard USEC
+  profiles; source, cache and direct-spawn evidence traced the three-bot dispatch with high
+  confidence to its point planner, although the old log did not yet print the pre-trim profile
+  and point counts. The planner could select only the three points in the preferred 25-70 m
+  band while discarding valid farther points. Exactly three opponents arrived and the strict
+  3/5 readiness check correctly ended the raid as no-contest. The planner now fills the
+  preferred band with distinct farther points and skips an allowed zone that cannot hold
+  all five, replans after asynchronous profile loading, and deduplicates physical positions.
+  Exact team requests dispatch no partial profile or point batch. Regardless of callback/log
+  order, the next log must contain `requested 5`, `profiles 5`, a safe-zone plan with
+  `selected 5`, `dispatched 5x`, exactly five arrivals, and `Tactical team Arena live`;
+  no readiness timeout is acceptable.
 
 - [ ] M3 MANUAL: No initial kit/body swap occurs in team Arena; the player enters with the
   PMC equipment shown on the confirmation screen and followers still accept commands. The

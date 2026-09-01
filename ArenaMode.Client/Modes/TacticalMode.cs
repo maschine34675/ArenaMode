@@ -643,10 +643,20 @@ public sealed class TacticalMode : IArenaMode
                 }
 
                 _squad.Add(bot);
-            });
+            },
+            requireExactCount: true);
 
         Plugin.ModLogger.LogInfo(
-            $"Tactical team Arena: requested exactly {TeamEnemyCount} opponents; spawn service accepted {_squadRequested}.");
+            $"Tactical team Arena: requested exactly {TeamEnemyCount} opponents; spawn service planned {_squadRequested}.");
+
+        if (_squadRequested != TeamEnemyCount)
+        {
+            EndTeamRound(
+                null,
+                $"the Arena spawn service could plan only {_squadRequested}/{TeamEnemyCount} opponents");
+            return;
+        }
+
         ArenaToasts.Show("5v5 — assembling five opponents");
     }
 

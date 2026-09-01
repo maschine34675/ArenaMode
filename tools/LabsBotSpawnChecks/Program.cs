@@ -28,6 +28,7 @@ internal static class Program
             CheckNullInputs();
             CheckSharedPlayerPoints();
             CheckDispatchAccounting();
+            CheckBurstPointSelection();
             CheckPolicy();
             Console.WriteLine($"LABS_BOT_SPAWN_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -196,6 +197,94 @@ internal static class Program
         AssertUnchanged(mixed, before, "blocked AI selection never changes shared point cooldowns");
     }
 
+    private static void CheckBurstPointSelection()
+    {
+        var origin = new Vector3(0f, 0f, 0f);
+        var preferred = new[]
+        {
+            PointAt("BotZoneFloor2", 30f),
+            PointAt("BotZoneFloor2", 40f),
+            PointAt("BotZoneFloor2", 50f),
+        };
+        var distant = new[]
+        {
+            PointAt("BotZoneFloor2", 80f),
+            PointAt("BotZoneFloor2", 90f),
+            PointAt("BotZoneFloor2", 100f),
+            PointAt("BotZoneFloor2", 110f),
+            PointAt("BotZoneFloor2", 120f),
+        };
+        var tooClose = PointAt("BotZoneFloor2", 10f);
+        var blocked = PointAt("BotZoneFloor2", 35f);
+        blocked.SpawnBlocked = true;
+        var duplicatePosition = PointAt("BotZoneFloor2", 30f);
+        var floor2 = new BotZone("BotZoneFloor2")
+        {
+            SpawnPoints = preferred.Concat(distant).Append(tooClose).Append(blocked)
+                .Append(duplicatePosition).ToArray(),
+        };
+
+        var cursor = 0;
+        var selected = BurstSpawnPointSelector.PickPoints(
+            floor2, origin, 5, ref cursor, out var preferredCount, out var distantCount);
+        Assert(preferredCount == 3 && distantCount == 5,
+            "burst planner classifies preferred and distant usable points separately");
+        Assert(selected.Count == 5 && selected.Distinct().Count() == 5,
+            "three preferred points are filled to an exact five with distinct distant points");
+        Assert(selected.Select(point => point.Position).Distinct().Count() == 5,
+            "different marker objects at one physical position count as only one spawn point");
+        Assert(preferred.All(selected.Contains) && selected.All(point => point != tooClose && point != blocked),
+            "preferred points win while close and blocked points remain excluded");
+
+        cursor = 0;
+        var pair = BurstSpawnPointSelector.PickPoints(
+            floor2, origin, 2, ref cursor, out _, out _);
+        Assert(pair.Count == 2 && pair.All(preferred.Contains),
+            "ambient two-bot bursts still use only the preferred band when it is sufficient");
+
+        var shortZone = new BotZone("BotZoneBasement")
+        {
+            SpawnPoints = new[] { PointAt("BotZoneBasement", 30f), PointAt("BotZoneBasement", 80f), tooClose },
+        };
+        var completeZone = new BotZone("BotZoneFloor1")
+        {
+            SpawnPoints = Enumerable.Range(0, 5).Select(index => PointAt("BotZoneFloor1", 30f + index)).ToArray(),
+        };
+        var zoneCursor = -1;
+        var chosen = BurstSpawnPointSelector.PickZone(
+            new[] { shortZone, completeZone }, origin, 5, ref zoneCursor);
+        Assert(ReferenceEquals(chosen, completeZone) && zoneCursor == 1,
+            "squad planning skips a zone that cannot hold all five opponents");
+        Assert(BurstSpawnPointSelector.CountUsable(shortZone, origin) == 2,
+            "zone capacity excludes close points before a squad is dispatched");
+
+        var beforeLoad = new Vector3(0f, 0f, 0f);
+        var afterLoad = new Vector3(32f, 0f, 0f);
+        var initiallyComplete = new BotZone("InitiallyComplete")
+        {
+            SpawnPoints = Enumerable.Range(0, 5).Select(index => PointAt("InitiallyComplete", 30f + index)).ToArray(),
+        };
+        var completeAfterMovement = new BotZone("CompleteAfterMovement")
+        {
+            SpawnPoints = Enumerable.Range(0, 5).Select(index => PointAt("CompleteAfterMovement", -5f - index)).ToArray(),
+        };
+        zoneCursor = -1;
+        chosen = BurstSpawnPointSelector.PickZone(
+            new[] { initiallyComplete, completeAfterMovement }, beforeLoad, 5, ref zoneCursor);
+        Assert(ReferenceEquals(chosen, initiallyComplete),
+            "exact squad preflight selects the zone that is complete before async profile loading");
+        chosen = BurstSpawnPointSelector.PickZone(
+            new[] { initiallyComplete, completeAfterMovement }, afterLoad, 5, ref zoneCursor);
+        Assert(ReferenceEquals(chosen, completeAfterMovement),
+            "exact squad replanning selects a different complete zone after player movement");
+
+        zoneCursor = -1;
+        chosen = BurstSpawnPointSelector.PickZone(
+            new[] { shortZone }, origin, 5, ref zoneCursor);
+        Assert(ReferenceEquals(chosen, shortZone),
+            "largest allowed zone is returned when no zone can satisfy the batch so caller fails closed");
+    }
+
     private static MethodInfo PatchMethod(string patch, string method)
         => typeof(ArenaBotSpawnPatches).GetNestedType(patch, BindingFlags.NonPublic)
             ?.GetMethod(method, BindingFlags.Static | BindingFlags.NonPublic)
@@ -234,6 +323,10 @@ internal static class Program
 
     private static TestSpawnPoint Point(string zone, ESpawnCategoryMask category = ESpawnCategoryMask.Bot)
         => new() { BotZoneName = zone, Categories = category, NextBornTime = 23.5f, CorePointId = 17 };
+
+    private static TestSpawnPoint PointAt(string zone, float x)
+        => new() { BotZoneName = zone, Categories = ESpawnCategoryMask.Bot,
+            Position = new Vector3(x, 0f, 0f), NextBornTime = 23.5f, CorePointId = 17 };
 
     private static List<ISpawnPoint> Points()
         => new() { Point("BotZoneFloor2"), Point("BotZoneGate1"), Point("BotZoneGate2") };

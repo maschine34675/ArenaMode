@@ -22,10 +22,6 @@ internal static class BurstSpawnService
     private const float InFlightSeconds = 20f;
     private const int BotsPerBurst = 2;
 
-    /// <summary>Spawn band around the player: far enough to not pop into view, near enough to matter.</summary>
-    private const float MinSpawnDistance = 25f;
-    private const float MaxSpawnDistance = 70f;
-
     private static float _nextAttemptAt;
     private static bool _nextPmcIsBear;
     private static int _zoneCursor;
@@ -139,7 +135,7 @@ internal static class BurstSpawnService
 
             var counterAlive = controller.AliveLoadingDelayedBotsCount;
 
-            var zone = PickZone(spawner);
+            var zone = PickZone(spawner, BotsPerBurst);
             if (zone == null)
                 return;
 
@@ -188,7 +184,8 @@ internal static class BurstSpawnService
     /// creation data and spawns.
     /// </summary>
     private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role,
-        BotDifficulty difficulty, bool isPmc, int count = BotsPerBurst, Action<BotOwner> observer = null)
+        BotDifficulty difficulty, bool isPmc, int count = BotsPerBurst, Action<BotOwner> observer = null,
+        bool requireExactCount = false)
     {
         var ledger = isPmc ? RecentPmcInjections : RecentScavInjections;
         var reserved = 0;
@@ -212,16 +209,68 @@ internal static class BurstSpawnService
                 return;
             }
 
+            // Never dispatch more than the caller requested even if a modified
+            // profile provider returns a larger batch.
+            if (data.Count > count)
+                data.Profiles.RemoveRange(count, data.Count - count);
+
+            if (requireExactCount && data.Count != count)
+            {
+                Plugin.ModLogger.LogWarning(
+                    $"Arena exact squad spawn: profile provider returned {data.Count}/{count} {role}; no partial squad dispatched.");
+                data.StopSpawn();
+                return;
+            }
+
+            // Profile and bundle loading is asynchronous. The player can cross
+            // a 25 m boundary while it runs, so an exact squad must choose its
+            // zone again from the current scene state instead of trusting the
+            // synchronous preflight performed by SpawnSquad.
+            if (requireExactCount)
+            {
+                zone = PickZone(spawner, count);
+                if (zone == null)
+                {
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena exact squad spawn: no allowed zone remained after profile loading; no squad dispatched.");
+                    data.StopSpawn();
+                    return;
+                }
+            }
+
             // EXACTLY one point per profile. Handing over more charges the
             // engine's in-spawn counter per POINT while it only ever decrements
             // per created bot — every surplus point permanently shrinks the
             // headroom the engine grants its own spawns. (A stray point would
             // also hit an unguarded Profiles[0] in another mod's hook.)
-            var points = PickSpawnPoints(zone, data.Count);
+            var playerPosition = GetPlayerPosition();
+            var profileCount = data.Count;
+            var points = BurstSpawnPointSelector.PickPoints(
+                zone,
+                playerPosition,
+                profileCount,
+                ref _pointCursor,
+                out var preferredAvailable,
+                out var distantAvailable);
+
+            Plugin.ModLogger.LogInfo(
+                $"Arena burst spawn plan: zone {zone.NameZone}, requested {count}, profiles {profileCount}, "
+                + $"points {preferredAvailable} preferred + {distantAvailable} distant, "
+                + $"selected {points?.Count ?? 0}.");
             if (points == null || points.Count == 0)
             {
                 Plugin.ModLogger.LogWarning($"Arena burst spawn: no usable spawn point for {role} — request dropped.");
+                if (requireExactCount)
+                    data.StopSpawn();
                 RetrySoon();
+                return;
+            }
+
+            if (requireExactCount && points.Count != count)
+            {
+                Plugin.ModLogger.LogWarning(
+                    $"Arena exact squad spawn: zone {zone.NameZone} supplied {points.Count}/{count} points; no partial squad dispatched.");
+                data.StopSpawn();
                 return;
             }
 
@@ -278,7 +327,12 @@ internal static class BurstSpawnService
     /// can come back short, so the caller counts arrivals through the observer
     /// rather than trusting this number.
     /// </summary>
-    public static int SpawnSquad(int count, bool asPmc, BotDifficulty difficulty, Action<BotOwner> observer)
+    public static int SpawnSquad(
+        int count,
+        bool asPmc,
+        BotDifficulty difficulty,
+        Action<BotOwner> observer,
+        bool requireExactCount = false)
     {
         if (count <= 0)
             return 0;
@@ -292,11 +346,23 @@ internal static class BurstSpawnService
             if (spawner == null)
                 return 0;
 
-            var zone = PickZone(spawner);
+            var zone = PickZone(spawner, count);
             if (zone == null)
             {
                 Plugin.ModLogger.LogWarning("Arena squad spawn: no bot zone — squad not dispatched.");
                 return 0;
+            }
+
+            if (requireExactCount)
+            {
+                var capacity = BurstSpawnPointSelector.CountUsable(zone, GetPlayerPosition());
+                if (capacity < count)
+                {
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena exact squad spawn: no allowed zone can supply {count} points "
+                        + $"(best {zone.NameZone}: {capacity}); squad not dispatched.");
+                    return 0;
+                }
             }
 
             var role = asPmc
@@ -307,7 +373,7 @@ internal static class BurstSpawnService
                 _nextPmcIsBear = !_nextPmcIsBear;
 
             Plugin.ModLogger.LogInfo($"Arena squad spawn: requesting {count}x {role} ({difficulty}).");
-            SpawnPair(spawner, zone, role, difficulty, asPmc, count, observer);
+            SpawnPair(spawner, zone, role, difficulty, asPmc, count, observer, requireExactCount);
             return count;
         }
         catch (Exception ex)
@@ -329,69 +395,6 @@ internal static class BurstSpawnService
     {
         for (var i = 0; i < count && ledger.Count > 0; i++)
             ledger.RemoveAt(ledger.Count - 1);
-    }
-
-    /// <summary>
-    /// Spawn points from the zone, preferring a band that is far enough away to
-    /// not materialise in the player's face but close enough to reach the fight
-    /// in seconds. PMCs appearing right next to the player was the engine's own
-    /// point picking; ours is deliberate.
-    /// </summary>
-    private static List<ISpawnPoint> PickSpawnPoints(BotZone zone, int count)
-    {
-        var all = zone?.SpawnPoints;
-        if (all == null || all.Length == 0)
-            return null;
-
-        var player = Singleton<GameWorld>.Instantiated
-            ? Singleton<GameWorld>.Instance.MainPlayer
-            : null;
-
-        var result = new List<ISpawnPoint>(count);
-        if (player == null)
-        {
-            for (var i = 0; i < all.Length && result.Count < count; i++)
-            {
-                if (all[i] != null && !all[i].SpawnBlocked)
-                    result.Add(all[i]);
-            }
-
-            return result;
-        }
-
-        var position = player.Position;
-        var candidates = new List<ISpawnPoint>(all.Length);
-        var fallback = new List<ISpawnPoint>(all.Length);
-
-        foreach (var point in all)
-        {
-            if (point == null || point.SpawnBlocked)
-                continue;
-
-            var distance = Vector3.Distance(point.Position, position);
-            if (distance >= MinSpawnDistance && distance <= MaxSpawnDistance)
-                candidates.Add(point);
-            else if (distance >= MinSpawnDistance)
-                fallback.Add(point);
-        }
-
-        var source = candidates.Count > 0 ? candidates : fallback;
-        if (source.Count == 0)
-            return null;
-
-        // Spread them around instead of stacking them on one point — and never
-        // hand the same point out twice. The cursor wraps, so asking for more
-        // than the zone has usable points used to return duplicates: harmless
-        // for a pair, but a squad of fifteen on a four-point zone arrived three
-        // and four deep on the same coordinates.
-        var wanted = Mathf.Min(count, source.Count);
-        for (var i = 0; i < wanted; i++)
-        {
-            _pointCursor = (_pointCursor + 1) % source.Count;
-            result.Add(source[_pointCursor]);
-        }
-
-        return result;
     }
 
     /// <summary>
@@ -496,15 +499,20 @@ internal static class BurstSpawnService
     /// A different zone per burst. Always taking the first one funnels every
     /// injection into the same corner of the map.
     /// </summary>
-    private static BotZone PickZone(BotSpawner spawner)
+    private static BotZone PickZone(BotSpawner spawner, int requiredCount)
     {
-        var zones = spawner.SpawnZones(false)?.ToList();
-        if (zones == null || zones.Count == 0)
-            return null;
-
-        _zoneCursor = (_zoneCursor + 1) % zones.Count;
-        return zones[_zoneCursor];
+        return BurstSpawnPointSelector.PickZone(
+            spawner.SpawnZones(false),
+            GetPlayerPosition(),
+            requiredCount,
+            ref _zoneCursor);
     }
+
+    private static Vector3? GetPlayerPosition()
+        => Singleton<GameWorld>.Instantiated
+           && Singleton<GameWorld>.Instance.MainPlayer != null
+            ? (Vector3?)Singleton<GameWorld>.Instance.MainPlayer.Position
+            : null;
 
     /// <summary>
     /// Ask the backup loader to keep PMC profiles cached, so the first PMC burst

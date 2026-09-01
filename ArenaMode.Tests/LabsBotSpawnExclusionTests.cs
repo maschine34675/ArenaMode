@@ -217,6 +217,53 @@ public class LabsBotSpawnExclusionTests
         Assert.Equal(originalSnapshot, JsonSerializer.Serialize(original, JsonOptions));
     }
 
+    [SkippableFact]
+    public void InstalledLabsAlwaysOffersFiveSafeBotPointsAwayFromEveryPlayerSpawn()
+    {
+        var database = Environment.GetEnvironmentVariable("SPT_DATABASE")
+                       ?? @"D:\SPT41\SPT_Runtime\SPT_Data\database";
+        var path = Path.Combine(database, "locations", "laboratory", "base.json");
+        Skip.IfNot(File.Exists(path), "Installed Labs database fixture is unavailable.");
+        var location = JsonSerializer.Deserialize<LocationBase>(File.ReadAllText(path), JsonOptions)!;
+
+        var playerPoints = location.SpawnPointParams!
+            .Where(point => point.Position.HasValue && point.Categories?.Contains("Player") == true)
+            .ToArray();
+        var safeBotPoints = location.SpawnPointParams!
+            .Where(point => point.Position.HasValue
+                            && point.Categories?.Contains("Bot") == true
+                            && AllowedZones.Contains(point.BotZoneName, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+
+        Assert.NotEmpty(playerPoints);
+        Assert.NotEmpty(safeBotPoints);
+        foreach (var playerPoint in playerPoints)
+        {
+            var player = playerPoint.Position!.Value;
+            var capacities = safeBotPoints
+                .Where(point => DistanceSquared(player, point.Position!.Value) >= 25f * 25f)
+                .GroupBy(point => point.BotZoneName, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group
+                    .Select(point => point.Position!.Value)
+                    .Distinct()
+                    .Count())
+                .ToArray();
+
+            Assert.True(capacities.Any(capacity => capacity >= 5),
+                $"Labs player marker {playerPoint.Id} has no allowed bot zone with five points at least 25 m away.");
+        }
+    }
+
+    private static float DistanceSquared(
+        SPTarkov.Server.Core.Models.Eft.Common.Vector3 left,
+        SPTarkov.Server.Core.Models.Eft.Common.Vector3 right)
+    {
+        var x = left.X - right.X;
+        var y = left.Y - right.Y;
+        var z = left.Z - right.Z;
+        return x * x + y * y + z * z;
+    }
+
     private static void AssertNoGates(string? zones)
         => Assert.DoesNotContain((zones ?? string.Empty).Split(','),
             zone => zone.Equals("BotZoneGate1", StringComparison.OrdinalIgnoreCase)

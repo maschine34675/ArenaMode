@@ -5,12 +5,24 @@ using System.Reflection;
 public sealed class BotZone
 {
     public string NameZone;
+    public EFT.Game.Spawning.ISpawnPoint[] SpawnPoints;
     public BotZone(string name) => NameZone = name;
 }
 
 namespace UnityEngine
 {
-    public struct Vector3 { public float x, y, z; }
+    public struct Vector3
+    {
+        public float x, y, z;
+        public Vector3(float x, float y, float z) => (this.x, this.y, this.z) = (x, y, z);
+        public static float Distance(Vector3 left, Vector3 right)
+        {
+            var dx = left.x - right.x;
+            var dy = left.y - right.y;
+            var dz = left.z - right.z;
+            return MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
+    }
 }
 
 namespace EFT

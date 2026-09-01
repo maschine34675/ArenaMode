@@ -43,3 +43,41 @@ Installed server SHA-256: `7352DBE3597AB9AAF1DDAB4884F2539850BEEE7F054912067662F
 Restart the server and game with both updated DLLs. In Arena Labs, verify that bots spawn on the two floors/basement and no longer appear behind either gate, including after activating an extract. Check initial pressure, repeated reinforcements and a Tactical squad. Player respawns and an ordinary Labs raid should behave as before.
 
 This server has no GPU; no game was launched. Offline checks cannot prove actual Harmony execution, navigation or bot movement. An unrelated mod that directly creates/teleports bots while bypassing these native spawn methods is outside the verified call chain.
+
+## 2026-09-01 five-opponent allocation follow-up
+
+The first PitFireTeam M2 run that reached Labs proved the gate exclusions and team safety,
+but exposed a separate Arena point-planning defect. Arena requested five cached hard-USEC
+profiles and bypassed the vanilla population cap as intended. The old log did not print the
+pre-trim profile and point counts, but the source, cache and direct-dispatch evidence traced
+the three-bot result with high confidence to the planner: three preferred 25-70 m points
+caused it to ignore valid points beyond 70 m. It then dispatched three opponents, and the
+exact 5v5 readiness guard correctly ended the raid as no-contest at 3/5.
+
+The planner now keeps the preferred band first and fills the remainder from distinct farther
+points in the same allowed zone. Zone rotation skips a zone that cannot hold the complete
+requested squad when another allowed zone can. It replans after asynchronous profile loading
+so player movement cannot leave it on a newly undersized zone. The installed Labs data also
+contains two different Floor1 markers at one exact coordinate; capacity and selection now
+deduplicate physical positions so two opponents cannot be stacked there. PitFireTeam team
+Arena additionally requires an exact five-profile/five-point plan and dispatches no partial
+squad. Diagnostic logging records the zone, requested and available profile counts, preferred
+and distant capacity, and the final selected count.
+
+The production point selector is linked into the Labs client harness. Its new cases prove
+three preferred plus five distant points yield exactly five distinct selections, blocked and
+under-25-m points stay excluded, ambient pairs remain inside the preferred band when possible,
+a duplicate coordinate counts once, a too-small zone is skipped, and movement during profile
+loading triggers a fresh complete-zone choice. The harness passes 75/75 assertions. A separate installed-
+database test checks all 75 Labs player markers and proves each has at least one of the three
+allowed bot zones with five points at least 25 m away. The complete unit suite passes 92/92.
+
+Current build/deployed client SHA-256:
+`7DC1679E3B0C47890CC311F38107D4A74C9E780EFBF36BD4A3E59E23EABCDA85`.
+
+Current build/deployed server SHA-256:
+`2528835212D286D90D84184C932EFB2129E86C91B012F407ED51E2DD35DB1B8A`.
+
+The remaining live check is M2: expect one spawn-plan line with `selected 5`, then
+`dispatched 5x`, five arrival callbacks and `Tactical team Arena live`. EFT was not launched
+on this GPU-less server.
