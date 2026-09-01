@@ -326,6 +326,7 @@ internal static class Program
         var controller = Read(repo, "ArenaMode.Client/ArenaController.cs");
         var kitPreloader = Read(repo, "ArenaMode.Client/Kits/KitBundlePreloader.cs");
         var skip = Read(repo, "ArenaMode.Client/Session/SkipPreRaidScreensPatch.cs");
+        var settingsApply = Read(repo, "ArenaMode.Client/Session/ArenaRaidSettingsApplyPatch.cs");
         var localStart = Read(repo, "ArenaMode.Client/Session/LocalRaidStartedPatch.cs");
         var menu = Read(repo, "ArenaMode.Client/Session/ArenaMenuSelection.cs");
         var side = Read(repo, "ArenaMode.Client/Session/ArenaSideSelectionPatch.cs");
@@ -388,6 +389,16 @@ internal static class Program
                && skip.IndexOf("PitFireTeamCompat.IsInstalled", StringComparison.Ordinal)
                   < skip.IndexOf("__instance.method_27()", StringComparison.Ordinal),
             "confirmation shortcut yields to PitFireTeam's roster callback when installed");
+        Assert(plugin.Contains("ArenaRaidSettingsApplyPatch.EnablePatch", StringComparison.Ordinal)
+               && settingsApply.Contains("nameof(RaidSettings.Apply)", StringComparison.Ordinal)
+               && settingsApply.Contains("PatchPrefix", StringComparison.Ordinal)
+               && settingsApply.Contains("PatchPostfix", StringComparison.Ordinal)
+               && settingsApply.Contains("RestoreArenaTransitionAfterCloneApply", StringComparison.Ordinal)
+               && menu.Contains("transitionBeforeApply != ELocationTransition.Common", StringComparison.Ordinal)
+               && menu.Contains("source?.transitionType != ELocationTransition.None", StringComparison.Ordinal)
+               && menu.Contains("destination.transitionType != ELocationTransition.None", StringComparison.Ordinal)
+               && menu.Contains("settings.transitionType == ELocationTransition.Common", StringComparison.Ordinal),
+            "Arena repairs only the proven Common-to-None clone omission and keeps the final transition gate strict");
         Assert(side.Contains("PitFireTeamCompat.IsSquadManagementScreen", StringComparison.Ordinal)
                && !side.Contains("_randomButton?.gameObject?.activeSelf == false", StringComparison.Ordinal)
                && side.Contains("HarmonyAfter(\"MatchMakerSideSelectionScreenShowPatch\")", StringComparison.Ordinal)
@@ -977,6 +988,25 @@ internal static class Program
                                                    && field.FieldType.FullName == "System.String")
                && raidPlayer.Properties.All(property => property.Name is not "AccountId" and not "Id"),
             "installed EFT exposes RaidPlayer AccountId and Id as inherited public fields");
+
+        var raidSettings = eft.MainModule.GetType("EFT.RaidSettings")
+                           ?? throw new InvalidOperationException("Installed EFT RaidSettings type is missing.");
+        var cloneSettings = raidSettings.Methods.Single(method =>
+            method.Name == "Clone"
+            && method.Parameters.Count == 0
+            && method.ReturnType.FullName == raidSettings.FullName);
+        var applySettings = raidSettings.Methods.Single(method =>
+            method.Name == "Apply"
+            && method.Parameters.Count == 1
+            && method.Parameters[0].ParameterType.FullName == raidSettings.FullName);
+        static bool WritesTransitionType(MethodDefinition method)
+            => method.Body.Instructions.Any(instruction =>
+                instruction.OpCode.Name == "stfld"
+                && instruction.Operand is FieldReference field
+                && field.DeclaringType.FullName == "EFT.RaidSettings"
+                && field.Name == "transitionType");
+        Assert(!WritesTransitionType(cloneSettings) && WritesTransitionType(applySettings),
+            "installed EFT has the exact transitionType Clone omission and Apply write repaired by Arena");
 
         var eftPlayer = eft.MainModule.GetType("EFT.Player")
                         ?? throw new InvalidOperationException("Installed EFT Player type is missing.");

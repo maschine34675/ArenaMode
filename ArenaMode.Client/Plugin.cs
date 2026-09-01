@@ -40,6 +40,7 @@ public class Plugin : BaseUnityPlugin
         LocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
         ArenaLocationSelectionPatch.Enable();
+        ArenaRaidSettingsApplyPatch.EnablePatch();
         SkipPreRaidScreensPatch.Enable();
         MapAccessPatch.Enable();
 

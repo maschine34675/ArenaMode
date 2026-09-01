@@ -77,6 +77,49 @@ internal static class Program
         Assert(!Start(Request(map: "Woods"), out task) && task.IsFaulted, "Changed map cannot enter Arena");
         Assert(RequestHandler.StartCount == 0, "Changed map must be rejected before announcement");
 
+        // PitFireTeam puts a synthetic group on EFT's local-ready branch. EFT's
+        // offline clone omitted transitionType, so repair only the exact
+        // Common-to-None change after vanilla applies that clone.
+        int teamFreezeCount = 0;
+        var teamSettings = Select("laboratory");
+        ArenaMenuSelection.ConfigureEligibility(
+            () => new ArenaMenuSelection.Eligibility(true, true, string.Empty, new object()),
+            eligibility => { teamFreezeCount++; return string.Empty; });
+        var offlineSettings = new RaidSettings { transitionType = ELocationTransition.None };
+        var transitionBeforeApply = teamSettings.transitionType;
+        teamSettings.transitionType = offlineSettings.transitionType; // RaidSettings.Apply
+        Assert(ArenaMenuSelection.RestoreArenaTransitionAfterCloneApply(
+                   teamSettings, offlineSettings, transitionBeforeApply)
+               && teamSettings.transitionType == ELocationTransition.Common
+               && offlineSettings.transitionType == ELocationTransition.None,
+            "Arena must repair the proven clone omission without mutating EFT's offline clone");
+        var teamLocalRequest = Request(map: "laboratory");
+        Assert(ArenaMenuSelection.TryValidateAndFreezeRequest(teamLocalRequest, out var teamReason),
+            "Preserved local team request must pass final validation: " + teamReason);
+        Assert(teamFreezeCount == 1,
+            "Preserved local team request must freeze the freshly validated roster exactly once");
+
+        teamLocalRequest.transitionType = ELocationTransition.Event;
+        Assert(!ArenaMenuSelection.TryValidateAndFreezeRequest(teamLocalRequest, out _),
+            "Authenticated team Arena must still reject event/transit starts");
+
+        teamSettings.transitionType = ELocationTransition.Event;
+        Assert(!ArenaMenuSelection.RestoreArenaTransitionAfterCloneApply(
+                   teamSettings, offlineSettings, ELocationTransition.Common)
+               && teamSettings.transitionType == ELocationTransition.Event,
+            "Unexpected post-Apply transitions must remain visible to the strict final gate");
+        ArenaMenuSelection.EndFlow();
+        Assert(teamSettings.transitionType == ELocationTransition.None
+               && offlineSettings.transitionType == ELocationTransition.None,
+            "Back/cancel must restore the selected settings and leave the same offline clone untouched");
+        Assert(!ArenaMenuSelection.RestoreArenaTransitionAfterCloneApply(
+                   teamSettings, offlineSettings, ELocationTransition.Common)
+               && teamSettings.transitionType == ELocationTransition.None,
+            "The same settings object must remain ordinary after Arena selection is cleared");
+        Assert(!ArenaMenuSelection.RestoreArenaTransitionAfterCloneApply(
+                   null, offlineSettings, ELocationTransition.Common),
+            "A missing Apply destination must fail closed without mutation");
+
         // Server received the announcement, but BOTH its reply and our cancel
         // response are lost. A later ordinary raid must still be blocked.
         Select();

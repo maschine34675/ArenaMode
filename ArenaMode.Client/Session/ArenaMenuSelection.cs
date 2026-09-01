@@ -154,6 +154,8 @@ internal static class ArenaMenuSelection
 
         if (!MatchesRequest(settings, eligibility))
         {
+            Plugin.ModLogger?.LogWarning(
+                "Arena final request mismatch: " + DescribeRequest(settings, eligibility));
             reason = "Arena selection is no longer valid. Please select Arena and a supported map again.";
             return false;
         }
@@ -170,6 +172,38 @@ internal static class ArenaMenuSelection
            && settings.transitionType == ELocationTransition.Common
            && string.Equals(settings.location, _settings.SelectedLocation?.Id, StringComparison.OrdinalIgnoreCase)
            && IsMapAvailable(settings.location);
+
+    /// <summary>
+    /// Repair only the exact Common-to-None loss caused by EFT applying an
+    /// offline RaidSettings clone whose Clone method omitted transitionType.
+    /// The destination must be this flow's selected settings by reference, and
+    /// both the captured pre-Apply value and clone value prove the known rewrite.
+    /// </summary>
+    public static bool RestoreArenaTransitionAfterCloneApply(
+        RaidSettings destination,
+        RaidSettings source,
+        ELocationTransition transitionBeforeApply)
+    {
+        if (!IsSelectedFor(destination)
+            || transitionBeforeApply != ELocationTransition.Common
+            || source?.transitionType != ELocationTransition.None
+            || destination.transitionType != ELocationTransition.None)
+        {
+            return false;
+        }
+
+        destination.transitionType = ELocationTransition.Common;
+        return true;
+    }
+
+    private static string DescribeRequest(LocalRaidSettings settings, Eligibility eligibility)
+        => $"selected={IsSelected}, menuSide={_settings?.Side.ToString() ?? "<none>"}, "
+           + $"requestSide={settings?.playerSide.ToString() ?? "<none>"}, "
+           + $"menuMap={_settings?.SelectedLocation?.Id ?? "<none>"}, "
+           + $"requestMap={settings?.location ?? "<none>"}, "
+           + $"transition={settings?.transitionType.ToString() ?? "<none>"}, "
+           + $"team={eligibility?.IsTeam == true}, "
+           + $"mapEnabled={settings != null && IsMapAvailable(settings.location)}";
 
     public static void Clear()
     {

@@ -165,8 +165,9 @@ be marked complete from a successful build alone.
   EXPECT: LABS_BOT_SPAWN_CHECKS_PASSED
   CHECK: dotnet run --project tools/AnnouncerChecks/AnnouncerChecks.csproj -c Release
   EXPECT: ARENA_ANNOUNCER_CHECKS_PASSED
-  VERIFIED 2026-09-01: Release build 0 errors; unit 91/91; PitFireTeam 197/197;
-  native menu 40/40; map view 40/40; side view 29/29; Labs bot spawns 65/65;
+  VERIFIED 2026-09-01 after the M2 local-ready fix: Release build 0 errors; unit 91/91;
+  PitFireTeam 199/199; native menu 48/48; map view 40/40; side view 29/29;
+  Labs bot spawns 65/65;
   announcer 78/78.
 
 - [x] P10: The deployed Arena client and server DLLs are byte-for-byte identical to the
@@ -175,9 +176,9 @@ be marked complete from a successful build alone.
   build output, deployment tree, or tracked files.
   CHECK: powershell -NoProfile -File tools/Verify-PitFireTeamDeployment.ps1
   EXPECT: PITFIRETEAM_DEPLOYMENT_VERIFIED
-  VERIFIED 2026-09-01: client build/deployed
-  `BAFDCBC398B0E79D454CA26ECDF4A7DAA0A4B3BC6F98E31BBB7D7C6630EDFFE7`; server
-  build/deployed `E3E11F90F34B9CB9D10FCE1B0EC597FB1A5E641C74547EC9861A8857A2A96CCF`.
+  VERIFIED 2026-09-01 after the M2 local-ready fix: client build/deployed
+  `71E5CBE934F8E78CDC7352D563C5EA497A31629F68908EEDD0223C6C58912CE5`; server
+  build/deployed `565D3C89B26A7854E9051A0697022EC43110D18CFFFE290E283B41046C5F0634`.
 
 - [x] P11: An independent adversarial review finds no path that can arm team Arena with an
   unauthenticated/stale group, strand followers on an old player body, leak Arena hostility
@@ -186,17 +187,27 @@ be marked complete from a successful build alone.
   affected gates rerun before commit.
   REVIEW 2026-09-01: final full working-tree reread found no remaining High/Medium issue;
   independent client/Tactical, ordinary lifecycle/package, and server PFT callgraph audits clean.
+  M2 FOLLOW-UP REVIEW 2026-09-01: the exact post-`Apply` repair, Harmony binding,
+  reference identity, Back/cancel cleanup and ordinary/solo isolation were independently
+  rechecked with no remaining High/Medium finding.
 
 ## Manual GPU gates
 
-- [ ] M1 MANUAL: With PitFireTeam installed but no companions selected, Arena starts as a
+- [x] M1 MANUAL: With PitFireTeam installed but no companions selected, Arena starts as a
   solo raid exactly as before. PMC, Scav and an ordinary PitFireTeam raid also start and
   complete normally. No Arena-only compatibility log/action appears after Arena is inactive.
+  VERIFIED 2026-09-01: User live test passed with unchanged behavior.
 
 - [ ] M2 MANUAL: Select exactly four PitFireTeam companions, choose Arena -> Tactical, and
   start a supported map. The raid reaches live play with exactly the local player plus four
   controllable followers against exactly five Arena opponents. All opponents fight every
   surviving teammate; followers do not attack one another or consume the enemy quota.
+  RETEST REQUIRED 2026-09-01: First live attempt reached the Labs scene load but was rejected
+  before server arming. PitFireTeam had kept and Arena had re-authenticated all four companions;
+  its local-ready branch caused vanilla to rewrite the final non-transit value from `Common` to
+  `None`. Arena now restores only that proven `Common`-to-`None` change immediately after
+  vanilla applies the clone; the clone itself stays untouched, the final request gate remains
+  strict, and Back/cancel cannot leak the repair into an ordinary raid.
 
 - [ ] M3 MANUAL: No initial kit/body swap occurs in team Arena; the player enters with the
   PMC equipment shown on the confirmation screen and followers still accept commands. The
