@@ -223,7 +223,7 @@ be marked complete from a successful build alone.
   complete normally. No Arena-only compatibility log/action appears after Arena is inactive.
   VERIFIED 2026-09-01: User live test passed with unchanged behavior.
 
-- [ ] M2 MANUAL: Select exactly four PitFireTeam companions, choose Arena -> Tactical, and
+- [x] M2 MANUAL: Select exactly four PitFireTeam companions, choose Arena -> Tactical, and
   start a supported map. The raid reaches live play with exactly the local player plus four
   controllable followers against exactly five Arena opponents. All opponents fight every
   surviving teammate; followers do not attack one another or consume the enemy quota.
@@ -256,12 +256,22 @@ be marked complete from a successful build alone.
   `Tactical team Arena live`; if Arena polls while any callback body is still `PreActive`, a
   `readiness pending` line must explain that wait first. The immediate `could not freeze five
   distinct active opponent identities` result is no longer acceptable.
+  VERIFIED 2026-09-01: User live test passed. Labs loaded the local PMC and all four friendly
+  PitFireTeam companions against exactly five Arena opponents. The exact spawn callbacks first
+  reported five `PreActive` bodies, the bounded activation wait completed, and the match entered
+  `Tactical team Arena live` with all five distinct opponents.
 
-- [ ] M3 MANUAL: No initial kit/body swap occurs in team Arena; the player enters with the
+- [x] M3 MANUAL: No initial kit/body swap occurs in team Arena; the player enters with the
   PMC equipment shown on the confirmation screen and followers still accept commands. The
   local player's death does not dismiss living teammates or end the round while that side
   remains alive. Team elimination ends the round and then the protected raid once, with no
   respawn, second round, duplicate followers, stale enemies, or teammate corpse cleanup.
+  VERIFIED 2026-09-01: User live test passed. There was no initial kit/body swap. After the
+  local player died, the four companions remained active and eliminated all five opponents;
+  the raid ended once as Survived, with no respawn or second round. The protected profile and
+  PitFireTeam persistence paths completed cleanly. A separate follower inventory/hands and
+  SAIN aiming anomaly is recorded in `PITFIRETEAM-LIVE-LOG-REVIEW-2026-09-01.md`; the logs do
+  not establish ArenaMode as its direct cause.
 
 - [ ] M4 MANUAL: Hash/copy the main SPT profile and the complete PitFireTeam teammate
   directory immediately before team Arena. After extract/death/cancel, wait at least 35 seconds
