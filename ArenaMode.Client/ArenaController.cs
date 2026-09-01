@@ -20,6 +20,7 @@ internal sealed class ArenaController : MonoBehaviour
         // Outside a raid only; the service enforces that itself.
         Config.SettingsSync.Tick();
 
+        Compat.PitFireTeamCompat.Tick();
         BurstSpawnService.Tick();
         ArenaHostility.Tick();
         Movement.MovementRuntime.Tick();
@@ -67,6 +68,16 @@ internal sealed class ArenaController : MonoBehaviour
 
         if (_kitWarmupStarted)
             return;
+
+        // Team Tactical deliberately keeps the original PMC body/loadout and
+        // ends after one round. It never consumes Arena kits, so starting a
+        // persistent-controller preload here would only leave old raid work
+        // alive during teardown.
+        if (Compat.PitFireTeamCompat.TeamArenaActive
+            || Compat.PitFireTeamCompat.IsFinalizing)
+        {
+            return;
+        }
 
         // Random kits need every bundle warm because any of them can come up on
         // the next life. So does a mode that hands out kits itself (Gun Game

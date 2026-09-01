@@ -4,6 +4,7 @@ using EFT.InventoryLogic;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace ArenaMode.Combat;
@@ -40,10 +41,18 @@ internal static class WeaponSwapService
     /// </summary>
     private static readonly List<Item> HandedOutSpares = new List<Item>();
 
+    /// <summary>
+    /// Invalidates a coroutine independently of the raid epoch. Reset can run
+    /// after GameEnd while an EFT hands callback is still pending; a later swap
+    /// in another raid must not be cleared by that old coroutine's Finish.
+    /// </summary>
+    private static int _operationGeneration;
+
     public static bool IsSwapping { get; private set; }
 
     public static void Reset()
     {
+        Interlocked.Increment(ref _operationGeneration);
         IsSwapping = false;
         HandedOutSpares.Clear();
     }
@@ -52,9 +61,17 @@ internal static class WeaponSwapService
     /// Returns false when the swap could not even be started — the caller keeps
     /// the weapon it has and is free to ask again later.
     /// </summary>
-    public static bool Swap(Player player, Weapon weapon, IList<Item> spares, Action<bool> onComplete)
+    public static bool Swap(
+        LocalGame game,
+        int raidEpoch,
+        Player player,
+        Weapon weapon,
+        IList<Item> spares,
+        Action<bool> onComplete)
     {
-        if (IsSwapping || player == null || weapon == null)
+        if (IsSwapping || player == null || weapon == null
+            || !OwnsRaid(game, raidEpoch)
+            || !IsCurrentMainPlayer(player))
             return false;
 
         if (player.HealthController == null || !player.HealthController.IsAlive)
@@ -72,16 +89,36 @@ internal static class WeaponSwapService
         // the respawn recovery paths DESTROY the player body, and a coroutine
         // that dies with its host never reaches its own cleanup — which would
         // leave the busy flag latched and the mode silently dead for the raid.
-        var host = Singleton<AbstractGame>.Instance as LocalGame;
-        if (host == null)
-            return false;
-
+        int operationGeneration = Interlocked.Increment(ref _operationGeneration);
         IsSwapping = true;
-        host.StartCoroutine(SwapRoutine(player, inventory, slot, weapon, spares, onComplete));
-        return true;
+        try
+        {
+            game.StartCoroutine(SwapRoutine(
+                game,
+                raidEpoch,
+                operationGeneration,
+                player,
+                inventory,
+                slot,
+                weapon,
+                spares,
+                onComplete));
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (Volatile.Read(ref _operationGeneration) == operationGeneration)
+                IsSwapping = false;
+
+            Plugin.ModLogger.LogWarning($"Gun Game: weapon-swap coroutine could not start: {ex.Message}");
+            return false;
+        }
     }
 
     private static IEnumerator SwapRoutine(
+        LocalGame game,
+        int raidEpoch,
+        int operationGeneration,
         Player player,
         InventoryController inventory,
         Slot slot,
@@ -89,6 +126,9 @@ internal static class WeaponSwapService
         IList<Item> spares,
         Action<bool> onComplete)
     {
+        if (!OwnsOperation(game, raidEpoch, operationGeneration))
+            yield break;
+
         // Holstering first. Removing the item a hands controller is animating is
         // the corruption case this whole class is shaped around.
         var empty = new Step();
@@ -97,37 +137,54 @@ internal static class WeaponSwapService
         var deadline = Time.time + StepTimeoutSeconds;
         while (!empty.Done && Time.time < deadline)
         {
+            if (!OwnsOperation(game, raidEpoch, operationGeneration))
+                yield break;
+
             // The body can be destroyed or replaced under us at any yield.
-            if (Gone(player))
+            if (Gone(player) || !IsCurrentMainPlayer(player))
             {
-                Finish(onComplete, false);
+                Finish(game, raidEpoch, operationGeneration, onComplete, false);
                 yield break;
             }
 
             yield return null;
         }
 
+        // The hands callback may have completed on the frame that also stopped
+        // the raid, so the loop can exit without another top-of-loop check.
+        if (!OwnsOperation(game, raidEpoch, operationGeneration))
+            yield break;
+
         if (!empty.Done || empty.Error != null)
         {
             Plugin.ModLogger.LogWarning(
                 $"Gun Game: could not holster before the swap ({empty.Error ?? "timed out"}) — keeping the current weapon.");
-            Finish(onComplete, false);
+            Finish(game, raidEpoch, operationGeneration, onComplete, false);
             yield break;
         }
 
         // Dying during the holster animation hands the body to the respawn
         // driver, which is about to replace the whole inventory anyway.
-        if (Gone(player))
+        if (Gone(player) || !IsCurrentMainPlayer(player))
         {
-            Finish(onComplete, false);
+            Finish(game, raidEpoch, operationGeneration, onComplete, false);
             yield break;
         }
 
+        // Last gate before the only live inventory/profile mutation in Gun Game.
+        // Stop changes LocalGame.Status synchronously, so a Stopping raid cannot
+        // cross this boundary even during the native black-screen delay.
+        if (!OwnsOperation(game, raidEpoch, operationGeneration))
+            yield break;
+
         if (!Exchange(player, inventory, slot, weapon, spares))
         {
-            Finish(onComplete, false);
+            Finish(game, raidEpoch, operationGeneration, onComplete, false);
             yield break;
         }
+
+        if (!OwnsOperation(game, raidEpoch, operationGeneration))
+            yield break;
 
         var draw = new Step();
         BeginDraw(player, weapon, draw);
@@ -135,13 +192,25 @@ internal static class WeaponSwapService
         deadline = Time.time + StepTimeoutSeconds;
         while (!draw.Done && Time.time < deadline)
         {
-            if (Gone(player))
+            if (!OwnsOperation(game, raidEpoch, operationGeneration))
+                yield break;
+
+            if (Gone(player) || !IsCurrentMainPlayer(player))
             {
-                Finish(onComplete, false);
+                Finish(game, raidEpoch, operationGeneration, onComplete, false);
                 yield break;
             }
 
             yield return null;
+        }
+
+        if (!OwnsOperation(game, raidEpoch, operationGeneration))
+            yield break;
+
+        if (Gone(player) || !IsCurrentMainPlayer(player))
+        {
+            Finish(game, raidEpoch, operationGeneration, onComplete, false);
+            yield break;
         }
 
         // The weapon IS seated, so nothing is lost — but the hands are empty,
@@ -153,11 +222,11 @@ internal static class WeaponSwapService
         {
             Plugin.ModLogger.LogWarning(
                 $"Gun Game: new weapon seated but not drawn ({draw.Error ?? "timed out"}) — will retry.");
-            Finish(onComplete, false);
+            Finish(game, raidEpoch, operationGeneration, onComplete, false);
             yield break;
         }
 
-        Finish(onComplete, true);
+        Finish(game, raidEpoch, operationGeneration, onComplete, true);
     }
 
     /// <summary>
@@ -473,8 +542,32 @@ internal static class WeaponSwapService
         }
     }
 
-    private static void Finish(Action<bool> onComplete, bool success)
+    private static bool OwnsRaid(LocalGame game, int raidEpoch)
+        => ArenaMode.Respawn.ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+           && Singleton<AbstractGame>.Instantiated
+           && ReferenceEquals(Singleton<AbstractGame>.Instance, game);
+
+    private static bool OwnsOperation(LocalGame game, int raidEpoch, int operationGeneration)
+        => OwnsRaid(game, raidEpoch)
+           && IsSwapping
+           && Volatile.Read(ref _operationGeneration) == operationGeneration;
+
+    private static bool IsCurrentMainPlayer(Player player)
+        => Singleton<GameWorld>.Instantiated
+           && ReferenceEquals(Singleton<GameWorld>.Instance?.MainPlayer, player);
+
+    private static void Finish(
+        LocalGame game,
+        int raidEpoch,
+        int operationGeneration,
+        Action<bool> onComplete,
+        bool success)
     {
+        // Reset/GameEnd owns stale cleanup. An old routine must not clear the
+        // busy flag of a newer swap or call back into an ended GunGameMode.
+        if (!OwnsOperation(game, raidEpoch, operationGeneration))
+            return;
+
         IsSwapping = false;
 
         try

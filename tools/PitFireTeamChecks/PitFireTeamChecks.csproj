@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>annotations</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ProductionPolicySource Condition="'$(ProductionPolicySource)' == ''">../../ArenaMode.Client/Compat/PitFireTeamSelectionPolicy.cs</ProductionPolicySource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionPolicySource)" Link="Production/PitFireTeamSelectionPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Respawn/ArenaRaidEpoch.cs" Link="Production/ArenaRaidEpoch.cs" />
+    <Compile Include="../../ArenaMode.Server/Services/PitFireTeamRaidStartPolicy.cs" Link="Production/PitFireTeamRaidStartPolicy.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Cecil">
+      <HintPath>../../../../BepInEx/core/Mono.Cecil.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

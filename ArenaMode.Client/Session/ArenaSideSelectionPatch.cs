@@ -1,9 +1,9 @@
+using ArenaMode.Compat;
 using EFT;
 using EFT.Communications;
 using EFT.UI.Matchmaker;
 using EFT.UI.Screens;
 using HarmonyLib;
-using Redeploy.Core.Compat;
 using SPT.Reflection.Patching;
 using System;
 using System.Reflection;
@@ -34,30 +34,46 @@ internal static class ArenaSideSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller)
         {
-            ArenaMenuSelection.Begin(controller, controller.RaidSettings,
-                () => controller.MatchmakerPlayersController.GroupPlayers.Count == 1
-                    && controller.RaidSettings.RaidMode != ERaidMode.Coop);
+            if (PitFireTeamCompat.IsSquadManagementScreen)
+            {
+                ArenaMenuSelection.EndFlow();
+                ArenaMenuSelection.RestoringSideScreen = false;
+                return;
+            }
+
+            ArenaMenuSelection.Begin(controller, controller.RaidSettings);
+            ArenaMenuSelection.ConfigureEligibility(
+                () => EvaluateEligibility(controller),
+                FreezeEligibility);
             ArenaMenuSelection.RestoringSideScreen = true;
         }
 
         [PatchPostfix]
+        [HarmonyAfter("MatchMakerSideSelectionScreenShowPatch")]
         private static void Postfix(MatchMakerSideSelectionScreen __instance)
         {
             try
             {
+                if (PitFireTeamCompat.IsSquadManagementScreen)
+                {
+                    ArenaMenuSelection.EndFlow();
+                    ArenaSideSelectionView.Hide(__instance.transform, __instance._randomButton);
+                    return;
+                }
+
                 // This is BSG's existing third toggle. Keep its ToggleGroup,
                 // animation listeners and native placement intact; translate its
                 // otherwise unused Random selection to PMC in SelectPatch.
                 var arena = __instance._randomButton;
-                var canSelect = !FikaCompatCheck.IsFikaLoaded
-                    && Controller(__instance).MatchmakerPlayersController.GroupPlayers.Count == 1
-                    && Controller(__instance).RaidSettings.RaidMode != ERaidMode.Coop;
-                ArenaSideSelectionView.Show(__instance.transform, arena, canSelect);
+                var eligibility = ArenaMenuSelection.CurrentEligibility;
+                ArenaSideSelectionView.Show(__instance.transform, arena, eligibility.Allowed);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     arena.IsToggled = true;
                     SetDescription(__instance);
                 }
+                if (!eligibility.Allowed)
+                    Plugin.ModLogger.LogInfo($"Arena side button disabled: {eligibility.Reason}");
                 Plugin.ModLogger.LogInfo($"Arena side button: active={arena.gameObject.activeInHierarchy}, "
                     + $"interactable={arena.SpawnedObject.IsInteractable()}, wrapper={arena.transform.parent.name}");
             }
@@ -91,6 +107,9 @@ internal static class ArenaSideSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSideSelectionScreen __instance, ref ESideType side)
         {
+            if (PitFireTeamCompat.IsSquadManagementScreen)
+                return;
+
             if (ArenaMenuSelection.RestoringSideScreen)
             {
                 if (side == ESideType.Random)
@@ -107,8 +126,9 @@ internal static class ArenaSideSelectionPatch
             side = ESideType.Pmc;
             try
             {
-                if (FikaCompatCheck.IsFikaLoaded || Controller(__instance).MatchmakerPlayersController.GroupPlayers.Count != 1)
-                    throw new InvalidOperationException("Arena is available for solo play only.");
+                var eligibility = ArenaMenuSelection.CurrentEligibility;
+                if (!eligibility.Allowed)
+                    throw new InvalidOperationException(eligibility.Reason);
 
                 // An explicit click is a suitable time to retry a failed probe.
                 // Merely opening a menu must not latch an early server outage.
@@ -135,6 +155,9 @@ internal static class ArenaSideSelectionPatch
         [PatchPostfix]
         private static void Postfix(MatchMakerSideSelectionScreen __instance)
         {
+            if (PitFireTeamCompat.IsSquadManagementScreen)
+                return;
+
             if (ArenaMenuSelection.IsSelected)
                 SetDescription(__instance);
         }
@@ -142,11 +165,34 @@ internal static class ArenaSideSelectionPatch
 
     private static void SetDescription(MatchMakerSideSelectionScreen screen)
     {
-        screen._sideDescriptionText.text =
-            "ARENA\nInstant respawns, arena kits and four game modes.\n"
-            + "Factory (day), Labyrinth and The Lab.\n"
-            + "Nothing gained, nothing lost — your profile stays untouched.";
+        var eligibility = ArenaMenuSelection.CurrentEligibility;
+        screen._sideDescriptionText.text = eligibility.IsTeam
+            ? "ARENA — TACTICAL 5v5\nYour PMC and four selected PitFireTeam companions versus five opponents.\n"
+              + "The PMC keeps the equipment shown before the raid; the raid ends after one elimination round.\n"
+              + "Nothing gained, nothing lost — both profile stores stay untouched."
+            : "ARENA\nInstant respawns, arena kits and four game modes.\n"
+              + "Factory (day), Labyrinth and The Lab.\n"
+              + "Nothing gained, nothing lost — your profile stays untouched.";
         screen.SetHealthPanelVisibility(false, true);
+    }
+
+    private static ArenaMenuSelection.Eligibility EvaluateEligibility(
+        MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller)
+    {
+        var decision = PitFireTeamCompat.EvaluateSelection(
+            controller?.MatchmakerPlayersController, controller?.RaidSettings);
+        return new ArenaMenuSelection.Eligibility(
+            decision.Allowed, decision.IsTeam, decision.Reason, decision);
+    }
+
+    private static string FreezeEligibility(ArenaMenuSelection.Eligibility eligibility)
+    {
+        if (eligibility?.State is not PitFireTeamSelectionDecision decision)
+            return "Arena lost the authenticated PitFireTeam selection before raid start.";
+
+        return PitFireTeamCompat.TryFreezeTeamRoster(decision, out var reason)
+            ? string.Empty
+            : reason;
     }
 
     private sealed class HealthWarningPatch : ModulePatch
@@ -157,6 +203,9 @@ internal static class ArenaSideSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSideSelectionScreen __instance, ref bool visibility)
         {
+            if (PitFireTeamCompat.IsSquadManagementScreen)
+                return;
+
             // Update and PMC hover would otherwise re-show ordinary raid health
             // warnings every frame, since Arena intentionally uses the PMC side.
             if (ArenaMenuSelection.IsSelectedFor(Controller(__instance)?.RaidSettings))

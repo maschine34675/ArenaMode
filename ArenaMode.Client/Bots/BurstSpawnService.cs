@@ -472,6 +472,12 @@ internal static class BurstSpawnService
             if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
                 continue;
 
+            // PitFireTeam followers occupy BotOwner slots but are the local
+            // player's four teammates. Counting them toward Arena pressure
+            // would silently reduce the five requested opponents to one.
+            if (Compat.PitFireTeamCompat.IsTeamMember(bot))
+                continue;
+
             alive++;
 
             var role = bot.Profile?.Info?.Settings?.Role;

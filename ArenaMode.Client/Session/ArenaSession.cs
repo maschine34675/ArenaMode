@@ -1,3 +1,4 @@
+using ArenaMode.Compat;
 using ArenaMode.Config;
 using EFT;
 using EFT.Communications;
@@ -17,10 +18,14 @@ namespace ArenaMode.Session;
 /// </summary>
 public static class ArenaSession
 {
+    private static bool _rejectedServerRaidPendingEnd;
+
     public static bool ArmedForNextRaid { get; private set; }
     public static string ArmedMap { get; private set; }
+    public static string ArmedMode { get; private set; }
 
     public static bool IsActive { get; private set; }
+    public static string ActiveMode { get; private set; }
 
     /// <summary>
     /// How long a death replay may run right now, in seconds. Zero means none.
@@ -57,11 +62,12 @@ public static class ArenaSession
         RaidLifecycle.OnRaidEnded += OnRaidEnded;
     }
 
-    public static void MarkArmed(string map)
+    public static void MarkArmed(string map, string mode)
     {
         ArmedForNextRaid = true;
         ArmedMap = map;
-        Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map}.");
+        ArmedMode = mode;
+        Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
     }
 
     /// <summary>Drops a stale armed flag and tells the server to discard its snapshot.</summary>
@@ -71,33 +77,56 @@ public static class ArenaSession
             return;
 
         ArmedForNextRaid = false;
+        ArmedMode = null;
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
-        ArenaServerClient.PostRaidCancel();
+        PitFireTeamCompat.Clear(reason);
+        ArenaServerClient.PostRaidCancel(startFailed: true);
     }
 
     private static void OnRaidStarted(GameWorld world)
     {
         if (!ArmedForNextRaid)
         {
-            // A raid that was never armed is by definition not an arena raid.
-            // Self-heal a stale latch (missed GameEnd after a crash) so it can
-            // never arena-ize a normal raid.
-            if (IsActive)
-            {
-                IsActive = false;
-                Plugin.ModLogger.LogWarning("Stale arena latch cleared at raid start.");
-            }
+            // This new ordinary GameWorld is the first safe boundary after a
+            // missed GameEnd. Clear every client-owned Arena latch before any
+            // server reconciliation or ordinary combat can run. Each cleanup
+            // self-noops in the normal path.
+            Modes.ArenaMatchService.RecoverAtOrdinaryRaidStart();
+            Respawn.ArenaRespawnDriver.ResetSession();
+            Combat.ArenaSkills.Restore();
+            Movement.FastDeployPatches.Restore();
 
+            var staleArenaLatch = IsActive;
+            IsActive = false;
+            _rejectedServerRaidPendingEnd = false;
+            ArmedMap = null;
+            ArmedMode = null;
+            ActiveMode = null;
             LastRaidWasArena = false;
+            PitFireTeamCompat.Clear("ordinary raid started");
+
+            if (staleArenaLatch)
+                Plugin.ModLogger.LogWarning("Stale arena latch cleared at raid start.");
+
+            if (!ArenaServerClient.ConfirmOrdinaryRaidStarted())
+            {
+                Plugin.ModLogger.LogError(
+                    "The server did not confirm the exact ordinary raid generation; " +
+                    "its exact native end remains responsible for closing this ordinary raid.");
+            }
             return;
         }
 
         var location = world?.LocationId;
+        var armedMode = ArmedMode;
         ArmedForNextRaid = false;
+        ArmedMode = null;
+        ActiveMode = null;
         LastRaidWasArena = false;
 
         if (FikaCompatCheck.IsFikaLoaded)
         {
+            PitFireTeamCompat.Clear("Fika raid rejected");
             ArenaServerClient.PostRaidCancel();
             return;
         }
@@ -106,12 +135,30 @@ public static class ArenaSession
         {
             Plugin.ModLogger.LogWarning(
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
+            PitFireTeamCompat.Clear("armed map did not match started raid");
             ArenaServerClient.PostRaidCancel();
             return;
         }
 
+        // The server owns the snapshot and accepts only the exact arm token it
+        // returned for this raid. Do not publish IsActive or start any Arena
+        // gameplay until that identity has been acknowledged. OnGameStarted has
+        // already fired, so a rejected confirmation is ended through the normal
+        // native post-raid path; keeping the server InRaid lets it restore the
+        // snapshot and retain PFT protection during that abort.
+        if (!ArenaServerClient.ConfirmRaidStarted())
+        {
+            _rejectedServerRaidPendingEnd = true;
+            LastRaidWasArena = true;
+            Plugin.ModLogger.LogError(
+                "Arena refused to activate because the server did not confirm the exact raid-start token.");
+            Modes.ArenaMatchService.ScheduleFailedStartAbort(
+                "the server rejected the exact Arena raid-start token");
+            return;
+        }
+
         IsActive = true;
-        ArenaServerClient.ConfirmRaidStarted();
+        ActiveMode = armedMode;
         LastRaidWasArena = true;
         Respawn.ArenaRespawnDriver.ResetSession();
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
@@ -146,9 +193,16 @@ public static class ArenaSession
         // by then, or the player would start the raid on someone else's gun.
         Modes.ArenaMatchService.StartMatch(world);
 
-        // Pre-warm the spawn system (respawns need it) and swap the real gear for
-        // the selected kit via an in-place respawn.
-        if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
+        // PitFireTeam 0.10.0 holds the original PMC object in its leader wrapper.
+        // Replacing that body would strand all four followers on a dead leader,
+        // so the compatible one-round path keeps the exact PMC body and loadout
+        // that entered the raid. Solo Arena retains the existing swap verbatim.
+        if (PitFireTeamCompat.HasFrozenTeamRoster)
+        {
+            Plugin.ModLogger.LogInfo(
+                "Arena 5v5: skipped the raid-start kit/body swap; PitFireTeam remains bound to the original PMC.");
+        }
+        else if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
         {
             Redeploy.Core.Spawning.SpawnSystemCache.Warm(game);
             Respawn.LiveKitRespawn.AtRaidStart(game);
@@ -193,16 +247,26 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        // EndTeamRaid starts finalization before LocalGame.Stop, which
+        // intentionally makes TeamArenaActive false. Preserve/refresh that same
+        // bounded guard instead of mistaking it for a solo raid and clearing it.
+        var teamRaid = PitFireTeamCompat.TeamArenaActive || PitFireTeamCompat.IsFinalizing;
+        if (teamRaid)
+            PitFireTeamCompat.BeginFinalizing();
+
         // FIRST, and outside the latch guard: the client reuses one profile for
         // the whole session, so boosted skills must come back even if the latch
         // was cleared abnormally. Self-noops when nothing was boosted.
         Combat.ArenaSkills.Restore();
 
-        if (!IsActive && !ArmedForNextRaid)
+        if (!IsActive && !ArmedForNextRaid && !_rejectedServerRaidPendingEnd)
             return;
 
         IsActive = false;
         ArmedForNextRaid = false;
+        _rejectedServerRaidPendingEnd = false;
+        ArmedMode = null;
+        ActiveMode = null;
 
         // Defensive: an aborted load between the countdown patch and its restore
         // must never leave the shortened value in the shared config.
@@ -212,5 +276,8 @@ public static class ArenaSession
         // server-side inside the post-raid skip patch.
         ArenaServerClient.PostRaidEnd();
         Plugin.ModLogger.LogInfo("Arena session ended.");
+
+        if (!teamRaid)
+            PitFireTeamCompat.Clear("Arena raid ended without a PitFireTeam roster");
     }
 }

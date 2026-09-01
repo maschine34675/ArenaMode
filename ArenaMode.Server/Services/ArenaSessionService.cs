@@ -1,3 +1,4 @@
+using ArenaMode.Shared;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Common.Models.Logging;
@@ -8,18 +9,39 @@ namespace ArenaMode.Server.Services;
 public enum ArenaSessionState
 {
     Idle,
+    Preparing,
     Armed,
     InRaid,
+    FinalizingEnd,
+    RecoveringStartFailure,
+}
+
+public enum ArenaLocalRaidStartDisposition
+{
+    ArenaStarted,
+    Ordinary,
+    DuplicateArenaStart,
+    ProtectedTransitionInProgress,
+    RejectedArenaStart,
+}
+
+public enum ArenaLocalRaidEndDisposition
+{
+    Ordinary,
+    FirstArenaEnd,
+    FinalizingArenaEndRetry,
+    CompletedArenaEndRetry,
+    RejectedProtectedEnd,
 }
 
 /// <summary>
-/// Per-session arena state machine: Idle → Armed (client announced an arena raid,
-/// snapshot taken) → InRaid (StartLocalRaidAsync consumed the flag for a matching
-/// map) → Idle (post-raid restore ran). Armed expires after a TTL so an aborted
-/// matchmaking never leaves a stale flag behind.
+/// Per-session arena state machine: Idle → Preparing (protected team snapshot in
+/// progress) → Armed → InRaid → Idle. A failed local-start can briefly enter
+/// RecoveringStartFailure while the original profile is restored. Armed expires
+/// after a TTL so an abandoned matchmaking request cannot live forever.
 /// </summary>
 [Injectable(InjectionType.Singleton)]
-public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
+public class ArenaSessionService
 {
     private sealed class SessionEntry
     {
@@ -28,59 +50,375 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         public string? Mode;
         public DateTime ArmedAtUtc;
         public DateTime InRaidAtUtc;
+        public bool ProtectPitFireTeam;
+        public string? ArmToken;
+        public bool ClientRaidStarted;
+        public string? NativeStartIdentity;
+        public bool NativeStartTaskSettled;
+        public string? NativeEndIdentity;
+        public string? LastCompletedArmToken;
+        public DateTime NativeEndCompletedAtUtc;
+        public bool LocationMutationReady;
+        public string? LocationMutationFailure;
         public object? LocationClone;
     }
 
     private readonly Dictionary<string, SessionEntry> _sessions = new();
+    private readonly Dictionary<string, Dictionary<string, DateTime>> _completedNativeEnds = new();
     private readonly Lock _lock = new();
+    private readonly PitFireTeamPersistenceGuard _pitFireTeamGuard;
+    private readonly ISptLogger<ArenaSessionService> logger;
 
-    public void Arm(MongoId sessionId, string map, string? mode)
+    public ArenaSessionService(ISptLogger<ArenaSessionService> logger)
+        : this(logger, new PitFireTeamPersistenceGuard())
     {
+    }
+
+    internal ArenaSessionService(
+        ISptLogger<ArenaSessionService> logger,
+        PitFireTeamPersistenceGuard pitFireTeamGuard)
+    {
+        this.logger = logger;
+        _pitFireTeamGuard = pitFireTeamGuard;
+    }
+
+    public string Arm(
+        MongoId sessionId,
+        string map,
+        string? mode,
+        bool protectPitFireTeam = false,
+        string? armToken = null)
+    {
+        string key = sessionId.ToString();
+        string token = string.IsNullOrWhiteSpace(armToken)
+            ? Guid.NewGuid().ToString("N")
+            : armToken;
         lock (_lock)
         {
-            _sessions[sessionId.ToString()] = new SessionEntry
+            _sessions[key] = new SessionEntry
             {
                 State = ArenaSessionState.Armed,
                 Map = map.ToLowerInvariant(),
                 Mode = mode,
                 ArmedAtUtc = DateTime.UtcNow,
+                ProtectPitFireTeam = protectPitFireTeam,
+                ArmToken = token,
+                ClientRaidStarted = false,
+                LocationMutationReady = false,
+                LocationMutationFailure = null,
             };
+
+            if (protectPitFireTeam)
+            {
+                _pitFireTeamGuard.BeginArmed(
+                    key,
+                    ArmedProtectionTtl());
+            }
+            // A bounded finalization guard from the previous protected team raid
+            // may still be suppressing delayed PFT work. A new solo Arena arm has
+            // no reason to cut that window short; it expires independently.
         }
 
-        logger.Info($"[ArenaMode] Armed for session {sessionId}: map={map}, mode={mode}");
+        logger.Info(
+            $"[ArenaMode] Armed for session {sessionId}: map={map}, mode={mode}, " +
+            $"pitFireTeamProtection={protectPitFireTeam}");
+        return token;
     }
 
     /// <summary>
-    /// Consume the armed flag when a local raid actually starts. Returns true only
-    /// for a live (non-expired) flag whose map matches the starting raid.
+    /// Replays the result of an already committed /raid-start announcement.
+    /// SPT's POST transport can resend an identical body after losing the first
+    /// response; creating another token or reporting failure would leave the
+    /// client unable to consume or cancel the snapshot that is already Armed.
+    /// Only the same live logical request receives the original token.
     /// </summary>
-    public bool TryConsumeArm(MongoId sessionId, string? location)
+    public bool TryReplayArmedRequest(
+        MongoId sessionId,
+        string? map,
+        string? mode,
+        bool protectPitFireTeam,
+        string? requestId,
+        out string? armToken)
     {
+        armToken = null;
         lock (_lock)
         {
             if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
-                || entry.State != ArenaSessionState.Armed)
+                || entry.State != ArenaSessionState.Armed
+                || string.IsNullOrWhiteSpace(entry.ArmToken)
+                || !string.Equals(entry.ArmToken, requestId, StringComparison.Ordinal)
+                || entry.ProtectPitFireTeam != protectPitFireTeam
+                || !string.Equals(entry.Map, map, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(entry.Mode, mode, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
             var age = DateTime.UtcNow - entry.ArmedAtUtc;
             if (age.TotalSeconds > ArenaContext.Config.ArmedFlagTtlSeconds)
-            {
-                logger.Warning($"[ArenaMode] Armed flag expired after {age.TotalSeconds:0}s — raid starts as a normal raid.");
-                entry.State = ArenaSessionState.Idle;
                 return false;
+
+            armToken = entry.ArmToken;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Reserve the exact PFT transaction boundary before the main-profile
+    /// snapshot. The write lease first drains already-running PFT operations;
+    /// state and file protection are then published together before new work can
+    /// resume. Preparing cannot be consumed as a raid arm.
+    /// </summary>
+    public bool BeginTeamArmPreparation(
+        MongoId sessionId,
+        string map,
+        string? mode,
+        string armToken)
+        => BeginArmPreparation(
+            sessionId,
+            map,
+            mode,
+            protectPitFireTeam: true,
+            armToken);
+
+    public bool BeginArmPreparation(
+        MongoId sessionId,
+        string map,
+        string? mode,
+        bool protectPitFireTeam,
+        string armToken)
+    {
+        if (!Protocol.IsLifecycleRequestId(armToken))
+            return false;
+
+        string key = sessionId.ToString();
+        if (protectPitFireTeam)
+        {
+            using (PitFireTeamOperationGate.ReserveProfileBoundary())
+            {
+                if (!PitFireTeamAsyncSideEffectGate.WaitForDrain(TimeSpan.FromSeconds(15)))
+                {
+                    logger.Warning(
+                        "[ArenaMode] PitFireTeam delayed invite work did not settle within 15s; " +
+                        "protected Arena arm rejected before snapshot.");
+                    return false;
+                }
+
+                lock (_lock)
+                    return PublishArmPreparationLocked(
+                        key,
+                        map,
+                        mode,
+                        protectPitFireTeam,
+                        armToken);
+            }
+        }
+
+        lock (_lock)
+            return PublishArmPreparationLocked(
+                key,
+                map,
+                mode,
+                protectPitFireTeam,
+                armToken);
+    }
+
+    private bool PublishArmPreparationLocked(
+        string key,
+        string map,
+        string? mode,
+        bool protectPitFireTeam,
+        string armToken)
+    {
+        if (_sessions.TryGetValue(key, out var existing)
+            && existing.State != ArenaSessionState.Idle)
+        {
+            return false;
+        }
+
+        _sessions[key] = new SessionEntry
+        {
+            State = ArenaSessionState.Preparing,
+            Map = map.ToLowerInvariant(),
+            Mode = mode,
+            ArmedAtUtc = DateTime.UtcNow,
+            ProtectPitFireTeam = protectPitFireTeam,
+            ArmToken = armToken,
+            ClientRaidStarted = false,
+            LocationMutationReady = false,
+            LocationMutationFailure = null,
+        };
+        if (protectPitFireTeam)
+        {
+            _pitFireTeamGuard.BeginArmed(
+                key,
+                PreparationProtectionTtl());
+        }
+
+        logger.Info(
+            $"[ArenaMode] Reserved {(protectPitFireTeam ? "PitFireTeam " : string.Empty)}" +
+            $"profile boundary for session {key} before snapshot.");
+        return true;
+    }
+
+    public bool CompleteTeamArmPreparation(MongoId sessionId)
+        => CompleteArmPreparation(sessionId);
+
+    public bool CompleteArmPreparation(MongoId sessionId)
+    {
+        string key = sessionId.ToString();
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(key, out var entry)
+                || entry.State != ArenaSessionState.Preparing)
+            {
+                return false;
+            }
+
+            entry.State = ArenaSessionState.Armed;
+            entry.ArmedAtUtc = DateTime.UtcNow;
+            // Preparing has a deliberately longer safety window because the
+            // snapshot duration is outside the session lock. Once capture is
+            // complete, restart the normal armed TTL from this exact boundary.
+            if (entry.ProtectPitFireTeam)
+                _pitFireTeamGuard.BeginArmed(key, ArmedProtectionTtl());
+            logger.Info(
+                $"[ArenaMode] Completed protected PitFireTeam arm for session {sessionId}: " +
+                $"map={entry.Map}, mode={entry.Mode}.");
+            return true;
+        }
+    }
+
+    public void CancelTeamArmPreparation(MongoId sessionId)
+        => CancelArmPreparation(sessionId);
+
+    public void CancelArmPreparation(MongoId sessionId)
+    {
+        string key = sessionId.ToString();
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(key, out var entry)
+                || entry.State != ArenaSessionState.Preparing)
+            {
+                return;
+            }
+
+            entry.State = ArenaSessionState.Idle;
+            entry.ProtectPitFireTeam = false;
+            entry.ArmToken = null;
+            entry.ClientRaidStarted = false;
+            entry.LocationMutationReady = false;
+            entry.LocationMutationFailure = null;
+            entry.LocationClone = null;
+            _pitFireTeamGuard.Clear(key);
+        }
+    }
+
+    /// <summary>
+    /// Consume the armed flag when a local raid actually starts. Returns true only
+    /// for a live (non-expired) flag whose map matches the starting raid.
+    /// </summary>
+    public bool TryConsumeArm(
+        MongoId sessionId,
+        string? location,
+        string? nativeStartIdentity = null)
+        => ProcessLocalRaidStart(sessionId, location, nativeStartIdentity)
+            == ArenaLocalRaidStartDisposition.ArenaStarted;
+
+    /// <summary>
+    /// Makes the complete local-start claim under one session lock. Every
+    /// request carrying Arena's marker fails closed unless it is the exact live
+    /// arm. Untagged requests never recover, discard or mutate an Arena-owned
+    /// snapshot implicitly; recovery is an explicit token-bound route.
+    /// </summary>
+    public ArenaLocalRaidStartDisposition ProcessLocalRaidStart(
+        MongoId sessionId,
+        string? location,
+        string? nativeStartIdentity = null)
+    {
+        string key = sessionId.ToString();
+        bool arenaTagged = Protocol.HasNativeStartMarker(nativeStartIdentity ?? string.Empty);
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(key, out var entry))
+            {
+                return arenaTagged
+                    ? ArenaLocalRaidStartDisposition.RejectedArenaStart
+                    : ArenaLocalRaidStartDisposition.Ordinary;
+            }
+
+            if (entry.State == ArenaSessionState.InRaid)
+            {
+                if (!string.IsNullOrWhiteSpace(entry.NativeStartIdentity)
+                    && string.Equals(
+                        entry.NativeStartIdentity,
+                        nativeStartIdentity,
+                        StringComparison.Ordinal))
+                {
+                    return ArenaLocalRaidStartDisposition.DuplicateArenaStart;
+                }
+
+                return arenaTagged
+                    ? ArenaLocalRaidStartDisposition.RejectedArenaStart
+                    : ArenaLocalRaidStartDisposition.ProtectedTransitionInProgress;
+            }
+
+            if (entry.State is ArenaSessionState.Preparing
+                or ArenaSessionState.FinalizingEnd
+                or ArenaSessionState.RecoveringStartFailure)
+            {
+                return ArenaLocalRaidStartDisposition.ProtectedTransitionInProgress;
+            }
+
+            if (entry.State != ArenaSessionState.Armed)
+            {
+                return arenaTagged
+                    ? ArenaLocalRaidStartDisposition.RejectedArenaStart
+                    : ArenaLocalRaidStartDisposition.Ordinary;
+            }
+
+            if (!arenaTagged)
+                return ArenaLocalRaidStartDisposition.ProtectedTransitionInProgress;
+
+            var age = DateTime.UtcNow - entry.ArmedAtUtc;
+            if (age.TotalSeconds > ArenaContext.Config.ArmedFlagTtlSeconds)
+            {
+                logger.Warning(
+                    $"[ArenaMode] Rejected expired Arena local-start after {age.TotalSeconds:0}s; " +
+                    "the token-bound cancellation route still owns its snapshot.");
+                return ArenaLocalRaidStartDisposition.RejectedArenaStart;
             }
 
             if (location == null || !string.Equals(entry.Map, location, StringComparison.OrdinalIgnoreCase))
             {
-                logger.Warning($"[ArenaMode] Armed for '{entry.Map}' but raid starts on '{location}' — raid starts as a normal raid.");
-                entry.State = ArenaSessionState.Idle;
-                return false;
+                logger.Warning(
+                    $"[ArenaMode] Rejected Arena local-start for '{location}'; exact arm owns '{entry.Map}'.");
+                return ArenaLocalRaidStartDisposition.RejectedArenaStart;
+            }
+
+            if (!Protocol.IsNativeStartIdentity(
+                    nativeStartIdentity ?? string.Empty,
+                    entry.ArmToken!))
+            {
+                logger.Error(
+                    "[ArenaMode] Armed raid reached native local-start without its exact arm identity; start rejected.");
+                return ArenaLocalRaidStartDisposition.RejectedArenaStart;
             }
 
             entry.State = ArenaSessionState.InRaid;
             entry.InRaidAtUtc = DateTime.UtcNow;
+            entry.ClientRaidStarted = false;
+            entry.NativeStartIdentity = nativeStartIdentity;
+            entry.NativeStartTaskSettled = false;
+            entry.NativeEndIdentity = null;
+            entry.LastCompletedArmToken = null;
+            entry.NativeEndCompletedAtUtc = default;
+            if (entry.ProtectPitFireTeam)
+            {
+                _pitFireTeamGuard.BeginRaid(
+                    key,
+                    TimeSpan.FromMinutes(Math.Max(1, ArenaContext.Config.RaidTimeMinutes) + 15));
+            }
             Patches.BotTierScalePatch.ResetReporting();
 
             // A fresh ladder per raid, cut here rather than when the client asks
@@ -89,7 +427,196 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
                 ArenaContext.LadderJson,
                 ArenaContext.Config.GunGameRungs,
                 message => logger.Info(message));
+            return ArenaLocalRaidStartDisposition.ArenaStarted;
+        }
+    }
+
+    /// <summary>
+    /// Binds the exact server id produced by SPT's successful native start to
+    /// this arm before the response is serialized. The client receives and later
+    /// returns this full value; an invented map/side prefix is never accepted.
+    /// </summary>
+    public bool BindNativeEndIdentity(
+        MongoId sessionId,
+        string nativeStartIdentity,
+        string nativeServerId,
+        out string? boundNativeEndIdentity)
+    {
+        boundNativeEndIdentity = null;
+        if (string.IsNullOrWhiteSpace(nativeServerId)
+            || Protocol.HasNativeEndMarker(nativeServerId))
+        {
+            return false;
+        }
+
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid
+                || string.IsNullOrWhiteSpace(entry.ArmToken)
+                || !string.Equals(
+                    entry.NativeStartIdentity,
+                    nativeStartIdentity,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            string exact = Protocol.BuildNativeEndIdentity(
+                nativeServerId,
+                entry.ArmToken);
+            if (!string.IsNullOrWhiteSpace(entry.NativeEndIdentity)
+                && !string.Equals(entry.NativeEndIdentity, exact, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            entry.NativeEndIdentity = exact;
+            entry.NativeStartTaskSettled = true;
+            boundNativeEndIdentity = exact;
             return true;
+        }
+    }
+
+    public void MarkNativeStartTaskSettled(
+        MongoId sessionId,
+        string nativeStartIdentity)
+    {
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                && entry.State == ArenaSessionState.InRaid
+                && string.Equals(
+                    entry.NativeStartIdentity,
+                    nativeStartIdentity,
+                    StringComparison.Ordinal))
+            {
+                entry.NativeStartTaskSettled = true;
+            }
+        }
+    }
+
+    public bool CanReplayNativeStartResponse(
+        MongoId sessionId,
+        string nativeStartIdentity)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State == ArenaSessionState.InRaid
+                   && entry.NativeStartTaskSettled
+                   && !string.IsNullOrWhiteSpace(entry.NativeEndIdentity)
+                   && string.Equals(
+                       entry.NativeStartIdentity,
+                       nativeStartIdentity,
+                       StringComparison.Ordinal);
+        }
+    }
+
+    public bool OwnsNativeStartTransaction(
+        MongoId sessionId,
+        string nativeStartIdentity)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State == ArenaSessionState.InRaid
+                   && string.Equals(
+                       entry.NativeStartIdentity,
+                       nativeStartIdentity,
+                       StringComparison.Ordinal);
+        }
+    }
+
+    public bool ConfirmClientRaidStarted(
+        MongoId sessionId,
+        string? armToken,
+        string? nativeEndIdentity)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid
+                || !entry.NativeStartTaskSettled
+                || string.IsNullOrWhiteSpace(entry.NativeEndIdentity)
+                || !string.Equals(
+                    entry.NativeEndIdentity,
+                    nativeEndIdentity,
+                    StringComparison.Ordinal)
+                || !ArmTokenMatches(entry, armToken))
+            {
+                return false;
+            }
+
+            entry.ClientRaidStarted = true;
+            return true;
+        }
+    }
+
+    public bool IsClientRaidStarted(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State == ArenaSessionState.InRaid
+                   && entry.ClientRaidStarted;
+        }
+    }
+
+    public bool TryBeginFailedStartRecovery(MongoId sessionId, string? armToken)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid
+                || entry.ClientRaidStarted
+                || !entry.NativeStartTaskSettled
+                || !ArmTokenMatches(entry, armToken))
+            {
+                return false;
+            }
+
+            entry.State = ArenaSessionState.RecoveringStartFailure;
+            return true;
+        }
+    }
+
+    public bool CanRetryFailedStartRecovery(MongoId sessionId, string? armToken)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State == ArenaSessionState.RecoveringStartFailure
+                   && !entry.ClientRaidStarted
+                   && ArmTokenMatches(entry, armToken);
+        }
+    }
+
+    public bool TryBeginArmedCancellation(MongoId sessionId, string? armToken)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.Armed
+                || !ArmTokenMatches(entry, armToken))
+            {
+                return false;
+            }
+
+            // Keep the guard until the router has discarded the matching
+            // snapshot, then MarkIdle clears both atomically visible pieces.
+            entry.State = ArenaSessionState.RecoveringStartFailure;
+            return true;
+        }
+    }
+
+    public string? GetArmToken(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                ? entry.ArmToken
+                : null;
         }
     }
 
@@ -99,6 +626,249 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
         {
             return _sessions.TryGetValue(sessionId.ToString(), out var entry)
                    && entry.State == ArenaSessionState.InRaid;
+        }
+    }
+
+    public bool IsProtectedTeamRaid(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State == ArenaSessionState.InRaid
+                   && entry.ProtectPitFireTeam;
+        }
+    }
+
+    /// <summary>
+    /// Atomically classify the retryable native local-end request. The exact
+    /// arm token appended by the client is both the claim identity and the
+    /// completed-request tombstone; a delayed end from another raid is never
+    /// allowed to touch a protected snapshot.
+    /// </summary>
+    public ArenaLocalRaidEndDisposition ClassifyLocalRaidEnd(
+        MongoId sessionId,
+        string? nativeEndIdentity)
+    {
+        string key = sessionId.ToString();
+        bool arenaTagged = Protocol.HasNativeEndMarker(nativeEndIdentity ?? string.Empty);
+        lock (_lock)
+        {
+            if (IsCompletedNativeEndLocked(key, nativeEndIdentity))
+                return ArenaLocalRaidEndDisposition.CompletedArenaEndRetry;
+
+            if (!_sessions.TryGetValue(key, out var entry))
+            {
+                return arenaTagged
+                    ? ArenaLocalRaidEndDisposition.RejectedProtectedEnd
+                    : ArenaLocalRaidEndDisposition.Ordinary;
+            }
+
+            bool exactRecordedEnd = !string.IsNullOrWhiteSpace(nativeEndIdentity)
+                && string.Equals(
+                    entry.NativeEndIdentity,
+                    nativeEndIdentity,
+                    StringComparison.Ordinal);
+
+            if (entry.State == ArenaSessionState.FinalizingEnd)
+            {
+                return exactRecordedEnd
+                    ? ArenaLocalRaidEndDisposition.FinalizingArenaEndRetry
+                    : ArenaLocalRaidEndDisposition.RejectedProtectedEnd;
+            }
+
+            if (entry.State == ArenaSessionState.Idle)
+            {
+                return arenaTagged
+                    ? ArenaLocalRaidEndDisposition.RejectedProtectedEnd
+                    : ArenaLocalRaidEndDisposition.Ordinary;
+            }
+
+            if (entry.State != ArenaSessionState.InRaid)
+                return ArenaLocalRaidEndDisposition.RejectedProtectedEnd;
+
+            return MatchesNativeEndIdentity(entry, nativeEndIdentity)
+                ? ArenaLocalRaidEndDisposition.FirstArenaEnd
+                : ArenaLocalRaidEndDisposition.RejectedProtectedEnd;
+        }
+    }
+
+    public bool BeginNativeEndFinalization(
+        MongoId sessionId,
+        string? nativeEndIdentity)
+    {
+        string key = sessionId.ToString();
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(key, out var entry)
+                || entry.State != ArenaSessionState.InRaid
+                || !MatchesNativeEndIdentity(entry, nativeEndIdentity))
+            {
+                return false;
+            }
+
+            entry.State = ArenaSessionState.FinalizingEnd;
+            entry.NativeEndIdentity = nativeEndIdentity;
+            entry.NativeEndCompletedAtUtc = default;
+            if (entry.ProtectPitFireTeam)
+                _pitFireTeamGuard.BeginRaid(key, ActiveBoundaryRefreshTtl());
+            return true;
+        }
+    }
+
+    public bool CompleteNativeEndFinalization(
+        MongoId sessionId,
+        string? nativeEndIdentity)
+    {
+        string key = sessionId.ToString();
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(key, out var entry)
+                || entry.State != ArenaSessionState.FinalizingEnd
+                || string.IsNullOrWhiteSpace(nativeEndIdentity)
+                || !string.Equals(
+                    entry.NativeEndIdentity,
+                    nativeEndIdentity,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            bool protectPitFireTeam = entry.ProtectPitFireTeam;
+            string? completedArmToken = entry.ArmToken;
+            entry.State = ArenaSessionState.Idle;
+            entry.ProtectPitFireTeam = false;
+            entry.ArmToken = null;
+            entry.ClientRaidStarted = false;
+            entry.NativeStartIdentity = null;
+            entry.NativeStartTaskSettled = false;
+            entry.LastCompletedArmToken = completedArmToken;
+            entry.NativeEndCompletedAtUtc = DateTime.UtcNow;
+            entry.LocationMutationReady = false;
+            entry.LocationMutationFailure = null;
+            entry.LocationClone = null;
+
+            if (protectPitFireTeam)
+                _pitFireTeamGuard.BeginPostRaidFinalization(key);
+            else
+                _pitFireTeamGuard.Clear(key);
+
+            RememberCompletedNativeEndLocked(key, nativeEndIdentity);
+            return true;
+        }
+    }
+
+    public bool TryGetFinalizingNativeEnd(
+        MongoId sessionId,
+        string? armToken,
+        out string? nativeEndIdentity)
+    {
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                && entry.State == ArenaSessionState.FinalizingEnd
+                && ArmTokenMatches(entry, armToken)
+                && !string.IsNullOrWhiteSpace(entry.NativeEndIdentity))
+            {
+                nativeEndIdentity = entry.NativeEndIdentity;
+                return true;
+            }
+        }
+
+        nativeEndIdentity = null;
+        return false;
+    }
+
+    public bool TryGetCrashRecoveryNativeEnd(
+        MongoId sessionId,
+        string? armToken,
+        out string? nativeEndIdentity)
+    {
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                && entry.State == ArenaSessionState.InRaid
+                && entry.ClientRaidStarted
+                && entry.NativeStartTaskSettled
+                && ArmTokenMatches(entry, armToken)
+                && !string.IsNullOrWhiteSpace(entry.NativeEndIdentity))
+            {
+                nativeEndIdentity = entry.NativeEndIdentity;
+                return true;
+            }
+        }
+
+        nativeEndIdentity = null;
+        return false;
+    }
+
+    public bool IsCompletedNativeEndArm(MongoId sessionId, string? armToken)
+    {
+        if (string.IsNullOrWhiteSpace(armToken))
+            return false;
+
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State == ArenaSessionState.Idle
+                   && string.Equals(
+                       entry.LastCompletedArmToken,
+                       armToken,
+                       StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// Records the server prerequisite for a protected 5v5. The client checks
+    /// this after /client/match/local/start and aborts before play if the clone
+    /// could not be made silent. Otherwise Arena's five requested opponents
+    /// would be mixed with the map's vanilla waves.
+    /// </summary>
+    public void MarkLocationMutationReady(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                && entry.State == ArenaSessionState.InRaid)
+            {
+                entry.LocationMutationReady = true;
+                entry.LocationMutationFailure = null;
+            }
+        }
+    }
+
+    public void MarkLocationMutationFailed(MongoId sessionId, string reason)
+    {
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                && entry.State == ArenaSessionState.InRaid)
+            {
+                entry.LocationMutationReady = false;
+                entry.LocationMutationFailure = string.IsNullOrWhiteSpace(reason)
+                    ? "location mutation failed"
+                    : reason;
+            }
+        }
+    }
+
+    public (bool protectedTeam, bool locationReady, string? failure)
+        GetProtectedTeamRaidValidation(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid
+                || !entry.ProtectPitFireTeam)
+            {
+                return (false, false, "the server has no protected PitFireTeam raid for this session");
+            }
+
+            return (
+                true,
+                entry.LocationMutationReady,
+                entry.LocationMutationFailure ?? (entry.LocationMutationReady
+                    ? null
+                    : "the Arena location mutation has not completed"));
         }
     }
 
@@ -113,12 +883,260 @@ public class ArenaSessionService(ISptLogger<ArenaSessionService> logger)
 
     public void MarkIdle(MongoId sessionId)
     {
+        string key = sessionId.ToString();
         lock (_lock)
         {
-            if (_sessions.TryGetValue(sessionId.ToString(), out var entry))
+            if (_sessions.TryGetValue(key, out var entry))
             {
                 entry.State = ArenaSessionState.Idle;
+                entry.ProtectPitFireTeam = false;
+                entry.ArmToken = null;
+                entry.ClientRaidStarted = false;
+                entry.NativeStartIdentity = null;
+                entry.NativeStartTaskSettled = false;
+                entry.NativeEndIdentity = null;
+                entry.LastCompletedArmToken = null;
+                entry.NativeEndCompletedAtUtc = default;
+                entry.LocationMutationReady = false;
+                entry.LocationMutationFailure = null;
                 entry.LocationClone = null;
+            }
+
+            _pitFireTeamGuard.Clear(key);
+        }
+    }
+
+    /// <summary>
+    /// The main profile is restored synchronously during local/end, but
+    /// PitFireTeam can queue follower results from client teardown. Keep its
+    /// separate store protected for a short, bounded period after Arena becomes
+    /// idle so those late tasks cannot escape the snapshot boundary.
+    /// </summary>
+    public bool BeginPostRaidFinalization(MongoId sessionId)
+    {
+        string key = sessionId.ToString();
+        bool protectPitFireTeam = false;
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(key, out var entry))
+            {
+                protectPitFireTeam = entry.ProtectPitFireTeam;
+                entry.State = ArenaSessionState.Idle;
+                entry.ArmToken = null;
+                entry.ClientRaidStarted = false;
+                entry.NativeStartIdentity = null;
+                entry.NativeStartTaskSettled = false;
+                entry.NativeEndIdentity = null;
+                entry.LastCompletedArmToken = null;
+                entry.NativeEndCompletedAtUtc = default;
+                entry.LocationMutationReady = false;
+                entry.LocationMutationFailure = null;
+                entry.LocationClone = null;
+            }
+
+            if (protectPitFireTeam)
+                _pitFireTeamGuard.BeginPostRaidFinalization(key);
+            else
+                _pitFireTeamGuard.Clear(key);
+        }
+
+        return protectPitFireTeam;
+    }
+
+    public bool IsExternalProfileWriteProtected(MongoId sessionId)
+    {
+        string key = sessionId.ToString();
+        lock (_lock)
+        {
+            if (_sessions.TryGetValue(key, out var entry)
+                && entry.ProtectPitFireTeam
+                && entry.State != ArenaSessionState.Idle)
+            {
+                // The timer is only a leak limiter for an abandoned guard object;
+                // it must never reopen a still-owned main-profile snapshot. Any
+                // access refreshes the bounded low-level window while the session
+                // state proves that recovery has not closed the boundary.
+                _pitFireTeamGuard.BeginRaid(key, ActiveBoundaryRefreshTtl());
+                return true;
+            }
+
+            return _pitFireTeamGuard.IsProtected(key);
+        }
+    }
+
+    public bool AnyExternalProfileWriteProtection()
+    {
+        lock (_lock)
+        {
+            RefreshOpenProtectedBoundariesLocked();
+            return _pitFireTeamGuard.AnyProtected();
+        }
+    }
+
+    public bool IsSoleExternalProfileProtection(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            RefreshOpenProtectedBoundariesLocked();
+            return _pitFireTeamGuard.IsSoleProtectedSession(sessionId.ToString());
+        }
+    }
+
+    public bool IsGlobalExternalMutationAuthorized()
+    {
+        lock (_lock)
+        {
+            RefreshOpenProtectedBoundariesLocked();
+            return _pitFireTeamGuard.IsEveryProtectedSessionAuthorized(
+                PitFireTeamManagementScope.Authorizes);
+        }
+    }
+
+    public bool ShouldBlockPitFireTeamFileMutation(
+        string? filePath,
+        string? pitFireTeamModPath,
+        out string? protectedSessionId)
+    {
+        lock (_lock)
+        {
+            RefreshOpenProtectedBoundariesLocked();
+            return _pitFireTeamGuard.ShouldBlockFileMutation(
+                filePath,
+                pitFireTeamModPath,
+                out protectedSessionId);
+        }
+    }
+
+    /// <summary>
+    /// Called as soon as an ordinary raid is identified. This is deliberately
+    /// separate from MarkIdle: the session may already be Idle while a bounded
+    /// post-raid window is still suppressing delayed PitFireTeam work.
+    /// </summary>
+    public void ClearExternalProfileProtection(MongoId sessionId)
+    {
+        lock (_lock)
+            _pitFireTeamGuard.Clear(sessionId.ToString());
+    }
+
+    /// <summary>
+    /// Atomically changes the PFT persistence policy from the previous Arena
+    /// finalization window to an ordinary raid. The caller must hold
+    /// ArenaRaidStartGate so the Arena state/snapshot checks remain stable.
+    /// Existing PFT calls finish while protection is still visible; calls that
+    /// enter after the write lease see the ordinary, unprotected boundary.
+    /// </summary>
+    internal void CutOverToOrdinaryRaid(
+        MongoId sessionId,
+        Func<bool> hasSnapshot)
+    {
+        ArgumentNullException.ThrowIfNull(hasSnapshot);
+        using (PitFireTeamOperationGate.ReserveProfileBoundary())
+        {
+            if (IsArmedOrInRaid(sessionId) || hasSnapshot())
+            {
+                throw new InvalidOperationException(
+                    "An Arena snapshot requires explicit token-bound recovery before ordinary local-start");
+            }
+
+            ClearExternalProfileProtection(sessionId);
+        }
+    }
+
+    private static bool ArmTokenMatches(SessionEntry entry, string? armToken)
+        => !string.IsNullOrWhiteSpace(armToken)
+           && string.Equals(entry.ArmToken, armToken, StringComparison.Ordinal);
+
+    private static bool MatchesNativeEndIdentity(
+        SessionEntry entry,
+        string? nativeEndIdentity)
+    {
+        return !string.IsNullOrWhiteSpace(entry.NativeEndIdentity)
+               && !string.IsNullOrWhiteSpace(nativeEndIdentity)
+               && string.Equals(
+                   entry.NativeEndIdentity,
+                   nativeEndIdentity,
+                   StringComparison.Ordinal);
+    }
+
+    private bool IsCompletedNativeEndLocked(
+        string sessionKey,
+        string? nativeEndIdentity)
+    {
+        if (string.IsNullOrWhiteSpace(nativeEndIdentity)
+            || !_completedNativeEnds.TryGetValue(sessionKey, out var tombstones))
+        {
+            return false;
+        }
+
+        PruneCompletedNativeEndsLocked(tombstones);
+        return tombstones.ContainsKey(nativeEndIdentity);
+    }
+
+    private void RememberCompletedNativeEndLocked(
+        string sessionKey,
+        string nativeEndIdentity)
+    {
+        if (!_completedNativeEnds.TryGetValue(sessionKey, out var tombstones))
+        {
+            tombstones = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+            _completedNativeEnds[sessionKey] = tombstones;
+        }
+
+        PruneCompletedNativeEndsLocked(tombstones);
+        tombstones[nativeEndIdentity] = DateTime.UtcNow;
+
+        // A client cannot legitimately have many concurrent local raids. Keep a
+        // small bounded history anyway so a very delayed retry from the previous
+        // match stays harmless after a new Arena arm replaces SessionEntry.
+        foreach (string oldest in tombstones
+                     .OrderBy(pair => pair.Value)
+                     .Take(Math.Max(0, tombstones.Count - 8))
+                     .Select(pair => pair.Key)
+                     .ToArray())
+        {
+            tombstones.Remove(oldest);
+        }
+    }
+
+    private static void PruneCompletedNativeEndsLocked(
+        Dictionary<string, DateTime> tombstones)
+    {
+        DateTime cutoff = DateTime.UtcNow - TimeSpan.FromHours(2);
+        foreach (string expired in tombstones
+                     .Where(pair => pair.Value < cutoff)
+                     .Select(pair => pair.Key)
+                     .ToArray())
+        {
+            tombstones.Remove(expired);
+        }
+    }
+
+    private static TimeSpan ArmedProtectionTtl()
+        => TimeSpan.FromSeconds(Math.Max(1, ArenaContext.Config.ArmedFlagTtlSeconds));
+
+    private static TimeSpan PreparationProtectionTtl()
+    {
+        // Profile cloning is synchronous and normally takes milliseconds. Keep
+        // a separately bounded 15-minute window so even an abnormally slow disk
+        // cannot let raw PFT file work cross the snapshot; completion refreshes
+        // the shorter user-configured armed TTL.
+        TimeSpan armed = ArmedProtectionTtl();
+        return armed > TimeSpan.FromMinutes(15)
+            ? armed
+            : TimeSpan.FromMinutes(15);
+    }
+
+    private static TimeSpan ActiveBoundaryRefreshTtl()
+        => TimeSpan.FromMinutes(5);
+
+    private void RefreshOpenProtectedBoundariesLocked()
+    {
+        foreach (var pair in _sessions)
+        {
+            if (pair.Value.ProtectPitFireTeam
+                && pair.Value.State != ArenaSessionState.Idle)
+            {
+                _pitFireTeamGuard.BeginRaid(pair.Key, ActiveBoundaryRefreshTtl());
             }
         }
     }

@@ -19,6 +19,7 @@ namespace EFT
     public class LocalRaidSettings
     {
         public string location;
+        public string serverId;
         public ESideType playerSide;
         public ELocationTransition transitionType;
     }
@@ -27,24 +28,30 @@ namespace EFT
 }
 namespace JsonType
 {
-    public class LocalSettings { }
+    public class LocalSettings { public string serverId; }
     public class LocationSettings { public class Location { public string Id; } }
 }
 namespace SPT.Reflection.Patching
 {
     public abstract class ModulePatch { protected abstract MethodBase GetTargetMethod(); public void Enable() { } }
     public class PatchPrefixAttribute : Attribute { }
+    public class PatchPostfixAttribute : Attribute { }
 }
 namespace SPT.Common.Http
 {
     public static class RequestHandler
     {
         public static Func<string, string, string> Post = (route, body) => "{\"disarmed\":true}";
-        public static Func<string, string> Get = route => "{\"version\":\"test\"}";
+        public static Func<string, string> Get = route => route == ArenaMode.Shared.Protocol.StatusRoute
+            ? "{\"state\":\"Armed\",\"armToken\":\"test-arm-token\"}"
+            : "{\"version\":\"test\"}";
         public static int PostCount, StartCount;
+        public static string LastPostRoute, LastPostBody;
         public static string GetJson(string route) => Get(route);
         public static string PostJson(string route, string body)
         {
+            LastPostRoute = route;
+            LastPostBody = body;
             PostCount++;
             if (route == ArenaMode.Shared.Protocol.RaidStartRoute) StartCount++;
             return Post(route, body);
@@ -79,7 +86,7 @@ namespace ArenaMode.Session
     public static class ArenaSession
     {
         public static bool ArmedForNextRaid;
-        public static void MarkArmed(string map) => ArmedForNextRaid = true;
+        public static void MarkArmed(string map, string mode) => ArmedForNextRaid = true;
         public static void ClearArmed(string reason)
         {
             if (!ArmedForNextRaid) return;

@@ -2,7 +2,9 @@
 
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
-Solo only (no Fika). Four modes: Endless Deathmatch, Rounds, Gun Game, Tactical.
+No Fika. Arena is solo by default; the optional PitFireTeam 0.10.0 compatibility
+path supports one Tactical 5v5 elimination round. Four modes: Endless Deathmatch,
+Rounds, Gun Game, Tactical.
 
 Read this before changing anything. Most of it was learned the expensive way.
 
@@ -74,8 +76,8 @@ test above was verified that way — reintroduce the comma and three tests go re
 ## Non-negotiable
 
 1. **The profile is sacred.** An arena raid must cost and gain nothing. Two layers
-   protect it: a `HandlePostRaidPmc` prefix that skips all post-raid processing, and a
-   snapshot/restore around the raid. Never weaken either.
+   protect it: an exact-ID `EndLocalRaidAsync` prefix that replaces the complete native
+   post-raid pipeline, and a snapshot/restore around the raid. Never weaken either.
 2. **Normal raids must be bit-identical.** Every patch starts with an
    `ArenaSession.IsActive` gate and fails open to vanilla. A setting that leaks into a
    non-arena raid is a bug even if it is harmless.
@@ -150,13 +152,17 @@ Open:
   curve was a separate bug and is fixed. Needs a long test raid before guessing again.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
-- **PitFireTeam teammates** — hostility compatibility is in but untested; the mod is not
-  currently installed. Corpse cleanup still strips teammate bodies, and the profile
-  snapshot reverts their progression.
+- **PitFireTeam 5v5** — the optional 0.10.0 compatibility path is implemented for one
+  Tactical elimination round and still needs a GPU playtest. It keeps the original PMC
+  body/loadout, excludes teammate bots and corpses from Arena cleanup/counts, and blocks
+  both SPT-profile effects and PitFireTeam's separate teammate persistence. Multiple
+  rounds remain unsupported because PitFireTeam exposes no safe leader-rebind/reset API.
 
 ## How to work here
 
-Small, self-contained commits with a message that explains the reasoning. Verify game
+Create a commit after every completed change, including its tests and documentation;
+do not leave finished work uncommitted or combine unrelated changes. Use small,
+self-contained commits with a message that explains the reasoning. Verify game
 internals against `../_decompiled/` rather than assuming — the decompiled source is
 complete and it has contradicted confident guesses many times. When a playtest disagrees
 with your explanation, the explanation is wrong; measure before you theorise again.

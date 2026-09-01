@@ -34,14 +34,20 @@ public static class KitBundlePreloader
     /// never see was already done.
     /// </summary>
     private static readonly HashSet<string> WarmedTemplates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private static int _raidEpoch;
 
     // Pools are per-raid (PoolsCategory.Raid) — cleared on raid end via ResetSession.
-    public static void Reset() => WarmedTemplates.Clear();
+    public static void Reset()
+    {
+        unchecked { _raidEpoch++; }
+        WarmedTemplates.Clear();
+    }
 
     /// <summary>Coroutine: resolves all kit templates and awaits the bundle/pool load.</summary>
     public static IEnumerator Preload(KitDefinition kit)
     {
-        if (kit == null)
+        int epoch = _raidEpoch;
+        if (kit == null || !IsCurrentRaid(epoch))
             yield break;
 
         var cold = ColdTemplates(kit);
@@ -60,7 +66,19 @@ public static class KitBundlePreloader
         }
 
         while (task != null && !task.IsCompleted)
+        {
+            if (!IsCurrentRaid(epoch))
+                yield break;
+
             yield return null;
+        }
+
+        if (!IsCurrentRaid(epoch) || task?.IsCanceled == true)
+        {
+            // GameWorld disposal cancels the raid pool request. Never publish
+            // its templates into the next raid's warmed cache.
+            yield break;
+        }
 
         if (task != null && task.IsFaulted)
         {
@@ -109,11 +127,20 @@ public static class KitBundlePreloader
     /// </summary>
     public static IEnumerator PreloadAll()
     {
+        int epoch = _raidEpoch;
+        if (!IsCurrentRaid(epoch))
+            yield break;
+
         var kits = KitCatalog.Kits;
         if (kits != null)
         {
             foreach (var kit in kits)
+            {
+                if (!IsCurrentRaid(epoch))
+                    yield break;
+
                 yield return Preload(kit);
+            }
         }
 
         // Gun Game is the one mode that meets a cold bundle mid-fight: every
@@ -128,8 +155,16 @@ public static class KitBundlePreloader
             yield break;
 
         foreach (var rung in rungs)
+        {
+            if (!IsCurrentRaid(epoch))
+                yield break;
+
             yield return Preload(rung);
+        }
     }
+
+    private static bool IsCurrentRaid(int epoch)
+        => epoch == _raidEpoch && Session.ArenaSession.IsActive;
 
     private static Task PreloadAsync(List<string> templates)
     {

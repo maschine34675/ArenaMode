@@ -5,6 +5,7 @@ using ArenaMode.Session;
 using ArenaMode.Shared;
 using EFT;
 using JsonType;
+using Newtonsoft.Json.Linq;
 using SPT.Common.Http;
 
 // Fault-injection checks compile the actual selection/HTTP/negotiation files.
@@ -90,12 +91,58 @@ internal static class Program
         RequestHandler.Post = (route, body) => "{\"disarmed\":false,\"state\":\"Idle\"}";
         Assert(Start(Request(), out task) && task == null, "Confirmed idle must restore normal raid start");
         Assert(!ArenaServerClient.HasPendingArm, "Idle acknowledgement must settle pending arm");
+        Assert(RequestHandler.LastPostBody.Contains("\"startFailed\":true", StringComparison.Ordinal),
+            "same-process retry must recover a consumed unconfirmed native start");
+
+        // A negative/malformed announcement response can arrive after the
+        // server committed Armed (for example, the first POST response was lost
+        // and a transport retry observed the existing state). Never forget that
+        // uncertainty until status plus the exact token settles it.
+        RequestHandler.Post = (route, body) =>
+            route == Protocol.RaidStartRoute
+                ? "{\"armed\":false,\"state\":\"Armed\"}"
+                : "{\"disarmed\":false,\"state\":\"Idle\"}";
+        Assert(!ArenaServerClient.PostRaidStart("factory4_day", "tactical"),
+            "an Armed rejection is not a successful announcement");
+        Assert(ArenaServerClient.HasPendingArm,
+            "an Armed or ambiguous rejection must retain announcement uncertainty");
+        Assert(ArenaServerClient.PostRaidCancel(startFailed: true)
+               && !ArenaServerClient.HasPendingArm,
+            "status-derived exact token cancellation must settle the uncertain arm");
+
+        // GameEnd is observed before EFT's async native end completes. If that
+        // native request later exhausts its retries, the next negotiation must
+        // explicitly recover the exact token rather than defer forever.
+        typeof(ArenaServerClient).GetField("_activeArmToken", BindingFlags.Static | BindingFlags.NonPublic)
+            .SetValue(null, "pending-end-token");
+        typeof(ArenaServerClient).GetProperty(nameof(ArenaServerClient.HasPendingEnd))
+            .GetSetMethod(nonPublic: true).Invoke(null, new object[] { true });
+        RequestHandler.Post = (route, body) => route == Protocol.RaidEndRoute
+            ? "{\"restored\":true,\"completed\":true,\"state\":\"Idle\"}"
+            : "{\"disarmed\":false,\"state\":\"Idle\"}";
+        Assert(Start(Request(), out task) && task == null,
+            "next ordinary raid must recover a failed native Arena end in the same process");
+        Assert(RequestHandler.LastPostRoute == Protocol.RaidEndRoute
+               && RequestHandler.LastPostBody.Contains("\"recoverWithoutNativeEnd\":true", StringComparison.Ordinal),
+            "same-process end recovery must be explicit and token bound");
 
         // JSON property order and whitespace must not affect acknowledgement.
         Select();
         RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
-            ? "{ \"snapshotTaken\": true, \"armed\": true }" : "{\"disarmed\":true}";
-        Assert(Start(Request(), out task) && task == null && ArenaSession.ArmedForNextRaid, "Valid server acknowledgement must arm Arena");
+            ? $"{{ \"snapshotTaken\": true, \"armToken\": \"{JObject.Parse(body)["requestId"]?.Value<string>()}\", \"armed\": true }}"
+            : route == Protocol.RaidConfirmRoute
+                ? "{\"confirmed\":true,\"state\":\"InRaid\"}"
+                : "{\"disarmed\":true}";
+        var acknowledgedArenaRequest = Request();
+        Assert(Start(acknowledgedArenaRequest, out task) && task == null && ArenaSession.ArmedForNextRaid, "Valid server acknowledgement must arm Arena");
+        string acknowledgedArmToken = acknowledgedArenaRequest.serverId[
+            Protocol.NativeStartIdentityPrefix.Length..];
+        Assert(ArenaServerClient.BindNativeEndIdentity(new LocalSettings
+        {
+            serverId = Protocol.BuildNativeEndIdentity(
+                "factory4_day.Pmc menu-test",
+                acknowledgedArmToken)
+        }), "Client must acknowledge the exact server-bound native end identity");
         ArenaServerClient.ConfirmRaidStarted();
         Assert(!ArenaServerClient.HasPendingArm, "Started raid must settle announcement");
         ArenaSession.ClearArmed("test cleanup");
@@ -122,8 +169,16 @@ internal static class Program
 
         typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
         RequestHandler.Get = route => throw new AggregateException(new Exception("Http response status code: NotFound"));
-        Assert(Start(Request(), out task) && task == null, "Confirmed 404 absence must allow normal raids without server mod");
+        var serverAbsentRequest = Request();
+        Assert(Start(serverAbsentRequest, out task) && task == null, "Confirmed 404 absence must allow normal raids without server mod");
         Assert(!ArenaServerClient.NeedsInitialReconciliation, "Confirmed absent server mod must settle startup check");
+        Assert(serverAbsentRequest.serverId == null && !ArenaServerClient.HasOrdinaryLifecycle,
+            "Client-only installs must leave an ordinary native request byte-identical and publish no lifecycle claim");
+
+        var reconnectRequest = Request();
+        reconnectRequest.serverId = "native-reconnect-id";
+        Assert(Start(reconnectRequest, out task) && reconnectRequest.serverId == "native-reconnect-id",
+            "A pre-existing ordinary reconnect identity must pass through byte-identically");
 
         typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
         RequestHandler.Get = route => throw new Exception("simulated transport timeout");

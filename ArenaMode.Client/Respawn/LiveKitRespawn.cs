@@ -41,6 +41,10 @@ internal static class LiveKitRespawn
     /// <summary>Raid start: same spot, fresh kit, no protection.</summary>
     public static void AtRaidStart(LocalGame game)
     {
+        int raidEpoch = ArenaRespawnDriver.CaptureRaidEpoch();
+        if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch))
+            return;
+
         var kit = KitCatalog.GetSelectedKit();
         if (kit == null)
         {
@@ -52,7 +56,15 @@ internal static class LiveKitRespawn
         // when the swap actually lands, and everything before that point waits
         // (for the draw animation, for the kit's bundles). Deciding the spot up
         // here would teleport them back to where the raid started.
-        game.StartCoroutine(SwapRoutine(game, kit, null, null, "raid-start kit swap", null, null));
+        game.StartCoroutine(SwapRoutine(
+            game,
+            kit,
+            null,
+            null,
+            "raid-start kit swap",
+            null,
+            null,
+            raidEpoch));
     }
 
     /// <summary>
@@ -70,7 +82,11 @@ internal static class LiveKitRespawn
         Func<bool> stillWanted,
         Action<bool> onComplete)
     {
-        if (game?.LocalPlayer == null || ArenaRespawnDriver.IsRespawnInProgress || ArenaRespawnDriver.StandDown)
+        int raidEpoch = ArenaRespawnDriver.CaptureRaidEpoch();
+        if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+            || game.LocalPlayer == null
+            || ArenaRespawnDriver.IsRespawnInProgress
+            || ArenaRespawnDriver.StandDown)
             return false;
 
         if (game.LocalPlayer.HealthController == null || !game.LocalPlayer.HealthController.IsAlive)
@@ -95,7 +111,15 @@ internal static class LiveKitRespawn
             ShowToasts = false,
         };
 
-        game.StartCoroutine(SwapRoutine(game, kit, spawn, protection, "round respawn", stillWanted, onComplete));
+        game.StartCoroutine(SwapRoutine(
+            game,
+            kit,
+            spawn,
+            protection,
+            "round respawn",
+            stillWanted,
+            onComplete,
+            raidEpoch));
         return true;
     }
 
@@ -106,8 +130,15 @@ internal static class LiveKitRespawn
         SpawnProtectionOptions protection,
         string what,
         Func<bool> stillWanted,
-        Action<bool> onComplete)
+        Action<bool> onComplete,
+        int raidEpoch)
     {
+        if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+            || ArenaRespawnDriver.StandDown)
+        {
+            yield break;
+        }
+
         var oldBody = game.LocalPlayer;
         if (oldBody == null)
         {
@@ -120,9 +151,17 @@ internal static class LiveKitRespawn
         var drawDeadline = Time.time + 3f;
         while (oldBody.InventoryController != null
                && oldBody.InventoryController.IsChangingWeapon
-               && Time.time < drawDeadline)
+               && Time.time < drawDeadline
+               && ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+               && !ArenaRespawnDriver.StandDown)
         {
             yield return null;
+        }
+
+        if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+            || ArenaRespawnDriver.StandDown)
+        {
+            yield break;
         }
 
         // Kit items never existed in this raid — their bundles/pools must be loaded
@@ -133,8 +172,13 @@ internal static class LiveKitRespawn
         // of all dying, which hands the body to the death driver and starts ITS
         // pipeline. Running a second one on top of that is how you end up with
         // two players. Re-check the ground truth right before taking over.
+        if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+            || ArenaRespawnDriver.StandDown)
+        {
+            yield break;
+        }
+
         if (ArenaRespawnDriver.IsRespawnInProgress
-            || ArenaRespawnDriver.StandDown
             || !StillWanted(stillWanted)
             || !ReferenceEquals(game.LocalPlayer, oldBody)
             || oldBody.HealthController == null
@@ -145,7 +189,16 @@ internal static class LiveKitRespawn
             yield break;
         }
 
-        ArenaRespawnDriver.BeginPipelineUse();
+        if (!ArenaRespawnDriver.BeginPipelineUse(game, raidEpoch))
+        {
+            Plugin.ModLogger.LogInfo($"Arena {what} stood down — its raid lease expired before takeover.");
+            if (ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+                && !ArenaRespawnDriver.StandDown)
+            {
+                Report(onComplete, false);
+            }
+            yield break;
+        }
 
         var request = new RespawnRequest
         {
@@ -162,7 +215,16 @@ internal static class LiveKitRespawn
         Exception failure = null;
         yield return game.StartCoroutine(RespawnEngine.RunRespawn(request, e => failure = e));
 
-        ArenaRespawnDriver.EndPipelineUse();
+        bool sameActiveRaid = ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+                              && !ArenaRespawnDriver.StandDown;
+        ArenaRespawnDriver.EndPipelineUse(raidEpoch);
+
+        if (!sameActiveRaid)
+        {
+            Plugin.ModLogger.LogInfo(
+                $"Arena {what} finished after its raid ended — stale recovery and callbacks were suppressed.");
+            yield break;
+        }
 
         if (failure != null)
         {

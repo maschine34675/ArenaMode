@@ -1,3 +1,4 @@
+using ArenaMode.Compat;
 using ArenaMode.Config;
 using ArenaMode.Respawn;
 using ArenaMode.Session;
@@ -11,6 +12,7 @@ namespace ArenaMode;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInDependency("com.SPT.core", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(PitFireTeamCompat.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -27,6 +29,9 @@ public class Plugin : BaseUnityPlugin
         ModLogger = base.Logger;
         RedeployCore.Init(ModLogger);
         Settings.Init(Config);
+        PitFireTeamCompat.Initialize();
+        ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
+        ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
 
         ArenaSession.Initialize();
         // After ArenaSession: RaidLifecycle handlers run in subscription order and

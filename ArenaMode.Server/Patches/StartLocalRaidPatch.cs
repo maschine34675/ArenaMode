@@ -1,58 +1,103 @@
+using ArenaMode.Server.Services;
+using ArenaMode.Shared;
 using SPTarkov.Reflection.Patching;
+using SPTarkov.Server.Core.Callbacks;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Match;
-using SPTarkov.Server.Core.Services.InRaid;
 using System.Reflection;
 
 namespace ArenaMode.Server.Patches;
 
 /// <summary>
-/// Armed → InRaid when a local raid starts on the armed map. Never skips the
-/// original (prefix only — the target is async, postfixes on async methods fire
-/// at the first suspension and are therefore off-limits by project rule).
+/// Replaces MatchCallbacks' thin controller/body wrapper for every local start.
+/// The service calls the same SPT controller and serializer while holding
+/// Arena's per-session gate across every await. Token-tagged starts additionally
+/// share one protected task; ordinary starts keep the caller's cancellation and
+/// otherwise preserve SPT's native behavior.
 /// </summary>
 public sealed class StartLocalRaidPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {
-        return typeof(LocationLifecycleService).GetMethod(
-            nameof(LocationLifecycleService.StartLocalRaidAsync),
+        return typeof(MatchCallbacks).GetMethod(
+            nameof(MatchCallbacks.StartLocalRaidAsync),
             BindingFlags.Instance | BindingFlags.Public)!;
     }
 
     [PatchPrefix]
-    public static void Prefix(MongoId sessionId, StartLocalRaidRequestData request)
+    public static bool Prefix(
+        StartLocalRaidRequestData info,
+        MongoId sessionID,
+        CancellationToken cancellationToken,
+        ref ValueTask<string> __result)
     {
-        var sessions = ArenaContext.Sessions;
-        if (sessions == null)
-            return;
+        string? nativeStartIdentity = info?.ServerId;
+        bool ordinaryTagged = Protocol.IsNativeOrdinaryStartIdentity(
+            nativeStartIdentity ?? string.Empty);
+        bool ordinaryMarked = Protocol.HasNativeOrdinaryStartMarker(
+            nativeStartIdentity ?? string.Empty);
+        bool arenaTagged = !ordinaryMarked && Protocol.HasNativeStartMarker(
+            nativeStartIdentity ?? string.Empty);
 
-        if (sessions.TryConsumeArm(sessionId, request?.Location))
+        ArenaSessionService? sessions = ArenaContext.Sessions;
+        ProfileSnapshotService? snapshots = ArenaContext.Snapshots;
+        ArenaProtectedRaidStartService? protectedStart = ArenaContext.ProtectedRaidStart;
+        OrdinaryRaidLifecycleService? ordinaryRaids = ArenaContext.OrdinaryRaids;
+
+        if (ordinaryMarked)
         {
-            ArenaContext.Logger?.Info(
-                $"[ArenaMode] Arena raid starting on {request?.Location} — profile protection active.");
-            return;
+            if (!ordinaryTagged || ordinaryRaids == null || info == null)
+            {
+                __result = new ValueTask<string>(Task.FromException<string>(
+                    new InvalidOperationException(
+                        "Ordinary local-start identity was malformed or its lifecycle service is unavailable")));
+                return false;
+            }
+
+            Task<string> transaction = ordinaryRaids.GetOrStart(sessionID, info);
+            __result = new ValueTask<string>(transaction.WaitAsync(cancellationToken));
+            return false;
         }
 
-        // A raid starting WITHOUT consuming an arm while the session still reads InRaid
-        // means the previous arena raid never reached its post-raid restore (client
-        // crash / Alt-F4). Without this, the post-raid skip patch would eat THIS normal
-        // raid's results and roll the profile back to the stale snapshot.
-        if (sessions.IsInRaid(sessionId))
+        if (arenaTagged)
         {
-            ArenaContext.Logger?.Warning(
-                "[ArenaMode] Crashed arena raid detected — restoring stale snapshot before this raid starts.");
-            ArenaContext.Snapshots?.RestoreSnapshot(sessionId);
-            sessions.MarkIdle(sessionId);
-            return;
+            if (sessions == null || snapshots == null || protectedStart == null || info == null)
+            {
+                __result = new ValueTask<string>(Task.FromException<string>(
+                    new InvalidOperationException(
+                        "Arena protected-start services are unavailable; tagged local-start blocked")));
+                return false;
+            }
+
+            // GetOrStart commits one internal task before applying the caller's
+            // cancellation only to its wait. A lost HTTP response cannot cancel
+            // or duplicate SPT's protected start pipeline.
+            Task<string> transaction = protectedStart.GetOrStart(sessionID, info);
+            __result = new ValueTask<string>(transaction.WaitAsync(cancellationToken));
+            return false;
         }
 
-        // Arm expired or map mismatched (TryConsumeArm idled the session): its snapshot
-        // must not survive to be restored over later legitimate progress.
-        if (ArenaContext.Snapshots != null && ArenaContext.Snapshots.HasSnapshot(sessionId))
+        if (sessions != null && snapshots != null && protectedStart != null && info != null)
         {
-            ArenaContext.Logger?.Info("[ArenaMode] Discarding snapshot of an unconsumed arena arm.");
-            ArenaContext.Snapshots.DiscardSnapshot(sessionId);
+            __result = new ValueTask<string>(protectedStart.StartOrdinaryAsync(
+                sessionID,
+                info,
+                cancellationToken));
+            return false;
         }
+
+        // During partial initialization, preserve vanilla only when there is no
+        // evidence of an Arena-owned state. Tagged requests already failed
+        // above; an observable snapshot/transition must remain fail-closed.
+        if (sessions?.IsArmedOrInRaid(sessionID) == true
+            || snapshots?.HasSnapshot(sessionID) == true)
+        {
+            __result = new ValueTask<string>(Task.FromException<string>(
+                new InvalidOperationException(
+                    "An Arena snapshot requires explicit token-bound recovery before local-start")));
+            return false;
+        }
+
+        return true;
     }
 }

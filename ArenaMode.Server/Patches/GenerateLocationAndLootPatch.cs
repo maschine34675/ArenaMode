@@ -26,17 +26,32 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
     public static void Postfix(MongoId sessionId, string name, LocationBase __result)
     {
         var sessions = ArenaContext.Sessions;
-        if (sessions == null || __result == null || !sessions.IsInRaid(sessionId))
+        if (sessions == null || !sessions.IsInRaid(sessionId))
             return;
 
-        if (!ArenaContext.Config.Maps.TryGetValue(name.ToLowerInvariant(), out var mapConfig) || !mapConfig.Enabled)
+        var protectedTeam = sessions.IsProtectedTeamRaid(sessionId);
+        if (__result == null)
+        {
+            if (protectedTeam)
+                sessions.MarkLocationMutationFailed(sessionId, "the server returned no location clone");
             return;
+        }
+
+        if (string.IsNullOrWhiteSpace(name)
+            || !ArenaContext.Config.Maps.TryGetValue(name.ToLowerInvariant(), out var mapConfig)
+            || !mapConfig.Enabled)
+        {
+            if (protectedTeam)
+                sessions.MarkLocationMutationFailed(sessionId, $"Arena map '{name}' is no longer enabled");
+            return;
+        }
 
         try
         {
             var mode = sessions.GetStatus(sessionId).mode;
             ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode);
             sessions.StashLocationClone(sessionId, __result);
+            sessions.MarkLocationMutationReady(sessionId);
 
             var strategy = ArenaLocationMutator.IsQuietMap(mode)
                 ? "silent (the mode spawns its own squads)"
@@ -49,7 +64,16 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
         }
         catch (Exception ex)
         {
-            ArenaContext.Logger?.Error($"[ArenaMode] Location mutation failed — raid runs with vanilla spawns: {ex}");
+            if (protectedTeam)
+            {
+                sessions.MarkLocationMutationFailed(sessionId, ex.GetBaseException().Message);
+                ArenaContext.Logger?.Error(
+                    $"[ArenaMode] Protected 5v5 location mutation failed — client must end the raid as no contest: {ex}");
+                return;
+            }
+
+            ArenaContext.Logger?.Error(
+                $"[ArenaMode] Location mutation failed — solo Arena raid runs with vanilla spawns: {ex}");
         }
     }
 }

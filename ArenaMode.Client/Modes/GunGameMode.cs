@@ -1,6 +1,8 @@
 using ArenaMode.Combat;
 using ArenaMode.Config;
 using ArenaMode.Kits;
+using ArenaMode.Respawn;
+using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
 using EFT.InventoryLogic;
@@ -210,7 +212,14 @@ public sealed class GunGameMode : IArenaMode
 
     public void Tick(float deltaTime)
     {
-        if (_match == null || !_loadoutDirty || _givenUp || _ladder.Count == 0)
+        if (_match == null || !_loadoutDirty || _givenUp || _ladder.Count == 0
+            || !ArenaSession.IsActive)
+            return;
+
+        var host = Comfort.Common.Singleton<AbstractGame>.Instantiated
+            ? Comfort.Common.Singleton<AbstractGame>.Instance as LocalGame
+            : null;
+        if (host == null || host.Status != GameStatus.Started)
             return;
 
         if (Time.time < _nextSwapAt || _preloading || Combat.WeaponSwapService.IsSwapping)
@@ -225,10 +234,10 @@ public sealed class GunGameMode : IArenaMode
         if (player == null || player.HealthController == null || !player.HealthController.IsAlive)
             return;
 
-        TrySwapToCurrentTier(player);
+        TrySwapToCurrentTier(host, player);
     }
 
-    private void TrySwapToCurrentTier(Player player)
+    private void TrySwapToCurrentTier(LocalGame host, Player player)
     {
         var kit = CurrentRung;
         if (kit == null)
@@ -237,12 +246,12 @@ public sealed class GunGameMode : IArenaMode
             return;
         }
 
-        var host = Comfort.Common.Singleton<AbstractGame>.Instance as LocalGame;
-        if (host == null)
+        int raidEpoch = ArenaRespawnDriver.CaptureRaidEpoch();
+        if (!IsCurrentRaidWork(host, player, raidEpoch))
             return;
 
         _preloading = true;
-        host.StartCoroutine(SwapAfterPreload(host, player, kit));
+        host.StartCoroutine(SwapAfterPreload(host, player, kit, raidEpoch));
     }
 
     /// <summary>
@@ -257,7 +266,11 @@ public sealed class GunGameMode : IArenaMode
     /// for exactly this reason; the promotion path has to as well, and it cannot
     /// lean on the background warmup, which only runs for random kits.
     /// </summary>
-    private IEnumerator SwapAfterPreload(LocalGame host, Player player, KitDefinition kit)
+    private IEnumerator SwapAfterPreload(
+        LocalGame host,
+        Player player,
+        KitDefinition kit,
+        int raidEpoch)
     {
         KitDefinition current;
 
@@ -272,7 +285,8 @@ public sealed class GunGameMode : IArenaMode
                 yield return KitBundlePreloader.Preload(kit);
 
                 // The preload yields, sometimes for seconds. Re-check everything.
-                if (player == null
+                if (!IsCurrentRaidWork(host, player, raidEpoch)
+                    || player == null
                     || player.HealthController == null
                     || !player.HealthController.IsAlive
                     || Combat.WeaponSwapService.IsSwapping
@@ -308,6 +322,13 @@ public sealed class GunGameMode : IArenaMode
             _preloading = false;
         }
 
+        // Building an item tree is cheap compared with applying it, but it still
+        // belongs to this raid. More importantly, the following Swap edits the
+        // live inventory, so a preload continuation from Stopping/GameEnd may
+        // never reach either operation.
+        if (!IsCurrentRaidWork(host, player, raidEpoch))
+            yield break;
+
         var tierAtSwap = _tier;
 
         Weapon weapon;
@@ -334,7 +355,33 @@ public sealed class GunGameMode : IArenaMode
 
         // A refusal here means "busy" (reloading, mid weapon change) — not a
         // failure worth counting, the dirty flag brings us back in a moment.
-        Combat.WeaponSwapService.Swap(player, weapon, spares, success => OnSwapFinished(success, tierAtSwap, current));
+        Combat.WeaponSwapService.Swap(
+            host,
+            raidEpoch,
+            player,
+            weapon,
+            spares,
+            success =>
+            {
+                // WeaponSwapService already suppresses stale callbacks. Keep the
+                // mode boundary explicit too: this object must never publish a
+                // tier/toast after its LocalGame stopped.
+                if (IsCurrentRaidWork(host, player, raidEpoch))
+                    OnSwapFinished(success, tierAtSwap, current);
+            });
+    }
+
+    private static bool IsCurrentRaidWork(LocalGame host, Player player, int raidEpoch)
+    {
+        if (!ArenaRespawnDriver.IsSameActiveRaid(host, raidEpoch)
+            || !Comfort.Common.Singleton<AbstractGame>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, host)
+            || !Comfort.Common.Singleton<GameWorld>.Instantiated)
+        {
+            return false;
+        }
+
+        return ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer, player);
     }
 
     private void OnSwapFinished(bool success, int tierAtSwap, KitDefinition kit)

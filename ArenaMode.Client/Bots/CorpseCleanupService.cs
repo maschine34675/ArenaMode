@@ -106,6 +106,13 @@ internal static class CorpseCleanupService
                 if (protectedOwn.Contains(corpse))
                     continue;
 
+                // A selected PitFireTeam companion remains part of the protected
+                // five-player roster after death. Its profile id is cached before
+                // the body can leave PFT's live-follower list, so neither its
+                // renderers nor its equipment are trimmed by Arena.
+                if (Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
+                    continue;
+
                 if (ReferenceEquals(mainPlayer.InteractableObject, corpse))
                     continue;
 

@@ -14,6 +14,9 @@ public static class ArenaContext
 {
     public static ArenaSessionService? Sessions { get; internal set; }
     public static ProfileSnapshotService? Snapshots { get; internal set; }
+    public static ArenaProtectedRaidStartService? ProtectedRaidStart { get; internal set; }
+    public static ArenaProtectedRaidEndService? ProtectedRaidEnd { get; internal set; }
+    public static OrdinaryRaidLifecycleService? OrdinaryRaids { get; internal set; }
     public static MatchBotDetailsCacheService? MatchBotCache { get; internal set; }
     public static ISptLogger<PatchManager>? Logger { get; internal set; }
     public static ArenaModeConfig Config { get; internal set; } = new();

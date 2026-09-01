@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ArenaMode.Server.Services;
+using ArenaMode.Server.Patches;
 using ArenaMode.Shared;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
@@ -20,6 +21,39 @@ public record ArenaRaidStartRequest : IRequestData
 
     [JsonPropertyName("mode")]
     public string? Mode { get; set; }
+
+    [JsonPropertyName("pitFireTeamTeam")]
+    public bool PitFireTeamTeam { get; set; }
+
+    [JsonPropertyName("requestId")]
+    public string? RequestId { get; set; }
+}
+
+public record ArenaRaidLifecycleRequest : IRequestData
+{
+    [JsonPropertyName("armToken")]
+    public string? ArmToken { get; set; }
+
+    [JsonPropertyName("startFailed")]
+    public bool StartFailed { get; set; }
+
+    [JsonPropertyName("recoverWithoutNativeEnd")]
+    public bool RecoverWithoutNativeEnd { get; set; }
+
+    [JsonPropertyName("nativeEndIdentity")]
+    public string? NativeEndIdentity { get; set; }
+}
+
+public record OrdinaryRaidLifecycleRequest : IRequestData
+{
+    [JsonPropertyName("processId")]
+    public string? ProcessId { get; set; }
+
+    [JsonPropertyName("startIdentity")]
+    public string? StartIdentity { get; set; }
+
+    [JsonPropertyName("nativeEndIdentity")]
+    public string? NativeEndIdentity { get; set; }
 }
 
 /// <summary>
@@ -106,41 +140,376 @@ public sealed class ArenaModeRouter : StaticRouter
             async (url, info, sessionId, output, ct) =>
                 Instance != null ? await Instance.HandleRaidStart(info, sessionId, ct) : Json(new { armed = false })),
 
-        new RouteAction<EmptyRequestData>(
+        new RouteAction<ArenaRaidLifecycleRequest>(
             Protocol.RaidCancelRoute,
+            async (url, info, sessionId, output, ct) =>
+                Instance != null
+                    ? await Instance.HandleRaidCancel(info, sessionId, ct)
+                    : Json(new { disarmed = false, state = ArenaSessionState.Idle.ToString() })),
+
+        new RouteAction<ArenaRaidLifecycleRequest>(
+            Protocol.RaidConfirmRoute,
             (url, info, sessionId, output, _) =>
             {
-                // Cancel only ever applies to an armed-but-not-started raid. A running
-                // raid keeps its snapshot — the post-raid skip patch consumes it.
-                var state = Sessions?.GetStatus(sessionId).state ?? ArenaSessionState.Idle;
-                if (state == ArenaSessionState.Armed)
+                bool confirmed = Sessions?.ConfirmClientRaidStarted(
+                    sessionId,
+                    info.ArmToken,
+                    info.NativeEndIdentity) == true;
+                return new ValueTask<string>(Json(new
                 {
-                    Snapshots?.DiscardSnapshot(sessionId);
-                    Sessions?.MarkIdle(sessionId);
-                    return new ValueTask<string>(Json(new { disarmed = true }));
-                }
-
-                return new ValueTask<string>(Json(new { disarmed = false, state = state.ToString() }));
+                    confirmed,
+                    state = Sessions?.GetStatus(sessionId).state.ToString()
+                        ?? ArenaSessionState.Idle.ToString(),
+                }));
             }),
 
-        new RouteAction<EmptyRequestData>(
+        new RouteAction<ArenaRaidLifecycleRequest>(
             Protocol.RaidEndRoute,
             async (url, info, sessionId, output, ct) =>
-                Instance != null ? await Instance.HandleRaidEnd(sessionId, ct) : Json(new { restored = false })),
+                Instance != null
+                    ? await Instance.HandleRaidEnd(info, sessionId, ct)
+                    : Json(new { restored = false })),
+
+        new RouteAction<OrdinaryRaidLifecycleRequest>(
+            Protocol.OrdinaryConfirmRoute,
+            async (url, info, sessionId, output, ct) =>
+                Instance != null
+                    ? await Instance.HandleOrdinaryConfirm(info, sessionId, ct)
+                    : Json(new { confirmed = false })),
+
+        new RouteAction<OrdinaryRaidLifecycleRequest>(
+            Protocol.OrdinaryRecoveryRoute,
+            async (url, info, sessionId, output, ct) =>
+                Instance != null
+                    ? await Instance.HandleOrdinaryRecovery(info, sessionId, ct)
+                    : Json(new { recovered = false })),
 
         new RouteAction<EmptyRequestData>(
             Protocol.StatusRoute,
-            (url, info, sessionId, output, _) =>
-            {
-                var (state, map, mode) = Sessions?.GetStatus(sessionId) ?? (ArenaSessionState.Idle, null, null);
-                return new ValueTask<string>(Json(new { state = state.ToString(), map, mode }));
-            }),
+            async (url, info, sessionId, output, ct) =>
+                Instance != null
+                    ? await Instance.HandleStatus(sessionId, ct)
+                    : Json(new { state = ArenaSessionState.Idle.ToString() })),
     ];
 
     private async ValueTask<string> HandleRaidStart(ArenaRaidStartRequest request, MongoId sessionId, CancellationToken ct)
     {
+        if (ArenaContext.OrdinaryRaids?.HasActiveTransaction(sessionId) == true)
+        {
+            return Json(new
+            {
+                armed = false,
+                state = "OrdinaryRaidActive",
+                reason = "An ordinary local raid already owns this session",
+            });
+        }
+
+        using (await ArenaRaidStartGate.EnterAsync(sessionId, ct))
+        {
+            if (ArenaContext.OrdinaryRaids?.HasActiveTransaction(sessionId) == true)
+            {
+                return Json(new
+                {
+                    armed = false,
+                    state = "OrdinaryRaidActive",
+                    reason = "An ordinary local raid already owns this session",
+                });
+            }
+
+            return await HandleRaidStartLocked(request, sessionId, ct);
+        }
+    }
+
+    private async ValueTask<string> HandleStatus(
+        MongoId sessionId,
+        CancellationToken ct)
+    {
+        using (await ArenaRaidStartGate.EnterAsync(sessionId, ct))
+        {
+            var (state, map, mode) = Sessions?.GetStatus(sessionId)
+                ?? (ArenaSessionState.Idle, null, null);
+            var (protectedTeam, locationReady, locationFailure) =
+                Sessions?.GetProtectedTeamRaidValidation(sessionId)
+                ?? (false, false, null);
+            var ordinary = ArenaContext.OrdinaryRaids?.GetRecoveryStatus(sessionId)
+                ?? (false, null, null, null, null, false);
+            return Json(new
+            {
+                state = state.ToString(),
+                map,
+                mode,
+                armToken = Sessions?.GetArmToken(sessionId),
+                clientRaidStarted = Sessions?.IsClientRaidStarted(sessionId) == true,
+                pitFireTeamTeam = protectedTeam,
+                locationReady,
+                locationFailure,
+                ordinaryRaidState = ordinary.Item2?.ToString(),
+                ordinaryStartIdentity = ordinary.Item3,
+                ordinaryClientProcessId = ordinary.Item4,
+                ordinaryNativeEndIdentity = ordinary.Item5,
+                ordinaryClientRaidStarted = ordinary.Item6,
+            });
+        }
+    }
+
+    private async ValueTask<string> HandleOrdinaryConfirm(
+        OrdinaryRaidLifecycleRequest request,
+        MongoId sessionId,
+        CancellationToken ct)
+    {
+        using (await ArenaRaidStartGate.EnterAsync(sessionId, ct))
+        {
+            bool confirmed = ArenaContext.OrdinaryRaids?.ConfirmClientRaidStarted(
+                sessionId,
+                request.StartIdentity,
+                request.ProcessId,
+                request.NativeEndIdentity) == true;
+            return Json(new { confirmed });
+        }
+    }
+
+    private async ValueTask<string> HandleOrdinaryRecovery(
+        OrdinaryRaidLifecycleRequest request,
+        MongoId sessionId,
+        CancellationToken ct)
+    {
+        using (await ArenaRaidStartGate.EnterAsync(sessionId, ct))
+        {
+            OrdinaryRaidLifecycleService? ordinary = ArenaContext.OrdinaryRaids;
+            string? reason = ordinary == null
+                ? "ordinary lifecycle service is unavailable"
+                : null;
+            if (ordinary == null || !ordinary.TryBeginAbandonedStartRecovery(
+                    sessionId,
+                    request.StartIdentity,
+                    request.ProcessId,
+                    out reason))
+            {
+                return Json(new { recovered = false, reason });
+            }
+
+            try
+            {
+                if (ArenaContext.ProtectedRaidEnd == null)
+                    throw new InvalidOperationException(
+                        "ordinary lifecycle cleanup service is unavailable");
+                ArenaContext.ProtectedRaidEnd.ResetNonProfileLifecycle();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(
+                    $"[ArenaMode] Ordinary abandoned-start lifecycle cleanup remains retryable: {ex}");
+                return Json(new
+                {
+                    recovered = false,
+                    reason = "ordinary start cleanup failed and remains retryable",
+                });
+            }
+
+            bool recovered = ordinary.CompleteAbandonedStartRecovery(
+                sessionId,
+                request.StartIdentity);
+            return Json(new
+            {
+                recovered,
+                state = recovered ? "Idle" : "Ending",
+            });
+        }
+    }
+
+    private async ValueTask<string> HandleRaidCancel(
+        ArenaRaidLifecycleRequest request,
+        MongoId sessionId,
+        CancellationToken ct)
+    {
+        if (Sessions == null || Snapshots == null)
+            return Json(new { disarmed = false, state = ArenaSessionState.Idle.ToString() });
+
+        using (await ArenaRaidStartGate.EnterAsync(sessionId, ct))
+        {
+            ArenaSessionState state = Sessions.GetStatus(sessionId).state;
+            if (state == ArenaSessionState.Idle)
+                return Json(new { disarmed = false, state = state.ToString() });
+
+            if (state == ArenaSessionState.Armed)
+            {
+                if (!Sessions.TryBeginArmedCancellation(sessionId, request.ArmToken))
+                {
+                    return Json(new
+                    {
+                        disarmed = false,
+                        state = state.ToString(),
+                        reason = "Arena arm token did not match",
+                    });
+                }
+
+                Snapshots.DiscardSnapshot(sessionId);
+                Sessions.MarkIdle(sessionId);
+                return Json(new { disarmed = true, state = ArenaSessionState.Idle.ToString() });
+            }
+
+            if ((state == ArenaSessionState.InRaid
+                    || state == ArenaSessionState.RecoveringStartFailure)
+                && request.StartFailed)
+            {
+                if (ArenaContext.ProtectedRaidEnd == null)
+                {
+                    return Json(new
+                    {
+                        disarmed = false,
+                        state = state.ToString(),
+                        reason = "Arena failed-start lifecycle cleanup is unavailable",
+                    });
+                }
+
+                bool recoveryAccepted = state == ArenaSessionState.InRaid
+                    ? Sessions.TryBeginFailedStartRecovery(sessionId, request.ArmToken)
+                    : Sessions.CanRetryFailedStartRecovery(sessionId, request.ArmToken);
+                if (!recoveryAccepted)
+                {
+                    return Json(new
+                    {
+                        disarmed = false,
+                        state = state.ToString(),
+                        reason = "Arena raid was already confirmed or its arm token did not match",
+                    });
+                }
+
+                try
+                {
+                    ArenaContext.ProtectedRaidEnd.ResetNonProfileLifecycle();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(
+                        $"[ArenaMode] Failed-start lifecycle cleanup failed before snapshot restore: {ex}");
+                    return Json(new
+                    {
+                        disarmed = false,
+                        state = ArenaSessionState.RecoveringStartFailure.ToString(),
+                        reason = "Arena start failed and its server lifecycle cleanup remains retryable",
+                    });
+                }
+
+                if (!Snapshots.RestoreSnapshot(sessionId))
+                {
+                    return Json(new
+                    {
+                        disarmed = false,
+                        state = ArenaSessionState.RecoveringStartFailure.ToString(),
+                        reason = "Arena start failed but its profile snapshot could not be restored",
+                    });
+                }
+
+                try
+                {
+                    // Recovery is committed once the exact task has settled and
+                    // the snapshot swap succeeds. Do not let a lost HTTP reply
+                    // cancel persistence and strand RecoveringStartFailure.
+                    await ArenaContext.ProtectedRaidEnd
+                        .PersistRestoredProfileAfterFailedStartAsync(sessionId);
+                }
+                catch (Exception ex)
+                {
+                    // The in-memory profile and the still-clean pre-raid disk
+                    // profile are both safe; report the persistence warning and
+                    // still enter the bounded PFT finalization window below.
+                    _logger.Error($"[ArenaMode] Failed to persist restored profile after local-start failure: {ex}");
+                }
+
+                // The server raid-start already published InRaid, so PFT follower
+                // generation or teardown work may have escaped even though the
+                // client never confirmed play. Preserve the same bounded delayed
+                // side-effect protection used by a normal protected raid end.
+                Sessions.BeginPostRaidFinalization(sessionId);
+                return Json(new
+                {
+                    disarmed = true,
+                    restored = true,
+                    state = ArenaSessionState.Idle.ToString(),
+                });
+            }
+
+            return Json(new
+            {
+                disarmed = false,
+                state = state.ToString(),
+                reason = state == ArenaSessionState.InRaid
+                    ? "Arena raid is running; only an unconfirmed failed start can be cancelled"
+                    : "Arena profile transition is still in progress",
+            });
+        }
+    }
+
+    private async ValueTask<string> HandleRaidStartLocked(
+        ArenaRaidStartRequest request,
+        MongoId sessionId,
+        CancellationToken ct)
+    {
         if (Sessions == null || Snapshots == null)
             return Json(new { armed = false, reason = "mod not initialized" });
+
+        if (!Protocol.IsLifecycleRequestId(request.RequestId ?? string.Empty))
+        {
+            return Json(new
+            {
+                armed = false,
+                state = ArenaSessionState.Idle.ToString(),
+                reason = "Arena raid-start request identity was missing or malformed",
+            });
+        }
+
+        ArenaSessionState existingState = Sessions.GetStatus(sessionId).state;
+        if (existingState != ArenaSessionState.Idle)
+        {
+            // SPT's installed POST client retries the same serialized body after
+            // a transport failure. If the first response was lost after commit,
+            // replay the original token so the client can consume or cancel the
+            // exact snapshot it already owns. A different request remains a
+            // hard failure and never replaces the active arm.
+            if (existingState == ArenaSessionState.Armed
+                && Snapshots.HasSnapshot(sessionId)
+                && Sessions.TryReplayArmedRequest(
+                    sessionId,
+                    request.Map,
+                    request.Mode,
+                    request.PitFireTeamTeam,
+                    request.RequestId,
+                    out string? replayedArmToken))
+            {
+                _logger.Info(
+                    $"[ArenaMode] Replayed identical committed raid-start for session {sessionId}.");
+                return Json(new
+                {
+                    armed = true,
+                    snapshotTaken = true,
+                    armToken = replayedArmToken,
+                    replayed = true,
+                });
+            }
+
+            // Never interpret a replayed /raid-start as crash recovery. A live
+            // Arena necessarily owns a snapshot; restoring it here would roll
+            // back the player mid-raid and drop the PFT guard. A restarted
+            // client uses the explicit exact-token raid-end recovery route.
+            return Json(new
+            {
+                armed = false,
+                state = existingState.ToString(),
+                reason = $"Arena session is already {existingState}",
+            });
+        }
+
+
+        if (Sessions.IsExternalProfileWriteProtected(sessionId))
+        {
+            return Json(new
+            {
+                armed = false,
+                state = existingState.ToString(),
+                reason = "PitFireTeam post-raid finalization is still settling; retry shortly",
+            });
+        }
 
         // A leftover snapshot means the previous arena raid never reached its
         // post-raid restore (client crash mid-raid). The disk profile is clean
@@ -149,13 +518,36 @@ public sealed class ArenaModeRouter : StaticRouter
         if (Snapshots.HasSnapshot(sessionId))
         {
             _logger.Warning("[ArenaMode] Stale snapshot from a previous arena raid found — restoring first.");
-            if (Snapshots.RestoreSnapshot(sessionId))
-                await _saveServer.SaveProfileAsync(sessionId, ct);
+            if (!Snapshots.RestoreSnapshot(sessionId))
+            {
+                return Json(new
+                {
+                    armed = false,
+                    state = ArenaSessionState.Idle.ToString(),
+                    reason = "stale Arena profile snapshot could not be restored; retry retained",
+                });
+            }
+
+            await _saveServer.SaveProfileAsync(sessionId, ct);
             Sessions.MarkIdle(sessionId);
         }
 
+        string? pitFireTeamRejection = PitFireTeamRaidStartPolicy.GetRejectionReason(
+            request.PitFireTeamTeam,
+            request.Mode,
+            PitFireTeamDynamicPersistencePatches.ProtectionReady,
+            PitFireTeamDynamicPersistencePatches.IncompatibilityReason);
+        if (pitFireTeamRejection != null)
+        {
+            _logger.Warning(
+                $"[ArenaMode] Rejected PitFireTeam team Arena before snapshot/arm: {pitFireTeamRejection}");
+            return Json(new { armed = false, reason = pitFireTeamRejection });
+        }
+
         if (!ArenaContext.Config.IsMapEnabled(request.Map))
+        {
             return Json(new { armed = false, reason = $"map '{request.Map}' not enabled for arena" });
+        }
 
         // SVM (or any config tool) forcing the raid-menu AI amount to "NoBots" would
         // short-circuit spawn systems upstream of every cap we set. Warn loudly.
@@ -165,51 +557,230 @@ public sealed class ArenaModeRouter : StaticRouter
                 "[ArenaMode] inraid config forces AiAmount=NoBots (SVM preset?) — the arena will have NO bots!");
         }
 
-        if (!Snapshots.TakeSnapshot(sessionId))
-            return Json(new { armed = false, reason = "profile snapshot failed" });
+        string armToken = request.RequestId!;
+        if (!Sessions.BeginArmPreparation(
+                sessionId,
+                request.Map!,
+                request.Mode,
+                request.PitFireTeamTeam,
+                armToken))
+        {
+            return Json(new
+            {
+                armed = false,
+                reason = "another Arena arm is already being prepared",
+            });
+        }
 
-        Sessions.Arm(sessionId, request.Map!, request.Mode);
-        return Json(new { armed = true, snapshotTaken = true });
+        bool snapshotTaken;
+        try
+        {
+            snapshotTaken = Snapshots.TakeSnapshot(sessionId);
+        }
+        catch (Exception ex)
+        {
+            Sessions.CancelArmPreparation(sessionId);
+            Snapshots.DiscardSnapshot(sessionId);
+            _logger.Error($"[ArenaMode] Profile snapshot threw while arming Arena: {ex}");
+            return Json(new { armed = false, reason = "profile snapshot failed" });
+        }
+
+        if (!snapshotTaken)
+        {
+            Sessions.CancelArmPreparation(sessionId);
+            Snapshots.DiscardSnapshot(sessionId);
+            return Json(new { armed = false, reason = "profile snapshot failed" });
+        }
+
+        if (!Sessions.CompleteArmPreparation(sessionId))
+        {
+            Snapshots.DiscardSnapshot(sessionId);
+            Sessions.CancelArmPreparation(sessionId);
+            return Json(new { armed = false, reason = "protected Arena arm was cancelled during snapshot" });
+        }
+
+        return Json(new { armed = true, snapshotTaken = true, armToken });
     }
 
-    private async ValueTask<string> HandleRaidEnd(MongoId sessionId, CancellationToken ct)
+    private async ValueTask<string> HandleRaidEnd(
+        ArenaRaidLifecycleRequest request,
+        MongoId sessionId,
+        CancellationToken ct)
     {
         if (Sessions == null || Snapshots == null)
             return Json(new { restored = false });
 
-        var state = Sessions.GetStatus(sessionId).state;
-
-        // The client fires this at GameEnd, which is BEFORE its /client/match/local/end
-        // request goes out. While the session is InRaid the snapshot and the state MUST
-        // stay untouched: the authoritative restore runs inside the HandlePostRaidPmc
-        // skip patch when local/end is processed. Consuming the state here would make
-        // that patch think it is a normal raid and let full post-raid processing through
-        // (the exact race the first playtest hit).
-        if (state == ArenaSessionState.InRaid)
+        using (await ArenaRaidStartGate.EnterAsync(sessionId, ct))
         {
-            _logger.Info("[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.");
-            return Json(new { restored = false, deferred = true });
-        }
+            ArenaSessionState state = Sessions.GetStatus(sessionId).state;
 
-        // Armed-but-never-started leftovers: discard, nothing was mutated yet.
-        if (state == ArenaSessionState.Armed)
-        {
-            Snapshots.DiscardSnapshot(sessionId);
-            Sessions.MarkIdle(sessionId);
-            return Json(new { restored = false, disarmed = true });
-        }
+            if (state == ArenaSessionState.Idle
+                && Sessions.IsCompletedNativeEndArm(sessionId, request.ArmToken))
+            {
+                return Json(new
+                {
+                    restored = true,
+                    completed = true,
+                    state = ArenaSessionState.Idle.ToString(),
+                });
+            }
 
-        // Idle: the skip patch already restored (normal path) — or a stale snapshot
-        // survived an unusual flow; restore it defensively.
-        var restored = false;
-        if (Snapshots.HasSnapshot(sessionId))
-        {
-            restored = Snapshots.RestoreSnapshot(sessionId);
-            if (restored)
-                await _saveServer.SaveProfileAsync(sessionId, ct);
-        }
+            if (state == ArenaSessionState.FinalizingEnd)
+            {
+                if (!Sessions.TryGetFinalizingNativeEnd(
+                        sessionId,
+                        request.ArmToken,
+                        out string? finalizingIdentity)
+                    || ArenaContext.ProtectedRaidEnd == null)
+                {
+                    return Json(new
+                    {
+                        restored = false,
+                        completed = false,
+                        state = state.ToString(),
+                        reason = "Arena end token did not match the finalizing transaction",
+                    });
+                }
 
-        return Json(new { restored });
+                try
+                {
+                    await ArenaContext.ProtectedRaidEnd
+                        .GetOrStart(sessionId, finalizingIdentity!)
+                        .WaitAsync(ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    // The shared persistence task continues independently. Let
+                    // the HTTP cancellation propagate; the retained client token
+                    // can acknowledge it on the next negotiation.
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(
+                        $"[ArenaMode] Token-bound raid-end recovery remains retryable: {ex}");
+                    return Json(new
+                    {
+                        restored = false,
+                        completed = false,
+                        state = ArenaSessionState.FinalizingEnd.ToString(),
+                        reason = ex.GetBaseException().Message,
+                    });
+                }
+
+                return Json(new
+                {
+                    restored = true,
+                    completed = Sessions.IsCompletedNativeEndArm(
+                        sessionId,
+                        request.ArmToken),
+                    state = Sessions.GetStatus(sessionId).state.ToString(),
+                });
+            }
+
+            // GameEnd precedes /client/match/local/end. Never consume InRaid here;
+            // the post-raid prefix owns the authoritative restore. A new client
+            // process can explicitly recover a crashed, already-confirmed raid
+            // with the exact arm token and the server-bound native end identity.
+            if (state == ArenaSessionState.InRaid)
+            {
+                if (request.RecoverWithoutNativeEnd
+                    && ArenaContext.ProtectedRaidEnd == null)
+                {
+                    return Json(new
+                    {
+                        restored = false,
+                        completed = false,
+                        state = state.ToString(),
+                        reason = "Arena protected-end service is unavailable",
+                    });
+                }
+
+                if (request.RecoverWithoutNativeEnd
+                    && Sessions.TryGetCrashRecoveryNativeEnd(
+                        sessionId,
+                        request.ArmToken,
+                        out string? crashRecoveryIdentity))
+                {
+                    if (!Snapshots.RestoreSnapshot(sessionId))
+                    {
+                        return Json(new
+                        {
+                            restored = false,
+                            completed = false,
+                            state = state.ToString(),
+                            reason = "crashed Arena snapshot could not be restored",
+                        });
+                    }
+
+                    if (!Sessions.BeginNativeEndFinalization(
+                            sessionId,
+                            crashRecoveryIdentity))
+                    {
+                        return Json(new
+                        {
+                            restored = false,
+                            completed = false,
+                            state = Sessions.GetStatus(sessionId).state.ToString(),
+                            reason = "crashed Arena end transaction could not be claimed",
+                        });
+                    }
+
+                    try
+                    {
+                        await ArenaContext.ProtectedRaidEnd!
+                            .GetOrStart(sessionId, crashRecoveryIdentity!)
+                            .WaitAsync(ct);
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(
+                            $"[ArenaMode] Crashed Arena recovery remains retryable: {ex}");
+                        return Json(new
+                        {
+                            restored = false,
+                            completed = false,
+                            state = ArenaSessionState.FinalizingEnd.ToString(),
+                            reason = ex.GetBaseException().Message,
+                        });
+                    }
+
+                    return Json(new
+                    {
+                        restored = true,
+                        completed = true,
+                        state = ArenaSessionState.Idle.ToString(),
+                    });
+                }
+
+                _logger.Info(
+                    "[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.");
+                return Json(new { restored = false, deferred = true, state = state.ToString() });
+            }
+
+            // Only the exact current arm may disarm an Arena that never reached
+            // StartLocalRaid. A delayed raid-end from an older run cannot touch a
+            // new snapshot. Preparing/recovery and Idle are observation-only;
+            // stale Idle snapshots are handled by the next start transaction.
+            if (state == ArenaSessionState.Armed
+                && Sessions.TryBeginArmedCancellation(sessionId, request.ArmToken))
+            {
+                Snapshots.DiscardSnapshot(sessionId);
+                Sessions.MarkIdle(sessionId);
+                return Json(new
+                {
+                    restored = false,
+                    disarmed = true,
+                    state = ArenaSessionState.Idle.ToString(),
+                });
+            }
+
+            return Json(new { restored = false, state = state.ToString() });
+        }
     }
 
     private static string Json(object value) => JsonSerializer.Serialize(value);

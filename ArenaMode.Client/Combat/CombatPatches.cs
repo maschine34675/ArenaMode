@@ -7,6 +7,7 @@ using EFT;
 using EFT.Ballistics;
 using EFT.HealthSystem;
 using EFT.Interactive;
+using EFT.InventoryLogic;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System;
@@ -32,6 +33,11 @@ internal static class CombatPatches
     public static void Enable()
     {
         new KillCapturePatch().Enable();
+        new TeamStagingShotPatch().Enable();
+        new TeamStagingPlayerDamagePatch().Enable();
+        new TeamStagingExplosionArmorPatch().Enable();
+        new TeamStagingDamagePatch().Enable();
+        new TeamStagingContusionPatch().Enable();
         new DamageFeedPatch().Enable();
         new RagdollImpulsePatch().Enable();
     }
@@ -41,6 +47,41 @@ internal static class CombatPatches
     /// <summary>Killfeed/HUD names go through TMP rich text — neuter markup in nicknames.</summary>
     private static string Sanitize(string name)
         => string.IsNullOrEmpty(name) ? "?" : name.Replace('<', '‹').Replace('>', '›');
+
+    /// <summary>
+    /// One fail-closed decision for every mutation surface used by shots,
+    /// environmental damage and explosions. The victim is the physical Player
+    /// body, including PitFireTeam's derived follower bodies.
+    /// </summary>
+    private static bool ShouldBlockProtectedTeamMutation(Player victim, string surface)
+    {
+        try
+        {
+            if (ArenaMatchService.TeamStartAbortPending)
+                return true;
+
+            if (!ArenaSession.IsActive)
+                return false;
+
+            var tactical = ArenaMatchService.Current?.Mode as TacticalMode;
+            return tactical != null && tactical.ShouldBlockStagingDamage(victim);
+        }
+        catch (Exception ex)
+        {
+            var tactical = ArenaMatchService.Current?.Mode as TacticalMode;
+            if (tactical?.FailClosedStagingGuard(
+                    $"the {surface} guard could not verify a safe actor state") == true)
+            {
+                Plugin.ModLogger.LogError(
+                    $"Arena protected-team {surface} guard failed closed: {ex}");
+                return true;
+            }
+
+            Plugin.ModLogger.LogWarning(
+                $"Arena {surface} guard failed outside protected team staging/aftermath: {ex.Message}");
+            return false;
+        }
+    }
 
     private sealed class KillCapturePatch : ModulePatch
     {
@@ -121,6 +162,123 @@ internal static class CombatPatches
                 Plugin.ModLogger.LogWarning($"Arena kill capture failed: {ex}");
             }
         }
+    }
+
+    /// <summary>
+    /// Stop bullets before Player.ProceedDamageThroughArmor changes durability.
+    /// The later ActiveHealthController guard remains necessary for explosions,
+    /// fire, falls and every other non-shot health path.
+    /// </summary>
+    private sealed class TeamStagingShotPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(
+                typeof(Player),
+                nameof(Player.ApplyShot),
+                new[]
+                {
+                    typeof(DamageInfo),
+                    typeof(EBodyPart),
+                    typeof(EBodyPartColliderType),
+                    typeof(EArmorPlateCollider),
+                    typeof(ShotId)
+                });
+
+        [PatchPrefix]
+        private static bool Prefix(Player __instance, ref PlayerHitInfo __result)
+        {
+            if (!ShouldBlockProtectedTeamMutation(__instance, "shot"))
+                return true;
+
+            __result = null;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Environmental and explosion damage reaches Player.ApplyDamageInfo before
+    /// ActiveHealthController.ApplyDamage. Blocking only the latter still changes
+    /// wound/aggressor/debuff/stamina/BeingHit state, so stop at Player first.
+    /// </summary>
+    private sealed class TeamStagingPlayerDamagePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(
+                typeof(Player),
+                nameof(Player.ApplyDamageInfo),
+                new[]
+                {
+                    typeof(DamageInfo),
+                    typeof(EBodyPart),
+                    typeof(EBodyPartColliderType),
+                    typeof(float)
+                });
+
+        [PatchPrefix]
+        private static bool Prefix(Player __instance)
+            => !ShouldBlockProtectedTeamMutation(__instance, "player-damage");
+    }
+
+    /// <summary>
+    /// Grenade armor durability is applied after environmental body damage via a
+    /// separate Player method. It must share the same staging/aftermath freeze.
+    /// </summary>
+    private sealed class TeamStagingExplosionArmorPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(
+                typeof(Player),
+                nameof(Player.ApplyExplosionDamageToArmor),
+                new[]
+                {
+                    typeof(Dictionary<ExplosionDamageInfo, float>),
+                    typeof(DamageInfo)
+                });
+
+        [PatchPrefix]
+        private static bool Prefix(Player __instance)
+            => !ShouldBlockProtectedTeamMutation(__instance, "explosion-armor");
+    }
+
+    /// <summary>
+    /// A PitFireTeam 5v5 is not live until all ten actors exist and every
+    /// opponent/follower pair is mutually hostile. Async bot creation otherwise
+    /// lets the first arrivals kill an incomplete side while the remaining
+    /// profiles are still loading. Only known actors in that short staging phase
+    /// are protected; every other raid and every unrelated body fails open.
+    /// </summary>
+    private sealed class TeamStagingDamagePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(ActiveHealthController), nameof(ActiveHealthController.ApplyDamage),
+                new[] { typeof(EBodyPart), typeof(float), typeof(DamageInfo) });
+
+        [PatchPrefix]
+        private static bool Prefix(ActiveHealthController __instance, ref float __result)
+        {
+            if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage"))
+                return true;
+
+            __result = 0f;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// ExplosionSharedMethods applies contusion independently after body and
+    /// armor damage. Blocking it keeps the protected aftermath mutation-free.
+    /// </summary>
+    private sealed class TeamStagingContusionPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(
+                typeof(ActiveHealthController),
+                nameof(ActiveHealthController.DoContusion),
+                new[] { typeof(float), typeof(float) });
+
+        [PatchPrefix]
+        private static bool Prefix(ActiveHealthController __instance)
+            => !ShouldBlockProtectedTeamMutation(__instance?.Player, "contusion");
     }
 
     private sealed class DamageFeedPatch : ModulePatch

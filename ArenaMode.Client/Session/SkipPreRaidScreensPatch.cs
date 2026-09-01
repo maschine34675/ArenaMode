@@ -1,3 +1,4 @@
+using ArenaMode.Compat;
 using ArenaMode.Config;
 using EFT;
 using EFT.Bots;
@@ -11,14 +12,17 @@ using System.Threading.Tasks;
 namespace ArenaMode.Session;
 
 /// <summary>
-/// Sends an arena raid straight from the map to the loading screen, past the
-/// three clicks in between: Game Settings, Insurance and Confirmation.
+/// Sends a solo arena raid straight from the map to the loading screen, past the
+/// three clicks in between: Game Settings, Insurance and Confirmation. When
+/// PitFireTeam is installed, its confirmation callback remains in the path so
+/// the server-backed companion selection can populate the native group first.
 ///
 /// None of them decides anything in an arena raid. Bot amount, difficulty and
 /// raid length are all overwritten server-side on the per-raid location clone;
 /// insurance is meaningless when the profile is snapshotted and restored around
-/// the raid; and the confirmation screen confirms a loadout that gets swapped for
-/// a kit in the first second anyway.
+/// the raid; and in solo Arena the confirmation screen confirms a loadout that
+/// gets swapped for a kit in the first second anyway. Team Arena deliberately
+/// keeps that PMC body and loadout, so it also keeps the confirmation step.
 ///
 /// The skip is built out of BSG's own transitions rather than a jump to the end:
 /// method_50 hands off to method_52 exactly as the scav path already does, and
@@ -130,6 +134,13 @@ internal static class SkipPreRaidScreensPatch
         {
             try
             {
+                // PitFireTeam 0.10.0 establishes auto-join members in its
+                // MatchMakerAcceptScreen.Show prefix. Let that native screen and
+                // callback run whenever the plugin is present; the final Arena
+                // gate authenticates the resulting roster before server arming.
+                if (PitFireTeamCompat.IsInstalled)
+                    return true;
+
                 if (!WouldBeArena(__instance.raidSettings_0))
                     return true;
 

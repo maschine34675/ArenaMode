@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Compat;
 using ArenaMode.Events;
 using ArenaMode.Kits;
 using ArenaMode.Session;
@@ -22,6 +23,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 {
     private static readonly AccessTools.FieldRef<Player, EFT.Interactive.Corpse> CorpseField =
         AccessTools.FieldRefAccess<Player, EFT.Interactive.Corpse>("Corpse");
+    private static readonly ArenaRaidEpoch RaidEpoch = new ArenaRaidEpoch();
 
     public static bool IsRespawnInProgress { get; private set; }
     public static bool StandDown { get; internal set; }
@@ -45,20 +47,32 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         if (deadPlayer == null || !deadPlayer.IsYourPlayer)
         {
             StandDown = true;
+            if (PitFireTeamCompat.HasFrozenTeamRoster)
+            {
+                Modes.ArenaMatchService.ScheduleFailedStartAbort(
+                    "Arena could not identify the original local PMC at death");
+                return;
+            }
+
             LocalGameAccessor.InvokeDeathScreen(game);
             return;
         }
 
         IsRespawnInProgress = true;
         DeathsThisSession++;
+        int raidEpoch = RaidEpoch.Capture();
         Plugin.ModLogger.LogInfo($"Arena death #{DeathsThisSession} — instant respawn.");
 
         ArenaEvents.RaisePlayerDied(deadPlayer);
         game.StartCoroutine(FixOwnCorpseRenders(deadPlayer));
-        game.StartCoroutine(RespawnRoutine(game, deadPlayer.Position));
+        game.StartCoroutine(RespawnRoutine(game, deadPlayer, deadPlayer.Position, raidEpoch));
     }
 
-    private static IEnumerator RespawnRoutine(LocalGame game, Vector3 corpsePosition)
+    private static IEnumerator RespawnRoutine(
+        LocalGame game,
+        LocalPlayer deadPlayer,
+        Vector3 corpsePosition,
+        int raidEpoch)
     {
         // A mode may keep the player down. Tactical does: death costs you the
         // round, and the next one is when you come back. Waited out BEFORE the
@@ -69,21 +83,40 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         // The mode is re-read every frame rather than captured: it is a per-raid
         // object, and holding a reference across a wait of unknown length is how
         // a mode that ended keeps a player dead.
-        while (Modes.ArenaMatchService.Current?.Mode?.HoldRespawn == true)
+        while (Modes.ArenaMatchService.Current?.Mode?.HoldRespawn == true
+               && IsSameActiveRaid(game, raidEpoch)
+               && !StandDown)
             yield return null;
 
-        // The loop ALSO exits when the match is gone, because Current then
-        // null-propagates to false — and that is a raid ending, not a release.
-        // Without this the routine would wake up and run the whole respawn
-        // pipeline into a raid already in teardown, with the owner-cleanup guard
-        // switched off. LiveKitRespawn re-checks after its waits for exactly this
-        // reason; this wait is unbounded and had no equivalent.
-        //
-        // Status rather than StandDown: by the time the coroutine resumes,
-        // ResetSession has already cleared StandDown.
-        if (game == null || game.Status != GameStatus.Started || !ArenaSession.IsActive)
+        // HoldRespawn also releases when GameEnd clears the current match. Exit
+        // before inspecting the deliberately frozen finalization roster; that
+        // roster can outlive the stopped game briefly and must never schedule an
+        // abort that later poisons the next ordinary raid.
+        if (!IsSameActiveRaid(game, raidEpoch) || StandDown)
+        {
+            EndPipelineUse(raidEpoch);
+            yield break;
+        }
+
+        // A frozen PitFireTeam roster may never enter Redeploy's body-replacement
+        // pipeline. Tactical normally keeps this coroutine parked until the raid
+        // ends; this independent guard turns any mode drift or accidental hold
+        // release into a protected raid stop instead of stranding the followers
+        // on their old leader object.
+        if (PitFireTeamCompat.HasFrozenTeamRoster)
         {
             IsRespawnInProgress = false;
+            StandDown = true;
+            Plugin.ModLogger.LogError(
+                "Arena blocked an attempted respawn while a PitFireTeam roster was active; ending the protected raid.");
+
+            // One coordinator owns every invalid protected start/respawn. It
+            // uses LocalGame.ProfileId before MainPlayer exists, keeps PFT death
+            // and persistence suppression live across failures, and retries on
+            // subsequent ticks instead of falling into a second unguarded Stop.
+            Modes.ArenaMatchService.ScheduleFailedStartAbort(
+                "a body replacement was attempted for the frozen PitFireTeam leader");
+
             yield break;
         }
 
@@ -102,10 +135,21 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         yield return KitBundlePreloader.Preload(kit);
         var preloadedAt = Time.realtimeSinceStartup;
 
+        // Preload yields across arbitrary frames. GameEnd advances the epoch and
+        // clears Arena before the old coroutine resumes, so never enter Redeploy
+        // or open UI from a continuation owned by the stopped raid.
+        if (!IsSameActiveRaid(game, raidEpoch)
+            || StandDown
+            || !ReferenceEquals(game.LocalPlayer, deadPlayer))
+        {
+            EndPipelineUse(raidEpoch);
+            yield break;
+        }
+
         var request = new RespawnRequest
         {
             Game = game,
-            DeadPlayer = game.LocalPlayer,
+            DeadPlayer = deadPlayer,
             // Random and away from the body, rather than the engine's "farthest
             // from everyone", which is stable enough to hand out the same corner
             // over and over.
@@ -133,16 +177,25 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Exception failure = null;
         yield return game.StartCoroutine(RespawnEngine.RunRespawn(request, e => failure = e));
 
+        // ResetSession may have invalidated this coroutine while Redeploy was
+        // unwinding. Do not clear a newer raid's flags, recover an old body, show
+        // a death screen or publish a respawn event across that boundary.
+        if (!IsSameActiveRaid(game, raidEpoch) || StandDown)
+        {
+            EndPipelineUse(raidEpoch);
+            yield break;
+        }
+
         if (failure != null)
         {
             Plugin.ModLogger.LogError($"Arena respawn failed: {failure}");
             StandDown = true;
-            IsRespawnInProgress = false;
+            EndPipelineUse(raidEpoch);
             LocalGameAccessor.InvokeDeathScreen(game);
             yield break;
         }
 
-        IsRespawnInProgress = false;
+        EndPipelineUse(raidEpoch);
 
         var now = Time.realtimeSinceStartup;
         Plugin.ModLogger.LogInfo(
@@ -203,6 +256,10 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
     internal static void ResetSession()
     {
+        // FIRST: every coroutine captured before this boundary becomes unable to
+        // touch the player, global flags or UI even if its awaited EFT task later
+        // completes in a new raid.
+        RaidEpoch.Advance();
         IsRespawnInProgress = false;
         StandDown = false;
         DeathsThisSession = 0;
@@ -224,7 +281,30 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         KitSummary.Reset();
     }
 
-    internal static void BeginPipelineUse() => IsRespawnInProgress = true;
+    internal static int CaptureRaidEpoch() => RaidEpoch.Capture();
 
-    internal static void EndPipelineUse() => IsRespawnInProgress = false;
+    internal static bool IsSameActiveRaid(LocalGame game, int raidEpoch)
+        => RaidEpoch.IsCurrent(
+            raidEpoch,
+            ArenaSession.IsActive,
+            game != null && game.Status == GameStatus.Started);
+
+    internal static bool BeginPipelineUse(LocalGame game, int raidEpoch)
+    {
+        if (!IsSameActiveRaid(game, raidEpoch)
+            || StandDown
+            || IsRespawnInProgress)
+        {
+            return false;
+        }
+
+        IsRespawnInProgress = true;
+        return true;
+    }
+
+    internal static void EndPipelineUse(int raidEpoch)
+    {
+        if (RaidEpoch.IsEpochCurrent(raidEpoch))
+            IsRespawnInProgress = false;
+    }
 }
