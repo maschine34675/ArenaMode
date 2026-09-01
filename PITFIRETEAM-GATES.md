@@ -95,6 +95,14 @@ be marked complete from a successful build alone.
   The direct squad planner must choose one allowed zone that can hold all five distinct
   points at least 25 m from the player. It consumes the preferred 25-70 m band first and
   then fills from farther points; a short profile or point plan dispatches no partial team.
+  EFT's direct-spawn callback normally arrives while each complete bot is still `PreActive`.
+  Team Arena keeps staging damage blocked and polls those exact bodies until all five are
+  `Active`, present in EFT's active bot list, and mapped to their original player objects in
+  the persistent world registry. `PreActive` is pending only until the existing deadline;
+  dead, missing, duplicate, mismatched, `NonActive`, `ActiveFail`, `Disposed`, or replaced
+  bodies remain an immediate no-contest. The frozen roster is published only after all five
+  pass together. Because asynchronous profile generation consumes the request timeout, the
+  fifth exact callback preserves a separate bounded five-second activation window.
   A server-side location-mutator failure is reported to the client and ends the protected
   raid as no-contest before play; team Arena never continues with vanilla waves plus its five
   requested opponents. Any protected match-initialization failure blocks damage, preserves
@@ -172,6 +180,9 @@ be marked complete from a successful build alone.
   PitFireTeam 199/199; native menu 48/48; map view 40/40; side view 29/29;
   Labs bot spawns 75/75;
   announcer 78/78.
+  VERIFIED 2026-09-01 after the M2 opponent-activation fix: Release build 0 errors;
+  unit 92/92; PitFireTeam 207/207; native menu 48/48; map view 40/40;
+  side view 29/29; Labs bot spawns 75/75; announcer 78/78.
 
 - [x] P10: The deployed Arena client and server DLLs are byte-for-byte identical to the
   verified Release outputs. The verification prints both SHA-256 pairs and confirms that
@@ -182,6 +193,9 @@ be marked complete from a successful build alone.
   VERIFIED 2026-09-01 after the M2 opponent-allocation fix: client build/deployed
   `7DC1679E3B0C47890CC311F38107D4A74C9E780EFBF36BD4A3E59E23EABCDA85`; server
   build/deployed `2528835212D286D90D84184C932EFB2129E86C91B012F407ED51E2DD35DB1B8A`.
+  VERIFIED 2026-09-01 after the M2 opponent-activation fix: client build/deployed
+  `1E043209E6B4D1DE0E3E008E56AE2F7677A5E0F56F25906CDBA170623CD72FAA`; server
+  build/deployed `6805380290409D29F23AFAEA5D759D17F6C30E1102D0590164FCF173CE1BBC27`.
 
 - [x] P11: An independent adversarial review finds no path that can arm team Arena with an
   unauthenticated/stale group, strand followers on an old player body, leak Arena hostility
@@ -197,6 +211,10 @@ be marked complete from a successful build alone.
   remaining High/Medium issue after physical-point deduplication and post-profile-load
   zone replanning. Exact rejection occurs before native spawn accounting; solo, ambient
   and ordinary paths retain their prior best-effort behavior.
+  M2 ACTIVATION FOLLOW-UP REVIEW 2026-09-01: independent EFT/PFT runtime and log audits
+  found no remaining High/Medium issue. Only the exact five-opponent path receives the
+  bounded activation grace and identity/state diagnostics; solo, ambient and ordinary
+  spawn behavior remains unchanged.
 
 ## Manual GPU gates
 
@@ -228,6 +246,16 @@ be marked complete from a successful build alone.
   order, the next log must contain `requested 5`, `profiles 5`, a safe-zone plan with
   `selected 5`, `dispatched 5x`, exactly five arrivals, and `Tactical team Arena live`;
   no readiness timeout is acceptable.
+  RETEST REQUIRED 2026-09-01 after third live attempt: all four followers arrived friendly,
+  the exact planner produced five profiles and five points, and all five opponent callbacks
+  arrived before the `dispatched 5x` outcome. Arena then rejected the roster only 10 ms later
+  because the callbacks were still in EFT's normal `PreActive` phase; `Active` is assigned in
+  a later bot update. Arena now reports each exact-team callback profile/state, treats only
+  `PreActive` as pending through a bounded activation window, and freezes the roster after all
+  five original bodies are active and registered. The next run must show the five arrivals and then
+  `Tactical team Arena live`; if Arena polls while any callback body is still `PreActive`, a
+  `readiness pending` line must explain that wait first. The immediate `could not freeze five
+  distinct active opponent identities` result is no longer acceptable.
 
 - [ ] M3 MANUAL: No initial kit/body swap occurs in team Arena; the player enters with the
   PMC equipment shown on the confirmation screen and followers still accept commands. The

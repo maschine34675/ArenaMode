@@ -62,6 +62,13 @@ public sealed class TacticalMode : IArenaMode
     /// </summary>
     private const float TeamAssemblySeconds = 45f;
 
+    /// <summary>
+    /// Profile generation consumes part of the request deadline. Once all five
+    /// callbacks have arrived, preserve a small independent window for EFT's
+    /// normal PreActive-to-Active update instead of timing out that same frame.
+    /// </summary>
+    private const float TeamOpponentActivationSeconds = 5f;
+
     private const int TeamCompanionCount = 4;
     private const int TeamEnemyCount = 5;
 
@@ -93,6 +100,7 @@ public sealed class TacticalMode : IArenaMode
     private bool _teamEnemiesRequested;
     private bool _teamStopRequested;
     private bool? _teamWon;
+    private string _lastTeamReadinessDiagnostic;
 
     public string Id => "tactical";
 
@@ -271,6 +279,7 @@ public sealed class TacticalMode : IArenaMode
         _teamEnemiesRequested = false;
         _teamStopRequested = false;
         _teamWon = null;
+        _lastTeamReadinessDiagnostic = null;
 
         if (_teamArena)
         {
@@ -474,6 +483,7 @@ public sealed class TacticalMode : IArenaMode
         _boundTeamEnemyProfileIds = Array.Empty<string>();
         _boundLocalPlayer = null;
         _boundLocalProfileId = null;
+        _lastTeamReadinessDiagnostic = null;
 
         Plugin.ModLogger.LogInfo(
             $"Tactical ended: {RoundsWon}-{RoundsLost} over {RoundNumber} round(s), {Money:N0} roubles left.");
@@ -584,33 +594,45 @@ public sealed class TacticalMode : IArenaMode
             return;
         }
 
-        var completeActors = followers.Count == TeamCompanionCount
-            && _squad.Count == TeamEnemyCount
-            && SquadAlive == TeamEnemyCount;
+        var completeRosters = followers.Count == TeamCompanionCount
+            && _squad.Count == TeamEnemyCount;
 
-        if (completeActors)
+        if (completeRosters)
         {
-            if (!TryFreezeTeamEnemies(out var enemyProblem))
+            var freezeDecision = TryFreezeTeamEnemies(out var enemyProblem);
+            if (freezeDecision == TeamOpponentActivationDecision.Invalid)
             {
                 EndTeamRound(null, enemyProblem);
                 return;
             }
 
-            if (PitFireTeamCompat.EnsureHostility(_squad, _boundLocalPlayer))
+            if (freezeDecision == TeamOpponentActivationDecision.Pending)
             {
+                NoteTeamReadinessPending(enemyProblem);
+            }
+            else if (PitFireTeamCompat.EnsureHostility(_boundTeamEnemies, _boundLocalPlayer))
+            {
+                _lastTeamReadinessDiagnostic = null;
                 _phase = Phase.Live;
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
                 ArenaToasts.Show("5v5 — fight!");
                 Plugin.ModLogger.LogInfo("Tactical team Arena live: five allies versus five opponents.");
                 return;
             }
+            else
+            {
+                NoteTeamReadinessPending("the complete bidirectional hostility matrix is not ready yet");
+            }
         }
 
         if (Time.time >= _phaseEndsAt)
         {
+            var diagnostic = string.IsNullOrWhiteSpace(_lastTeamReadinessDiagnostic)
+                ? string.Empty
+                : $"; last check: {_lastTeamReadinessDiagnostic}";
             EndTeamRound(
                 null,
-                $"team readiness timed out (allies {followers.Count}/4, opponents {SquadAlive}/5, registered {_squad.Count}/5)");
+                $"team readiness timed out (allies {followers.Count}/4, opponents {SquadAlive}/5, registered {_squad.Count}/5){diagnostic}");
         }
     }
 
@@ -621,6 +643,7 @@ public sealed class TacticalMode : IArenaMode
 
         _teamEnemiesRequested = true;
         _squad.Clear();
+        _lastTeamReadinessDiagnostic = null;
         _phaseEndsAt = Time.time + Mathf.Max(20f, SquadGraceSeconds);
 
         var epoch = ++_squadEpoch;
@@ -643,6 +666,12 @@ public sealed class TacticalMode : IArenaMode
                 }
 
                 _squad.Add(bot);
+                if (_squad.Count == TeamEnemyCount)
+                {
+                    _phaseEndsAt = Mathf.Max(
+                        _phaseEndsAt,
+                        Time.time + TeamOpponentActivationSeconds);
+                }
             },
             requireExactCount: true);
 
@@ -791,46 +820,151 @@ public sealed class TacticalMode : IArenaMode
         }
     }
 
-    private bool TryFreezeTeamEnemies(out string problem)
+    private TeamOpponentActivationDecision TryFreezeTeamEnemies(out string problem)
     {
         problem = string.Empty;
         if (_squad.Count != TeamEnemyCount)
-            return false;
-
-        var bodies = _squad.ToArray();
-        var profiles = new string[TeamEnemyCount];
-        var seenBodies = new List<BotOwner>(TeamEnemyCount);
-        var seenProfiles = new HashSet<string>(StringComparer.Ordinal);
-        for (int index = 0; index < bodies.Length; index++)
         {
-            var enemy = bodies[index];
-            if (ReferenceEquals(enemy, null)
-                || enemy == null
-                || seenBodies.Exists(existing => ReferenceEquals(existing, enemy)))
-            {
-                problem = "Arena could not freeze five distinct opponent bodies";
-                return false;
-            }
-
-            string profileId = enemy.ProfileId?.Trim();
-            if (enemy.IsDead
-                || enemy.HealthController?.IsAlive != true
-                || enemy.BotState != EBotState.Active
-                || enemy.GetPlayer == null
-                || string.IsNullOrWhiteSpace(profileId)
-                || !seenProfiles.Add(profileId))
-            {
-                problem = "Arena could not freeze five distinct active opponent identities";
-                return false;
-            }
-
-            seenBodies.Add(enemy);
-            profiles[index] = profileId;
+            problem = $"only {_squad.Count}/{TeamEnemyCount} Arena opponent bodies are registered";
+            return TeamOpponentActivationDecision.Pending;
         }
 
-        _boundTeamEnemies = bodies;
-        _boundTeamEnemyProfileIds = profiles;
-        return true;
+        try
+        {
+            var bodies = _squad.ToArray();
+            var players = new Player[TeamEnemyCount];
+            var profiles = new string[TeamEnemyCount];
+            var seenBodies = new List<BotOwner>(TeamEnemyCount);
+            var seenPlayers = new List<Player>(TeamEnemyCount);
+            var seenProfiles = new HashSet<string>(StringComparer.Ordinal);
+            string pendingProblem = null;
+
+            for (int index = 0; index < bodies.Length; index++)
+            {
+                var enemy = bodies[index];
+                if (ReferenceEquals(enemy, null)
+                    || enemy == null
+                    || seenBodies.Exists(existing => ReferenceEquals(existing, enemy)))
+                {
+                    problem = "Arena could not freeze five distinct opponent bodies";
+                    return TeamOpponentActivationDecision.Invalid;
+                }
+
+                var player = enemy.GetPlayer;
+                if (ReferenceEquals(player, null)
+                    || player == null
+                    || seenPlayers.Exists(existing => ReferenceEquals(existing, player)))
+                {
+                    problem = $"Arena opponent {index + 1}/{TeamEnemyCount} has no distinct physical player body";
+                    return TeamOpponentActivationDecision.Invalid;
+                }
+
+                string profileId = enemy.ProfileId?.Trim();
+                string playerProfileId = player.ProfileId?.Trim();
+                if (string.IsNullOrWhiteSpace(profileId)
+                    || !string.Equals(profileId, playerProfileId, StringComparison.Ordinal)
+                    || !seenProfiles.Add(profileId))
+                {
+                    problem = $"Arena opponent {index + 1}/{TeamEnemyCount} has a missing, duplicate, or mismatched profile identity";
+                    return TeamOpponentActivationDecision.Invalid;
+                }
+
+                var health = enemy.HealthController;
+                var activation = TeamOpponentActivationPolicy.Evaluate(
+                    playerPresent: true,
+                    healthReadable: health != null,
+                    alive: !enemy.IsDead && health?.IsAlive == true,
+                    isPreActive: enemy.BotState == EBotState.PreActive,
+                    isActive: enemy.BotState == EBotState.Active);
+                if (activation == TeamOpponentActivationDecision.Invalid)
+                {
+                    problem = $"Arena opponent {index + 1}/{TeamEnemyCount} cannot activate "
+                              + $"(state {enemy.BotState}, dead {enemy.IsDead}, health readable {health != null})";
+                    return TeamOpponentActivationDecision.Invalid;
+                }
+
+                if (activation == TeamOpponentActivationDecision.Pending && pendingProblem == null)
+                {
+                    pendingProblem = $"opponent {index + 1}/{TeamEnemyCount} is still {enemy.BotState}";
+                }
+
+                seenBodies.Add(enemy);
+                seenPlayers.Add(player);
+                players[index] = player;
+                profiles[index] = profileId;
+            }
+
+            if (pendingProblem != null)
+            {
+                problem = pendingProblem;
+                return TeamOpponentActivationDecision.Pending;
+            }
+
+            var registered = Comfort.Common.Singleton<IBotGame>.Instantiated
+                ? Comfort.Common.Singleton<IBotGame>.Instance?.BotsController?.Bots?.BotOwners?.ToArray()
+                : null;
+            if (registered == null)
+            {
+                problem = "EFT's active bot registry is not ready yet";
+                return TeamOpponentActivationDecision.Pending;
+            }
+
+            for (int index = 0; index < TeamEnemyCount; index++)
+            {
+                if (!registered.Any(candidate => ReferenceEquals(candidate, bodies[index])))
+                {
+                    problem = $"opponent {index + 1}/{TeamEnemyCount} is Active but not registered in EFT's active bot list yet";
+                    return TeamOpponentActivationDecision.Pending;
+                }
+            }
+
+            var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+                ? Comfort.Common.Singleton<GameWorld>.Instance
+                : null;
+            if (ReferenceEquals(world, null) || world == null)
+            {
+                problem = "EFT's persistent player registry is not ready yet";
+                return TeamOpponentActivationDecision.Pending;
+            }
+
+            for (int index = 0; index < TeamEnemyCount; index++)
+            {
+                Player everExisted = world.GetEverExistedPlayerByID(profiles[index]);
+                if (ReferenceEquals(everExisted, null) || everExisted == null)
+                {
+                    problem = $"opponent {index + 1}/{TeamEnemyCount} is not in EFT's persistent player registry yet";
+                    return TeamOpponentActivationDecision.Pending;
+                }
+
+                if (!ReferenceEquals(everExisted, players[index]))
+                {
+                    problem = $"Arena detected a replacement player body for opponent {profiles[index]} before live play";
+                    return TeamOpponentActivationDecision.Invalid;
+                }
+            }
+
+            _boundTeamEnemies = bodies;
+            _boundTeamEnemyProfileIds = profiles;
+            return TeamOpponentActivationDecision.Ready;
+        }
+        catch (Exception ex)
+        {
+            problem = "the five Arena opponent identities could not be inspected: "
+                      + ex.GetBaseException().Message;
+            return TeamOpponentActivationDecision.Invalid;
+        }
+    }
+
+    private void NoteTeamReadinessPending(string problem)
+    {
+        if (string.IsNullOrWhiteSpace(problem)
+            || string.Equals(problem, _lastTeamReadinessDiagnostic, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastTeamReadinessDiagnostic = problem;
+        Plugin.ModLogger.LogInfo($"Tactical team Arena readiness pending: {problem}.");
     }
 
     private bool TryValidateBoundTeamEnemies(out int alive, out string problem)

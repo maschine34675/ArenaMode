@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using ArenaMode.Compat;
+using ArenaMode.Modes;
 using ArenaMode.Respawn;
 using ArenaMode.Server.Services;
 using Mono.Cecil;
@@ -24,6 +25,7 @@ internal static class Program
             CheckTacticalOnlyPolicy();
             CheckServerNegotiationPolicy();
             CheckRespawnEpochRacePolicy();
+            CheckTeamOpponentActivationPolicy();
             CheckSourceContract();
             CheckInstalledRuntimeContract();
             Console.WriteLine($"PITFIRETEAM_COMPAT_CHECKS_PASSED ({_assertions} assertions)");
@@ -58,6 +60,52 @@ internal static class Program
         Assert(epoch.IsEpochCurrent(secondRaid)
                && epoch.IsCurrent(secondRaid, arenaActive: true, gameStarted: true),
             "the next Arena raid receives a distinct valid respawn lease");
+    }
+
+    private static void CheckTeamOpponentActivationPolicy()
+    {
+        Assert(TeamOpponentActivationPolicy.Evaluate(
+                   playerPresent: true,
+                   healthReadable: true,
+                   alive: true,
+                   isPreActive: true,
+                   isActive: false) == TeamOpponentActivationDecision.Pending,
+            "a living PreActive Arena opponent remains pending during EFT's normal activation window");
+        Assert(TeamOpponentActivationPolicy.Evaluate(
+                   playerPresent: true,
+                   healthReadable: true,
+                   alive: true,
+                   isPreActive: false,
+                   isActive: true) == TeamOpponentActivationDecision.Ready,
+            "a living Active Arena opponent is ready for the frozen roster");
+        Assert(TeamOpponentActivationPolicy.Evaluate(
+                   playerPresent: true,
+                   healthReadable: true,
+                   alive: true,
+                   isPreActive: false,
+                   isActive: false) == TeamOpponentActivationDecision.Invalid,
+            "NonActive, ActiveFail and Disposed Arena opponents are terminal rather than pending");
+        Assert(TeamOpponentActivationPolicy.Evaluate(
+                   playerPresent: false,
+                   healthReadable: true,
+                   alive: true,
+                   isPreActive: true,
+                   isActive: false) == TeamOpponentActivationDecision.Invalid,
+            "a pre-activated opponent without its physical player body is invalid");
+        Assert(TeamOpponentActivationPolicy.Evaluate(
+                   playerPresent: true,
+                   healthReadable: false,
+                   alive: true,
+                   isPreActive: true,
+                   isActive: false) == TeamOpponentActivationDecision.Invalid,
+            "a pre-activated opponent without readable health is invalid");
+        Assert(TeamOpponentActivationPolicy.Evaluate(
+                   playerPresent: true,
+                   healthReadable: true,
+                   alive: false,
+                   isPreActive: true,
+                   isActive: false) == TeamOpponentActivationDecision.Invalid,
+            "a dead pre-activated opponent is invalid");
     }
 
     private static void CheckSoloPolicy()
@@ -332,6 +380,7 @@ internal static class Program
         var side = Read(repo, "ArenaMode.Client/Session/ArenaSideSelectionPatch.cs");
         var session = Read(repo, "ArenaMode.Client/Session/ArenaSession.cs");
         var tactical = Read(repo, "ArenaMode.Client/Modes/TacticalMode.cs");
+        var burstSpawn = Read(repo, "ArenaMode.Client/Bots/BurstSpawnService.cs");
         var combat = Read(repo, "ArenaMode.Client/Combat/CombatPatches.cs");
         var matchService = Read(repo, "ArenaMode.Client/Modes/ArenaMatchService.cs");
         var respawn = Read(repo, "ArenaMode.Client/Respawn/ArenaRespawnDriver.cs");
@@ -568,6 +617,33 @@ internal static class Program
                && tactical.Contains("GetEverExistedPlayerByID(_boundLocalProfileId)", StringComparison.Ordinal)
                && tactical.Contains("previously registered replacement body for opponent", StringComparison.Ordinal),
             "the one-round result stays bound to the original local PMC and five original opponent bodies");
+        var pendingActivationBranch = tactical.IndexOf(
+            "if (freezeDecision == TeamOpponentActivationDecision.Pending)",
+            StringComparison.Ordinal);
+        var readyActivationBranch = tactical.IndexOf(
+            "else if (PitFireTeamCompat.EnsureHostility(_boundTeamEnemies, _boundLocalPlayer))",
+            pendingActivationBranch,
+            StringComparison.Ordinal);
+        Assert(pendingActivationBranch >= 0
+               && readyActivationBranch > pendingActivationBranch
+               && !tactical.Substring(
+                       pendingActivationBranch,
+                       readyActivationBranch - pendingActivationBranch)
+                   .Contains("EndTeamRound", StringComparison.Ordinal)
+               && tactical.Contains("enemy.BotState == EBotState.PreActive", StringComparison.Ordinal)
+               && tactical.Contains("enemy.BotState == EBotState.Active", StringComparison.Ordinal)
+               && tactical.Contains("TeamOpponentActivationDecision.Invalid", StringComparison.Ordinal)
+               && tactical.Contains("registered.Any(candidate => ReferenceEquals(candidate, bodies[index]))",
+                   StringComparison.Ordinal)
+               && tactical.Contains("world.GetEverExistedPlayerByID(profiles[index])", StringComparison.Ordinal)
+               && tactical.Contains("ReferenceEquals(everExisted, players[index])", StringComparison.Ordinal)
+               && tactical.Contains("Time.time + TeamOpponentActivationSeconds", StringComparison.Ordinal)
+               && tactical.Contains("last check: {_lastTeamReadinessDiagnostic}", StringComparison.Ordinal),
+            "PreActive opponents receive a bounded activation window without ending staging while terminal or replaced bodies fail closed and timeout stays diagnostic");
+        Assert(burstSpawn.Contains("profile {profileId}, state {bot.BotState}", StringComparison.Ordinal)
+               && burstSpawn.Contains("callback normally observes", StringComparison.Ordinal)
+               && burstSpawn.Contains("includeLifecycleIdentity: requireExactCount", StringComparison.Ordinal),
+            "exact-squad outcome logs expose callback profile and lifecycle state without expanding ambient burst logs");
         Assert(combat.Contains("new TeamStagingShotPatch().Enable()", StringComparison.Ordinal)
                && combat.Contains("new TeamStagingPlayerDamagePatch().Enable()", StringComparison.Ordinal)
                && combat.Contains("new TeamStagingExplosionArmorPatch().Enable()", StringComparison.Ordinal)

@@ -292,7 +292,7 @@ internal static class BurstSpawnService
 
             spawner.SpawnBotsInZoneOnPositions(points, zone, data, bot =>
             {
-                OnBotSpawned(bot, ledger, role);
+                OnBotSpawned(bot, ledger, role, includeLifecycleIdentity: requireExactCount);
 
                 // The observer is how a mode learns WHICH bots are its squad.
                 // Wrapped so a throw in someone else's callback cannot take the
@@ -398,12 +398,17 @@ internal static class BurstSpawnService
     }
 
     /// <summary>
-    /// Fires as each injected bot actually activates: clears its reservation
-    /// (it now shows up in the alive count) and points it at the player. This is
-    /// the ONLY place that knows a bot really arrived — the request log above is
+    /// Fires when EFT has created and pre-activated each injected bot: clears its
+    /// reservation and points it at the player. The callback normally observes
+    /// PreActive; the bot becomes Active in a later EFT bot update. This is the
+    /// ONLY place that knows a bot body really arrived — the request log above is
     /// intent, this is outcome, and the gap between them is the diagnostic.
     /// </summary>
-    private static void OnBotSpawned(BotOwner bot, List<float> ledger, WildSpawnType role)
+    private static void OnBotSpawned(
+        BotOwner bot,
+        List<float> ledger,
+        WildSpawnType role,
+        bool includeLifecycleIdentity)
     {
         try
         {
@@ -413,7 +418,18 @@ internal static class BurstSpawnService
             if (bot == null)
                 return;
 
-            Plugin.ModLogger.LogInfo($"Arena burst spawn: {role} arrived.");
+            if (includeLifecycleIdentity)
+            {
+                string profileId = string.IsNullOrWhiteSpace(bot.ProfileId)
+                    ? "<missing>"
+                    : bot.ProfileId.Trim();
+                Plugin.ModLogger.LogInfo(
+                    $"Arena burst spawn: {role} arrived (profile {profileId}, state {bot.BotState}).");
+            }
+            else
+            {
+                Plugin.ModLogger.LogInfo($"Arena burst spawn: {role} arrived.");
+            }
 
             if (!Settings.HuntPlayer.Value)
                 return;
