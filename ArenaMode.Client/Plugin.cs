@@ -37,6 +37,7 @@ public class Plugin : BaseUnityPlugin
         // After ArenaSession: RaidLifecycle handlers run in subscription order and
         // the match service needs IsActive already latched when its handler fires.
         Modes.ArenaMatchService.Initialize();
+        Spectator.ArenaSpectatorService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
         ArenaLocationSelectionPatch.Enable();
@@ -58,12 +59,19 @@ public class Plugin : BaseUnityPlugin
         PerfectCullingFix.EnableOnce();
 
         Hud.ArenaInputBlocker.Apply();
+        Spectator.ArenaSpectatorCameraPatches.Enable();
         gameObject.AddComponent<ArenaController>();
         gameObject.AddComponent<Hud.ArenaPanel>();
         gameObject.AddComponent<Hud.TacticalBuyPanel>();
+        gameObject.AddComponent<Spectator.ArenaSpectatorOverlay>();
 
         Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version})");
+    }
+
+    private void OnDestroy()
+    {
+        Spectator.ArenaSpectatorService.Shutdown();
     }
 }
