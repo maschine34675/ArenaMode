@@ -148,6 +148,7 @@ internal static class Program
         string plugin = Read(root, "ArenaMode.Client", "Plugin.cs");
         string controller = Read(root, "ArenaMode.Client", "ArenaController.cs");
         string project = Read(root, "ArenaMode.Client", "ArenaMode.Client.csproj");
+        string pursuit = Read(root, "ArenaMode.Client", "Bots", "TeamArenaPursuit.cs");
 
         RequireAll(service,
             "private static void TickUnsafe()",
@@ -207,6 +208,38 @@ internal static class Program
                && !project.Contains("Terkoiz", StringComparison.Ordinal)
                && !project.Contains("Fika", StringComparison.Ordinal),
             "the client project has no hard camera-mod dependency");
+
+        RequireAll(pursuit,
+            "private const float SweepSeconds = 1f",
+            "public static void Reset()",
+            "public static void BeginRound(int epoch)",
+            "!localPlayerDown",
+            "epoch != _epoch",
+            "!ArenaSession.IsActive",
+            "!PitFireTeamCompat.TeamArenaActive",
+            "Time.time < _nextSweepAt",
+            "candidate.BotState != EBotState.Active",
+            "candidate.HealthController?.IsAlive != true",
+            "!profiles.Add(profileId)",
+            "RefreshNearest(ally, liveOpponents, epoch, follower: true)",
+            "RefreshNearest(opponent, liveAllies, epoch, follower: false)",
+            "distance < bestDistance",
+            "string.CompareOrdinal(profile, bestProfile) < 0",
+            "group.AddEnemy(target, EBotEnemyCause.bossKillArena)",
+            "group.ReportAboutEnemy(target, EEnemyPartVisibleType.Sence, source)",
+            "info.IsLastPositionChecked = false",
+            "TrySyncEnemyState",
+            "new object[] { source, target, true }",
+            "GetSAIN",
+            "CheckAddEnemy",
+            "UpdateLastSeenPosition",
+            "SetInCombat",
+            "No references are retained beyond this sweep");
+        Assert(!pursuit.Contains("static BotOwner", StringComparison.Ordinal)
+               && !pursuit.Contains("GoToPoint", StringComparison.Ordinal)
+               && !pursuit.Contains("BotMover", StringComparison.Ordinal)
+               && !pursuit.Contains("LookSensor", StringComparison.Ordinal),
+            "post-death pursuit stores no bot body and does not command movement or visibility");
     }
 
     private static SpectatorStartGate Gate(
