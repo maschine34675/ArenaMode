@@ -15,6 +15,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ArenaMode.Compat;
@@ -49,12 +50,20 @@ internal static class PitFireTeamCompat
     private const int FinalizingSeconds = 30;
 
     private static readonly object StateLock = new();
-    private static readonly HashSet<string> FrozenAccountIds = new(StringComparer.Ordinal);
-    private static readonly Dictionary<string, string> FrozenProfilesByAccountId =
+    // The menu-authenticated identities are immutable for the whole raid. A
+    // round may replace PFT's runtime profile/body identities, but never this
+    // account-to-stored-profile proof.
+    private static readonly HashSet<string> CanonicalAccountIds = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> CanonicalProfilesByAccountId =
         new(StringComparer.Ordinal);
-    private static readonly Dictionary<string, BotOwner> FrozenBodiesByAccountId =
+    private static readonly Dictionary<string, string> CurrentProfilesByAccountId =
         new(StringComparer.Ordinal);
-    private static readonly HashSet<string> KnownProfileIds = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, BotOwner> CurrentBodiesByAccountId =
+        new(StringComparer.Ordinal);
+    // Corpse cleanup must recognize bodies from every completed round. This is
+    // intentionally a history, so it must not participate in the four-member
+    // TeamArenaActive invariant.
+    private static readonly HashSet<string> KnownProfileIds = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Harmony Harmony = new(Plugin.PluginGuid + ".pitfireteam");
     private static readonly Harmony UiHarmony = new(Plugin.PluginGuid + ".pitfireteam-ui");
 
@@ -75,9 +84,12 @@ internal static class PitFireTeamCompat
     private static MethodInfo _getFollowerBotMethod;
     private static MethodInfo _getFollowerBossMethod;
     private static FieldInfo _bossRealPlayerField;
-    private static Player _frozenLocalPlayer;
-    private static string _frozenLocalProfileId;
-    private static object _frozenLeaderWrapper;
+    private static Player _currentLocalPlayer;
+    private static string _currentLocalProfileId;
+    private static object _currentLeaderWrapper;
+    private static Player _pendingLocalPlayer;
+    private static string _pendingLocalProfileId;
+    private static bool _roundTransitionActive;
     private static DateTime _finalizingUntilUtc;
     private static int _squadOpenDepth;
     private static IReadOnlyList<StopCleanupStep> _stopCleanupSteps = Array.Empty<StopCleanupStep>();
@@ -86,6 +98,15 @@ internal static class PitFireTeamCompat
     {
         public string Name { get; set; }
         public Action Run { get; set; }
+    }
+
+    private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T>
+        where T : class
+    {
+        public static readonly ReferenceEqualityComparer<T> Instance = new();
+
+        public bool Equals(T left, T right) => ReferenceEquals(left, right);
+        public int GetHashCode(T value) => RuntimeHelpers.GetHashCode(value);
     }
 
     public static bool IsInstalled
@@ -151,7 +172,7 @@ internal static class PitFireTeamCompat
         get
         {
             lock (StateLock)
-                return HasCompleteFrozenRosterUnsafe();
+                return HasCompleteCanonicalRosterUnsafe();
         }
     }
 
@@ -166,7 +187,7 @@ internal static class PitFireTeamCompat
         get
         {
             lock (StateLock)
-                return HasCompleteFrozenRosterUnsafe()
+                return HasCompleteCanonicalRosterUnsafe()
                     && _finalizingUntilUtc == DateTime.MinValue;
         }
     }
@@ -176,12 +197,29 @@ internal static class PitFireTeamCompat
     private static bool ProtectedAbortPending
         => Modes.ArenaMatchService.TeamStartAbortPending;
 
+    /// <summary>
+    /// Exact state used by the two Harmony persistence/death guards. The round
+    /// lifecycle receives this proof instead of inferring protection merely
+    /// from a configured adapter.
+    /// </summary>
+    public static bool PersistenceSuppressionActive
+        => TeamArenaActive || IsFinalizing || ProtectedAbortPending;
+
+    public static bool RoundTransitionActive
+    {
+        get
+        {
+            lock (StateLock)
+                return _roundTransitionActive;
+        }
+    }
+
     public static bool IsFinalizing
     {
         get
         {
             lock (StateLock)
-                return HasCompleteFrozenRosterUnsafe()
+                return HasCompleteCanonicalRosterUnsafe()
                     && DateTime.UtcNow < _finalizingUntilUtc;
         }
     }
@@ -191,7 +229,33 @@ internal static class PitFireTeamCompat
         get
         {
             lock (StateLock)
-                return FrozenAccountIds.OrderBy(id => id, StringComparer.Ordinal).ToArray();
+                return CanonicalAccountIds.OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Defensive copy of the authenticated account-to-stored-profile mapping.
+    /// No runtime round profile is ever written to this map.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> CanonicalCompanionProfilesByAccountId
+    {
+        get
+        {
+            lock (StateLock)
+                return new Dictionary<string, string>(
+                    CanonicalProfilesByAccountId,
+                    StringComparer.Ordinal);
+        }
+    }
+
+    public static IReadOnlyDictionary<string, string> CurrentCompanionProfilesByAccountId
+    {
+        get
+        {
+            lock (StateLock)
+                return new Dictionary<string, string>(
+                    CurrentProfilesByAccountId,
+                    StringComparer.Ordinal);
         }
     }
 
@@ -264,15 +328,21 @@ internal static class PitFireTeamCompat
             return false;
         }
 
+        PitFireTeamRoundLifecycle.Reset();
+
         lock (StateLock)
         {
-            FrozenAccountIds.Clear();
-            FrozenProfilesByAccountId.Clear();
-            FrozenBodiesByAccountId.Clear();
+            CanonicalAccountIds.Clear();
+            CanonicalProfilesByAccountId.Clear();
+            CurrentProfilesByAccountId.Clear();
+            CurrentBodiesByAccountId.Clear();
             KnownProfileIds.Clear();
-            _frozenLocalPlayer = null;
-            _frozenLocalProfileId = null;
-            _frozenLeaderWrapper = null;
+            _currentLocalPlayer = null;
+            _currentLocalProfileId = null;
+            _currentLeaderWrapper = null;
+            _pendingLocalPlayer = null;
+            _pendingLocalProfileId = null;
+            _roundTransitionActive = false;
             _finalizingUntilUtc = DateTime.MinValue;
             _deathSuppressionLogged = false;
             _progressSuppressionLogged = false;
@@ -299,12 +369,14 @@ internal static class PitFireTeamCompat
                 if (string.IsNullOrWhiteSpace(normalizedAccount)
                     || !decision.CompanionProfilesByAccountId.TryGetValue(normalizedAccount, out var profileId)
                     || string.IsNullOrWhiteSpace(profileId)
-                    || !FrozenAccountIds.Add(normalizedAccount)
-                    || !FrozenProfilesByAccountId.TryAdd(normalizedAccount, profileId.Trim())
+                    || !CanonicalAccountIds.Add(normalizedAccount)
+                    || !CanonicalProfilesByAccountId.TryAdd(normalizedAccount, profileId.Trim())
+                    || !CurrentProfilesByAccountId.TryAdd(normalizedAccount, profileId.Trim())
                     || !KnownProfileIds.Add(profileId.Trim()))
                 {
-                    FrozenAccountIds.Clear();
-                    FrozenProfilesByAccountId.Clear();
+                    CanonicalAccountIds.Clear();
+                    CanonicalProfilesByAccountId.Clear();
+                    CurrentProfilesByAccountId.Clear();
                     KnownProfileIds.Clear();
                     reason = "Arena refused an invalid, duplicate or mismatched PitFireTeam companion identity.";
                     return false;
@@ -318,9 +390,10 @@ internal static class PitFireTeamCompat
     }
 
     /// <summary>
-    /// Freeze the exact local PMC body which PFT's leader wrapper must own for
-    /// the whole one-round raid. Tactical calls this before follower discovery;
-    /// changing the body later is an unrecoverable physical-roster violation.
+    /// Bind the exact local PMC body for the current round. A replacement is
+    /// accepted only as a pending leader during an explicit round transition;
+    /// TryAdoptRoundRoster promotes it only after the lifecycle proves the new
+    /// PFT boss and all four followers.
     /// </summary>
     public static bool TryBindLocalPlayerBody(Player player, out string reason)
     {
@@ -340,48 +413,482 @@ internal static class PitFireTeamCompat
 
         lock (StateLock)
         {
-            if (!HasCompleteFrozenRosterUnsafe())
+            if (!HasCompleteCanonicalRosterUnsafe())
             {
                 reason = "Arena lost the authenticated PitFireTeam roster before binding its local leader.";
                 return false;
             }
 
-            if (!ReferenceEquals(_frozenLocalPlayer, null))
+            if (!ReferenceEquals(_currentLocalPlayer, null))
             {
-                if (ReferenceEquals(_frozenLocalPlayer, player)
-                    && string.Equals(_frozenLocalProfileId, profileId, StringComparison.Ordinal))
+                if (ReferenceEquals(_currentLocalPlayer, player)
+                    && string.Equals(_currentLocalProfileId, profileId, StringComparison.Ordinal))
                 {
                     return true;
                 }
 
+                if (_roundTransitionActive)
+                {
+                    if (!ReferenceEquals(_pendingLocalPlayer, null)
+                        && (!ReferenceEquals(_pendingLocalPlayer, player)
+                            || !string.Equals(
+                                _pendingLocalProfileId,
+                                profileId,
+                                StringComparison.Ordinal)))
+                    {
+                        reason = "Arena observed more than one pending PitFireTeam leader body during the round transition.";
+                        return false;
+                    }
+
+                    _pendingLocalPlayer = player;
+                    _pendingLocalProfileId = profileId;
+                    return true;
+                }
+
                 if (string.IsNullOrEmpty(_runtimeRosterProblem))
-                    _runtimeRosterProblem = "Arena attempted to replace the exact local PitFireTeam leader body";
+                    _runtimeRosterProblem = "Arena attempted to replace the local PitFireTeam leader body outside a round transition";
                 reason = _runtimeRosterProblem;
                 return false;
             }
 
-            _frozenLocalPlayer = player;
-            _frozenLocalProfileId = profileId;
+            _currentLocalPlayer = player;
+            _currentLocalProfileId = profileId;
         }
 
         return true;
     }
 
     /// <summary>
+    /// Opens the only window in which the current PFT leader/follower bodies may
+    /// be replaced. The returned four-body snapshot includes corpses and is the
+    /// exact roster the lifecycle adapter must retire. Canonical identities and
+    /// persistence guards remain armed throughout the transition.
+    /// </summary>
+    public static bool BeginRoundTransition(
+        out Player currentLeader,
+        out IReadOnlyList<BotOwner> currentFollowers,
+        out string reason)
+    {
+        currentLeader = null;
+        currentFollowers = Array.Empty<BotOwner>();
+        reason = string.Empty;
+
+        PitFireTeamRoundLifecycleStage lifecycleStage = PitFireTeamRoundLifecycle.Stage;
+        bool lifecycleCapable = PitFireTeamRoundLifecycle.Capability.CanStartAdditionalRound;
+        bool persistenceSuppressionActive = PersistenceSuppressionActive;
+        lock (StateLock)
+        {
+            if (_roundTransitionActive)
+            {
+                currentLeader = _currentLocalPlayer;
+                currentFollowers = CurrentBodiesByAccountId
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .Select(pair => pair.Value)
+                    .ToArray();
+                return true;
+            }
+
+            if (!ArenaSession.IsActive
+                || _contractState != PitFireTeamContractState.Compatible
+                || !HasCompleteCanonicalRosterUnsafe()
+                || _finalizingUntilUtc != DateTime.MinValue)
+            {
+                reason = "Arena cannot begin a PitFireTeam round transition outside the active protected raid.";
+                return false;
+            }
+
+            if (!persistenceSuppressionActive)
+            {
+                reason = "Arena cannot begin a PitFireTeam round transition without proven persistence suppression.";
+                return false;
+            }
+
+            if (!lifecycleCapable
+                || (lifecycleStage != PitFireTeamRoundLifecycleStage.ContractReady
+                    && lifecycleStage != PitFireTeamRoundLifecycleStage.FollowersReady))
+            {
+                reason = $"PitFireTeam round lifecycle is not ready to replace the current roster (stage {lifecycleStage}).";
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(_runtimeRosterProblem))
+            {
+                reason = _runtimeRosterProblem;
+                return false;
+            }
+
+            if (ReferenceEquals(_currentLocalPlayer, null)
+                || _currentLocalPlayer == null
+                || string.IsNullOrWhiteSpace(_currentLocalProfileId)
+                || _currentLeaderWrapper == null
+                || !string.Equals(
+                    _currentLocalPlayer.ProfileId?.Trim(),
+                    _currentLocalProfileId,
+                    StringComparison.Ordinal)
+                || CurrentProfilesByAccountId.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                || CurrentBodiesByAccountId.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                || !CanonicalAccountIds.SetEquals(CurrentProfilesByAccountId.Keys)
+                || !CanonicalAccountIds.SetEquals(CurrentBodiesByAccountId.Keys))
+            {
+                reason = "Arena cannot prove the complete current PitFireTeam leader/follower roster before teardown.";
+                return false;
+            }
+
+            HashSet<BotOwner> distinctBodies = new(ReferenceEqualityComparer<BotOwner>.Instance);
+            foreach (var pair in CurrentBodiesByAccountId)
+            {
+                BotOwner body = pair.Value;
+                if (ReferenceEquals(body, null)
+                    || body == null
+                    || !CurrentProfilesByAccountId.TryGetValue(pair.Key, out string expectedProfileId)
+                    || !string.Equals(body.Profile?.AccountId?.Trim(), pair.Key, StringComparison.Ordinal)
+                    || !string.Equals(body.ProfileId?.Trim(), expectedProfileId, StringComparison.Ordinal)
+                    || !distinctBodies.Add(body))
+                {
+                    reason = "Arena cannot prove four distinct current PitFireTeam bodies before teardown.";
+                    return false;
+                }
+            }
+
+            _roundTransitionActive = true;
+            _pendingLocalPlayer = null;
+            _pendingLocalProfileId = null;
+            currentLeader = _currentLocalPlayer;
+            currentFollowers = CurrentBodiesByAccountId
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => pair.Value)
+                .ToArray();
+            return true;
+        }
+    }
+
+    public static bool BeginRoundTransition(out string reason)
+        => BeginRoundTransition(out _, out _, out reason);
+
+    /// <summary>
+    /// Atomically adopts a new current round only after the reflection lifecycle
+    /// reached FollowersReady. It independently rechecks the four account,
+    /// runtime-profile, body, world-registry and exact leader-wrapper bindings;
+    /// any mismatch leaves the transition closed to combat.
+    /// </summary>
+    public static bool TryAdoptRoundRoster(
+        Player currentLeader,
+        out IReadOnlyList<BotOwner> followers,
+        out string reason)
+    {
+        followers = Array.Empty<BotOwner>();
+        reason = string.Empty;
+
+        try
+        {
+            PitFireTeamRoundLifecycleSnapshot lifecycle = PitFireTeamRoundLifecycle.Status;
+            IReadOnlyList<BotOwner> lifecycleFollowers = PitFireTeamRoundLifecycle.GetCurrentFollowers();
+            bool persistenceSuppressionActive = PersistenceSuppressionActive;
+
+            lock (StateLock)
+            {
+                if (!_roundTransitionActive)
+                {
+                    reason = "Arena refused to adopt a PitFireTeam roster outside an explicit round transition.";
+                    return false;
+                }
+
+                if (!persistenceSuppressionActive)
+                    return LatchRoundTransitionProblemUnsafe(
+                        "PitFireTeam persistence suppression was lost before roster adoption",
+                        out followers,
+                        out reason);
+
+                if (lifecycle.Stage != PitFireTeamRoundLifecycleStage.FollowersReady)
+                {
+                    reason = $"PitFireTeam followers are not ready for adoption (stage {lifecycle.Stage}).";
+                    return false;
+                }
+
+                if (lifecycle.Epoch <= 0
+                    || lifecycle.Capability?.CanStartAdditionalRound != true)
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the ready PitFireTeam lifecycle has no valid round epoch or capability",
+                        out followers,
+                        out reason);
+                }
+
+                if (ReferenceEquals(currentLeader, null)
+                    || currentLeader == null
+                    || currentLeader.HealthController?.IsAlive != true
+                    || string.IsNullOrWhiteSpace(currentLeader.ProfileId))
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the new PitFireTeam leader body is unavailable or dead",
+                        out followers,
+                        out reason);
+                }
+
+                string currentLeaderProfileId = currentLeader.ProfileId.Trim();
+                bool reusesCurrentLeader = ReferenceEquals(_pendingLocalPlayer, null)
+                    && string.IsNullOrEmpty(_pendingLocalProfileId)
+                    && ReferenceEquals(_currentLocalPlayer, currentLeader)
+                    && string.Equals(
+                        _currentLocalProfileId,
+                        currentLeaderProfileId,
+                        StringComparison.Ordinal);
+                bool adoptsPendingLeader = !ReferenceEquals(_pendingLocalPlayer, null)
+                    && ReferenceEquals(_pendingLocalPlayer, currentLeader)
+                    && string.Equals(
+                        _pendingLocalProfileId,
+                        currentLeaderProfileId,
+                        StringComparison.Ordinal);
+                if (!reusesCurrentLeader && !adoptsPendingLeader)
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the lifecycle leader is neither Arena's exact surviving leader nor its explicitly bound replacement body",
+                        out followers,
+                        out reason);
+                }
+
+                IReadOnlyDictionary<string, string> runtimeProfiles =
+                    lifecycle.RuntimeProfilesByAccountId;
+                if (runtimeProfiles == null
+                    || runtimeProfiles.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                    || !CanonicalAccountIds.SetEquals(runtimeProfiles.Keys)
+                    || lifecycleFollowers == null
+                    || lifecycleFollowers.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount)
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the lifecycle did not prove exactly four runtime identities and follower bodies",
+                        out followers,
+                        out reason);
+                }
+
+                HashSet<string> runtimeProfileIds = new(StringComparer.OrdinalIgnoreCase);
+                foreach (var pair in runtimeProfiles)
+                {
+                    string accountId = pair.Key?.Trim();
+                    string profileId = pair.Value?.Trim();
+                    if (string.IsNullOrWhiteSpace(accountId)
+                        || string.IsNullOrWhiteSpace(profileId)
+                        || !CanonicalAccountIds.Contains(accountId)
+                        || !runtimeProfileIds.Add(profileId)
+                        || KnownProfileIds.Contains(profileId))
+                    {
+                        return LatchRoundTransitionProblemUnsafe(
+                            "the lifecycle returned a missing, duplicate or previously used runtime profile identity",
+                            out followers,
+                            out reason);
+                    }
+                }
+
+                var world = Singleton<GameWorld>.Instantiated
+                    ? Singleton<GameWorld>.Instance
+                    : null;
+                if (ReferenceEquals(world, null) || world == null)
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "GameWorld is unavailable while adopting the new PitFireTeam roster",
+                        out followers,
+                        out reason);
+                }
+
+                if (!ReferenceEquals(world.MainPlayer, currentLeader))
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the lifecycle leader is not GameWorld's exact current MainPlayer body",
+                        out followers,
+                        out reason);
+                }
+
+                if (!world.RegisteredPlayers.Any(player => ReferenceEquals(player, currentLeader))
+                    || !ReferenceEquals(
+                        world.GetEverExistedPlayerByID(currentLeaderProfileId),
+                        currentLeader))
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the lifecycle leader is not GameWorld's exact registered and persistent player body",
+                        out followers,
+                        out reason);
+                }
+
+                Dictionary<string, BotOwner> bodiesByAccount = new(StringComparer.Ordinal);
+                HashSet<BotOwner> distinctBodies = new(ReferenceEqualityComparer<BotOwner>.Instance);
+                Dictionary<BotOwner, object> wrappersByBody =
+                    new(ReferenceEqualityComparer<BotOwner>.Instance);
+                if (_getFollowersMethod.Invoke(null, null) is not IEnumerable reflectedFollowers)
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "PitFireTeam's follower wrapper collection is unavailable during roster adoption",
+                        out followers,
+                        out reason);
+                }
+
+                foreach (object wrapper in reflectedFollowers)
+                {
+                    if (wrapper != null
+                        && _getFollowerBotMethod.Invoke(wrapper, null) is BotOwner wrapperBody
+                        && lifecycleFollowers.Any(candidate => ReferenceEquals(candidate, wrapperBody))
+                        && !wrappersByBody.TryAdd(wrapperBody, wrapper))
+                    {
+                        return LatchRoundTransitionProblemUnsafe(
+                            "PitFireTeam returned duplicate wrappers for a new follower body",
+                            out followers,
+                            out reason);
+                    }
+                }
+
+                if (wrappersByBody.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount)
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "PitFireTeam did not retain exactly one wrapper for every ready follower body",
+                        out followers,
+                        out reason);
+                }
+
+                object commonLeaderWrapper = null;
+                foreach (BotOwner bot in lifecycleFollowers)
+                {
+                    string accountId = bot?.Profile?.AccountId?.Trim();
+                    string profileId = bot?.ProfileId?.Trim();
+                    if (ReferenceEquals(bot, null)
+                        || bot == null
+                        || bot.BotState != EBotState.Active
+                        || bot.HealthController?.IsAlive != true
+                        || bot.IsDead
+                        || string.IsNullOrWhiteSpace(accountId)
+                        || !runtimeProfiles.TryGetValue(accountId, out string expectedProfileId)
+                        || !string.Equals(profileId, expectedProfileId, StringComparison.Ordinal)
+                        || !distinctBodies.Add(bot)
+                        || !bodiesByAccount.TryAdd(accountId, bot))
+                    {
+                        return LatchRoundTransitionProblemUnsafe(
+                            "the lifecycle returned an invalid or duplicate current-round follower body",
+                            out followers,
+                            out reason);
+                    }
+
+                    Player body = bot.GetPlayer;
+                    if (ReferenceEquals(body, null)
+                        || body == null
+                        || !world.RegisteredPlayers.Any(player => ReferenceEquals(player, body))
+                        || !ReferenceEquals(world.GetEverExistedPlayerByID(profileId), body))
+                    {
+                        return LatchRoundTransitionProblemUnsafe(
+                            $"runtime follower {profileId} is not the exact registered GameWorld body",
+                            out followers,
+                            out reason);
+                    }
+
+                    if (!wrappersByBody.TryGetValue(bot, out object followerWrapper))
+                    {
+                        return LatchRoundTransitionProblemUnsafe(
+                            $"runtime follower {profileId} has no exact PFT wrapper",
+                            out followers,
+                            out reason);
+                    }
+
+                    object leaderWrapper = _getFollowerBossMethod.Invoke(followerWrapper, null);
+                    Player leaderPlayer = leaderWrapper == null
+                        ? null
+                        : _bossRealPlayerField.GetValue(leaderWrapper) as Player;
+                    if (leaderWrapper == null
+                        || ReferenceEquals(leaderPlayer, null)
+                        || !ReferenceEquals(leaderPlayer, currentLeader)
+                        || (commonLeaderWrapper != null
+                            && !ReferenceEquals(commonLeaderWrapper, leaderWrapper)))
+                    {
+                        return LatchRoundTransitionProblemUnsafe(
+                            "the new followers do not share the exact current local PFT leader wrapper",
+                            out followers,
+                            out reason);
+                    }
+
+                    commonLeaderWrapper ??= leaderWrapper;
+                }
+
+                if (bodiesByAccount.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                    || !CanonicalAccountIds.SetEquals(bodiesByAccount.Keys))
+                {
+                    return LatchRoundTransitionProblemUnsafe(
+                        "the new follower bodies do not cover the authenticated four-account roster",
+                        out followers,
+                        out reason);
+                }
+
+                CurrentProfilesByAccountId.Clear();
+                CurrentBodiesByAccountId.Clear();
+                foreach (var pair in runtimeProfiles)
+                {
+                    CurrentProfilesByAccountId.Add(pair.Key, pair.Value);
+                    CurrentBodiesByAccountId.Add(pair.Key, bodiesByAccount[pair.Key]);
+                    KnownProfileIds.Add(pair.Value);
+                }
+
+                _currentLocalPlayer = currentLeader;
+                _currentLocalProfileId = currentLeader.ProfileId.Trim();
+                _currentLeaderWrapper = commonLeaderWrapper;
+                _pendingLocalPlayer = null;
+                _pendingLocalProfileId = null;
+                _roundTransitionActive = false;
+                _runtimeRosterProblem = string.Empty;
+                followers = CurrentBodiesByAccountId
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .Select(pair => pair.Value)
+                    .ToArray();
+                Plugin.ModLogger.LogInfo(
+                    $"Arena adopted PitFireTeam round epoch {lifecycle.Epoch}: four fresh runtime followers are active.");
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            lock (StateLock)
+            {
+                return LatchRoundTransitionProblemUnsafe(
+                    "PitFireTeam round-roster adoption failed: "
+                    + ex.GetBaseException().Message,
+                    out followers,
+                    out reason);
+            }
+        }
+    }
+
+    public static bool TryAdoptRoundRoster(Player currentLeader, out string reason)
+        => TryAdoptRoundRoster(currentLeader, out _, out reason);
+
+    private static bool LatchRoundTransitionProblemUnsafe(
+        string value,
+        out IReadOnlyList<BotOwner> followers,
+        out string reason)
+    {
+        if (string.IsNullOrEmpty(_runtimeRosterProblem))
+        {
+            _runtimeRosterProblem = value;
+            Plugin.ModLogger.LogError(
+                $"Arena rejected the replacement PitFireTeam round roster: {_runtimeRosterProblem}.");
+        }
+
+        followers = Array.Empty<BotOwner>();
+        reason = _runtimeRosterProblem;
+        return false;
+    }
+
+    /// <summary>
     /// Discover and cache follower bodies while proving that PFT has exactly one
-    /// active body for each frozen account/profile pair and no active unselected
-    /// follower. Once an identity becomes active, that exact BotOwner stays bound
-    /// for the one-round raid; a replacement would amount to an illicit respawn.
-    /// The first physical-roster violation is latched for the raid; silently
-    /// deduplicating it would let a sixth friendly actor enter a claimed 5v5.
+    /// active body for each current-round account/profile pair and no active
+    /// unselected follower. A replacement remains invalid inside a round; only
+    /// BeginRoundTransition plus TryAdoptRoundRoster can replace the whole set.
+    /// The first live-round physical-roster violation is latched for the raid.
     /// </summary>
     public static bool TryGetLiveFollowers(
         out IReadOnlyList<BotOwner> followers,
         out string problem)
     {
         followers = Array.Empty<BotOwner>();
+        bool transitioning;
         lock (StateLock)
+        {
             problem = _runtimeRosterProblem;
+            transitioning = _roundTransitionActive;
+        }
 
         if (!string.IsNullOrEmpty(problem))
             return false;
@@ -389,29 +896,35 @@ internal static class PitFireTeamCompat
         if (!LiveTeamArena || _contractState != PitFireTeamContractState.Compatible)
             return true;
 
+        // The lifecycle owns the old/new wrapper collections while rebinding.
+        // Normal one-round discovery must not interpret intentional retirement
+        // or new runtime IDs as a replacement-body violation.
+        if (transitioning)
+            return true;
+
         try
         {
             bool rosterFullyBound;
             Dictionary<string, BotOwner> boundBodies;
-            Player frozenLocalPlayer;
-            string frozenLocalProfileId;
+            Player currentLocalPlayer;
+            string currentLocalProfileId;
             lock (StateLock)
             {
-                rosterFullyBound = FrozenBodiesByAccountId.Count
+                rosterFullyBound = CurrentBodiesByAccountId.Count
                     == PitFireTeamSelectionPolicy.RequiredCompanionCount;
                 boundBodies = new Dictionary<string, BotOwner>(
-                    FrozenBodiesByAccountId,
+                    CurrentBodiesByAccountId,
                     StringComparer.Ordinal);
-                frozenLocalPlayer = _frozenLocalPlayer;
-                frozenLocalProfileId = _frozenLocalProfileId;
+                currentLocalPlayer = _currentLocalPlayer;
+                currentLocalProfileId = _currentLocalProfileId;
             }
 
-            if (ReferenceEquals(frozenLocalPlayer, null)
-                || frozenLocalPlayer == null
-                || string.IsNullOrWhiteSpace(frozenLocalProfileId)
+            if (ReferenceEquals(currentLocalPlayer, null)
+                || currentLocalPlayer == null
+                || string.IsNullOrWhiteSpace(currentLocalProfileId)
                 || !string.Equals(
-                    frozenLocalPlayer.ProfileId?.Trim(),
-                    frozenLocalProfileId,
+                    currentLocalPlayer.ProfileId?.Trim(),
+                    currentLocalProfileId,
                     StringComparison.Ordinal))
             {
                 return LatchRuntimeRosterProblem(
@@ -444,12 +957,13 @@ internal static class PitFireTeamCompat
                     continue;
 
                 var accountId = bot.Profile?.AccountId?.Trim();
-                bool frozen = TryGetFrozenProfileId(accountId, out var expectedProfileId);
+                bool selectedCurrentIdentity =
+                    TryGetCurrentProfileId(accountId, out var expectedProfileId);
                 bool liveBody = bot.BotState == EBotState.Active
                     && bot.HealthController?.IsAlive == true
                     && !bot.IsDead;
 
-                if (!frozen)
+                if (!selectedCurrentIdentity)
                 {
                     // Dead/inactive unselected wrappers can survive PFT teardown
                     // and cannot affect the fixed 5v5. A living extra still
@@ -480,7 +994,7 @@ internal static class PitFireTeamCompat
                 bool alreadyBoundToThisBody;
                 lock (StateLock)
                 {
-                    replacementBody = FrozenBodiesByAccountId.TryGetValue(accountId, out var originalBody)
+                    replacementBody = CurrentBodiesByAccountId.TryGetValue(accountId, out var originalBody)
                         && !ReferenceEquals(originalBody, bot);
                     alreadyBoundToThisBody = !replacementBody
                         && originalBody != null
@@ -490,7 +1004,7 @@ internal static class PitFireTeamCompat
                 if (replacementBody)
                 {
                     return LatchRuntimeRosterProblem(
-                        $"PitFireTeam replaced the one-round body for account {accountId}",
+                        $"PitFireTeam replaced the current-round body for account {accountId}",
                         out followers,
                         out problem);
                 }
@@ -499,7 +1013,7 @@ internal static class PitFireTeamCompat
                 // stale or different player-boss. Every active selected wrapper,
                 // and every wrapper whose body was already frozen, must resolve
                 // to one common PFT leader wrapper whose readonly realPlayer is
-                // the exact local PMC body frozen above.
+                // the exact local PMC body bound for this round.
                 if (liveBody || alreadyBoundToThisBody)
                 {
                     object leaderWrapper = _getFollowerBossMethod.Invoke(follower, null);
@@ -509,7 +1023,7 @@ internal static class PitFireTeamCompat
                     if (leaderWrapper == null
                         || ReferenceEquals(leaderPlayer, null)
                         || leaderPlayer == null
-                        || !ReferenceEquals(leaderPlayer, frozenLocalPlayer))
+                        || !ReferenceEquals(leaderPlayer, currentLocalPlayer))
                     {
                         return LatchRuntimeRosterProblem(
                             $"PitFireTeam follower {profileId} was bound to a stale or wrong local leader body",
@@ -520,10 +1034,10 @@ internal static class PitFireTeamCompat
                     bool splitLeader;
                     lock (StateLock)
                     {
-                        splitLeader = _frozenLeaderWrapper != null
-                            && !ReferenceEquals(_frozenLeaderWrapper, leaderWrapper);
-                        if (!splitLeader && _frozenLeaderWrapper == null)
-                            _frozenLeaderWrapper = leaderWrapper;
+                        splitLeader = _currentLeaderWrapper != null
+                            && !ReferenceEquals(_currentLeaderWrapper, leaderWrapper);
+                        if (!splitLeader && _currentLeaderWrapper == null)
+                            _currentLeaderWrapper = leaderWrapper;
                     }
 
                     if (splitLeader)
@@ -542,7 +1056,7 @@ internal static class PitFireTeamCompat
                 if (!alreadyBoundToThisBody && liveBody)
                 {
                     lock (StateLock)
-                        FrozenBodiesByAccountId[accountId] = bot;
+                        CurrentBodiesByAccountId[accountId] = bot;
                 }
 
                 // Before physical binding, dead/inactive selected wrappers are
@@ -551,7 +1065,7 @@ internal static class PitFireTeamCompat
                 bool boundToThisBody;
                 lock (StateLock)
                 {
-                    boundToThisBody = FrozenBodiesByAccountId.TryGetValue(accountId, out var originalBody)
+                    boundToThisBody = CurrentBodiesByAccountId.TryGetValue(accountId, out var originalBody)
                         && ReferenceEquals(originalBody, bot);
                 }
                 if (!boundToThisBody)
@@ -604,10 +1118,10 @@ internal static class PitFireTeamCompat
                 foreach (var pair in boundBodies)
                 {
                     BotOwner original = pair.Value;
-                    if (!TryGetFrozenProfileId(pair.Key, out string expectedProfileId))
+                    if (!TryGetCurrentProfileId(pair.Key, out string expectedProfileId))
                     {
                         return LatchRuntimeRosterProblem(
-                            $"the frozen PitFireTeam profile for account {pair.Key} disappeared",
+                            $"the current PitFireTeam profile for account {pair.Key} disappeared",
                             out followers,
                             out problem);
                     }
@@ -691,7 +1205,7 @@ internal static class PitFireTeamCompat
             return false;
 
         var accountId = bot.Profile?.AccountId?.Trim();
-        if (FrozenIdentityMatches(accountId, bot.ProfileId))
+        if (CurrentIdentityMatches(accountId, bot.ProfileId))
             return true;
 
         return IsTeamProfileId(bot.ProfileId);
@@ -702,7 +1216,7 @@ internal static class PitFireTeamCompat
         if (!LiveTeamArena || player == null)
             return false;
 
-        if (FrozenIdentityMatches(player.AccountId?.Trim(), player.ProfileId))
+        if (CurrentIdentityMatches(player.AccountId?.Trim(), player.ProfileId))
             return true;
 
         return IsTeamProfileId(player.ProfileId);
@@ -729,6 +1243,7 @@ internal static class PitFireTeamCompat
     public static bool EnsureHostility(IReadOnlyList<BotOwner> enemies, Player boundLocalPlayer)
     {
         if (!LiveTeamArena
+            || RoundTransitionActive
             || enemies == null
             || enemies.Count == 0
             || ReferenceEquals(boundLocalPlayer, null)
@@ -833,7 +1348,7 @@ internal static class PitFireTeamCompat
 
     public static void Tick()
     {
-        if (LiveTeamArena)
+        if (LiveTeamArena && !RoundTransitionActive)
             _ = GetLiveFollowers();
     }
 
@@ -841,7 +1356,7 @@ internal static class PitFireTeamCompat
     {
         lock (StateLock)
         {
-            if (HasCompleteFrozenRosterUnsafe())
+            if (HasCompleteCanonicalRosterUnsafe())
                 _finalizingUntilUtc = DateTime.UtcNow.AddSeconds(FinalizingSeconds);
         }
     }
@@ -855,7 +1370,7 @@ internal static class PitFireTeamCompat
     {
         lock (StateLock)
         {
-            if (HasCompleteFrozenRosterUnsafe())
+            if (HasCompleteCanonicalRosterUnsafe())
                 _finalizingUntilUtc = DateTime.MinValue;
         }
     }
@@ -865,16 +1380,21 @@ internal static class PitFireTeamCompat
         bool hadState;
         lock (StateLock)
         {
-            hadState = FrozenAccountIds.Count > 0 || FrozenProfilesByAccountId.Count > 0
-                || FrozenBodiesByAccountId.Count > 0 || KnownProfileIds.Count > 0
+            hadState = CanonicalAccountIds.Count > 0 || CanonicalProfilesByAccountId.Count > 0
+                || CurrentProfilesByAccountId.Count > 0 || CurrentBodiesByAccountId.Count > 0
+                || KnownProfileIds.Count > 0 || _roundTransitionActive
                 || _finalizingUntilUtc != DateTime.MinValue;
-            FrozenAccountIds.Clear();
-            FrozenProfilesByAccountId.Clear();
-            FrozenBodiesByAccountId.Clear();
+            CanonicalAccountIds.Clear();
+            CanonicalProfilesByAccountId.Clear();
+            CurrentProfilesByAccountId.Clear();
+            CurrentBodiesByAccountId.Clear();
             KnownProfileIds.Clear();
-            _frozenLocalPlayer = null;
-            _frozenLocalProfileId = null;
-            _frozenLeaderWrapper = null;
+            _currentLocalPlayer = null;
+            _currentLocalProfileId = null;
+            _currentLeaderWrapper = null;
+            _pendingLocalPlayer = null;
+            _pendingLocalProfileId = null;
+            _roundTransitionActive = false;
             _finalizingUntilUtc = DateTime.MinValue;
             _deathSuppressionLogged = false;
             _progressSuppressionLogged = false;
@@ -883,6 +1403,8 @@ internal static class PitFireTeamCompat
             _stopCleanupFailureLogged = false;
             _runtimeRosterProblem = string.Empty;
         }
+
+        PitFireTeamRoundLifecycle.Reset();
 
         if (hadState)
             Plugin.ModLogger.LogInfo($"Arena cleared PitFireTeam compatibility state ({reason}).");
@@ -1048,6 +1570,16 @@ internal static class PitFireTeamCompat
             var stopFinalizer = typeof(PitFireTeamCompat).GetMethod(nameof(PitStopCleanupFinalizer),
                 BindingFlags.NonPublic | BindingFlags.Static);
             Harmony.Patch(stopGettingInfoPrefixMethod, finalizer: new HarmonyMethod(stopFinalizer));
+
+            PitFireTeamRoundCapability roundCapability =
+                PitFireTeamRoundLifecycle.Configure(assembly, SupportedVersion);
+            if (!roundCapability.CanStartAdditionalRound)
+            {
+                throw new InvalidOperationException(
+                    "the protected multi-round lifecycle contract is unavailable: "
+                    + roundCapability.Reason);
+            }
+
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
             Plugin.ModLogger.LogInfo(
@@ -1098,7 +1630,7 @@ internal static class PitFireTeamCompat
 
     private static bool SaveFollowersProgressPrefix()
     {
-        if (!TeamArenaActive && !IsFinalizing && !ProtectedAbortPending)
+        if (!PersistenceSuppressionActive)
             return true;
 
         if (!_progressSuppressionLogged)
@@ -1121,7 +1653,7 @@ internal static class PitFireTeamCompat
     private static Exception PitStopCleanupFinalizer(Exception __exception, ref bool __result)
     {
         if (__exception == null
-            || (!TeamArenaActive && !IsFinalizing && !ProtectedAbortPending))
+            || !PersistenceSuppressionActive)
             return __exception;
 
         __result = true;
@@ -1469,23 +2001,23 @@ internal static class PitFireTeamCompat
         return true;
     }
 
-    private static bool TryGetFrozenProfileId(string accountId, out string profileId)
+    private static bool TryGetCurrentProfileId(string accountId, out string profileId)
     {
         profileId = null;
         if (string.IsNullOrWhiteSpace(accountId))
             return false;
 
         lock (StateLock)
-            return FrozenProfilesByAccountId.TryGetValue(accountId.Trim(), out profileId);
+            return CurrentProfilesByAccountId.TryGetValue(accountId.Trim(), out profileId);
     }
 
-    private static bool FrozenIdentityMatches(string accountId, string profileId)
-        => TryGetFrozenProfileId(accountId, out var expectedProfileId)
+    private static bool CurrentIdentityMatches(string accountId, string profileId)
+        => TryGetCurrentProfileId(accountId, out var expectedProfileId)
            && !string.IsNullOrWhiteSpace(profileId)
            && string.Equals(expectedProfileId, profileId.Trim(), StringComparison.Ordinal);
 
-    private static bool HasCompleteFrozenRosterUnsafe()
-        => FrozenAccountIds.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount
-           && FrozenProfilesByAccountId.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount
-           && KnownProfileIds.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount;
+    private static bool HasCompleteCanonicalRosterUnsafe()
+        => CanonicalAccountIds.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount
+           && CanonicalProfilesByAccountId.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount
+           && CanonicalAccountIds.SetEquals(CanonicalProfilesByAccountId.Keys);
 }

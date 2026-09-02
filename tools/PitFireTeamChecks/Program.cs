@@ -389,6 +389,8 @@ internal static class Program
         var gunGame = Read(repo, "ArenaMode.Client/Modes/GunGameMode.cs");
         var weaponSwap = Read(repo, "ArenaMode.Client/Combat/WeaponSwapService.cs");
         var compat = Read(repo, "ArenaMode.Client/Compat/PitFireTeamCompat.cs");
+        var roundLifecycle = Read(repo,
+            "ArenaMode.Client/Compat/PitFireTeamRoundLifecycle.cs");
         var selectionPolicy = Read(repo, "ArenaMode.Client/Compat/PitFireTeamSelectionPolicy.cs");
         var project = Read(repo, "ArenaMode.Client/ArenaMode.Client.csproj");
         var serverClient = Read(repo, "ArenaMode.Client/Session/ArenaServerClient.cs");
@@ -596,19 +598,80 @@ internal static class Program
                && compat.Contains("active unselected PitFireTeam follower", StringComparison.Ordinal)
                && compat.Contains("duplicate active follower profile identity", StringComparison.Ordinal)
                && compat.Contains("spawned unexpected profile", StringComparison.Ordinal)
-               && compat.Contains("FrozenProfilesByAccountId", StringComparison.Ordinal)
-               && compat.Contains("replaced the one-round body", StringComparison.Ordinal)
-               && compat.Contains("FrozenBodiesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("CurrentProfilesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("CurrentBodiesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("outside a round transition", StringComparison.Ordinal)
                && compat.Contains("GetEverExistedPlayerByID", StringComparison.Ordinal)
                && compat.Contains("registered a replacement body", StringComparison.Ordinal)
                && compat.Contains("TryBindLocalPlayerBody", StringComparison.Ordinal)
                && compat.Contains("GetBossMethodName", StringComparison.Ordinal)
                && compat.Contains("BossRealPlayerFieldName", StringComparison.Ordinal)
-               && compat.Contains("ReferenceEquals(leaderPlayer, frozenLocalPlayer)", StringComparison.Ordinal)
+               && compat.Contains("ReferenceEquals(leaderPlayer, currentLocalPlayer)", StringComparison.Ordinal)
                && compat.Contains("split the four Arena followers", StringComparison.Ordinal)
                && tactical.Contains("TryBindLocalPlayerBody(_boundLocalPlayer", StringComparison.Ordinal)
                && tactical.Contains("EndTeamRound(null, rosterProblem)", StringComparison.Ordinal),
-            "the live physical roster rejects replacement bodies and stale, split or wrong PFT leader wrappers as no-contest");
+            "each current-round physical roster rejects replacement bodies and stale, split or wrong PFT leader wrappers as no-contest");
+        Assert(compat.Contains("CanonicalProfilesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("CurrentProfilesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("KnownProfileIds", StringComparison.Ordinal)
+               && compat.Contains("CanonicalCompanionProfilesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("CurrentCompanionProfilesByAccountId", StringComparison.Ordinal)
+               && Regex.IsMatch(compat,
+                   @"HasCompleteCanonicalRosterUnsafe\s*\(\s*\)[\s\S]{0,300}CanonicalAccountIds\.SetEquals\(CanonicalProfilesByAccountId\.Keys\)")
+               && !Regex.IsMatch(compat,
+                   @"HasCompleteCanonicalRosterUnsafe\s*\(\s*\)[\s\S]{0,300}KnownProfileIds\.Count"),
+            "the immutable authenticated map, current-round identities and cross-round profile history are separate invariants");
+        Assert(compat.Contains("BeginRoundTransition(", StringComparison.Ordinal)
+               && compat.Contains("RoundTransitionActive", StringComparison.Ordinal)
+               && compat.Contains("if (transitioning)", StringComparison.Ordinal)
+               && compat.Contains("LiveTeamArena && !RoundTransitionActive", StringComparison.Ordinal)
+               && compat.Contains("CurrentBodiesByAccountId", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycleStage.ContractReady", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycleStage.FollowersReady", StringComparison.Ordinal),
+            "an explicit lifecycle-ready transition snapshots all four old bodies and suppresses one-round discovery latches");
+        int adoptionHistoryCommit = compat.IndexOf(
+            "KnownProfileIds.Add(pair.Value)",
+            StringComparison.Ordinal);
+        int adoptionTransitionClose = compat.IndexOf(
+            "_roundTransitionActive = false",
+            adoptionHistoryCommit,
+            StringComparison.Ordinal);
+        Assert(compat.Contains("TryAdoptRoundRoster(", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycle.Status", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycle.GetCurrentFollowers", StringComparison.Ordinal)
+               && compat.Contains("lifecycle.Stage != PitFireTeamRoundLifecycleStage.FollowersReady", StringComparison.Ordinal)
+               && compat.Contains("CanonicalAccountIds.SetEquals(runtimeProfiles.Keys)", StringComparison.Ordinal)
+               && compat.Contains("KnownProfileIds.Contains(profileId)", StringComparison.Ordinal)
+               && compat.Contains("bool reusesCurrentLeader", StringComparison.Ordinal)
+               && compat.Contains("bool adoptsPendingLeader", StringComparison.Ordinal)
+               && Regex.IsMatch(compat,
+                   @"bool\s+reusesCurrentLeader\s*=\s*ReferenceEquals\(_pendingLocalPlayer,\s*null\)[\s\S]{0,220}ReferenceEquals\(_currentLocalPlayer,\s*currentLeader\)")
+               && compat.Contains("!reusesCurrentLeader && !adoptsPendingLeader", StringComparison.Ordinal)
+               && compat.Contains("ReferenceEquals(world.MainPlayer, currentLeader)", StringComparison.Ordinal)
+               && compat.Contains("world.RegisteredPlayers.Any(player => ReferenceEquals(player, currentLeader))", StringComparison.Ordinal)
+               && compat.Contains("world.GetEverExistedPlayerByID(currentLeaderProfileId)", StringComparison.Ordinal)
+               && compat.Contains("world.GetEverExistedPlayerByID(profileId)", StringComparison.Ordinal)
+               && compat.Contains("new followers do not share the exact current local PFT leader wrapper", StringComparison.Ordinal)
+               && adoptionHistoryCommit >= 0
+               && adoptionTransitionClose > adoptionHistoryCommit,
+            "new runtime identities become current/history only after FollowersReady and independent body, registry and leader proof");
+        Assert(compat.Contains("PersistenceSuppressionActive", StringComparison.Ordinal)
+               && compat.Contains("=> TeamArenaActive || IsFinalizing || ProtectedAbortPending", StringComparison.Ordinal)
+               && compat.Contains("if (!PersistenceSuppressionActive)", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycle.Configure(assembly, SupportedVersion)", StringComparison.Ordinal)
+               && compat.Contains("roundCapability.CanStartAdditionalRound", StringComparison.Ordinal)
+               && roundLifecycle.Contains("RequirePersistenceSuppressionUnsafe", StringComparison.Ordinal)
+               && roundLifecycle.Contains("PitFireTeam persistence suppression", StringComparison.Ordinal),
+            "the exact round contract and active persistence guard are required by both compatibility and lifecycle paths");
+        Assert(compat.Contains("CanonicalAccountIds.Clear()", StringComparison.Ordinal)
+               && compat.Contains("CanonicalProfilesByAccountId.Clear()", StringComparison.Ordinal)
+               && compat.Contains("CurrentProfilesByAccountId.Clear()", StringComparison.Ordinal)
+               && compat.Contains("CurrentBodiesByAccountId.Clear()", StringComparison.Ordinal)
+               && compat.Contains("KnownProfileIds.Clear()", StringComparison.Ordinal)
+               && compat.Contains("_pendingLocalPlayer = null", StringComparison.Ordinal)
+               && compat.Contains("_roundTransitionActive = false", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycle.Reset()", StringComparison.Ordinal),
+            "freeze/clear boundaries reset canonical, current, historical, pending and lifecycle round state");
         Assert(tactical.Contains("_boundLocalPlayer", StringComparison.Ordinal)
                && tactical.Contains("ReferenceEquals(current, _boundLocalPlayer)", StringComparison.Ordinal)
                && tactical.Contains("_boundTeamEnemies", StringComparison.Ordinal)
