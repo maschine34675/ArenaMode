@@ -1,7 +1,7 @@
 using SPTarkov.Reflection.Patching;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.Models.Common;
-using SPTarkov.Server.Core.Models.Eft.Match;
+using SPTarkov.Server.Core.Models.Eft.Bot;
 using SPTarkov.Server.Core.Models.Spt.Bots;
 using System.Reflection;
 
@@ -23,10 +23,12 @@ namespace ArenaMode.Server.Patches;
 /// each new wave is kitted a little better than the last, without a single
 /// value of theirs being overwritten.
 ///
-/// Deliberately a postfix on the per-request object rather than a write to the
+/// Deliberately a prefix on the exact session's wave rather than a write to the
 /// shared config that feeds it: nothing outside this raid can see it, so the
 /// mod's "normal raids are untouched" property holds without a snapshot to
-/// restore or a failure mode where a crash leaves the setting behind.
+/// restore or a failure mode where a crash leaves the setting behind. Protected
+/// team Arena leaves SPT's real player-relative values alone; the solo modes keep
+/// this progression curve.
 ///
 /// The ramp runs on raid TIME rather than the client's pressure curve. Time is
 /// that curve's backbone anyway, and reading it here costs no traffic and
@@ -66,21 +68,43 @@ public sealed class BotTierScalePatch : AbstractPatch
     protected override MethodBase GetTargetMethod()
     {
         return typeof(BotController).GetMethod(
-            "GetBotGenerationDetailsForWave",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            "GenerateBotWave",
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            types:
+            [
+                typeof(MongoId),
+                typeof(GenerateCondition),
+                typeof(BotGenerationDetails),
+            ],
+            modifiers: null)!;
     }
 
-    [PatchPostfix]
-    public static void Postfix(ref BotGenerationDetails __result, GetRaidConfigurationRequestData? raidSettings)
+    [PatchPrefix]
+    public static void Prefix(MongoId sessionId, BotGenerationDetails botGenerationDetails)
     {
         try
         {
-            var location = raidSettings?.Location;
-            if (__result == null || string.IsNullOrEmpty(location))
+            var location = botGenerationDetails?.Location;
+            if (botGenerationDetails == null || string.IsNullOrEmpty(location))
                 return;
 
             var sessions = ArenaContext.Sessions;
-            if (sessions == null || !sessions.TryGetRaidElapsed(location, out var elapsed))
+            if (sessions == null
+                || !sessions.TryGetBotTierContext(
+                    sessionId,
+                    location,
+                    out var elapsed,
+                    out var protectedTeam))
+            {
+                return;
+            }
+
+            // SPT built these details from the live PMC profile and its normal
+            // per-map range. PFT teammates retain real raid equipment, so the
+            // opposing team must use that same native context instead of the
+            // solo/Gun Game progression that starts at level one.
+            if (protectedTeam)
                 return;
 
             if (!ArenaContext.Config.Maps.TryGetValue(location!.ToLowerInvariant(), out var map)
@@ -98,8 +122,8 @@ public sealed class BotTierScalePatch : AbstractPatch
 
             // Both together, and neither works alone: the level the window is
             // built around, and the bounds that window is then clamped into.
-            __result.PlayerLevel = here;
-            __result.LocationSpecificPmcLevelOverride =
+            botGenerationDetails.PlayerLevel = here;
+            botGenerationDetails.LocationSpecificPmcLevelOverride =
                 new MinMax<int>(Math.Max(1, here - Spread), here + Spread);
 
             Report(location!, elapsed, here);

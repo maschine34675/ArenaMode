@@ -1166,7 +1166,6 @@ public class ArenaSessionService
         }
     }
 
-    /// <summary>Any session currently in an arena raid on the given location?</summary>
     /// <summary>
     /// Whether an InRaid entry can still plausibly BE a raid.
     ///
@@ -1191,30 +1190,33 @@ public class ArenaSessionService
     }
 
     /// <summary>
-    /// How long the arena raid on this map has been running. The bot tier ramp
-    /// rides on this: it is read fresh on every bot generation request, so the
-    /// answer moving is the whole point.
+    /// Atomically bind bot-tier generation to one exact live Arena session and
+    /// its map. The protected-team flag decides whether the caller preserves
+    /// SPT's native PMC-relative values or applies Arena's solo progression.
+    /// Requests from another session on the same map must not inherit either.
     /// </summary>
-    public bool TryGetRaidElapsed(string? location, out TimeSpan elapsed)
+    public bool TryGetBotTierContext(
+        MongoId sessionId,
+        string? location,
+        out TimeSpan elapsed,
+        out bool protectedTeam)
     {
         elapsed = TimeSpan.Zero;
+        protectedTeam = false;
         if (string.IsNullOrEmpty(location))
             return false;
 
-        var wanted = location!.ToLowerInvariant();
         lock (_lock)
         {
-            foreach (var entry in _sessions.Values)
-            {
-                if (!IsLiveRaid(entry) || !string.Equals(entry.Map, wanted, StringComparison.Ordinal))
-                    continue;
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || !IsLiveRaid(entry)
+                || !string.Equals(entry.Map, location, StringComparison.OrdinalIgnoreCase))
+                return false;
 
-                elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
-                return true;
-            }
+            elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
+            protectedTeam = entry.ProtectPitFireTeam;
+            return true;
         }
-
-        return false;
     }
 
     /// <summary>
