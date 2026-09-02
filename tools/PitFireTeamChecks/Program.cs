@@ -785,6 +785,17 @@ internal static class Program
                && tactical.Contains("Time.time + TeamOpponentActivationSeconds", StringComparison.Ordinal)
                && tactical.Contains("last check: {_lastTeamReadinessDiagnostic}", StringComparison.Ordinal),
             "PreActive opponents receive a bounded activation window without ending staging while terminal or replaced bodies fail closed and timeout stays diagnostic");
+        string requestTeamEnemies = Slice(
+            tactical,
+            "private void RequestTeamEnemies()",
+            "private void TickTeamLive()");
+        Assert(requestTeamEnemies.Contains(
+                   "_phaseEndsAt = Time.time + TeamAssemblySeconds",
+                   StringComparison.Ordinal)
+               && !requestTeamEnemies.Contains(
+                   "Mathf.Max(20f, SquadGraceSeconds)",
+                   StringComparison.Ordinal),
+            "the exact-five opponent request retains the full team assembly window while profile generation is in flight");
         Assert(burstSpawn.Contains("profile {profileId}, state {bot.BotState}", StringComparison.Ordinal)
                && burstSpawn.Contains("callback normally observes", StringComparison.Ordinal)
                && burstSpawn.Contains("includeLifecycleIdentity: requireExactCount", StringComparison.Ordinal),

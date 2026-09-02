@@ -894,7 +894,10 @@ public sealed class TacticalMode : IArenaMode
         _teamEnemiesRequested = true;
         _squad.Clear();
         _lastTeamReadinessDiagnostic = null;
-        _phaseEndsAt = Time.time + Mathf.Max(20f, SquadGraceSeconds);
+        // Profile generation itself is part of team assembly. Under profile or
+        // bundle-loading pressure, the exact-five request can legitimately spend
+        // more than twenty seconds before its first callback reaches the client.
+        _phaseEndsAt = Time.time + TeamAssemblySeconds;
 
         var epoch = ++_squadEpoch;
         _squadRequested = BurstSpawnService.SpawnSquad(
