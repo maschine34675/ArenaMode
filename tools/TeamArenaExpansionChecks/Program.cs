@@ -483,7 +483,7 @@ internal static class Program
         RequireAll(tactical,
             "TryValidateCurrentTeamLeaderBody(player, out string bodyProblem)",
             "TryValidateCurrentTeamLeaderBody(",
-            "the current local PMC drifted before PitFireTeam leader rebuild",
+            "the current local PMC drifted before PitFireTeam leader rebind",
             "the current local PMC drifted before PitFireTeam follower adoption",
             "world.RegisteredPlayers.Count(candidate =>",
             "world.RegisteredPlayers",

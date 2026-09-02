@@ -49,6 +49,7 @@ internal static class PitFireTeamRoundLifecycle
     private const string ActivateBotAtPositionMethodName = "ActivateBotAtPosition";
     private const string FollowersFieldName = "_followers";
     private const string FollowersByProfileIdFieldName = "_followersByProfileId";
+    private const string BossControllerFieldName = "_botsController";
     private const string ShallBeFollowerFieldName = "_shallBeFollower";
     private const string ManualUpdateFieldName = "BotOwnerUpdate";
 
@@ -84,6 +85,7 @@ internal static class PitFireTeamRoundLifecycle
     private static FieldInfo _followersField;
     private static FieldInfo _followersByProfileIdField;
     private static FieldInfo _bossRealPlayerField;
+    private static FieldInfo _bossBotsControllerField;
     private static PropertyInfo _bossFollowersProperty;
     private static PropertyInfo _bossGroupProperty;
     private static FieldInfo _botsPatchInstanceField;
@@ -102,10 +104,13 @@ internal static class PitFireTeamRoundLifecycle
     private static bool _spawnLeasePatchInstalled;
 
     private static Player _oldLeader;
+    private static string _oldLeaderProfileId;
     private static object _oldBoss;
     private static Player _currentLeader;
     private static object _currentBoss;
     private static Task _profileTask;
+    private static bool _profileCacheWasCleanAtTeardown;
+    private static bool _adoptedRespawnBoss;
     private static Task _spawnTask;
     private static IDictionary _preparedProfileDictionary;
     private static List<BotOwner> _retiringBodies = new();
@@ -428,6 +433,28 @@ internal static class PitFireTeamRoundLifecycle
                 return false;
             }
 
+            _profileCacheWasCleanAtTeardown = false;
+            try
+            {
+                IDictionary completedRoundProfileTasks = ReadProfileTaskCacheUnsafe();
+                if (completedRoundProfileTasks.Contains(oldLeader.ProfileId))
+                {
+                    throw new InvalidOperationException(
+                        "PFT retained the completed round's follower-profile task");
+                }
+
+                _profileCacheWasCleanAtTeardown = true;
+            }
+            catch (Exception ex)
+            {
+                Exception root = ex.GetBaseException();
+                reason = $"PFT old-round teardown failed during follower-profile cache preflight for {oldLeader.ProfileId}: "
+                         + $"{root.GetType().Name}: {root.Message}";
+                Plugin.ModLogger.LogError($"Arena {reason}\n{ex}");
+                FailUnsafe(reason);
+                return false;
+            }
+
             // A ready lease has observed all four private task returns, all four
             // detached callbacks and both physical registry passes. Revoke its
             // IDs before advancing the lifecycle epoch, but let the ordinary
@@ -445,10 +472,12 @@ internal static class PitFireTeamRoundLifecycle
                 pair => pair.Value.Trim(),
                 StringComparer.Ordinal);
             _oldLeader = oldLeader;
+            _oldLeaderProfileId = oldLeader.ProfileId;
             _oldBoss = null;
             _currentLeader = null;
             _currentBoss = null;
             _profileTask = null;
+            _adoptedRespawnBoss = false;
             _spawnTask = null;
             _preparedProfileDictionary = null;
             _preparedProfilesByAccountId.Clear();
@@ -743,32 +772,135 @@ internal static class PitFireTeamRoundLifecycle
                         "PFT and Arena do not reference the same BotsController");
                 }
 
-                if (_getBossMethod.Invoke(null, new object[] { currentLeader.ProfileId }) != null)
-                    throw new InvalidOperationException("PFT still has a boss under the local profile ID");
-
-                object newBoss = _addPlayerAsBossMethod.Invoke(
+                object existingBoss = _getBossMethod.Invoke(
                     null,
-                    new object[] { currentLeader, botsController });
+                    new object[] { currentLeader.ProfileId });
+                if (existingBoss != null && !_bossType.IsInstanceOfType(existingBoss))
+                    throw new InvalidOperationException("PFT returned an unexpected local boss type");
+
+                IDictionary profileTasks = ReadProfileTaskCacheUnsafe();
+                bool cachedProfileTaskPresent = profileTasks.Contains(currentLeader.ProfileId);
+                object cachedProfileTaskValue = cachedProfileTaskPresent
+                    ? profileTasks[currentLeader.ProfileId]
+                    : null;
+                Task cachedProfileTask = cachedProfileTaskValue as Task;
+
+                int existingFollowerCount = 0;
+                int existingWrapperCount = 0;
+                bool existingBossGroupPresent = false;
+                bool existingBossWrapsCurrentLeader = false;
+                bool existingBossUsesCurrentController = false;
+                if (existingBoss != null)
+                {
+                    if (_bossFollowersProperty.GetValue(existingBoss) is not IEnumerable existingFollowers)
+                    {
+                        throw new InvalidOperationException(
+                            "PFT's existing local boss follower list is unavailable");
+                    }
+
+                    existingFollowerCount = existingFollowers.Cast<object>().Count();
+                    existingWrapperCount = ReadFollowerWrappersUnsafe().Count(wrapper =>
+                        ReferenceEquals(_getFollowerBossMethod.Invoke(wrapper, null), existingBoss));
+                    existingBossGroupPresent = _bossGroupProperty.GetValue(existingBoss) != null;
+                    existingBossWrapsCurrentLeader = ReferenceEquals(_bossRealPlayerField.GetValue(existingBoss), currentLeader);
+                    existingBossUsesCurrentController = ReferenceEquals(_bossBotsControllerField.GetValue(existingBoss), botsController);
+                }
+
+                bool isExactReplacementBody = !ReferenceEquals(_oldLeader, null)
+                                              && !ReferenceEquals(currentLeader, _oldLeader)
+                                              && string.Equals(
+                                                  currentLeader.ProfileId,
+                                                  _oldLeaderProfileId,
+                                                  StringComparison.Ordinal);
+                PitFireTeamLeaderBindingPolicyDecision leaderDecision =
+                    PitFireTeamRoundLifecyclePolicy.EvaluateLeaderBinding(
+                        new PitFireTeamLeaderBindingObservation
+                        {
+                            ProfileCacheWasCleanAtTeardown = _profileCacheWasCleanAtTeardown,
+                            ExistingBossPresent = existingBoss != null,
+                            IsExactReplacementBody = isExactReplacementBody,
+                            BossWrapsCurrentLeader = existingBossWrapsCurrentLeader,
+                            BossUsesCurrentController = existingBossUsesCurrentController,
+                            BossFollowerCount = existingFollowerCount,
+                            BossWrapperCount = existingWrapperCount,
+                            BossGroupPresent = existingBossGroupPresent,
+                            CachedProfileTaskPresent = cachedProfileTaskPresent,
+                            CachedProfileTaskIsTask = cachedProfileTask != null
+                        });
+                if (leaderDecision.Decision == PitFireTeamLeaderBindingDecision.Failed)
+                    throw new InvalidOperationException(leaderDecision.Reason);
+
+                bool adoptedRespawnBoss =
+                    leaderDecision.Decision == PitFireTeamLeaderBindingDecision.Adopt;
+                object newBoss;
+                if (adoptedRespawnBoss)
+                {
+                    newBoss = existingBoss;
+                }
+                else
+                {
+                    newBoss = _addPlayerAsBossMethod.Invoke(
+                        null,
+                        new object[] { currentLeader, botsController });
+                }
+
                 if (newBoss == null
                     || !ReferenceEquals(_bossRealPlayerField.GetValue(newBoss), currentLeader)
+                    || !ReferenceEquals(_bossBotsControllerField.GetValue(newBoss), botsController)
                     || !ReferenceEquals(
                         _getBossMethod.Invoke(null, new object[] { currentLeader.ProfileId }),
                         newBoss))
                 {
                     throw new InvalidOperationException(
-                        "PFT did not build one boss wrapper around the exact current local body");
+                        "PFT did not expose one boss wrapper around the exact current local body");
+                }
+
+                if (_bossFollowersProperty.GetValue(newBoss) is not IEnumerable newBossFollowers
+                    || newBossFollowers.Cast<object>().Any()
+                    || _bossGroupProperty.GetValue(newBoss) != null
+                    || ReadFollowerWrappersUnsafe().Any(wrapper => ReferenceEquals(
+                        _getFollowerBossMethod.Invoke(wrapper, null),
+                        newBoss)))
+                {
+                    throw new InvalidOperationException(
+                        "PFT's current local boss was not empty before follower preparation");
                 }
 
                 ReplaceSpawnedBossUnsafe(newBoss, currentLeader);
+                profileTasks = ReadProfileTaskCacheUnsafe();
+                if (cachedProfileTask != null)
+                {
+                    if (!profileTasks.Contains(currentLeader.ProfileId)
+                        || !ReferenceEquals(profileTasks[currentLeader.ProfileId], cachedProfileTask))
+                    {
+                        throw new InvalidOperationException(
+                            "PFT replaced or removed the exact auto-prefetched replacement task during leader adoption");
+                    }
+                }
+                else if (profileTasks.Contains(currentLeader.ProfileId))
+                {
+                    throw new InvalidOperationException(
+                        "PFT follower-profile task state changed during leader binding");
+                }
+
                 _currentLeader = currentLeader;
                 _currentBoss = newBoss;
+                _adoptedRespawnBoss = adoptedRespawnBoss;
+                if (adoptedRespawnBoss)
+                    _profileTask = cachedProfileTask;
+                else
+                    _profileTask = null;
                 _stage = PitFireTeamRoundLifecycleStage.LeaderReady;
-                _diagnostic = $"PitFireTeam round epoch {_epoch}: rebuilt the leader wrapper.";
+                _diagnostic = adoptedRespawnBoss
+                    ? cachedProfileTask == null
+                        ? $"PitFireTeam round epoch {_epoch}: adopted PFT's exact respawn-created leader wrapper."
+                        : $"PitFireTeam round epoch {_epoch}: adopted PFT's exact respawn-created leader wrapper and profile task."
+                    : $"PitFireTeam round epoch {_epoch}: rebuilt the leader wrapper.";
                 return true;
             }
             catch (Exception ex)
             {
-                reason = "PFT leader rebuild failed: " + ex.GetBaseException().Message;
+                reason = "PFT leader binding failed: " + ex.GetBaseException().Message;
                 FailUnsafe(reason);
                 return false;
             }
@@ -812,17 +944,40 @@ internal static class PitFireTeamRoundLifecycle
                     throw new InvalidOperationException("PFT BotsControllerPatch.Instance is unavailable");
 
                 IDictionary cache = ReadProfileTaskCacheUnsafe();
-                if (cache.Contains(_currentLeader.ProfileId))
+                Task task;
+                bool adoptedAutoPrefetch = _adoptedRespawnBoss && _profileTask != null;
+                if (_adoptedRespawnBoss && _profileTask != null)
                 {
-                    throw new InvalidOperationException(
-                        "PFT retained a stale follower-profile task for the local profile");
-                }
+                    if (!cache.Contains(_currentLeader.ProfileId)
+                        || !ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask))
+                    {
+                        throw new InvalidOperationException(
+                            "PFT replaced or removed the adopted replacement follower-profile task");
+                    }
 
-                Task task = _createFollowerProfilesMethod.Invoke(
-                    patchInstance,
-                    new[] { _currentBoss }) as Task;
-                if (task == null)
-                    throw new InvalidOperationException("PFT returned no follower-profile task");
+                    task = _createFollowerProfilesMethod.Invoke(
+                        patchInstance,
+                        new[] { _currentBoss }) as Task;
+                    if (task == null || !ReferenceEquals(task, _profileTask))
+                    {
+                        throw new InvalidOperationException(
+                            "PFT did not return the exact auto-prefetched replacement task");
+                    }
+                }
+                else
+                {
+                    if (cache.Contains(_currentLeader.ProfileId))
+                    {
+                        throw new InvalidOperationException(
+                            "PFT retained a stale follower-profile task for the local profile");
+                    }
+
+                    task = _createFollowerProfilesMethod.Invoke(
+                        patchInstance,
+                        new[] { _currentBoss }) as Task;
+                    if (task == null)
+                        throw new InvalidOperationException("PFT returned no follower-profile task");
+                }
 
                 cache = ReadProfileTaskCacheUnsafe();
                 if (!cache.Contains(_currentLeader.ProfileId)
@@ -835,7 +990,9 @@ internal static class PitFireTeamRoundLifecycle
                 _profileTask = task;
                 _deadlineUtc = Deadline(timeout);
                 _stage = PitFireTeamRoundLifecycleStage.PreparingProfiles;
-                _diagnostic = $"PitFireTeam round epoch {_epoch}: waiting for four canonical follower profiles.";
+                _diagnostic = adoptedAutoPrefetch
+                    ? $"PitFireTeam round epoch {_epoch}: waiting for PFT's exact respawn-prefetched follower profiles."
+                    : $"PitFireTeam round epoch {_epoch}: waiting for four canonical follower profiles.";
                 return true;
             }
             catch (Exception ex)
@@ -1234,7 +1391,7 @@ internal static class PitFireTeamRoundLifecycle
                     if (_bossFollowersProperty.GetValue(_currentBoss) is not IEnumerable bossFollowers)
                     {
                         invalid = true;
-                        invalidProblem = "the rebuilt PFT boss follower list is unavailable";
+                        invalidProblem = "the current PFT boss follower list is unavailable";
                     }
                     else
                     {
@@ -1248,7 +1405,7 @@ internal static class PitFireTeamRoundLifecycle
                             || candidates.Any(candidate => !ownedBodies.Any(item => ReferenceEquals(item, candidate))))
                         {
                             invalid = true;
-                            invalidProblem = "the rebuilt PFT boss owns bodies that contradict its published follower wrappers";
+                            invalidProblem = "the current PFT boss owns bodies that contradict its published follower wrappers";
                         }
                         else
                         {
@@ -1256,7 +1413,7 @@ internal static class PitFireTeamRoundLifecycle
                             if (candidates.Count > 0 && bossGroup == null)
                             {
                                 invalid = true;
-                                invalidProblem = "the rebuilt PFT boss group is unavailable for a published follower";
+                                invalidProblem = "the current PFT boss group is unavailable for a published follower";
                             }
                             else if (bossGroup != null)
                             {
@@ -1648,6 +1805,11 @@ internal static class PitFireTeamRoundLifecycle
             "realPlayer",
             BindingFlags.Public | BindingFlags.Instance,
             typeof(Player));
+        _bossBotsControllerField = RequireField(
+            _bossType,
+            BossControllerFieldName,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(BotsController));
         _bossFollowersProperty = RequireProperty(
             _bossType,
             "Followers",
@@ -3824,7 +3986,7 @@ internal static class PitFireTeamRoundLifecycle
         }
 
         if (exact != 1)
-            throw new InvalidOperationException("PFT spawnedPlayers did not accept exactly one rebuilt boss");
+            throw new InvalidOperationException("PFT spawnedPlayers did not retain exactly one current boss");
     }
 
     private static List<object> ReadFollowerWrappersUnsafe()
@@ -3933,10 +4095,13 @@ internal static class PitFireTeamRoundLifecycle
         _epoch = 0;
         _deadlineUtc = DateTime.MinValue;
         _oldLeader = null;
+        _oldLeaderProfileId = null;
         _oldBoss = null;
         _currentLeader = null;
         _currentBoss = null;
         _profileTask = null;
+        _profileCacheWasCleanAtTeardown = false;
+        _adoptedRespawnBoss = false;
         _spawnTask = null;
         _preparedProfileDictionary = null;
         _retiringBodies.Clear();
@@ -3981,6 +4146,7 @@ internal static class PitFireTeamRoundLifecycle
         _followersField = null;
         _followersByProfileIdField = null;
         _bossRealPlayerField = null;
+        _bossBotsControllerField = null;
         _bossGroupProperty = null;
         _bossFollowersProperty = null;
         _botsPatchInstanceField = null;

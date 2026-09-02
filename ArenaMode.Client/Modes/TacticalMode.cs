@@ -1950,7 +1950,7 @@ public sealed class TacticalMode : IArenaMode
                 out string currentLeaderProblem))
         {
             FailTeamTransition(
-                "the current local PMC drifted before PitFireTeam leader rebuild: "
+                "the current local PMC drifted before PitFireTeam leader rebind: "
                 + currentLeaderProblem);
             return;
         }
@@ -1964,13 +1964,14 @@ public sealed class TacticalMode : IArenaMode
                 PitFireTeamCompat.PersistenceSuppressionActive,
                 out string problem))
         {
-            FailTeamTransition("PitFireTeam leader rebuild failed: " + problem);
+            FailTeamTransition(problem);
             return;
         }
 
         _teamRebindStep = TeamRebindStep.PrepareProfiles;
         Plugin.ModLogger.LogInfo(
-            $"Tactical team Arena round {RoundNumber}: PitFireTeam leader wrapper rebuilt.");
+            $"Tactical team Arena round {RoundNumber}: PitFireTeam leader ready — "
+            + PitFireTeamRoundLifecycle.Diagnostic);
     }
 
     private void BeginTeamFollowerProfiles()
@@ -1986,13 +1987,13 @@ public sealed class TacticalMode : IArenaMode
                 TeamLifecycleTimeout,
                 out string problem))
         {
-            FailTeamTransition("PitFireTeam follower profile preparation failed: " + problem);
+            FailTeamTransition(problem);
             return;
         }
 
         _teamRebindStep = TeamRebindStep.AwaitProfiles;
         Plugin.ModLogger.LogInfo(
-            $"Tactical team Arena round {RoundNumber}: requested four fresh PitFireTeam follower profiles.");
+            $"Tactical team Arena round {RoundNumber}: PitFireTeam follower profile preparation is active.");
     }
 
     private void TickTeamFollowerProfiles()

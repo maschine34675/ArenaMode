@@ -11,6 +11,7 @@ internal static class Program
         {
             CheckCanonicalRoster();
             CheckRetirementBarrier();
+            CheckLeaderBindingPolicy();
             CheckFreshIdentityRemap();
             CheckFollowerBarrier();
             CheckSynchronousPostfixDeferral();
@@ -152,6 +153,104 @@ internal static class Program
                 new[] { runtimeItems[2] },
                 out _),
             "a runtime item ID cannot be reused across rounds");
+    }
+
+    private static void CheckLeaderBindingPolicy()
+    {
+        Assert(EvaluateLeaderBinding().Decision == PitFireTeamLeaderBindingDecision.Create,
+            "a clean round with no existing boss keeps the survivor rebuild path");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: false,
+                   wrapsLeader: true,
+                   usesController: true)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "an existing boss on the survivor path remains a hard lifecycle failure");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true,
+                   cachedTask: true,
+                   cachedValueIsTask: true)
+               .Decision == PitFireTeamLeaderBindingDecision.Adopt,
+            "an empty exact replacement-body boss and its auto-prefetched Task are adopted");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true)
+               .Decision == PitFireTeamLeaderBindingDecision.Adopt,
+            "an exact replacement boss without prefetch is adopted before Arena starts prefetch");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: false,
+                   usesController: true)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a same-profile boss around a different Player object is rejected");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: false)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a replacement boss from a different BotsController is rejected");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true,
+                   followers: 1)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a replacement boss with a physical follower is rejected");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true,
+                   wrappers: 1)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a replacement boss with a published follower wrapper is rejected");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true,
+                   groupPresent: true)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a replacement boss with an existing bot group is rejected");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true,
+                   cleanCacheAtTeardown: false)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "an exact boss cannot be adopted without a clean completed-round cache baseline");
+
+        Assert(EvaluateLeaderBinding(cachedTask: true, cachedValueIsTask: true)
+                   .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a cached profile task without an adopted replacement boss is stale");
+
+        Assert(EvaluateLeaderBinding(
+                   existingBoss: true,
+                   exactReplacement: true,
+                   wrapsLeader: true,
+                   usesController: true,
+                   cachedTask: true,
+                   cachedValueIsTask: false)
+               .Decision == PitFireTeamLeaderBindingDecision.Failed,
+            "a non-Task cache value cannot be adopted even for an exact replacement boss");
     }
 
     private static void CheckFollowerBarrier()
@@ -530,6 +629,14 @@ internal static class Program
             "client",
             "Modules",
             "BossPlayers.cs")));
+        string pitFireTeamBossSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_reference",
+            "SPT-PitFireTeam-main",
+            "client",
+            "Components",
+            "AIBossPlayer.cs")));
         string pitFireTeamBotOwnerPatchSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
             root,
             "..",
@@ -551,6 +658,11 @@ internal static class Program
             "..",
             "_decompiled",
             "BotCreationData.cs")));
+        string eftBossPlayerSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "AIBossPlayer.cs")));
         string botOwnerSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
             root,
             "..",
@@ -582,8 +694,17 @@ internal static class Program
 
         RequireAll(source,
             "GameWorld is unavailable while proving old follower retirement",
+            "private const string BossControllerFieldName = \"_botsController\";",
+            "private static bool _profileCacheWasCleanAtTeardown",
+            "private static bool _adoptedRespawnBoss",
+            "private static string _oldLeaderProfileId",
+            "_oldLeaderProfileId = oldLeader.ProfileId;",
+            "_bossBotsControllerField = RequireField(",
+            "PitFireTeamRoundLifecyclePolicy.EvaluateLeaderBinding(",
+            "PitFireTeamLeaderBindingDecision.Adopt",
+            "_profileTask = cachedProfileTask;",
             "_bossFollowersProperty.GetValue(_currentBoss)",
-            "the rebuilt PFT boss owns bodies that contradict its published follower wrappers",
+            "the current PFT boss owns bodies that contradict its published follower wrappers",
             "_bossGroupProperty.GetValue(_currentBoss) as BotsGroup",
             "candidate.BotFollower.HaveBoss",
             "ReferenceEquals(candidate.BotFollower.BossToFollow, _currentBoss)",
@@ -706,6 +827,43 @@ internal static class Program
             "RevokeFollowerSpawnLeaseUnsafe(_diagnostic, cleanupBodies: true)",
             "SpawnLeaseHarmony.UnpatchSelf()",
             "PitFireTeam round lifecycle configuration rolled back");
+
+        RequireAll(
+            pitFireTeamBossSource,
+            "private BotsGroup _group = null;",
+            "private BotsController _botsController;",
+            "public pitAIBossPlayer(Player player, BotsController botsController) : base(player)",
+            "_botsController = botsController;");
+        RequireAll(
+            eftBossPlayerSource,
+            "public List<BotOwner> Followers { get; } = new List<BotOwner>();",
+            "public AIBossPlayer(Player player)");
+
+        string pftAddActivePlayer = Slice(
+            pitFireTeamSource,
+            "return AccessTools.Method(typeof(BotsController), \"AddActivePLayer\");",
+            "private static void TrySayFollowerReadyControlled");
+        RequireOrder(
+            pftAddActivePlayer,
+            "PFT synchronously creates the replacement boss and optional prefetch before Redeploy can publish its respawn",
+            "BossPlayers.AddPlayerAsBoss(player, __instance);",
+            "spawnedPlayers.Add(playerBoss);",
+            "CreateFollowerProfiles(playerBoss);");
+        Assert(!pftAddActivePlayer.Contains("AddGroupToBoss", StringComparison.Ordinal)
+               && !pftAddActivePlayer.Contains("AddFollower", StringComparison.Ordinal),
+            "PFT's AddActivePLayer postfix cannot pre-populate the replacement boss group or followers");
+
+        string pftProfilePrefetch = Slice(
+            pitFireTeamSource,
+            "public Task<Dictionary<string, Profile>> CreateFollowerProfiles(pitAIBossPlayer player)",
+            "public Task<BotCreationData> PreFetchBossProfiles");
+        RequireOrder(
+            pftProfilePrefetch,
+            "PFT returns the exact keyed task or stores one new task for the current boss",
+            "if (followerCreationTask.ContainsKey(player.realPlayer.ProfileId))",
+            "return followerCreationTask[player.realPlayer.ProfileId];",
+            "followerCreationTask[player.realPlayer.ProfileId] = CreateProfilesJob(player);",
+            "return followerCreationTask[player.realPlayer.ProfileId];");
 
         RequireAll(
             pitFireTeamSource,
@@ -843,6 +1001,13 @@ internal static class Program
             "round teardown validates the frozen four-body roster before advancing lifecycle state");
         RequireOrder(
             beginTeardown,
+            "round teardown proves an empty old profile-task cache before opening respawn task provenance",
+            "_profileCacheWasCleanAtTeardown = false;",
+            "ReadProfileTaskCacheUnsafe();",
+            "_profileCacheWasCleanAtTeardown = true;",
+            "RevokeFollowerSpawnLeaseUnsafe(");
+        RequireOrder(
+            beginTeardown,
             "round teardown validates every PFT wrapper and registry entry before unlinking any follower",
             "List<object> wrappers = ReadFollowerWrappersUnsafe()",
             "if (wrappers.Count != oldBodies.Count)",
@@ -907,6 +1072,52 @@ internal static class Program
                    "FailTeamTransition(\"PitFireTeam old-round teardown failed: \" + teardownProblem);",
                    StringComparison.Ordinal),
             "Tactical mode presents the lifecycle's detailed teardown error exactly once");
+
+        string leaderBinding = Slice(
+            source,
+            "public static bool TryRebuildBoss(",
+            "public static bool BeginFollowerProfilePreparation(");
+        RequireOrder(
+            leaderBinding,
+            "leader rebind classifies before creating or adopting and normalizes only the accepted exact boss",
+            "object existingBoss = _getBossMethod.Invoke(",
+            "PitFireTeamRoundLifecyclePolicy.EvaluateLeaderBinding(",
+            "bool adoptedRespawnBoss =",
+            "ReplaceSpawnedBossUnsafe(newBoss, currentLeader);");
+        RequireAll(
+            leaderBinding,
+            "!ReferenceEquals(_oldLeader, null)",
+            "!ReferenceEquals(currentLeader, _oldLeader)",
+            "currentLeader.ProfileId,",
+            "_oldLeaderProfileId,",
+            "ReferenceEquals(_bossRealPlayerField.GetValue(existingBoss), currentLeader)",
+            "ReferenceEquals(_bossBotsControllerField.GetValue(existingBoss), botsController)",
+            "_getFollowerBossMethod.Invoke(wrapper, null)",
+            "_profileTask = cachedProfileTask;");
+
+        string profilePreparation = Slice(
+            source,
+            "public static bool BeginFollowerProfilePreparation(",
+            "public static PitFireTeamRoundPolicyDecision PollFollowerProfilePreparation(");
+        RequireAll(
+            profilePreparation,
+            "if (_adoptedRespawnBoss && _profileTask != null)",
+            "ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask)",
+            "ReferenceEquals(task, _profileTask)",
+            "PFT did not return the exact auto-prefetched replacement task");
+
+        string tacticalLeaderRebind = Slice(
+            tacticalSource,
+            "private void RebuildTeamLeader()",
+            "private void TickTeamFollowerProfiles()");
+        Assert(tacticalLeaderRebind.Contains("FailTeamTransition(problem);", StringComparison.Ordinal)
+               && !tacticalLeaderRebind.Contains(
+                   "FailTeamTransition(\"PitFireTeam leader rebuild failed: \" + problem);",
+                   StringComparison.Ordinal)
+               && !tacticalLeaderRebind.Contains(
+                   "FailTeamTransition(\"PitFireTeam follower profile preparation failed: \" + problem);",
+                   StringComparison.Ordinal),
+            "Tactical presents lifecycle-owned leader and profile diagnostics without duplicate prefixes");
 
         string creationPatch = Slice(
             source,
@@ -1102,6 +1313,32 @@ internal static class Program
                 DistinctProfileCount = wrappers,
                 StablePasses = stable,
                 TimedOut = timedOut
+            });
+
+    private static PitFireTeamLeaderBindingPolicyDecision EvaluateLeaderBinding(
+        bool existingBoss = false,
+        bool exactReplacement = false,
+        bool wrapsLeader = false,
+        bool usesController = false,
+        int followers = 0,
+        int wrappers = 0,
+        bool groupPresent = false,
+        bool cleanCacheAtTeardown = true,
+        bool cachedTask = false,
+        bool cachedValueIsTask = false)
+        => PitFireTeamRoundLifecyclePolicy.EvaluateLeaderBinding(
+            new PitFireTeamLeaderBindingObservation
+            {
+                ProfileCacheWasCleanAtTeardown = cleanCacheAtTeardown,
+                ExistingBossPresent = existingBoss,
+                IsExactReplacementBody = exactReplacement,
+                BossWrapsCurrentLeader = wrapsLeader,
+                BossUsesCurrentController = usesController,
+                BossFollowerCount = followers,
+                BossWrapperCount = wrappers,
+                BossGroupPresent = groupPresent,
+                CachedProfileTaskPresent = cachedTask,
+                CachedProfileTaskIsTask = cachedValueIsTask
             });
 
     private static Dictionary<string, string> Roster(int count)

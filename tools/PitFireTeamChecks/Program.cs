@@ -907,7 +907,7 @@ internal static class Program
                && matchService.Contains("tactical.TryTakeTeamRespawnAuthorization(", StringComparison.Ordinal),
             "respawn authorization is exact-body, exact-game, exact-round, exact-PFT-epoch and one-shot through Tactical only");
         Assert(tactical.Contains("TryValidateCurrentTeamLeaderBody(player, out string bodyProblem)", StringComparison.Ordinal)
-               && tactical.Contains("the current local PMC drifted before PitFireTeam leader rebuild", StringComparison.Ordinal)
+               && tactical.Contains("the current local PMC drifted before PitFireTeam leader rebind", StringComparison.Ordinal)
                && tactical.Contains("the current local PMC drifted before PitFireTeam follower adoption", StringComparison.Ordinal)
                && tactical.Contains("world.RegisteredPlayers.Count(candidate =>", StringComparison.Ordinal)
                && tactical.Contains("world.GetEverExistedPlayerByID(profileId)", StringComparison.Ordinal)

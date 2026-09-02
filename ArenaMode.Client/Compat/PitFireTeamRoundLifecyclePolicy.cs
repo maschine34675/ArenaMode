@@ -27,6 +27,50 @@ internal enum PitFireTeamRoundPollDecision
     Failed
 }
 
+internal enum PitFireTeamLeaderBindingDecision
+{
+    Create,
+    Adopt,
+    Failed
+}
+
+internal sealed class PitFireTeamLeaderBindingObservation
+{
+    public bool ProfileCacheWasCleanAtTeardown { get; set; }
+    public bool ExistingBossPresent { get; set; }
+    public bool IsExactReplacementBody { get; set; }
+    public bool BossWrapsCurrentLeader { get; set; }
+    public bool BossUsesCurrentController { get; set; }
+    public int BossFollowerCount { get; set; }
+    public int BossWrapperCount { get; set; }
+    public bool BossGroupPresent { get; set; }
+    public bool CachedProfileTaskPresent { get; set; }
+    public bool CachedProfileTaskIsTask { get; set; }
+}
+
+internal sealed class PitFireTeamLeaderBindingPolicyDecision
+{
+    private PitFireTeamLeaderBindingPolicyDecision(
+        PitFireTeamLeaderBindingDecision decision,
+        string reason)
+    {
+        Decision = decision;
+        Reason = reason ?? string.Empty;
+    }
+
+    public PitFireTeamLeaderBindingDecision Decision { get; }
+    public string Reason { get; }
+
+    public static PitFireTeamLeaderBindingPolicyDecision Create()
+        => new(PitFireTeamLeaderBindingDecision.Create, string.Empty);
+
+    public static PitFireTeamLeaderBindingPolicyDecision Adopt()
+        => new(PitFireTeamLeaderBindingDecision.Adopt, string.Empty);
+
+    public static PitFireTeamLeaderBindingPolicyDecision Failed(string reason)
+        => new(PitFireTeamLeaderBindingDecision.Failed, reason);
+}
+
 internal sealed class PitFireTeamRoundCapability
 {
     private PitFireTeamRoundCapability(
@@ -288,6 +332,77 @@ internal static class PitFireTeamRoundLifecyclePolicy
 {
     public const int RequiredCompanionCount = 4;
     public const int RequiredStablePasses = 2;
+
+    public static PitFireTeamLeaderBindingPolicyDecision EvaluateLeaderBinding(
+        PitFireTeamLeaderBindingObservation observation)
+    {
+        if (observation == null)
+            return PitFireTeamLeaderBindingPolicyDecision.Failed("leader binding state is missing");
+
+        if (!observation.ProfileCacheWasCleanAtTeardown)
+        {
+            return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                "the completed round did not prove a clean follower-profile task cache");
+        }
+
+        if (observation.BossFollowerCount < 0 || observation.BossWrapperCount < 0)
+            return PitFireTeamLeaderBindingPolicyDecision.Failed("leader ownership counters are invalid");
+
+        if (!observation.ExistingBossPresent)
+        {
+            if (observation.CachedProfileTaskPresent)
+            {
+                return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                    "PFT exposed a follower-profile task without a current leader wrapper");
+            }
+
+            if (observation.BossWrapsCurrentLeader
+                || observation.BossUsesCurrentController
+                || observation.BossFollowerCount != 0
+                || observation.BossWrapperCount != 0
+                || observation.BossGroupPresent)
+            {
+                return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                    "PFT exposed contradictory ownership without a current leader wrapper");
+            }
+
+            return PitFireTeamLeaderBindingPolicyDecision.Create();
+        }
+
+        if (!observation.IsExactReplacementBody)
+        {
+            return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                "PFT still has a boss under the surviving or wrong local body");
+        }
+
+        if (!observation.BossWrapsCurrentLeader)
+        {
+            return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                "PFT's existing boss does not wrap the exact replacement local body");
+        }
+
+        if (!observation.BossUsesCurrentController)
+        {
+            return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                "PFT's existing boss does not use the current BotsController");
+        }
+
+        if (observation.BossFollowerCount != 0
+            || observation.BossWrapperCount != 0
+            || observation.BossGroupPresent)
+        {
+            return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                $"PFT's replacement boss already owns round state (followers={observation.BossFollowerCount}, wrappers={observation.BossWrapperCount}, group={observation.BossGroupPresent})");
+        }
+
+        if (observation.CachedProfileTaskPresent && !observation.CachedProfileTaskIsTask)
+        {
+            return PitFireTeamLeaderBindingPolicyDecision.Failed(
+                "PFT's replacement follower-profile cache entry is not a Task");
+        }
+
+        return PitFireTeamLeaderBindingPolicyDecision.Adopt();
+    }
 
     public static bool TryValidateCanonicalRoster(
         IReadOnlyDictionary<string, string> profilesByAccountId,
