@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>maschine-ArenaMode.BigBrainCompat</AssemblyName>
+    <RootNamespace>ArenaMode.BigBrainCompat</RootNamespace>
+    <Description>Optional BigBrain movement ownership for ArenaMode team matches</Description>
+    <Company>https://github.com/maschine34675/ArenaMode</Company>
+    <Authors>maschine</Authors>
+    <SPTModType>Client</SPTModType>
+    <LangVersion>latest</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArenaMode.Client\ArenaMode.Client.csproj" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- API reference only. BigBrain remains a user-installed hard dependency
+         and is never copied into ArenaMode's build or release output. -->
+    <Reference Include="DrakiaXYZ-BigBrain">
+      <HintPath>$(SPTPath)\BepInEx\plugins\DrakiaXYZ-BigBrain.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false" />
+    <Reference Include="DissonanceVoip" Private="false" />
+    <Reference Include="UnityEngine" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" Private="false" />
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+  </ItemGroup>
+
+</Project>

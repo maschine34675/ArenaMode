@@ -42,8 +42,15 @@ These gates supersede that document only for the new multi-round behavior.
 
 - [x] R4: Spectator and pursuit leases are limited to the exact nine non-local
   current-round identities. Spectator camera ownership is released before body
-  retirement; after local death, both living sides receive refreshed native/SAIN
-  opponent knowledge without forced movement, visibility, or retained bot bodies.
+  retirement; after local death, both living sides receive refreshed opponent knowledge.
+  The optional companion for exact BigBrain 1.5.0 owns a short per-profile movement lease only
+  while an idle bot is separated from its live target and runs EFT's complete native
+  run-to-enemy behavior for bounded path refresh, doors, mines, steering and sprint while
+  continuing to route when PFT's wider arrival radius would stop near hidden geometry. It yields to immediate combat,
+  pending or active medicine, reload, grenades, doors, direct
+  grenade/BTR/artillery/flash danger, higher-priority danger layers, and every round/raid
+  transition. Missing or unmatched companion layers preserve the guarded PFT/SAIN/native
+  fallback. No path fakes visibility, teleports, retains bot bodies, or bundles BigBrain.
   CHECK: `dotnet run --project tools/TeamArenaExpansionChecks/TeamArenaExpansionChecks.csproj -c Release`
   EXPECT: `TEAM_ARENA_EXPANSION_CHECKS_PASSED`
 
@@ -73,8 +80,9 @@ PitFireTeam teammate store before starting.
   only among the surviving four companions/five opponents. Combat continues and both
   teams actively seek known opponents instead of waiting indefinitely. The round ends
   only when one complete side is eliminated or the existing round timer expires.
-  EXPECT LOG: spectator pending/following, no camera-ownership error, no pursuit
-  contract error, and one round result.
+  EXPECT LOG: the BigBrain pursuit layer registers once at priority 74; spectator
+  pending/following; post-death pursuit activates; living bots report `bigbrain` routes;
+  no repeated pursuit stall/contract error; and one round result.
 
 - [ ] M9: Let the team finish a round after the PMC died. After the result delay the
   old camera lease ends, all nine old bot bodies leave active registries, and the PMC

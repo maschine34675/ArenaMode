@@ -10,5 +10,11 @@
              Link="Production/SpectatorPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TeamArenaRoundPolicy.cs"
              Link="Production/TeamArenaRoundPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPursuitPolicy.cs"
+             Link="Production/TeamArenaPursuitPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPftLeasePolicy.cs"
+             Link="Production/TeamArenaPftLeasePolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPursuitOwnerPolicy.cs"
+             Link="Production/TeamArenaPursuitOwnerPolicy.cs" />
   </ItemGroup>
 </Project>

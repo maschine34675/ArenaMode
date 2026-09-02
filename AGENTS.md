@@ -15,6 +15,7 @@ Read this before changing anything. Most of it was learned the expensive way.
 | Path | What |
 |---|---|
 | `ArenaMode.Client/` | BepInEx plugin (netstandard2.1, Harmony). The bulk of the mod. |
+| `ArenaMode.BigBrainCompat/` | Optional BigBrain 1.5.0 action owner for post-death Tactical 5v5 pursuit. |
 | `ArenaMode.Server/` | SPT server mod (net10.0) + the Blazor config page. |
 | `ArenaMode.Shared/` | Linked source compiled into BOTH — routes and DTOs only. |
 | `tools/` | Offline generators for the kit catalogue and the weapon ladder. |
@@ -35,7 +36,7 @@ dotnet build ArenaMode.sln -c Release   # builds and deploys both halves
 dotnet test  ArenaMode.Tests            # ~30 tests, under a second
 ```
 
-Both mod projects copy themselves into place on build. The tests cover the SERVER
+All mod projects copy themselves into place on build. The tests cover the SERVER
 half and the generated data; the client half is Harmony patches against Unity and EFT
 types that cannot load outside the game, so **for anything client-side, verification is
 still a raid.**
@@ -81,7 +82,7 @@ test above was verified that way — reintroduce the comma and three tests go re
 2. **Normal raids must be bit-identical.** Every patch starts with an
    `ArenaSession.IsActive` gate and fails open to vanilla. A setting that leaks into a
    non-arena raid is a bug even if it is harmless.
-3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam:
+3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with
    attribution. LacywayPvETweaks and LetMeRightClick are proprietary: do not touch.
@@ -155,7 +156,8 @@ Open:
 - **PitFireTeam 5v5** — the optional 0.10.0 compatibility path now has a guarded
   best-of-N round lifecycle and still needs a GPU playtest. It preserves the PMC entry
   loadout after a death, rebuilds fresh follower/opponent bodies between rounds, offers
-  post-death third-person spectating, and refreshes both teams' pursuit knowledge while
+  post-death third-person spectating, refreshes both teams' pursuit knowledge, and uses
+  an optional companion for exact BigBrain 1.5.0 to own bounded movement toward live opponents while
   the PMC is down. It excludes teammate bots/corpses from Arena cleanup/counts and blocks
   both SPT-profile effects and PitFireTeam's separate teammate persistence. Every
   teardown/rebind step fails closed as no-contest when the exact reflected contract or
