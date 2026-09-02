@@ -4,7 +4,6 @@ using EFT.InventoryLogic;
 using HarmonyLib;
 using JsonType;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Redeploy.Core.Inventory;
 using System;
 using System.Collections.Generic;
@@ -109,8 +108,8 @@ public sealed class TeamArenaLoadoutSnapshot
 
             // The JSON string is the ownership boundary: later rounds never retain
             // references to the match-entry Item objects or their mutable upd/location.
-            string json = JsonConvert.SerializeObject(filtered, Formatting.None);
-            FlatItem[] detached = JsonConvert.DeserializeObject<FlatItem[]>(json);
+            string json = JsonConvert.SerializeObject(filtered, Formatting.None, EftJsonConverters.Converters);
+            FlatItem[] detached = JsonConvert.DeserializeObject<FlatItem[]>(json, EftJsonConverters.Converters);
             if (detached == null
                 || !TryValidateJsonRoundTrip(filtered, detached, out reason))
             {
@@ -277,7 +276,7 @@ public sealed class TeamArenaLoadoutSnapshot
             throw new InvalidOperationException($"protected identity validation failed: {protectedReason}");
         }
 
-        FlatItem[] source = JsonConvert.DeserializeObject<FlatItem[]>(_flatItemJson)
+        FlatItem[] source = JsonConvert.DeserializeObject<FlatItem[]>(_flatItemJson, EftJsonConverters.Converters)
                             ?? throw new InvalidOperationException("in-memory FlatItem JSON is invalid");
         if (source.Length != CapturedItemCount)
             throw new InvalidOperationException("in-memory FlatItem JSON changed item count");
@@ -679,14 +678,39 @@ public sealed class TeamArenaLoadoutSnapshot
         foreach (FlatItem item in expected)
         {
             string id = item._id.ToString();
-            if (!actualById.TryGetValue(id, out FlatItem other)
-                || item._tpl != other._tpl
-                || item.parentId != other.parentId
-                || !string.Equals(item.slotId, other.slotId, StringComparison.Ordinal)
-                || !JsonEquivalent(item.location, other.location)
-                || !JsonEquivalent(item.upd, other.upd))
+            if (!actualById.TryGetValue(id, out FlatItem other))
             {
-                reason = $"flat item '{id}' changed template, parent, slot, location or upd";
+                reason = $"flat item '{id}' is missing";
+                return false;
+            }
+
+            if (item._tpl != other._tpl)
+            {
+                reason = $"flat item '{id}' changed template";
+                return false;
+            }
+
+            if (item.parentId != other.parentId)
+            {
+                reason = $"flat item '{id}' changed parent";
+                return false;
+            }
+
+            if (!string.Equals(item.slotId, other.slotId, StringComparison.Ordinal))
+            {
+                reason = $"flat item '{id}' changed slot";
+                return false;
+            }
+
+            if (!JsonEquivalent(item.location, other.location))
+            {
+                reason = $"flat item '{id}' changed location";
+                return false;
+            }
+
+            if (!JsonEquivalent(item.upd, other.upd))
+            {
+                reason = $"flat item '{id}' changed upd";
                 return false;
             }
         }
@@ -694,13 +718,8 @@ public sealed class TeamArenaLoadoutSnapshot
         return true;
     }
 
-    private static bool JsonEquivalent(object left, object right)
-    {
-        if (left == null || right == null)
-            return left == null && right == null;
-
-        return JToken.DeepEquals(JToken.FromObject(left), JToken.FromObject(right));
-    }
+    private static bool JsonEquivalent(UnparsedData left, UnparsedData right)
+        => TeamArenaJsonEquivalence.AreEquivalent(left?.JToken, right?.JToken);
 
     private sealed class SlotTransfer
     {

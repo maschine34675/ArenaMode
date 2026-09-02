@@ -8,8 +8,13 @@
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Kits/TeamArenaLoadoutSnapshotPolicy.cs"
              Link="Production/TeamArenaLoadoutSnapshotPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Kits/TeamArenaJsonEquivalence.cs"
+             Link="Production/TeamArenaJsonEquivalence.cs" />
     <None Include="../../ArenaMode.Client/Kits/TeamArenaLoadoutSnapshot.cs"
           Link="TeamArenaLoadoutSnapshot.cs.txt"
           CopyToOutputDirectory="PreserveNewest" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>../../../../EscapeFromTarkov_Data/Managed/Newtonsoft.Json.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

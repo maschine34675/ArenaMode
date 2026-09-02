@@ -1,6 +1,50 @@
 using ArenaMode.Kits;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 var check = new CheckRunner();
+
+var runtimeUpd = new JObject
+{
+    ["Repairable"] = new JObject
+    {
+        ["Durability"] = new JValue(92.61f),
+        ["MaxDurability"] = new JValue(92.61f),
+    },
+    ["FireMode"] = new JObject
+    {
+        ["FireMode"] = "fullauto",
+    },
+};
+JToken detachedUpd = JToken.Parse(runtimeUpd.ToString(Formatting.None));
+check.Equal(typeof(float), ((JValue)runtimeUpd["Repairable"]["Durability"]).Value.GetType(),
+    "EFT repairable durability begins as a Single JValue");
+check.Equal(typeof(double), ((JValue)detachedUpd["Repairable"]["Durability"]).Value.GetType(),
+    "JSON round-trip materializes decimal durability as a Double JValue");
+check.False(JToken.DeepEquals(runtimeUpd, detachedUpd),
+    "raw JToken equality reproduces the Single-to-Double snapshot failure");
+check.True(TeamArenaJsonEquivalence.AreEquivalent(runtimeUpd, detachedUpd),
+    "wire-identical Single and Double JSON numbers survive snapshot validation");
+
+JToken changedDurability = detachedUpd.DeepClone();
+changedDurability["Repairable"]["Durability"] = 92.60;
+check.False(TeamArenaJsonEquivalence.AreEquivalent(runtimeUpd, changedDurability),
+    "a real durability change remains visible after numeric normalization");
+
+JToken changedFireMode = detachedUpd.DeepClone();
+changedFireMode["FireMode"]["FireMode"] = "single";
+check.False(TeamArenaJsonEquivalence.AreEquivalent(runtimeUpd, changedFireMode),
+    "a non-numeric upd change remains visible after normalization");
+
+var largeCounter = new JObject { ["Counter"] = 9007199254740993L };
+var changedLargeCounter = new JObject { ["Counter"] = 9007199254740992L };
+check.False(TeamArenaJsonEquivalence.AreEquivalent(largeCounter, changedLargeCounter),
+    "numeric normalization does not lose Int64 precision through Double conversion");
+check.True(TeamArenaJsonEquivalence.AreEquivalent(null, null), "two absent JSON values remain equivalent");
+check.True(TeamArenaJsonEquivalence.AreEquivalent(null, JValue.CreateNull()),
+    "missing and explicit null follow EFT's UnparsedData null semantics");
+check.False(TeamArenaJsonEquivalence.AreEquivalent(runtimeUpd, null),
+    "an absent JSON value cannot equal a present value");
 
 var source = new[]
 {
@@ -237,8 +281,16 @@ string commitSection = implementation.Substring(commitStart, prepareCoreStart - 
 check.DoesNotContain("FlatItemsToTree", commitSection,
     "respawn callback commit cannot deserialize or reconstruct the item graph");
 check.Contains("TreeToFlatItems(equipment)", implementation, "capture uses SPT TreeToFlatItems");
-check.Contains("JsonConvert.SerializeObject", implementation, "capture crosses an in-memory JSON boundary");
-check.Contains("JsonConvert.DeserializeObject<FlatItem[]>", implementation, "each restore creates detached FlatItems");
+check.Contains("JsonConvert.SerializeObject(filtered, Formatting.None, EftJsonConverters.Converters)", implementation,
+    "capture crosses an in-memory JSON boundary with EFT's native UnparsedData converter");
+check.Contains("JsonConvert.DeserializeObject<FlatItem[]>(json, EftJsonConverters.Converters)", implementation,
+    "capture validation reads detached FlatItems with EFT's native UnparsedData converter");
+check.Contains("JsonConvert.DeserializeObject<FlatItem[]>(_flatItemJson, EftJsonConverters.Converters)", implementation,
+    "each restore reads detached FlatItems with EFT's native UnparsedData converter");
+check.DoesNotContain("JsonConvert.DefaultSettings", implementation,
+    "snapshot conversion never changes Newtonsoft's process-wide settings");
+check.Contains("TeamArenaJsonEquivalence.AreEquivalent", implementation,
+    "location and upd compare their normalized raw JSON tokens");
 check.Contains("public bool TryPrepare(", implementation, "detached prepare is an explicit pre-respawn phase");
 check.Contains("class TeamArenaPreparedLoadoutRestore", implementation, "prepared graph has a one-shot commit handle");
 check.Contains("factory.NextId", implementation, "runtime items receive ItemFactory IDs");
