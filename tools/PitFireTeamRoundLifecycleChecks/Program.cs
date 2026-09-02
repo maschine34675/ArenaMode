@@ -13,6 +13,7 @@ internal static class Program
             CheckRetirementBarrier();
             CheckFreshIdentityRemap();
             CheckFollowerBarrier();
+            CheckSynchronousPostfixDeferral();
             CheckCapability();
             CheckFollowerDetachPolicy();
             CheckSourceContract();
@@ -155,9 +156,62 @@ internal static class Program
 
     private static void CheckFollowerBarrier()
     {
-        Assert(EvaluateFollowers(wrappers: 3, active: 3, registered: 3, stable: 0)
+        Assert(EvaluateFollowers(
+                       wrappers: 0,
+                       active: 0,
+                       registered: 0,
+                       stable: 0,
+                       activationLeaseComplete: false,
+                       physicalOwnershipComplete: false)
                    .Decision == PitFireTeamRoundPollDecision.Pending,
-            "three followers remain pending");
+            "zero physical followers remain pending while leased callbacks are still running");
+        Assert(EvaluateFollowers(
+                       wrappers: 3,
+                       active: 3,
+                       registered: 3,
+                       stable: 0,
+                       activationLeaseComplete: true,
+                       physicalOwnershipComplete: false)
+                   .Decision == PitFireTeamRoundPollDecision.Pending,
+            "a complete activation lease with partial PFT ownership remains pending before timeout");
+        Assert(EvaluateFollowers(
+                       wrappers: 0,
+                       active: 0,
+                       registered: 0,
+                       stable: 0,
+                       activationLeaseComplete: true,
+                       physicalOwnershipComplete: false)
+                   .Decision == PitFireTeamRoundPollDecision.Pending,
+            "a complete activation lease remains pending while UpdateManual has published no PFT wrappers");
+        Assert(EvaluateFollowers(
+                       wrappers: 0,
+                       active: 0,
+                       registered: 0,
+                       stable: 0,
+                       activationLeaseComplete: true,
+                       physicalOwnershipComplete: false,
+                       timedOut: true)
+                   .Decision == PitFireTeamRoundPollDecision.Failed,
+            "missing delayed UpdateManual ownership fails at the existing follower deadline");
+        Assert(EvaluateFollowers(
+                       wrappers: 4,
+                       active: 4,
+                       registered: 4,
+                       stable: 2,
+                       activationLeaseComplete: true,
+                       physicalOwnershipComplete: false)
+                   .Decision == PitFireTeamRoundPollDecision.Pending,
+            "complete bodies cannot bypass the delayed PFT ownership barrier before timeout");
+        Assert(EvaluateFollowers(
+                       wrappers: 4,
+                       active: 4,
+                       registered: 4,
+                       stable: 2,
+                       activationLeaseComplete: true,
+                       physicalOwnershipComplete: false,
+                       timedOut: true)
+                   .Decision == PitFireTeamRoundPollDecision.Failed,
+            "complete bodies without PFT ownership fail at the existing follower deadline");
         Assert(EvaluateFollowers(wrappers: 4, active: 4, registered: 4, stable: 1)
                    .Decision == PitFireTeamRoundPollDecision.Pending,
             "one complete registry pass is insufficient");
@@ -191,6 +245,146 @@ internal static class Program
         Assert(PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(timedOut).Decision
                == PitFireTeamRoundPollDecision.Failed,
             "a partial follower timeout cannot start combat");
+
+        object ownedBody = new();
+        Assert(PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(
+                new[] { ownedBody, ownedBody }),
+            "a duplicate boss-owned body reference is rejected without Unity equality");
+        Assert(!PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(
+                new[] { ownedBody, new object() }),
+            "two distinct boss-owned body references remain valid");
+
+        string[] exactProfiles = { Mongo(1), Mongo(2), Mongo(3), Mongo(4) };
+        Assert(PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                exactProfiles,
+                exactProfiles.Reverse(),
+                exactProfiles),
+            "the four exact activation and invocation identities pass regardless of order");
+        Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                exactProfiles,
+                exactProfiles.Take(3),
+                exactProfiles),
+            "a missing activation identity fails the exact seam proof");
+        Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                exactProfiles,
+                new[] { Mongo(1), Mongo(2), Mongo(3), Mongo(5) },
+                exactProfiles),
+            "a same-count wrong activation identity fails the exact seam proof");
+        Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                exactProfiles,
+                exactProfiles,
+                new[] { Mongo(1), Mongo(2), Mongo(3), Mongo(5) }),
+            "a same-count wrong invocation identity fails the exact seam proof");
+        Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                exactProfiles,
+                new[] { Mongo(1), Mongo(2), Mongo(3), Mongo(3) },
+                exactProfiles),
+            "a duplicate activation identity fails the exact seam proof");
+        Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                exactProfiles,
+                exactProfiles,
+                new[] { Mongo(1), Mongo(2), Mongo(3), " " }),
+            "a blank invocation identity fails the exact seam proof");
+    }
+
+    private static void CheckSynchronousPostfixDeferral()
+    {
+        SynchronizationContext previous = SynchronizationContext.Current;
+        var context = new PumpedSynchronizationContext();
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
+        {
+            int started = 0;
+            int startedAtReplacementRelease = -1;
+            Task spawnTask = SimulatePatchedPftCountZeroSpawn(
+                () => startedAtReplacementRelease = started,
+                () => started++);
+
+            Assert(!spawnTask.IsCompleted && started == 0 && context.PendingCount == 1,
+                "an already-completed count-zero result stays behind one yield until PFT has received its replacement task");
+            context.RunOne();
+            Assert(spawnTask.IsCompletedSuccessfully,
+                "the deferred PFT-like caller completes when the replacement result is released");
+            Assert(startedAtReplacementRelease == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount,
+                "all four activation seams run synchronously inside the guarded replacement release");
+
+            object publishedBody = null;
+            object bodyAtReplacementRelease = null;
+            object expectedBody = new();
+            Task rawPlayerTask = SimulatePatchedRawPlayerCreation(
+                expectedBody,
+                body => publishedBody = body,
+                () => bodyAtReplacementRelease = publishedBody);
+
+            Assert(!rawPlayerTask.IsCompleted && publishedBody == null && context.PendingCount == 1,
+                "an already-completed raw player result stays deferred until BotCreatorClient can await its replacement");
+            context.RunOne();
+            Assert(rawPlayerTask.IsCompletedSuccessfully
+                   && ReferenceEquals(bodyAtReplacementRelease, expectedBody),
+                "the exact BotOwner-like body is published synchronously inside the guarded raw-player release");
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    private static async Task SimulatePatchedPftCountZeroSpawn(
+        Action onReplacementReleased,
+        Action onActivationStarted)
+    {
+        _ = await ReplaceCompletedCountZeroTask(onReplacementReleased);
+        for (int index = 0;
+             index < PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
+             index++)
+        {
+            onActivationStarted();
+        }
+    }
+
+    private static Task<int> ReplaceCompletedCountZeroTask(Action onReplacementReleased)
+    {
+        Task<int> originalTask = Task.FromResult(0);
+        var completion = new TaskCompletionSource<int>();
+        _ = ObserveOriginal();
+        return completion.Task;
+
+        async Task ObserveOriginal()
+        {
+            await Task.Yield();
+            int result = await originalTask;
+            completion.TrySetResult(result);
+            onReplacementReleased();
+        }
+    }
+
+    private static async Task SimulatePatchedRawPlayerCreation(
+        object expectedBody,
+        Action<object> publishBody,
+        Action onReplacementReleased)
+    {
+        object player = await ReplaceCompletedRawPlayerTask(
+            expectedBody,
+            onReplacementReleased);
+        publishBody(player);
+    }
+
+    private static Task<object> ReplaceCompletedRawPlayerTask(
+        object player,
+        Action onReplacementReleased)
+    {
+        Task<object> originalTask = Task.FromResult(player);
+        var completion = new TaskCompletionSource<object>();
+        _ = ObserveOriginal();
+        return completion.Task;
+
+        async Task ObserveOriginal()
+        {
+            await Task.Yield();
+            object result = await originalTask;
+            completion.TrySetResult(result);
+            onReplacementReleased();
+        }
     }
 
     private static void CheckCapability()
@@ -336,6 +530,14 @@ internal static class Program
             "client",
             "Modules",
             "BossPlayers.cs")));
+        string pitFireTeamBotOwnerPatchSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_reference",
+            "SPT-PitFireTeam-main",
+            "client",
+            "Patches",
+            "BotOwnerPatch.cs")));
         string pitFireTeamFollowerSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
             root,
             "..",
@@ -381,7 +583,7 @@ internal static class Program
         RequireAll(source,
             "GameWorld is unavailable while proving old follower retirement",
             "_bossFollowersProperty.GetValue(_currentBoss)",
-            "the rebuilt PFT boss does not own the exact four wrapper bodies",
+            "the rebuilt PFT boss owns bodies that contradict its published follower wrappers",
             "_bossGroupProperty.GetValue(_currentBoss) as BotsGroup",
             "candidate.BotFollower.HaveBoss",
             "ReferenceEquals(candidate.BotFollower.BossToFollow, _currentBoss)",
@@ -418,7 +620,10 @@ internal static class Program
             "state.Lease.Cancellation.Token.Register(",
             "state.Completion.TrySetCanceled()",
             "state.Completion.TrySetResult(data)",
-            "state.Lease.StartedProfileIds.Count != expected",
+            "PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(",
+            "state.Lease.ProfilesById.Keys",
+            "state.Lease.StartedProfileIds",
+            "state.Lease.InvocationsByProfileId.Keys",
             "StopPftBotCreationData(data, \"revoked creation-task completion\")",
             "data?.StopSpawn()",
             "_localGameCreateBotByProfileMethod = RequireMethod(",
@@ -502,6 +707,17 @@ internal static class Program
             "SpawnLeaseHarmony.UnpatchSelf()",
             "PitFireTeam round lifecycle configuration rolled back");
 
+        RequireAll(
+            pitFireTeamSource,
+            "Action<BotOwner> OnBotState = new Action<BotOwner>",
+            "BossPlayers.AddFollower(me, player, true, botType, tactic, aggression);",
+            "BotOwnerManualUpdatePatch.BotOwnerUpdate.Add(owner.ProfileId, OnBotState);");
+        RequireAll(
+            pitFireTeamBotOwnerPatchSource,
+            "return AccessTools.Method(typeof(BotOwner), \"UpdateManual\")",
+            "BotOwnerUpdate.TryGetValue(__instance.ProfileId, out OnUpdate);",
+            "if (OnUpdate != null) OnUpdate(__instance);");
+
         RequireOrder(
             pitFireTeamSource,
             "PFT 0.10.0 awaits count-zero creation before every mutable late-continuation seam",
@@ -514,11 +730,16 @@ internal static class Program
             "await ActivateBotAtPosition(");
         RequireOrder(
             botCreationDataSource,
-            "SPT 4.1 constructs BotCreationData before awaiting profile and bundle work",
+            "SPT 4.1 count-zero BotCreatorClient creation has no executed await",
             "public static async Task<BotCreationData> Create(IGetProfileData profileData, IBotCreator botCreator, int count, ITokenGetter token)",
             "BotCreationData botCreationData = new BotCreationData(profileData)",
-            "await botProfileClient.FillCreationDataWithProfiles(botCreationData, token.GetCancelToken());",
+            "if (botCreator is BotProfileClient botProfileClient)",
+            "for (int i = 0; i < count; i++)",
+            "Profile profile = await botCreator.GenerateProfile",
             "return botCreationData;");
+        RequireAll(
+            botCreatorClientSource,
+            "public class BotCreatorClient : IBotCreator");
         RequireAll(
             botCreationDataSource,
             "public void StopSpawn()",
@@ -701,13 +922,63 @@ internal static class Program
             source,
             "private static async Task ObserveLeasedBotCreationTask(",
             "private static Task<BotCreationData> RejectPftBotCreationTask(");
-        Assert(creationObserver.IndexOf("Volatile.Read(ref state.Settled)", StringComparison.Ordinal)
+        string leasedCompletionStates = Slice(
+            source,
+            "private sealed class BotCreationInvocationState",
+            "private sealed class PendingRawPlayerCompletion");
+        Assert(leasedCompletionStates.Contains(
+                   "TaskCompletionSource<BotCreationData> Completion { get; } = new();",
+                   StringComparison.Ordinal)
+               && leasedCompletionStates.Contains(
+                   "TaskCompletionSource<LocalPlayer> Completion { get; } = new();",
+                   StringComparison.Ordinal)
+               && !leasedCompletionStates.Contains(
+                   "RunContinuationsAsynchronously",
+                   StringComparison.Ordinal),
+            "both production replacement tasks preserve synchronous continuations required by the guarded release proofs");
+        Assert(creationObserver.IndexOf("await Task.Yield()", StringComparison.Ordinal)
+               < creationObserver.IndexOf("data = await state.OriginalTask", StringComparison.Ordinal)
+               && creationObserver.IndexOf("Volatile.Read(ref state.Settled)", StringComparison.Ordinal)
+               < creationObserver.IndexOf("TryValidateBotCreationResultUnsafe", StringComparison.Ordinal)
+               && creationObserver.IndexOf("TryValidateBotCreationResultUnsafe", StringComparison.Ordinal)
                < creationObserver.IndexOf("state.Completion.TrySetResult(data)", StringComparison.Ordinal)
                && creationObserver.IndexOf("state.Completion.TrySetResult(data)", StringComparison.Ordinal)
-               < creationObserver.IndexOf("state.Lease.StartedProfileIds.Count != expected", StringComparison.Ordinal)
+               < creationObserver.IndexOf("PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams", StringComparison.Ordinal)
                && creationObserver.IndexOf("StopPftBotCreationData", StringComparison.Ordinal)
                > creationObserver.IndexOf("state.CancellationRegistration.Dispose()", StringComparison.Ordinal),
-            "late creation completion is observed/stopped, while valid release proves all synchronous activation seams");
+            "the creation observer yields through Harmony, then validates release and proves all four inline activation seams");
+
+        string followerSpawnStart = Slice(
+            source,
+            "public static bool TryStartFollowerSpawn(",
+            "public static PitFireTeamRoundPolicyDecision PollFollowers(");
+        Assert(followerSpawnStart.IndexOf("_spawnGroupBotsMethod.Invoke", StringComparison.Ordinal)
+               < followerSpawnStart.IndexOf("_stage != PitFireTeamRoundLifecycleStage.SpawnRequested", StringComparison.Ordinal)
+               && followerSpawnStart.IndexOf("_stage != PitFireTeamRoundLifecycleStage.SpawnRequested", StringComparison.Ordinal)
+               < followerSpawnStart.IndexOf("_spawnTask = spawnTask", StringComparison.Ordinal)
+               && followerSpawnStart.IndexOf("_spawnTask = spawnTask", StringComparison.Ordinal)
+               < followerSpawnStart.IndexOf("leased four individual follower activations", StringComparison.Ordinal),
+            "the returned PFT call is revalidated before Arena publishes success or overwrites a failure diagnostic");
+
+        string followerPolling = Slice(
+            source,
+            "internal static PitFireTeamRoundPolicyDecision PollFollowers(",
+            "public static IReadOnlyList<BotOwner> GetCurrentFollowers()");
+        Assert(!followerPolling.Contains("if (!invalid && leasedActivationsComplete)", StringComparison.Ordinal)
+               && followerPolling.IndexOf("bool pftOwnershipComplete = false", StringComparison.Ordinal)
+               < followerPolling.IndexOf("_bossFollowersProperty.GetValue(_currentBoss)", StringComparison.Ordinal)
+               && followerPolling.Contains(
+                   "ownedBodies.Count > PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount",
+                   StringComparison.Ordinal)
+               && followerPolling.Contains(
+                   "PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(ownedBodies)",
+                   StringComparison.Ordinal)
+               && followerPolling.Contains("if (candidates.Count > 0 && bossGroup == null)", StringComparison.Ordinal)
+               && followerPolling.IndexOf("pftOwnershipComplete = !invalid", StringComparison.Ordinal)
+               < followerPolling.IndexOf("bool physicallyComplete", StringComparison.Ordinal)
+               && followerPolling.Contains("&& pftOwnershipComplete", StringComparison.Ordinal)
+               && followerPolling.Contains("PhysicalOwnershipComplete = pftOwnershipComplete", StringComparison.Ordinal),
+            "delayed UpdateManual ownership remains pending while contradictory partial ownership still fails closed");
 
         string creationLease = Slice(
             source,
@@ -742,10 +1013,12 @@ internal static class Program
             source,
             "private static async Task ObserveLeasedRawLocalPlayerTask(",
             "private static void CompleteLeasedRawLocalPlayerTaskSafely(");
-        Assert(rawObserver.IndexOf("state.ContinuationContext.Post", StringComparison.Ordinal)
+        Assert(rawObserver.IndexOf("await Task.Yield()", StringComparison.Ordinal)
+               < rawObserver.IndexOf("player = await state.OriginalTask", StringComparison.Ordinal)
+               && rawObserver.IndexOf("state.ContinuationContext.Post", StringComparison.Ordinal)
                < rawObserver.IndexOf("PendingRawPlayerCompletions.Enqueue", StringComparison.Ordinal)
                && !rawObserver.Contains("state.Completion.TrySetException", StringComparison.Ordinal),
-            "a rejected context Post keeps the wrapper closed and queues its exact raw result for owner-thread retirement");
+            "raw creation yields through Harmony before context validation, while a rejected Post queues owner-thread retirement");
         Assert(compatSource.Contains(
                 "PitFireTeamRoundLifecycle.TickPendingRawPlayerCompletions();",
                 StringComparison.Ordinal),
@@ -812,17 +1085,23 @@ internal static class Program
         int wrappers,
         int active,
         int registered,
-        int stable)
+        int stable,
+        bool activationLeaseComplete = true,
+        bool physicalOwnershipComplete = true,
+        bool timedOut = false)
         => PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(
             new PitFireTeamFollowerObservation
             {
                 ExpectedCount = 4,
+                ActivationLeaseComplete = activationLeaseComplete,
+                PhysicalOwnershipComplete = physicalOwnershipComplete,
                 WrapperCount = wrappers,
                 ActiveBodyCount = active,
                 RegisteredBodyCount = registered,
                 DistinctAccountCount = wrappers,
                 DistinctProfileCount = wrappers,
-                StablePasses = stable
+                StablePasses = stable,
+                TimedOut = timedOut
             });
 
     private static Dictionary<string, string> Roster(int count)
@@ -888,5 +1167,22 @@ internal static class Program
         _assertions++;
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private sealed class PumpedSynchronizationContext : SynchronizationContext
+    {
+        private readonly Queue<(SendOrPostCallback Callback, object State)> _pending = new();
+
+        public int PendingCount => _pending.Count;
+
+        public override void Post(SendOrPostCallback callback, object state)
+            => _pending.Enqueue((callback, state));
+
+        public void RunOne()
+        {
+            Assert(_pending.Count > 0, "the synchronization-context pump has queued work");
+            (SendOrPostCallback callback, object state) = _pending.Dequeue();
+            callback(state);
+        }
     }
 }

@@ -119,6 +119,8 @@ internal sealed class PitFireTeamRetirementObservation
 internal sealed class PitFireTeamFollowerObservation
 {
     public int ExpectedCount { get; set; }
+    public bool ActivationLeaseComplete { get; set; }
+    public bool PhysicalOwnershipComplete { get; set; }
     public int WrapperCount { get; set; }
     public int ActiveBodyCount { get; set; }
     public int RegisteredBodyCount { get; set; }
@@ -397,7 +399,9 @@ internal static class PitFireTeamRoundLifecyclePolicy
             return PitFireTeamRoundPolicyDecision.Failed("PitFireTeam produced more than four current-round followers");
         }
 
-        bool complete = observation.WrapperCount == expected
+        bool complete = observation.ActivationLeaseComplete
+                        && observation.PhysicalOwnershipComplete
+                        && observation.WrapperCount == expected
                         && observation.ActiveBodyCount == expected
                         && observation.RegisteredBodyCount == expected
                         && observation.DistinctAccountCount == expected
@@ -407,17 +411,71 @@ internal static class PitFireTeamRoundLifecyclePolicy
             if (observation.TimedOut)
             {
                 return PitFireTeamRoundPolicyDecision.Failed(
-                    $"follower assembly timed out (wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount})");
+                    $"follower assembly timed out (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount})");
             }
 
             return PitFireTeamRoundPolicyDecision.Pending(
-                $"waiting for four followers (wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount})");
+                $"waiting for four followers (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount})");
         }
 
         if (observation.StablePasses < RequiredStablePasses)
             return PitFireTeamRoundPolicyDecision.Pending("complete follower roster is awaiting its second stable registry pass");
 
         return PitFireTeamRoundPolicyDecision.Ready();
+    }
+
+    public static bool HasDuplicateReferences<T>(IReadOnlyList<T> values)
+        where T : class
+    {
+        if (values == null)
+            return false;
+
+        for (int left = 0; left < values.Count; left++)
+        {
+            for (int right = left + 1; right < values.Count; right++)
+            {
+                if (ReferenceEquals(values[left], values[right]))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static bool HasExactActivationSeams(
+        IEnumerable<string> expectedProfileIds,
+        IEnumerable<string> startedProfileIds,
+        IEnumerable<string> invocationProfileIds)
+    {
+        if (expectedProfileIds == null
+            || startedProfileIds == null
+            || invocationProfileIds == null)
+        {
+            return false;
+        }
+
+        List<string> expectedValues = expectedProfileIds.ToList();
+        List<string> startedValues = startedProfileIds.ToList();
+        List<string> invocationValues = invocationProfileIds.ToList();
+        if (expectedValues.Count != RequiredCompanionCount
+            || startedValues.Count != RequiredCompanionCount
+            || invocationValues.Count != RequiredCompanionCount
+            || expectedValues.Any(string.IsNullOrWhiteSpace)
+            || startedValues.Any(string.IsNullOrWhiteSpace)
+            || invocationValues.Any(string.IsNullOrWhiteSpace))
+        {
+            return false;
+        }
+
+        var expected = new HashSet<string>(expectedValues, StringComparer.OrdinalIgnoreCase);
+        var started = new HashSet<string>(startedValues, StringComparer.OrdinalIgnoreCase);
+        var invocations = new HashSet<string>(invocationValues, StringComparer.OrdinalIgnoreCase);
+
+        return expected.Count == RequiredCompanionCount
+               && started.Count == RequiredCompanionCount
+               && invocations.Count == RequiredCompanionCount
+               && expected.SetEquals(started)
+               && expected.SetEquals(invocations);
     }
 
     public static bool TryValidateRuntimeIdentityRemap(

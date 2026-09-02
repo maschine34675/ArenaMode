@@ -1073,6 +1073,20 @@ internal static class PitFireTeamRoundLifecycle
                 if (spawnTask == null)
                     throw new InvalidOperationException("PFT returned no SpawnGroupBots task");
 
+                if (_stage != PitFireTeamRoundLifecycleStage.SpawnRequested
+                    || !ReferenceEquals(_spawnLease, lease)
+                    || lease.Revoked)
+                {
+                    reason = !string.IsNullOrWhiteSpace(lease.RevocationReason)
+                        ? lease.RevocationReason
+                        : !string.IsNullOrWhiteSpace(_diagnostic)
+                            ? _diagnostic
+                            : "the PFT SpawnGroupBots call invalidated Arena's exact follower lease before returning";
+                    if (_stage != PitFireTeamRoundLifecycleStage.Failed)
+                        FailUnsafe(reason);
+                    return false;
+                }
+
                 _spawnTask = spawnTask;
                 _diagnostic = $"PitFireTeam round epoch {_epoch}: leased four individual follower activations; polling physical wrappers.";
                 return true;
@@ -1210,6 +1224,11 @@ internal static class PitFireTeamRoundLifecycle
                     candidates.Add(bot);
                 }
 
+                // PFT's activation callback only installs a BotOwnerUpdate
+                // watcher. A later UpdateManual publishes each wrapper and its
+                // boss/group ownership, so an exact partial set is still a
+                // normal pending state even after all activation tasks settled.
+                bool pftOwnershipComplete = false;
                 if (!invalid)
                 {
                     if (_bossFollowersProperty.GetValue(_currentBoss) is not IEnumerable bossFollowers)
@@ -1222,39 +1241,45 @@ internal static class PitFireTeamRoundLifecycle
                         List<BotOwner> ownedBodies = bossFollowers.Cast<object>()
                             .Select(item => item as BotOwner)
                             .ToList();
-                        if (ownedBodies.Count != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                        if (ownedBodies.Count > PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
                             || ownedBodies.Any(item => ReferenceEquals(item, null))
+                            || PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(ownedBodies)
                             || ownedBodies.Any(item => !candidates.Any(candidate => ReferenceEquals(candidate, item)))
                             || candidates.Any(candidate => !ownedBodies.Any(item => ReferenceEquals(item, candidate))))
                         {
                             invalid = true;
-                            invalidProblem = "the rebuilt PFT boss does not own the exact four wrapper bodies";
+                            invalidProblem = "the rebuilt PFT boss owns bodies that contradict its published follower wrappers";
                         }
-                    }
-                }
-
-                if (!invalid)
-                {
-                    BotsGroup bossGroup = _bossGroupProperty.GetValue(_currentBoss) as BotsGroup;
-                    if (bossGroup == null)
-                    {
-                        invalid = true;
-                        invalidProblem = "the rebuilt PFT boss group is unavailable";
-                    }
-                    else
-                    {
-                        foreach (BotOwner candidate in candidates)
+                        else
                         {
-                            if (candidate.BotFollower == null
-                                || !candidate.BotFollower.HaveBoss
-                                || !ReferenceEquals(candidate.BotFollower.BossToFollow, _currentBoss)
-                                || !ReferenceEquals(candidate.BotsGroup, bossGroup)
-                                || !bossGroup.Contains(candidate))
+                            BotsGroup bossGroup = _bossGroupProperty.GetValue(_currentBoss) as BotsGroup;
+                            if (candidates.Count > 0 && bossGroup == null)
                             {
                                 invalid = true;
-                                invalidProblem = $"follower {candidate.ProfileId} did not complete its PFT boss/group binding";
-                                break;
+                                invalidProblem = "the rebuilt PFT boss group is unavailable for a published follower";
                             }
+                            else if (bossGroup != null)
+                            {
+                                foreach (BotOwner candidate in candidates)
+                                {
+                                    if (candidate.BotFollower == null
+                                        || !candidate.BotFollower.HaveBoss
+                                        || !ReferenceEquals(candidate.BotFollower.BossToFollow, _currentBoss)
+                                        || !ReferenceEquals(candidate.BotsGroup, bossGroup)
+                                        || !bossGroup.Contains(candidate))
+                                    {
+                                        invalid = true;
+                                        invalidProblem = $"follower {candidate.ProfileId} did not complete its PFT boss/group binding";
+                                        break;
+                                    }
+                                }
+                            }
+
+                            pftOwnershipComplete = !invalid
+                                                   && leasedActivationsComplete
+                                                   && ownedBodies.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                                                   && candidates.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                                                   && bossGroup != null;
                         }
                     }
                 }
@@ -1283,6 +1308,7 @@ internal static class PitFireTeamRoundLifecycle
 
                 bool physicallyComplete = !invalid
                                           && leasedActivationsComplete
+                                          && pftOwnershipComplete
                                           && candidates.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
                                           && activeCount == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
                                           && registeredCount == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
@@ -1315,6 +1341,8 @@ internal static class PitFireTeamRoundLifecycle
                         new PitFireTeamFollowerObservation
                         {
                             ExpectedCount = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount,
+                            ActivationLeaseComplete = leasedActivationsComplete,
+                            PhysicalOwnershipComplete = pftOwnershipComplete,
                             WrapperCount = candidates.Count,
                             ActiveBodyCount = activeCount,
                             RegisteredBodyCount = registeredCount,
@@ -2036,11 +2064,11 @@ internal static class PitFireTeamRoundLifecycle
     private static Task<BotCreationData> LeasePftBotCreationTask(
         BotCreationInvocationState state)
     {
-        // Deliberately keep synchronous continuations enabled. The original
-        // BotCreationData task resumes this observer on Arena's owner thread;
-        // TrySetResult then runs PFT's Remove/AddProfile/ForEach continuation
-        // inside StateLock, closing the last cancellation window before all four
-        // individual activation leases have entered their synchronous prefixes.
+        // Keep synchronous Task continuations enabled. The observer yields once
+        // before releasing a potentially already-completed count-zero result,
+        // so Harmony can first return this still-open replacement task to PFT.
+        // Its registered continuation then enters all four activation prefixes
+        // under StateLock before the successful release finishes.
         state.CancellationRegistration = state.Lease.Cancellation.Token.Register(
             () => CancelLeasedBotCreationTask(state));
         _ = ObserveLeasedBotCreationTask(state);
@@ -2061,6 +2089,11 @@ internal static class PitFireTeamRoundLifecycle
     private static async Task ObserveLeasedBotCreationTask(
         BotCreationInvocationState state)
     {
+        // BotCreationData.Create completes synchronously for PFT's exact
+        // BotCreatorClient/count-zero call. Defer observation until Harmony has
+        // returned the replacement Task and PFT has registered its await.
+        await Task.Yield();
+
         BotCreationData data = null;
         Exception failure = null;
         try
@@ -2119,14 +2152,16 @@ internal static class PitFireTeamRoundLifecycle
                 Interlocked.Exchange(ref state.Settled, 1);
                 state.Completion.TrySetResult(data);
 
-                int expected = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
-                if (state.Lease.StartedProfileIds.Count != expected
+                if (!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(
+                        state.Lease.ProfilesById.Keys,
+                        state.Lease.StartedProfileIds,
+                        state.Lease.InvocationsByProfileId.Keys)
                     && ReferenceEquals(_spawnLease, state.Lease)
                     && !state.Lease.Revoked)
                 {
                     FailUnsafe(
-                        "PFT did not enter all four synchronous follower activation seams "
-                        + "before the leased BotCreationData task release returned");
+                        "PFT did not enter the four exact follower activation seams "
+                        + "during the deferred BotCreationData task release");
                 }
             }
         }
@@ -2415,6 +2450,11 @@ internal static class PitFireTeamRoundLifecycle
     private static async Task ObserveLeasedRawLocalPlayerTask(
         RawPlayerCreationState state)
     {
+        // LocalGame.CreateBotByProfile can likewise complete inside its Harmony
+        // postfix. Give BotCreatorClient the still-open replacement first, so
+        // its await can publish the BotOwner during the guarded task release.
+        await Task.Yield();
+
         LocalPlayer player = null;
         Exception failure = null;
         try
