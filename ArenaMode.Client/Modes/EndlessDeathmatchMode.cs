@@ -1,4 +1,5 @@
 using ArenaMode.Combat;
+using EFT;
 
 namespace ArenaMode.Modes;
 
@@ -53,7 +54,7 @@ public sealed class EndlessDeathmatchMode : IArenaMode
     {
     }
 
-    public void OnLocalRespawn()
+    public void OnLocalRespawn(Player player)
     {
     }
 

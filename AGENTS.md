@@ -2,9 +2,9 @@
 
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
-No Fika. Arena is solo by default; the optional PitFireTeam 0.10.0 compatibility
-path supports one Tactical 5v5 elimination round. Four modes: Endless Deathmatch,
-Rounds, Gun Game, Tactical.
+No Fika dependency. Arena is solo by default; the optional exact-version
+PitFireTeam 0.10.0 compatibility path supports protected Tactical 5v5 matches.
+Four modes: Endless Deathmatch, Rounds, Gun Game, Tactical.
 
 Read this before changing anything. Most of it was learned the expensive way.
 
@@ -152,11 +152,14 @@ Open:
   curve was a separate bug and is fixed. Needs a long test raid before guessing again.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
-- **PitFireTeam 5v5** — the optional 0.10.0 compatibility path is implemented for one
-  Tactical elimination round and still needs a GPU playtest. It keeps the original PMC
-  body/loadout, excludes teammate bots and corpses from Arena cleanup/counts, and blocks
-  both SPT-profile effects and PitFireTeam's separate teammate persistence. Multiple
-  rounds remain unsupported because PitFireTeam exposes no safe leader-rebind/reset API.
+- **PitFireTeam 5v5** — the optional 0.10.0 compatibility path now has a guarded
+  best-of-N round lifecycle and still needs a GPU playtest. It preserves the PMC entry
+  loadout after a death, rebuilds fresh follower/opponent bodies between rounds, offers
+  post-death third-person spectating, and refreshes both teams' pursuit knowledge while
+  the PMC is down. It excludes teammate bots/corpses from Arena cleanup/counts and blocks
+  both SPT-profile effects and PitFireTeam's separate teammate persistence. Every
+  teardown/rebind step fails closed as no-contest when the exact reflected contract or
+  body identities drift.
 
 ## How to work here
 

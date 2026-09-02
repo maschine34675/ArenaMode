@@ -70,10 +70,9 @@ internal sealed class ArenaController : MonoBehaviour
         if (_kitWarmupStarted)
             return;
 
-        // Team Tactical deliberately keeps the original PMC body/loadout and
-        // ends after one round. It never consumes Arena kits, so starting a
-        // persistent-controller preload here would only leave old raid work
-        // alive during teardown.
+        // Team Tactical preserves the PMC's entry loadout itself and never
+        // consumes Arena kits. Starting a persistent-controller preload here
+        // would only leave unrelated raid work alive during round teardown.
         if (Compat.PitFireTeamCompat.TeamArenaActive
             || Compat.PitFireTeamCompat.IsFinalizing)
         {

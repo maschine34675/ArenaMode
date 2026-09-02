@@ -66,6 +66,8 @@ public static class Settings
     public static ConfigEntry<int> TacticalWinBonus { get; private set; }
     public static ConfigEntry<int> TacticalLossBonus { get; private set; }
     public static ConfigEntry<float> TacticalReplaySeconds { get; private set; }
+    public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
+    public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
@@ -466,6 +468,22 @@ public static class Settings
                 "with room for it — everywhere else you respawn before it could " +
                 "play. 0 switches it off. Needs the KillcamReplay mod installed.",
                 new AcceptableValueRange<float>(0f, 10f)));
+
+        TacticalTeamRoundsToWin = config.Bind(
+            "Tactical Team",
+            "RoundsToWin",
+            3,
+            new ConfigDescription(
+                "Protected PitFireTeam 5v5: rounds required to win the match. " +
+                "Three produces a best-of-five match; one keeps the old single-round result.",
+                new AcceptableValueRange<int>(1, 9)));
+
+        TacticalTeamSpectator = config.Bind(
+            "Tactical Team",
+            "SpectatorAfterDeath",
+            true,
+            "Protected PitFireTeam 5v5: follow living teammates or opponents in third person " +
+            "after your PMC dies, until the round ends.");
 
         GunGameRedrawLadder = config.Bind(
             "Gun Game",

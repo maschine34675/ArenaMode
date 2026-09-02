@@ -531,7 +531,7 @@ public sealed class GunGameMode : IArenaMode
         Combat.WeaponSwapService.ForgetSpares();
     }
 
-    public void OnLocalRespawn()
+    public void OnLocalRespawn(Player player)
     {
         // The respawn handed out whatever tier was current when it ASKED, and a
         // kill can land in the seconds between that question and the player

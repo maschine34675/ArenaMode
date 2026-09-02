@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Events;
+using ArenaMode.Kits;
 using ArenaMode.Session;
 using EFT;
 using Redeploy.Core.Engine;
@@ -153,17 +154,17 @@ internal static class ArenaMatchService
     }
 
     /// <summary>
-    /// A newly started, explicitly ordinary raid is a safe lifecycle boundary.
-    /// If EFT skipped the preceding GameEnd callback, discard every match-owned
-    /// latch here before the ordinary raid can tick or receive damage.
+    /// A newly started exact GameWorld is a safe lifecycle boundary. If EFT
+    /// skipped the preceding GameEnd callback, discard every match-owned latch
+    /// before the new armed or ordinary raid can tick or receive damage.
     /// </summary>
-    internal static void RecoverAtOrdinaryRaidStart()
+    internal static void RecoverAtNewRaidStart()
     {
         if (Current == null && !TeamStartAbortPending)
             return;
 
         Plugin.ModLogger.LogWarning(
-            "Stale Arena match/abort state cleared at the next ordinary raid start.");
+            "Stale Arena match/abort state cleared at the next exact raid start.");
         OnRaidEnded();
     }
 
@@ -179,6 +180,47 @@ internal static class ArenaMatchService
         Plugin.ModLogger.LogError(
             $"Arena start is invalid and will end without a playable match: {_teamStartAbortReason}");
         TryAbortFailedTeamStart();
+    }
+
+    /// <summary>
+    /// Consumes the one prepared body-replacement authorization owned by the
+    /// active Tactical round. Keeping the mode cast here gives the respawn
+    /// driver one fail-closed doorway and prevents another mode from opting a
+    /// frozen PitFireTeam leader into Redeploy by accident.
+    /// </summary>
+    internal static bool TryTakeTeamRespawnAuthorization(
+        LocalGame game,
+        LocalPlayer deadPlayer,
+        out TeamArenaPreparedLoadoutRestore prepared,
+        out int teamEpoch,
+        out string reason)
+    {
+        prepared = null;
+        teamEpoch = 0;
+        reason = null;
+
+        if (Current?.Mode is not TacticalMode tactical)
+        {
+            reason = "the active Arena mode is not Tactical";
+            return false;
+        }
+
+        try
+        {
+            return tactical.TryTakeTeamRespawnAuthorization(
+                game,
+                deadPlayer,
+                out prepared,
+                out teamEpoch,
+                out reason);
+        }
+        catch (Exception ex)
+        {
+            prepared = null;
+            teamEpoch = 0;
+            reason = $"Tactical respawn authorization threw: {ex.GetBaseException().Message}";
+            return false;
+        }
     }
 
     private static void TryAbortFailedTeamStart()
@@ -269,5 +311,5 @@ internal static class ArenaMatchService
         => Current?.ReportLocalDeath();
 
     private static void OnLocalRespawned(Player player)
-        => Current?.ReportLocalRespawn();
+        => Current?.ReportLocalRespawn(player);
 }

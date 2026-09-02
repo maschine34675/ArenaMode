@@ -1,5 +1,9 @@
 # Gates: PitFireTeam compatibility
 
+> Historical record of the initial one-round compatibility milestones. The current
+> protected multi-round implementation and its still-open live checks are defined in
+> `PITFIRETEAM-MULTIROUND-GATES.md`.
+
 Scope: Allow PitFireTeam companions to join one Arena Tactical elimination round so four
 selected companions produce a real five-player team against five Arena opponents.
 PitFireTeam 0.10.0 exposes no safe leader-rebind or round-squad-reset contract, therefore

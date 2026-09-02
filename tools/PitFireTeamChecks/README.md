@@ -5,8 +5,9 @@ This executable compiles ArenaMode's production `PitFireTeamSelectionPolicy` and
 duplicate, mixed, oversized and unsupported rosters, plus ready and unavailable server
 persistence contracts. It also checks the source-level boundary that keeps PitFireTeam
 optional, lets its accept-screen roster callback run, revalidates the live roster before
-arming the server, and restricts the first compatibility release to one Tactical round
-without a player-body swap.
+arming the server, and guards the Tactical best-of-N lifecycle: exact old-body teardown,
+fresh follower/opponent adoption, one-shot prepared PMC respawn, spectator/pursuit wiring,
+and an overall match result without a raid-start body swap.
 
 When the optional client plugin is installed, the check also reads the installed
 `pitFireTeam.dll` and `Assembly-CSharp.dll` as metadata (it does not execute either

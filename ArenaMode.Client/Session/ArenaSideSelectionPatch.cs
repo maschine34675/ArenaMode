@@ -1,4 +1,5 @@
 using ArenaMode.Compat;
+using ArenaMode.Config;
 using EFT;
 using EFT.Communications;
 using EFT.UI.Matchmaker;
@@ -168,8 +169,8 @@ internal static class ArenaSideSelectionPatch
         var eligibility = ArenaMenuSelection.CurrentEligibility;
         screen._sideDescriptionText.text = eligibility.IsTeam
             ? "ARENA — TACTICAL 5v5\nYour PMC and four selected PitFireTeam companions versus five opponents.\n"
-              + "The PMC keeps the equipment shown before the raid; the raid ends after one elimination round.\n"
-              + "Nothing gained, nothing lost — both profile stores stay untouched."
+              + $"First to {Settings.TacticalTeamRoundsToWin.Value}; after death, spectate the remaining fighters until the next round.\n"
+              + "The shown PMC equipment returns after death; both profile stores stay untouched."
             : "ARENA\nInstant respawns, arena kits and four game modes.\n"
               + "Factory (day), Labyrinth and The Lab.\n"
               + "Nothing gained, nothing lost — your profile stays untouched.";

@@ -61,7 +61,10 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         IsRespawnInProgress = true;
         DeathsThisSession++;
         int raidEpoch = RaidEpoch.Capture();
-        Plugin.ModLogger.LogInfo($"Arena death #{DeathsThisSession} — instant respawn.");
+        Plugin.ModLogger.LogInfo(
+            PitFireTeamCompat.HasFrozenTeamRoster
+                ? $"Arena death #{DeathsThisSession} — held for Tactical round transition."
+                : $"Arena death #{DeathsThisSession} — instant respawn.");
 
         ArenaEvents.RaisePlayerDied(deadPlayer);
         game.StartCoroutine(FixOwnCorpseRenders(deadPlayer));
@@ -98,25 +101,41 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             yield break;
         }
 
-        // A frozen PitFireTeam roster may never enter Redeploy's body-replacement
-        // pipeline. Tactical normally keeps this coroutine parked until the raid
-        // ends; this independent guard turns any mode drift or accidental hold
-        // release into a protected raid stop instead of stranding the followers
-        // on their old leader object.
+        // A frozen PitFireTeam roster may enter Redeploy only through Tactical's
+        // one-shot round-transition authorization. That authorization binds the
+        // exact LocalGame/dead body, epoch and fully prepared in-memory loadout;
+        // a mode drift or premature hold release remains a protected abort.
         if (PitFireTeamCompat.HasFrozenTeamRoster)
         {
-            IsRespawnInProgress = false;
-            StandDown = true;
-            Plugin.ModLogger.LogError(
-                "Arena blocked an attempted respawn while a PitFireTeam roster was active; ending the protected raid.");
+            if (!Modes.ArenaMatchService.TryTakeTeamRespawnAuthorization(
+                    game,
+                    deadPlayer,
+                    out TeamArenaPreparedLoadoutRestore prepared,
+                    out int teamEpoch,
+                    out string authorizationReason)
+                || prepared == null
+                || teamEpoch <= 0
+                || prepared.RoundEpoch != teamEpoch)
+            {
+                string reason = string.IsNullOrWhiteSpace(authorizationReason)
+                    ? "Tactical supplied no complete one-shot respawn authorization"
+                    : authorizationReason;
+                if (prepared != null && prepared.RoundEpoch != teamEpoch)
+                    reason += $" (prepared epoch {prepared.RoundEpoch}, authorized epoch {teamEpoch})";
 
-            // One coordinator owns every invalid protected start/respawn. It
-            // uses LocalGame.ProfileId before MainPlayer exists, keeps PFT death
-            // and persistence suppression live across failures, and retries on
-            // subsequent ticks instead of falling into a second unguarded Stop.
-            Modes.ArenaMatchService.ScheduleFailedStartAbort(
-                "a body replacement was attempted for the frozen PitFireTeam leader");
+                AbortProtectedTeamRespawn(
+                    raidEpoch,
+                    $"the frozen PitFireTeam leader could not be authorized for replacement: {reason}");
+                yield break;
+            }
 
+            yield return game.StartCoroutine(RespawnProtectedTeamPlayer(
+                game,
+                deadPlayer,
+                corpsePosition,
+                raidEpoch,
+                prepared,
+                teamEpoch));
             yield break;
         }
 
@@ -207,6 +226,110 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
     }
 
     /// <summary>
+    /// The only protected-team entrance to Redeploy. Tactical completed every
+    /// deserialization and graph check before releasing HoldRespawn; the engine
+    /// callback therefore performs only the prepared transactional commit.
+    /// </summary>
+    private static IEnumerator RespawnProtectedTeamPlayer(
+        LocalGame game,
+        LocalPlayer deadPlayer,
+        Vector3 corpsePosition,
+        int raidEpoch,
+        TeamArenaPreparedLoadoutRestore prepared,
+        int teamEpoch)
+    {
+        var startedAt = Time.realtimeSinceStartup;
+        var request = new RespawnRequest
+        {
+            Game = game,
+            DeadPlayer = deadPlayer,
+            SpawnSelector = new ArenaSpawnSelector(
+                new InfilSpawnSelector(new NearPositionSpawnSelector(() => corpsePosition, () => 25f)),
+                () => corpsePosition,
+                Settings.RespawnMinDistance.Value),
+            EquipmentStrategy = (profile, dead) =>
+            {
+                if (!prepared.TryCommit(profile, out TeamArenaLoadoutRestoreResult result))
+                {
+                    string diagnostic = result?.Failure ?? "the prepared restore returned no diagnostic";
+                    string rollback = result == null
+                        ? "unknown"
+                        : result.RollbackComplete.ToString();
+                    throw new InvalidOperationException(
+                        $"protected team loadout commit failed for round epoch {teamEpoch} "
+                        + $"(rollback complete: {rollback}): {diagnostic}");
+                }
+            },
+            HealthPercent = 100f,
+            Protection = new SpawnProtectionOptions
+            {
+                DurationSeconds = Settings.SpawnProtectionSeconds.Value,
+                EndEarlyOnWeapon = false,
+                StowAutoDrawnWeapon = false,
+                ShowToasts = true,
+            },
+        };
+
+        Exception failure = null;
+        yield return game.StartCoroutine(RespawnEngine.RunRespawn(request, ex => failure = ex));
+
+        // An external teardown owns the raid now. It may have invalidated the
+        // epoch while Redeploy was awaiting player creation, so do not schedule
+        // a second Stop or publish a stale body across that boundary.
+        if (!IsSameActiveRaid(game, raidEpoch) || StandDown)
+        {
+            EndPipelineUse(raidEpoch);
+            yield break;
+        }
+
+        if (failure != null)
+        {
+            AbortProtectedTeamRespawn(
+                raidEpoch,
+                $"protected team respawn failed for round epoch {teamEpoch}: "
+                + failure.GetBaseException().Message,
+                failure);
+            yield break;
+        }
+
+        LocalPlayer respawnedPlayer = RespawnEngineState.LastRespawnedPlayer;
+        if (respawnedPlayer == null
+            || !respawnedPlayer.IsYourPlayer
+            || !ReferenceEquals(game.LocalPlayer, respawnedPlayer))
+        {
+            AbortProtectedTeamRespawn(
+                raidEpoch,
+                $"protected team respawn for round epoch {teamEpoch} did not publish the exact new local-player body");
+            yield break;
+        }
+
+        EndPipelineUse(raidEpoch);
+        Plugin.ModLogger.LogInfo(
+            $"Arena protected team respawn completed for round epoch {teamEpoch} "
+            + $"in {Time.realtimeSinceStartup - startedAt:0.00}s.");
+        ArenaEvents.RaisePlayerRespawned(respawnedPlayer);
+    }
+
+    private static void AbortProtectedTeamRespawn(
+        int raidEpoch,
+        string reason,
+        Exception failure = null)
+    {
+        EndPipelineUse(raidEpoch);
+        StandDown = true;
+
+        if (failure == null)
+            Plugin.ModLogger.LogError($"Arena blocked protected team respawn: {reason}");
+        else
+            Plugin.ModLogger.LogError(
+                $"Arena protected team respawn failed ({reason}): {failure}");
+
+        // The shared coordinator keeps both Arena and PitFireTeam persistence
+        // guards active and retries native Stop if the game is not ready yet.
+        Modes.ArenaMatchService.ScheduleFailedStartAbort(reason);
+    }
+
+    /// <summary>
     /// The corpse reuses the first-person body whose torso renders shadows-only;
     /// switch to third-person renders like the game does for world corpses.
     /// </summary>
@@ -270,6 +393,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Bots.CorpseWeaponRegistry.Reset();
         Bots.ArenaHostility.Reset();
         Bots.ArenaBotPatches.ResetRaidState();
+        Bots.TeamArenaPursuit.Reset();
         Combat.ArenaGiveUp.Reset();
         Combat.WeaponSwapService.Reset();
         ArenaSpawnSelector.Reset();

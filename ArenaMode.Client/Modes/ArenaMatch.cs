@@ -1,4 +1,5 @@
 using ArenaMode.Combat;
+using EFT;
 using System;
 using UnityEngine;
 
@@ -64,8 +65,8 @@ public sealed class ArenaMatch
         RaiseSafe(Mode.OnLocalDeath, "mode.OnLocalDeath");
     }
 
-    public void ReportLocalRespawn()
-        => RaiseSafe(Mode.OnLocalRespawn, "mode.OnLocalRespawn");
+    public void ReportLocalRespawn(Player player)
+        => RaiseSafe(() => Mode.OnLocalRespawn(player), "mode.OnLocalRespawn");
 
     public void Tick(float deltaTime)
     {

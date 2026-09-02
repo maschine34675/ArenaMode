@@ -1,4 +1,5 @@
 using ArenaMode.Combat;
+using EFT;
 
 namespace ArenaMode.Modes;
 
@@ -67,7 +68,8 @@ public interface IArenaMode
 
     void OnLocalDeath();
 
-    void OnLocalRespawn();
+    /// <summary>The replacement local-player body after it is fully wired into the live raid.</summary>
+    void OnLocalRespawn(Player player);
 
     void OnMatchEnd();
 }

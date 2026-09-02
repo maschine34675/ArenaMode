@@ -214,6 +214,41 @@ internal static class Program
             "ArenaMode.Client",
             "Compat",
             "PitFireTeamRoundLifecycle.cs"));
+        string compatSource = File.ReadAllText(Path.Combine(
+            root,
+            "ArenaMode.Client",
+            "Compat",
+            "PitFireTeamCompat.cs"));
+        string pitFireTeamSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_reference",
+            "SPT-PitFireTeam-main",
+            "client",
+            "Patches",
+            "BotsControllerPatch.cs")));
+        string botCreationDataSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "BotCreationData.cs")));
+        string localGameSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "EFT",
+            "LocalGame.cs")));
+        string botCreatorClientSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "BotCreatorClient.cs")));
+        string baseLocalGameSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "EFT",
+            "BaseLocalGame.cs")));
 
         RequireAll(source,
             "GameWorld is unavailable while proving old follower retirement",
@@ -225,7 +260,268 @@ internal static class Program
             "ReferenceEquals(candidate.BotsGroup, bossGroup)",
             "bossGroup.Contains(candidate)",
             "bool wasReady = _stage == PitFireTeamRoundLifecycleStage.FollowersReady",
-            "the previously ready PFT follower roster lost its physical binding");
+            "the previously ready PFT follower roster lost its physical binding",
+            "assemblyName.Version != new System.Version(0, 10, 0, 0)",
+            "_botCreationDataCreateMethod = RequireMethod(",
+            "nameof(BotCreationData.Create)",
+            "typeof(IGetProfileData)",
+            "typeof(IBotCreator)",
+            "typeof(ITokenGetter)",
+            "BotCreationData.Create is not the exact SPT 4.1 creation seam used by PitFireTeam 0.10.0",
+            "[ThreadStatic]",
+            "private static FollowerSpawnLease _spawnGroupInvocationLease",
+            "private static bool SpawnGroupBotsPrefix(",
+            "private static void BotCreationDataCreatePostfix(",
+            "postfix: new HarmonyMethod(creationPostfix)",
+            "prefix: new HarmonyMethod(groupPrefix)",
+            "postfix: new HarmonyMethod(groupPostfix)",
+            "finalizer: new HarmonyMethod(groupFinalizer)",
+            "if (markedLease == null)",
+            "count != 0",
+            "ReferenceEquals(botCreator, lease.Spawner._botCreator)",
+            "ReferenceEquals(token, lease.Spawner)",
+            "profileData is not GetProfileDataParams parameters",
+            "group.StartCount != expectedGroupCount",
+            "group.RemainCount != expectedGroupCount",
+            "ContinuationContext = SynchronizationContext.Current",
+            "state.ContinuationContext == null",
+            "ReferenceEquals(SynchronizationContext.Current, state.ContinuationContext)",
+            "ArenaSession.IsExactActiveRaid(lease.Game, lease.World)",
+            "state.Lease.Cancellation.Token.Register(",
+            "state.Completion.TrySetCanceled()",
+            "state.Completion.TrySetResult(data)",
+            "state.Lease.StartedProfileIds.Count != expected",
+            "StopPftBotCreationData(data, \"revoked creation-task completion\")",
+            "data?.StopSpawn()",
+            "_localGameCreateBotByProfileMethod = RequireMethod(",
+            "nameof(LocalGame.CreateBotByProfile)",
+            "typeof(Task<LocalPlayer>)",
+            "typeof(UnityEngine.Vector3)",
+            "LocalGame.CreateBotByProfile is not the exact SPT 4.1 local-player creation seam",
+            "_localGameBotsField = RequireField(",
+            "typeof(Dictionary<string, Player>)",
+            "postfix: new HarmonyMethod(rawPlayerPostfix)",
+            "WeakReference<Profile>",
+            "WeakReference<LocalGame>",
+            "WeakReference<GameWorld>",
+            "WeakReference<SpawnInvocationState>",
+            "record.Invocation = new WeakReference<SpawnInvocationState>(state)",
+            "private static void LocalGameCreateBotByProfilePostfix(",
+            "__result = LeasePftRawLocalPlayerTask(rawState)",
+            "private static async Task ObserveLeasedRawLocalPlayerTask(",
+            "PendingRawPlayerCompletions.Enqueue",
+            "internal static void TickPendingRawPlayerCompletions()",
+            "Thread.CurrentThread.ManagedThreadId != pending.OwnerThreadId",
+            "CompleteLeasedRawLocalPlayerTaskSafely(",
+            "state.Completion.TrySetResult(player)",
+            "completeWithNull = true",
+            "ReferenceEquals(state.Invocation.Body?.GetPlayer, player)",
+            "state.LocalBots.Remove(state.Profile.ProfileId)",
+            "state.World.UnregisterPlayer(player)",
+            "player.Dispose()",
+            "AssetPoolObject.ReturnToPool(player.gameObject)",
+            "botCreator._playerCreator.Target",
+            "botCreator._playerCreator.Method",
+            "ActivateBotAtPositionMethodName",
+            "typeof(BotCreatorClient)",
+            "typeof(Func<BotOwner, BotZone, BotsGroup>)",
+            "typeof(Action<BotOwner>)",
+            "typeof(CancellationToken)",
+            "_activateBotAtPositionMethod.IsPrivate",
+            "BotsControllerPatch.ActivateBotAtPosition is not the exact private 0.10.0 activation seam",
+            "_shallBeFollowerMethod = RequireMethod(",
+            "private static bool ShallBeFollowerPrefix(string profileId)",
+            "PFT increments BotSpawner._inSpawnProcess immediately before this marker",
+            "SpawnLeaseHarmony.Patch(",
+            "_shallBeFollowerMethod",
+            "prefix: new HarmonyMethod(markerPrefix)",
+            "prefix: new HarmonyMethod(spawnPrefix)",
+            "postfix: new HarmonyMethod(spawnPostfix)",
+            "new CancellationTokenSource()",
+            "ArenaRespawnDriver.CaptureRaidEpoch()",
+            "ArenaRespawnDriver.IsSameActiveRaid(lease.Game, lease.RaidEpoch)",
+            "ReferenceEquals(Singleton<IBotGame>.Instance, lease.Game)",
+            "ReferenceEquals(Singleton<GameWorld>.Instance, lease.World)",
+            "ReferenceEquals(_botsControllerField.GetValue(null), lease.Controller)",
+            "ReferenceEquals(lease.Controller.BotSpawner, lease.Spawner)",
+            "ReferenceEquals(lease.Spawner._botCreator, botCreator)",
+            "if (!HistoricalRuntimeProfileIds.Contains(profileId))",
+            "token = lease.Cancellation.Token",
+            "OnActivate = owner => OnLeasedFollowerActivated(state, originalOnActivate, owner)",
+            "lease.StartedProfileIds.Count == expected",
+            "lease.ActivatedProfileIds.Count == expected",
+            "lease.SettledProfileIds.Count == expected",
+            "invocation.CallbackCompleted",
+            "Volatile.Read(ref invocation.CounterSettled) == 1",
+            "public static void CancelFollowerSpawnLease(string reason)",
+            "lease.Cancellation.Cancel()",
+            "if (!invocation.CallbackCompleted)",
+            "SettleSpawnCounterUnsafe(invocation)",
+            "Interlocked.Exchange(ref state.CounterSettled, 1)",
+            "Math.Max(0, state.Spawner._inSpawnProcess - 1)",
+            "ClearRaidStateUnsafe(clearHistory: false)",
+            "WeakReference<BotSpawner>",
+            "RemovePftBookkeepingUnsafe(profileId)",
+            "_manualUpdateField?.GetValue(null) is IDictionary manualUpdates",
+            "_shallBeFollowerField?.GetValue(bossPlayers) is IList shallBeFollower",
+            "_dismissFollowerMethod.Invoke(wrapper, new object[] { false })",
+            "_removeFollowerMethod.Invoke(null, new[] { bot, boss })",
+            "bot.LeaveData.RemoveFromMap()",
+            "world.UnregisterPlayer(player)",
+            "controller.DestroyInfo(player)",
+            "AssetPoolObject.ReturnToPool(bot.gameObject, true)",
+            "RevokeFollowerSpawnLeaseUnsafe(_diagnostic, cleanupBodies: true)",
+            "SpawnLeaseHarmony.UnpatchSelf()",
+            "PitFireTeam round lifecycle configuration rolled back");
+
+        RequireOrder(
+            pitFireTeamSource,
+            "PFT 0.10.0 awaits count-zero creation before every mutable late-continuation seam",
+            "botsData = await BotCreationData.Create(data, botCreator, 0, botSpawnerClass);",
+            "followerCreationTask.Remove(player.realPlayer.ProfileId);",
+            "botsData.Profiles.ForEach(async profile =>",
+            "InteractableObjects.StoreEquipment(profile);",
+            "botSpawnerClass._inSpawnProcess = _inSpawnProcess + 1;",
+            "BossPlayers.ShallBeFollower(profile.ProfileId);",
+            "await ActivateBotAtPosition(");
+        RequireOrder(
+            botCreationDataSource,
+            "SPT 4.1 constructs BotCreationData before awaiting profile and bundle work",
+            "public static async Task<BotCreationData> Create(IGetProfileData profileData, IBotCreator botCreator, int count, ITokenGetter token)",
+            "BotCreationData botCreationData = new BotCreationData(profileData)",
+            "await botProfileClient.FillCreationDataWithProfiles(botCreationData, token.GetCancelToken());",
+            "return botCreationData;");
+        RequireAll(
+            botCreationDataSource,
+            "public void StopSpawn()",
+            "_cancellationTokenSource.Cancel();",
+            "Singleton<GlobalEventDispatcher>.Instance.OnStopBotSpawn -= StopSpawn;");
+        RequireOrder(
+            botCreatorClientSource,
+            "BotCreatorClient can expose a registered raw LocalPlayer when cancellation wins after its awaited creator",
+            "LocalPlayer localPlayer = await _playerCreator(Singleton<GameWorld>.Instance, profile, bornInfo.position);",
+            "!cancellationToken.IsCancellationRequested",
+            "BotOwner botOwner = BotOwner.Create",
+            "callback(botOwner);");
+        RequireOrder(
+            localGameSource,
+            "LocalGame publishes the raw LocalPlayer before returning it to BotCreatorClient",
+            "public async Task<LocalPlayer> CreateBotByProfile(GameWorld gw, Profile profile, Vector3 position)",
+            "LocalPlayer localPlayer = await LocalPlayer.Create",
+            "_bots.Add(localPlayer.ProfileId, localPlayer);",
+            "return localPlayer;");
+        RequireOrder(
+            baseLocalGameSource,
+            "raw-player retirement mirrors SPT's native LocalGame cleanup ownership",
+            "public static void CleanUp(IDictionary<string, Player> players)",
+            "value.Dispose();",
+            "AssetPoolObject.ReturnToPool(value.gameObject);",
+            "players.Clear();");
+
+        string creationPatch = Slice(
+            source,
+            "private static void BotCreationDataCreatePostfix(",
+            "private static Task<BotCreationData> LeasePftBotCreationTask(");
+        Assert(creationPatch.IndexOf("if (markedLease == null)", StringComparison.Ordinal)
+               < creationPatch.IndexOf("Task<BotCreationData> originalTask = __result", StringComparison.Ordinal)
+               && creationPatch.Contains("__result = LeasePftBotCreationTask(state)", StringComparison.Ordinal)
+               && creationPatch.Contains("__result = RejectPftBotCreationTask(originalTask, problem)", StringComparison.Ordinal),
+            "ordinary creation calls return untouched while the exact marked call is replaced or rejected");
+
+        string creationObserver = Slice(
+            source,
+            "private static async Task ObserveLeasedBotCreationTask(",
+            "private static Task<BotCreationData> RejectPftBotCreationTask(");
+        Assert(creationObserver.IndexOf("Volatile.Read(ref state.Settled)", StringComparison.Ordinal)
+               < creationObserver.IndexOf("state.Completion.TrySetResult(data)", StringComparison.Ordinal)
+               && creationObserver.IndexOf("state.Completion.TrySetResult(data)", StringComparison.Ordinal)
+               < creationObserver.IndexOf("state.Lease.StartedProfileIds.Count != expected", StringComparison.Ordinal)
+               && creationObserver.IndexOf("StopPftBotCreationData", StringComparison.Ordinal)
+               > creationObserver.IndexOf("state.CancellationRegistration.Dispose()", StringComparison.Ordinal),
+            "late creation completion is observed/stopped, while valid release proves all synchronous activation seams");
+
+        string creationLease = Slice(
+            source,
+            "private static Task<BotCreationData> LeasePftBotCreationTask(",
+            "private static async Task ObserveLeasedBotCreationTask(");
+        Assert(creationLease.IndexOf("Cancellation.Token.Register", StringComparison.Ordinal)
+               < creationLease.IndexOf("ObserveLeasedBotCreationTask(state)", StringComparison.Ordinal)
+               && creationLease.IndexOf("Interlocked.CompareExchange", StringComparison.Ordinal)
+               < creationLease.IndexOf("state.Completion.TrySetCanceled()", StringComparison.Ordinal),
+            "cancellation owns wrapper settlement before the original creation task can resume PFT mutations");
+
+        string rawPlayerLease = Slice(
+            source,
+            "private static void LocalGameCreateBotByProfilePostfix(",
+            "private static bool ShallBeFollowerPrefix(");
+        int rawIdentityGate = rawPlayerLease.IndexOf(
+            "HistoricalSpawnRecords.TryGetValue",
+            StringComparison.Ordinal);
+        int ordinaryReturn = rawPlayerLease.IndexOf("return;", rawIdentityGate, StringComparison.Ordinal);
+        int rawWrapper = rawPlayerLease.IndexOf(
+            "__result = LeasePftRawLocalPlayerTask(rawState)",
+            StringComparison.Ordinal);
+        Assert(rawIdentityGate >= 0
+               && ordinaryReturn > rawIdentityGate
+               && rawWrapper > ordinaryReturn
+               && rawPlayerLease.Contains("ReferenceEquals(recordedProfile, profile)", StringComparison.Ordinal)
+               && rawPlayerLease.Contains("ReferenceEquals(recordedGame, __instance)", StringComparison.Ordinal)
+               && rawPlayerLease.Contains("ReferenceEquals(invocation.Lease.World, recordedWorld)", StringComparison.Ordinal)
+               && rawPlayerLease.Contains("RequestedWorld = gw", StringComparison.Ordinal),
+            "ordinary LocalGame creations remain untouched unless every weak Arena identity matches");
+        string rawObserver = Slice(
+            source,
+            "private static async Task ObserveLeasedRawLocalPlayerTask(",
+            "private static void CompleteLeasedRawLocalPlayerTaskSafely(");
+        Assert(rawObserver.IndexOf("state.ContinuationContext.Post", StringComparison.Ordinal)
+               < rawObserver.IndexOf("PendingRawPlayerCompletions.Enqueue", StringComparison.Ordinal)
+               && !rawObserver.Contains("state.Completion.TrySetException", StringComparison.Ordinal),
+            "a rejected context Post keeps the wrapper closed and queues its exact raw result for owner-thread retirement");
+        Assert(compatSource.Contains(
+                "PitFireTeamRoundLifecycle.TickPendingRawPlayerCompletions();",
+                StringComparison.Ordinal),
+            "the persistent Unity Update path drains rejected context-Post completions");
+        Assert(rawPlayerLease.IndexOf("state.Completion.TrySetResult(player)", StringComparison.Ordinal)
+               < rawPlayerLease.IndexOf("ReferenceEquals(state.Invocation.Body?.GetPlayer, player)", StringComparison.Ordinal),
+            "valid raw-player release proves the inline BotOwner callback before leaving StateLock");
+        Assert(rawPlayerLease.IndexOf("completeWithNull = true", StringComparison.Ordinal)
+               < rawPlayerLease.IndexOf("BotOwner existingOwner = player.AIData?.BotOwner", StringComparison.Ordinal)
+               && rawPlayerLease.IndexOf("RetireLeasedRawLocalPlayer(state, player", StringComparison.Ordinal)
+               < rawPlayerLease.LastIndexOf("state.Completion.TrySetResult(null)", StringComparison.Ordinal)
+               && rawPlayerLease.Contains("if (completeWithNull)", StringComparison.Ordinal),
+            "every rejected raw result completes with null, after raw-player retirement when no BotOwner owns cleanup");
+        Assert(!rawPlayerLease.Contains("SettleSpawnCounterUnsafe", StringComparison.Ordinal)
+               && !rawPlayerLease.Contains("DestroyInfo", StringComparison.Ordinal)
+               && !rawPlayerLease.Contains("BotDied", StringComparison.Ordinal),
+            "raw-player retirement does not touch BotSpawner or BotOwner accounting before publication");
+
+        string reset = Slice(
+            source,
+            "public static void Reset()",
+            "private static void RevokeFollowerSpawnLeaseUnsafe(");
+        Assert(reset.Contains("ClearRaidStateUnsafe(clearHistory: false)", StringComparison.Ordinal)
+               && !reset.Contains("ClearRaidStateUnsafe(clearHistory: true)", StringComparison.Ordinal),
+            "raid reset revokes historical runtime IDs while releasing strong round state");
+
+        string taskObserver = Slice(
+            source,
+            "private static async Task<bool> ObserveLeasedActivationTask(",
+            "private static void OnLeasedFollowerActivated(");
+        Assert(taskObserver.Contains("SettledProfileIds.Add", StringComparison.Ordinal)
+               && !taskObserver.Contains("CallbackCompleted = true", StringComparison.Ordinal),
+            "a true private task return is recorded separately from PFT's detached physical callback");
+
+        string revoke = Slice(
+            source,
+            "private static void RevokeFollowerSpawnLeaseUnsafe(",
+            "private static void DiscoverExactContract(");
+        Assert(revoke.IndexOf("lease.Cancellation.Cancel()", StringComparison.Ordinal)
+               < revoke.IndexOf("if (!invocation.CallbackCompleted)", StringComparison.Ordinal)
+               && revoke.IndexOf("if (!invocation.CallbackCompleted)", StringComparison.Ordinal)
+               < revoke.IndexOf("SettleSpawnCounterUnsafe(invocation)", StringComparison.Ordinal)
+               && revoke.IndexOf("_spawnLease = null", StringComparison.Ordinal)
+               > revoke.IndexOf("CleanupRuntimeProfilesUnsafe", StringComparison.Ordinal),
+            "cancellation settles detached no-callback counters once, cleans bodies, then releases the strong lease");
 
         Assert(source.IndexOf(
                    "PitFireTeam persistence suppression was lost during profile preparation",
@@ -288,6 +584,27 @@ internal static class Program
             Assert(source.Contains(fragment, StringComparison.Ordinal),
                 "production source retains required contract fragment: " + fragment);
         }
+    }
+
+    private static void RequireOrder(string source, string message, params string[] fragments)
+    {
+        int previous = -1;
+        foreach (string fragment in fragments)
+        {
+            int current = source.IndexOf(fragment, previous + 1, StringComparison.Ordinal);
+            Assert(current > previous, message + ": " + fragment);
+            previous = current;
+        }
+    }
+
+    private static string Slice(string source, string startMarker, string endMarker)
+    {
+        int start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        int end = source.IndexOf(endMarker, start + Math.Max(1, startMarker.Length),
+            StringComparison.Ordinal);
+        Assert(start >= 0 && end > start,
+            $"source slice exists: {startMarker} -> {endMarker}");
+        return source.Substring(start, end - start);
     }
 
     private static void Assert(bool condition, string message)

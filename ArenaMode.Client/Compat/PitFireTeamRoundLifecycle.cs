@@ -1,7 +1,11 @@
 using BepInEx.Bootstrap;
+using Comfort.Common;
 using EFT;
+using EFT.AssetsManager;
 using EFT.InventoryLogic;
 using HarmonyLib;
+using ArenaMode.Respawn;
+using ArenaMode.Session;
 using Redeploy.Core.Inventory;
 using System;
 using System.Collections;
@@ -41,8 +45,14 @@ internal static class PitFireTeamRoundLifecycle
     private const string FollowerTypeName = "pitTeam.Components.BotFollowerPlayer";
     private const string BossPlayersTypeName = "pitTeam.Modules.BossPlayers";
     private const string BotsPatchTypeName = "pitTeam.Patches.BotsControllerPatch";
+    private const string ManualUpdatePatchTypeName = "pitTeam.Patches.BotOwnerManualUpdatePatch";
+    private const string ActivateBotAtPositionMethodName = "ActivateBotAtPosition";
+    private const string ShallBeFollowerFieldName = "_shallBeFollower";
+    private const string ManualUpdateFieldName = "BotOwnerUpdate";
 
     private static readonly object StateLock = new();
+    private static readonly Harmony SpawnLeaseHarmony =
+        new(Plugin.PluginGuid + ".pitfireteam-round-spawn-lease");
     private static readonly AccessTools.FieldRef<EftInventory, InventoryEquipment> EquipmentField =
         AccessTools.FieldRefAccess<EftInventory, InventoryEquipment>(nameof(EftInventory.Equipment));
 
@@ -78,6 +88,14 @@ internal static class PitFireTeamRoundLifecycle
     private static FieldInfo _followerCreationTasksField;
     private static MethodInfo _createFollowerProfilesMethod;
     private static MethodInfo _spawnGroupBotsMethod;
+    private static MethodInfo _botCreationDataCreateMethod;
+    private static MethodInfo _localGameCreateBotByProfileMethod;
+    private static FieldInfo _localGameBotsField;
+    private static MethodInfo _activateBotAtPositionMethod;
+    private static MethodInfo _shallBeFollowerMethod;
+    private static FieldInfo _shallBeFollowerField;
+    private static FieldInfo _manualUpdateField;
+    private static bool _spawnLeasePatchInstalled;
 
     private static Player _oldLeader;
     private static object _oldBoss;
@@ -100,6 +118,111 @@ internal static class PitFireTeamRoundLifecycle
         new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> HistoricalRuntimeItemIds =
         new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, HistoricalSpawnRecord> HistoricalSpawnRecords =
+        new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Queue<PendingRawPlayerCompletion> PendingRawPlayerCompletions = new();
+    private static FollowerSpawnLease _spawnLease;
+    [ThreadStatic]
+    private static FollowerSpawnLease _spawnGroupInvocationLease;
+
+    /// <summary>
+    /// Strong raid references exist only while this Arena-owned spawn is live.
+    /// Historical records retain weak spawner references so an arbitrarily late
+    /// PFT async lambda can still undo its immediately preceding counter increment
+    /// without retaining an ended raid or touching a later raid's BotSpawner.
+    /// </summary>
+    private sealed class FollowerSpawnLease
+    {
+        public int Epoch { get; set; }
+        public int RaidEpoch { get; set; }
+        public object PatchInstance { get; set; }
+        public LocalGame Game { get; set; }
+        public GameWorld World { get; set; }
+        public Player Leader { get; set; }
+        public object Boss { get; set; }
+        public BotsController Controller { get; set; }
+        public BotSpawner Spawner { get; set; }
+        public CancellationTokenSource Cancellation { get; set; }
+        public Dictionary<string, Profile> ProfilesById { get; set; }
+        public HashSet<string> StartedProfileIds { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> ActivatedProfileIds { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> SettledProfileIds { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, BotOwner> ObservedBodiesByProfileId { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, SpawnInvocationState> InvocationsByProfileId { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+        public BotCreationInvocationState BotCreationInvocation { get; set; }
+        public bool Completed { get; set; }
+        public bool Revoked { get; set; }
+        public string RevocationReason { get; set; } = string.Empty;
+    }
+
+    private sealed class HistoricalSpawnRecord
+    {
+        public WeakReference<BotSpawner> Spawner { get; set; }
+        public WeakReference<Profile> Profile { get; set; }
+        public WeakReference<LocalGame> Game { get; set; }
+        public WeakReference<GameWorld> World { get; set; }
+        public WeakReference<SpawnInvocationState> Invocation { get; set; }
+    }
+
+    private sealed class SpawnInvocationState
+    {
+        public FollowerSpawnLease Lease { get; set; }
+        public string ProfileId { get; set; }
+        public BotSpawner Spawner { get; set; }
+        public BotOwner Body { get; set; }
+        public RawPlayerCreationState RawPlayerCreation { get; set; }
+        public bool CallbackCompleted { get; set; }
+        public int CounterSettled;
+    }
+
+    private sealed class SpawnGroupInvocationState
+    {
+        public FollowerSpawnLease Lease { get; set; }
+        public FollowerSpawnLease PreviousLease { get; set; }
+        public bool Restored { get; set; }
+    }
+
+    private sealed class BotCreationInvocationState
+    {
+        public FollowerSpawnLease Lease { get; set; }
+        public IGetProfileData ProfileData { get; set; }
+        public IBotCreator BotCreator { get; set; }
+        public ITokenGetter Token { get; set; }
+        public SynchronizationContext ContinuationContext { get; set; }
+        public Task<BotCreationData> OriginalTask { get; set; }
+        public TaskCompletionSource<BotCreationData> Completion { get; } = new();
+        public CancellationTokenRegistration CancellationRegistration;
+        public int Settled;
+    }
+
+    private sealed class RawPlayerCreationState
+    {
+        public SpawnInvocationState Invocation { get; set; }
+        public LocalGame Game { get; set; }
+        public GameWorld World { get; set; }
+        public GameWorld RequestedWorld { get; set; }
+        public Profile Profile { get; set; }
+        public IDictionary LocalBots { get; set; }
+        public SynchronizationContext ContinuationContext { get; set; }
+        public Task<LocalPlayer> OriginalTask { get; set; }
+        public TaskCompletionSource<LocalPlayer> Completion { get; } = new();
+        public string RejectionReason { get; set; } = string.Empty;
+        public int OwnerThreadId { get; set; }
+        public int Settled;
+    }
+
+    private sealed class PendingRawPlayerCompletion
+    {
+        public RawPlayerCreationState State { get; set; }
+        public LocalPlayer Player { get; set; }
+        public Exception Failure { get; set; }
+        public int OwnerThreadId { get; set; }
+    }
 
     public static PitFireTeamRoundCapability Capability
     {
@@ -204,6 +327,15 @@ internal static class PitFireTeamRoundLifecycle
                 return _capability;
             }
 
+            AssemblyName assemblyName = pitFireTeamAssembly.GetName();
+            if (!string.Equals(assemblyName.Name, "pitFireTeam", StringComparison.Ordinal)
+                || assemblyName.Version != new System.Version(0, 10, 0, 0))
+            {
+                SetUnavailableUnsafe(
+                    $"PitFireTeam assembly identity '{assemblyName.FullName}' is unsupported; exact pitFireTeam 0.10.0.0 is required.");
+                return _capability;
+            }
+
             try
             {
                 DiscoverExactContract(pitFireTeamAssembly);
@@ -291,6 +423,14 @@ internal static class PitFireTeamRoundLifecycle
                 FailUnsafe(reason);
                 return false;
             }
+
+            // A ready lease has observed all four private task returns, all four
+            // detached callbacks and both physical registry passes. Revoke its
+            // IDs before advancing the lifecycle epoch, but let the ordinary
+            // teardown below retire the already frozen bodies.
+            RevokeFollowerSpawnLeaseUnsafe(
+                "the completed round advanced to teardown",
+                cleanupBodies: false);
 
             _epoch++;
             _stage = PitFireTeamRoundLifecycleStage.TearingDown;
@@ -701,6 +841,12 @@ internal static class PitFireTeamRoundLifecycle
 
             try
             {
+                if (!_spawnLeasePatchInstalled || _activateBotAtPositionMethod == null)
+                {
+                    throw new InvalidOperationException(
+                        "Arena's exact PitFireTeam activation lease patch is unavailable");
+                }
+
                 IDictionary cache = ReadProfileTaskCacheUnsafe();
                 if (!cache.Contains(_currentLeader.ProfileId)
                     || !ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask))
@@ -789,6 +935,86 @@ internal static class PitFireTeamRoundLifecycle
                 }
 
                 object patchInstance = _botsPatchInstanceField.GetValue(null);
+                if (patchInstance == null)
+                    throw new InvalidOperationException("PFT BotsControllerPatch.Instance is unavailable");
+                if (_spawnLease != null)
+                    throw new InvalidOperationException("a previous Arena follower spawn lease is still active");
+                if (!Singleton<IBotGame>.Instantiated
+                    || Singleton<IBotGame>.Instance is not LocalGame game
+                    || game.Status != GameStatus.Started)
+                {
+                    throw new InvalidOperationException(
+                        "the exact active LocalGame is unavailable for the follower spawn lease");
+                }
+                if (!Singleton<GameWorld>.Instantiated
+                    || Singleton<GameWorld>.Instance is not GameWorld world
+                    || !ReferenceEquals(world.MainPlayer, _currentLeader)
+                    || !ReferenceEquals(game.LocalPlayer, _currentLeader))
+                {
+                    throw new InvalidOperationException(
+                        "the exact active GameWorld/local leader binding is unavailable for the follower spawn lease");
+                }
+                if (_botsControllerField.GetValue(null) is not BotsController controller
+                    || !ReferenceEquals(((IBotGame)game).BotsController, controller)
+                    || controller.BotSpawner == null)
+                {
+                    throw new InvalidOperationException(
+                        "PFT, LocalGame and Arena do not share one exact BotsController/BotSpawner");
+                }
+
+                int raidEpoch = ArenaRespawnDriver.CaptureRaidEpoch();
+                if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+                    || !ArenaSession.IsExactActiveRaid(game, world))
+                {
+                    throw new InvalidOperationException(
+                        "the Arena raid epoch is no longer active while opening the follower spawn lease");
+                }
+
+                Dictionary<string, Profile> profilesById = _preparedProfilesByAccountId.Values
+                    .ToDictionary(profile => profile.ProfileId, profile => profile,
+                        StringComparer.OrdinalIgnoreCase);
+                if (profilesById.Count != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+                {
+                    throw new InvalidOperationException(
+                        "the follower spawn lease does not cover exactly four remapped runtime profiles");
+                }
+
+                var lease = new FollowerSpawnLease
+                {
+                    Epoch = _epoch,
+                    RaidEpoch = raidEpoch,
+                    PatchInstance = patchInstance,
+                    Game = game,
+                    World = world,
+                    Leader = _currentLeader,
+                    Boss = _currentBoss,
+                    Controller = controller,
+                    Spawner = controller.BotSpawner,
+                    Cancellation = new CancellationTokenSource(),
+                    ProfilesById = profilesById
+                };
+                if (!TryGetExactBotCreatorBindingUnsafe(lease, out _, out string creatorProblem))
+                {
+                    throw new InvalidOperationException(
+                        "the follower spawn lease has no exact LocalGame BotCreator binding: "
+                        + creatorProblem);
+                }
+                foreach (string profileId in profilesById.Keys)
+                {
+                    HistoricalSpawnRecords[profileId] = new HistoricalSpawnRecord
+                    {
+                        Spawner = new WeakReference<BotSpawner>(lease.Spawner),
+                        Profile = new WeakReference<Profile>(profilesById[profileId]),
+                        Game = new WeakReference<LocalGame>(lease.Game),
+                        World = new WeakReference<GameWorld>(lease.World)
+                    };
+                }
+
+                _spawnLease = lease;
+                _deadlineUtc = Deadline(timeout);
+                _lastStableFollowers.Clear();
+                _stableFollowerPasses = 0;
+                _stage = PitFireTeamRoundLifecycleStage.SpawnRequested;
                 Task spawnTask = _spawnGroupBotsMethod.Invoke(
                     patchInstance,
                     new[] { _currentBoss }) as Task;
@@ -796,11 +1022,7 @@ internal static class PitFireTeamRoundLifecycle
                     throw new InvalidOperationException("PFT returned no SpawnGroupBots task");
 
                 _spawnTask = spawnTask;
-                _deadlineUtc = Deadline(timeout);
-                _lastStableFollowers.Clear();
-                _stableFollowerPasses = 0;
-                _stage = PitFireTeamRoundLifecycleStage.SpawnRequested;
-                _diagnostic = $"PitFireTeam round epoch {_epoch}: follower spawn requested; polling physical wrappers.";
+                _diagnostic = $"PitFireTeam round epoch {_epoch}: leased four individual follower activations; polling physical wrappers.";
                 return true;
             }
             catch (Exception ex)
@@ -847,6 +1069,48 @@ internal static class PitFireTeamRoundLifecycle
                 HashSet<string> profiles = new(StringComparer.Ordinal);
                 bool invalid = false;
                 string invalidProblem = string.Empty;
+
+                bool leasedActivationsComplete = wasReady;
+                if (!wasReady)
+                {
+                    FollowerSpawnLease lease = _spawnLease;
+                    if (lease == null
+                        || lease.Revoked
+                        || lease.Epoch != _epoch
+                        || !ReferenceEquals(lease.World, world))
+                    {
+                        invalid = true;
+                        invalidProblem = "the exact Arena follower spawn lease disappeared before binding";
+                    }
+                    else
+                    {
+                        int expected = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
+                        if (lease.StartedProfileIds.Count > expected
+                            || lease.ActivatedProfileIds.Count > expected
+                            || lease.SettledProfileIds.Count > expected
+                            || lease.InvocationsByProfileId.Count > expected)
+                        {
+                            invalid = true;
+                            invalidProblem = "the Arena follower spawn lease observed more than four activations";
+                        }
+                        else
+                        {
+                            leasedActivationsComplete = lease.StartedProfileIds.Count == expected
+                                                        && lease.ActivatedProfileIds.Count == expected
+                                                        && lease.SettledProfileIds.Count == expected
+                                                        && lease.InvocationsByProfileId.Count == expected
+                                                        && lease.InvocationsByProfileId.Values.All(
+                                                            invocation => invocation.CallbackCompleted
+                                                                          && Volatile.Read(ref invocation.CounterSettled) == 1);
+                            if (!leasedActivationsComplete && utcNow >= _deadlineUtc)
+                            {
+                                spawnFaulted = true;
+                                spawnProblem =
+                                    $"Arena follower activation lease timed out (started={lease.StartedProfileIds.Count}, callbacks={lease.ActivatedProfileIds.Count}, settled={lease.SettledProfileIds.Count})";
+                            }
+                        }
+                    }
+                }
 
                 foreach (object wrapper in ReadFollowerWrappersUnsafe())
                 {
@@ -966,6 +1230,7 @@ internal static class PitFireTeamRoundLifecycle
                 }
 
                 bool physicallyComplete = !invalid
+                                          && leasedActivationsComplete
                                           && candidates.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
                                           && activeCount == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
                                           && registeredCount == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
@@ -1015,6 +1280,21 @@ internal static class PitFireTeamRoundLifecycle
                 if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
                 {
                     _currentFollowers = _lastStableFollowers.ToList();
+                    if (_spawnLease == null
+                        || _spawnLease.Revoked
+                        || _spawnLease.Epoch != _epoch
+                        || _spawnLease.StartedProfileIds.Count
+                            != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                        || _spawnLease.ActivatedProfileIds.Count
+                            != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                        || _spawnLease.SettledProfileIds.Count
+                            != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+                    {
+                        return FailDecisionUnsafe(
+                            "the physical follower barrier passed without one complete exact activation lease");
+                    }
+
+                    _spawnLease.Completed = true;
                     _stage = PitFireTeamRoundLifecycleStage.FollowersReady;
                     _diagnostic = $"PitFireTeam round epoch {_epoch}: four fresh followers are stable and registered.";
                 }
@@ -1053,6 +1333,77 @@ internal static class PitFireTeamRoundLifecycle
     }
 
     /// <summary>
+    /// Idempotent fail-closed boundary for Tactical transition failure and raid
+    /// end. Every started detached activation loses its token, its outstanding
+    /// BotSpawner counter is settled once, and any body already delivered by EFT
+    /// is removed through the exact old raid objects captured by the lease.
+    /// </summary>
+    public static void CancelFollowerSpawnLease(string reason)
+    {
+        lock (StateLock)
+        {
+            RevokeFollowerSpawnLeaseUnsafe(
+                string.IsNullOrWhiteSpace(reason)
+                    ? "the protected team transition ended"
+                    : reason,
+                cleanupBodies: true);
+        }
+    }
+
+    /// <summary>
+    /// Completes the rare fallback queued when Unity's captured synchronization
+    /// context rejects Post after the raw LocalPlayer task has already returned.
+    /// The queue intentionally survives raid Reset and contract rollback: its
+    /// exact old-game/player references exist only until this next owner-thread
+    /// tick can reject and retire that Arena-owned body.
+    /// </summary>
+    internal static void TickPendingRawPlayerCompletions()
+    {
+        while (true)
+        {
+            PendingRawPlayerCompletion pending;
+            lock (StateLock)
+            {
+                if (PendingRawPlayerCompletions.Count == 0)
+                    return;
+
+                pending = PendingRawPlayerCompletions.Peek();
+                if (pending.OwnerThreadId == 0
+                    || Thread.CurrentThread.ManagedThreadId != pending.OwnerThreadId)
+                {
+                    return;
+                }
+
+                PendingRawPlayerCompletions.Dequeue();
+            }
+
+            CompleteLeasedRawLocalPlayerTaskSafely(
+                pending.State,
+                pending.Player,
+                pending.Failure);
+        }
+    }
+
+    /// <summary>
+    /// Roll back the separately owned dynamic patch when the encompassing exact
+    /// PitFireTeam contract rejects initialization after lifecycle discovery.
+    /// </summary>
+    internal static void RollbackConfiguration(string reason)
+    {
+        lock (StateLock)
+        {
+            RevokeFollowerSpawnLeaseUnsafe(
+                "the PitFireTeam compatibility contract rolled back",
+                cleanupBodies: true);
+            ClearRaidStateUnsafe(clearHistory: false);
+            ClearContractUnsafe();
+            SetUnavailableUnsafe(
+                "PitFireTeam round lifecycle configuration rolled back: "
+                + (string.IsNullOrWhiteSpace(reason) ? "unknown compatibility failure" : reason));
+        }
+    }
+
+    /// <summary>
     /// Idempotently forget only Arena's round-local state. PFT owns its raid-stop
     /// cleanup; Reset never edits PFT collections or destroys world objects.
     /// </summary>
@@ -1060,7 +1411,13 @@ internal static class PitFireTeamRoundLifecycle
     {
         lock (StateLock)
         {
-            ClearRaidStateUnsafe(clearHistory: true);
+            RevokeFollowerSpawnLeaseUnsafe(
+                "the PitFireTeam Arena lifecycle reset",
+                cleanupBodies: true);
+            // Runtime IDs remain permanently revoked for this process. PFT's
+            // detached List.ForEach(async ...) work can resume after GameEnd;
+            // forgetting those IDs would let it publish into a later ordinary raid.
+            ClearRaidStateUnsafe(clearHistory: false);
             if (_capability.CanStartAdditionalRound)
             {
                 _stage = PitFireTeamRoundLifecycleStage.ContractReady;
@@ -1074,6 +1431,58 @@ internal static class PitFireTeamRoundLifecycle
                 _diagnostic = _capability.Reason;
             }
         }
+    }
+
+    private static void RevokeFollowerSpawnLeaseUnsafe(
+        string reason,
+        bool cleanupBodies)
+    {
+        FollowerSpawnLease lease = _spawnLease;
+        if (lease == null)
+            return;
+
+        if (!cleanupBodies && !lease.Completed)
+        {
+            cleanupBodies = true;
+            reason = (reason ?? string.Empty)
+                     + "; an incomplete lease cannot release its bodies to ordinary teardown";
+        }
+
+        if (!lease.Revoked)
+        {
+            lease.Revoked = true;
+            lease.RevocationReason = reason ?? string.Empty;
+            try
+            {
+                lease.Cancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // A fully completed lease may already have released its CTS.
+            }
+        }
+
+        // PFT increments immediately before each private activation call. Its
+        // detached BotCreator callback is the only normal decrement. Cancellation
+        // can suppress that callback, so Arena settles only invocations whose
+        // wrapped PFT callback has not already settled the same counter.
+        foreach (SpawnInvocationState invocation in lease.InvocationsByProfileId.Values)
+        {
+            if (!invocation.CallbackCompleted)
+                SettleSpawnCounterUnsafe(invocation);
+        }
+
+        if (cleanupBodies)
+            CleanupRuntimeProfilesUnsafe(lease.ProfilesById.Keys, lease);
+        else
+        {
+            foreach (string profileId in lease.ProfilesById.Keys)
+                RemovePftBookkeepingUnsafe(profileId);
+        }
+
+        _spawnLease = null;
+        Plugin.ModLogger.LogInfo(
+            $"Arena revoked PitFireTeam follower spawn lease {lease.Epoch} ({reason}).");
     }
 
     private static void DiscoverExactContract(Assembly assembly)
@@ -1198,6 +1607,1699 @@ internal static class PitFireTeamRoundLifecycle
             BindingFlags.Public | BindingFlags.Instance,
             typeof(Task),
             _bossType);
+        _botCreationDataCreateMethod = RequireMethod(
+            typeof(BotCreationData),
+            nameof(BotCreationData.Create),
+            BindingFlags.Public | BindingFlags.Static,
+            typeof(Task<BotCreationData>),
+            typeof(IGetProfileData),
+            typeof(IBotCreator),
+            typeof(int),
+            typeof(ITokenGetter));
+        if (!_botCreationDataCreateMethod.GetParameters()
+                .Select(parameter => parameter.Name)
+                .SequenceEqual(new[]
+                {
+                    "profileData",
+                    "botCreator",
+                    "count",
+                    "token"
+                }, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "BotCreationData.Create is not the exact SPT 4.1 creation seam used by PitFireTeam 0.10.0");
+        }
+        _localGameCreateBotByProfileMethod = RequireMethod(
+            typeof(LocalGame),
+            nameof(LocalGame.CreateBotByProfile),
+            BindingFlags.Public | BindingFlags.Instance,
+            typeof(Task<LocalPlayer>),
+            typeof(GameWorld),
+            typeof(Profile),
+            typeof(UnityEngine.Vector3));
+        if (!_localGameCreateBotByProfileMethod.GetParameters()
+                .Select(parameter => parameter.Name)
+                .SequenceEqual(new[]
+                {
+                    "gw",
+                    "profile",
+                    "position"
+                }, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "LocalGame.CreateBotByProfile is not the exact SPT 4.1 local-player creation seam");
+        }
+        _localGameBotsField = RequireField(
+            typeof(LocalGame),
+            "_bots",
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(Dictionary<string, Player>));
+
+        _shallBeFollowerField = RequireField(
+            _bossPlayersType,
+            ShallBeFollowerFieldName,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(List<string>));
+        _shallBeFollowerMethod = RequireMethod(
+            _bossPlayersType,
+            "ShallBeFollower",
+            BindingFlags.Public | BindingFlags.Static,
+            typeof(void),
+            typeof(string));
+        Type manualUpdatePatchType = RequireType(assembly, ManualUpdatePatchTypeName);
+        _manualUpdateField = RequireField(
+            manualUpdatePatchType,
+            ManualUpdateFieldName,
+            BindingFlags.Public | BindingFlags.Static,
+            typeof(Dictionary<string, Action<BotOwner>>));
+
+        _activateBotAtPositionMethod = RequireMethod(
+            _botsPatchType,
+            ActivateBotAtPositionMethodName,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(Task<bool>),
+            typeof(BotCreatorClient),
+            typeof(Profile),
+            typeof(PositionNote),
+            typeof(BotZone),
+            typeof(bool),
+            typeof(Func<BotOwner, BotZone, BotsGroup>),
+            typeof(Action<BotOwner>),
+            typeof(CancellationToken));
+        if (!_activateBotAtPositionMethod.IsPrivate
+            || !_activateBotAtPositionMethod.GetParameters()
+                .Select(parameter => parameter.Name)
+                .SequenceEqual(new[]
+                {
+                    "botCreator",
+                    "profile",
+                    "position",
+                    "zone",
+                    "shallBeGroup",
+                    "GroupAction",
+                    "OnActivate",
+                    "token"
+                }, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "BotsControllerPatch.ActivateBotAtPosition is not the exact private 0.10.0 activation seam");
+        }
+
+        MethodInfo spawnPrefix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(ActivateBotAtPositionPrefix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(ActivateBotAtPositionPrefix));
+        MethodInfo spawnPostfix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(ActivateBotAtPositionPostfix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(ActivateBotAtPositionPostfix));
+        MethodInfo markerPrefix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(ShallBeFollowerPrefix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(ShallBeFollowerPrefix));
+        MethodInfo groupPrefix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(SpawnGroupBotsPrefix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(SpawnGroupBotsPrefix));
+        MethodInfo groupPostfix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(SpawnGroupBotsPostfix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(SpawnGroupBotsPostfix));
+        MethodInfo groupFinalizer = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(SpawnGroupBotsFinalizer),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(SpawnGroupBotsFinalizer));
+        MethodInfo creationPostfix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(BotCreationDataCreatePostfix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(BotCreationDataCreatePostfix));
+        MethodInfo rawPlayerPostfix = typeof(PitFireTeamRoundLifecycle).GetMethod(
+            nameof(LocalGameCreateBotByProfilePostfix),
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(
+                typeof(PitFireTeamRoundLifecycle).FullName,
+                nameof(LocalGameCreateBotByProfilePostfix));
+
+        try
+        {
+            SpawnLeaseHarmony.Patch(
+                _botCreationDataCreateMethod,
+                postfix: new HarmonyMethod(creationPostfix));
+            SpawnLeaseHarmony.Patch(
+                _spawnGroupBotsMethod,
+                prefix: new HarmonyMethod(groupPrefix),
+                postfix: new HarmonyMethod(groupPostfix),
+                finalizer: new HarmonyMethod(groupFinalizer));
+            SpawnLeaseHarmony.Patch(
+                _localGameCreateBotByProfileMethod,
+                postfix: new HarmonyMethod(rawPlayerPostfix));
+            SpawnLeaseHarmony.Patch(
+                _shallBeFollowerMethod,
+                prefix: new HarmonyMethod(markerPrefix));
+            SpawnLeaseHarmony.Patch(
+                _activateBotAtPositionMethod,
+                prefix: new HarmonyMethod(spawnPrefix),
+                postfix: new HarmonyMethod(spawnPostfix));
+            _spawnLeasePatchInstalled = true;
+        }
+        catch
+        {
+            SpawnLeaseHarmony.UnpatchSelf();
+            _spawnLeasePatchInstalled = false;
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Marks only the exact Arena-owned SpawnGroupBots call while its async
+    /// state machine is executing synchronously. PFT reaches the count-zero
+    /// BotCreationData.Create call before its first incomplete await because
+    /// Arena has already supplied the completed CreateFollowerProfiles task.
+    /// </summary>
+    private static bool SpawnGroupBotsPrefix(
+        object __instance,
+        object player,
+        ref Task __result,
+        out SpawnGroupInvocationState __state)
+    {
+        __state = null;
+        lock (StateLock)
+        {
+            FollowerSpawnLease lease = _spawnLease;
+            if (lease == null
+                || !ReferenceEquals(lease.PatchInstance, __instance)
+                || !ReferenceEquals(lease.Boss, player))
+            {
+                return true;
+            }
+
+            string problem = string.Empty;
+            if (_spawnGroupInvocationLease != null
+                || !TryValidateBotCreationLeaseIdentityUnsafe(lease, out problem))
+            {
+                string reason = _spawnGroupInvocationLease != null
+                    ? "a nested PFT SpawnGroupBots call entered Arena's creation lease"
+                    : "the PFT SpawnGroupBots creation lease drifted before entry: " + problem;
+                FailUnsafe(reason);
+                __result = Task.FromException(new InvalidOperationException(reason));
+                return false;
+            }
+
+            __state = new SpawnGroupInvocationState
+            {
+                Lease = lease,
+                PreviousLease = _spawnGroupInvocationLease
+            };
+            _spawnGroupInvocationLease = lease;
+            return true;
+        }
+    }
+
+    private static void SpawnGroupBotsPostfix(
+        ref Task __result,
+        SpawnGroupInvocationState __state)
+    {
+        string problem = RestoreSpawnGroupInvocation(__state);
+        if (string.IsNullOrEmpty(problem))
+            return;
+
+        __result = Task.FromException(new InvalidOperationException(problem));
+    }
+
+    private static Exception SpawnGroupBotsFinalizer(
+        Exception __exception,
+        SpawnGroupInvocationState __state)
+    {
+        RestoreSpawnGroupInvocation(__state);
+        return __exception;
+    }
+
+    private static string RestoreSpawnGroupInvocation(SpawnGroupInvocationState state)
+    {
+        if (state == null || state.Restored)
+            return string.Empty;
+
+        lock (StateLock)
+        {
+            if (state.Restored)
+                return string.Empty;
+
+            state.Restored = true;
+            bool markerChanged = !ReferenceEquals(_spawnGroupInvocationLease, state.Lease);
+            _spawnGroupInvocationLease = state.PreviousLease;
+
+            if (markerChanged)
+            {
+                const string markerProblem =
+                    "Arena's exact PFT SpawnGroupBots invocation marker changed before return";
+                if (ReferenceEquals(_spawnLease, state.Lease) && !state.Lease.Revoked)
+                    FailUnsafe(markerProblem);
+                return markerProblem;
+            }
+
+            if (state.Lease.BotCreationInvocation != null)
+                return string.Empty;
+
+            const string captureProblem =
+                "PFT SpawnGroupBots returned without the exact count-zero BotCreationData.Create lease";
+            if (ReferenceEquals(_spawnLease, state.Lease) && !state.Lease.Revoked)
+                FailUnsafe(captureProblem);
+            return captureProblem;
+        }
+    }
+
+    /// <summary>
+    /// Replaces only PFT 0.10.0's exact count-zero creation task while the
+    /// Arena-owned SpawnGroupBots invocation marker is live. Every other EFT or
+    /// PFT BotCreationData.Create call receives its original Task unchanged.
+    /// </summary>
+    private static void BotCreationDataCreatePostfix(
+        IGetProfileData profileData,
+        IBotCreator botCreator,
+        int count,
+        ITokenGetter token,
+        ref Task<BotCreationData> __result)
+    {
+        FollowerSpawnLease markedLease = _spawnGroupInvocationLease;
+        if (markedLease == null)
+            return;
+
+        Task<BotCreationData> originalTask = __result;
+        BotCreationInvocationState state = null;
+        string problem;
+        lock (StateLock)
+        {
+            if (!ReferenceEquals(markedLease, _spawnGroupInvocationLease))
+                return;
+
+            if (markedLease.BotCreationInvocation != null)
+            {
+                problem = "PFT made more than one BotCreationData.Create call inside Arena's SpawnGroupBots lease";
+            }
+            else if (!TryValidateExactBotCreationCallUnsafe(
+                         markedLease,
+                         profileData,
+                         botCreator,
+                         count,
+                         token,
+                         out problem))
+            {
+                problem = "PFT count-zero BotCreationData.Create contract drifted: " + problem;
+            }
+            else if (originalTask == null)
+            {
+                problem = "PFT's count-zero BotCreationData.Create returned no Task";
+            }
+            else
+            {
+                state = new BotCreationInvocationState
+                {
+                    Lease = markedLease,
+                    ProfileData = profileData,
+                    BotCreator = botCreator,
+                    Token = token,
+                    ContinuationContext = SynchronizationContext.Current,
+                    OriginalTask = originalTask
+                };
+                markedLease.BotCreationInvocation = state;
+                problem = string.Empty;
+            }
+
+            if (state == null
+                && ReferenceEquals(_spawnLease, markedLease)
+                && !markedLease.Revoked)
+            {
+                FailUnsafe(problem);
+            }
+        }
+
+        if (state == null)
+        {
+            __result = RejectPftBotCreationTask(originalTask, problem);
+            return;
+        }
+
+        try
+        {
+            __result = LeasePftBotCreationTask(state);
+        }
+        catch (Exception ex)
+        {
+            string setupProblem =
+                "Arena could not install PFT's count-zero creation-task lease: "
+                + ex.GetBaseException().Message;
+            lock (StateLock)
+            {
+                if (ReferenceEquals(_spawnLease, markedLease) && !markedLease.Revoked)
+                    FailUnsafe(setupProblem);
+            }
+            __result = RejectPftBotCreationTask(originalTask, setupProblem);
+        }
+    }
+
+    private static Task<BotCreationData> LeasePftBotCreationTask(
+        BotCreationInvocationState state)
+    {
+        // Deliberately keep synchronous continuations enabled. The original
+        // BotCreationData task resumes this observer on Arena's owner thread;
+        // TrySetResult then runs PFT's Remove/AddProfile/ForEach continuation
+        // inside StateLock, closing the last cancellation window before all four
+        // individual activation leases have entered their synchronous prefixes.
+        state.CancellationRegistration = state.Lease.Cancellation.Token.Register(
+            () => CancelLeasedBotCreationTask(state));
+        _ = ObserveLeasedBotCreationTask(state);
+        return state.Completion.Task;
+    }
+
+    private static void CancelLeasedBotCreationTask(BotCreationInvocationState state)
+    {
+        lock (StateLock)
+        {
+            if (Interlocked.CompareExchange(ref state.Settled, 1, 0) != 0)
+                return;
+
+            state.Completion.TrySetCanceled();
+        }
+    }
+
+    private static async Task ObserveLeasedBotCreationTask(
+        BotCreationInvocationState state)
+    {
+        BotCreationData data = null;
+        Exception failure = null;
+        try
+        {
+            data = await state.OriginalTask;
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+
+        bool stopData = false;
+        string lateFailure = string.Empty;
+        lock (StateLock)
+        {
+            if (Volatile.Read(ref state.Settled) != 0)
+            {
+                stopData = data != null;
+                if (failure != null && failure is not OperationCanceledException)
+                {
+                    lateFailure =
+                        "Arena observed a late fault from revoked PFT BotCreationData.Create: "
+                        + failure.GetBaseException().Message;
+                }
+            }
+            else if (failure != null)
+            {
+                Interlocked.Exchange(ref state.Settled, 1);
+                if (ReferenceEquals(_spawnLease, state.Lease) && !state.Lease.Revoked)
+                {
+                    FailUnsafe(
+                        "PFT's leased count-zero BotCreationData.Create task failed: "
+                        + failure.GetBaseException().Message);
+                }
+                state.Completion.TrySetException(failure);
+            }
+            else if (data == null)
+            {
+                Interlocked.Exchange(ref state.Settled, 1);
+                const string nullProblem =
+                    "PFT's leased count-zero BotCreationData.Create task returned null";
+                if (ReferenceEquals(_spawnLease, state.Lease) && !state.Lease.Revoked)
+                    FailUnsafe(nullProblem);
+                state.Completion.TrySetException(new InvalidOperationException(nullProblem));
+            }
+            else if (!TryValidateBotCreationResultUnsafe(state, data, out string problem))
+            {
+                Interlocked.Exchange(ref state.Settled, 1);
+                stopData = true;
+                if (ReferenceEquals(_spawnLease, state.Lease) && !state.Lease.Revoked)
+                    FailUnsafe("PFT's creation-task lease expired before release: " + problem);
+                state.Completion.TrySetCanceled();
+            }
+            else
+            {
+                Interlocked.Exchange(ref state.Settled, 1);
+                state.Completion.TrySetResult(data);
+
+                int expected = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
+                if (state.Lease.StartedProfileIds.Count != expected
+                    && ReferenceEquals(_spawnLease, state.Lease)
+                    && !state.Lease.Revoked)
+                {
+                    FailUnsafe(
+                        "PFT did not enter all four synchronous follower activation seams "
+                        + "before the leased BotCreationData task release returned");
+                }
+            }
+        }
+
+        state.CancellationRegistration.Dispose();
+        if (stopData)
+            StopPftBotCreationData(data, "revoked creation-task completion");
+        if (!string.IsNullOrEmpty(lateFailure))
+            Plugin.ModLogger.LogWarning(lateFailure);
+    }
+
+    private static Task<BotCreationData> RejectPftBotCreationTask(
+        Task<BotCreationData> originalTask,
+        string reason)
+    {
+        _ = ObserveRejectedPftBotCreationTask(originalTask, reason);
+        return Task.FromException<BotCreationData>(
+            new InvalidOperationException(reason ?? "PFT BotCreationData.Create lease rejected"));
+    }
+
+    private static async Task ObserveRejectedPftBotCreationTask(
+        Task<BotCreationData> originalTask,
+        string reason)
+    {
+        if (originalTask == null)
+            return;
+
+        try
+        {
+            BotCreationData data = await originalTask;
+            if (data != null)
+                StopPftBotCreationData(data, reason);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is the expected terminal state for a rejected call.
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning(
+                "Arena observed a fault from rejected PFT BotCreationData.Create: "
+                + ex.GetBaseException().Message);
+        }
+    }
+
+    private static void StopPftBotCreationData(BotCreationData data, string reason)
+    {
+        try
+        {
+            data?.StopSpawn();
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Arena could not stop late PFT BotCreationData ({reason}): "
+                + ex.GetBaseException().Message);
+        }
+    }
+
+    private static bool TryValidateExactBotCreationCallUnsafe(
+        FollowerSpawnLease lease,
+        IGetProfileData profileData,
+        IBotCreator botCreator,
+        int count,
+        ITokenGetter token,
+        out string reason)
+    {
+        if (!TryValidateBotCreationLeaseIdentityUnsafe(lease, out reason))
+            return false;
+        if (count != 0
+            || !ReferenceEquals(botCreator, lease.Spawner._botCreator)
+            || !ReferenceEquals(token, lease.Spawner))
+        {
+            reason = "the count, BotCreator or ITokenGetter argument changed";
+            return false;
+        }
+        if (profileData is not GetProfileDataParams parameters)
+        {
+            reason = "the profile-data argument is not GetProfileDataParams";
+            return false;
+        }
+
+        WildSpawnType expectedRole = lease.Leader.Side == EPlayerSide.Bear
+            ? WildSpawnType.pmcBEAR
+            : lease.Leader.Side == EPlayerSide.Usec
+                ? WildSpawnType.pmcUSEC
+                : WildSpawnType.assault;
+        ShallBeGroupParams group = parameters.SpawnParams?.ShallBeGroup;
+        int expectedGroupCount = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount + 1;
+        if (parameters.Side != lease.Leader.Side
+            || parameters.Role != expectedRole
+            || parameters.BotDifficulty != BotDifficulty.hard
+            || parameters._spawnTime != 0f
+            || group == null
+            || !group.Group
+            || group.StartCount != expectedGroupCount
+            || group.RemainCount != expectedGroupCount)
+        {
+            reason = "the exact PFT PMC side, role, difficulty, spawn time or group parameters changed";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    private static bool TryValidateBotCreationResultUnsafe(
+        BotCreationInvocationState state,
+        BotCreationData data,
+        out string reason)
+    {
+        if (!TryValidateBotCreationLeaseIdentityUnsafe(state.Lease, out reason))
+            return false;
+        if (state.ContinuationContext == null
+            || !ReferenceEquals(SynchronizationContext.Current, state.ContinuationContext)
+            || !ReferenceEquals(state.Lease.BotCreationInvocation, state)
+            || !ReferenceEquals(data._profileData, state.ProfileData)
+            || !ReferenceEquals(data._botCreator, state.BotCreator)
+            || !ReferenceEquals(data._tokenGetter, state.Token)
+            || data.SpawnStopped)
+        {
+            reason = "the exact leased BotCreationData identity or spawn state changed";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    private static bool TryValidateBotCreationLeaseIdentityUnsafe(
+        FollowerSpawnLease lease,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (lease == null || lease.Revoked || !ReferenceEquals(_spawnLease, lease))
+        {
+            reason = lease?.RevocationReason ?? "the follower spawn lease is missing";
+            return false;
+        }
+        if (Thread.CurrentThread.ManagedThreadId != _ownerThreadId
+            || SynchronizationContext.Current == null
+            || _stage != PitFireTeamRoundLifecycleStage.SpawnRequested
+            || lease.Epoch != _epoch
+            || !ReferenceEquals(_botsPatchInstanceField.GetValue(null), lease.PatchInstance))
+        {
+            reason = "the Unity owner thread/context, PFT patch instance, lifecycle stage or epoch changed";
+            return false;
+        }
+        if (!ArenaSession.IsExactActiveRaid(lease.Game, lease.World)
+            || !ArenaRespawnDriver.IsSameActiveRaid(lease.Game, lease.RaidEpoch)
+            || lease.Game.Status != GameStatus.Started
+            || !Singleton<IBotGame>.Instantiated
+            || !ReferenceEquals(Singleton<IBotGame>.Instance, lease.Game)
+            || !Singleton<GameWorld>.Instantiated
+            || !ReferenceEquals(Singleton<GameWorld>.Instance, lease.World))
+        {
+            reason = "the exact confirmed Arena raid, LocalGame or GameWorld changed";
+            return false;
+        }
+        if (!ReferenceEquals(lease.World.MainPlayer, lease.Leader)
+            || !ReferenceEquals(lease.Game.LocalPlayer, lease.Leader)
+            || !ReferenceEquals(_currentLeader, lease.Leader)
+            || !ReferenceEquals(_currentBoss, lease.Boss)
+            || !ReferenceEquals(
+                _getBossMethod.Invoke(null, new object[] { lease.Leader.ProfileId }),
+                lease.Boss))
+        {
+            reason = "the exact current leader or PFT boss wrapper changed";
+            return false;
+        }
+        if (!ReferenceEquals(((IBotGame)lease.Game).BotsController, lease.Controller)
+            || !ReferenceEquals(_botsControllerField.GetValue(null), lease.Controller)
+            || !ReferenceEquals(lease.Controller.BotSpawner, lease.Spawner))
+        {
+            reason = "the exact BotsController or BotSpawner changed";
+            return false;
+        }
+        if (!TryGetExactBotCreatorBindingUnsafe(lease, out _, out reason))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// BotCreatorClient awaits LocalGame.CreateBotByProfile before checking the
+    /// activation token. If that token was cancelled while LocalPlayer.Create
+    /// was running, SPT otherwise leaves the returned Player registered and in
+    /// LocalGame._bots without ever constructing a BotOwner or invoking PFT's
+    /// callback. This postfix leases only the exact runtime Profile/LocalGame
+    /// pair already recorded by Arena's activation prefix.
+    /// </summary>
+    private static void LocalGameCreateBotByProfilePostfix(
+        LocalGame __instance,
+        GameWorld gw,
+        Profile profile,
+        ref Task<LocalPlayer> __result)
+    {
+        string profileId = profile?.ProfileId?.Trim();
+        if (string.IsNullOrWhiteSpace(profileId))
+            return;
+
+        RawPlayerCreationState rawState;
+        string problem = string.Empty;
+        lock (StateLock)
+        {
+            if (!HistoricalSpawnRecords.TryGetValue(profileId, out HistoricalSpawnRecord record)
+                || record.Profile == null
+                || !record.Profile.TryGetTarget(out Profile recordedProfile)
+                || !ReferenceEquals(recordedProfile, profile)
+                || record.Game == null
+                || !record.Game.TryGetTarget(out LocalGame recordedGame)
+                || !ReferenceEquals(recordedGame, __instance)
+                || record.World == null
+                || !record.World.TryGetTarget(out GameWorld recordedWorld)
+                || record.Invocation == null
+                || !record.Invocation.TryGetTarget(out SpawnInvocationState invocation)
+                || invocation?.Lease == null
+                || !invocation.Lease.ProfilesById.TryGetValue(profileId, out Profile expectedProfile)
+                || !ReferenceEquals(expectedProfile, profile)
+                || !ReferenceEquals(invocation.Lease.Game, __instance)
+                || !ReferenceEquals(invocation.Lease.World, recordedWorld))
+            {
+                return;
+            }
+
+            IDictionary localBots = _localGameBotsField?.GetValue(__instance) as IDictionary;
+            if (invocation.RawPlayerCreation != null)
+            {
+                problem = $"PFT requested a duplicate LocalPlayer for runtime follower {profileId}";
+            }
+            else if (__result == null)
+            {
+                problem = $"LocalGame.CreateBotByProfile returned no Task for runtime follower {profileId}";
+            }
+            else if (!TryValidateRawPlayerCreationCallUnsafe(
+                         invocation,
+                         __instance,
+                         gw,
+                         profile,
+                         localBots,
+                         out problem))
+            {
+                problem = $"PFT runtime follower {profileId} entered an invalid LocalPlayer lease: " + problem;
+            }
+
+            rawState = new RawPlayerCreationState
+            {
+                Invocation = invocation,
+                Game = __instance,
+                World = invocation.Lease.World,
+                RequestedWorld = gw,
+                Profile = profile,
+                LocalBots = localBots,
+                ContinuationContext = SynchronizationContext.Current,
+                OriginalTask = __result,
+                RejectionReason = problem,
+                OwnerThreadId = _ownerThreadId
+            };
+            if (invocation.RawPlayerCreation == null)
+                invocation.RawPlayerCreation = rawState;
+
+            if (!string.IsNullOrEmpty(problem)
+                && ReferenceEquals(_spawnLease, invocation.Lease)
+                && !invocation.Lease.Revoked)
+            {
+                FailUnsafe(problem);
+            }
+        }
+
+        if (rawState.OriginalTask == null)
+        {
+            __result = Task.FromResult<LocalPlayer>(null);
+            return;
+        }
+
+        __result = LeasePftRawLocalPlayerTask(rawState);
+    }
+
+    private static Task<LocalPlayer> LeasePftRawLocalPlayerTask(
+        RawPlayerCreationState state)
+    {
+        _ = ObserveLeasedRawLocalPlayerTask(state);
+        return state.Completion.Task;
+    }
+
+    private static async Task ObserveLeasedRawLocalPlayerTask(
+        RawPlayerCreationState state)
+    {
+        LocalPlayer player = null;
+        Exception failure = null;
+        try
+        {
+            player = await state.OriginalTask;
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+
+        if (state.ContinuationContext != null
+            && !ReferenceEquals(SynchronizationContext.Current, state.ContinuationContext))
+        {
+            try
+            {
+                state.ContinuationContext.Post(
+                    _ => CompleteLeasedRawLocalPlayerTaskSafely(state, player, failure),
+                    null);
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogError(
+                    $"Arena could not return raw PFT LocalPlayer {state.Profile.ProfileId} to its Unity context: "
+                    + ex.GetBaseException().Message
+                    + "; queued for the next Unity owner-thread tick.");
+                lock (StateLock)
+                {
+                    PendingRawPlayerCompletions.Enqueue(new PendingRawPlayerCompletion
+                    {
+                        State = state,
+                        Player = player,
+                        Failure = failure,
+                        OwnerThreadId = state.OwnerThreadId
+                    });
+                }
+            }
+            return;
+        }
+
+        CompleteLeasedRawLocalPlayerTaskSafely(state, player, failure);
+    }
+
+    private static void CompleteLeasedRawLocalPlayerTaskSafely(
+        RawPlayerCreationState state,
+        LocalPlayer player,
+        Exception failure)
+    {
+        try
+        {
+            CompleteLeasedRawLocalPlayerTask(state, player, failure);
+        }
+        catch (Exception ex)
+        {
+            lock (StateLock)
+            {
+                if (ReferenceEquals(_spawnLease, state.Invocation.Lease)
+                    && !state.Invocation.Lease.Revoked)
+                {
+                    FailUnsafe(
+                        $"Arena's raw PFT LocalPlayer completion guard failed for {state.Profile.ProfileId}: "
+                        + ex.GetBaseException().Message);
+                }
+            }
+
+            if (player != null && player.AIData?.BotOwner == null)
+            {
+                RetireLeasedRawLocalPlayer(
+                    state,
+                    player,
+                    "the LocalPlayer completion guard threw");
+            }
+            state.Completion.TrySetException(ex);
+        }
+    }
+
+    private static void CompleteLeasedRawLocalPlayerTask(
+        RawPlayerCreationState state,
+        LocalPlayer player,
+        Exception failure)
+    {
+
+        bool retireRawPlayer = false;
+        bool completeWithNull = false;
+        string retirementReason = state.RejectionReason;
+        lock (StateLock)
+        {
+            if (Interlocked.CompareExchange(ref state.Settled, 1, 0) != 0)
+                return;
+
+            if (failure != null)
+            {
+                if (ReferenceEquals(_spawnLease, state.Invocation.Lease)
+                    && !state.Invocation.Lease.Revoked)
+                {
+                    FailUnsafe(
+                        $"LocalGame.CreateBotByProfile failed for runtime follower {state.Profile.ProfileId}: "
+                        + failure.GetBaseException().Message);
+                }
+                state.Completion.TrySetException(failure);
+                return;
+            }
+
+            if (player == null)
+            {
+                state.Completion.TrySetResult(null);
+                return;
+            }
+
+            string problem = string.Empty;
+            if (!string.IsNullOrEmpty(state.RejectionReason)
+                || !TryValidateRawPlayerResultUnsafe(state, player, out problem))
+            {
+                completeWithNull = true;
+                BotOwner existingOwner = player.AIData?.BotOwner;
+                retireRawPlayer = existingOwner == null;
+                retirementReason = string.IsNullOrEmpty(state.RejectionReason)
+                    ? problem
+                    : state.RejectionReason;
+                if (existingOwner != null)
+                {
+                    state.Invocation.Body ??= existingOwner;
+                    state.Invocation.Lease.ObservedBodiesByProfileId[state.Profile.ProfileId] = existingOwner;
+                }
+                if (ReferenceEquals(_spawnLease, state.Invocation.Lease)
+                    && !state.Invocation.Lease.Revoked)
+                {
+                    FailUnsafe(
+                        $"PFT raw LocalPlayer lease expired for {state.Profile.ProfileId}: "
+                        + retirementReason);
+                }
+                else if (existingOwner != null)
+                {
+                    CleanupRuntimeProfilesUnsafe(
+                        new[] { state.Profile.ProfileId },
+                        state.Invocation.Lease,
+                        existingOwner);
+                }
+            }
+            else
+            {
+                // Keep synchronous continuations enabled and release under the
+                // lifecycle lock on the exact captured Unity context. This runs
+                // BotCreatorClient's token check, BotOwner.Create and Arena's
+                // wrapped callback before Cancel/Reset can acquire StateLock.
+                state.Completion.TrySetResult(player);
+                if (!ReferenceEquals(state.Invocation.Body?.GetPlayer, player))
+                {
+                    BotOwner existingOwner = player.AIData?.BotOwner;
+                    retireRawPlayer = existingOwner == null;
+                    retirementReason =
+                        "BotCreatorClient returned from the leased LocalPlayer await without publishing its BotOwner callback";
+                    if (ReferenceEquals(_spawnLease, state.Invocation.Lease)
+                        && !state.Invocation.Lease.Revoked)
+                    {
+                        FailUnsafe(retirementReason);
+                    }
+                    else if (existingOwner != null)
+                    {
+                        CleanupRuntimeProfilesUnsafe(
+                            new[] { state.Profile.ProfileId },
+                            state.Invocation.Lease,
+                            existingOwner);
+                    }
+                }
+            }
+        }
+
+        if (retireRawPlayer)
+            RetireLeasedRawLocalPlayer(state, player, retirementReason);
+        if (completeWithNull)
+            state.Completion.TrySetResult(null);
+    }
+
+    private static bool TryValidateRawPlayerCreationCallUnsafe(
+        SpawnInvocationState invocation,
+        LocalGame game,
+        GameWorld world,
+        Profile profile,
+        IDictionary localBots,
+        out string reason)
+    {
+        FollowerSpawnLease lease = invocation.Lease;
+        if (Thread.CurrentThread.ManagedThreadId != _ownerThreadId
+            || SynchronizationContext.Current == null)
+        {
+            reason = "the call did not enter on Arena's Unity owner thread/context";
+            return false;
+        }
+        if (localBots == null
+            || !ReferenceEquals(game, lease.Game)
+            || !ReferenceEquals(world, lease.World)
+            || !lease.ProfilesById.TryGetValue(profile.ProfileId, out Profile expectedProfile)
+            || !ReferenceEquals(profile, expectedProfile)
+            || !lease.InvocationsByProfileId.TryGetValue(profile.ProfileId, out SpawnInvocationState expectedInvocation)
+            || !ReferenceEquals(invocation, expectedInvocation))
+        {
+            reason = "the exact LocalGame, GameWorld, Profile, registry or activation invocation changed";
+            return false;
+        }
+        if (!TryGetExactBotCreatorBindingUnsafe(lease, out BotCreatorClient botCreator, out reason))
+            return false;
+
+        if (!lease.Revoked
+            && !TryValidateSpawnLeaseUnsafe(
+                lease,
+                lease.PatchInstance,
+                botCreator,
+                out reason))
+        {
+            return false;
+        }
+
+        reason = lease.Revoked ? lease.RevocationReason : string.Empty;
+        return !lease.Revoked;
+    }
+
+    private static bool TryValidateRawPlayerResultUnsafe(
+        RawPlayerCreationState state,
+        LocalPlayer player,
+        out string reason)
+    {
+        if (state.ContinuationContext == null
+            || !ReferenceEquals(SynchronizationContext.Current, state.ContinuationContext))
+        {
+            reason = "the LocalPlayer task left its captured Unity synchronization context";
+            return false;
+        }
+        if (!TryValidateRawPlayerCreationCallUnsafe(
+                state.Invocation,
+                state.Game,
+                state.RequestedWorld,
+                state.Profile,
+                state.LocalBots,
+                out reason))
+        {
+            return false;
+        }
+        if (!ReferenceEquals(player.Profile, state.Profile)
+            || !string.Equals(player.ProfileId, state.Profile.ProfileId, StringComparison.OrdinalIgnoreCase)
+            || !ReferenceEquals(player.GameWorld, state.World)
+            || !state.LocalBots.Contains(state.Profile.ProfileId)
+            || !ReferenceEquals(state.LocalBots[state.Profile.ProfileId], player)
+            || !state.World.RegisteredPlayers.Any(candidate => ReferenceEquals(candidate, player))
+            || state.Invocation.Body != null)
+        {
+            reason = "the raw LocalPlayer identity or its exact old-raid registrations changed";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    private static bool TryGetExactBotCreatorBindingUnsafe(
+        FollowerSpawnLease lease,
+        out BotCreatorClient botCreator,
+        out string reason)
+    {
+        botCreator = lease?.Spawner?._botCreator as BotCreatorClient;
+        if (botCreator == null
+            || !ReferenceEquals(botCreator._game, lease.Game)
+            || botCreator._playerCreator == null
+            || !ReferenceEquals(botCreator._playerCreator.Target, lease.Game)
+            || !Equals(botCreator._playerCreator.Method, _localGameCreateBotByProfileMethod))
+        {
+            reason = "BotCreatorClient is not bound to the exact leased LocalGame.CreateBotByProfile delegate";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    private static void RetireLeasedRawLocalPlayer(
+        RawPlayerCreationState state,
+        LocalPlayer player,
+        string reason)
+    {
+        bool ownedByOldGame = false;
+        try
+        {
+            if (state.LocalBots != null
+                && state.LocalBots.Contains(state.Profile.ProfileId)
+                && ReferenceEquals(state.LocalBots[state.Profile.ProfileId], player))
+            {
+                state.LocalBots.Remove(state.Profile.ProfileId);
+                ownedByOldGame = true;
+            }
+            if (state.World?.RegisteredPlayers?.Any(candidate => ReferenceEquals(candidate, player)) == true)
+                ownedByOldGame = true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not detach raw PFT LocalPlayer {state.Profile.ProfileId}: "
+                + ex.GetBaseException().Message);
+        }
+
+        if (!ownedByOldGame)
+            return;
+
+        try
+        {
+            if (state.World?.RegisteredPlayers?.Any(candidate => ReferenceEquals(candidate, player)) == true)
+                state.World.UnregisterPlayer(player);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not unregister raw PFT LocalPlayer {state.Profile.ProfileId}: "
+                + ex.GetBaseException().Message);
+        }
+
+        try
+        {
+            player.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not dispose raw PFT LocalPlayer {state.Profile.ProfileId}: "
+                + ex.GetBaseException().Message);
+        }
+
+        try
+        {
+            AssetPoolObject.ReturnToPool(player.gameObject);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not return raw PFT LocalPlayer {state.Profile.ProfileId} to its pool: "
+                + ex.GetBaseException().Message);
+        }
+
+        Plugin.ModLogger.LogInfo(
+            $"Arena retired raw PFT LocalPlayer {state.Profile.ProfileId} ({reason}).");
+    }
+
+    /// <summary>
+    /// PFT increments BotSpawner._inSpawnProcess immediately before this marker
+    /// call and invokes ActivateBotAtPosition immediately after it. Skipping the
+    /// marker for a revoked Arena ID prevents a disposed BossPlayers.Instance
+    /// from throwing in that narrow gap; the activation prefix then performs the
+    /// one counter settlement. Ordinary and current leased IDs remain unchanged.
+    /// </summary>
+    private static bool ShallBeFollowerPrefix(string profileId)
+    {
+        profileId = profileId?.Trim();
+        if (string.IsNullOrWhiteSpace(profileId))
+            return true;
+
+        lock (StateLock)
+        {
+            if (!HistoricalRuntimeProfileIds.Contains(profileId))
+                return true;
+
+            FollowerSpawnLease lease = _spawnLease;
+            bool current = lease != null
+                           && !lease.Revoked
+                           && lease.Epoch == _epoch
+                           && lease.ProfilesById.ContainsKey(profileId)
+                           && _bossPlayersInstanceProperty?.GetValue(null) != null;
+            if (!current)
+                RemovePftBookkeepingUnsafe(profileId);
+            return current;
+        }
+    }
+
+    /// <summary>
+    /// Harmony seam used only for profile IDs minted by this lifecycle. PFT's
+    /// ordinary and first-round canonical spawns pass through byte-for-byte.
+    /// A historical Arena ID with no current exact lease is permanently revoked.
+    /// </summary>
+    private static bool ActivateBotAtPositionPrefix(
+        object __instance,
+        BotCreatorClient botCreator,
+        Profile profile,
+        ref Action<BotOwner> OnActivate,
+        ref CancellationToken token,
+        ref Task<bool> __result,
+        out SpawnInvocationState __state)
+    {
+        __state = null;
+        string profileId = profile?.ProfileId?.Trim();
+        if (string.IsNullOrWhiteSpace(profileId))
+            return true;
+
+        lock (StateLock)
+        {
+            if (!HistoricalRuntimeProfileIds.Contains(profileId))
+                return true;
+
+            try
+            {
+                FollowerSpawnLease lease = _spawnLease;
+                if (lease == null
+                    || !lease.ProfilesById.TryGetValue(profileId, out Profile expectedProfile))
+                {
+                    RejectHistoricalActivationUnsafe(
+                        profileId,
+                        "the runtime profile has no current exact Arena spawn lease");
+                    __result = Task.FromResult(false);
+                    return false;
+                }
+                if (!ReferenceEquals(expectedProfile, profile))
+                {
+                    var wrongProfile = new SpawnInvocationState
+                    {
+                        Lease = lease,
+                        ProfileId = profileId,
+                        Spawner = lease.Spawner
+                    };
+                    SettleSpawnCounterUnsafe(wrongProfile);
+                    FailUnsafe(
+                        $"PFT replaced Arena's exact remapped Profile object for runtime follower {profileId}");
+                    __result = Task.FromResult(false);
+                    return false;
+                }
+
+                if (!TryValidateSpawnLeaseUnsafe(
+                        lease,
+                        __instance,
+                        botCreator,
+                        out string leaseProblem))
+                {
+                    var rejected = new SpawnInvocationState
+                    {
+                        Lease = lease,
+                        ProfileId = profileId,
+                        Spawner = lease.Spawner
+                    };
+                    SettleSpawnCounterUnsafe(rejected);
+                    FailUnsafe("PFT follower activation lease drifted: " + leaseProblem);
+                    __result = Task.FromResult(false);
+                    return false;
+                }
+
+                if (OnActivate == null)
+                {
+                    var rejected = new SpawnInvocationState
+                    {
+                        Lease = lease,
+                        ProfileId = profileId,
+                        Spawner = lease.Spawner
+                    };
+                    SettleSpawnCounterUnsafe(rejected);
+                    FailUnsafe("PFT supplied no activation callback for a leased runtime follower");
+                    __result = Task.FromResult(false);
+                    return false;
+                }
+
+                if (!lease.StartedProfileIds.Add(profileId))
+                {
+                    var duplicate = new SpawnInvocationState
+                    {
+                        Lease = lease,
+                        ProfileId = profileId,
+                        Spawner = lease.Spawner
+                    };
+                    SettleSpawnCounterUnsafe(duplicate);
+                    FailUnsafe($"PFT attempted a duplicate activation for runtime follower {profileId}");
+                    __result = Task.FromResult(false);
+                    return false;
+                }
+
+                var state = new SpawnInvocationState
+                {
+                    Lease = lease,
+                    ProfileId = profileId,
+                    Spawner = lease.Spawner
+                };
+                lease.InvocationsByProfileId.Add(profileId, state);
+                if (HistoricalSpawnRecords.TryGetValue(profileId, out HistoricalSpawnRecord record))
+                    record.Invocation = new WeakReference<SpawnInvocationState>(state);
+                Action<BotOwner> originalOnActivate = OnActivate;
+                OnActivate = owner => OnLeasedFollowerActivated(state, originalOnActivate, owner);
+                token = lease.Cancellation.Token;
+                __state = state;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (_spawnLease != null
+                    && _spawnLease.InvocationsByProfileId.TryGetValue(
+                        profileId,
+                        out SpawnInvocationState startedInvocation))
+                {
+                    SettleSpawnCounterUnsafe(startedInvocation);
+                    FailUnsafe(
+                        "the activation prefix failed after leasing a runtime follower: "
+                        + ex.GetBaseException().Message);
+                }
+                else
+                {
+                    RejectHistoricalActivationUnsafe(
+                        profileId,
+                        "the activation prefix failed closed: " + ex.GetBaseException().Message);
+                }
+                __result = Task.FromResult(false);
+                return false;
+            }
+        }
+    }
+
+    private static void ActivateBotAtPositionPostfix(
+        ref Task<bool> __result,
+        SpawnInvocationState __state)
+    {
+        if (__state == null)
+            return;
+
+        __result = ObserveLeasedActivationTask(__result, __state);
+    }
+
+    /// <summary>
+    /// PFT 0.10.0's private task, and EFT's BotCreator task beneath it, both
+    /// return before the detached CreateBot callback necessarily runs. This
+    /// observer records only task failure/settlement; physical readiness still
+    /// requires the wrapped callback, exact PFT wrapper and two registry passes.
+    /// </summary>
+    private static async Task<bool> ObserveLeasedActivationTask(
+        Task<bool> activationTask,
+        SpawnInvocationState state)
+    {
+        bool activated;
+        try
+        {
+            activated = activationTask != null && await activationTask;
+        }
+        catch
+        {
+            lock (StateLock)
+            {
+                SettleSpawnCounterUnsafe(state);
+                FailUnsafe($"PFT runtime follower {state.ProfileId} activation task threw");
+            }
+            throw;
+        }
+
+        lock (StateLock)
+        {
+            state.Lease.SettledProfileIds.Add(state.ProfileId);
+            if (!activated)
+            {
+                SettleSpawnCounterUnsafe(state);
+                FailUnsafe($"PFT runtime follower {state.ProfileId} activation task returned false");
+            }
+            else if (state.Lease.Revoked && state.Body != null)
+            {
+                CleanupRuntimeProfilesUnsafe(
+                    new[] { state.ProfileId },
+                    state.Lease,
+                    state.Body);
+            }
+        }
+
+        return activated;
+    }
+
+    private static void OnLeasedFollowerActivated(
+        SpawnInvocationState state,
+        Action<BotOwner> originalOnActivate,
+        BotOwner owner)
+    {
+        lock (StateLock)
+        {
+            state.Body = owner;
+            state.Lease.ObservedBodiesByProfileId[state.ProfileId] = owner;
+
+            if (!TryValidateSpawnLeaseUnsafe(
+                    state.Lease,
+                    state.Lease.PatchInstance,
+                    state.Lease.Spawner?._botCreator as BotCreatorClient,
+                    out string leaseProblem)
+                || owner == null
+                || !string.Equals(owner.ProfileId, state.ProfileId, StringComparison.OrdinalIgnoreCase)
+                || !state.Lease.ProfilesById.TryGetValue(state.ProfileId, out Profile expectedProfile)
+                || !ReferenceEquals(owner.Profile, expectedProfile))
+            {
+                SettleSpawnCounterUnsafe(state);
+                CleanupRuntimeProfilesUnsafe(
+                    new[] { state.ProfileId },
+                    state.Lease,
+                    owner);
+                FailUnsafe(
+                    "PFT delivered a runtime follower after its exact Arena lease became invalid: "
+                    + (string.IsNullOrWhiteSpace(leaseProblem)
+                        ? state.ProfileId
+                        : leaseProblem));
+                return;
+            }
+
+            int counterBeforeCallback = state.Spawner._inSpawnProcess;
+            try
+            {
+                // Keep cancellation and PFT watcher installation in one lock scope:
+                // CancelFollowerSpawnLease cannot return between the validity
+                // check and publication of PFT's manual-update callback.
+                originalOnActivate(owner);
+                state.CallbackCompleted = true;
+                state.Lease.ActivatedProfileIds.Add(state.ProfileId);
+            }
+            catch (Exception ex)
+            {
+                int counterAfterFailure = state.Spawner._inSpawnProcess;
+                if (counterAfterFailure < counterBeforeCallback)
+                    Interlocked.Exchange(ref state.CounterSettled, 1);
+                else
+                    SettleSpawnCounterUnsafe(state);
+
+                CleanupRuntimeProfilesUnsafe(
+                    new[] { state.ProfileId },
+                    state.Lease,
+                    owner);
+                FailUnsafe(
+                    $"PFT runtime follower {state.ProfileId} activation callback failed: "
+                    + ex.GetBaseException().Message);
+                return;
+            }
+
+            int counterAfterCallback = state.Spawner._inSpawnProcess;
+            if (counterAfterCallback < counterBeforeCallback)
+            {
+                Interlocked.Exchange(ref state.CounterSettled, 1);
+            }
+            else
+            {
+                // Exact PFT 0.10.0 normally decrements in ActivateBotCallback.
+                // If it returned without doing so, Arena owns the one settlement.
+                SettleSpawnCounterUnsafe(state);
+                FailUnsafe(
+                    $"PFT runtime follower {state.ProfileId} did not settle BotSpawner._inSpawnProcess");
+            }
+        }
+    }
+
+    private static bool TryValidateSpawnLeaseUnsafe(
+        FollowerSpawnLease lease,
+        object patchInstance,
+        BotCreatorClient botCreator,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (lease == null || lease.Revoked || !ReferenceEquals(_spawnLease, lease))
+        {
+            reason = lease?.RevocationReason ?? "the follower spawn lease is missing";
+            return false;
+        }
+        if (_stage != PitFireTeamRoundLifecycleStage.SpawnRequested
+            || lease.Epoch != _epoch
+            || !ReferenceEquals(lease.PatchInstance, patchInstance)
+            || !ReferenceEquals(_botsPatchInstanceField.GetValue(null), lease.PatchInstance))
+        {
+            reason = "the PFT patch instance, lifecycle stage or epoch changed";
+            return false;
+        }
+        if (!ArenaSession.IsActive
+            || !ArenaSession.IsExactActiveRaid(lease.Game, lease.World)
+            || !ArenaRespawnDriver.IsSameActiveRaid(lease.Game, lease.RaidEpoch)
+            || lease.Game.Status != GameStatus.Started
+            || !Singleton<IBotGame>.Instantiated
+            || !ReferenceEquals(Singleton<IBotGame>.Instance, lease.Game)
+            || !Singleton<GameWorld>.Instantiated
+            || !ReferenceEquals(Singleton<GameWorld>.Instance, lease.World))
+        {
+            reason = "the exact Arena raid, LocalGame or GameWorld changed";
+            return false;
+        }
+        if (!ReferenceEquals(lease.World.MainPlayer, lease.Leader)
+            || !ReferenceEquals(lease.Game.LocalPlayer, lease.Leader)
+            || !ReferenceEquals(_currentLeader, lease.Leader)
+            || !ReferenceEquals(_currentBoss, lease.Boss)
+            || !ReferenceEquals(
+                _getBossMethod.Invoke(null, new object[] { lease.Leader.ProfileId }),
+                lease.Boss))
+        {
+            reason = "the exact current leader or PFT boss wrapper changed";
+            return false;
+        }
+        if (!ReferenceEquals(((IBotGame)lease.Game).BotsController, lease.Controller)
+            || !ReferenceEquals(_botsControllerField.GetValue(null), lease.Controller)
+            || !ReferenceEquals(lease.Controller.BotSpawner, lease.Spawner)
+            || !ReferenceEquals(lease.Spawner._botCreator, botCreator)
+            || lease.Spawner._inSpawnProcess <= 0)
+        {
+            reason = "the exact BotsController, BotSpawner, BotCreator or pre-incremented spawn counter changed";
+            return false;
+        }
+        if (!TryGetExactBotCreatorBindingUnsafe(lease, out BotCreatorClient expectedCreator, out reason))
+            return false;
+        if (!ReferenceEquals(expectedCreator, botCreator))
+        {
+            reason = "the activation BotCreator is not the exact leased LocalGame binding";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static void RejectHistoricalActivationUnsafe(string profileId, string reason)
+    {
+        RemovePftBookkeepingUnsafe(profileId);
+        if (HistoricalSpawnRecords.TryGetValue(profileId, out HistoricalSpawnRecord record)
+            && record.Spawner != null
+            && record.Spawner.TryGetTarget(out BotSpawner historicalSpawner))
+        {
+            SettleSpawnCounterUnsafe(new SpawnInvocationState
+            {
+                ProfileId = profileId,
+                Spawner = historicalSpawner
+            });
+        }
+
+        Plugin.ModLogger.LogWarning(
+            $"Arena blocked revoked PitFireTeam runtime follower {profileId}: {reason}.");
+    }
+
+    private static void SettleSpawnCounterUnsafe(SpawnInvocationState state)
+    {
+        if (state == null
+            || Interlocked.Exchange(ref state.CounterSettled, 1) != 0
+            || state.Spawner == null)
+        {
+            return;
+        }
+
+        state.Spawner._inSpawnProcess = Math.Max(0, state.Spawner._inSpawnProcess - 1);
+    }
+
+    private static void RemovePftBookkeepingUnsafe(string profileId)
+    {
+        if (string.IsNullOrWhiteSpace(profileId))
+            return;
+
+        try
+        {
+            if (_manualUpdateField?.GetValue(null) is IDictionary manualUpdates)
+                manualUpdates.Remove(profileId);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not remove PFT's manual-update callback for {profileId}: {ex.GetBaseException().Message}");
+        }
+
+        try
+        {
+            object bossPlayers = _bossPlayersInstanceProperty?.GetValue(null);
+            if (bossPlayers != null
+                && _shallBeFollowerField?.GetValue(bossPlayers) is IList shallBeFollower)
+            {
+                for (int index = shallBeFollower.Count - 1; index >= 0; index--)
+                {
+                    if (string.Equals(
+                            shallBeFollower[index] as string,
+                            profileId,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        shallBeFollower.RemoveAt(index);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not remove PFT's shall-be-follower marker for {profileId}: {ex.GetBaseException().Message}");
+        }
+    }
+
+    private static void CleanupRuntimeProfilesUnsafe(
+        IEnumerable<string> profileIds,
+        FollowerSpawnLease lease,
+        BotOwner bodyHint = null)
+    {
+        HashSet<string> targets = new(
+            (profileIds ?? Array.Empty<string>())
+                .Where(profileId => !string.IsNullOrWhiteSpace(profileId)),
+            StringComparer.OrdinalIgnoreCase);
+        if (targets.Count == 0)
+            return;
+
+        foreach (string profileId in targets)
+            RemovePftBookkeepingUnsafe(profileId);
+
+        HashSet<BotOwner> bodies = new(ReferenceEqualityComparer<BotOwner>.Instance);
+        if (bodyHint != null && targets.Contains(bodyHint.ProfileId))
+            bodies.Add(bodyHint);
+        if (lease != null)
+        {
+            foreach (var pair in lease.ObservedBodiesByProfileId)
+            {
+                if (targets.Contains(pair.Key) && pair.Value != null)
+                    bodies.Add(pair.Value);
+            }
+
+            if (lease.Controller?.Bots?.BotOwners != null)
+            {
+                foreach (BotOwner bot in lease.Controller.Bots.BotOwners)
+                {
+                    if (bot != null && targets.Contains(bot.ProfileId))
+                        bodies.Add(bot);
+                }
+            }
+
+            if (lease.World?.RegisteredPlayers != null)
+            {
+                foreach (IPlayer player in lease.World.RegisteredPlayers)
+                {
+                    BotOwner bot = player?.AIData?.BotOwner;
+                    if (bot != null && targets.Contains(bot.ProfileId))
+                        bodies.Add(bot);
+                }
+            }
+        }
+
+        try
+        {
+            foreach (object wrapper in ReadFollowerWrappersUnsafe())
+            {
+                BotOwner bot = _getFollowerBotMethod.Invoke(wrapper, null) as BotOwner;
+                if (bot == null || !targets.Contains(bot.ProfileId))
+                    continue;
+
+                bodies.Add(bot);
+                object boss = _getFollowerBossMethod.Invoke(wrapper, null);
+                if (boss != null)
+                {
+                    try
+                    {
+                        _unhookFollowerDeathMethod.Invoke(boss, new object[] { bot });
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.ModLogger.LogError(
+                            $"Arena could not unhook revoked PFT follower {bot.ProfileId}: {ex.GetBaseException().Message}");
+                    }
+
+                    try
+                    {
+                        _dismissFollowerMethod.Invoke(wrapper, new object[] { false });
+                        _removeFollowerMethod.Invoke(null, new[] { bot, boss });
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.ModLogger.LogError(
+                            $"Arena could not remove revoked PFT wrapper {bot.ProfileId}: {ex.GetBaseException().Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                "Arena could not enumerate PFT wrappers during revoked-spawn cleanup: "
+                + ex.GetBaseException().Message);
+        }
+
+        foreach (BotOwner bot in bodies)
+        {
+            try
+            {
+                RetireRevokedRuntimeBodyUnsafe(bot, lease);
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogError(
+                    $"Arena could not retire revoked runtime follower {bot?.ProfileId ?? "?"}: {ex.GetBaseException().Message}");
+            }
+        }
+    }
+
+    private static void RetireRevokedRuntimeBodyUnsafe(
+        BotOwner bot,
+        FollowerSpawnLease lease)
+    {
+        if (bot == null)
+            return;
+
+        Player player = bot.GetPlayer;
+        BotsController controller = lease?.Controller ?? bot.BotsController;
+        GameWorld world = lease?.World;
+        bool publishedBySpawner = controller?.Bots?.BotOwners?.Any(candidate =>
+            ReferenceEquals(candidate, bot)) == true;
+
+        if (publishedBySpawner && bot.LeaveData != null)
+        {
+            // ActivateBotCallback published this body, so its native removal path
+            // owns bot counts, GameWorld cleanup, deactivation and pool return.
+            try
+            {
+                bot.LeaveData.RemoveFromMap();
+                return;
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogError(
+                    $"Arena native removal failed for revoked follower {bot.ProfileId}; using exact pre-publication cleanup: {ex.GetBaseException().Message}");
+            }
+        }
+
+        // A revoked wrapped callback deliberately skips PFT's original
+        // ActivateBotCallback. The owner is already PreActive and its Player can
+        // already be registered, but it was never added to BotSpawner.Bots; using
+        // BotDied here would therefore underflow native bot counts.
+        try
+        {
+            if (world != null
+                && player != null
+                && world.RegisteredPlayers.Any(candidate => ReferenceEquals(candidate, player)))
+            {
+                world.UnregisterPlayer(player);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not unregister revoked follower {bot.ProfileId}: {ex.GetBaseException().Message}");
+        }
+
+        try
+        {
+            if (controller != null && player?.AIData != null)
+                controller.DestroyInfo(player);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not destroy revoked follower info {bot.ProfileId}: {ex.GetBaseException().Message}");
+        }
+
+        try
+        {
+            bot.Deactivate();
+            bot.Dispose();
+            AssetPoolObject.ReturnToPool(bot.gameObject, true);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena could not return revoked follower {bot.ProfileId} to its pool: {ex.GetBaseException().Message}");
+            var health = player?.ActiveHealthController;
+            if (health != null && health.IsAlive)
+                health.Kill(EDamageType.Undefined);
+        }
     }
 
     private static bool TryValidateBoundFollowersUnsafe(
@@ -1554,6 +3656,7 @@ internal static class PitFireTeamRoundLifecycle
         _diagnostic = string.IsNullOrWhiteSpace(reason)
             ? "PitFireTeam round lifecycle failed closed."
             : reason;
+        RevokeFollowerSpawnLeaseUnsafe(_diagnostic, cleanupBodies: true);
     }
 
     private static void SetUnavailable(string reason)
@@ -1598,11 +3701,18 @@ internal static class PitFireTeamRoundLifecycle
         {
             HistoricalRuntimeProfileIds.Clear();
             HistoricalRuntimeItemIds.Clear();
+            HistoricalSpawnRecords.Clear();
         }
+        _spawnLease = null;
     }
 
     private static void ClearContractUnsafe()
     {
+        if (_spawnLeasePatchInstalled)
+        {
+            SpawnLeaseHarmony.UnpatchSelf();
+            _spawnLeasePatchInstalled = false;
+        }
         _assembly = null;
         _ownerThreadId = 0;
         _bossType = null;
@@ -1628,6 +3738,14 @@ internal static class PitFireTeamRoundLifecycle
         _followerCreationTasksField = null;
         _createFollowerProfilesMethod = null;
         _spawnGroupBotsMethod = null;
+        _botCreationDataCreateMethod = null;
+        _localGameCreateBotByProfileMethod = null;
+        _localGameBotsField = null;
+        _activateBotAtPositionMethod = null;
+        _shallBeFollowerMethod = null;
+        _shallBeFollowerField = null;
+        _manualUpdateField = null;
+        _spawnGroupInvocationLease = null;
     }
 
     private static Type RequireType(Assembly assembly, string fullName)

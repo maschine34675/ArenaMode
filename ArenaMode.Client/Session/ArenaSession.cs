@@ -19,6 +19,8 @@ namespace ArenaMode.Session;
 public static class ArenaSession
 {
     private static bool _rejectedServerRaidPendingEnd;
+    private static GameWorld _startedWorld;
+    private static AbstractGame _startedGame;
 
     public static bool ArmedForNextRaid { get; private set; }
     public static string ArmedMap { get; private set; }
@@ -26,6 +28,18 @@ public static class ArenaSession
 
     public static bool IsActive { get; private set; }
     public static string ActiveMode { get; private set; }
+
+    /// <summary>
+    /// Binds detached Arena work to the exact pair observed by the confirmed
+    /// raid-start dispatch. IsActive alone is insufficient after a missed
+    /// GameEnd because a later LocalGame can occupy the same global singletons.
+    /// </summary>
+    internal static bool IsExactActiveRaid(AbstractGame game, GameWorld world)
+        => IsActive
+           && !ReferenceEquals(game, null)
+           && !ReferenceEquals(world, null)
+           && ReferenceEquals(_startedGame, game)
+           && ReferenceEquals(_startedWorld, world);
 
     /// <summary>
     /// How long a death replay may run right now, in seconds. Zero means none.
@@ -85,13 +99,53 @@ public static class ArenaSession
 
     private static void OnRaidStarted(GameWorld world)
     {
+        AbstractGame currentGame = Comfort.Common.Singleton<AbstractGame>.Instantiated
+            ? Comfort.Common.Singleton<AbstractGame>.Instance
+            : null;
+        bool previousRaidTracked = !ReferenceEquals(_startedWorld, null)
+                                   || !ReferenceEquals(_startedGame, null);
+        if (previousRaidTracked
+            && ReferenceEquals(_startedWorld, world)
+            && ReferenceEquals(_startedGame, currentGame))
+        {
+            // RaidLifecycle may defensively publish the same exact start twice.
+            // The first dispatch already consumed ArmedForNextRaid; treating the
+            // duplicate as an ordinary raid would tear down the live Arena match.
+            return;
+        }
+
+        if (previousRaidTracked)
+        {
+            // A new exact GameWorld/AbstractGame pair proves that the preceding
+            // GameEnd callback was missed. Preserve the user's newly armed map,
+            // mode and PFT selection, but invalidate every old match/coroutine
+            // before either the armed or ordinary branch can inspect IsActive.
+            bool staleArenaLatch = IsActive;
+            Modes.ArenaMatchService.RecoverAtNewRaidStart();
+            Respawn.ArenaRespawnDriver.ResetSession();
+            Combat.ArenaSkills.Restore();
+            Movement.FastDeployPatches.Restore();
+            IsActive = false;
+            _rejectedServerRaidPendingEnd = false;
+            ActiveMode = null;
+            LastRaidWasArena = false;
+            if (staleArenaLatch)
+            {
+                Plugin.ModLogger.LogWarning(
+                    "Stale arena latch cleared before processing a newly started raid.");
+            }
+        }
+
+        _startedWorld = world;
+        _startedGame = currentGame;
+
         if (!ArmedForNextRaid)
         {
             // This new ordinary GameWorld is the first safe boundary after a
             // missed GameEnd. Clear every client-owned Arena latch before any
             // server reconciliation or ordinary combat can run. Each cleanup
             // self-noops in the normal path.
-            Modes.ArenaMatchService.RecoverAtOrdinaryRaidStart();
+            Modes.ArenaMatchService.RecoverAtNewRaidStart();
             Respawn.ArenaRespawnDriver.ResetSession();
             Combat.ArenaSkills.Restore();
             Movement.FastDeployPatches.Restore();
@@ -195,8 +249,9 @@ public static class ArenaSession
 
         // PitFireTeam 0.10.0 holds the original PMC object in its leader wrapper.
         // Replacing that body would strand all four followers on a dead leader,
-        // so the compatible one-round path keeps the exact PMC body and loadout
-        // that entered the raid. Solo Arena retains the existing swap verbatim.
+        // so protected 5v5 keeps that exact PMC body for the opening round and
+        // preserves the entry loadout for guarded between-round replacement.
+        // Solo Arena retains the existing raid-start swap verbatim.
         if (PitFireTeamCompat.HasFrozenTeamRoster)
         {
             Plugin.ModLogger.LogInfo(
@@ -247,6 +302,11 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        // Clear exact start identity before any early return. A later GameWorld
+        // must never be mistaken for a duplicate of this completed raid.
+        _startedWorld = null;
+        _startedGame = null;
+
         // EndTeamRaid starts finalization before LocalGame.Stop, which
         // intentionally makes TeamArenaActive false. Preserve/refresh that same
         // bounded guard instead of mistaking it for a solo raid and clearing it.

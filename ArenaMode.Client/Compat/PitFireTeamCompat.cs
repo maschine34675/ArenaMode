@@ -897,7 +897,7 @@ internal static class PitFireTeamCompat
             return true;
 
         // The lifecycle owns the old/new wrapper collections while rebinding.
-        // Normal one-round discovery must not interpret intentional retirement
+        // Normal within-round discovery must not interpret intentional retirement
         // or new runtime IDs as a replacement-body violation.
         if (transitioning)
             return true;
@@ -1348,6 +1348,8 @@ internal static class PitFireTeamCompat
 
     public static void Tick()
     {
+        PitFireTeamRoundLifecycle.TickPendingRawPlayerCompletions();
+
         if (LiveTeamArena && !RoundTransitionActive)
             _ = GetLiveFollowers();
     }
@@ -1599,6 +1601,7 @@ internal static class PitFireTeamCompat
                 Plugin.ModLogger.LogError(
                     $"Arena could not roll back partial PitFireTeam patches: {rollbackException}");
             }
+            PitFireTeamRoundLifecycle.RollbackConfiguration(ex.Message);
             InvalidateContract(ex.Message);
         }
     }

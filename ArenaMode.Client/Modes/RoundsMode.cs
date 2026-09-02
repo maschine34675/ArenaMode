@@ -1,5 +1,6 @@
 using ArenaMode.Combat;
 using ArenaMode.Config;
+using EFT;
 using System;
 using UnityEngine;
 
@@ -180,7 +181,7 @@ public sealed class RoundsMode : IArenaMode
         Round.Deaths = _match.Deaths - _deathsAtRoundStart;
     }
 
-    public void OnLocalRespawn()
+    public void OnLocalRespawn(Player player)
     {
     }
 

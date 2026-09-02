@@ -6,6 +6,7 @@ using EFT.Game.Spawning;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 
 namespace ArenaMode.Bots;
@@ -28,6 +29,14 @@ internal static class BurstSpawnService
     private static int _pointCursor;
 
     /// <summary>
+    /// Invalidates profile requests and activation callbacks independently of
+    /// EFT's bot-spawn counters. Profile generation is asynchronous and may
+    /// finish after GameEnd; a process-local generation keeps that continuation
+    /// from ever dispatching into a later raid.
+    /// </summary>
+    private static int _operationGeneration;
+
+    /// <summary>
     /// Our own in-flight ledger: injection timestamps, split by kind. The
     /// engine's counter for pending spawns can leak permanently, so we track what
     /// WE injected instead and let entries age out — a wrong entry costs at most
@@ -47,6 +56,7 @@ internal static class BurstSpawnService
 
     public static void Reset()
     {
+        Interlocked.Increment(ref _operationGeneration);
         _nextAttemptAt = 0f;
         _zoneCursor = 0;
         _pointCursor = 0;
@@ -189,6 +199,18 @@ internal static class BurstSpawnService
     {
         var ledger = isPmc ? RecentPmcInjections : RecentScavInjections;
         var reserved = 0;
+        var operationGeneration = Volatile.Read(ref _operationGeneration);
+
+        if (!TryCaptureSpawnLease(
+                spawner,
+                operationGeneration,
+                out LocalGame game,
+                out GameWorld world,
+                out BotsController controller,
+                out int raidEpoch))
+        {
+            return;
+        }
 
         try
         {
@@ -202,6 +224,18 @@ internal static class BurstSpawnService
             // Profile generation is best-effort: the request can come back with
             // fewer profiles than asked for, or with none at all.
             var data = await BotCreationData.Create(profileParams, spawner._botCreator, count, spawner);
+
+            // GameEnd can run while profile generation is awaiting the server.
+            // Stop the detached creation data before touching cursors, ledgers or
+            // the spawner when any part of the exact raid lease changed.
+            if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner))
+            {
+                data?.StopSpawn();
+                Plugin.ModLogger.LogInfo(
+                    $"Arena burst spawn: discarded stale {role} profiles after the raid lease ended.");
+                return;
+            }
+
             if (data == null || data.Count == 0)
             {
                 Plugin.ModLogger.LogWarning($"Arena burst spawn: no profiles for {role} — request dropped.");
@@ -290,8 +324,25 @@ internal static class BurstSpawnService
             for (var i = 0; i < reserved; i++)
                 ledger.Add(Time.time);
 
+            // This is the last mutation boundary before EFT owns the request.
+            // A callback can still arrive after GameEnd, so it repeats the same
+            // lease check and retires the resulting body instead of observing it.
+            if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner))
+            {
+                data.StopSpawn();
+                ReleaseReservedIfCurrent(ledger, reserved, operationGeneration);
+                return;
+            }
+
             spawner.SpawnBotsInZoneOnPositions(points, zone, data, bot =>
             {
+                if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner))
+                {
+                    ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
+                    RetireStaleSpawn(bot, role);
+                    return;
+                }
+
                 OnBotSpawned(bot, ledger, role, includeLifecycleIdentity: requireExactCount);
 
                 // The observer is how a mode learns WHICH bots are its squad.
@@ -311,9 +362,96 @@ internal static class BurstSpawnService
         }
         catch (Exception ex)
         {
-            ReleaseReserved(ledger, reserved);
+            ReleaseReservedIfCurrent(ledger, reserved, operationGeneration);
             Plugin.ModLogger.LogWarning($"Arena burst spawn of {role} failed: {ex.Message}");
-            RetrySoon();
+            if (operationGeneration == Volatile.Read(ref _operationGeneration))
+                RetrySoon();
+        }
+    }
+
+    private static bool TryCaptureSpawnLease(
+        BotSpawner spawner,
+        int operationGeneration,
+        out LocalGame game,
+        out GameWorld world,
+        out BotsController controller,
+        out int raidEpoch)
+    {
+        game = null;
+        world = null;
+        controller = null;
+        raidEpoch = Respawn.ArenaRespawnDriver.CaptureRaidEpoch();
+
+        if (operationGeneration != Volatile.Read(ref _operationGeneration)
+            || !ArenaSession.IsActive
+            || !Singleton<AbstractGame>.Instantiated
+            || Singleton<AbstractGame>.Instance is not LocalGame localGame
+            || localGame.Status != GameStatus.Started
+            || !Singleton<GameWorld>.Instantiated
+            || Singleton<GameWorld>.Instance is not GameWorld currentWorld
+            || !ArenaSession.IsExactActiveRaid(localGame, currentWorld)
+            || !Singleton<IBotGame>.Instantiated)
+        {
+            return false;
+        }
+
+        BotsController currentController = Singleton<IBotGame>.Instance?.BotsController;
+        if (currentController == null
+            || !ReferenceEquals(currentController.BotSpawner, spawner))
+        {
+            return false;
+        }
+
+        game = localGame;
+        world = currentWorld;
+        controller = currentController;
+        return Respawn.ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch);
+    }
+
+    private static bool IsSpawnLeaseCurrent(
+        int operationGeneration,
+        LocalGame game,
+        GameWorld world,
+        int raidEpoch,
+        BotsController controller,
+        BotSpawner spawner)
+        => operationGeneration == Volatile.Read(ref _operationGeneration)
+           && Respawn.ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+           && Singleton<AbstractGame>.Instantiated
+           && ReferenceEquals(Singleton<AbstractGame>.Instance, game)
+           && Singleton<GameWorld>.Instantiated
+           && ReferenceEquals(Singleton<GameWorld>.Instance, world)
+           && ArenaSession.IsExactActiveRaid(game, world)
+           && Singleton<IBotGame>.Instantiated
+           && ReferenceEquals(Singleton<IBotGame>.Instance?.BotsController, controller)
+           && ReferenceEquals(controller?.BotSpawner, spawner);
+
+    private static void ReleaseReservedIfCurrent(
+        List<float> ledger,
+        int count,
+        int operationGeneration)
+    {
+        // Reset already cleared the old ledger. Never let its late continuation
+        // consume reservations belonging to the next raid.
+        if (operationGeneration == Volatile.Read(ref _operationGeneration))
+            ReleaseReserved(ledger, count);
+    }
+
+    private static void RetireStaleSpawn(BotOwner bot, WildSpawnType role)
+    {
+        if (ReferenceEquals(bot, null) || bot == null)
+            return;
+
+        try
+        {
+            bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
+            Plugin.ModLogger.LogWarning(
+                $"Arena burst spawn: retired a late {role} body from an expired raid lease.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError(
+                $"Arena burst spawn: could not retire a late {role} body: {ex.Message}");
         }
     }
 

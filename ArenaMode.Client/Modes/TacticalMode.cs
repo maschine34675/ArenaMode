@@ -3,6 +3,7 @@ using ArenaMode.Combat;
 using ArenaMode.Compat;
 using ArenaMode.Config;
 using ArenaMode.Kits;
+using ArenaMode.Spectator;
 using EFT;
 using System;
 using System.Collections.Generic;
@@ -42,6 +43,42 @@ public sealed class TacticalMode : IArenaMode
 
         /// <summary>Round decided; the standings are up and the next buy is counting in.</summary>
         Aftermath,
+
+        /// <summary>Protected 5v5 is retiring and rebuilding both fixed rosters.</summary>
+        Rebinding,
+
+        /// <summary>The raid ended; no asynchronous callback may re-enter this mode.</summary>
+        Ended,
+    }
+
+    private enum TeamRebindStep
+    {
+        None,
+        Begin,
+        AwaitRetirement,
+        AwaitLocalRespawn,
+        RebuildLeader,
+        PrepareProfiles,
+        AwaitProfiles,
+        StartFollowers,
+        AwaitFollowers,
+        AdoptFollowers,
+    }
+
+    private enum TeamRetirementDecision
+    {
+        Pending,
+        Ready,
+        Invalid,
+    }
+
+    private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T>
+        where T : class
+    {
+        public static readonly ReferenceEqualityComparer<T> Instance = new();
+
+        public bool Equals(T left, T right) => ReferenceEquals(left, right);
+        public int GetHashCode(T value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 
     /// <summary>How long the aftermath lingers before the next buy phase.</summary>
@@ -68,6 +105,8 @@ public sealed class TacticalMode : IArenaMode
     /// normal PreActive-to-Active update instead of timing out that same frame.
     /// </summary>
     private const float TeamOpponentActivationSeconds = 5f;
+    private const float TeamTransitionSeconds = 45f;
+    private static readonly TimeSpan TeamLifecycleTimeout = TimeSpan.FromSeconds(30);
 
     private const int TeamCompanionCount = 4;
     private const int TeamEnemyCount = 5;
@@ -75,6 +114,8 @@ public sealed class TacticalMode : IArenaMode
     private ArenaMatch _match;
 
     private readonly List<BotOwner> _squad = new List<BotOwner>();
+    private BotOwner[] _boundTeamFollowers = Array.Empty<BotOwner>();
+    private string[] _boundTeamFollowerProfileIds = Array.Empty<string>();
     private BotOwner[] _boundTeamEnemies = Array.Empty<BotOwner>();
     private string[] _boundTeamEnemyProfileIds = Array.Empty<string>();
     private Player _boundLocalPlayer;
@@ -100,13 +141,27 @@ public sealed class TacticalMode : IArenaMode
     private bool _teamEnemiesRequested;
     private bool _teamStopRequested;
     private bool? _teamWon;
+    private bool? _teamMatchWon;
+    private TeamArenaRoundContinuation _teamContinuation = TeamArenaRoundContinuation.EndNoContest;
+    private int _teamRoundsToWin;
+    private int _teamRoundEpoch;
+    private TeamRebindStep _teamRebindStep;
+    private float _teamRebindDeadlineAt;
+    private int _expectedPitLifecycleEpoch;
+    private LocalGame _teamGame;
+    private TeamArenaLoadoutSnapshot _teamLoadoutSnapshot;
+    private TeamArenaPreparedLoadoutRestore _preparedTeamRespawn;
+    private LocalPlayer _authorizedDeadTeamPlayer;
+    private bool _teamRespawnAuthorizationAvailable;
+    private bool _teamRespawnAuthorizationConsumed;
+    private string _preferredSpectatorProfileId;
     private string _lastTeamReadinessDiagnostic;
 
     public string Id => "tactical";
 
     public string DisplayName => "Tactical";
 
-    /// <summary>Solo rounds keep coming; a compatible team raid stops after one result.</summary>
+    /// <summary>Solo rounds keep coming; a protected team match ends at its configured score.</summary>
     public bool IsComplete => _teamArena && _teamStopRequested;
 
     /// <summary>
@@ -193,7 +248,10 @@ public sealed class TacticalMode : IArenaMode
         }
     }
 
-    public float DeathReplaySeconds => Settings.TacticalReplaySeconds.Value;
+    public float DeathReplaySeconds
+        => _teamArena && !ArenaSpectatorService.OptionalKillcamReplayMayRun
+            ? 0f
+            : Settings.TacticalReplaySeconds.Value;
 
     /// <summary>
     /// Held from the moment the player goes down until the next round starts.
@@ -211,17 +269,26 @@ public sealed class TacticalMode : IArenaMode
                 switch (_phase)
                 {
                     case Phase.Staging:
-                        return _teamEnemiesRequested
-                            ? $"5v5   assembling opponents {_squad.Count}/{TeamEnemyCount}"
-                            : $"5v5   assembling teammates {PitFireTeamCompat.GetLiveFollowers().Count}/{TeamCompanionCount}";
+                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                            + (_teamEnemiesRequested
+                                ? $"assembling opponents {_squad.Count}/{TeamEnemyCount}"
+                                : $"assembling teammates {PitFireTeamCompat.GetLiveFollowers().Count}/{TeamCompanionCount}");
 
                     case Phase.Live:
-                        return $"5v5   Allies {AlliesAlive}/5   Enemies {SquadAlive}/5"
+                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                            + $"Allies {AlliesAlive}/5   Enemies {SquadAlive}/5"
                             + (_playerDown ? "   YOU ARE DOWN" : string.Empty);
 
                     case Phase.Aftermath:
-                        return $"5v5   {(_teamWon == true ? "VICTORY" : _teamWon == false ? "DEFEAT" : "NO CONTEST")}"
-                            + $"   raid ending in {PhaseRemaining:0}s";
+                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                            + $"{(_teamWon == true ? "VICTORY" : _teamWon == false ? "DEFEAT" : "NO CONTEST")}   "
+                            + (_teamContinuation == TeamArenaRoundContinuation.RebindNextRound
+                                ? $"next round in {PhaseRemaining:0}s"
+                                : $"raid ending in {PhaseRemaining:0}s");
+
+                    case Phase.Rebinding:
+                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                            + $"rebuilding teams ({DescribeTeamRebindStep()})";
                 }
             }
 
@@ -270,6 +337,8 @@ public sealed class TacticalMode : IArenaMode
         RoundsWon = 0;
         RoundsLost = 0;
         _squad.Clear();
+        _boundTeamFollowers = Array.Empty<BotOwner>();
+        _boundTeamFollowerProfileIds = Array.Empty<string>();
         _boundTeamEnemies = Array.Empty<BotOwner>();
         _boundTeamEnemyProfileIds = Array.Empty<string>();
         _boundLocalPlayer = null;
@@ -279,14 +348,30 @@ public sealed class TacticalMode : IArenaMode
         _teamEnemiesRequested = false;
         _teamStopRequested = false;
         _teamWon = null;
+        _teamMatchWon = null;
+        _teamContinuation = TeamArenaRoundContinuation.EndNoContest;
+        _teamRoundsToWin = 1;
+        _teamRoundEpoch = 1;
+        _teamRebindStep = TeamRebindStep.None;
+        _teamRebindDeadlineAt = 0f;
+        _expectedPitLifecycleEpoch = 0;
+        _teamGame = null;
+        _teamLoadoutSnapshot = null;
+        _preparedTeamRespawn = null;
+        _authorizedDeadTeamPlayer = null;
+        _teamRespawnAuthorizationAvailable = false;
+        _teamRespawnAuthorizationConsumed = false;
+        _preferredSpectatorProfileId = null;
         _lastTeamReadinessDiagnostic = null;
+        TeamArenaPursuit.Reset();
+        ArenaSpectatorService.Stop("Tactical match start");
 
         if (_teamArena)
         {
-            // PitFireTeam 0.10.0 binds every follower to the original PMC
-            // object. Replacing that body or equipment would leave its wrappers
-            // pointing at a dead leader. Team Arena therefore has no buy phase
-            // and never installs a kit provider.
+            // PitFireTeam 0.10.0 binds every live-round follower to one exact PMC
+            // object. Team Arena therefore has no ordinary buy/kit replacement
+            // path; a dead leader is replaced only after the guarded PFT teardown,
+            // using the process-local entry snapshot below.
             Money = 0;
             _bought = null;
             _worn = null;
@@ -312,12 +397,34 @@ public sealed class TacticalMode : IArenaMode
                     + leaderProblem);
             }
 
+            if (!(Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame teamGame)
+                || teamGame.Status != GameStatus.Started
+                || !ReferenceEquals(teamGame.LocalPlayer, _boundLocalPlayer))
+            {
+                throw new InvalidOperationException(
+                    "protected 5v5 could not bind the exact active LocalGame and PMC body");
+            }
+
+            if (!TeamArenaLoadoutSnapshot.TryCapture(
+                    teamGame.Profile,
+                    out _teamLoadoutSnapshot,
+                    out var loadoutProblem))
+            {
+                throw new InvalidOperationException(
+                    "protected 5v5 could not capture the process-local entry loadout: "
+                    + loadoutProblem);
+            }
+
+            _teamGame = teamGame;
+            _teamRoundsToWin = Mathf.Clamp(Settings.TacticalTeamRoundsToWin.Value, 1, 9);
+
             _phase = Phase.Staging;
             _phaseEndsAt = Time.time + TeamAssemblySeconds;
 
             ArenaToasts.Show("5v5 — assembling four teammates");
             Plugin.ModLogger.LogInfo(
-                "Tactical team Arena: waiting for four PitFireTeam companions; the PMC keeps its raid loadout.");
+                $"Tactical team Arena: first to {_teamRoundsToWin}; waiting for four PitFireTeam companions; "
+                + "the PMC entry loadout is protected in process memory.");
             return;
         }
 
@@ -362,10 +469,19 @@ public sealed class TacticalMode : IArenaMode
                 if (Time.time >= _phaseEndsAt)
                 {
                     if (_teamArena)
-                        EndTeamRaid();
+                    {
+                        if (_teamContinuation == TeamArenaRoundContinuation.RebindNextRound)
+                            EnterTeamRebinding();
+                        else
+                            EndTeamRaid();
+                    }
                     else
                         EnterBuy();
                 }
+                break;
+
+            case Phase.Rebinding:
+                TickTeamRebinding();
                 break;
         }
     }
@@ -423,7 +539,14 @@ public sealed class TacticalMode : IArenaMode
 
     public void OnKill(ArenaKill kill)
     {
-        if (_teamArena || _phase != Phase.Live || !kill.KilledByLocal || kill.LocalIsVictim)
+        if (_teamArena)
+        {
+            if (_phase == Phase.Live && kill?.LocalIsVictim == true)
+                _preferredSpectatorProfileId = kill.KillerProfileId?.Trim();
+            return;
+        }
+
+        if (_phase != Phase.Live || !kill.KilledByLocal || kill.LocalIsVictim)
             return;
 
         Money += Settings.TacticalKillReward.Value;
@@ -444,6 +567,13 @@ public sealed class TacticalMode : IArenaMode
             return;
         }
 
+        if (_teamArena && _phase == Phase.Rebinding)
+        {
+            _playerDown = true;
+            FailTeamTransition("the local PMC died during the protected round rebuild");
+            return;
+        }
+
         if (_phase != Phase.Live && _phase != Phase.Staging)
             return;
 
@@ -453,11 +583,10 @@ public sealed class TacticalMode : IArenaMode
 
         if (_teamArena)
         {
-            // The remaining four actors decide the result. The respawn driver is
-            // held until the raid itself ends; there is deliberately no leader
-            // body replacement for PitFireTeam to rebind to.
             if (_phase == Phase.Staging)
                 EndTeamRound(null, "the local player died before both complete teams were ready");
+            else
+                TryStartTeamSpectator();
 
             return;
         }
@@ -465,24 +594,136 @@ public sealed class TacticalMode : IArenaMode
         EndRound(won: false);
     }
 
-    public void OnLocalRespawn()
+    public void OnLocalRespawn(Player player)
     {
         if (_teamArena)
+        {
+            try
+            {
+                if (_phase != Phase.Rebinding
+                    || _teamRebindStep != TeamRebindStep.AwaitLocalRespawn
+                    || !_teamRespawnAuthorizationConsumed)
+                {
+                    FailTeamTransition("an unrequested local replacement body appeared during protected 5v5");
+                    return;
+                }
+
+                if (!TryValidateCurrentTeamLeaderBody(player, out string bodyProblem))
+                {
+                    FailTeamTransition(
+                        "the respawn pipeline did not publish the exact expected local PMC body: "
+                        + bodyProblem);
+                    return;
+                }
+
+                if (!PitFireTeamCompat.TryBindLocalPlayerBody(player, out var bindProblem))
+                {
+                    FailTeamTransition("PitFireTeam rejected the replacement local PMC body: " + bindProblem);
+                    return;
+                }
+
+                _boundLocalPlayer = player;
+                _preparedTeamRespawn = null;
+                _authorizedDeadTeamPlayer = null;
+                _teamRespawnAuthorizationAvailable = false;
+                _teamRespawnAuthorizationConsumed = false;
+                _playerDown = false;
+                _teamRebindStep = TeamRebindStep.RebuildLeader;
+                _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
+                Plugin.ModLogger.LogInfo(
+                    $"Tactical team Arena round {RoundNumber}: exact replacement PMC body is ready for PitFireTeam rebind.");
+            }
+            catch (Exception ex)
+            {
+                FailTeamTransition(
+                    "the replacement local PMC body could not be verified: "
+                    + ex.GetBaseException().Message);
+            }
             return;
+        }
 
         // The hold is what ends a wait, not this — by the time the player is
         // standing again the next round has already started them off.
         _playerDown = false;
     }
 
+    /// <summary>
+    /// One-shot hand-off to ArenaRespawnDriver. The detached item graph was
+    /// already built while the corpse owner still existed; the driver may only
+    /// commit that exact prepared transaction from Redeploy's equipment hook.
+    /// </summary>
+    internal bool TryTakeTeamRespawnAuthorization(
+        LocalGame game,
+        LocalPlayer deadPlayer,
+        out TeamArenaPreparedLoadoutRestore prepared,
+        out int teamEpoch,
+        out string reason)
+    {
+        prepared = null;
+        teamEpoch = _teamRoundEpoch;
+        reason = string.Empty;
+
+        PitFireTeamRoundLifecycleSnapshot lifecycle = PitFireTeamRoundLifecycle.Status;
+        if (!_teamArena
+            || _phase != Phase.Rebinding
+            || _teamRebindStep != TeamRebindStep.AwaitLocalRespawn
+            || !_teamRespawnAuthorizationAvailable
+            || _teamRespawnAuthorizationConsumed
+            || !ReferenceEquals(game, _teamGame)
+            || !ReferenceEquals(deadPlayer, _authorizedDeadTeamPlayer)
+            || !ReferenceEquals(game?.LocalPlayer, deadPlayer)
+            || deadPlayer?.HealthController?.IsAlive != false
+            || _preparedTeamRespawn == null
+            || _preparedTeamRespawn.RoundEpoch != _teamRoundEpoch
+            || !PitFireTeamCompat.RoundTransitionActive
+            || !PitFireTeamCompat.PersistenceSuppressionActive
+            || lifecycle.Stage != PitFireTeamRoundLifecycleStage.ReadyForLeader
+            || lifecycle.Epoch != _expectedPitLifecycleEpoch)
+        {
+            reason = "the protected Tactical respawn lease no longer matches its game, corpse, epoch or PitFireTeam lifecycle";
+            return false;
+        }
+
+        if (!TryValidateDeadTeamLeaderBody(game, deadPlayer, out string bodyProblem))
+        {
+            reason = "the protected Tactical corpse identity drifted before respawn authorization: "
+                     + bodyProblem;
+            return false;
+        }
+
+        prepared = _preparedTeamRespawn;
+        _teamRespawnAuthorizationAvailable = false;
+        _teamRespawnAuthorizationConsumed = true;
+        return true;
+    }
+
     public void OnMatchEnd()
     {
+        // Invalidate the mode-local observer before releasing any body arrays.
+        // A profile request started during Staging can complete after GameEnd;
+        // its callback must see both a different epoch and a terminal phase.
+        _squadEpoch++;
+        _phase = Phase.Ended;
+        PitFireTeamRoundLifecycle.CancelFollowerSpawnLease("Tactical match ended");
         KitCatalog.KitProvider = null;
+        ArenaSpectatorService.Stop("Tactical match ended");
+        TeamArenaPursuit.Reset();
         _squad.Clear();
+        _boundTeamFollowers = Array.Empty<BotOwner>();
+        _boundTeamFollowerProfileIds = Array.Empty<string>();
         _boundTeamEnemies = Array.Empty<BotOwner>();
         _boundTeamEnemyProfileIds = Array.Empty<string>();
         _boundLocalPlayer = null;
         _boundLocalProfileId = null;
+        _teamGame = null;
+        _teamLoadoutSnapshot = null;
+        _preparedTeamRespawn = null;
+        _authorizedDeadTeamPlayer = null;
+        _teamRespawnAuthorizationAvailable = false;
+        _teamRespawnAuthorizationConsumed = false;
+        _teamRebindStep = TeamRebindStep.None;
+        _expectedPitLifecycleEpoch = 0;
+        _preferredSpectatorProfileId = null;
         _lastTeamReadinessDiagnostic = null;
 
         Plugin.ModLogger.LogInfo(
@@ -517,7 +758,7 @@ public sealed class TacticalMode : IArenaMode
     {
         if (_teamArena)
         {
-            Plugin.ModLogger.LogError("Tactical team Arena refused an attempted second round.");
+            Plugin.ModLogger.LogError("Tactical team Arena refused an invalid buy-phase transition.");
             EndTeamRaid();
             return;
         }
@@ -599,6 +840,12 @@ public sealed class TacticalMode : IArenaMode
 
         if (completeRosters)
         {
+            if (!TryFreezeTeamFollowers(followers, out var followerProblem))
+            {
+                EndTeamRound(null, followerProblem);
+                return;
+            }
+
             var freezeDecision = TryFreezeTeamEnemies(out var enemyProblem);
             if (freezeDecision == TeamOpponentActivationDecision.Invalid)
             {
@@ -615,8 +862,11 @@ public sealed class TacticalMode : IArenaMode
                 _lastTeamReadinessDiagnostic = null;
                 _phase = Phase.Live;
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
+                _preferredSpectatorProfileId = null;
+                TeamArenaPursuit.BeginRound(_teamRoundEpoch);
                 ArenaToasts.Show("5v5 — fight!");
-                Plugin.ModLogger.LogInfo("Tactical team Arena live: five allies versus five opponents.");
+                Plugin.ModLogger.LogInfo(
+                    $"Tactical team Arena round {RoundNumber} live: five allies versus five opponents.");
                 return;
             }
             else
@@ -697,6 +947,14 @@ public sealed class TacticalMode : IArenaMode
             return;
         }
 
+        if (_boundTeamFollowers.Length != TeamCompanionCount
+            || _boundTeamFollowerProfileIds.Length != TeamCompanionCount
+            || followers.Any(follower => !_boundTeamFollowers.Any(bound => ReferenceEquals(bound, follower))))
+        {
+            EndTeamRound(null, "the frozen four-follower round roster was lost");
+            return;
+        }
+
         if (!TryReadBoundLocalPlayer(out var localAlive, out var localProblem))
         {
             EndTeamRound(null, localProblem);
@@ -735,7 +993,87 @@ public sealed class TacticalMode : IArenaMode
         // actors but mutual hostility cannot be proven, no elimination result
         // is trustworthy, so fail closed as a no-contest.
         if (!PitFireTeamCompat.EnsureHostility(_boundTeamEnemies, _boundLocalPlayer))
+        {
             EndTeamRound(null, "the live PitFireTeam hostility matrix could not be restored");
+            return;
+        }
+
+        if (_playerDown)
+            TeamArenaPursuit.Tick(_teamRoundEpoch, true, followers, _boundTeamEnemies);
+    }
+
+    private void TryStartTeamSpectator()
+    {
+        if (!Settings.TacticalTeamSpectator.Value
+            || _phase != Phase.Live
+            || _boundTeamFollowers.Length != TeamCompanionCount
+            || _boundTeamFollowerProfileIds.Length != TeamCompanionCount
+            || _boundTeamEnemies.Length != TeamEnemyCount
+            || _boundTeamEnemyProfileIds.Length != TeamEnemyCount)
+        {
+            return;
+        }
+
+        BotOwner[] followers = _boundTeamFollowers.ToArray();
+        string[] followerProfiles = _boundTeamFollowerProfileIds.ToArray();
+        BotOwner[] enemies = _boundTeamEnemies.ToArray();
+        string[] enemyProfiles = _boundTeamEnemyProfileIds.ToArray();
+        string[] allowedProfiles = followerProfiles.Concat(enemyProfiles).ToArray();
+        int epoch = _teamRoundEpoch;
+        Player deadPlayer = _boundLocalPlayer;
+
+        var request = new ArenaSpectatorRequest(
+            epoch,
+            () => _teamRoundEpoch,
+            () => _teamArena
+                  && _phase == Phase.Live
+                  && _playerDown
+                  && _teamRoundEpoch == epoch
+                  && ReferenceEquals(_boundLocalPlayer, deadPlayer),
+            deadPlayer,
+            allowedProfiles,
+            () => BuildTeamSpectatorTargets(
+                followers,
+                followerProfiles,
+                enemies,
+                enemyProfiles),
+            _preferredSpectatorProfileId);
+
+        if (!ArenaSpectatorService.RequestStart(request, out string problem))
+        {
+            Plugin.ModLogger.LogWarning(
+                "Tactical team Arena spectator stayed disabled for this death: " + problem);
+        }
+    }
+
+    private static IReadOnlyList<ArenaSpectatorTarget> BuildTeamSpectatorTargets(
+        IReadOnlyList<BotOwner> followers,
+        IReadOnlyList<string> followerProfiles,
+        IReadOnlyList<BotOwner> enemies,
+        IReadOnlyList<string> enemyProfiles)
+    {
+        var targets = new List<ArenaSpectatorTarget>(TeamCompanionCount + TeamEnemyCount);
+        for (int index = 0; index < TeamCompanionCount; index++)
+        {
+            BotOwner bot = followers[index];
+            targets.Add(new ArenaSpectatorTarget(
+                bot?.GetPlayer,
+                followerProfiles[index],
+                bot?.Profile?.Nickname,
+                ArenaSpectatorSide.Ally));
+        }
+
+        for (int index = 0; index < TeamEnemyCount; index++)
+        {
+            BotOwner bot = enemies[index];
+            targets.Add(new ArenaSpectatorTarget(
+                bot?.GetPlayer,
+                enemyProfiles[index],
+                bot?.Profile?.Nickname,
+                ArenaSpectatorSide.Opponent));
+        }
+
+        return targets;
     }
 
     /// <summary>
@@ -780,6 +1118,24 @@ public sealed class TacticalMode : IArenaMode
                 return false;
             }
 
+            IPlayer[] registeredWithProfile = world.RegisteredPlayers
+                .Where(candidate => string.Equals(
+                    candidate?.ProfileId?.Trim(),
+                    _boundLocalProfileId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            bool registeredIdentityValid = demonstrablyDead
+                ? registeredWithProfile.Length == 0
+                  || (registeredWithProfile.Length == 1
+                      && ReferenceEquals(registeredWithProfile[0], _boundLocalPlayer))
+                : registeredWithProfile.Length == 1
+                  && ReferenceEquals(registeredWithProfile[0], _boundLocalPlayer);
+            if (!registeredIdentityValid)
+            {
+                problem = $"GameWorld has {registeredWithProfile.Length} active bodies under the local profile instead of the exact bound PMC";
+                return false;
+            }
+
             if (!ReferenceEquals(current, _boundLocalPlayer))
             {
                 // EFT may clear MainPlayer after the real body is already proven
@@ -815,6 +1171,115 @@ public sealed class TacticalMode : IArenaMode
         catch (Exception ex)
         {
             problem = "the exact local PMC body could not be verified: "
+                      + ex.GetBaseException().Message;
+            return false;
+        }
+    }
+
+    private bool TryFreezeTeamFollowers(
+        IReadOnlyList<BotOwner> followers,
+        out string problem)
+    {
+        problem = string.Empty;
+        try
+        {
+            if (followers == null || followers.Count != TeamCompanionCount)
+            {
+                problem = $"Arena could not freeze exactly {TeamCompanionCount} PitFireTeam follower bodies";
+                return false;
+            }
+
+            var expectedProfiles = PitFireTeamCompat.CurrentCompanionProfilesByAccountId;
+            if (expectedProfiles.Count != TeamCompanionCount)
+            {
+                problem = "PitFireTeam's current four-account profile map is incomplete";
+                return false;
+            }
+
+            var registered = Comfort.Common.Singleton<IBotGame>.Instantiated
+                ? Comfort.Common.Singleton<IBotGame>.Instance?.BotsController?.Bots?.BotOwners?.ToArray()
+                : null;
+            var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+                ? Comfort.Common.Singleton<GameWorld>.Instance
+                : null;
+            if (registered == null || ReferenceEquals(world, null) || world == null)
+            {
+                problem = "EFT's follower body registries are unavailable";
+                return false;
+            }
+
+            BotOwner[] ordered = followers
+                .OrderBy(bot => bot?.Profile?.AccountId, StringComparer.Ordinal)
+                .ToArray();
+            var seenBodies = new HashSet<BotOwner>(ReferenceEqualityComparer<BotOwner>.Instance);
+            var seenPlayers = new HashSet<Player>(ReferenceEqualityComparer<Player>.Instance);
+            var seenAccounts = new HashSet<string>(StringComparer.Ordinal);
+            var seenProfiles = new HashSet<string>(StringComparer.Ordinal);
+            string[] profiles = new string[TeamCompanionCount];
+
+            for (int index = 0; index < ordered.Length; index++)
+            {
+                BotOwner follower = ordered[index];
+                string accountId = follower?.Profile?.AccountId?.Trim();
+                string profileId = follower?.ProfileId?.Trim();
+                Player player = follower?.GetPlayer;
+                if (ReferenceEquals(follower, null)
+                    || follower == null
+                    || follower.BotState != EBotState.Active
+                    || follower.IsDead
+                    || follower.HealthController?.IsAlive != true
+                    || string.IsNullOrWhiteSpace(accountId)
+                    || string.IsNullOrWhiteSpace(profileId)
+                    || !expectedProfiles.TryGetValue(accountId, out string expectedProfile)
+                    || !string.Equals(profileId, expectedProfile, StringComparison.Ordinal)
+                    || ReferenceEquals(player, null)
+                    || player == null
+                    || !string.Equals(player.ProfileId?.Trim(), profileId, StringComparison.Ordinal)
+                    || !seenBodies.Add(follower)
+                    || !seenPlayers.Add(player)
+                    || !seenAccounts.Add(accountId)
+                    || !seenProfiles.Add(profileId)
+                    || !registered.Any(candidate => ReferenceEquals(candidate, follower))
+                    || !world.RegisteredPlayers.Any(candidate => ReferenceEquals(candidate, player))
+                    || !ReferenceEquals(world.GetEverExistedPlayerByID(profileId), player))
+                {
+                    problem = $"PitFireTeam follower {index + 1}/{TeamCompanionCount} failed the exact active body freeze";
+                    return false;
+                }
+
+                profiles[index] = profileId;
+            }
+
+            if (_boundTeamFollowers.Length != 0)
+            {
+                if (_boundTeamFollowers.Length != TeamCompanionCount
+                    || _boundTeamFollowerProfileIds.Length != TeamCompanionCount)
+                {
+                    problem = "the previous bound PitFireTeam follower roster was incomplete";
+                    return false;
+                }
+
+                for (int index = 0; index < TeamCompanionCount; index++)
+                {
+                    if (!ReferenceEquals(_boundTeamFollowers[index], ordered[index])
+                        || !string.Equals(
+                            _boundTeamFollowerProfileIds[index],
+                            profiles[index],
+                            StringComparison.Ordinal))
+                    {
+                        problem = "a PitFireTeam follower body changed inside the same round epoch";
+                        return false;
+                    }
+                }
+            }
+
+            _boundTeamFollowers = ordered;
+            _boundTeamFollowerProfileIds = profiles;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            problem = "the four PitFireTeam follower bodies could not be frozen: "
                       + ex.GetBaseException().Message;
             return false;
         }
@@ -1083,12 +1548,18 @@ public sealed class TacticalMode : IArenaMode
         // matrix are proven. Once any result is fixed, keep all ten bodies frozen
         // through the short native-stop handoff as well. This is especially
         // important for a readiness no-contest, which never entered Live at all.
-        return _teamArena && (_phase == Phase.Staging || _phase == Phase.Aftermath);
+        return _teamArena
+               && (_phase == Phase.Staging
+                   || _phase == Phase.Aftermath
+                   || _phase == Phase.Rebinding);
     }
 
     internal bool FailClosedStagingGuard(string reason)
     {
-        if (!_teamArena || (_phase != Phase.Staging && _phase != Phase.Aftermath))
+        if (!_teamArena
+            || (_phase != Phase.Staging
+                && _phase != Phase.Aftermath
+                && _phase != Phase.Rebinding))
             return false;
 
         // Staging can still be converted to a no-contest. Aftermath already has
@@ -1106,6 +1577,10 @@ public sealed class TacticalMode : IArenaMode
                     $"Tactical staging no-contest transition failed, damage remains blocked: {ex}");
             }
         }
+        else if (_phase == Phase.Rebinding)
+        {
+            FailTeamTransition(reason);
+        }
 
         return true;
     }
@@ -1115,30 +1590,733 @@ public sealed class TacticalMode : IArenaMode
         if (!_teamArena || (_phase != Phase.Staging && _phase != Phase.Live))
             return;
 
+        ArenaSpectatorService.Stop("the protected 5v5 round ended");
+        TeamArenaPursuit.Reset();
         _teamWon = won;
+        TeamArenaRoundDecision decision = TeamArenaRoundPolicy.Evaluate(
+            won,
+            RoundsWon,
+            RoundsLost,
+            _teamRoundsToWin);
+        RoundsWon = decision.RoundsWon;
+        RoundsLost = decision.RoundsLost;
+        _teamContinuation = decision.Continuation;
+        _teamMatchWon = decision.Continuation switch
+        {
+            TeamArenaRoundContinuation.EndMatchWon => true,
+            TeamArenaRoundContinuation.EndMatchLost => false,
+            TeamArenaRoundContinuation.EndNoContest => null,
+            _ => null,
+        };
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
         _squadEpoch++;
         RetireSquad();
+        _preferredSpectatorProfileId = null;
 
-        if (won == true)
-        {
-            RoundsWon = 1;
-            ArenaToasts.Show("5v5 victory — raid ending");
-        }
-        else if (won == false)
-        {
-            RoundsLost = 1;
-            ArenaToasts.Show("5v5 defeat — raid ending");
-        }
-        else
-        {
-            ArenaToasts.Show("5v5 no contest — raid ending");
-        }
+        string outcome = won == true ? "victory" : won == false ? "defeat" : "no contest";
+        string continuation = decision.Continuation == TeamArenaRoundContinuation.RebindNextRound
+            ? "next round incoming"
+            : "raid ending";
+        ArenaToasts.Show($"5v5 {outcome} — {RoundsWon}-{RoundsLost}, {continuation}");
 
         Plugin.ModLogger.LogWarning(
-            $"Tactical team Arena result: {(won == true ? "win" : won == false ? "loss" : "no contest")} — {reason}. No second round will start.");
+            $"Tactical team Arena round {RoundNumber}: {outcome} — {reason}; "
+            + $"score {RoundsWon}-{RoundsLost}, continuation {decision.Continuation}.");
     }
+
+    private void EnterTeamRebinding()
+    {
+        if (!_teamArena
+            || _phase != Phase.Aftermath
+            || _teamContinuation != TeamArenaRoundContinuation.RebindNextRound)
+        {
+            return;
+        }
+
+        ArenaSpectatorService.Stop("the next protected 5v5 round is rebuilding");
+        TeamArenaPursuit.Reset();
+        RoundNumber++;
+        _teamRoundEpoch++;
+        _phase = Phase.Rebinding;
+        _teamRebindStep = TeamRebindStep.Begin;
+        _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
+        _teamWon = null;
+        _preparedTeamRespawn = null;
+        _authorizedDeadTeamPlayer = null;
+        _teamRespawnAuthorizationAvailable = false;
+        _teamRespawnAuthorizationConsumed = false;
+        ArenaToasts.Show($"Round {RoundNumber} — rebuilding both teams");
+    }
+
+    private void TickTeamRebinding()
+    {
+        if (!_teamArena || _phase != Phase.Rebinding)
+            return;
+
+        if (!PitFireTeamCompat.TeamArenaActive
+            || !PitFireTeamCompat.PersistenceSuppressionActive
+            || !ReferenceEquals(
+                Comfort.Common.Singleton<AbstractGame>.Instantiated
+                    ? Comfort.Common.Singleton<AbstractGame>.Instance
+                    : null,
+                _teamGame)
+            || _teamGame?.Status != GameStatus.Started)
+        {
+            FailTeamTransition("the protected raid or its PitFireTeam persistence guard was lost during rebind");
+            return;
+        }
+
+        switch (_teamRebindStep)
+        {
+            case TeamRebindStep.Begin:
+                BeginTeamRebind();
+                break;
+
+            case TeamRebindStep.AwaitRetirement:
+                TickTeamRetirement();
+                break;
+
+            case TeamRebindStep.AwaitLocalRespawn:
+                if (Time.time >= _teamRebindDeadlineAt)
+                    FailTeamTransition("the exact local PMC replacement did not complete within the bounded rebind window");
+                break;
+
+            case TeamRebindStep.RebuildLeader:
+                RebuildTeamLeader();
+                break;
+
+            case TeamRebindStep.PrepareProfiles:
+                BeginTeamFollowerProfiles();
+                break;
+
+            case TeamRebindStep.AwaitProfiles:
+                TickTeamFollowerProfiles();
+                break;
+
+            case TeamRebindStep.StartFollowers:
+                StartTeamFollowers();
+                break;
+
+            case TeamRebindStep.AwaitFollowers:
+                TickTeamFollowers();
+                break;
+
+            case TeamRebindStep.AdoptFollowers:
+                AdoptTeamFollowers();
+                break;
+
+            default:
+                FailTeamTransition("the protected round rebuild lost its monotonic step");
+                break;
+        }
+    }
+
+    private void BeginTeamRebind()
+    {
+        if (!PitFireTeamCompat.BeginRoundTransition(
+                out Player oldLeader,
+                out IReadOnlyList<BotOwner> oldFollowers,
+                out string transitionProblem))
+        {
+            FailTeamTransition("PitFireTeam could not open the round transition: " + transitionProblem);
+            return;
+        }
+
+        if (!ReferenceEquals(oldLeader, _boundLocalPlayer)
+            || !HaveExactBodySet(oldFollowers, _boundTeamFollowers))
+        {
+            FailTeamTransition("PitFireTeam's teardown snapshot differed from the completed round bodies");
+            return;
+        }
+
+        if (!PitFireTeamRoundLifecycle.BeginTeardown(
+                oldLeader,
+                oldFollowers,
+                PitFireTeamCompat.CanonicalCompanionProfilesByAccountId,
+                PitFireTeamCompat.PersistenceSuppressionActive,
+                TeamLifecycleTimeout,
+                out string teardownProblem))
+        {
+            FailTeamTransition("PitFireTeam old-round teardown failed: " + teardownProblem);
+            return;
+        }
+
+        PitFireTeamRoundLifecycleSnapshot status = PitFireTeamRoundLifecycle.Status;
+        if (status.Stage != PitFireTeamRoundLifecycleStage.AwaitingRetirement
+            || status.Epoch <= 0)
+        {
+            FailTeamTransition("PitFireTeam teardown did not enter its retirement barrier");
+            return;
+        }
+
+        _expectedPitLifecycleEpoch = status.Epoch;
+        _teamRebindStep = TeamRebindStep.AwaitRetirement;
+        _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: retiring the exact previous follower and opponent bodies.");
+    }
+
+    private void TickTeamRetirement()
+    {
+        if (!TryReadExpectedPitLifecycle(out _, out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+            ? Comfort.Common.Singleton<GameWorld>.Instance
+            : null;
+        PitFireTeamRoundPolicyDecision followerRetirement =
+            PitFireTeamRoundLifecycle.PollRetirement(world);
+        if (followerRetirement.Decision == PitFireTeamRoundPollDecision.Failed)
+        {
+            FailTeamTransition("PitFireTeam follower retirement failed: " + followerRetirement.Reason);
+            return;
+        }
+
+        TeamRetirementDecision enemyRetirement = ObserveTeamEnemyRetirement(out string enemyProblem);
+        if (enemyRetirement == TeamRetirementDecision.Invalid)
+        {
+            FailTeamTransition(enemyProblem);
+            return;
+        }
+
+        if (followerRetirement.Decision != PitFireTeamRoundPollDecision.Ready
+            || enemyRetirement != TeamRetirementDecision.Ready)
+        {
+            if (Time.time >= _teamRebindDeadlineAt)
+            {
+                string pendingReason = !string.IsNullOrWhiteSpace(enemyProblem)
+                    ? enemyProblem
+                    : followerRetirement.Reason;
+                FailTeamTransition(
+                    "old team bodies did not leave active registries: "
+                    + pendingReason);
+            }
+            return;
+        }
+
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: all nine old bot bodies left active registries.");
+
+        bool localDead = _playerDown || _boundLocalPlayer?.HealthController?.IsAlive == false;
+        if (!localDead)
+        {
+            if (!TryValidateCurrentTeamLeaderBody(
+                    _boundLocalPlayer,
+                    out string currentLeaderProblem))
+            {
+                FailTeamTransition(
+                    "the surviving local PMC was not the exact current player body after retirement: "
+                    + currentLeaderProblem);
+                return;
+            }
+
+            _teamRebindStep = TeamRebindStep.RebuildLeader;
+            return;
+        }
+
+        if (!_playerDown
+            || _boundLocalPlayer is not LocalPlayer deadPlayer
+            || !ArenaMode.Respawn.ArenaRespawnDriver.IsRespawnInProgress
+            || _teamLoadoutSnapshot == null)
+        {
+            FailTeamTransition("the dead local PMC has no exact held respawn pipeline and loadout snapshot");
+            return;
+        }
+
+        if (!TryValidateDeadTeamLeaderBody(_teamGame, deadPlayer, out string deadLeaderProblem))
+        {
+            FailTeamTransition(
+                "the dead local PMC body drifted before loadout preparation: "
+                + deadLeaderProblem);
+            return;
+        }
+
+        if (!_teamLoadoutSnapshot.TryArm(_teamRoundEpoch, out string armProblem))
+        {
+            FailTeamTransition(
+                "the entry loadout could not be prepared before respawn release: "
+                + armProblem);
+            return;
+        }
+
+        if (!_teamLoadoutSnapshot.TryPrepare(
+                _teamGame.Profile,
+                _teamRoundEpoch,
+                out _preparedTeamRespawn,
+                out string prepareProblem))
+        {
+            FailTeamTransition(
+                "the entry loadout could not be prepared before respawn release: "
+                + prepareProblem);
+            return;
+        }
+
+        _authorizedDeadTeamPlayer = deadPlayer;
+        _teamRespawnAuthorizationAvailable = true;
+        _teamRespawnAuthorizationConsumed = false;
+        _teamRebindStep = TeamRebindStep.AwaitLocalRespawn;
+        _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
+
+        // Last mutation: releasing HoldRespawn lets the already-running driver
+        // consume the complete authorization on its next coroutine continuation.
+        _playerDown = false;
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: prepared entry loadout and released the exact held PMC respawn.");
+    }
+
+    private TeamRetirementDecision ObserveTeamEnemyRetirement(out string problem)
+    {
+        problem = string.Empty;
+        if (_boundTeamEnemies.Length != TeamEnemyCount
+            || _boundTeamEnemyProfileIds.Length != TeamEnemyCount)
+        {
+            problem = "the completed round lost its five-opponent retirement lease";
+            return TeamRetirementDecision.Invalid;
+        }
+
+        var activeOwners = Comfort.Common.Singleton<IBotGame>.Instantiated
+            ? Comfort.Common.Singleton<IBotGame>.Instance?.BotsController?.Bots?.BotOwners?.ToArray()
+            : null;
+        var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+            ? Comfort.Common.Singleton<GameWorld>.Instance
+            : null;
+        if (activeOwners == null || ReferenceEquals(world, null) || world == null)
+        {
+            problem = "EFT's old-opponent retirement registries are not ready";
+            return TeamRetirementDecision.Pending;
+        }
+
+        var oldProfiles = new HashSet<string>(_boundTeamEnemyProfileIds, StringComparer.Ordinal);
+        for (int index = 0; index < TeamEnemyCount; index++)
+        {
+            BotOwner enemy = _boundTeamEnemies[index];
+            if (ReferenceEquals(enemy, null))
+            {
+                problem = "an old opponent reference disappeared before retirement could be proven";
+                return TeamRetirementDecision.Invalid;
+            }
+
+            if (activeOwners.Any(candidate => ReferenceEquals(candidate, enemy)))
+            {
+                problem = $"old opponent {index + 1}/{TeamEnemyCount} remains in EFT's active bot registry";
+                return TeamRetirementDecision.Pending;
+            }
+
+            if (enemy != null
+                && (enemy.BotState == EBotState.Active
+                    || enemy.BotState == EBotState.PreActive
+                    || enemy.HealthController?.IsAlive == true))
+            {
+                problem = $"old opponent {index + 1}/{TeamEnemyCount} still has an active physical body";
+                return TeamRetirementDecision.Pending;
+            }
+        }
+
+        foreach (Player registered in world.RegisteredPlayers)
+        {
+            if (registered != null && oldProfiles.Contains(registered.ProfileId?.Trim()))
+            {
+                problem = $"old opponent {registered.ProfileId} remains in GameWorld's active player registry";
+                return TeamRetirementDecision.Pending;
+            }
+        }
+
+        return TeamRetirementDecision.Ready;
+    }
+
+    private void RebuildTeamLeader()
+    {
+        if (!TryReadExpectedPitLifecycle(
+                out PitFireTeamRoundLifecycleSnapshot status,
+                out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        if (status.Stage != PitFireTeamRoundLifecycleStage.ReadyForLeader)
+        {
+            FailTeamTransition(
+                $"PitFireTeam is not ready for the next local leader (stage {status.Stage})");
+            return;
+        }
+
+        if (!TryValidateCurrentTeamLeaderBody(
+                _boundLocalPlayer,
+                out string currentLeaderProblem))
+        {
+            FailTeamTransition(
+                "the current local PMC drifted before PitFireTeam leader rebuild: "
+                + currentLeaderProblem);
+            return;
+        }
+
+        BotsController botsController = Comfort.Common.Singleton<IBotGame>.Instantiated
+            ? Comfort.Common.Singleton<IBotGame>.Instance?.BotsController
+            : null;
+        if (!PitFireTeamRoundLifecycle.TryRebuildBoss(
+                _boundLocalPlayer,
+                botsController,
+                PitFireTeamCompat.PersistenceSuppressionActive,
+                out string problem))
+        {
+            FailTeamTransition("PitFireTeam leader rebuild failed: " + problem);
+            return;
+        }
+
+        _teamRebindStep = TeamRebindStep.PrepareProfiles;
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: PitFireTeam leader wrapper rebuilt.");
+    }
+
+    private void BeginTeamFollowerProfiles()
+    {
+        if (!TryReadExpectedPitLifecycle(out _, out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        if (!PitFireTeamRoundLifecycle.BeginFollowerProfilePreparation(
+                PitFireTeamCompat.PersistenceSuppressionActive,
+                TeamLifecycleTimeout,
+                out string problem))
+        {
+            FailTeamTransition("PitFireTeam follower profile preparation failed: " + problem);
+            return;
+        }
+
+        _teamRebindStep = TeamRebindStep.AwaitProfiles;
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: requested four fresh PitFireTeam follower profiles.");
+    }
+
+    private void TickTeamFollowerProfiles()
+    {
+        if (!TryReadExpectedPitLifecycle(out _, out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        PitFireTeamRoundPolicyDecision decision =
+            PitFireTeamRoundLifecycle.PollFollowerProfilePreparation(
+                PitFireTeamCompat.PersistenceSuppressionActive);
+        if (decision.Decision == PitFireTeamRoundPollDecision.Failed)
+            FailTeamTransition("PitFireTeam follower profile preparation failed: " + decision.Reason);
+        else if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
+        {
+            _teamRebindStep = TeamRebindStep.StartFollowers;
+            Plugin.ModLogger.LogInfo(
+                $"Tactical team Arena round {RoundNumber}: four fresh PitFireTeam follower profiles are ready.");
+        }
+    }
+
+    private void StartTeamFollowers()
+    {
+        if (!TryReadExpectedPitLifecycle(out _, out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        if (!PitFireTeamRoundLifecycle.TryStartFollowerSpawn(
+                PitFireTeamCompat.PersistenceSuppressionActive,
+                TeamLifecycleTimeout,
+                out string problem))
+        {
+            FailTeamTransition("PitFireTeam follower spawn failed: " + problem);
+            return;
+        }
+
+        _teamRebindStep = TeamRebindStep.AwaitFollowers;
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: started the fresh PitFireTeam follower spawn.");
+    }
+
+    private void TickTeamFollowers()
+    {
+        if (!TryReadExpectedPitLifecycle(out _, out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+            ? Comfort.Common.Singleton<GameWorld>.Instance
+            : null;
+        PitFireTeamRoundPolicyDecision decision = PitFireTeamRoundLifecycle.PollFollowers(
+            world,
+            PitFireTeamCompat.PersistenceSuppressionActive);
+        if (decision.Decision == PitFireTeamRoundPollDecision.Failed)
+            FailTeamTransition("PitFireTeam follower activation failed: " + decision.Reason);
+        else if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
+        {
+            _teamRebindStep = TeamRebindStep.AdoptFollowers;
+            Plugin.ModLogger.LogInfo(
+                $"Tactical team Arena round {RoundNumber}: four fresh follower bodies passed the stable registry barrier.");
+        }
+    }
+
+    private void AdoptTeamFollowers()
+    {
+        if (!TryReadExpectedPitLifecycle(out _, out string epochProblem))
+        {
+            FailTeamTransition(epochProblem);
+            return;
+        }
+
+        if (!TryValidateCurrentTeamLeaderBody(
+                _boundLocalPlayer,
+                out string currentLeaderProblem))
+        {
+            FailTeamTransition(
+                "the current local PMC drifted before PitFireTeam follower adoption: "
+                + currentLeaderProblem);
+            return;
+        }
+
+        if (!PitFireTeamCompat.TryAdoptRoundRoster(
+                _boundLocalPlayer,
+                out IReadOnlyList<BotOwner> followers,
+                out string problem))
+        {
+            FailTeamTransition("PitFireTeam follower adoption failed: " + problem);
+            return;
+        }
+
+        _boundTeamFollowers = Array.Empty<BotOwner>();
+        _boundTeamFollowerProfileIds = Array.Empty<string>();
+        if (!TryFreezeTeamFollowers(followers, out string followerProblem))
+        {
+            FailTeamTransition("the adopted follower roster failed Arena's body freeze: " + followerProblem);
+            return;
+        }
+
+        _squad.Clear();
+        _boundTeamEnemies = Array.Empty<BotOwner>();
+        _boundTeamEnemyProfileIds = Array.Empty<string>();
+        _teamEnemiesRequested = false;
+        _lastTeamReadinessDiagnostic = null;
+        _teamRebindStep = TeamRebindStep.None;
+        _phase = Phase.Staging;
+        _phaseEndsAt = Time.time + TeamAssemblySeconds;
+        ArenaToasts.Show($"Round {RoundNumber} — assembling five opponents");
+        Plugin.ModLogger.LogInfo(
+            $"Tactical team Arena round {RoundNumber}: four fresh PitFireTeam followers adopted; requesting opponents next.");
+    }
+
+    private bool TryValidateDeadTeamLeaderBody(
+        LocalGame game,
+        LocalPlayer deadPlayer,
+        out string problem)
+    {
+        problem = string.Empty;
+        if (ReferenceEquals(game, null)
+            || !ReferenceEquals(game, _teamGame)
+            || game.Status != GameStatus.Started
+            || !Comfort.Common.Singleton<AbstractGame>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, game)
+            || ReferenceEquals(deadPlayer, null)
+            || deadPlayer == null
+            || !deadPlayer.IsYourPlayer
+            || !ReferenceEquals(deadPlayer, _boundLocalPlayer)
+            || !ReferenceEquals(game.LocalPlayer, deadPlayer)
+            || !ReferenceEquals(game.Profile, deadPlayer.Profile)
+            || deadPlayer.HealthController?.IsAlive != false
+            || !string.Equals(
+                deadPlayer.ProfileId?.Trim(),
+                _boundLocalProfileId,
+                StringComparison.Ordinal))
+        {
+            problem = "the active LocalGame, bound corpse, local profile or dead health state no longer matches";
+            return false;
+        }
+
+        var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+            ? Comfort.Common.Singleton<GameWorld>.Instance
+            : null;
+        if (ReferenceEquals(world, null) || world == null)
+        {
+            problem = "GameWorld is unavailable";
+            return false;
+        }
+
+        if (!ReferenceEquals(world.MainPlayer, deadPlayer))
+        {
+            problem = "GameWorld.MainPlayer does not reference the exact dead PMC body";
+            return false;
+        }
+
+        // Player.OnDeadCoroutine unregisters the corpse on the next frame but
+        // deliberately leaves MainPlayer and the ever-existed entry intact.
+        // By this between-round barrier there must therefore be no active body
+        // under the local profile. A replacement would register and overwrite
+        // the persistent entry before Redeploy receives authorization.
+        string profileId = deadPlayer.ProfileId.Trim();
+        int registeredWithProfile = world.RegisteredPlayers.Count(candidate =>
+            string.Equals(
+                candidate?.ProfileId?.Trim(),
+                profileId,
+                StringComparison.Ordinal));
+        if (registeredWithProfile != 0)
+        {
+            problem = $"GameWorld has {registeredWithProfile} active bodies under the dead local profile";
+            return false;
+        }
+
+        if (!ReferenceEquals(world.GetEverExistedPlayerByID(profileId), deadPlayer))
+        {
+            problem = "GameWorld's persistent profile registry points at another PMC body";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryValidateCurrentTeamLeaderBody(Player player, out string problem)
+    {
+        problem = string.Empty;
+        if (ReferenceEquals(player, null)
+            || player == null
+            || !player.IsYourPlayer
+            || player.HealthController?.IsAlive != true
+            || string.IsNullOrWhiteSpace(_boundLocalProfileId)
+            || !string.Equals(
+                player.ProfileId?.Trim(),
+                _boundLocalProfileId,
+                StringComparison.Ordinal)
+            || ReferenceEquals(_teamGame, null)
+            || _teamGame.Status != GameStatus.Started
+            || !Comfort.Common.Singleton<AbstractGame>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, _teamGame)
+            || !ReferenceEquals(_teamGame.LocalPlayer, player)
+            || !ReferenceEquals(_teamGame.Profile, player.Profile))
+        {
+            problem = "the active LocalGame, local profile or living health state no longer matches";
+            return false;
+        }
+
+        return TryValidateLivingTeamLeaderWorldIdentity(player, out problem);
+    }
+
+    private static bool TryValidateLivingTeamLeaderWorldIdentity(
+        Player expectedPlayer,
+        out string problem)
+    {
+        problem = string.Empty;
+        var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+            ? Comfort.Common.Singleton<GameWorld>.Instance
+            : null;
+        if (ReferenceEquals(world, null) || world == null)
+        {
+            problem = "GameWorld is unavailable";
+            return false;
+        }
+
+        if (!ReferenceEquals(world.MainPlayer, expectedPlayer))
+        {
+            problem = "GameWorld.MainPlayer does not reference the exact expected PMC body";
+            return false;
+        }
+
+        string profileId = expectedPlayer.ProfileId?.Trim();
+        IPlayer[] registeredWithProfile = world.RegisteredPlayers
+            .Where(candidate => string.Equals(
+                candidate?.ProfileId?.Trim(),
+                profileId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (registeredWithProfile.Length != 1
+            || !ReferenceEquals(registeredWithProfile[0], expectedPlayer))
+        {
+            problem = $"GameWorld has {registeredWithProfile.Length} registered bodies for the local profile instead of the exact expected body";
+            return false;
+        }
+
+        if (!ReferenceEquals(world.GetEverExistedPlayerByID(profileId), expectedPlayer))
+        {
+            problem = "GameWorld's persistent profile registry points at another PMC body";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryReadExpectedPitLifecycle(
+        out PitFireTeamRoundLifecycleSnapshot status,
+        out string problem)
+    {
+        status = PitFireTeamRoundLifecycle.Status;
+        if (_expectedPitLifecycleEpoch <= 0
+            || status.Epoch != _expectedPitLifecycleEpoch
+            || status.Stage == PitFireTeamRoundLifecycleStage.Failed
+            || status.Capability?.CanStartAdditionalRound != true)
+        {
+            problem = $"PitFireTeam lifecycle drifted during round {_teamRoundEpoch}: "
+                      + $"expected epoch {_expectedPitLifecycleEpoch}, got {status.Epoch}/{status.Stage} ({status.Diagnostic})";
+            return false;
+        }
+
+        problem = string.Empty;
+        return true;
+    }
+
+    private static bool HaveExactBodySet(
+        IReadOnlyList<BotOwner> left,
+        IReadOnlyList<BotOwner> right)
+    {
+        if (left == null || right == null || left.Count != right.Count)
+            return false;
+
+        return left.All(item => right.Any(candidate => ReferenceEquals(candidate, item)))
+               && right.All(item => left.Any(candidate => ReferenceEquals(candidate, item)));
+    }
+
+    private void FailTeamTransition(string reason)
+    {
+        if (!_teamArena || _teamStopRequested)
+            return;
+
+        PitFireTeamRoundLifecycle.CancelFollowerSpawnLease(
+            "the protected Tactical round rebuild failed: " + reason);
+        ArenaSpectatorService.Stop("the protected round rebuild failed");
+        TeamArenaPursuit.Reset();
+        _teamContinuation = TeamArenaRoundContinuation.EndNoContest;
+        _teamMatchWon = null;
+        _teamWon = null;
+        _teamRebindStep = TeamRebindStep.None;
+        _authorizedDeadTeamPlayer = null;
+        _teamRespawnAuthorizationAvailable = false;
+        _teamRespawnAuthorizationConsumed = false;
+        _preparedTeamRespawn = null;
+        _phase = Phase.Aftermath;
+        _phaseEndsAt = Time.time + AftermathSeconds;
+        _squadEpoch++;
+        RetireSquad();
+        ArenaToasts.Show("5v5 no contest — protected round rebuild failed");
+        Plugin.ModLogger.LogError(
+            $"Tactical team Arena ended no contest during round {RoundNumber} rebind: {reason}.");
+    }
+
+    private string DescribeTeamRebindStep()
+        => _teamRebindStep switch
+        {
+            TeamRebindStep.Begin => "opening transition",
+            TeamRebindStep.AwaitRetirement => "retiring old bodies",
+            TeamRebindStep.AwaitLocalRespawn => "restoring PMC",
+            TeamRebindStep.RebuildLeader => "binding leader",
+            TeamRebindStep.PrepareProfiles => "requesting teammates",
+            TeamRebindStep.AwaitProfiles => "preparing teammates",
+            TeamRebindStep.StartFollowers => "starting teammates",
+            TeamRebindStep.AwaitFollowers => "activating teammates",
+            TeamRebindStep.AdoptFollowers => "freezing teammates",
+            _ => "guarded",
+        };
 
     private void EndTeamRaid()
     {
@@ -1148,7 +2326,9 @@ public sealed class TacticalMode : IArenaMode
         LocalGame game = null;
         try
         {
-            if (!(Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame localGame)
+            if (!Comfort.Common.Singleton<AbstractGame>.Instantiated
+                || !(Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame localGame)
+                || !ReferenceEquals(localGame, _teamGame)
                 || localGame.Status != GameStatus.Started
                 || !Comfort.Common.Singleton<GameWorld>.Instantiated)
             {
@@ -1162,7 +2342,7 @@ public sealed class TacticalMode : IArenaMode
             if (string.IsNullOrEmpty(profileId))
                 return;
 
-            ExitStatus exitStatus = _teamWon == true
+            ExitStatus exitStatus = _teamMatchWon == true
                 ? ExitStatus.Survived
                 : mainPlayer?.HealthController?.IsAlive == true
                     ? ExitStatus.MissingInAction
@@ -1170,12 +2350,15 @@ public sealed class TacticalMode : IArenaMode
 
             // Extend both client and server persistence guards across the delayed
             // PitFireTeam post-raid tasks before the native end sequence begins.
+            ArenaSpectatorService.Stop("the protected 5v5 match is ending");
+            TeamArenaPursuit.Reset();
             ArenaMode.Respawn.ArenaRespawnDriver.StandDown = true;
             PitFireTeamCompat.BeginFinalizing();
             _teamStopRequested = true;
             game.Stop(profileId, exitStatus, "Arena", 0f);
             Plugin.ModLogger.LogInfo(
-                $"Tactical team Arena ended after its single elimination round with native status {exitStatus}.");
+                $"Tactical team Arena ended {RoundsWon}-{RoundsLost} after {RoundNumber} round(s) "
+                + $"with native status {exitStatus}.");
         }
         catch (Exception ex)
         {
@@ -1277,7 +2460,9 @@ public sealed class TacticalMode : IArenaMode
                 if (bot == null)
                     return;
 
-                if (epoch != _squadEpoch)
+                if (epoch != _squadEpoch
+                    || _phase != Phase.Live
+                    || _squad.Count >= _squadRequested)
                 {
                     // A superseded request. Killing rather than adopting: adopting
                     // would silently inflate a round the player was told holds a
@@ -1359,6 +2544,10 @@ public sealed class TacticalMode : IArenaMode
         if (_phase != Phase.Live)
             return;
 
+        // Invalidate detached profile/activation callbacks before retiring the
+        // roster. A bot arriving during Aftermath must be killed by its observer,
+        // never adopted and then forgotten by the next StartRound clear.
+        _squadEpoch++;
         RetireSquad();
 
         _phase = Phase.Aftermath;

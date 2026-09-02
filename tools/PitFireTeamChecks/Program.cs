@@ -382,7 +382,9 @@ internal static class Program
         var tactical = Read(repo, "ArenaMode.Client/Modes/TacticalMode.cs");
         var burstSpawn = Read(repo, "ArenaMode.Client/Bots/BurstSpawnService.cs");
         var combat = Read(repo, "ArenaMode.Client/Combat/CombatPatches.cs");
+        var arenaMatch = Read(repo, "ArenaMode.Client/Modes/ArenaMatch.cs");
         var matchService = Read(repo, "ArenaMode.Client/Modes/ArenaMatchService.cs");
+        var modeInterface = Read(repo, "ArenaMode.Client/Modes/IArenaMode.cs");
         var respawn = Read(repo, "ArenaMode.Client/Respawn/ArenaRespawnDriver.cs");
         var liveRespawn = Read(repo, "ArenaMode.Client/Respawn/LiveKitRespawn.cs");
         var respawnEpoch = Read(repo, "ArenaMode.Client/Respawn/ArenaRaidEpoch.cs");
@@ -554,6 +556,29 @@ internal static class Program
                && matchService.IndexOf("TeamStartAbortPending", StringComparison.Ordinal)
                   < matchService.IndexOf("var protectedTeam", StringComparison.Ordinal),
             "duplicate lifecycle dispatch cannot restart a committed failed team start in a Stopping raid");
+        string raidStart = Slice(
+            session,
+            "private static void OnRaidStarted(GameWorld world)",
+            "private static void ForceExistingGroupsHostile(GameWorld world)");
+        string beforeArmedBranch = raidStart[..raidStart.IndexOf(
+            "if (!ArmedForNextRaid)",
+            StringComparison.Ordinal)];
+        Assert(session.Contains("private static GameWorld _startedWorld", StringComparison.Ordinal)
+               && session.Contains("private static AbstractGame _startedGame", StringComparison.Ordinal)
+               && session.Contains("internal static bool IsExactActiveRaid(AbstractGame game, GameWorld world)", StringComparison.Ordinal)
+               && session.Contains("ReferenceEquals(_startedGame, game)", StringComparison.Ordinal)
+               && session.Contains("ReferenceEquals(_startedWorld, world)", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("previousRaidTracked", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("ReferenceEquals(_startedWorld, world)", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("ReferenceEquals(_startedGame, currentGame)", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("ArenaMatchService.RecoverAtNewRaidStart()", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("ArenaRespawnDriver.ResetSession()", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("IsActive = false", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("_startedWorld = world", StringComparison.Ordinal)
+               && beforeArmedBranch.Contains("_startedGame = currentGame", StringComparison.Ordinal)
+               && !beforeArmedBranch.Contains("ArmedForNextRaid = false", StringComparison.Ordinal)
+               && !beforeArmedBranch.Contains("PitFireTeamCompat.Clear(", StringComparison.Ordinal),
+            "every different exact GameWorld/game pair clears stale match and raid-epoch state before preserving and processing a new arming");
         var ordinaryClientStart = session.IndexOf("if (!ArmedForNextRaid)", StringComparison.Ordinal);
         var ordinaryClientConfirm = session.IndexOf(
             "ArenaServerClient.ConfirmOrdinaryRaidStarted()",
@@ -561,7 +586,7 @@ internal static class Program
             StringComparison.Ordinal);
         Assert(ordinaryClientStart >= 0
                && ordinaryClientConfirm > ordinaryClientStart
-               && session.IndexOf("ArenaMatchService.RecoverAtOrdinaryRaidStart()",
+               && session.IndexOf("ArenaMatchService.RecoverAtNewRaidStart()",
                       ordinaryClientStart,
                       StringComparison.Ordinal) is var matchRecovery
                && matchRecovery > ordinaryClientStart
@@ -576,24 +601,30 @@ internal static class Program
                       StringComparison.Ordinal) is var rejectedRecovery
                && rejectedRecovery > ordinaryClientStart
                && rejectedRecovery < ordinaryClientConfirm
-               && matchService.Contains("internal static void RecoverAtOrdinaryRaidStart()",
-                   StringComparison.Ordinal)
+               && matchService.Contains("internal static void RecoverAtNewRaidStart()",
+                    StringComparison.Ordinal)
                && Regex.IsMatch(matchService,
-                   @"RecoverAtOrdinaryRaidStart\s*\(\s*\)[\s\S]{0,500}OnRaidEnded\s*\(\s*\)"),
+                   @"RecoverAtNewRaidStart\s*\(\s*\)[\s\S]{0,500}OnRaidEnded\s*\(\s*\)"),
             "a proven new ordinary raid boundary clears stale match, abort, respawn and rejected-end state before combat");
 
-        Assert(tactical.Contains("EndTeamRaid", StringComparison.Ordinal)
-               && tactical.Contains("game.Stop(", StringComparison.Ordinal),
-            "team Tactical ends the protected raid after one result");
+        Assert(tactical.Contains("TeamArenaRoundPolicy.Evaluate(", StringComparison.Ordinal)
+               && tactical.Contains("_teamRoundsToWin", StringComparison.Ordinal)
+               && tactical.Contains("TeamArenaRoundContinuation.RebindNextRound", StringComparison.Ordinal)
+               && tactical.Contains("EnterTeamRebinding()", StringComparison.Ordinal)
+               && tactical.Contains("EndTeamRaid()", StringComparison.Ordinal),
+            "protected team Tactical scores first-to-N rounds and rebuilds before ending the overall match");
         Assert(tactical.Contains("if (_teamArena)", StringComparison.Ordinal)
                && tactical.Contains("PitFireTeamCompat.TeamArenaActive", StringComparison.Ordinal)
-               && tactical.Contains("LiveKitRespawn.AtRoundBreak", StringComparison.Ordinal),
-            "team and solo Tactical paths are explicit around round/body lifecycle");
+               && tactical.Contains("LiveKitRespawn.AtRoundBreak", StringComparison.Ordinal)
+               && tactical.Contains("TeamArenaLoadoutSnapshot.TryCapture(", StringComparison.Ordinal),
+            "team and solo Tactical paths keep distinct loadout and body lifecycle contracts");
         Assert(tactical.Contains("public bool HoldRespawn => _playerDown", StringComparison.Ordinal)
                && tactical.Contains("_teamArena && _phase == Phase.Aftermath", StringComparison.Ordinal)
+               && tactical.Contains("_teamArena && _phase == Phase.Rebinding", StringComparison.Ordinal)
                && tactical.Contains("EndTeamRound(null, \"the local player died before both complete teams were ready\")",
-                   StringComparison.Ordinal),
-            "local death is held while surviving team members decide the result");
+                    StringComparison.Ordinal)
+               && tactical.Contains("TryStartTeamSpectator()", StringComparison.Ordinal),
+            "local death is held while surviving teams decide the round and live deaths may start spectator mode");
         Assert(compat.Contains("TryGetLiveFollowers", StringComparison.Ordinal)
                && compat.Contains("active unselected PitFireTeam follower", StringComparison.Ordinal)
                && compat.Contains("duplicate active follower profile identity", StringComparison.Ordinal)
@@ -628,7 +659,7 @@ internal static class Program
                && compat.Contains("CurrentBodiesByAccountId", StringComparison.Ordinal)
                && compat.Contains("PitFireTeamRoundLifecycleStage.ContractReady", StringComparison.Ordinal)
                && compat.Contains("PitFireTeamRoundLifecycleStage.FollowersReady", StringComparison.Ordinal),
-            "an explicit lifecycle-ready transition snapshots all four old bodies and suppresses one-round discovery latches");
+            "an explicit lifecycle-ready transition snapshots all four old bodies and suppresses stale-round discovery latches");
         int adoptionHistoryCommit = compat.IndexOf(
             "KnownProfileIds.Add(pair.Value)",
             StringComparison.Ordinal);
@@ -672,6 +703,57 @@ internal static class Program
                && compat.Contains("_roundTransitionActive = false", StringComparison.Ordinal)
                && compat.Contains("PitFireTeamRoundLifecycle.Reset()", StringComparison.Ordinal),
             "freeze/clear boundaries reset canonical, current, historical, pending and lifecycle round state");
+
+        int beginRoundTransition = tactical.IndexOf(
+            "PitFireTeamCompat.BeginRoundTransition(",
+            StringComparison.Ordinal);
+        int beginTeardown = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.BeginTeardown(",
+            beginRoundTransition,
+            StringComparison.Ordinal);
+        int pollRetirement = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.PollRetirement(",
+            beginTeardown,
+            StringComparison.Ordinal);
+        int rebuildLeader = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.TryRebuildBoss(",
+            pollRetirement,
+            StringComparison.Ordinal);
+        int beginProfiles = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.BeginFollowerProfilePreparation(",
+            rebuildLeader,
+            StringComparison.Ordinal);
+        int pollProfiles = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.PollFollowerProfilePreparation(",
+            beginProfiles,
+            StringComparison.Ordinal);
+        int startFollowers = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.TryStartFollowerSpawn(",
+            pollProfiles,
+            StringComparison.Ordinal);
+        int pollFollowers = tactical.IndexOf(
+            "PitFireTeamRoundLifecycle.PollFollowers(",
+            startFollowers,
+            StringComparison.Ordinal);
+        int adoptFollowers = tactical.IndexOf(
+            "PitFireTeamCompat.TryAdoptRoundRoster(",
+            pollFollowers,
+            StringComparison.Ordinal);
+        Assert(beginRoundTransition >= 0
+               && beginTeardown > beginRoundTransition
+               && pollRetirement > beginTeardown
+               && rebuildLeader > pollRetirement
+               && beginProfiles > rebuildLeader
+               && pollProfiles > beginProfiles
+               && startFollowers > pollProfiles
+               && pollFollowers > startFollowers
+               && adoptFollowers > pollFollowers,
+            "Tactical advances monotonically through PFT teardown, retirement, leader rebuild, fresh follower spawn and adoption");
+        Assert(tactical.Contains("HaveExactBodySet(oldFollowers, _boundTeamFollowers)", StringComparison.Ordinal)
+               && tactical.Contains("PitFireTeamCompat.CanonicalCompanionProfilesByAccountId", StringComparison.Ordinal)
+               && tactical.Contains("status.Epoch != _expectedPitLifecycleEpoch", StringComparison.Ordinal)
+               && tactical.Contains("status.Capability?.CanStartAdditionalRound != true", StringComparison.Ordinal),
+            "each rebuild binds the exact completed-round bodies, canonical accounts and one expected lifecycle epoch");
         Assert(tactical.Contains("_boundLocalPlayer", StringComparison.Ordinal)
                && tactical.Contains("ReferenceEquals(current, _boundLocalPlayer)", StringComparison.Ordinal)
                && tactical.Contains("_boundTeamEnemies", StringComparison.Ordinal)
@@ -679,7 +761,7 @@ internal static class Program
                && tactical.Contains("replacement body for opponent", StringComparison.Ordinal)
                && tactical.Contains("GetEverExistedPlayerByID(_boundLocalProfileId)", StringComparison.Ordinal)
                && tactical.Contains("previously registered replacement body for opponent", StringComparison.Ordinal),
-            "the one-round result stays bound to the original local PMC and five original opponent bodies");
+            "each live round stays bound to its exact current local PMC, four followers and five opponent bodies");
         var pendingActivationBranch = tactical.IndexOf(
             "if (freezeDecision == TeamOpponentActivationDecision.Pending)",
             StringComparison.Ordinal);
@@ -720,39 +802,141 @@ internal static class Program
                && combat.Contains("ShouldBlockProtectedTeamMutation", StringComparison.Ordinal)
                && tactical.Contains("ShouldBlockStagingDamage", StringComparison.Ordinal),
             "team staging/aftermath blocks shots, Player side effects, explosion armor, health and contusion before mutation");
-        Assert(tactical.Contains(
-                   "_phase != Phase.Staging && _phase != Phase.Aftermath",
-                   StringComparison.Ordinal)
+        Assert(Regex.IsMatch(tactical,
+                   @"ShouldBlockStagingDamage\s*\([^\)]*\)[\s\S]{0,500}Phase\.Staging[\s\S]{0,120}Phase\.Aftermath[\s\S]{0,120}Phase\.Rebinding")
+               && Regex.IsMatch(tactical,
+                   @"FailClosedStagingGuard\s*\([^\)]*\)[\s\S]{0,900}Phase\.Rebinding[\s\S]{0,200}FailTeamTransition\s*\(")
                && Regex.IsMatch(tactical,
                    @"Aftermath already has\s*//\s*its one immutable result"),
-            "a damage-guard exception remains fail-closed after the team result without creating a second result");
+            "damage stays blocked throughout staging, result presentation and rebuild while a rebind guard failure becomes no-contest");
         Assert(Regex.IsMatch(tactical,
                 @"TickTeamLive\s*\(\)[\s\S]{0,4000}if\s*\(\s*!PitFireTeamCompat\.EnsureHostility\s*\(\s*_boundTeamEnemies\s*,\s*_boundLocalPlayer\s*\)\s*\)[\s\S]{0,180}EndTeamRound\s*\(\s*null"),
             "loss of the live bidirectional hostility matrix ends as no-contest");
-        Assert(Regex.IsMatch(tactical,
-                @"case\s+Phase\.Aftermath:[\s\S]{0,350}if\s*\(\s*_teamArena\s*\)[\s\S]{0,100}EndTeamRaid\s*\(\s*\)[\s\S]{0,100}else[\s\S]{0,100}EnterBuy\s*\(\s*\)"),
-            "team aftermath ends the raid while solo aftermath starts its next buy phase");
-        var respawnRoutine = respawn.IndexOf("private static IEnumerator RespawnRoutine", StringComparison.Ordinal);
-        var stoppedRaidExit = respawn.IndexOf(
+        string tacticalTick = Slice(
+            tactical,
+            "public void Tick(float deltaTime)",
+            "private void TickLive()");
+        Assert(tacticalTick.Contains(
+                   "_teamContinuation == TeamArenaRoundContinuation.RebindNextRound",
+                   StringComparison.Ordinal)
+               && tacticalTick.Contains("EnterTeamRebinding()", StringComparison.Ordinal)
+               && tacticalTick.Contains("EndTeamRaid()", StringComparison.Ordinal)
+               && tacticalTick.Contains("EnterBuy()", StringComparison.Ordinal),
+            "team aftermath rebuilds after a non-terminal result, ends only the overall match, and leaves solo buy flow intact");
+
+        string respawnRoutine = Slice(
+            respawn,
+            "private static IEnumerator RespawnRoutine(",
+            "private static IEnumerator RespawnProtectedTeamPlayer(");
+        int stoppedRaidExit = respawnRoutine.IndexOf(
             "if (!IsSameActiveRaid(game, raidEpoch) || StandDown)",
-            respawnRoutine,
             StringComparison.Ordinal);
-        var frozenRosterAbort = respawn.IndexOf(
+        int frozenRosterGate = respawnRoutine.IndexOf(
             "if (PitFireTeamCompat.HasFrozenTeamRoster)",
-            respawnRoutine,
             StringComparison.Ordinal);
-        Assert(respawnRoutine >= 0
-               && frozenRosterAbort > stoppedRaidExit
-               && frozenRosterAbort < respawn.IndexOf("RespawnEngine.RunRespawn", frozenRosterAbort, StringComparison.Ordinal)
-               && respawn.Contains("ArenaMatchService.ScheduleFailedStartAbort", StringComparison.Ordinal)
-               && Regex.IsMatch(respawn,
-                   @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)[\s\S]{0,1000}ScheduleFailedStartAbort[\s\S]{0,300}yield break"),
-            "respawn exits a stopped raid before frozen-roster handling and routes only live replacement attempts into the abort coordinator");
-        Assert(tactical.Contains("ExitStatus.Survived", StringComparison.Ordinal)
-               && tactical.Contains("ExitStatus.MissingInAction", StringComparison.Ordinal)
-               && tactical.Contains("ExitStatus.Killed", StringComparison.Ordinal)
-               && tactical.Contains("ArenaRespawnDriver.StandDown = true", StringComparison.Ordinal),
-            "the one-round result maps to an honest native exit and stands down respawn before stop");
+        int takeAuthorization = respawnRoutine.IndexOf(
+            "ArenaMatchService.TryTakeTeamRespawnAuthorization(",
+            StringComparison.Ordinal);
+        int protectedRespawn = respawnRoutine.IndexOf(
+            "RespawnProtectedTeamPlayer(",
+            takeAuthorization,
+            StringComparison.Ordinal);
+        int soloKitSelection = respawnRoutine.IndexOf(
+            "KitCatalog.GetSelectedKit()",
+            StringComparison.Ordinal);
+        Assert(stoppedRaidExit >= 0
+               && frozenRosterGate > stoppedRaidExit
+               && takeAuthorization > frozenRosterGate
+               && protectedRespawn > takeAuthorization
+               && soloKitSelection > protectedRespawn,
+            "only a live frozen roster with Tactical's one-shot lease reaches protected respawn before the untouched solo kit path");
+
+        string protectedTeamRespawn = Slice(
+            respawn,
+            "private static IEnumerator RespawnProtectedTeamPlayer(",
+            "private static void AbortProtectedTeamRespawn(");
+        Assert(protectedTeamRespawn.Contains(
+                   "prepared.TryCommit(profile, out TeamArenaLoadoutRestoreResult result)",
+                   StringComparison.Ordinal)
+               && protectedTeamRespawn.Contains("AbortProtectedTeamRespawn(", StringComparison.Ordinal)
+               && protectedTeamRespawn.Contains("ArenaEvents.RaisePlayerRespawned(respawnedPlayer)", StringComparison.Ordinal)
+               && !protectedTeamRespawn.Contains("KitCatalog", StringComparison.Ordinal)
+               && !protectedTeamRespawn.Contains("KitBundlePreloader", StringComparison.Ordinal)
+               && !protectedTeamRespawn.Contains("ReplaceEquipment", StringComparison.Ordinal)
+               && !protectedTeamRespawn.Contains("InvokeDeathScreen", StringComparison.Ordinal),
+            "protected Redeploy commits only the prepared entry loadout and fails through the protected abort coordinator");
+
+        string teamRetirement = Slice(
+            tactical,
+            "private void TickTeamRetirement()",
+            "private TeamRetirementDecision ObserveTeamEnemyRetirement");
+        int validateDeadLeader = teamRetirement.IndexOf(
+            "TryValidateDeadTeamLeaderBody(_teamGame, deadPlayer",
+            StringComparison.Ordinal);
+        int armPreparedLoadout = teamRetirement.IndexOf(
+            "_teamLoadoutSnapshot.TryArm(_teamRoundEpoch",
+            StringComparison.Ordinal);
+        int prepareLoadout = teamRetirement.IndexOf(
+            "_teamLoadoutSnapshot.TryPrepare(",
+            StringComparison.Ordinal);
+        int publishAuthorization = teamRetirement.IndexOf(
+            "_teamRespawnAuthorizationAvailable = true",
+            StringComparison.Ordinal);
+        int releaseRespawn = teamRetirement.IndexOf(
+            "_playerDown = false",
+            StringComparison.Ordinal);
+        Assert(validateDeadLeader >= 0
+               && armPreparedLoadout > validateDeadLeader
+               && prepareLoadout > armPreparedLoadout
+               && publishAuthorization > prepareLoadout
+               && releaseRespawn > publishAuthorization,
+            "the complete prepared loadout and exact lease are published before Tactical releases the held respawn coroutine");
+
+        string authorization = Slice(
+            tactical,
+            "internal bool TryTakeTeamRespawnAuthorization(",
+            "public void OnMatchEnd()");
+        Assert(authorization.Contains("!ReferenceEquals(game, _teamGame)", StringComparison.Ordinal)
+               && authorization.Contains("!ReferenceEquals(deadPlayer, _authorizedDeadTeamPlayer)", StringComparison.Ordinal)
+               && authorization.Contains("_preparedTeamRespawn.RoundEpoch != _teamRoundEpoch", StringComparison.Ordinal)
+               && authorization.Contains("lifecycle.Epoch != _expectedPitLifecycleEpoch", StringComparison.Ordinal)
+               && authorization.Contains("TryValidateDeadTeamLeaderBody(game, deadPlayer", StringComparison.Ordinal)
+               && authorization.Contains("_teamRespawnAuthorizationAvailable = false", StringComparison.Ordinal)
+               && authorization.Contains("_teamRespawnAuthorizationConsumed = true", StringComparison.Ordinal)
+               && matchService.Contains("Current?.Mode is not TacticalMode tactical", StringComparison.Ordinal)
+               && matchService.Contains("tactical.TryTakeTeamRespawnAuthorization(", StringComparison.Ordinal),
+            "respawn authorization is exact-body, exact-game, exact-round, exact-PFT-epoch and one-shot through Tactical only");
+        Assert(tactical.Contains("TryValidateCurrentTeamLeaderBody(player, out string bodyProblem)", StringComparison.Ordinal)
+               && tactical.Contains("the current local PMC drifted before PitFireTeam leader rebuild", StringComparison.Ordinal)
+               && tactical.Contains("the current local PMC drifted before PitFireTeam follower adoption", StringComparison.Ordinal)
+               && tactical.Contains("world.RegisteredPlayers.Count(candidate =>", StringComparison.Ordinal)
+               && tactical.Contains("world.GetEverExistedPlayerByID(profileId)", StringComparison.Ordinal)
+               && tactical.Contains("ReferenceEquals(world.MainPlayer, deadPlayer)", StringComparison.Ordinal)
+               && tactical.Contains("ReferenceEquals(world.MainPlayer, expectedPlayer)", StringComparison.Ordinal),
+            "dead and living local bodies are re-proven against MainPlayer, active registrations and persistent profile identity at every destructive boundary");
+        Assert(modeInterface.Contains("void OnLocalRespawn(Player player);", StringComparison.Ordinal)
+               && arenaMatch.Contains("Mode.OnLocalRespawn(player)", StringComparison.Ordinal)
+               && matchService.Contains("Current?.ReportLocalRespawn(player)", StringComparison.Ordinal),
+            "the actual replacement body is propagated from the respawn event into Tactical's rebind proof");
+
+        string endTeamRaid = Slice(
+            tactical,
+            "private void EndTeamRaid()",
+            "private KitDefinition Affordable()");
+        int standDown = endTeamRaid.IndexOf("ArenaRespawnDriver.StandDown = true", StringComparison.Ordinal);
+        int beginFinalizing = endTeamRaid.IndexOf("PitFireTeamCompat.BeginFinalizing()", StringComparison.Ordinal);
+        int nativeStop = endTeamRaid.IndexOf("game.Stop(", StringComparison.Ordinal);
+        Assert(endTeamRaid.Contains("ReferenceEquals(localGame, _teamGame)", StringComparison.Ordinal)
+               && endTeamRaid.Contains("_teamMatchWon == true", StringComparison.Ordinal)
+               && !endTeamRaid.Contains("_teamWon == true", StringComparison.Ordinal)
+               && endTeamRaid.Contains("ExitStatus.Survived", StringComparison.Ordinal)
+               && endTeamRaid.Contains("ExitStatus.MissingInAction", StringComparison.Ordinal)
+               && endTeamRaid.Contains("ExitStatus.Killed", StringComparison.Ordinal)
+               && standDown >= 0
+               && beginFinalizing > standDown
+               && nativeStop > beginFinalizing
+               && !endTeamRaid.Contains("single elimination round", StringComparison.Ordinal),
+            "only the frozen LocalGame exits, using the overall best-of-N result after respawn and persistence guards stand down");
         Assert(tactical.Contains("bool committed = game != null && game.Status != GameStatus.Started", StringComparison.Ordinal)
                && tactical.Contains("PitFireTeamCompat.CancelFinalizingAfterFailedStop", StringComparison.Ordinal)
                && tactical.Contains("ArenaRespawnDriver.StandDown = false", StringComparison.Ordinal)
@@ -1330,6 +1514,19 @@ internal static class Program
         if (!File.Exists(path))
             throw new FileNotFoundException($"Required production source is missing: {relativePath}", path);
         return File.ReadAllText(path);
+    }
+
+    private static string Slice(string source, string startMarker, string endMarker)
+    {
+        int start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        if (start < 0)
+            throw new InvalidOperationException($"Production source lost method marker: {startMarker}");
+
+        int end = source.IndexOf(endMarker, start + startMarker.Length, StringComparison.Ordinal);
+        if (end < 0)
+            throw new InvalidOperationException($"Production source lost following marker: {endMarker}");
+
+        return source.Substring(start, end - start);
     }
 
     private static void Assert(bool condition, string scenario)
