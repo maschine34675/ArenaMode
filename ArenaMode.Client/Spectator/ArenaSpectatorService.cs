@@ -164,6 +164,7 @@ internal static class ArenaSpectatorService
         }
 
         Stop("superseded spectator request");
+        SpectatorHealthEffects.ResetForLease();
         AllowedProfileIds.Clear();
         foreach (string profileId in profileIds)
             AllowedProfileIds.Add(profileId);
@@ -173,6 +174,7 @@ internal static class ArenaSpectatorService
         _notBefore = Time.unscaledTime + MinimumPendingSeconds;
         _pendingDeadline = Time.unscaledTime + MaximumPendingSeconds;
         _compatibilityFailureLogged = false;
+        SpectatorHealthEffects.ClearForDeadLocal(request.DeadPlayer);
         Plugin.ModLogger.LogInfo(
             $"Arena spectator pending for epoch {request.Epoch}; waiting for optional camera owners to release.");
         return true;
@@ -213,6 +215,11 @@ internal static class ArenaSpectatorService
             Stop("the local player became alive again");
             return;
         }
+
+        // Keep the shared FPS camera clean throughout Killcam's lead-in and
+        // playback. This is idempotent and refuses any body but the exact corpse
+        // accepted by this spectator lease.
+        SpectatorHealthEffects.ClearForDeadLocal(_request.DeadPlayer);
 
         if (!TryReadLivingTargets(out string targetProblem))
         {
@@ -451,6 +458,7 @@ internal static class ArenaSpectatorService
             _ownsCamera = true;
             ArenaInputBlocker.Request(InputOwner, true);
             DeathEffectsHelper.ClearDeathScreenEffects();
+            SpectatorHealthEffects.ClearForDeadLocal(_request.DeadPlayer, force: true);
             Application.onBeforeRender -= ApplyRenderPose;
             Application.onBeforeRender += ApplyRenderPose;
             ApplyRenderPose();
@@ -848,6 +856,7 @@ internal static class ArenaSpectatorService
     private static void OnRaidStarted(GameWorld world)
     {
         Stop("new raid boundary");
+        SpectatorHealthEffects.ResetForLease();
         KillcamReplayCompat.Reset();
         TerkoizFreecamProbe.Reset();
     }
@@ -855,6 +864,7 @@ internal static class ArenaSpectatorService
     private static void OnRaidEnded()
     {
         Stop("raid ended");
+        SpectatorHealthEffects.ResetForLease();
         KillcamReplayCompat.Reset();
         TerkoizFreecamProbe.Reset();
     }

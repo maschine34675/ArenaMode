@@ -1363,6 +1363,56 @@ internal static class Program
         var activeHealth = eft.MainModule.GetType("EFT.HealthSystem.ActiveHealthController")
                            ?? throw new InvalidOperationException(
                                "Installed EFT ActiveHealthController type is missing.");
+        var effectsController = eft.MainModule.GetType("EffectsController")
+                                ?? throw new InvalidOperationException(
+                                    "Installed EFT EffectsController type is missing.");
+        var effectAccumulator = effectsController.NestedTypes.Single(type =>
+            type.Name == "EffectAccumulator");
+        var bloodOnScreen = eft.MainModule.GetType("BloodOnScreen")
+                            ?? throw new InvalidOperationException(
+                                "Installed EFT BloodOnScreen type is missing.");
+        var bloodDropsController = eft.MainModule.GetType("BloodDropsController")
+                                   ?? throw new InvalidOperationException(
+                                       "Installed EFT BloodDropsController type is missing.");
+        Assert(effectsController.Fields.Any(field =>
+                   field.Name == "player" && field.FieldType.FullName == "EFT.Player")
+               && effectsController.Fields.Any(field =>
+                   field.Name == "_effectAccumulators"
+                   && field.FieldType.FullName
+                   == "System.Collections.Generic.List`1<EffectsController/EffectAccumulator>")
+               && effectAccumulator.Fields.Any(field =>
+                   field.Name == "ActiveEffects"
+                   && field.FieldType.FullName
+                   == "System.Collections.Generic.List`1<EFT.HealthSystem.IHealthEffect>")
+               && effectAccumulator.Methods.Any(method =>
+                   method.Name == "DeleteEffect"
+                   && method.IsPublic
+                   && method.IsVirtual
+                   && method.Parameters.Count == 1
+                   && method.Parameters[0].ParameterType.FullName
+                   == "EFT.HealthSystem.IHealthEffect"),
+            "installed EFT exposes the exact bound-player and native visual-effect deletion contract");
+        Assert(bloodOnScreen.Fields.Any(field =>
+                   field.Name == "_bloodDropsController"
+                   && field.FieldType.FullName == "BloodDropsController")
+               && bloodOnScreen.Fields.Any(field =>
+                   field.Name == "_duDvMap"
+                   && field.FieldType.FullName == "UnityEngine.RenderTexture")
+               && bloodOnScreen.Fields.Any(field =>
+                   field.Name == "_lastHitTime"
+                   && field.FieldType.FullName == "System.Single")
+               && bloodOnScreen.Fields.Any(field =>
+                   field.Name == "_lastHeavyBleedingHitTime"
+                   && field.FieldType.FullName == "System.Single")
+               && bloodOnScreen.Fields.Any(field =>
+                   field.Name == "_locked"
+                   && field.FieldType.FullName == "System.Boolean")
+               && bloodDropsController.Fields.Any(field => field.Name == "_dropsToRender")
+               && bloodDropsController.Fields.Any(field => field.Name == "_freeDrops")
+               && bloodDropsController.Fields.Any(field =>
+                   field.Name == "_dropsTex"
+                   && field.FieldType.FullName == "UnityEngine.RenderTexture"),
+            "installed EFT exposes the reversible blood-overlay queue, texture and timing contract");
         Assert(eftPlayer.Methods.Any(method =>
                    method.Name == "ApplyDamageInfo"
                    && method.IsPublic

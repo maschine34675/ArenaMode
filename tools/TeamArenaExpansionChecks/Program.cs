@@ -142,6 +142,7 @@ internal static class Program
     {
         string root = FindRepositoryRoot();
         string service = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorService.cs");
+        string healthEffects = Read(root, "ArenaMode.Client", "Spectator", "SpectatorHealthEffects.cs");
         string cameraPatch = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorCameraPatches.cs");
         string killcam = Read(root, "ArenaMode.Client", "Spectator", "KillcamReplayCompat.cs");
         string freecam = Read(root, "ArenaMode.Client", "Spectator", "TerkoizFreecamProbe.cs");
@@ -182,6 +183,63 @@ internal static class Program
         Assert(service.IndexOf("_ownsCamera = false", StringComparison.Ordinal)
                < service.IndexOf("Application.onBeforeRender -= ApplyRenderPose", StringComparison.Ordinal),
             "synchronous teardown drops patch ownership before releasing callbacks");
+        RequireAll(healthEffects,
+            "!ArenaSession.IsActive || !PitFireTeamCompat.TeamArenaActive",
+            "expectedDeadPlayer.HealthController?.IsAlive != false",
+            "ReferenceEquals(BoundPlayerField.GetValue(controller), expectedDeadPlayer)",
+            "List<EffectsController.EffectAccumulator>",
+            "accumulator.DeleteEffect(accumulator.ActiveEffects[0])",
+            "accumulator.ActiveEffects.Count >= before",
+            "wiggle._stimulatorBuffs?.Clear()",
+            "motionBlur._stimulatorBuffs?.Clear()",
+            "flash._indoorEffects?.Clear()",
+            "Shader.SetGlobalFloat(\"_BlindnessCoef\", 0f)",
+            "blend.Toggle(false)",
+            "frostbite._effect.Radius = 1f",
+            "sharpen.HealthDesaturate = 0f",
+            "sharpen.MaskDesaturate = 0f",
+            "provider.HealthDesaturate = 0f",
+            "eyeBurn.enabled = false",
+            "drops._freeDrops.Enqueue(drops._dropsToRender.Dequeue())",
+            "ClearRenderTexture(BloodTextureField.GetValue(blood) as RenderTexture)",
+            "LastBloodHitField.SetValue(blood, float.MinValue)",
+            "LastHeavyBleedHitField.SetValue(blood, float.MinValue)",
+            "BloodLockedField.SetValue(blood, false)",
+            "GL.Clear(clearDepth: true, clearColor: true, Color.black)",
+            "DeathEffectsHelper.ClearDeathScreenEffects()");
+        RequireAll(healthEffects,
+            "_automaticAttempts >= 2",
+            "_automaticAttempts++",
+            "if (!force)",
+            "allocation-free for the rest");
+        Assert(!healthEffects.Contains("RemoveNegativeEffects", StringComparison.Ordinal)
+               && !healthEffects.Contains("PauseAllEffects", StringComparison.Ordinal)
+               && !healthEffects.Contains(".ActiveEffects.Clear(", StringComparison.Ordinal)
+               && !healthEffects.Contains("Object.Destroy", StringComparison.Ordinal)
+               && !healthEffects.Contains("Destroy(controller", StringComparison.Ordinal),
+            "spectator cleanup changes only first-person presentation and neither health state nor persistent camera components");
+        string requestStart = Slice(
+            service,
+            "internal static bool RequestStart(",
+            "internal static void Tick()");
+        Assert(requestStart.IndexOf("Stop(\"superseded spectator request\")", StringComparison.Ordinal)
+               < requestStart.IndexOf("SpectatorHealthEffects.ClearForDeadLocal(request.DeadPlayer)", StringComparison.Ordinal)
+               && requestStart.IndexOf("SpectatorHealthEffects.ClearForDeadLocal(request.DeadPlayer)", StringComparison.Ordinal)
+               < requestStart.IndexOf("Arena spectator pending for epoch", StringComparison.Ordinal),
+            "an accepted exact-body lease clears health visuals before Killcam's delayed playback can begin");
+        string spectatorTick = Slice(
+            service,
+            "private static void TickUnsafe()",
+            "internal static void Stop(string reason)");
+        RequireAll(spectatorTick,
+            "SpectatorHealthEffects.ClearForDeadLocal(_request.DeadPlayer)");
+        string startFollowing = Slice(
+            service,
+            "private static void StartFollowing()",
+            "private static bool TryValidateLease(");
+        RequireAll(startFollowing,
+            "DeathEffectsHelper.ClearDeathScreenEffects()",
+            "SpectatorHealthEffects.ClearForDeadLocal(_request.DeadPlayer, force: true)");
 
         RequireAll(cameraPatch,
             "nameof(CameraManager.ForceSetPosition)",

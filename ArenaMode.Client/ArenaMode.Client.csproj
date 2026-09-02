@@ -48,6 +48,7 @@
     <Reference Include="spt-common" />
     <Reference Include="spt-reflection" />
     <Reference Include="Assembly-CSharp" />
+    <Reference Include="Assembly-CSharp-firstpass" />
     <Reference Include="Comfort" />
     <Reference Include="Comfort.Unity" />
     <Reference Include="ItemComponent.Types" />
