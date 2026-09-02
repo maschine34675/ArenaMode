@@ -8,5 +8,7 @@
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Spectator/SpectatorPolicy.cs"
              Link="Production/SpectatorPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamArenaRoundPolicy.cs"
+             Link="Production/TeamArenaRoundPolicy.cs" />
   </ItemGroup>
 </Project>

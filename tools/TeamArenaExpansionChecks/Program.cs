@@ -1,4 +1,5 @@
 using ArenaMode.Spectator;
+using ArenaMode.Modes;
 
 internal static class Program
 {
@@ -11,6 +12,7 @@ internal static class Program
             CheckFrozenRosterPolicy();
             CheckStartPolicy();
             CheckTargetCycling();
+            CheckRoundContinuation();
             CheckSourceContract();
             Console.WriteLine($"TEAM_ARENA_EXPANSION_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -93,6 +95,47 @@ internal static class Program
             "a missing current target recovers at the first living participant");
         Assert(SpectatorPolicy.CycleIndex(0, 0, 1) == -1,
             "an empty target set cannot produce an index");
+    }
+
+    private static void CheckRoundContinuation()
+    {
+        TeamArenaRoundDecision firstWin = TeamArenaRoundPolicy.Evaluate(
+            won: true,
+            roundsWon: 0,
+            roundsLost: 0,
+            roundsToWin: 3);
+        Assert(firstWin.RoundsWon == 1
+               && firstWin.RoundsLost == 0
+               && firstWin.Continuation == TeamArenaRoundContinuation.RebindNextRound,
+            "the first best-of-five win advances to another round");
+
+        TeamArenaRoundDecision matchWin = TeamArenaRoundPolicy.Evaluate(true, 2, 1, 3);
+        Assert(matchWin.RoundsWon == 3
+               && matchWin.Continuation == TeamArenaRoundContinuation.EndMatchWon,
+            "the configured third win completes the match");
+
+        TeamArenaRoundDecision matchLoss = TeamArenaRoundPolicy.Evaluate(false, 2, 2, 3);
+        Assert(matchLoss.RoundsLost == 3
+               && matchLoss.Continuation == TeamArenaRoundContinuation.EndMatchLost,
+            "the configured third loss completes the match");
+
+        TeamArenaRoundDecision noContest = TeamArenaRoundPolicy.Evaluate(null, 1, 1, 3);
+        Assert(noContest.RoundsWon == 1
+               && noContest.RoundsLost == 1
+               && noContest.Continuation == TeamArenaRoundContinuation.EndNoContest,
+            "a technical no-contest preserves the score and ends the protected match");
+
+        bool rejected = false;
+        try
+        {
+            TeamArenaRoundPolicy.Evaluate(true, 0, 0, 0);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            rejected = true;
+        }
+
+        Assert(rejected, "an invalid rounds-to-win setting fails closed");
     }
 
     private static void CheckSourceContract()
