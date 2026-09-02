@@ -4,3 +4,5 @@ build/
 .vs/
 *.user
 artifacts/
+.unlazy/
+.unlazy-hook-state.json
