@@ -1738,7 +1738,7 @@ public sealed class TacticalMode : IArenaMode
                 TeamLifecycleTimeout,
                 out string teardownProblem))
         {
-            FailTeamTransition("PitFireTeam old-round teardown failed: " + teardownProblem);
+            FailTeamTransition(teardownProblem);
             return;
         }
 

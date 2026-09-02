@@ -47,6 +47,8 @@ internal static class PitFireTeamRoundLifecycle
     private const string BotsPatchTypeName = "pitTeam.Patches.BotsControllerPatch";
     private const string ManualUpdatePatchTypeName = "pitTeam.Patches.BotOwnerManualUpdatePatch";
     private const string ActivateBotAtPositionMethodName = "ActivateBotAtPosition";
+    private const string FollowersFieldName = "_followers";
+    private const string FollowersByProfileIdFieldName = "_followersByProfileId";
     private const string ShallBeFollowerFieldName = "_shallBeFollower";
     private const string ManualUpdateFieldName = "BotOwnerUpdate";
 
@@ -79,6 +81,8 @@ internal static class PitFireTeamRoundLifecycle
     private static MethodInfo _getFollowerBossMethod;
     private static MethodInfo _dismissFollowerMethod;
     private static MethodInfo _unhookFollowerDeathMethod;
+    private static FieldInfo _followersField;
+    private static FieldInfo _followersByProfileIdField;
     private static FieldInfo _bossRealPlayerField;
     private static PropertyInfo _bossFollowersProperty;
     private static PropertyInfo _bossGroupProperty;
@@ -452,6 +456,8 @@ internal static class PitFireTeamRoundLifecycle
             _lastStableFollowers.Clear();
             _stableFollowerPasses = 0;
 
+            string teardownStep = "resolve the old PFT boss";
+            string teardownProfileId = oldLeader.ProfileId;
             try
             {
                 object oldBoss = _getBossMethod.Invoke(null, new object[] { oldLeader.ProfileId });
@@ -463,6 +469,7 @@ internal static class PitFireTeamRoundLifecycle
                 }
 
                 _oldBoss = oldBoss;
+                teardownStep = "validate the old boss follower list";
                 if (_bossFollowersProperty.GetValue(oldBoss) is not IEnumerable bossFollowers)
                     throw new InvalidOperationException("PFT old boss follower list is unavailable");
                 foreach (object follower in bossFollowers)
@@ -475,37 +482,83 @@ internal static class PitFireTeamRoundLifecycle
                     }
                 }
 
+                teardownStep = "read the old PFT follower wrappers";
                 List<object> wrappers = ReadFollowerWrappersUnsafe()
                     .Where(wrapper => ReferenceEquals(
                         _getFollowerBossMethod.Invoke(wrapper, null),
                         oldBoss))
                     .ToList();
 
+                if (wrappers.Count != oldBodies.Count)
+                {
+                    throw new InvalidOperationException(
+                        $"PFT exposed {wrappers.Count}/4 wrappers for the frozen old follower roster");
+                }
+
+                HashSet<BotOwner> wrappedBodies =
+                    new(ReferenceEqualityComparer<BotOwner>.Instance);
                 foreach (object wrapper in wrappers)
                 {
                     BotOwner bot = _getFollowerBotMethod.Invoke(wrapper, null) as BotOwner;
+                    teardownProfileId = bot?.ProfileId ?? oldLeader.ProfileId;
                     if (ReferenceEquals(bot, null)
-                        || !oldBodies.Any(expected => ReferenceEquals(expected, bot)))
+                        || !oldBodies.Any(expected => ReferenceEquals(expected, bot))
+                        || !wrappedBodies.Add(bot))
                     {
                         throw new InvalidOperationException(
-                            "PFT's old boss owns a wrapper outside the frozen four-body roster");
+                            "PFT's old boss owns a missing, duplicate or foreign wrapper body");
                     }
+                }
+                if (oldBodies.Any(body => !wrappedBodies.Contains(body)))
+                {
+                    throw new InvalidOperationException(
+                        "PFT did not expose one exact wrapper for every frozen old follower body");
+                }
+
+                object bossPlayers = _bossPlayersInstanceProperty.GetValue(null)
+                                     ?? throw new InvalidOperationException("PFT BossPlayers.Instance is unavailable");
+                teardownStep = "validate the old PFT follower registry";
+                foreach (object wrapper in wrappers)
+                {
+                    BotOwner bot = (BotOwner)_getFollowerBotMethod.Invoke(wrapper, null);
+                    teardownProfileId = bot.ProfileId;
+                    ValidateFollowerRegistryEntryUnsafe(bossPlayers, wrapper, bot);
                 }
 
                 // Unhook every known body first. Dead wrappers can already be absent
                 // from boss.Followers while their delegate remains in the boss map.
                 foreach (BotOwner bot in oldBodies)
+                {
+                    teardownStep = "unhook the old follower death handler";
+                    teardownProfileId = bot.ProfileId;
                     _unhookFollowerDeathMethod.Invoke(oldBoss, new object[] { bot });
+                }
 
-                // Dismiss before list removal so PFT/SAIN lifecycle cleanup still
-                // sees the wrapper's original leader and bot.
+                // PFT's public per-follower remover assumes BotFollower still exists.
+                // EFT nulls it while disposing a dead bot, but PFT retains that bot's
+                // wrapper and profile index. Use PFT's normal path for live wrappers;
+                // prune an already disposed wrapper from the exact validated stores.
+                // Dismiss always follows unlinking, matching PFT's own boss teardown.
                 foreach (object wrapper in wrappers)
                 {
                     BotOwner bot = (BotOwner)_getFollowerBotMethod.Invoke(wrapper, null);
-                    _dismissFollowerMethod.Invoke(wrapper, new object[] { false });
-                    _removeFollowerMethod.Invoke(null, new object[] { bot, oldBoss });
+                    teardownStep = "detach the old follower wrapper";
+                    teardownProfileId = bot.ProfileId;
+                    DetachFollowerWrapperUnsafe(bossPlayers, oldBoss, wrapper, bot);
                 }
 
+                teardownStep = "remove the old PFT boss";
+                teardownProfileId = oldLeader.ProfileId;
+                if (_removeBossPlayerMethod.Invoke(
+                        bossPlayers,
+                        new object[] { oldLeader.ProfileId, false }) is not bool removed
+                    || !removed)
+                {
+                    throw new InvalidOperationException(
+                        "PFT did not remove the old boss with died=false");
+                }
+
+                teardownStep = "verify the old PFT ownership was removed";
                 int survivingWrappers = ReadFollowerWrappersUnsafe().Count(wrapper =>
                     ReferenceEquals(_getFollowerBossMethod.Invoke(wrapper, null), oldBoss));
                 if (survivingWrappers != 0)
@@ -521,21 +574,17 @@ internal static class PitFireTeamRoundLifecycle
                         "PFT retained physical followers on the old boss after explicit removal");
                 }
 
-                object bossPlayers = _bossPlayersInstanceProperty.GetValue(null);
-                if (bossPlayers == null
-                    || _removeBossPlayerMethod.Invoke(
-                        bossPlayers,
-                        new object[] { oldLeader.ProfileId, false }) is not bool removed
-                    || !removed
-                    || _getBossMethod.Invoke(null, new object[] { oldLeader.ProfileId }) != null)
+                if (_getBossMethod.Invoke(null, new object[] { oldLeader.ProfileId }) != null)
                 {
                     throw new InvalidOperationException(
-                        "PFT did not remove the old boss with died=false");
+                        "PFT retained the old boss after removal with died=false");
                 }
 
                 _retiringBodies = oldBodies;
                 foreach (BotOwner bot in _retiringBodies)
                 {
+                    teardownStep = "retire a surviving old follower body";
+                    teardownProfileId = bot.ProfileId;
                     var health = bot?.GetPlayer?.ActiveHealthController;
                     if (health != null && health.IsAlive)
                         health.Kill(EDamageType.Undefined);
@@ -547,7 +596,10 @@ internal static class PitFireTeamRoundLifecycle
             }
             catch (Exception ex)
             {
-                reason = "PFT old-round teardown failed: " + ex.GetBaseException().Message;
+                Exception root = ex.GetBaseException();
+                reason = $"PFT old-round teardown failed during {teardownStep} for {teardownProfileId}: "
+                         + $"{root.GetType().Name}: {root.Message}";
+                Plugin.ModLogger.LogError($"Arena {reason}\n{ex}");
                 FailUnsafe(reason);
                 return false;
             }
@@ -1553,6 +1605,16 @@ internal static class PitFireTeamRoundLifecycle
             BindingFlags.NonPublic | BindingFlags.Instance,
             typeof(void),
             typeof(BotOwner));
+        _followersField = RequireField(
+            _bossPlayersType,
+            FollowersFieldName,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(List<>).MakeGenericType(_followerType));
+        _followersByProfileIdField = RequireField(
+            _bossPlayersType,
+            FollowersByProfileIdFieldName,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(Dictionary<,>).MakeGenericType(typeof(string), _followerType));
         _bossRealPlayerField = RequireField(
             _bossType,
             "realPlayer",
@@ -3125,6 +3187,151 @@ internal static class PitFireTeamRoundLifecycle
         }
     }
 
+    private static void ValidateFollowerRegistryEntryUnsafe(
+        object bossPlayers,
+        object wrapper,
+        BotOwner bot)
+    {
+        if (bossPlayers == null
+            || wrapper == null
+            || !_followerType.IsInstanceOfType(wrapper)
+            || ReferenceEquals(bot, null)
+            || string.IsNullOrWhiteSpace(bot.ProfileId))
+        {
+            throw new InvalidOperationException(
+                "PFT follower registry validation received an incomplete wrapper identity");
+        }
+
+        if (_followersField.GetValue(bossPlayers) is not IList followers)
+            throw new InvalidOperationException("PFT _followers registry is unavailable");
+        if (_followersByProfileIdField.GetValue(bossPlayers) is not IDictionary followersByProfileId)
+            throw new InvalidOperationException("PFT _followersByProfileId registry is unavailable");
+        if (!PitFireTeamFollowerDetachPolicy.TryValidateRegistryEntry(
+                followers,
+                followersByProfileId,
+                wrapper,
+                bot.ProfileId,
+                out string registryProblem))
+        {
+            throw new InvalidOperationException(registryProblem);
+        }
+    }
+
+    private static void DetachFollowerWrapperUnsafe(
+        object bossPlayers,
+        object boss,
+        object wrapper,
+        BotOwner bot)
+    {
+        ValidateFollowerRegistryEntryUnsafe(bossPlayers, wrapper, bot);
+
+        // PFT 0.10.0's RemoveBotFollower performs the complete live unlink but
+        // unconditionally dereferences BotFollower at its final step. EFT sets
+        // BotFollower to null while disposing a dead bot, before PFT releases
+        // that bot's wrapper. Mirror the remaining registry and boss-list
+        // removals for that disposed state without touching the missing component.
+        if (_followersField.GetValue(bossPlayers) is not IList followers)
+            throw new InvalidOperationException("PFT _followers registry is unavailable during unlink");
+        if (_followersByProfileIdField.GetValue(bossPlayers) is not IDictionary followersByProfileId)
+            throw new InvalidOperationException("PFT _followersByProfileId registry is unavailable during unlink");
+        if (_bossFollowersProperty.GetValue(boss) is not IList bossFollowers)
+            throw new InvalidOperationException("PFT boss follower list is unavailable during unlink");
+
+        bool nativeFollowerAvailable = bot.BotFollower != null;
+        var health = bot.GetPlayer?.HealthController;
+        PitFireTeamFollowerDetachDecision decision = PitFireTeamFollowerDetachPolicy.Classify(
+            nativeFollowerAvailable,
+            bot.IsDead,
+            bot.BotState == EBotState.Active,
+            health != null,
+            health?.IsAlive == true);
+        if (decision == PitFireTeamFollowerDetachDecision.Invalid)
+        {
+            throw new InvalidOperationException(
+                $"PFT follower {bot.ProfileId} has an unsafe teardown state "
+                + $"(nativeFollower={nativeFollowerAvailable}, dead={bot.IsDead}, "
+                + $"botState={bot.BotState}, healthReadable={health != null}, alive={health?.IsAlive == true})");
+        }
+
+        if (decision == PitFireTeamFollowerDetachDecision.Native
+            && (!bot.BotFollower.HaveBoss
+                || !ReferenceEquals(bot.BotFollower.BossToFollow, boss)))
+        {
+            throw new InvalidOperationException(
+                $"active PFT follower {bot.ProfileId} is not bound to the exact old boss");
+        }
+        if (decision == PitFireTeamFollowerDetachDecision.Native
+            && (_bossGroupProperty.GetValue(boss) is not BotsGroup activeBossGroup
+                || !activeBossGroup.Contains(bot)))
+        {
+            throw new InvalidOperationException(
+                $"active PFT follower {bot.ProfileId} is not in the exact old boss group");
+        }
+        if (decision == PitFireTeamFollowerDetachDecision.Native
+            && bossFollowers.Cast<object>().Count(candidate => ReferenceEquals(candidate, bot)) != 1)
+        {
+            throw new InvalidOperationException(
+                $"active PFT follower {bot.ProfileId} is not present exactly once on the old boss");
+        }
+        if (decision == PitFireTeamFollowerDetachDecision.Disposed
+            && _bossGroupProperty.GetValue(boss) is BotsGroup disposedBossGroup
+            && disposedBossGroup.Contains(bot))
+        {
+            // The ordinary EFT death path removes group membership before it
+            // disposes BotFollower. Calling RemoveAlly on a partially disposed
+            // group can dereference other stale members, so fail before changing
+            // PFT's registries if that native ordering was not observed.
+            throw new InvalidOperationException(
+                $"disposed PFT follower {bot.ProfileId} is still in the old boss group");
+        }
+
+        if (decision == PitFireTeamFollowerDetachDecision.Native)
+        {
+            _removeFollowerMethod.Invoke(null, new object[] { bot, boss });
+        }
+        else
+        {
+            if (!PitFireTeamFollowerDetachPolicy.TryUnlinkDisposed(
+                    followers,
+                    followersByProfileId,
+                    bossFollowers,
+                    wrapper,
+                    bot,
+                    bot.ProfileId,
+                    out string unlinkProblem))
+            {
+                throw new InvalidOperationException(unlinkProblem);
+            }
+        }
+
+        _dismissFollowerMethod.Invoke(wrapper, new object[] { false });
+
+        if (_followersField.GetValue(bossPlayers) is not IList remainingFollowers
+            || remainingFollowers.Cast<object>().Any(candidate => ReferenceEquals(candidate, wrapper)))
+        {
+            throw new InvalidOperationException(
+                $"PFT retained the detached wrapper for {bot.ProfileId}");
+        }
+        if (_followersByProfileIdField.GetValue(bossPlayers) is not IDictionary remainingByProfileId
+            || remainingByProfileId.Contains(bot.ProfileId))
+        {
+            throw new InvalidOperationException(
+                $"PFT retained the detached profile index for {bot.ProfileId}");
+        }
+        if (_bossFollowersProperty.GetValue(boss) is not IEnumerable remainingBossFollowers
+            || remainingBossFollowers.Cast<object>().Any(candidate => ReferenceEquals(candidate, bot)))
+        {
+            throw new InvalidOperationException(
+                $"PFT retained the detached physical follower {bot.ProfileId}");
+        }
+        if (_bossGroupProperty.GetValue(boss) is BotsGroup remainingBossGroup
+            && remainingBossGroup.Contains(bot))
+        {
+            throw new InvalidOperationException(
+                $"PFT retained {bot.ProfileId} in the old boss group");
+        }
+    }
+
     private static void CleanupRuntimeProfilesUnsafe(
         IEnumerable<string> profileIds,
         FollowerSpawnLease lease,
@@ -3195,13 +3402,15 @@ internal static class PitFireTeamRoundLifecycle
 
                     try
                     {
-                        _dismissFollowerMethod.Invoke(wrapper, new object[] { false });
-                        _removeFollowerMethod.Invoke(null, new[] { bot, boss });
+                        object bossPlayers = _bossPlayersInstanceProperty.GetValue(null)
+                                             ?? throw new InvalidOperationException(
+                                                 "PFT BossPlayers.Instance is unavailable");
+                        DetachFollowerWrapperUnsafe(bossPlayers, boss, wrapper, bot);
                     }
                     catch (Exception ex)
                     {
                         Plugin.ModLogger.LogError(
-                            $"Arena could not remove revoked PFT wrapper {bot.ProfileId}: {ex.GetBaseException().Message}");
+                            $"Arena could not remove revoked PFT wrapper {bot.ProfileId}:\n{ex}");
                     }
                 }
             }
@@ -3729,6 +3938,8 @@ internal static class PitFireTeamRoundLifecycle
         _getFollowerBossMethod = null;
         _dismissFollowerMethod = null;
         _unhookFollowerDeathMethod = null;
+        _followersField = null;
+        _followersByProfileIdField = null;
         _bossRealPlayerField = null;
         _bossGroupProperty = null;
         _bossFollowersProperty = null;

@@ -1280,12 +1280,16 @@ internal static class Program
                            ?? throw new InvalidOperationException("Installed PFT follower-wrapper type is missing.");
         var bossPlayerType = pit.MainModule.GetType("pitTeam.Components.pitAIBossPlayer")
                              ?? throw new InvalidOperationException("Installed PFT player-boss type is missing.");
+        var bossPlayersType = pit.MainModule.GetType("pitTeam.Modules.BossPlayers")
+                              ?? throw new InvalidOperationException("Installed PFT BossPlayers type is missing.");
         var getBot = followerType.Methods.Single(method => method.Name == "GetBot" && method.Parameters.Count == 0);
         var getBoss = followerType.Methods.Single(method => method.Name == "GetBoss" && method.Parameters.Count == 0);
         var realPlayer = bossPlayerType.Fields.Single(field => field.Name == "realPlayer");
-        var getFollowers = pit.MainModule.GetType("pitTeam.Modules.BossPlayers")?.Methods.Single(method =>
-            method.Name == "GetFollowers" && method.Parameters.Count == 0)
-            ?? throw new InvalidOperationException("Installed PFT global follower accessor is missing.");
+        var getFollowers = bossPlayersType.Methods.Single(method =>
+            method.Name == "GetFollowers" && method.Parameters.Count == 0);
+        var followersField = bossPlayersType.Fields.Single(field => field.Name == "_followers");
+        var followersByProfileIdField = bossPlayersType.Fields.Single(field =>
+            field.Name == "_followersByProfileId");
         Assert(getBot.IsPublic && !getBot.IsStatic
                && getBot.ReturnType.FullName == "EFT.BotOwner"
                && getBoss.IsPublic && !getBoss.IsStatic
@@ -1297,6 +1301,18 @@ internal static class Program
                && followerList.GenericArguments.Count == 1
                && followerList.GenericArguments[0].FullName == followerType.FullName,
             "installed PFT exposes the exact follower-to-leader-wrapper and readonly real-player contract");
+        Assert(followersField.IsPrivate
+               && followersField.FieldType is GenericInstanceType installedFollowerList
+               && installedFollowerList.ElementType.FullName == "System.Collections.Generic.List`1"
+               && installedFollowerList.GenericArguments.Count == 1
+               && installedFollowerList.GenericArguments[0].FullName == followerType.FullName
+               && followersByProfileIdField.IsPrivate
+               && followersByProfileIdField.FieldType is GenericInstanceType installedFollowerIndex
+               && installedFollowerIndex.ElementType.FullName == "System.Collections.Generic.Dictionary`2"
+               && installedFollowerIndex.GenericArguments.Count == 2
+               && installedFollowerIndex.GenericArguments[0].FullName == "System.String"
+               && installedFollowerIndex.GenericArguments[1].FullName == followerType.FullName,
+            "installed PFT exposes the exact private follower stores required for disposed-wrapper teardown");
 
         var raidPlayer = eft.MainModule.GetType("EFT.UI.Matchmaker.RaidPlayer")
                          ?? throw new InvalidOperationException("Installed EFT RaidPlayer type is missing.");

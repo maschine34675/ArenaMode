@@ -1,3 +1,4 @@
+using System.Collections;
 using ArenaMode.Compat;
 
 internal static class Program
@@ -13,6 +14,7 @@ internal static class Program
             CheckFreshIdentityRemap();
             CheckFollowerBarrier();
             CheckCapability();
+            CheckFollowerDetachPolicy();
             CheckSourceContract();
             Console.WriteLine($"PITFIRETEAM_ROUND_LIFECYCLE_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -206,6 +208,100 @@ internal static class Program
             "missing fresh-ID remap fails closed instead of exposing a partial capability");
     }
 
+    private static void CheckFollowerDetachPolicy()
+    {
+        Assert(PitFireTeamFollowerDetachPolicy.Classify(
+                   nativeFollowerAvailable: true,
+                   isDead: false,
+                   botStateActive: true,
+                   healthReadable: true,
+                   healthAlive: true)
+               == PitFireTeamFollowerDetachDecision.Native,
+            "a fully live native follower uses PFT's own removal path");
+        Assert(PitFireTeamFollowerDetachPolicy.Classify(
+                   nativeFollowerAvailable: false,
+                   isDead: true,
+                   botStateActive: false,
+                   healthReadable: true,
+                   healthAlive: false)
+               == PitFireTeamFollowerDetachDecision.Disposed,
+            "a fully disposed follower uses exact registry unlinking");
+
+        var unsafeStates = new[]
+        {
+            PitFireTeamFollowerDetachPolicy.Classify(false, false, true, true, true),
+            PitFireTeamFollowerDetachPolicy.Classify(true, true, false, true, false),
+            PitFireTeamFollowerDetachPolicy.Classify(false, true, false, false, false),
+            PitFireTeamFollowerDetachPolicy.Classify(false, false, false, true, false),
+            PitFireTeamFollowerDetachPolicy.Classify(true, false, true, true, false)
+        };
+        Assert(unsafeStates.All(decision => decision == PitFireTeamFollowerDetachDecision.Invalid),
+            "mixed, unreadable and active-without-BotFollower states fail closed before mutation");
+
+        object wrapper = new();
+        object body = new();
+        object unrelatedWrapper = new();
+        object unrelatedBody = new();
+        var followers = new ArrayList { unrelatedWrapper, wrapper };
+        var followersByProfileId = new Hashtable
+        {
+            ["unrelated"] = unrelatedWrapper,
+            ["disposed"] = wrapper
+        };
+        var bossFollowers = new ArrayList { unrelatedBody, body };
+        Assert(PitFireTeamFollowerDetachPolicy.TryUnlinkDisposed(
+                followers,
+                followersByProfileId,
+                bossFollowers,
+                wrapper,
+                body,
+                "disposed",
+                out string unlinkProblem)
+               && unlinkProblem.Length == 0,
+            "disposed-wrapper unlink succeeds for one exact wrapper/index/body binding");
+        Assert(followers.Count == 1
+               && ReferenceEquals(followers[0], unrelatedWrapper)
+               && followersByProfileId.Count == 1
+               && ReferenceEquals(followersByProfileId["unrelated"], unrelatedWrapper)
+               && bossFollowers.Count == 1
+               && ReferenceEquals(bossFollowers[0], unrelatedBody),
+            "disposed-wrapper unlink removes only exact target references and preserves unrelated state");
+
+        object duplicateWrapper = new();
+        var duplicateFollowers = new ArrayList { duplicateWrapper, duplicateWrapper };
+        var duplicateIndex = new Hashtable { ["duplicate"] = duplicateWrapper };
+        var duplicateBossFollowers = new ArrayList();
+        Assert(!PitFireTeamFollowerDetachPolicy.TryUnlinkDisposed(
+                   duplicateFollowers,
+                   duplicateIndex,
+                   duplicateBossFollowers,
+                   duplicateWrapper,
+                   new object(),
+                   "duplicate",
+                   out string duplicateProblem)
+               && duplicateProblem.Contains("2 exact wrappers", StringComparison.Ordinal)
+               && duplicateFollowers.Count == 2
+               && duplicateIndex.Contains("duplicate"),
+            "duplicate wrapper state is rejected without a partial registry mutation");
+
+        object indexedWrapper = new();
+        var mismatchedFollowers = new ArrayList { indexedWrapper };
+        var mismatchedIndex = new Hashtable { ["mismatch"] = new object() };
+        var mismatchedBossFollowers = new ArrayList();
+        Assert(!PitFireTeamFollowerDetachPolicy.TryUnlinkDisposed(
+                   mismatchedFollowers,
+                   mismatchedIndex,
+                   mismatchedBossFollowers,
+                   indexedWrapper,
+                   new object(),
+                   "mismatch",
+                   out string mismatchProblem)
+               && mismatchProblem.Contains("exact wrapper", StringComparison.Ordinal)
+               && mismatchedFollowers.Count == 1
+               && mismatchedIndex.Contains("mismatch"),
+            "a mismatched profile index is rejected before either PFT store changes");
+    }
+
     private static void CheckSourceContract()
     {
         string root = FindRepositoryRoot();
@@ -219,6 +315,11 @@ internal static class Program
             "ArenaMode.Client",
             "Compat",
             "PitFireTeamCompat.cs"));
+        string tacticalSource = File.ReadAllText(Path.Combine(
+            root,
+            "ArenaMode.Client",
+            "Modes",
+            "TacticalMode.cs"));
         string pitFireTeamSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
             root,
             "..",
@@ -227,11 +328,38 @@ internal static class Program
             "client",
             "Patches",
             "BotsControllerPatch.cs")));
+        string pitFireTeamBossPlayersSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_reference",
+            "SPT-PitFireTeam-main",
+            "client",
+            "Modules",
+            "BossPlayers.cs")));
+        string pitFireTeamFollowerSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_reference",
+            "SPT-PitFireTeam-main",
+            "client",
+            "Components",
+            "BotFollowerPlayer.cs")));
         string botCreationDataSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
             root,
             "..",
             "_decompiled",
             "BotCreationData.cs")));
+        string botOwnerSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "EFT",
+            "BotOwner.cs")));
+        string botFollowerSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
+            root,
+            "..",
+            "_decompiled",
+            "BotFollower.cs")));
         string localGameSource = File.ReadAllText(Path.GetFullPath(Path.Combine(
             root,
             "..",
@@ -365,7 +493,7 @@ internal static class Program
             "_manualUpdateField?.GetValue(null) is IDictionary manualUpdates",
             "_shallBeFollowerField?.GetValue(bossPlayers) is IList shallBeFollower",
             "_dismissFollowerMethod.Invoke(wrapper, new object[] { false })",
-            "_removeFollowerMethod.Invoke(null, new[] { bot, boss })",
+            "_removeFollowerMethod.Invoke(null, new object[] { bot, boss })",
             "bot.LeaveData.RemoveFromMap()",
             "world.UnregisterPlayer(player)",
             "controller.DestroyInfo(player)",
@@ -417,6 +545,147 @@ internal static class Program
             "value.Dispose();",
             "AssetPoolObject.ReturnToPool(value.gameObject);",
             "players.Clear();");
+
+        string botOwnerDeath = Slice(
+            botOwnerSource,
+            "public void OnDied(EDamageType damageType)",
+            "public void Dispose()");
+        RequireOrder(
+            botOwnerDeath,
+            "SPT reports a bot death, disposes the BotOwner, then invokes its late death callback",
+            "BotsController.BotDied(this);",
+            "Dispose();",
+            "IsDead = true;",
+            "_botDiedCallback(this);");
+        string botOwnerDispose = Slice(
+            botOwnerSource,
+            "public void Dispose()",
+            "public bool IsRole(");
+        Assert(botOwnerDispose.Contains("BotFollower = null;", StringComparison.Ordinal),
+            "SPT BotOwner disposal destroys the BotFollower component before late death callbacks finish");
+
+        string pftRemoveFollower = Slice(
+            pitFireTeamBossPlayersSource,
+            "private void RemoveBotFollower(BotOwner bot, pitAIBossPlayer player)",
+            "public BotFollowerPlayer GetFollower(BotOwner bot)");
+        RequireOrder(
+            pftRemoveFollower,
+            "PFT 0.10.0 removes its wrapper and ownership lists before dereferencing BotFollower",
+            "_followers.Remove(_follower);",
+            "_followersByProfileId.Remove(bot.ProfileId);",
+            "player.RemoveFollower(bot);",
+            "bot.BotFollower.BossToFollow = null;");
+
+        string pftRemoveBoss = Slice(
+            pitFireTeamBossPlayersSource,
+            "private bool RemoveBossPlayer(string name, bool died = false)",
+            "private void Destroy()");
+        RequireOrder(
+            pftRemoveBoss,
+            "PFT 0.10.0 removes follower registries before dismissing their wrappers",
+            "_followers.Remove(_follower);",
+            "_followersByProfileId.Remove(followerBot.ProfileId);",
+            "_follower.Dismiss();",
+            "boss.Followers.Clear();",
+            "boss.DisposeBoss();");
+
+        string nativeFollowerDispose = SliceToEnd(
+            botFollowerSource,
+            "public virtual bool Dispose()");
+        RequireOrder(
+            nativeFollowerDispose,
+            "SPT BotFollower disposal removes its owner from the boss before clearing BossToFollow",
+            "BossToFollow.RemoveFollower(_owner);",
+            "BossToFollow = null;",
+            "return true;");
+
+        string pftDismiss = Slice(
+            pitFireTeamFollowerSource,
+            "public virtual void Dismiss(bool warnPlayer = false)",
+            "private void ClearInvalidEnemyState()");
+        RequireOrder(
+            pftDismiss,
+            "PFT Dismiss skips physical handoff for disposed bots but still runs wrapper cleanup",
+            "if (_bot.IsDead || _bot.BotState != EBotState.Active) return;",
+            "finally",
+            "Modules.SainAddonBridge.RaiseFollowerLifecycleEvent(_bot, FollowerLifecycleEvent.OnDismiss);",
+            "ClearCommand(\"Dismiss:finally\");",
+            "UnhookManualUpdate();",
+            "UnhookPeaceChange();");
+
+        string beginTeardown = Slice(
+            source,
+            "public static bool BeginTeardown(",
+            "public static PitFireTeamRoundPolicyDecision PollRetirement(");
+        Assert(beginTeardown.IndexOf("TryValidateBoundFollowersUnsafe(", StringComparison.Ordinal)
+               < beginTeardown.IndexOf("RevokeFollowerSpawnLeaseUnsafe(", StringComparison.Ordinal),
+            "round teardown validates the frozen four-body roster before advancing lifecycle state");
+        RequireOrder(
+            beginTeardown,
+            "round teardown validates every PFT wrapper and registry entry before unlinking any follower",
+            "List<object> wrappers = ReadFollowerWrappersUnsafe()",
+            "if (wrappers.Count != oldBodies.Count)",
+            "HashSet<BotOwner> wrappedBodies =",
+            "if (oldBodies.Any(body => !wrappedBodies.Contains(body)))",
+            "ValidateFollowerRegistryEntryUnsafe(bossPlayers, wrapper, bot);",
+            "_unhookFollowerDeathMethod.Invoke(oldBoss, new object[] { bot });",
+            "DetachFollowerWrapperUnsafe(bossPlayers, oldBoss, wrapper, bot);");
+
+        string detachFollower = Slice(
+            source,
+            "private static void DetachFollowerWrapperUnsafe(",
+            "private static void CleanupRuntimeProfilesUnsafe(");
+        RequireOrder(
+            detachFollower,
+            "wrapper teardown validates exact registries and disposed group state before the active native removal path",
+            "ValidateFollowerRegistryEntryUnsafe(bossPlayers, wrapper, bot);",
+            "if (_followersField.GetValue(bossPlayers) is not IList followers)",
+            "if (_followersByProfileIdField.GetValue(bossPlayers) is not IDictionary followersByProfileId)",
+            "if (_bossFollowersProperty.GetValue(boss) is not IList bossFollowers)",
+            "bool nativeFollowerAvailable = bot.BotFollower != null;",
+            "PitFireTeamFollowerDetachDecision decision = PitFireTeamFollowerDetachPolicy.Classify(",
+            "if (decision == PitFireTeamFollowerDetachDecision.Invalid)",
+            "PFT follower {bot.ProfileId} has an unsafe teardown state",
+            "active PFT follower {bot.ProfileId} is not bound to the exact old boss",
+            "active PFT follower {bot.ProfileId} is not in the exact old boss group",
+            "active PFT follower {bot.ProfileId} is not present exactly once on the old boss",
+            "if (decision == PitFireTeamFollowerDetachDecision.Disposed",
+            "disposed PFT follower {bot.ProfileId} is still in the old boss group",
+            "if (decision == PitFireTeamFollowerDetachDecision.Native)",
+            "_removeFollowerMethod.Invoke(null, new object[] { bot, boss });",
+            "PitFireTeamFollowerDetachPolicy.TryUnlinkDisposed(",
+            "_dismissFollowerMethod.Invoke(wrapper, new object[] { false });");
+        string disposedUnlinkTail = Slice(
+            detachFollower,
+            "PitFireTeamFollowerDetachPolicy.TryUnlinkDisposed(",
+            "_dismissFollowerMethod.Invoke(wrapper, new object[] { false });");
+        Assert(!disposedUnlinkTail.Contains("bot.BotFollower", StringComparison.Ordinal),
+            "the disposed-wrapper unlink tail never dereferences the BotFollower that SPT already nulled");
+
+        RequireOrder(
+            detachFollower,
+            "wrapper teardown proves all PFT ownership postconditions after Dismiss",
+            "_dismissFollowerMethod.Invoke(wrapper, new object[] { false });",
+            "remainingFollowers.Cast<object>().Any(candidate => ReferenceEquals(candidate, wrapper))",
+            "remainingByProfileId.Contains(bot.ProfileId)",
+            "remainingBossFollowers.Cast<object>().Any(candidate => ReferenceEquals(candidate, bot))",
+            "remainingBossGroup.Contains(bot)");
+        Assert(beginTeardown.IndexOf("_removeBossPlayerMethod.Invoke(", StringComparison.Ordinal)
+               < beginTeardown.IndexOf("health.Kill(EDamageType.Undefined);", StringComparison.Ordinal),
+            "round teardown removes PFT boss ownership before killing any surviving old body");
+        RequireAll(
+            beginTeardown,
+            "string teardownStep = \"resolve the old PFT boss\";",
+            "string teardownProfileId = oldLeader.ProfileId;",
+            "reason = $\"PFT old-round teardown failed during {teardownStep} for {teardownProfileId}: \"",
+            "root.GetType().Name",
+            "root.Message",
+            "Plugin.ModLogger.LogError($\"Arena {reason}\\n{ex}\");");
+        Assert(tacticalSource.Contains("FailTeamTransition(teardownProblem);", StringComparison.Ordinal)
+               && !tacticalSource.Contains(
+                   "FailTeamTransition(\"PitFireTeam old-round teardown failed: \" + teardownProblem);",
+                   StringComparison.Ordinal),
+            "Tactical mode presents the lifecycle's detailed teardown error exactly once");
 
         string creationPatch = Slice(
             source,
@@ -605,6 +874,13 @@ internal static class Program
         Assert(start >= 0 && end > start,
             $"source slice exists: {startMarker} -> {endMarker}");
         return source.Substring(start, end - start);
+    }
+
+    private static string SliceToEnd(string source, string startMarker)
+    {
+        int start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        Assert(start >= 0, $"source tail exists: {startMarker}");
+        return source.Substring(start);
     }
 
     private static void Assert(bool condition, string message)

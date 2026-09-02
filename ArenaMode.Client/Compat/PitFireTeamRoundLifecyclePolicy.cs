@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -129,6 +130,152 @@ internal sealed class PitFireTeamFollowerObservation
     public string SpawnProblem { get; set; }
     public int StablePasses { get; set; }
     public bool TimedOut { get; set; }
+}
+
+internal enum PitFireTeamFollowerDetachDecision
+{
+    Invalid,
+    Native,
+    Disposed
+}
+
+/// <summary>
+/// Pure classification and exact-reference mutation for PFT wrapper teardown.
+/// The live adapter proves EFT/PFT state before handing reflected collections
+/// here; the offline harness executes the same registry mutation with fakes.
+/// </summary>
+internal static class PitFireTeamFollowerDetachPolicy
+{
+    public static PitFireTeamFollowerDetachDecision Classify(
+        bool nativeFollowerAvailable,
+        bool isDead,
+        bool botStateActive,
+        bool healthReadable,
+        bool healthAlive)
+    {
+        if (nativeFollowerAvailable
+            && !isDead
+            && botStateActive
+            && healthReadable
+            && healthAlive)
+        {
+            return PitFireTeamFollowerDetachDecision.Native;
+        }
+
+        if (!nativeFollowerAvailable
+            && isDead
+            && !botStateActive
+            && healthReadable
+            && !healthAlive)
+        {
+            return PitFireTeamFollowerDetachDecision.Disposed;
+        }
+
+        return PitFireTeamFollowerDetachDecision.Invalid;
+    }
+
+    public static bool TryValidateRegistryEntry(
+        IList followers,
+        IDictionary followersByProfileId,
+        object wrapper,
+        string profileId,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (followers == null
+            || followersByProfileId == null
+            || wrapper == null
+            || string.IsNullOrWhiteSpace(profileId))
+        {
+            reason = "PFT follower registry validation received an incomplete wrapper identity";
+            return false;
+        }
+
+        int exactWrapperCount = CountExactReferences(followers, wrapper);
+        if (exactWrapperCount != 1)
+        {
+            reason = $"PFT _followers contains {exactWrapperCount} exact wrappers for {profileId}";
+            return false;
+        }
+
+        if (!followersByProfileId.Contains(profileId)
+            || !ReferenceEquals(followersByProfileId[profileId], wrapper))
+        {
+            reason = $"PFT _followersByProfileId does not map {profileId} to its exact wrapper";
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool TryUnlinkDisposed(
+        IList followers,
+        IDictionary followersByProfileId,
+        IList bossFollowers,
+        object wrapper,
+        object body,
+        string profileId,
+        out string reason)
+    {
+        if (!TryValidateRegistryEntry(
+                followers,
+                followersByProfileId,
+                wrapper,
+                profileId,
+                out reason))
+        {
+            return false;
+        }
+
+        if (bossFollowers == null || body == null)
+        {
+            reason = "PFT disposed follower unlink received an incomplete boss/body binding";
+            return false;
+        }
+
+        int exactBodyCount = CountExactReferences(bossFollowers, body);
+        if (exactBodyCount > 1)
+        {
+            reason = $"PFT old boss contains {exactBodyCount} exact bodies for {profileId}";
+            return false;
+        }
+
+        RemoveExactReferences(followers, wrapper);
+        followersByProfileId.Remove(profileId);
+        RemoveExactReferences(bossFollowers, body);
+
+        if (CountExactReferences(followers, wrapper) != 0
+            || followersByProfileId.Contains(profileId)
+            || CountExactReferences(bossFollowers, body) != 0)
+        {
+            reason = $"PFT retained disposed follower ownership for {profileId}";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    private static int CountExactReferences(IList values, object expected)
+    {
+        int count = 0;
+        foreach (object value in values)
+        {
+            if (ReferenceEquals(value, expected))
+                count++;
+        }
+
+        return count;
+    }
+
+    private static void RemoveExactReferences(IList values, object expected)
+    {
+        for (int index = values.Count - 1; index >= 0; index--)
+        {
+            if (ReferenceEquals(values[index], expected))
+                values.RemoveAt(index);
+        }
+    }
 }
 
 /// <summary>
