@@ -1,8 +1,8 @@
 # ArenaMode announcer audio
 
-## Attribution and license
+## TripleSnail kill callouts
 
-The six recordings in `sounds/` are from **Announcer kill sounds**:
+The six TripleSnail recordings in `sounds/` are from **Announcer kill sounds**:
 
 - Voice recording: **Antti Saari**.
 - Original audio editing and pack publication: **TripleSnail**.
@@ -20,7 +20,7 @@ attribution, retention of notices, identification of adaptations, and no
 additional restrictions on the licensed audio. No endorsement by the original
 creators is implied. The assets are supplied without warranties; see the license.
 
-## Files and modifications
+### Files and modifications
 
 For ArenaMode, six of the user-supplied original WAV files were converted to
 Ogg Vorbis and renamed to match the existing callout keys. Encoding used
@@ -54,6 +54,49 @@ Original WAV SHA-256 checksums, for identifying the conversion inputs:
 | Dominating.wav | 3B07A0FC72000E5357218970CED7E4BBB71EB2353C0E8D4371E341CB37B73D43 |
 | Godlike.wav | FC6CA171E20BF84DEE0DE82A7BDA1F91C8F1005F7DB12C3D9D84ACB232751B09 |
 
+## VoiceBosch WARLORD round cues
+
+The three Tactical round recordings named below are from **WARLORD - Video
+Game Announcer**:
+
+- Creator, voice recording and production: **VoiceBosch**.
+- Preferred attribution: **VoiceBosch**.
+- Source: <https://opengameart.org/content/warlord-video-game-announcer>.
+- License: **Creative Commons Attribution-ShareAlike 4.0 International
+  (CC BY-SA 4.0)**.
+- License URL: <https://creativecommons.org/licenses/by-sa/4.0/>.
+- Full license text: [CC-BY-SA-4.0.txt](CC-BY-SA-4.0.txt).
+- Source/license checked: 2026-09-03.
+
+These three audio assets and the converted OGG files remain under CC BY-SA
+4.0 independently of the mod's code and the separately licensed TripleSnail
+recordings. Keep this attribution and license with redistributed copies. No
+endorsement by VoiceBosch is implied.
+
+The user-supplied original WAV files were converted to Ogg Vorbis and renamed
+to stable ArenaMode cue keys. Encoding used FFmpeg 8.1.2, `libvorbis`, quality
+`5`, 44.1 kHz stereo. The recordings were loudness-normalized toward -16 LUFS
+with a -1.7 dBTP encoder target. The peak limit keeps the final Vorbis files
+below -1.5 dBTP, so the two shortest, peak-heavy lines stop below the loudness
+target. No trimming, pitch shifting,
+splicing or other content edits were applied. Attribution, source, license and
+conversion metadata were added to each OGG. These converted files are shared
+under CC BY-SA 4.0.
+
+| Original file | Bundled file | Tactical event |
+| --- | --- | --- |
+| 01._start.wav | sounds/round_start.ogg | A round becomes live |
+| 19._round_winner.wav | sounds/round_won.ogg | The player's side wins a round |
+| 20._mission_failed.wav | sounds/round_lost.ogg | The player's side loses a round |
+
+Original WAV SHA-256 checksums, for identifying the conversion inputs:
+
+| Original file | SHA-256 |
+| --- | --- |
+| 01._start.wav | E01B662FB2AB2EA1675B7F76E9F7DA5651B9CF770F12C2C90BD6F8E3A0E8DC08 |
+| 19._round_winner.wav | 0963F72BE983A7AD798EDB9320A7105E9D0CC3615DE4D68DFCD46936473B5D94 |
+| 20._mission_failed.wav | C8DA20D983E1099E5068805E1E0D00F2EF084216B824F8DD24137F7446D83724 |
+
 ## Installation and playback
 
 Build and publish output includes the `ArenaMode` directory beside the client
@@ -64,17 +107,21 @@ not just the client DLL or the OGG files alone.
 Restart the game after installing or replacing audio. In the F12 configuration,
 `Audio / Announcer` enables playback and `Audio / AnnouncerVolume` controls its
 volume. Playback also respects Tarkov's Interface volume. Only arena matches
-subscribe to the callouts; normal raids do not use this announcer.
+subscribe to the callouts and Tactical round cues; normal raids do not use this
+announcer. A Tactical cue plays when combat actually becomes live and when a
+round is decided. Technical no-contest exits are silent.
 
-Clips load asynchronously at the first arena match. A callout that occurs before
-its clip has finished loading is skipped, without queueing a stale announcement.
-Once loaded, clips remain available for subsequent arena matches in that process.
-Each match rechecks the cache and retries missing or unusable recordings. Invalid
-clips encountered during a match can also recover, with at least ten seconds
-between retry attempts. A recovery does not replay the missed announcement.
+Clips begin loading asynchronously when Arena is selected in the native start
+screen, with round lifecycle cues first. A callout that still occurs before its
+clip has finished loading is skipped, without queueing a stale announcement.
+Once loaded, clips remain available for subsequent arena matches in that
+process. Each match rechecks the cache and retries missing or unusable
+recordings. Invalid clips
+encountered during a match can also recover, with at least ten seconds between
+retry attempts. A recovery does not replay the missed announcement.
 
 Client logs include match attachment, loading results, and a summary of received,
-requested and skipped callouts. Each skip reason is logged once per clip and match.
+requested and skipped announcements. Each skip reason is logged once per clip and match.
 The first three playback requests, and later changes in output settings, include
 the Interface/master mixer levels and listener state. A logged playback request
 means that audio was submitted to the native UI sound system, not that it was

@@ -365,7 +365,11 @@ internal static class Program
         string bigBrainRuntime = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitRuntime.cs");
         string burst = Read(root, "ArenaMode.Client", "Bots", "BurstSpawnService.cs");
         string settings = Read(root, "ArenaMode.Client", "Config", "Settings.cs");
+        string menuSelection = Read(root, "ArenaMode.Client", "Session", "ArenaMenuSelection.cs");
         string tactical = Read(root, "ArenaMode.Client", "Modes", "TacticalMode.cs");
+        string match = Read(root, "ArenaMode.Client", "Modes", "ArenaMatch.cs");
+        string announcer = Read(root, "ArenaMode.Client", "Audio", "AnnouncerService.cs");
+        string audioLicenses = Read(root, "ArenaMode.Client", "Assets", "ArenaMode", "AUDIO-LICENSES.md");
         string combat = Read(root, "ArenaMode.Client", "Combat", "CombatPatches.cs");
         string respawn = Read(root, "ArenaMode.Client", "Respawn", "ArenaRespawnDriver.cs");
         string matchService = Read(root, "ArenaMode.Client", "Modes", "ArenaMatchService.cs");
@@ -485,6 +489,49 @@ internal static class Program
                && !project.Contains("Terkoiz", StringComparison.Ordinal)
                && !project.Contains("Fika", StringComparison.Ordinal),
             "the client project has no hard camera-mod dependency");
+
+        RequireAll(match,
+            "internal event Action<ArenaAnnouncerCue> OnAnnouncerCue",
+            "internal void ReportAnnouncerCue(ArenaAnnouncerCue cue)",
+            "OnAnnouncerCue?.Invoke(cue)");
+        RequireAll(announcer,
+            "Array.Sort(files, CompareLoadOrder)",
+            "string.Equals(key, \"round_start\"",
+            "match.OnAnnouncerCue += OnAnnouncerCue",
+            "_match.OnAnnouncerCue -= OnAnnouncerCue",
+            "ArenaAnnouncerCue.RoundStart => \"round_start\"",
+            "ArenaAnnouncerCue.RoundWon => \"round_won\"",
+            "ArenaAnnouncerCue.RoundLost => \"round_lost\"");
+        RequireAll(plugin, "Audio.AnnouncerService.SetPluginDirectory");
+        Assert(!plugin.Contains("AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
+            "an ordinary-only process does not preload Arena audio at plugin startup");
+        RequireAll(menuSelection,
+            "IsSelected = true",
+            "Audio.AnnouncerService.EnsureLoaded()");
+        Assert(menuSelection.IndexOf("IsSelected = true", StringComparison.Ordinal)
+               < menuSelection.IndexOf("Audio.AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
+            "selecting Arena starts announcer preload before map and raid loading");
+        RequireAll(audioLicenses,
+            "VoiceBosch WARLORD round cues",
+            "Creative Commons Attribution-ShareAlike 4.0",
+            "CC-BY-SA-4.0.txt",
+            "sounds/round_start.ogg",
+            "sounds/round_won.ogg",
+            "sounds/round_lost.ogg");
+        foreach (string asset in new[]
+                 {
+                     "round_start.ogg",
+                     "round_won.ogg",
+                     "round_lost.ogg",
+                 })
+        {
+            Assert(File.Exists(Path.Combine(
+                    root, "ArenaMode.Client", "Assets", "ArenaMode", "sounds", asset)),
+                $"the licensed Tactical lifecycle asset is present: {asset}");
+        }
+        Assert(File.Exists(Path.Combine(
+                root, "ArenaMode.Client", "Assets", "ArenaMode", "CC-BY-SA-4.0.txt")),
+            "the WARLORD assets retain their full CC BY-SA 4.0 license text");
 
         RequireAll(pursuit,
             "private const float SweepSeconds = 1f",
@@ -864,12 +911,17 @@ internal static class Program
             "_teamRoundsToWin",
             "TeamArenaRoundContinuation.EndMatchWon => true",
             "TeamArenaRoundContinuation.EndMatchLost => false",
-            "TeamArenaRoundContinuation.EndNoContest => null");
+            "TeamArenaRoundContinuation.EndNoContest => null",
+            "if (won.HasValue)",
+            "won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost");
         Assert(endRound.IndexOf("ArenaSpectatorService.Stop", StringComparison.Ordinal)
                < endRound.IndexOf("RetireSquad()", StringComparison.Ordinal)
                && endRound.IndexOf("TeamArenaPursuit.Reset()", StringComparison.Ordinal)
                < endRound.IndexOf("RetireSquad()", StringComparison.Ordinal),
             "round completion releases camera and pursuit ownership before retiring frozen bodies");
+        Assert(endRound.IndexOf("_phase = Phase.Aftermath", StringComparison.Ordinal)
+               < endRound.IndexOf("_match.ReportAnnouncerCue", StringComparison.Ordinal),
+            "a protected round fixes its result phase before announcing that result");
 
         string rebindEnum = Slice(
             tactical,
@@ -911,6 +963,14 @@ internal static class Program
             "PitFireTeamCompat.EnsureHostility(_boundTeamEnemies, _boundLocalPlayer)",
             "if (_playerDown)",
             "TeamArenaPursuit.Tick(_teamRoundEpoch, true, followers, _boundTeamEnemies)");
+        string staging = Slice(
+            tactical,
+            "private void TickTeamStaging()",
+            "private void RequestTeamEnemies()");
+        RequireAll(staging, "_phase = Phase.Live", "ArenaAnnouncerCue.RoundStart");
+        Assert(staging.IndexOf("_phase = Phase.Live", StringComparison.Ordinal)
+               < staging.IndexOf("ArenaAnnouncerCue.RoundStart", StringComparison.Ordinal),
+            "protected Tactical announces round start only after both teams become live");
         RequireAll(tactical,
             "TeamArenaPursuit.BeginRound(_teamRoundEpoch)",
             "TryStartTeamSpectator()",
@@ -965,6 +1025,7 @@ internal static class Program
                && failedRebind.Contains("_authorizedDeadTeamPlayer = null", StringComparison.Ordinal)
                && failedRebind.Contains("_teamRespawnAuthorizationConsumed = false", StringComparison.Ordinal)
                && !failedRebind.Contains("TeamArenaRoundPolicy.Evaluate(", StringComparison.Ordinal)
+               && !failedRebind.Contains("ReportAnnouncerCue", StringComparison.Ordinal)
                && !failedRebind.Contains("RoundsWon =", StringComparison.Ordinal)
                && !failedRebind.Contains("RoundsLost =", StringComparison.Ordinal),
             "a failed rebuild cancels detached follower work and respawn authority before ending no-contest without double scoring");
@@ -1019,12 +1080,16 @@ internal static class Program
             "epoch != _squadEpoch",
             "_phase != Phase.Live",
             "_squad.Count >= _squadRequested",
-            "RetireBot(bot, \"stale solo Tactical squad member\")");
+            "RetireBot(bot, \"stale solo Tactical squad member\")",
+            "ArenaAnnouncerCue.RoundStart");
         string soloEnd = Slice(
             tactical,
             "private void EndRound(bool won)",
             "\n}");
-        RequireAll(soloEnd, "_squadEpoch++", "RetireSquad()");
+        RequireAll(soloEnd,
+            "_squadEpoch++",
+            "RetireSquad()",
+            "won ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost");
         Assert(soloEnd.IndexOf("_squadEpoch++", StringComparison.Ordinal)
                < soloEnd.IndexOf("RetireSquad()", StringComparison.Ordinal),
             "solo Tactical invalidates detached squad observers before retiring the completed-round roster");

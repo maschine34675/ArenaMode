@@ -32,7 +32,9 @@ namespace ArenaMode.Modes
     internal sealed class ArenaMatch
     {
         public event Action<string> OnCallout;
+        public event Action<ArenaAnnouncerCue> OnAnnouncerCue;
         public void Callout(string label) => OnCallout?.Invoke(label);
+        public void Cue(ArenaAnnouncerCue cue) => OnAnnouncerCue?.Invoke(cue);
     }
 }
 

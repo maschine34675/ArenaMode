@@ -8,8 +8,8 @@ namespace ArenaMode.Modes;
 /// <summary>
 /// The per-raid match: scoring, streak/multi-kill bookkeeping and the event
 /// surface the HUD and announcer feed from. Owned by ArenaMatchService; exactly
-/// one instance per arena raid. Callouts (streak/multi-kill labels) are raised
-/// as events so presentation (toast, announcer clip) stays out of the rules.
+/// one instance per arena raid. Kill callouts and audio-only lifecycle cues are
+/// raised as events so presentation stays out of the rules.
 /// </summary>
 public sealed class ArenaMatch
 {
@@ -36,6 +36,9 @@ public sealed class ArenaMatch
 
     /// <summary>Short shout-style label ("DOUBLE KILL", "KILLING SPREE").</summary>
     public event Action<string> OnCallout;
+
+    /// <summary>Round lifecycle sound that must not appear as a HUD kill callout.</summary>
+    internal event Action<ArenaAnnouncerCue> OnAnnouncerCue;
 
     public ArenaMatch(IArenaMode mode)
     {
@@ -83,6 +86,9 @@ public sealed class ArenaMatch
 
     public void End()
         => RaiseSafe(Mode.OnMatchEnd, "mode.OnMatchEnd");
+
+    internal void ReportAnnouncerCue(ArenaAnnouncerCue cue)
+        => RaiseSafe(() => OnAnnouncerCue?.Invoke(cue), nameof(OnAnnouncerCue));
 
     private void ScoreLocalKill(ArenaKill kill)
     {

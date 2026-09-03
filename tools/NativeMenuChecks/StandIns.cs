@@ -74,6 +74,14 @@ namespace ArenaMode.Config
     }
     public static class SettingsSync { public static void SyncNow() { } }
 }
+namespace ArenaMode.Audio
+{
+    public static class AnnouncerService
+    {
+        public static int EnsureLoadedCalls;
+        public static void EnsureLoaded() => EnsureLoadedCalls++;
+    }
+}
 namespace ArenaMode.Shared { public class ClientSettingsSchema { } }
 namespace ArenaMode.Kits { public static class KitCatalog { public static void Preload() { } } }
 namespace ArenaMode.Session

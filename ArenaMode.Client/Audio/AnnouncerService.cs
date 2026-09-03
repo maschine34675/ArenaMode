@@ -14,9 +14,10 @@ namespace ArenaMode.Audio;
 
 /// <summary>
 /// Announcer stingers: .ogg files from &lt;plugin dir&gt;/ArenaMode/sounds keyed by
-/// filename (callout label lowercased, spaces to underscores — "double_kill.ogg").
-/// Clips load asynchronously and are revalidated at each match. Missing optional
-/// sounds never block a raid; bounded diagnostics explain skipped callouts.
+/// filename. Kill labels are normalized to keys ("DOUBLE KILL" becomes
+/// "double_kill"); typed round cues map to fixed keys. Clips load asynchronously
+/// and are revalidated at each match. Missing optional sounds never block a raid;
+/// bounded diagnostics explain skipped announcements.
 /// </summary>
 internal static class AnnouncerService
 {
@@ -30,7 +31,8 @@ internal static class AnnouncerService
     private static bool _directoryScanned;
     private static float _nextRecoveryAt;
     private static string _pluginDirectory;
-    private static int _received;
+    private static int _calloutsReceived;
+    private static int _cuesReceived;
     private static int _requested;
     private static int _skipped;
     private static string _lastOutputState;
@@ -67,6 +69,11 @@ internal static class AnnouncerService
             }
 
             var files = Directory.GetFiles(soundsDir, "*.ogg");
+            // The initial load begins when Arena is selected, long before the
+            // raid, but keep lifecycle cues first as a second guard for an
+            // unusually quick start or a repaired folder. Kill calls must never
+            // delay START.
+            Array.Sort(files, CompareLoadOrder);
             AvailableFiles.Clear();
             foreach (var file in files)
                 AvailableFiles.Add(Path.GetFileNameWithoutExtension(file));
@@ -147,10 +154,11 @@ internal static class AnnouncerService
         // unavailable clips; waiting for a populated cache here loses the whole
         // first match because nobody calls Attach again when loading completes.
         _match = match;
-        _received = _requested = _skipped = 0;
+        _calloutsReceived = _cuesReceived = _requested = _skipped = 0;
         _lastOutputState = null;
         ReportedSkips.Clear();
         match.OnCallout += OnCallout;
+        match.OnAnnouncerCue += OnAnnouncerCue;
         Plugin.ModLogger.LogInfo($"Arena announcer attached: enabled={Settings.AnnouncerEnabled.Value}, "
             + $"volume={Number(Settings.AnnouncerVolume.Value)}, ready={ReadyCount()}, loading={_loading}.");
     }
@@ -161,8 +169,9 @@ internal static class AnnouncerService
             return;
 
         _match.OnCallout -= OnCallout;
+        _match.OnAnnouncerCue -= OnAnnouncerCue;
         _match = null;
-        Plugin.ModLogger.LogInfo($"Arena announcer detached: callouts={_received}, "
+        Plugin.ModLogger.LogInfo($"Arena announcer detached: callouts={_calloutsReceived}, cues={_cuesReceived}, "
             + $"playRequests={_requested}, skipped={_skipped}.");
     }
 
@@ -171,8 +180,30 @@ internal static class AnnouncerService
         if (string.IsNullOrEmpty(label))
             return;
 
-        _received++;
+        _calloutsReceived++;
         var key = label.ToLowerInvariant().Replace(' ', '_');
+        Receive(key);
+    }
+
+    private static void OnAnnouncerCue(ArenaAnnouncerCue cue)
+    {
+        var key = cue switch
+        {
+            ArenaAnnouncerCue.RoundStart => "round_start",
+            ArenaAnnouncerCue.RoundWon => "round_won",
+            ArenaAnnouncerCue.RoundLost => "round_lost",
+            _ => null,
+        };
+
+        if (key == null)
+            return;
+
+        _cuesReceived++;
+        Receive(key);
+    }
+
+    private static void Receive(string key)
+    {
         if (!Settings.AnnouncerEnabled.Value)
         {
             Skip(key, "disabled");
@@ -228,6 +259,25 @@ internal static class AnnouncerService
         {
             Skip(key, "play_failed", ex.Message);
         }
+    }
+
+    private static int CompareLoadOrder(string left, string right)
+    {
+        int priority = LoadPriority(left).CompareTo(LoadPriority(right));
+        return priority != 0
+            ? priority
+            : StringComparer.OrdinalIgnoreCase.Compare(left, right);
+    }
+
+    private static int LoadPriority(string path)
+    {
+        string key = Path.GetFileNameWithoutExtension(path);
+        if (string.Equals(key, "round_start", StringComparison.OrdinalIgnoreCase))
+            return 0;
+        if (string.Equals(key, "round_won", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(key, "round_lost", StringComparison.OrdinalIgnoreCase))
+            return 1;
+        return 2;
     }
 
     private static void Skip(string key, string reason, string detail = null)

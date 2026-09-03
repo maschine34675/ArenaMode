@@ -593,7 +593,7 @@ public static class Settings
             "Audio",
             "Announcer",
             true,
-            "Announcer stingers (multi-kills, streaks) — plays .ogg files from " +
+            "Announcer stingers (multi-kills, streaks, Tactical round cues) — plays .ogg files from " +
             "BepInEx/plugins/ArenaMode/sounds/. Missing sounds are skipped and logged.");
 
         AnnouncerVolume = config.Bind(

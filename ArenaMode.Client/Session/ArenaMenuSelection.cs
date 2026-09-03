@@ -100,6 +100,10 @@ internal static class ArenaMenuSelection
         _previousTransition = _settings.transitionType;
         _previousKey = _settings.KeyId;
         IsSelected = true;
+        // Preload while the player is still choosing a map. The native loading
+        // screens then provide ample time for START without loading audio for a
+        // process that only runs ordinary raids.
+        Audio.AnnouncerService.EnsureLoaded();
     }
 
     public static bool IsSelectedFor(RaidSettings settings)

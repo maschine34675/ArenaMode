@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(AnnouncerServiceSource)" Link="Production/AnnouncerService.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs"
+             Link="Production/ArenaAnnouncerCue.cs" />
   </ItemGroup>
 </Project>

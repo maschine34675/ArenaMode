@@ -56,6 +56,11 @@ internal static class Program
         };
         ArenaMenuSelection.Begin(controller, settings);
         ArenaMenuSelection.Select();
+        Assert(ArenaMode.Audio.AnnouncerService.EnsureLoadedCalls == 1,
+            "Selecting Arena must start announcer preload exactly once.");
+        ArenaMenuSelection.Select();
+        Assert(ArenaMode.Audio.AnnouncerService.EnsureLoadedCalls == 1,
+            "Repeated selection in the same flow must not restart announcer preload.");
         settings.SelectedLocation = new LocationSettings.Location { Id = "laboratory" };
         settings.SelectedDateTime = EDateTime.CURR;
         settings.transitionType = ELocationTransition.Common;

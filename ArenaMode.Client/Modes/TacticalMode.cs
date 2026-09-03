@@ -864,6 +864,7 @@ public sealed class TacticalMode : IArenaMode
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
                 _preferredSpectatorProfileId = null;
                 TeamArenaPursuit.BeginRound(_teamRoundEpoch);
+                _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
                 ArenaToasts.Show("5v5 — fight!");
                 Plugin.ModLogger.LogInfo(
                     $"Tactical team Arena round {RoundNumber} live: five allies versus five opponents.");
@@ -1616,6 +1617,12 @@ public sealed class TacticalMode : IArenaMode
         _squadEpoch++;
         RetireSquad();
         _preferredSpectatorProfileId = null;
+
+        if (won.HasValue)
+        {
+            _match.ReportAnnouncerCue(
+                won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);
+        }
 
         string outcome = won == true ? "victory" : won == false ? "defeat" : "no contest";
         string continuation = decision.Continuation == TeamArenaRoundContinuation.RebindNextRound
@@ -2510,6 +2517,7 @@ public sealed class TacticalMode : IArenaMode
             $"Tactical round {RoundNumber}: {_squadRequested} enemies, kit '{_bought?.Id}' for {price:N0}, "
             + $"{Money:N0} left.");
 
+        _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
         ArenaToasts.Show($"Round {RoundNumber} — {_squadRequested} enemies");
     }
 
@@ -2556,6 +2564,9 @@ public sealed class TacticalMode : IArenaMode
 
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
+
+        _match.ReportAnnouncerCue(
+            won ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);
 
         if (won)
         {

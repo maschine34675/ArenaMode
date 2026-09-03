@@ -48,6 +48,7 @@ internal static class Program
             VerifyDiagnosticsAndRepairThrottle(context);
             VerifyLateReadinessRace(pluginDir, context);
             VerifyOutputDiagnostics();
+            VerifyRoundCues(pluginDir, context);
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -465,7 +466,7 @@ internal static class Program
         Call(); Call();
         Settings.AnnouncerEnabled.Value = true;
         AnnouncerService.Detach();
-        Assert(messages[^1] == $"Arena announcer detached: callouts={calls}, playRequests={calls - 2}, skipped=2.",
+        Assert(messages[^1] == $"Arena announcer detached: callouts={calls}, cues=0, playRequests={calls - 2}, skipped=2.",
             "Detach counts every received/requested/skipped callout even when skip logs are deduplicated.");
         var plays = sounds.Played.Count;
         match.Callout(label);
@@ -473,6 +474,40 @@ internal static class Program
         AudioListener.volume = 0.8f;
         AudioListener.pause = false;
         sounds.MasterMixer.Parameters["UIVolume"] = -4;
+    }
+
+    private static void VerifyRoundCues(string pluginDir, QueuedContext context)
+    {
+        AddClip(pluginDir, "round_start");
+        AddClip(pluginDir, "round_won");
+        AddClip(pluginDir, "round_lost");
+        var requestCount = UnityWebRequestMultimedia.Requests.Count;
+        AnnouncerService.EnsureLoaded();
+        Assert(UnityWebRequestMultimedia.Requests.Count == requestCount + 1
+            && Label(UnityWebRequestMultimedia.Requests[requestCount]) == "ROUND START",
+            "Round start loads ahead of ordinary callouts and result cues.");
+        FinishLoads(context);
+
+        var sounds = Singleton<GUISounds>.Instance;
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        AnnouncerService.Attach(match);
+        var plays = sounds.Played.Count;
+
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        match.Cue(ArenaAnnouncerCue.RoundWon);
+        match.Cue(ArenaAnnouncerCue.RoundLost);
+
+        Assert(sounds.Played.Count == plays + 3,
+            "Each typed round cue plays exactly once after repeated attachment.");
+        Assert(sounds.Played.Skip(plays).Select(play => play.Clip.Name).SequenceEqual(
+                new[] { "round_start", "round_won", "round_lost" }),
+            "Typed round cues map to their fixed audio keys in lifecycle order.");
+
+        AnnouncerService.Detach();
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        Assert(sounds.Played.Count == plays + 3,
+            "A detached match cannot play a lifecycle cue.");
     }
 
     private static void Repeat(Action action)
