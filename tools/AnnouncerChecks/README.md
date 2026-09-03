@@ -16,8 +16,9 @@ private cache/loading flags.
 Coverage includes:
 
 - First-match asynchronous loading, URI escaping, nonduplicated subscriptions,
-  pooled native `BetterAudio` routing and volume, missing phrases, and
-  detached/old matches.
+  configured volume, missing phrases, and detached/old matches.
+- Full-signal PCM materialization from decoded Ogg clips, release of the
+  decoder-owned clip, and a fail-soft path when `GetData` is unavailable.
 - Healthy cache reuse, retry after an initially failed request or decoder
   exception, discovery of a previously missing folder at the next match, and
   restoration of destroyed or unloaded Unity audio clips.
@@ -30,16 +31,20 @@ Coverage includes:
 - Attach/Detach counters and initial playback diagnostics, with additional
   diagnostics when mixer or listener state changes. The service never overrides
   mixer volume, listener mute or pause.
-- Clean pooled `Nonspatial` sources without a persistent foreign mixer,
-  exclusive preferred-path routing, and exactly one `GUISounds` fallback when
-  BetterAudio is unavailable or throws.
+- A dedicated highest-priority 2D source on EFT's master-controlled bypass,
+  next-frame real-voice confirmation, and one delayed `GUISounds` fallback when
+  Unity reports the private source disabled, muted, inactive, stopped or virtual.
+- Reflection-safe observation of EFT's single UI source, a temporary priority
+  lease that restores the original value, and confirmation of the fallback on
+  the following audio frame.
 
 The request pump and clock are controlled; these checks perform no real waits
 for playback. Fixture audio files contain placeholder bytes, not real audio.
 Actual Ogg decoding, Unity's async context and native lifetime implementation,
 Harmony/game integration, mixer routing and audible output need a real client.
-A successful native `PlayNonspatial` or fallback `PlaySound` request does not
-prove the device was audible.
+A successful `Play` or `PlaySound` request is only considered locally confirmed
+after its source remains playing and non-virtual on the next audio frame; the
+test harness still cannot prove physical device output.
 
 `Verify-Regression.ps1` compiles two controlled copies of the current service.
 The first keeps the loading flag set after completion and must fail the

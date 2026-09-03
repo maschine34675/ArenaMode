@@ -1181,29 +1181,67 @@ internal static class Program
             "ArenaAnnouncerCue.RoundStart => \"round_start\"",
             "ArenaAnnouncerCue.RoundWon => \"round_won\"",
             "ArenaAnnouncerCue.RoundLost => \"round_lost\"",
-            "audio.PlayNonspatial(",
-            "BetterAudio.AudioSourceGroupType.Nonspatial",
-            "route = \"BetterAudio.NonspatialPool\"",
-            "Singleton<GUISounds>.Instance.PlaySound(",
-            "single: true",
-            "\"GUISounds.UI<-BetterAudioFailure\"",
-            "fallbackReason == null ? \"output_unavailable\" : \"play_failed\"");
-        Assert(!announcer.Contains("BetterAudio.AudioSourceGroupType.NonspatialBypass", StringComparison.Ordinal),
-            "rapid announcer cues cannot share BetterAudio's single NonspatialBypass source");
-        Assert(!announcer.Contains("NonSpatialBypassMixer", StringComparison.Ordinal)
-               && !announcer.Contains("forcedGroup", StringComparison.Ordinal),
-            "Arena cannot leave a foreign mixer on an EFT-owned pooled source");
-        Assert(!announcer.Contains("AddComponent<AudioSource>", StringComparison.Ordinal)
-               && !announcer.Contains("internal static void Tick()", StringComparison.Ordinal)
-               && !announcer.Contains("output.isVirtual", StringComparison.Ordinal)
-               && !announcer.Contains("_outputRoute", StringComparison.Ordinal),
-            "announcer audio stays on EFT-owned sources and needs no private channel lifecycle");
+            "decoded.GetData(samples, 0)",
+            "AudioClip.Create(key, frames, channels, frequency, stream: false)",
+            "pcm.SetData(samples, 0)",
+            "plugin.gameObject.AddComponent<AudioSource>()",
+            "output.priority = 0",
+            "BetterAudio.Instance.NonSpatialBypassMixer",
+            "_output.outputAudioMixerGroup = route",
+            "_output.Play()",
+            "route = \"Arena.PCM.NonspatialBypass\"",
+            "internal static void Tick()",
+            "Time.realtimeSinceStartup < _outputCheckAt",
+            "output.isVirtual",
+            "ui.PlaySound(clip, single: true, commonUiSound: false, volume)",
+            "route = \"GUISounds.SingleUI<-\" + reason",
+            "ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true)",
+            "\"silent Arena PCM channel\"");
+        string pcmMaterialization = Slice(
+            announcer,
+            "private static AudioClip TryMaterializePcm(",
+            "\n}");
+        int pcmRead = pcmMaterialization.IndexOf("decoded.GetData(samples, 0)", StringComparison.Ordinal);
+        int pcmCreate = pcmMaterialization.IndexOf("AudioClip.Create(", StringComparison.Ordinal);
+        int pcmWrite = pcmMaterialization.IndexOf("pcm.SetData(samples, 0)", StringComparison.Ordinal);
+        Assert(pcmRead >= 0 && pcmCreate > pcmRead && pcmWrite > pcmCreate,
+            "decoded web-request audio is copied into a non-streaming PCM clip before Arena playback");
+
+        string announcerTick = Slice(
+            announcer,
+            "internal static void Tick()",
+            "private static void ScheduleOutputCheck(");
+        int delayedCheck = announcerTick.IndexOf(
+            "Time.realtimeSinceStartup < _outputCheckAt",
+            StringComparison.Ordinal);
+        int sourceProof = announcerTick.IndexOf("output.isVirtual", StringComparison.Ordinal);
+        int uiRecovery = announcerTick.IndexOf("TryStartUiFallback(", StringComparison.Ordinal);
+        Assert(delayedCheck >= 0 && sourceProof > delayedCheck && uiRecovery > sourceProof,
+            "Arena waits for the dedicated PCM source state before requesting its SingleUI fallback");
+
+        string uiFallback = Slice(
+            announcer,
+            "private static bool TryStartUiFallback(",
+            "private static AudioSource TryGetSingleUiSource(");
+        int uiPlay = uiFallback.IndexOf(
+            "ui.PlaySound(clip, single: true, commonUiSound: false, volume)",
+            StringComparison.Ordinal);
+        int uiProof = uiFallback.IndexOf(
+            "ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true)",
+            StringComparison.Ordinal);
+        Assert(uiPlay >= 0 && uiProof > uiPlay,
+            "the SingleUI fallback is itself verified on a later Arena tick");
+        Assert(!announcer.Contains("PlayNonspatial(", StringComparison.Ordinal),
+            "announcer audio cannot return to BetterAudio's virtualized pooled playback path");
+        Assert(!announcer.Contains(".SetFloat(", StringComparison.Ordinal)
+               && !announcer.Contains("AudioListener.volume =", StringComparison.Ordinal)
+               && !announcer.Contains("AudioListener.pause =", StringComparison.Ordinal),
+            "announcer playback and diagnostics never mutate global mixer or listener state");
         int announcerAttach = matchService.IndexOf("Audio.AnnouncerService.Attach(match)", StringComparison.Ordinal);
         int modeStart = matchService.IndexOf("mode.OnMatchStart(match)", StringComparison.Ordinal);
         Assert(announcerAttach >= 0 && modeStart >= 0 && announcerAttach < modeStart,
             "announcer subscribes before a mode can synchronously emit its first cue");
-        Assert(!controller.Contains("Audio.AnnouncerService.Tick()", StringComparison.Ordinal),
-            "controller has no obsolete per-frame private announcer-source probe");
+        RequireAll(controller, "Audio.AnnouncerService.Tick()");
         RequireAll(plugin, "Audio.AnnouncerService.SetPluginDirectory");
         Assert(!plugin.Contains("AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "an ordinary-only process does not preload Arena audio at plugin startup");

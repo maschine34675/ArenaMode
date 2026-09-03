@@ -75,11 +75,24 @@ namespace UnityEngine
     }
     internal sealed class AudioClip : Object
     {
-        public string Name { get; init; }
+        private int _samples = 8;
+        private int _channels = 2;
+        private int _frequency = 44100;
+        private float[] _data =
+            { 0.25f, -0.25f, 0.1f, -0.1f, 0.05f, -0.05f, 0.2f, -0.2f,
+              0.25f, -0.25f, 0.1f, -0.1f, 0.05f, -0.05f, 0.2f, -0.2f };
+        public static List<AudioClip> CreatedClips { get; } = new();
+        public string Name { get; set; }
         public string name => Name;
         public AudioDataLoadState loadState { get; set; } = AudioDataLoadState.Loaded;
         public bool LoadAudioDataResult { get; set; } = true;
         public bool CompleteLoadSynchronously { get; set; } = true;
+        public bool GetDataResult { get; set; } = true;
+        public bool SetDataResult { get; set; } = true;
+        public bool CreatedFromPcm { get; private set; }
+        public int GetDataCalls { get; private set; }
+        public int SetDataCalls { get; private set; }
+        public float[] Data => _data;
         public int LoadAudioDataCalls { get; private set; }
         public bool LoadAudioData()
         {
@@ -87,10 +100,38 @@ namespace UnityEngine
             if (LoadAudioDataResult && CompleteLoadSynchronously) loadState = AudioDataLoadState.Loaded;
             return LoadAudioDataResult;
         }
+        public bool GetData(float[] data, int offsetSamples)
+        {
+            GetDataCalls++;
+            if (!GetDataResult) return false;
+            Array.Copy(_data, offsetSamples * _channels, data, 0, Math.Min(data.Length, _data.Length));
+            return true;
+        }
+        public bool SetData(float[] data, int offsetSamples)
+        {
+            SetDataCalls++;
+            if (!SetDataResult) return false;
+            _data = data.ToArray();
+            return true;
+        }
+        public static AudioClip Create(string name, int lengthSamples, int channels, int frequency, bool stream)
+        {
+            var clip = new AudioClip
+            {
+                Name = name,
+                _samples = lengthSamples,
+                _channels = channels,
+                _frequency = frequency,
+                _data = new float[checked(lengthSamples * channels)],
+                CreatedFromPcm = true
+            };
+            CreatedClips.Add(clip);
+            return clip;
+        }
         public float length => 1.5f;
-        public int channels => 2;
-        public int frequency => 44100;
-        public int samples => 66150;
+        public int channels => _channels;
+        public int frequency => _frequency;
+        public int samples => _samples;
     }
     internal enum AudioDataLoadState { Unloaded, Loading, Loaded, Failed }
     internal enum AudioType { OGGVORBIS }
@@ -105,6 +146,7 @@ namespace UnityEngine
     internal sealed class GameObject : Object
     {
         public AudioSource LastAudioSource { get; private set; }
+        public bool activeInHierarchy { get; set; } = true;
 
         public T AddComponent<T>() where T : Component, new()
         {
@@ -133,9 +175,35 @@ namespace UnityEngine
         public bool mute { get; set; }
         public bool isPlaying { get; private set; }
         public bool isVirtual { get; set; }
+        public bool ForceSilent { get; set; }
         public int StopCalls { get; private set; }
         public void Stop() { StopCalls++; isPlaying = false; }
-        public void Play() { isPlaying = true; }
+        public void Play()
+        {
+            if (ForceSilent)
+            {
+                isPlaying = false;
+                isVirtual = true;
+                return;
+            }
+            isPlaying = true;
+            isVirtual = false;
+            (Playback ?? GlobalPlayback)?.Invoke(clip, volume);
+        }
+        public void PlayOneShot(AudioClip oneShot, float volumeScale)
+        {
+            if (ForceSilent)
+            {
+                isPlaying = false;
+                isVirtual = true;
+                return;
+            }
+            isPlaying = true;
+            isVirtual = false;
+            (Playback ?? GlobalPlayback)?.Invoke(oneShot, volumeScale);
+        }
+        internal Action<AudioClip, float> Playback;
+        internal static Action<AudioClip, float> GlobalPlayback;
     }
 }
 
@@ -159,50 +227,50 @@ namespace UnityEngine.Audio
 
 internal sealed class BetterAudio
 {
-    public enum AudioSourceGroupType { Nonspatial, NonspatialBypass }
-    public readonly record struct Playback(
-        UnityEngine.AudioClip Clip,
-        AudioSourceGroupType Group,
-        float PanStereo,
-        float Volume,
-        UnityEngine.Audio.AudioMixerGroup ForcedGroup);
-
     public static bool Instantiated { get; set; } = true;
     public static BetterAudio Instance { get; } = new();
-    public List<Playback> Played { get; } = new();
+    public UnityEngine.Audio.AudioMixerGroup NonSpatialBypassMixer { get; set; } =
+        new() { name = "NonspatialBypass" };
     public UnityEngine.Audio.AudioMixer Master { get; set; } = new();
-    public bool ThrowOnPlay { get; set; }
-
-    public void PlayNonspatial(
-        UnityEngine.AudioClip clip,
-        AudioSourceGroupType sourceGroup,
-        float panStereo = 0f,
-        float volume = 1f,
-        UnityEngine.Audio.AudioMixerGroup forcedGroup = null)
-    {
-        if (ThrowOnPlay)
-            throw new InvalidOperationException("injected BetterAudio PlayNonspatial failure");
-        Played.Add(new Playback(clip, sourceGroup, panStereo, volume, forcedGroup));
-    }
 }
 
 namespace EFT.UI
 {
     internal sealed class GUISounds : UnityEngine.Component
     {
-        public readonly record struct Playback(UnityEngine.AudioClip Clip, bool Single, bool CommonUiSound, float Volume);
+        private readonly UnityEngine.AudioSource audioSource_4;
+        public readonly record struct Playback(
+            UnityEngine.AudioClip Clip,
+            bool Single,
+            bool CommonUiSound,
+            float Volume,
+            bool ViaUiSource);
         public List<Playback> Played { get; } = new();
         public bool isActiveAndEnabled { get; set; } = true;
         public UnityEngine.Audio.AudioMixer MasterMixer { get; set; } = new();
         public bool ThrowOnPlay { get; set; }
+        public bool ThrowOnDedicatedPlay { get; set; }
+        internal UnityEngine.AudioSource SingleSource => audioSource_4;
         public GUISounds()
         {
             gameObject = new UnityEngine.GameObject();
+            UnityEngine.AudioSource.GlobalPlayback = (clip, volume) =>
+            {
+                if (ThrowOnDedicatedPlay) throw new InvalidOperationException("injected dedicated audio failure");
+                Played.Add(new Playback(clip, true, false, volume, ViaUiSource: false));
+            };
+            audioSource_4 = new UnityEngine.AudioSource { gameObject = gameObject, priority = 128 };
+            audioSource_4.outputAudioMixerGroup = MasterMixer.FindMatchingGroups("UI")[0];
+            audioSource_4.Playback = (clip, volume) =>
+                Played.Add(new Playback(clip, true, false, volume, ViaUiSource: true));
         }
         public void PlaySound(UnityEngine.AudioClip clip, bool single, bool commonUiSound, float volume)
         {
             if (ThrowOnPlay) throw new InvalidOperationException("injected native PlaySound failure");
-            Played.Add(new Playback(clip, single, commonUiSound, volume));
+            if (!single) throw new InvalidOperationException("announcer fixture expects the single UI source");
+            audioSource_4.Stop();
+            audioSource_4.outputAudioMixerGroup = MasterMixer.FindMatchingGroups("UI")[0];
+            audioSource_4.PlayOneShot(clip, volume);
         }
     }
 }

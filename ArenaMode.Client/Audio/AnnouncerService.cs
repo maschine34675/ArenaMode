@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -26,19 +27,41 @@ internal static class AnnouncerService
         new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> AvailableFiles = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> ReportedSkips = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly FieldInfo SingleUiSourceField = typeof(GUISounds).GetField(
+        "audioSource_4",
+        BindingFlags.Instance | BindingFlags.NonPublic);
 
     private static ArenaMatch _match;
     private static bool _loading;
     private static bool _directoryScanned;
     private static float _nextRecoveryAt;
     private static string _pluginDirectory;
+    private static AudioSource _output;
+    private static AudioMixerGroup _outputRoute;
     private static int _calloutsReceived;
     private static int _cuesReceived;
     private static int _requested;
     private static int _skipped;
+    private static int _confirmed;
+    private static int _fallbackRequested;
     private static string _lastOutputState;
+    private static AudioSource _pendingOutputCheck;
+    private static AudioClip _pendingClipCheck;
+    private static string _pendingKeyCheck;
+    private static string _pendingRouteCheck;
+    private static float _pendingVolumeCheck;
+    private static bool _pendingCheckUsesUi;
+    private static float _outputCheckAt;
+    private static int _outputGeneration;
+    private static int _pendingOutputGeneration;
+    private static AudioSource _leasedUiSource;
+    private static int _leasedUiPriority;
+    private static bool _uiPriorityLeased;
+    private static float _uiPriorityRestoreAt;
+    private static bool _uiProbeFailureReported;
     private const float RecoveryIntervalSeconds = 10f;
     private const float LoadTimeoutSeconds = 10f;
+    private const float OutputCheckDelaySeconds = 0.05f;
 
     public static void SetPluginDirectory(string pluginDirectory)
         => _pluginDirectory = pluginDirectory;
@@ -156,7 +179,9 @@ internal static class AnnouncerService
         // first match because nobody calls Attach again when loading completes.
         _match = match;
         _calloutsReceived = _cuesReceived = _requested = _skipped = 0;
+        _confirmed = _fallbackRequested = 0;
         _lastOutputState = null;
+        _uiProbeFailureReported = false;
         ReportedSkips.Clear();
         match.OnCallout += OnCallout;
         match.OnAnnouncerCue += OnAnnouncerCue;
@@ -172,12 +197,20 @@ internal static class AnnouncerService
             _match.OnAnnouncerCue -= OnAnnouncerCue;
             _match = null;
             Plugin.ModLogger.LogInfo($"Arena announcer detached: callouts={_calloutsReceived}, cues={_cuesReceived}, "
-                + $"playRequests={_requested}, skipped={_skipped}.");
+                + $"playRequests={_requested}, confirmed={_confirmed}, "
+                + $"fallbackRequests={_fallbackRequested}, skipped={_skipped}.");
         }
 
-        // BetterAudio owns and releases each one-shot by clip duration. Detach
-        // closes the Arena event boundary; an already requested result cue may
-        // finish naturally, but no later match event can start another cue.
+        // Detach is the exact Arena lifecycle boundary, including a partial
+        // OnMatchStart failure. Never let its private source leak into a normal raid.
+        _outputGeneration++;
+        ClearOutputCheck();
+        if (_output != null)
+        {
+            _output.Stop();
+            _output.clip = null;
+        }
+        RestoreUiPriority();
     }
 
     private static void OnCallout(string label)
@@ -242,10 +275,28 @@ internal static class AnnouncerService
             }
 
             float volume = Settings.AnnouncerVolume.Value;
-            if (!TryRequestPlayback(clip, volume, out string route, out string fallbackReason))
+            // A new cue replaces any not-yet-verified older cue even if both
+            // native start paths below happen to throw before scheduling their
+            // own check.
+            _outputGeneration++;
+            ClearOutputCheck();
+            string route;
+            string fallbackReason = null;
+            if (!TryStartDedicated(key, clip, volume, out route, out string dedicatedProblem))
             {
-                Skip(key, fallbackReason == null ? "output_unavailable" : "play_failed", fallbackReason);
-                return;
+                fallbackReason = dedicatedProblem;
+                if (!TryStartUiFallback(
+                        key,
+                        clip,
+                        volume,
+                        dedicatedProblem ?? "dedicated output unavailable",
+                        out route,
+                        out string uiProblem))
+                {
+                    string detail = JoinProblems(dedicatedProblem, uiProblem);
+                    Skip(key, IsPlaybackFailure(detail) ? "play_failed" : "output_unavailable", detail);
+                    return;
+                }
             }
 
             _requested++;
@@ -262,63 +313,107 @@ internal static class AnnouncerService
         }
     }
 
-    private static bool TryRequestPlayback(
+    private static bool TryStartDedicated(
+        string key,
         AudioClip clip,
         float volume,
         out string route,
-        out string fallbackReason)
+        out string problem)
     {
         route = null;
-        fallbackReason = null;
-        if (BetterAudio.Instantiated && BetterAudio.Instance != null)
-        {
-            try
-            {
-                BetterAudio audio = BetterAudio.Instance;
-                // NonspatialBypass owns only one BetterSource; its older timed
-                // release can stop a newer rapid-fire cue. Borrow from EFT's
-                // normal non-spatial pool. Do not force a foreign mixer onto a
-                // shared source: some EFT consumers borrow it later without
-                // resetting the route.
-                audio.PlayNonspatial(
-                    clip,
-                    BetterAudio.AudioSourceGroupType.Nonspatial,
-                    0f,
-                    volume);
-                route = "BetterAudio.NonspatialPool";
-                return true;
-            }
-            catch (Exception ex)
-            {
-                // A partially initialized audio singleton must not make Arena
-                // silent when EFT's independent UI source is already usable.
-                fallbackReason = "BetterAudio: " + ex.Message;
-            }
-        }
-
-        if (!Singleton<GUISounds>.Instantiated)
+        if (!TryEnsureOutput(out problem))
             return false;
 
         try
         {
-            Singleton<GUISounds>.Instance.PlaySound(
-                clip,
-                single: true,
-                commonUiSound: false,
-                volume);
-            route = fallbackReason == null
-                ? "GUISounds.UI"
-                : "GUISounds.UI<-BetterAudioFailure";
+            // This source belongs only to Arena. It obeys EFT's Master mixer but
+            // avoids the user's strongly attenuated Interface channel and every
+            // BetterSource/SurroundAudio hook. A fully materialized PCM clip is
+            // assigned below, so the disposed web request owns no playback state.
+            _output.Stop();
+            _output.clip = clip;
+            _output.volume = volume;
+            _output.Play();
+            route = "Arena.PCM.NonspatialBypass";
+            ScheduleOutputCheck(_output, clip, key, route, volume, usesUi: false);
             return true;
         }
         catch (Exception ex)
         {
-            fallbackReason = fallbackReason == null
-                ? "GUISounds: " + ex.Message
-                : fallbackReason + "; GUISounds: " + ex.Message;
+            problem = "Arena output: " + ex.Message;
+            if (_output != null)
+            {
+                _output.Stop();
+                _output.clip = null;
+            }
             return false;
         }
     }
+
+    private static bool TryStartUiFallback(
+        string key,
+        AudioClip clip,
+        float volume,
+        string reason,
+        out string route,
+        out string problem)
+    {
+        route = null;
+        problem = null;
+        if (!Singleton<GUISounds>.Instantiated || Singleton<GUISounds>.Instance == null)
+        {
+            problem = "GUISounds unavailable";
+            return false;
+        }
+
+        GUISounds ui = Singleton<GUISounds>.Instance;
+        AudioSource uiSource = TryGetSingleUiSource(ui, out string probeProblem);
+        try
+        {
+            if (uiSource != null)
+                LeaseUiPriority(uiSource, clip);
+
+            ui.PlaySound(clip, single: true, commonUiSound: false, volume);
+            _fallbackRequested++;
+            route = "GUISounds.SingleUI<-" + reason;
+            if (uiSource != null)
+            {
+                ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true);
+            }
+            else
+            {
+                // PlaySound is still a valid native fallback when an SPT update
+                // renames its private source. Only the additional proof becomes
+                // unavailable; reflection failure never breaks raid startup.
+                _outputGeneration++;
+                ClearOutputCheck();
+                if (!_uiProbeFailureReported)
+                {
+                    _uiProbeFailureReported = true;
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena announcer UI output is unobservable: {probeProblem ?? "single source unavailable"}.");
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            RestoreUiPriority();
+            problem = JoinProblems(probeProblem, "GUISounds: " + ex.Message);
+            return false;
+        }
+    }
+
+    private static string JoinProblems(string first, string second)
+    {
+        if (string.IsNullOrEmpty(first))
+            return second;
+        return string.IsNullOrEmpty(second) ? first : first + "; " + second;
+    }
+
+    private static bool IsPlaybackFailure(string problem)
+        => problem != null
+            && (problem.Contains("Arena output:") || problem.Contains("GUISounds:"));
 
     private static int CompareLoadOrder(string left, string right)
     {
@@ -378,9 +473,9 @@ internal static class AnnouncerService
                 : ui?.MasterMixer;
             var uiDb = mixer != null && mixer.GetFloat("UIVolume", out var u) ? Number(u) : "unknown";
             var masterDb = mixer != null && mixer.GetFloat("MasterVolume", out var m) ? Number(m) : "unknown";
-            return $"route={route}, betterAudioReady={BetterAudio.Instantiated}, "
-                + $"uiReady={ui != null && ui.isActiveAndEnabled}, uiDb={uiDb}, masterDb={masterDb}, "
-                + $"listenerVolume={Number(AudioListener.volume)}, listenerPaused={AudioListener.pause}";
+            return $"route={route}, uiReady={ui != null && ui.isActiveAndEnabled}, "
+                + $"uiDb={uiDb}, masterDb={masterDb}, listenerVolume={Number(AudioListener.volume)}, "
+                + $"listenerPaused={AudioListener.pause}";
         }
         catch
         {
@@ -388,8 +483,228 @@ internal static class AnnouncerService
         }
     }
 
+    private static bool TryEnsureOutput(out string problem)
+    {
+        problem = null;
+        AudioMixerGroup route = BetterAudio.Instantiated && BetterAudio.Instance != null
+            ? BetterAudio.Instance.NonSpatialBypassMixer
+            : null;
+
+        if (route == null)
+        {
+            problem = "EFT's non-spatial bypass mixer was unavailable";
+            return false;
+        }
+
+        var plugin = Plugin.Instance;
+        if (plugin == null)
+        {
+            problem = "the persistent Arena plugin host was unavailable";
+            return false;
+        }
+
+        if (_output == null)
+        {
+            AudioSource output = plugin.gameObject.AddComponent<AudioSource>();
+            output.playOnAwake = false;
+            output.loop = false;
+            output.spatialBlend = 0f;
+            output.spatialize = false;
+            output.dopplerLevel = 0f;
+            output.bypassReverbZones = true;
+            // Zero is Unity's highest priority. The announcer must remain one of
+            // the real voices during a full 5v5 firefight, not be silently virtualized.
+            output.priority = 0;
+            _output = output;
+            // Force the common assignment block even when only the Unity source
+            // was destroyed while its former route survived.
+            _outputRoute = null;
+            Plugin.ModLogger.LogInfo("Arena announcer created a dedicated PCM audio channel.");
+        }
+
+        if (!ReferenceEquals(_outputRoute, route))
+        {
+            _outputRoute = route;
+            _output.outputAudioMixerGroup = route;
+            Plugin.ModLogger.LogInfo($"Arena announcer output route: '{route.name}'.");
+        }
+        return true;
+    }
+
+    internal static void Tick()
+    {
+        if (_uiPriorityLeased && Time.realtimeSinceStartup >= _uiPriorityRestoreAt)
+            RestoreUiPriority();
+
+        AudioSource output = _pendingOutputCheck;
+        if (ReferenceEquals(output, null) || Time.realtimeSinceStartup < _outputCheckAt)
+            return;
+
+        AudioClip clip = _pendingClipCheck;
+        string key = _pendingKeyCheck;
+        string route = _pendingRouteCheck;
+        float volume = _pendingVolumeCheck;
+        bool usesUi = _pendingCheckUsesUi;
+        int generation = _pendingOutputGeneration;
+        ClearOutputCheck();
+        if (generation != _outputGeneration)
+            return;
+
+        bool alive = output != null;
+        bool active = alive && output.gameObject != null && output.gameObject.activeInHierarchy;
+        bool real = active && output.enabled && !output.mute && output.isPlaying && !output.isVirtual;
+        string state = alive
+            ? $"enabled={output.enabled}, mute={output.mute}, active={active}, "
+              + $"playing={output.isPlaying}, virtual={output.isVirtual}, priority={output.priority}"
+            : "source=destroyed";
+
+        if (real && !AudioListener.pause && AudioListener.volume > 0f)
+        {
+            _confirmed++;
+            if (_confirmed <= 3 || usesUi)
+                Plugin.ModLogger.LogInfo(
+                    $"Arena announcer output confirmed: '{key}', route={route}, {state}.");
+            return;
+        }
+
+        if (AudioListener.pause || AudioListener.volume <= 0f)
+        {
+            Skip(key, "listener_suppressed",
+                $"route={route}, listenerVolume={Number(AudioListener.volume)}, "
+                + $"listenerPaused={AudioListener.pause}, {state}");
+            return;
+        }
+
+        if (usesUi)
+        {
+            if (alive)
+                output.Stop();
+            RestoreUiPriority();
+            Skip(key, "output_silent", $"route={route}, {state}");
+            return;
+        }
+
+        // The private source returned from Play without becoming a real voice.
+        // Stop it before requesting the shared UI fallback, otherwise a late
+        // de-virtualization could play the same cue twice.
+        if (alive && ReferenceEquals(output, _output))
+        {
+            output.Stop();
+            if (ReferenceEquals(output.clip, clip))
+                output.clip = null;
+        }
+
+        if (TryStartUiFallback(
+                key,
+                clip,
+                volume,
+                "silent Arena PCM channel",
+                out string fallbackRoute,
+                out string fallbackProblem))
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Arena announcer output recovery: '{key}', route={route} was silent ({state}); "
+                + $"requested {fallbackRoute}.");
+            return;
+        }
+
+        Skip(key, "output_silent",
+            $"route={route}, {state}; fallback={fallbackProblem ?? "unavailable"}");
+    }
+
+    private static void ScheduleOutputCheck(
+        AudioSource output,
+        AudioClip clip,
+        string key,
+        string route,
+        float volume,
+        bool usesUi)
+    {
+        _outputGeneration++;
+        _pendingOutputGeneration = _outputGeneration;
+        _pendingOutputCheck = output;
+        _pendingClipCheck = clip;
+        _pendingKeyCheck = key;
+        _pendingRouteCheck = route;
+        _pendingVolumeCheck = volume;
+        _pendingCheckUsesUi = usesUi;
+        _outputCheckAt = Time.realtimeSinceStartup + OutputCheckDelaySeconds;
+    }
+
+    private static AudioSource TryGetSingleUiSource(GUISounds ui, out string problem)
+    {
+        problem = null;
+        if (SingleUiSourceField == null)
+        {
+            problem = "GUISounds.audioSource_4 was not found";
+            return null;
+        }
+
+        try
+        {
+            var source = SingleUiSourceField.GetValue(ui) as AudioSource;
+            if (source == null)
+                problem = "GUISounds.audioSource_4 was not initialized";
+            return source;
+        }
+        catch (Exception ex)
+        {
+            problem = "GUISounds.audioSource_4 read failed: " + ex.Message;
+            return null;
+        }
+    }
+
+    private static void LeaseUiPriority(AudioSource source, AudioClip clip)
+    {
+        if (!_uiPriorityLeased || !ReferenceEquals(_leasedUiSource, source))
+        {
+            RestoreUiPriority();
+            _leasedUiSource = source;
+            _leasedUiPriority = source.priority;
+            _uiPriorityLeased = true;
+        }
+
+        source.priority = 0;
+        _uiPriorityRestoreAt = Time.realtimeSinceStartup + Math.Max(clip.length, 0.1f) + 0.1f;
+    }
+
+    private static void RestoreUiPriority()
+    {
+        AudioSource source = _leasedUiSource;
+        int priority = _leasedUiPriority;
+        bool leased = _uiPriorityLeased;
+        _leasedUiSource = null;
+        _leasedUiPriority = 0;
+        _uiPriorityLeased = false;
+        _uiPriorityRestoreAt = 0f;
+
+        // Do not overwrite a later change made by EFT or another mod.
+        if (leased && source != null && source.priority == 0)
+            source.priority = priority;
+    }
+
+    private static void ClearOutputCheck()
+    {
+        _pendingOutputCheck = null;
+        _pendingClipCheck = null;
+        _pendingKeyCheck = null;
+        _pendingRouteCheck = null;
+        _pendingVolumeCheck = 0f;
+        _pendingCheckUsesUi = false;
+        _pendingOutputGeneration = 0;
+        _outputCheckAt = 0f;
+    }
+
     internal static void Shutdown()
-        => Detach();
+    {
+        Detach();
+        if (_output != null)
+            UnityEngine.Object.Destroy(_output);
+        _output = null;
+        _outputRoute = null;
+        RestoreUiPriority();
+        ClearOutputCheck();
+    }
 
     private static async Task<bool> WaitForClipReady(AudioClip clip)
     {
@@ -420,24 +735,103 @@ internal static class AnnouncerService
                 return null;
             }
 
-            var clip = DownloadHandlerAudioClip.GetContent(request);
-            var retained = false;
+            var decoded = DownloadHandlerAudioClip.GetContent(request);
+            var retainDecoded = false;
             try
             {
-                if (!await WaitForClipReady(clip))
+                string key = Path.GetFileNameWithoutExtension(path);
+                if (!await WaitForClipReady(decoded))
                 {
-                    Plugin.ModLogger.LogWarning($"Arena announcer clip not ready: '{Path.GetFileNameWithoutExtension(path)}', "
-                        + $"state={ClipState(clip)}.");
+                    Plugin.ModLogger.LogWarning($"Arena announcer clip not ready: '{key}', "
+                        + $"state={ClipState(decoded)}.");
                     return null;
                 }
-                retained = true;
-                return clip;
+
+                AudioClip pcm = TryMaterializePcm(decoded, key, out string pcmProblem);
+                if (pcm != null)
+                    return pcm;
+
+                // Keep the decoder-owned Unity clip as a fail-soft compatibility
+                // path. The output probes will still expose whether it can become
+                // a real voice; a PCM-copy limitation must not block Arena startup.
+                retainDecoded = true;
+                Plugin.ModLogger.LogWarning(
+                    $"Arena announcer PCM copy unavailable for '{key}': {pcmProblem}; retaining decoded clip.");
+                return decoded;
             }
             finally
             {
-                if (!retained && clip != null)
-                    UnityEngine.Object.Destroy(clip);
+                if (!retainDecoded && decoded != null)
+                    UnityEngine.Object.Destroy(decoded);
             }
+        }
+    }
+
+    private static AudioClip TryMaterializePcm(AudioClip decoded, string key, out string problem)
+    {
+        problem = null;
+        AudioClip pcm = null;
+        try
+        {
+            int frames = decoded.samples;
+            int channels = decoded.channels;
+            int frequency = decoded.frequency;
+            if (frames <= 0 || channels <= 0 || frequency <= 0)
+            {
+                problem = $"invalid metadata frames={frames}, channels={channels}, frequency={frequency}";
+                return null;
+            }
+
+            int sampleCount = checked(frames * channels);
+            var samples = new float[sampleCount];
+            if (!decoded.GetData(samples, 0))
+            {
+                problem = "AudioClip.GetData returned false";
+                return null;
+            }
+
+            float peak = 0f;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float sample = samples[i];
+                if (float.IsNaN(sample) || float.IsInfinity(sample))
+                {
+                    problem = $"decoded PCM contained a non-finite sample at index {i}";
+                    return null;
+                }
+                peak = Math.Max(peak, Math.Abs(sample));
+            }
+
+            if (peak <= 0.00001f)
+            {
+                problem = "decoded PCM contained no signal";
+                return null;
+            }
+
+            pcm = AudioClip.Create(key, frames, channels, frequency, stream: false);
+            if (pcm == null)
+            {
+                problem = "AudioClip.Create returned null";
+                return null;
+            }
+            if (!pcm.SetData(samples, 0))
+            {
+                problem = "AudioClip.SetData returned false";
+                UnityEngine.Object.Destroy(pcm);
+                return null;
+            }
+
+            Plugin.ModLogger.LogInfo(
+                $"Arena announcer PCM ready: '{key}', frames={frames}, channels={channels}, "
+                + $"frequency={frequency}, peak={Number(peak)}.");
+            return pcm;
+        }
+        catch (Exception ex)
+        {
+            if (pcm != null)
+                UnityEngine.Object.Destroy(pcm);
+            problem = ex.Message;
+            return null;
         }
     }
 }
