@@ -114,6 +114,11 @@ round is decided. Technical no-contest exits are silent.
 Clips begin loading asynchronously when Arena is selected in the native start
 screen, with round lifecycle cues first. A callout that still occurs before its
 clip has finished loading is skipped, without queueing a stale announcement.
+When a round ends immediately after a kill callout, its win/loss cue waits for
+the callout's actual duration plus a short gap so EFT's single UI audio channel
+does not cut the kill phrase off. Round-start cues remain immediate; if a custom
+callout outlasts the complete round aftermath, the stale result is skipped and
+reported instead of leaking into the next round.
 Once loaded, clips remain available for subsequent arena matches in that
 process. Each match rechecks the cache and retries missing or unusable
 recordings. Invalid clips

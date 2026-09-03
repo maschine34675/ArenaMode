@@ -1274,7 +1274,16 @@ internal static class Program
             "clipFrames={clip.samples}",
             "clipLengthMs={Number(clip.length * 1000f)}",
             "AudioMixer mixer = ui?.MasterMixer",
-            "mixer.GetFloat(\"UIVolume\"");
+            "mixer.GetFloat(\"UIVolume\"",
+            "private static float _calloutBusyUntil",
+            "private static string _pendingResultKey",
+            "ResultCueGapSeconds",
+            "Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds",
+            "Arena announcer result queued:",
+            "Arena announcer queued result released:",
+            "CancelPendingResult(\"match detached\")",
+            "CancelPendingResult(\"new round started\")",
+            "queued_result_canceled");
         string pcmCapture = Slice(
             announcer,
             "private static CachedClip TryCapturePcm(",
@@ -1337,8 +1346,24 @@ internal static class Program
         int modeStart = matchService.IndexOf("mode.OnMatchStart(match)", StringComparison.Ordinal);
         Assert(announcerAttach >= 0 && modeStart >= 0 && announcerAttach < modeStart,
             "announcer subscribes before a mode can synchronously emit its first cue");
-        Assert(!controller.Contains("Audio.AnnouncerService.Tick()", StringComparison.Ordinal),
-            "native UI playback needs no per-frame watchdog that can cut off a one-shot");
+        int matchTick = controller.IndexOf("Modes.ArenaMatchService.Tick()", StringComparison.Ordinal);
+        int announcerQueueTick = controller.IndexOf("Audio.AnnouncerService.Tick()", StringComparison.Ordinal);
+        Assert(matchTick >= 0 && announcerQueueTick > matchTick,
+            "the mode lifecycle publishes or cancels round cues before the announcer drains a queued result");
+        string announcerTick = Slice(
+            announcer,
+            "internal static void Tick()",
+            "private static void ClearPendingResult()");
+        RequireAll(announcerTick,
+            "_pendingResultKey == null",
+            "_match == null",
+            "Time.realtimeSinceStartup < _calloutBusyUntil",
+            "ClearPendingResult()",
+            "Receive(key, out _)");
+        Assert(!announcerTick.Contains(".Stop()", StringComparison.Ordinal)
+               && !announcerTick.Contains("AudioSource", StringComparison.Ordinal)
+               && !announcerTick.Contains("isPlaying", StringComparison.Ordinal),
+            "the announcer tick only drains a queued result and never watches or stops the shared source");
         RequireAll(plugin, "Audio.AnnouncerService.SetPluginDirectory");
         Assert(!plugin.Contains("AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "an ordinary-only process does not preload Arena audio at plugin startup");

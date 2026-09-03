@@ -38,7 +38,6 @@ $forbiddenContracts = @(
     '_outputCheck',
     'LeaseUiPriority',
     'RestoreUiPriority',
-    'internal static void Tick',
     'InterfaceVolume'
 )
 foreach ($forbidden in $forbiddenContracts) {
@@ -106,8 +105,46 @@ if ([regex]::Matches($source, [regex]::Escape($commonUiFlag)).Count -ne 1) {
 Invoke-NegativeCase 'native-mixer-contract' ($source.Replace($commonUiFlag, 'commonUiSound: true,')) `
     'Native UI primary must request commonUiSound:false and preserve explicit volume.'
 
+$resultQueueGate = 'if (Time.realtimeSinceStartup < _calloutBusyUntil)'
+if ([regex]::Matches($source, [regex]::Escape($resultQueueGate)).Count -ne 1) {
+    throw 'Expected exactly one result-queue admission gate; refusing an ambiguous queue mutation.'
+}
+Invoke-NegativeCase 'result-queue-admission' ($source.Replace($resultQueueGate, 'if (false)')) `
+    'A result cue arriving behind a kill callout must not replace it immediately.'
+
+$calloutDeadline = 'Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds'
+if ([regex]::Matches($source, [regex]::Escape($calloutDeadline)).Count -ne 1) {
+    throw 'Expected exactly one clip-length result deadline; refusing an ambiguous duration mutation.'
+}
+Invoke-NegativeCase 'result-queue-duration' `
+    ($source.Replace($calloutDeadline, 'Time.realtimeSinceStartup + ResultCueGapSeconds')) `
+    'The result queue must preserve a short post-callout gap before replacing the shared source.'
+
+$resultQueueDrainPattern = 'if \(_pendingResultKey == null \|\| _match == null\r?\n\s+\|\| Time\.realtimeSinceStartup < _calloutBusyUntil\)'
+$resultQueueDrainMatches = [regex]::Matches($source, $resultQueueDrainPattern)
+if ($resultQueueDrainMatches.Count -ne 1) {
+    throw 'Expected exactly one result-queue drain gate; refusing an ambiguous queue mutation.'
+}
+$resultQueueDrain = $resultQueueDrainMatches[0].Value
+Invoke-NegativeCase 'result-queue-drain' ($source.Replace($resultQueueDrain, 'if (true)')) `
+    'The queued result plays exactly once after the real callout duration and guard gap.'
+
+$detachCancellation = 'CancelPendingResult("match detached");'
+if ([regex]::Matches($source, [regex]::Escape($detachCancellation)).Count -ne 1) {
+    throw 'Expected exactly one detach cancellation; refusing an ambiguous lifecycle mutation.'
+}
+Invoke-NegativeCase 'result-queue-detach' ($source.Replace($detachCancellation, '')) `
+    'Detach cancels an old match''s queued result before a replacement match can drain it.'
+
+$roundStartCancellation = 'CancelPendingResult("new round started");'
+if ([regex]::Matches($source, [regex]::Escape($roundStartCancellation)).Count -ne 1) {
+    throw 'Expected exactly one round-start cancellation; refusing an ambiguous lifecycle mutation.'
+}
+Invoke-NegativeCase 'result-queue-round-start' ($source.Replace($roundStartCancellation, '')) `
+    'A result canceled by round start cannot leak into the live round.'
+
 $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its final positive check.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, reset-rebuild, managed-PCM, shutdown-epoch and native-route mutants rejected; production source unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, reset-rebuild, managed-PCM, shutdown-epoch, native-route and result-queue timing/lifecycle mutants rejected; production source unchanged; evidence: $scratch)"

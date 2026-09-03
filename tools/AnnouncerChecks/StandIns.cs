@@ -139,6 +139,19 @@ namespace UnityEngine
             CreatedClips.Add(clip);
             return clip;
         }
+        public static AudioClip CreateDecodedFixture(string name, int lengthSamples, int channels, int frequency)
+        {
+            var data = new float[checked(lengthSamples * channels)];
+            data[0] = 0.25f;
+            return new AudioClip
+            {
+                Name = name,
+                _samples = lengthSamples,
+                _channels = channels,
+                _frequency = frequency,
+                _data = data,
+            };
+        }
         public void SimulateAudioReset()
         {
             // Matches the observed EFT/Unity failure shape: the managed wrapper

@@ -56,8 +56,11 @@ internal static class AnnouncerService
     private static int _requested;
     private static int _skipped;
     private static string _lastOutputState;
+    private static float _calloutBusyUntil;
+    private static string _pendingResultKey;
     private const float RecoveryIntervalSeconds = 10f;
     private const float LoadTimeoutSeconds = 10f;
+    private const float ResultCueGapSeconds = 0.1f;
 
     public static void SetPluginDirectory(string pluginDirectory)
     {
@@ -206,6 +209,7 @@ internal static class AnnouncerService
 
     public static void Detach()
     {
+        CancelPendingResult("match detached");
         if (_match != null)
         {
             _match.OnCallout -= OnCallout;
@@ -223,7 +227,8 @@ internal static class AnnouncerService
 
         _calloutsReceived++;
         var key = label.ToLowerInvariant().Replace(' ', '_');
-        Receive(key);
+        if (Receive(key, out float clipLengthSeconds))
+            _calloutBusyUntil = Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds;
     }
 
     private static void OnAnnouncerCue(ArenaAnnouncerCue cue)
@@ -240,26 +245,87 @@ internal static class AnnouncerService
             return;
 
         _cuesReceived++;
-        Receive(key);
+        if (cue == ArenaAnnouncerCue.RoundStart)
+        {
+            // A new live round owns the channel. This also prevents an unusually
+            // long custom result queue from leaking into the next round.
+            CancelPendingResult("new round started");
+            Receive(key, out _);
+            return;
+        }
+
+        if (Time.realtimeSinceStartup < _calloutBusyUntil)
+        {
+            if (_pendingResultKey == null)
+            {
+                _pendingResultKey = key;
+                Plugin.ModLogger.LogInfo($"Arena announcer result queued: '{key}', "
+                    + $"waitMs={Number((_calloutBusyUntil - Time.realtimeSinceStartup) * 1000f)}.");
+            }
+            else if (!string.Equals(_pendingResultKey, key, StringComparison.OrdinalIgnoreCase))
+            {
+                Skip(key, "result_already_queued", $"pending={_pendingResultKey}");
+            }
+            return;
+        }
+
+        Receive(key, out _);
     }
 
-    private static void Receive(string key)
+    /// <summary>
+    /// Drains only a result cue that was deliberately serialized behind a kill
+    /// callout. It never observes, stops or reprioritizes EFT's shared source.
+    /// Outside an attached Arena match this is an allocation-free no-op.
+    /// </summary>
+    internal static void Tick()
     {
+        if (_pendingResultKey == null || _match == null
+            || Time.realtimeSinceStartup < _calloutBusyUntil)
+            return;
+
+        string key = _pendingResultKey;
+        ClearPendingResult();
+        Plugin.ModLogger.LogInfo($"Arena announcer queued result released: '{key}'.");
+        Receive(key, out _);
+    }
+
+    private static void CancelPendingResult(string reason)
+    {
+        string key = _pendingResultKey;
+        ClearPendingResult();
+        if (key != null)
+        {
+            _skipped++;
+            Plugin.ModLogger.LogWarning(
+                $"Arena announcer skipped: '{key}', reason=queued_result_canceled, {reason}.");
+        }
+    }
+
+    private static void ClearPendingResult()
+    {
+        _pendingResultKey = null;
+        _calloutBusyUntil = 0f;
+    }
+
+    private static bool Receive(string key, out float clipLengthSeconds)
+    {
+        clipLengthSeconds = 0f;
         if (!Settings.AnnouncerEnabled.Value)
         {
             Skip(key, "disabled");
-            return;
+            return false;
         }
         if (Settings.AnnouncerVolume.Value <= 0f)
         {
             Skip(key, "volume_zero");
-            return;
+            return false;
         }
-        Play(key);
+        return Play(key, out clipLengthSeconds);
     }
 
-    private static void Play(string key)
+    private static bool Play(string key, out float clipLengthSeconds)
     {
+        clipLengthSeconds = 0f;
         try
         {
             var found = Clips.TryGetValue(key, out var cached);
@@ -274,13 +340,13 @@ internal static class AnnouncerService
                     && !_loading && Time.realtimeSinceStartup >= _nextRecoveryAt)
                     EnsureLoaded();
                 // A late load is for future callouts; do not replay this kill.
-                return;
+                return false;
             }
 
             if (!TryGetRuntimeClip(cached, out AudioClip clip, out string clipProblem))
             {
                 Skip(key, "clip_rebuild_failed", clipProblem);
-                return;
+                return false;
             }
 
             float volume = Settings.AnnouncerVolume.Value;
@@ -290,10 +356,11 @@ internal static class AnnouncerService
                 Skip(key, problem?.StartsWith("GUISounds:", StringComparison.Ordinal) == true
                     ? "play_failed"
                     : "ui_unavailable", problem);
-                return;
+                return false;
             }
 
             _requested++;
+            clipLengthSeconds = clip.length;
             const string route = "GUISounds.SingleUI.Primary";
             var outputState = $"volume={Number(volume)}, clipGeneration={cached.RuntimeGeneration}, "
                 + $"clipBeforePlay={clipBeforePlay}, clipAfterPlay={RuntimeClipState(clip)}, "
@@ -305,10 +372,12 @@ internal static class AnnouncerService
                 Plugin.ModLogger.LogInfo($"Arena announcer play request: '{key}', "
                     + outputState + ".");
             _lastOutputState = outputState;
+            return true;
         }
         catch (Exception ex)
         {
             Skip(key, "play_failed", ex.Message);
+            return false;
         }
     }
 

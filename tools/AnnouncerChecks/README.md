@@ -37,14 +37,19 @@ Coverage includes:
   diagnostics when mixer, listener, voice or DSP-buffer state changes. The
   service observes `UIVolume` and never probes the nonexistent
   `InterfaceVolume` parameter or overrides mixer volume, listener mute or pause.
-- Direct, synchronous requests through EFT's native
+- Direct requests through EFT's native
   `GUISounds.PlaySound(clip, single: true, commonUiSound: false, volume)` route.
-  The requested clip is reconstructed from the signal-bearing managed Arena
-  PCM cache and every event produces at most one native request.
-- No Arena-owned `AudioSource`, BetterAudio prerequisite, delayed `Tick`, output
-  watchdog, reflection, fallback, or shared-source priority lease. Detach and
-  shutdown only unsubscribe Arena events; they do not stop or reprioritize the
-  shared GUISounds source.
+  Callouts and immediately eligible cues request playback synchronously. The
+  clip is reconstructed from the signal-bearing managed Arena PCM cache, and
+  every event produces at most one native request.
+- A Tactical result arriving while a successfully requested kill callout owns
+  the single UI channel waits for that clip's actual duration plus a short gap.
+  The controlled per-frame tick only drains this one pending result; round start
+  remains immediate, and detach, shutdown or a new round cancels stale work with
+  a diagnostic rather than leaking it into another round or match.
+- No Arena-owned `AudioSource`, BetterAudio prerequisite, output watchdog,
+  reflection, fallback, or shared-source priority lease. Detach and shutdown do
+  not stop or reprioritize the shared GUISounds source.
 - Fail-soft handling when GUISounds is unavailable or rejects a request, without
   a second output path or an exception escaping the match event.
 
@@ -52,17 +57,19 @@ The request pump and clock are controlled; these checks perform no real waits
 for playback. Fixture audio files contain placeholder bytes, not real audio.
 Actual Ogg decoding, Unity's async context, `AudioSettings.Reset`, Harmony/game
 integration, mixer routing and audible output need a real client. The harness
-proves the reset-recovery, synchronous native request and ownership contracts,
-not that Unity's audio device made the request audible.
+proves the reset-recovery, serialized request and ownership contracts, not that
+Unity's audio device made the request audible.
 
 `Verify-Regression.ps1` compiles controlled copies of the current service. It
 keeps the loading flag set, accepts a zeroed runtime wrapper as valid, replaces
 the managed samples with silence during reconstruction, disables the shutdown
-load-epoch guard, and mutates both native GUISounds routing flags. Each mutation
-must fail at its claimed boundary. A
+load-epoch guard, mutates both native GUISounds routing flags, removes the real
+callout duration, bypasses result admission, prevents queue draining, and removes
+both lifecycle cancellation boundaries. Each mutation must fail at its claimed
+boundary. A
 source-contract check requires the managed PCM/rebuild guards and rejects a
 decoder-owned durable cache along with the old private-source, BetterAudio,
-reflection, priority-lease and Tick/watchdog machinery. No test replaces a
+reflection, priority-lease and output-watchdog machinery. No test replaces a
 production file; a hash check verifies the source stayed unchanged, and the
 unchanged service is tested again afterward. Temporary negative-test evidence
 is retained in the printed directory.

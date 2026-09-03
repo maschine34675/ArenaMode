@@ -49,6 +49,7 @@ internal static class Program
             VerifyOutputDiagnostics();
             VerifyShutdownRace(pluginDir, context);
             VerifyRoundCues(pluginDir, context);
+            VerifyResultCueSerialization(pluginDir, context);
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -595,6 +596,111 @@ internal static class Program
         match.Cue(ArenaAnnouncerCue.RoundStart);
         Assert(sounds.PlayRequests.Count == plays + 3,
             "A detached match cannot play a lifecycle cue.");
+    }
+
+    private static void VerifyResultCueSerialization(string pluginDir, QueuedContext context)
+    {
+        AddClip(pluginDir, "killing_spree");
+        int loadRequest = UnityWebRequestMultimedia.Requests.Count;
+        AnnouncerService.EnsureLoaded();
+        Assert(UnityWebRequestMultimedia.Requests.Count == loadRequest + 1
+            && Label(UnityWebRequestMultimedia.Requests[loadRequest]) == "KILLING SPREE",
+            "The serialization fixture starts one controlled killing-spree load.");
+        UnityWebRequestMultimedia.Requests[loadRequest].Content =
+            AudioClip.CreateDecodedFixture("killing_spree", 88200, 2, 44100);
+        FinishLoads(context);
+
+        var sounds = Singleton<GUISounds>.Instance;
+        var messages = ArenaMode.Plugin.ModLogger.Messages;
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        Time.realtimeSinceStartup = 500f;
+        int requests = sounds.PlayRequests.Count;
+        int sharedStops = sounds.SingleSource.StopCalls;
+        int messageStart = messages.Count;
+
+        match.Callout("KILLING SPREE");
+        float calloutLength = sounds.PlayRequests[^1].Clip.length;
+        Assert(calloutLength == 2f,
+            "The result-queue fixture uses a meaningful two-second callout duration.");
+        match.Cue(ArenaAnnouncerCue.RoundWon);
+        Assert(sounds.PlayRequests.Count == requests + 1
+            && sounds.PlayRequests[^1].Clip.Name == "killing_spree"
+            && sounds.SingleSource.StopCalls == sharedStops + 1,
+            "A result cue arriving behind a kill callout must not replace it immediately.");
+        Assert(messages.Skip(messageStart).Any(message =>
+                message.StartsWith("Arena announcer result queued: 'round_won'")
+                && message.Contains("waitMs=")),
+            "A serialized result reports its bounded wait behind the callout.");
+
+        Time.realtimeSinceStartup += calloutLength + 0.05f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == requests + 1,
+            "The result queue must preserve a short post-callout gap before replacing the shared source.");
+        Time.realtimeSinceStartup += 0.06f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == requests + 2
+            && sounds.PlayRequests.Skip(requests).Select(play => play.Clip.Name)
+                .SequenceEqual(new[] { "killing_spree", "round_won" })
+            && sounds.SingleSource.StopCalls == sharedStops + 2,
+            "The queued result plays exactly once after the real callout duration and guard gap.");
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == requests + 2,
+            "A drained result queue cannot replay on later ticks.");
+        Assert(messages.Skip(messageStart).Count(message =>
+                message == "Arena announcer queued result released: 'round_won'.") == 1,
+            "A queued result reports exactly one release.");
+
+        // Match replacement must invalidate work scheduled by the old match.
+        Time.realtimeSinceStartup = 600f;
+        requests = sounds.PlayRequests.Count;
+        match.Callout("KILLING SPREE");
+        match.Cue(ArenaAnnouncerCue.RoundLost);
+        AnnouncerService.Detach();
+        var replacementMatch = new ArenaMatch();
+        AnnouncerService.Attach(replacementMatch);
+        Time.realtimeSinceStartup += 3f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == requests + 1,
+            "Detach cancels an old match's queued result before a replacement match can drain it.");
+        Assert(messages.Any(message => message.Contains("Arena announcer skipped: 'round_lost'")
+                && message.Contains("reason=queued_result_canceled")
+                && message.Contains("match detached")),
+            "Detach diagnoses a queued result that cannot outlive its match.");
+
+        // A new round takes ownership immediately and cancels any stale result.
+        var nextMatch = new ArenaMatch();
+        AnnouncerService.Attach(nextMatch);
+        Time.realtimeSinceStartup = 700f;
+        requests = sounds.PlayRequests.Count;
+        nextMatch.Callout("KILLING SPREE");
+        nextMatch.Cue(ArenaAnnouncerCue.RoundLost);
+        nextMatch.Cue(ArenaAnnouncerCue.RoundStart);
+        Assert(sounds.PlayRequests.Count == requests + 2
+            && sounds.PlayRequests.Skip(requests).Select(play => play.Clip.Name)
+                .SequenceEqual(new[] { "killing_spree", "round_start" }),
+            "Round start stays immediate and supersedes a stale queued result.");
+        Time.realtimeSinceStartup += 3f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == requests + 2,
+            "A result canceled by round start cannot leak into the live round.");
+        Assert(messages.Any(message => message.Contains("Arena announcer skipped: 'round_lost'")
+                && message.Contains("reason=queued_result_canceled")
+                && message.Contains("new round started")),
+            "Round start diagnoses a queued result canceled for an unusually long callout.");
+
+        // Only a successful native request may reserve the result channel.
+        AnnouncerService.Attach(nextMatch);
+        Time.realtimeSinceStartup = 800f;
+        requests = sounds.PlayRequests.Count;
+        sounds.ThrowOnPlay = true;
+        nextMatch.Callout("KILLING SPREE");
+        sounds.ThrowOnPlay = false;
+        nextMatch.Cue(ArenaAnnouncerCue.RoundLost);
+        Assert(sounds.PlayRequests.Count == requests + 1
+            && sounds.PlayRequests[^1].Clip.Name == "round_lost",
+            "A failed callout request cannot delay a valid result cue.");
+        AnnouncerService.Detach();
     }
 
     private static void VerifyNativeUiOutputLifecycle()
