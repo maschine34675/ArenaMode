@@ -95,6 +95,12 @@ namespace EFT
 
         public string ProfileId { get; set; }
         public HealthController HealthController { get; } = new();
+        public AIData AIData { get; } = new();
+    }
+
+    internal sealed class AIData
+    {
+        public BotOwner BotOwner { get; set; }
     }
 
     internal sealed class TestPlayer : Player

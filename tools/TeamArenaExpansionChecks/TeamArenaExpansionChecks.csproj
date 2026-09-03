@@ -14,10 +14,14 @@
              Link="Production/TeamArenaPursuitPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamArenaEnemyIdentityPolicy.cs"
              Link="Production/TeamArenaEnemyIdentityPolicy.cs" />
-    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPftLeasePolicy.cs"
-             Link="Production/TeamArenaPftLeasePolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPursuitOwnerPolicy.cs"
              Link="Production/TeamArenaPursuitOwnerPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaSainRebindTransaction.cs"
+             Link="Production/TeamArenaSainRebindTransaction.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaSainSourcePolicy.cs"
+             Link="Production/TeamArenaSainSourcePolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaSainAssemblyPolicy.cs"
+             Link="Production/TeamArenaSainAssemblyPolicy.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Mono.Cecil">

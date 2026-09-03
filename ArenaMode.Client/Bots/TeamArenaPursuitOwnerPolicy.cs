@@ -18,7 +18,8 @@ internal enum TeamArenaConsumerDecision
 internal static class TeamArenaPursuitOwnerPolicy
 {
     internal const float AcknowledgementTimeoutSeconds = 2f;
-    internal const float ProgressMeters = 1f;
+    internal const float ProgressMeters = 0.5f;
+    internal const int StalledWindowsBeforeRetarget = 3;
 
     internal static TeamArenaConsumerDecision Evaluate(
         bool publicationAccepted,
@@ -58,10 +59,41 @@ internal static class TeamArenaPursuitOwnerPolicy
            && leaseGeneration > 0
            && leaseGeneration == reportedGeneration;
 
-    internal static bool HasDirectionalProgress(float sourceApproachMeters)
-        => !float.IsNaN(sourceApproachMeters)
-           && !float.IsInfinity(sourceApproachMeters)
-           && sourceApproachMeters >= ProgressMeters;
+    internal static bool HasRouteProgress(
+        float displacementMeters,
+        float previousRouteDistanceMeters,
+        float currentRouteDistanceMeters)
+        => IsFinite(displacementMeters)
+           && IsFinite(previousRouteDistanceMeters)
+           && IsFinite(currentRouteDistanceMeters)
+           && displacementMeters >= ProgressMeters
+           && previousRouteDistanceMeters - currentRouteDistanceMeters >= ProgressMeters;
+
+    internal static int NextStalledWindowCount(
+        int previousStalledWindows,
+        float displacementMeters,
+        float previousRouteDistanceMeters,
+        float currentRouteDistanceMeters)
+    {
+        if (HasRouteProgress(
+                displacementMeters,
+                previousRouteDistanceMeters,
+                currentRouteDistanceMeters))
+            return 0;
+
+        if (previousStalledWindows < 0)
+            previousStalledWindows = 0;
+
+        return previousStalledWindows == int.MaxValue
+            ? int.MaxValue
+            : previousStalledWindows + 1;
+    }
+
+    internal static bool ShouldRetarget(int stalledWindows)
+        => stalledWindows >= StalledWindowsBeforeRetarget;
+
+    private static bool IsFinite(float value)
+        => !float.IsNaN(value) && !float.IsInfinity(value);
 
     internal static bool IsFreshHeartbeat(
         float now,

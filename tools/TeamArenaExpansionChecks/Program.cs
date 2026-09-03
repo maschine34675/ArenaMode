@@ -2,6 +2,7 @@ using ArenaMode.Modes;
 using ArenaMode.Spectator;
 using ArenaMode.Bots;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 internal static class Program
 {
@@ -19,8 +20,11 @@ internal static class Program
             CheckPursuitPolicy();
             CheckEnemyIdentityPolicy();
             CheckPursuitOwnerPolicy();
-            CheckPftLeasePolicy();
+            CheckSainAssemblyPolicy();
+            CheckSainSourcePolicy();
+            CheckSainRebindTransaction();
             CheckSourceContract();
+            CheckInstalledPitFireTeamContract();
             CheckInstalledSainContract();
             Console.WriteLine($"TEAM_ARENA_EXPANSION_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -373,7 +377,7 @@ internal static class Program
             player,
             owner,
             "an equal-looking stale wrapper cannot impersonate either current body object");
-        AssertIdentityRejected(
+        AssertIdentityResolved(
             new Dictionary<IdentityKey, object>
             {
                 [player] = playerGroup,
@@ -386,7 +390,11 @@ internal static class Program
             },
             player,
             owner,
-            "two complete wrapper pairs are ambiguous without an explicit current goal");
+            player,
+            playerGroup,
+            playerEnemy,
+            hasEnemy: true,
+            "two complete current-body pairs deterministically prefer the canonical Player wrapper");
         AssertPreferredIdentityResolved(
             new Dictionary<IdentityKey, object>
             {
@@ -421,7 +429,7 @@ internal static class Program
             owner,
             ownerGroup,
             "an exact BotOwner GoalEnemy disambiguates two complete wrapper pairs");
-        AssertPreferredIdentityRejected(
+        AssertPreferredIdentityResolved(
             new Dictionary<IdentityKey, object>
             {
                 [player] = playerGroup,
@@ -435,7 +443,10 @@ internal static class Program
             player,
             owner,
             unrelatedEnemy,
-            "a foreign GoalEnemy cannot disambiguate two complete wrapper pairs");
+            player,
+            playerGroup,
+            playerEnemy,
+            "a foreign GoalEnemy cannot strand two complete current-body pairs");
         AssertPreferredIdentityResolved(
             new Dictionary<IdentityKey, object> { [player] = playerGroup },
             new Dictionary<IdentityKey, object> { [player] = playerEnemy },
@@ -474,6 +485,60 @@ internal static class Program
             ownerGroup,
             ownerEnemy,
             "a coherent BotOwner pair wins even when GoalEnemy points to orphaned Player memory");
+
+        bool validOwnerResolved = TeamArenaEnemyIdentityPolicy.TryResolveValid(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            preferredEnemyInfo: playerEnemy,
+            groupIsValid: (_, _) => true,
+            pairIsValid: (_, _, candidateEnemy) => ReferenceEquals(candidateEnemy, ownerEnemy),
+            out IdentityKey validOwnerKey,
+            out object validOwnerGroup,
+            out object validOwnerEnemy,
+            out bool validOwnerHasEnemy);
+        Assert(validOwnerResolved
+               && ReferenceEquals(validOwnerKey, owner)
+               && ReferenceEquals(validOwnerGroup, ownerGroup)
+               && ReferenceEquals(validOwnerEnemy, ownerEnemy)
+               && validOwnerHasEnemy,
+            "a preferred but stale Player pair cannot hide the semantically valid BotOwner pair");
+
+        bool validPlayerResolved = TeamArenaEnemyIdentityPolicy.TryResolveValid(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            preferredEnemyInfo: ownerEnemy,
+            groupIsValid: (_, _) => true,
+            pairIsValid: (_, _, candidateEnemy) => ReferenceEquals(candidateEnemy, playerEnemy),
+            out IdentityKey validPlayerKey,
+            out object validPlayerGroup,
+            out object validPlayerEnemy,
+            out bool validPlayerHasEnemy);
+        Assert(validPlayerResolved
+               && ReferenceEquals(validPlayerKey, player)
+               && ReferenceEquals(validPlayerGroup, playerGroup)
+               && ReferenceEquals(validPlayerEnemy, playerEnemy)
+               && validPlayerHasEnemy,
+            "a preferred but stale BotOwner pair cannot hide the semantically valid Player pair");
 
         Assert(TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
                    new Dictionary<IdentityKey, object> { [player] = playerGroup },
@@ -706,11 +771,36 @@ internal static class Program
                    true, false, 3, 3, 42, 3, 42),
             "stale generations, stale epochs, foreign consumers and unbound layers cannot acknowledge execution");
 
-        Assert(TeamArenaPursuitOwnerPolicy.HasDirectionalProgress(
-                   TeamArenaPursuitOwnerPolicy.ProgressMeters)
-               && !TeamArenaPursuitOwnerPolicy.HasDirectionalProgress(0f)
-               && !TeamArenaPursuitOwnerPolicy.HasDirectionalProgress(float.NaN),
-            "only source movement toward its target counts; a stationary source gets no credit when the target moves");
+        Assert(TeamArenaPursuitOwnerPolicy.HasRouteProgress(9.4f, 30f, 20f)
+               && !TeamArenaPursuitOwnerPolicy.HasRouteProgress(9.4f, 30f, 30.1f)
+               && !TeamArenaPursuitOwnerPolicy.HasRouteProgress(0f, 30f, 20f)
+               && !TeamArenaPursuitOwnerPolicy.HasRouteProgress(float.NaN, 30f, 20f)
+               && !TeamArenaPursuitOwnerPolicy.HasRouteProgress(9.4f, float.PositiveInfinity, 20f),
+            "route progress requires both physical movement and a finite shorter remaining NavMesh path");
+        Assert(TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(2, 9.4f, 30f, 20f) == 0,
+            "a long lateral NavMesh detour which shortens the route clears the stall counter");
+
+        int slowProgress = TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(0, 0.1f, 30f, 29.9f);
+        slowProgress = TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(
+            slowProgress,
+            0.2f,
+            30f,
+            29.8f);
+        slowProgress = TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(
+            slowProgress,
+            0.6f,
+            30f,
+            29.4f);
+        Assert(slowProgress == 0,
+            "sub-threshold movement accumulates against the retained probe baseline");
+
+        int stalled = TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(0, 0.8f, 30f, 30f);
+        stalled = TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(stalled, 1.2f, 30f, 30.2f);
+        stalled = TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(stalled, 0.7f, 30f, 30f);
+        Assert(stalled == TeamArenaPursuitOwnerPolicy.StalledWindowsBeforeRetarget
+               && TeamArenaPursuitOwnerPolicy.ShouldRetarget(stalled)
+               && !TeamArenaPursuitOwnerPolicy.ShouldRetarget(stalled - 1),
+            "three bounded windows of circling without route progress rotate the target");
         Assert(TeamArenaPursuitOwnerPolicy.IsFreshHeartbeat(10f, 8.5f, 1.5f)
                && !TeamArenaPursuitOwnerPolicy.IsFreshHeartbeat(10.01f, 8.5f, 1.5f)
                && !TeamArenaPursuitOwnerPolicy.IsFreshHeartbeat(9f, 10f, 1.5f)
@@ -718,75 +808,181 @@ internal static class Program
             "only a finite, ordered consumer heartbeat inside the exact age boundary proves live execution");
     }
 
-    private static void CheckPftLeasePolicy()
+    private static void CheckSainRebindTransaction()
     {
-        static TeamArenaPftLeaseState Evaluate(
-            bool tracked = true,
-            bool cancelPending = false,
-            bool raw = false,
-            bool rawPush = false,
-            bool targetLock = false,
-            bool lockMatches = false,
-            bool pushLease = false,
-            bool sequenceMatches = false,
-            bool tacticalLease = false,
-            bool tacticalRawMatches = false,
-            bool tacticalActionMatches = false)
-            => TeamArenaPftLeasePolicy.Evaluate(
-                tracked,
-                cancelPending,
-                raw,
-                rawPush,
-                targetLock,
-                lockMatches,
-                pushLease,
-                sequenceMatches,
-                tacticalLease,
-                tacticalRawMatches,
-                tacticalActionMatches);
+        var staleBody = new object();
+        var currentBody = new object();
+        object cached = staleBody;
+        bool nativeRelationIsCurrent = false;
+        int removals = 0;
+        int nativeRebuilds = 0;
+        var order = new List<string>();
 
-        Assert(Evaluate(tracked: false, raw: true)
-               == TeamArenaPftLeaseState.Stale,
-            "Arena's first post-death route may replace an older follower command");
-        Assert(Evaluate(raw: true, rawPush: true, pushLease: true, sequenceMatches: true)
-               == TeamArenaPftLeaseState.Active,
-            "an exact Arena push sequence with the raw Push command remains active");
-        Assert(Evaluate(raw: true, rawPush: true, targetLock: true, lockMatches: false,
-                   pushLease: true, sequenceMatches: true)
-               == TeamArenaPftLeaseState.Foreign,
-            "a mismatched ordered target lock defeats otherwise matching raw push metadata");
-        Assert(Evaluate(targetLock: true, lockMatches: true, pushLease: true, sequenceMatches: true)
-               == TeamArenaPftLeaseState.Active,
-            "an exact ordered target lock proves ownership after the raw push was consumed");
-        Assert(Evaluate(cancelPending: true, raw: true, rawPush: true,
-                   pushLease: true, sequenceMatches: true)
-               == TeamArenaPftLeaseState.CancelPending,
-            "a pending ordered-push cancellation blocks a replacement command");
-        Assert(Evaluate(raw: true, rawPush: true, pushLease: true, sequenceMatches: false)
-               == TeamArenaPftLeaseState.Foreign,
-            "a newer PFT push sequence is preserved as a foreign producer command");
-        Assert(Evaluate(pushLease: true, sequenceMatches: false)
-               == TeamArenaPftLeaseState.Stale,
-            "a vanished superseded command releases Arena's stale push tracking");
-        Assert(Evaluate(raw: true, targetLock: true, lockMatches: true,
-                   pushLease: true, sequenceMatches: true)
-               == TeamArenaPftLeaseState.Foreign,
-            "a foreign raw command wins over an old matching ordered target lock");
-        Assert(Evaluate(raw: true, tacticalLease: true, tacticalRawMatches: true)
-               == TeamArenaPftLeaseState.Active,
-            "an exact Arena tactical-point command remains active");
-        Assert(Evaluate(tacticalLease: true, tacticalActionMatches: true)
-               == TeamArenaPftLeaseState.Active,
-            "a consumed tactical point stays active only while PFT owns its exact physical action");
-        Assert(Evaluate(raw: true, tacticalLease: true, tacticalActionMatches: true)
-               == TeamArenaPftLeaseState.Foreign,
-            "a newer raw follower command overrides an old consumed tactical action");
-        Assert(Evaluate(tacticalLease: true)
-               == TeamArenaPftLeaseState.Stale,
-            "a consumed tactical point without its physical action is not treated as active ownership");
-        Assert(Evaluate(raw: true)
-               == TeamArenaPftLeaseState.Foreign,
-            "a new producer command is preserved after Arena has owned a route");
+        TeamArenaSainRebindOutcome rebuilt = TeamArenaSainRebindTransaction.TryEnsureExact(
+            resolveOrCreate: () =>
+            {
+                order.Add("resolve");
+                if (cached == null && nativeRelationIsCurrent)
+                    cached = currentBody;
+                return cached;
+            },
+            isExact: candidate => ReferenceEquals(candidate, currentBody)
+                                  && nativeRelationIsCurrent,
+            removeStale: () =>
+            {
+                order.Add("remove");
+                removals++;
+                cached = null;
+                nativeRelationIsCurrent = false;
+            },
+            rebuildExactNative: () =>
+            {
+                order.Add("rebuild-native");
+                nativeRebuilds++;
+                nativeRelationIsCurrent = true;
+                return true;
+            },
+            out object exactEnemy);
+        Assert(rebuilt == TeamArenaSainRebindOutcome.ExactRebuilt
+               && ReferenceEquals(exactEnemy, currentBody)
+               && removals == 1
+               && nativeRebuilds == 1,
+            "a stale same-profile SAIN enemy is replaced by the current-round body");
+        Assert(order.SequenceEqual(new[] { "resolve", "remove", "rebuild-native", "resolve" }),
+            "SAIN stale removal is immediately followed by native rebuild before wrapper recreation");
+
+        int exactRemovals = 0;
+        int exactRebuilds = 0;
+        TeamArenaSainRebindOutcome existing = TeamArenaSainRebindTransaction.TryEnsureExact(
+            resolveOrCreate: () => currentBody,
+            isExact: candidate => ReferenceEquals(candidate, currentBody),
+            removeStale: () => exactRemovals++,
+            rebuildExactNative: () =>
+            {
+                exactRebuilds++;
+                return true;
+            },
+            out exactEnemy);
+        Assert(existing == TeamArenaSainRebindOutcome.ExactExisting
+               && ReferenceEquals(exactEnemy, currentBody)
+               && exactRemovals == 0
+               && exactRebuilds == 0,
+            "an exact current-round SAIN wrapper is never removed or rebuilt");
+
+        int failedResolves = 0;
+        TeamArenaSainRebindOutcome failed = TeamArenaSainRebindTransaction.TryEnsureExact(
+            resolveOrCreate: () =>
+            {
+                failedResolves++;
+                return staleBody;
+            },
+            isExact: candidate => false,
+            removeStale: () => { },
+            rebuildExactNative: () => false,
+            out exactEnemy);
+        Assert(failed == TeamArenaSainRebindOutcome.NativeRebuildFailed
+               && exactEnemy == null
+               && failedResolves == 1,
+            "a failed native rebuild fails closed before SAIN can recreate another wrapper");
+
+        int mismatchResolves = 0;
+        int mismatchRemovals = 0;
+        int mismatchRebuilds = 0;
+        TeamArenaSainRebindOutcome mismatch = TeamArenaSainRebindTransaction.TryEnsureExact(
+            resolveOrCreate: () =>
+            {
+                mismatchResolves++;
+                return staleBody;
+            },
+            isExact: candidate => false,
+            removeStale: () => mismatchRemovals++,
+            rebuildExactNative: () =>
+            {
+                mismatchRebuilds++;
+                return true;
+            },
+            out exactEnemy);
+        Assert(mismatch == TeamArenaSainRebindOutcome.RebuiltEnemyMismatch
+               && exactEnemy == null
+               && mismatchResolves == 2
+               && mismatchRemovals == 2
+               && mismatchRebuilds == 2,
+            "a second stale wrapper is removed, native awareness is restored, and success is withheld");
+
+        int missingMutations = 0;
+        TeamArenaSainRebindOutcome missing = TeamArenaSainRebindTransaction.TryEnsureExact<object>(
+            resolveOrCreate: () => null,
+            isExact: candidate => true,
+            removeStale: () => missingMutations++,
+            rebuildExactNative: () =>
+            {
+                missingMutations++;
+                return true;
+            },
+            out exactEnemy);
+        Assert(missing == TeamArenaSainRebindOutcome.Missing
+               && exactEnemy == null
+               && missingMutations == 0,
+            "a missing optional SAIN enemy performs no destructive repair");
+    }
+
+    private static void CheckSainSourcePolicy()
+    {
+        Assert(TeamArenaSainSourcePolicy.Select(
+                   registryFound: true,
+                   registryReturnedWrapper: true,
+                   registryWrapperExact: true,
+                   attachedWrapperPresent: true,
+                   attachedWrapperExact: true,
+                   registeredAndAttachedSame: true)
+               == TeamArenaSainSourceSelection.RegisteredExact,
+            "an exact profile-registry SAIN wrapper remains authoritative");
+        Assert(TeamArenaSainSourcePolicy.Select(true, true, true, false, false, false)
+               == TeamArenaSainSourceSelection.RegisteredExact,
+            "an exact registered SAIN wrapper remains usable when no attached wrapper is exposed");
+        Assert(TeamArenaSainSourcePolicy.Select(true, true, true, true, true, false)
+               == TeamArenaSainSourceSelection.Incompatible,
+            "distinct exact-looking registered and attached wrappers fail closed");
+        Assert(TeamArenaSainSourcePolicy.Select(true, true, false, true, true, false)
+               == TeamArenaSainSourceSelection.Incompatible,
+            "an exact attached component cannot conceal a stale registered SAIN wrapper used by patches");
+        Assert(TeamArenaSainSourcePolicy.Select(true, false, false, true, true, false)
+               == TeamArenaSainSourceSelection.Incompatible,
+            "GetSAIN true with a null wrapper fails closed even when a component is attached");
+        Assert(TeamArenaSainSourcePolicy.Select(false, false, false, true, true, false)
+               == TeamArenaSainSourceSelection.AttachedExact,
+            "an exact attached component is usable only after a clean registry miss");
+        Assert(TeamArenaSainSourcePolicy.Select(false, false, false, false, false, false)
+               == TeamArenaSainSourceSelection.NotPresent,
+            "a clean registry miss without an attached component means SAIN is absent for the bot");
+        Assert(TeamArenaSainSourcePolicy.Select(false, true, true, false, false, false)
+               == TeamArenaSainSourceSelection.Incompatible
+               && TeamArenaSainSourcePolicy.Select(false, false, false, true, false, false)
+                  == TeamArenaSainSourceSelection.Incompatible,
+            "contradictory registry output and a stale attached component both fail closed");
+    }
+
+    private static void CheckSainAssemblyPolicy()
+    {
+        Assert(TeamArenaSainAssemblyPolicy.Select(
+                   pluginMetadataPresent: false,
+                   assemblyLoaded: false)
+               == TeamArenaSainAssemblyState.ConfirmedAbsent,
+            "SAIN is optional only when both plugin metadata and its assembly are absent");
+        Assert(TeamArenaSainAssemblyPolicy.Select(
+                   pluginMetadataPresent: true,
+                   assemblyLoaded: false)
+               == TeamArenaSainAssemblyState.InstalledPending,
+            "installed SAIN without a loaded assembly remains pending instead of allowing movement");
+        Assert(TeamArenaSainAssemblyPolicy.Select(
+                   pluginMetadataPresent: false,
+                   assemblyLoaded: true)
+               == TeamArenaSainAssemblyState.Loaded
+               && TeamArenaSainAssemblyPolicy.Select(
+                   pluginMetadataPresent: true,
+                   assemblyLoaded: true)
+               == TeamArenaSainAssemblyState.Loaded,
+            "a loaded SAIN assembly takes precedence over plugin metadata timing");
     }
 
     private static void CheckSourceContract()
@@ -802,14 +998,16 @@ internal static class Program
         string controller = Read(root, "ArenaMode.Client", "ArenaController.cs");
         string project = Read(root, "ArenaMode.Client", "ArenaMode.Client.csproj");
         string pursuit = Read(root, "ArenaMode.Client", "Bots", "TeamArenaPursuit.cs");
+        string sainRebind = Read(root, "ArenaMode.Client", "Bots", "TeamArenaSainRebindTransaction.cs");
         string pursuitBridge = Read(root, "ArenaMode.Client", "Bots", "TeamArenaPursuitLeaseBridge.cs");
         string pursuitOwnerPolicy = Read(root, "ArenaMode.Client", "Bots", "TeamArenaPursuitOwnerPolicy.cs");
-        string pftLeasePolicy = Read(root, "ArenaMode.Client", "Bots", "TeamArenaPftLeasePolicy.cs");
+        string sainSourcePolicy = Read(root, "ArenaMode.Client", "Bots", "TeamArenaSainSourcePolicy.cs");
         string bigBrainProject = Read(root, "ArenaMode.BigBrainCompat", "ArenaMode.BigBrainCompat.csproj");
         string bigBrainPlugin = Read(root, "ArenaMode.BigBrainCompat", "Plugin.cs");
         string bigBrainLayer = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitLayer.cs");
         string bigBrainLogic = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitLogic.cs");
         string bigBrainRuntime = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitRuntime.cs");
+        string sainHandoff = Read(root, "ArenaMode.BigBrainCompat", "ArenaSainMovementHandoff.cs");
         string burst = Read(root, "ArenaMode.Client", "Bots", "BurstSpawnService.cs");
         string settings = Read(root, "ArenaMode.Client", "Config", "Settings.cs");
         string menuSelection = Read(root, "ArenaMode.Client", "Session", "ArenaMenuSelection.cs");
@@ -1031,6 +1229,7 @@ internal static class Program
 
         RequireAll(pursuit,
             "private const float SweepSeconds = 1f",
+            "private const float RouteProbeSeconds = 4f",
             "public static void Reset()",
             "public static void BeginRound(int epoch)",
             "TeamArenaPursuitLeaseBridge.Reset()",
@@ -1039,7 +1238,6 @@ internal static class Program
             "TeamArenaPursuitLeaseBridge.TryConsumeRejection(",
             "TeamArenaPursuitOwnerPolicy.Evaluate(",
             "TeamArenaPursuitLeaseBridge.HasStarted(",
-            "BigBrainUnavailableSources.Add(sourceProfile)",
             "TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch)",
             "\"bigbrain\"",
             "!localPlayerDown",
@@ -1049,10 +1247,13 @@ internal static class Program
             "Time.time < _nextSweepAt",
             "candidate.BotState != EBotState.Active",
             "candidate.HealthController?.IsAlive != true",
+            "body.HealthController?.IsAlive != true",
+            "string.Equals(body.ProfileId?.Trim(), profileId, StringComparison.Ordinal)",
+            "ReferenceEquals(body.AIData?.BotOwner, candidate)",
             "!IsFinite(candidate.Position)",
             "!profiles.Add(profileId)",
-            "RefreshSafely(ally, liveOpponents, epoch, follower: true)",
-            "RefreshSafely(opponent, liveAllies, epoch, follower: false)",
+            "RefreshSafely(ally, liveOpponents, epoch)",
+            "RefreshSafely(opponent, liveAllies, epoch)",
             "RefreshNative(source, nearest, out enemyInfo)",
             "SelectEngagedTarget(source, candidates)",
             "SelectRetainedTarget(sourceProfile, candidates, rejectedTargets)",
@@ -1061,99 +1262,135 @@ internal static class Program
             "IsCurrentTargetPerson(current.Person, candidate)",
             "TryResolveRegisteredEnemy(source, candidate, out EnemyInfo registered)",
             "ReferenceEquals(current, registered)",
-            "TeamArenaEnemyIdentityPolicy.TryResolve(",
-            "source?.BotsGroup?.Enemies,",
-            "source?.EnemiesController?.EnemyInfos,",
-            "target.GetPlayer,",
+            "TeamArenaEnemyIdentityPolicy.TryResolveValid(",
+            "group.Enemies,",
+            "source.EnemiesController.EnemyInfos,",
+            "targetPlayer,",
             "target,",
-            "source?.Memory?.GoalEnemy,",
-            "ReferenceEquals(resolved.Person, enemyKey)",
-            "ReferenceEquals(resolved.GroupInfo, groupInfo)",
-            "ReferenceEquals(groupInfo.Player, target.GetPlayer)",
+            "source.Memory?.GoalEnemy,",
+            "groupIsValid: (_, candidateGroup) =>",
+            "pairIsValid: (candidateKey, candidateGroup, candidateEnemy) =>",
+            "ReferenceEquals(candidateGroup.Player, targetPlayer)",
+            "ReferenceEquals(candidateEnemy?.Person, candidateKey)",
+            "ReferenceEquals(candidateEnemy.GroupInfo, candidateGroup)",
+            "ReferenceEquals(candidateEnemy.Owner, source)",
+            "ReferenceEquals(candidateEnemy.GroupOwner, group)",
             "enemy?.IsVisible != true",
             "distance < bestDistance",
             "string.CompareOrdinal(profile, bestProfile) < 0",
             "TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(",
-            "if (!hasCurrentGroupKey)",
+            "bool hasCanonicalPlayerGroupKey",
+            "if (!hasCanonicalPlayerGroupKey)",
             "group.AddEnemy(playerKey, EBotEnemyCause.bossKillArena)",
+            "TryResolveCanonicalPlayerEnemy(",
+            "targetPlayer,\n            targetPlayer,",
             "out IPlayer enemyKey",
-            "group.ReportAboutEnemy(enemyKey, EEnemyPartVisibleType.Sence, source)",
-            "source.Memory.AddEnemy(enemyKey, groupInfo, onActivation: false)",
-            "ReferenceEquals(groupInfo.Player, target.GetPlayer)",
-            "ReferenceEquals(reboundKey, enemyKey)",
+            "group.ReportAboutEnemy(playerKey, EEnemyPartVisibleType.Sence, source)",
+            "source.Memory.AddEnemy(playerKey, groupInfo, onActivation: false)",
+            "ReferenceEquals(enemyInfo.Person, playerKey)",
             "groupInfo.IsLastPositionChecked = false",
             "source.Memory.GoalEnemy = enemyInfo",
-            "TryResolveRegisteredEnemy(source, target, out EnemyInfo registered)",
-            "ReferenceEquals(actual, registered)",
-            "IsCurrentTargetPerson(actual.Person, target)",
             "TeamArenaPursuitPolicy.Decide(",
             "IsMedicalActionActive(source)",
             "source.DoorOpener?.Interacting == true",
             "source.StandBy?.Activate()",
             "HasImmediateDanger(source)",
-            "SetPushEnemy",
-            "RequestOrderedPushCancel",
-            "GetFollowerByProfileId",
-            "SetCombatMoveToPointTactical",
-            "PushEnemyIssueSequence",
-            "TryPeekActiveCommand",
-            "TryGetOrderedPushTargetLock",
-            "PftPushLeasesBySource",
-            "PftTacticalLeasesBySource",
-            "currentSequence != pushLease.Sequence",
-            "Keep Arena's old",
-            "if (hasRawCommand || hasTargetLock || cancelPending)",
-            "PftTacticalLeaseMatches(follower, tacticalLease)",
-            "PftConsumedTacticalLeaseMatches(source, follower, tacticalLease)",
-            "GetActiveLogic",
-            "pitTeam.BigBrain.Actions.CombatGoToPointTacticalAction",
-            "command.thereTactical",
-            "ReferenceEquals(followerBot, source)",
-            "Time.time >= lease.UntilTime",
-            "TeamArenaPftLeasePolicy.Evaluate(",
-            "LogPftLeaseDeferredOnce(epoch, source, target, leaseState)",
-            "HasOrderedPushCancelRequest",
-            "TryConsumeOrderedPushCancelRequest",
-            "UsesPftSainFollowerCombat(source, nearest, epoch)",
-            "\"sain-pft-run\"",
-            "ownerRequired: true",
-            "Dictionary<string, WeakReference<EnemyInfo>> SainAwarenessBySource",
-            "sainNeedsSync",
-            "ReferenceEquals(syncedEnemy, enemyInfo)",
-            "new WeakReference<EnemyInfo>(enemyInfo)",
-            "&& TryRefreshSain(",
-            "expectedNativeEnemy",
-            "ReferenceEquals(expectedNativeEnemy.Person, target)",
-            "ReferenceEquals(_sainEnemyInfo.GetValue(enemy), expectedNativeEnemy)",
-            "GetSAIN",
-            "CheckAddEnemy",
-            "GetProperty(\"EnemyInfo\", BindingFlags.Public | BindingFlags.Instance)",
-            "UpdateLastSeenPosition",
-            "SetInCombat",
-            "Mover",
-            "RunToPoint",
-            "TeamArenaPursuitPolicy.DestinationReachDistanceMeters",
-            "mustHaveCompletePath: true",
-            "source.MoveToEnemyData.TryMoveToEnemy(target.Position)",
-            "ObserveRouteProgress(source, target, squaredDistance, epoch, adapter)",
-            "Vector3.Dot(",
-            "TeamArenaPursuitOwnerPolicy.HasDirectionalProgress(approachProgress)",
+            "out Vector3 destination",
+            "source.Mover.PositionOnWay",
+            "target.Mover.PositionOnWay",
+            "sourceMoverMatchesBody",
+            "MoverAnchorToleranceMeters * MoverAnchorToleranceMeters",
+            "NavMesh.SamplePosition(",
+            "Mathf.Abs(hit.position.y - requested.y) <= AnchorHeightToleranceMeters",
+            "BodyAnchorSampleRadius",
+            "NavMesh.CalculatePath(",
+            "RoutePath.status != NavMeshPathStatus.PathComplete",
+            "Vector3[] corners = RoutePath.corners",
+            "routeDistanceMeters += Vector3.Distance",
+            "TryCalculateRouteDistance(",
+            "probe.SourcePosition,",
+            "source.Position,",
+            "destination,",
+            "out float previousRouteDistanceMeters",
+            "out float currentRouteDistanceMeters",
+            "TeamArenaPursuitOwnerPolicy.HasRouteProgress(",
+            "TeamArenaPursuitOwnerPolicy.NextStalledWindowCount(",
+            "TeamArenaPursuitOwnerPolicy.ShouldRetarget(stalledWindows)",
+            "probe.SourcePosition",
             "RejectTargetForCurrentPass(source, target, epoch)",
-            "LogStalledOnce(",
-            "return _pftAssemblyDetected ? PftPushResult.Rejected : PftPushResult.Unavailable",
-            "return _sainAssemblyDetected ? SainMoveResult.Rejected : SainMoveResult.Unavailable",
-            "Only profile IDs, timers, value snapshots and weak",
-            "ReferenceEquals(resolved.Owner, source)",
-            "ReferenceEquals(resolved.GroupOwner, source.BotsGroup)",
-            "ReferenceEquals(groupInfo._botGroup, source.BotsGroup)");
+            "TryRefreshSain(",
+            "ref enemyInfo",
+            "if (!GoalEnemyMatches(source, nearest, enemyInfo))",
+            "ReferenceEquals(expectedNativeEnemy.Person, targetPerson)",
+            "TeamArenaSainSourceState sourceState = TryGetExactSainBot(",
+            "TeamArenaSainSourceState.NotPresent",
+            "TeamArenaSainSourceState.Incompatible",
+            "if (!_sainBridgeResolved)",
+            "Chainloader.PluginInfos.ContainsKey(SainPluginGuid)",
+            "TeamArenaSainAssemblyPolicy.Select(",
+            "source.GetComponent(_sainBotType)",
+            "TeamArenaSainSourcePolicy.Select(",
+            "IsExactSainSource(getArgs[1], source)",
+            "ReferenceEquals(getArgs[1], attached)",
+            "ReferenceEquals(_sainBotOwner.GetValue(sainBot), source)",
+            "ReferenceEquals(_sainPlayer.GetValue(sainBot), source.GetPlayer)",
+            "TeamArenaSainRebindTransaction.TryEnsureExact(",
+            "_sainRemoveEnemy.Invoke(",
+            "RefreshNative(source, targetOwner, out EnemyInfo rebuiltNativeEnemy)",
+            "ReferenceEquals(_sainEnemyInfo.GetValue(candidate), currentNativeEnemy)",
+            "ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), targetOwner.GetPlayer)",
+            "UpdateLastSeenPosition",
+            "ReferenceEquals(_sainGoalEnemy.GetValue(enemyController), enemy)");
+
+        int previousRouteToCurrentDestination = pursuit.IndexOf(
+            "probe.SourcePosition,\n                destination,\n                out float previousRouteDistanceMeters",
+            StringComparison.Ordinal);
+        int currentRouteToCurrentDestination = pursuit.IndexOf(
+            "source.Position,\n                destination,\n                out float currentRouteDistanceMeters",
+            StringComparison.Ordinal);
+        Assert(previousRouteToCurrentDestination >= 0
+               && currentRouteToCurrentDestination > previousRouteToCurrentDestination,
+            "stall detection compares old and current source positions against the same current target destination");
+
         Assert(!pursuit.Contains("TrySyncEnemyState", StringComparison.Ordinal)
-               && !pursuit.Contains("TryRefreshPft(", StringComparison.Ordinal),
-            "Arena never lets PFT's profile-cached awareness replace the exact native enemy");
+               && !pursuit.Contains("TryRefreshPft(", StringComparison.Ordinal)
+               && !pursuit.Contains("SetPushEnemy", StringComparison.Ordinal)
+               && !pursuit.Contains("SetCombatMoveToPointTactical", StringComparison.Ordinal)
+               && !pursuit.Contains("TryMoveSain", StringComparison.Ordinal)
+               && !pursuit.Contains("HandleSainMovement", StringComparison.Ordinal)
+               && !pursuit.Contains("RunToPoint", StringComparison.Ordinal)
+               && !pursuit.Contains("SetInCombat", StringComparison.Ordinal)
+               && !pursuit.Contains(".TryMoveToEnemy(", StringComparison.Ordinal)
+               && !pursuit.Contains("BigBrainUnavailableSources", StringComparison.Ordinal),
+            "the manager publishes one exclusive route owner and never starts competing PFT, SAIN or native movement");
+
+        RequireAll(sainRebind,
+            "TeamArenaSainRebindOutcome.NativeRebuildFailed",
+            "TeamArenaSainRebindOutcome.RebuiltEnemyMismatch",
+            "TEnemy candidate = resolveOrCreate()",
+            "removeStale()",
+            "if (!rebuildExactNative())",
+            "candidate = resolveOrCreate()",
+            "if (candidate == null)",
+            "if (!isExact(candidate))");
+        RequireAll(sainSourcePolicy,
+            "if (registryFound)",
+            "!registryReturnedWrapper",
+            "!registryWrapperExact",
+            "attachedWrapperPresent",
+            "!attachedWrapperExact || !registeredAndAttachedSame",
+            "TeamArenaSainSourceSelection.RegisteredExact",
+            "if (registryReturnedWrapper)",
+            "TeamArenaSainSourceSelection.AttachedExact",
+            "registeredAndAttachedSame",
+            "TeamArenaSainSourceSelection.Incompatible");
+
         Assert(!pursuit.Contains("TryResolvePlayerEntry", StringComparison.Ordinal)
                && !pursuit.Contains(
                    "string.Equals(candidate.ProfileId, currentProfile",
                    StringComparison.Ordinal),
             "pursuit never resolves a current body through a profile-only first match");
+
         string pursuitMedical = Slice(
             pursuit,
             "private static bool IsMedicalActionActive(BotOwner source)",
@@ -1168,69 +1405,49 @@ internal static class Program
                && !pursuitMedical.Contains("LastResult()", StringComparison.Ordinal)
                && !pursuitMedical.Contains("BotLogicDecision.heal", StringComparison.Ordinal),
             "pending, aggregate or decision-only medical state cannot hold a wounded bot in place");
+
         Assert(!System.Text.RegularExpressions.Regex.IsMatch(
                    pursuit,
-                   @"private\s+static(?:\s+readonly)?\s+[^;\r\n]*BotOwner[^;\r\n]*;")
+                   @"private\s+static(?:\s+readonly)?\s+[^;\r\n]*\bBotOwner\b[^;\r\n]*;")
                && !pursuit.Contains("source.GoToPoint", StringComparison.Ordinal)
                && !pursuit.Contains("mustHaveWay: true", StringComparison.Ordinal)
                && !pursuit.Contains("DoorOpener?.NearDoor", StringComparison.Ordinal)
                && !pursuit.Contains("Teleport", StringComparison.Ordinal)
                && !pursuit.Contains("LookSensor", StringComparison.Ordinal)
                && !pursuit.Contains("SetVisible", StringComparison.Ordinal)
-               && !pursuit.Contains("distanceGain >= PftProgressMeters", StringComparison.Ordinal),
-            "post-death pursuit retains no bot body and never fakes sight or uses teleport-capable movement");
+               && !pursuit.Contains("Vector3.Dot", StringComparison.Ordinal),
+            "post-death pursuit retains no bot body, fakes no sight, and accepts lateral NavMesh detours");
+
         Assert(pursuit.IndexOf("TeamArenaPursuitLeaseBridge.TryConsumeRejection(", StringComparison.Ordinal)
                    < pursuit.IndexOf("TeamArenaPursuitLeaseBridge.Publish(", StringComparison.Ordinal),
             "a rejected consumer generation is handled before the source can publish another lease");
-        int ownerPublish = pursuit.IndexOf(
-            "&& TeamArenaPursuitLeaseBridge.Publish(",
+        int routeValidation = pursuit.IndexOf(
+            "TryBuildRouteDestination(",
             StringComparison.Ordinal);
-        int followerFallbackPin = pursuit.IndexOf(
-            "if (follower)\n            BigBrainUnavailableSources.Add(sourceProfile);",
-            ownerPublish,
+        int routePublication = pursuit.IndexOf(
+            "TeamArenaPursuitLeaseBridge.Publish(",
+            routeValidation,
             StringComparison.Ordinal);
-        int pftOwnerProbe = pursuit.IndexOf(
-            "bool pftSainFollower = follower",
-            followerFallbackPin,
+        int destinationArgument = pursuit.IndexOf(
+            "destination,",
+            routePublication,
             StringComparison.Ordinal);
-        Assert(ownerPublish >= 0
-               && followerFallbackPin > ownerPublish
-               && pftOwnerProbe > followerFallbackPin,
-            "a follower that entered fallback cannot be taken over by a late BigBrain registration");
-        int bigBrainStall = pursuit.IndexOf(
-            "if (string.Equals(adapter, \"bigbrain\", StringComparison.Ordinal))",
-            StringComparison.Ordinal);
-        int bigBrainDisable = pursuit.IndexOf(
-            "BigBrainUnavailableSources.Add(sourceProfile)",
-            bigBrainStall,
-            StringComparison.Ordinal);
-        int stalledTargetReject = pursuit.IndexOf(
-            "RejectTargetForCurrentPass(source, target, epoch)",
-            bigBrainDisable,
-            StringComparison.Ordinal);
-        Assert(bigBrainStall >= 0
-               && bigBrainDisable > bigBrainStall
-               && stalledTargetReject > bigBrainDisable,
-            "a physically stalled BigBrain route disables its owner and revokes the lease through target rejection");
-
-        RequireAll(pftLeasePolicy,
-            "if (cancelPending)",
-            "TeamArenaPftLeaseState.CancelPending",
-            "if (!pushSequenceMatches)",
-            "hasRawCommand || hasTargetLock",
-            "TeamArenaPftLeaseState.Foreign",
-            "rawIsPush || targetLockMatches",
-            "tacticalRawMatches",
-            "tacticalActionMatches",
-            "hasTrackedRoute && (hasRawCommand || hasTargetLock)");
+        Assert(routeValidation >= 0
+               && routePublication > routeValidation
+               && destinationArgument > routePublication,
+            "only a complete sampled NavMesh destination is published to the movement owner");
 
         RequireAll(pursuitOwnerPolicy,
             "AcknowledgementTimeoutSeconds = 2f",
+            "ProgressMeters = 0.5f",
+            "StalledWindowsBeforeRetarget = 3",
             "TeamArenaConsumerDecision.AwaitingAcknowledgement",
             "TeamArenaConsumerDecision.DisableAndFallback",
             "CanAcceptConsumerReport(",
             "leaseGeneration == reportedGeneration",
-            "HasDirectionalProgress(float sourceApproachMeters)",
+            "HasRouteProgress(",
+            "NextStalledWindowCount(",
+            "ShouldRetarget(int stalledWindows)",
             "IsFreshHeartbeat(");
 
         RequireAll(pursuitBridge,
@@ -1268,6 +1485,7 @@ internal static class Program
         RequireAll(bigBrainProject,
             "<ProjectReference Include=\"..\\ArenaMode.Client\\ArenaMode.Client.csproj\" Private=\"false\" />",
             "<Reference Include=\"DrakiaXYZ-BigBrain\">",
+            "<Reference Include=\"UnityEngine.AIModule\" Private=\"false\" />",
             "<Private>false</Private>");
         RequireAll(bigBrainPlugin,
             "[BepInDependency(ArenaMode.Plugin.PluginGuid, ArenaMode.Plugin.PluginVersion)]",
@@ -1279,6 +1497,7 @@ internal static class Program
             "TeamArenaPursuitLeaseBridge.RegisterConsumer(PluginGuid)",
             "TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid)");
         RequireAll(bigBrainLayer,
+            "public override string GetName() => \"Arena Combat Pursuit\"",
             "ArenaPursuitRuntime.HasExactTeamArenaContext()",
             "ReleaseSourceRegistration()",
             "TeamArenaPursuitLeaseBridge.RegisterSource(",
@@ -1297,9 +1516,19 @@ internal static class Program
         RequireAll(bigBrainLogic,
             "_nativeRunToEnemy = new ArenaRunToEnemy(botOwner)",
             "UnresolvedArrivalGraceSeconds = 1.5f",
+            "RouteRefreshSeconds = 1f",
+            "ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _)",
+            "ArenaSainMovementHandoff.EnsureSuspended(",
+            "ArenaSainHandoffState.WaitingForDeactivation",
+            "ArenaSainHandoffState.Unavailable",
+            "BotOwner.PatrollingData?.Pause()",
             "BotOwner.MovementResume()",
-            "BotOwner.MoveToEnemyData.TryMoveToEnemy(lease.Destination)",
+            "BotOwner.Mover?.CurrentState == EBotMoverState.NearDoor",
+            "BotOwner.Mover?.Stop()",
+            "TryAcquireExactLeaseRoute(lease)",
             "_nativeRunToEnemy.UpdateNodeByBrain(null)",
+            "_nativeRunToEnemy.HandlingDoorThisUpdate",
+            "ReportStartedOrStop(lease)",
             "TrackUnresolvedArrival(",
             "out bool unresolvedArrivalExpired",
             "if (unresolvedArrivalExpired)",
@@ -1310,12 +1539,79 @@ internal static class Program
             "TeamArenaPursuitLeaseBridge.ReportRejected(",
             "lease.Generation",
             "BotOwner?.Mover?.Stop()");
+        int handoffCheck = bigBrainLogic.IndexOf(
+            "ArenaSainMovementHandoff.EnsureSuspended(",
+            StringComparison.Ordinal);
+        int targetBind = bigBrainLogic.IndexOf(
+            "ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _)",
+            StringComparison.Ordinal);
+        int firstRouteStop = bigBrainLogic.IndexOf(
+            "BotOwner.Mover?.Stop()",
+            handoffCheck,
+            StringComparison.Ordinal);
+        int firstRouteAcquisition = bigBrainLogic.IndexOf(
+            "TryAcquireExactLeaseRoute(lease)",
+            firstRouteStop,
+            StringComparison.Ordinal);
+        int firstStartedReport = bigBrainLogic.IndexOf(
+            "TeamArenaPursuitLeaseBridge.ReportStarted(",
+            firstRouteAcquisition,
+            StringComparison.Ordinal);
+        Assert(targetBind >= 0
+               && handoffCheck > targetBind
+               && firstRouteStop > handoffCheck
+               && firstRouteAcquisition > firstRouteStop
+               && firstStartedReport > firstRouteAcquisition,
+            "a fresh generation waits for SAIN release, clears inherited movement and acquires its own route before acknowledgement");
+        int freshDoorGuard = bigBrainLogic.IndexOf(
+            "if (!ownsExactLease\n                && (BotOwner.Mover?.CurrentState == EBotMoverState.NearDoor",
+            StringComparison.Ordinal);
+        int normalFreshRoute = bigBrainLogic.IndexOf(
+            "if (!ownsExactLease)\n            {",
+            freshDoorGuard + 1,
+            StringComparison.Ordinal);
+        Assert(freshDoorGuard >= 0
+               && normalFreshRoute > freshDoorGuard
+               && !bigBrainLogic.Substring(freshDoorGuard, normalFreshRoute - freshDoorGuard)
+                   .Contains("ReportStartedOrStop", StringComparison.Ordinal)
+               && !bigBrainLogic.Substring(freshDoorGuard, normalFreshRoute - freshDoorGuard)
+                   .Contains("_ownsMovement = true", StringComparison.Ordinal),
+            "a fresh generation cannot acknowledge or adopt an inherited door path");
+        RequireAll(sainHandoff,
+            "SAIN.SAINEnableClass",
+            "SAIN.Components.BotComponent",
+            "SAIN.SAINComponent.Classes.SAINActivationClass",
+            "SAIN.SAINComponent.Classes.Mover.SAINMoverClass",
+            "SAIN.Models.Enums.ESAINLayer",
+            "SAIN.Layers.IBotAction",
+            "bot.GetComponent(_sainBotType)",
+            "TeamArenaSainSourcePolicy.Select(",
+            "TeamArenaSainSourceSelection.Incompatible",
+            "IsExactWrapper(registeredSainBot, bot)",
+            "IsExactWrapper(attachedSainBot, bot)",
+            "ReferenceEquals(registeredSainBot, attachedSainBot)",
+            "Chainloader.PluginInfos.ContainsKey(SainPluginGuid)",
+            "TeamArenaSainAssemblyPolicy.Select(",
+            "if (!_resolved)",
+            "the installed SAIN assembly is still loading",
+            "ReferenceEquals(_botOwner.GetValue(sainBot), bot)",
+            "ReferenceEquals(_player.GetValue(sainBot), bot.GetPlayer)",
+            "_setActiveLayer.Invoke(activation, new[] { _noActiveLayer })",
+            "_setCurrentAction.Invoke(activation, new object[] { null })",
+            "_stopMover.Invoke(mover, Array.Empty<object>())",
+            "_setInCombat.Invoke(activation, new object[] { false })",
+            "ArenaSainHandoffState.WaitingForDeactivation",
+            "_sainLayersActive.GetValue(sainBot)",
+            "Enum.Parse(layerType, \"None\", ignoreCase: false)");
+        Assert(!sainHandoff.Contains("SetActive(false", StringComparison.Ordinal),
+            "the Arena handoff never disables the SAIN bot or changes standby activity");
         RequireAll(bigBrainLogic,
             "private sealed class ArenaRunToEnemy : RunToEnemy",
             "internal const float ArenaReachDistanceMeters = 1f",
             "public override void UpdateNodeByBrain(CoreActionResultParams data)",
-            "bool canRun = DoorOpen() == DoorInteractionStatus.CanRun",
-            "NotMovingCheck()",
+            "DoorInteractionStatus doorStatus = DoorOpen()",
+            "HandlingDoorThisUpdate = doorStatus == DoorInteractionStatus.OpeningDoor",
+            "bool canRun = doorStatus == DoorInteractionStatus.CanRun",
             "PeriodChangeWeapon()",
             "_owner.Steering.LookToMovingDirection()",
             "_owner.LookData.SetLookPointByHearing()",
@@ -1323,6 +1619,8 @@ internal static class Program
             "_owner.Mover.IsComeTo(ArenaReachDistanceMeters, onCover: false)",
             "ReachedDestinationThisUpdate = true",
             "InPoint()");
+        Assert(!bigBrainLogic.Contains("NotMovingCheck()", StringComparison.Ordinal),
+            "the native node cannot replace Arena's sampled lease endpoint with GoalEnemy.CurrPosition");
         RequireAll(bigBrainLogic,
             "private bool TrackUnresolvedArrival(",
             "BotOwner.Mover?.HasPathAndNoComplete == true",
@@ -1348,11 +1646,22 @@ internal static class Program
                    "_owner.Settings.FileSettings.Move.REACH_DIST",
                    StringComparison.Ordinal),
             "the Arena action cannot inherit PitFireTeam's wider arrival radius");
+        RequireAll(bigBrainLogic,
+            "private bool TryAcquireExactLeaseRoute(",
+            "BotOwner.GoToPoint(",
+            "slowAtTheEnd: false",
+            "reachDist: ArenaRunToEnemy.ArenaReachDistanceMeters",
+            "mustHaveWay: false",
+            "status == NavMeshPathStatus.PathComplete",
+            "BotOwner.Mover?.TargetPoint is Vector3 targetPoint",
+            "ExactDestinationToleranceMeters * ExactDestinationToleranceMeters",
+            "BotOwner.Mover?.Stop()",
+            "return IsAtLeaseDestination(lease)");
         Assert(!bigBrainLogic.Contains("Teleport", StringComparison.Ordinal)
-               && !bigBrainLogic.Contains("GoToPoint", StringComparison.Ordinal),
-            "the BigBrain owner drives EFT's native enemy route and never teleports or bypasses its path helper");
+               && !bigBrainLogic.Contains("TryMoveToEnemy", StringComparison.Ordinal),
+            "the BigBrain owner drives the exact leased EFT route and never teleports or accepts a random fallback endpoint");
         int actionPath = bigBrainLogic.IndexOf(
-            "!BotOwner.MoveToEnemyData.TryMoveToEnemy(lease.Destination)",
+            "&& !TryAcquireExactLeaseRoute(lease))",
             StringComparison.Ordinal);
         int unresolvedArrivalWait = bigBrainLogic.IndexOf(
             "if (waitingAtUnresolvedArrival)\n                return;",
@@ -1372,8 +1681,12 @@ internal static class Program
         RequireAll(bigBrainRuntime,
             "!ArenaSession.IsActive",
             "TeamArenaPursuitLeaseBridge.HasExactTeamArenaContext()",
+            "Player body = bot?.GetPlayer",
             "bot.BotState == EBotState.Active",
-            "bot.GetPlayer.HealthController?.IsAlive == true",
+            "body.HealthController?.IsAlive == true",
+            "body.ProfileId?.Trim()",
+            "bot.ProfileId?.Trim()",
+            "ReferenceEquals(body.AIData?.BotOwner, bot)",
             "HasImmediateDanger(bot)",
             "bot.BewareGrenade?.ShallRunAway() == true",
             "bot.BewareBTR?.ShallRunAway() == true",
@@ -1385,8 +1698,9 @@ internal static class Program
             "bot?.Medecine?.SurgicalKit?.Using == true",
             "bot?.Medecine?.Stimulators?.Using == true",
             "TryGetExactEnemy(bot, current.TargetProfileId",
+            "TryBindLeaseTarget(",
+            "bot.Memory.GoalEnemy = enemy",
             "pair.Key.ProfileId?.Trim()",
-            "ReferenceEquals(bot?.Memory?.GoalEnemy, enemy)",
             "ReferenceEquals(pair.Key, candidate.Person)",
             "ReferenceEquals(candidate.Owner, bot)",
             "ReferenceEquals(candidate.GroupOwner, group)",
@@ -1394,18 +1708,20 @@ internal static class Program
             "HasCanonicalGroupPlayer(pair.Key, candidate.GroupInfo?.Player, expectedProfile)",
             "HasExactGroupEntry(group, pair.Key, candidate.GroupInfo)",
             "enemy.Person?.HealthController?.IsAlive != true",
-            "IsExactGoalEnemy(bot, enemy)",
+            "ReferenceEquals(targetOwner.GetPlayer, groupPlayer)",
             "enemy.IsVisible && enemy.CanShoot");
         string bigBrainMedical = Slice(
             bigBrainRuntime,
             "private static bool IsMedicalActionActive(BotOwner bot)",
-            "private static bool IsExactGoalEnemy(");
+            "private static bool TryGetExactEnemy(");
         Assert(!bigBrainMedical.Contains(".Have2Do == true", StringComparison.Ordinal)
                && !bigBrainMedical.Contains(".HaveWork == true", StringComparison.Ordinal)
                && !bigBrainMedical.Contains("Medecine.Using", StringComparison.Ordinal)
                && !bigBrainMedical.Contains("LastResult()", StringComparison.Ordinal)
                && !bigBrainMedical.Contains("BotLogicDecision.heal", StringComparison.Ordinal),
             "the BigBrain owner also blocks only a live medical hands operation");
+        Assert(!bigBrainRuntime.Contains("IsExactGoalEnemy", StringComparison.Ordinal),
+            "a transient SAIN GoalEnemy decision cannot invalidate the exact Arena lease target");
         string bigBrainEnemyLookup = Slice(
             bigBrainRuntime,
             "private static bool TryGetExactEnemy(",
@@ -1741,20 +2057,21 @@ internal static class Program
         ModuleDefinition module = sain.MainModule;
         TypeDefinition enable = RequireType(module, "SAIN.SAINEnableClass");
         TypeDefinition bot = RequireType(module, "SAIN.Components.BotComponent");
-        TypeDefinition controller = RequireType(
-            module,
-            "SAIN.SAINComponent.Classes.EnemyClasses.SAINEnemyController");
-        TypeDefinition enemy = RequireType(
-            module,
-            "SAIN.SAINComponent.Classes.EnemyClasses.Enemy");
+        TypeDefinition botBase = RequireType(module, "SAIN.Components.BotComponentBase");
         TypeDefinition activation = RequireType(
             module,
             "SAIN.SAINComponent.Classes.SAINActivationClass");
         TypeDefinition mover = RequireType(
             module,
             "SAIN.SAINComponent.Classes.Mover.SAINMoverClass");
-        TypeDefinition sprintUrgency = RequireType(module, "SAIN.Models.Enums.ESprintUrgency");
-
+        TypeDefinition layer = RequireType(module, "SAIN.Models.Enums.ESAINLayer");
+        TypeDefinition botAction = RequireType(module, "SAIN.Layers.IBotAction");
+        TypeDefinition controller = RequireType(
+            module,
+            "SAIN.SAINComponent.Classes.EnemyClasses.SAINEnemyController");
+        TypeDefinition enemy = RequireType(
+            module,
+            "SAIN.SAINComponent.Classes.EnemyClasses.Enemy");
         MethodDefinition getSain = RequireMethod(
             enable,
             "GetSAIN",
@@ -1766,25 +2083,64 @@ internal static class Program
                && getSain.Parameters[1].IsOut,
             "installed SAIN exposes public static GetSAIN(string, out BotComponent)");
 
-        Assert(HasPublicGetter(bot, "EnemyController", controller.FullName)
+        Assert(HasPublicGetter(botBase, "BotOwner", "EFT.BotOwner")
+               && HasPublicGetter(botBase, "Player", "EFT.Player")
+               && HasPublicGetter(bot, "EnemyController", controller.FullName)
                && HasPublicGetter(bot, "BotActivation", activation.FullName)
-               && HasPublicGetter(bot, "IsInCombat", "System.Boolean")
                && HasPublicGetter(bot, "Mover", mover.FullName)
-               && HasPublicGetter(bot, "NavMeshPosition", "UnityEngine.Vector3"),
-            "installed SAIN BotComponent exposes the exact awareness, activation and movement properties");
+               && HasPublicGetter(bot, "SAINLayersActive", "System.Boolean"),
+            "installed SAIN exposes the exact source identity and awareness properties");
+
+        Assert(HasPublicGetter(activation, "ActiveLayer", layer.FullName)
+               && HasPublicGetter(activation, "CurrentAction", botAction.FullName)
+               && HasPublicGetter(activation, "BotInCombat", "System.Boolean"),
+            "installed SAIN exposes the movement ownership state required for a bounded handoff");
+        MethodDefinition stopMover = RequireMethod(mover, "Stop", "System.Void");
+        MethodDefinition setCurrentAction = RequireMethod(
+            activation,
+            "SetCurrentAction",
+            "System.Void",
+            botAction.FullName);
+        MethodDefinition setActiveLayer = RequireMethod(
+            activation,
+            "SetActiveLayer",
+            "System.Void",
+            layer.FullName);
+        MethodDefinition setInCombat = RequireMethod(
+            activation,
+            "SetInCombat",
+            "System.Void",
+            "System.Boolean");
+        Assert(stopMover.IsPublic && !stopMover.IsStatic
+               && setCurrentAction.IsPublic && !setCurrentAction.IsStatic
+               && setActiveLayer.IsPublic && !setActiveLayer.IsStatic
+               && setInCombat.IsPublic && !setInCombat.IsStatic,
+            "installed SAIN exposes public instance movement release methods");
+        FieldDefinition noActiveLayer = layer.Fields.SingleOrDefault(field => field.Name == "None")
+            ?? throw new InvalidOperationException("Installed SAIN ESAINLayer.None is missing.");
+        Assert(noActiveLayer.HasConstant && Convert.ToInt32(noActiveLayer.Constant) == 0,
+            "installed SAIN ESAINLayer.None retains the expected zero value");
 
         MethodDefinition checkAddEnemy = RequireMethod(
             controller,
             "CheckAddEnemy",
             enemy.FullName,
             "EFT.IPlayer");
-        Assert(checkAddEnemy.IsPublic && !checkAddEnemy.IsStatic,
-            "installed SAIN exposes public instance CheckAddEnemy(IPlayer)");
+        MethodDefinition removeEnemy = RequireMethod(
+            controller,
+            "RemoveEnemy",
+            "System.Void",
+            "System.String");
+        Assert(checkAddEnemy.IsPublic && !checkAddEnemy.IsStatic
+               && removeEnemy.IsPublic && !removeEnemy.IsStatic,
+            "installed SAIN exposes public instance enemy create and remove methods");
 
         PropertyDefinition nativeEnemyInfo = RequireProperty(enemy, "EnemyInfo", "EnemyInfo");
+        PropertyDefinition enemyPlayer = RequireProperty(enemy, "EnemyPlayer", "EFT.Player");
         Assert(nativeEnemyInfo.GetMethod?.IsPublic == true
-               && nativeEnemyInfo.SetMethod == null,
-            "installed SAIN Enemy exposes its native EnemyInfo through a public getter");
+               && nativeEnemyInfo.SetMethod == null
+               && enemyPlayer.GetMethod?.IsPublic == true,
+            "installed SAIN Enemy exposes its native EnemyInfo and canonical Player through public getters");
 
         PropertyDefinition goalEnemy = RequireProperty(controller, "GoalEnemy", enemy.FullName);
         Assert(goalEnemy.GetMethod?.IsPublic == true
@@ -1801,38 +2157,43 @@ internal static class Program
         Assert(updateLastSeen.IsPublic && !updateLastSeen.IsStatic,
             "installed SAIN exposes public instance UpdateLastSeenPosition(Vector3, float)");
 
-        MethodDefinition setInCombat = RequireMethod(
-            activation,
-            "SetInCombat",
-            "System.Void",
-            "System.Boolean");
-        Assert(setInCombat.IsPublic && !setInCombat.IsStatic,
-            "installed SAIN exposes public instance SetInCombat(bool)");
-
-        MethodDefinition runToPoint = RequireMethod(
-            mover,
-            "RunToPoint",
-            "System.Boolean",
-            "UnityEngine.Vector3",
-            "System.Boolean",
-            "System.Single",
-            sprintUrgency.FullName,
-            "System.Boolean");
-        Assert(runToPoint.IsPublic && !runToPoint.IsStatic,
-            "installed SAIN exposes the exact five-parameter RunToPoint contract");
-
-        FieldDefinition high = sprintUrgency.Fields.SingleOrDefault(field => field.Name == "High")
-                               ?? throw new InvalidOperationException(
-                                   "Installed SAIN ESprintUrgency.High is missing.");
-        Assert(sprintUrgency.IsEnum
-               && high.IsPublic
-               && high.IsStatic
-               && high.IsLiteral
-               && high.HasConstant
-               && Convert.ToInt32(high.Constant) == 3,
-            "installed SAIN ESprintUrgency.High retains the reflected numeric value 3");
-
         Console.WriteLine("SAIN_RUNTIME_CONTRACT_PASSED");
+    }
+
+    private static void CheckInstalledPitFireTeamContract()
+    {
+        string repo = FindRepositoryRoot();
+        string spt = Directory.GetParent(Directory.GetParent(repo)!.FullName)!.FullName;
+        string pitPath = Path.Combine(
+            spt,
+            "BepInEx",
+            "plugins",
+            "pitFireTeam",
+            "pitFireTeam.dll");
+        if (!File.Exists(pitPath))
+        {
+            Console.WriteLine(
+                "PITFIRETEAM_BIGBRAIN_FILTER_CONTRACT_SKIPPED (optional PitFireTeam client plugin is not installed)");
+            return;
+        }
+
+        using var pit = AssemblyDefinition.ReadAssembly(pitPath);
+        TypeDefinition filter = RequireType(
+            pit.MainModule,
+            "pitTeam.Patches.HostilePeacefulLayerInterrupt");
+        MethodDefinition isCombatLayer = filter.Methods.SingleOrDefault(method =>
+                method.Name == "IsCombatLayer"
+                && method.IsStatic
+                && method.Parameters.Count == 1)
+            ?? throw new InvalidOperationException(
+                "Installed PitFireTeam HostilePeacefulLayerInterrupt.IsCombatLayer is missing.");
+        bool recognizesCombatName = isCombatLayer.HasBody
+            && isCombatLayer.Body.Instructions.Any(instruction =>
+                instruction.OpCode.Code == Code.Ldstr
+                && string.Equals(instruction.Operand as string, "Combat", StringComparison.OrdinalIgnoreCase));
+        Assert(recognizesCombatName,
+            "installed PitFireTeam retains combat layers whose reported name contains Combat");
+        Console.WriteLine("PITFIRETEAM_BIGBRAIN_FILTER_CONTRACT_PASSED");
     }
 
     private static TypeDefinition RequireType(ModuleDefinition module, string fullName)

@@ -46,6 +46,67 @@ internal static class TeamArenaEnemyIdentityPolicy
         where TKey : class
         where TGroupInfo : class
         where TEnemyInfo : class
+        => TryResolveCore(
+            groupEntries,
+            memoryEntries,
+            playerKey,
+            botOwnerKey,
+            preferredEnemyInfo,
+            groupIsValid: (_, _) => true,
+            pairIsValid: (_, _, _) => true,
+            out resolvedKey,
+            out groupInfo,
+            out enemyInfo,
+            out hasEnemyInfo);
+
+    /// <summary>
+    /// Resolves only a semantically current dictionary pair. Two exact wrapper
+    /// keys can coexist after a round/body transition, so a stale complete pair
+    /// must not hide the other wrapper's valid current relation.
+    /// </summary>
+    internal static bool TryResolveValid<TKey, TGroupInfo, TEnemyInfo>(
+        IReadOnlyDictionary<TKey, TGroupInfo> groupEntries,
+        IReadOnlyDictionary<TKey, TEnemyInfo> memoryEntries,
+        TKey playerKey,
+        TKey botOwnerKey,
+        TEnemyInfo preferredEnemyInfo,
+        Func<TKey, TGroupInfo, bool> groupIsValid,
+        Func<TKey, TGroupInfo, TEnemyInfo, bool> pairIsValid,
+        out TKey resolvedKey,
+        out TGroupInfo groupInfo,
+        out TEnemyInfo enemyInfo,
+        out bool hasEnemyInfo)
+        where TKey : class
+        where TGroupInfo : class
+        where TEnemyInfo : class
+        => TryResolveCore(
+            groupEntries,
+            memoryEntries,
+            playerKey,
+            botOwnerKey,
+            preferredEnemyInfo,
+            groupIsValid,
+            pairIsValid,
+            out resolvedKey,
+            out groupInfo,
+            out enemyInfo,
+            out hasEnemyInfo);
+
+    private static bool TryResolveCore<TKey, TGroupInfo, TEnemyInfo>(
+        IReadOnlyDictionary<TKey, TGroupInfo> groupEntries,
+        IReadOnlyDictionary<TKey, TEnemyInfo> memoryEntries,
+        TKey playerKey,
+        TKey botOwnerKey,
+        TEnemyInfo preferredEnemyInfo,
+        Func<TKey, TGroupInfo, bool> groupIsValid,
+        Func<TKey, TGroupInfo, TEnemyInfo, bool> pairIsValid,
+        out TKey resolvedKey,
+        out TGroupInfo groupInfo,
+        out TEnemyInfo enemyInfo,
+        out bool hasEnemyInfo)
+        where TKey : class
+        where TGroupInfo : class
+        where TEnemyInfo : class
     {
         resolvedKey = null;
         groupInfo = null;
@@ -54,7 +115,9 @@ internal static class TeamArenaEnemyIdentityPolicy
         if (groupEntries == null
             || memoryEntries == null
             || playerKey == null
-            || botOwnerKey == null)
+            || botOwnerKey == null
+            || groupIsValid == null
+            || pairIsValid == null)
         {
             return false;
         }
@@ -69,16 +132,20 @@ internal static class TeamArenaEnemyIdentityPolicy
         bool hasOwnerMemory = !sameKey
             && TryGetReferenceValue(memoryEntries, botOwnerKey, out ownerEnemy);
 
-        if ((hasPlayerGroup && playerGroup == null)
-            || (hasOwnerGroup && ownerGroup == null)
-            || (hasPlayerMemory && playerEnemy == null)
-            || (hasOwnerMemory && ownerEnemy == null))
-        {
-            return false;
-        }
-
-        bool hasPlayerPair = hasPlayerGroup && hasPlayerMemory;
-        bool hasOwnerPair = hasOwnerGroup && hasOwnerMemory;
+        bool validPlayerGroup = hasPlayerGroup
+            && playerGroup != null
+            && groupIsValid(playerKey, playerGroup);
+        bool validOwnerGroup = hasOwnerGroup
+            && ownerGroup != null
+            && groupIsValid(botOwnerKey, ownerGroup);
+        bool hasPlayerPair = validPlayerGroup
+            && hasPlayerMemory
+            && playerEnemy != null
+            && pairIsValid(playerKey, playerGroup, playerEnemy);
+        bool hasOwnerPair = validOwnerGroup
+            && hasOwnerMemory
+            && ownerEnemy != null
+            && pairIsValid(botOwnerKey, ownerGroup, ownerEnemy);
         if (hasPlayerPair && hasOwnerPair)
         {
             if (preferredEnemyInfo != null && ReferenceEquals(preferredEnemyInfo, playerEnemy))
@@ -99,9 +166,16 @@ internal static class TeamArenaEnemyIdentityPolicy
                 return true;
             }
 
-            // Both EFT wrappers have complete entries. Only the exact current
-            // GoalEnemy can identify which object graph remains authoritative.
-            return false;
+            // Both objects describe the same current AI body. If another
+            // subsystem changed GoalEnemy to a different opponent between
+            // sweeps, prefer EFT's canonical Player entry deterministically.
+            // This matches the BigBrain consumer and prevents a foreign goal
+            // decision from stranding an otherwise complete target relation.
+            resolvedKey = playerKey;
+            groupInfo = playerGroup;
+            enemyInfo = playerEnemy;
+            hasEnemyInfo = true;
+            return true;
         }
 
         if (hasPlayerPair)
@@ -127,14 +201,14 @@ internal static class TeamArenaEnemyIdentityPolicy
         if (hasPlayerMemory || hasOwnerMemory)
             return false;
 
-        if (hasPlayerGroup)
+        if (validPlayerGroup)
         {
             resolvedKey = playerKey;
             groupInfo = playerGroup;
             return true;
         }
 
-        if (hasOwnerGroup)
+        if (validOwnerGroup)
         {
             resolvedKey = botOwnerKey;
             groupInfo = ownerGroup;

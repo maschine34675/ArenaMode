@@ -23,7 +23,6 @@ internal static class ArenaPursuitRuntime
                 || IsBusy(bot)
                 || !TryGetExactEnemy(bot, current.TargetProfileId, out EnemyInfo enemy)
                 || enemy.Person?.HealthController?.IsAlive != true
-                || !IsExactGoalEnemy(bot, enemy)
                 || (enemy.IsVisible && enemy.CanShoot))
             {
                 return false;
@@ -41,6 +40,31 @@ internal static class ArenaPursuitRuntime
 
     internal static bool HasExactTeamArenaContext()
         => TeamArenaPursuitLeaseBridge.HasExactTeamArenaContext();
+
+    internal static bool TryBindLeaseTarget(
+        BotOwner bot,
+        TeamArenaPursuitLease lease,
+        out EnemyInfo enemy)
+    {
+        enemy = null;
+        try
+        {
+            if (!IsLive(bot)
+                || !TryGetExactEnemy(bot, lease.TargetProfileId, out enemy)
+                || bot.Memory == null)
+            {
+                return false;
+            }
+
+            bot.Memory.GoalEnemy = enemy;
+            return ReferenceEquals(bot.Memory.GoalEnemy, enemy);
+        }
+        catch (Exception)
+        {
+            enemy = null;
+            return false;
+        }
+    }
 
     internal static bool TryGetUsableLease(
         BotOwner bot,
@@ -60,12 +84,20 @@ internal static class ArenaPursuitRuntime
     }
 
     private static bool IsLive(BotOwner bot)
-        => bot != null
-           && !bot.IsDead
-           && bot.BotState == EBotState.Active
-           && bot.GetPlayer != null
-           && bot.GetPlayer.HealthController?.IsAlive == true
-           && bot.Mover != null;
+    {
+        Player body = bot?.GetPlayer;
+        return bot != null
+               && !bot.IsDead
+               && bot.BotState == EBotState.Active
+               && body != null
+               && body.HealthController?.IsAlive == true
+               && string.Equals(
+                   body.ProfileId?.Trim(),
+                   bot.ProfileId?.Trim(),
+                   StringComparison.Ordinal)
+               && ReferenceEquals(body.AIData?.BotOwner, bot)
+               && bot.Mover != null;
+    }
 
     private static bool IsBusy(BotOwner bot)
         => IsMedicalActionActive(bot)
@@ -87,9 +119,6 @@ internal static class ArenaPursuitRuntime
            || bot?.Medecine?.SurgicalKit?.Using == true
            || bot?.Medecine?.Stimulators?.Using == true;
 
-    private static bool IsExactGoalEnemy(BotOwner bot, EnemyInfo enemy)
-        => enemy != null && ReferenceEquals(bot?.Memory?.GoalEnemy, enemy);
-
     private static bool TryGetExactEnemy(
         BotOwner bot,
         string targetProfileId,
@@ -102,16 +131,15 @@ internal static class ArenaPursuitRuntime
         string expectedProfile = targetProfileId?.Trim();
         if (enemies == null
             || group?.Enemies == null
-            || goalEnemy == null
             || string.IsNullOrEmpty(expectedProfile))
             return false;
 
+        EnemyInfo fallback = null;
         foreach (KeyValuePair<IPlayer, EnemyInfo> pair in enemies)
         {
             EnemyInfo candidate = pair.Value;
             if (pair.Key != null
                 && candidate != null
-                && ReferenceEquals(candidate, goalEnemy)
                 && ReferenceEquals(pair.Key, candidate.Person)
                 && ReferenceEquals(candidate.Owner, bot)
                 && ReferenceEquals(candidate.GroupOwner, group)
@@ -123,12 +151,23 @@ internal static class ArenaPursuitRuntime
                     expectedProfile,
                     StringComparison.Ordinal))
             {
-                enemy = candidate;
-                return true;
+                if (ReferenceEquals(candidate, goalEnemy))
+                {
+                    enemy = candidate;
+                    return true;
+                }
+
+                // Prefer EFT's canonical Player key when both live wrappers
+                // have complete entries; otherwise retain the first exact pair.
+                if (ReferenceEquals(pair.Key, candidate.GroupInfo?.Player))
+                    fallback = candidate;
+                else
+                    fallback ??= candidate;
             }
         }
 
-        return false;
+        enemy = fallback;
+        return enemy != null;
     }
 
     private static bool HasCanonicalGroupPlayer(
@@ -136,8 +175,13 @@ internal static class ArenaPursuitRuntime
         Player groupPlayer,
         string expectedProfile)
     {
+        BotOwner targetOwner = groupPlayer?.AIData?.BotOwner;
         if (person == null
             || groupPlayer?.HealthController?.IsAlive != true
+            || targetOwner == null
+            || targetOwner.BotState != EBotState.Active
+            || targetOwner.HealthController?.IsAlive != true
+            || !ReferenceEquals(targetOwner.GetPlayer, groupPlayer)
             || !string.Equals(
                 groupPlayer.ProfileId?.Trim(),
                 expectedProfile,
@@ -149,8 +193,7 @@ internal static class ArenaPursuitRuntime
         if (person is Player player)
             return ReferenceEquals(player, groupPlayer);
 
-        return person is BotOwner owner
-               && ReferenceEquals(owner.GetPlayer, groupPlayer);
+        return person is BotOwner owner && ReferenceEquals(owner, targetOwner);
     }
 
     private static bool HasExactGroupEntry(

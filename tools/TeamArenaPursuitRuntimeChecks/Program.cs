@@ -17,6 +17,7 @@ internal static class Program
             VerifyCurrentDictionaryKeyWinsOverStaleEnemySnapshot();
             VerifyBotOwnerKeyedTargetIsUsable();
             VerifyExactGoalWinsWhenBothWrappersShareTheProfile();
+            VerifyLeaseSurvivesGoalDriftAndRebindsExactTarget();
             VerifyGoalPersonMustBeTheExactDictionaryKey();
             VerifyEnemyInfoMustBelongToTheSourceBotAndGroup();
             VerifyGroupInfoMustBelongToTheCurrentGroup();
@@ -24,6 +25,7 @@ internal static class Program
             VerifyReplacedGroupEntryFailsClosed();
             VerifyStaleEnemySnapshotCannotImpersonateCurrentKey();
             VerifyMissingAndDeadTargetsFailClosed();
+            VerifySourceBodyMustBeCanonical();
             VerifyInactiveMedicalSignalsDoNotBlockPursuit();
             VerifyActiveMedicalWorkBlocksPursuit();
             VerifyPursuitResumesWhenActiveHealingEnds();
@@ -84,6 +86,32 @@ internal static class Program
             "the duplicate-profile setup contains two distinct enemy wrappers");
         AssertUsable(bot,
             "the exact GoalEnemy remains usable when another wrapper with the same profile was inserted first");
+    }
+
+    private static void VerifyLeaseSurvivesGoalDriftAndRebindsExactTarget()
+    {
+        BotOwner bot = CreateBotWithLease(TargetProfile);
+        (TestPlayer targetKey, EnemyInfo leasedEnemy) = AddEnemy(
+            bot,
+            TargetProfile,
+            TargetProfile);
+        (_, EnemyInfo decisionEnemy) = AddEnemy(
+            bot,
+            "sain-decision-target",
+            "sain-decision-target");
+        bot.Memory.GoalEnemy = decisionEnemy;
+
+        Assert(!ReferenceEquals(leasedEnemy, decisionEnemy)
+               && ReferenceEquals(leasedEnemy.Person, targetKey),
+            "the setup models SAIN selecting a different valid enemy during Arena ownership");
+        AssertUsable(bot,
+            "a transient GoalEnemy change cannot invalidate an otherwise exact Arena lease target");
+
+        Assert(ArenaPursuitRuntime.TryGetUsableLease(bot, out TeamArenaPursuitLease lease)
+               && ArenaPursuitRuntime.TryBindLeaseTarget(bot, lease, out EnemyInfo rebound)
+               && ReferenceEquals(rebound, leasedEnemy)
+               && ReferenceEquals(bot.Memory.GoalEnemy, leasedEnemy),
+            "the Arena action rebinds the exact leased target before every movement update");
     }
 
     private static void VerifyGoalPersonMustBeTheExactDictionaryKey()
@@ -248,6 +276,23 @@ internal static class Program
         AssertBlocked(dead, "a resolved but dead target is rejected");
     }
 
+    private static void VerifySourceBodyMustBeCanonical()
+    {
+        BotOwner wrongProfile = CreateReadyBot();
+        wrongProfile.GetPlayer.ProfileId = "old-source-body";
+        AssertBlocked(wrongProfile,
+            "a source Player whose profile differs from its BotOwner cannot consume the lease");
+
+        BotOwner wrongOwner = CreateReadyBot();
+        wrongOwner.GetPlayer.AIData.BotOwner = new BotOwner
+        {
+            ProfileId = SourceProfile,
+            GetPlayer = new TestPlayer(SourceProfile),
+        };
+        AssertBlocked(wrongOwner,
+            "a source Player whose AIData points at another BotOwner cannot consume the lease");
+    }
+
     private static void VerifyInactiveMedicalSignalsDoNotBlockPursuit()
     {
         BotOwner firstAidPossible = CreateReadyBot();
@@ -340,6 +385,7 @@ internal static class Program
             ProfileId = SourceProfile,
             GetPlayer = new TestPlayer(SourceProfile),
         };
+        bot.GetPlayer.AIData.BotOwner = bot;
         TeamArenaPursuitLeaseBridge.Set(new TeamArenaPursuitLease(
             SourceProfile,
             targetProfile,
@@ -354,9 +400,16 @@ internal static class Program
         string currentKeyProfile)
     {
         var key = new TestPlayer(capturedProfile);
+        var targetOwner = new BotOwner
+        {
+            ProfileId = capturedProfile,
+            GetPlayer = key,
+        };
+        key.AIData.BotOwner = targetOwner;
         var groupInfo = new BotGroupEnemyInfo(key, bot.BotsGroup);
         var enemy = new EnemyInfo(bot.BotsGroup, key, bot, groupInfo);
         key.ProfileId = currentKeyProfile;
+        targetOwner.ProfileId = currentKeyProfile;
         bot.BotsGroup.Enemies.Add(key, groupInfo);
         bot.EnemiesController.EnemyInfos.Add(key, enemy);
         return (key, enemy);
@@ -373,6 +426,7 @@ internal static class Program
             ProfileId = capturedProfile,
             GetPlayer = player,
         };
+        player.AIData.BotOwner = key;
         var groupInfo = new BotGroupEnemyInfo(player, source.BotsGroup);
         var enemy = new EnemyInfo(source.BotsGroup, key, source, groupInfo);
         key.ProfileId = currentProfile;

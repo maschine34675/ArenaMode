@@ -29,6 +29,7 @@
     <Reference Include="Assembly-CSharp" Private="false" />
     <Reference Include="DissonanceVoip" Private="false" />
     <Reference Include="UnityEngine" Private="false" />
+    <Reference Include="UnityEngine.AIModule" Private="false" />
     <Reference Include="UnityEngine.CoreModule" Private="false" />
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />

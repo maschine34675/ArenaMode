@@ -2,21 +2,30 @@ using ArenaMode.Bots;
 using DrakiaXYZ.BigBrain.Brains;
 using EFT;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace ArenaMode.BigBrainCompat;
 
 /// <summary>
-/// Drives EFT's native move-to-enemy helper from the live lease destination.
+/// Drives EFT's mover toward the exact NavMesh-validated lease destination.
 /// The action never retains its target BotOwner and stops only movement it
 /// issued while its exact epoch/generation remained current.
 /// </summary>
 public sealed class ArenaPursuitLogic : CustomLogic
 {
     private const float UnresolvedArrivalGraceSeconds = 1.5f;
+    private const float RouteRefreshSeconds = 1f;
+    private const float ExactDestinationToleranceMeters = 0.35f;
+
+    private static readonly HashSet<string> LoggedFailures = new(StringComparer.Ordinal);
 
     private readonly ArenaRunToEnemy _nativeRunToEnemy;
     private bool _ownsMovement;
+    private int _ownedLeaseEpoch = -1;
+    private long _ownedLeaseGeneration;
+    private float _nextRouteRefreshAt;
     private int _unresolvedArrivalEpoch = -1;
     private long _unresolvedArrivalGeneration;
     private float _unresolvedArrivalSince;
@@ -44,42 +53,103 @@ public sealed class ArenaPursuitLogic : CustomLogic
 
         try
         {
-            BotOwner.MovementResume();
-            _ownsMovement = true;
-
-            if (BotOwner.MoveToEnemyData == null)
+            // SAIN's decision loop may replace GoalEnemy while Arena owns the
+            // higher-priority movement layer. Rebind the exact lease target on
+            // every update before either system can inspect or move toward it.
+            if (!ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _))
             {
-                TeamArenaPursuitLeaseBridge.ReportRejected(
-                    Plugin.PluginGuid,
-                    lease.SourceProfileId,
-                    lease.Epoch,
-                    lease.Generation);
+                RejectLease(
+                    lease,
+                    "target-bind",
+                    "the exact current-round EFT enemy could not be rebound");
+                return;
+            }
+
+            ArenaSainHandoffState sainHandoff = ArenaSainMovementHandoff.EnsureSuspended(
+                BotOwner,
+                out string handoffProblem);
+            if (sainHandoff == ArenaSainHandoffState.WaitingForDeactivation)
+            {
                 StopOwnedMovement();
                 return;
             }
 
-            // EFT's node owns its bounded route refresh plus doors and mines,
-            // steering, sprint, stance and weapon selection. Calling the path
-            // helper unconditionally here would add a raycast and potentially
-            // several NavMesh/cover queries on every brain update.
+            if (sainHandoff == ArenaSainHandoffState.Unavailable)
+            {
+                RejectLease(
+                    lease,
+                    "sain-handoff",
+                    handoffProblem ?? "unknown incompatibility");
+                return;
+            }
+
+            BotOwner.PatrollingData?.Pause();
+            BotOwner.MovementResume();
+            bool ownsExactLease = _ownsMovement
+                && _ownedLeaseEpoch == lease.Epoch
+                && _ownedLeaseGeneration == lease.Generation;
+            if (!ownsExactLease
+                && (BotOwner.Mover?.CurrentState == EBotMoverState.NearDoor
+                    || BotOwner.DoorOpener?.Interacting == true))
+            {
+                // A door link temporarily owns the current mover state and its
+                // target is the interaction point, not the final lease point.
+                // A fresh Arena generation cannot prove who created that path,
+                // so leave it unacknowledged and let the native door sequence
+                // finish. The exact route is acquired only after Default owns
+                // the mover again; the bounded lease timeout otherwise yields.
+                return;
+            }
+
+            if (!ownsExactLease)
+            {
+                // Layer transitions can leave a complete route owned by the
+                // outgoing PFT/SAIN action. Clear it, then require this exact
+                // generation to acquire its own leased destination before it
+                // may acknowledge movement.
+                BotOwner.Mover?.Stop();
+                BotOwner.MovementResume();
+                if (!TryAcquireExactLeaseRoute(lease))
+                {
+                    RejectLease(lease, "route-acquire", "EFT rejected the exact leased destination");
+                    return;
+                }
+
+                _ownsMovement = true;
+                _ownedLeaseEpoch = lease.Epoch;
+                _ownedLeaseGeneration = lease.Generation;
+                _nextRouteRefreshAt = Time.time + RouteRefreshSeconds;
+            }
+
+            // EFT's node owns doors and mines, steering, sprint, stance and
+            // weapon selection. Arena refreshes only its exact sampled lease
+            // endpoint below so GoalEnemy.CurrPosition cannot overwrite it.
             _nativeRunToEnemy.UpdateNodeByBrain(null);
 
-            // If the native bounded refresh could not produce a route, make
-            // one explicit attempt against the leased live position. Do not
+            // DoorOpen switches EFT to the NearDoor mover and intentionally
+            // changes TargetPoint to the interaction point. Do not overwrite
+            // or reject that path with the final lease destination while the
+            // native door sequence owns it.
+            if (_nativeRunToEnemy.HandlingDoorThisUpdate)
+            {
+                ReportStartedOrStop(lease);
+                return;
+            }
+
+            // If the exact route has completed, do not rebuild it every frame.
+            // Give sensing one short chance at the leased live position. Do not
             // rebuild a completed close route every frame: give sensing one
             // short chance to establish combat, then reject the unresolved
-            // target so Arena can switch to its guarded fallback.
+            // target so Arena can switch to another live opponent.
             bool waitingAtUnresolvedArrival = TrackUnresolvedArrival(
                 lease,
                 out bool unresolvedArrivalExpired);
             if (unresolvedArrivalExpired)
             {
-                TeamArenaPursuitLeaseBridge.ReportRejected(
-                    Plugin.PluginGuid,
-                    lease.SourceProfileId,
-                    lease.Epoch,
-                    lease.Generation);
-                StopOwnedMovement();
+                RejectLease(
+                    lease,
+                    "unresolved-arrival",
+                    "the target did not become a shootable contact at the leased destination");
                 return;
             }
 
@@ -89,36 +159,23 @@ public sealed class ArenaPursuitLogic : CustomLogic
             if (waitingAtUnresolvedArrival)
                 return;
 
-            if (BotOwner.Mover?.HasPathAndNoComplete != true
-                && !BotOwner.MoveToEnemyData.TryMoveToEnemy(lease.Destination))
+            if ((BotOwner.Mover?.HasPathAndNoComplete != true
+                    || Time.time >= _nextRouteRefreshAt)
+                && !TryAcquireExactLeaseRoute(lease))
             {
-                TeamArenaPursuitLeaseBridge.ReportRejected(
-                    Plugin.PluginGuid,
-                    lease.SourceProfileId,
-                    lease.Epoch,
-                    lease.Generation);
-                StopOwnedMovement();
+                RejectLease(lease, "route-refresh", "EFT could not refresh the exact leased destination");
                 return;
             }
 
+            if (Time.time >= _nextRouteRefreshAt)
+                _nextRouteRefreshAt = Time.time + RouteRefreshSeconds;
+
             BotOwner.WeaponManager?.TryReloadWeaponOrUnderbarrelLauncher();
-            if (!TeamArenaPursuitLeaseBridge.ReportStarted(
-                    Plugin.PluginGuid,
-                    lease.SourceProfileId,
-                    lease.Epoch,
-                    lease.Generation))
-            {
-                StopOwnedMovement();
-            }
+            ReportStartedOrStop(lease);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            TeamArenaPursuitLeaseBridge.ReportRejected(
-                Plugin.PluginGuid,
-                lease.SourceProfileId,
-                lease.Epoch,
-                lease.Generation);
-            StopOwnedMovement();
+            RejectLease(lease, "exception", ex.GetBaseException().ToString());
         }
     }
 
@@ -144,7 +201,70 @@ public sealed class ArenaPursuitLogic : CustomLogic
         }
 
         _ownsMovement = false;
+        _ownedLeaseEpoch = -1;
+        _ownedLeaseGeneration = 0;
+        _nextRouteRefreshAt = 0f;
         ResetUnresolvedArrival();
+    }
+
+    private void RejectLease(
+        TeamArenaPursuitLease lease,
+        string category,
+        string detail)
+    {
+        string key = lease.Epoch + ":" + lease.SourceProfileId + ":" + category;
+        if (LoggedFailures.Add(key))
+        {
+            Plugin.ModLogger?.LogWarning(
+                $"Arena pursuit {category} rejected for '{lease.SourceProfileId}' "
+                + $"at {lease.Epoch}/{lease.Generation}: {detail}");
+        }
+
+        TeamArenaPursuitLeaseBridge.ReportRejected(
+            Plugin.PluginGuid,
+            lease.SourceProfileId,
+            lease.Epoch,
+            lease.Generation);
+        StopOwnedMovement();
+    }
+
+    private bool IsAtLeaseDestination(TeamArenaPursuitLease lease)
+        => (lease.Destination - BotOwner.Position).sqrMagnitude
+           <= ArenaRunToEnemy.ArenaReachDistanceMeters
+              * ArenaRunToEnemy.ArenaReachDistanceMeters;
+
+    private bool TryAcquireExactLeaseRoute(TeamArenaPursuitLease lease)
+    {
+        NavMeshPathStatus status = BotOwner.GoToPoint(
+            lease.Destination,
+            slowAtTheEnd: false,
+            reachDist: ArenaRunToEnemy.ArenaReachDistanceMeters,
+            getUpWithCheck: false,
+            mustHaveWay: false);
+        bool exactTarget = status == NavMeshPathStatus.PathComplete
+            && BotOwner.Mover?.TargetPoint is Vector3 targetPoint
+            && (targetPoint - lease.Destination).sqrMagnitude
+               <= ExactDestinationToleranceMeters * ExactDestinationToleranceMeters;
+        if (exactTarget)
+            return true;
+
+        // GoToPoint mutates mover state even when it reports a partial or
+        // rejected route. Clear that path before the lease is rejected so no
+        // unowned fallback endpoint can survive this generation.
+        BotOwner.Mover?.Stop();
+        return IsAtLeaseDestination(lease);
+    }
+
+    private void ReportStartedOrStop(TeamArenaPursuitLease lease)
+    {
+        if (!TeamArenaPursuitLeaseBridge.ReportStarted(
+                Plugin.PluginGuid,
+                lease.SourceProfileId,
+                lease.Epoch,
+                lease.Generation))
+        {
+            StopOwnedMovement();
+        }
     }
 
     private bool TrackUnresolvedArrival(
@@ -221,13 +341,15 @@ public sealed class ArenaPursuitLogic : CustomLogic
         }
 
         internal bool ReachedDestinationThisUpdate { get; private set; }
+        internal bool HandlingDoorThisUpdate { get; private set; }
 
         public override void UpdateNodeByBrain(CoreActionResultParams data)
         {
             ReachedDestinationThisUpdate = false;
-            bool canRun = DoorOpen() == DoorInteractionStatus.CanRun;
+            DoorInteractionStatus doorStatus = DoorOpen();
+            HandlingDoorThisUpdate = doorStatus == DoorInteractionStatus.OpeningDoor;
+            bool canRun = doorStatus == DoorInteractionStatus.CanRun;
             _owner.SetTargetMoveSpeed(1f);
-            NotMovingCheck();
             PeriodChangeWeapon();
             _owner.SetPose(1f);
 

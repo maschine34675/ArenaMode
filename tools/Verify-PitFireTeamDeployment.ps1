@@ -45,6 +45,21 @@ function Assert-NoReferencePayload([string] $root, [hashtable] $referenceHashes)
     }
 }
 
+function Assert-OwnedFileClean([string] $path, [hashtable] $referenceHashes) {
+    if (-not [System.IO.File]::Exists($path)) {
+        throw "Required ArenaMode deployment file is missing: $path"
+    }
+
+    if ([System.IO.Path]::GetFileName($path) -match '^(?:pitFireTeam(?:\.Server)?|SPT-PitFireTeam).*\.dll$') {
+        throw "ArenaMode deployment unexpectedly owns a PitFireTeam binary: $path"
+    }
+
+    $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+    if ($referenceHashes.ContainsKey($hash)) {
+        throw "ArenaMode deployment file '$path' is byte-identical to PitFireTeam reference payload '$($referenceHashes[$hash])'."
+    }
+}
+
 function Get-ReferencePayloadHashes {
     if (-not [System.IO.Directory]::Exists($reference)) {
         throw "PitFireTeam reference tree is missing: $reference"
@@ -63,6 +78,7 @@ function Get-ReferencePayloadHashes {
 
 $pairs = @(
     @('client', 'ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
+    @('bigbrain-compat', 'ArenaMode.BigBrainCompat\bin\Release\maschine-ArenaMode.BigBrainCompat.dll', 'BepInEx\plugins\maschine-ArenaMode.BigBrainCompat.dll'),
     @('server', 'build\server\Release\maschine-ArenaMode.Server\maschine-ArenaMode.Server.dll', 'SPT_Runtime\user\mods\ArenaMode\maschine-ArenaMode.Server.dll')
 )
 
@@ -84,6 +100,7 @@ foreach ($pair in $pairs) {
 # is valid and must not make this verification fail.
 $ownedTrees = @(
     (Join-Path $repo 'ArenaMode.Client\bin\Release'),
+    (Join-Path $repo 'ArenaMode.BigBrainCompat\bin\Release'),
     (Join-Path $repo 'build\server\Release'),
     (Join-Path $installation 'BepInEx\plugins\ArenaMode'),
     (Join-Path $installation 'SPT_Runtime\user\mods\ArenaMode')
@@ -92,6 +109,14 @@ $referenceHashes = Get-ReferencePayloadHashes
 foreach ($tree in $ownedTrees) {
     Assert-NoPitFireTeamBinary $tree
     Assert-NoReferencePayload $tree $referenceHashes
+}
+
+$ownedFiles = @(
+    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
+    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode.BigBrainCompat.dll')
+)
+foreach ($file in $ownedFiles) {
+    Assert-OwnedFileClean $file $referenceHashes
 }
 
 $tracked = @(& git -C $repo ls-files --cached --others --exclude-standard)
@@ -114,7 +139,10 @@ foreach ($relative in $tracked) {
     }
 }
 
-$projectFiles = $tracked | Where-Object { $_ -match '\.(?:csproj|props|targets)$' }
+$projectFiles = $tracked | Where-Object {
+    $_ -match '\.(?:csproj|props|targets)$' -and
+    [System.IO.File]::Exists((Join-Path $repo $_))
+}
 foreach ($relative in $projectFiles) {
     $text = [System.IO.File]::ReadAllText((Join-Path $repo $relative))
     if ($text -match '<(?:Reference|ProjectReference)\b[^>]*(?:pitFireTeam|SPT-PitFireTeam)') {
@@ -122,7 +150,10 @@ foreach ($relative in $projectFiles) {
     }
 }
 
-$sourceFiles = $tracked | Where-Object { $_ -match '\.cs$' }
+$sourceFiles = $tracked | Where-Object {
+    $_ -match '\.cs$' -and
+    [System.IO.File]::Exists((Join-Path $repo $_))
+}
 foreach ($relative in $sourceFiles) {
     $text = [System.IO.File]::ReadAllText((Join-Path $repo $relative))
     if ($text -match '(?m)^\s*(?:namespace|using)\s+pitTeam(?:[.;\s{])') {

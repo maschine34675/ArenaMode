@@ -23,7 +23,11 @@ public sealed class ArenaPursuitLayer : CustomLayer
         _sourceProfileId = botOwner?.ProfileId?.Trim();
     }
 
-    public override string GetName() => "ArenaPursuit";
+    // PitFireTeam 0.10.0 temporarily removes non-combat BigBrain layers from
+    // hostile non-followers. Its exact compatibility contract classifies by
+    // the layer name, so keep "Combat" here for both Arena teams to retain the
+    // same priority-74 movement owner.
+    public override string GetName() => "Arena Combat Pursuit";
 
     public override bool IsActive()
     {

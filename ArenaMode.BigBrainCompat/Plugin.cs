@@ -1,5 +1,6 @@
 using BepInEx;
 using BepInEx.Bootstrap;
+using BepInEx.Logging;
 using DrakiaXYZ.BigBrain.Brains;
 using System;
 using System.Collections.Generic;
@@ -23,10 +24,12 @@ public sealed class Plugin : BaseUnityPlugin
     private static readonly Version RequiredArenaVersion = new(0, 1, 0);
 
     internal static bool RuntimeEnabled { get; private set; }
+    internal static ManualLogSource ModLogger { get; private set; }
     private bool _consumerRegistered;
 
     private void Awake()
     {
+        ModLogger = Logger;
         RuntimeEnabled = false;
 
         bool hasBigBrain = HasExactDependency(
@@ -106,6 +109,8 @@ public sealed class Plugin : BaseUnityPlugin
             Bots.TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid);
             _consumerRegistered = false;
         }
+
+        ModLogger = null;
     }
 
     private static bool HasExactDependency(string guid, Version required, out string problem)
