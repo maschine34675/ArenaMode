@@ -491,8 +491,10 @@ internal static class Program
             .All(message => message.Contains("route=Arena.PCM.NonspatialBypass")
                 && message.Contains("uiReady=True") && message.Contains("uiDb=-4")
                 && message.Contains("masterDb=-2") && message.Contains("listenerVolume=0.8")
-                && message.Contains("listenerPaused=False")),
-            "Playback diagnostics include native mixer levels and listener state.");
+                && message.Contains("listenerPaused=False") && message.Contains("speakerMode=Mode5point1")
+                && message.Contains("sampleRate=48000") && message.Contains("voices=32/512")
+                && message.Contains("dspBuffer=1024x4") && message.Contains("probeDelayMs=250")),
+            "Playback diagnostics include mixer, listener, voice and buffer state plus the safe probe delay.");
 
         AudioListener.pause = true;
         Call(); Call();
@@ -518,7 +520,7 @@ internal static class Program
         Settings.AnnouncerEnabled.Value = true;
         AnnouncerService.Detach();
         Assert(messages[^1] == $"Arena announcer detached: callouts={calls}, cues=0, "
-            + $"playRequests={calls - 2}, confirmed=0, fallbackRequests=0, skipped=2.",
+            + $"playRequests={calls - 2}, confirmed=0, unverified=0, fallbackRequests=0, skipped=2.",
             "Detach counts every received/requested/skipped callout even when skip logs are deduplicated.");
         var plays = sounds.Played.Count;
         match.Callout(label);
@@ -570,6 +572,7 @@ internal static class Program
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         int stops = output.StopCalls;
+        output.StartDelaySeconds = 0.18f;
         match.Cue(ArenaAnnouncerCue.RoundStart);
         match.Cue(ArenaAnnouncerCue.RoundWon);
         Assert(ReferenceEquals(output, ArenaMode.Plugin.Instance.gameObject.LastAudioSource)
@@ -579,11 +582,32 @@ internal static class Program
         int logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
         Time.realtimeSinceStartup += 0.1f;
         AnnouncerService.Tick();
+        Assert(!ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
+                message.StartsWith("Arena announcer output confirmed:")
+                || message.StartsWith("Arena announcer output recovery:")),
+            "The output probe waits beyond a 1024x4 DSP ring instead of judging playback at 50 ms.");
+        Time.realtimeSinceStartup += 0.2f;
+        AnnouncerService.Tick();
         Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
                 message.StartsWith("Arena announcer output confirmed:")
                 && message.Contains("route=Arena.PCM.NonspatialBypass")
                 && message.Contains("playing=True") && message.Contains("virtual=False")),
-            "The next-frame probe confirms a real private PCM voice.");
+            "The buffer-aware probe allows a DSP-delayed private PCM voice to become real before inspection.");
+        output.StartDelaySeconds = 0f;
+
+        int uiPlays = sounds.Played.Count(play => play.ViaUiSource);
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        int stopsAfterCompletedCue = output.StopCalls;
+        output.FinishPlayback();
+        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
+        Time.realtimeSinceStartup += 2f;
+        AnnouncerService.Tick();
+        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays
+            && output.StopCalls == stopsAfterCompletedCue
+            && ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
+                message.StartsWith("Arena announcer output unverified:")
+                && message.Contains("reason=probe_window_expired")),
+            "A late main-thread tick cannot replay or stop a cue that already completed.");
 
         match.Cue(ArenaAnnouncerCue.RoundStart);
         sounds.ThrowOnDedicatedPlay = true;
@@ -592,7 +616,7 @@ internal static class Program
         match.Cue(ArenaAnnouncerCue.RoundWon);
         sounds.ThrowOnDedicatedPlay = false;
         sounds.ThrowOnPlay = false;
-        Time.realtimeSinceStartup += 0.1f;
+        Time.realtimeSinceStartup += 0.3f;
         AnnouncerService.Tick();
         Assert(!ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
                 message.StartsWith("Arena announcer output confirmed:")
@@ -600,26 +624,30 @@ internal static class Program
             "A replacement cue invalidates an older delayed probe even when both new start paths throw.");
 
         output.ForceSilent = true;
-        int uiPlays = sounds.Played.Count(play => play.ViaUiSource);
+        uiPlays = sounds.Played.Count(play => play.ViaUiSource);
         logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
         match.Cue(ArenaAnnouncerCue.RoundLost);
+        int stopsAfterRequest = output.StopCalls;
         Time.realtimeSinceStartup += 0.1f;
+        AnnouncerService.Tick();
+        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays
+            && output.StopCalls == stopsAfterRequest,
+            "A private source is neither stopped nor replaced inside the device's safe DSP window.");
+        Time.realtimeSinceStartup += 0.5f;
         AnnouncerService.Tick();
         Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays + 1
             && sounds.Played[^1].Clip.Name == "round_lost"
-            && sounds.SingleSource.priority == 0,
-            "A provably silent private voice falls back once to EFT's highest-priority single UI source.");
+            && sounds.SingleSource.priority == 0 && output.StopCalls == stopsAfterRequest + 1,
+            "A private voice still silent after the safe delay falls back once to EFT's highest-priority UI source.");
         Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
                 message.StartsWith("Arena announcer output recovery:")
                 && message.Contains("requested GUISounds.SingleUI")),
             "Delayed recovery records the failed private source and requested native fallback.");
         Time.realtimeSinceStartup += 0.1f;
         AnnouncerService.Tick();
-        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output confirmed:")
-                && message.Contains("route=GUISounds.SingleUI")
-                && message.Contains("playing=True") && message.Contains("virtual=False")),
-            "The UI fallback is itself confirmed on the following audio frame.");
+        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays + 1
+            && sounds.SingleSource.priority == 0,
+            "The shared UI one-shot is left running instead of being judged and stopped by another snapshot.");
         Time.realtimeSinceStartup += 2f;
         AnnouncerService.Tick();
         Assert(sounds.SingleSource.priority == 128,
@@ -630,15 +658,24 @@ internal static class Program
         sounds.SingleSource.ForceSilent = true;
         logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
         match.Cue(ArenaAnnouncerCue.RoundStart);
-        Time.realtimeSinceStartup += 0.1f;
+        Time.realtimeSinceStartup += 0.3f;
         AnnouncerService.Tick();
-        Time.realtimeSinceStartup += 0.1f;
+        int uiStopsAfterFallback = sounds.SingleSource.StopCalls;
+        Assert(sounds.SingleSource.priority == 0,
+            "Even an unobservable UI one-shot retains its priority lease for the clip duration.");
+        Time.realtimeSinceStartup += 0.3f;
         AnnouncerService.Tick();
+        Assert(sounds.SingleSource.StopCalls == uiStopsAfterFallback
+            && !ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
+                message.Contains("reason=output_silent"))
+            && ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
+                message.StartsWith("Arena announcer output unverified:")
+                && message.Contains("reason=shared_one_shot_state")),
+            "A UI source snapshot records evidence but can never stop or reject the requested one-shot.");
+        Time.realtimeSinceStartup += 2f;
         AnnouncerService.Tick();
-        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Count(message =>
-                message.Contains("reason=output_silent")) == 1
-            && sounds.SingleSource.priority == 128,
-            "A silent UI fallback terminates once, reports the failure and restores its priority lease.");
+        Assert(sounds.SingleSource.priority == 128,
+            "A silent UI fallback still releases its temporary priority lease by time.");
         output.ForceSilent = false;
         sounds.SingleSource.ForceSilent = false;
 
@@ -648,8 +685,12 @@ internal static class Program
         Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays + 1
             && sounds.SingleSource.priority == 0,
             "If the bypass mixer is unavailable, playback immediately uses the native UI fallback.");
-        Time.realtimeSinceStartup += 0.1f;
+        Time.realtimeSinceStartup += 0.3f;
         AnnouncerService.Tick();
+        Assert(!ArenaMode.Plugin.ModLogger.Messages.Any(message =>
+                message.StartsWith("Arena announcer output confirmed:")
+                && message.Contains("route=GUISounds.SingleUI")),
+            "The shared PlayOneShot route is never misreported as individually confirmed.");
         Time.realtimeSinceStartup += 2f;
         AnnouncerService.Tick();
         Assert(sounds.SingleSource.priority == 128,
@@ -664,12 +705,15 @@ internal static class Program
         UnityEngine.Object.Destroy(output);
         Time.realtimeSinceStartup += 0.1f;
         AnnouncerService.Tick();
+        Assert(!ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
+                message.StartsWith("Arena announcer output recovery:")),
+            "A destroyed source is not acted on before the safe output-check delay.");
+        Time.realtimeSinceStartup += 0.2f;
+        AnnouncerService.Tick();
         Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
                 message.StartsWith("Arena announcer output recovery:")
                 && message.Contains("source=destroyed")),
             "A private source destroyed before the probe recovers through the native UI source.");
-        Time.realtimeSinceStartup += 0.1f;
-        AnnouncerService.Tick();
         match.Cue(ArenaAnnouncerCue.RoundWon);
         var replacement = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
         Assert(replacement != null && !ReferenceEquals(replacement, output)

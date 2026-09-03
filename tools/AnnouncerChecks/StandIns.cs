@@ -135,6 +135,33 @@ namespace UnityEngine
     }
     internal enum AudioDataLoadState { Unloaded, Loading, Loaded, Failed }
     internal enum AudioType { OGGVORBIS }
+    internal enum AudioSpeakerMode { Raw, Mono, Stereo, Quad, Surround, Mode5point1, Mode7point1, Prologic }
+    internal struct AudioConfiguration
+    {
+        public AudioSpeakerMode speakerMode;
+        public int sampleRate;
+        public int numRealVoices;
+        public int numVirtualVoices;
+    }
+    internal static class AudioSettings
+    {
+        public static int outputSampleRate { get; set; } = 48000;
+        public static int BufferLength { get; set; } = 1024;
+        public static int BufferCount { get; set; } = 4;
+        public static AudioConfiguration Configuration { get; set; } = new()
+        {
+            speakerMode = AudioSpeakerMode.Mode5point1,
+            sampleRate = 48000,
+            numRealVoices = 32,
+            numVirtualVoices = 512
+        };
+        public static AudioConfiguration GetConfiguration() => Configuration;
+        public static void GetDSPBufferSize(out int bufferLength, out int numBuffers)
+        {
+            bufferLength = BufferLength;
+            numBuffers = BufferCount;
+        }
+    }
     internal static class Time { public static float realtimeSinceStartup = 100f; }
     internal static class AudioListener { public static float volume = 0.8f; public static bool pause; }
 
@@ -173,34 +200,69 @@ namespace UnityEngine
         public float volume { get; set; }
         public bool enabled { get; set; } = true;
         public bool mute { get; set; }
-        public bool isPlaying { get; private set; }
-        public bool isVirtual { get; set; }
+        private bool _isPlaying;
+        private bool _isVirtual;
+        private bool _startPending;
+        private float _startAt;
+        public bool isPlaying { get { RefreshPendingStart(); return _isPlaying; } }
+        public bool isVirtual { get { RefreshPendingStart(); return _isVirtual; } set => _isVirtual = value; }
         public bool ForceSilent { get; set; }
+        public float StartDelaySeconds { get; set; }
         public int StopCalls { get; private set; }
-        public void Stop() { StopCalls++; isPlaying = false; }
+        public void Stop()
+        {
+            StopCalls++;
+            _startPending = false;
+            _isPlaying = false;
+        }
         public void Play()
         {
             if (ForceSilent)
             {
-                isPlaying = false;
-                isVirtual = true;
+                _startPending = false;
+                _isPlaying = false;
+                _isVirtual = true;
                 return;
             }
-            isPlaying = true;
-            isVirtual = false;
-            (Playback ?? GlobalPlayback)?.Invoke(clip, volume);
+            if (StartDelaySeconds > 0f)
+            {
+                _startPending = true;
+                _startAt = Time.realtimeSinceStartup + StartDelaySeconds;
+                _isPlaying = false;
+                _isVirtual = true;
+                return;
+            }
+            StartNow(clip, volume);
         }
         public void PlayOneShot(AudioClip oneShot, float volumeScale)
         {
             if (ForceSilent)
             {
-                isPlaying = false;
-                isVirtual = true;
+                _isPlaying = false;
+                _isVirtual = true;
                 return;
             }
-            isPlaying = true;
-            isVirtual = false;
-            (Playback ?? GlobalPlayback)?.Invoke(oneShot, volumeScale);
+            StartNow(oneShot, volumeScale);
+        }
+        public void FinishPlayback()
+        {
+            _startPending = false;
+            _isPlaying = false;
+            _isVirtual = true;
+        }
+        private void RefreshPendingStart()
+        {
+            if (_startPending && Time.realtimeSinceStartup >= _startAt)
+            {
+                _startPending = false;
+                StartNow(clip, volume);
+            }
+        }
+        private void StartNow(AudioClip playingClip, float playingVolume)
+        {
+            _isPlaying = true;
+            _isVirtual = false;
+            (Playback ?? GlobalPlayback)?.Invoke(playingClip, playingVolume);
         }
         internal Action<AudioClip, float> Playback;
         internal static Action<AudioClip, float> GlobalPlayback;

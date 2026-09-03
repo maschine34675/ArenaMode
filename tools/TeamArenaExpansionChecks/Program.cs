@@ -1192,7 +1192,15 @@ internal static class Program
             "route = \"Arena.PCM.NonspatialBypass\"",
             "internal static void Tick()",
             "Time.realtimeSinceStartup < _outputCheckAt",
+            "Time.realtimeSinceStartup >= expiresAt",
             "output.isVirtual",
+            "MinimumOutputCheckDelaySeconds = 0.25f",
+            "AudioSettings.GetDSPBufferSize(out int bufferLength, out int bufferCount)",
+            "float twoRingDurations = 2f * bufferLength * bufferCount / sampleRate",
+            "clip.length <= delay",
+            "_outputCheckExpiresAt = now + clip.length",
+            "ReportUnverified(key, route, \"probe_window_expired\"",
+            "ReportUnverified(key, route, \"shared_one_shot_state\"",
             "ui.PlaySound(clip, single: true, commonUiSound: false, volume)",
             "route = \"GUISounds.SingleUI<-\" + reason",
             "ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true)",
@@ -1214,23 +1222,32 @@ internal static class Program
         int delayedCheck = announcerTick.IndexOf(
             "Time.realtimeSinceStartup < _outputCheckAt",
             StringComparison.Ordinal);
+        int expiredCheck = announcerTick.IndexOf("Time.realtimeSinceStartup >= expiresAt", StringComparison.Ordinal);
         int sourceProof = announcerTick.IndexOf("output.isVirtual", StringComparison.Ordinal);
+        int uiEvidence = announcerTick.IndexOf("if (usesUi)", StringComparison.Ordinal);
         int uiRecovery = announcerTick.IndexOf("TryStartUiFallback(", StringComparison.Ordinal);
-        Assert(delayedCheck >= 0 && sourceProof > delayedCheck && uiRecovery > sourceProof,
-            "Arena waits for the dedicated PCM source state before requesting its SingleUI fallback");
+        Assert(delayedCheck >= 0 && expiredCheck > delayedCheck && sourceProof > expiredCheck
+               && uiEvidence > sourceProof && uiRecovery > uiEvidence,
+            "Arena bounds the buffer-aware check, observes shared UI output and only then permits dedicated recovery");
+        string uiObservation = Slice(announcerTick, "if (usesUi)", "if (real)");
+        Assert(uiObservation.Contains("ReportUnverified(", StringComparison.Ordinal)
+               && !uiObservation.Contains(".Stop()", StringComparison.Ordinal)
+               && !uiObservation.Contains("TryStartUiFallback(", StringComparison.Ordinal),
+            "the shared UI source is diagnostic-only and can never be stopped or recursively replayed");
 
         string uiFallback = Slice(
             announcer,
             "private static bool TryStartUiFallback(",
-            "private static AudioSource TryGetSingleUiSource(");
+            "private static string JoinProblems(");
         int uiPlay = uiFallback.IndexOf(
             "ui.PlaySound(clip, single: true, commonUiSound: false, volume)",
             StringComparison.Ordinal);
         int uiProof = uiFallback.IndexOf(
             "ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true)",
             StringComparison.Ordinal);
-        Assert(uiPlay >= 0 && uiProof > uiPlay,
-            "the SingleUI fallback is itself verified on a later Arena tick");
+        Assert(uiPlay >= 0 && uiProof > uiPlay
+               && !uiFallback.Contains("uiSource.Stop()", StringComparison.Ordinal),
+            "the shared SingleUI one-shot gets a non-destructive observation only after its request");
         Assert(!announcer.Contains("PlayNonspatial(", StringComparison.Ordinal),
             "announcer audio cannot return to BetterAudio's virtualized pooled playback path");
         Assert(!announcer.Contains(".SetFloat(", StringComparison.Ordinal)

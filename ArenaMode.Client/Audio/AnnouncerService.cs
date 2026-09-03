@@ -43,6 +43,7 @@ internal static class AnnouncerService
     private static int _requested;
     private static int _skipped;
     private static int _confirmed;
+    private static int _unverified;
     private static int _fallbackRequested;
     private static string _lastOutputState;
     private static AudioSource _pendingOutputCheck;
@@ -52,6 +53,7 @@ internal static class AnnouncerService
     private static float _pendingVolumeCheck;
     private static bool _pendingCheckUsesUi;
     private static float _outputCheckAt;
+    private static float _outputCheckExpiresAt;
     private static int _outputGeneration;
     private static int _pendingOutputGeneration;
     private static AudioSource _leasedUiSource;
@@ -61,7 +63,11 @@ internal static class AnnouncerService
     private static bool _uiProbeFailureReported;
     private const float RecoveryIntervalSeconds = 10f;
     private const float LoadTimeoutSeconds = 10f;
-    private const float OutputCheckDelaySeconds = 0.05f;
+    // The live 5.1 setup uses a 1024 x 4 DSP ring at 48 kHz (about 85 ms).
+    // A 50 ms probe killed both the dedicated source and its UI fallback before
+    // the audio thread could safely consume either request. Keep at least this
+    // much headroom and also scale with larger device buffers.
+    private const float MinimumOutputCheckDelaySeconds = 0.25f;
 
     public static void SetPluginDirectory(string pluginDirectory)
         => _pluginDirectory = pluginDirectory;
@@ -179,7 +185,7 @@ internal static class AnnouncerService
         // first match because nobody calls Attach again when loading completes.
         _match = match;
         _calloutsReceived = _cuesReceived = _requested = _skipped = 0;
-        _confirmed = _fallbackRequested = 0;
+        _confirmed = _unverified = _fallbackRequested = 0;
         _lastOutputState = null;
         _uiProbeFailureReported = false;
         ReportedSkips.Clear();
@@ -197,7 +203,7 @@ internal static class AnnouncerService
             _match.OnAnnouncerCue -= OnAnnouncerCue;
             _match = null;
             Plugin.ModLogger.LogInfo($"Arena announcer detached: callouts={_calloutsReceived}, cues={_cuesReceived}, "
-                + $"playRequests={_requested}, confirmed={_confirmed}, "
+                + $"playRequests={_requested}, confirmed={_confirmed}, unverified={_unverified}, "
                 + $"fallbackRequests={_fallbackRequested}, skipped={_skipped}.");
         }
 
@@ -376,17 +382,17 @@ internal static class AnnouncerService
             ui.PlaySound(clip, single: true, commonUiSound: false, volume);
             _fallbackRequested++;
             route = "GUISounds.SingleUI<-" + reason;
+            // PlayOneShot is intentionally terminal: its source state is not a
+            // safe lifetime handle for the individual one-shot. In particular,
+            // never stop EFT's shared UI source because one early snapshot says
+            // isPlaying=false; that was the direct cause of silent announcements.
             if (uiSource != null)
             {
                 ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true);
             }
             else
             {
-                // PlaySound is still a valid native fallback when an SPT update
-                // renames its private source. Only the additional proof becomes
-                // unavailable; reflection failure never breaks raid startup.
-                _outputGeneration++;
-                ClearOutputCheck();
+                _unverified++;
                 if (!_uiProbeFailureReported)
                 {
                     _uiProbeFailureReported = true;
@@ -473,9 +479,14 @@ internal static class AnnouncerService
                 : ui?.MasterMixer;
             var uiDb = mixer != null && mixer.GetFloat("UIVolume", out var u) ? Number(u) : "unknown";
             var masterDb = mixer != null && mixer.GetFloat("MasterVolume", out var m) ? Number(m) : "unknown";
+            AudioConfiguration configuration = AudioSettings.GetConfiguration();
+            AudioSettings.GetDSPBufferSize(out int bufferLength, out int bufferCount);
             return $"route={route}, uiReady={ui != null && ui.isActiveAndEnabled}, "
                 + $"uiDb={uiDb}, masterDb={masterDb}, listenerVolume={Number(AudioListener.volume)}, "
-                + $"listenerPaused={AudioListener.pause}";
+                + $"listenerPaused={AudioListener.pause}, speakerMode={configuration.speakerMode}, "
+                + $"sampleRate={configuration.sampleRate}, voices={configuration.numRealVoices}/"
+                + $"{configuration.numVirtualVoices}, dspBuffer={bufferLength}x{bufferCount}, "
+                + $"probeDelayMs={Number(GetOutputCheckDelaySeconds() * 1000f)}";
         }
         catch
         {
@@ -545,10 +556,22 @@ internal static class AnnouncerService
         string route = _pendingRouteCheck;
         float volume = _pendingVolumeCheck;
         bool usesUi = _pendingCheckUsesUi;
+        float checkAt = _outputCheckAt;
+        float expiresAt = _outputCheckExpiresAt;
         int generation = _pendingOutputGeneration;
         ClearOutputCheck();
         if (generation != _outputGeneration)
             return;
+
+        // A delayed main-thread tick can arrive after a healthy clip already
+        // finished. Replaying it then would duplicate a successful cue. The
+        // observation is inconclusive once its bounded early window has passed.
+        if (Time.realtimeSinceStartup >= expiresAt)
+        {
+            ReportUnverified(key, route, "probe_window_expired",
+                $"checkAt={Number(checkAt)}, expiresAt={Number(expiresAt)}");
+            return;
+        }
 
         bool alive = output != null;
         bool active = alive && output.gameObject != null && output.gameObject.activeInHierarchy;
@@ -557,15 +580,6 @@ internal static class AnnouncerService
             ? $"enabled={output.enabled}, mute={output.mute}, active={active}, "
               + $"playing={output.isPlaying}, virtual={output.isVirtual}, priority={output.priority}"
             : "source=destroyed";
-
-        if (real && !AudioListener.pause && AudioListener.volume > 0f)
-        {
-            _confirmed++;
-            if (_confirmed <= 3 || usesUi)
-                Plugin.ModLogger.LogInfo(
-                    $"Arena announcer output confirmed: '{key}', route={route}, {state}.");
-            return;
-        }
 
         if (AudioListener.pause || AudioListener.volume <= 0f)
         {
@@ -577,16 +591,26 @@ internal static class AnnouncerService
 
         if (usesUi)
         {
-            if (alive)
-                output.Stop();
-            RestoreUiPriority();
-            Skip(key, "output_silent", $"route={route}, {state}");
+            // This is a shared source and PlayOneShot has no individual handle.
+            // Its aggregate state is useful evidence, but never permission to
+            // stop, replay or claim that this specific one-shot was audible.
+            ReportUnverified(key, route, "shared_one_shot_state", state);
             return;
         }
 
-        // The private source returned from Play without becoming a real voice.
-        // Stop it before requesting the shared UI fallback, otherwise a late
-        // de-virtualization could play the same cue twice.
+        if (real)
+        {
+            _confirmed++;
+            if (_confirmed <= 3)
+                Plugin.ModLogger.LogInfo(
+                    $"Arena announcer output confirmed: '{key}', route={route}, {state}.");
+            return;
+        }
+
+        // This check runs only after at least 250 ms and two complete DSP ring
+        // durations. At that point a long-form announcer clip should own a real
+        // voice. Stop only the Arena-owned source before falling back, then let
+        // GUISounds' one-shot finish without another destructive probe.
         if (alive && ReferenceEquals(output, _output))
         {
             output.Stop();
@@ -620,6 +644,18 @@ internal static class AnnouncerService
         float volume,
         bool usesUi)
     {
+        float delay = GetOutputCheckDelaySeconds();
+        // A clip that can finish inside the safe observation window cannot be
+        // distinguished from a successfully completed clip. Leave it alone.
+        if (clip == null || clip.length <= delay)
+        {
+            if (usesUi)
+                ReportUnverified(key, route, "clip_too_short_to_probe",
+                    $"clipLength={Number(clip == null ? 0f : clip.length)}, delay={Number(delay)}");
+            return;
+        }
+
+        float now = Time.realtimeSinceStartup;
         _outputGeneration++;
         _pendingOutputGeneration = _outputGeneration;
         _pendingOutputCheck = output;
@@ -628,7 +664,39 @@ internal static class AnnouncerService
         _pendingRouteCheck = route;
         _pendingVolumeCheck = volume;
         _pendingCheckUsesUi = usesUi;
-        _outputCheckAt = Time.realtimeSinceStartup + OutputCheckDelaySeconds;
+        _outputCheckAt = now + delay;
+        // The check stays valid for the clip's natural lifetime. After that a
+        // false source state can mean successful completion, so recovery would
+        // risk replaying the entire cue after a long frame or round-rebind stall.
+        _outputCheckExpiresAt = now + clip.length;
+    }
+
+    private static float GetOutputCheckDelaySeconds()
+    {
+        try
+        {
+            AudioSettings.GetDSPBufferSize(out int bufferLength, out int bufferCount);
+            int sampleRate = AudioSettings.outputSampleRate;
+            if (bufferLength > 0 && bufferCount > 0 && sampleRate > 0)
+            {
+                float twoRingDurations = 2f * bufferLength * bufferCount / sampleRate;
+                return Math.Max(MinimumOutputCheckDelaySeconds, twoRingDurations);
+            }
+        }
+        catch
+        {
+            // Diagnostics and recovery must never turn playback into a failure.
+        }
+
+        return MinimumOutputCheckDelaySeconds;
+    }
+
+    private static void ReportUnverified(string key, string route, string reason, string detail)
+    {
+        _unverified++;
+        if (_unverified <= 3 || (route?.StartsWith("GUISounds.", StringComparison.Ordinal) ?? false))
+            Plugin.ModLogger.LogWarning(
+                $"Arena announcer output unverified: '{key}', route={route}, reason={reason}, {detail}; playback untouched.");
     }
 
     private static AudioSource TryGetSingleUiSource(GUISounds ui, out string problem)
@@ -693,6 +761,7 @@ internal static class AnnouncerService
         _pendingCheckUsesUi = false;
         _pendingOutputGeneration = 0;
         _outputCheckAt = 0f;
+        _outputCheckExpiresAt = 0f;
     }
 
     internal static void Shutdown()
