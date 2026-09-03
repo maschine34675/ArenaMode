@@ -1,8 +1,3 @@
-param(
-    # Last committed service before the recovery/diagnostic change.
-    [string]$BaselineRevision = '6938751c8c798f793b2ccea48045cf2ab7dcb513'
-)
-
 $ErrorActionPreference = 'Stop'
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $project = Join-Path $PSScriptRoot 'AnnouncerChecks.csproj'
@@ -25,9 +20,11 @@ function Invoke-NegativeCase([string]$name, [string]$candidate, [string]$expecte
     }
 }
 
-$baselineLines = & git -C $repoRoot show ($BaselineRevision + ':ArenaMode.Client/Audio/AnnouncerService.cs')
-if ($LASTEXITCODE -ne 0) { throw 'Could not read the committed pre-change service.' }
-Invoke-NegativeCase 'committed-baseline' ($baselineLines -join "`n") `
+$loadingReset = '_loading = false;'
+if ([regex]::Matches($source, [regex]::Escape($loadingReset)).Count -ne 1) {
+    throw 'Expected exactly one loading-state reset; refusing an ambiguous source-copy mutation.'
+}
+Invoke-NegativeCase 'load-recovery' ($source.Replace($loadingReset, '_loading = true;')) `
     'A failed first load must retry only its failed clip; healthy cached clips must survive.'
 
 $raceGuard = 'if (IsReady(previous))'
@@ -41,4 +38,4 @@ $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashD
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its final positive check.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (baseline and race mutant rejected; production source unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load-recovery and race mutants rejected; production source unchanged; evidence: $scratch)"

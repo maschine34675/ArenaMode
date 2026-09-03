@@ -135,8 +135,7 @@ namespace UnityEngine
         public bool isVirtual { get; set; }
         public int StopCalls { get; private set; }
         public void Stop() { StopCalls++; isPlaying = false; }
-        public void Play() { isPlaying = true; GlobalPlayback?.Invoke(clip, volume); }
-        internal static Action<AudioClip, float> GlobalPlayback;
+        public void Play() { isPlaying = true; }
     }
 }
 
@@ -160,10 +159,31 @@ namespace UnityEngine.Audio
 
 internal sealed class BetterAudio
 {
+    public enum AudioSourceGroupType { Nonspatial, NonspatialBypass }
+    public readonly record struct Playback(
+        UnityEngine.AudioClip Clip,
+        AudioSourceGroupType Group,
+        float PanStereo,
+        float Volume,
+        UnityEngine.Audio.AudioMixerGroup ForcedGroup);
+
     public static bool Instantiated { get; set; } = true;
     public static BetterAudio Instance { get; } = new();
-    public UnityEngine.Audio.AudioMixerGroup NonSpatialBypassMixer { get; set; } =
-        new() { name = "NonspatialBypass" };
+    public List<Playback> Played { get; } = new();
+    public UnityEngine.Audio.AudioMixer Master { get; set; } = new();
+    public bool ThrowOnPlay { get; set; }
+
+    public void PlayNonspatial(
+        UnityEngine.AudioClip clip,
+        AudioSourceGroupType sourceGroup,
+        float panStereo = 0f,
+        float volume = 1f,
+        UnityEngine.Audio.AudioMixerGroup forcedGroup = null)
+    {
+        if (ThrowOnPlay)
+            throw new InvalidOperationException("injected BetterAudio PlayNonspatial failure");
+        Played.Add(new Playback(clip, sourceGroup, panStereo, volume, forcedGroup));
+    }
 }
 
 namespace EFT.UI
@@ -178,11 +198,6 @@ namespace EFT.UI
         public GUISounds()
         {
             gameObject = new UnityEngine.GameObject();
-            UnityEngine.AudioSource.GlobalPlayback = (clip, volume) =>
-            {
-                if (ThrowOnPlay) throw new InvalidOperationException("injected dedicated audio failure");
-                Played.Add(new Playback(clip, true, false, volume));
-            };
         }
         public void PlaySound(UnityEngine.AudioClip clip, bool single, bool commonUiSound, float volume)
         {

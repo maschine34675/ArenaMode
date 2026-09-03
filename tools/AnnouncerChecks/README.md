@@ -16,7 +16,8 @@ private cache/loading flags.
 Coverage includes:
 
 - First-match asynchronous loading, URI escaping, nonduplicated subscriptions,
-  native UI routing and volume, missing phrases, and detached/old matches.
+  pooled native `BetterAudio` routing and volume, missing phrases, and
+  detached/old matches.
 - Healthy cache reuse, retry after an initially failed request or decoder
   exception, discovery of a previously missing folder at the next match, and
   restoration of destroyed or unloaded Unity audio clips.
@@ -29,19 +30,21 @@ Coverage includes:
 - Attach/Detach counters and initial playback diagnostics, with additional
   diagnostics when mixer or listener state changes. The service never overrides
   mixer volume, listener mute or pause.
+- Clean pooled `Nonspatial` sources without a persistent foreign mixer,
+  exclusive preferred-path routing, and exactly one `GUISounds` fallback when
+  BetterAudio is unavailable or throws.
 
 The request pump and clock are controlled; these checks perform no real waits
 for playback. Fixture audio files contain placeholder bytes, not real audio.
 Actual Ogg decoding, Unity's async context and native lifetime implementation,
 Harmony/game integration, mixer routing and audible output need a real client.
-A successful native `PlaySound` request does not prove the device was audible.
+A successful native `PlayNonspatial` or fallback `PlaySound` request does not
+prove the device was audible.
 
-`Verify-Regression.ps1` first compiles a copy of the committed pre-change service
-at `6938751c8c798f793b2ccea48045cf2ab7dcb513`. That baseline must fail at the
-failed-first-load retry assertion, before the new diagnostic assertions run.
-The optional `BaselineRevision` parameter can select another equivalent
-pre-change revision. The second copy disables only the late-readiness guard and
-must fail the native-clip preservation check. Neither test replaces production
-files; a hash check verifies the source stayed unchanged, and the unchanged
-service is tested again afterward. Temporary negative-test evidence is retained
-in the printed directory.
+`Verify-Regression.ps1` compiles two controlled copies of the current service.
+The first keeps the loading flag set after completion and must fail the
+failed-first-load retry assertion. The second disables only the late-readiness
+guard and must fail the native-clip preservation check. Neither test replaces
+production files; a hash check verifies the source stayed unchanged, and the
+unchanged service is tested again afterward. Temporary negative-test evidence
+is retained in the printed directory.

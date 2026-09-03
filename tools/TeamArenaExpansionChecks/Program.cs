@@ -1181,21 +1181,29 @@ internal static class Program
             "ArenaAnnouncerCue.RoundStart => \"round_start\"",
             "ArenaAnnouncerCue.RoundWon => \"round_won\"",
             "ArenaAnnouncerCue.RoundLost => \"round_lost\"",
-            "plugin.gameObject.AddComponent<AudioSource>()",
-            "output.priority = 0",
-            "BetterAudio.Instance?.NonSpatialBypassMixer",
-            "_output.Stop()",
-            "_output.Play()",
-            "internal static void Tick()",
-            "output.isVirtual",
-            "_outputRoute = null");
-        Assert(!announcer.Contains(".Instance.PlaySound(clip", StringComparison.Ordinal),
-            "announcer audio cannot regress to EFT's shared, preemptible GUISounds source");
+            "audio.PlayNonspatial(",
+            "BetterAudio.AudioSourceGroupType.Nonspatial",
+            "route = \"BetterAudio.NonspatialPool\"",
+            "Singleton<GUISounds>.Instance.PlaySound(",
+            "single: true",
+            "\"GUISounds.UI<-BetterAudioFailure\"",
+            "fallbackReason == null ? \"output_unavailable\" : \"play_failed\"");
+        Assert(!announcer.Contains("BetterAudio.AudioSourceGroupType.NonspatialBypass", StringComparison.Ordinal),
+            "rapid announcer cues cannot share BetterAudio's single NonspatialBypass source");
+        Assert(!announcer.Contains("NonSpatialBypassMixer", StringComparison.Ordinal)
+               && !announcer.Contains("forcedGroup", StringComparison.Ordinal),
+            "Arena cannot leave a foreign mixer on an EFT-owned pooled source");
+        Assert(!announcer.Contains("AddComponent<AudioSource>", StringComparison.Ordinal)
+               && !announcer.Contains("internal static void Tick()", StringComparison.Ordinal)
+               && !announcer.Contains("output.isVirtual", StringComparison.Ordinal)
+               && !announcer.Contains("_outputRoute", StringComparison.Ordinal),
+            "announcer audio stays on EFT-owned sources and needs no private channel lifecycle");
         int announcerAttach = matchService.IndexOf("Audio.AnnouncerService.Attach(match)", StringComparison.Ordinal);
         int modeStart = matchService.IndexOf("mode.OnMatchStart(match)", StringComparison.Ordinal);
         Assert(announcerAttach >= 0 && modeStart >= 0 && announcerAttach < modeStart,
             "announcer subscribes before a mode can synchronously emit its first cue");
-        RequireAll(controller, "Audio.AnnouncerService.Tick()");
+        Assert(!controller.Contains("Audio.AnnouncerService.Tick()", StringComparison.Ordinal),
+            "controller has no obsolete per-frame private announcer-source probe");
         RequireAll(plugin, "Audio.AnnouncerService.SetPluginDirectory");
         Assert(!plugin.Contains("AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "an ordinary-only process does not preload Arena audio at plugin startup");
