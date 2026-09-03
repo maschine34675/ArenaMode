@@ -49,7 +49,7 @@ internal static class Program
             VerifyLateReadinessRace(pluginDir, context);
             VerifyOutputDiagnostics();
             VerifyRoundCues(pluginDir, context);
-            VerifyDedicatedOutputLifecycle();
+            VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -98,53 +98,55 @@ internal static class Program
             && first.Url.Contains("%20"), "File URLs must preserve spaces, # and percent characters.");
         var firstLabel = Label(first);
         firstMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 0, "A callout before its clip is loaded must safely remain silent.");
+        Assert(sounds.PlayRequests.Count == 0, "A callout before its clip is loaded must safely remain silent.");
 
         first.Complete(UnityWebRequest.Result.Success);
         context.PumpUntil(() => requests.Count == 2);
         firstMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 1,
+        Assert(sounds.PlayRequests.Count == 1,
             "The first match must play a subsequently loaded clip without reattaching.");
-        Assert(sounds.Played[0].Clip.Name == firstLabel.ToLowerInvariant().Replace(' ', '_')
-            && sounds.Played[0].Clip.CreatedFromPcm
-            && sounds.Played[0].Single && !sounds.Played[0].CommonUiSound
-            && sounds.Played[0].Volume == Settings.AnnouncerVolume.Value,
-            "Playback must preserve the requested label, PCM ownership and configured volume.");
+        var firstPlay = sounds.PlayRequests[0];
+        Assert(firstPlay.Clip.Name == firstLabel.ToLowerInvariant().Replace(' ', '_'),
+            "Native UI primary must preserve the requested audio key.");
+        Assert(firstPlay.Clip.CreatedFromPcm,
+            "Native UI primary must receive an Arena-owned materialized PCM clip.");
+        Assert(firstPlay.Single,
+            "Native UI primary must request GUISounds single:true replacement semantics.");
+        Assert(!firstPlay.CommonUiSound,
+            "Native UI primary must request commonUiSound:false and preserve explicit volume.");
+        Assert(firstPlay.Volume == Settings.AnnouncerVolume.Value,
+            "Native UI primary must pass the configured announcer volume unchanged.");
         Assert(first.Content == null && !ReferenceEquals(first.Content, null)
             && first.Content.GetDataCalls == 1
-            && sounds.Played[0].Clip.SetDataCalls == 1
-            && sounds.Played[0].Clip.Data.Any(sample => Math.Abs(sample) > 0.00001f),
-            "A decoded web clip is copied into signal-bearing Arena PCM and then destroyed.");
-        var output = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
-        Assert(output != null && !output.playOnAwake && !output.loop
-            && output.spatialBlend == 0f && !output.spatialize && output.dopplerLevel == 0f
-            && output.bypassReverbZones && output.priority == 0,
-            "Announcer playback owns one highest-priority non-spatial source on the persistent plugin host.");
-        Assert(ReferenceEquals(output.outputAudioMixerGroup, BetterAudio.Instance.NonSpatialBypassMixer),
-            "Announcer playback uses EFT's master-controlled non-spatial bypass route.");
+            && sounds.PlayRequests[0].Clip.SetDataCalls == 1
+            && sounds.PlayRequests[0].Clip.GetDataCalls == 1
+            && sounds.PlayRequests[0].Clip.Data.Any(sample => Math.Abs(sample) > 0.00001f),
+            "Decoded audio is copied into Arena PCM, read back with signal, then released.");
+        Assert(ArenaMode.Plugin.Instance.gameObject.LastAudioSource == null,
+            "Native UI playback must not create a private AudioSource on the Arena plugin host.");
+        Assert(sounds.SingleSource.priority == 128,
+            "Native UI playback must leave EFT's shared source priority unchanged.");
 
         Settings.AnnouncerEnabled.Value = false;
         firstMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 1, "Disabling the announcer must suppress loaded clips.");
+        Assert(sounds.PlayRequests.Count == 1, "Disabling the announcer must suppress loaded clips.");
         Settings.AnnouncerEnabled.Value = true;
-        BetterAudio.Instantiated = false;
         Singleton<GUISounds>.Instance = null;
         firstMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 1, "Unavailable native output paths must safely remain silent.");
+        Assert(sounds.PlayRequests.Count == 1, "An unavailable GUISounds singleton must fail soft.");
         Singleton<GUISounds>.Instance = sounds;
-        BetterAudio.Instantiated = true;
         firstMatch.Callout("MONSTER KILL");
         firstMatch.Callout(null);
         firstMatch.Callout("");
-        Assert(sounds.Played.Count == 1, "Missing and empty labels must not play a substitute clip.");
+        Assert(sounds.PlayRequests.Count == 1, "Missing and empty labels must not play a substitute clip.");
 
         AnnouncerService.Attach(firstMatch);
         AnnouncerService.Attach(firstMatch);
         firstMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 2, "Repeated Attach must not duplicate the callout subscription.");
+        Assert(sounds.PlayRequests.Count == 2, "Repeated Attach must not duplicate the callout subscription.");
         AnnouncerService.Detach();
         firstMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 2, "Detached matches must stop producing announcer playback.");
+        Assert(sounds.PlayRequests.Count == 2, "Detached matches must stop producing announcer playback.");
 
         // Replace the match while the remaining clips are still loading. Late
         // completion must populate the cache without reviving the old match.
@@ -162,26 +164,26 @@ internal static class Program
             && requests.All(request => request.Type == UnityEngine.AudioType.OGGVORBIS),
             "Loading must continue after a corrupt clip and dispose all Vorbis requests.");
         nextMatch.Callout(Label(failed));
-        Assert(sounds.Played.Count == 2, "An unsuccessfully decoded clip must remain unavailable.");
+        Assert(sounds.PlayRequests.Count == 2, "An unsuccessfully decoded clip must remain unavailable.");
         nextMatch.Callout(Label(last));
-        Assert(sounds.Played.Count == 3, "A replacement match must play clips completed after attachment.");
+        Assert(sounds.PlayRequests.Count == 3, "A replacement match must play clips completed after attachment.");
         firstMatch.Callout(firstLabel);
         firstMatch.Callout(Label(last));
-        Assert(sounds.Played.Count == 3, "Late load completion must not resubscribe the ended match.");
+        Assert(sounds.PlayRequests.Count == 3, "Late load completion must not resubscribe the ended match.");
 
         AnnouncerService.Attach(null);
         nextMatch.Callout(firstLabel);
-        Assert(sounds.Played.Count == 3, "Attaching null must detach the active match.");
+        Assert(sounds.PlayRequests.Count == 3, "Attaching null must detach the active match.");
         AnnouncerService.EnsureLoaded();
         Assert(requests.Count == 4 && Label(requests[3]) == Label(failed),
             "A failed first load must retry only its failed clip; healthy cached clips must survive.");
-        var beforeCompletion = sounds.Played.Count;
+        var beforeCompletion = sounds.PlayRequests.Count;
         FinishLoads(context);
-        Assert(sounds.Played.Count == beforeCompletion, "Repair completion must not replay a skipped old callout.");
+        Assert(sounds.PlayRequests.Count == beforeCompletion, "Repair completion must not replay a skipped old callout.");
         var recoveredMatch = new ArenaMatch();
         AnnouncerService.Attach(recoveredMatch);
         recoveredMatch.Callout(Label(failed));
-        Assert(sounds.Played.Count == beforeCompletion + 1, "A recovered first-load failure must play on the next callout.");
+        Assert(sounds.PlayRequests.Count == beforeCompletion + 1, "A recovered first-load failure must play on the next callout.");
         AnnouncerService.Detach();
         AnnouncerService.EnsureLoaded();
         Assert(requests.Count == 4, "Healthy cached clips remain reused after a successful repair.");
@@ -193,7 +195,7 @@ internal static class Program
         var sounds = Singleton<GUISounds>.Instance;
         var requests = UnityWebRequestMultimedia.Requests;
         var label = Label(requests[0]);
-        var originalClip = sounds.Played.First(play => play.Clip.Name ==
+        var originalClip = sounds.PlayRequests.First(play => play.Clip.Name ==
             label.ToLowerInvariant().Replace(' ', '_')).Clip;
         var count = requests.Count;
         UnityEngine.Object.Destroy(originalClip);
@@ -206,17 +208,17 @@ internal static class Program
         Assert(requests.Count == count + 1, "Repeated validation deduplicates an in-flight repair.");
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
-        var plays = sounds.Played.Count;
+        var plays = sounds.PlayRequests.Count;
         match.Callout(label);
         AnnouncerService.Detach();
         FinishLoads(context);
         match.Callout(label);
-        Assert(sounds.Played.Count == plays, "A detached match stays silent throughout late repair completion.");
+        Assert(sounds.PlayRequests.Count == plays, "A detached match stays silent throughout late repair completion.");
         var nextMatch = new ArenaMatch();
         AnnouncerService.Attach(nextMatch);
         nextMatch.Callout(label);
-        var restored = sounds.Played[^1].Clip;
-        Assert(sounds.Played.Count == plays + 1 && restored != null && !ReferenceEquals(restored, originalClip),
+        var restored = sounds.PlayRequests[^1].Clip;
+        Assert(sounds.PlayRequests.Count == plays + 1 && restored != null && !ReferenceEquals(restored, originalClip),
             "Replacement match plays the repaired native clip, never a destroyed wrapper.");
 
         AnnouncerService.Detach();
@@ -231,7 +233,7 @@ internal static class Program
         context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
         AnnouncerService.Attach(nextMatch);
         nextMatch.Callout(label);
-        Assert(ReferenceEquals(sounds.Played[^1].Clip, restored), "A recovered cached Loading clip retains identity.");
+        Assert(ReferenceEquals(sounds.PlayRequests[^1].Clip, restored), "A recovered cached Loading clip retains identity.");
 
         restored.loadState = AudioDataLoadState.Unloaded;
         AnnouncerService.Detach();
@@ -239,7 +241,7 @@ internal static class Program
         FinishLoads(context);
         AnnouncerService.Attach(nextMatch);
         nextMatch.Callout(label);
-        Assert(sounds.Played[^1].Clip.loadState == AudioDataLoadState.Loaded,
+        Assert(sounds.PlayRequests[^1].Clip.loadState == AudioDataLoadState.Loaded,
             "An Unloaded cached clip is made ready before playback in the next match.");
         AnnouncerService.Detach();
     }
@@ -262,9 +264,9 @@ internal static class Program
         FinishLoads(context);
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
-        var plays = sounds.Played.Count;
+        var plays = sounds.PlayRequests.Count;
         match.Callout(Label(following));
-        Assert(sounds.Played.Count == plays + 1, "A later file remains playable after a GetContent exception.");
+        Assert(sounds.PlayRequests.Count == plays + 1, "A later file remains playable after a GetContent exception.");
         AnnouncerService.Detach();
         AnnouncerService.EnsureLoaded();
         Assert(requests.Count == count + 3 && Label(requests[^1]) == Label(failed),
@@ -298,11 +300,33 @@ internal static class Program
             "A decoder that cannot expose PCM stays cached through the fail-soft compatibility path.");
         var fallbackMatch = new ArenaMatch();
         AnnouncerService.Attach(fallbackMatch);
-        plays = sounds.Played.Count;
+        plays = sounds.PlayRequests.Count;
         fallbackMatch.Callout("PCM COPY FALLBACK");
-        Assert(sounds.Played.Count == plays + 1
-            && ReferenceEquals(sounds.Played[^1].Clip, uncopyable),
+        Assert(sounds.PlayRequests.Count == plays + 1
+            && ReferenceEquals(sounds.PlayRequests[^1].Clip, uncopyable),
             "A PCM-copy limitation does not suppress an otherwise playable decoded clip.");
+        AnnouncerService.Detach();
+
+        AddClip(pluginDir, "pcm_readback_fallback");
+        AnnouncerService.EnsureLoaded();
+        var readbackFallback = requests[^1];
+        var decodedForReadback = new AudioClip { Name = "pcm_readback_fallback" };
+        readbackFallback.Content = decodedForReadback;
+        AudioClip.NextCreatedGetDataResult = false;
+        FinishLoads(context);
+        var unreadablePcm = AudioClip.CreatedClips[^1];
+        Assert(decodedForReadback != null && decodedForReadback.GetDataCalls == 1
+            && unreadablePcm == null && unreadablePcm.SetDataCalls == 1 && unreadablePcm.GetDataCalls == 1
+            && ArenaMode.Plugin.ModLogger.Messages.Any(message =>
+                message.Contains("materialized AudioClip.GetData returned false")),
+            "A failed materialized-PCM readback destroys the unusable copy and retains decoded audio.");
+        var readbackMatch = new ArenaMatch();
+        AnnouncerService.Attach(readbackMatch);
+        plays = sounds.PlayRequests.Count;
+        readbackMatch.Callout("PCM READBACK FALLBACK");
+        Assert(sounds.PlayRequests.Count == plays + 1
+            && ReferenceEquals(sounds.PlayRequests[^1].Clip, decodedForReadback),
+            "A readback failure remains fail-soft through the native UI route.");
         AnnouncerService.Detach();
 
         AddClip(pluginDir, "slow_decoder");
@@ -341,13 +365,13 @@ internal static class Program
             "A previously missing folder is scanned again at the next match.");
         var nextMatch = new ArenaMatch();
         AnnouncerService.Attach(nextMatch);
-        var plays = sounds.Played.Count;
+        var plays = sounds.PlayRequests.Count;
         nextMatch.Callout("FOLDER REPAIR");
         FinishLoads(context);
         oldMatch.Callout("FOLDER REPAIR");
-        Assert(sounds.Played.Count == plays, "Installing a folder never replays skipped or detached callouts.");
+        Assert(sounds.PlayRequests.Count == plays, "Installing a folder never replays skipped or detached callouts.");
         nextMatch.Callout("FOLDER REPAIR");
-        Assert(sounds.Played.Count == plays + 1, "The next live callout uses newly installed audio.");
+        Assert(sounds.PlayRequests.Count == plays + 1, "The next live callout uses newly installed audio.");
         AnnouncerService.Detach();
         AnnouncerService.SetPluginDirectory(pluginDir);
     }
@@ -356,13 +380,13 @@ internal static class Program
     {
         var sounds = Singleton<GUISounds>.Instance;
         var requests = UnityWebRequestMultimedia.Requests;
-        var healthyClip = sounds.Played.First(play => play.Clip != null && play.Clip.CreatedFromPcm).Clip;
+        var healthyClip = sounds.PlayRequests.First(play => play.Clip != null && play.Clip.CreatedFromPcm).Clip;
         var key = healthyClip.Name;
         var label = key.Replace('_', ' ').ToUpperInvariant();
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         var logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        var plays = sounds.Played.Count;
+        var plays = sounds.PlayRequests.Count;
         Settings.AnnouncerEnabled.Value = false;
         Repeat(() => match.Callout(label));
         Assert(ReasonCount(logStart, key, "disabled") == 1, "Disabled diagnostics are limited to one key/reason per match.");
@@ -372,25 +396,21 @@ internal static class Program
         Repeat(() => match.Callout(label));
         Assert(ReasonCount(logStart, key, "volume_zero") == 1, "Zero-volume diagnostics are limited per match.");
         Settings.AnnouncerVolume.Value = volume;
-        BetterAudio.Instantiated = false;
         Singleton<GUISounds>.Instance = null;
         Repeat(() => match.Callout(label));
-        Assert(ReasonCount(logStart, key, "output_unavailable") == 1,
-            "Missing native output paths are diagnosed without flooding.");
+        Assert(ReasonCount(logStart, key, "ui_unavailable") == 1,
+            "A missing native UI host is diagnosed without flooding.");
         Singleton<GUISounds>.Instance = sounds;
-        BetterAudio.Instantiated = true;
-        sounds.ThrowOnDedicatedPlay = true;
         sounds.ThrowOnPlay = true;
         Repeat(() => match.Callout(label));
         Assert(ReasonCount(logStart, key, "play_failed") == 1,
-            "Repeated failure of both native playback paths logs once per match.");
-        sounds.ThrowOnDedicatedPlay = false;
+            "Repeated native PlaySound failures log once per match and fail soft.");
         sounds.ThrowOnPlay = false;
         var count = requests.Count;
         Repeat(() => match.Callout("MONSTER KILL"));
         Assert(ReasonCount(logStart, "monster_kill", "missing_clip") == 1 && requests.Count == count,
             "Known missing pack labels are diagnosed without launching repeated disk/network scans.");
-        Assert(sounds.Played.Count == plays, "Diagnostic skip paths never request substitute audio.");
+        Assert(sounds.PlayRequests.Count == plays, "Diagnostic skip paths never request substitute audio.");
 
         AnnouncerService.Detach();
         match = new ArenaMatch();
@@ -404,7 +424,7 @@ internal static class Program
         healthyClip.loadState = AudioDataLoadState.Failed;
         Time.realtimeSinceStartup += 100f;
         count = requests.Count;
-        plays = sounds.Played.Count;
+        plays = sounds.PlayRequests.Count;
         Repeat(() => match.Callout(label));
         Assert(requests.Count == count + 1, "Repeated invalid-clip callouts start only one in-flight repair.");
         Assert(ReasonCount(logStart, key, "invalid_clip") == 1
@@ -421,9 +441,9 @@ internal static class Program
         match.Callout(label);
         Assert(requests.Count == count + 2, "A known failed clip becomes retryable after the repair interval.");
         FinishLoads(context);
-        Assert(sounds.Played.Count == plays, "Repair completion alone does not enqueue late playback.");
+        Assert(sounds.PlayRequests.Count == plays, "Repair completion alone does not enqueue late playback.");
         match.Callout(label);
-        Assert(sounds.Played.Count == plays + 1, "A repaired clip plays on the next new callout.");
+        Assert(sounds.PlayRequests.Count == plays + 1, "A repaired clip plays on the next new callout.");
         AnnouncerService.Detach();
     }
 
@@ -437,7 +457,7 @@ internal static class Program
         var sounds = Singleton<GUISounds>.Instance;
         var requests = UnityWebRequestMultimedia.Requests;
         var nativePath = Path.Combine(pluginDir, "ArenaMode", "sounds") + Path.DirectorySeparatorChar;
-        var oldClip = sounds.Played.Last(play => play.Clip != null
+        var oldClip = sounds.PlayRequests.Last(play => play.Clip != null
             && play.Clip.CreatedFromPcm
             && play.Clip.loadState == AudioDataLoadState.Loaded).Clip;
         var label = oldClip.Name.Replace('_', ' ').ToUpperInvariant();
@@ -456,13 +476,13 @@ internal static class Program
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         match.Callout(label);
-        Assert(ReferenceEquals(sounds.Played[^1].Clip, oldClip),
+        Assert(ReferenceEquals(sounds.PlayRequests[^1].Clip, oldClip),
             "The original clip can recover and play while its replacement request is in flight.");
         FinishLoads(context);
         Assert(oldClip != null && replacement.Content == null && !ReferenceEquals(replacement.Content, null),
             "Late-ready cached clip survives; its unnecessary downloaded replacement is destroyed.");
         match.Callout(label);
-        Assert(ReferenceEquals(sounds.Played[^1].Clip, oldClip),
+        Assert(ReferenceEquals(sounds.PlayRequests[^1].Clip, oldClip),
             "Subsequent callouts retain the original late-ready native clip.");
         AnnouncerService.Detach();
     }
@@ -470,7 +490,7 @@ internal static class Program
     private static void VerifyOutputDiagnostics()
     {
         var sounds = Singleton<GUISounds>.Instance;
-        var healthy = sounds.Played.Last(play => play.Clip != null
+        var healthy = sounds.PlayRequests.Last(play => play.Clip != null
             && play.Clip.loadState == AudioDataLoadState.Loaded).Clip;
         var label = healthy.Name.Replace('_', ' ').ToUpperInvariant();
         var messages = ArenaMode.Plugin.ModLogger.Messages;
@@ -488,13 +508,17 @@ internal static class Program
         Call(); Call(); Call(); Call();
         Assert(OutputLogs() == 3, "Stable output logs exactly the first three successful playback requests.");
         Assert(messages.Skip(start).Where(message => message.StartsWith("Arena announcer play request:"))
-            .All(message => message.Contains("route=Arena.PCM.NonspatialBypass")
-                && message.Contains("uiReady=True") && message.Contains("uiDb=-4")
+            .All(message => message.Contains("route=GUISounds.SingleUI.Primary")
+                && message.Contains("clipFrames=") && message.Contains("clipChannels=2")
+                && message.Contains("clipFrequency=44100") && message.Contains("clipLengthMs=")
+                && message.Contains("clipState=Loaded")
+                && message.Contains("uiReady=True") && message.Contains("interfaceDb=-4")
+                && message.Contains("uiDb=-4")
                 && message.Contains("masterDb=-2") && message.Contains("listenerVolume=0.8")
                 && message.Contains("listenerPaused=False") && message.Contains("speakerMode=Mode5point1")
                 && message.Contains("sampleRate=48000") && message.Contains("voices=32/512")
-                && message.Contains("dspBuffer=1024x4") && message.Contains("probeDelayMs=250")),
-            "Playback diagnostics include mixer, listener, voice and buffer state plus the safe probe delay.");
+                && message.Contains("dspBuffer=1024x4")),
+            "Native UI request diagnostics include clip, mixer, listener, voice and buffer state.");
 
         AudioListener.pause = true;
         Call(); Call();
@@ -504,30 +528,30 @@ internal static class Program
         Call(); Call();
         Assert(OutputLogs() == 5 && AudioListener.volume == 0,
             "A listener mute is observable without the announcer overriding it.");
-        BetterAudio.Instance.Master.Parameters["UIVolume"] = -80;
+        sounds.MasterMixer.Parameters["InterfaceVolume"] = -80;
         Call(); Call();
-        Assert(OutputLogs() == 6 && BetterAudio.Instance.Master.Parameters["UIVolume"] == -80,
+        Assert(OutputLogs() == 6 && sounds.MasterMixer.Parameters["InterfaceVolume"] == -80,
             "A changed Interface mixer level is reported once and left untouched.");
-        var originalMixer = BetterAudio.Instance.Master;
-        BetterAudio.Instance.Master = null;
+        var originalMixer = sounds.MasterMixer;
+        sounds.MasterMixer = null;
         Call();
         Assert(OutputLogs() == 7 && messages[^1].Contains("uiDb=unknown") && messages[^1].Contains("masterDb=unknown"),
             "An unavailable mixer is diagnosed without suppressing an otherwise valid native playback request.");
-        BetterAudio.Instance.Master = originalMixer;
+        sounds.MasterMixer = originalMixer;
 
         Settings.AnnouncerEnabled.Value = false;
         Call(); Call();
         Settings.AnnouncerEnabled.Value = true;
         AnnouncerService.Detach();
         Assert(messages[^1] == $"Arena announcer detached: callouts={calls}, cues=0, "
-            + $"playRequests={calls - 2}, confirmed=0, unverified=0, fallbackRequests=0, skipped=2.",
+            + $"playRequests={calls - 2}, skipped=2.",
             "Detach counts every received/requested/skipped callout even when skip logs are deduplicated.");
-        var plays = sounds.Played.Count;
+        var plays = sounds.PlayRequests.Count;
         match.Callout(label);
-        Assert(sounds.Played.Count == plays, "Detached callouts cannot produce playback or update diagnostics.");
+        Assert(sounds.PlayRequests.Count == plays, "Detached callouts cannot produce playback or update diagnostics.");
         AudioListener.volume = 0.8f;
         AudioListener.pause = false;
-        BetterAudio.Instance.Master.Parameters["UIVolume"] = -4;
+        sounds.MasterMixer.Parameters["InterfaceVolume"] = -4;
     }
 
     private static void VerifyRoundCues(string pluginDir, QueuedContext context)
@@ -546,193 +570,69 @@ internal static class Program
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         AnnouncerService.Attach(match);
-        var plays = sounds.Played.Count;
+        var plays = sounds.PlayRequests.Count;
 
         match.Cue(ArenaAnnouncerCue.RoundStart);
         match.Cue(ArenaAnnouncerCue.RoundWon);
         match.Cue(ArenaAnnouncerCue.RoundLost);
 
-        Assert(sounds.Played.Count == plays + 3,
+        Assert(sounds.PlayRequests.Count == plays + 3,
             "Each typed round cue plays exactly once after repeated attachment.");
-        Assert(sounds.Played.Skip(plays).Select(play => play.Clip.Name).SequenceEqual(
+        Assert(sounds.PlayRequests.Skip(plays).Select(play => play.Clip.Name).SequenceEqual(
                 new[] { "round_start", "round_won", "round_lost" }),
             "Typed round cues map to their fixed audio keys in lifecycle order.");
 
         AnnouncerService.Detach();
         match.Cue(ArenaAnnouncerCue.RoundStart);
-        Assert(sounds.Played.Count == plays + 3,
+        Assert(sounds.PlayRequests.Count == plays + 3,
             "A detached match cannot play a lifecycle cue.");
     }
 
-    private static void VerifyDedicatedOutputLifecycle()
+    private static void VerifyNativeUiOutputLifecycle()
     {
         var sounds = Singleton<GUISounds>.Instance;
-        var output = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
-        Assert(output != null, "The successful Arena session retains exactly one dedicated output source.");
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
-        int stops = output.StopCalls;
-        output.StartDelaySeconds = 0.18f;
-        match.Cue(ArenaAnnouncerCue.RoundStart);
-        match.Cue(ArenaAnnouncerCue.RoundWon);
-        Assert(ReferenceEquals(output, ArenaMode.Plugin.Instance.gameObject.LastAudioSource)
-            && output.StopCalls == stops + 2,
-            "Overlapping Arena cues replace each other on the same private source.");
+        int requests = sounds.PlayRequests.Count;
+        int sharedStops = sounds.SingleSource.StopCalls;
+        int sharedPriority = sounds.SingleSource.priority;
 
-        int logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        Time.realtimeSinceStartup += 0.1f;
-        AnnouncerService.Tick();
-        Assert(!ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output confirmed:")
-                || message.StartsWith("Arena announcer output recovery:")),
-            "The output probe waits beyond a 1024x4 DSP ring instead of judging playback at 50 ms.");
-        Time.realtimeSinceStartup += 0.2f;
-        AnnouncerService.Tick();
-        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output confirmed:")
-                && message.Contains("route=Arena.PCM.NonspatialBypass")
-                && message.Contains("playing=True") && message.Contains("virtual=False")),
-            "The buffer-aware probe allows a DSP-delayed private PCM voice to become real before inspection.");
-        output.StartDelaySeconds = 0f;
-
-        int uiPlays = sounds.Played.Count(play => play.ViaUiSource);
-        match.Cue(ArenaAnnouncerCue.RoundStart);
-        int stopsAfterCompletedCue = output.StopCalls;
-        output.FinishPlayback();
-        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        Time.realtimeSinceStartup += 2f;
-        AnnouncerService.Tick();
-        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays
-            && output.StopCalls == stopsAfterCompletedCue
-            && ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output unverified:")
-                && message.Contains("reason=probe_window_expired")),
-            "A late main-thread tick cannot replay or stop a cue that already completed.");
-
-        match.Cue(ArenaAnnouncerCue.RoundStart);
-        sounds.ThrowOnDedicatedPlay = true;
-        sounds.ThrowOnPlay = true;
-        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        match.Cue(ArenaAnnouncerCue.RoundWon);
-        sounds.ThrowOnDedicatedPlay = false;
-        sounds.ThrowOnPlay = false;
-        Time.realtimeSinceStartup += 0.3f;
-        AnnouncerService.Tick();
-        Assert(!ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output confirmed:")
-                || message.StartsWith("Arena announcer output recovery:")),
-            "A replacement cue invalidates an older delayed probe even when both new start paths throw.");
-
-        output.ForceSilent = true;
-        uiPlays = sounds.Played.Count(play => play.ViaUiSource);
-        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        match.Cue(ArenaAnnouncerCue.RoundLost);
-        int stopsAfterRequest = output.StopCalls;
-        Time.realtimeSinceStartup += 0.1f;
-        AnnouncerService.Tick();
-        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays
-            && output.StopCalls == stopsAfterRequest,
-            "A private source is neither stopped nor replaced inside the device's safe DSP window.");
-        Time.realtimeSinceStartup += 0.5f;
-        AnnouncerService.Tick();
-        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays + 1
-            && sounds.Played[^1].Clip.Name == "round_lost"
-            && sounds.SingleSource.priority == 0 && output.StopCalls == stopsAfterRequest + 1,
-            "A private voice still silent after the safe delay falls back once to EFT's highest-priority UI source.");
-        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output recovery:")
-                && message.Contains("requested GUISounds.SingleUI")),
-            "Delayed recovery records the failed private source and requested native fallback.");
-        Time.realtimeSinceStartup += 0.1f;
-        AnnouncerService.Tick();
-        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays + 1
-            && sounds.SingleSource.priority == 0,
-            "The shared UI one-shot is left running instead of being judged and stopped by another snapshot.");
-        Time.realtimeSinceStartup += 2f;
-        AnnouncerService.Tick();
-        Assert(sounds.SingleSource.priority == 128,
-            "The temporary UI priority lease restores EFT's original value after the cue.");
-        output.ForceSilent = false;
-
-        output.ForceSilent = true;
-        sounds.SingleSource.ForceSilent = true;
-        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        match.Cue(ArenaAnnouncerCue.RoundStart);
-        Time.realtimeSinceStartup += 0.3f;
-        AnnouncerService.Tick();
-        int uiStopsAfterFallback = sounds.SingleSource.StopCalls;
-        Assert(sounds.SingleSource.priority == 0,
-            "Even an unobservable UI one-shot retains its priority lease for the clip duration.");
-        Time.realtimeSinceStartup += 0.3f;
-        AnnouncerService.Tick();
-        Assert(sounds.SingleSource.StopCalls == uiStopsAfterFallback
-            && !ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.Contains("reason=output_silent"))
-            && ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output unverified:")
-                && message.Contains("reason=shared_one_shot_state")),
-            "A UI source snapshot records evidence but can never stop or reject the requested one-shot.");
-        Time.realtimeSinceStartup += 2f;
-        AnnouncerService.Tick();
-        Assert(sounds.SingleSource.priority == 128,
-            "A silent UI fallback still releases its temporary priority lease by time.");
-        output.ForceSilent = false;
-        sounds.SingleSource.ForceSilent = false;
-
+        // The native GUISounds route must remain usable without BetterAudio.
+        // This catches accidentally restoring the former private bypass channel
+        // as either a prerequisite or a first-choice path.
         BetterAudio.Instantiated = false;
-        uiPlays = sounds.Played.Count(play => play.ViaUiSource);
-        match.Cue(ArenaAnnouncerCue.RoundLost);
-        Assert(sounds.Played.Count(play => play.ViaUiSource) == uiPlays + 1
-            && sounds.SingleSource.priority == 0,
-            "If the bypass mixer is unavailable, playback immediately uses the native UI fallback.");
-        Time.realtimeSinceStartup += 0.3f;
-        AnnouncerService.Tick();
-        Assert(!ArenaMode.Plugin.ModLogger.Messages.Any(message =>
-                message.StartsWith("Arena announcer output confirmed:")
-                && message.Contains("route=GUISounds.SingleUI")),
-            "The shared PlayOneShot route is never misreported as individually confirmed.");
-        Time.realtimeSinceStartup += 2f;
-        AnnouncerService.Tick();
-        Assert(sounds.SingleSource.priority == 128,
-            "Immediate fallback also releases its temporary priority lease.");
-        BetterAudio.Instantiated = true;
         match.Cue(ArenaAnnouncerCue.RoundStart);
-        Assert(ReferenceEquals(output.outputAudioMixerGroup, BetterAudio.Instance.NonSpatialBypassMixer),
-            "The private source keeps EFT's master-controlled bypass route when it returns.");
+        Assert(sounds.PlayRequests.Count == requests + 1,
+            "A round cue synchronously requests native GUISounds playback before the event returns.");
+        var first = sounds.PlayRequests[^1];
+        Assert(first.Clip.Name == "round_start" && first.Clip.CreatedFromPcm
+            && first.Single && !first.CommonUiSound
+            && first.Volume == Settings.AnnouncerVolume.Value,
+            "Native UI primary receives owned PCM with single replacement semantics and configured volume.");
+        Assert(ArenaMode.Plugin.Instance.gameObject.LastAudioSource == null,
+            "Native UI primary never creates an Arena-owned AudioSource.");
+        Assert(sounds.SingleSource.priority == sharedPriority,
+            "Playback never leases or otherwise mutates EFT's shared UI-source priority.");
 
-        match.Cue(ArenaAnnouncerCue.RoundStart);
-        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
-        UnityEngine.Object.Destroy(output);
-        Time.realtimeSinceStartup += 0.1f;
-        AnnouncerService.Tick();
-        Assert(!ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output recovery:")),
-            "A destroyed source is not acted on before the safe output-check delay.");
-        Time.realtimeSinceStartup += 0.2f;
-        AnnouncerService.Tick();
-        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
-                message.StartsWith("Arena announcer output recovery:")
-                && message.Contains("source=destroyed")),
-            "A private source destroyed before the probe recovers through the native UI source.");
         match.Cue(ArenaAnnouncerCue.RoundWon);
-        var replacement = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
-        Assert(replacement != null && !ReferenceEquals(replacement, output)
-            && ReferenceEquals(replacement.outputAudioMixerGroup, BetterAudio.Instance.NonSpatialBypassMixer),
-            "A destroyed private source is recreated and explicitly rebound to the current native route.");
+        Assert(sounds.PlayRequests.Count == requests + 2
+            && sounds.PlayRequests[^1].Clip.Name == "round_won"
+            && sounds.PlayRequests.Skip(requests).All(play => play.Single && !play.CommonUiSound),
+            "Successive Arena cues are sent exactly once through GUISounds' native single-source contract.");
 
-        sounds.SingleSource.priority = 128;
-        stops = replacement.StopCalls;
+        int stopsAfterRequests = sounds.SingleSource.StopCalls;
+        Assert(stopsAfterRequests == sharedStops + 2,
+            "Only GUISounds itself performs its normal replace-before-PlayOneShot stops.");
         AnnouncerService.Detach();
-        Assert(replacement.StopCalls == stops + 1 && !replacement.isPlaying
-            && replacement.clip == null && sounds.SingleSource.priority == 128,
-            "Detach stops private audio, clears its clip and restores the shared UI priority.");
-        stops = replacement.StopCalls;
+        Assert(sounds.SingleSource.StopCalls == stopsAfterRequests
+            && sounds.SingleSource.priority == sharedPriority,
+            "Detach only removes Arena subscriptions; it neither stops nor reprioritizes shared UI audio.");
         AnnouncerService.Shutdown();
-        Assert(replacement == null && replacement.StopCalls == stops + 1,
-            "Plugin shutdown reuses the idempotent detach stop and destroys only the Arena-owned source.");
-        Assert(sounds.Played.Any(play => !play.ViaUiSource)
-            && sounds.Played.Any(play => play.ViaUiSource),
-            "The lifecycle evidence contains both private PCM and native UI fallback playback.");
+        Assert(sounds.SingleSource.StopCalls == stopsAfterRequests
+            && sounds.SingleSource.priority == sharedPriority
+            && ArenaMode.Plugin.Instance.gameObject.LastAudioSource == null,
+            "Shutdown leaves the shared native source and its current one-shot untouched.");
+        BetterAudio.Instantiated = true;
     }
 
     private static void Repeat(Action action)

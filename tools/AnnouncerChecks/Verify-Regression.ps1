@@ -34,33 +34,51 @@ if ([regex]::Matches($source, [regex]::Escape($raceGuard)).Count -ne 1) {
 Invoke-NegativeCase 'late-readiness-race' ($source.Replace($raceGuard, 'if (false)')) `
     'Late-ready cached clip survives; its unnecessary downloaded replacement is destroyed.'
 
-$probeSchedule = '_outputCheckAt = now + delay;'
-if ([regex]::Matches($source, [regex]::Escape($probeSchedule)).Count -ne 1) {
-    throw 'Expected exactly one buffer-aware probe schedule; refusing an ambiguous source-copy mutation.'
+$forbiddenContracts = @(
+    'System.Reflection',
+    'BindingFlags',
+    'AudioSource',
+    'BetterAudio',
+    '_outputCheck',
+    'LeaseUiPriority',
+    'RestoreUiPriority',
+    'internal static void Tick'
+)
+foreach ($forbidden in $forbiddenContracts) {
+    if ($source.Contains($forbidden, [StringComparison]::Ordinal)) {
+        throw "Native UI-only source contract still contains forbidden machinery: $forbidden"
+    }
 }
-Invoke-NegativeCase 'premature-output-probe' ($source.Replace(
-        $probeSchedule,
-        '_outputCheckAt = Time.realtimeSinceStartup + 0.05f;')) `
-    'The output probe waits beyond a 1024x4 DSP ring instead of judging playback at 50 ms.'
 
-$probeExpiry = 'if (Time.realtimeSinceStartup >= expiresAt)'
-if ([regex]::Matches($source, [regex]::Escape($probeExpiry)).Count -ne 1) {
-    throw 'Expected exactly one output-probe expiry guard; refusing an ambiguous source-copy mutation.'
+$nativeCall = 'Singleton<GUISounds>.Instance.PlaySound('
+if ([regex]::Matches($source, [regex]::Escape($nativeCall)).Count -ne 1) {
+    throw 'Expected exactly one direct native GUISounds.PlaySound call.'
 }
-Invoke-NegativeCase 'expired-output-probe' ($source.Replace($probeExpiry, 'if (false)')) `
-    'A late main-thread tick cannot replay or stop a cue that already completed.'
 
-$uiObservation = 'ReportUnverified(key, route, "shared_one_shot_state", state);'
-if ([regex]::Matches($source, [regex]::Escape($uiObservation)).Count -ne 1) {
-    throw 'Expected exactly one shared UI observation; refusing an ambiguous source-copy mutation.'
+$pcmMaterialization = 'AudioClip pcm = TryMaterializePcm(decoded, key, out string pcmProblem);'
+if ([regex]::Matches($source, [regex]::Escape($pcmMaterialization)).Count -ne 1) {
+    throw 'Expected exactly one PCM materialization assignment; refusing an ambiguous source-copy mutation.'
 }
-$destructiveUiObservation = 'if (alive) output.Stop();' + [Environment]::NewLine `
-    + '            ' + $uiObservation
-Invoke-NegativeCase 'destructive-ui-probe' ($source.Replace($uiObservation, $destructiveUiObservation)) `
-    'A UI source snapshot records evidence but can never stop or reject the requested one-shot.'
+$pcmBypass = 'AudioClip pcm = null; string pcmProblem = "injected PCM bypass";'
+Invoke-NegativeCase 'pcm-materialization' ($source.Replace($pcmMaterialization, $pcmBypass)) `
+    'Native UI primary must receive an Arena-owned materialized PCM clip.'
+
+$singleFlag = 'single: true,'
+if ([regex]::Matches($source, [regex]::Escape($singleFlag)).Count -ne 1) {
+    throw 'Expected exactly one native single:true flag; refusing an ambiguous source-copy mutation.'
+}
+Invoke-NegativeCase 'native-single-contract' ($source.Replace($singleFlag, 'single: false,')) `
+    'Native UI primary must request GUISounds single:true replacement semantics.'
+
+$commonUiFlag = 'commonUiSound: false,'
+if ([regex]::Matches($source, [regex]::Escape($commonUiFlag)).Count -ne 1) {
+    throw 'Expected exactly one native commonUiSound:false flag; refusing an ambiguous source-copy mutation.'
+}
+Invoke-NegativeCase 'native-mixer-contract' ($source.Replace($commonUiFlag, 'commonUiSound: true,')) `
+    'Native UI primary must request commonUiSound:false and preserve explicit volume.'
 
 $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its final positive check.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, race and watchdog mutants rejected; production source unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, race, PCM and native-route mutants rejected; production source unchanged; evidence: $scratch)"

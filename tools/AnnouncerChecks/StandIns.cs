@@ -82,6 +82,7 @@ namespace UnityEngine
             { 0.25f, -0.25f, 0.1f, -0.1f, 0.05f, -0.05f, 0.2f, -0.2f,
               0.25f, -0.25f, 0.1f, -0.1f, 0.05f, -0.05f, 0.2f, -0.2f };
         public static List<AudioClip> CreatedClips { get; } = new();
+        public static bool NextCreatedGetDataResult { get; set; } = true;
         public string Name { get; set; }
         public string name => Name;
         public AudioDataLoadState loadState { get; set; } = AudioDataLoadState.Loaded;
@@ -123,12 +124,14 @@ namespace UnityEngine
                 _channels = channels,
                 _frequency = frequency,
                 _data = new float[checked(lengthSamples * channels)],
-                CreatedFromPcm = true
+                CreatedFromPcm = true,
+                GetDataResult = NextCreatedGetDataResult
             };
+            NextCreatedGetDataResult = true;
             CreatedClips.Add(clip);
             return clip;
         }
-        public float length => 1.5f;
+        public float length => _frequency <= 0 ? 0f : _samples / (float)_frequency;
         public int channels => _channels;
         public int frequency => _frequency;
         public int samples => _samples;
@@ -262,10 +265,7 @@ namespace UnityEngine
         {
             _isPlaying = true;
             _isVirtual = false;
-            (Playback ?? GlobalPlayback)?.Invoke(playingClip, playingVolume);
         }
-        internal Action<AudioClip, float> Playback;
-        internal static Action<AudioClip, float> GlobalPlayback;
     }
 }
 
@@ -305,34 +305,31 @@ namespace EFT.UI
             UnityEngine.AudioClip Clip,
             bool Single,
             bool CommonUiSound,
-            float Volume,
-            bool ViaUiSource);
-        public List<Playback> Played { get; } = new();
+            float Volume);
+        public List<Playback> PlayRequests { get; } = new();
         public bool isActiveAndEnabled { get; set; } = true;
         public UnityEngine.Audio.AudioMixer MasterMixer { get; set; } = new();
         public bool ThrowOnPlay { get; set; }
-        public bool ThrowOnDedicatedPlay { get; set; }
         internal UnityEngine.AudioSource SingleSource => audioSource_4;
         public GUISounds()
         {
             gameObject = new UnityEngine.GameObject();
-            UnityEngine.AudioSource.GlobalPlayback = (clip, volume) =>
-            {
-                if (ThrowOnDedicatedPlay) throw new InvalidOperationException("injected dedicated audio failure");
-                Played.Add(new Playback(clip, true, false, volume, ViaUiSource: false));
-            };
             audioSource_4 = new UnityEngine.AudioSource { gameObject = gameObject, priority = 128 };
             audioSource_4.outputAudioMixerGroup = MasterMixer.FindMatchingGroups("UI")[0];
-            audioSource_4.Playback = (clip, volume) =>
-                Played.Add(new Playback(clip, true, false, volume, ViaUiSource: true));
         }
         public void PlaySound(UnityEngine.AudioClip clip, bool single, bool commonUiSound, float volume)
         {
             if (ThrowOnPlay) throw new InvalidOperationException("injected native PlaySound failure");
-            if (!single) throw new InvalidOperationException("announcer fixture expects the single UI source");
-            audioSource_4.Stop();
-            audioSource_4.outputAudioMixerGroup = MasterMixer.FindMatchingGroups("UI")[0];
-            audioSource_4.PlayOneShot(clip, volume);
+            // Capture the public contract synchronously, independently from any
+            // simulated device/source state. The service only owns this call.
+            PlayRequests.Add(new Playback(clip, single, commonUiSound, volume));
+            if (single)
+            {
+                audioSource_4.Stop();
+                if (MasterMixer != null)
+                    audioSource_4.outputAudioMixerGroup = MasterMixer.FindMatchingGroups("UI")[0];
+                audioSource_4.PlayOneShot(clip, volume);
+            }
         }
     }
 }

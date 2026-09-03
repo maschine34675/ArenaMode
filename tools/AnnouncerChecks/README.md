@@ -30,32 +30,31 @@ Coverage includes:
   bounded diagnostics per key/reason, and no delayed replay of skipped kills.
 - Attach/Detach counters and initial playback diagnostics, with additional
   diagnostics when mixer, listener, voice or DSP-buffer state changes. The
-  service never overrides mixer volume, listener mute or pause.
-- A dedicated highest-priority 2D source on EFT's master-controlled bypass,
-  buffer-aware real-voice confirmation, and one delayed `GUISounds` fallback
-  when the private source remains disabled, muted, inactive, stopped or virtual
-  after at least 250 ms and two complete DSP-ring durations. A bounded probe
-  window prevents a stalled main thread from replaying an already finished cue.
-- Reflection-safe access to EFT's single UI source and a temporary priority
-  lease that restores the original value. Its aggregate state is logged as
-  unverified evidence; the shared `PlayOneShot` fallback is never stopped,
-  rejected or replayed from that snapshot.
+  service observes `InterfaceVolume` as GUISounds' relevant mixer setting and
+  never overrides mixer volume, listener mute or pause.
+- Direct, synchronous requests through EFT's native
+  `GUISounds.PlaySound(clip, single: true, commonUiSound: false, volume)` route.
+  The requested clip is the signal-bearing Arena PCM copy and every event
+  produces at most one native request.
+- No Arena-owned `AudioSource`, BetterAudio prerequisite, delayed `Tick`, output
+  watchdog, reflection, fallback, or shared-source priority lease. Detach and
+  shutdown only unsubscribe Arena events; they do not stop or reprioritize the
+  shared GUISounds source.
+- Fail-soft handling when GUISounds is unavailable or rejects a request, without
+  a second output path or an exception escaping the match event.
 
 The request pump and clock are controlled; these checks perform no real waits
 for playback. Fixture audio files contain placeholder bytes, not real audio.
 Actual Ogg decoding, Unity's async context and native lifetime implementation,
 Harmony/game integration, mixer routing and audible output need a real client.
-A successful dedicated `Play` request is only considered locally confirmed
-after its source remains playing and non-virtual beyond the safe DSP window.
-The shared UI one-shot deliberately receives no destructive confirmation; the
-test harness still cannot prove physical device output. Its delayed-start model
-does verify that the original 50 ms watchdog would reject audio which becomes
-ready later inside the real device's measured DSP window.
+The harness proves the synchronous native request and ownership contract, not
+that Unity's audio device made the request audible.
 
 `Verify-Regression.ps1` compiles controlled copies of the current service. It
-keeps the loading flag set, disables the late-readiness guard, restores the
-unsafe 50 ms output check, removes the bounded probe expiry, and makes the
-shared UI observation destructive. Each mutation must fail at its claimed boundary. No test replaces a
-production file; a hash check verifies the source stayed unchanged, and the
-unchanged service is tested again afterward. Temporary negative-test evidence
-is retained in the printed directory.
+keeps the loading flag set, disables the late-readiness guard, bypasses PCM
+materialization, and mutates both native GUISounds routing flags. Each mutation
+must fail at its claimed boundary. A source-contract check also rejects the old
+private-source, BetterAudio, reflection, priority-lease and Tick/watchdog
+machinery. No test replaces a production file; a hash check verifies the source
+stayed unchanged, and the unchanged service is tested again afterward.
+Temporary negative-test evidence is retained in the printed directory.

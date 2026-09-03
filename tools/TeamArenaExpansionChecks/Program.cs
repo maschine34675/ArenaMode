@@ -1184,27 +1184,18 @@ internal static class Program
             "decoded.GetData(samples, 0)",
             "AudioClip.Create(key, frames, channels, frequency, stream: false)",
             "pcm.SetData(samples, 0)",
-            "plugin.gameObject.AddComponent<AudioSource>()",
-            "output.priority = 0",
-            "BetterAudio.Instance.NonSpatialBypassMixer",
-            "_output.outputAudioMixerGroup = route",
-            "_output.Play()",
-            "route = \"Arena.PCM.NonspatialBypass\"",
-            "internal static void Tick()",
-            "Time.realtimeSinceStartup < _outputCheckAt",
-            "Time.realtimeSinceStartup >= expiresAt",
-            "output.isVirtual",
-            "MinimumOutputCheckDelaySeconds = 0.25f",
-            "AudioSettings.GetDSPBufferSize(out int bufferLength, out int bufferCount)",
-            "float twoRingDurations = 2f * bufferLength * bufferCount / sampleRate",
-            "clip.length <= delay",
-            "_outputCheckExpiresAt = now + clip.length",
-            "ReportUnverified(key, route, \"probe_window_expired\"",
-            "ReportUnverified(key, route, \"shared_one_shot_state\"",
-            "ui.PlaySound(clip, single: true, commonUiSound: false, volume)",
-            "route = \"GUISounds.SingleUI<-\" + reason",
-            "ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true)",
-            "\"silent Arena PCM channel\"");
+            "pcm.GetData(readback, 0)",
+            "readbackPeak <= 0.00001f",
+            "if (!Singleton<GUISounds>.Instantiated || Singleton<GUISounds>.Instance == null)",
+            "Singleton<GUISounds>.Instance.PlaySound(",
+            "single: true",
+            "commonUiSound: false",
+            "const string route = \"GUISounds.SingleUI.Primary\"",
+            "clipFrames={clip.samples}",
+            "clipLengthMs={Number(clip.length * 1000f)}",
+            "AudioMixer mixer = ui?.MasterMixer",
+            "mixer.GetFloat(\"InterfaceVolume\"",
+            "interfaceDb={interfaceDb}");
         string pcmMaterialization = Slice(
             announcer,
             "private static AudioClip TryMaterializePcm(",
@@ -1212,42 +1203,31 @@ internal static class Program
         int pcmRead = pcmMaterialization.IndexOf("decoded.GetData(samples, 0)", StringComparison.Ordinal);
         int pcmCreate = pcmMaterialization.IndexOf("AudioClip.Create(", StringComparison.Ordinal);
         int pcmWrite = pcmMaterialization.IndexOf("pcm.SetData(samples, 0)", StringComparison.Ordinal);
-        Assert(pcmRead >= 0 && pcmCreate > pcmRead && pcmWrite > pcmCreate,
-            "decoded web-request audio is copied into a non-streaming PCM clip before Arena playback");
+        int pcmReadback = pcmMaterialization.IndexOf("pcm.GetData(readback, 0)", StringComparison.Ordinal);
+        Assert(pcmRead >= 0 && pcmCreate > pcmRead && pcmWrite > pcmCreate && pcmReadback > pcmWrite,
+            "decoded web-request audio is copied into and read back from a non-streaming PCM clip before Arena playback");
 
-        string announcerTick = Slice(
+        string nativeUiStart = Slice(
             announcer,
-            "internal static void Tick()",
-            "private static void ScheduleOutputCheck(");
-        int delayedCheck = announcerTick.IndexOf(
-            "Time.realtimeSinceStartup < _outputCheckAt",
-            StringComparison.Ordinal);
-        int expiredCheck = announcerTick.IndexOf("Time.realtimeSinceStartup >= expiresAt", StringComparison.Ordinal);
-        int sourceProof = announcerTick.IndexOf("output.isVirtual", StringComparison.Ordinal);
-        int uiEvidence = announcerTick.IndexOf("if (usesUi)", StringComparison.Ordinal);
-        int uiRecovery = announcerTick.IndexOf("TryStartUiFallback(", StringComparison.Ordinal);
-        Assert(delayedCheck >= 0 && expiredCheck > delayedCheck && sourceProof > expiredCheck
-               && uiEvidence > sourceProof && uiRecovery > uiEvidence,
-            "Arena bounds the buffer-aware check, observes shared UI output and only then permits dedicated recovery");
-        string uiObservation = Slice(announcerTick, "if (usesUi)", "if (real)");
-        Assert(uiObservation.Contains("ReportUnverified(", StringComparison.Ordinal)
-               && !uiObservation.Contains(".Stop()", StringComparison.Ordinal)
-               && !uiObservation.Contains("TryStartUiFallback(", StringComparison.Ordinal),
-            "the shared UI source is diagnostic-only and can never be stopped or recursively replayed");
-
-        string uiFallback = Slice(
-            announcer,
-            "private static bool TryStartUiFallback(",
-            "private static string JoinProblems(");
-        int uiPlay = uiFallback.IndexOf(
-            "ui.PlaySound(clip, single: true, commonUiSound: false, volume)",
-            StringComparison.Ordinal);
-        int uiProof = uiFallback.IndexOf(
-            "ScheduleOutputCheck(uiSource, clip, key, route, volume, usesUi: true)",
-            StringComparison.Ordinal);
-        Assert(uiPlay >= 0 && uiProof > uiPlay
-               && !uiFallback.Contains("uiSource.Stop()", StringComparison.Ordinal),
-            "the shared SingleUI one-shot gets a non-destructive observation only after its request");
+            "private static bool TryStartNativeUi(",
+            "private static int CompareLoadOrder(");
+        RequireAll(nativeUiStart,
+            "Singleton<GUISounds>.Instantiated",
+            "Singleton<GUISounds>.Instance.PlaySound(",
+            "single: true",
+            "commonUiSound: false",
+            "problem = \"GUISounds: \" + ex.Message");
+        Assert(!nativeUiStart.Contains("AudioSource", StringComparison.Ordinal)
+               && !nativeUiStart.Contains(".Stop()", StringComparison.Ordinal)
+               && !nativeUiStart.Contains(".priority", StringComparison.Ordinal)
+               && !nativeUiStart.Contains("TryStartDedicated", StringComparison.Ordinal),
+            "the native SingleUI request neither owns nor inspects EFT's shared audio source");
+        Assert(!announcer.Contains("plugin.gameObject.AddComponent<AudioSource>()", StringComparison.Ordinal)
+               && !announcer.Contains("NonSpatialBypassMixer", StringComparison.Ordinal)
+               && !announcer.Contains("TryStartDedicated", StringComparison.Ordinal)
+               && !announcer.Contains("ScheduleOutputCheck", StringComparison.Ordinal)
+               && !announcer.Contains("BindingFlags", StringComparison.Ordinal),
+            "announcer playback has no private-channel, delayed-probe or reflected-UI fallback path");
         Assert(!announcer.Contains("PlayNonspatial(", StringComparison.Ordinal),
             "announcer audio cannot return to BetterAudio's virtualized pooled playback path");
         Assert(!announcer.Contains(".SetFloat(", StringComparison.Ordinal)
@@ -1258,7 +1238,8 @@ internal static class Program
         int modeStart = matchService.IndexOf("mode.OnMatchStart(match)", StringComparison.Ordinal);
         Assert(announcerAttach >= 0 && modeStart >= 0 && announcerAttach < modeStart,
             "announcer subscribes before a mode can synchronously emit its first cue");
-        RequireAll(controller, "Audio.AnnouncerService.Tick()");
+        Assert(!controller.Contains("Audio.AnnouncerService.Tick()", StringComparison.Ordinal),
+            "native UI playback needs no per-frame watchdog that can cut off a one-shot");
         RequireAll(plugin, "Audio.AnnouncerService.SetPluginDirectory");
         Assert(!plugin.Contains("AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "an ordinary-only process does not preload Arena audio at plugin startup");
