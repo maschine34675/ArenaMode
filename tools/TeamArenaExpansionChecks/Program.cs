@@ -1181,11 +1181,27 @@ internal static class Program
             "ArenaAnnouncerCue.RoundStart => \"round_start\"",
             "ArenaAnnouncerCue.RoundWon => \"round_won\"",
             "ArenaAnnouncerCue.RoundLost => \"round_lost\"",
+            "private sealed class CachedClip",
+            "float[] Samples;",
+            "CachedClip cached = TryCapturePcm(decoded, key, out string pcmProblem);",
             "decoded.GetData(samples, 0)",
-            "AudioClip.Create(key, frames, channels, frequency, stream: false)",
-            "pcm.SetData(samples, 0)",
-            "pcm.GetData(readback, 0)",
+            "if (!TryGetRuntimeClip(cached, out AudioClip clip, out string clipProblem))",
+            "clip = AudioClip.Create(",
+            "cached.Key,",
+            "cached.Frames,",
+            "cached.Channels,",
+            "cached.Frequency,",
+            "clip.hideFlags |= HideFlags.DontUnloadUnusedAsset",
+            "clip.SetData(cached.Samples, 0)",
+            "clip.GetData(readback, 0)",
+            "clip.samples == cached.Frames",
+            "clip.channels == cached.Channels",
             "readbackPeak <= 0.00001f",
+            "int loadEpoch = ++_loadEpoch",
+            "IsCurrentLoad(loadEpoch, pluginDirectory)",
+            "_loadEpoch++",
+            "clipBeforePlay=",
+            "clipAfterPlay=",
             "if (!Singleton<GUISounds>.Instantiated || Singleton<GUISounds>.Instance == null)",
             "Singleton<GUISounds>.Instance.PlaySound(",
             "single: true",
@@ -1194,18 +1210,36 @@ internal static class Program
             "clipFrames={clip.samples}",
             "clipLengthMs={Number(clip.length * 1000f)}",
             "AudioMixer mixer = ui?.MasterMixer",
-            "mixer.GetFloat(\"InterfaceVolume\"",
-            "interfaceDb={interfaceDb}");
-        string pcmMaterialization = Slice(
+            "mixer.GetFloat(\"UIVolume\"");
+        string pcmCapture = Slice(
             announcer,
-            "private static AudioClip TryMaterializePcm(",
-            "\n}");
-        int pcmRead = pcmMaterialization.IndexOf("decoded.GetData(samples, 0)", StringComparison.Ordinal);
-        int pcmCreate = pcmMaterialization.IndexOf("AudioClip.Create(", StringComparison.Ordinal);
-        int pcmWrite = pcmMaterialization.IndexOf("pcm.SetData(samples, 0)", StringComparison.Ordinal);
-        int pcmReadback = pcmMaterialization.IndexOf("pcm.GetData(readback, 0)", StringComparison.Ordinal);
-        Assert(pcmRead >= 0 && pcmCreate > pcmRead && pcmWrite > pcmCreate && pcmReadback > pcmWrite,
-            "decoded web-request audio is copied into and read back from a non-streaming PCM clip before Arena playback");
+            "private static CachedClip TryCapturePcm(",
+            "private static float Peak(");
+        int pcmRead = pcmCapture.IndexOf("decoded.GetData(samples, 0)", StringComparison.Ordinal);
+        int pcmCache = pcmCapture.IndexOf("return new CachedClip", StringComparison.Ordinal);
+        Assert(pcmRead >= 0 && pcmCache > pcmRead,
+            "decoded web-request audio is copied into managed PCM before the decoder-owned Unity clip is released");
+
+        string runtimeMaterialization = Slice(
+            announcer,
+            "private static bool TryGetRuntimeClip(",
+            "private static bool IsRuntimeClipValid(");
+        int pcmCreate = runtimeMaterialization.IndexOf("AudioClip.Create(", StringComparison.Ordinal);
+        int pcmWrite = runtimeMaterialization.IndexOf("clip.SetData(cached.Samples, 0)", StringComparison.Ordinal);
+        int pcmReadback = runtimeMaterialization.IndexOf("clip.GetData(readback, 0)", StringComparison.Ordinal);
+        int pcmPublish = runtimeMaterialization.IndexOf("cached.RuntimeClip = clip", StringComparison.Ordinal);
+        Assert(pcmCreate >= 0 && pcmWrite > pcmCreate && pcmReadback > pcmWrite && pcmPublish > pcmReadback,
+            "a cue reconstructs, validates and read-checks its native clip before publishing that runtime generation");
+
+        string asyncLoad = Slice(
+            announcer,
+            "private static async void LoadAsync(",
+            "public static void Attach(");
+        int loadAwait = asyncLoad.IndexOf("var cached = await LoadClip(file)", StringComparison.Ordinal);
+        int epochGuard = asyncLoad.IndexOf("if (!IsCurrentLoad(loadEpoch, pluginDirectory))", loadAwait, StringComparison.Ordinal);
+        int cachePublish = asyncLoad.IndexOf("Clips[key] = cached", StringComparison.Ordinal);
+        Assert(loadAwait >= 0 && epochGuard > loadAwait && cachePublish > epochGuard,
+            "a decoder completion rechecks its load epoch before it can publish managed PCM");
 
         string nativeUiStart = Slice(
             announcer,
@@ -1226,7 +1260,8 @@ internal static class Program
                && !announcer.Contains("NonSpatialBypassMixer", StringComparison.Ordinal)
                && !announcer.Contains("TryStartDedicated", StringComparison.Ordinal)
                && !announcer.Contains("ScheduleOutputCheck", StringComparison.Ordinal)
-               && !announcer.Contains("BindingFlags", StringComparison.Ordinal),
+               && !announcer.Contains("BindingFlags", StringComparison.Ordinal)
+               && !announcer.Contains("InterfaceVolume", StringComparison.Ordinal),
             "announcer playback has no private-channel, delayed-probe or reflected-UI fallback path");
         Assert(!announcer.Contains("PlayNonspatial(", StringComparison.Ordinal),
             "announcer audio cannot return to BetterAudio's virtualized pooled playback path");

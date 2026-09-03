@@ -20,19 +20,15 @@ function Invoke-NegativeCase([string]$name, [string]$candidate, [string]$expecte
     }
 }
 
-$loadingReset = '_loading = false;'
-if ([regex]::Matches($source, [regex]::Escape($loadingReset)).Count -ne 1) {
+$loadingResetPattern = '_loading = false;\r?\n\s+_nextRecoveryAt = Time\.realtimeSinceStartup \+ RecoveryIntervalSeconds;'
+$loadingResetMatches = [regex]::Matches($source, $loadingResetPattern)
+if ($loadingResetMatches.Count -ne 1) {
     throw 'Expected exactly one loading-state reset; refusing an ambiguous source-copy mutation.'
 }
-Invoke-NegativeCase 'load-recovery' ($source.Replace($loadingReset, '_loading = true;')) `
+$loadingReset = $loadingResetMatches[0].Value
+$loadingResetMutant = $loadingReset.Replace('_loading = false;', '_loading = true;')
+Invoke-NegativeCase 'load-recovery' ($source.Replace($loadingReset, $loadingResetMutant)) `
     'A failed first load must retry only its failed clip; healthy cached clips must survive.'
-
-$raceGuard = 'if (IsReady(previous))'
-if ([regex]::Matches($source, [regex]::Escape($raceGuard)).Count -ne 1) {
-    throw 'Expected exactly one late-readiness guard; refusing an ambiguous source-copy mutation.'
-}
-Invoke-NegativeCase 'late-readiness-race' ($source.Replace($raceGuard, 'if (false)')) `
-    'Late-ready cached clip survives; its unnecessary downloaded replacement is destroyed.'
 
 $forbiddenContracts = @(
     'System.Reflection',
@@ -42,7 +38,8 @@ $forbiddenContracts = @(
     '_outputCheck',
     'LeaseUiPriority',
     'RestoreUiPriority',
-    'internal static void Tick'
+    'internal static void Tick',
+    'InterfaceVolume'
 )
 foreach ($forbidden in $forbiddenContracts) {
     if ($source.Contains($forbidden, [StringComparison]::Ordinal)) {
@@ -55,13 +52,45 @@ if ([regex]::Matches($source, [regex]::Escape($nativeCall)).Count -ne 1) {
     throw 'Expected exactly one direct native GUISounds.PlaySound call.'
 }
 
-$pcmMaterialization = 'AudioClip pcm = TryMaterializePcm(decoded, key, out string pcmProblem);'
-if ([regex]::Matches($source, [regex]::Escape($pcmMaterialization)).Count -ne 1) {
-    throw 'Expected exactly one PCM materialization assignment; refusing an ambiguous source-copy mutation.'
+$requiredLifetimeContracts = @(
+    'float[] Samples;',
+    'CachedClip cached = TryCapturePcm(decoded, key, out string pcmProblem);',
+    'if (!TryGetRuntimeClip(cached, out AudioClip clip, out string clipProblem))',
+    'clip.samples == cached.Frames',
+    'clip.channels == cached.Channels'
+)
+foreach ($required in $requiredLifetimeContracts) {
+    if (-not $source.Contains($required, [StringComparison]::Ordinal)) {
+        throw "Managed PCM lifetime contract missing: $required"
+    }
 }
-$pcmBypass = 'AudioClip pcm = null; string pcmProblem = "injected PCM bypass";'
-Invoke-NegativeCase 'pcm-materialization' ($source.Replace($pcmMaterialization, $pcmBypass)) `
-    'Native UI primary must receive an Arena-owned materialized PCM clip.'
+if ($source.Contains('retainDecoded', [StringComparison]::Ordinal)) {
+    throw 'Decoder-owned clips must not remain as the durable cache.'
+}
+
+$runtimeValidityGuard = 'if (IsRuntimeClipValid(cached, clip))'
+if ([regex]::Matches($source, [regex]::Escape($runtimeValidityGuard)).Count -ne 1) {
+    throw 'Expected exactly one runtime-clip validity guard; refusing an ambiguous reset mutation.'
+}
+Invoke-NegativeCase 'audio-reset-rebuild' `
+    ($source.Replace($runtimeValidityGuard, 'if (!ReferenceEquals(clip, null))')) `
+    'The next cue synchronously reconstructs a signal-bearing runtime clip from managed PCM.'
+
+$managedSetData = 'if (!clip.SetData(cached.Samples, 0))'
+if ([regex]::Matches($source, [regex]::Escape($managedSetData)).Count -ne 1) {
+    throw 'Expected exactly one managed PCM SetData call; refusing an ambiguous PCM mutation.'
+}
+Invoke-NegativeCase 'managed-pcm-rebuild' `
+    ($source.Replace($managedSetData, 'if (!clip.SetData(new float[cached.Samples.Length], 0))')) `
+    'The first match must play a subsequently loaded clip without reattaching.'
+
+$loadEpochContract = '=> loadEpoch == _loadEpoch'
+if ([regex]::Matches($source, [regex]::Escape($loadEpochContract)).Count -ne 1) {
+    throw 'Expected exactly one load-epoch comparison; refusing an ambiguous shutdown-race mutation.'
+}
+Invoke-NegativeCase 'shutdown-load-epoch' `
+    ($source.Replace($loadEpochContract, '=> true || loadEpoch == _loadEpoch')) `
+    'A stale completion neither republishes managed PCM nor leaves the loader stuck after Shutdown.'
 
 $singleFlag = 'single: true,'
 if ([regex]::Matches($source, [regex]::Escape($singleFlag)).Count -ne 1) {
@@ -81,4 +110,4 @@ $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashD
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its final positive check.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, race, PCM and native-route mutants rejected; production source unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, reset-rebuild, managed-PCM, shutdown-epoch and native-route mutants rejected; production source unchanged; evidence: $scratch)"

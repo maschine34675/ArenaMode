@@ -55,11 +55,19 @@ namespace Comfort.Common
 
 namespace UnityEngine
 {
+    [Flags]
+    internal enum HideFlags
+    {
+        None = 0,
+        DontUnloadUnusedAsset = 32,
+    }
+
     // Unity wrappers survive after their native object is destroyed: reference
     // identity remains, but == null and boolean conversion report Unity-null.
     internal class Object
     {
         private bool _destroyed;
+        public HideFlags hideFlags { get; set; }
         public static void Destroy(Object value)
         {
             if (!ReferenceEquals(value, null)) value._destroyed = true;
@@ -131,6 +139,16 @@ namespace UnityEngine
             CreatedClips.Add(clip);
             return clip;
         }
+        public void SimulateAudioReset()
+        {
+            // Matches the observed EFT/Unity failure shape: the managed wrapper
+            // survives and still says Loaded, but its native frame/channel data
+            // and duration are gone after AudioSettings.Reset.
+            _samples = 0;
+            _channels = 0;
+            _data = Array.Empty<float>();
+            loadState = AudioDataLoadState.Loaded;
+        }
         public float length => _frequency <= 0 ? 0f : _samples / (float)_frequency;
         public int channels => _channels;
         public int frequency => _frequency;
@@ -148,6 +166,7 @@ namespace UnityEngine
     }
     internal static class AudioSettings
     {
+        public static int SimulatedResetCount { get; private set; }
         public static int outputSampleRate { get; set; } = 48000;
         public static int BufferLength { get; set; } = 1024;
         public static int BufferCount { get; set; } = 4;
@@ -163,6 +182,12 @@ namespace UnityEngine
         {
             bufferLength = BufferLength;
             numBuffers = BufferCount;
+        }
+        public static void SimulateReset()
+        {
+            SimulatedResetCount++;
+            foreach (var clip in AudioClip.CreatedClips)
+                if (clip != null) clip.SimulateAudioReset();
         }
     }
     internal static class Time { public static float realtimeSinceStartup = 100f; }
@@ -275,7 +300,6 @@ namespace UnityEngine.Audio
     {
         public Dictionary<string, float> Parameters { get; } = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["InterfaceVolume"] = -4f,
             ["UIVolume"] = -4f,
             ["MasterVolume"] = -2f
         };

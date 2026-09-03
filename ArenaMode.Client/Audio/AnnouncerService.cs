@@ -22,8 +22,26 @@ namespace ArenaMode.Audio;
 /// </summary>
 internal static class AnnouncerService
 {
-    private static readonly Dictionary<string, AudioClip> Clips =
-        new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// Unity rebuilds its native audio state around raid startup. Runtime-created
+    /// AudioClip wrappers can survive that reset with loadState=Loaded while
+    /// samples/channels/length have fallen to zero. Managed PCM is therefore the
+    /// durable asset; RuntimeClip is only a disposable device-generation cache.
+    /// </summary>
+    private sealed class CachedClip
+    {
+        public string Key;
+        public float[] Samples;
+        public int Frames;
+        public int Channels;
+        public int Frequency;
+        public float Peak;
+        public AudioClip RuntimeClip;
+        public int RuntimeGeneration;
+    }
+
+    private static readonly Dictionary<string, CachedClip> Clips =
+        new Dictionary<string, CachedClip>(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> AvailableFiles = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> ReportedSkips = new(StringComparer.OrdinalIgnoreCase);
 
@@ -32,6 +50,7 @@ internal static class AnnouncerService
     private static bool _directoryScanned;
     private static float _nextRecoveryAt;
     private static string _pluginDirectory;
+    private static int _loadEpoch;
     private static int _calloutsReceived;
     private static int _cuesReceived;
     private static int _requested;
@@ -41,7 +60,16 @@ internal static class AnnouncerService
     private const float LoadTimeoutSeconds = 10f;
 
     public static void SetPluginDirectory(string pluginDirectory)
-        => _pluginDirectory = pluginDirectory;
+    {
+        if (string.Equals(_pluginDirectory, pluginDirectory, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // A late continuation from the previous directory must never publish
+        // into the new cache or keep the loader permanently busy.
+        _loadEpoch++;
+        _loading = false;
+        _pluginDirectory = pluginDirectory;
+    }
 
     /// <summary>
     /// Called at each Arena match start. Healthy clips stay cached; a previous
@@ -54,10 +82,11 @@ internal static class AnnouncerService
 
         _loading = true;
         _nextRecoveryAt = Time.realtimeSinceStartup + RecoveryIntervalSeconds;
-        LoadAsync(_pluginDirectory);
+        int loadEpoch = ++_loadEpoch;
+        LoadAsync(_pluginDirectory, loadEpoch);
     }
 
-    private static async void LoadAsync(string pluginDirectory)
+    private static async void LoadAsync(string pluginDirectory, int loadEpoch)
     {
         try
         {
@@ -75,6 +104,8 @@ internal static class AnnouncerService
             // unusually quick start or a repaired folder. Kill calls must never
             // delay START.
             Array.Sort(files, CompareLoadOrder);
+            if (!IsCurrentLoad(loadEpoch, pluginDirectory))
+                return;
             AvailableFiles.Clear();
             foreach (var file in files)
                 AvailableFiles.Add(Path.GetFileNameWithoutExtension(file));
@@ -84,13 +115,13 @@ internal static class AnnouncerService
             var failed = 0;
             foreach (var file in files)
             {
+                if (!IsCurrentLoad(loadEpoch, pluginDirectory))
+                    return;
                 var key = Path.GetFileNameWithoutExtension(file);
                 try
                 {
                     Clips.TryGetValue(key, out var previous);
-                    if (IsReady(previous) || (previous != null
-                        && previous.loadState == AudioDataLoadState.Loading
-                        && await WaitForClipReady(previous)))
+                    if (IsReady(previous))
                     {
                         reused++;
                         continue;
@@ -98,8 +129,13 @@ internal static class AnnouncerService
 
                     if (Clips.ContainsKey(key))
                         Plugin.ModLogger.LogWarning($"Arena announcer: reloading '{key}', state={ClipState(previous)}.");
-                    var clip = await LoadClip(file);
-                    if (clip == null)
+                    var cached = await LoadClip(file);
+                    if (!IsCurrentLoad(loadEpoch, pluginDirectory))
+                    {
+                        DestroyRuntimeClip(cached);
+                        return;
+                    }
+                    if (cached == null)
                     {
                         failed++;
                         continue;
@@ -107,22 +143,17 @@ internal static class AnnouncerService
 
                     // The previous clip may finish its own load while the file
                     // request is awaiting. It can already be playing again;
-                    // never destroy that recovered clip to install a duplicate.
+                    // never replace that recovered entry with a duplicate.
                     if (IsReady(previous))
                     {
-                        if (clip != previous)
-                            UnityEngine.Object.Destroy(clip);
+                        DestroyRuntimeClip(cached);
                         reused++;
                         continue;
                     }
 
-                    Clips[key] = clip;
+                    Clips[key] = cached;
                     loaded++;
-                    // These are exclusively our downloaded clips, never assets
-                    // owned by GUISounds or the game. Publish a usable replacement
-                    // first, then dispose the old, unusable native object.
-                    if (previous != null && previous != clip)
-                        UnityEngine.Object.Destroy(previous);
+                    DestroyRuntimeClip(previous);
                 }
                 catch (Exception ex)
                 {
@@ -131,19 +162,28 @@ internal static class AnnouncerService
                 }
             }
 
-            Plugin.ModLogger.LogInfo($"Arena announcer load check: loaded={loaded}, reused={reused}, "
-                + $"failed={failed}, ready={ReadyCount()}, files={files.Length}.");
+            if (IsCurrentLoad(loadEpoch, pluginDirectory))
+                Plugin.ModLogger.LogInfo($"Arena announcer load check: loaded={loaded}, reused={reused}, "
+                    + $"failed={failed}, ready={ReadyCount()}, files={files.Length}.");
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Arena announcer load failed: {ex.Message}");
+            if (IsCurrentLoad(loadEpoch, pluginDirectory))
+                Plugin.ModLogger.LogWarning($"Arena announcer load failed: {ex.Message}");
         }
         finally
         {
-            _loading = false;
-            _nextRecoveryAt = Time.realtimeSinceStartup + RecoveryIntervalSeconds;
+            if (IsCurrentLoad(loadEpoch, pluginDirectory))
+            {
+                _loading = false;
+                _nextRecoveryAt = Time.realtimeSinceStartup + RecoveryIntervalSeconds;
+            }
         }
     }
+
+    private static bool IsCurrentLoad(int loadEpoch, string pluginDirectory)
+        => loadEpoch == _loadEpoch
+           && string.Equals(_pluginDirectory, pluginDirectory, StringComparison.OrdinalIgnoreCase);
 
     public static void Attach(ArenaMatch match)
     {
@@ -222,12 +262,12 @@ internal static class AnnouncerService
     {
         try
         {
-            var found = Clips.TryGetValue(key, out var clip);
-            if (!IsReady(clip))
+            var found = Clips.TryGetValue(key, out var cached);
+            if (!IsReady(cached))
             {
-                var pending = _loading || (clip != null && clip.loadState == AudioDataLoadState.Loading);
+                var pending = _loading;
                 Skip(key, pending ? "loading" : found ? "invalid_clip" : "missing_clip",
-                    $"state={ClipState(clip)}");
+                    $"state={ClipState(cached)}");
                 // Never retry absent pack phrases on every kill. Known failed or
                 // invalid clips can recover, as can a folder installed late.
                 if ((found || AvailableFiles.Contains(key) || !_directoryScanned)
@@ -237,7 +277,14 @@ internal static class AnnouncerService
                 return;
             }
 
+            if (!TryGetRuntimeClip(cached, out AudioClip clip, out string clipProblem))
+            {
+                Skip(key, "clip_rebuild_failed", clipProblem);
+                return;
+            }
+
             float volume = Settings.AnnouncerVolume.Value;
+            string clipBeforePlay = RuntimeClipState(clip);
             if (!TryStartNativeUi(clip, volume, out string problem))
             {
                 Skip(key, problem?.StartsWith("GUISounds:", StringComparison.Ordinal) == true
@@ -248,7 +295,9 @@ internal static class AnnouncerService
 
             _requested++;
             const string route = "GUISounds.SingleUI.Primary";
-            var outputState = $"volume={Number(volume)}, clipFrames={clip.samples}, "
+            var outputState = $"volume={Number(volume)}, clipGeneration={cached.RuntimeGeneration}, "
+                + $"clipBeforePlay={clipBeforePlay}, clipAfterPlay={RuntimeClipState(clip)}, "
+                + $"clipFrames={clip.samples}, "
                 + $"clipChannels={clip.channels}, clipFrequency={clip.frequency}, "
                 + $"clipLengthMs={Number(clip.length * 1000f)}, clipState={clip.loadState}, "
                 + DescribeOutput(route);
@@ -276,7 +325,7 @@ internal static class AnnouncerService
             // Use EFT's own persistent GUI audio host and UI mixer. This exact
             // native route was the last path heard in live playtests. single:true
             // gives announcer stingers their intended replace-not-stack behavior;
-            // commonUiSound:false keeps the configured volume and Interface mixer.
+            // commonUiSound:false keeps the configured volume and native UI mixer.
             Singleton<GUISounds>.Instance.PlaySound(
                 clip,
                 single: true,
@@ -289,6 +338,122 @@ internal static class AnnouncerService
             problem = "GUISounds: " + ex.Message;
             return false;
         }
+    }
+
+    private static bool TryGetRuntimeClip(CachedClip cached, out AudioClip clip, out string problem)
+    {
+        clip = cached?.RuntimeClip;
+        problem = null;
+        if (IsRuntimeClipValid(cached, clip))
+            return true;
+
+        string previousState = RuntimeClipState(clip);
+        bool rebuilding = !ReferenceEquals(clip, null);
+        if (clip != null)
+            UnityEngine.Object.Destroy(clip);
+        cached.RuntimeClip = null;
+        clip = null;
+
+        try
+        {
+            clip = AudioClip.Create(
+                cached.Key,
+                cached.Frames,
+                cached.Channels,
+                cached.Frequency,
+                stream: false);
+            if (clip == null)
+            {
+                problem = "AudioClip.Create returned null";
+                return false;
+            }
+            // Make the intended native lifetime explicit as an extra guard around
+            // scene cleanup. Arena still validates every cue and explicitly
+            // destroys each disposable runtime generation.
+            clip.hideFlags |= HideFlags.DontUnloadUnusedAsset;
+            if (!clip.SetData(cached.Samples, 0))
+            {
+                problem = "AudioClip.SetData returned false";
+                UnityEngine.Object.Destroy(clip);
+                clip = null;
+                return false;
+            }
+            if (!IsRuntimeClipValid(cached, clip))
+            {
+                problem = "rebuilt metadata invalid: " + RuntimeClipState(clip);
+                UnityEngine.Object.Destroy(clip);
+                clip = null;
+                return false;
+            }
+
+            // Read one complete copy back after each device-generation rebuild.
+            // This is intentionally not repeated for every cue; subsequent calls
+            // use the strict metadata check above and the managed PCM remains the
+            // recovery source if Unity later clears the native buffer again.
+            var readback = new float[cached.Samples.Length];
+            if (!clip.GetData(readback, 0))
+            {
+                problem = "rebuilt AudioClip.GetData returned false";
+                UnityEngine.Object.Destroy(clip);
+                clip = null;
+                return false;
+            }
+            float readbackPeak = Peak(readback, out int invalidIndex);
+            if (invalidIndex >= 0 || readbackPeak <= 0.00001f)
+            {
+                problem = invalidIndex >= 0
+                    ? $"rebuilt PCM contained a non-finite sample at index {invalidIndex}"
+                    : "rebuilt PCM readback contained no signal";
+                UnityEngine.Object.Destroy(clip);
+                clip = null;
+                return false;
+            }
+
+            cached.RuntimeClip = clip;
+            cached.RuntimeGeneration++;
+            Plugin.ModLogger.LogInfo(
+                $"Arena announcer runtime clip {(rebuilding ? "rebuilt" : "created")}: '{cached.Key}', "
+                + $"generation={cached.RuntimeGeneration}, previous={previousState}, frames={clip.samples}, "
+                + $"channels={clip.channels}, frequency={clip.frequency}, "
+                + $"lengthMs={Number(clip.length * 1000f)}, readbackPeak={Number(readbackPeak)}.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (clip != null)
+                UnityEngine.Object.Destroy(clip);
+            cached.RuntimeClip = null;
+            clip = null;
+            problem = ex.Message;
+            return false;
+        }
+    }
+
+    private static bool IsRuntimeClipValid(CachedClip cached, AudioClip clip)
+    {
+        if (!IsReady(cached) || clip == null || clip.loadState != AudioDataLoadState.Loaded)
+            return false;
+
+        float expectedLength = cached.Frames / (float)cached.Frequency;
+        return clip.samples == cached.Frames
+            && clip.channels == cached.Channels
+            && clip.frequency == cached.Frequency
+            && clip.length > 0f
+            && Math.Abs(clip.length - expectedLength) <= Math.Max(0.01f, expectedLength * 0.01f);
+    }
+
+    private static string RuntimeClipState(AudioClip clip)
+        => clip == null
+            ? "missing_or_destroyed"
+            : $"state={clip.loadState},frames={clip.samples},channels={clip.channels},"
+              + $"frequency={clip.frequency},lengthMs={Number(clip.length * 1000f)}";
+
+    private static void DestroyRuntimeClip(CachedClip cached)
+    {
+        if (cached?.RuntimeClip != null)
+            UnityEngine.Object.Destroy(cached.RuntimeClip);
+        if (cached != null)
+            cached.RuntimeClip = null;
     }
 
     private static int CompareLoadOrder(string left, string right)
@@ -318,11 +483,21 @@ internal static class AnnouncerService
                 + (string.IsNullOrEmpty(detail) ? "." : $", {detail}."));
     }
 
-    private static bool IsReady(AudioClip clip)
-        => clip != null && clip.loadState == AudioDataLoadState.Loaded;
+    private static bool IsReady(CachedClip clip)
+        => clip != null
+            && clip.Samples != null
+            && clip.Frames > 0
+            && clip.Channels > 0
+            && clip.Frequency > 0
+            && clip.Samples.Length == (long)clip.Frames * clip.Channels
+            && clip.Peak > 0.00001f;
 
-    private static string ClipState(AudioClip clip)
-        => clip == null ? "missing_or_destroyed" : clip.loadState.ToString();
+    private static string ClipState(CachedClip clip)
+        => clip == null
+            ? "missing"
+            : $"managedFrames={clip.Frames}, managedChannels={clip.Channels}, "
+              + $"managedFrequency={clip.Frequency}, managedSamples={clip.Samples?.Length ?? 0}, "
+              + $"runtime={RuntimeClipState(clip.RuntimeClip)}";
 
     private static int ReadyCount()
     {
@@ -345,13 +520,12 @@ internal static class AnnouncerService
                 ? Singleton<GUISounds>.Instance
                 : null;
             AudioMixer mixer = ui?.MasterMixer;
-            var interfaceDb = mixer != null && mixer.GetFloat("InterfaceVolume", out var i) ? Number(i) : "unknown";
             var uiDb = mixer != null && mixer.GetFloat("UIVolume", out var u) ? Number(u) : "unknown";
             var masterDb = mixer != null && mixer.GetFloat("MasterVolume", out var m) ? Number(m) : "unknown";
             AudioConfiguration configuration = AudioSettings.GetConfiguration();
             AudioSettings.GetDSPBufferSize(out int bufferLength, out int bufferCount);
             return $"route={route}, uiReady={ui != null && ui.isActiveAndEnabled}, "
-                + $"interfaceDb={interfaceDb}, uiDb={uiDb}, masterDb={masterDb}, "
+                + $"uiDb={uiDb}, masterDb={masterDb}, "
                 + $"listenerVolume={Number(AudioListener.volume)}, "
                 + $"listenerPaused={AudioListener.pause}, speakerMode={configuration.speakerMode}, "
                 + $"sampleRate={configuration.sampleRate}, voices={configuration.numRealVoices}/"
@@ -366,6 +540,13 @@ internal static class AnnouncerService
     internal static void Shutdown()
     {
         Detach();
+        _loadEpoch++;
+        _loading = false;
+        foreach (var cached in Clips.Values)
+            DestroyRuntimeClip(cached);
+        Clips.Clear();
+        AvailableFiles.Clear();
+        ReportedSkips.Clear();
     }
 
     private static async Task<bool> WaitForClipReady(AudioClip clip)
@@ -378,10 +559,10 @@ internal static class AnnouncerService
         while (clip != null && clip.loadState == AudioDataLoadState.Loading
             && Time.realtimeSinceStartup < deadline)
             await Task.Yield();
-        return IsReady(clip);
+        return clip != null && clip.loadState == AudioDataLoadState.Loaded;
     }
 
-    private static async Task<AudioClip> LoadClip(string path)
+    private static async Task<CachedClip> LoadClip(string path)
     {
         var uri = new Uri(Path.GetFullPath(path)).AbsoluteUri;
         using (var request = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS))
@@ -398,41 +579,33 @@ internal static class AnnouncerService
             }
 
             var decoded = DownloadHandlerAudioClip.GetContent(request);
-            var retainDecoded = false;
             try
             {
                 string key = Path.GetFileNameWithoutExtension(path);
                 if (!await WaitForClipReady(decoded))
                 {
                     Plugin.ModLogger.LogWarning($"Arena announcer clip not ready: '{key}', "
-                        + $"state={ClipState(decoded)}.");
+                        + $"state={RuntimeClipState(decoded)}.");
                     return null;
                 }
 
-                AudioClip pcm = TryMaterializePcm(decoded, key, out string pcmProblem);
-                if (pcm != null)
-                    return pcm;
-
-                // Keep the decoder-owned Unity clip as a fail-soft compatibility
-                // path. GUISounds can consume either form; a PCM-copy limitation
-                // must not block Arena startup.
-                retainDecoded = true;
-                Plugin.ModLogger.LogWarning(
-                    $"Arena announcer PCM copy unavailable for '{key}': {pcmProblem}; retaining decoded clip.");
-                return decoded;
+                CachedClip cached = TryCapturePcm(decoded, key, out string pcmProblem);
+                if (cached == null)
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena announcer PCM capture failed for '{key}': {pcmProblem}.");
+                return cached;
             }
             finally
             {
-                if (!retainDecoded && decoded != null)
+                if (decoded != null)
                     UnityEngine.Object.Destroy(decoded);
             }
         }
     }
 
-    private static AudioClip TryMaterializePcm(AudioClip decoded, string key, out string problem)
+    private static CachedClip TryCapturePcm(AudioClip decoded, string key, out string problem)
     {
         problem = null;
-        AudioClip pcm = null;
         try
         {
             int frames = decoded.samples;
@@ -452,16 +625,11 @@ internal static class AnnouncerService
                 return null;
             }
 
-            float peak = 0f;
-            for (int i = 0; i < samples.Length; i++)
+            float peak = Peak(samples, out int invalidIndex);
+            if (invalidIndex >= 0)
             {
-                float sample = samples[i];
-                if (float.IsNaN(sample) || float.IsInfinity(sample))
-                {
-                    problem = $"decoded PCM contained a non-finite sample at index {i}";
-                    return null;
-                }
-                peak = Math.Max(peak, Math.Abs(sample));
+                problem = $"decoded PCM contained a non-finite sample at index {invalidIndex}";
+                return null;
             }
 
             if (peak <= 0.00001f)
@@ -470,72 +638,42 @@ internal static class AnnouncerService
                 return null;
             }
 
-            pcm = AudioClip.Create(key, frames, channels, frequency, stream: false);
-            if (pcm == null)
-            {
-                problem = "AudioClip.Create returned null";
-                return null;
-            }
-            if (!pcm.SetData(samples, 0))
-            {
-                problem = "AudioClip.SetData returned false";
-                UnityEngine.Object.Destroy(pcm);
-                return null;
-            }
-
             float expectedLength = frames / (float)frequency;
-            if (pcm.loadState != AudioDataLoadState.Loaded
-                || pcm.samples != frames || pcm.channels != channels || pcm.frequency != frequency
-                || pcm.length <= 0f || Math.Abs(pcm.length - expectedLength) > Math.Max(0.01f, expectedLength * 0.01f))
-            {
-                problem = $"materialized metadata drifted: state={pcm.loadState}, frames={pcm.samples}/{frames}, "
-                    + $"channels={pcm.channels}/{channels}, frequency={pcm.frequency}/{frequency}, "
-                    + $"length={Number(pcm.length)}/{Number(expectedLength)}";
-                UnityEngine.Object.Destroy(pcm);
-                return null;
-            }
-
-            // SetData only proves that Unity accepted the write request. Read the
-            // created clip back once so a wrapper with valid-looking metadata but
-            // no native sample storage falls back to the decoder-owned clip.
-            var readback = new float[sampleCount];
-            if (!pcm.GetData(readback, 0))
-            {
-                problem = "materialized AudioClip.GetData returned false";
-                UnityEngine.Object.Destroy(pcm);
-                return null;
-            }
-            float readbackPeak = 0f;
-            for (int i = 0; i < readback.Length; i++)
-            {
-                float sample = readback[i];
-                if (float.IsNaN(sample) || float.IsInfinity(sample))
-                {
-                    problem = $"materialized PCM contained a non-finite sample at index {i}";
-                    UnityEngine.Object.Destroy(pcm);
-                    return null;
-                }
-                readbackPeak = Math.Max(readbackPeak, Math.Abs(sample));
-            }
-            if (readbackPeak <= 0.00001f)
-            {
-                problem = "materialized PCM readback contained no signal";
-                UnityEngine.Object.Destroy(pcm);
-                return null;
-            }
-
             Plugin.ModLogger.LogInfo(
-                $"Arena announcer PCM ready: '{key}', frames={frames}, channels={channels}, "
-                + $"frequency={frequency}, lengthMs={Number(pcm.length * 1000f)}, "
-                + $"peak={Number(peak)}, readbackPeak={Number(readbackPeak)}.");
-            return pcm;
+                $"Arena announcer PCM cached: '{key}', frames={frames}, channels={channels}, "
+                + $"frequency={frequency}, lengthMs={Number(expectedLength * 1000f)}, "
+                + $"peak={Number(peak)}, managedBytes={(long)sampleCount * sizeof(float)}.");
+            return new CachedClip
+            {
+                Key = key,
+                Samples = samples,
+                Frames = frames,
+                Channels = channels,
+                Frequency = frequency,
+                Peak = peak,
+            };
         }
         catch (Exception ex)
         {
-            if (pcm != null)
-                UnityEngine.Object.Destroy(pcm);
             problem = ex.Message;
             return null;
         }
+    }
+
+    private static float Peak(float[] samples, out int invalidIndex)
+    {
+        invalidIndex = -1;
+        float peak = 0f;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            float sample = samples[i];
+            if (float.IsNaN(sample) || float.IsInfinity(sample))
+            {
+                invalidIndex = i;
+                return 0f;
+            }
+            peak = Math.Max(peak, Math.Abs(sample));
+        }
+        return peak;
     }
 }

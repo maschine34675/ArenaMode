@@ -42,12 +42,12 @@ internal static class Program
             }
             SynchronizationContext.SetSynchronizationContext(context);
             Verify(pluginDir, paths, context);
-            VerifyRecovery(pluginDir, context);
+            VerifyAudioResetRecovery(pluginDir, context);
             VerifyDecoderFailures(pluginDir, context);
             VerifyMissingFolder(pluginDir, context);
-            VerifyDiagnosticsAndRepairThrottle(context);
-            VerifyLateReadinessRace(pluginDir, context);
+            VerifyDiagnostics();
             VerifyOutputDiagnostics();
+            VerifyShutdownRace(pluginDir, context);
             VerifyRoundCues(pluginDir, context);
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
@@ -190,59 +190,56 @@ internal static class Program
         Assert(requests.All(request => request.timeout == 10), "Each native request has a ten-second timeout.");
     }
 
-    private static void VerifyRecovery(string pluginDir, QueuedContext context)
+    private static void VerifyAudioResetRecovery(string pluginDir, QueuedContext context)
     {
         var sounds = Singleton<GUISounds>.Instance;
         var requests = UnityWebRequestMultimedia.Requests;
         var label = Label(requests[0]);
         var originalClip = sounds.PlayRequests.First(play => play.Clip.Name ==
             label.ToLowerInvariant().Replace(' ', '_')).Clip;
-        var count = requests.Count;
-        UnityEngine.Object.Destroy(originalClip);
-        Assert(originalClip == null && !ReferenceEquals(originalClip, null),
-            "Destroyed clip fixture preserves managed identity while behaving like Unity-null.");
+        var requestCount = requests.Count;
+        var createdCount = AudioClip.CreatedClips.Count;
+
+        // EFT calls AudioSettings.Reset between map selection (where the pack is
+        // decoded) and raid start. Unity can leave a Loaded wrapper behind whose
+        // native sample metadata has been cleared to zero.
+        AudioSettings.SimulateReset();
+        Assert(originalClip != null && originalClip.loadState == AudioDataLoadState.Loaded
+            && originalClip.samples == 0 && originalClip.channels == 0 && originalClip.length == 0f,
+            "The controlled audio reset reproduces the live Loaded-but-zero runtime clip.");
         AnnouncerService.EnsureLoaded();
-        Assert(requests.Count == count + 1 && Label(requests[^1]) == label,
-            "Next-match validation reloads a destroyed Unity clip, not healthy siblings.");
-        AnnouncerService.EnsureLoaded();
-        Assert(requests.Count == count + 1, "Repeated validation deduplicates an in-flight repair.");
+        Assert(requests.Count == requestCount,
+            "A native audio reset must not redownload PCM already owned in managed memory.");
+
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         var plays = sounds.PlayRequests.Count;
         match.Callout(label);
-        AnnouncerService.Detach();
-        FinishLoads(context);
-        match.Callout(label);
-        Assert(sounds.PlayRequests.Count == plays, "A detached match stays silent throughout late repair completion.");
-        var nextMatch = new ArenaMatch();
-        AnnouncerService.Attach(nextMatch);
-        nextMatch.Callout(label);
         var restored = sounds.PlayRequests[^1].Clip;
-        Assert(sounds.PlayRequests.Count == plays + 1 && restored != null && !ReferenceEquals(restored, originalClip),
-            "Replacement match plays the repaired native clip, never a destroyed wrapper.");
+        Assert(sounds.PlayRequests.Count == plays + 1
+            && AudioClip.CreatedClips.Count == createdCount + 1
+            && restored != null && !ReferenceEquals(restored, originalClip)
+            && restored.samples > 0 && restored.channels == 2 && restored.length > 0f
+            && restored.SetDataCalls == 1 && restored.GetDataCalls == 1
+            && restored.hideFlags.HasFlag(HideFlags.DontUnloadUnusedAsset),
+            "The next cue synchronously reconstructs a signal-bearing runtime clip from managed PCM.");
+        Assert(ArenaMode.Plugin.ModLogger.Messages.Any(message =>
+                message.Contains("runtime clip rebuilt: '")
+                && message.Contains("previous=state=Loaded,frames=0,channels=0")),
+            "Reset recovery records the zero-metadata wrapper that forced reconstruction.");
 
-        AnnouncerService.Detach();
-        restored.loadState = AudioDataLoadState.Loading;
-        count = requests.Count;
-        AnnouncerService.EnsureLoaded();
-        Assert(requests.Count == count && context.OutstandingAsyncVoids > 0,
-            "A still-loading cached clip is awaited rather than immediately replaced.");
-        AnnouncerService.EnsureLoaded();
-        Assert(requests.Count == count, "Concurrent readiness checks do not duplicate a cached-clip load.");
-        restored.loadState = AudioDataLoadState.Loaded;
-        context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
-        AnnouncerService.Attach(nextMatch);
-        nextMatch.Callout(label);
-        Assert(ReferenceEquals(sounds.PlayRequests[^1].Clip, restored), "A recovered cached Loading clip retains identity.");
-
-        restored.loadState = AudioDataLoadState.Unloaded;
-        AnnouncerService.Detach();
+        // A reset before the first cue must also be harmless: the durable cache
+        // exists even though no Unity runtime clip has been built for this key.
+        AddClip(pluginDir, "pre_cue_reset");
         AnnouncerService.EnsureLoaded();
         FinishLoads(context);
-        AnnouncerService.Attach(nextMatch);
-        nextMatch.Callout(label);
-        Assert(sounds.PlayRequests[^1].Clip.loadState == AudioDataLoadState.Loaded,
-            "An Unloaded cached clip is made ready before playback in the next match.");
+        requestCount = requests.Count;
+        AudioSettings.SimulateReset();
+        plays = sounds.PlayRequests.Count;
+        match.Callout("PRE CUE RESET");
+        Assert(requests.Count == requestCount && sounds.PlayRequests.Count == plays + 1
+            && sounds.PlayRequests[^1].Clip.samples > 0,
+            "Managed PCM loaded before an audio reset remains playable on its first later cue.");
         AnnouncerService.Detach();
     }
 
@@ -284,49 +281,54 @@ internal static class Program
             && unloadedDecoded == null,
             "Unloaded decoder audio is loaded, copied to PCM and released before caching.");
 
-        AddClip(pluginDir, "pcm_copy_fallback");
+        AddClip(pluginDir, "pcm_capture_failure");
         AnnouncerService.EnsureLoaded();
-        var copyFallback = requests[^1];
+        var captureFailure = requests[^1];
         var uncopyable = new AudioClip
         {
-            Name = "pcm_copy_fallback",
+            Name = "pcm_capture_failure",
             GetDataResult = false
         };
-        copyFallback.Content = uncopyable;
+        captureFailure.Content = uncopyable;
         FinishLoads(context);
-        Assert(uncopyable != null && uncopyable.GetDataCalls == 1
+        Assert(uncopyable == null && uncopyable.GetDataCalls == 1
             && ArenaMode.Plugin.ModLogger.Messages.Any(message =>
-                message.Contains("PCM copy unavailable for 'pcm_copy_fallback'")),
-            "A decoder that cannot expose PCM stays cached through the fail-soft compatibility path.");
+                message.Contains("PCM capture failed for 'pcm_capture_failure'")),
+            "A decoder that cannot expose PCM is released and never becomes a fragile native-only cache entry.");
         var fallbackMatch = new ArenaMatch();
         AnnouncerService.Attach(fallbackMatch);
         plays = sounds.PlayRequests.Count;
-        fallbackMatch.Callout("PCM COPY FALLBACK");
-        Assert(sounds.PlayRequests.Count == plays + 1
-            && ReferenceEquals(sounds.PlayRequests[^1].Clip, uncopyable),
-            "A PCM-copy limitation does not suppress an otherwise playable decoded clip.");
+        fallbackMatch.Callout("PCM CAPTURE FAILURE");
+        Assert(sounds.PlayRequests.Count == plays,
+            "A failed managed capture cannot leak the decoder-owned clip into playback.");
         AnnouncerService.Detach();
+        File.Delete(Path.Combine(pluginDir, "ArenaMode", "sounds", "pcm_capture_failure.ogg"));
 
-        AddClip(pluginDir, "pcm_readback_fallback");
+        AddClip(pluginDir, "runtime_readback_failure");
         AnnouncerService.EnsureLoaded();
-        var readbackFallback = requests[^1];
-        var decodedForReadback = new AudioClip { Name = "pcm_readback_fallback" };
-        readbackFallback.Content = decodedForReadback;
-        AudioClip.NextCreatedGetDataResult = false;
+        var readbackFailure = requests[^1];
+        var decodedForReadback = new AudioClip { Name = "runtime_readback_failure" };
+        readbackFailure.Content = decodedForReadback;
         FinishLoads(context);
-        var unreadablePcm = AudioClip.CreatedClips[^1];
-        Assert(decodedForReadback != null && decodedForReadback.GetDataCalls == 1
-            && unreadablePcm == null && unreadablePcm.SetDataCalls == 1 && unreadablePcm.GetDataCalls == 1
-            && ArenaMode.Plugin.ModLogger.Messages.Any(message =>
-                message.Contains("materialized AudioClip.GetData returned false")),
-            "A failed materialized-PCM readback destroys the unusable copy and retains decoded audio.");
+        AudioClip.NextCreatedGetDataResult = false;
         var readbackMatch = new ArenaMatch();
         AnnouncerService.Attach(readbackMatch);
         plays = sounds.PlayRequests.Count;
-        readbackMatch.Callout("PCM READBACK FALLBACK");
+        readbackMatch.Callout("RUNTIME READBACK FAILURE");
+        var unreadablePcm = AudioClip.CreatedClips[^1];
+        Assert(decodedForReadback == null && decodedForReadback.GetDataCalls == 1
+            && unreadablePcm == null && unreadablePcm.SetDataCalls == 1 && unreadablePcm.GetDataCalls == 1
+            && ArenaMode.Plugin.ModLogger.Messages.Any(message =>
+                message.Contains("reason=clip_rebuild_failed")
+                && message.Contains("rebuilt AudioClip.GetData returned false")),
+            "A failed runtime readback destroys the unusable wrapper and skips playback without losing managed PCM.");
+        Assert(sounds.PlayRequests.Count == plays,
+            "A runtime reconstruction failure never reaches GUISounds.");
+        readbackMatch.Callout("RUNTIME READBACK FAILURE");
         Assert(sounds.PlayRequests.Count == plays + 1
-            && ReferenceEquals(sounds.PlayRequests[^1].Clip, decodedForReadback),
-            "A readback failure remains fail-soft through the native UI route.");
+            && sounds.PlayRequests[^1].Clip != null
+            && !ReferenceEquals(sounds.PlayRequests[^1].Clip, unreadablePcm),
+            "The next cue retries runtime reconstruction from the retained managed PCM.");
         AnnouncerService.Detach();
 
         AddClip(pluginDir, "slow_decoder");
@@ -376,11 +378,12 @@ internal static class Program
         AnnouncerService.SetPluginDirectory(pluginDir);
     }
 
-    private static void VerifyDiagnosticsAndRepairThrottle(QueuedContext context)
+    private static void VerifyDiagnostics()
     {
         var sounds = Singleton<GUISounds>.Instance;
         var requests = UnityWebRequestMultimedia.Requests;
-        var healthyClip = sounds.PlayRequests.First(play => play.Clip != null && play.Clip.CreatedFromPcm).Clip;
+        var healthyClip = sounds.PlayRequests.Last(play => play.Clip != null
+            && play.Clip.CreatedFromPcm && play.Clip.samples > 0).Clip;
         var key = healthyClip.Name;
         var label = key.Replace('_', ' ').ToUpperInvariant();
         var match = new ArenaMatch();
@@ -421,29 +424,26 @@ internal static class Program
         Assert(ReasonCount(logStart, key, "disabled") == 1, "Skip diagnostics reset for a new match.");
         Settings.AnnouncerEnabled.Value = true;
 
-        healthyClip.loadState = AudioDataLoadState.Failed;
-        Time.realtimeSinceStartup += 100f;
+        int created = AudioClip.CreatedClips.Count;
+        AudioSettings.SimulateReset();
         count = requests.Count;
         plays = sounds.PlayRequests.Count;
-        Repeat(() => match.Callout(label));
-        Assert(requests.Count == count + 1, "Repeated invalid-clip callouts start only one in-flight repair.");
-        Assert(ReasonCount(logStart, key, "invalid_clip") == 1
-            && ReasonCount(logStart, key, "loading") == 1,
-            "Invalid and loading diagnostics are each bounded per key/reason.");
-        requests[^1].Complete(UnityWebRequest.Result.ConnectionError);
-        context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
-        Repeat(() => match.Callout(label));
-        Assert(requests.Count == count + 1, "A failed repair does not restart repeatedly at the same clock time.");
-        Time.realtimeSinceStartup += 9f;
         match.Callout(label);
-        Assert(requests.Count == count + 1, "Repair attempts remain throttled for at least ten seconds.");
-        Time.realtimeSinceStartup += 1.1f;
+        var rebuilt = sounds.PlayRequests[^1].Clip;
+        Assert(requests.Count == count && sounds.PlayRequests.Count == plays + 1
+            && AudioClip.CreatedClips.Count == created + 1
+            && rebuilt != null && rebuilt.samples > 0 && !ReferenceEquals(rebuilt, healthyClip),
+            "A zeroed runtime wrapper is rebuilt synchronously without a transport repair.");
+
+        UnityEngine.Object.Destroy(rebuilt);
+        Assert(rebuilt == null && !ReferenceEquals(rebuilt, null),
+            "Destroyed clip fixture preserves managed identity while behaving like Unity-null.");
+        created = AudioClip.CreatedClips.Count;
         match.Callout(label);
-        Assert(requests.Count == count + 2, "A known failed clip becomes retryable after the repair interval.");
-        FinishLoads(context);
-        Assert(sounds.PlayRequests.Count == plays, "Repair completion alone does not enqueue late playback.");
-        match.Callout(label);
-        Assert(sounds.PlayRequests.Count == plays + 1, "A repaired clip plays on the next new callout.");
+        Assert(requests.Count == count && AudioClip.CreatedClips.Count == created + 1
+            && sounds.PlayRequests[^1].Clip != null
+            && !ReferenceEquals(sounds.PlayRequests[^1].Clip, rebuilt),
+            "A Unity-destroyed runtime wrapper is rebuilt from the same managed PCM cache.");
         AnnouncerService.Detach();
     }
 
@@ -451,41 +451,6 @@ internal static class Program
         => ArenaMode.Plugin.ModLogger.Messages.Skip(start)
             .Count(message => message.Contains(key, StringComparison.OrdinalIgnoreCase)
                 && message.Contains("reason=" + reason, StringComparison.Ordinal));
-
-    private static void VerifyLateReadinessRace(string pluginDir, QueuedContext context)
-    {
-        var sounds = Singleton<GUISounds>.Instance;
-        var requests = UnityWebRequestMultimedia.Requests;
-        var nativePath = Path.Combine(pluginDir, "ArenaMode", "sounds") + Path.DirectorySeparatorChar;
-        var oldClip = sounds.PlayRequests.Last(play => play.Clip != null
-            && play.Clip.CreatedFromPcm
-            && play.Clip.loadState == AudioDataLoadState.Loaded).Clip;
-        var label = oldClip.Name.Replace('_', ' ').ToUpperInvariant();
-        var cached = requests.Last(request => Label(request) == label
-            && new Uri(request.Url).LocalPath.StartsWith(nativePath, StringComparison.OrdinalIgnoreCase));
-        oldClip.loadState = AudioDataLoadState.Loading;
-        var count = requests.Count;
-        AnnouncerService.EnsureLoaded();
-        Assert(requests.Count == count && context.OutstandingAsyncVoids > 0,
-            "Late-readiness race first waits for the existing Loading clip.");
-        Time.realtimeSinceStartup += 11f;
-        context.PumpUntil(() => requests.Count > count);
-        var replacement = requests[^1];
-        Assert(Label(replacement) == label, "Readiness timeout starts a replacement request for the affected clip only.");
-        oldClip.loadState = AudioDataLoadState.Loaded;
-        var match = new ArenaMatch();
-        AnnouncerService.Attach(match);
-        match.Callout(label);
-        Assert(ReferenceEquals(sounds.PlayRequests[^1].Clip, oldClip),
-            "The original clip can recover and play while its replacement request is in flight.");
-        FinishLoads(context);
-        Assert(oldClip != null && replacement.Content == null && !ReferenceEquals(replacement.Content, null),
-            "Late-ready cached clip survives; its unnecessary downloaded replacement is destroyed.");
-        match.Callout(label);
-        Assert(ReferenceEquals(sounds.PlayRequests[^1].Clip, oldClip),
-            "Subsequent callouts retain the original late-ready native clip.");
-        AnnouncerService.Detach();
-    }
 
     private static void VerifyOutputDiagnostics()
     {
@@ -509,11 +474,13 @@ internal static class Program
         Assert(OutputLogs() == 3, "Stable output logs exactly the first three successful playback requests.");
         Assert(messages.Skip(start).Where(message => message.StartsWith("Arena announcer play request:"))
             .All(message => message.Contains("route=GUISounds.SingleUI.Primary")
+                && message.Contains("clipGeneration=")
+                && message.Contains("clipBeforePlay=state=Loaded,frames=")
+                && message.Contains("clipAfterPlay=state=Loaded,frames=")
                 && message.Contains("clipFrames=") && message.Contains("clipChannels=2")
                 && message.Contains("clipFrequency=44100") && message.Contains("clipLengthMs=")
                 && message.Contains("clipState=Loaded")
-                && message.Contains("uiReady=True") && message.Contains("interfaceDb=-4")
-                && message.Contains("uiDb=-4")
+                && message.Contains("uiReady=True") && message.Contains("uiDb=-4")
                 && message.Contains("masterDb=-2") && message.Contains("listenerVolume=0.8")
                 && message.Contains("listenerPaused=False") && message.Contains("speakerMode=Mode5point1")
                 && message.Contains("sampleRate=48000") && message.Contains("voices=32/512")
@@ -528,10 +495,10 @@ internal static class Program
         Call(); Call();
         Assert(OutputLogs() == 5 && AudioListener.volume == 0,
             "A listener mute is observable without the announcer overriding it.");
-        sounds.MasterMixer.Parameters["InterfaceVolume"] = -80;
+        sounds.MasterMixer.Parameters["UIVolume"] = -80;
         Call(); Call();
-        Assert(OutputLogs() == 6 && sounds.MasterMixer.Parameters["InterfaceVolume"] == -80,
-            "A changed Interface mixer level is reported once and left untouched.");
+        Assert(OutputLogs() == 6 && sounds.MasterMixer.Parameters["UIVolume"] == -80,
+            "A changed UI mixer level is reported once and left untouched.");
         var originalMixer = sounds.MasterMixer;
         sounds.MasterMixer = null;
         Call();
@@ -551,7 +518,49 @@ internal static class Program
         Assert(sounds.PlayRequests.Count == plays, "Detached callouts cannot produce playback or update diagnostics.");
         AudioListener.volume = 0.8f;
         AudioListener.pause = false;
-        sounds.MasterMixer.Parameters["InterfaceVolume"] = -4;
+        sounds.MasterMixer.Parameters["UIVolume"] = -4;
+    }
+
+    private static void VerifyShutdownRace(string pluginDir, QueuedContext context)
+    {
+        var raceDir = Path.Combine(pluginDir, "shutdown race");
+        AddClip(raceDir, "shutdown_race");
+        var requests = UnityWebRequestMultimedia.Requests;
+        var sounds = Singleton<GUISounds>.Instance;
+
+        AnnouncerService.SetPluginDirectory(raceDir);
+        int requestCount = requests.Count;
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == requestCount + 1 && !requests[^1].Operation.isDone,
+            "Shutdown-race fixture starts one controlled in-flight decoder request.");
+        var stale = requests[^1];
+
+        AnnouncerService.Shutdown();
+        stale.Complete(UnityWebRequest.Result.Success);
+        context.PumpUntil(() => context.OutstandingAsyncVoids == 0);
+        Assert(stale.Disposed && stale.Content == null && !ReferenceEquals(stale.Content, null),
+            "A request completed after Shutdown disposes its decoder-owned Unity clip.");
+
+        requestCount = requests.Count;
+        AnnouncerService.EnsureLoaded();
+        Assert(requests.Count == requestCount + 1 && !ReferenceEquals(requests[^1], stale)
+            && Label(requests[^1]) == "SHUTDOWN RACE",
+            "A stale completion neither republishes managed PCM nor leaves the loader stuck after Shutdown.");
+        FinishLoads(context);
+
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        int plays = sounds.PlayRequests.Count;
+        match.Callout("SHUTDOWN RACE");
+        Assert(sounds.PlayRequests.Count == plays + 1
+            && sounds.PlayRequests[^1].Clip.Name == "shutdown_race"
+            && sounds.PlayRequests[^1].Clip.samples > 0,
+            "Only the fresh post-Shutdown load can supply later playback.");
+
+        AnnouncerService.Shutdown();
+        AnnouncerService.SetPluginDirectory(pluginDir);
+        AnnouncerService.EnsureLoaded();
+        FinishLoads(context);
     }
 
     private static void VerifyRoundCues(string pluginDir, QueuedContext context)
