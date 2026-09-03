@@ -48,7 +48,7 @@ public static class Settings
     public static ConfigEntry<int> PmcFloor { get; private set; }
     public static ConfigEntry<bool> HuntPlayer { get; private set; }
     public static ConfigEntry<bool> MaxSkills { get; private set; }
-    public static ConfigEntry<bool> NoFractures { get; private set; }
+    public static ConfigEntry<int> LegInjurySlowdownReductionPercent { get; private set; }
     public static ConfigEntry<float> MedicalUseSpeed { get; private set; }
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
@@ -328,13 +328,16 @@ public static class Settings
             "weapons count as mastered too). Reverted when the raid ends; the " +
             "saved profile is never touched.");
 
-        NoFractures = config.Bind(
+        LegInjurySlowdownReductionPercent = config.Bind(
             "Character",
-            "NoFractures",
-            true,
-            "Limbs never fracture during an arena raid. The Health skill alone " +
-            "only cuts the chance by about a third, which is not enough for an " +
-            "arcade mode.");
+            "LegInjurySlowdownReductionPercent",
+            50,
+            new ConfigDescription(
+                "Reduction of the walking-speed penalty from fractured or destroyed " +
+                "legs during an arena raid. 50 halves the penalty (one leg: 0.30 to " +
+                "0.65; both legs: 0.20 to 0.60). Injuries and the vanilla sprint " +
+                "restriction remain active; 0 keeps vanilla movement.",
+                new AcceptableValueRange<int>(0, 100)));
 
         MedicalUseSpeed = config.Bind(
             "Character",

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ProductionTuningSource Condition="'$(ProductionTuningSource)' == ''">../../ArenaMode.Client/Movement/ArenaLegInjuryTuning.cs</ProductionTuningSource>
+    <ProductionPatchSource Condition="'$(ProductionPatchSource)' == ''">../../ArenaMode.Client/Movement/ArenaLegInjuryPatches.cs</ProductionPatchSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionTuningSource)" Link="Production/ArenaLegInjuryTuning.cs" />
+    <Compile Include="$(ProductionPatchSource)" Link="Production/ArenaLegInjuryPatches.cs" />
+  </ItemGroup>
+</Project>
