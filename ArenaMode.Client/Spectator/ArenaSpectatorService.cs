@@ -5,7 +5,9 @@ using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
 using EFT.CameraControl;
+using EFT.InputSystem;
 using EFT.UI;
+using EFT.UI.Screens;
 using Redeploy.Core.Engine;
 using Redeploy.Core.View;
 using System;
@@ -64,6 +66,88 @@ internal static class ArenaSpectatorService
     /// Killcam is suppressed rather than allowed to race the spectator camera.
     /// </summary>
     internal static bool OptionalKillcamReplayMayRun => KillcamReplayCompat.ReplayMayRun;
+
+    /// <summary>
+    /// The native owner rejects every command once its player is dead, including
+    /// Escape before EftGamePlayerOwner can open the raid menu. Permit only that
+    /// native exit translation while this service owns the exact corpse camera.
+    /// </summary>
+    internal static bool TryTranslateEscape(
+        EftGamePlayerOwner owner,
+        ECommand command,
+        out InputNode.ETranslateResult result)
+    {
+        result = InputNode.ETranslateResult.Ignore;
+        if (command != ECommand.Escape
+            || !_ownsCamera
+            || !ArenaSession.IsActive
+            || !PitFireTeamCompat.TeamArenaActive)
+        {
+            return false;
+        }
+
+        ArenaSpectatorRequest request = _request;
+        if (request == null || ReferenceEquals(owner, null))
+            return false;
+
+        bool epochMatches;
+        bool requestEligible;
+        bool battleUiActive;
+        try
+        {
+            epochMatches = request.ReadEpoch != null && request.ReadEpoch() == request.Epoch;
+            requestEligible = request.IsEligible != null && request.IsEligible();
+            battleUiActive = EftScreenManager.Instance != null
+                             && EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.BattleUI);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena spectator Escape gate failed closed: {ex.Message}");
+            return false;
+        }
+
+        Player expectedBody = request.DeadPlayer;
+        Player ownerBody;
+        try
+        {
+            ownerBody = owner.Player;
+        }
+        catch
+        {
+            return false;
+        }
+
+        var gate = new SpectatorEscapeGate(
+            escapeCommand: true,
+            arenaActive: true,
+            teamArenaActive: true,
+            ownsCamera: true,
+            battleUiActive,
+            requestEligible,
+            epochMatches,
+            !ReferenceEquals(expectedBody, null) && expectedBody != null && expectedBody.IsYourPlayer,
+            !ReferenceEquals(expectedBody, null)
+                && expectedBody != null
+                && expectedBody.HealthController?.IsAlive == false,
+            expectedBody,
+            ownerBody);
+        if (!SpectatorPolicy.ShouldTranslateEscape(gate))
+            return false;
+
+        try
+        {
+            if (!owner.TranslateExitScreenInput(command))
+                return false;
+            result = InputNode.ETranslateResult.BlockAll;
+            Plugin.ModLogger.LogInfo("Arena spectator routed Escape to the native raid menu.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena spectator could not open the native raid menu: {ex}");
+            return false;
+        }
+    }
 
     internal static string CurrentStatusLine
     {

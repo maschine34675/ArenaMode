@@ -13,6 +13,7 @@ internal static class Program
         {
             CheckFrozenRosterPolicy();
             CheckStartPolicy();
+            CheckEscapePolicy();
             CheckTargetCycling();
             CheckRoundContinuation();
             CheckPursuitPolicy();
@@ -88,6 +89,56 @@ internal static class Program
         Assert(SpectatorPolicy.DecideStart(Gate(freecam: OptionalCameraOwnerState.Incompatible))
                == SpectatorStartDecision.Cancel,
             "an installed but unreadable Freecam contract fails closed");
+    }
+
+    private static void CheckEscapePolicy()
+    {
+        var body = new object();
+        SpectatorEscapeGate Gate(
+            bool escape = true,
+            bool arena = true,
+            bool team = true,
+            bool owns = true,
+            bool battleUi = true,
+            bool eligible = true,
+            bool epoch = true,
+            bool local = true,
+            bool dead = true,
+            object owner = null)
+            => new(
+                escape,
+                arena,
+                team,
+                owns,
+                battleUi,
+                eligible,
+                epoch,
+                local,
+                dead,
+                body,
+                owner ?? body);
+
+        Assert(SpectatorPolicy.ShouldTranslateEscape(Gate()),
+            "Escape reaches the native raid menu for the exact dead body while Arena owns the camera");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(Gate(escape: false)),
+            "non-Escape commands stay on the native dead-player path");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(Gate(arena: false))
+               && !SpectatorPolicy.ShouldTranslateEscape(Gate(team: false)),
+            "ordinary and non-team raids cannot use the spectator Escape exception");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(Gate(owns: false))
+               && !SpectatorPolicy.ShouldTranslateEscape(Gate(battleUi: false)),
+            "pending Killcam and an already-open menu cannot trigger the exception");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(Gate(eligible: false))
+               && !SpectatorPolicy.ShouldTranslateEscape(Gate(epoch: false)),
+            "a revoked or old spectator lease cannot open a raid menu");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(Gate(local: false))
+               && !SpectatorPolicy.ShouldTranslateEscape(Gate(dead: false)),
+            "a foreign or respawned body cannot use the dead-player exception");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(Gate(owner: new object())),
+            "a different owner body cannot be joined by profile-like equality");
+        Assert(!SpectatorPolicy.ShouldTranslateEscape(new SpectatorEscapeGate(
+                true, true, true, true, true, true, true, true, true, null, null)),
+            "a missing expected body fails closed");
     }
 
     private static void CheckTargetCycling()
@@ -736,6 +787,7 @@ internal static class Program
         string service = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorService.cs");
         string healthEffects = Read(root, "ArenaMode.Client", "Spectator", "SpectatorHealthEffects.cs");
         string cameraPatch = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorCameraPatches.cs");
+        string inputPatch = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorInputPatch.cs");
         string killcam = Read(root, "ArenaMode.Client", "Spectator", "KillcamReplayCompat.cs");
         string freecam = Read(root, "ArenaMode.Client", "Spectator", "TerkoizFreecamProbe.cs");
         string plugin = Read(root, "ArenaMode.Client", "Plugin.cs");
@@ -850,6 +902,39 @@ internal static class Program
             "!ArenaSession.IsActive",
             "!PitFireTeamCompat.TeamArenaActive",
             "!ArenaSpectatorService.OwnsCamera");
+        RequireAll(inputPatch,
+            "AccessTools.DeclaredMethod(",
+            "typeof(EftGamePlayerOwner)",
+            "nameof(EftGamePlayerOwner.TranslateCommand)",
+            "new[] { typeof(ECommand) }",
+            "ArenaSpectatorService.TryTranslateEscape(__instance, __0",
+            "ref InputNode.ETranslateResult __result");
+        Assert(!inputPatch.Contains("CanTranslateCommand", StringComparison.Ordinal)
+               && !inputPatch.Contains("Input.GetKeyDown", StringComparison.Ordinal)
+               && !inputPatch.Contains("LocalGame.Stop", StringComparison.Ordinal),
+            "spectator Escape uses the native menu translator without widening dead-body input or bypassing confirmation");
+        int inputGate = inputPatch.IndexOf(
+            "if (!ArenaSpectatorService.TryTranslateEscape(__instance, __0", StringComparison.Ordinal);
+        int inputResult = inputPatch.IndexOf("__result = translated", StringComparison.Ordinal);
+        int skipOriginal = inputPatch.IndexOf("return false", inputResult, StringComparison.Ordinal);
+        Assert(inputGate >= 0 && inputResult > inputGate && skipOriginal > inputResult,
+            "the exact owner original is skipped only after the spectator service handles Escape");
+        string escapeRuntime = Slice(
+            service,
+            "internal static bool TryTranslateEscape(",
+            "internal static string CurrentStatusLine");
+        RequireAll(escapeRuntime,
+            "command != ECommand.Escape",
+            "!_ownsCamera",
+            "!ArenaSession.IsActive",
+            "!PitFireTeamCompat.TeamArenaActive",
+            "request.ReadEpoch() == request.Epoch",
+            "request.IsEligible()",
+            "CheckCurrentScreen(EEftScreenType.BattleUI)",
+            "ReferenceEquals(expectedBody, null)",
+            "expectedBody.HealthController?.IsAlive == false",
+            "owner.TranslateExitScreenInput(command)",
+            "result = InputNode.ETranslateResult.BlockAll");
         RequireAll(killcam,
             "PendingReplayKiller",
             "IsPlaying",
@@ -868,6 +953,7 @@ internal static class Program
         RequireAll(plugin,
             "ArenaSpectatorService.Initialize()",
             "ArenaSpectatorCameraPatches.Enable()",
+            "ArenaSpectatorInputPatch.Enable()",
             "AddComponent<Spectator.ArenaSpectatorOverlay>()",
             "ArenaSpectatorService.Shutdown()");
         RequireAll(controller, "ArenaSpectatorService.Tick()");

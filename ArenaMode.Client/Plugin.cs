@@ -60,6 +60,7 @@ public class Plugin : BaseUnityPlugin
 
         Hud.ArenaInputBlocker.Apply();
         Spectator.ArenaSpectatorCameraPatches.Enable();
+        Spectator.ArenaSpectatorInputPatch.Enable();
         gameObject.AddComponent<ArenaController>();
         gameObject.AddComponent<Hud.ArenaPanel>();
         gameObject.AddComponent<Hud.TacticalBuyPanel>();
