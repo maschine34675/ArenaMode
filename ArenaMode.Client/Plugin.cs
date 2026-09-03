@@ -72,6 +72,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Audio.AnnouncerService.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();
     }
 }

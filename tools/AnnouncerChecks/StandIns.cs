@@ -6,6 +6,12 @@ namespace ArenaMode
     internal static class Plugin
     {
         public static TestLogger ModLogger { get; } = new();
+        public static TestPlugin Instance { get; } = new();
+    }
+
+    internal sealed class TestPlugin : UnityEngine.Component
+    {
+        public TestPlugin() => gameObject = new UnityEngine.GameObject();
     }
 
     internal sealed class TestLogger
@@ -90,6 +96,48 @@ namespace UnityEngine
     internal enum AudioType { OGGVORBIS }
     internal static class Time { public static float realtimeSinceStartup = 100f; }
     internal static class AudioListener { public static float volume = 0.8f; public static bool pause; }
+
+    internal class Component : Object
+    {
+        public GameObject gameObject { get; internal set; }
+    }
+
+    internal sealed class GameObject : Object
+    {
+        public AudioSource LastAudioSource { get; private set; }
+
+        public T AddComponent<T>() where T : Component, new()
+        {
+            var component = new T { gameObject = this };
+            if (component is AudioSource source)
+            {
+                LastAudioSource = source;
+            }
+            return component;
+        }
+    }
+
+    internal sealed class AudioSource : Component
+    {
+        public bool playOnAwake { get; set; }
+        public bool loop { get; set; }
+        public float spatialBlend { get; set; }
+        public bool spatialize { get; set; }
+        public float dopplerLevel { get; set; }
+        public bool bypassReverbZones { get; set; }
+        public int priority { get; set; }
+        public UnityEngine.Audio.AudioMixerGroup outputAudioMixerGroup { get; set; }
+        public AudioClip clip { get; set; }
+        public float volume { get; set; }
+        public bool enabled { get; set; } = true;
+        public bool mute { get; set; }
+        public bool isPlaying { get; private set; }
+        public bool isVirtual { get; set; }
+        public int StopCalls { get; private set; }
+        public void Stop() { StopCalls++; isPlaying = false; }
+        public void Play() { isPlaying = true; GlobalPlayback?.Invoke(clip, volume); }
+        internal static Action<AudioClip, float> GlobalPlayback;
+    }
 }
 
 namespace UnityEngine.Audio
@@ -103,18 +151,39 @@ namespace UnityEngine.Audio
             ["MasterVolume"] = -2f
         };
         public bool GetFloat(string name, out float value) => Parameters.TryGetValue(name, out value);
+        public AudioMixerGroup[] FindMatchingGroups(string name)
+            => name == "UI" ? new[] { new AudioMixerGroup { name = "UI" } } : Array.Empty<AudioMixerGroup>();
     }
+
+    internal sealed class AudioMixerGroup : UnityEngine.Object { public string name { get; set; } }
+}
+
+internal sealed class BetterAudio
+{
+    public static bool Instantiated { get; set; } = true;
+    public static BetterAudio Instance { get; } = new();
+    public UnityEngine.Audio.AudioMixerGroup NonSpatialBypassMixer { get; set; } =
+        new() { name = "NonspatialBypass" };
 }
 
 namespace EFT.UI
 {
-    internal sealed class GUISounds : UnityEngine.Object
+    internal sealed class GUISounds : UnityEngine.Component
     {
         public readonly record struct Playback(UnityEngine.AudioClip Clip, bool Single, bool CommonUiSound, float Volume);
         public List<Playback> Played { get; } = new();
         public bool isActiveAndEnabled { get; set; } = true;
         public UnityEngine.Audio.AudioMixer MasterMixer { get; set; } = new();
         public bool ThrowOnPlay { get; set; }
+        public GUISounds()
+        {
+            gameObject = new UnityEngine.GameObject();
+            UnityEngine.AudioSource.GlobalPlayback = (clip, volume) =>
+            {
+                if (ThrowOnPlay) throw new InvalidOperationException("injected dedicated audio failure");
+                Played.Add(new Playback(clip, true, false, volume));
+            };
+        }
         public void PlaySound(UnityEngine.AudioClip clip, bool single, bool commonUiSound, float volume)
         {
             if (ThrowOnPlay) throw new InvalidOperationException("injected native PlaySound failure");

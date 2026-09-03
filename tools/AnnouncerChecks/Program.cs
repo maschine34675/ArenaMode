@@ -49,6 +49,7 @@ internal static class Program
             VerifyLateReadinessRace(pluginDir, context);
             VerifyOutputDiagnostics();
             VerifyRoundCues(pluginDir, context);
+            VerifyDedicatedOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -59,7 +60,7 @@ internal static class Program
         }
         finally
         {
-            AnnouncerService.Detach();
+            AnnouncerService.Shutdown();
             SynchronizationContext.SetSynchronizationContext(previousContext);
             // Delete only our individually named fixture files and empty folders.
             foreach (var path in CreatedFiles)
@@ -107,7 +108,14 @@ internal static class Program
         Assert(sounds.Played[0].Clip.Name == firstLabel.ToLowerInvariant().Replace(' ', '_')
             && sounds.Played[0].Single && !sounds.Played[0].CommonUiSound
             && sounds.Played[0].Volume == Settings.AnnouncerVolume.Value,
-            "Playback must preserve the requested label, single UI routing and configured volume.");
+            "Playback must preserve the requested label, replacement semantics and configured volume.");
+        var output = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
+        Assert(output != null && !output.playOnAwake && !output.loop
+            && output.spatialBlend == 0f && !output.spatialize && output.dopplerLevel == 0f
+            && output.bypassReverbZones && output.priority == 0,
+            "Announcer playback owns one highest-priority non-spatial source on the persistent plugin host.");
+        Assert(ReferenceEquals(output.outputAudioMixerGroup, BetterAudio.Instance.NonSpatialBypassMixer),
+            "Announcer playback uses EFT's master-controlled non-spatial bypass route.");
 
         Settings.AnnouncerEnabled.Value = false;
         firstMatch.Callout(firstLabel);
@@ -508,6 +516,64 @@ internal static class Program
         match.Cue(ArenaAnnouncerCue.RoundStart);
         Assert(sounds.Played.Count == plays + 3,
             "A detached match cannot play a lifecycle cue.");
+    }
+
+    private static void VerifyDedicatedOutputLifecycle()
+    {
+        var sounds = Singleton<GUISounds>.Instance;
+        var output = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
+        Assert(output != null, "The successful Arena session retains exactly one dedicated output source.");
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        int stops = output.StopCalls;
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        match.Cue(ArenaAnnouncerCue.RoundWon);
+        Assert(ReferenceEquals(output, ArenaMode.Plugin.Instance.gameObject.LastAudioSource)
+            && output.StopCalls == stops + 2,
+            "Overlapping Arena cues replace each other on the same private source.");
+
+        BetterAudio.Instantiated = false;
+        match.Cue(ArenaAnnouncerCue.RoundLost);
+        Assert(output.outputAudioMixerGroup?.name == "UI",
+            "If BetterAudio is unavailable, the existing private source falls back to EFT's UI mixer.");
+        BetterAudio.Instantiated = true;
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        Assert(ReferenceEquals(output.outputAudioMixerGroup, BetterAudio.Instance.NonSpatialBypassMixer),
+            "The private source rebinds when EFT's non-spatial bypass route returns.");
+
+        int logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
+        output.isVirtual = true;
+        Time.realtimeSinceStartup += 0.1f;
+        AnnouncerService.Tick();
+        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Any(message =>
+                message.StartsWith("Arena announcer output check:") && message.Contains("virtual=True")),
+            "A next-frame probe diagnoses a source Unity silently virtualized after Play returned.");
+        output.isVirtual = false;
+
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        logStart = ArenaMode.Plugin.ModLogger.Messages.Count;
+        UnityEngine.Object.Destroy(output);
+        Time.realtimeSinceStartup += 0.1f;
+        AnnouncerService.Tick();
+        AnnouncerService.Tick();
+        Assert(ArenaMode.Plugin.ModLogger.Messages.Skip(logStart).Count(message =>
+                message.Contains("source was destroyed before the next audio frame")) == 1,
+            "A source destroyed after Play is diagnosed once and clears its delayed check.");
+        match.Cue(ArenaAnnouncerCue.RoundWon);
+        var replacement = ArenaMode.Plugin.Instance.gameObject.LastAudioSource;
+        Assert(replacement != null && !ReferenceEquals(replacement, output)
+            && ReferenceEquals(replacement.outputAudioMixerGroup, BetterAudio.Instance.NonSpatialBypassMixer),
+            "A destroyed private source is recreated and explicitly rebound to the current native route.");
+
+        stops = replacement.StopCalls;
+        AnnouncerService.Detach();
+        Assert(replacement.StopCalls == stops + 1 && !replacement.isPlaying,
+            "Detach stops Arena audio at the match lifecycle boundary.");
+        stops = replacement.StopCalls;
+        AnnouncerService.Shutdown();
+        Assert(replacement == null && replacement.StopCalls == stops + 1,
+            "Plugin shutdown reuses the idempotent detach stop and destroys only the Arena-owned source.");
+        Assert(sounds.Played.Count > 0, "Dedicated output lifecycle never clears prior playback evidence.");
     }
 
     private static void Repeat(Action action)

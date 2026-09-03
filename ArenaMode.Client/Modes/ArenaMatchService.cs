@@ -108,9 +108,11 @@ internal static class ArenaMatchService
             var match = new ArenaMatch(mode);
             partialMatch = match;
             Current = match;
+            // Subscribe before mode startup. A mode is allowed to raise its first
+            // synchronous cue from OnMatchStart; attaching afterwards loses it.
+            Audio.AnnouncerService.Attach(match);
             mode.OnMatchStart(match);
             Hud.ArenaHud.Attach(match);
-            Audio.AnnouncerService.Attach(match);
             Plugin.ModLogger.LogInfo($"Arena match started ({mode.DisplayName}).");
         }
         catch (Exception ex)
