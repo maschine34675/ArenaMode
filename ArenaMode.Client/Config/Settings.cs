@@ -49,6 +49,7 @@ public static class Settings
     public static ConfigEntry<bool> HuntPlayer { get; private set; }
     public static ConfigEntry<bool> MaxSkills { get; private set; }
     public static ConfigEntry<bool> NoFractures { get; private set; }
+    public static ConfigEntry<float> MedicalUseSpeed { get; private set; }
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
@@ -334,6 +335,16 @@ public static class Settings
             "Limbs never fracture during an arena raid. The Health skill alone " +
             "only cuts the chance by about a third, which is not enough for an " +
             "arcade mode.");
+
+        MedicalUseSpeed = config.Bind(
+            "Character",
+            "MedicalUseSpeed",
+            2f,
+            new ConfigDescription(
+                "Application speed for the local PMC's medkits, bandages, splints, " +
+                "surgery kits, pills and injectors during an arena raid. Both the " +
+                "health effect and hands animation use this factor; 1 keeps vanilla timing.",
+                new AcceptableValueRange<float>(1f, 4f)));
 
         GameMode = config.Bind(
             "Match",

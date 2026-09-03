@@ -49,6 +49,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
         Combat.ArenaFracturePatches.Enable();
+        Combat.ArenaMedicalPatches.Enable();
         Bots.ArenaBotPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.SprintAdsPatches.Enable();
@@ -73,6 +74,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Combat.ArenaMedicalPatches.Shutdown();
         Audio.AnnouncerService.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();
     }
