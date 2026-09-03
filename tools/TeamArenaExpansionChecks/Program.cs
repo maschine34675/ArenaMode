@@ -249,6 +249,70 @@ internal static class Program
                && Decide(float.PositiveInfinity) == TeamArenaApproachDecision.InvalidDistance,
             "invalid world distances fail closed");
 
+        float reachSquared = reachDistance * reachDistance;
+        Assert(TeamArenaPursuitPolicy.CanUsePartialRoute(
+                2,
+                reachSquared + 0.01f,
+                reachSquared + 0.01f),
+            "a partial path can advance to a reachable corner beyond the arrival radius");
+        Assert(!TeamArenaPursuitPolicy.CanUsePartialRoute(1, 100f, 100f)
+               && !TeamArenaPursuitPolicy.CanUsePartialRoute(2, reachSquared, 100f)
+               && !TeamArenaPursuitPolicy.CanUsePartialRoute(2, 100f, reachSquared)
+               && !TeamArenaPursuitPolicy.CanUsePartialRoute(2, float.NaN, 100f)
+               && !TeamArenaPursuitPolicy.CanUsePartialRoute(2, 100f, float.PositiveInfinity),
+            "empty, anchor-only, already-reached or malformed partial paths are rejected");
+        Assert(TeamArenaPursuitPolicy.SelectRouteCandidate(
+                   TeamArenaRouteCandidate.Partial,
+                   100f,
+                   TeamArenaRouteCandidate.Complete,
+                   1f)
+               == TeamArenaRouteSelection.Body
+               && TeamArenaPursuitPolicy.SelectRouteCandidate(
+                   TeamArenaRouteCandidate.Complete,
+                   1f,
+                   TeamArenaRouteCandidate.Partial,
+                   100f)
+               == TeamArenaRouteSelection.Mover,
+            "a complete body or mover route always wins over a partial alternative");
+        Assert(TeamArenaPursuitPolicy.SelectRouteCandidate(
+                   TeamArenaRouteCandidate.Partial,
+                   9f,
+                   TeamArenaRouteCandidate.Partial,
+                   16f)
+               == TeamArenaRouteSelection.Body
+               && TeamArenaPursuitPolicy.SelectRouteCandidate(
+                   TeamArenaRouteCandidate.None,
+                   -1f,
+                   TeamArenaRouteCandidate.Partial,
+                   4f)
+               == TeamArenaRouteSelection.Body
+               && TeamArenaPursuitPolicy.SelectRouteCandidate(
+                   TeamArenaRouteCandidate.None,
+                   -1f,
+                   TeamArenaRouteCandidate.None,
+                   -1f)
+               == TeamArenaRouteSelection.None,
+            "partial route selection uses the farther reachable endpoint and preserves an explicit no-route result");
+        Assert(TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                   TeamArenaSainAwarenessState.Exact,
+                   exactNativeRelation: true)
+               && TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                   TeamArenaSainAwarenessState.NotPresent,
+                   exactNativeRelation: true)
+               && TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                   TeamArenaSainAwarenessState.TargetUnavailable,
+                   exactNativeRelation: true)
+               && !TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                   TeamArenaSainAwarenessState.SourceIncompatible,
+                   exactNativeRelation: true)
+               && !TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                   TeamArenaSainAwarenessState.Exact,
+                   exactNativeRelation: false)
+               && !TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                   (TeamArenaSainAwarenessState)int.MaxValue,
+                   exactNativeRelation: true),
+            "target-only SAIN drift cannot remove the sole mover, while source, native and unknown awareness states fail closed");
+
         var liveTargets = new HashSet<string>(new[] { "A", "B", "C", "D", "E" }, StringComparer.Ordinal);
         var rejectedTargets = new HashSet<string>(new[] { "A", "B", "C" }, StringComparer.Ordinal);
         TeamArenaPursuitPolicy.PrepareRejectedTargetPass(rejectedTargets, liveTargets);
@@ -1346,7 +1410,7 @@ internal static class Program
             "source.EnemiesController.EnemyInfos,",
             "targetPlayer,",
             "target,",
-            "source.Memory?.GoalEnemy,",
+            "source?.Memory?.GoalEnemy,",
             "groupIsValid: (_, candidateGroup) =>",
             "pairIsValid: (candidateKey, candidateGroup, candidateEnemy) =>",
             "ReferenceEquals(candidateGroup.Player, targetPlayer)",
@@ -1383,7 +1447,15 @@ internal static class Program
             "Mathf.Abs(hit.position.y - requested.y) <= AnchorHeightToleranceMeters",
             "BodyAnchorSampleRadius",
             "NavMesh.CalculatePath(",
-            "RoutePath.status != NavMeshPathStatus.PathComplete",
+            "RoutePath.status == NavMeshPathStatus.PathComplete",
+            "RoutePath.status != NavMeshPathStatus.PathPartial",
+            "TeamArenaPursuitPolicy.CanUsePartialRoute(",
+            "TeamArenaPursuitPolicy.SelectRouteCandidate(",
+            "TeamArenaRouteSelection.Mover",
+            "TeamArenaRouteSelection.Body",
+            "destination = corners[corners.Length - 1]",
+            "out bool partialRoute",
+            "partialRoute ? \"bigbrain-partial\" : \"bigbrain\"",
             "Vector3[] corners = RoutePath.corners",
             "routeDistanceMeters += Vector3.Distance",
             "TryCalculateRouteDistance(",
@@ -1399,7 +1471,10 @@ internal static class Program
             "RejectTargetForCurrentPass(source, target, epoch)",
             "TryRefreshSain(",
             "ref enemyInfo",
-            "if (!GoalEnemyMatches(source, nearest, enemyInfo))",
+            "bool exactNativeRelation = GoalEnemyMatches(source, nearest, enemyInfo)",
+            "TeamArenaPursuitPolicy.CanPublishAfterAwareness(",
+            "TeamArenaSainAwarenessState.TargetUnavailable",
+            "TeamArenaSainAwarenessState.SourceIncompatible",
             "ReferenceEquals(expectedNativeEnemy.Person, targetPerson)",
             "TeamArenaSainSourceState sourceState = TryGetExactSainBot(",
             "TeamArenaSainSourceState.NotPresent",
@@ -1416,8 +1491,11 @@ internal static class Program
             "TeamArenaSainRebindTransaction.TryEnsureExact(",
             "_sainRemoveEnemy.Invoke(",
             "RefreshNative(source, targetOwner, out EnemyInfo rebuiltNativeEnemy)",
-            "ReferenceEquals(_sainEnemyInfo.GetValue(candidate), currentNativeEnemy)",
-            "ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), targetOwner.GetPlayer)",
+            "IsExactCurrentSainEnemy(",
+            "ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), target.GetPlayer)",
+            "wrappedNativeEnemy",
+            "ReferenceEquals(registered, candidateNativeEnemy)",
+            "source.Memory.GoalEnemy = currentNativeEnemy",
             "UpdateLastSeenPosition",
             "ReferenceEquals(_sainGoalEnemy.GetValue(enemyController), enemy)");
 
@@ -1514,7 +1592,7 @@ internal static class Program
         Assert(routeValidation >= 0
                && routePublication > routeValidation
                && destinationArgument > routePublication,
-            "only a complete sampled NavMesh destination is published to the movement owner");
+            "only a sampled complete destination or the reachable endpoint of a useful partial route is published to the movement owner");
 
         RequireAll(pursuitOwnerPolicy,
             "AcknowledgementTimeoutSeconds = 2f",
@@ -2337,7 +2415,9 @@ internal static class Program
     }
 
     private static string Read(string root, params string[] relativeParts)
-        => File.ReadAllText(Path.Combine(new[] { root }.Concat(relativeParts).ToArray()));
+        => File.ReadAllText(Path.Combine(new[] { root }.Concat(relativeParts).ToArray()))
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
 
     private static void RequireAll(string source, params string[] fragments)
     {

@@ -43,21 +43,24 @@ These gates supersede that document only for the new multi-round behavior.
 - [x] R4: Spectator and pursuit leases are limited to the exact nine non-local
   current-round identities. Spectator camera ownership is released before body
   retirement; after local death, both living sides receive refreshed opponent knowledge.
-  A pursuit target resolves only through one coherent exact Player/BotOwner key,
-  `EnemyInfo`, `BotGroupEnemyInfo`, source `BotOwner`, and current `BotsGroup` object graph;
-  an exact current `GoalEnemy` may disambiguate duplicate wrapper pairs, while stale or
-  unmatched references fail closed. The optional companion for exact BigBrain 1.5.0 owns
-  a short per-profile movement lease only while that complete identity remains valid and
-  an idle bot is separated from its live target. It runs EFT's complete native run-to-enemy
-  behavior for bounded path refresh, doors, mines, steering and sprint while continuing to
-  route when PFT's wider arrival radius would stop near hidden geometry. It yields to
+  A pursuit target resolves only through a coherent exact Player-keyed or BotOwner-keyed
+  `EnemyInfo`/`BotGroupEnemyInfo` pair, the source `BotOwner`, and its current `BotsGroup`;
+  both valid pairs may coexist for the same current AI body, while stale or unmatched
+  references fail closed. The optional companion for exact BigBrain 1.5.0 owns a short
+  per-profile movement lease only while that identity remains valid and an idle bot is
+  separated from its live target. It runs EFT's native run-to-enemy behavior for bounded
+  path refresh, doors, mines, steering and sprint. A complete route is preferred; when
+  disconnected geometry exposes only a partial route, Arena may publish its advancing,
+  actually reachable final corner and re-probe from there. It yields to
   immediate combat, an active first-aid, surgery, or stimulator hands operation, reload,
   grenades, doors, direct
   grenade/BTR/artillery/flash danger, higher-priority danger layers, and every round/raid
-  transition. SAIN awareness is changed only when SAIN returns the same exact native
-  `EnemyInfo`; an installed SAIN DLL is metadata-checked for every reflected member.
-  Missing or unmatched companion layers preserve the guarded PFT/SAIN/native fallback.
-  No path fakes visibility, teleports, retains bot bodies, or bundles BigBrain.
+  transition. SAIN awareness may use either exact current-body native pair and is aligned
+  with EFT's `GoalEnemy`. A target-only SAIN cache miss remains best effort after the native
+  relation is revalidated; a mismatched SAIN source wrapper still fails closed. An installed
+  SAIN DLL is metadata-checked for every reflected member. A missing or unmatched BigBrain
+  companion is reported and Arena starts no competing mover. No path fakes visibility,
+  teleports, retains bot bodies, or bundles BigBrain.
   CHECK: `dotnet run --project tools/TeamArenaExpansionChecks/TeamArenaExpansionChecks.csproj -c Release`
   EXPECT: `TEAM_ARENA_EXPANSION_CHECKS_PASSED`
   EXPECT WITH SAIN: `SAIN_RUNTIME_CONTRACT_PASSED`
@@ -92,7 +95,8 @@ PitFireTeam teammate store before starting.
   teams actively seek known opponents instead of waiting indefinitely. The round ends
   only when one complete side is eliminated or the existing round timer expires.
   EXPECT LOG: the BigBrain pursuit layer registers once at priority 74; spectator
-  pending/following; post-death pursuit activates; living bots report `bigbrain` routes;
+  pending/following; post-death pursuit activates; living bots report `bigbrain` or
+  `bigbrain-partial` routes;
   no repeated pursuit stall/contract error; and one round result.
 
 - [ ] M9: Let the team finish a round after the PMC died. After the result delay the

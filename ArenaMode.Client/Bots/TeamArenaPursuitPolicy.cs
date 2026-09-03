@@ -11,6 +11,28 @@ internal enum TeamArenaApproachDecision
     InvalidDistance
 }
 
+internal enum TeamArenaSainAwarenessState
+{
+    NotPresent,
+    Exact,
+    TargetUnavailable,
+    SourceIncompatible
+}
+
+internal enum TeamArenaRouteCandidate
+{
+    None,
+    Partial,
+    Complete
+}
+
+internal enum TeamArenaRouteSelection
+{
+    None,
+    Mover,
+    Body
+}
+
 /// <summary>
 /// Pure guard for Arena-owned movement after the local player has died. Combat
 /// actions and short-range engagements keep ownership; only an idle, separated
@@ -76,4 +98,57 @@ internal static class TeamArenaPursuitPolicy
 
         rejectedTargets.Clear();
     }
+
+    /// <summary>
+    /// A partial NavMesh path is still useful when its last corner moves the bot
+    /// farther than the Arena arrival radius. The movement owner receives that
+    /// reachable corner, never the unreachable requested target.
+    /// </summary>
+    internal static bool CanUsePartialRoute(
+        int cornerCount,
+        float squaredAdvanceFromAnchor,
+        float squaredAdvanceFromBody)
+        => cornerCount >= 2
+           && IsUsefulAdvance(squaredAdvanceFromAnchor)
+           && IsUsefulAdvance(squaredAdvanceFromBody);
+
+    internal static TeamArenaRouteSelection SelectRouteCandidate(
+        TeamArenaRouteCandidate mover,
+        float moverSquaredAdvance,
+        TeamArenaRouteCandidate body,
+        float bodySquaredAdvance)
+    {
+        if (mover == TeamArenaRouteCandidate.Complete)
+            return TeamArenaRouteSelection.Mover;
+        if (body == TeamArenaRouteCandidate.Complete)
+            return TeamArenaRouteSelection.Body;
+        if (mover != TeamArenaRouteCandidate.Partial)
+            return body == TeamArenaRouteCandidate.Partial
+                ? TeamArenaRouteSelection.Body
+                : TeamArenaRouteSelection.None;
+        if (body != TeamArenaRouteCandidate.Partial)
+            return TeamArenaRouteSelection.Mover;
+        return bodySquaredAdvance > moverSquaredAdvance
+            ? TeamArenaRouteSelection.Body
+            : TeamArenaRouteSelection.Mover;
+    }
+
+    /// <summary>
+    /// BigBrain only needs the exact native EFT relation to own approach movement.
+    /// A target-specific SAIN cache miss must not leave the bot without any owner;
+    /// an incompatible source wrapper remains unsafe because SAIN resolves sources
+    /// globally by profile ID.
+    /// </summary>
+    internal static bool CanPublishAfterAwareness(
+        TeamArenaSainAwarenessState awareness,
+        bool exactNativeRelation)
+        => exactNativeRelation
+           && (awareness == TeamArenaSainAwarenessState.Exact
+               || awareness == TeamArenaSainAwarenessState.NotPresent
+               || awareness == TeamArenaSainAwarenessState.TargetUnavailable);
+
+    private static bool IsUsefulAdvance(float squaredAdvance)
+        => !float.IsNaN(squaredAdvance)
+           && !float.IsInfinity(squaredAdvance)
+           && squaredAdvance > DestinationReachDistanceMeters * DestinationReachDistanceMeters;
 }

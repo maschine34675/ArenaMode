@@ -11,13 +11,6 @@ using UnityEngine.AI;
 
 namespace ArenaMode.Bots;
 
-internal enum TeamArenaSainAwarenessState
-{
-    NotPresent,
-    Exact,
-    Failed
-}
-
 internal enum TeamArenaSainSourceState
 {
     NotPresent,
@@ -291,17 +284,15 @@ internal static class TeamArenaPursuit
             ref enemyInfo,
             epoch,
             targetProfile);
-        if (sainAwareness == TeamArenaSainAwarenessState.Failed)
-        {
-            TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
-            RejectTargetForCurrentPass(source, nearest, epoch);
-            return;
-        }
-
         // SAIN's stale-wrapper repair is destructive to its associated EFT
         // EnemyInfo. Never publish a lease from the pre-repair snapshot unless
-        // the exact current-round native relation still exists afterward.
-        if (!GoalEnemyMatches(source, nearest, enemyInfo))
+        // the exact current-round native relation still exists afterward. A
+        // target-only SAIN miss is best effort because the exact native relation
+        // and BigBrain consumer can still provide one safe movement owner.
+        bool exactNativeRelation = GoalEnemyMatches(source, nearest, enemyInfo);
+        if (!TeamArenaPursuitPolicy.CanPublishAfterAwareness(
+                sainAwareness,
+                exactNativeRelation))
         {
             TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
             RejectTargetForCurrentPass(source, nearest, epoch);
@@ -336,7 +327,8 @@ internal static class TeamArenaPursuit
         if (!TryBuildRouteDestination(
                 source,
                 nearest,
-                out Vector3 destination))
+                out Vector3 destination,
+                out bool partialRoute))
         {
             TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
             RejectTargetForCurrentPass(source, nearest, epoch);
@@ -372,7 +364,7 @@ internal static class TeamArenaPursuit
                 nearest,
                 destination,
                 epoch);
-            LogRouteOnce(epoch, source, nearest, "bigbrain", bestDistance);
+            LogRouteOnce(epoch, source, nearest, partialRoute ? "bigbrain-partial" : "bigbrain", bestDistance);
             return;
         }
 
@@ -443,6 +435,7 @@ internal static class TeamArenaPursuit
         if (!TryResolveCurrentEnemyRelation(
                 source,
                 target,
+                source?.Memory?.GoalEnemy,
                 out _,
                 out _,
                 out EnemyInfo resolved,
@@ -631,6 +624,7 @@ internal static class TeamArenaPursuit
     private static bool TryResolveCurrentEnemyRelation(
         BotOwner source,
         BotOwner target,
+        EnemyInfo preferredEnemyInfo,
         out IPlayer enemyKey,
         out BotGroupEnemyInfo groupInfo,
         out EnemyInfo enemyInfo,
@@ -654,7 +648,7 @@ internal static class TeamArenaPursuit
             source.EnemiesController.EnemyInfos,
             targetPlayer,
             target,
-            source.Memory?.GoalEnemy,
+            preferredEnemyInfo,
             groupIsValid: (_, candidateGroup) =>
                 ReferenceEquals(candidateGroup?._botGroup, group)
                 && ReferenceEquals(candidateGroup.Player, targetPlayer),
@@ -691,9 +685,11 @@ internal static class TeamArenaPursuit
     private static bool TryBuildRouteDestination(
         BotOwner source,
         BotOwner target,
-        out Vector3 destination)
+        out Vector3 destination,
+        out bool partialRoute)
     {
         destination = Vector3.zero;
+        partialRoute = false;
         if (source?.Mover == null || target == null)
             return false;
 
@@ -725,26 +721,59 @@ internal static class TeamArenaPursuit
             && IsFinite(target.Position)
             && (targetMoverPosition - target.Position).sqrMagnitude
                 <= MoverAnchorToleranceMeters * MoverAnchorToleranceMeters;
-        if (moverAnchorMatchesBody
-            && TryValidateRoute(
+        TeamArenaRouteCandidate moverRoute = TeamArenaRouteCandidate.None;
+        Vector3 moverDestination = Vector3.zero;
+        float moverAdvance = -1f;
+        if (moverAnchorMatchesBody)
+        {
+            moverRoute = TryValidateRoute(
                 sourceHit.position,
+                source.Position,
                 targetMoverPosition,
                 MoverAnchorSampleRadius,
-                out destination))
-        {
-            return true;
+                out moverDestination);
+            if (moverRoute == TeamArenaRouteCandidate.Partial)
+                moverAdvance = (moverDestination - source.Position).sqrMagnitude;
         }
 
-        return IsFinite(target.Position)
-               && TryValidateRoute(
-                   sourceHit.position,
-                   target.Position,
-                   BodyAnchorSampleRadius,
-                   out destination);
+        TeamArenaRouteCandidate bodyRoute = TeamArenaRouteCandidate.None;
+        Vector3 bodyDestination = Vector3.zero;
+        float bodyAdvance = -1f;
+        if (IsFinite(target.Position))
+        {
+            bodyRoute = TryValidateRoute(
+                sourceHit.position,
+                source.Position,
+                target.Position,
+                BodyAnchorSampleRadius,
+                out bodyDestination);
+            if (bodyRoute == TeamArenaRouteCandidate.Partial)
+                bodyAdvance = (bodyDestination - source.Position).sqrMagnitude;
+        }
+
+        TeamArenaRouteSelection selection = TeamArenaPursuitPolicy.SelectRouteCandidate(
+            moverRoute,
+            moverAdvance,
+            bodyRoute,
+            bodyAdvance);
+        if (selection == TeamArenaRouteSelection.Mover)
+        {
+            destination = moverDestination;
+            partialRoute = moverRoute == TeamArenaRouteCandidate.Partial;
+            return true;
+        }
+        if (selection == TeamArenaRouteSelection.Body)
+        {
+            destination = bodyDestination;
+            partialRoute = bodyRoute == TeamArenaRouteCandidate.Partial;
+            return true;
+        }
+        return false;
     }
 
-    private static bool TryValidateRoute(
-        Vector3 source,
+    private static TeamArenaRouteCandidate TryValidateRoute(
+        Vector3 sourceAnchor,
+        Vector3 sourceBody,
         Vector3 candidate,
         float sampleRadius,
         out Vector3 destination)
@@ -752,27 +781,50 @@ internal static class TeamArenaPursuit
         destination = Vector3.zero;
         if (!TrySampleAnchor(candidate, sampleRadius, out NavMeshHit targetHit))
         {
-            return false;
+            return TeamArenaRouteCandidate.None;
         }
 
-        if (!NavMesh.CalculatePath(source, targetHit.position, NavMesh.AllAreas, RoutePath)
-            || RoutePath.status != NavMeshPathStatus.PathComplete)
+        if (!NavMesh.CalculatePath(sourceAnchor, targetHit.position, NavMesh.AllAreas, RoutePath))
         {
-            return false;
+            return TeamArenaRouteCandidate.None;
         }
 
         Vector3[] corners = RoutePath.corners;
-        if (corners == null
-            || (corners.Length < 2
-                && (targetHit.position - source).sqrMagnitude
-                    > TeamArenaPursuitPolicy.DestinationReachDistanceMeters
-                      * TeamArenaPursuitPolicy.DestinationReachDistanceMeters))
+        if (RoutePath.status == NavMeshPathStatus.PathComplete)
         {
-            return false;
+            if (corners == null
+                || (corners.Length < 2
+                    && (targetHit.position - sourceAnchor).sqrMagnitude
+                        > TeamArenaPursuitPolicy.DestinationReachDistanceMeters
+                          * TeamArenaPursuitPolicy.DestinationReachDistanceMeters))
+            {
+                return TeamArenaRouteCandidate.None;
+            }
+
+            destination = targetHit.position;
+            return IsFinite(destination)
+                ? TeamArenaRouteCandidate.Complete
+                : TeamArenaRouteCandidate.None;
         }
 
-        destination = targetHit.position;
-        return IsFinite(destination);
+        if (RoutePath.status != NavMeshPathStatus.PathPartial
+            || corners == null
+            || !TeamArenaPursuitPolicy.CanUsePartialRoute(
+                corners.Length,
+                (corners[corners.Length - 1] - sourceAnchor).sqrMagnitude,
+                (corners[corners.Length - 1] - sourceBody).sqrMagnitude))
+        {
+            return TeamArenaRouteCandidate.None;
+        }
+
+        // The last partial corner is on the source's reachable NavMesh island.
+        // Publishing the original target would make GoToPoint reject the lease;
+        // publishing this corner lets the bot close distance and re-probe from a
+        // new position on the next bounded sweep.
+        destination = corners[corners.Length - 1];
+        return IsFinite(destination)
+            ? TeamArenaRouteCandidate.Partial
+            : TeamArenaRouteCandidate.None;
     }
 
     private static bool TryCalculateRouteDistance(
@@ -904,6 +956,7 @@ internal static class TeamArenaPursuit
         int epoch,
         string targetProfile)
     {
+        bool exactSourceEstablished = false;
         try
         {
             if (targetOwner?.GetPlayer == null
@@ -911,7 +964,7 @@ internal static class TeamArenaPursuit
                 || expectedNativeEnemy == null
                 || !ReferenceEquals(expectedNativeEnemy.Person, targetPerson))
             {
-                return TeamArenaSainAwarenessState.Failed;
+                return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
             TeamArenaSainSourceState sourceState = TryGetExactSainBot(
@@ -923,21 +976,25 @@ internal static class TeamArenaPursuit
             if (sourceState != TeamArenaSainSourceState.Exact)
             {
                 LogSainIdentityRejectedOnce(epoch, source, targetProfile);
-                return TeamArenaSainAwarenessState.Failed;
+                return TeamArenaSainAwarenessState.SourceIncompatible;
             }
+            exactSourceEstablished = true;
 
             object enemyController = _sainEnemyController.GetValue(sainBot);
             if (enemyController == null)
-                return TeamArenaSainAwarenessState.Failed;
+                return TeamArenaSainAwarenessState.SourceIncompatible;
 
             EnemyInfo currentNativeEnemy = expectedNativeEnemy;
+            EnemyInfo exactSainNativeEnemy = null;
             TeamArenaSainRebindOutcome outcome = TeamArenaSainRebindTransaction.TryEnsureExact(
                 resolveOrCreate: () => _sainCheckAddEnemy.Invoke(
                     enemyController,
                     new object[] { currentNativeEnemy.Person }),
-                isExact: candidate =>
-                    ReferenceEquals(_sainEnemyInfo.GetValue(candidate), currentNativeEnemy)
-                    && ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), targetOwner.GetPlayer),
+                isExact: candidate => IsExactCurrentSainEnemy(
+                    candidate,
+                    source,
+                    targetOwner,
+                    out exactSainNativeEnemy),
                 removeStale: () => _sainRemoveEnemy.Invoke(
                     enemyController,
                     new object[] { targetProfile }),
@@ -954,12 +1011,31 @@ internal static class TeamArenaPursuit
                     return true;
                 },
                 out object enemy);
-            expectedNativeEnemy = currentNativeEnemy;
             if (outcome != TeamArenaSainRebindOutcome.ExactExisting
                 && outcome != TeamArenaSainRebindOutcome.ExactRebuilt)
             {
+                expectedNativeEnemy = currentNativeEnemy;
                 LogSainIdentityRejectedOnce(epoch, source, targetProfile);
-                return TeamArenaSainAwarenessState.Failed;
+                return TeamArenaSainAwarenessState.TargetUnavailable;
+            }
+
+            if (exactSainNativeEnemy == null || source.Memory == null)
+            {
+                expectedNativeEnemy = currentNativeEnemy;
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                return TeamArenaSainAwarenessState.TargetUnavailable;
+            }
+
+            // Keep SAIN and EFT on the same one of the two valid current-body
+            // pairs. Otherwise visibility on one pair and CanShoot on the other
+            // can make each system believe the other owns combat.
+            currentNativeEnemy = exactSainNativeEnemy;
+            source.Memory.GoalEnemy = currentNativeEnemy;
+            expectedNativeEnemy = currentNativeEnemy;
+            if (!GoalEnemyMatches(source, targetOwner, currentNativeEnemy))
+            {
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
             _sainUpdateLastSeen.Invoke(enemy, new object[] { targetOwner.Position, Time.time });
@@ -967,7 +1043,7 @@ internal static class TeamArenaPursuit
             if (!ReferenceEquals(_sainGoalEnemy.GetValue(enemyController), enemy))
             {
                 LogSainIdentityRejectedOnce(epoch, source, targetProfile);
-                return TeamArenaSainAwarenessState.Failed;
+                return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
             return TeamArenaSainAwarenessState.Exact;
@@ -975,8 +1051,50 @@ internal static class TeamArenaPursuit
         catch (Exception ex)
         {
             LogOnce(epoch, source, targetProfile, "sain-awareness", ex);
-            return TeamArenaSainAwarenessState.Failed;
+            return exactSourceEstablished
+                ? TeamArenaSainAwarenessState.TargetUnavailable
+                : TeamArenaSainAwarenessState.SourceIncompatible;
         }
+    }
+
+    private static bool IsExactCurrentSainEnemy(
+        object candidate,
+        BotOwner source,
+        BotOwner target,
+        out EnemyInfo wrappedNativeEnemy)
+    {
+        wrappedNativeEnemy = null;
+        if (candidate == null
+            || source == null
+            || target?.GetPlayer == null
+            || !ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), target.GetPlayer)
+            || _sainEnemyInfo.GetValue(candidate) is not EnemyInfo candidateNativeEnemy)
+        {
+            return false;
+        }
+
+        // EFT can validly hold both a Player-keyed and a BotOwner-keyed enemy
+        // pair for one AI body. SAIN often observes the BotOwner pair first,
+        // while Arena establishes the canonical Player pair. Treat either pair
+        // as current only when every concrete object still belongs to this exact
+        // source, group and live target body. Requiring the same EnemyInfo object
+        // across both systems caused us to tear down a valid same-round wrapper.
+        if (!TryResolveCurrentEnemyRelation(
+                source,
+                target,
+                candidateNativeEnemy,
+                out _,
+                out _,
+                out EnemyInfo registered,
+                out bool hasEnemyInfo)
+            || !hasEnemyInfo
+            || !ReferenceEquals(registered, candidateNativeEnemy))
+        {
+            return false;
+        }
+
+        wrappedNativeEnemy = candidateNativeEnemy;
+        return true;
     }
 
     private static TeamArenaSainSourceState TryGetExactSainBot(
@@ -1174,7 +1292,7 @@ internal static class TeamArenaPursuit
             return;
 
         Plugin.ModLogger.LogWarning(
-            $"Team Arena pursuit {adapter} could not obtain a complete route for {Describe(source)} "
+            $"Team Arena pursuit {adapter} could not obtain a usable complete or advancing partial route for {Describe(source)} "
             + $"toward '{target?.Profile?.Nickname ?? "?"}' in round epoch {epoch}; another live target will be tried.");
     }
 
@@ -1204,8 +1322,8 @@ internal static class TeamArenaPursuit
             return;
 
         Plugin.ModLogger.LogWarning(
-            $"Team Arena left SAIN awareness unchanged for {Describe(source)} because its cached "
-            + $"enemy '{targetProfile ?? "?"}' belongs to another EFT body or round.");
+            $"Team Arena could not bind SAIN awareness for {Describe(source)} to the exact live "
+            + $"enemy '{targetProfile ?? "?"}'; Arena will continue only if the exact native EFT relation remains valid.");
     }
 
     private static void LogOwnerUnavailableOnce(
