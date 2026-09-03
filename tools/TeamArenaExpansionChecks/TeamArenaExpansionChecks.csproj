@@ -12,9 +12,17 @@
              Link="Production/TeamArenaRoundPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPursuitPolicy.cs"
              Link="Production/TeamArenaPursuitPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamArenaEnemyIdentityPolicy.cs"
+             Link="Production/TeamArenaEnemyIdentityPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPftLeasePolicy.cs"
              Link="Production/TeamArenaPftLeasePolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamArenaPursuitOwnerPolicy.cs"
              Link="Production/TeamArenaPursuitOwnerPolicy.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Cecil">
+      <HintPath>../../../../BepInEx/core/Mono.Cecil.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 </Project>

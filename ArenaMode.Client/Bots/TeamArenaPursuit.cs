@@ -26,6 +26,7 @@ internal static class TeamArenaPursuit
     private static readonly HashSet<string> LoggedFailures = new(StringComparer.Ordinal);
     private static readonly HashSet<string> LoggedRoutes = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, string> KnownTargetsBySource = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, WeakReference<EnemyInfo>> SainAwarenessBySource = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, string> PftPushTargetsBySource = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, PftPushLease> PftPushLeasesBySource = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, PftTacticalLease> PftTacticalLeasesBySource = new(StringComparer.Ordinal);
@@ -43,7 +44,6 @@ internal static class TeamArenaPursuit
     private static bool _pftAssemblyDetected;
     private static PropertyInfo _pftCombatEnabled;
     private static PropertyInfo _pftRuntimeCallbacks;
-    private static MethodInfo _pftSyncEnemy;
     private static PropertyInfo _pftBossPlayersInstance;
     private static MethodInfo _pftGetFollower;
     private static MethodInfo _pftGetFollowerByProfileId;
@@ -71,6 +71,7 @@ internal static class TeamArenaPursuit
     private static PropertyInfo _sainNavMeshPosition;
     private static MethodInfo _sainCheckAddEnemy;
     private static PropertyInfo _sainGoalEnemy;
+    private static PropertyInfo _sainEnemyInfo;
     private static MethodInfo _sainUpdateLastSeen;
     private static MethodInfo _sainSetInCombat;
     private static MethodInfo _sainRunToPoint;
@@ -197,7 +198,8 @@ internal static class TeamArenaPursuit
 
     /// <summary>
     /// Called only after Tactical has validated both fixed rosters and their
-    /// hostility matrix. Only profile IDs, timers and value snapshots survive a sweep.
+    /// hostility matrix. Only profile IDs, timers, value snapshots and weak
+    /// identity references survive a sweep.
     /// </summary>
     public static void Tick(
         int epoch,
@@ -352,7 +354,7 @@ internal static class TeamArenaPursuit
         EnemyInfo enemyInfo;
         try
         {
-            if (!RefreshNative(source, nearest.GetPlayer, out enemyInfo))
+            if (!RefreshNative(source, nearest, out enemyInfo))
             {
                 TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
                 RejectTargetForCurrentPass(source, nearest, epoch);
@@ -368,26 +370,32 @@ internal static class TeamArenaPursuit
             return;
         }
 
-        bool targetChanged = !KnownTargetsBySource.TryGetValue(sourceProfile, out string knownTarget)
-            || !string.Equals(knownTarget, targetProfile, StringComparison.Ordinal);
         KnownTargetsBySource[sourceProfile] = targetProfile;
 
-        // An awareness bridge is only refreshed when the nearest identity
-        // changes. Updating SAIN's last-seen timestamp every second kept an
-        // unseen contact perpetually fresh and could prevent its search logic.
-        if (targetChanged)
+        bool sainNeedsSync = !SainAwarenessBySource.TryGetValue(
+                sourceProfile,
+                out WeakReference<EnemyInfo> syncedReference)
+            || !syncedReference.TryGetTarget(out EnemyInfo syncedEnemy)
+            || !ReferenceEquals(syncedEnemy, enemyInfo);
+        if (sainNeedsSync
+            && TryRefreshSain(
+                source,
+                enemyInfo.Person,
+                enemyInfo,
+                epoch,
+                targetProfile))
         {
-            if (follower)
-                TryRefreshPft(source, nearest.GetPlayer, epoch, targetProfile);
-            else
-                TryRefreshSain(source, nearest.GetPlayer, epoch, targetProfile);
+            // Do not refresh a successfully bound unseen contact every second;
+            // that would keep SAIN's search lifetime artificially fresh. A
+            // stale profile cache remains retryable until the exact body binds.
+            SainAwarenessBySource[sourceProfile] = new WeakReference<EnemyInfo>(enemyInfo);
         }
 
         TeamArenaApproachDecision decision = TeamArenaPursuitPolicy.Decide(
             bestDistance,
             enemyInfo.IsVisible,
             enemyInfo.CanShoot,
-            HasPendingMedicalWork(source),
+            IsMedicalActionActive(source),
             source.WeaponManager?.Reload?.Reloading == true,
             source.WeaponManager?.Grenades?.ThrowindNow == true,
             source.DoorOpener?.Interacting == true,
@@ -559,12 +567,11 @@ internal static class TeamArenaPursuit
         EnemyInfo current = source?.Memory?.GoalEnemy;
         if (current?.IsVisible == true && current.CanShoot == true && current.Person != null)
         {
-            string currentProfile = current.Person.ProfileId;
             foreach (var candidate in candidates)
             {
-                if (candidate?.GetPlayer != null
-                    && (ReferenceEquals(candidate.GetPlayer, current.Person)
-                        || string.Equals(candidate.ProfileId, currentProfile, StringComparison.Ordinal)))
+                if (IsCurrentTargetPerson(current.Person, candidate)
+                    && TryResolveRegisteredEnemy(source, candidate, out EnemyInfo registered)
+                    && ReferenceEquals(current, registered))
                 {
                     return candidate;
                 }
@@ -579,8 +586,7 @@ internal static class TeamArenaPursuit
 
         foreach (var candidate in candidates)
         {
-            if (candidate?.GetPlayer == null
-                || !knownEnemies.TryGetValue(candidate.GetPlayer, out EnemyInfo enemy)
+            if (!TryResolveRegisteredEnemy(source, candidate, out EnemyInfo enemy)
                 || enemy?.IsVisible != true
                 || enemy.CanShoot != true)
             {
@@ -599,6 +605,39 @@ internal static class TeamArenaPursuit
         }
 
         return selected;
+    }
+
+    private static bool TryResolveRegisteredEnemy(
+        BotOwner source,
+        BotOwner target,
+        out EnemyInfo enemyInfo)
+    {
+        enemyInfo = null;
+        if (target?.GetPlayer == null
+            || !TeamArenaEnemyIdentityPolicy.TryResolve(
+                source?.BotsGroup?.Enemies,
+                source?.EnemiesController?.EnemyInfos,
+                target.GetPlayer,
+                target,
+                source?.Memory?.GoalEnemy,
+                out IPlayer enemyKey,
+                out BotGroupEnemyInfo groupInfo,
+                out EnemyInfo resolved,
+                out bool hasEnemyInfo)
+            || !hasEnemyInfo
+            || resolved == null
+            || !ReferenceEquals(resolved.Person, enemyKey)
+            || !ReferenceEquals(resolved.GroupInfo, groupInfo)
+            || !ReferenceEquals(resolved.Owner, source)
+            || !ReferenceEquals(resolved.GroupOwner, source.BotsGroup)
+            || !ReferenceEquals(groupInfo._botGroup, source.BotsGroup)
+            || !ReferenceEquals(groupInfo.Player, target.GetPlayer))
+        {
+            return false;
+        }
+
+        enemyInfo = resolved;
+        return true;
     }
 
     private static BotOwner SelectRetainedTarget(
@@ -666,42 +705,82 @@ internal static class TeamArenaPursuit
         NextSainMoveBySource.Remove(sourceProfile);
     }
 
-    private static bool RefreshNative(BotOwner source, Player target, out EnemyInfo enemyInfo)
+    private static bool RefreshNative(BotOwner source, BotOwner target, out EnemyInfo enemyInfo)
     {
         enemyInfo = null;
         var group = source?.BotsGroup;
         if (group == null
             || target == null
-            || target.HealthController?.IsAlive != true
+            || target.GetPlayer == null
+            || target.GetPlayer.HealthController?.IsAlive != true
             || source.Memory == null
             || source.EnemiesController == null)
         {
             return false;
         }
 
-        if (!group.IsEnemy(target))
-            group.AddEnemy(target, EBotEnemyCause.bossKillArena);
+        IPlayer playerKey = target.GetPlayer;
+        IPlayer ownerKey = target;
+        bool hasCurrentGroupKey = TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
+                group.Enemies,
+                playerKey)
+            || TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
+                group.Enemies,
+                ownerKey);
+        if (!hasCurrentGroupKey)
+            group.AddEnemy(playerKey, EBotEnemyCause.bossKillArena);
 
-        if (!group.IsEnemy(target)
-            || group.Enemies == null
-            || !group.Enemies.TryGetValue(target, out var info)
-            || info == null)
+        if (!TeamArenaEnemyIdentityPolicy.TryResolve(
+                group.Enemies,
+                source.EnemiesController.EnemyInfos,
+                playerKey,
+                ownerKey,
+                source.Memory.GoalEnemy,
+                out IPlayer enemyKey,
+                out BotGroupEnemyInfo groupInfo,
+                out enemyInfo,
+                out bool hasEnemyInfo)
+            || !ReferenceEquals(groupInfo._botGroup, group)
+            || !ReferenceEquals(groupInfo.Player, target.GetPlayer))
         {
             return false;
         }
 
-        group.ReportAboutEnemy(target, EEnemyPartVisibleType.Sence, source);
-        info.IsLastPositionChecked = false;
+        // PitFireTeam registers AI bodies as BotOwner while EFT's alive-player
+        // lookup returns their separate Player objects. BotsGroup.IsEnemy hides
+        // that distinction by comparing IDs, but both dictionaries use exact
+        // IPlayer object keys. Continue with the key that is actually registered.
+        group.ReportAboutEnemy(enemyKey, EEnemyPartVisibleType.Sence, source);
+        groupInfo.IsLastPositionChecked = false;
 
-        if (!source.EnemiesController.EnemyInfos.TryGetValue(target, out enemyInfo)
-            || enemyInfo == null)
+        if (!hasEnemyInfo)
         {
-            source.Memory.AddEnemy(target, info, onActivation: false);
-            if (!source.EnemiesController.EnemyInfos.TryGetValue(target, out enemyInfo)
-                || enemyInfo == null)
+            source.Memory.AddEnemy(enemyKey, groupInfo, onActivation: false);
+            if (!TeamArenaEnemyIdentityPolicy.TryResolve(
+                    group.Enemies,
+                    source.EnemiesController.EnemyInfos,
+                    playerKey,
+                    ownerKey,
+                    source.Memory.GoalEnemy,
+                    out IPlayer reboundKey,
+                    out BotGroupEnemyInfo reboundGroupInfo,
+                    out enemyInfo,
+                    out hasEnemyInfo)
+                || !hasEnemyInfo
+                || !ReferenceEquals(reboundKey, enemyKey)
+                || !ReferenceEquals(reboundGroupInfo, groupInfo))
             {
                 return false;
             }
+        }
+
+        if (enemyInfo == null
+            || !ReferenceEquals(enemyInfo.Person, enemyKey)
+            || !ReferenceEquals(enemyInfo.GroupInfo, groupInfo)
+            || !ReferenceEquals(enemyInfo.Owner, source)
+            || !ReferenceEquals(enemyInfo.GroupOwner, group))
+        {
+            return false;
         }
 
         enemyInfo.IgnoreUntilAggression = false;
@@ -710,17 +789,24 @@ internal static class TeamArenaPursuit
         return GoalEnemyMatches(source, target, enemyInfo);
     }
 
-    private static bool GoalEnemyMatches(BotOwner source, Player target, EnemyInfo expected = null)
+    private static bool GoalEnemyMatches(BotOwner source, BotOwner target, EnemyInfo expected = null)
     {
         EnemyInfo actual = source?.Memory?.GoalEnemy;
         return actual != null
-            && (ReferenceEquals(actual, expected)
-                || ReferenceEquals(actual.Person, target)
-                || string.Equals(
-                    actual.Person?.ProfileId,
-                    target?.ProfileId,
-                    StringComparison.Ordinal));
+            && TryResolveRegisteredEnemy(source, target, out EnemyInfo registered)
+            && ReferenceEquals(actual, registered)
+            && IsCurrentTargetPerson(actual.Person, target)
+            && (expected == null || ReferenceEquals(actual, expected));
     }
+
+    private static bool IsCurrentTargetPerson(IPlayer person, BotOwner target)
+        => person != null
+           && target != null
+           && (ReferenceEquals(person, target)
+               || ReferenceEquals(person, target.GetPlayer)
+               || (person.Id == target.Id
+                   && string.Equals(person.ProfileId, target.ProfileId, StringComparison.Ordinal)
+                   && ReferenceEquals(person.AIData?.BotOwner, target)));
 
     private static bool PreparePftTargetSwitch(BotOwner source, BotOwner target, int epoch)
     {
@@ -880,7 +966,7 @@ internal static class TeamArenaPursuit
             if (follower == null)
                 return _pftAssemblyDetected ? PftPushResult.Rejected : PftPushResult.Unavailable;
 
-            if (!GoalEnemyMatches(source, target.GetPlayer))
+            if (!GoalEnemyMatches(source, target))
                 throw new InvalidOperationException(
                     $"PitFireTeam follower GoalEnemy did not bind requested profile '{targetProfile}'.");
 
@@ -1340,42 +1426,41 @@ internal static class TeamArenaPursuit
             towardTarget.normalized);
     }
 
-    private static void TryRefreshPft(BotOwner source, Player target, int epoch, string targetProfile)
+    private static bool TryRefreshSain(
+        BotOwner source,
+        IPlayer target,
+        EnemyInfo expectedNativeEnemy,
+        int epoch,
+        string targetProfile)
     {
         try
         {
-            ResolvePftBridge();
-            if (_pftSyncEnemy == null
-                || _pftCombatEnabled?.GetValue(null) is not bool enabled
-                || !enabled
-                || _pftRuntimeCallbacks?.GetValue(null) is not bool callbacks
-                || !callbacks)
+            if (target == null
+                || expectedNativeEnemy == null
+                || !ReferenceEquals(expectedNativeEnemy.Person, target))
             {
-                return;
+                return false;
             }
 
-            _pftSyncEnemy.Invoke(null, new object[] { source, target, true });
-        }
-        catch (Exception ex)
-        {
-            LogOnce(epoch, source, targetProfile, "pft-sain-awareness", ex);
-        }
-    }
-
-    private static void TryRefreshSain(BotOwner source, Player target, int epoch, string targetProfile)
-    {
-        try
-        {
             if (!TryGetSainBot(source, out object sainBot))
-                return;
+                return false;
 
             object enemyController = _sainEnemyController.GetValue(sainBot);
             if (enemyController == null)
-                return;
+                return false;
 
             object enemy = _sainCheckAddEnemy.Invoke(enemyController, new object[] { target });
             if (enemy == null)
-                return;
+                return false;
+
+            // SAIN caches enemies by ProfileId and may return an old round's
+            // wrapper before consulting EFT's exact IPlayer-keyed dictionary.
+            // Never point SAIN at that stale object or refresh its lifetime.
+            if (!ReferenceEquals(_sainEnemyInfo.GetValue(enemy), expectedNativeEnemy))
+            {
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                return false;
+            }
 
             _sainUpdateLastSeen.Invoke(enemy, new object[] { target.Position, Time.time });
             _sainGoalEnemy.GetSetMethod(nonPublic: true)?.Invoke(enemyController, new[] { enemy });
@@ -1385,10 +1470,13 @@ internal static class TeamArenaPursuit
             {
                 _sainSetInCombat.Invoke(activation, new object[] { true });
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             LogOnce(epoch, source, targetProfile, "sain-awareness", ex);
+            return false;
         }
     }
 
@@ -1662,12 +1750,6 @@ internal static class TeamArenaPursuit
             _pftRuntimeCallbacks = addonType.GetProperty(
                 "HasRuntimeCallbacks",
                 BindingFlags.Public | BindingFlags.Static);
-            _pftSyncEnemy = addonType.GetMethod(
-                "TrySyncEnemyState",
-                BindingFlags.Public | BindingFlags.Static,
-                null,
-                new[] { typeof(BotOwner), typeof(Player), typeof(bool) },
-                null);
         }
 
         var bossPlayersType = FindType("pitTeam.Modules.BossPlayers", "pitFireTeam");
@@ -1814,6 +1896,7 @@ internal static class TeamArenaPursuit
         _sainCheckAddEnemy = controllerType?.GetMethod("CheckAddEnemy", new[] { typeof(IPlayer) });
         _sainGoalEnemy = controllerType?.GetProperty("GoalEnemy", BindingFlags.Public | BindingFlags.Instance);
         var enemyType = _sainCheckAddEnemy?.ReturnType;
+        _sainEnemyInfo = enemyType?.GetProperty("EnemyInfo", BindingFlags.Public | BindingFlags.Instance);
         _sainUpdateLastSeen = enemyType?.GetMethod(
             "UpdateLastSeenPosition",
             new[] { typeof(Vector3), typeof(float) });
@@ -1847,6 +1930,7 @@ internal static class TeamArenaPursuit
             || _sainNavMeshPosition == null
             || _sainCheckAddEnemy == null
             || _sainGoalEnemy?.GetSetMethod(nonPublic: true) == null
+            || _sainEnemyInfo == null
             || _sainUpdateLastSeen == null
             || _sainSetInCombat == null
             || _sainRunToPoint == null
@@ -1883,22 +1967,13 @@ internal static class TeamArenaPursuit
            || source?.ArtilleryDangerPlace?.ShallRunAway() == true
            || source?.FlashGrenade?.IsFlashed == true;
 
-    private static bool HasPendingMedicalWork(BotOwner source)
-    {
-        if (source?.Medecine == null)
-            return false;
-
-        BotLogicDecision decision = source.Brain?.Agent?.LastResult().Action
-            ?? BotLogicDecision.holdPosition;
-        return source.Medecine.Using
-               || source.Medecine.FirstAid?.Have2Do == true
-               || source.Medecine.FirstAid?.Using == true
-               || source.Medecine.SurgicalKit?.HaveWork == true
-               || source.Medecine.SurgicalKit?.Using == true
-               || source.Medecine.Stimulators?.Using == true
-               || decision == BotLogicDecision.heal
-               || decision == BotLogicDecision.healStimulators;
-    }
+    // Child Using means a medical hands operation is active. Aggregate Using,
+    // the available-work flags and the last brain decision can all remain stale
+    // after cancellation and must not strand a surviving bot.
+    private static bool IsMedicalActionActive(BotOwner source)
+        => source?.Medecine?.FirstAid?.Using == true
+           || source?.Medecine?.SurgicalKit?.Using == true
+           || source?.Medecine?.Stimulators?.Using == true;
 
     private static void LogRouteOnce(
         int epoch,
@@ -1946,6 +2021,21 @@ internal static class TeamArenaPursuit
         Plugin.ModLogger.LogWarning(
             $"Team Arena pursuit could not register '{target?.Profile?.Nickname ?? "?"}' as a live enemy "
             + $"for {Describe(source)} in round epoch {epoch}; another live target will be tried.");
+    }
+
+    private static void LogSainIdentityRejectedOnce(
+        int epoch,
+        BotOwner source,
+        string targetProfile)
+    {
+        string key = epoch + ":" + (source?.ProfileId ?? "?") + ":"
+            + (targetProfile ?? "?") + ":sain-awareness:stale";
+        if (!LoggedFailures.Add(key))
+            return;
+
+        Plugin.ModLogger.LogWarning(
+            $"Team Arena left SAIN awareness unchanged for {Describe(source)} because its cached "
+            + $"enemy '{targetProfile ?? "?"}' belongs to another EFT body or round.");
     }
 
     private static void LogOwnerUnavailableOnce(
@@ -2098,6 +2188,7 @@ internal static class TeamArenaPursuit
         LoggedFailures.Clear();
         LoggedRoutes.Clear();
         KnownTargetsBySource.Clear();
+        SainAwarenessBySource.Clear();
         PftPushTargetsBySource.Clear();
         PftPushLeasesBySource.Clear();
         PftTacticalLeasesBySource.Clear();
@@ -2115,7 +2206,6 @@ internal static class TeamArenaPursuit
         _pftAssemblyDetected = false;
         _pftCombatEnabled = null;
         _pftRuntimeCallbacks = null;
-        _pftSyncEnemy = null;
         _pftBossPlayersInstance = null;
         _pftGetFollower = null;
         _pftGetFollowerByProfileId = null;
@@ -2147,6 +2237,7 @@ internal static class TeamArenaPursuit
         _sainNavMeshPosition = null;
         _sainCheckAddEnemy = null;
         _sainGoalEnemy = null;
+        _sainEnemyInfo = null;
         _sainUpdateLastSeen = null;
         _sainSetInCombat = null;
         _sainRunToPoint = null;

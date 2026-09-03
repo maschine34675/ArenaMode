@@ -1,6 +1,7 @@
 using ArenaMode.Modes;
 using ArenaMode.Spectator;
 using ArenaMode.Bots;
+using Mono.Cecil;
 
 internal static class Program
 {
@@ -15,9 +16,11 @@ internal static class Program
             CheckTargetCycling();
             CheckRoundContinuation();
             CheckPursuitPolicy();
+            CheckEnemyIdentityPolicy();
             CheckPursuitOwnerPolicy();
             CheckPftLeasePolicy();
             CheckSourceContract();
+            CheckInstalledSainContract();
             Console.WriteLine($"TEAM_ARENA_EXPANSION_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -207,6 +210,390 @@ internal static class Program
         TeamArenaPursuitPolicy.PrepareRejectedTargetPass(rejectedTargets, liveTargets);
         Assert(rejectedTargets.Count == 0,
             "dead pursuit identities are pruned without excluding a live target");
+    }
+
+    private static void CheckEnemyIdentityPolicy()
+    {
+        var player = new IdentityKey("target");
+        var owner = new IdentityKey("target");
+        var unrelatedEquivalent = new IdentityKey("target");
+        var playerGroup = new object();
+        var ownerGroup = new object();
+        var playerEnemy = new object();
+        var ownerEnemy = new object();
+        var unrelatedEnemy = new object();
+
+        AssertIdentityResolved(
+            new Dictionary<IdentityKey, object> { [player] = playerGroup },
+            new Dictionary<IdentityKey, object>(),
+            player,
+            owner,
+            player,
+            playerGroup,
+            null,
+            hasEnemy: false,
+            "a Player-only group entry can receive its first matching memory entry");
+        AssertIdentityResolved(
+            new Dictionary<IdentityKey, object> { [owner] = ownerGroup },
+            new Dictionary<IdentityKey, object>(),
+            player,
+            owner,
+            owner,
+            ownerGroup,
+            null,
+            hasEnemy: false,
+            "a BotOwner-only group entry resolves the live wrapper used by PitFireTeam");
+        AssertIdentityResolved(
+            new Dictionary<IdentityKey, object> { [player] = playerGroup },
+            new Dictionary<IdentityKey, object> { [player] = playerEnemy },
+            player,
+            owner,
+            player,
+            playerGroup,
+            playerEnemy,
+            hasEnemy: true,
+            "a coherent Player-keyed group and memory pair is retained");
+        AssertIdentityResolved(
+            new Dictionary<IdentityKey, object> { [owner] = ownerGroup },
+            new Dictionary<IdentityKey, object> { [owner] = ownerEnemy },
+            player,
+            owner,
+            owner,
+            ownerGroup,
+            ownerEnemy,
+            hasEnemy: true,
+            "a coherent BotOwner-keyed group and memory pair is retained");
+        AssertIdentityResolved(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object> { [owner] = ownerEnemy },
+            player,
+            owner,
+            owner,
+            ownerGroup,
+            ownerEnemy,
+            hasEnemy: true,
+            "existing memory selects its matching BotOwner key when both group wrappers exist");
+        AssertIdentityResolved(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object> { [player] = playerEnemy },
+            player,
+            owner,
+            player,
+            playerGroup,
+            playerEnemy,
+            hasEnemy: true,
+            "existing memory selects its matching Player key when both group wrappers exist");
+
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object> { [owner] = ownerGroup },
+            new Dictionary<IdentityKey, object> { [player] = playerEnemy },
+            player,
+            owner,
+            "a Player-memory/BotOwner-group split fails closed");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object> { [player] = playerGroup },
+            new Dictionary<IdentityKey, object> { [owner] = ownerEnemy },
+            player,
+            owner,
+            "a BotOwner-memory/Player-group split fails closed");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object>(),
+            new Dictionary<IdentityKey, object>(),
+            player,
+            owner,
+            "missing current-body keys fail closed");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object> { [player] = null! },
+            new Dictionary<IdentityKey, object>(),
+            player,
+            owner,
+            "a null group value fails closed");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object> { [unrelatedEquivalent] = playerGroup },
+            new Dictionary<IdentityKey, object>(),
+            player,
+            owner,
+            "an equal-looking stale wrapper cannot impersonate either current body object");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            "two complete wrapper pairs are ambiguous without an explicit current goal");
+        AssertPreferredIdentityResolved(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            playerEnemy,
+            player,
+            playerGroup,
+            "an exact Player GoalEnemy disambiguates two complete wrapper pairs");
+        AssertPreferredIdentityResolved(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            ownerEnemy,
+            owner,
+            ownerGroup,
+            "an exact BotOwner GoalEnemy disambiguates two complete wrapper pairs");
+        AssertPreferredIdentityRejected(
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerGroup,
+                [owner] = ownerGroup,
+            },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            unrelatedEnemy,
+            "a foreign GoalEnemy cannot disambiguate two complete wrapper pairs");
+        AssertPreferredIdentityResolved(
+            new Dictionary<IdentityKey, object> { [player] = playerGroup },
+            new Dictionary<IdentityKey, object> { [player] = playerEnemy },
+            player,
+            owner,
+            unrelatedEnemy,
+            player,
+            playerGroup,
+            playerEnemy,
+            "one coherent pair remains usable when the current GoalEnemy points elsewhere");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object> { [player] = playerGroup },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            "a coherent Player pair plus orphaned BotOwner memory fails closed");
+        AssertIdentityRejected(
+            new Dictionary<IdentityKey, object> { [owner] = ownerGroup },
+            new Dictionary<IdentityKey, object>
+            {
+                [player] = playerEnemy,
+                [owner] = ownerEnemy,
+            },
+            player,
+            owner,
+            "a coherent BotOwner pair plus orphaned Player memory fails closed");
+
+        Assert(TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
+                   new Dictionary<IdentityKey, object> { [player] = playerGroup },
+                   player)
+               && !TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
+                   new Dictionary<IdentityKey, object> { [unrelatedEquivalent] = playerGroup },
+                   player),
+            "current wrapper detection ignores an equal-looking third wrapper");
+
+        var valueEqualPlayer = new ValueEqualIdentityKey("target");
+        var valueEqualOwner = new ValueEqualIdentityKey("owner");
+        var valueEqualStale = new ValueEqualIdentityKey("target");
+        bool valueEqualResolved = TeamArenaEnemyIdentityPolicy.TryResolve(
+            new Dictionary<ValueEqualIdentityKey, object> { [valueEqualStale] = playerGroup },
+            new Dictionary<ValueEqualIdentityKey, object>(),
+            valueEqualPlayer,
+            valueEqualOwner,
+            out _,
+            out _,
+            out _,
+            out _);
+        Assert(!valueEqualResolved
+               && !TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
+                   new Dictionary<ValueEqualIdentityKey, object> { [valueEqualStale] = playerGroup },
+                   valueEqualPlayer),
+            "dictionary value equality cannot impersonate an exact current wrapper reference");
+    }
+
+    private static void AssertIdentityResolved(
+        IReadOnlyDictionary<IdentityKey, object> group,
+        IReadOnlyDictionary<IdentityKey, object> memory,
+        IdentityKey player,
+        IdentityKey owner,
+        IdentityKey expectedKey,
+        object expectedGroup,
+        object? expectedEnemy,
+        bool hasEnemy,
+        string message)
+    {
+        bool resolved = TeamArenaEnemyIdentityPolicy.TryResolve(
+            group,
+            memory,
+            player,
+            owner,
+            out IdentityKey actualKey,
+            out object actualGroup,
+            out object actualEnemy,
+            out bool actualHasEnemy);
+        Assert(resolved
+               && ReferenceEquals(actualKey, expectedKey)
+               && ReferenceEquals(actualGroup, expectedGroup)
+               && ReferenceEquals(actualEnemy, expectedEnemy)
+               && actualHasEnemy == hasEnemy,
+            message);
+    }
+
+    private static void AssertIdentityRejected(
+        IReadOnlyDictionary<IdentityKey, object> group,
+        IReadOnlyDictionary<IdentityKey, object> memory,
+        IdentityKey player,
+        IdentityKey owner,
+        string message)
+    {
+        bool resolved = TeamArenaEnemyIdentityPolicy.TryResolve(
+            group,
+            memory,
+            player,
+            owner,
+            out IdentityKey actualKey,
+            out object actualGroup,
+            out object actualEnemy,
+            out bool hasEnemy);
+        Assert(!resolved
+               && actualKey == null
+               && actualGroup == null
+               && actualEnemy == null
+               && !hasEnemy,
+            message);
+    }
+
+    private static void AssertPreferredIdentityResolved(
+        IReadOnlyDictionary<IdentityKey, object> group,
+        IReadOnlyDictionary<IdentityKey, object> memory,
+        IdentityKey player,
+        IdentityKey owner,
+        object preferredEnemy,
+        IdentityKey expectedKey,
+        object expectedGroup,
+        string message)
+        => AssertPreferredIdentityResolved(
+            group,
+            memory,
+            player,
+            owner,
+            preferredEnemy,
+            expectedKey,
+            expectedGroup,
+            preferredEnemy,
+            message);
+
+    private static void AssertPreferredIdentityResolved(
+        IReadOnlyDictionary<IdentityKey, object> group,
+        IReadOnlyDictionary<IdentityKey, object> memory,
+        IdentityKey player,
+        IdentityKey owner,
+        object preferredEnemy,
+        IdentityKey expectedKey,
+        object expectedGroup,
+        object expectedEnemy,
+        string message)
+    {
+        bool resolved = TeamArenaEnemyIdentityPolicy.TryResolve(
+            group,
+            memory,
+            player,
+            owner,
+            preferredEnemy,
+            out IdentityKey actualKey,
+            out object actualGroup,
+            out object actualEnemy,
+            out bool hasEnemy);
+        Assert(resolved
+               && ReferenceEquals(actualKey, expectedKey)
+               && ReferenceEquals(actualGroup, expectedGroup)
+               && ReferenceEquals(actualEnemy, expectedEnemy)
+               && hasEnemy,
+            message);
+    }
+
+    private static void AssertPreferredIdentityRejected(
+        IReadOnlyDictionary<IdentityKey, object> group,
+        IReadOnlyDictionary<IdentityKey, object> memory,
+        IdentityKey player,
+        IdentityKey owner,
+        object preferredEnemy,
+        string message)
+    {
+        bool resolved = TeamArenaEnemyIdentityPolicy.TryResolve(
+            group,
+            memory,
+            player,
+            owner,
+            preferredEnemy,
+            out IdentityKey actualKey,
+            out object actualGroup,
+            out object actualEnemy,
+            out bool hasEnemy);
+        Assert(!resolved
+               && actualKey == null
+               && actualGroup == null
+               && actualEnemy == null
+               && !hasEnemy,
+            message);
+    }
+
+    private sealed class IdentityKey
+    {
+        private readonly string _label;
+
+        internal IdentityKey(string label)
+            => _label = label;
+
+        public override string ToString()
+            => _label;
+    }
+
+    private sealed class ValueEqualIdentityKey
+    {
+        private readonly string _label;
+
+        internal ValueEqualIdentityKey(string label)
+            => _label = label;
+
+        public override bool Equals(object? obj)
+            => obj is ValueEqualIdentityKey other
+               && string.Equals(_label, other._label, StringComparison.Ordinal);
+
+        public override int GetHashCode()
+            => StringComparer.Ordinal.GetHashCode(_label);
     }
 
     private static void CheckPursuitOwnerPolicy()
@@ -557,21 +944,41 @@ internal static class Program
             "!profiles.Add(profileId)",
             "RefreshSafely(ally, liveOpponents, epoch, follower: true)",
             "RefreshSafely(opponent, liveAllies, epoch, follower: false)",
+            "RefreshNative(source, nearest, out enemyInfo)",
             "SelectEngagedTarget(source, candidates)",
             "SelectRetainedTarget(sourceProfile, candidates, rejectedTargets)",
             "PrepareRejectedTargetPass(rejectedTargets, liveTargets)",
             "current?.IsVisible == true && current.CanShoot == true",
-            "ReferenceEquals(candidate.GetPlayer, current.Person)",
-            "knownEnemies.TryGetValue(candidate.GetPlayer, out EnemyInfo enemy)",
+            "IsCurrentTargetPerson(current.Person, candidate)",
+            "TryResolveRegisteredEnemy(source, candidate, out EnemyInfo registered)",
+            "ReferenceEquals(current, registered)",
+            "TeamArenaEnemyIdentityPolicy.TryResolve(",
+            "source?.BotsGroup?.Enemies,",
+            "source?.EnemiesController?.EnemyInfos,",
+            "target.GetPlayer,",
+            "target,",
+            "source?.Memory?.GoalEnemy,",
+            "ReferenceEquals(resolved.Person, enemyKey)",
+            "ReferenceEquals(resolved.GroupInfo, groupInfo)",
+            "ReferenceEquals(groupInfo.Player, target.GetPlayer)",
             "enemy?.IsVisible != true",
             "distance < bestDistance",
             "string.CompareOrdinal(profile, bestProfile) < 0",
-            "group.AddEnemy(target, EBotEnemyCause.bossKillArena)",
-            "group.ReportAboutEnemy(target, EEnemyPartVisibleType.Sence, source)",
-            "info.IsLastPositionChecked = false",
+            "TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(",
+            "if (!hasCurrentGroupKey)",
+            "group.AddEnemy(playerKey, EBotEnemyCause.bossKillArena)",
+            "out IPlayer enemyKey",
+            "group.ReportAboutEnemy(enemyKey, EEnemyPartVisibleType.Sence, source)",
+            "source.Memory.AddEnemy(enemyKey, groupInfo, onActivation: false)",
+            "ReferenceEquals(groupInfo.Player, target.GetPlayer)",
+            "ReferenceEquals(reboundKey, enemyKey)",
+            "groupInfo.IsLastPositionChecked = false",
             "source.Memory.GoalEnemy = enemyInfo",
+            "TryResolveRegisteredEnemy(source, target, out EnemyInfo registered)",
+            "ReferenceEquals(actual, registered)",
+            "IsCurrentTargetPerson(actual.Person, target)",
             "TeamArenaPursuitPolicy.Decide(",
-            "HasPendingMedicalWork(source)",
+            "IsMedicalActionActive(source)",
             "source.DoorOpener?.Interacting == true",
             "source.StandBy?.Activate()",
             "HasImmediateDanger(source)",
@@ -601,10 +1008,17 @@ internal static class Program
             "UsesPftSainFollowerCombat(source, nearest, epoch)",
             "\"sain-pft-run\"",
             "ownerRequired: true",
-            "TrySyncEnemyState",
-            "new object[] { source, target, true }",
+            "Dictionary<string, WeakReference<EnemyInfo>> SainAwarenessBySource",
+            "sainNeedsSync",
+            "ReferenceEquals(syncedEnemy, enemyInfo)",
+            "new WeakReference<EnemyInfo>(enemyInfo)",
+            "&& TryRefreshSain(",
+            "expectedNativeEnemy",
+            "ReferenceEquals(expectedNativeEnemy.Person, target)",
+            "ReferenceEquals(_sainEnemyInfo.GetValue(enemy), expectedNativeEnemy)",
             "GetSAIN",
             "CheckAddEnemy",
+            "GetProperty(\"EnemyInfo\", BindingFlags.Public | BindingFlags.Instance)",
             "UpdateLastSeenPosition",
             "SetInCombat",
             "Mover",
@@ -619,7 +1033,32 @@ internal static class Program
             "LogStalledOnce(",
             "return _pftAssemblyDetected ? PftPushResult.Rejected : PftPushResult.Unavailable",
             "return _sainAssemblyDetected ? SainMoveResult.Rejected : SainMoveResult.Unavailable",
-            "Only profile IDs, timers and value snapshots survive a sweep");
+            "Only profile IDs, timers, value snapshots and weak",
+            "ReferenceEquals(resolved.Owner, source)",
+            "ReferenceEquals(resolved.GroupOwner, source.BotsGroup)",
+            "ReferenceEquals(groupInfo._botGroup, source.BotsGroup)");
+        Assert(!pursuit.Contains("TrySyncEnemyState", StringComparison.Ordinal)
+               && !pursuit.Contains("TryRefreshPft(", StringComparison.Ordinal),
+            "Arena never lets PFT's profile-cached awareness replace the exact native enemy");
+        Assert(!pursuit.Contains("TryResolvePlayerEntry", StringComparison.Ordinal)
+               && !pursuit.Contains(
+                   "string.Equals(candidate.ProfileId, currentProfile",
+                   StringComparison.Ordinal),
+            "pursuit never resolves a current body through a profile-only first match");
+        string pursuitMedical = Slice(
+            pursuit,
+            "private static bool IsMedicalActionActive(BotOwner source)",
+            "private static void LogRouteOnce(");
+        RequireAll(pursuitMedical,
+            "source?.Medecine?.FirstAid?.Using == true",
+            "source?.Medecine?.SurgicalKit?.Using == true",
+            "source?.Medecine?.Stimulators?.Using == true");
+        Assert(!pursuitMedical.Contains(".Have2Do == true", StringComparison.Ordinal)
+               && !pursuitMedical.Contains(".HaveWork == true", StringComparison.Ordinal)
+               && !pursuitMedical.Contains("Medecine.Using", StringComparison.Ordinal)
+               && !pursuitMedical.Contains("LastResult()", StringComparison.Ordinal)
+               && !pursuitMedical.Contains("BotLogicDecision.heal", StringComparison.Ordinal),
+            "pending, aggregate or decision-only medical state cannot hold a wounded bot in place");
         Assert(!System.Text.RegularExpressions.Regex.IsMatch(
                    pursuit,
                    @"private\s+static(?:\s+readonly)?\s+[^;\r\n]*BotOwner[^;\r\n]*;")
@@ -832,15 +1271,40 @@ internal static class Program
             "bot.ArtilleryDangerPlace?.ShallRunAway() == true",
             "bot.FlashGrenade?.IsFlashed == true",
             "IsBusy(bot)",
-            "HasPendingMedicalWork(bot)",
-            "bot.Medecine.FirstAid?.Have2Do == true",
-            "bot.Medecine.SurgicalKit?.HaveWork == true",
-            "decision == BotLogicDecision.heal",
-            "decision == BotLogicDecision.healStimulators",
+            "IsMedicalActionActive(bot)",
+            "bot?.Medecine?.FirstAid?.Using == true",
+            "bot?.Medecine?.SurgicalKit?.Using == true",
+            "bot?.Medecine?.Stimulators?.Using == true",
             "TryGetExactEnemy(bot, current.TargetProfileId",
+            "pair.Key.ProfileId?.Trim()",
+            "ReferenceEquals(bot?.Memory?.GoalEnemy, enemy)",
+            "ReferenceEquals(pair.Key, candidate.Person)",
+            "ReferenceEquals(candidate.Owner, bot)",
+            "ReferenceEquals(candidate.GroupOwner, group)",
+            "ReferenceEquals(candidate.GroupInfo?._botGroup, group)",
+            "HasCanonicalGroupPlayer(pair.Key, candidate.GroupInfo?.Player, expectedProfile)",
+            "HasExactGroupEntry(group, pair.Key, candidate.GroupInfo)",
             "enemy.Person?.HealthController?.IsAlive != true",
             "IsExactGoalEnemy(bot, enemy)",
             "enemy.IsVisible && enemy.CanShoot");
+        string bigBrainMedical = Slice(
+            bigBrainRuntime,
+            "private static bool IsMedicalActionActive(BotOwner bot)",
+            "private static bool IsExactGoalEnemy(");
+        Assert(!bigBrainMedical.Contains(".Have2Do == true", StringComparison.Ordinal)
+               && !bigBrainMedical.Contains(".HaveWork == true", StringComparison.Ordinal)
+               && !bigBrainMedical.Contains("Medecine.Using", StringComparison.Ordinal)
+               && !bigBrainMedical.Contains("LastResult()", StringComparison.Ordinal)
+               && !bigBrainMedical.Contains("BotLogicDecision.heal", StringComparison.Ordinal),
+            "the BigBrain owner also blocks only a live medical hands operation");
+        string bigBrainEnemyLookup = Slice(
+            bigBrainRuntime,
+            "private static bool TryGetExactEnemy(",
+            "\n    }\n}");
+        Assert(!bigBrainEnemyLookup.Contains(
+                   "string.Equals(candidate.ProfileId",
+                   StringComparison.Ordinal),
+            "the BigBrain owner resolves the current dictionary-key profile instead of a cached EnemyInfo profile");
 
         RequireAll(burst,
             "Interlocked.Increment(ref _operationGeneration)",
@@ -1151,6 +1615,164 @@ internal static class Program
         OptionalCameraOwnerState killcam = OptionalCameraOwnerState.Absent,
         OptionalCameraOwnerState freecam = OptionalCameraOwnerState.Absent)
         => new(arena, team, eligible, epoch, dead, targets, killcam, freecam);
+
+    private static void CheckInstalledSainContract()
+    {
+        string repo = FindRepositoryRoot();
+        string spt = Directory.GetParent(Directory.GetParent(repo)!.FullName)!.FullName;
+        string sainPath = Path.Combine(spt, "BepInEx", "plugins", "SAIN", "SAIN.dll");
+        if (!File.Exists(sainPath))
+        {
+            Console.WriteLine(
+                "SAIN_RUNTIME_CONTRACT_SKIPPED (optional SAIN client plugin is not installed)");
+            return;
+        }
+
+        using var sain = AssemblyDefinition.ReadAssembly(sainPath);
+        ModuleDefinition module = sain.MainModule;
+        TypeDefinition enable = RequireType(module, "SAIN.SAINEnableClass");
+        TypeDefinition bot = RequireType(module, "SAIN.Components.BotComponent");
+        TypeDefinition controller = RequireType(
+            module,
+            "SAIN.SAINComponent.Classes.EnemyClasses.SAINEnemyController");
+        TypeDefinition enemy = RequireType(
+            module,
+            "SAIN.SAINComponent.Classes.EnemyClasses.Enemy");
+        TypeDefinition activation = RequireType(
+            module,
+            "SAIN.SAINComponent.Classes.SAINActivationClass");
+        TypeDefinition mover = RequireType(
+            module,
+            "SAIN.SAINComponent.Classes.Mover.SAINMoverClass");
+        TypeDefinition sprintUrgency = RequireType(module, "SAIN.Models.Enums.ESprintUrgency");
+
+        MethodDefinition getSain = RequireMethod(
+            enable,
+            "GetSAIN",
+            "System.Boolean",
+            "System.String",
+            "SAIN.Components.BotComponent&");
+        Assert(getSain.IsPublic
+               && getSain.IsStatic
+               && getSain.Parameters[1].IsOut,
+            "installed SAIN exposes public static GetSAIN(string, out BotComponent)");
+
+        Assert(HasPublicGetter(bot, "EnemyController", controller.FullName)
+               && HasPublicGetter(bot, "BotActivation", activation.FullName)
+               && HasPublicGetter(bot, "IsInCombat", "System.Boolean")
+               && HasPublicGetter(bot, "Mover", mover.FullName)
+               && HasPublicGetter(bot, "NavMeshPosition", "UnityEngine.Vector3"),
+            "installed SAIN BotComponent exposes the exact awareness, activation and movement properties");
+
+        MethodDefinition checkAddEnemy = RequireMethod(
+            controller,
+            "CheckAddEnemy",
+            enemy.FullName,
+            "EFT.IPlayer");
+        Assert(checkAddEnemy.IsPublic && !checkAddEnemy.IsStatic,
+            "installed SAIN exposes public instance CheckAddEnemy(IPlayer)");
+
+        PropertyDefinition nativeEnemyInfo = RequireProperty(enemy, "EnemyInfo", "EnemyInfo");
+        Assert(nativeEnemyInfo.GetMethod?.IsPublic == true
+               && nativeEnemyInfo.SetMethod == null,
+            "installed SAIN Enemy exposes its native EnemyInfo through a public getter");
+
+        PropertyDefinition goalEnemy = RequireProperty(controller, "GoalEnemy", enemy.FullName);
+        Assert(goalEnemy.GetMethod?.IsPublic == true
+               && goalEnemy.SetMethod?.IsPrivate == true
+               && !goalEnemy.SetMethod.IsStatic,
+            "installed SAIN GoalEnemy has the public getter and private instance setter used by Arena");
+
+        MethodDefinition updateLastSeen = RequireMethod(
+            enemy,
+            "UpdateLastSeenPosition",
+            "System.Void",
+            "UnityEngine.Vector3",
+            "System.Single");
+        Assert(updateLastSeen.IsPublic && !updateLastSeen.IsStatic,
+            "installed SAIN exposes public instance UpdateLastSeenPosition(Vector3, float)");
+
+        MethodDefinition setInCombat = RequireMethod(
+            activation,
+            "SetInCombat",
+            "System.Void",
+            "System.Boolean");
+        Assert(setInCombat.IsPublic && !setInCombat.IsStatic,
+            "installed SAIN exposes public instance SetInCombat(bool)");
+
+        MethodDefinition runToPoint = RequireMethod(
+            mover,
+            "RunToPoint",
+            "System.Boolean",
+            "UnityEngine.Vector3",
+            "System.Boolean",
+            "System.Single",
+            sprintUrgency.FullName,
+            "System.Boolean");
+        Assert(runToPoint.IsPublic && !runToPoint.IsStatic,
+            "installed SAIN exposes the exact five-parameter RunToPoint contract");
+
+        FieldDefinition high = sprintUrgency.Fields.SingleOrDefault(field => field.Name == "High")
+                               ?? throw new InvalidOperationException(
+                                   "Installed SAIN ESprintUrgency.High is missing.");
+        Assert(sprintUrgency.IsEnum
+               && high.IsPublic
+               && high.IsStatic
+               && high.IsLiteral
+               && high.HasConstant
+               && Convert.ToInt32(high.Constant) == 3,
+            "installed SAIN ESprintUrgency.High retains the reflected numeric value 3");
+
+        Console.WriteLine("SAIN_RUNTIME_CONTRACT_PASSED");
+    }
+
+    private static TypeDefinition RequireType(ModuleDefinition module, string fullName)
+        => module.GetType(fullName)
+           ?? throw new InvalidOperationException($"Installed SAIN type '{fullName}' is missing.");
+
+    private static MethodDefinition RequireMethod(
+        TypeDefinition type,
+        string name,
+        string returnType,
+        params string[] parameterTypes)
+    {
+        MethodDefinition[] matches = type.Methods.Where(method =>
+                method.Name == name
+                && method.ReturnType.FullName == returnType
+                && method.Parameters.Select(parameter => parameter.ParameterType.FullName)
+                    .SequenceEqual(parameterTypes, StringComparer.Ordinal))
+            .ToArray();
+        return matches.Length == 1
+            ? matches[0]
+            : throw new InvalidOperationException(
+                $"Installed SAIN method '{type.FullName}.{name}({string.Join(", ", parameterTypes)})' "
+                + $"with return type '{returnType}' has {matches.Length} exact matches; expected one.");
+    }
+
+    private static PropertyDefinition RequireProperty(
+        TypeDefinition type,
+        string name,
+        string propertyType)
+    {
+        PropertyDefinition[] matches = type.Properties.Where(property =>
+                property.Name == name && property.PropertyType.FullName == propertyType)
+            .ToArray();
+        return matches.Length == 1
+            ? matches[0]
+            : throw new InvalidOperationException(
+                $"Installed SAIN property '{type.FullName}.{name}' with type '{propertyType}' "
+                + $"has {matches.Length} exact matches; expected one.");
+    }
+
+    private static bool HasPublicGetter(
+        TypeDefinition type,
+        string name,
+        string propertyType)
+        => type.Properties.Any(property =>
+            property.Name == name
+            && property.PropertyType.FullName == propertyType
+            && property.GetMethod?.IsPublic == true
+            && !property.GetMethod.IsStatic);
 
     private static string FindRepositoryRoot()
     {

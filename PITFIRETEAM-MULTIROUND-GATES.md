@@ -43,20 +43,31 @@ These gates supersede that document only for the new multi-round behavior.
 - [x] R4: Spectator and pursuit leases are limited to the exact nine non-local
   current-round identities. Spectator camera ownership is released before body
   retirement; after local death, both living sides receive refreshed opponent knowledge.
-  The optional companion for exact BigBrain 1.5.0 owns a short per-profile movement lease only
-  while an idle bot is separated from its live target and runs EFT's complete native
-  run-to-enemy behavior for bounded path refresh, doors, mines, steering and sprint while
-  continuing to route when PFT's wider arrival radius would stop near hidden geometry. It yields to immediate combat,
-  pending or active medicine, reload, grenades, doors, direct
+  A pursuit target resolves only through one coherent exact Player/BotOwner key,
+  `EnemyInfo`, `BotGroupEnemyInfo`, source `BotOwner`, and current `BotsGroup` object graph;
+  an exact current `GoalEnemy` may disambiguate duplicate wrapper pairs, while stale or
+  unmatched references fail closed. The optional companion for exact BigBrain 1.5.0 owns
+  a short per-profile movement lease only while that complete identity remains valid and
+  an idle bot is separated from its live target. It runs EFT's complete native run-to-enemy
+  behavior for bounded path refresh, doors, mines, steering and sprint while continuing to
+  route when PFT's wider arrival radius would stop near hidden geometry. It yields to
+  immediate combat, an active first-aid, surgery, or stimulator hands operation, reload,
+  grenades, doors, direct
   grenade/BTR/artillery/flash danger, higher-priority danger layers, and every round/raid
-  transition. Missing or unmatched companion layers preserve the guarded PFT/SAIN/native
-  fallback. No path fakes visibility, teleports, retains bot bodies, or bundles BigBrain.
+  transition. SAIN awareness is changed only when SAIN returns the same exact native
+  `EnemyInfo`; an installed SAIN DLL is metadata-checked for every reflected member.
+  Missing or unmatched companion layers preserve the guarded PFT/SAIN/native fallback.
+  No path fakes visibility, teleports, retains bot bodies, or bundles BigBrain.
   CHECK: `dotnet run --project tools/TeamArenaExpansionChecks/TeamArenaExpansionChecks.csproj -c Release`
   EXPECT: `TEAM_ARENA_EXPANSION_CHECKS_PASSED`
+  EXPECT WITH SAIN: `SAIN_RUNTIME_CONTRACT_PASSED`
+  EXPECT WITHOUT SAIN: `SAIN_RUNTIME_CONTRACT_SKIPPED` (optional dependency remains absent)
+  CHECK: `dotnet run --project tools/TeamArenaPursuitRuntimeChecks/TeamArenaPursuitRuntimeChecks.csproj -c Release`
+  EXPECT: `TEAM_ARENA_PURSUIT_RUNTIME_CHECKS_PASSED`
 
 - [x] R5: Server tests, client build, deployment copy, and all dedicated compatibility
   harnesses pass, including the PFT activation-lease, prepared-loadout, team-expansion,
-  and Labs-spawn checks. A build alone does not complete any live gate.
+  pursuit-runtime, and Labs-spawn checks. A build alone does not complete any live gate.
   CHECK: `dotnet test ArenaMode.sln -c Release`
   EXPECT: all tests pass
   CHECK: `dotnet build ArenaMode.sln -c Release`

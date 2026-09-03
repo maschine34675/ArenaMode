@@ -68,7 +68,7 @@ internal static class ArenaPursuitRuntime
            && bot.Mover != null;
 
     private static bool IsBusy(BotOwner bot)
-        => HasPendingMedicalWork(bot)
+        => IsMedicalActionActive(bot)
            || bot.WeaponManager?.Reload?.Reloading == true
            || bot.WeaponManager?.Grenades?.ThrowindNow == true
            || bot.DoorOpener?.Interacting == true;
@@ -79,32 +79,16 @@ internal static class ArenaPursuitRuntime
            || bot.ArtilleryDangerPlace?.ShallRunAway() == true
            || bot.FlashGrenade?.IsFlashed == true;
 
-    private static bool HasPendingMedicalWork(BotOwner bot)
-    {
-        if (bot?.Medecine == null)
-            return false;
-
-        BotLogicDecision decision = bot.Brain?.Agent?.LastResult().Action
-            ?? BotLogicDecision.holdPosition;
-        return bot.Medecine.Using
-               || bot.Medecine.FirstAid?.Have2Do == true
-               || bot.Medecine.FirstAid?.Using == true
-               || bot.Medecine.SurgicalKit?.HaveWork == true
-               || bot.Medecine.SurgicalKit?.Using == true
-               || bot.Medecine.Stimulators?.Using == true
-               || decision == BotLogicDecision.heal
-               || decision == BotLogicDecision.healStimulators;
-    }
+    // Child Using means a medical hands operation is active. Aggregate Using,
+    // the available-work flags and the last brain decision can all remain stale
+    // after cancellation and must not strand a surviving bot.
+    private static bool IsMedicalActionActive(BotOwner bot)
+        => bot?.Medecine?.FirstAid?.Using == true
+           || bot?.Medecine?.SurgicalKit?.Using == true
+           || bot?.Medecine?.Stimulators?.Using == true;
 
     private static bool IsExactGoalEnemy(BotOwner bot, EnemyInfo enemy)
-    {
-        EnemyInfo goalEnemy = bot?.Memory?.GoalEnemy;
-        return goalEnemy != null
-               && string.Equals(
-                   goalEnemy.ProfileId,
-                   enemy?.ProfileId,
-                   StringComparison.Ordinal);
-    }
+        => enemy != null && ReferenceEquals(bot?.Memory?.GoalEnemy, enemy);
 
     private static bool TryGetExactEnemy(
         BotOwner bot,
@@ -113,16 +97,75 @@ internal static class ArenaPursuitRuntime
     {
         enemy = null;
         Dictionary<IPlayer, EnemyInfo> enemies = bot.EnemiesController?.EnemyInfos;
-        if (enemies == null || string.IsNullOrEmpty(targetProfileId))
+        BotsGroup group = bot.BotsGroup;
+        EnemyInfo goalEnemy = bot.Memory?.GoalEnemy;
+        string expectedProfile = targetProfileId?.Trim();
+        if (enemies == null
+            || group?.Enemies == null
+            || goalEnemy == null
+            || string.IsNullOrEmpty(expectedProfile))
             return false;
 
         foreach (KeyValuePair<IPlayer, EnemyInfo> pair in enemies)
         {
             EnemyInfo candidate = pair.Value;
-            if (candidate != null
-                && string.Equals(candidate.ProfileId, targetProfileId, StringComparison.Ordinal))
+            if (pair.Key != null
+                && candidate != null
+                && ReferenceEquals(candidate, goalEnemy)
+                && ReferenceEquals(pair.Key, candidate.Person)
+                && ReferenceEquals(candidate.Owner, bot)
+                && ReferenceEquals(candidate.GroupOwner, group)
+                && ReferenceEquals(candidate.GroupInfo?._botGroup, group)
+                && HasCanonicalGroupPlayer(pair.Key, candidate.GroupInfo?.Player, expectedProfile)
+                && HasExactGroupEntry(group, pair.Key, candidate.GroupInfo)
+                && string.Equals(
+                    pair.Key.ProfileId?.Trim(),
+                    expectedProfile,
+                    StringComparison.Ordinal))
             {
                 enemy = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasCanonicalGroupPlayer(
+        IPlayer person,
+        Player groupPlayer,
+        string expectedProfile)
+    {
+        if (person == null
+            || groupPlayer?.HealthController?.IsAlive != true
+            || !string.Equals(
+                groupPlayer.ProfileId?.Trim(),
+                expectedProfile,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (person is Player player)
+            return ReferenceEquals(player, groupPlayer);
+
+        return person is BotOwner owner
+               && ReferenceEquals(owner.GetPlayer, groupPlayer);
+    }
+
+    private static bool HasExactGroupEntry(
+        BotsGroup group,
+        IPlayer person,
+        BotGroupEnemyInfo expected)
+    {
+        if (group?.Enemies == null || person == null || expected == null)
+            return false;
+
+        foreach (KeyValuePair<IPlayer, BotGroupEnemyInfo> pair in group.Enemies)
+        {
+            if (ReferenceEquals(pair.Key, person)
+                && ReferenceEquals(pair.Value, expected))
+            {
                 return true;
             }
         }
