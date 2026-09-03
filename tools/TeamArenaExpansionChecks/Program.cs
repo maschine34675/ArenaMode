@@ -446,7 +446,7 @@ internal static class Program
             playerGroup,
             playerEnemy,
             "one coherent pair remains usable when the current GoalEnemy points elsewhere");
-        AssertIdentityRejected(
+        AssertPreferredIdentityResolved(
             new Dictionary<IdentityKey, object> { [player] = playerGroup },
             new Dictionary<IdentityKey, object>
             {
@@ -455,8 +455,12 @@ internal static class Program
             },
             player,
             owner,
-            "a coherent Player pair plus orphaned BotOwner memory fails closed");
-        AssertIdentityRejected(
+            ownerEnemy,
+            player,
+            playerGroup,
+            playerEnemy,
+            "a coherent Player pair wins even when GoalEnemy points to orphaned BotOwner memory");
+        AssertPreferredIdentityResolved(
             new Dictionary<IdentityKey, object> { [owner] = ownerGroup },
             new Dictionary<IdentityKey, object>
             {
@@ -465,7 +469,11 @@ internal static class Program
             },
             player,
             owner,
-            "a coherent BotOwner pair plus orphaned Player memory fails closed");
+            playerEnemy,
+            owner,
+            ownerGroup,
+            ownerEnemy,
+            "a coherent BotOwner pair wins even when GoalEnemy points to orphaned Player memory");
 
         Assert(TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
                    new Dictionary<IdentityKey, object> { [player] = playerGroup },

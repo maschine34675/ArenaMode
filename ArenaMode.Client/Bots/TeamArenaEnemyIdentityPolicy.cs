@@ -106,9 +106,6 @@ internal static class TeamArenaEnemyIdentityPolicy
 
         if (hasPlayerPair)
         {
-            if (hasOwnerMemory)
-                return false;
-
             resolvedKey = playerKey;
             groupInfo = playerGroup;
             enemyInfo = playerEnemy;
@@ -118,9 +115,6 @@ internal static class TeamArenaEnemyIdentityPolicy
 
         if (hasOwnerPair)
         {
-            if (hasPlayerMemory)
-                return false;
-
             resolvedKey = botOwnerKey;
             groupInfo = ownerGroup;
             enemyInfo = ownerEnemy;
