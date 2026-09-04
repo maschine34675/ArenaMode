@@ -48,6 +48,11 @@ public static class Settings
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
+    public static ConfigEntry<bool> ArenaLightingEnabled { get; private set; }
+    public static ConfigEntry<float> ArenaLightingStrength { get; private set; }
+    public static ConfigEntry<int> ArenaLightingPressureSeconds { get; private set; }
+    public static ConfigEntry<float> ArenaLightingOutcomeSeconds { get; private set; }
+    public static ConfigEntry<bool> ArenaLightingRespectExternalMods { get; private set; }
     public static ConfigEntry<bool> TeamTracers { get; private set; }
     public static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; private set; }
     public static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; private set; }
@@ -684,6 +689,44 @@ public static class Settings
             "AnnouncerVolume",
             0.8f,
             new ConfigDescription("Announcer volume.", new AcceptableValueRange<float>(0f, 1f)));
+
+        ArenaLightingEnabled = config.Bind(
+            "Effects",
+            "ArenaLighting",
+            true,
+            "Labs only: add restrained runtime lighting for round starts, the final seconds, " +
+            "and Tactical victory/defeat. No map bundles or shared map materials are changed.");
+
+        ArenaLightingStrength = config.Bind(
+            "Effects",
+            "ArenaLightingStrength",
+            1f,
+            new ConfigDescription(
+                "Brightness multiplier for Arena's additive Labs phase light (0 = invisible).",
+                new AcceptableValueRange<float>(0f, 2f)));
+
+        ArenaLightingPressureSeconds = config.Bind(
+            "Effects",
+            "ArenaLightingPressureSeconds",
+            30,
+            new ConfigDescription(
+                "Turn the Labs lighting red for this many final seconds in timed Rounds and Tactical combat (0 = disabled).",
+                new AcceptableValueRange<int>(0, 120)));
+
+        ArenaLightingOutcomeSeconds = config.Bind(
+            "Effects",
+            "ArenaLightingOutcomeSeconds",
+            3f,
+            new ConfigDescription(
+                "How long Tactical victory/defeat colors fade over the map.",
+                new AcceptableValueRange<float>(0.25f, 8f)));
+
+        ArenaLightingRespectExternalMods = config.Bind(
+            "Effects",
+            "RespectExternalLightingMods",
+            true,
+            "Leave Arena phase lighting off while Blackout or Going Dark is installed. " +
+            "Disable this only if you deliberately want both additive effects together.");
 
         TeamTracers = config.Bind(
             "Effects",
