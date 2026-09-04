@@ -1,3 +1,4 @@
+using ArenaMode.Effects;
 using BepInEx.Configuration;
 using System;
 using UnityEngine;
@@ -46,6 +47,9 @@ public static class Settings
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
+    public static ConfigEntry<bool> TeamTracers { get; private set; }
+    public static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; private set; }
+    public static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
     public static ConfigEntry<bool> HuntPlayer { get; private set; }
     public static ConfigEntry<bool> MaxSkills { get; private set; }
@@ -625,6 +629,25 @@ public static class Settings
             "AnnouncerVolume",
             0.8f,
             new ConfigDescription("Announcer volume.", new AcceptableValueRange<float>(0f, 1f)));
+
+        TeamTracers = config.Bind(
+            "Effects",
+            "TeamTracers",
+            true,
+            "Give every Arena projectile a team-colored tracer, including ammunition " +
+            "that has no tracer in ordinary raids.");
+
+        FriendlyTracerColor = config.Bind(
+            "Effects",
+            "FriendlyTracerColor",
+            ArenaTracerColor.Cyan,
+            "Tracer color for the local PMC and protected 5v5 teammates.");
+
+        OpponentTracerColor = config.Bind(
+            "Effects",
+            "OpponentTracerColor",
+            ArenaTracerColor.Red,
+            "Tracer color for Arena opponents.");
 
         RagdollImpulseScale = config.Bind(
             "Effects",

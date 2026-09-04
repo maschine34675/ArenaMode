@@ -89,6 +89,12 @@ internal static class ArenaMatchService
                     "Protected 5v5 server validation failed: " + validationFailure);
             }
 
+            if (!Effects.ArenaTracerTeams.BeginMatch(game.ProfileId, protectedTeam))
+            {
+                Plugin.ModLogger.LogWarning(
+                    "Arena team tracers stayed unbound because the exact local profile ID was unavailable.");
+            }
+
             Combat.CombatPatches.ResetRaidState();
             Audio.AnnouncerService.EnsureLoaded();
             // The server shaped its per-raid clone from the mode frozen during
@@ -122,6 +128,7 @@ internal static class ArenaMatchService
             // A partially attached HUD would tick into the menu forever.
             Try(Hud.ArenaHud.Detach, "hud detach");
             Try(Audio.AnnouncerService.Detach, "announcer detach");
+            Effects.ArenaTracerTeams.Reset();
             if (partialMatch != null)
                 Try(partialMatch.End, "partial mode end");
 
@@ -136,6 +143,7 @@ internal static class ArenaMatchService
 
     private static void OnRaidEnded()
     {
+        Effects.ArenaTracerTeams.Reset();
         var match = Current;
         Current = null;
         _teamStartAbortPending = false;
@@ -162,6 +170,9 @@ internal static class ArenaMatchService
     /// </summary>
     internal static void RecoverAtNewRaidStart()
     {
+        // This boundary also runs for an ordinary raid after a missed GameEnd.
+        // Clear cosmetic shooter identities even when no match latch survived.
+        Effects.ArenaTracerTeams.Reset();
         if (Current == null && !TeamStartAbortPending)
             return;
 

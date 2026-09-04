@@ -860,6 +860,19 @@ public sealed class TacticalMode : IArenaMode
             else if (PitFireTeamCompat.EnsureHostility(_boundTeamEnemies, _boundLocalPlayer))
             {
                 _lastTeamReadinessDiagnostic = null;
+                if (!Effects.ArenaTracerTeams.TryBindTeamRound(
+                        _teamRoundEpoch,
+                        _boundLocalProfileId,
+                        _boundTeamFollowerProfileIds,
+                        _boundTeamEnemyProfileIds,
+                        out string tracerProblem))
+                {
+                    // Tracers are cosmetic. A stale or ambiguous identity must
+                    // stay native, never turn a valid protected round into a no-contest.
+                    Plugin.ModLogger.LogWarning(
+                        $"Tactical team Arena round {RoundNumber}: team tracers stayed native: {tracerProblem}.");
+                }
+
                 _phase = Phase.Live;
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
                 _preferredSpectatorProfileId = null;
