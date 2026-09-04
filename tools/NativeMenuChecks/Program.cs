@@ -175,24 +175,26 @@ internal static class Program
             "same-process end recovery must be explicit and token bound");
 
         // JSON property order and whitespace must not affect acknowledgement.
-        Select();
+        Select("factory4_night");
         RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
             ? $"{{ \"snapshotTaken\": true, \"armToken\": \"{JObject.Parse(body)["requestId"]?.Value<string>()}\", \"armed\": true }}"
             : route == Protocol.RaidConfirmRoute
                 ? "{\"confirmed\":true,\"state\":\"InRaid\"}"
                 : "{\"disarmed\":true}";
         ArenaMode.Config.Settings.GameMode.Value = "  GUNGAME  ";
-        var acknowledgedArenaRequest = Request();
-        Assert(Start(acknowledgedArenaRequest, out task) && task == null && ArenaSession.ArmedForNextRaid, "Valid server acknowledgement must arm Arena");
+        var acknowledgedArenaRequest = Request(map: "factory4_night");
+        Assert(Start(acknowledgedArenaRequest, out task) && task == null && ArenaSession.ArmedForNextRaid,
+            "Valid Factory-night server acknowledgement must arm Arena");
         Assert(ArenaSession.ArmedMode == "gungame"
-               && JObject.Parse(RequestHandler.LastPostBody)["mode"]?.Value<string>() == "gungame",
-            "the canonical native mode selection is frozen into both client and server raid state");
+               && JObject.Parse(RequestHandler.LastPostBody)["mode"]?.Value<string>() == "gungame"
+               && JObject.Parse(RequestHandler.LastPostBody)["map"]?.Value<string>() == "factory4_night",
+            "the canonical native mode and Factory-night id reach both client and server raid state");
         string acknowledgedArmToken = acknowledgedArenaRequest.serverId[
             Protocol.NativeStartIdentityPrefix.Length..];
         Assert(ArenaServerClient.BindNativeEndIdentity(new LocalSettings
         {
             serverId = Protocol.BuildNativeEndIdentity(
-                "factory4_day.Pmc menu-test",
+                "factory4_night.Pmc menu-test",
                 acknowledgedArmToken)
         }), "Client must acknowledge the exact server-bound native end identity");
         ArenaServerClient.ConfirmRaidStarted();

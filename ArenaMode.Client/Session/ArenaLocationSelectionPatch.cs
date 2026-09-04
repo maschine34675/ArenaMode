@@ -5,6 +5,7 @@ using EFT.UI.Matchmaker;
 using HarmonyLib;
 using JsonType;
 using SPT.Reflection.Patching;
+using ArenaMode.Shared;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -64,13 +65,15 @@ internal static class ArenaLocationSelectionPatch
             if (!IsArena(__instance))
                 return;
 
-            // Clear Marathon and any remembered map before vanilla creates views
-            // or enables Next/Ready. Factory's native time toggle also selects an
-            // entirely different location, so a remembered night must be reset.
+            // Clear Marathon and any unsupported remembered map before vanilla
+            // creates views or enables Next/Ready. A supported Factory variant
+            // keeps its matching CURR/PAST value when returning from the next screen.
             raidSettings.transitionType = ELocationTransition.Common;
-            raidSettings.SelectedDateTime = EDateTime.CURR;
             if (!ArenaMenuSelection.IsMapAvailable(raidSettings.SelectedLocation?.Id))
+            {
                 raidSettings.SelectedLocation = null;
+                raidSettings.SelectedDateTime = EDateTime.CURR;
+            }
         }
 
         [PatchPostfix]
@@ -120,7 +123,9 @@ internal static class ArenaLocationSelectionPatch
                 // Labyrinth ships with Enabled=false. The server's Arena
                 // allowlist is authoritative for THIS view; normal raids still
                 // use vanilla DisplayLocation and retain that restriction.
-                __result = ArenaMenuSelection.IsMapAvailable(location?.Id);
+                // Factory night remains the time choice on the single day tile.
+                __result = ArenaMapCatalog.ShouldDisplayNativeLocation(
+                    location?.Id, ArenaMenuSelection.IsMapAvailable);
         }
     }
 
@@ -132,14 +137,20 @@ internal static class ArenaLocationSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSelectionLocationScreen __instance, ref LocationSettings.Location location)
         {
-            if (IsArena(__instance) && !ArenaMenuSelection.IsMapAvailable(location?.Id))
+            if (IsArena(__instance)
+                && !ArenaMapCatalog.CanSelectNativeLocation(
+                    location?.Id, ArenaMenuSelection.IsMapAvailable))
                 location = null;
         }
 
         [PatchPostfix]
         private static void Postfix(MatchMakerSelectionLocationScreen __instance)
         {
-            if (IsArena(__instance) && __instance.SelectedLocation?.Id == "factory4_day")
+            if (IsArena(__instance)
+                && ArenaMapCatalog.IsFactoryVariant(__instance.SelectedLocation?.Id)
+                && !ArenaMapCatalog.HasFactoryTimeChoice(
+                    ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryDayId),
+                    ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryNightId)))
                 __instance._conditions.Close();
         }
     }
@@ -165,10 +176,19 @@ internal static class ArenaLocationSelectionPatch
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.GetLocationByTime));
 
         [PatchPrefix]
-        private static void Prefix(MatchMakerSelectionLocationScreen __instance, ref EDateTime time)
+        private static void Prefix(
+            MatchMakerSelectionLocationScreen __instance,
+            LocationSettings.Location location,
+            ref EDateTime time)
         {
-            if (IsArena(__instance))
-                time = EDateTime.CURR;
+            if (!IsArena(__instance) || !ArenaMapCatalog.IsFactoryVariant(location?.Id))
+                return;
+
+            var selectNight = ArenaMapCatalog.ShouldSelectFactoryNight(
+                time != EDateTime.CURR,
+                ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryDayId),
+                ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryNightId));
+            time = selectNight ? EDateTime.PAST : EDateTime.CURR;
         }
     }
 

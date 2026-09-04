@@ -38,6 +38,7 @@ public class LabsBotSpawnExclusionTests
     [InlineData("laboratory", "BotZoneFloor1", false)]
     [InlineData("laboratory", "BotZoneGate10", false)]
     [InlineData("factory4_day", "BotZoneGate1", false)]
+    [InlineData("factory4_night", "BotZoneGate1", false)]
     [InlineData("labyrinth", "BotZoneGate2", false)]
     [InlineData(null, "BotZoneGate1", false)]
     [InlineData("laboratory", null, false)]
@@ -159,6 +160,7 @@ public class LabsBotSpawnExclusionTests
 
     [Theory]
     [InlineData("factory4_day")]
+    [InlineData("factory4_night")]
     [InlineData("labyrinth")]
     public void OtherArenaMapsKeepIdenticallyNamedZones(string mapId)
     {

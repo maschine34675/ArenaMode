@@ -158,7 +158,7 @@ public static class ConfigStore
     /// Only ADDS. A value the user has set is never touched, including one that
     /// happens to equal the default.
     /// </summary>
-    private static bool FillMissingKeys(JsonNode? saved, JsonNode? defaults)
+    internal static bool FillMissingKeys(JsonNode? saved, JsonNode? defaults)
     {
         if (saved is not JsonObject savedObject || defaults is not JsonObject defaultObject)
             return false;

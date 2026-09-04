@@ -1,6 +1,12 @@
 using ArenaMode.Server;
 using ArenaMode.Server.Services;
+using ArenaMode.Shared;
 using SPTarkov.Server.Core.Models.Eft.Common;
+using SPTarkov.Server.Core.Utils.Json.Converters;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace ArenaMode.Tests;
 
@@ -13,8 +19,14 @@ namespace ArenaMode.Tests;
 /// the whole comma-separated zone list was written into a field the engine
 /// compares by exact name, so every generated wave on the Lab was discarded.
 /// </summary>
+[Collection("Labs spawn strategies")]
 public class LocationMutatorTests
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        Converters = { new JsonStringEnumConverter(), new StringToMongoIdConverter() },
+    };
+
     private static LocationBase FreshLocation() => new()
     {
         Id = "factory4_day",
@@ -125,6 +137,54 @@ public class LocationMutatorTests
         Assert.Contains(location.BossLocationSpawn!,
             spawn => spawn.BossName == "bossKilla" && spawn.BossChance > 0);
     }
+
+    [SkippableFact]
+    public void InstalledFactoryNightCloneUsesItsRealBotZoneAndPreservesTheTemplate()
+    {
+        var database = Environment.GetEnvironmentVariable("SPT_DATABASE")
+                       ?? @"D:\SPT41\SPT_Runtime\SPT_Data\database";
+        var path = Path.Combine(database, "locations", ArenaMapCatalog.FactoryNightId, "base.json");
+        Skip.IfNot(File.Exists(path), "Installed Factory-night database fixture is unavailable.");
+
+        var original = JsonSerializer.Deserialize<LocationBase>(File.ReadAllText(path), JsonOptions)!;
+        var originalSnapshot = JsonSerializer.Serialize(original, JsonOptions);
+        var clone = JsonSerializer.Deserialize<LocationBase>(originalSnapshot, JsonOptions)!;
+        var realBotZones = clone.SpawnPointParams!
+            .Where(point => point.Categories?.Contains("Bot") == true)
+            .Select(point => point.BotZoneName)
+            .Where(zone => !string.IsNullOrWhiteSpace(zone))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("BotZone", realBotZones);
+        var config = new ArenaModeConfig();
+        WithAbps(false, () => ArenaLocationMutator.Mutate(
+            clone, config.Maps[ArenaMapCatalog.FactoryNightId], config));
+
+        Assert.Equal(ArenaMapCatalog.FactoryNightId, clone.Id);
+        Assert.NotEmpty(clone.Waves!);
+        Assert.All(clone.Waves!, wave =>
+        {
+            Assert.DoesNotContain(',', wave.SpawnPoints!);
+            Assert.Contains(wave.SpawnPoints!, realBotZones);
+        });
+        Assert.Equal(originalSnapshot, JsonSerializer.Serialize(original, JsonOptions));
+    }
+
+    private static void WithAbps(bool present, Action action)
+    {
+        var field = typeof(ArenaLocationMutator).GetField(
+            "_abpsPresent", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var oldValue = field.GetValue(null);
+        try
+        {
+            field.SetValue(null, present);
+            action();
+        }
+        finally
+        {
+            field.SetValue(null, oldValue);
+        }
+    }
 }
 
 public class ArenaModeConfigTests
@@ -136,6 +196,8 @@ public class ArenaModeConfigTests
 
         Assert.True(config.IsMapEnabled("factory4_day"));
         Assert.True(config.IsMapEnabled("FACTORY4_DAY"));
+        Assert.True(config.IsMapEnabled("factory4_night"));
+        Assert.True(config.IsMapEnabled("FACTORY4_NIGHT"));
         Assert.False(config.IsMapEnabled("customs"));
         Assert.False(config.IsMapEnabled(null));
     }
@@ -147,5 +209,25 @@ public class ArenaModeConfigTests
         config.Maps["factory4_day"].Enabled = false;
 
         Assert.False(config.IsMapEnabled("factory4_day"));
+    }
+
+    [Fact]
+    public void LegacyServerConfigGainsNightWithoutChangingSavedValues()
+    {
+        var saved = JsonNode.Parse("""
+            {
+              "maps": {
+                "factory4_day": { "enabled": false },
+                "labyrinth": { "enabled": true },
+                "laboratory": { "enabled": true }
+              }
+            }
+            """);
+        var defaults = JsonSerializer.SerializeToNode(new ArenaModeConfig());
+
+        Assert.True(ConfigStore.FillMissingKeys(saved, defaults));
+        Assert.False(saved!["maps"]![ArenaMapCatalog.FactoryDayId]!["enabled"]!.GetValue<bool>());
+        Assert.True(saved["maps"]![ArenaMapCatalog.FactoryNightId]!["enabled"]!.GetValue<bool>());
+        Assert.False(ConfigStore.FillMissingKeys(saved, defaults));
     }
 }

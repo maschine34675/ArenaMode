@@ -1,6 +1,7 @@
 using ArenaMode.Compat;
 using ArenaMode.Config;
 using ArenaMode.Modes;
+using ArenaMode.Shared;
 using EFT;
 using EFT.Communications;
 using EFT.UI.Matchmaker;
@@ -140,9 +141,7 @@ internal static class ArenaSideSelectionPatch
                 if (!ArenaServerClient.RefreshAvailability() || !ArenaClientConfig.Refresh())
                     throw new InvalidOperationException("Arena server mod is unavailable. No arena raid was selected.");
 
-                if (!ArenaMenuSelection.IsMapAvailable("factory4_day")
-                    && !ArenaMenuSelection.IsMapAvailable("labyrinth")
-                    && !ArenaMenuSelection.IsMapAvailable("laboratory"))
+                if (!ArenaMapCatalog.AnyMapAvailable(ArenaMenuSelection.IsMapAvailable))
                     throw new InvalidOperationException("No arena maps are enabled on the server.");
 
                 // Let a complete PFT roster reach the new map-screen picker even
@@ -181,7 +180,7 @@ internal static class ArenaSideSelectionPatch
               + $"First to {Settings.TacticalTeamRoundsToWin.Value}; after death, spectate the remaining fighters until the next round.\n"
               + "The shown PMC equipment returns after death; both profile stores stay untouched."
             : "ARENA\nInstant respawns, arena kits and four game modes.\n"
-              + "Factory (day), Labyrinth and The Lab.\n"
+              + "Factory (day/night), Labyrinth and The Lab.\n"
               + "Nothing gained, nothing lost — your profile stays untouched.";
         screen.SetHealthPanelVisibility(false, true);
     }

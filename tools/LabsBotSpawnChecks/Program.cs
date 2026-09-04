@@ -70,11 +70,13 @@ internal static class Program
         Assert(ArenaBotSpawnPolicy.IsRestrictedMap("laboratory")
             && ArenaBotSpawnPolicy.IsRestrictedMap("LABORATORY"), "Labs map recognized case-insensitively");
         Assert(!ArenaBotSpawnPolicy.IsRestrictedMap(null)
+            && !ArenaBotSpawnPolicy.IsRestrictedMap("factory4_night")
             && !ArenaBotSpawnPolicy.IsRestrictedMap("labyrinth"), "other maps not restricted");
         Assert(ArenaBotSpawnPolicy.IsExcludedZone("laboratory", "BotZoneGate1")
             && ArenaBotSpawnPolicy.IsExcludedZone("laboratory", "BotZoneGate2"), "both Labs gate zones excluded");
         Assert(ArenaBotSpawnPolicy.IsExcludedZone("LABORATORY", "botzonegate1"), "zone matching case-insensitive");
         Assert(!ArenaBotSpawnPolicy.IsExcludedZone("factory4_day", "BotZoneGate1")
+            && !ArenaBotSpawnPolicy.IsExcludedZone("factory4_night", "BotZoneGate1")
             && !ArenaBotSpawnPolicy.IsExcludedZone("laboratory", "BotZoneGate10")
             && !ArenaBotSpawnPolicy.IsExcludedZone("laboratory", null), "policy exact, map-scoped, null-safe");
         Assert(ArenaBotSpawnPolicy.FilterZones("laboratory",
@@ -94,6 +96,7 @@ internal static class Program
             (Map: (string)null, Armed: false, Active: false, Label: "ordinary Labs without Arena state"),
             (Map: "laboratory", Armed: false, Active: false, Label: "stale ArmedMap with flags off"),
             (Map: "factory4_day", Armed: true, Active: false, Label: "armed Arena Factory"),
+            (Map: "factory4_night", Armed: false, Active: true, Label: "active Arena Factory night"),
             (Map: "labyrinth", Armed: false, Active: true, Label: "active Arena Labyrinth")
         })
         {

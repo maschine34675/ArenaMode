@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using ArenaMode.Shared;
 using ArenaMode.Session;
 using EFT.UI.Matchmaker;
 using UnityEngine;
@@ -75,7 +76,7 @@ internal static class Program
         var inactiveBranchCalls = fixture.InactiveBranch.SetActiveCalls;
         fixture.Hide();
         Assert(fixture.Maps.All(map => map.activeInHierarchy),
-            "Arena must keep all three map buttons visible inside the shared paths/buttons container");
+            "Arena must keep all three base-map buttons visible inside the shared paths/buttons container");
         AssertUntouched(fixture.Container, true, 0, "Shared container must never be toggled");
         Assert(fixture.Maps.All(map => map.activeSelf && map.SetActiveCalls == 0),
             "Map GameObjects must remain unchanged");
@@ -214,6 +215,92 @@ internal static class Program
         view.Restore();
     }
 
+    private static void FactoryNightCatalogAndUpgrade()
+    {
+        Assert(ArenaMapCatalog.IsSupportedMap("factory4_day")
+               && ArenaMapCatalog.IsSupportedMap("FACTORY4_NIGHT")
+               && ArenaMapCatalog.IsSupportedMap("labyrinth")
+               && ArenaMapCatalog.IsSupportedMap("laboratory"),
+            "The fixed Arena catalog must contain both Factory variants and the other two maps");
+        Assert(!ArenaMapCatalog.IsSupportedMap("Woods")
+               && !ArenaMapCatalog.IsSupportedMap(null),
+            "The fixed Arena catalog must reject normal and missing locations");
+        Assert(ArenaMapCatalog.AllowlistContains(
+                " factory4_day, FACTORY4_NIGHT ", "factory4_night"),
+            "The client allowlist must match trimmed location ids case-insensitively");
+        Assert(!ArenaMapCatalog.AllowlistContains("factory4_day,Woods", "Woods"),
+            "A configured unsupported map must not escape the fixed catalog");
+
+        Assert(ArenaMapCatalog.UpgradeLegacyClientAllowlist(
+                   ArenaMapCatalog.LegacyDefaultClientAllowlist)
+               == ArenaMapCatalog.DefaultClientAllowlist,
+            "The exact old BepInEx default must gain Factory night on upgrade");
+        const string customized = "factory4_day, labyrinth,laboratory";
+        Assert(ArenaMapCatalog.UpgradeLegacyClientAllowlist(customized) == customized,
+            "A customized client allowlist must remain user-owned during upgrade");
+    }
+
+    private static void FactoryNightNativeSelectionPolicy()
+    {
+        bool day = true;
+        bool night = true;
+        bool labyrinth = true;
+        bool Available(string id)
+            => id == ArenaMapCatalog.FactoryDayId ? day
+                : id == ArenaMapCatalog.FactoryNightId ? night
+                : id == ArenaMapCatalog.LabyrinthId && labyrinth;
+
+        Assert(ArenaMapCatalog.ShouldDisplayNativeLocation(
+                   ArenaMapCatalog.FactoryDayId, Available)
+               && !ArenaMapCatalog.ShouldDisplayNativeLocation(
+                   ArenaMapCatalog.FactoryNightId, Available),
+            "Both Factory variants must share the one native Factory-day tile");
+        Assert(ArenaMapCatalog.ShouldDisplayNativeLocation(
+                   ArenaMapCatalog.LabyrinthId, Available)
+               && !ArenaMapCatalog.ShouldDisplayNativeLocation("Woods", _ => true),
+            "Other supported tiles must follow availability without exposing normal maps");
+        Assert(ArenaMapCatalog.CanSelectNativeLocation(
+                ArenaMapCatalog.FactoryDayId, Available),
+            "The shared Factory tile must be selectable when both variants are enabled");
+        Assert(!ArenaMapCatalog.ShouldSelectFactoryNight(
+                   requestedNight: false, dayAvailable: day, nightAvailable: night)
+               && ArenaMapCatalog.ShouldSelectFactoryNight(
+                   requestedNight: true, dayAvailable: day, nightAvailable: night),
+            "With both variants enabled, EFT's requested day/night choice must be preserved");
+        Assert(ArenaMapCatalog.HasFactoryTimeChoice(day, night),
+            "The native time choice must remain visible when both variants are enabled");
+
+        day = false;
+        Assert(ArenaMapCatalog.ShouldDisplayNativeLocation(
+                   ArenaMapCatalog.FactoryDayId, Available)
+               && ArenaMapCatalog.CanSelectNativeLocation(
+                   ArenaMapCatalog.FactoryDayId, Available),
+            "Night-only configuration must still expose and accept the shared Factory tile");
+        Assert(ArenaMapCatalog.ShouldSelectFactoryNight(
+                requestedNight: false, dayAvailable: day, nightAvailable: night),
+            "Night-only configuration must redirect a day request to the enabled night location");
+        Assert(!ArenaMapCatalog.HasFactoryTimeChoice(day, night),
+            "A single enabled Factory variant must not offer a dead time toggle");
+
+        day = true;
+        night = false;
+        Assert(!ArenaMapCatalog.ShouldSelectFactoryNight(
+                requestedNight: true, dayAvailable: day, nightAvailable: night),
+            "Day-only configuration must redirect a night request to the enabled day location");
+
+        day = false;
+        Assert(!ArenaMapCatalog.ShouldDisplayNativeLocation(
+                   ArenaMapCatalog.FactoryDayId, Available)
+               && !ArenaMapCatalog.CanSelectNativeLocation(
+                   ArenaMapCatalog.FactoryDayId, Available),
+            "Factory must disappear and reject selection when neither variant is enabled");
+        Assert(ArenaMapCatalog.AnyMapAvailable(Available),
+            "Another enabled supported map must still admit Arena when Factory is disabled");
+        labyrinth = false;
+        Assert(!ArenaMapCatalog.AnyMapAvailable(Available),
+            "Arena admission must fail when all supported variants are disabled");
+    }
+
     public static void Main()
     {
         var originalBug = new Fixture();
@@ -226,6 +313,8 @@ internal static class Program
         ReentryAndChangedNativeViews();
         LifecycleAndDuplicateReferences();
         OtherLayoutsAndNullInputs();
+        FactoryNightCatalogAndUpgrade();
+        FactoryNightNativeSelectionPolicy();
         Console.WriteLine($"PASS: {_checks} native map-view regression checks (production helper linked).");
     }
 }

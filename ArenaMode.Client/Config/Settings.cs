@@ -1,5 +1,6 @@
 using ArenaMode.Effects;
 using ArenaMode.Modes;
+using ArenaMode.Shared;
 using BepInEx.Configuration;
 using System;
 using UnityEngine;
@@ -143,10 +144,20 @@ public static class Settings
         Maps = config.Bind(
             "General",
             "Maps",
-            "factory4_day,labyrinth,laboratory",
-            "Arena map allowlist for the native Arena choice (Factory day, Labyrinth, The Lab). " +
+            ArenaMapCatalog.DefaultClientAllowlist,
+            "Arena map allowlist for the native Arena choice (Factory day/night, Labyrinth, The Lab). " +
             "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
+
+        var upgradedMaps = ArenaMapCatalog.UpgradeLegacyClientAllowlist(Maps.Value);
+        if (!string.Equals(upgradedMaps, Maps.Value, StringComparison.Ordinal))
+        {
+            // Existing installs retain the old Bind value. The exact former
+            // default was never capable of expressing Factory night, so add it;
+            // any customized value remains untouched.
+            Maps.Value = upgradedMaps;
+            Plugin.ModLogger?.LogInfo("Arena map allowlist upgraded with Factory night.");
+        }
 
         RandomKit = config.Bind(
             "Kits",
@@ -714,23 +725,7 @@ public static class Settings
     }
 
     public static bool IsArenaMap(string locationId)
-    {
-        if (string.IsNullOrEmpty(locationId))
-            return false;
-
-        // The native Arena flow supports exactly these three locations. An old
-        // or remotely edited allowlist must not expose unsupported normal maps.
-        if (!string.Equals(locationId, "factory4_day", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(locationId, "labyrinth", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(locationId, "laboratory", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        foreach (var entry in Maps.Value.Split(','))
-        {
-            if (string.Equals(entry.Trim(), locationId, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
-    }
+        // The fixed catalog prevents a remotely edited allowlist from exposing
+        // an unsupported normal map. Factory night is the day tile's time variant.
+        => ArenaMapCatalog.AllowlistContains(Maps?.Value, locationId);
 }

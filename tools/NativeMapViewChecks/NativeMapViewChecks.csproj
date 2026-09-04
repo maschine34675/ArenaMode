@@ -4,8 +4,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ProductionViewSource Condition="'$(ProductionViewSource)' == ''">../../ArenaMode.Client/Session/ArenaLocationSelectionView.cs</ProductionViewSource>
+    <ProductionCatalogSource Condition="'$(ProductionCatalogSource)' == ''">../../ArenaMode.Shared/ArenaMapCatalog.cs</ProductionCatalogSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ProductionViewSource)" Link="Production/ArenaLocationSelectionView.cs" />
+    <Compile Include="$(ProductionCatalogSource)" Link="Production/ArenaMapCatalog.cs" />
   </ItemGroup>
 </Project>

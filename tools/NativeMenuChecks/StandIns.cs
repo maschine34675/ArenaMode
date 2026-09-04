@@ -72,7 +72,8 @@ namespace ArenaMode.Config
         public static Entry<string> GameMode = new() { Value = "endless" };
         public static string SelectedGameModeId
             => ArenaMode.Modes.ArenaModeCatalog.NormalizeId(GameMode.Value);
-        public static bool IsArenaMap(string map) => map == "factory4_day" || map == "labyrinth" || map == "laboratory";
+        public static bool IsArenaMap(string map) => map == "factory4_day" || map == "factory4_night"
+            || map == "labyrinth" || map == "laboratory";
     }
     public static class SettingsSync { public static void SyncNow() { } }
 }

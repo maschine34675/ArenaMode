@@ -6,7 +6,7 @@ Implemented 2026-08-31 for the installed SPT 4.1 client. Runtime acceptance is s
 
 Choose **Arena** on the native PMC/Scav screen. The existing, unused third native toggle is reused, including its group, animation and layout. Arena remains a PMC raid internally because that is the post-raid path protected by the server.
 
-The next screen offers **Factory (day), Labyrinth and The Lab**, subject to the client allowlist and server Arena configuration. Other locations and Marathon are hidden. Factory cannot switch to its unsupported night variant. Labyrinth is exposed only in this Arena view even when the ordinary game location has `Enabled=false`. Native map locks are not changed globally; the existing Arena keycard waiver remains in use.
+The next screen offers **Factory (day/night), Labyrinth and The Lab**, subject to the client allowlist and server Arena configuration. Other locations and Marathon are hidden. Factory keeps one native tile and uses its ordinary time panel to switch between the two location variants. Labyrinth is exposed only in this Arena view even when the ordinary game location has `Enabled=false`. Native map locks are not changed globally; the existing Arena keycard waiver remains in use.
 
 The same map screen now contains an Arena-only mode bar for **Endless, Rounds, Gun Game and Tactical**. It writes the existing `Match/GameMode` entry, saves it, and reports the client-owned value to the server settings mirror. F12 remains an alternate editor for that entry and for detailed rules and kits, but it is no longer required to choose the mode. A complete PitFireTeam roster enters the screen in Tactical and cannot select the three solo modes; final raid negotiation independently keeps the existing strict Tactical-only check.
 
@@ -43,7 +43,7 @@ powershell -NoProfile -File tools/Verify-NativeMenuDeployment.ps1
 
 The runtime attempt loaded the native menu Harmony patches successfully, but the existing `spt41dev` profile remained at **Loading profile data...** before reaching the main menu. No raid was started. The client log showed no Arena initialization error. The user subsequently confirmed that this server has no GPU and cannot run the game. Further game-launch attempts were stopped; visual/gameplay acceptance requires a GPU-equipped machine. The final negotiation hardening was verified offline and is included in the final build, not in that earlier startup attempt.
 
-Required live acceptance: restart the game with the final DLL; verify Arena/PMC/Scav selection, all three Arena maps, Factory day, map Back, taskbar/main-menu return, normal PMC/Scav maps and Lab key requirements; then compare the profile before/after a short Arena raid and confirm an ordinary raid still processes normally. Do not treat the source review and fault-injection harness as completion of this live check.
+Required live acceptance: restart the game with the final DLL; verify Arena/PMC/Scav selection, Factory day and night through the one Factory tile, Labyrinth, The Lab, map Back, taskbar/main-menu return, normal PMC/Scav maps and Lab key requirements; then compare the profile before/after a short Arena raid and confirm an ordinary raid still processes normally. Do not treat the source review and fault-injection harness as completion of this live check.
 
 ## Follow-up: third button invisible in the user's playtest
 
@@ -108,3 +108,40 @@ invalid rosters, Fika/co-op and the final non-Tactical start remain rejected.
 
 The offline checks and Release build cannot prove final rendering or pointer input.
 That visual acceptance remains for the GPU-equipped client.
+
+## Follow-up: Factory night
+
+The installed EFT source confirms that `factory4_night` is not a second map
+button. `DisplayLocation` hides it, while selecting the Factory-day button opens
+the native time panel and `GetLocationByTime` maps CURR to day and PAST to night.
+The installed server database supplies the separate night scene, uses the same
+`BotZone`, has no access key or lock, and SPT clones it by location id without
+checking the menu-only `Enabled=false` flag.
+
+Arena now preserves that representation. The day tile appears when either
+Factory variant is enabled; the night database entry never creates a duplicate
+tile. With both variants enabled the time panel stays open. A day-only or
+night-only configuration is forced to the available variant and hides the dead
+choice. Returning from the next screen preserves a selected night raid. Every
+branch is still inside the Arena screen gate, so ordinary PMC/Scav filtering and
+time selection continue through the unmodified native code.
+
+Existing installs are handled on both sides. BepInEx otherwise preserves the old
+`factory4_day,labyrinth,laboratory` value forever, so only that exact former
+default is upgraded; any edited client allowlist remains untouched. The server's
+existing recursive missing-key merge adds the new `factory4_night` map section
+to an old `config.json` and preserves all saved map values.
+
+The native Conditions Panel occupies screen Y 175–264 in the installed `level48`;
+the Arena mode bar occupies Y 82–168. Their seven-pixel gap means enabling the
+time panel does not geometrically overlap the mode buttons at the reference
+1920×1080 layout. Resolution scaling, actual rendering and pointer delivery still
+require the GPU-equipped live test.
+
+Independent adversarial review found no actionable code issue. Offline verification
+passed 102 server tests, 58 native map/catalog checks, 51 negotiation checks, 79 Labs
+bot-spawn checks and 47 mode-picker checks. Three temporary catalog mutants proved
+that the harness detects a duplicate night tile, a discarded night choice and a
+skipped legacy-client migration. The Release build completed with zero errors and
+the four pre-existing nullable warnings; deployed client and server hashes match
+their build outputs. No game was launched on this GPU-less server.

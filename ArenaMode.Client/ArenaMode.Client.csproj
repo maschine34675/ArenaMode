@@ -19,6 +19,7 @@
     <Compile Include="..\ArenaMode.Shared\Protocol.cs" Link="Shared\Protocol.cs" />
     <Compile Include="..\ArenaMode.Shared\ClientSettingsModels.cs" Link="Shared\ClientSettingsModels.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaBotSpawnPolicy.cs" Link="Shared\ArenaBotSpawnPolicy.cs" />
+    <Compile Include="..\ArenaMode.Shared\ArenaMapCatalog.cs" Link="Shared\ArenaMapCatalog.cs" />
   </ItemGroup>
 
   <ItemGroup>

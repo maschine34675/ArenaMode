@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Server;
 
@@ -38,7 +39,12 @@ public class ArenaModeConfig
     [JsonPropertyName("maps")]
     public Dictionary<string, ArenaMapConfig> Maps { get; set; } = new()
     {
-        ["factory4_day"] = new ArenaMapConfig(),
+        [ArenaMapCatalog.FactoryDayId] = new ArenaMapConfig(),
+
+        // EFT presents this as the PAST time choice on the Factory-day tile;
+        // its own database entry is deliberately Enabled=false so it never gets
+        // a duplicate tile. Arena's client filter opens only that native variant.
+        [ArenaMapCatalog.FactoryNightId] = new ArenaMapConfig(),
 
         // Labyrinth needs a third-party mod to be selectable at all (it ships
         // disabled and keycard-gated, and those fields are read at the MENU,
@@ -50,7 +56,7 @@ public class ArenaModeConfig
         // Bosses stay ON here, unlike everywhere else. Shadow of Tagilla and
         // Killa ARE Labyrinth's content; switching them off would leave an
         // empty maze.
-        ["labyrinth"] = new ArenaMapConfig
+        [ArenaMapCatalog.LabyrinthId] = new ArenaMapConfig
         {
             DisableBosses = false,
             BurstMinAliveBots = 10,
@@ -63,7 +69,7 @@ public class ArenaModeConfig
         // doors and strand arena bots until someone activates those extracts.
         // ArenaBotSpawnPolicy also excludes them from older saved configs and
         // the client's independent scene-zone selection. Player spawns stay as-is.
-        ["laboratory"] = new ArenaMapConfig
+        [ArenaMapCatalog.LaboratoryId] = new ArenaMapConfig
         {
             SpawnZones = "BotZoneFloor1,BotZoneFloor2,BotZoneBasement",
             BotMax = 20,
