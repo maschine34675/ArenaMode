@@ -25,6 +25,8 @@ internal static class MovementRuntime
     // because no natural weight update fires on a config edit.
 
     private static bool _lastNoInertia;
+    private static float _lastWeightLimitMultiplier;
+    private static PhysicalBase _lastWeightPhysical;
     private static bool _weightValuesApplied;
 
     public static void Tick()
@@ -44,25 +46,39 @@ internal static class MovementRuntime
 
             if (_weightValuesApplied)
             {
-                _weightValuesApplied = false;
                 // Bring the vanilla inertia values back immediately (e.g. the
                 // MovementEnabled master switch flipped off mid-raid) — without
                 // this they stay latched until the next natural weight update.
                 try
                 {
-                    var mainPlayer = Singleton<GameWorld>.Instantiated
-                        ? Singleton<GameWorld>.Instance.MainPlayer
+                    PhysicalBase currentPhysical = Singleton<GameWorld>.Instantiated
+                        ? Singleton<GameWorld>.Instance.MainPlayer?.Physical
                         : null;
-                    if (mainPlayer != null
-                        && mainPlayer.HealthController != null
-                        && mainPlayer.HealthController.IsAlive)
+                    if (!ReferenceEquals(currentPhysical, _lastWeightPhysical))
                     {
-                        mainPlayer.Physical?.OnWeightUpdated();
+                        // The scaled body has already left this GameWorld. A new
+                        // respawn/ordinary-raid body was initialized through its
+                        // own gates and must not receive an extra EFT weight event.
+                        _weightValuesApplied = false;
+                        _lastWeightPhysical = null;
+                    }
+                    else
+                    {
+                        // Rebuild the limits as well as the derived values. With
+                        // the Arena/master gate now false, ArenaWeightPatches lets
+                        // the fresh vanilla limits pass through unchanged.
+                        currentPhysical.OnWeightLimitsUpdated();
+                        // Commit only after EFT completed the restore. A transient
+                        // teardown/config-change exception must be retried on the
+                        // next tick while this exact Physical is still current.
+                        _weightValuesApplied = false;
+                        _lastWeightPhysical = null;
                     }
                 }
                 catch (Exception)
                 {
-                    // Raid teardown — the next raid starts from vanilla anyway.
+                    // Keep the pending marker. The next tick retries only while
+                    // this exact Physical remains bound; a replacement is untouched.
                 }
             }
 
@@ -99,12 +115,24 @@ internal static class MovementRuntime
             // one of the two gates and not the other. An F12 edit therefore lands
             // on the next respawn, which is when a new component is built.
 
+            float weightLimitMultiplier = ArenaWeightTuning.BoundMultiplier(
+                Settings.CarryWeightLimitMultiplier.Value);
             if (player.Physical != null
-                && (!_weightValuesApplied || Settings.NoInertia.Value != _lastNoInertia))
+                && (!_weightValuesApplied
+                    || !ReferenceEquals(player.Physical, _lastWeightPhysical)
+                    || Settings.NoInertia.Value != _lastNoInertia
+                    || Math.Abs(weightLimitMultiplier - _lastWeightLimitMultiplier) > 0.0001f))
             {
+                // This calls UpdateWeightLimits first (where the Arena postfix
+                // scales a fresh vanilla result) and then recomputes every weight-
+                // derived movement value, including the inertia postfix.
+                player.Physical.OnWeightLimitsUpdated();
+                // Commit the snapshot only after EFT completed the rebuild. On a
+                // transient failure the unchanged fields make the next tick retry.
                 _weightValuesApplied = true;
                 _lastNoInertia = Settings.NoInertia.Value;
-                player.Physical.OnWeightUpdated();
+                _lastWeightLimitMultiplier = weightLimitMultiplier;
+                _lastWeightPhysical = player.Physical;
             }
         }
         catch (Exception)

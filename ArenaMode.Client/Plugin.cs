@@ -51,6 +51,7 @@ public class Plugin : BaseUnityPlugin
         Movement.ArenaLegInjuryPatches.Enable();
         Combat.ArenaMedicalPatches.Enable();
         Bots.ArenaBotPatches.Enable();
+        Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.SprintAdsPatches.Enable();
         Movement.FastDeployPatches.Enable();

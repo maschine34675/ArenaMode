@@ -17,6 +17,7 @@ public static class Settings
     public static ConfigEntry<float> AdsMoveFactor { get; private set; }
     public static ConfigEntry<float> AdsTransitionMult { get; private set; }
     public static ConfigEntry<bool> InfiniteStamina { get; private set; }
+    public static ConfigEntry<float> CarryWeightLimitMultiplier { get; private set; }
     public static ConfigEntry<bool> NoInertia { get; private set; }
     public static ConfigEntry<float> StrafeSmoothing { get; private set; }
     public static ConfigEntry<bool> InstantLean { get; private set; }
@@ -164,6 +165,15 @@ public static class Settings
             "InfiniteStamina",
             true,
             "Keep legs/arms stamina and breath topped off.");
+
+        CarryWeightLimitMultiplier = config.Bind(
+            "Movement",
+            "CarryWeightLimitMultiplier",
+            2f,
+            new ConfigDescription(
+                "Raises the local Arena PMC's weight thresholds for sprinting, movement speed, " +
+                "encumbrance and inertia (1 = vanilla, 2 = twice the normal thresholds).",
+                new AcceptableValueRange<float>(1f, 4f)));
 
         NoInertia = config.Bind(
             "Movement",
