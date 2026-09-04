@@ -85,13 +85,6 @@ public sealed class TacticalMode : IArenaMode
     private const float AftermathSeconds = 6f;
 
     /// <summary>
-    /// How long a squad request is given to produce its bots before the round
-    /// starts counting them. Profile generation is a server round trip, so a
-    /// squad that has not arrived yet must not read as "squad wiped".
-    /// </summary>
-    private const float SquadGraceSeconds = 12f;
-
-    /// <summary>
     /// PitFireTeam creates its followers asynchronously after the local raid is
     /// already running. The Arena opponents are not requested until all four
     /// authenticated followers exist, so an incomplete squad can never silently
@@ -497,6 +490,20 @@ public sealed class TacticalMode : IArenaMode
         if (_playerDown)
             return;
 
+        var spawnDecision = SoloTacticalSpawnPolicy.Evaluate(
+            _squadRequested,
+            _squad.Count,
+            Time.time,
+            _squadDeadlineAt);
+        if (spawnDecision == SoloTacticalSpawnDecision.Waiting)
+            return;
+
+        if (spawnDecision == SoloTacticalSpawnDecision.Retry)
+        {
+            RequestSoloSquad(retry: true);
+            return;
+        }
+
         // The safety net, and it has to be checked or it is decoration: a squad
         // member stuck somewhere the player cannot reach would otherwise hold
         // the round — and therefore the match — open forever. Scored as a loss,
@@ -506,30 +513,6 @@ public sealed class TacticalMode : IArenaMode
             Plugin.ModLogger.LogWarning(
                 $"Tactical: round {RoundNumber} ran out of time with {SquadAlive} enemies left.");
             EndRound(won: false);
-            return;
-        }
-
-        // The squad is only allowed to read as "wiped" once it has had time to
-        // arrive. Without this the round would end the instant it started, every
-        // time, because profile generation has not come back yet.
-        if (Time.time < _squadDeadlineAt && _squad.Count < _squadRequested)
-            return;
-
-        if (_squad.Count == 0)
-        {
-            // Nothing arrived at all within the grace period. Calling that a win
-            // would hand out a free round, so it is a no-contest: back to the
-            // buy phase, money untouched, round number unchanged.
-            if (Time.time >= _squadDeadlineAt)
-            {
-                Plugin.ModLogger.LogWarning("Tactical: no squad arrived — replaying the round.");
-
-                // Bumped so the in-flight request, if it ever lands, is retired
-                // rather than joining a round that has already moved on.
-                _squadEpoch++;
-                EnterBuy();
-            }
-
             return;
         }
 
@@ -2466,39 +2449,7 @@ public sealed class TacticalMode : IArenaMode
         _squad.Clear();
         _phase = Phase.Live;
         _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
-        _squadDeadlineAt = Time.time + SquadGraceSeconds;
-
-        // The epoch is what makes an abandoned request harmless. The no-contest
-        // path can start a new round while the last request is still in flight —
-        // profile generation is a server round trip — and without this those bots
-        // would arrive onto a map the new round believes is empty.
-        var epoch = ++_squadEpoch;
-
-        var size = Mathf.Max(1, Settings.TacticalSquadSize.Value);
-        _squadRequested = BurstSpawnService.SpawnSquad(
-            size,
-            asPmc: Settings.TacticalSquadIsPmc.Value,
-            difficulty: ArenaPressure.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
-            observer: bot =>
-            {
-                if (bot == null)
-                    return;
-
-                if (epoch != _squadEpoch
-                    || _phase != Phase.Live
-                    || _squad.Count >= _squadRequested)
-                {
-                    // A superseded request. Killing rather than adopting: adopting
-                    // would silently inflate a round the player was told holds a
-                    // specific number of enemies.
-                    RetireBot(bot, "stale solo Tactical squad member");
-
-                    return;
-                }
-
-                if (!_squad.Contains(bot))
-                    _squad.Add(bot);
-            });
+        RequestSoloSquad(retry: false);
 
         // A player who SURVIVED the last round is standing there in last round's
         // gear; the round-break swap puts them in what they just bought. One who
@@ -2515,6 +2466,7 @@ public sealed class TacticalMode : IArenaMode
         // the same kit is exactly a heal and a resupply, through the path that
         // is already tested for it, and it changes nothing about the gear
         // because it is the same kit definition.
+        int roundNumber = RoundNumber;
         if (!wasDown
             && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game
             && game.Status == GameStatus.Started)
@@ -2522,7 +2474,7 @@ public sealed class TacticalMode : IArenaMode
             Respawn.LiveKitRespawn.AtRoundBreak(
                 game,
                 Settings.SpawnProtectionSeconds.Value,
-                () => _phase == Phase.Live,
+                () => _phase == Phase.Live && RoundNumber == roundNumber,
                 null);
         }
 
@@ -2532,6 +2484,64 @@ public sealed class TacticalMode : IArenaMode
 
         _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
         ArenaToasts.Show($"Round {RoundNumber} — {_squadRequested} enemies");
+    }
+
+    private void RequestSoloSquad(bool retry)
+    {
+        if (_teamArena || _phase != Phase.Live)
+            return;
+
+        int epoch = ++_squadEpoch;
+        if (retry)
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Tactical round {RoundNumber}: no opponent arrived within "
+                + $"{SoloTacticalSpawnPolicy.AssemblySeconds:0}s; retrying the squad request without restarting the round.");
+            _squad.Clear();
+        }
+
+        int expected = Mathf.Max(1, Settings.TacticalSquadSize.Value);
+
+        // Publish the observer's limit before SpawnSquad. Warm profile and pool
+        // tasks may complete synchronously, so its callback is allowed to run
+        // before SpawnSquad returns on the first round.
+        _squadRequested = expected;
+        _squadDeadlineAt = SoloTacticalSpawnPolicy.Deadline(Time.time, requestDispatched: true);
+
+        int planned = BurstSpawnService.SpawnSquad(
+            expected,
+            asPmc: Settings.TacticalSquadIsPmc.Value,
+            difficulty: ArenaPressure.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
+            observer: bot =>
+            {
+                if (bot == null)
+                    return;
+
+                if (_squad.Contains(bot))
+                    return;
+
+                if (epoch != _squadEpoch
+                    || _phase != Phase.Live
+                    || _squad.Count >= expected)
+                {
+                    RetireBot(bot, "stale solo Tactical squad member");
+                    return;
+                }
+
+                // Profile and bundle assembly must not consume the configured
+                // combat duration. The first real opponent starts that clock.
+                if (_squad.Count == 0)
+                    _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
+
+                _squad.Add(bot);
+            },
+            requestStillCurrent: () => epoch == _squadEpoch && _phase == Phase.Live);
+
+        if (planned != expected)
+            _squadDeadlineAt = SoloTacticalSpawnPolicy.Deadline(Time.time, requestDispatched: false);
+
+        Plugin.ModLogger.LogInfo(
+            $"Tactical round {RoundNumber}: requested {expected} opponents; spawn service planned {planned}.");
     }
 
     /// <summary>

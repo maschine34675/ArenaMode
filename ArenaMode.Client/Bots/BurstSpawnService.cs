@@ -195,7 +195,7 @@ internal static class BurstSpawnService
     /// </summary>
     private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role,
         BotDifficulty difficulty, bool isPmc, int count = BotsPerBurst, Action<BotOwner> observer = null,
-        bool requireExactCount = false)
+        bool requireExactCount = false, Func<bool> requestStillCurrent = null)
     {
         var ledger = isPmc ? RecentPmcInjections : RecentScavInjections;
         var reserved = 0;
@@ -233,6 +233,18 @@ internal static class BurstSpawnService
                 data?.StopSpawn();
                 Plugin.ModLogger.LogInfo(
                     $"Arena burst spawn: discarded stale {role} profiles after the raid lease ended.");
+                return;
+            }
+
+            // A mode-local request can expire while BotCreationData.Create is
+            // awaiting profiles or pools even though the raid itself remains
+            // current. Stop before EFT receives bodies: cancelling after batch
+            // dispatch can leak its per-point in-spawn counter.
+            if (!IsRequestStillCurrent(requestStillCurrent, role))
+            {
+                data?.StopSpawn();
+                Plugin.ModLogger.LogInfo(
+                    $"Arena burst spawn: discarded superseded {role} profiles before dispatch.");
                 return;
             }
 
@@ -319,6 +331,15 @@ internal static class BurstSpawnService
                 points.RemoveRange(data.Count, points.Count - data.Count);
             else if (data.Count > points.Count)
                 data.Profiles.RemoveRange(points.Count, data.Count - points.Count);
+
+            // Point selection is synchronous today, but keep the mode lease at
+            // the last safe boundary as well. Once SpawnBotsInZoneOnPositions is
+            // called, only the observer may reject individual late callbacks.
+            if (!IsRequestStillCurrent(requestStillCurrent, role))
+            {
+                data.StopSpawn();
+                return;
+            }
 
             reserved = points.Count;
             for (var i = 0; i < reserved; i++)
@@ -470,7 +491,8 @@ internal static class BurstSpawnService
         bool asPmc,
         BotDifficulty difficulty,
         Action<BotOwner> observer,
-        bool requireExactCount = false)
+        bool requireExactCount = false,
+        Func<bool> requestStillCurrent = null)
     {
         if (count <= 0)
             return 0;
@@ -511,7 +533,16 @@ internal static class BurstSpawnService
                 _nextPmcIsBear = !_nextPmcIsBear;
 
             Plugin.ModLogger.LogInfo($"Arena squad spawn: requesting {count}x {role} ({difficulty}).");
-            SpawnPair(spawner, zone, role, difficulty, asPmc, count, observer, requireExactCount);
+            SpawnPair(
+                spawner,
+                zone,
+                role,
+                difficulty,
+                asPmc,
+                count,
+                observer,
+                requireExactCount,
+                requestStillCurrent);
             return count;
         }
         catch (Exception ex)
@@ -660,6 +691,23 @@ internal static class BurstSpawnService
             GetPlayerPosition(),
             requiredCount,
             ref _zoneCursor);
+    }
+
+    private static bool IsRequestStillCurrent(Func<bool> predicate, WildSpawnType role)
+    {
+        if (predicate == null)
+            return true;
+
+        try
+        {
+            return predicate();
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Arena burst spawn: {role} request lease threw ({ex.Message}) — cancelling before dispatch.");
+            return false;
+        }
     }
 
     private static Vector3? GetPlayerPosition()

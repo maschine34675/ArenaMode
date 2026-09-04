@@ -2150,7 +2150,9 @@ internal static class Program
         RequireAll(soloStart,
             "epoch != _squadEpoch",
             "_phase != Phase.Live",
-            "_squad.Count >= _squadRequested",
+            "_squadRequested = expected",
+            "_squad.Count >= expected",
+            "requestStillCurrent: () => epoch == _squadEpoch && _phase == Phase.Live",
             "RetireBot(bot, \"stale solo Tactical squad member\")",
             "ArenaAnnouncerCue.RoundStart");
         string soloEnd = Slice(
