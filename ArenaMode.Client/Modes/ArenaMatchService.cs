@@ -5,6 +5,7 @@ using ArenaMode.Session;
 using EFT;
 using Redeploy.Core.Engine;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ArenaMode.Modes;
@@ -25,6 +26,8 @@ internal static class ArenaMatchService
     private static bool _teamStartAbortPending;
     private static bool _teamStartAbortCommitted;
     private static string _teamStartAbortReason;
+    private static float _nextScoreboardSyncAt;
+    private static string _lastScoreboardProblem;
 
     public static void Initialize()
     {
@@ -48,6 +51,12 @@ internal static class ArenaMatchService
             return;
 
         match.Tick(Time.deltaTime);
+
+        if (ReferenceEquals(Current, match) && Time.unscaledTime >= _nextScoreboardSyncAt)
+        {
+            _nextScoreboardSyncAt = Time.unscaledTime + 0.25f;
+            SynchronizeScoreboard(match);
+        }
     }
 
     /// <summary>
@@ -111,15 +120,23 @@ internal static class ArenaMatchService
             }
 
             var mode = ModeRegistry.Create(modeId);
-            var match = new ArenaMatch(mode);
+            var local = world?.MainPlayer ?? game.LocalPlayer;
+            var match = new ArenaMatch(
+                mode,
+                game.ProfileId,
+                local?.Profile?.Nickname ?? game.Profile?.Nickname,
+                Combat.RoleClassifier.Label(local));
             partialMatch = match;
             Current = match;
+            _nextScoreboardSyncAt = 0f;
+            _lastScoreboardProblem = null;
             // Subscribe presentation before mode startup. A mode is allowed to
             // raise its first synchronous cue from OnMatchStart; attaching
             // afterwards loses it.
             Audio.AnnouncerService.Attach(match);
             Effects.ArenaLightingDirector.Attach(match, world);
             mode.OnMatchStart(match);
+            SynchronizeScoreboard(match);
             Hud.ArenaHud.Attach(match);
             Plugin.ModLogger.LogInfo($"Arena match started ({mode.DisplayName}).");
         }
@@ -153,6 +170,8 @@ internal static class ArenaMatchService
         _teamStartAbortPending = false;
         _teamStartAbortCommitted = false;
         _teamStartAbortReason = null;
+        _nextScoreboardSyncAt = 0f;
+        _lastScoreboardProblem = null;
 
         if (match == null)
             return;
@@ -323,6 +342,99 @@ internal static class ArenaMatchService
         {
             Plugin.ModLogger.LogWarning($"Arena match {name} failed: {ex}");
         }
+    }
+
+    /// <summary>
+    /// Copies the current physical roster into plain scoreboard data. Tactical
+    /// owns its exact side/account identities; every other Arena mode is a
+    /// player-versus-field board where each generated profile is one bot life.
+    /// </summary>
+    private static void SynchronizeScoreboard(ArenaMatch match)
+    {
+        try
+        {
+            if (match?.Mode is TacticalMode tactical)
+            {
+                if (!tactical.TrySynchronizeScoreboardRoster(out var tacticalProblem))
+                    NoteScoreboardProblem(tacticalProblem);
+                else
+                    _lastScoreboardProblem = null;
+                return;
+            }
+
+            var world = Comfort.Common.Singleton<GameWorld>.Instantiated
+                ? Comfort.Common.Singleton<GameWorld>.Instance
+                : null;
+            var localPlayer = world?.MainPlayer;
+            if (ReferenceEquals(world, null)
+                || world == null
+                || ReferenceEquals(localPlayer, null)
+                || localPlayer == null)
+            {
+                NoteScoreboardProblem("the current GameWorld or local player is unavailable");
+                return;
+            }
+
+            ArenaScoreboardActor local = SnapshotActor(localPlayer);
+            var opponents = new List<ArenaScoreboardActor>(world.RegisteredPlayers.Count);
+            foreach (IPlayer player in world.RegisteredPlayers)
+            {
+                if (ReferenceEquals(player, null)
+                    || ReferenceEquals(player, localPlayer)
+                    || player.IsYourPlayer
+                    || string.Equals(player.ProfileId, localPlayer.ProfileId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                ArenaScoreboardActor actor = SnapshotActor(player);
+                if (actor != null)
+                    opponents.Add(actor);
+            }
+
+            int epoch = match.Mode is RoundsMode rounds ? rounds.Round.Number : 1;
+            if (!match.Scoreboard.TrySynchronizeRoster(
+                    epoch,
+                    local,
+                    Array.Empty<ArenaScoreboardActor>(),
+                    opponents,
+                    out var problem))
+            {
+                NoteScoreboardProblem(problem);
+                return;
+            }
+
+            _lastScoreboardProblem = null;
+        }
+        catch (Exception ex)
+        {
+            NoteScoreboardProblem(ex.GetBaseException().Message);
+        }
+    }
+
+    internal static ArenaScoreboardActor SnapshotActor(IPlayer player, string stableId = null)
+    {
+        if (ReferenceEquals(player, null) || string.IsNullOrWhiteSpace(player.ProfileId))
+            return null;
+
+        return new ArenaScoreboardActor(
+            player.ProfileId,
+            Combat.RoleClassifier.DisplayName(player),
+            Combat.RoleClassifier.Label(player),
+            player.HealthController?.IsAlive == true,
+            stableId);
+    }
+
+    private static void NoteScoreboardProblem(string problem)
+    {
+        if (string.IsNullOrWhiteSpace(problem)
+            || string.Equals(problem, _lastScoreboardProblem, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastScoreboardProblem = problem;
+        Plugin.ModLogger.LogWarning("Arena scoreboard roster stayed on its last valid snapshot: " + problem);
     }
 
     private static void OnLocalDied(Player player)

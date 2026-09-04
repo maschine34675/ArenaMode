@@ -15,12 +15,15 @@ public sealed class ArenaMatch
 {
     public IArenaMode Mode { get; }
 
-    public int Score { get; private set; }
-    public int Kills { get; private set; }
-    public int Deaths { get; private set; }
-    public int Streak { get; private set; }
-    public int BestStreak { get; private set; }
-    public int Headshots { get; private set; }
+    public ArenaScoreboard Scoreboard { get; }
+
+    // Existing consumers keep one source of truth: the local scoreboard row.
+    public int Score => Scoreboard.Local.Score;
+    public int Kills => Scoreboard.Local.Kills;
+    public int Deaths => Scoreboard.Local.Deaths;
+    public int Streak => Scoreboard.Local.Streak;
+    public int BestStreak => Scoreboard.Local.BestStreak;
+    public int Headshots => Scoreboard.Local.Headshots;
 
     public float StartedAt { get; }
     public float Elapsed => Time.time - StartedAt;
@@ -40,9 +43,14 @@ public sealed class ArenaMatch
     /// <summary>Round lifecycle presentation that must not appear as a HUD kill callout.</summary>
     internal event Action<ArenaAnnouncerCue> OnAnnouncerCue;
 
-    public ArenaMatch(IArenaMode mode)
+    public ArenaMatch(
+        IArenaMode mode,
+        string localProfileId = null,
+        string localDisplayName = null,
+        string localRoleLabel = null)
     {
         Mode = mode;
+        Scoreboard = new ArenaScoreboard(localProfileId, localDisplayName, localRoleLabel);
         StartedAt = Time.time;
     }
 
@@ -51,8 +59,10 @@ public sealed class ArenaMatch
         if (kill == null)
             return;
 
+        Scoreboard.ReportKill(kill);
+
         if (kill.KilledByLocal && !kill.LocalIsVictim)
-            ScoreLocalKill(kill);
+            ReportLocalKillPresentation(kill);
 
         RaiseSafe(() => OnKill?.Invoke(kill), nameof(OnKill));
         RaiseSafe(() => Mode.OnKill(kill), "mode.OnKill");
@@ -60,8 +70,7 @@ public sealed class ArenaMatch
 
     public void ReportLocalDeath()
     {
-        Deaths++;
-        Streak = 0;
+        Scoreboard.ReportLocalDeath();
         _multiKillChain = 0;
         _lastLocalKillAt = float.NegativeInfinity;
         RaiseSafe(() => OnScoreChanged?.Invoke(), nameof(OnScoreChanged));
@@ -69,7 +78,13 @@ public sealed class ArenaMatch
     }
 
     public void ReportLocalRespawn(Player player)
-        => RaiseSafe(() => Mode.OnLocalRespawn(player), "mode.OnLocalRespawn");
+    {
+        Scoreboard.ReportLocalRespawn(
+            player?.ProfileId,
+            RoleClassifier.DisplayName(player),
+            RoleClassifier.Label(player));
+        RaiseSafe(() => Mode.OnLocalRespawn(player), "mode.OnLocalRespawn");
+    }
 
     public void Tick(float deltaTime)
     {
@@ -90,25 +105,8 @@ public sealed class ArenaMatch
     internal void ReportAnnouncerCue(ArenaAnnouncerCue cue)
         => RaiseSafe(() => OnAnnouncerCue?.Invoke(cue), nameof(OnAnnouncerCue));
 
-    private void ScoreLocalKill(ArenaKill kill)
+    private void ReportLocalKillPresentation(ArenaKill kill)
     {
-        Kills++;
-        Streak++;
-        if (Streak > BestStreak)
-            BestStreak = Streak;
-
-        var points = ScoreRules.PointsFor(kill.VictimRole);
-        if (kill.Headshot)
-        {
-            Headshots++;
-            points += ScoreRules.HeadshotBonus;
-        }
-
-        if (Streak > 0 && Streak % ScoreRules.StreakBonusEvery == 0)
-            points += ScoreRules.StreakBonus;
-
-        Score += points;
-
         _multiKillChain = kill.Time - _lastLocalKillAt <= ScoreRules.MultiKillWindowSeconds
             ? _multiKillChain + 1
             : 1;

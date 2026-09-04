@@ -1,4 +1,5 @@
 using BepInEx.Bootstrap;
+using ArenaMode.Combat;
 using Comfort.Common;
 using EFT;
 using EFT.AssetsManager;
@@ -616,7 +617,10 @@ internal static class PitFireTeamRoundLifecycle
                     teardownProfileId = bot.ProfileId;
                     var health = bot?.GetPlayer?.ActiveHealthController;
                     if (health != null && health.IsAlive)
-                        health.Kill(EDamageType.Undefined);
+                    {
+                        using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
+                            health.Kill(EDamageType.Undefined);
+                    }
                 }
 
                 _stage = PitFireTeamRoundLifecycleStage.AwaitingRetirement;
@@ -3709,7 +3713,10 @@ internal static class PitFireTeamRoundLifecycle
                 $"Arena could not return revoked follower {bot.ProfileId} to its pool: {ex.GetBaseException().Message}");
             var health = player?.ActiveHealthController;
             if (health != null && health.IsAlive)
-                health.Kill(EDamageType.Undefined);
+            {
+                using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
+                    health.Kill(EDamageType.Undefined);
+            }
         }
     }
 

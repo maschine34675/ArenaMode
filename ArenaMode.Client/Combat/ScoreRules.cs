@@ -1,3 +1,5 @@
+#nullable disable
+
 namespace ArenaMode.Combat;
 
 /// <summary>Role buckets an arena victim can fall into (coarse, score-relevant).</summary>

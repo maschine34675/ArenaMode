@@ -82,7 +82,8 @@ internal static class ArenaGiveUp
             // Raises the death event the player subscribes to, so the normal
             // death pipeline runs and the arena driver picks it up. No aggressor
             // means no killfeed line, which is right: nobody earned this one.
-            health.Kill(EDamageType.Undefined);
+            using (ArenaAdministrativeDeathGate.Enter(player.ProfileId))
+                health.Kill(EDamageType.Undefined);
         }
         catch (Exception ex)
         {

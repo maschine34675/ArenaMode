@@ -42,7 +42,11 @@ internal static class CombatPatches
         new RagdollImpulsePatch().Enable();
     }
 
-    public static void ResetRaidState() => SeenVictims.Clear();
+    public static void ResetRaidState()
+    {
+        SeenVictims.Clear();
+        ArenaAdministrativeDeathGate.Reset();
+    }
 
     /// <summary>Killfeed/HUD names go through TMP rich text — neuter markup in nicknames.</summary>
     private static string Sanitize(string name)
@@ -102,6 +106,13 @@ internal static class CombatPatches
             {
                 var victimId = __instance.ProfileId;
                 if (string.IsNullOrEmpty(victimId) || aggressor.ProfileId == victimId)
+                    return;
+
+                // Retiring a damaged body with Kill(Undefined) can make EFT
+                // replay its retained LastAggressor. This check must precede
+                // SeenVictims so a technical removal neither scores nor consumes
+                // the victim's one real combat-death slot.
+                if (ArenaAdministrativeDeathGate.IsActive(victimId))
                     return;
 
                 var localId = Singleton<GameWorld>.Instantiated

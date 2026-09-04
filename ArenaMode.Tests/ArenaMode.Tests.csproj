@@ -30,6 +30,16 @@
     <ProjectReference Include="..\ArenaMode.Server\ArenaMode.Server.csproj" />
   </ItemGroup>
 
+  <!-- The scoreboard is intentionally pure match data even though it ships in
+       the client DLL. Link that rule layer directly so identity and scoring can
+       be exercised without loading Unity or EFT. -->
+  <ItemGroup>
+    <Compile Include="..\ArenaMode.Client\Combat\ArenaKill.cs" Link="ClientRules\ArenaKill.cs" />
+    <Compile Include="..\ArenaMode.Client\Combat\ArenaAdministrativeDeathGate.cs" Link="ClientRules\ArenaAdministrativeDeathGate.cs" />
+    <Compile Include="..\ArenaMode.Client\Combat\ScoreRules.cs" Link="ClientRules\ScoreRules.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\ArenaScoreboard.cs" Link="ClientRules\ArenaScoreboard.cs" />
+  </ItemGroup>
+
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets
        because the live server already provides these at runtime. A test host does
        not, so without this every test that touches an SPT model type fails to

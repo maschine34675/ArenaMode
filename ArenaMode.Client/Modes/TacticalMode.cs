@@ -479,6 +479,92 @@ public sealed class TacticalMode : IArenaMode
         }
     }
 
+    /// <summary>
+    /// Publishes only plain identities from the roster this mode already owns.
+    /// PFT followers carry their authenticated account ID across replacement
+    /// bodies; generated opponents deliberately remain one-profile contestants.
+    /// </summary>
+    internal bool TrySynchronizeScoreboardRoster(out string problem)
+    {
+        problem = null;
+        if (_match == null)
+            return true;
+
+        // Preserve the just-finished line-up while bodies are absent. The first
+        // complete snapshot of the next staging/live phase replaces it.
+        if (_phase == Phase.Aftermath
+            || _phase == Phase.Rebinding
+            || _phase == Phase.Ended
+            || (!_teamArena && _phase == Phase.Buy))
+        {
+            return true;
+        }
+
+        try
+        {
+            Player localPlayer = _teamArena
+                ? _boundLocalPlayer
+                : (Comfort.Common.Singleton<GameWorld>.Instantiated
+                    ? Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer
+                    : null);
+            ArenaScoreboardActor local = ArenaMatchService.SnapshotActor(localPlayer);
+            if (local == null)
+            {
+                problem = "Tactical local player identity is unavailable";
+                return false;
+            }
+
+            var friendlies = new List<ArenaScoreboardActor>(TeamCompanionCount);
+            if (_teamArena)
+            {
+                foreach (BotOwner follower in _boundTeamFollowers)
+                {
+                    string accountId = follower?.Profile?.AccountId?.Trim();
+                    ArenaScoreboardActor actor = ArenaMatchService.SnapshotActor(
+                        follower?.GetPlayer,
+                        accountId);
+                    if (actor == null || string.IsNullOrWhiteSpace(accountId))
+                    {
+                        problem = "a bound PitFireTeam scoreboard identity is unavailable";
+                        return false;
+                    }
+
+                    friendlies.Add(actor);
+                }
+            }
+
+            IReadOnlyList<BotOwner> opponentBodies = _teamArena
+                                                      && _boundTeamEnemies.Length == TeamEnemyCount
+                ? _boundTeamEnemies
+                : _squad;
+            var opponents = new List<ArenaScoreboardActor>(opponentBodies.Count);
+            foreach (BotOwner opponent in opponentBodies)
+            {
+                ArenaScoreboardActor actor = ArenaMatchService.SnapshotActor(opponent?.GetPlayer);
+                if (actor == null)
+                {
+                    problem = "a Tactical opponent scoreboard identity is unavailable";
+                    return false;
+                }
+
+                opponents.Add(actor);
+            }
+
+            int epoch = _teamArena ? _teamRoundEpoch : RoundNumber;
+            return _match.Scoreboard.TrySynchronizeRoster(
+                epoch,
+                local,
+                friendlies,
+                opponents,
+                out problem);
+        }
+        catch (Exception ex)
+        {
+            problem = "Tactical scoreboard snapshot failed: " + ex.GetBaseException().Message;
+            return false;
+        }
+    }
+
     private void TickLive()
     {
         if (_teamArena)
@@ -843,6 +929,14 @@ public sealed class TacticalMode : IArenaMode
             else if (PitFireTeamCompat.EnsureHostility(_boundTeamEnemies, _boundLocalPlayer))
             {
                 _lastTeamReadinessDiagnostic = null;
+                if (!TrySynchronizeScoreboardRoster(out string scoreboardProblem))
+                {
+                    // Presentation must never turn a valid protected roster
+                    // into a no-contest. Keep the previous valid board instead.
+                    Plugin.ModLogger.LogWarning(
+                        $"Tactical team Arena round {RoundNumber}: scoreboard roster stayed unchanged: {scoreboardProblem}.");
+                }
+
                 if (!Effects.ArenaTracerTeams.TryBindTeamRound(
                         _teamRoundEpoch,
                         _boundLocalProfileId,
@@ -1610,6 +1704,7 @@ public sealed class TacticalMode : IArenaMode
         };
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
+        _match.Scoreboard.MarkCurrentRosterInactive();
         _squadEpoch++;
         RetireSquad();
         _preferredSpectatorProfileId = null;
@@ -2558,7 +2653,10 @@ public sealed class TacticalMode : IArenaMode
         {
             var health = bot?.GetPlayer?.ActiveHealthController;
             if (health != null && health.IsAlive)
-                health.Kill(EFT.EDamageType.Undefined);
+            {
+                using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
+                    health.Kill(EFT.EDamageType.Undefined);
+            }
         }
         catch (Exception ex)
         {
@@ -2587,6 +2685,7 @@ public sealed class TacticalMode : IArenaMode
 
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
+        _match.Scoreboard.MarkCurrentRosterInactive();
 
         _match.ReportAnnouncerCue(
             won ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);

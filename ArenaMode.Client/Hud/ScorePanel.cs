@@ -21,7 +21,7 @@ internal sealed class ScorePanel
         _root.SetParent(hudRoot, false);
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0.5f, 1f);
         _root.anchoredPosition = new Vector2(0f, -18f);
-        _root.sizeDelta = new Vector2(560f, 60f);
+        _root.sizeDelta = new Vector2(900f, 60f);
 
         _mainLine = HudStyle.CreateText(_root, "Main", 24f, TextAlignmentOptions.Top);
         var mainRect = _mainLine.rectTransform;
@@ -61,6 +61,28 @@ internal sealed class ScorePanel
             : string.Empty;
         var modeLine = match.Mode?.HudStatusLine;
         var modePart = string.IsNullOrEmpty(modeLine) ? string.Empty : $"   {modeLine}";
-        _subLine.text = $"{streakPart}{minutes:00}:{seconds:00}{modePart}";
+        var comparison = Comparison(match);
+        var comparisonPart = string.IsNullOrEmpty(comparison) ? string.Empty : $"   {comparison}";
+        _subLine.text = $"{streakPart}{minutes:00}:{seconds:00}{modePart}{comparisonPart}";
+    }
+
+    private static string Comparison(ArenaMatch match)
+    {
+        if (match?.Scoreboard == null)
+            return null;
+
+        if (match.Mode is TacticalMode tactical)
+        {
+            var friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
+            var opponent = match.Scoreboard.Totals(ArenaScoreboardSide.Opponent);
+            return tactical.IsTeamArena
+                ? $"Team pts <color=#7FDBFF>{friendly.Score:n0}</color>:<color=#FF6B6B>{opponent.Score:n0}</color>"
+                : $"Opposition <color=#FF6B6B>{opponent.Score:n0}</color> pts";
+        }
+
+        ArenaScoreboardEntry leader = match.Scoreboard.Leader(ArenaScoreboardSide.Opponent);
+        return leader == null
+            ? "Waiting for opponents"
+            : $"Rival {leader.DisplayName} <color=#FF6B6B>{leader.Score:n0}</color>";
     }
 }

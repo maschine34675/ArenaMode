@@ -1,8 +1,11 @@
 using ArenaMode.Config;
 using ArenaMode.Modes;
 using ArenaMode.Session;
+using EFT.UI;
+using EFT.UI.Screens;
 using Redeploy.Core.Ui;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -23,17 +26,30 @@ internal sealed class ArenaPanel : MonoBehaviour
     private bool _autoOpenHandled;
     private float _nextCursorRetry;
     private Rect _windowRect;
+    private Vector2 _scrollPosition;
     private bool _stylesReady;
+    private int _scoreboardVersion = -1;
+    private ArenaMatch _cachedMatch;
+    private bool _cachedTactical;
+    private List<ArenaScoreboardEntry> _friendlyRows = new();
+    private List<ArenaScoreboardEntry> _opponentRows = new();
+    private List<ArenaScoreboardEntry> _overallRows = new();
+    private int _hiddenRows;
     private GUIStyle _windowStyle;
     private GUIStyle _titleStyle;
     private GUIStyle _bodyStyle;
     private GUIStyle _statStyle;
+    private GUIStyle _tableHeaderStyle;
+    private GUIStyle _friendlyRowStyle;
+    private GUIStyle _opponentRowStyle;
+    private GUIStyle _mutedStyle;
     private GUIStyle _buttonStyle;
 
     private void OnDestroy()
     {
         SetCursor(false);
         ArenaInputBlocker.Request(this, false);
+        ClearScoreboardCache();
     }
 
     private void SetCursor(bool show) => CursorVote.Set(this, show);
@@ -60,6 +76,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         var intermission = ArenaMatchService.Current?.Mode is RoundsMode rounds
             && rounds.InIntermission
             && rounds.IntermissionProtected
+            && IsBattleUiActive()
             && !Respawn.ArenaRespawnDriver.IsRespawnInProgress;
         if (intermission)
         {
@@ -81,7 +98,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         }
 
         // A raid ending with the panel open would strand the cursor.
-        if (_open && !ArenaSession.IsActive)
+        if (_open && (!ArenaSession.IsActive || !IsBattleUiActive()))
         {
             SetOpen(false);
             return;
@@ -101,7 +118,9 @@ internal sealed class ArenaPanel : MonoBehaviour
 
     private void Toggle()
     {
-        if (!ArenaSession.IsActive)
+        // Closing must always work. Opening over Inventory/RaidMenu would leave
+        // two cursor owners and freeze clicks behind this window.
+        if (!_open && (!ArenaSession.IsActive || !IsBattleUiActive()))
             return;
 
         _autoOpened = false;
@@ -111,6 +130,8 @@ internal sealed class ArenaPanel : MonoBehaviour
     private void SetOpen(bool open)
     {
         _open = open;
+        if (!open)
+            ClearScoreboardCache();
 
         // Set FIRST and unconditionally: it cannot throw, and driving it off the
         // state rather than off the transition means any desync self-heals on
@@ -157,8 +178,9 @@ internal sealed class ArenaPanel : MonoBehaviour
 
         EnsureStyles();
 
-        // Lower depth draws in FRONT in IMGUI — the panel has to be reachable.
-        GUI.depth = 100;
+        // Lower depth draws in FRONT in IMGUI. Tactical's buy panel uses 90;
+        // F9 must put this deliberately requested scoreboard above it.
+        GUI.depth = 80;
 
         // Escape closes the panel (the blocker passes it through so the game's
         // own menu keeps working when the panel is not up).
@@ -170,10 +192,19 @@ internal sealed class ArenaPanel : MonoBehaviour
             return;
         }
 
-        var width = Mathf.Min(560f, Screen.width * 0.9f);
-        var height = Mathf.Min(520f, Screen.height * 0.9f);
+        var width = Mathf.Min(880f, Screen.width * 0.94f);
+        var height = Mathf.Min(780f, Screen.height * 0.92f);
         if (_windowRect.width < 1f)
             _windowRect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+        else
+        {
+            // Resolution/fullscreen changes must not strand the footer outside
+            // the new screen. Keep the user's dragged position where possible.
+            _windowRect.width = width;
+            _windowRect.height = height;
+            _windowRect.x = Mathf.Clamp(_windowRect.x, 0f, Mathf.Max(0f, Screen.width - width));
+            _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - height));
+        }
 
         _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow, "Arena", _windowStyle);
     }
@@ -188,16 +219,30 @@ internal sealed class ArenaPanel : MonoBehaviour
             return;
         }
 
+        // ArenaPanel lives on the persistent plugin object. A match can be
+        // replaced while the panel is open, so do not carry scroll position or
+        // cached entry objects from the previous raid into the next one.
+        if (_cachedMatch != null && !ReferenceEquals(_cachedMatch, match))
+            ClearScoreboardCache();
+
         GUILayout.Space(6);
         GUILayout.Label(match.Mode?.DisplayName ?? "Arena", _titleStyle);
+
+        _scrollPosition = GUILayout.BeginScrollView(
+            _scrollPosition,
+            false,
+            true,
+            GUILayout.ExpandWidth(true),
+            GUILayout.ExpandHeight(true));
 
         if (match.Mode is RoundsMode rounds)
             DrawRoundBlock(rounds);
 
         GUILayout.Space(8);
-        DrawStat("Kills", match.Kills.ToString());
-        DrawStat("Deaths", match.Deaths.ToString());
-        DrawStat("Score", match.Score.ToString("n0"));
+        DrawScoreboard(match);
+
+        GUILayout.Space(10);
+        GUILayout.Label("Your details", _titleStyle);
         DrawStat("Best streak", match.BestStreak.ToString());
         DrawStat("Headshots", match.Headshots.ToString());
         DrawStat("K/D", match.Deaths > 0
@@ -225,6 +270,8 @@ internal sealed class ArenaPanel : MonoBehaviour
         DrawSlider("PMC floor", Settings.PmcFloor, 0, 20);
         DrawSlider("Visible corpses", Settings.MaxCorpses, 0, 50);
 
+        GUILayout.EndScrollView();
+
         GUILayout.Space(10);
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
@@ -247,7 +294,144 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();
 
-        GUI.DragWindow();
+        GUI.DragWindow(new Rect(0f, 0f, _windowRect.width, 28f));
+    }
+
+    private void DrawScoreboard(ArenaMatch match)
+    {
+        RefreshScoreboardCache(match);
+        GUILayout.Label("Scoreboard", _titleStyle);
+        GUILayout.Space(4);
+
+        if (_cachedTactical && match.Mode is TacticalMode tactical)
+        {
+            ArenaScoreboardTotals friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
+            ArenaScoreboardTotals opponent = match.Scoreboard.Totals(ArenaScoreboardSide.Opponent);
+            string rounds = $"Rounds  {tactical.RoundsWon} - {tactical.RoundsLost}";
+            GUILayout.Label(
+                $"{rounds}     Match points  {friendly.Score:n0} - {opponent.Score:n0}     "
+                + $"Kills  {friendly.Kills} - {opponent.Kills}",
+                _statStyle);
+            GUILayout.Space(5);
+            DrawStandingsTable(tactical.IsTeamArena ? "YOUR TEAM" : "YOU", _friendlyRows, _friendlyRowStyle);
+            GUILayout.Space(6);
+            DrawStandingsTable("OPPOSITION", _opponentRows, _opponentRowStyle);
+            int earlierOpponentPoints = opponent.Score - _opponentRows.Sum(entry => entry.Score);
+            int earlierOpponentKills = opponent.Kills - _opponentRows.Sum(entry => entry.Kills);
+            if (earlierOpponentPoints > 0 || earlierOpponentKills > 0)
+            {
+                GUILayout.Label(
+                    $"Earlier opponent bodies: {earlierOpponentPoints:n0} points, "
+                    + $"{earlierOpponentKills} kills (included in match total)",
+                    _mutedStyle);
+            }
+            if (_hiddenRows > 0)
+                GUILayout.Label($"{_hiddenRows} additional current participant(s) hidden", _mutedStyle);
+            return;
+        }
+
+        DrawStandingsTable("MATCH STANDINGS", _overallRows, null);
+        if (_hiddenRows > 0)
+            GUILayout.Label($"{_hiddenRows} lower or completed bot run(s) not shown", _mutedStyle);
+    }
+
+    private void RefreshScoreboardCache(ArenaMatch match)
+    {
+        bool tactical = match.Mode is TacticalMode;
+        if (ReferenceEquals(_cachedMatch, match)
+            && _scoreboardVersion == match.Scoreboard.Version
+            && _cachedTactical == tactical)
+            return;
+
+        _cachedMatch = match;
+        _scoreboardVersion = match.Scoreboard.Version;
+        _cachedTactical = tactical;
+        if (tactical)
+        {
+            _friendlyRows = match.Scoreboard.Standings(
+                    ArenaScoreboardSide.Friendly,
+                    currentRosterOnly: true,
+                    maxRows: 5,
+                    pinLocal: true)
+                .ToList();
+            _opponentRows = match.Scoreboard.Standings(
+                    ArenaScoreboardSide.Opponent,
+                    currentRosterOnly: true,
+                    maxRows: 15,
+                    pinLocal: false)
+                .ToList();
+            _overallRows.Clear();
+            _hiddenRows = Math.Max(
+                0,
+                match.Scoreboard.Count(ArenaScoreboardSide.Friendly, true) - _friendlyRows.Count
+                + match.Scoreboard.Count(ArenaScoreboardSide.Opponent, true) - _opponentRows.Count);
+            return;
+        }
+
+        _overallRows = match.Scoreboard.Standings(
+                side: null,
+                currentRosterOnly: false,
+                maxRows: 12,
+                pinLocal: true)
+            .ToList();
+        _friendlyRows.Clear();
+        _opponentRows.Clear();
+        _hiddenRows = Math.Max(
+            0,
+            match.Scoreboard.HistoricalParticipantCount - _overallRows.Count);
+    }
+
+    private void ClearScoreboardCache()
+    {
+        _cachedMatch = null;
+        _scoreboardVersion = -1;
+        _friendlyRows.Clear();
+        _opponentRows.Clear();
+        _overallRows.Clear();
+        _hiddenRows = 0;
+        _scrollPosition = Vector2.zero;
+    }
+
+    private void DrawStandingsTable(
+        string heading,
+        IReadOnlyList<ArenaScoreboardEntry> rows,
+        GUIStyle sideStyle)
+    {
+        GUILayout.Label(heading, sideStyle ?? _tableHeaderStyle);
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("NAME", _tableHeaderStyle, GUILayout.MinWidth(220f), GUILayout.ExpandWidth(true));
+        GUILayout.Label("ROLE", _tableHeaderStyle, GUILayout.Width(105f));
+        GUILayout.Label("STATE", _tableHeaderStyle, GUILayout.Width(55f));
+        GUILayout.Label("K", _tableHeaderStyle, GUILayout.Width(35f));
+        GUILayout.Label("D", _tableHeaderStyle, GUILayout.Width(35f));
+        GUILayout.Label("HS", _tableHeaderStyle, GUILayout.Width(35f));
+        GUILayout.Label("SCORE", _tableHeaderStyle, GUILayout.Width(95f));
+        GUILayout.EndHorizontal();
+
+        if (rows == null || rows.Count == 0)
+        {
+            GUILayout.Label("Waiting for roster...", _mutedStyle);
+            return;
+        }
+
+        foreach (ArenaScoreboardEntry row in rows)
+        {
+            GUIStyle style = row.IsLocal
+                ? _friendlyRowStyle
+                : sideStyle ?? (row.Side == ArenaScoreboardSide.Friendly
+                    ? _friendlyRowStyle
+                    : _opponentRowStyle);
+            string name = row.IsLocal ? row.DisplayName + "  (YOU)" : row.DisplayName;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(name, style, GUILayout.MinWidth(220f), GUILayout.ExpandWidth(true));
+            GUILayout.Label(row.RoleLabel, style, GUILayout.Width(105f));
+            GUILayout.Label(row.IsActive ? "LIVE" : "OUT", row.IsActive ? style : _mutedStyle, GUILayout.Width(55f));
+            GUILayout.Label(row.Kills.ToString(), style, GUILayout.Width(35f));
+            GUILayout.Label(row.Deaths.ToString(), style, GUILayout.Width(35f));
+            GUILayout.Label(row.Headshots.ToString(), style, GUILayout.Width(35f));
+            GUILayout.Label(row.Score.ToString("n0"), style, GUILayout.Width(95f));
+            GUILayout.EndHorizontal();
+        }
     }
 
     private void DrawRoundBlock(RoundsMode rounds)
@@ -329,6 +513,25 @@ internal sealed class ArenaPanel : MonoBehaviour
         };
         _statStyle.normal.textColor = new Color(1f, 0.85f, 0.45f);
 
+        _tableHeaderStyle = new GUIStyle(_bodyStyle)
+        {
+            fontSize = 12,
+            fontStyle = FontStyle.Bold,
+        };
+        _tableHeaderStyle.normal.textColor = new Color(0.72f, 0.76f, 0.8f);
+
+        _friendlyRowStyle = new GUIStyle(_bodyStyle)
+        {
+            fontStyle = FontStyle.Bold,
+        };
+        _friendlyRowStyle.normal.textColor = new Color(0.49f, 0.85f, 1f);
+
+        _opponentRowStyle = new GUIStyle(_bodyStyle);
+        _opponentRowStyle.normal.textColor = new Color(1f, 0.48f, 0.43f);
+
+        _mutedStyle = new GUIStyle(_bodyStyle);
+        _mutedStyle.normal.textColor = new Color(0.58f, 0.61f, 0.64f);
+
         _buttonStyle = new GUIStyle(GUI.skin.button)
         {
             fontSize = 14,
@@ -336,5 +539,18 @@ internal sealed class ArenaPanel : MonoBehaviour
         };
 
         _stylesReady = true;
+    }
+
+    private static bool IsBattleUiActive()
+    {
+        try
+        {
+            return EftScreenManager.Instance != null
+                   && EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.BattleUI);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }

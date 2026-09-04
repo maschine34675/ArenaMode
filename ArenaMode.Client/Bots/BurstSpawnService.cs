@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Combat;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
@@ -465,7 +466,8 @@ internal static class BurstSpawnService
 
         try
         {
-            bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
+            using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
+                bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
             Plugin.ModLogger.LogWarning(
                 $"Arena burst spawn: retired a late {role} body from an expired raid lease.");
         }
