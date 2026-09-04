@@ -1,4 +1,5 @@
 using ArenaMode.Effects;
+using ArenaMode.Modes;
 using BepInEx.Configuration;
 using System;
 using UnityEngine;
@@ -85,6 +86,55 @@ public static class Settings
 
     /// <summary>The plugin's config file — panels batch writes through it.</summary>
     public static ConfigFile File { get; private set; }
+
+    public static string SelectedGameModeId
+        => ArenaModeCatalog.NormalizeId(GameMode?.Value);
+
+    /// <summary>
+    /// Apply a native menu choice to the same entry used by F12 and raid start,
+    /// then publish the client-owned value so a later settings sync sees it.
+    /// </summary>
+    internal static bool TrySelectGameMode(string modeId)
+    {
+        if (GameMode == null)
+            return false;
+
+        var normalized = ArenaModeCatalog.NormalizeId(modeId);
+        if (string.Equals(GameMode.Value, normalized, StringComparison.Ordinal))
+        {
+            SettingsSync.Report();
+            return true;
+        }
+
+        try
+        {
+            GameMode.Value = normalized;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger?.LogWarning($"Arena map-screen mode selection failed: {ex.Message}");
+            return false;
+        }
+
+        try
+        {
+            // ConfigEntry saves immediately under BepInEx's normal setting.
+            // If another Arena panel temporarily batches writes, flush this
+            // explicit menu choice instead of leaving it only in memory.
+            if (File?.SaveOnConfigSet == false)
+                File.Save();
+        }
+        catch (Exception ex)
+        {
+            // The in-memory selection still owns this raid. Keep persistence
+            // failure visible without lying to the picker about the active mode.
+            Plugin.ModLogger?.LogWarning($"Arena map-screen mode save failed: {ex.Message}");
+        }
+
+        SettingsSync.Report();
+        Plugin.ModLogger?.LogInfo($"Arena mode selected in map screen: {normalized}.");
+        return true;
+    }
 
     public static void Init(ConfigFile config)
     {
@@ -366,13 +416,18 @@ public static class Settings
         GameMode = config.Bind(
             "Match",
             "GameMode",
-            "endless",
+            ArenaModeCatalog.EndlessId,
             new ConfigDescription(
-                "Arena game mode for the next raid. endless: a pure counter. " +
+                "Arena game mode selected on the native map screen or in F12. " +
+                "endless: a pure counter. " +
                 "rounds: kill target or time limit with a scoreboard between rounds. " +
                 "gungame: climb a ladder of weapons, one rung per kill. " +
                 "tactical: buy a loadout, fight one squad, and sit the round out if you fall.",
-                new AcceptableValueList<string>("endless", "rounds", "gungame", "tactical")));
+                new AcceptableValueList<string>(
+                    ArenaModeCatalog.EndlessId,
+                    ArenaModeCatalog.RoundsId,
+                    ArenaModeCatalog.GunGameId,
+                    ArenaModeCatalog.TacticalId)));
 
         RoundKillTarget = config.Bind(
             "Match",

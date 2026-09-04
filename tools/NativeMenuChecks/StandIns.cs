@@ -70,6 +70,8 @@ namespace ArenaMode.Config
     public static class Settings
     {
         public static Entry<string> GameMode = new() { Value = "endless" };
+        public static string SelectedGameModeId
+            => ArenaMode.Modes.ArenaModeCatalog.NormalizeId(GameMode.Value);
         public static bool IsArenaMap(string map) => map == "factory4_day" || map == "labyrinth" || map == "laboratory";
     }
     public static class SettingsSync { public static void SyncNow() { } }
@@ -94,11 +96,17 @@ namespace ArenaMode.Session
     public static class ArenaSession
     {
         public static bool ArmedForNextRaid;
-        public static void MarkArmed(string map, string mode) => ArmedForNextRaid = true;
+        public static string ArmedMode;
+        public static void MarkArmed(string map, string mode)
+        {
+            ArmedForNextRaid = true;
+            ArmedMode = mode;
+        }
         public static void ClearArmed(string reason)
         {
             if (!ArmedForNextRaid) return;
             ArmedForNextRaid = false;
+            ArmedMode = null;
             ArenaServerClient.PostRaidCancel();
         }
     }

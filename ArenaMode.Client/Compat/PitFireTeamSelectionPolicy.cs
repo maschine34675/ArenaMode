@@ -112,7 +112,9 @@ internal static class PitFireTeamSelectionPolicy
         return true;
     }
 
-    public static PitFireTeamSelectionDecision Evaluate(PitFireTeamSelectionInput input)
+    public static PitFireTeamSelectionDecision Evaluate(
+        PitFireTeamSelectionInput input,
+        bool allowPendingModeSelection = false)
     {
         if (input == null)
             return PitFireTeamSelectionDecision.Reject("Arena could not inspect the current raid group.");
@@ -192,7 +194,8 @@ internal static class PitFireTeamSelectionPolicy
                 $"Team Arena requires exactly four selected PitFireTeam companions (found {selected.Count}).");
         }
 
-        if (!string.Equals(input.GameMode, "tactical", StringComparison.OrdinalIgnoreCase))
+        if (!allowPendingModeSelection
+            && !string.Equals(input.GameMode, "tactical", StringComparison.OrdinalIgnoreCase))
             return PitFireTeamSelectionDecision.Reject(
                 "PitFireTeam companions are supported only in Arena Tactical mode.");
 

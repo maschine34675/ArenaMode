@@ -269,7 +269,8 @@ internal static class PitFireTeamCompat
     }
 
     public static PitFireTeamSelectionDecision EvaluateSelection(
-        MatchmakerPlayersController controller, RaidSettings raidSettings)
+        MatchmakerPlayersController controller, RaidSettings raidSettings,
+        bool allowPendingModeSelection = false)
     {
         EnsureInitialized();
 
@@ -312,7 +313,7 @@ internal static class PitFireTeamCompat
             NativeGroupAccountIds = nativeAccountIds,
             SelectedPitAccountIds = selectedAccountIds,
             SelectedPitProfileIds = selectedProfileIds
-        });
+        }, allowPendingModeSelection);
     }
 
     /// <summary>

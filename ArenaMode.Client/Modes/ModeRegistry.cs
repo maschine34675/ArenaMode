@@ -11,13 +11,13 @@ internal static class ModeRegistry
     private static readonly Dictionary<string, Func<IArenaMode>> Factories =
         new Dictionary<string, Func<IArenaMode>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["endless"] = () => new EndlessDeathmatchMode(),
-            ["rounds"] = () => new RoundsMode(),
-            ["gungame"] = () => new GunGameMode(),
-            ["tactical"] = () => new TacticalMode(),
+            [ArenaModeCatalog.EndlessId] = () => new EndlessDeathmatchMode(),
+            [ArenaModeCatalog.RoundsId] = () => new RoundsMode(),
+            [ArenaModeCatalog.GunGameId] = () => new GunGameMode(),
+            [ArenaModeCatalog.TacticalId] = () => new TacticalMode(),
         };
 
-    public const string DefaultId = "endless";
+    public const string DefaultId = ArenaModeCatalog.EndlessId;
 
     public static IArenaMode Create(string id)
     {

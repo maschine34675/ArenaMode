@@ -8,7 +8,9 @@ Choose **Arena** on the native PMC/Scav screen. The existing, unused third nativ
 
 The next screen offers **Factory (day), Labyrinth and The Lab**, subject to the client allowlist and server Arena configuration. Other locations and Marathon are hidden. Factory cannot switch to its unsupported night variant. Labyrinth is exposed only in this Arena view even when the ordinary game location has `Enabled=false`. Native map locks are not changed globally; the existing Arena keycard waiver remains in use.
 
-Returning from the map screen preserves Arena. Selecting PMC or Scav, leaving setup through the main menu/taskbar, or beginning a new setup clears it and restores the previous ordinary map/time/transition/key selection. The old persistent `General/Enabled` setting no longer controls raid activation. F12 still configures Arena's rules, kits and submode; this change does not introduce a new submode picker.
+The same map screen now contains an Arena-only mode bar for **Endless, Rounds, Gun Game and Tactical**. It writes the existing `Match/GameMode` entry, saves it, and reports the client-owned value to the server settings mirror. F12 remains an alternate editor for that entry and for detailed rules and kits, but it is no longer required to choose the mode. A complete PitFireTeam roster enters the screen in Tactical and cannot select the three solo modes; final raid negotiation independently keeps the existing strict Tactical-only check.
+
+Returning from the map screen preserves Arena and the chosen mode. Selecting PMC or Scav, leaving setup through the main menu/taskbar, or beginning a new setup clears the Arena claim and restores the previous ordinary map/time/transition/key selection. The old persistent `General/Enabled` setting no longer controls raid activation.
 
 ## Safety review
 
@@ -87,3 +89,22 @@ Subsequent user confirmation: the corrected map selection works on the gaming PC
 Both reported visibility regressions are therefore confirmed fixed by the user.
 This does not close the broader navigation, ordinary-raid and profile-integrity
 acceptance checks above.
+
+## Follow-up: native Arena mode picker
+
+The mode picker is created only from the Arena-gated location-screen postfix and
+is destroyed before every screen rebuild or close. Its fixed bottom-center strip
+uses the native navigation-button font and the free space recorded in the installed
+`level48` layout, above the Back/Next row and below the closed Arena time panel.
+Ordinary PMC/Scav screens never create it. Failure to construct the optional view
+is logged and leaves the native map screen usable.
+
+`tools/NativeModeSelectionChecks` links the production catalog and Unity view. Its
+checks cover all four registry ids and labels, selection propagation, descriptions,
+font fallback, exact placement, re-entry without duplicates, teardown, rejected
+config writes and the Tactical-only PitFireTeam state. `tools/PitFireTeamChecks`
+also proves that mode-pending side-screen admission relaxes only the old mode value;
+invalid rosters, Fika/co-op and the final non-Tactical start remain rejected.
+
+The offline checks and Release build cannot prove final rendering or pointer input.
+That visual acceptance remains for the GPU-equipped client.
