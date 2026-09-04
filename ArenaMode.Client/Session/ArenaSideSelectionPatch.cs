@@ -1,5 +1,6 @@
 using ArenaMode.Compat;
 using ArenaMode.Config;
+using ArenaMode.Modes;
 using EFT;
 using EFT.Communications;
 using EFT.UI.Matchmaker;
@@ -66,10 +67,12 @@ internal static class ArenaSideSelectionPatch
                 // animation listeners and native placement intact; translate its
                 // otherwise unused Random selection to PMC in SelectPatch.
                 var arena = __instance._randomButton;
-                var eligibility = ArenaMenuSelection.CurrentEligibility;
+                var eligibility = EvaluateEligibility(
+                    Controller(__instance), allowPendingModeSelection: true);
                 ArenaSideSelectionView.Show(__instance.transform, arena, eligibility.Allowed);
                 if (ArenaMenuSelection.IsSelected)
                 {
+                    EnsureCompatibleMode(eligibility);
                     arena.IsToggled = true;
                     SetDescription(__instance);
                 }
@@ -127,7 +130,8 @@ internal static class ArenaSideSelectionPatch
             side = ESideType.Pmc;
             try
             {
-                var eligibility = ArenaMenuSelection.CurrentEligibility;
+                var eligibility = EvaluateEligibility(
+                    Controller(__instance), allowPendingModeSelection: true);
                 if (!eligibility.Allowed)
                     throw new InvalidOperationException(eligibility.Reason);
 
@@ -140,6 +144,11 @@ internal static class ArenaSideSelectionPatch
                     && !ArenaMenuSelection.IsMapAvailable("labyrinth")
                     && !ArenaMenuSelection.IsMapAvailable("laboratory"))
                     throw new InvalidOperationException("No arena maps are enabled on the server.");
+
+                // Let a complete PFT roster reach the new map-screen picker even
+                // if the previous solo raid left another mode in config. Team
+                // Arena remains Tactical-only at the strict final validation.
+                EnsureCompatibleMode(eligibility);
 
                 ArenaMenuSelection.Select();
                 Controller(__instance).RaidSettings.Side = ESideType.Pmc;
@@ -177,11 +186,27 @@ internal static class ArenaSideSelectionPatch
         screen.SetHealthPanelVisibility(false, true);
     }
 
+    private static void EnsureCompatibleMode(ArenaMenuSelection.Eligibility eligibility)
+    {
+        if (eligibility?.IsTeam != true)
+            return;
+
+        Settings.TrySelectGameMode(ArenaModeCatalog.TacticalId);
+        if (!string.Equals(Settings.SelectedGameModeId, ArenaModeCatalog.TacticalId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "PitFireTeam companions require Tactical Arena, but the mode selection could not be saved.");
+        }
+    }
+
     private static ArenaMenuSelection.Eligibility EvaluateEligibility(
-        MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller)
+        MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller,
+        bool allowPendingModeSelection = false)
     {
         var decision = PitFireTeamCompat.EvaluateSelection(
-            controller?.MatchmakerPlayersController, controller?.RaidSettings);
+            controller?.MatchmakerPlayersController, controller?.RaidSettings,
+            allowPendingModeSelection);
         return new ArenaMenuSelection.Eligibility(
             decision.Allowed, decision.IsTeam, decision.Reason, decision);
     }

@@ -23,6 +23,7 @@ internal static class Program
             CheckInvalidRosterPolicy();
             CheckLiveRevalidationPolicy();
             CheckTacticalOnlyPolicy();
+            CheckPendingModeSelectionPolicy();
             CheckServerNegotiationPolicy();
             CheckRespawnEpochRacePolicy();
             CheckTeamOpponentActivationPolicy();
@@ -316,6 +317,29 @@ internal static class Program
         }
     }
 
+    private static void CheckPendingModeSelectionPolicy()
+    {
+        foreach (var mode in new[] { "endless", "rounds", "gungame", "", null })
+        {
+            var decision = Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four, mode: mode,
+                allowPendingModeSelection: true);
+            Assert(decision.Allowed && decision.IsTeam,
+                $"the side screen admits an authenticated team before the map picker replaces '{mode ?? "<null>"}' with Tactical");
+        }
+
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four.Take(3).ToArray()),
+                selected: Four.Take(3).ToArray(),
+                mode: "endless",
+                allowPendingModeSelection: true),
+            "mode-pending admission must not relax the exact four-companion roster");
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four, mode: "endless", fika: true,
+                allowPendingModeSelection: true),
+            "mode-pending admission must not relax the Fika exclusion");
+    }
+
     private static void CheckServerNegotiationPolicy()
     {
         Assert(PitFireTeamRaidStartPolicy.GetRejectionReason(
@@ -544,7 +568,7 @@ internal static class Program
         Assert(Regex.IsMatch(session,
                 @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)\s*\{[\s\S]{0,600}\}\s*else\s+if\s*\([^\)]*LocalGame\s+game\s*\)\s*\{[\s\S]{0,300}LiveKitRespawn\.AtRaidStart\s*\(\s*game\s*\)"),
             "team Arena bypasses initial player-body replacement while solo keeps it");
-        Assert(localStart.Contains("var requestedMode = Settings.GameMode.Value", StringComparison.Ordinal)
+        Assert(localStart.Contains("var requestedMode = Settings.SelectedGameModeId", StringComparison.Ordinal)
                && localStart.Contains("ArenaSession.MarkArmed(settings.location, requestedMode)", StringComparison.Ordinal)
                && session.Contains("ActiveMode = armedMode", StringComparison.Ordinal)
                && matchService.Contains("PitFireTeamCompat.TeamArenaActive", StringComparison.Ordinal)
@@ -1215,7 +1239,8 @@ internal static class Program
         IReadOnlyList<string>? selectedProfiles = null,
         string? mode = "tactical",
         bool fika = false,
-        bool coop = false)
+        bool coop = false,
+        bool allowPendingModeSelection = false)
     {
         return PitFireTeamSelectionPolicy.Evaluate(new PitFireTeamSelectionInput
         {
@@ -1233,7 +1258,7 @@ internal static class Program
                 : contract == PitFireTeamContractState.Compatible
                     ? Array.Empty<string>()
                     : null)
-        });
+        }, allowPendingModeSelection);
     }
 
     private static void CheckInstalledRuntimeContract()

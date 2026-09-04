@@ -181,8 +181,12 @@ internal static class Program
             : route == Protocol.RaidConfirmRoute
                 ? "{\"confirmed\":true,\"state\":\"InRaid\"}"
                 : "{\"disarmed\":true}";
+        ArenaMode.Config.Settings.GameMode.Value = "  GUNGAME  ";
         var acknowledgedArenaRequest = Request();
         Assert(Start(acknowledgedArenaRequest, out task) && task == null && ArenaSession.ArmedForNextRaid, "Valid server acknowledgement must arm Arena");
+        Assert(ArenaSession.ArmedMode == "gungame"
+               && JObject.Parse(RequestHandler.LastPostBody)["mode"]?.Value<string>() == "gungame",
+            "the canonical native mode selection is frozen into both client and server raid state");
         string acknowledgedArmToken = acknowledgedArenaRequest.serverId[
             Protocol.NativeStartIdentityPrefix.Length..];
         Assert(ArenaServerClient.BindNativeEndIdentity(new LocalSettings

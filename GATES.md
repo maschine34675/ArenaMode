@@ -33,6 +33,11 @@ Scope: Add Arena alongside PMC and Scav, limit its next screen to server-enabled
   LATEST (empty maps): ARENA_DEPLOYMENT_VERIFIED; client SHA256 4454634119025A2903E0757B608DF43C3E69D6224A9B08960C8E58A760C6517A, server unchanged. Deployed client decompilation confirms the per-path fix is present.
 
 - [ ] G6: In-game validation covers the three-way selection, three arena maps, back navigation, a protected Arena raid and an ordinary PMC/Scav raid.
-  EVIDENCE: User confirms both the Arena side button and the corrected map selection work on the gaming PC. Full navigation, ordinary PMC/Scav and raid/profile acceptance remain open. This server has no GPU; no further game launch was attempted.
+  EVIDENCE: User confirms both the Arena side button and the corrected map selection work on the gaming PC. The new mode bar still needs visual/click acceptance there. Full navigation, ordinary PMC/Scav and raid/profile acceptance remain open. This server has no GPU; no further game launch was attempted.
+
+- [x] G7: The Arena map screen owns a selectable Endless/Rounds/Gun Game/Tactical mode bar, persists the stable mode id, and restricts an authenticated PitFireTeam 5v5 to Tactical without weakening final validation.
+  CHECK: dotnet run --project tools/NativeModeSelectionChecks/NativeModeSelectionChecks.csproj -c Release
+  EXPECT: PASS: 47 native Arena mode-selection checks
+  EVIDENCE: The harness links the production catalog and Unity view. It covers labels, native font reuse, inspected bottom-screen placement, clicks, descriptions, config-write rejection, fallback, duplicate-free re-entry, cleanup, and Tactical-only team controls. A temporary view mutant that blanked every button label failed the intended label assertion; the production source hash remained unchanged. `tools/PitFireTeamChecks` passes 231 assertions including relaxed pre-picker admission and unchanged strict final rejection. Actual rendering and pointer delivery remain G6.
 
 ABANDON: G6 User confirmed no GPU on this server; handoff for visual and raid/profile validation on a gaming PC. No further game launches here.

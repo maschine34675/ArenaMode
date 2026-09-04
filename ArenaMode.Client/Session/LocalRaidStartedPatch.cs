@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Modes;
 using EFT;
 using JsonType;
 using Redeploy.Core.Compat;
@@ -104,9 +105,10 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // available while EFT loads, but changing it after this point must
             // not make the client create a different mode than the protected
             // location clone the server just armed.
-            var requestedMode = Settings.GameMode.Value;
+            var requestedMode = Settings.SelectedGameModeId;
             if (ArenaMenuSelection.CompatibilityTeamArenaActive
-                && !string.Equals(requestedMode, "tactical", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(requestedMode, ArenaModeCatalog.TacticalId,
+                    StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
                     "PitFireTeam companions require Tactical Arena at raid start.");

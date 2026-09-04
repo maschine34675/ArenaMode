@@ -1,3 +1,4 @@
+using ArenaMode.Config;
 using EFT;
 using EFT.UI;
 using EFT.UI.Matchmaker;
@@ -18,7 +19,19 @@ internal static class ArenaLocationSelectionPatch
         AccessTools.FieldRefAccess<MatchMakerSelectionLocationScreen,
             MatchMakerSelectionLocationScreen.SelectionLocationScreenController>("ScreenController");
 
-    private static readonly ConditionalWeakTable<MatchMakerSelectionLocationScreen, ArenaLocationSelectionView> States = new();
+    private sealed class ScreenState
+    {
+        public readonly ArenaLocationSelectionView Map = new();
+        public readonly ArenaModeSelectionView Modes = new();
+
+        public void Restore()
+        {
+            Modes.Close();
+            Map.Restore();
+        }
+    }
+
+    private static readonly ConditionalWeakTable<MatchMakerSelectionLocationScreen, ScreenState> States = new();
 
     public static void Enable()
     {
@@ -67,12 +80,31 @@ internal static class ArenaLocationSelectionPatch
                 return;
 
             var state = States.GetOrCreateValue(__instance);
-            state.HideExtras(__instance._locationPathsContainer, __instance._marathonButton.gameObject);
+            state.Map.HideExtras(__instance._locationPathsContainer, __instance._marathonButton.gameObject);
+
+            try
+            {
+                var eligibility = ArenaMenuSelection.CurrentEligibility;
+                state.Modes.Show(
+                    __instance.transform,
+                    __instance._acceptButton?._headerLabel,
+                    Settings.GameMode?.Value,
+                    eligibility.Allowed && eligibility.IsTeam,
+                    Settings.TrySelectGameMode);
+            }
+            catch (System.Exception ex)
+            {
+                state.Modes.Close();
+                // The native map screen remains fully usable if our optional
+                // picker cannot be constructed on an unexpected UI layout.
+                Plugin.ModLogger.LogWarning($"Arena map-screen mode picker unavailable: {ex.Message}");
+            }
 
             var buttons = __instance._locationButtonsContainer.GetComponentsInChildren<LocationButton>(true);
             Plugin.ModLogger.LogInfo($"Arena map view: buttons={buttons.Length}, "
                 + $"visible={buttons.Count(button => button.gameObject.activeInHierarchy)}, "
-                + $"sharedContainer={__instance._locationButtonsContainer == __instance._locationPathsContainer}");
+                + $"sharedContainer={__instance._locationButtonsContainer == __instance._locationPathsContainer}, "
+                + $"mode={Settings.SelectedGameModeId}");
         }
     }
 

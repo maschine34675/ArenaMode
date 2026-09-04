@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ProductionCatalogSource Condition="'$(ProductionCatalogSource)' == ''">../../ArenaMode.Client/Modes/ArenaModeCatalog.cs</ProductionCatalogSource>
+    <ProductionViewSource Condition="'$(ProductionViewSource)' == ''">../../ArenaMode.Client/Session/ArenaModeSelectionView.cs</ProductionViewSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionCatalogSource)" Link="Production/ArenaModeCatalog.cs" />
+    <Compile Include="$(ProductionViewSource)" Link="Production/ArenaModeSelectionView.cs" />
+  </ItemGroup>
+</Project>
