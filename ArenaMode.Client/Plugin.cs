@@ -77,6 +77,7 @@ public class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         Combat.ArenaMedicalPatches.Shutdown();
+        Effects.ArenaLightingDirector.Shutdown();
         Audio.AnnouncerService.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();
     }

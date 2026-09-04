@@ -114,9 +114,11 @@ internal static class ArenaMatchService
             var match = new ArenaMatch(mode);
             partialMatch = match;
             Current = match;
-            // Subscribe before mode startup. A mode is allowed to raise its first
-            // synchronous cue from OnMatchStart; attaching afterwards loses it.
+            // Subscribe presentation before mode startup. A mode is allowed to
+            // raise its first synchronous cue from OnMatchStart; attaching
+            // afterwards loses it.
             Audio.AnnouncerService.Attach(match);
+            Effects.ArenaLightingDirector.Attach(match, world);
             mode.OnMatchStart(match);
             Hud.ArenaHud.Attach(match);
             Plugin.ModLogger.LogInfo($"Arena match started ({mode.DisplayName}).");
@@ -128,6 +130,7 @@ internal static class ArenaMatchService
             // A partially attached HUD would tick into the menu forever.
             Try(Hud.ArenaHud.Detach, "hud detach");
             Try(Audio.AnnouncerService.Detach, "announcer detach");
+            Try(Effects.ArenaLightingDirector.Reset, "lighting detach");
             Effects.ArenaTracerTeams.Reset();
             if (partialMatch != null)
                 Try(partialMatch.End, "partial mode end");
@@ -143,6 +146,7 @@ internal static class ArenaMatchService
 
     private static void OnRaidEnded()
     {
+        Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
         var match = Current;
         Current = null;
@@ -171,7 +175,8 @@ internal static class ArenaMatchService
     internal static void RecoverAtNewRaidStart()
     {
         // This boundary also runs for an ordinary raid after a missed GameEnd.
-        // Clear cosmetic shooter identities even when no match latch survived.
+        // Clear cosmetic state even when no match latch survived.
+        Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
         if (Current == null && !TeamStartAbortPending)
             return;
