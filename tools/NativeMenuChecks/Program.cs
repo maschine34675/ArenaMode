@@ -244,6 +244,26 @@ internal static class Program
         Assert(!Start(Request(), out task) && task.IsFaulted, "Malformed ping payload cannot settle server state");
         RequestHandler.Get = route => "{\"version\":\"test\"}";
         Assert(Start(Request(), out task) && task == null, "Probe must recover after temporary failure");
+
+        RequestHandler.Get = route => route == Protocol.ClientSettingsRoute
+            ? "{}"
+            : "{\"version\":\"test\"}";
+        var wrapperGets = RequestHandler.WrapperGetCount;
+        var lowLevelGets = RequestHandler.LowLevelGetCount;
+        Assert(ArenaServerClient.GetClientSettings() != null
+               && RequestHandler.WrapperGetCount == wrapperGets
+               && RequestHandler.LowLevelGetCount == lowLevelGets + 1
+               && RequestHandler.LastLowLevelGetRoute == Protocol.ClientSettingsRoute,
+            "Periodic client-settings reads bypass the noisy RequestHandler wrapper");
+
+        RequestHandler.Get = route => route == Protocol.ClientSettingsRoute
+            ? string.Empty
+            : "{\"version\":\"test\"}";
+        var warnings = ArenaMode.Plugin.ModLogger.WarningCount;
+        Assert(ArenaServerClient.GetClientSettings() == null
+               && ArenaMode.Plugin.ModLogger.WarningCount == warnings + 1
+               && ArenaMode.Plugin.ModLogger.LastWarning.Contains("empty response", StringComparison.Ordinal),
+            "A malformed empty success response remains visible without the wrapper");
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

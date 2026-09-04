@@ -39,15 +39,30 @@ namespace SPT.Reflection.Patching
 }
 namespace SPT.Common.Http
 {
+    public sealed class TestHttpClient
+    {
+        public Task<byte[]> GetAsync(string route)
+        {
+            RequestHandler.LowLevelGetCount++;
+            RequestHandler.LastLowLevelGetRoute = route;
+            return Task.FromResult(System.Text.Encoding.UTF8.GetBytes(RequestHandler.Get(route)));
+        }
+    }
+
     public static class RequestHandler
     {
         public static Func<string, string, string> Post = (route, body) => "{\"disarmed\":true}";
         public static Func<string, string> Get = route => route == ArenaMode.Shared.Protocol.StatusRoute
             ? "{\"state\":\"Armed\",\"armToken\":\"test-arm-token\"}"
             : "{\"version\":\"test\"}";
-        public static int PostCount, StartCount;
-        public static string LastPostRoute, LastPostBody;
-        public static string GetJson(string route) => Get(route);
+        public static readonly TestHttpClient HttpClient = new();
+        public static int PostCount, StartCount, WrapperGetCount, LowLevelGetCount;
+        public static string LastPostRoute, LastPostBody, LastLowLevelGetRoute;
+        public static string GetJson(string route)
+        {
+            WrapperGetCount++;
+            return Get(route);
+        }
         public static string PostJson(string route, string body)
         {
             LastPostRoute = route;
@@ -62,7 +77,18 @@ namespace Redeploy.Core.Compat { public static class FikaCompatCheck { public st
 namespace ArenaMode
 {
     public static class Plugin { public static TestLogger ModLogger = new(); }
-    public class TestLogger { public void LogInfo(object value) { } public void LogWarning(object value) { } public void LogError(object value) { } }
+    public class TestLogger
+    {
+        public int WarningCount;
+        public string LastWarning;
+        public void LogInfo(object value) { }
+        public void LogWarning(object value)
+        {
+            WarningCount++;
+            LastWarning = value?.ToString();
+        }
+        public void LogError(object value) { }
+    }
 }
 namespace ArenaMode.Config
 {

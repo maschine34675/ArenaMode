@@ -5,6 +5,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SPT.Common.Http;
 using System;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace ArenaMode.Session;
 
@@ -280,10 +282,24 @@ public static class ArenaServerClient
     {
         try
         {
-            var json = RequestHandler.GetJson(Protocol.ClientSettingsRoute);
-            return string.IsNullOrEmpty(json)
-                ? null
-                : JsonConvert.DeserializeObject<ClientSettingsSchema>(json);
+            // This is the one periodic route in ArenaMode. RequestHandler's
+            // convenience wrapper writes two Info lines for every successful
+            // poll; its underlying client keeps the same backend host, session
+            // cookie, retries, certificate handling and zlib response handling
+            // without those wrapper messages. Task.Run mirrors GetJson's sync
+            // bridge so an async continuation cannot wait on Unity's context.
+            byte[] payload = Task.Run(
+                () => RequestHandler.HttpClient.GetAsync(Protocol.ClientSettingsRoute)).Result;
+            var json = Encoding.UTF8.GetString(payload);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                // RequestHandler.ValidateJson used to report this case. Retain
+                // failure visibility while suppressing only successful polls.
+                Plugin.ModLogger.LogWarning("Arena client-settings fetch returned an empty response.");
+                return null;
+            }
+
+            return JsonConvert.DeserializeObject<ClientSettingsSchema>(json);
         }
         catch (Exception ex)
         {
