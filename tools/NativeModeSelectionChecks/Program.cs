@@ -33,6 +33,16 @@ internal static class Program
         return text;
     }
 
+    private static RectTransform Conditions(GameObject screen)
+    {
+        var conditions = new GameObject("Conditions Panel", typeof(RectTransform));
+        conditions.transform.SetParent(screen.transform, false);
+        var rect = (RectTransform)conditions.transform;
+        rect.anchoredPosition = new Vector2(0f, 175f);
+        rect.sizeDelta = new Vector2(571f, 89f);
+        return rect;
+    }
+
     private static Button ButtonFor(ArenaModeSelectionView view, string id)
         => view.Root.GetComponentsInChildren<Button>(true)
             .Single(button => button.gameObject.name == "Mode " + id);
@@ -78,10 +88,11 @@ internal static class Program
     {
         var screen = Screen();
         var nativeText = NativeText(screen);
+        var conditions = Conditions(screen);
         var choices = new List<string>();
         var view = new ArenaModeSelectionView();
         view.Show(screen.transform, nativeText, "rounds", tacticalOnly: false,
-            mode => { choices.Add(mode); return true; });
+            mode => { choices.Add(mode); return true; }, conditions);
 
         Assert(view.Root != null && view.Root.activeSelf,
             "show creates one active picker root");
@@ -89,9 +100,14 @@ internal static class Program
             "picker renders as the last screen child");
         var rect = (RectTransform)view.Root.transform;
         Assert(Near(rect.anchorMin.x, 0.5f) && Near(rect.anchorMin.y, 0f)
-               && Near(rect.anchoredPosition.y, 82f)
+               && Near(rect.anchoredPosition.y, 175f)
                && Near(rect.sizeDelta.x, 820f) && Near(rect.sizeDelta.y, 86f),
-            "picker occupies the inspected free strip above native navigation buttons");
+            "picker is lifted clear of the live-tested native navigation buttons");
+        Assert(Near(conditions.anchoredPosition.y, 268f),
+            "Factory conditions move by the same offset while the picker owns the screen");
+        Assert(Near(conditions.anchoredPosition.y -
+                    (rect.anchoredPosition.y + rect.sizeDelta.y), 7f),
+            "the lifted panels retain the inspected seven-pixel separation");
         Assert(view.Root.GetComponentsInChildren<Button>(true).Length == 4,
             "picker creates exactly four buttons");
         Assert(view.Root.GetComponentsInChildren<Button>(true)
@@ -118,15 +134,19 @@ internal static class Program
 
         var oldRoot = view.Root;
         view.Show(screen.transform, nativeText, "tactical", tacticalOnly: false,
-            mode => { choices.Add(mode); return true; });
+            mode => { choices.Add(mode); return true; }, conditions);
         Assert(oldRoot == null && view.Root != null && view.SelectedMode == "tactical",
             "reopening disposes the old picker before creating the replacement");
+        Assert(Near(conditions.anchoredPosition.y, 268f),
+            "reopening restores then reapplies one conditions-panel offset without stacking");
         Assert(screen.transform.Children.Count(child => child.gameObject.name == "Arena Mode Selection") == 1,
             "reopening cannot duplicate the picker root");
         view.Close();
         Assert(oldRoot == null && view.Root == null
                && screen.transform.Children.All(child => child.gameObject.name != "Arena Mode Selection"),
             "close removes the picker without touching native siblings");
+        Assert(Near(conditions.anchoredPosition.y, 175f),
+            "close restores the exact native conditions-panel position");
     }
 
     private static void TacticalTeamRestriction()

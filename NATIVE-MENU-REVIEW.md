@@ -133,7 +133,7 @@ existing recursive missing-key merge adds the new `factory4_night` map section
 to an old `config.json` and preserves all saved map values.
 
 The native Conditions Panel occupies screen Y 175–264 in the installed `level48`;
-the Arena mode bar occupies Y 82–168. Their seven-pixel gap means enabling the
+the Arena mode bar originally occupied Y 82–168. Their seven-pixel gap meant enabling the
 time panel does not geometrically overlap the mode buttons at the reference
 1920×1080 layout. Resolution scaling, actual rendering and pointer delivery still
 require the GPU-equipped live test.
@@ -145,3 +145,21 @@ that the harness detects a duplicate night tile, a discarded night choice and a
 skipped legacy-client migration. The Release build completed with zero errors and
 the four pre-existing nullable warnings; deployed client and server hashes match
 their build outputs. No game was launched on this GPU-less server.
+
+## Follow-up: mode picker overlaps native buttons
+
+The user's live rendering showed that the native bottom controls extend beyond
+the zero-sized `ScreenDefaultButtons`, `MapButton` and `ReadyButton` roots recorded
+in `level48`, so the original Y 82–168 strip was too low. The actual vertical
+layout reaches approximately Y 168.36: two active buttons, each with 16 pixels of
+vertical padding and a 40.68-pixel preferred text height, plus 15 pixels spacing.
+Arena now lifts the mode bar by 93 pixels to Y 175–261, leaving about 6.64 pixels
+above that stack. While the Arena view owns the screen it also lifts Factory's
+native Conditions Panel by the same 93 pixels to Y 268–357, retaining the measured
+seven-pixel gap. Closing or rebuilding the view restores the exact
+position inherited from the native screen or another mod, and ordinary map
+screens never enter this path.
+
+The native mode harness now checks the lifted coordinates, equal Conditions Panel
+offset, non-stacking re-entry and exact restoration. Rendering acceptance remains
+for the next GPU-equipped playtest.

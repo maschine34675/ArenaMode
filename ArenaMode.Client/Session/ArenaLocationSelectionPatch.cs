@@ -93,7 +93,8 @@ internal static class ArenaLocationSelectionPatch
                     __instance._acceptButton?._headerLabel,
                     Settings.GameMode?.Value,
                     eligibility.Allowed && eligibility.IsTeam,
-                    Settings.TrySelectGameMode);
+                    Settings.TrySelectGameMode,
+                    __instance._conditions?.transform as UnityEngine.RectTransform);
             }
             catch (System.Exception ex)
             {

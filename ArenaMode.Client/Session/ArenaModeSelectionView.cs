@@ -10,6 +10,14 @@ namespace ArenaMode.Session;
 /// <summary>Arena-only mode picker attached to the native location screen.</summary>
 internal sealed class ArenaModeSelectionView
 {
+    // The first live rendering showed that the serialized navigation controls
+    // extend above their zero-sized roots through Y=168.36. Keep the whole
+    // Arena block above that measured stack. Factory's native Conditions Panel
+    // is shifted by the same amount while this view owns the screen, preserving
+    // the inspected seven-pixel gap between the two panels.
+    private const float LayoutLift = 93f;
+    private const float RootBottom = 82f + LayoutLift;
+
     private sealed class ButtonVisual
     {
         public ArenaModeDefinition Definition;
@@ -35,12 +43,16 @@ internal sealed class ArenaModeSelectionView
     private Func<string, bool> _onSelected;
     private string _selectedMode;
     private bool _tacticalOnly;
+    private RectTransform _conditionsRect;
+    private Vector2 _conditionsPosition;
+    private bool _conditionsShifted;
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selectedMode;
 
     public void Show(Transform screen, TMP_Text nativeText, string selectedMode,
-        bool tacticalOnly, Func<string, bool> onSelected)
+        bool tacticalOnly, Func<string, bool> onSelected,
+        RectTransform conditionsRect = null)
     {
         Close();
         if (screen == null)
@@ -52,7 +64,7 @@ internal sealed class ArenaModeSelectionView
 
         try
         {
-            Create(screen, nativeText);
+            Create(screen, nativeText, conditionsRect);
             Refresh();
 
             // A complete PitFireTeam roster can enter Arena while an older solo
@@ -77,6 +89,13 @@ internal sealed class ArenaModeSelectionView
 
     public void Close()
     {
+        if (_conditionsShifted && _conditionsRect != null)
+            _conditionsRect.anchoredPosition = _conditionsPosition;
+
+        _conditionsRect = null;
+        _conditionsPosition = default;
+        _conditionsShifted = false;
+
         if (_root != null)
         {
             _root.SetActive(false);
@@ -92,8 +111,19 @@ internal sealed class ArenaModeSelectionView
         _buttons.Clear();
     }
 
-    private void Create(Transform screen, TMP_Text nativeText)
+    private void Create(Transform screen, TMP_Text nativeText,
+        RectTransform conditionsRect)
     {
+        if (conditionsRect != null)
+        {
+            _conditionsRect = conditionsRect;
+            _conditionsPosition = conditionsRect.anchoredPosition;
+            conditionsRect.anchoredPosition = new Vector2(
+                _conditionsPosition.x,
+                _conditionsPosition.y + LayoutLift);
+            _conditionsShifted = true;
+        }
+
         _root = new GameObject("Arena Mode Selection",
             typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         _root.transform.SetParent(screen, false);
@@ -103,7 +133,7 @@ internal sealed class ArenaModeSelectionView
         rootRect.anchorMin = new Vector2(0.5f, 0f);
         rootRect.anchorMax = new Vector2(0.5f, 0f);
         rootRect.pivot = new Vector2(0.5f, 0f);
-        rootRect.anchoredPosition = new Vector2(0f, 82f);
+        rootRect.anchoredPosition = new Vector2(0f, RootBottom);
         rootRect.sizeDelta = new Vector2(820f, 86f);
 
         var panel = _root.GetComponent<Image>();
