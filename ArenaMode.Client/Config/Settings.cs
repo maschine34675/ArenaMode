@@ -62,6 +62,7 @@ public static class Settings
     public static ConfigEntry<bool> MaxSkills { get; private set; }
     public static ConfigEntry<int> LegInjurySlowdownReductionPercent { get; private set; }
     public static ConfigEntry<float> MedicalUseSpeed { get; private set; }
+    public static ConfigEntry<float> MagazineHandlingSpeed { get; private set; }
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
@@ -427,6 +428,17 @@ public static class Settings
                 "Application speed for the local PMC's medkits, bandages, splints, " +
                 "surgery kits, pills and injectors during an arena raid. Both the " +
                 "health effect and hands animation use this factor; 1 keeps vanilla timing.",
+                new AcceptableValueRange<float>(1f, 4f)));
+
+        MagazineHandlingSpeed = config.Bind(
+            "Character",
+            "MagazineHandlingSpeed",
+            2f,
+            new ConfigDescription(
+                "Loading and unloading speed for loose rounds in the local PMC's " +
+                "magazines through the raid inventory, including internal magazines, " +
+                "during an arena raid. 1 keeps vanilla timing; this does not change " +
+                "weapon or hands reload animations.",
                 new AcceptableValueRange<float>(1f, 4f)));
 
         GameMode = config.Bind(

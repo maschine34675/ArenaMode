@@ -50,6 +50,7 @@ public class Plugin : BaseUnityPlugin
         Combat.CombatPatches.Enable();
         Movement.ArenaLegInjuryPatches.Enable();
         Combat.ArenaMedicalPatches.Enable();
+        Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
         Effects.ArenaTracerPatches.Enable();
         Movement.ArenaWeightPatches.Enable();
@@ -76,6 +77,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Combat.ArenaMagazinePatches.Shutdown();
         Combat.ArenaMedicalPatches.Shutdown();
         Effects.ArenaLightingDirector.Shutdown();
         Audio.AnnouncerService.Shutdown();
