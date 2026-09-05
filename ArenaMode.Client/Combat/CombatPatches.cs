@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Bots;
 using ArenaMode.Events;
 using ArenaMode.Modes;
 using ArenaMode.Session;
@@ -167,6 +168,8 @@ internal static class CombatPatches
                     Headshot = bodyPart == EBodyPart.Head,
                     KillerBodyId = ArenaHitHistory.BodyId(aggressor),
                     VictimBodyId = ArenaHitHistory.BodyId(__instance),
+                    ScoreEligible = !TeamDeathmatchRelations.Enabled
+                        || TeamDeathmatchRelations.AreOpponents(aggressor, __instance),
                     AwardEligible = IsAwardEligible(match, __instance, aggressor, lethalDamageType),
                     SingleHitHeadshot = ArenaHitHistory.IsSingleHitHeadshot(
                         __instance, aggressor, lethalDamageType == EDamageType.Bullet,
@@ -188,6 +191,8 @@ internal static class CombatPatches
     private static bool IsAwardEligible(ArenaMatch match, Player victim, IPlayer aggressor, EDamageType lethalType)
     {
         if (!ArenaCombatAwards.IsCombatDamage(lethalType.ToString()) || match.Mode.IsComplete) return false;
+        if (TeamDeathmatchRelations.Enabled)
+            return TeamDeathmatchRelations.AreOpponents(victim, aggressor);
         if (match.Mode is TacticalMode tactical) return tactical.IsOpposingAwardKill(victim, aggressor);
         return !(match.Mode is RoundsMode rounds) || !rounds.InIntermission;
     }
@@ -241,7 +246,8 @@ internal static class CombatPatches
             ref PlayerHitInfo __result, out IDisposable __state)
         {
             __state = null;
-            if (!ShouldBlockProtectedTeamMutation(__instance, "shot"))
+            if (!ShouldBlockProtectedTeamMutation(__instance, "shot")
+                && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer))
             {
                 __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: true);
                 return true;
@@ -283,7 +289,8 @@ internal static class CombatPatches
             out IDisposable __state)
         {
             __state = null;
-            if (ShouldBlockProtectedTeamMutation(__instance, "player-damage")) return false;
+            if (ShouldBlockProtectedTeamMutation(__instance, "player-damage")
+                || TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer)) return false;
             __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: false);
             return true;
         }
@@ -313,8 +320,9 @@ internal static class CombatPatches
                 });
 
         [PatchPrefix]
-        private static bool Prefix(Player __instance)
-            => !ShouldBlockProtectedTeamMutation(__instance, "explosion-armor");
+        private static bool Prefix(Player __instance, DamageInfo damageInfo)
+            => !ShouldBlockProtectedTeamMutation(__instance, "explosion-armor")
+               && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer);
     }
 
     /// <summary>
@@ -334,7 +342,8 @@ internal static class CombatPatches
         private static bool Prefix(ActiveHealthController __instance, float damage, DamageInfo damageInfo,
             ref float __result)
         {
-            if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage"))
+            if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage")
+                && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance?.Player, damageInfo.Player?.iPlayer))
             {
                 if (ArenaSession.IsActive && ArenaMatchService.Current != null
                     && __instance?.IsAlive == true)

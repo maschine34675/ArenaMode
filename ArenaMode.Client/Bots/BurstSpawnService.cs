@@ -196,25 +196,31 @@ internal static class BurstSpawnService
     /// </summary>
     private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role,
         BotDifficulty difficulty, bool isPmc, int count = BotsPerBurst, Action<BotOwner> observer = null,
-        bool requireExactCount = false, Func<bool> requestStillCurrent = null)
+        bool requireExactCount = false, Func<bool> requestStillCurrent = null,
+        bool explicitFaction = false, Action<bool> dispatchFinished = null, Action arrivalRejected = null)
     {
-        var ledger = isPmc ? RecentPmcInjections : RecentScavInjections;
+        // TDM owns keyed population tickets. Its requests must not release an
+        // unrelated request's reservation through the ambient FIFO ledger.
+        var ledger = explicitFaction ? new List<float>(1)
+            : isPmc ? RecentPmcInjections : RecentScavInjections;
         var reserved = 0;
         var operationGeneration = Volatile.Read(ref _operationGeneration);
-
-        if (!TryCaptureSpawnLease(
-                spawner,
-                operationGeneration,
-                out LocalGame game,
-                out GameWorld world,
-                out BotsController controller,
-                out int raidEpoch))
-        {
-            return;
-        }
+        BotCreationData data = null;
+        bool handedToNative = false;
 
         try
         {
+            if (!TryCaptureSpawnLease(
+                    spawner,
+                    operationGeneration,
+                    out LocalGame game,
+                    out GameWorld world,
+                    out BotsController controller,
+                    out int raidEpoch))
+            {
+                return;
+            }
+
             var profileParams = new GetProfileDataParams(
                 EPlayerSide.Savage, // SPT restores the real PMC side later — do not "fix" this
                 role,
@@ -224,7 +230,7 @@ internal static class BurstSpawnService
 
             // Profile generation is best-effort: the request can come back with
             // fewer profiles than asked for, or with none at all.
-            var data = await BotCreationData.Create(profileParams, spawner._botCreator, count, spawner);
+            data = await BotCreationData.Create(profileParams, spawner._botCreator, count, spawner);
 
             // GameEnd can run while profile generation is awaiting the server.
             // Stop the detached creation data before touching cursors, ledgers or
@@ -260,6 +266,17 @@ internal static class BurstSpawnService
             // profile provider returns a larger batch.
             if (data.Count > count)
                 data.Profiles.RemoveRange(count, data.Count - count);
+
+            // SPT restores PMC Side during profile selection. The requested
+            // role is already authoritative here; the actual body's side is
+            // checked below after activation. Never repair a mismatched profile.
+            if (explicitFaction && data.Profiles.Any(profile => profile?.Info?.Settings?.Role != role))
+            {
+                Plugin.ModLogger.LogWarning(
+                    $"Arena faction spawn: profile provider changed requested {role}; no bot dispatched.");
+                data.StopSpawn();
+                return;
+            }
 
             if (requireExactCount && data.Count != count)
             {
@@ -356,12 +373,47 @@ internal static class BurstSpawnService
                 return;
             }
 
-            spawner.SpawnBotsInZoneOnPositions(points, zone, data, bot =>
+            BotOwner observedFactionBody = null;
+            bool factionArrivalSeen = false;
+            Action<BotOwner> onArrival = bot =>
             {
+                // Native/modded activation can repeat a callback. Once the root
+                // settled its ticket its predicate is false, so check the exact
+                // same body BEFORE that predicate or a duplicate would kill it.
+                if (explicitFaction && factionArrivalSeen)
+                {
+                    if (ReferenceEquals(observedFactionBody, bot))
+                        return;
+
+                    RetireStaleSpawn(bot, role);
+                    NotifyArrivalRejected(arrivalRejected);
+                    return;
+                }
+
+                if (explicitFaction)
+                {
+                    factionArrivalSeen = true;
+                    observedFactionBody = bot;
+                }
+
                 if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner))
                 {
                     ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
                     RetireStaleSpawn(bot, role);
+                    if (explicitFaction)
+                        NotifyArrivalRejected(arrivalRejected);
+                    return;
+                }
+
+                // Request cancellation after native dispatch cannot StopSpawn:
+                // EFT may have charged more points than it will decrement.
+                // Retire just this late/wrong body before hostility or scoring.
+                if (explicitFaction && (!IsRequestStillCurrent(requestStillCurrent, role)
+                    || !HasRequestedFaction(bot, role)))
+                {
+                    ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
+                    RetireStaleSpawn(bot, role);
+                    NotifyArrivalRejected(arrivalRejected);
                     return;
                 }
 
@@ -377,8 +429,46 @@ internal static class BurstSpawnService
                 catch (Exception ex)
                 {
                     Plugin.ModLogger.LogWarning($"Arena spawn observer failed: {ex.Message}");
+                    if (explicitFaction)
+                    {
+                        RetireStaleSpawn(bot, role);
+                        NotifyArrivalRejected(arrivalRejected);
+                    }
                 }
-            });
+            };
+
+            if (explicitFaction)
+            {
+                // The ownership scope must NEVER span an await: only this exact
+                // spawner/data dispatch may pass the TDM prefix. A callback may
+                // arrive synchronously before the terminal dispatch notification.
+                using (var scope = TeamDeathmatchSpawnDispatch.Enter(spawner, data))
+                {
+                    handedToNative = true;
+                    try
+                    {
+                        spawner.SpawnBotsInZoneOnPositions(points, zone, data, onArrival);
+                    }
+                    finally
+                    {
+                        // Only our prefix can prove rejection before counters.
+                        // A throw or another mod's denial is otherwise uncertain.
+                        if (scope.WasRejected)
+                            handedToNative = false;
+                    }
+                }
+
+                if (!handedToNative)
+                {
+                    ReleaseReservedIfCurrent(ledger, reserved, operationGeneration);
+                    reserved = 0;
+                    return;
+                }
+            }
+            else
+            {
+                spawner.SpawnBotsInZoneOnPositions(points, zone, data, onArrival);
+            }
 
             Plugin.ModLogger.LogInfo($"Arena burst spawn: dispatched {reserved}x {role}.");
         }
@@ -388,6 +478,25 @@ internal static class BurstSpawnService
             Plugin.ModLogger.LogWarning($"Arena burst spawn of {role} failed: {ex.Message}");
             if (operationGeneration == Volatile.Read(ref _operationGeneration))
                 RetrySoon();
+        }
+        finally
+        {
+            if (explicitFaction && !handedToNative)
+            {
+                try
+                {
+                    data?.StopSpawn();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.ModLogger.LogWarning($"Arena faction spawn cancellation failed: {ex.Message}");
+                }
+            }
+
+            // True is NOT an activation acknowledgement: native activation is
+            // detached and may never callback. The mode keeps this ticket in its
+            // bounded uncertain set until an arrival/rejection proves completion.
+            NotifyDispatchFinished(dispatchFinished, handedToNative);
         }
     }
 
@@ -468,8 +577,10 @@ internal static class BurstSpawnService
         {
             using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
                 bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
+            if (bot.HealthController?.IsAlive == true)
+                throw new InvalidOperationException("the late body is still alive after administrative retirement");
             Plugin.ModLogger.LogWarning(
-                $"Arena burst spawn: retired a late {role} body from an expired raid lease.");
+                $"Arena burst spawn: retired a late or rejected {role} body.");
         }
         catch (Exception ex)
         {
@@ -551,6 +662,113 @@ internal static class BurstSpawnService
         {
             Plugin.ModLogger.LogWarning($"Arena squad spawn failed: {ex.Message}");
             return 0;
+        }
+    }
+
+    /// <summary>
+    /// One explicit PMC faction request, with no impact on the ambient/Tactical
+    /// alternation. The caller reserves its keyed ticket BEFORE calling this:
+    /// warmed profile/pool tasks may deliver a body synchronously. A positive
+    /// return is planning only; dispatchFinished(true) still leaves native
+    /// activation uncertain until an observer/rejection notification arrives.
+    /// </summary>
+    internal static int SpawnFactionBot(
+        WildSpawnType role,
+        BotDifficulty difficulty,
+        Action<BotOwner> observer,
+        Func<bool> requestStillCurrent,
+        Action<bool> dispatchFinished,
+        Action arrivalRejected)
+    {
+        try
+        {
+            if ((role != WildSpawnType.pmcUSEC && role != WildSpawnType.pmcBEAR)
+                || observer == null || requestStillCurrent == null
+                || !TeamDeathmatchSpawnDispatch.IsActive
+                || !IsRequestStillCurrent(requestStillCurrent, role)
+                || !Singleton<IBotGame>.Instantiated)
+            {
+                NotifyDispatchFinished(dispatchFinished, false);
+                return 0;
+            }
+
+            var spawner = Singleton<IBotGame>.Instance?.BotsController?.BotSpawner;
+            if (spawner == null || !TryCaptureSpawnLease(
+                    spawner, Volatile.Read(ref _operationGeneration),
+                    out _, out _, out _, out _))
+            {
+                NotifyDispatchFinished(dispatchFinished, false);
+                return 0;
+            }
+
+            var zone = PickZone(spawner, 1);
+            if (zone == null || BurstSpawnPointSelector.CountUsable(zone, GetPlayerPosition()) < 1)
+            {
+                NotifyDispatchFinished(dispatchFinished, false);
+                return 0;
+            }
+
+            SpawnPair(spawner, zone, role, difficulty, true, 1, observer,
+                requireExactCount: true,
+                requestStillCurrent: requestStillCurrent,
+                explicitFaction: true,
+                dispatchFinished: dispatchFinished,
+                arrivalRejected: arrivalRejected);
+            return 1;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena faction spawn planning failed: {ex.Message}");
+            NotifyDispatchFinished(dispatchFinished, false);
+            return 0;
+        }
+    }
+
+    private static bool HasRequestedFaction(BotOwner bot, WildSpawnType role)
+    {
+        try
+        {
+            if (bot == null || bot.Profile?.Info?.Settings?.Role != role)
+                return false;
+
+            var player = bot.GetPlayer;
+            EPlayerSide expected = role == WildSpawnType.pmcUSEC ? EPlayerSide.Usec : EPlayerSide.Bear;
+            return player != null
+                   && bot.Profile.Info.Side == expected
+                   && player.Side == expected
+                   && player.HealthController != null
+                   && player.HealthController.IsAlive
+                   && !string.IsNullOrWhiteSpace(bot.ProfileId)
+                   && string.Equals(bot.ProfileId, player.ProfileId, StringComparison.Ordinal);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena faction arrival identity unreadable: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static void NotifyDispatchFinished(Action<bool> callback, bool handedToNative)
+    {
+        try
+        {
+            callback?.Invoke(handedToNative);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena spawn dispatch notification failed: {ex.Message}");
+        }
+    }
+
+    private static void NotifyArrivalRejected(Action callback)
+    {
+        try
+        {
+            callback?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena spawn rejection notification failed: {ex.Message}");
         }
     }
 

@@ -85,6 +85,7 @@ public static class Settings
     public static ConfigEntry<float> TacticalReplaySeconds { get; private set; }
     public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
+    public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
@@ -400,7 +401,8 @@ public static class Settings
             "HuntPlayer",
             true,
             "Keep pointing every living bot at the player's position, so they " +
-            "actively close in instead of patrolling until they happen to see you.");
+            "actively close in instead of patrolling until they happen to see you. " +
+            "Team Deathmatch instead keeps both factions aware of live opponents.");
 
         CorpseLightsOff = config.Bind(
             "Performance",
@@ -459,12 +461,24 @@ public static class Settings
                 "endless: a pure counter. " +
                 "rounds: kill target or time limit with a scoreboard between rounds. " +
                 "gungame: climb a ladder of weapons, one rung per kill. " +
-                "tactical: buy a loadout, fight one squad, and sit the round out if you fall.",
+                "tactical: buy a loadout, fight one squad, and sit the round out if you fall. " +
+                "teamdeathmatch: equal USEC and BEAR teams with instant respawns and Arena kits.",
                 new AcceptableValueList<string>(
                     ArenaModeCatalog.EndlessId,
                     ArenaModeCatalog.RoundsId,
                     ArenaModeCatalog.GunGameId,
-                    ArenaModeCatalog.TacticalId)));
+                    ArenaModeCatalog.TacticalId,
+                    ArenaModeCatalog.TeamDeathmatchId)));
+
+        TeamDeathmatchSize = config.Bind(
+            "Team Deathmatch",
+            "PlayersPerTeam",
+            5,
+            new ConfigDescription(
+                "Team Deathmatch capacity per faction, including your PMC on its own side. " +
+                "Both teams refill fallen bots; your slot stays reserved while you respawn. " +
+                "Read at match start. PitFireTeam companions are not used in this mode.",
+                new AcceptableValueRange<int>(2, 12)));
 
         RoundKillTarget = config.Bind(
             "Match",

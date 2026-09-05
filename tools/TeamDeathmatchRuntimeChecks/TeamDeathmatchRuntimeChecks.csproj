@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ModeSource Condition="'$(ModeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.cs</ModeSource>
+    <PopulationSource Condition="'$(PopulationSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchPopulation.cs</PopulationSource>
+    <RelationsSource Condition="'$(RelationsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TeamDeathmatchRelations.cs</RelationsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="$(PopulationSource)" Link="Production/TeamDeathmatchPopulation.cs" />
+    <Compile Include="$(RelationsSource)" Link="Production/TeamDeathmatchRelations.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaScoreboard.cs" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaCombatAwards.cs" Link="Production/ArenaCombatAwards.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs" />
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Production/ArenaTracerTeams.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/NoCorpseLootingPatch.cs" Link="Production/NoCorpseLootingPatch.cs" />
+  </ItemGroup>
+</Project>

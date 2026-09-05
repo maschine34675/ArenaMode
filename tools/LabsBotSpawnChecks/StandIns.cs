@@ -27,6 +27,8 @@ namespace UnityEngine
 
 namespace EFT
 {
+    public sealed class AbstractGame { }
+    public sealed class GameWorld { }
     public sealed class BotOwner { }
 
     public sealed class BotCreationData
@@ -153,6 +155,20 @@ namespace ArenaMode.Session
         public static bool IsActive;
         public static bool ArmedForNextRaid;
         public static string ArmedMap;
+        public static string ActiveMode = "endless";
+        public static EFT.AbstractGame Game;
+        public static EFT.GameWorld World;
+        public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world)
+            => IsActive && ReferenceEquals(game, Game) && ReferenceEquals(world, World);
+    }
+}
+
+namespace Comfort.Common
+{
+    public static class Singleton<T> where T : class
+    {
+        public static T Instance;
+        public static bool Instantiated => Instance != null;
     }
 }
 

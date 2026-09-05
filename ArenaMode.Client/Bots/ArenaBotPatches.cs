@@ -14,6 +14,7 @@ internal static class ArenaBotPatches
 {
     public static void Enable()
     {
+        TeamDeathmatchRelations.Enable();
         new ArenaIsPlayerEnemyPatch().Enable();
         new ArenaBossAttackPatch().Enable();
         new ArenaBotCapPatch().Enable();
@@ -103,6 +104,12 @@ internal static class ArenaBotPatches
         [PatchPostfix]
         private static void Postfix(BotsGroup __instance, IPlayer player, ref bool __result)
         {
+            if (TeamDeathmatchRelations.Enabled)
+            {
+                if (TeamDeathmatchRelations.TryGroupRelationship(__instance, player, out bool enemies))
+                    __result = enemies;
+                return;
+            }
             if (!ArenaSession.IsActive || player == null || player.IsAI)
                 return;
 
@@ -131,6 +138,10 @@ internal static class ArenaBotPatches
         [PatchPostfix]
         private static void Postfix(Player enemyInfo, ref bool __result)
         {
+            // TDM uses faction admission instead of overriding boss loyalty for
+            // every human. PMC bots are kept out of boss behavior separately.
+            if (TeamDeathmatchRelations.Enabled)
+                return;
             if (!ArenaSession.IsActive || enemyInfo == null || !enemyInfo.IsYourPlayer)
                 return;
 
@@ -158,6 +169,12 @@ internal static class ArenaBotPatches
                 return;
 
             var cap = ArenaClientConfig.GetBotCap(ArenaSession.ArmedMap ?? "factory4_day");
+            var mode = ArenaSession.IsActive ? ArenaSession.ActiveMode : ArenaSession.ArmedMode;
+            if (string.Equals(mode, "teamdeathmatch", System.StringComparison.Ordinal))
+            {
+                int teamSize = System.Math.Max(2, System.Math.Min(12, Config.Settings.TeamDeathmatchSize.Value));
+                cap = System.Math.Max(cap, 2 * teamSize - 1);
+            }
             __instance._maxCount = cap;
             __instance.BotSpawner?.SetMaxBots(cap);
             __instance.ZonesLeaveController?.SetMaxBots(cap);

@@ -1220,6 +1220,32 @@ public class ArenaSessionService
     }
 
     /// <summary>
+    /// Resolve the mode and ownership together. A map id alone can match an
+    /// ordinary raid or another player's session; only this exact live clone
+    /// may receive a mode-specific hostility policy.
+    /// </summary>
+    public bool TryGetStashedCloneMode(object candidate, out string? mode)
+    {
+        mode = null;
+        if (candidate == null)
+            return false;
+
+        lock (_lock)
+        {
+            foreach (var entry in _sessions.Values)
+            {
+                if (IsLiveRaid(entry) && ReferenceEquals(entry.LocationClone, candidate))
+                {
+                    mode = entry.Mode;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Whether any arena raid is armed or running. Coarser than the per-session
     /// checks on purpose: some client requests carry no session id — the bulk
     /// bot-difficulty fetch is one — and still need answering for this raid.

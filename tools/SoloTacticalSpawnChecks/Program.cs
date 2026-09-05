@@ -106,31 +106,67 @@ internal static class Program
     {
         string spawnPair = Slice(source, "private static async void SpawnPair(",
             "private static bool TryCaptureSpawnLease(");
-        int profileAwait = spawnPair.IndexOf("await BotCreationData.Create", StringComparison.Ordinal);
+        string plan = Slice(spawnPair, "private static async void SpawnPair(",
+            "Action<BotOwner> onArrival = bot =>");
+        int profileAwait = plan.IndexOf("await BotCreationData.Create", StringComparison.Ordinal);
         const string requestLease = "IsRequestStillCurrent(requestStillCurrent, role)";
-        int requestCheck = spawnPair.IndexOf(requestLease, StringComparison.Ordinal);
-        int secondRequestCheck = spawnPair.IndexOf(
+        int requestCheck = plan.IndexOf(requestLease, StringComparison.Ordinal);
+        int secondRequestCheck = plan.IndexOf(
             requestLease,
             requestCheck + requestLease.Length,
             StringComparison.Ordinal);
-        int pointTrim = spawnPair.IndexOf("if (points.Count > data.Count)", StringComparison.Ordinal);
-        int ledger = spawnPair.IndexOf("reserved = points.Count", StringComparison.Ordinal);
+        int pointTrim = plan.IndexOf("if (points.Count > data.Count)", StringComparison.Ordinal);
+        int ledger = plan.IndexOf("reserved = points.Count", StringComparison.Ordinal);
         int dispatch = spawnPair.IndexOf("spawner.SpawnBotsInZoneOnPositions", StringComparison.Ordinal);
         Assert(profileAwait >= 0 && requestCheck > profileAwait && dispatch > requestCheck,
             "a superseded mode request stops after profile loading and before EFT body dispatch");
-        Assert(Count(spawnPair, requestLease) == 2
+        Assert(Count(plan, requestLease) == 2
                && secondRequestCheck > pointTrim
                && ledger > secondRequestCheck
                && dispatch > ledger,
             "the second request lease sits after point trimming and before ledger or native dispatch mutation");
-        Assert(spawnPair.LastIndexOf(requestLease, StringComparison.Ordinal) < dispatch,
-            "request cancellation never runs after EFT has charged its per-point dispatch counter");
+
+        string arrival = Slice(spawnPair, "Action<BotOwner> onArrival = bot =>", "\n            };" );
+        Assert(!arrival.Contains("StopSpawn(", StringComparison.Ordinal),
+            "a late activation retires its body without cancelling charged native spawn data");
+        int duplicate = arrival.IndexOf("ReferenceEquals(observedFactionBody, bot)", StringComparison.Ordinal);
+        int arrivalLease = arrival.IndexOf(requestLease, StringComparison.Ordinal);
+        int observe = arrival.IndexOf("OnBotSpawned(bot", StringComparison.Ordinal);
+        Assert(duplicate >= 0 && arrivalLease > duplicate && observe > arrivalLease,
+            "duplicate body callbacks return before the settled request predicate, while stale arrivals precede observation");
+        string rejection = Slice(arrival, "if (explicitFaction && (!IsRequestStillCurrent", "OnBotSpawned(bot");
+        RequireAll(rejection, "HasRequestedFaction(bot, role)", "RetireStaleSpawn(bot, role)",
+            "NotifyArrivalRejected(arrivalRejected)", "return;");
+        Assert(rejection.IndexOf("RetireStaleSpawn", StringComparison.Ordinal)
+               < rejection.IndexOf("NotifyArrivalRejected", StringComparison.Ordinal),
+            "retirement precedes releasing a rejected arrival's population ticket");
+
         RequireAll(spawnPair,
             "data?.StopSpawn()",
-            "discarded superseded {role} profiles before dispatch");
+            "discarded superseded {role} profiles before dispatch",
+            "if (explicitFaction && !handedToNative)",
+            "NotifyDispatchFinished(dispatchFinished, handedToNative)");
+
+        string ownership = Slice(spawnPair, "using (var scope = TeamDeathmatchSpawnDispatch.Enter(",
+            "if (!handedToNative)");
+        Assert(!ownership.Contains("await ", StringComparison.Ordinal)
+               && ownership.Contains("spawner.SpawnBotsInZoneOnPositions", StringComparison.Ordinal)
+               && ownership.Contains("if (scope.WasRejected)", StringComparison.Ordinal),
+            "exact dispatch ownership spans only the synchronous native call and tracks proven prefix rejection");
+
+        string factionRequest = Slice(source, "internal static int SpawnFactionBot(",
+            "private static bool HasRequestedFaction(");
+        RequireAll(factionRequest,
+            "role != WildSpawnType.pmcUSEC && role != WildSpawnType.pmcBEAR",
+            "TeamDeathmatchSpawnDispatch.IsActive",
+            "SpawnPair(spawner, zone, role, difficulty, true, 1, observer",
+            "explicitFaction: true",
+            "NotifyDispatchFinished(dispatchFinished, false)");
+        Assert(!factionRequest.Contains("_nextPmcIsBear", StringComparison.Ordinal),
+            "explicit faction refills cannot alter existing Tactical or ambient faction alternation");
 
         string publicRequest = Slice(source, "public static int SpawnSquad(",
-            "private static void RetrySoon()");
+            "internal static int SpawnFactionBot(");
         RequireAll(publicRequest,
             "Func<bool> requestStillCurrent = null",
             "requireExactCount",

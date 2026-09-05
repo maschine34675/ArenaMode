@@ -217,37 +217,43 @@ public sealed class ArenaScoreboard
     /// </summary>
     public void ReportKill(ArenaKill kill)
     {
-        if (kill == null)
+        if (kill == null || (!kill.ScoreEligible
+                            && !kill.KillerIsFriendly.HasValue && !kill.VictimIsFriendly.HasValue))
             return;
 
         ArenaScoreboardEntry killer = Resolve(
             kill.KillerProfileId,
             kill.KillerName,
             kill.KillerRoleLabel,
-            forceLocal: kill.KilledByLocal);
+            forceLocal: kill.KilledByLocal,
+            friendly: kill.KillerIsFriendly);
         ArenaScoreboardEntry victim = Resolve(
             kill.VictimProfileId,
             kill.VictimName,
             kill.VictimRoleLabel,
-            forceLocal: kill.LocalIsVictim);
+            forceLocal: kill.LocalIsVictim,
+            friendly: kill.VictimIsFriendly);
         if (killer == null || victim == null || ReferenceEquals(killer, victim))
             return;
 
-        killer.Kills++;
-        killer.Streak++;
-        if (killer.Streak > killer.BestStreak)
-            killer.BestStreak = killer.Streak;
-
-        int points = ScoreRules.PointsFor(kill.VictimRole);
-        if (kill.Headshot)
+        if (kill.ScoreEligible)
         {
-            killer.Headshots++;
-            points += ScoreRules.HeadshotBonus;
-        }
+            killer.Kills++;
+            killer.Streak++;
+            if (killer.Streak > killer.BestStreak)
+                killer.BestStreak = killer.Streak;
 
-        if (killer.Streak > 0 && killer.Streak % ScoreRules.StreakBonusEvery == 0)
-            points += ScoreRules.StreakBonus;
-        killer.Score += points;
+            int points = ScoreRules.PointsFor(kill.VictimRole);
+            if (kill.Headshot)
+            {
+                killer.Headshots++;
+                points += ScoreRules.HeadshotBonus;
+            }
+
+            if (killer.Streak > 0 && killer.Streak % ScoreRules.StreakBonusEvery == 0)
+                points += ScoreRules.StreakBonus;
+            killer.Score += points;
+        }
 
         if (!kill.LocalIsVictim)
         {
@@ -550,7 +556,8 @@ public sealed class ArenaScoreboard
         string profileId,
         string displayName,
         string roleLabel,
-        bool forceLocal)
+        bool forceLocal,
+        bool? friendly = null)
     {
         string profile = Normalize(profileId);
         if (forceLocal)
@@ -579,7 +586,7 @@ public sealed class ArenaScoreboard
 
         var binding = new RosterBinding(
             new ArenaScoreboardActor(profile, displayName, roleLabel, alive: true),
-            ArenaScoreboardSide.Opponent,
+            friendly == true ? ArenaScoreboardSide.Friendly : ArenaScoreboardSide.Opponent,
             BodyKey(profile),
             "Opponent",
             local: false);

@@ -28,6 +28,7 @@ internal static class Program
             CheckNullInputs();
             CheckSharedPlayerPoints();
             CheckDispatchAccounting();
+            CheckTeamDispatchAccounting();
             CheckBurstPointSelection();
             CheckPolicy();
             Console.WriteLine($"LABS_BOT_SPAWN_CHECKS_PASSED ({_assertions} assertions)");
@@ -315,13 +316,42 @@ internal static class Program
     }
 
     private static bool RunDispatchPrefix(List<ISpawnPoint> points, BotZone zone)
-        => (bool)PatchMethod("DispatchPatch", "Prefix").Invoke(null, new object[] { points, zone });
+        => RunDispatchPrefix(new BotSpawner(), new BotCreationData(), points, zone);
+
+    private static bool RunDispatchPrefix(BotSpawner spawner, BotCreationData data, List<ISpawnPoint> points, BotZone zone)
+        => (bool)PatchMethod("DispatchPatch", "Prefix").Invoke(null, new object[] { spawner, points, zone, data });
+
+    private static void CheckTeamDispatchAccounting()
+    {
+        SetSession("laboratory", false, true);
+        ArenaSession.ActiveMode = "teamdeathmatch";
+        var spawner = new BotSpawner();
+        var data = new BotCreationData();
+        var safe = new List<ISpawnPoint> { Point("BotZoneFloor2") };
+        Assert(!RunDispatchPrefix(spawner, data, safe, Floor2), "TDM rejects unowned safe-zone batch before counters");
+        using (var lease = TeamDeathmatchSpawnDispatch.Enter(spawner, data))
+        {
+            Assert(!RunDispatchPrefix(spawner, data, safe, Gate1), "owned TDM request still cannot spawn at Labs gate");
+            Assert(lease.WasRejected && spawner.InSpawnProcess == 0, "owned Labs refusal proves no native handoff");
+        }
+        using (var lease = TeamDeathmatchSpawnDispatch.Enter(spawner, data))
+        {
+            if (RunDispatchPrefix(spawner, data, safe, Floor2))
+                spawner.SpawnBotsInZoneOnPositions(safe, Floor2, data);
+            Assert(!lease.WasRejected && spawner.InSpawnProcess == 1, "owned safe TDM dispatch charges exactly one point");
+            Assert(!RunDispatchPrefix(spawner, data, safe, Floor2), "same owned dispatch cannot charge twice");
+        }
+        SetSession("laboratory", false, true);
+    }
 
     private static void SetSession(string map, bool armed, bool active)
     {
         ArenaSession.ArmedMap = map;
         ArenaSession.ArmedForNextRaid = armed;
         ArenaSession.IsActive = active;
+        ArenaSession.ActiveMode = "endless";
+        ArenaSession.Game = Comfort.Common.Singleton<AbstractGame>.Instance = new AbstractGame();
+        ArenaSession.World = Comfort.Common.Singleton<GameWorld>.Instance = new GameWorld();
     }
 
     private static TestSpawnPoint Point(string zone, ESpawnCategoryMask category = ESpawnCategoryMask.Bot)

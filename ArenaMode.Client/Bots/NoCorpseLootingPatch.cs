@@ -43,6 +43,11 @@ internal sealed class NoCorpseLootingPatch : ModulePatch
         if (!ArenaSession.IsActive || !Settings.NoCorpseLooting.Value)
             return true;
 
+        // Faction allies are disposable Arena combatants, not commandable PFT
+        // followers. Both TDM sides retain the same corpse-looting restriction.
+        if (TeamDeathmatchRelations.Enabled)
+            return false;
+
         return IsPlayerTeammate(__instance);
     }
 

@@ -34,6 +34,68 @@ public class LocationMutatorTests
         BossLocationSpawn = [],
     };
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TeamDeathmatchSuppressesEveryAmbientSpawnTrack(bool abps)
+    {
+        var location = FreshLocation();
+        location.Waves = [new Wave { SpawnPoints = "BotZone", SlotsMin = 1, SlotsMax = 5 }];
+        location.BossLocationSpawn =
+        [
+            new BossLocationSpawn { BossName = "pmcUSEC", BossChance = 100 },
+            new BossLocationSpawn { BossName = "pmcBEAR", BossChance = 100 },
+            new BossLocationSpawn { BossName = "bossTagilla", BossChance = 100 },
+        ];
+        location.BotLocationModifier = new BotLocationModifier
+        {
+            NonWaveSpawnBotsLimitPerPlayer = 20,
+            NonWaveSpawnBotsLimitPerPlayerPvE = 20,
+        };
+        location.NewSpawn = true;
+        location.OfflineNewSpawn = true;
+        var templateSnapshot = JsonSerializer.Serialize(location, JsonOptions);
+        var clone = JsonSerializer.Deserialize<LocationBase>(templateSnapshot, JsonOptions)!;
+        var config = new ArenaModeConfig { RaidTimeMinutes = 20 };
+        var map = new ArenaMapConfig { DisableBosses = false, PmcWaveIntervalSeconds = 60 };
+        WithAbps(abps, () => ArenaLocationMutator.Mutate(clone, map, config, "TEAMDEATHMATCH"));
+
+        Assert.True(ArenaLocationMutator.IsQuietMap("teamdeathmatch"));
+        Assert.Empty(clone.Waves!);
+        Assert.Equal(3, clone.BossLocationSpawn!.Count());
+        Assert.All(clone.BossLocationSpawn!, spawn => Assert.Equal(0, spawn.BossChance));
+        Assert.Equal(1200, clone.BotStart);
+        Assert.Equal(0, clone.BotStop);
+        Assert.Equal(0, clone.BotSpawnCountStep);
+        Assert.Equal(0, clone.BotSpawnTimeOnMin);
+        Assert.Equal(0, clone.BotSpawnTimeOnMax);
+        Assert.Equal(1200, clone.BotSpawnTimeOffMin);
+        Assert.Equal(1200, clone.BotSpawnTimeOffMax);
+        Assert.False(clone.NewSpawn);
+        Assert.False(clone.OfflineNewSpawn);
+        Assert.Equal(0, clone.BotLocationModifier!.NonWaveSpawnBotsLimitPerPlayer);
+        Assert.Equal(0, clone.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE);
+        Assert.Equal(templateSnapshot, JsonSerializer.Serialize(location, JsonOptions));
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("endless", false)]
+    [InlineData("rounds", false)]
+    [InlineData("gungame", false)]
+    [InlineData("tactical", true)]
+    public void ExistingModesKeepTheirAmbientSpawnPolicy(string? mode, bool quiet)
+    {
+        var location = FreshLocation();
+        WithAbps(false, () => ArenaLocationMutator.Mutate(location,
+            new ArenaMapConfig { PmcWaveIntervalSeconds = 60 }, new ArenaModeConfig(), mode));
+        Assert.Equal(quiet, ArenaLocationMutator.IsQuietMap(mode));
+        Assert.Equal(quiet, !location.Waves!.Any());
+        Assert.Equal(quiet, !location.BossLocationSpawn!.Any());
+        Assert.Equal(!quiet, location.NewSpawn);
+        Assert.Equal(!quiet, location.OfflineNewSpawn);
+    }
+
     [Fact]
     public void RaidTimeAndBotCapComeFromTheConfig()
     {

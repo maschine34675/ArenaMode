@@ -627,8 +627,8 @@ internal static class Program
                && rejectedRecovery < ordinaryClientConfirm
                && matchService.Contains("internal static void RecoverAtNewRaidStart()",
                     StringComparison.Ordinal)
-               && Regex.IsMatch(matchService,
-                   @"RecoverAtNewRaidStart\s*\(\s*\)[\s\S]{0,500}OnRaidEnded\s*\(\s*\)"),
+               && Slice(matchService, "internal static void RecoverAtNewRaidStart()",
+                   "internal static void ScheduleFailedStartAbort(").Contains("OnRaidEnded();", StringComparison.Ordinal),
             "a proven new ordinary raid boundary clears stale match, abort, respawn and rejected-end state before combat");
 
         Assert(tactical.Contains("TeamArenaRoundPolicy.Evaluate(", StringComparison.Ordinal)

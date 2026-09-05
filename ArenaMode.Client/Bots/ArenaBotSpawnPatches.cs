@@ -11,6 +11,7 @@ namespace ArenaMode.Bots;
 internal static class ArenaBotSpawnPatches
 {
     private static int _rejectedBatches;
+    private static int _rejectedTeamBatches;
 
     public static void Enable()
     {
@@ -19,7 +20,11 @@ internal static class ArenaBotSpawnPatches
         new DispatchPatch().Enable();
     }
 
-    public static void ResetRaidState() => _rejectedBatches = 0;
+    public static void ResetRaidState()
+    {
+        _rejectedBatches = 0;
+        _rejectedTeamBatches = 0;
+    }
 
     private sealed class SpawnZonesPatch : ModulePatch
     {
@@ -63,8 +68,20 @@ internal static class ArenaBotSpawnPatches
 
         [PatchPrefix]
         [HarmonyPriority(Priority.First)]
-        private static bool Prefix(List<ISpawnPoint> openedPositions, BotZone botZone)
+        private static bool Prefix(BotSpawner __instance, List<ISpawnPoint> openedPositions,
+            BotZone botZone, BotCreationData data)
         {
+            if (!TeamDeathmatchSpawnDispatch.CanDispatch(__instance, data))
+            {
+                // Deny unowned batches before the native method charges its
+                // per-point counter. Never modify another spawner's data.
+                _rejectedTeamBatches++;
+                if (_rejectedTeamBatches <= 3 || _rejectedTeamBatches % 25 == 0)
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena team deathmatch: rejected unowned bot spawn batch #{_rejectedTeamBatches}.");
+                return false;
+            }
+
             if (ArenaBotSpawnFilter.CanDispatch(botZone, openedPositions))
                 return true;
 
@@ -72,6 +89,7 @@ internal static class ArenaBotSpawnPatches
             // the WHOLE batch before method_7 increments _inSpawnProcess or adds
             // positions to its profiles; partial removal would break accounting.
             // Do not stop or modify BotCreationData: other requests may share it.
+            TeamDeathmatchSpawnDispatch.MarkRejected(__instance, data);
             _rejectedBatches++;
             if (_rejectedBatches <= 3 || _rejectedBatches % 25 == 0)
                 Plugin.ModLogger.LogWarning($"Arena: rejected Labs gate bot spawn batch #{_rejectedBatches}.");

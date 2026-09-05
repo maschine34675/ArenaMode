@@ -149,6 +149,7 @@ internal static class ArenaMatchService
             Try(Audio.AnnouncerService.Detach, "announcer detach");
             Try(Effects.ArenaLightingDirector.Reset, "lighting detach");
             Effects.ArenaTracerTeams.Reset();
+            Bots.TeamDeathmatchRelations.Reset();
             if (partialMatch != null)
                 Try(partialMatch.End, "partial mode end");
 
@@ -165,6 +166,7 @@ internal static class ArenaMatchService
     {
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
+        Bots.TeamDeathmatchRelations.Reset();
         var match = Current;
         Current = null;
         _teamStartAbortPending = false;
@@ -197,6 +199,7 @@ internal static class ArenaMatchService
         // Clear cosmetic state even when no match latch survived.
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
+        Bots.TeamDeathmatchRelations.Reset();
         if (Current == null && !TeamStartAbortPending)
             return;
 
@@ -353,6 +356,14 @@ internal static class ArenaMatchService
     {
         try
         {
+            if (match?.Mode is TeamDeathmatchMode teams)
+            {
+                if (!teams.TrySynchronizeScoreboardRoster(out var teamProblem))
+                    NoteScoreboardProblem(teamProblem);
+                else
+                    _lastScoreboardProblem = null;
+                return;
+            }
             if (match?.Mode is TacticalMode tactical)
             {
                 if (!tactical.TrySynchronizeScoreboardRoster(out var tacticalProblem))

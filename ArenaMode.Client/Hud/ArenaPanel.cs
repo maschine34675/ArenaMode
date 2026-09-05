@@ -255,8 +255,11 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.Label("Live settings", _titleStyle);
         GUILayout.Space(4);
 
-        Settings.HuntPlayer.Value = GUILayout.Toggle(
-            Settings.HuntPlayer.Value, " Bots keep hunting the player", _bodyStyle);
+        if (match.Mode is TeamDeathmatchMode)
+            GUILayout.Label("Both factions track opposing combatants. Team size is fixed for this match.", _mutedStyle);
+        else
+            Settings.HuntPlayer.Value = GUILayout.Toggle(
+                Settings.HuntPlayer.Value, " Bots keep hunting the player", _bodyStyle);
         Settings.ScaleDifficulty.Value = GUILayout.Toggle(
             Settings.ScaleDifficulty.Value, " Arena pushes back harder over time", _bodyStyle);
         Settings.ShowKillfeed.Value = GUILayout.Toggle(
@@ -267,7 +270,8 @@ internal sealed class ArenaPanel : MonoBehaviour
             Settings.ShowDamageNumbers.Value, " Damage numbers", _bodyStyle);
 
         GUILayout.Space(6);
-        DrawSlider("PMC floor", Settings.PmcFloor, 0, 20);
+        if (!(match.Mode is TeamDeathmatchMode))
+            DrawSlider("PMC floor", Settings.PmcFloor, 0, 20);
         DrawSlider("Visible corpses", Settings.MaxCorpses, 0, 50);
 
         GUILayout.EndScrollView();
@@ -303,6 +307,19 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.Label("Scoreboard", _titleStyle);
         GUILayout.Space(4);
 
+        if (match.Mode is TeamDeathmatchMode teams)
+        {
+            ArenaScoreboardTotals friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
+            ArenaScoreboardTotals opponent = match.Scoreboard.Totals(ArenaScoreboardSide.Opponent);
+            GUILayout.Label($"Kills  {friendly.Kills} - {opponent.Kills}     "
+                + $"Match points  {friendly.Score:n0} - {opponent.Score:n0}", _statStyle);
+            DrawStandingsTable(teams.FriendlyFaction + " — YOUR TEAM", _friendlyRows, _friendlyRowStyle);
+            GUILayout.Space(6);
+            DrawStandingsTable(teams.OpponentFaction, _opponentRows, _opponentRowStyle);
+            GUILayout.Label("Team totals include earlier bot lives. Replacement bots start a new personal run.", _mutedStyle);
+            return;
+        }
+
         if (_cachedTactical && match.Mode is TacticalMode tactical)
         {
             ArenaScoreboardTotals friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
@@ -337,7 +354,7 @@ internal sealed class ArenaPanel : MonoBehaviour
 
     private void RefreshScoreboardCache(ArenaMatch match)
     {
-        bool tactical = match.Mode is TacticalMode;
+        bool tactical = match.Mode is TacticalMode || match.Mode is TeamDeathmatchMode;
         if (ReferenceEquals(_cachedMatch, match)
             && _scoreboardVersion == match.Scoreboard.Version
             && _cachedTactical == tactical)
@@ -351,7 +368,7 @@ internal sealed class ArenaPanel : MonoBehaviour
             _friendlyRows = match.Scoreboard.Standings(
                     ArenaScoreboardSide.Friendly,
                     currentRosterOnly: true,
-                    maxRows: 5,
+                    maxRows: match.Mode is TeamDeathmatchMode ? 12 : 5,
                     pinLocal: true)
                 .ToList();
             _opponentRows = match.Scoreboard.Standings(

@@ -4,7 +4,9 @@ A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-s
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version
 PitFireTeam 0.10.0 compatibility path supports protected Tactical 5v5 matches.
-Four modes: Endless Deathmatch, Rounds, Gun Game, Tactical.
+Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
+Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
+it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
 
 Read this before changing anything. Most of it was learned the expensive way.
 

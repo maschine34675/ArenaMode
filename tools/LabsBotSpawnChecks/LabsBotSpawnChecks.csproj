@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="$(ProductionFilterSource)" Link="Production/ArenaBotSpawnFilter.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/ArenaBotSpawnPatches.cs" Link="Production/ArenaBotSpawnPatches.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamDeathmatchSpawnDispatch.cs" Link="Production/TeamDeathmatchSpawnDispatch.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/BurstSpawnPointSelector.cs" Link="Production/BurstSpawnPointSelector.cs" />
     <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaBotSpawnPolicy.cs" />
   </ItemGroup>

@@ -33,14 +33,14 @@ public static class ArenaLocationMutator
     }
 
     /// <summary>
-    /// Tactical wants an empty map between rounds, which is the opposite of what
-    /// every other mode wants. It spawns its own squad and the round ends when
-    /// that squad is dead — so a pump quietly feeding fresh bots in would mean
-    /// the round never ends. The mode reaches here because the client announces
-    /// it at raid start and the session remembers it.
+    /// Tactical and Team Deathmatch own their entire bot population. Tactical
+    /// counts one round's squad; Team Deathmatch reserves equal faction slots.
+    /// An ambient pump or scheduled wave would bypass either mode's roster.
+    /// The mode is announced at raid start and remembered by the exact session.
     /// </summary>
     public static bool IsQuietMap(string? mode)
-        => string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase);
+        => string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase);
 
     public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config, string? mode = null)
     {
@@ -86,7 +86,7 @@ public static class ArenaLocationMutator
                 location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE = 0;
             }
 
-            // No scheduled waves either — the squad is the round.
+            // No scheduled waves either — the mode owns every bot slot.
             location.Waves = [];
         }
         else

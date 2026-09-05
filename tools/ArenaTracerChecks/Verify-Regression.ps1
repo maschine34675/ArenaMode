@@ -110,8 +110,17 @@ $withoutRecoveryReset = Remove-OnceAfter $matchService 'internal static void Rec
 Invoke-NegativeCase 'new-raid-state-leak' $color $teams $patch $withoutRecoveryReset $tactical `
     'StartMatch failure, raid end and new-raid recovery each own one tracer reset'
 
+$factionFallback = 'return !_protectedTeamMatch && !_factionTeamMatch'
+if (-not $teams.Contains($factionFallback)) { throw 'Faction unknown-shooter guard not found' }
+Invoke-NegativeCase 'unowned-faction-colored' $color ($teams.Replace($factionFallback, 'return !_protectedTeamMatch')) $patch $matchService $tactical `
+    'unowned faction body stays native'
+$factionSwitch = 'if (other.Contains(id)) return false;'
+if (-not $teams.Contains($factionSwitch)) { throw 'Faction history guard not found' }
+Invoke-NegativeCase 'faction-history-switch' $color ($teams.Replace($factionSwitch, 'if (false) return false;')) $patch $matchService $tactical `
+    'dead or live faction identities cannot change sides'
+
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) {
     throw 'The unchanged production Arena tracer checks failed after mutation testing.'
 }
-Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (Arena gate, verified identity, non-tracer and three lifecycle-reset mutants rejected; evidence: $scratch)"
+Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (8 mutants rejected: Arena gate, identity, non-tracer, three lifecycle resets and two faction policies; evidence: $scratch)"

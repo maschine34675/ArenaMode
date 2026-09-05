@@ -20,6 +20,7 @@ internal static class Program
         {
             CheckPalette();
             CheckSoloPolicy();
+            CheckFactionPolicy();
             CheckProtectedTeamPolicy();
             CheckRosterRejections();
             CheckPatchRegistration();
@@ -68,6 +69,28 @@ internal static class Program
         Assert(ArenaTracerTeams.Classify(" ", verifiedPlayerIdentity: true)
                == ArenaTracerSide.Unknown,
             "empty shooter identity stays native");
+    }
+
+    private static void CheckFactionPolicy()
+    {
+        Reset();
+        Assert(ArenaTracerTeams.BeginFactionMatch("local"), "faction tracer match binds");
+        Assert(ArenaTracerTeams.RegisterFactionActor("friend", true), "validated friendly body registers");
+        Assert(ArenaTracerTeams.RegisterFactionActor("enemy", false), "validated opposing body registers");
+        Assert(ArenaTracerTeams.Classify("local", true) == ArenaTracerSide.Friendly, "human keeps friendly color through respawn");
+        Assert(ArenaTracerTeams.Classify("friend", true) == ArenaTracerSide.Friendly, "same faction has friendly color");
+        Assert(ArenaTracerTeams.Classify("enemy", true) == ArenaTracerSide.Opponent, "other faction has opposing color");
+        Assert(ArenaTracerTeams.Classify("unadopted", true) == ArenaTracerSide.Unknown, "unowned faction body stays native");
+        Assert(ArenaTracerTeams.Classify("friend", false) == ArenaTracerSide.Unknown, "faction shot still needs exact attribution");
+        Assert(!ArenaTracerTeams.RegisterFactionActor("friend", false), "dead or live faction identities cannot change sides");
+        Assert(!ArenaTracerTeams.RegisterFactionActor("local", false), "human cannot be registered as opponent");
+        Assert(ArenaTracerTeams.RegisterFactionActor("replacement", true), "replacement receives own identity");
+        Assert(ArenaTracerTeams.Classify("friend", true) == ArenaTracerSide.Friendly, "old projectile retains faction color");
+        ArenaTracerTeams.Reset();
+        Assert(!ArenaTracerTeams.RegisterFactionActor("friend", true), "registration after teardown fails");
+        Assert(ArenaTracerTeams.Classify("friend", true) == ArenaTracerSide.Unknown, "teardown removes faction history");
+        ArenaTracerTeams.BeginMatch("local", true);
+        Assert(!ArenaTracerTeams.RegisterFactionActor("friend", true), "faction API cannot alter protected Tactical roster");
     }
 
     private static void CheckProtectedTeamPolicy()

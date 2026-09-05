@@ -60,6 +60,8 @@ public sealed class ArenaMatch
         if (kill == null)
             return;
 
+        if (Mode is TeamDeathmatchMode teams)
+            teams.ClassifyKill(kill);
         Scoreboard.ReportKill(kill);
 
         string existingLabel = null;

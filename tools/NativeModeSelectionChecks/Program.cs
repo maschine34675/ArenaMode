@@ -53,14 +53,16 @@ internal static class Program
 
     private static void CatalogContract()
     {
-        var expected = new[] { "endless", "rounds", "gungame", "tactical" };
+        var expected = new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch" };
         Assert(ArenaModeCatalog.All.Select(mode => mode.Id).SequenceEqual(expected),
-            "the native picker exposes the four registry ids in the intended order");
+            "the native picker exposes the five registry ids in the intended order");
         Assert(ArenaModeCatalog.All.All(mode => !string.IsNullOrWhiteSpace(mode.Label)
                                                && !string.IsNullOrWhiteSpace(mode.Description)),
             "every mode has visible copy");
-        Assert(ArenaModeCatalog.All.Select(mode => mode.Label).Distinct().Count() == 4,
+        Assert(ArenaModeCatalog.All.Select(mode => mode.Label).Distinct().Count() == expected.Length,
             "mode labels are distinct");
+        Assert(ArenaModeCatalog.All.Single(mode => mode.Id == ArenaModeCatalog.TeamDeathmatchId).Label == "TEAM DM",
+            "standalone team mode has the compact TEAM DM label");
 
         foreach (var id in expected)
         {
@@ -80,6 +82,7 @@ internal static class Program
         Assert(!ArenaModeCatalog.CanSelect("endless", tacticalOnly: true)
                && !ArenaModeCatalog.CanSelect("rounds", tacticalOnly: true)
                && !ArenaModeCatalog.CanSelect("gungame", tacticalOnly: true)
+               && !ArenaModeCatalog.CanSelect("teamdeathmatch", tacticalOnly: true)
                && ArenaModeCatalog.CanSelect("TACTICAL", tacticalOnly: true),
             "a protected team flow permits only Tactical");
     }
@@ -108,13 +111,30 @@ internal static class Program
         Assert(Near(conditions.anchoredPosition.y -
                     (rect.anchoredPosition.y + rect.sizeDelta.y), 7f),
             "the lifted panels retain the inspected seven-pixel separation");
-        Assert(view.Root.GetComponentsInChildren<Button>(true).Length == 4,
-            "picker creates exactly four buttons");
+        Assert(view.Root.GetComponentsInChildren<Button>(true).Length == 5,
+            "picker creates exactly five buttons");
         Assert(view.Root.GetComponentsInChildren<Button>(true)
                    .Select(button => button.gameObject
                        .GetComponentsInChildren<TextMeshProUGUI>(true).Single().text)
                    .SequenceEqual(ArenaModeCatalog.All.Select(mode => mode.Label)),
-            "all four buttons render their catalog labels in order");
+            "all five buttons render their catalog labels in order");
+        var buttonRects = view.Root.GetComponentsInChildren<Button>(true)
+            .Select(button => (RectTransform)button.transform).ToArray();
+        for (var index = 0; index < buttonRects.Length; index++)
+        {
+            var button = buttonRects[index];
+            Assert(button.sizeDelta.x >= 150f && button.sizeDelta.x <= 190f,
+                "five readable labels keep at least 150 pixels each");
+            Assert(button.anchoredPosition.x - button.sizeDelta.x / 2f >= -400f
+                   && button.anchoredPosition.x + button.sizeDelta.x / 2f <= 400f,
+                "each button stays inside the original 820-pixel panel with side padding");
+            Assert(Near(button.anchoredPosition.y, 41f) && Near(button.sizeDelta.y, 32f),
+                "the fifth mode does not move the button row down onto vanilla controls");
+            if (index > 0)
+                Assert(Near(button.anchoredPosition.x - button.sizeDelta.x / 2f
+                    - (buttonRects[index - 1].anchoredPosition.x + buttonRects[index - 1].sizeDelta.x / 2f), 8f),
+                    "neighboring mode buttons retain an eight-pixel gap");
+        }
         Assert(view.Root.GetComponentsInChildren<TextMeshProUGUI>(true)
                    .All(text => ReferenceEquals(text.font, nativeText.font)),
             "picker inherits the native screen font");
@@ -131,6 +151,13 @@ internal static class Program
         ButtonFor(view, "gungame").onClick.Invoke();
         Assert(choices.Count == 1,
             "clicking the already selected mode does not rewrite config");
+
+        ButtonFor(view, "teamdeathmatch").onClick.Invoke();
+        Assert(view.SelectedMode == ArenaModeCatalog.TeamDeathmatchId
+               && choices.SequenceEqual(new[] { "gungame", "teamdeathmatch" }),
+            "standalone TEAM DM publishes its stable id through the normal selection callback");
+        Assert(TextFor(view, "Description").text.Contains("USEC versus BEAR", StringComparison.Ordinal),
+            "TEAM DM explains its faction assignment without a PFT requirement");
 
         var oldRoot = view.Root;
         view.Show(screen.transform, nativeText, "tactical", tacticalOnly: false,
@@ -167,9 +194,11 @@ internal static class Program
         Assert(!ButtonFor(view, "endless").interactable
                && !ButtonFor(view, "rounds").interactable
                && !ButtonFor(view, "gungame").interactable
+               && !ButtonFor(view, "teamdeathmatch").interactable
                && ButtonFor(view, "tactical").interactable,
             "only Tactical is interactable for a protected team");
         ButtonFor(view, "gungame").onClick.Invoke();
+        ButtonFor(view, "teamdeathmatch").onClick.Invoke();
         Assert(view.SelectedMode == "tactical" && choices.Count == 1,
             "the view-level guard also rejects a synthetic click on a disabled team mode");
     }
@@ -255,6 +284,13 @@ internal static class Program
                && settings.Contains("SettingsSync.Report();", StringComparison.Ordinal)
                && settings.Contains("ArenaModeCatalog.GunGameId", StringComparison.Ordinal),
             "the map choice updates, persists and reports the existing GameMode entry");
+        var teamSize = Slice(settings, "TeamDeathmatchSize = config.Bind(", "RoundKillTarget = config.Bind(");
+        Assert(settings.Contains("ArenaModeCatalog.TeamDeathmatchId", StringComparison.Ordinal)
+               && teamSize.Contains("\"Team Deathmatch\"", StringComparison.Ordinal)
+               && teamSize.Contains("\"PlayersPerTeam\"", StringComparison.Ordinal)
+               && teamSize.Contains("new AcceptableValueRange<int>(2, 12)", StringComparison.Ordinal)
+               && teamSize.Contains("            5,", StringComparison.Ordinal),
+            "F12 exposes TEAM DM and a 2-12 players-per-team setting with five as default");
         Assert(localStart.Contains("var requestedMode = Settings.SelectedGameModeId;",
                    StringComparison.Ordinal)
                && localStart.Contains("ArenaSession.MarkArmed(settings.location, requestedMode);",

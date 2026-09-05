@@ -146,8 +146,11 @@ internal sealed class ArenaModeSelectionView
             new Vector2(0f, -10f), new Vector2(800f, 20f));
         _title.color = SecondaryTextColor;
 
-        const float width = 190f;
         const float spacing = 8f;
+        // Keep all five modes inside the existing panel instead of widening it
+        // into native controls or changing the live-tested vertical placement.
+        var width = Math.Min(190f,
+            (800f - (ArenaModeCatalog.All.Count - 1) * spacing) / ArenaModeCatalog.All.Count);
         var totalWidth = ArenaModeCatalog.All.Count * width
                          + (ArenaModeCatalog.All.Count - 1) * spacing;
         var firstX = -totalWidth * 0.5f + width * 0.5f;

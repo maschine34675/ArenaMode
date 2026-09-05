@@ -39,6 +39,11 @@ public sealed class ArenaKill
     internal long KillerBodyId;
     internal long VictimBodyId;
     internal bool AwardEligible;
+    // Optional faction classification captured by Team Deathmatch. Other modes
+    // retain their existing scoreboard rules and opponent fallback.
+    internal bool ScoreEligible = true;
+    internal bool? KillerIsFriendly;
+    internal bool? VictimIsFriendly;
     internal bool SingleHitHeadshot;
 
     /// <summary>Time.time at capture.</summary>

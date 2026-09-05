@@ -62,6 +62,10 @@ internal static class ArenaHostility
     /// <summary>Per-frame from the controller; does its own pacing.</summary>
     public static void Tick()
     {
+        // TDM reports live opponents for both factions from its adopted roster,
+        // including while the local player is dead.
+        if (TeamDeathmatchRelations.Enabled)
+            return;
         if (!ArenaSession.IsActive || !Config.Settings.HuntPlayer.Value || Time.time < _nextSweepAt)
             return;
 
@@ -153,6 +157,9 @@ internal static class ArenaHostility
     /// </summary>
     public static bool CountsAsAlly(BotsGroup group, IPlayer player)
     {
+        if (TeamDeathmatchRelations.Enabled
+            && TeamDeathmatchRelations.TryGroupRelationship(group, player, out bool enemies))
+            return !enemies;
         var allies = group?.Allies;
         if (allies == null || player == null)
             return false;
@@ -177,6 +184,10 @@ internal static class ArenaHostility
 
     private static void ReportPlayer(BotsGroup group, Player player)
     {
+        // Never enable the group's aggressive-to-all-new-players flag in TDM.
+        // Reconcile owns friendship and opposing-faction awareness together.
+        if (TeamDeathmatchRelations.Enabled)
+            return;
         try
         {
             if (group.Enemies == null || CountsAsAlly(group, player))

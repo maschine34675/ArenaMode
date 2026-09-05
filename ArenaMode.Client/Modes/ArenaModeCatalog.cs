@@ -24,6 +24,7 @@ internal static class ArenaModeCatalog
     public const string RoundsId = "rounds";
     public const string GunGameId = "gungame";
     public const string TacticalId = "tactical";
+    public const string TeamDeathmatchId = "teamdeathmatch";
 
     private static readonly IReadOnlyList<ArenaModeDefinition> Definitions =
         Array.AsReadOnly(new[]
@@ -36,6 +37,8 @@ internal static class ArenaModeCatalog
                 "Advance through the weapon ladder with every kill."),
             new ArenaModeDefinition(TacticalId, "TACTICAL",
                 "Single-life rounds with bought or carried equipment."),
+            new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
+                "USEC versus BEAR teams with instant respawns. No companions required."),
         });
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;

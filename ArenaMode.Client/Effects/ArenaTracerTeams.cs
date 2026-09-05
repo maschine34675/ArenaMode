@@ -15,6 +15,8 @@ internal enum ArenaTracerSide
 /// only TacticalMode's exact frozen profile rosters; faction, role and mutable bot
 /// groups are not identities. Historical same-side IDs remain until match end so
 /// a projectile still flying during a round rebind cannot change color.
+/// Independent faction TDM registers only its admitted bot IDs and retains the
+/// same historical-side rule; unowned bodies never get a guessed team color.
 /// </summary>
 internal static class ArenaTracerTeams
 {
@@ -31,6 +33,7 @@ internal static class ArenaTracerTeams
     private static string _localProfileId;
     private static bool _matchBound;
     private static bool _protectedTeamMatch;
+    private static bool _factionTeamMatch;
     private static bool _protectedRosterValid;
     private static int _latestTeamEpoch;
 
@@ -124,6 +127,25 @@ internal static class ArenaTracerTeams
         return true;
     }
 
+    internal static bool BeginFactionMatch(string localProfileId)
+    {
+        if (!BeginMatch(localProfileId, protectedTeamMatch: false)) return false;
+        _factionTeamMatch = true;
+        return true;
+    }
+
+    /// <summary>Only the owned faction mode admits a validated physical bot.</summary>
+    internal static bool RegisterFactionActor(string profileId, bool friendly)
+    {
+        string id = Normalize(profileId);
+        if (!_matchBound || !_factionTeamMatch || id == null) return false;
+        var own = friendly ? FriendlyProfileIds : OpponentProfileIds;
+        var other = friendly ? OpponentProfileIds : FriendlyProfileIds;
+        if (other.Contains(id)) return false;
+        own.Add(id);
+        return true;
+    }
+
     /// <summary>
     /// In solo Arena, any other verified player-owned shot is an opponent. In
     /// protected 5v5, only exact frozen roster IDs are accepted.
@@ -151,7 +173,7 @@ internal static class ArenaTracerTeams
         if (OpponentProfileIds.Contains(normalized))
             return ArenaTracerSide.Opponent;
 
-        return !_protectedTeamMatch
+        return !_protectedTeamMatch && !_factionTeamMatch
             ? ArenaTracerSide.Opponent
             : ArenaTracerSide.Unknown;
     }
@@ -173,6 +195,7 @@ internal static class ArenaTracerTeams
         _localProfileId = null;
         _matchBound = false;
         _protectedTeamMatch = false;
+        _factionTeamMatch = false;
         _protectedRosterValid = false;
         _latestTeamEpoch = 0;
         ArenaTracerPatches.ResetDiagnostics();

@@ -71,6 +71,9 @@ internal sealed class ScorePanel
         if (match?.Scoreboard == null)
             return null;
 
+        if (match.Mode is TeamDeathmatchMode)
+            return null; // faction kill totals already appear in its status line
+
         if (match.Mode is TacticalMode tactical)
         {
             var friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
