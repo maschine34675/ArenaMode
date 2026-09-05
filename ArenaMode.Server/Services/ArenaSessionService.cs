@@ -1220,6 +1220,31 @@ public class ArenaSessionService
     }
 
     /// <summary>
+    /// Bind final bot equipment to an exact live Team DM raid. The arm token
+    /// is captured before synchronous generation and rechecked afterwards so
+    /// a delayed result cannot acquire a later raid's equipment policy.
+    /// Protected PFT equipment is deliberately outside this contract.
+    /// </summary>
+    public bool TryGetTeamDeathmatchBotContext(MongoId sessionId, string? location, out string? identity)
+    {
+        identity = null;
+        if (string.IsNullOrEmpty(location))
+            return false;
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || !IsLiveRaid(entry)
+                || entry.ProtectPitFireTeam
+                || !string.Equals(entry.Mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(entry.Map, location, StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrEmpty(entry.ArmToken))
+                return false;
+            identity = entry.ArmToken;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Resolve the mode and ownership together. A map id alone can match an
     /// ordinary raid or another player's session; only this exact live clone
     /// may receive a mode-specific hostility policy.

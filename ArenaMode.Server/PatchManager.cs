@@ -39,6 +39,7 @@ public sealed class PatchManager(
         new AdjustBotHostilityPatch().Enable();
         new BotCapPatch().Enable();
         new BotTierScalePatch().Enable();
+        new TeamDeathmatchArmbandPatch().Enable();
         AbstractPatch[] pitFireTeamFilePatches =
         [
             new PitFireTeamTextWritePatch(),
