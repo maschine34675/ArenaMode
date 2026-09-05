@@ -160,7 +160,8 @@ internal static class TeamArenaLoadoutSnapshotPolicy
     /// Joins the previous and next canonical-ID maps and validates the protected
     /// identity boundary before a restore. Combat items moved into a protected slot
     /// would otherwise be duplicated by snapshot reconstruction; originally protected
-    /// items moved out would otherwise be stranded on the corpse.
+    /// items moved out would otherwise be stranded on the corpse. Known protected
+    /// consumable descendants may be absent after use; they are never recreated.
     /// </summary>
     internal static bool TryBuildRuntimeRemap(
         IReadOnlyCollection<string> capturedIncludedIds,
@@ -169,7 +170,9 @@ internal static class TeamArenaLoadoutSnapshotPolicy
         IReadOnlyCollection<string> currentProtectedIds,
         IReadOnlyDictionary<string, string> nextRuntimeByCapturedId,
         out Dictionary<string, string> nextRuntimeByPreviousRuntimeId,
-        out string reason)
+        out string reason,
+        IReadOnlyCollection<string> capturedExpendableProtectedIds = null,
+        IReadOnlyCollection<string> currentEquipmentIds = null)
     {
         nextRuntimeByPreviousRuntimeId = new Dictionary<string, string>(StringComparer.Ordinal);
         reason = null;
@@ -180,7 +183,9 @@ internal static class TeamArenaLoadoutSnapshotPolicy
                 capturedProtectedIds,
                 previousRuntimeByCapturedId,
                 currentProtectedIds,
-                out reason))
+                out reason,
+                capturedExpendableProtectedIds,
+                currentEquipmentIds))
             return false;
 
         if (nextRuntimeByCapturedId == null
@@ -217,12 +222,16 @@ internal static class TeamArenaLoadoutSnapshotPolicy
         IReadOnlyCollection<string> capturedProtectedIds,
         IReadOnlyDictionary<string, string> previousRuntimeByCapturedId,
         IReadOnlyCollection<string> currentProtectedIds,
-        out string reason)
+        out string reason,
+        IReadOnlyCollection<string> capturedExpendableProtectedIds = null,
+        IReadOnlyCollection<string> currentEquipmentIds = null)
     {
         reason = null;
         var included = new HashSet<string>(capturedIncludedIds ?? Array.Empty<string>(), StringComparer.Ordinal);
         var protectedIds = new HashSet<string>(capturedProtectedIds ?? Array.Empty<string>(), StringComparer.Ordinal);
         var currentProtected = new HashSet<string>(currentProtectedIds ?? Array.Empty<string>(), StringComparer.Ordinal);
+        var expendable = new HashSet<string>(capturedExpendableProtectedIds ?? Array.Empty<string>(), StringComparer.Ordinal);
+        var currentEquipment = new HashSet<string>(currentEquipmentIds ?? Array.Empty<string>(), StringComparer.Ordinal);
         if (included.Count == 0 || included.Overlaps(protectedIds))
         {
             reason = "captured ordinary and protected ID sets are empty or overlap";
@@ -237,7 +246,21 @@ internal static class TeamArenaLoadoutSnapshotPolicy
             return false;
         }
 
-        string[] missingProtected = protectedIds.Where(id => !currentProtected.Contains(id)).ToArray();
+        if (!expendable.IsSubsetOf(protectedIds)
+            || (expendable.Count > 0
+                && (currentEquipmentIds == null || !currentProtected.IsSubsetOf(currentEquipment))))
+        {
+            reason = "protected consumable validation lacks a consistent current equipment graph";
+            return false;
+        }
+
+        // Only IDs classified at match entry can be absent. A consumable still
+        // found elsewhere on the old body was moved, not exhausted, and must
+        // continue to fail closed. Protected slot roots are never classified.
+        string[] missingProtected = protectedIds
+            .Where(id => !currentProtected.Contains(id)
+                         && (!expendable.Contains(id) || currentEquipment.Contains(id)))
+            .ToArray();
         if (missingProtected.Length > 0)
         {
             reason = $"{missingProtected.Length} originally protected items left or disappeared from protected slots";

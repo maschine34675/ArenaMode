@@ -217,6 +217,58 @@ check.False(
     "originally protected child moved out or consumed fails closed");
 check.Contains("left or disappeared", protectedRemovedReason, "protected-removal failure is diagnostic");
 
+// Entry-container consumables are excluded from the equipment snapshot. EFT
+// removes their final item ID after use; allowing that absence must neither
+// recreate them nor excuse a move onto the corpse's ordinary equipment.
+var protectedWithConsumables = capturedProtected.Concat(
+    new[] { "secure-med", "secure-stim", "secure-food", "secure-ammo" }).ToArray();
+var expendableProtected = new[] { "secure-med", "secure-stim", "secure-food", "secure-ammo" };
+var initialRuntimeMap = ordinarySource.ToDictionary(node => node.Id, node => node.Id, StringComparer.Ordinal);
+foreach (string consumedId in expendableProtected)
+{
+    var afterConsumption = protectedWithConsumables.Where(id => id != consumedId).ToArray();
+    var afterEquipment = included.Concat(afterConsumption).ToArray();
+    check.True(TeamArenaLoadoutSnapshotPolicy.TryBuildRuntimeRemap(
+            included, protectedWithConsumables, initialRuntimeMap, afterConsumption, idMap,
+            out var afterRemap, out string consumeReason, expendableProtected, afterEquipment),
+        $"fully used {consumedId} no longer blocks respawn: {consumeReason}");
+    check.Equal(included.Count, afterRemap.Count, "consumption does not add snapshot items");
+    check.False(afterRemap.ContainsKey(consumedId), "consumed protected item is never reconstructed");
+
+    check.False(TeamArenaLoadoutSnapshotPolicy.TryValidateProtectedBoundary(
+            included, protectedWithConsumables, initialRuntimeMap, afterConsumption,
+            out _, expendableProtected, afterEquipment.Concat(new[] { consumedId }).ToArray()),
+        $"{consumedId} moved into ordinary equipment still fails closed");
+}
+
+var afterAllConsumed = capturedProtected;
+check.True(TeamArenaLoadoutSnapshotPolicy.TryBuildRuntimeRemap(
+        included, protectedWithConsumables, idMap, afterAllConsumed,
+        idMap.ToDictionary(pair => pair.Key, pair => "third-" + pair.Key, StringComparer.Ordinal),
+        out var consumedLaterRemap, out _, expendableProtected,
+        idMap.Values.Concat(afterAllConsumed).ToArray()),
+    "later round accepts the same exhausted protected IDs with the fresh runtime lineage");
+check.Equal("third-weapon", consumedLaterRemap["fresh-weapon"],
+    "ordinary runtime lineage remains intact after protected consumption");
+check.False(TeamArenaLoadoutSnapshotPolicy.TryValidateProtectedBoundary(
+        included, protectedWithConsumables, initialRuntimeMap,
+        afterAllConsumed.Where(id => id != "secure").ToArray(), out _, expendableProtected,
+        included.Concat(afterAllConsumed.Where(id => id != "secure")).ToArray()),
+    "missing protected container root still fails closed");
+check.False(TeamArenaLoadoutSnapshotPolicy.TryValidateProtectedBoundary(
+        included, protectedWithConsumables, initialRuntimeMap,
+        afterAllConsumed.Where(id => id != "secure-child").ToArray(), out _, expendableProtected,
+        included.Concat(afterAllConsumed.Where(id => id != "secure-child")).ToArray()),
+    "missing nonconsumable protected descendant still fails closed");
+check.False(TeamArenaLoadoutSnapshotPolicy.TryValidateProtectedBoundary(
+        included, protectedWithConsumables, initialRuntimeMap, afterAllConsumed,
+        out _, expendableProtected),
+    "consumption exception cannot run without the full current equipment graph");
+check.False(TeamArenaLoadoutSnapshotPolicy.TryValidateProtectedBoundary(
+        included, protectedWithConsumables, initialRuntimeMap, afterAllConsumed,
+        out _, expendableProtected.Concat(new[] { "weapon" }).ToArray(), included.Concat(afterAllConsumed).ToArray()),
+    "ordinary item cannot enter the captured protected consumption allowlist");
+
 var secondRuntimeMap = idMap.ToDictionary(entry => entry.Key, entry => $"second-{entry.Key}", StringComparer.Ordinal);
 check.True(
     TeamArenaLoadoutSnapshotPolicy.TryBuildRuntimeRemap(
@@ -314,6 +366,12 @@ check.Contains("DiscardLimits.Add(mappedId", implementation, "discard limits are
 check.Contains("CheckedMagazines.Add(mappedId", implementation, "checked magazines are restored with fresh IDs");
 check.Contains("CheckedChambers.Add(mappedId)", implementation, "checked chambers are restored with fresh IDs");
 check.Contains("FindProtectedItemIds", implementation, "capture identity is checked against current protected descendants");
+check.Contains("!protectedRootIds.Contains(item.Id.ToString())", implementation,
+    "runtime never classifies protected slot roots as expendable");
+check.Contains("item is Meds || item is FoodDrink || item is Ammo", implementation,
+    "runtime classifies only native consumable item families");
+check.Contains("FindEquipmentItemIds(prepared.SourceEquipment)", commitSection,
+    "commit rechecks consumption versus moved items on the exact source body");
 check.Contains("_capturedIncludedIds", implementation, "snapshot retains canonical ordinary item IDs");
 check.Contains("_capturedProtectedIds", implementation, "snapshot retains canonical protected item IDs");
 check.Contains("EquipmentField(inventory) = oldEquipment", implementation, "failed commit restores the old equipment FieldRef");

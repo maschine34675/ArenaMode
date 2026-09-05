@@ -40,16 +40,19 @@ public sealed class TeamArenaLoadoutSnapshot
     private readonly object _identitySync = new();
     private readonly HashSet<string> _capturedIncludedIds;
     private readonly HashSet<string> _capturedProtectedIds;
+    private readonly HashSet<string> _capturedExpendableProtectedIds;
     private Dictionary<string, string> _runtimeByCapturedId;
 
     private TeamArenaLoadoutSnapshot(
         string flatItemJson,
         IReadOnlyCollection<string> capturedIncludedIds,
-        IReadOnlyCollection<string> capturedProtectedIds)
+        IReadOnlyCollection<string> capturedProtectedIds,
+        IReadOnlyCollection<string> capturedExpendableProtectedIds)
     {
         _flatItemJson = flatItemJson;
         _capturedIncludedIds = new HashSet<string>(capturedIncludedIds, StringComparer.Ordinal);
         _capturedProtectedIds = new HashSet<string>(capturedProtectedIds, StringComparer.Ordinal);
+        _capturedExpendableProtectedIds = new HashSet<string>(capturedExpendableProtectedIds, StringComparer.Ordinal);
         _runtimeByCapturedId = _capturedIncludedIds.ToDictionary(id => id, id => id, StringComparer.Ordinal);
         CapturedItemCount = _capturedIncludedIds.Count;
     }
@@ -121,7 +124,17 @@ public sealed class TeamArenaLoadoutSnapshot
                 sourceNodes.Select(node => node.Id),
                 StringComparer.Ordinal);
             allOriginalIds.ExceptWith(includedIds);
-            snapshot = new TeamArenaLoadoutSnapshot(json, includedIds, allOriginalIds);
+            // Native MedEffectHelper and ammo stack operations can remove the
+            // final item from a protected container. Such items were excluded
+            // from the JSON, so accepting their absence never replenishes them.
+            // Keep container/special/scabbard/armband roots strictly retained.
+            string[] expendableProtectedIds = equipment.GetAllItems()
+                .Where(item => allOriginalIds.Contains(item.Id.ToString())
+                               && !protectedRootIds.Contains(item.Id.ToString())
+                               && (item is Meds || item is FoodDrink || item is Ammo))
+                .Select(item => item.Id.ToString())
+                .ToArray();
+            snapshot = new TeamArenaLoadoutSnapshot(json, includedIds, allOriginalIds, expendableProtectedIds);
             return true;
         }
         catch (Exception ex)
@@ -208,7 +221,9 @@ public sealed class TeamArenaLoadoutSnapshot
                     currentProtectedIds,
                     prepared.NextRuntimeByCapturedId,
                     out Dictionary<string, string> currentToFresh,
-                    out string identityReason))
+                    out string identityReason,
+                    _capturedExpendableProtectedIds,
+                    FindEquipmentItemIds(prepared.SourceEquipment)))
             {
                 throw new InvalidOperationException($"protected identity validation failed at commit: {identityReason}");
             }
@@ -271,7 +286,9 @@ public sealed class TeamArenaLoadoutSnapshot
                 _capturedProtectedIds,
                 previousRuntimeByCapturedId,
                 currentProtectedIds,
-                out string protectedReason))
+                out string protectedReason,
+                _capturedExpendableProtectedIds,
+                FindEquipmentItemIds(oldEquipment)))
         {
             throw new InvalidOperationException($"protected identity validation failed: {protectedReason}");
         }
@@ -314,7 +331,9 @@ public sealed class TeamArenaLoadoutSnapshot
                 currentProtectedIds,
                 idMap,
                 out Dictionary<string, string> currentToFresh,
-                out string runtimeMapReason))
+                out string runtimeMapReason,
+                _capturedExpendableProtectedIds,
+                FindEquipmentItemIds(oldEquipment)))
         {
             throw new InvalidOperationException($"runtime metadata remap failed: {runtimeMapReason}");
         }
@@ -624,6 +643,9 @@ public sealed class TeamArenaLoadoutSnapshot
 
         return ids;
     }
+
+    private static HashSet<string> FindEquipmentItemIds(InventoryEquipment equipment)
+        => new(equipment.GetAllItems().Select(item => item.Id.ToString()), StringComparer.Ordinal);
 
     private static bool DictionaryEqual(
         IReadOnlyDictionary<string, string> left,
