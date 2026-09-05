@@ -13,6 +13,7 @@ public static class Settings
     public static ConfigEntry<string> SelectedKit { get; private set; }
     public static ConfigEntry<bool> RandomKit { get; private set; }
     public static ConfigEntry<float> SpawnProtectionSeconds { get; private set; }
+    public static ConfigEntry<bool> DisableLabyrinthSpawnTraps { get; private set; }
     public static ConfigEntry<bool> MovementEnabled { get; private set; }
     public static ConfigEntry<float> WalkSpeedMult { get; private set; }
     public static ConfigEntry<float> SprintSpeedMult { get; private set; }
@@ -186,6 +187,12 @@ public static class Settings
             "SpawnProtectionSeconds",
             3f,
             "Invulnerability after an arena respawn (0 = disabled).");
+
+        DisableLabyrinthSpawnTraps = config.Bind(
+            "Arena", "DisableLabyrinthSpawnTraps", true,
+            "Disable Labyrinth's entrance gun, flame, liquid and steam traps during Arena only, " +
+            "including their active damage, animations and continuous sounds. " +
+            "Read once per raid; changes apply to the next Arena raid. Other puzzles/traps and ordinary raids are unchanged.");
 
         MovementEnabled = config.Bind(
             "Movement",

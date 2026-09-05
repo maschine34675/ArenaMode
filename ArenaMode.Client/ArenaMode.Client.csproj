@@ -59,6 +59,7 @@
     <Reference Include="Sirenix.Serialization" />
     <Reference Include="Unity.TextMeshPro" />
     <Reference Include="UnityEngine.AIModule" />
+    <Reference Include="UnityEngine.AnimationModule" Private="false" />
     <Reference Include="UnityEngine.AudioModule" />
     <Reference Include="UnityEngine.TextRenderingModule" />
     <Reference Include="UnityEngine" />
