@@ -81,6 +81,7 @@ namespace EFT
         public bool IsAlive = true, SuppressKill, ThrowOnKill;
         public int KillCalls;
         public Player Player;
+        public Action OnKilled;
         public void Kill(EDamageType type)
         {
             KillCalls++;
@@ -88,7 +89,11 @@ namespace EFT
             if (!ArenaAdministrativeDeathGate.IsActive(Player.ProfileId))
                 throw new InvalidOperationException("retirement must be administrative");
             if (ThrowOnKill) throw new InvalidOperationException("modeled native Kill failure");
-            if (!SuppressKill) IsAlive = false;
+            if (!SuppressKill)
+            {
+                IsAlive = false;
+                OnKilled?.Invoke();
+            }
         }
     }
     public sealed class BotOwner : IPlayer
@@ -279,7 +284,7 @@ namespace ArenaMode
 namespace ArenaMode.Config
 {
     internal sealed class Entry<T> { internal T Value; internal Entry(T value) => Value = value; }
-    internal static class Settings
+    internal static partial class Settings
     {
         internal static readonly Entry<int> TeamDeathmatchSize = new(5);
         internal static readonly Entry<bool> NoCorpseLooting = new(true);
@@ -306,16 +311,20 @@ namespace ArenaMode.Effects
 }
 namespace ArenaMode.Modes
 {
+#if !TEAM_GIVE_UP_CHECKS
     public sealed class ArenaMatch
     {
+        public IArenaMode Mode;
         public ArenaScoreboard Scoreboard;
         internal readonly List<ArenaAnnouncerCue> Cues = new();
         public void ReportAnnouncerCue(ArenaAnnouncerCue cue) => Cues.Add(cue);
     }
     public enum ArenaAnnouncerCue { RoundStart }
+#endif
     public static class ArenaModeCatalog { public const string TeamDeathmatchId = "teamdeathmatch"; }
     public static class ArenaMatchService
     {
+        public static ArenaMatch Current;
         public static ArenaScoreboardActor SnapshotActor(Player player)
             => new(player.ProfileId, player.ProfileId, player.IsAI ? "PMC" : "You", player.HealthController.IsAlive);
     }

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <DefineConstants>$(DefineConstants);TEAM_GIVE_UP_CHECKS</DefineConstants>
+    <GiveUpSource Condition="'$(GiveUpSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Combat\ArenaGiveUp.cs</GiveUpSource>
+    <ModeSource Condition="'$(ModeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.cs</ModeSource>
+    <ScoreboardSource Condition="'$(ScoreboardSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\ArenaScoreboard.cs</ScoreboardSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(GiveUpSource)" Link="Production/ArenaGiveUp.cs" />
+    <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="EngineModel.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaMatch.cs" Link="Production/ArenaMatch.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchPopulation.cs" Link="Production/TeamDeathmatchPopulation.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamDeathmatchRelations.cs" Link="Production/TeamDeathmatchRelations.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaCombatAwards.cs" Link="Production/ArenaCombatAwards.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs" />
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Production/ArenaTracerTeams.cs" />
+  </ItemGroup>
+</Project>

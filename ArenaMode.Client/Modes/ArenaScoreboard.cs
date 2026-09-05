@@ -118,6 +118,10 @@ public sealed class ArenaScoreboard
     private readonly HashSet<ArenaScoreboardEntry> _currentRoster = new();
     private readonly MutableTotals _archivedFriendly = new();
     private readonly MutableTotals _archivedOpponent = new();
+    // Voluntary TDM deaths belong to the opposing team, never a made-up bot.
+    // Keep these outside participant history so roster compaction cannot erase
+    // them or pretend a nonexistent individual earned kills/headshots/streaks.
+    private int _opponentForfeitKills;
     private int _nextOrder;
     private int _historicalParticipantCount;
     private int _archivedParticipantCount;
@@ -273,6 +277,12 @@ public sealed class ArenaScoreboard
         Version++;
     }
 
+    internal void ReportOpponentForfeitKill()
+    {
+        _opponentForfeitKills++;
+        Version++;
+    }
+
     public void ReportLocalRespawn(string profileId, string displayName, string roleLabel)
     {
         string normalizedProfile = Normalize(profileId);
@@ -334,6 +344,11 @@ public sealed class ArenaScoreboard
         int kills = archived.Kills;
         int deaths = archived.Deaths;
         int headshots = archived.Headshots;
+        if (side == ArenaScoreboardSide.Opponent)
+        {
+            kills += _opponentForfeitKills;
+            score += _opponentForfeitKills * ScoreRules.PointsFor(ArenaRole.Pmc);
+        }
         foreach (ArenaScoreboardEntry entry in _entriesByKey.Values)
         {
             if (entry.Side != side)

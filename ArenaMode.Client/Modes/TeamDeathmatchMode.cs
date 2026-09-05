@@ -36,6 +36,8 @@ public sealed class TeamDeathmatchMode : IArenaMode
     private bool _reportedStall;
     private readonly float[] _retryAt = new float[2];
     private string _failure;
+    private Player _pendingGiveUpLife;
+    private Player _creditedGiveUpLife;
 
     public string Id => ArenaModeCatalog.TeamDeathmatchId;
     public string DisplayName => "Team Deathmatch";
@@ -280,6 +282,77 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     public void OnKill(ArenaKill kill) { }
     public void OnLocalDeath() => _nextTick = 0f;
+
+    /// <summary>Reserve this exact living body for the synchronous Give up call.</summary>
+    internal bool TryBeginLocalGiveUp(Player player)
+    {
+        if (_pendingGiveUpLife != null || ReferenceEquals(_creditedGiveUpLife, player)
+            || !IsCurrentLocalGiveUpLife(player) || player.ActiveHealthController?.IsAlive != true)
+            return false;
+        _pendingGiveUpLife = player;
+        return true;
+    }
+
+    /// <summary>
+    /// Team-only bookkeeping, after native death has been observed. The normal
+    /// local-death event owns deaths/streak reset; this must never synthesize an
+    /// ArenaKill or give a random opponent personal credit or announcer awards.
+    /// </summary>
+    internal void CompleteLocalGiveUp(Player player, bool deathConfirmed)
+    {
+        if (!ReferenceEquals(_pendingGiveUpLife, player) || player == null) return;
+        _pendingGiveUpLife = null;
+        if (!deathConfirmed || !IsCurrentLocalGiveUpLife(player)
+            || player.ActiveHealthController?.IsAlive != false
+            || ReferenceEquals(_creditedGiveUpLife, player)) return;
+        _creditedGiveUpLife = player;
+        _match.Scoreboard.ReportOpponentForfeitKill();
+    }
+
+    private bool IsCurrentLocalGiveUpLife(Player player)
+        => IsCurrentMatch()
+           && player != null && ReferenceEquals(player, _local)
+           && ReferenceEquals(player, _world.MainPlayer)
+           && !player.IsAI
+           && player.ProfileId == _localId
+           && player.Profile?.Info?.Side
+                == (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear);
+
+    private bool IsCurrentMatch()
+        => _population != null && !IsComplete && IsCurrentRaid()
+           && ReferenceEquals(ArenaMatchService.Current, _match)
+           && ReferenceEquals(_match?.Mode, this);
+
+    /// <summary>
+    /// Read-only affiliation for visible effects. Historical profile IDs and
+    /// auto-admission in combat relations are deliberately insufficient: pooled
+    /// visuals may outlive a bot or be rebound before its replacement is ready.
+    /// </summary>
+    internal bool TryClassifyCurrentBody(Player player, out bool friendly)
+    {
+        friendly = false;
+        if (!IsCurrentMatch() || player == null || string.IsNullOrEmpty(player.ProfileId)
+            || player.HealthController?.IsAlive != true)
+            return false;
+        if (IsCurrentLocalGiveUpLife(player))
+        {
+            friendly = true;
+            return true;
+        }
+        var owner = player.AIData?.BotOwner;
+        if (!player.IsAI || owner == null || owner.BotState != EBotState.Active
+            || !ReferenceEquals(owner.GetPlayer, player)
+            || owner.ProfileId != player.ProfileId
+            || !_bots.Any(bot => ReferenceEquals(bot, owner))
+            || !ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)
+            || !_usecById.TryGetValue(player.ProfileId, out bool usec)
+            || player.Profile?.Info?.Side != (usec ? EPlayerSide.Usec : EPlayerSide.Bear)
+            || player.Profile?.Info?.Settings?.Role != (usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR))
+            return false;
+        friendly = usec == _population.LocalUsec;
+        return true;
+    }
+
     public void OnLocalRespawn(Player player)
     {
         if (_population == null || !IsCurrentRaid()) return;
@@ -287,6 +360,8 @@ public sealed class TeamDeathmatchMode : IArenaMode
             || TeamDeathmatchRelations.Faction(player) != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear))
         { Fail("local PMC faction changed"); return; }
         _local = player;
+        _pendingGiveUpLife = null;
+        _creditedGiveUpLife = null;
         TeamDeathmatchRelations.Register(player);
         _nextTick = 0f;
     }
@@ -323,6 +398,8 @@ public sealed class TeamDeathmatchMode : IArenaMode
     public void OnMatchEnd()
     {
         _ended = true;
+        _pendingGiveUpLife = null;
+        _creditedGiveUpLife = null;
         _population?.Stop();
         _bots.Clear();
         _activationDeadline.Clear();

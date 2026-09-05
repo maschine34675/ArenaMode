@@ -27,6 +27,7 @@ internal static class ArenaGiveUp
     private const float CooldownSeconds = 1f;
 
     private static float _nextAllowedAt;
+    private static bool _requestInProgress;
 
     public static void Reset() => _nextAllowedAt = 0f;
 
@@ -55,7 +56,7 @@ internal static class ArenaGiveUp
     /// <summary>Also reachable from the panel button.</summary>
     public static void Request()
     {
-        if (!ArenaSession.IsActive || Time.time < _nextAllowedAt)
+        if (!ArenaSession.IsActive || _requestInProgress || Time.time < _nextAllowedAt)
             return;
 
         // Nothing to give up on while the round is already over and the player
@@ -76,14 +77,37 @@ internal static class ArenaGiveUp
             if (health == null || !health.IsAlive)
                 return;
 
-            _nextAllowedAt = Time.time + CooldownSeconds;
-            Plugin.ModLogger.LogInfo("Arena: player gave up — respawning.");
+            var teams = ArenaMatchService.Current?.Mode as TeamDeathmatchMode;
+            bool scoreReserved = teams?.TryBeginLocalGiveUp(player) == true;
 
             // Raises the death event the player subscribes to, so the normal
             // death pipeline runs and the arena driver picks it up. No aggressor
-            // means no killfeed line, which is right: nobody earned this one.
-            using (ArenaAdministrativeDeathGate.Enter(player.ProfileId))
-                health.Kill(EDamageType.Undefined);
+            // means no individual kill, killfeed line or combat award. In Team
+            // DM the opponent team receives the forfeited life separately. An
+            // ended/failed team match must still permit this existing escape
+            // action even when its scoring reservation is no longer eligible.
+            _requestInProgress = true;
+            try
+            {
+                _nextAllowedAt = Time.time + CooldownSeconds;
+                Plugin.ModLogger.LogInfo("Arena: player gave up — respawning.");
+                using (ArenaAdministrativeDeathGate.Enter(player.ProfileId))
+                    health.Kill(EDamageType.Undefined);
+            }
+            finally
+            {
+                // Native Kill flips IsAlive before invoking death subscribers.
+                // A subscriber may throw after death succeeded; conversely a
+                // suppressed Kill must not create a point. Always consume the
+                // synchronous request even if the raid/body changed meanwhile.
+                try
+                {
+                    if (scoreReserved)
+                        teams.CompleteLocalGiveUp(player, ReferenceEquals(player.ActiveHealthController, health)
+                            && !health.IsAlive);
+                }
+                finally { _requestInProgress = false; }
+            }
         }
         catch (Exception ex)
         {
