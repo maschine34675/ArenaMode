@@ -105,7 +105,9 @@ internal static class ArenaLightingPolicy
     private static readonly ArenaLightColor PressureColor = new(1f, 0.035f, 0.02f);
 
     internal static bool SupportsMap(string locationId)
-        => string.Equals(locationId?.Trim(), "laboratory", StringComparison.OrdinalIgnoreCase);
+        => string.Equals(locationId?.Trim(), "laboratory", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "factory4_day", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "factory4_night", StringComparison.OrdinalIgnoreCase);
 
     internal static ArenaLightingFrame Evaluate(in ArenaLightingContext context)
     {

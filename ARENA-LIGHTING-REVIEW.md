@@ -2,7 +2,7 @@
 
 ## Scope
 
-ArenaMode adds a first, Labs-only lighting layer for visible round-state
+ArenaMode adds a lighting layer on Labs and Factory (day and night) for visible round-state
 feedback. It is client-side and does not require edited map bundles.
 
 - The last three seconds of a solo Tactical buy phase or Rounds intermission
@@ -57,7 +57,7 @@ explicitly credits both projects here.
 
 `tools/ArenaLightingChecks` links the production policy and director against
 small Unity/EFT/BepInEx stand-ins. It covers phase precedence, fades, invalid
-settings, Labs-only scope, exact-world ownership, external-mod suppression,
+settings, Labs/Factory day/night scope, exact-world ownership, external-mod suppression,
 one-light ownership, duplicate-free re-entry, live disable and every cleanup
 boundary. Its source assertions reject scene scans and mutation of existing map
 lighting.
@@ -65,5 +65,6 @@ lighting.
 The deployment-free Release build and directly affected Arena regression suites
 are run by `tools/ArenaLightingChecks/Verify-Regression.ps1`. This server has no
 GPU, so the final intensity, spectator-camera appearance and real Unity render
-path require a Labs playtest. Factory and Labyrinth intentionally remain
-unchanged until the Labs presentation has been tuned in game.
+path require a playtest. Factory day and night use the same effects and strength
+as Labs; their brightness, including with night vision, still needs a GPU check.
+Labyrinth remains outside the supported map list.

@@ -20,9 +20,12 @@ internal static class Program
         {
             CheckPolicySafetyAndMapScope();
             CheckPolicyPrecedenceAndFades();
-            CheckRuntimeOwnershipAndCleanup();
-            CheckModeTransitions();
-            CheckExternalLightingCompatibility();
+            foreach (string map in new[] { "laboratory", "factory4_day", "factory4_night" })
+            {
+                CheckRuntimeOwnershipAndCleanup(map);
+                CheckModeTransitions(map);
+                CheckExternalLightingCompatibility(map);
+            }
             CheckStaleWorldAndCreationFailure();
             CheckSourceContract();
             Console.WriteLine($"ARENA_LIGHTING_CHECKS_PASSED ({_assertions} assertions)");
@@ -40,7 +43,9 @@ internal static class Program
     {
         Assert(ArenaLightingPolicy.SupportsMap("laboratory"), "Labs is supported");
         Assert(ArenaLightingPolicy.SupportsMap(" LABORATORY "), "Labs id is normalized");
-        Assert(!ArenaLightingPolicy.SupportsMap("factory4_day"), "Factory is deferred");
+        Assert(ArenaLightingPolicy.SupportsMap("factory4_day"), "Factory day is supported");
+        Assert(ArenaLightingPolicy.SupportsMap(" FACTORY4_NIGHT "), "Factory night id is normalized");
+        Assert(!ArenaLightingPolicy.SupportsMap("factory4"), "ambiguous Factory alias is rejected");
         Assert(!ArenaLightingPolicy.SupportsMap("labyrinth"), "Labyrinth is deferred");
         Assert(!ArenaLightingPolicy.SupportsMap(null), "missing map is rejected");
 
@@ -126,10 +131,10 @@ internal static class Program
         Assert(fullResult > fadingResult * 5f, "result light eases out instead of snapping");
     }
 
-    private static void CheckRuntimeOwnershipAndCleanup()
+    private static void CheckRuntimeOwnershipAndCleanup(string map)
     {
         ResetHarness();
-        var world = World("laboratory");
+        var world = World(map);
         var match = new ArenaMatch(new EndlessMode());
         ArenaSession.IsActive = false;
         ArenaLightingDirector.Attach(match, world);
@@ -138,7 +143,7 @@ internal static class Program
         Assert(match.AnnouncerSubscriberCount == 0, "ordinary-raid tick releases subscription");
 
         ResetHarness();
-        world = World("laboratory");
+        world = World(map);
         match = new ArenaMatch(new EndlessMode());
         ArenaSession.IsActive = true;
         Time.time = 10f;
@@ -185,7 +190,7 @@ internal static class Program
         Assert(match.AnnouncerSubscriberCount == 0, "repeat reset is idempotent");
     }
 
-    private static void CheckModeTransitions()
+    private static void CheckModeTransitions(string map)
     {
         ResetHarness();
         var tactical = new TacticalMode
@@ -194,7 +199,7 @@ internal static class Program
             PhaseRemaining = 3f,
         };
         Time.time = 20f;
-        ArenaLightingDirector.Attach(new ArenaMatch(tactical), World("laboratory"));
+        ArenaLightingDirector.Attach(new ArenaMatch(tactical), World(map));
         ArenaLightingDirector.Tick();
         Light light = SinglePhaseLight().GetComponent<Light>();
         AssertColor(light.color, 1f, 0.28f, 0.04f,
@@ -206,7 +211,7 @@ internal static class Program
             CurrentPhase = TacticalMode.Phase.Staging,
             PhaseRemaining = 30f,
         };
-        ArenaLightingDirector.Attach(new ArenaMatch(tactical), World("laboratory"));
+        ArenaLightingDirector.Attach(new ArenaMatch(tactical), World(map));
         ArenaLightingDirector.Tick();
         Assert(PhaseLights().Count == 0,
             "protected Tactical staging cannot produce a premature fight flash");
@@ -235,7 +240,7 @@ internal static class Program
             IntermissionRemaining = 2f,
         };
         rounds.Round.Number = 1;
-        ArenaLightingDirector.Attach(new ArenaMatch(rounds), World("laboratory"));
+        ArenaLightingDirector.Attach(new ArenaMatch(rounds), World(map));
         Time.time = 40f;
         SetPrivateStatic("_fightUntil", 0f);
         ArenaLightingDirector.Tick();
@@ -250,7 +255,7 @@ internal static class Program
 
         ResetHarness();
         var unsupportedMatch = new ArenaMatch(new EndlessMode());
-        ArenaLightingDirector.Attach(unsupportedMatch, World("factory4_day"));
+        ArenaLightingDirector.Attach(unsupportedMatch, World("labyrinth"));
         ArenaLightingDirector.Tick();
         Assert(PhaseLights().Count == 0, "unsupported Arena map creates no light");
         Assert(unsupportedMatch.AnnouncerSubscriberCount == 1,
@@ -260,11 +265,11 @@ internal static class Program
             "unsupported map still tears down its subscription");
     }
 
-    private static void CheckExternalLightingCompatibility()
+    private static void CheckExternalLightingCompatibility(string map)
     {
         ResetHarness();
         Chainloader.PluginInfos["com.vultify.blackout"] = new object();
-        ArenaLightingDirector.Attach(new ArenaMatch(new EndlessMode()), World("laboratory"));
+        ArenaLightingDirector.Attach(new ArenaMatch(new EndlessMode()), World(map));
         ArenaLightingDirector.Tick();
         ArenaLightingDirector.Tick();
         Assert(PhaseLights().Count == 0, "Blackout ownership suppresses Arena light");
@@ -277,7 +282,7 @@ internal static class Program
 
         ResetHarness();
         Chainloader.PluginInfos["com.senze.goingdark"] = new object();
-        ArenaLightingDirector.Attach(new ArenaMatch(new EndlessMode()), World("laboratory"));
+        ArenaLightingDirector.Attach(new ArenaMatch(new EndlessMode()), World(map));
         ArenaLightingDirector.Tick();
         Assert(PhaseLights().Count == 0, "Going Dark ownership suppresses Arena light");
     }

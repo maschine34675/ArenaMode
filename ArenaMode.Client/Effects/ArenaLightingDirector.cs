@@ -61,7 +61,7 @@ internal static class ArenaLightingDirector
 
         Plugin.ModLogger?.LogInfo(
             ArenaLightingPolicy.SupportsMap(world.LocationId)
-                ? "Arena lighting director armed for Labs."
+                ? $"Arena lighting director armed for '{world.LocationId}'."
                 : $"Arena lighting director inactive on unsupported map '{world.LocationId ?? "<null>"}'.");
     }
 
@@ -312,7 +312,7 @@ internal static class ArenaLightingDirector
             _lightObject = created;
             _light = light;
             Plugin.ModLogger?.LogInfo(
-                "Arena created one runtime directional light for Labs round-state feedback.");
+                $"Arena created one runtime directional light for '{_world.LocationId}' round-state feedback.");
             return true;
         }
         catch (Exception ex)

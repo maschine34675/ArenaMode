@@ -717,7 +717,7 @@ public static class Settings
             "Effects",
             "ArenaLighting",
             true,
-            "Labs only: add restrained runtime lighting for round starts, the final seconds, " +
+            "Labs and Factory (day/night): add restrained runtime lighting for round starts, the final seconds, " +
             "and Tactical victory/defeat. No map bundles or shared map materials are changed.");
 
         ArenaLightingStrength = config.Bind(
@@ -725,7 +725,7 @@ public static class Settings
             "ArenaLightingStrength",
             1f,
             new ConfigDescription(
-                "Brightness multiplier for Arena's additive Labs phase light (0 = invisible).",
+                "Brightness multiplier for Arena's additive phase light on Labs and Factory (0 = invisible).",
                 new AcceptableValueRange<float>(0f, 2f)));
 
         ArenaLightingPressureSeconds = config.Bind(
@@ -733,7 +733,7 @@ public static class Settings
             "ArenaLightingPressureSeconds",
             30,
             new ConfigDescription(
-                "Turn the Labs lighting red for this many final seconds in timed Rounds and Tactical combat (0 = disabled).",
+                "Turn the Arena lighting red for this many final seconds in timed Rounds and Tactical combat (0 = disabled).",
                 new AcceptableValueRange<int>(0, 120)));
 
         ArenaLightingOutcomeSeconds = config.Bind(

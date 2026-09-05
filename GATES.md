@@ -68,12 +68,12 @@ Scope: Add Arena alongside PMC and Scav, limit its next screen to server-enabled
   EXPECT: Team Arena loadout checks passed:
   EVIDENCE: PowerShell 7, cwd D:\SPT41\Development\ArenaMode, exit 0, expected marker matched: 142 assertions. The two 2026-09-05 failures occur at 11:07:35.098 and 11:34:31.286; only the first overlaps replay. User confirmed complete secure-container consumption. Verified native MedEffectHelper removal and ammo merge behavior. The entry-only Meds/FoodDrink/Ammo allowlist excludes protected roots; prepare and commit require absent IDs to be absent from the full current equipment graph. Consumed items remain excluded from reconstruction. Missing nonconsumables/roots, moved-out items, unknown protected additions and ordinary-to-protected moves still fail closed. A temporary old-rule mutant fails the new consumed-medicine assertion with the reported error; the restored source passes. Two independent adversarial reviews found no P0/P1/P2 issue. See TEAM-LOADOUT-CONSUMPTION-REVIEW.md for the exact source contract and GPU handoff.
 
-- [ ] G13: The existing Arena light effects also run on Factory day and night with the same ownership, opt-out and cleanup rules.
+- [x] G13: The existing Arena light effects also run on Factory day and night with the same ownership, opt-out and cleanup rules.
   CHECK: dotnet run --project tools/ArenaLightingChecks/ArenaLightingChecks.csproj -c Release
   EXPECT: ARENA_LIGHTING_CHECKS_PASSED
-  EVIDENCE: pending.
+  EVIDENCE: PowerShell 7, cwd D:\SPT41\Development\ArenaMode, exit 0, expected marker matched: 201 assertions. The harness runs light ownership, phase transitions and external-mod suppression on laboratory, factory4_day and factory4_night, and rejects Labyrinth and the ambiguous factory4 alias. IDs verified against the native location/time selection. One independent adversarial review found no P0/P1/P2 issue; visual intensity on Factory night/NVG remains a GPU check.
 
-- [ ] G14: Both follow-ups pass adversarial review and their appropriate regressions; Release output is deployed and hash-matched, with a separate commit for each change.
-  EVIDENCE: pending.
+- [x] G14: Both follow-ups pass adversarial review and their appropriate regressions; Release output is deployed and hash-matched, with a separate commit for each change.
+  EVIDENCE: Release solution built successfully with five existing warnings (four CS8632 and one MUD0002), zero errors; unit suite 112/112, Team Arena 765, PFT lifecycle 367, medical 74, tracer 129 and announcer 110 assertions passed. The loadout fix is commit 66b86a6; Factory lighting is committed separately with this gate update. Verified build/deployed SHA256: client AC640AF35C66439091A93B6F6A2C943DDB280C13E282792AC6FAA2BFD4A21643; server CB2ABD31BB6C245ACAFF02DB791C6659B3C1A9A5B4255488D8B877351F73B91F; BigBrain companion 67829200DA25628517680F7D355F2698BC2732EC6AF249FEBC9753C98E09D636. No GPU runtime result is claimed; the user's next game restart/test covers actual round continuation and Factory rendering under G6.
 
 ABANDON: G6 User confirmed no GPU on this server; handoff for visual and raid/profile validation on a gaming PC. No further game launches here.

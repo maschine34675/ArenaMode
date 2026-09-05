@@ -24,3 +24,12 @@ Scope: Add a Labs-only, Arena-only runtime lighting layer for round countdown, t
   EVIDENCE: unavailable on this host
 
 ABANDON: L4 This server has no GPU, so visual rendering and live raid behavior require the user's later gaming-PC playtest.
+
+## Factory follow-up (2026-09-05)
+
+The explicit map allowlist now includes `factory4_day` and `factory4_night`.
+The production-linked harness runs ownership, mode transitions and external-mod
+suppression on Labs and both Factory variants: 201 assertions pass. Adversarial
+review found no P0/P1/P2 issue. Strength and effect timing are shared with Labs;
+Factory day/night rendering, including night vision, remains part of the GPU
+handoff rather than an automated visual claim.
