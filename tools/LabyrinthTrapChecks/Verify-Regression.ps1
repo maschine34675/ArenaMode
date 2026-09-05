@@ -13,9 +13,12 @@ $arenaMutantDir = Join-Path ([IO.Path]::GetTempPath()) ('arena-trap-mutants-' + 
 [void][IO.Directory]::CreateDirectory($arenaMutantDir)
 $arenaMutants = @(
     @{ Name = 'raid-ownership'; From = '!ArenaSession.IsExactActiveRaid(game, world)'; To = 'false'; Failure = 'stale world damage remains vanilla' },
-    @{ Name = 'visual-state'; From = 'foreach (var animator in plan.Animators) animator._animatorActions[0].Execute(animator._target);'; To = '// mutation: skipped animator states'; Failure = 'native switch animation state applied' },
+    @{ Name = 'visual-state'; From = 'foreach (var animator in plan.Animators) animator._animatorActions[0].Execute(animator._target);'; To = '// mutation: skipped animator states'; Failure = 'toxic pool native drain animation requested' },
     @{ Name = 'recursive-fade'; From = 'loop.StopSound();'; To = 'loop.StopSound(); loop.OnLoopSourceFadeOut();'; Failure = 'only start coroutine cancelled; native fade and end timer retained' },
-    @{ Name = 'end-timer-cancelled'; From = 'loop.StopCoroutine(pendingStart);'; To = 'loop.StopAllCoroutines();'; Failure = 'previously triggered native stop keeps its cleanup timers' }
+    @{ Name = 'end-timer-cancelled'; From = 'loop.StopCoroutine(pendingStart);'; To = 'loop.StopAllCoroutines();'; Failure = 'previously triggered native stop keeps its cleanup timers' },
+    @{ Name = 'pool-not-owned'; From = 'new("DamageZone1", "toxicZoneEnter1_2612876931"'; To = 'new("DamageZone1", "not_owned_pool_entry"'; Failure = 'toxic pool damage prevented before drain animation' },
+    @{ Name = 'pool-not-drained'; From = 'foreach (var animator in plan.Animators) animator._animatorActions[0].Execute(animator._target);'; To = 'foreach (var animator in plan.Animators) if (animator.gameObject.name != "INTERACTIVE_Labyrinth_water_02") animator._animatorActions[0].Execute(animator._target);'; Failure = 'toxic pool native drain animation requested' },
+    @{ Name = 'shared-pool-control-id'; From = 'x._triggerId == id && x.gameObject.name == name'; To = 'x._triggerId == id'; Failure = 'all twelve entry trigger IDs disabled' }
 )
 foreach ($arenaMutant in $arenaMutants) {
     if (-not $arenaOriginal.Contains($arenaMutant.From)) { throw "Missing mutation anchor: $($arenaMutant.Name)" }

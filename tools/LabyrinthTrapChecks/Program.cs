@@ -39,6 +39,11 @@ void Fixture()
                 _triggerIdFinishDamage = prefix + "_exit_zone_" + id,
                 ConfigurationId = config + (i == 0 ? "_soft" : "_deadly") });
         }
+    for (int i = 1; i <= 2; i++)
+        Add(new HandlerDamage { gameObject = Go("DamageZone" + i),
+            _triggerIdStartDamage = "toxicZoneEnter" + i + "_2612876931",
+            _triggerIdFinishDamage = "toxicZoneExit" + i + "_2612876931",
+            ConfigurationId = "INTERACTIVE_Labyrinth_water_01_" + (i == 1 ? "soft" : "deadly") });
     foreach (string id in new[] { "1628276106", "2131128863", "1446364582", "2505672369" })
         Add(new HandlerShoot { gameObject = Go("INTERACTIVE_Guntrap_01"), _triggerId = "guntrap_trigger_" + id,
             ConfigurationId = "INTERACTIVE_Guntrap_00001_" + (id == "1446364582" ? "deadly" : "soft") });
@@ -51,7 +56,9 @@ void Fixture()
         ("disable_traps_01", "INTERACTIVE_Toggle_Trap_Switch", All<HandlerShoot>().Select(x => x._triggerId).ToArray()),
         ("disable_traps_02", "Interactive_button_12", All<HandlerDamage>().Take(2).Select(x => x._triggerIdStartDamage).ToArray()),
         ("disable_traps_04", "INTERACTIVE_Toggle_Trap_Switch", All<HandlerDamage>().Skip(2).Take(2).Select(x => x._triggerIdStartDamage).ToArray()),
-        ("set_valve_01", "Valve_PlaceHolder", All<HandlerDamage>().Skip(4).Select(x => x._triggerIdStartDamage).ToArray()),
+        ("set_valve_01", "Valve_PlaceHolder", All<HandlerDamage>().Skip(4).Take(2).Select(x => x._triggerIdStartDamage).ToArray()),
+        ("WaterRemove_2612876931", "DamageZone1", new[] { "toxicZoneEnter1_2612876931" }),
+        ("WaterRemove_2612876931", "DamageZone2", new[] { "toxicZoneEnter2_2612876931" }),
     };
     foreach (var (id, name, targets) in switches)
         Add(new HandlerTriggerState { gameObject = Go(name), _triggerId = id, _controlledTriggerId = targets });
@@ -60,6 +67,7 @@ void Fixture()
         ("Fire_zone_Animaton", "Fire_zone_switch_01", "isGoing", false),
         ("Valve_Animation_Sync", "set_valve_01", "HasValve", true),
         ("INTERACTIVE_Lifting_grate_01", "LiftGate_843566315", "IsClosed", true),
+        ("INTERACTIVE_Labyrinth_water_02", "WaterRemove_2612876931", "IsRemoved", true),
     })
     {
         var go = Go(name);
@@ -67,9 +75,9 @@ void Fixture()
             _animatorActions = new[] { new HandlerAnimator.AnimatorAction
                 { TriggerId = id, BoolAction = new() { Name = parameter, Value = value } } } });
     }
-    foreach (var name in new[] { "Fire_zone_01", "Fire_zone_02", "Gas_sound_01", "Gas_sound_01" })
+    foreach (var name in new[] { "Fire_zone_01", "Fire_zone_02", "Gas_sound_01", "Gas_sound_01", "INTERACTIVE_Labyrinth_water_02" })
         Add(new HandlerPlaySoundSequenced { gameObject = Go(name), _playTriggerId = "",
-            _stopTriggerId = name.StartsWith("Fire") ? "disable_traps_02" : "set_valve_01",
+            _stopTriggerId = name.StartsWith("Fire") ? "disable_traps_02" : name == "Gas_sound_01" ? "set_valve_01" : "WaterRemove_2612876931",
             _playOnSoundSystemInit = true, _playOnce = true });
 }
 void CheckUntouched(string label)
@@ -82,13 +90,22 @@ void CheckUntouched(string label)
 
 Fixture();
 Check(ModulePatch.Hooks.Count == 4, "four exact native hooks installed");
+foreach (var d in All<HandlerDamage>().Where(x => x.gameObject.name.StartsWith("DamageZone")))
+    Check(!NativeAllowed(d), "toxic pool damage prevented before drain animation");
 foreach (var d in All<HandlerDamage>()) Check(!NativeAllowed(d), "damage prevented before initial tick");
 foreach (var s in All<HandlerShoot>()) Check(!NativeAllowed(s), "shot and its effect prevented before initial tick");
 foreach (var s in All<HandlerPlaySoundSequenced>()) Check(!NativeAllowed(s), "continuous trap restart prevented");
 foreach (var e in All<HandlerEffect>()) Check(!NativeAllowed(e), "trap health effects prevented before initial tick");
 LabyrinthSpawnTraps.Tick();
-Check(Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Count == 10, "all ten entry trigger IDs disabled");
+Check(Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Count == 12, "all twelve entry trigger IDs disabled");
+Check(All<HandlerTriggerState>().Where(x => x._triggerId == "WaterRemove_2612876931").All(x => x.Calls == 1)
+    && Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Contains("toxicZoneEnter1_2612876931")
+    && Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Contains("toxicZoneEnter2_2612876931"),
+    "both toxic pool controls sharing the drain ID are applied");
 Check(All<HandlerDamage>().All(x => !x.DamageRunning && x.Finishes == 1), "existing damage coroutines stopped");
+var poolAnimator = All<HandlerAnimator>().Single(x => x.gameObject.name == "INTERACTIVE_Labyrinth_water_02");
+Check(poolAnimator._target.Values.TryGetValue("IsRemoved", out bool drained) && drained,
+    "toxic pool native drain animation requested");
 foreach (var a in All<HandlerAnimator>())
     Check(a._target.Calls == 1 && a._target.Values[a._animatorActions[0].BoolAction.Name] == a._animatorActions[0].BoolAction.Value,
         "native switch animation state applied");
@@ -135,6 +152,14 @@ foreach (var (label, mutate) in new (string, Action)[]
     ("foreign control ID", () => All<HandlerTriggerState>()[0]._controlledTriggerId[0] = "quest_progress"),
     ("control enables traps", () => All<HandlerTriggerState>()[0]._targetState = true),
     ("foreign animator target", () => All<HandlerAnimator>()[0]._target = new() { gameObject = Go("foreign") }),
+    ("pool damage configuration changed", () => All<HandlerDamage>()[7].ConfigurationId = "other_pool"),
+    ("pool exit changed", () => All<HandlerDamage>()[6]._triggerIdFinishDamage = "other_pool_exit"),
+    ("missing deep pool control", () => LocationScene.Entities.Remove(All<HandlerTriggerState>().Last())),
+    ("duplicate shallow pool control", () => Add(All<HandlerTriggerState>()[4])),
+    ("pool control targets unrelated zone", () => All<HandlerTriggerState>()[4]._controlledTriggerId[0] = "spikes_enter_zone_1203591730"),
+    ("pool drain target changed", () => All<HandlerAnimator>().Last()._target = new() { gameObject = Go("other_pool") }),
+    ("pool drain reverses", () => All<HandlerAnimator>().Last()._animatorActions[0].BoolAction.Value = false),
+    ("missing pool loop", () => LocationScene.Entities.Remove(All<HandlerPlaySoundSequenced>().Last())),
     ("extra animator action", () => All<HandlerAnimator>()[0]._animatorActions[0].IntAction.Name = "foreign"),
     ("missing loop", () => LocationScene.Entities.Remove(All<HandlerPlaySoundSequenced>()[0])),
     ("non-local emitter", () => Singleton<GameWorld>.Instance.TriggersEmitter = new TriggersEmitter()),
@@ -156,6 +181,19 @@ var loop0 = All<HandlerPlaySoundSequenced>()[0]; loop0._playTriggerId = "quest_e
 Check(NativeAllowed(loop0), "one-shot or puzzle sound is not suppressed");
 var effect0 = All<HandlerEffect>()[0]; effect0._triggerId = "unrelated_quest";
 Check(NativeAllowed(effect0), "unrelated health effects remain vanilla");
+foreach (var (name, start, finish, config) in new[] {
+    ("TriggerZone", "wire_enter_zone_511568402", "wire_exit_zone_511568402", "INTERACTIVE_Spikes_traps_00001"),
+    ("Spikes_damage_zone_fullmap", "spikes_enter_zone_1203591730", "spikes_exit_zone_1203591730", "INTERACTIVE_Spikes_00001"),
+    ("DamageZone2", "toxicZoneEnter2_other", "toxicZoneExit2_other", "INTERACTIVE_Labyrinth_water_01_deadly"),
+})
+    Check(NativeAllowed(new HandlerDamage { gameObject = Go(name), _triggerIdStartDamage = start,
+        _triggerIdFinishDamage = finish, ConfigurationId = config }), "unrelated spikes and water pools remain vanilla");
+foreach (var name in new[] { "DamageZone1", "DamageZone2" })
+    Check(NativeAllowed(new HandlerEffect { gameObject = Go(name), _triggerId = "toxicZoneEnter" + name.Last() + "_2612876931" }),
+        "pool has no native health-effect handler; unknown future effects remain vanilla");
+foreach (var name in new[] { "INTERACTIVE_Labyrinth_water_02", "unrelated_pool" })
+    Check(NativeAllowed(new HandlerPlaySoundSequenced { gameObject = Go(name), _playTriggerId = "WaterRemove_2612876931",
+        _stopTriggerId = "", _playOnce = true }), "pool drain one-shots remain vanilla and are not emitted by setup");
 Check(LabyrinthSpawnTraps.AllowDamageStart(null) && LabyrinthSpawnTraps.AllowShoot(null)
     && LabyrinthSpawnTraps.AllowLoopStart(null) && LabyrinthSpawnTraps.AllowEffect(null), "missing handler fails open");
 
@@ -193,7 +231,7 @@ Fixture();
 var absent = All<HandlerAnimator>()[0]; LocationScene.Entities.Remove(absent);
 LabyrinthSpawnTraps.Tick(); CheckUntouched("not ready");
 Add(absent); Time.unscaledTime += 1; LabyrinthSpawnTraps.Tick();
-Check(Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Count == 10 && LocationScene.Reads == 2, "delayed registry readiness recovers");
+Check(Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Count == 12 && LocationScene.Reads == 2, "delayed registry readiness recovers");
 
 Settings.DisableLabyrinthSpawnTraps.Value = false;
 Time.unscaledTime++; LabyrinthSpawnTraps.Tick();
@@ -209,7 +247,7 @@ Check(All<HandlerDamage>().All(NativeAllowed), "enabling option also waits for n
 Singleton<GameWorld>.Instance = ArenaSession.World = new();
 Singleton<AbstractGame>.Instance = ArenaSession.Game = new();
 LabyrinthSpawnTraps.Tick();
-Check(Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Count == 10, "following raid reads enabled option");
+Check(Singleton<GameWorld>.Instance.TriggersEmitter.Ignored.Count == 12, "following raid reads enabled option");
 LabyrinthSpawnTraps.Shutdown();
 Check(ModulePatch.Hooks.Count == 0 && LabyrinthSpawnTraps.AllowDamageStart(All<HandlerDamage>()[0]), "shutdown removes guard ownership");
 Console.WriteLine($"ARENA_LABYRINTH_TRAP_CHECKS_PASSED ({count} assertions)");

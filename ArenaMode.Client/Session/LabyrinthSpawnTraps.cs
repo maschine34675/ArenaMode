@@ -12,7 +12,7 @@ using UnityEngine;
 namespace ArenaMode.Session;
 
 /// <summary>
-/// Applies the installed Labyrinth entrance switches' OFF states without
+/// Applies the installed Labyrinth entrance and toxic-pool switches' OFF states without
 /// emitting switch/quest/item-placement events. All changes belong to the
 /// confirmed raid's scene and emitter, never templates or global configuration.
 /// The option is latched per raid: re-arming a trap around a living player is
@@ -47,6 +47,11 @@ internal static class LabyrinthSpawnTraps
         new("Luquid_damage_zone_02", "Luquid_enter_zone_2773347541", "Luquid_exit_zone_2773347541", "INTERACTIVE_Lifting_grate_00001_deadly"),
         new("Steam_damage_zone_01", "steam_enter_zone_115583983", "steam_exit_zone_115583983", "INTERACTIVE_Valve_00001_soft"),
         new("Steam_damage_zone_02", "steam_enter_zone_3704346085", "steam_exit_zone_3704346085", "INTERACTIVE_Valve_00001_deadly"),
+        // The pool is a separate water puzzle, not a Luquid/Lifting_grate trap.
+        // Its shallow and deep volumes continue dealing damage until their own
+        // WaterRemove switch disables them, independently of the grate switch.
+        new("DamageZone1", "toxicZoneEnter1_2612876931", "toxicZoneExit1_2612876931", "INTERACTIVE_Labyrinth_water_01_soft"),
+        new("DamageZone2", "toxicZoneEnter2_2612876931", "toxicZoneExit2_2612876931", "INTERACTIVE_Labyrinth_water_01_deadly"),
     };
     private static readonly string[] ShootIds =
     {
@@ -137,7 +142,9 @@ internal static class LabyrinthSpawnTraps
            && handler._playOnSoundSystemInit && handler._playOnce
            && ((handler._stopTriggerId == "disable_traps_02"
                 && (handler.gameObject.name == "Fire_zone_01" || handler.gameObject.name == "Fire_zone_02"))
-               || (handler._stopTriggerId == "set_valve_01" && handler.gameObject.name == "Gas_sound_01"));
+               || (handler._stopTriggerId == "set_valve_01" && handler.gameObject.name == "Gas_sound_01")
+               || (handler._stopTriggerId == "WaterRemove_2612876931"
+                   && handler.gameObject.name == "INTERACTIVE_Labyrinth_water_02"));
 
     private static bool IsEffect(HandlerEffect handler)
         => InScene(handler)
@@ -190,7 +197,7 @@ internal static class LabyrinthSpawnTraps
                 loop.StopSound();
             }
             _applied = true;
-            Plugin.ModLogger?.LogInfo("Arena Labyrinth spawn traps disabled: 10 hazards (4 gun, 2 fire, 2 liquid, 2 steam), 3 animations, 4 audio loops; option latched for this raid.");
+            Plugin.ModLogger?.LogInfo("Arena Labyrinth spawn traps disabled: 12 hazards (4 gun, 2 fire, 2 liquid, 2 steam, 2 toxic pool), 4 animations, 5 audio loops; toxic pool drain requested; option latched for this raid.");
         }
         catch (Exception ex)
         {
@@ -218,40 +225,46 @@ internal static class LabyrinthSpawnTraps
         var damage = all.OfType<HandlerDamage>().Where(IsDamage).ToArray();
         var shoot = all.OfType<HandlerShoot>().Where(IsShoot).ToArray();
         var effects = all.OfType<HandlerEffect>().Where(IsEffect).ToArray();
-        if (damage.Length != 6 || damage.Select(x => x._triggerIdStartDamage).Distinct().Count() != 6
+        if (damage.Length != 8 || damage.Select(x => x._triggerIdStartDamage).Distinct().Count() != 8
             || shoot.Length != 4 || shoot.Select(x => x._triggerId).Distinct().Count() != 4
             || effects.Length != 6 || effects.Select(x => x._triggerId).Distinct().Count() != 6)
-            throw new InvalidOperationException("ten unique spawn hazards and six associated effect handlers were not found");
+            throw new InvalidOperationException("twelve unique trap/pool hazards and six associated effect handlers were not found");
 
         var controls = new[]
         {
             FindControl(all, "disable_traps_01", "INTERACTIVE_Toggle_Trap_Switch", ShootIds),
             FindControl(all, "disable_traps_02", "Interactive_button_12", DamageRules.Take(2).Select(x => x.Start).ToArray()),
             FindControl(all, "disable_traps_04", "INTERACTIVE_Toggle_Trap_Switch", DamageRules.Skip(2).Take(2).Select(x => x.Start).ToArray()),
-            FindControl(all, "set_valve_01", "Valve_PlaceHolder", DamageRules.Skip(4).Select(x => x.Start).ToArray()),
+            FindControl(all, "set_valve_01", "Valve_PlaceHolder", DamageRules.Skip(4).Take(2).Select(x => x.Start).ToArray()),
+            FindControl(all, "WaterRemove_2612876931", "DamageZone1", new[] { DamageRules[6].Start }),
+            FindControl(all, "WaterRemove_2612876931", "DamageZone2", new[] { DamageRules[7].Start }),
         };
         var animators = new[]
         {
             FindAnimator(all, "Fire_zone_Animaton", "Fire_zone_switch_01", "isGoing", false),
             FindAnimator(all, "Valve_Animation_Sync", "set_valve_01", "HasValve", true),
             FindAnimator(all, "INTERACTIVE_Lifting_grate_01", "LiftGate_843566315", "IsClosed", true),
+            FindAnimator(all, "INTERACTIVE_Labyrinth_water_02", "WaterRemove_2612876931", "IsRemoved", true),
         };
         var loops = all.OfType<HandlerPlaySoundSequenced>().Where(IsLoop).ToArray();
-        if (loops.Length != 4 || loops.Count(x => x.gameObject.name == "Fire_zone_01") != 1
+        if (loops.Length != 5 || loops.Count(x => x.gameObject.name == "Fire_zone_01") != 1
             || loops.Count(x => x.gameObject.name == "Fire_zone_02") != 1
-            || loops.Count(x => x.gameObject.name == "Gas_sound_01") != 2)
-            throw new InvalidOperationException("four known continuous trap sounds were not found");
+            || loops.Count(x => x.gameObject.name == "Gas_sound_01") != 2
+            || loops.Count(x => x.gameObject.name == "INTERACTIVE_Labyrinth_water_02") != 1)
+            throw new InvalidOperationException("five known continuous trap/pool sounds were not found");
         return new Plan { Controls = controls, Damage = damage, Animators = animators, Loops = loops };
     }
 
     private static HandlerTriggerState FindControl(MonoBehaviour[] all, string id, string name, string[] targets)
     {
-        var matches = all.OfType<HandlerTriggerState>().Where(x => x._triggerId == id).ToArray();
-        if (matches.Length != 1 || matches[0].gameObject.name != name || matches[0]._targetState
+        // WaterRemove intentionally drives two distinct per-zone controls with
+        // the same input ID. Both exact name/ID pairs must be unique.
+        var matches = all.OfType<HandlerTriggerState>().Where(x => x._triggerId == id && x.gameObject.name == name).ToArray();
+        if (matches.Length != 1 || matches[0]._targetState
             || matches[0]._controlledTriggerId == null
             || !matches[0]._controlledTriggerId.OrderBy(x => x, StringComparer.Ordinal)
                 .SequenceEqual(targets.OrderBy(x => x, StringComparer.Ordinal)))
-            throw new InvalidOperationException($"disable-state contract changed for {id}");
+            throw new InvalidOperationException($"disable-state contract changed for {name}/{id}");
         return matches[0];
     }
 

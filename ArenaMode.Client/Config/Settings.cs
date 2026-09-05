@@ -191,7 +191,7 @@ public static class Settings
 
         DisableLabyrinthSpawnTraps = config.Bind(
             "Arena", "DisableLabyrinthSpawnTraps", true,
-            "Disable Labyrinth's entrance gun, flame, liquid and steam traps during Arena only, " +
+            "Disable Labyrinth's entrance gun, flame, liquid and steam traps and drain the toxic pool during Arena only, " +
             "including their active damage, animations and continuous sounds. " +
             "Read once per raid; changes apply to the next Arena raid. Other puzzles/traps and ordinary raids are unchanged.");
 
