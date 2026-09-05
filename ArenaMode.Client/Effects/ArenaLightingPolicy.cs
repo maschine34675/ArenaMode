@@ -107,7 +107,8 @@ internal static class ArenaLightingPolicy
     internal static bool SupportsMap(string locationId)
         => string.Equals(locationId?.Trim(), "laboratory", StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId?.Trim(), "factory4_day", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(locationId?.Trim(), "factory4_night", StringComparison.OrdinalIgnoreCase);
+           || string.Equals(locationId?.Trim(), "factory4_night", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "labyrinth", StringComparison.OrdinalIgnoreCase);
 
     internal static ArenaLightingFrame Evaluate(in ArenaLightingContext context)
     {

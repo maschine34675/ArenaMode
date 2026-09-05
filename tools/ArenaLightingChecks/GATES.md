@@ -1,6 +1,6 @@
 # Gates: Arena lighting director
 
-Scope: Add a Labs-only, Arena-only runtime lighting layer for round countdown, time pressure, and Tactical results without editing map bundles or leaking into ordinary raids.
+Original scope: Add a Labs-only, Arena-only runtime lighting layer for round countdown, time pressure, and Tactical results without editing map bundles or leaking into ordinary raids. Later supported-map additions and their verification are recorded below.
 
 - [x] L0: this ledger states outcomes that can fail
   CHECK: node C:\Users\Administrator\.codex\skills\unlazy\scripts\gate-lint.mjs GATES.md
@@ -33,3 +33,15 @@ suppression on Labs and both Factory variants: 201 assertions pass. Adversarial
 review found no P0/P1/P2 issue. Strength and effect timing are shared with Labs;
 Factory day/night rendering, including night vision, remains part of the GPU
 handoff rather than an automated visual claim.
+
+## Labyrinth follow-up (2026-09-05)
+
+The same exact map allowlist also admits `labyrinth`, including the installed
+location's `Labyrinth` capitalization. The director, event handling, intensity,
+external-mod safeguards and owned-light teardown are unchanged. The harness
+now exercises ownership, mode transitions, external-mod suppression and
+stale-world cleanup on all four maps; unsupported `shoreline` and unknown
+Labyrinth variants remain rejected. The updated harness first failed against
+the old production allowlist at "Labyrinth is supported" and then passed all
+267 assertions with the added map. Rendered brightness and visibility through
+normal and spectator cameras remain part of the GPU handoff.

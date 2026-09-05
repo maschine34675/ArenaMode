@@ -1,11 +1,11 @@
 # Arena lighting checks
 
-Offline regression harness for the Labs and Factory Arena lighting director. It links the
-production phase policy, runtime director, announcer cue and tracer palette
-against small Unity, EFT and BepInEx stand-ins.
+Offline regression harness for the Labs, Factory and Labyrinth Arena lighting
+director. It links the production phase policy, runtime director, announcer cue
+and tracer palette against small Unity, EFT and BepInEx stand-ins.
 
-The checks cover exact Arena/GameWorld ownership, Labs/Factory day/night scope, effect
-precedence and fades, Tactical and Rounds timing, configured team colors,
+The checks cover exact Arena/GameWorld ownership, Labs, both Factory variants
+and Labyrinth, effect precedence and fades, Tactical and Rounds timing, configured team colors,
 external Blackout/Going Dark suppression, one-light ownership, live disable,
 stale-world teardown and duplicate-free cleanup. Source-contract assertions
 also reject scene scans, shared-material changes, `RenderSettings` changes and
@@ -24,5 +24,5 @@ dotnet run --project tools/ArenaLightingChecks/ArenaLightingChecks.csproj -c Rel
 ```
 
 This proves policy and lifecycle behavior, not rendered brightness. A GPU raid
-on Labs and Factory day/night is still required to tune intensity and verify the effect through the
-normal and spectator cameras.
+on Labs, Factory day/night and Labyrinth is still required to tune intensity and
+verify the effect through the normal and spectator cameras.

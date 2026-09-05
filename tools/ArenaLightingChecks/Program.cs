@@ -20,13 +20,13 @@ internal static class Program
         {
             CheckPolicySafetyAndMapScope();
             CheckPolicyPrecedenceAndFades();
-            foreach (string map in new[] { "laboratory", "factory4_day", "factory4_night" })
+            foreach (string map in new[] { "laboratory", "factory4_day", "factory4_night", "labyrinth" })
             {
                 CheckRuntimeOwnershipAndCleanup(map);
                 CheckModeTransitions(map);
                 CheckExternalLightingCompatibility(map);
+                CheckStaleWorldAndCreationFailure(map);
             }
-            CheckStaleWorldAndCreationFailure();
             CheckSourceContract();
             Console.WriteLine($"ARENA_LIGHTING_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -46,7 +46,10 @@ internal static class Program
         Assert(ArenaLightingPolicy.SupportsMap("factory4_day"), "Factory day is supported");
         Assert(ArenaLightingPolicy.SupportsMap(" FACTORY4_NIGHT "), "Factory night id is normalized");
         Assert(!ArenaLightingPolicy.SupportsMap("factory4"), "ambiguous Factory alias is rejected");
-        Assert(!ArenaLightingPolicy.SupportsMap("labyrinth"), "Labyrinth is deferred");
+        Assert(ArenaLightingPolicy.SupportsMap("labyrinth"), "Labyrinth is supported");
+        Assert(ArenaLightingPolicy.SupportsMap(" LABYRINTH "), "Labyrinth id is normalized");
+        Assert(!ArenaLightingPolicy.SupportsMap("labyrinth_extra"), "unknown Labyrinth variant is rejected");
+        Assert(!ArenaLightingPolicy.SupportsMap("shoreline"), "unsupported map is rejected");
         Assert(!ArenaLightingPolicy.SupportsMap(null), "missing map is rejected");
 
         ArenaLightingContext context = BaseContext();
@@ -255,7 +258,7 @@ internal static class Program
 
         ResetHarness();
         var unsupportedMatch = new ArenaMatch(new EndlessMode());
-        ArenaLightingDirector.Attach(unsupportedMatch, World("labyrinth"));
+        ArenaLightingDirector.Attach(unsupportedMatch, World("shoreline"));
         ArenaLightingDirector.Tick();
         Assert(PhaseLights().Count == 0, "unsupported Arena map creates no light");
         Assert(unsupportedMatch.AnnouncerSubscriberCount == 1,
@@ -287,22 +290,22 @@ internal static class Program
         Assert(PhaseLights().Count == 0, "Going Dark ownership suppresses Arena light");
     }
 
-    private static void CheckStaleWorldAndCreationFailure()
+    private static void CheckStaleWorldAndCreationFailure(string map)
     {
         ResetHarness();
-        var first = World("laboratory");
+        var first = World(map);
         var match = new ArenaMatch(new EndlessMode());
         ArenaLightingDirector.Attach(match, first);
         ArenaLightingDirector.Tick();
         GameObject lightObject = SinglePhaseLight();
-        Singleton<GameWorld>.Instance = new GameWorld { LocationId = "laboratory" };
+        Singleton<GameWorld>.Instance = new GameWorld { LocationId = map };
         ArenaLightingDirector.Tick();
         Assert(lightObject.Destroyed, "replacement GameWorld tears down stale light");
         Assert(match.AnnouncerSubscriberCount == 0, "replacement GameWorld tears down subscription");
 
         ResetHarness();
         Chainloader.ThrowOnRead = true;
-        ArenaLightingDirector.Attach(new ArenaMatch(new EndlessMode()), World("laboratory"));
+        ArenaLightingDirector.Attach(new ArenaMatch(new EndlessMode()), World(map));
         ArenaLightingDirector.Tick();
         ArenaLightingDirector.Tick();
         Assert(PhaseLights().Count == 1, "registry probe failure does not break additive light");
