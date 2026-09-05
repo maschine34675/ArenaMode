@@ -9,4 +9,7 @@ internal enum ArenaAnnouncerCue
     RoundStart,
     RoundWon,
     RoundLost,
+    LastManStanding,
+    MatchWon,
+    MatchLost,
 }

@@ -30,6 +30,7 @@ public sealed class ArenaMatch
 
     private float _lastLocalKillAt = float.NegativeInfinity;
     private int _multiKillChain;
+    private readonly ArenaCombatAwards _awards = new();
 
     /// <summary>Every captured kill (local and observed), after bookkeeping.</summary>
     public event Action<ArenaKill> OnKill;
@@ -61,8 +62,19 @@ public sealed class ArenaMatch
 
         Scoreboard.ReportKill(kill);
 
+        string existingLabel = null;
+        if (kill.KilledByLocal && !kill.LocalIsVictim && kill.AwardEligible)
+        {
+            _multiKillChain = kill.Time - _lastLocalKillAt <= ScoreRules.MultiKillWindowSeconds
+                ? _multiKillChain + 1 : 1;
+            _lastLocalKillAt = kill.Time;
+            existingLabel = ScoreRules.StreakLabel(Streak) ?? ScoreRules.MultiKillLabel(_multiKillChain);
+        }
+        var label = _awards.ReportKill(kill, existingLabel);
+        if (label != null)
+            RaiseSafe(() => OnCallout?.Invoke(label), nameof(OnCallout));
         if (kill.KilledByLocal && !kill.LocalIsVictim)
-            ReportLocalKillPresentation(kill);
+            RaiseSafe(() => OnScoreChanged?.Invoke(), nameof(OnScoreChanged));
 
         RaiseSafe(() => OnKill?.Invoke(kill), nameof(OnKill));
         RaiseSafe(() => Mode.OnKill(kill), "mode.OnKill");
@@ -71,6 +83,7 @@ public sealed class ArenaMatch
     public void ReportLocalDeath()
     {
         Scoreboard.ReportLocalDeath();
+        _awards.LocalDeath();
         _multiKillChain = 0;
         _lastLocalKillAt = float.NegativeInfinity;
         RaiseSafe(() => OnScoreChanged?.Invoke(), nameof(OnScoreChanged));
@@ -103,22 +116,22 @@ public sealed class ArenaMatch
         => RaiseSafe(Mode.OnMatchEnd, "mode.OnMatchEnd");
 
     internal void ReportAnnouncerCue(ArenaAnnouncerCue cue)
-        => RaiseSafe(() => OnAnnouncerCue?.Invoke(cue), nameof(OnAnnouncerCue));
-
-    private void ReportLocalKillPresentation(ArenaKill kill)
     {
-        _multiKillChain = kill.Time - _lastLocalKillAt <= ScoreRules.MultiKillWindowSeconds
-            ? _multiKillChain + 1
-            : 1;
-        _lastLocalKillAt = kill.Time;
+        if (cue == ArenaAnnouncerCue.RoundStart) BeginAwardRound();
+        RaiseSafe(() => OnAnnouncerCue?.Invoke(cue), nameof(OnAnnouncerCue));
+    }
 
-        // ONE callout per kill — a streak milestone outranks the multi-kill
-        // (both at once would cut each other's announcer stinger off).
-        var label = ScoreRules.StreakLabel(Streak) ?? ScoreRules.MultiKillLabel(_multiKillChain);
-        if (label != null)
-            RaiseSafe(() => OnCallout?.Invoke(label), nameof(OnCallout));
+    internal void BeginAwardRound(bool clearRevenge = true)
+    {
+        _awards.BeginRound(clearRevenge);
+        _multiKillChain = 0;
+        _lastLocalKillAt = float.NegativeInfinity;
+    }
 
-        RaiseSafe(() => OnScoreChanged?.Invoke(), nameof(OnScoreChanged));
+    internal void ReportTeamSurvivors(bool localAlive, int alliesAlive, int enemiesAlive)
+    {
+        if (_awards.LastManStanding(localAlive, alliesAlive, enemiesAlive))
+            ReportAnnouncerCue(ArenaAnnouncerCue.LastManStanding);
     }
 
     private static void RaiseSafe(Action action, string name)

@@ -329,6 +329,7 @@ public sealed class RoundsMode : IArenaMode
         Round.Deaths = 0;
         Round.Score = 0;
         Round.StartedAt = Time.time;
+        _match?.BeginAwardRound(clearRevenge: false); // scoring brackets retain live enemy bodies
 
         _killsAtRoundStart = _match?.Kills ?? 0;
         _deathsAtRoundStart = _match?.Deaths ?? 0;

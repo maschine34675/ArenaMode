@@ -37,10 +37,21 @@ namespace ArenaMode.Modes
 {
     internal sealed class ArenaMatch
     {
+        // Most recovery tests describe isolated events; timing tests explicitly
+        // disable this spacing and drive the production queue's clock themselves.
+        internal static bool SpaceEvents = true;
         public event Action<string> OnCallout;
         public event Action<ArenaAnnouncerCue> OnAnnouncerCue;
-        public void Callout(string label) => OnCallout?.Invoke(label);
-        public void Cue(ArenaAnnouncerCue cue) => OnAnnouncerCue?.Invoke(cue);
+        public void Callout(string label)
+        {
+            if (SpaceEvents) UnityEngine.Time.realtimeSinceStartup += 0.2f;
+            OnCallout?.Invoke(label);
+        }
+        public void Cue(ArenaAnnouncerCue cue)
+        {
+            if (SpaceEvents) UnityEngine.Time.realtimeSinceStartup += 0.2f;
+            OnAnnouncerCue?.Invoke(cue);
+        }
     }
 }
 

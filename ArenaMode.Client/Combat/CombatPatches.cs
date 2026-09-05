@@ -45,6 +45,7 @@ internal static class CombatPatches
     public static void ResetRaidState()
     {
         SeenVictims.Clear();
+        ArenaHitHistory.Reset();
         ArenaAdministrativeDeathGate.Reset();
     }
 
@@ -93,7 +94,8 @@ internal static class CombatPatches
             => AccessTools.Method(typeof(Player), nameof(Player.OnBeenKilledByAggressor));
 
         [PatchPostfix]
-        private static void Postfix(Player __instance, IPlayer aggressor, DamageInfo damageInfo, EBodyPart bodyPart)
+        private static void Postfix(Player __instance, IPlayer aggressor, DamageInfo damageInfo,
+            EBodyPart bodyPart, EDamageType lethalDamageType)
         {
             if (!ArenaSession.IsActive)
                 return;
@@ -125,6 +127,8 @@ internal static class CombatPatches
                 // exempt: each Player instance dies exactly once anyway.
                 var localIsVictim = localId != null && victimId == localId;
                 if (!localIsVictim && !SeenVictims.Add(victimId))
+                    return;
+                if (!ArenaHitHistory.TryReportDeath(__instance))
                     return;
 
                 string weaponName = null;
@@ -161,6 +165,12 @@ internal static class CombatPatches
                     KilledByLocal = localId != null && aggressor.ProfileId == localId,
                     LocalIsVictim = localIsVictim,
                     Headshot = bodyPart == EBodyPart.Head,
+                    KillerBodyId = ArenaHitHistory.BodyId(aggressor),
+                    VictimBodyId = ArenaHitHistory.BodyId(__instance),
+                    AwardEligible = IsAwardEligible(match, __instance, aggressor, lethalDamageType),
+                    SingleHitHeadshot = ArenaHitHistory.IsSingleHitHeadshot(
+                        __instance, aggressor, lethalDamageType == EDamageType.Bullet,
+                        bodyPart == EBodyPart.Head),
                     Distance = distance,
                     WeaponName = weaponName,
                     Time = Time.time,
@@ -172,6 +182,37 @@ internal static class CombatPatches
             {
                 Plugin.ModLogger.LogWarning($"Arena kill capture failed: {ex}");
             }
+        }
+    }
+
+    private static bool IsAwardEligible(ArenaMatch match, Player victim, IPlayer aggressor, EDamageType lethalType)
+    {
+        if (!ArenaCombatAwards.IsCombatDamage(lethalType.ToString()) || match.Mode.IsComplete) return false;
+        if (match.Mode is TacticalMode tactical) return tactical.IsOpposingAwardKill(victim, aggressor);
+        return !(match.Mode is RoundsMode rounds) || !rounds.InIntermission;
+    }
+
+    private static IDisposable BeginHitContext(Player victim, DamageInfo info, EBodyPart part, bool shot)
+    {
+        if (!ArenaSession.IsActive || ArenaMatchService.Current == null
+            || victim?.HealthController?.IsAlive != true) return null;
+        try
+        {
+            if (ArenaHitHistory.NeedsInitialState(victim))
+            {
+                bool pristine = false;
+                try { pristine = victim.HealthController.GetBodyPartHealth(EBodyPart.Common).AtMaximum; }
+                finally { ArenaHitHistory.InitializeBody(victim, pristine); }
+            }
+            object shooter = info.Player?.iPlayer;
+            return shot
+                ? ArenaHitHistory.BeginShot(victim, shooter, info.DamageType == EDamageType.Bullet, part == EBodyPart.Head)
+                : ArenaHitHistory.BeginDamage(victim, shooter, info.DamageType == EDamageType.Bullet, part == EBodyPart.Head);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena hit history unavailable: {ex.Message}");
+            return null;
         }
     }
 
@@ -196,13 +237,25 @@ internal static class CombatPatches
                 });
 
         [PatchPrefix]
-        private static bool Prefix(Player __instance, ref PlayerHitInfo __result)
+        private static bool Prefix(Player __instance, DamageInfo damageInfo, EBodyPart bodyPartType,
+            ref PlayerHitInfo __result, out IDisposable __state)
         {
+            __state = null;
             if (!ShouldBlockProtectedTeamMutation(__instance, "shot"))
+            {
+                __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: true);
                 return true;
+            }
 
             __result = null;
             return false;
+        }
+
+        [PatchFinalizer]
+        private static Exception Finalizer(Exception __exception, IDisposable __state)
+        {
+            __state?.Dispose();
+            return __exception;
         }
     }
 
@@ -226,8 +279,21 @@ internal static class CombatPatches
                 });
 
         [PatchPrefix]
-        private static bool Prefix(Player __instance)
-            => !ShouldBlockProtectedTeamMutation(__instance, "player-damage");
+        private static bool Prefix(Player __instance, DamageInfo damageInfo, EBodyPart bodyPartType,
+            out IDisposable __state)
+        {
+            __state = null;
+            if (ShouldBlockProtectedTeamMutation(__instance, "player-damage")) return false;
+            __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: false);
+            return true;
+        }
+
+        [PatchFinalizer]
+        private static Exception Finalizer(Exception __exception, IDisposable __state)
+        {
+            __state?.Dispose();
+            return __exception;
+        }
     }
 
     /// <summary>
@@ -265,10 +331,17 @@ internal static class CombatPatches
                 new[] { typeof(EBodyPart), typeof(float), typeof(DamageInfo) });
 
         [PatchPrefix]
-        private static bool Prefix(ActiveHealthController __instance, ref float __result)
+        private static bool Prefix(ActiveHealthController __instance, float damage, DamageInfo damageInfo,
+            ref float __result)
         {
             if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage"))
+            {
+                if (ArenaSession.IsActive && ArenaMatchService.Current != null
+                    && __instance?.IsAlive == true)
+                    ArenaHitHistory.ObserveHealthDamage(__instance.Player, damageInfo.Player?.iPlayer,
+                        damageInfo.DamageType == EDamageType.Bullet, damage);
                 return true;
+            }
 
             __result = 0f;
             return false;

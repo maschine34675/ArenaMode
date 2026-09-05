@@ -1355,11 +1355,12 @@ internal static class Program
             "internal static void Tick()",
             "private static void ClearPendingResult()");
         RequireAll(announcerTick,
-            "_pendingResultKey == null",
+            "_pendingResultKey != null",
             "_match == null",
             "Time.realtimeSinceStartup < _calloutBusyUntil",
             "ClearPendingResult()",
-            "Receive(key, out _)");
+            "StartCallout(key)",
+            "_pendingCalloutKey != null");
         Assert(!announcerTick.Contains(".Stop()", StringComparison.Ordinal)
                && !announcerTick.Contains("AudioSource", StringComparison.Ordinal)
                && !announcerTick.Contains("isPlaying", StringComparison.Ordinal),
@@ -1374,7 +1375,7 @@ internal static class Program
                < menuSelection.IndexOf("Audio.AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "selecting Arena starts announcer preload before map and raid loading");
         RequireAll(audioLicenses,
-            "VoiceBosch WARLORD round cues",
+            "VoiceBosch WARLORD cues",
             "Creative Commons Attribution-ShareAlike 4.0",
             "CC-BY-SA-4.0.txt",
             "sounds/round_start.ogg",

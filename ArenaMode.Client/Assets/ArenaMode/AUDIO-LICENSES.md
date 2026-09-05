@@ -39,7 +39,8 @@ the encoded signal. Attribution/source/license metadata was added to each OGG.
 | Godlike.wav | sounds/godlike.ogg | GODLIKE |
 
 The original pack does **not** contain MULTI KILL, MONSTER KILL or UNSTOPPABLE.
-Those three callouts still appear in the HUD but have no bundled sound. Other
+MULTI KILL and MONSTER KILL still have no bundled sound; UNSTOPPABLE now uses
+the separately licensed WARLORD recording below. Other
 recordings in the original pack are not included because the current mod does
 not emit those labels. Scoring, streak thresholds and callout names are unchanged.
 
@@ -54,9 +55,9 @@ Original WAV SHA-256 checksums, for identifying the conversion inputs:
 | Dominating.wav | 3B07A0FC72000E5357218970CED7E4BBB71EB2353C0E8D4371E341CB37B73D43 |
 | Godlike.wav | FC6CA171E20BF84DEE0DE82A7BDA1F91C8F1005F7DB12C3D9D84ACB232751B09 |
 
-## VoiceBosch WARLORD round cues
+## VoiceBosch WARLORD cues
 
-The three Tactical round recordings named below are from **WARLORD - Video
+The ten recordings named below are from **WARLORD - Video
 Game Announcer**:
 
 - Creator, voice recording and production: **VoiceBosch**.
@@ -68,7 +69,7 @@ Game Announcer**:
 - Full license text: [CC-BY-SA-4.0.txt](CC-BY-SA-4.0.txt).
 - Source/license checked: 2026-09-03.
 
-These three audio assets and the converted OGG files remain under CC BY-SA
+These ten audio assets and the converted OGG files remain under CC BY-SA
 4.0 independently of the mod's code and the separately licensed TripleSnail
 recordings. Keep this attribution and license with redistributed copies. No
 endorsement by VoiceBosch is implied.
@@ -88,6 +89,21 @@ under CC BY-SA 4.0.
 | 01._start.wav | sounds/round_start.ogg | A round becomes live |
 | 19._round_winner.wav | sounds/round_won.ogg | The player's side wins a round |
 | 20._mission_failed.wav | sounds/round_lost.ogg | The player's side loses a round |
+| 08._first_blood.wav | sounds/first_blood.ogg | Local player earns the first eligible kill |
+| 09._headshot.wav | sounds/headshot.ogg | Local direct one-contact headshot kill |
+| 06._unstoppable.wav | sounds/unstoppable.ogg | Existing 20-kill streak milestone |
+| 15._last_man_standing.wav | sounds/last_man_standing.ogg | Local PMC is the last living 5v5 teammate |
+| 22._mission_accomplished.wav | sounds/match_won.ogg | Protected 5v5 match victory |
+| 29._game_over.wav | sounds/match_lost.ogg | Protected 5v5 match defeat |
+| 25._payback.wav | sounds/payback.ogg | Kill the same enemy body responsible for the previous death |
+
+The seven additions from 2026-09-05 use the same format/quality but a -2 dBTP
+encoder target. Final decoded peaks were measured below -1.5 dBTP. The exact
+source/output SHA-256 hashes, encoder version, durations and measured levels
+are in [WARLORD-ADDITIONS.json](WARLORD-ADDITIONS.json). Reproduce with
+`tools/Convert-WarlordAdditions.ps1` from the repository. No trimming, pitch
+shifting or splicing; attribution/license/conversion metadata is embedded.
+The three original round cues were not re-encoded.
 
 Original WAV SHA-256 checksums, for identifying the conversion inputs:
 

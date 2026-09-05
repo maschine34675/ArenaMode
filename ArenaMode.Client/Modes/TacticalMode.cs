@@ -176,6 +176,36 @@ public sealed class TacticalMode : IArenaMode
 
     public bool IsTeamArena => _teamArena;
 
+    // Awards use current physical bodies, never historical tracer/profile aliases.
+    internal bool IsOpposingAwardKill(Player victim, IPlayer attacker)
+    {
+        if (_phase != Phase.Live || victim == null || attacker == null) return false;
+        if (!_teamArena)
+        {
+            var local = Comfort.Common.Singleton<GameWorld>.Instantiated
+                ? Comfort.Common.Singleton<GameWorld>.Instance.MainPlayer : null;
+            return (ReferenceEquals(attacker, local) && _squad.Any(bot => bot != null && ReferenceEquals(bot.GetPlayer, victim)))
+                || (ReferenceEquals(victim, local) && _squad.Any(bot => bot != null && ReferenceEquals(bot.GetPlayer, attacker)));
+        }
+        int victimSide = AwardTeam(victim);
+        int attackerSide = AwardTeam(attacker);
+        return victimSide != 0 && attackerSide != 0 && victimSide != attackerSide;
+    }
+
+    private int AwardTeam(IPlayer player)
+    {
+        if (player == null) return 0;
+        if (ReferenceEquals(player, _boundLocalPlayer)
+            && string.Equals(player.ProfileId, _boundLocalProfileId, StringComparison.Ordinal)) return 1;
+        for (int i = 0; i < _boundTeamFollowers.Length && i < _boundTeamFollowerProfileIds.Length; i++)
+            if (_boundTeamFollowers[i] != null && ReferenceEquals(player, _boundTeamFollowers[i].GetPlayer)
+                && string.Equals(player.ProfileId, _boundTeamFollowerProfileIds[i], StringComparison.Ordinal)) return 1;
+        for (int i = 0; i < _boundTeamEnemies.Length && i < _boundTeamEnemyProfileIds.Length; i++)
+            if (_boundTeamEnemies[i] != null && ReferenceEquals(player, _boundTeamEnemies[i].GetPlayer)
+                && string.Equals(player.ProfileId, _boundTeamEnemyProfileIds[i], StringComparison.Ordinal)) return 2;
+        return 0;
+    }
+
     internal bool IsTeamStaging => _teamArena && _phase == Phase.Staging;
 
     public float PhaseRemaining => Mathf.Max(0f, _phaseEndsAt - Time.time);
@@ -1092,6 +1122,7 @@ public sealed class TacticalMode : IArenaMode
             return;
         }
 
+        _match.ReportTeamSurvivors(localAlive, alliesAlive, enemiesAlive);
         if (_playerDown)
             TeamArenaPursuit.Tick(_teamRoundEpoch, true, followers, _boundTeamEnemies);
     }
@@ -1712,7 +1743,9 @@ public sealed class TacticalMode : IArenaMode
         if (won.HasValue)
         {
             _match.ReportAnnouncerCue(
-                won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);
+                decision.Continuation == TeamArenaRoundContinuation.EndMatchWon ? ArenaAnnouncerCue.MatchWon
+                : decision.Continuation == TeamArenaRoundContinuation.EndMatchLost ? ArenaAnnouncerCue.MatchLost
+                : won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);
         }
 
         string outcome = won == true ? "victory" : won == false ? "defeat" : "no contest";

@@ -42,9 +42,11 @@ Coverage includes:
   Callouts and immediately eligible cues request playback synchronously. The
   clip is reconstructed from the signal-bearing managed Arena PCM cache, and
   every event produces at most one native request.
+- Requested WARLORD award keys, priority/coalescing of rapid awards, bounded
+  four-second pending age, and match results superseding pending situation cues.
 - A Tactical result arriving while a successfully requested kill callout owns
   the single UI channel waits for that clip's actual duration plus a short gap.
-  The controlled per-frame tick only drains this one pending result; round start
+  The controlled per-frame tick drains a result or one pending award; round start
   remains immediate, and detach, shutdown or a new round cancels stale work with
   a diagnostic rather than leaking it into another round or match.
 - No Arena-owned `AudioSource`, BetterAudio prerequisite, output watchdog,

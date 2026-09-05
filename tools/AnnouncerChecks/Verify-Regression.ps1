@@ -105,11 +105,14 @@ if ([regex]::Matches($source, [regex]::Escape($commonUiFlag)).Count -ne 1) {
 Invoke-NegativeCase 'native-mixer-contract' ($source.Replace($commonUiFlag, 'commonUiSound: true,')) `
     'Native UI primary must request commonUiSound:false and preserve explicit volume.'
 
-$resultQueueGate = 'if (Time.realtimeSinceStartup < _calloutBusyUntil)'
-if ([regex]::Matches($source, [regex]::Escape($resultQueueGate)).Count -ne 1) {
+$resultQueueGatePattern = 'ClearPendingCallout\("round ended"\);\r?\n\s+if \(Time.realtimeSinceStartup < _calloutBusyUntil\)'
+$resultQueueMatches = [regex]::Matches($source, $resultQueueGatePattern)
+if ($resultQueueMatches.Count -ne 1) {
     throw 'Expected exactly one result-queue admission gate; refusing an ambiguous queue mutation.'
 }
-Invoke-NegativeCase 'result-queue-admission' ($source.Replace($resultQueueGate, 'if (false)')) `
+$resultQueueGate = $resultQueueMatches[0].Value
+Invoke-NegativeCase 'result-queue-admission' ($source.Replace($resultQueueGate,
+    $resultQueueGate.Replace('if (Time.realtimeSinceStartup < _calloutBusyUntil)', 'if (false)'))) `
     'A result cue arriving behind a kill callout must not replace it immediately.'
 
 $calloutDeadline = 'Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds'
@@ -120,7 +123,7 @@ Invoke-NegativeCase 'result-queue-duration' `
     ($source.Replace($calloutDeadline, 'Time.realtimeSinceStartup + ResultCueGapSeconds')) `
     'The result queue must preserve a short post-callout gap before replacing the shared source.'
 
-$resultQueueDrainPattern = 'if \(_pendingResultKey == null \|\| _match == null\r?\n\s+\|\| Time\.realtimeSinceStartup < _calloutBusyUntil\)'
+$resultQueueDrainPattern = 'if \(_match == null \|\| Time\.realtimeSinceStartup < _calloutBusyUntil\)'
 $resultQueueDrainMatches = [regex]::Matches($source, $resultQueueDrainPattern)
 if ($resultQueueDrainMatches.Count -ne 1) {
     throw 'Expected exactly one result-queue drain gate; refusing an ambiguous queue mutation.'
@@ -142,6 +145,9 @@ if ([regex]::Matches($source, [regex]::Escape($roundStartCancellation)).Count -n
 }
 Invoke-NegativeCase 'result-queue-round-start' ($source.Replace($roundStartCancellation, '')) `
     'A result canceled by round start cannot leak into the live round.'
+
+Invoke-NegativeCase 'award-queue-admission' ($source.Replace('SubmitCallout(key);', 'StartCallout(key);')) `
+    'Rapid awards cannot cut off the spoken First Blood phrase.'
 
 $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }

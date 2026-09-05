@@ -34,6 +34,13 @@ public sealed class ArenaKill
 
     public bool Headshot;
 
+    // Presentation metadata captured while the physical bodies still exist.
+    // Zero/false means unknown and never earns a special award.
+    internal long KillerBodyId;
+    internal long VictimBodyId;
+    internal bool AwardEligible;
+    internal bool SingleHitHeadshot;
+
     /// <summary>Time.time at capture.</summary>
     public float Time;
 }

@@ -169,6 +169,7 @@ internal static class ArenaLightingDirector
                 break;
 
             case ArenaAnnouncerCue.RoundWon:
+            case ArenaAnnouncerCue.MatchWon:
                 _outcome = ArenaLightingOutcome.Won;
                 _outcomeUntil = now + ArenaLightingPolicy.BoundOutcomeDuration(
                     Settings.ArenaLightingOutcomeSeconds?.Value
@@ -176,6 +177,7 @@ internal static class ArenaLightingDirector
                 break;
 
             case ArenaAnnouncerCue.RoundLost:
+            case ArenaAnnouncerCue.MatchLost:
                 _outcome = ArenaLightingOutcome.Lost;
                 _outcomeUntil = now + ArenaLightingPolicy.BoundOutcomeDuration(
                     Settings.ArenaLightingOutcomeSeconds?.Value

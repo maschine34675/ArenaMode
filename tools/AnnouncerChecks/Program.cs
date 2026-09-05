@@ -49,7 +49,10 @@ internal static class Program
             VerifyOutputDiagnostics();
             VerifyShutdownRace(pluginDir, context);
             VerifyRoundCues(pluginDir, context);
+            ArenaMatch.SpaceEvents = false;
             VerifyResultCueSerialization(pluginDir, context);
+            VerifyAwardQueue(pluginDir, context);
+            ArenaMatch.SpaceEvents = true;
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -700,6 +703,71 @@ internal static class Program
         Assert(sounds.PlayRequests.Count == requests + 1
             && sounds.PlayRequests[^1].Clip.Name == "round_lost",
             "A failed callout request cannot delay a valid result cue.");
+        AnnouncerService.Detach();
+    }
+
+    private static void VerifyAwardQueue(string pluginDir, QueuedContext context)
+    {
+        foreach (var key in new[] { "first_blood", "headshot", "unstoppable", "last_man_standing", "match_won", "match_lost", "payback" })
+            AddClip(pluginDir, key);
+        AnnouncerService.EnsureLoaded();
+        for (int i = 0; i < 10 && context.OutstandingAsyncVoids > 0; i++)
+        {
+            var request = UnityWebRequestMultimedia.Requests.Last(r => !r.Operation.isDone);
+            request.Content = AudioClip.CreateDecodedFixture(
+                Path.GetFileNameWithoutExtension(new Uri(request.Url).LocalPath), 88200, 2, 44100);
+            int count = UnityWebRequestMultimedia.Requests.Count;
+            request.Complete(UnityWebRequest.Result.Success);
+            context.PumpUntil(() => context.OutstandingAsyncVoids == 0 || UnityWebRequestMultimedia.Requests.Count != count);
+        }
+        Assert(context.OutstandingAsyncVoids == 0, "All seven requested award assets can load.");
+        var sounds = Singleton<GUISounds>.Instance;
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        Time.realtimeSinceStartup = 1000f;
+        int start = sounds.PlayRequests.Count;
+        match.Callout("FIRST BLOOD");
+        match.Callout("HEADSHOT");
+        match.Callout("PAYBACK");
+        match.Callout("UNSTOPPABLE");
+        Assert(sounds.PlayRequests.Count == start + 1,
+            "Rapid awards cannot cut off the spoken First Blood phrase.");
+        Time.realtimeSinceStartup += 2.11f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == start + 2 && sounds.PlayRequests[^1].Clip.Name == "payback",
+            "The bounded queue retains the highest-priority pending award.");
+        match.Cue(ArenaAnnouncerCue.LastManStanding);
+        match.Cue(ArenaAnnouncerCue.MatchWon);
+        Time.realtimeSinceStartup += 2.11f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == start + 3 && sounds.PlayRequests[^1].Clip.Name == "match_won",
+            "The actual match result supersedes a pending last-survivor cue.");
+        Time.realtimeSinceStartup += 5f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == start + 3, "No canceled situation cue leaks after the match result.");
+        match.Cue(ArenaAnnouncerCue.LastManStanding);
+        Assert(sounds.PlayRequests[^1].Clip.Name == "last_man_standing", "Last Man Standing maps to its own clip.");
+        match.Callout("HEADSHOT");
+        Time.realtimeSinceStartup += 5f;
+        int before = sounds.PlayRequests.Count;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == before, "A kill award delayed beyond four seconds is discarded.");
+        match.Callout("HEADSHOT");
+        Assert(sounds.PlayRequests[^1].Clip.Name == "headshot", "An eligible Headshot uses its own clip.");
+        match.Callout("UNSTOPPABLE");
+        AnnouncerService.Detach();
+        AnnouncerService.Attach(new ArenaMatch());
+        Time.realtimeSinceStartup += 3f;
+        before = sounds.PlayRequests.Count;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == before, "Pending kill awards cannot cross a match boundary.");
+        AnnouncerService.Attach(match);
+        match.Callout("UNSTOPPABLE");
+        Assert(sounds.PlayRequests[^1].Clip.Name == "unstoppable", "The existing 20-kill label now has audio.");
+        match.Cue(ArenaAnnouncerCue.MatchLost);
+        Time.realtimeSinceStartup += 2.11f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests[^1].Clip.Name == "match_lost", "A genuine match defeat maps to Game Over.");
         AnnouncerService.Detach();
     }
 

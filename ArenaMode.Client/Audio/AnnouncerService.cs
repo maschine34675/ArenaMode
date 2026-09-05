@@ -58,6 +58,9 @@ internal static class AnnouncerService
     private static string _lastOutputState;
     private static float _calloutBusyUntil;
     private static string _pendingResultKey;
+    private static string _pendingCalloutKey;
+    private static float _pendingCalloutExpiresAt;
+    private const float CalloutMaxWaitSeconds = 4f;
     private const float RecoveryIntervalSeconds = 10f;
     private const float LoadTimeoutSeconds = 10f;
     private const float ResultCueGapSeconds = 0.1f;
@@ -227,9 +230,58 @@ internal static class AnnouncerService
 
         _calloutsReceived++;
         var key = label.ToLowerInvariant().Replace(' ', '_');
+        SubmitCallout(key);
+    }
+
+    private static void SubmitCallout(string key)
+    {
+        if (!Settings.AnnouncerEnabled.Value || Settings.AnnouncerVolume.Value <= 0f)
+        {
+            Receive(key, out _);
+            return;
+        }
+        if (!Clips.TryGetValue(key, out var queuedClip) || !IsReady(queuedClip))
+        {
+            Receive(key, out _); // diagnose/recover now, never replay a late load
+            return;
+        }
+        if (_pendingResultKey != null)
+        {
+            Skip(key, "round_result_pending");
+            return;
+        }
+        if (Time.realtimeSinceStartup < _calloutBusyUntil)
+        {
+            // One pending phrase, never a backlog of every kill. Higher-value
+            // events replace lower ones; equal priority keeps the latest event.
+            if (_pendingCalloutKey == null || CalloutPriority(key) >= CalloutPriority(_pendingCalloutKey))
+            {
+                if (_pendingCalloutKey != null) Skip(_pendingCalloutKey, "superseded_callout");
+                _pendingCalloutKey = key;
+                _pendingCalloutExpiresAt = Time.realtimeSinceStartup + CalloutMaxWaitSeconds;
+            }
+            else Skip(key, "lower_priority_callout");
+            return;
+        }
+        ClearPendingCallout("newer callout admitted");
+        StartCallout(key);
+    }
+
+    private static void StartCallout(string key)
+    {
         if (Receive(key, out float clipLengthSeconds))
             _calloutBusyUntil = Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds;
     }
+
+    private static int CalloutPriority(string key) => key switch
+    {
+        "last_man_standing" => 100,
+        "first_blood" => 95,
+        "payback" => 90,
+        "godlike" or "unstoppable" or "dominating" or "rampage" or "killing_spree" => 80,
+        "monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 60,
+        _ => 50,
+    };
 
     private static void OnAnnouncerCue(ArenaAnnouncerCue cue)
     {
@@ -238,6 +290,9 @@ internal static class AnnouncerService
             ArenaAnnouncerCue.RoundStart => "round_start",
             ArenaAnnouncerCue.RoundWon => "round_won",
             ArenaAnnouncerCue.RoundLost => "round_lost",
+            ArenaAnnouncerCue.LastManStanding => "last_man_standing",
+            ArenaAnnouncerCue.MatchWon => "match_won",
+            ArenaAnnouncerCue.MatchLost => "match_lost",
             _ => null,
         };
 
@@ -245,15 +300,21 @@ internal static class AnnouncerService
             return;
 
         _cuesReceived++;
+        if (cue == ArenaAnnouncerCue.LastManStanding)
+        {
+            SubmitCallout(key);
+            return;
+        }
         if (cue == ArenaAnnouncerCue.RoundStart)
         {
             // A new live round owns the channel. This also prevents an unusually
             // long custom result queue from leaking into the next round.
             CancelPendingResult("new round started");
-            Receive(key, out _);
+            StartCallout(key);
             return;
         }
 
+        ClearPendingCallout("round ended");
         if (Time.realtimeSinceStartup < _calloutBusyUntil)
         {
             if (_pendingResultKey == null)
@@ -273,24 +334,35 @@ internal static class AnnouncerService
     }
 
     /// <summary>
-    /// Drains only a result cue that was deliberately serialized behind a kill
-    /// callout. It never observes, stops or reprioritizes EFT's shared source.
+    /// Drains bounded pending presentation after the actual spoken duration.
+    /// Results take precedence over a pending kill or last-survivor cue.
     /// Outside an attached Arena match this is an allocation-free no-op.
     /// </summary>
     internal static void Tick()
     {
-        if (_pendingResultKey == null || _match == null
-            || Time.realtimeSinceStartup < _calloutBusyUntil)
+        if (_match == null || Time.realtimeSinceStartup < _calloutBusyUntil)
             return;
 
-        string key = _pendingResultKey;
-        ClearPendingResult();
-        Plugin.ModLogger.LogInfo($"Arena announcer queued result released: '{key}'.");
-        Receive(key, out _);
+        if (_pendingResultKey != null)
+        {
+            string key = _pendingResultKey;
+            ClearPendingResult();
+            Plugin.ModLogger.LogInfo($"Arena announcer queued result released: '{key}'.");
+            StartCallout(key);
+        }
+        else if (_pendingCalloutKey != null)
+        {
+            string key = _pendingCalloutKey;
+            _pendingCalloutKey = null;
+            if (Time.realtimeSinceStartup > _pendingCalloutExpiresAt)
+                Skip(key, "stale_callout");
+            else StartCallout(key);
+        }
     }
 
     private static void CancelPendingResult(string reason)
     {
+        ClearPendingCallout(reason);
         string key = _pendingResultKey;
         ClearPendingResult();
         if (key != null)
@@ -305,6 +377,13 @@ internal static class AnnouncerService
     {
         _pendingResultKey = null;
         _calloutBusyUntil = 0f;
+    }
+
+    private static void ClearPendingCallout(string reason)
+    {
+        if (_pendingCalloutKey != null) Skip(_pendingCalloutKey, "queued_callout_canceled", reason);
+        _pendingCalloutKey = null;
+        _pendingCalloutExpiresAt = 0f;
     }
 
     private static bool Receive(string key, out float clipLengthSeconds)
@@ -539,7 +618,9 @@ internal static class AnnouncerService
         if (string.Equals(key, "round_start", StringComparison.OrdinalIgnoreCase))
             return 0;
         if (string.Equals(key, "round_won", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(key, "round_lost", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(key, "round_lost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(key, "match_won", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(key, "match_lost", StringComparison.OrdinalIgnoreCase))
             return 1;
         return 2;
     }
