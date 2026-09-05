@@ -20,8 +20,8 @@
   EXPECT: ARENA_TDM_EXISTING_MODES_VERIFIED
   CWD: ../..
   EVIDENCE: exit=0; shell=C:\WINDOWS\system32\cmd.exe; cwd=D:\SPT41\Development\ArenaMode; path=864caa03d59c/32 entries; EXPECT=matched; output-sha256=9af46cbe52bc38c1742e9b3bcf0decbd9e20bfeb9e787310f31983901cd14439; output-bytes=1280
-- [ ] G5: Client/server Release artifacts are deployed and hash-matched, documentation and completed changes are committed with a clean working tree.
-  EVIDENCE: pending
+- [x] G5: Client/server Release artifacts are deployed and hash-matched, documentation and completed changes are committed with a clean working tree.
+  EVIDENCE: Feature commit 036d47b includes implementation, tests and review documentation; git status was clean after commit and staged whitespace checks passed. Both Release builds exited 0, client last with Redeploy.Core Release. Built/live SHA256: client 9F9B89662D4E1174232A5C487AFFC39375607CFBFA17B4F714E8056F44FA5773; server A979C4497B1965634DBB7DDD3573C874C7AD7BD6688912C60E73E25E09E7AE8F; Redeploy.Core 3973761FDE09BBDBBD924AA893F3D351ECA50EFE14B93183A6E1C8CE947BAA8C. This evidence-only update is committed separately; final status/hash check follows that commit. GPU proof remains G6 handoff.
 - [ ] G6: GPU tests verify USEC and BEAR player sides, full population/refill, friendly bots, opposing combat, respawns, team score/tracers and ordinary/PFT raid isolation.
   EVIDENCE: unavailable on this server
 
