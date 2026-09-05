@@ -52,6 +52,7 @@ internal static class Program
             ArenaMatch.SpaceEvents = false;
             VerifyResultCueSerialization(pluginDir, context);
             VerifyAwardQueue(pluginDir, context);
+            VerifyIndependentVolume();
             ArenaMatch.SpaceEvents = true;
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
@@ -769,6 +770,149 @@ internal static class Program
         AnnouncerService.Tick();
         Assert(sounds.PlayRequests[^1].Clip.Name == "match_lost", "A genuine match defeat maps to Game Over.");
         AnnouncerService.Detach();
+    }
+
+    private static void VerifyIndependentVolume()
+    {
+        var previous = Singleton<GUISounds>.Instance;
+        float volume = Settings.AnnouncerVolume.Value;
+        var sounds = new GUISounds();
+        Singleton<GUISounds>.Instance = sounds;
+        Settings.AnnouncerUseUiVolume.Value = false;
+        Settings.AnnouncerVolume.Value = 0.42f;
+        AudioListener.volume = 0.8f;
+        AudioListener.pause = false;
+        sounds.MasterMixer.Parameters["UIVolume"] = -80;
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        Time.realtimeSinceStartup = 2000f;
+        try
+        {
+            match.Callout("FIRST BLOOD");
+            var source = sounds.gameObject.LastAudioSource;
+            Assert(source != null && source.PlayCalls == 1 && source.clip.Name == "first_blood"
+                && source.outputAudioMixerGroup.name == "Master"
+                && ReferenceEquals(source.outputAudioMixerGroup.audioMixer, sounds.MasterMixer),
+                "Independent output uses an owned source on the native host's exact Master branch.");
+            Assert(source.volume == 0.42f && source.spatialBlend == 0 && !source.spatialize
+                && !source.ignoreListenerPause && !source.ignoreListenerVolume && source.priority == 0,
+                "Independent output honors its volume, remains 2D and cannot bypass listener mute/pause.");
+            Assert(sounds.PlayRequests.Count == 0 && sounds.SingleSource.StopCalls == 0
+                && sounds.SingleSource.priority == 128,
+                "Independent playback never borrows or changes the shared GUI source.");
+            sounds.MasterMixer.Parameters["UIVolume"] = 0;
+            AnnouncerService.Tick();
+            Assert(source.volume == 0.42f && source.outputAudioMixerGroup.name == "Master",
+                "Changing Interface volume cannot change the independent source gain or route.");
+            Settings.AnnouncerVolume.Value = 0.23f;
+            AnnouncerService.Tick();
+            Assert(source.volume == 0.23f, "Announcer volume updates even during a spoken phrase.");
+            int ownStops = source.StopCalls;
+            sounds.PlaySound(new AudioClip(), true, false, 0.1f);
+            Assert(source.StopCalls == ownStops && source.isPlaying,
+                "An ordinary UI sound cannot cut off the independent announcer source.");
+            AudioListener.volume = 0;
+            AudioListener.pause = true;
+            sounds.MasterMixer.Parameters["MasterVolume"] = -80;
+            AnnouncerService.Tick();
+            Assert(AudioListener.volume == 0 && AudioListener.pause
+                && sounds.MasterMixer.Parameters["MasterVolume"] == -80
+                && sounds.MasterMixer.Parameters["UIVolume"] == 0,
+                "Independent output preserves master mute, listener mute/pause and all mixer parameters.");
+            AudioListener.volume = 0.8f;
+            AudioListener.pause = false;
+            sounds.MasterMixer.Parameters["MasterVolume"] = -2;
+            var oldClip = source.clip;
+            int loads = UnityWebRequestMultimedia.Requests.Count;
+            AudioSettings.SimulateReset();
+            Time.realtimeSinceStartup += 3;
+            match.Callout("FIRST BLOOD");
+            Assert(source.PlayCalls == 2 && source.clip.samples > 0 && source.clip.channels == 2
+                && source.clip.Data.Any(sample => sample != 0) && !ReferenceEquals(source.clip, oldClip)
+                && UnityWebRequestMultimedia.Requests.Count == loads,
+                "Independent routing preserves managed-PCM recovery after the native audio reset.");
+            UnityEngine.Object.Destroy(source);
+            Time.realtimeSinceStartup += 3;
+            match.Callout("HEADSHOT");
+            var replacement = sounds.gameObject.LastAudioSource;
+            Assert(replacement != null && !ReferenceEquals(replacement, source) && replacement.PlayCalls == 1,
+                "Destroyed Arena source is recreated for the next cue without replaying the old cue.");
+            var nextHost = new GUISounds();
+            Singleton<GUISounds>.Instance = nextHost;
+            AnnouncerService.Tick();
+            Assert(replacement == null, "A replaced native host retires only the old owned source.");
+            Time.realtimeSinceStartup += 3;
+            match.Callout("PAYBACK");
+            var next = nextHost.gameObject.LastAudioSource;
+            Assert(next != null && next.PlayCalls == 1 && nextHost.PlayRequests.Count == 0,
+                "The next cue binds to the replacement native host without a GUI fallback.");
+            var clip = next.clip;
+            var newMixer = new UnityEngine.Audio.AudioMixer();
+            nextHost.MasterMixer = newMixer;
+            AnnouncerService.Tick();
+            Assert(next == null, "Mixer replacement cannot retain an old owned route.");
+            foreach (var invalid in new[]
+            {
+                new[] { new UnityEngine.Audio.AudioMixerGroup { name = "MasterFX", audioMixer = newMixer } },
+                new[] { new UnityEngine.Audio.AudioMixerGroup { name = "UI", audioMixer = newMixer } },
+                new[] { new UnityEngine.Audio.AudioMixerGroup { name = "Master", audioMixer = new UnityEngine.Audio.AudioMixer() } },
+                new[] { new UnityEngine.Audio.AudioMixerGroup { name = "Master", audioMixer = newMixer },
+                    new UnityEngine.Audio.AudioMixerGroup { name = "Master", audioMixer = newMixer } }
+            })
+            {
+                newMixer.MatchingOverride = invalid;
+                Assert(!ArenaAnnouncerOutput.TryPlay(clip, 0.2f, out _) && nextHost.PlayRequests.Count == 0,
+                    "Missing, substring-only, foreign or ambiguous Master groups fail soft without fallback.");
+            }
+            newMixer.MatchingOverride = null;
+            Assert(ArenaAnnouncerOutput.TryPlay(clip, 0.2f, out _), "A restored exact Master group accepts the next cue.");
+            next = nextHost.gameObject.LastAudioSource;
+            Settings.AnnouncerEnabled.Value = false;
+            AnnouncerService.Tick();
+            Assert(next == null && nextHost.SingleSource.StopCalls == 0,
+                "Disabling the announcer retires only its owned output.");
+            Settings.AnnouncerEnabled.Value = true;
+            Time.realtimeSinceStartup += 3;
+            match.Callout("HEADSHOT");
+            next = nextHost.gameObject.LastAudioSource;
+            AnnouncerService.Detach();
+            Assert(next == null && nextHost.SingleSource.StopCalls == 0,
+                "Detach destroys the owned source without stopping unrelated UI audio.");
+            AnnouncerService.Attach(match);
+            Time.realtimeSinceStartup += 3;
+            match.Callout("HEADSHOT");
+            next = nextHost.gameObject.LastAudioSource;
+            next.ThrowOnStop = next.ThrowOnDestroy = true;
+            AnnouncerService.Detach();
+            int oldRequests = next.PlayCalls;
+            Time.realtimeSinceStartup += 3;
+            match.Callout("PAYBACK");
+            Assert(next.PlayCalls == oldRequests,
+                "Native Stop/Destroy failures cannot keep an ended match subscribed.");
+            next.ThrowOnStop = next.ThrowOnDestroy = false;
+            UnityEngine.Object.Destroy(next);
+            AnnouncerService.Attach(match);
+            match.Callout("HEADSHOT");
+            next = nextHost.gameObject.LastAudioSource;
+            match.Callout("PAYBACK");
+            Settings.AnnouncerEnabled.Value = false;
+            AnnouncerService.Tick();
+            Settings.AnnouncerEnabled.Value = true;
+            Time.realtimeSinceStartup += 3;
+            AnnouncerService.Tick();
+            Assert(next == null && nextHost.gameObject.LastAudioSource == null,
+                "Muting cancels a pending award rather than replaying it after re-enabling.");
+        }
+        finally
+        {
+            AnnouncerService.Detach();
+            Singleton<GUISounds>.Instance = previous;
+            Settings.AnnouncerUseUiVolume.Value = true;
+            Settings.AnnouncerEnabled.Value = true;
+            Settings.AnnouncerVolume.Value = volume;
+            AudioListener.volume = 0.8f;
+            AudioListener.pause = false;
+        }
     }
 
     private static void VerifyNativeUiOutputLifecycle()

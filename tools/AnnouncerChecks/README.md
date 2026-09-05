@@ -7,7 +7,7 @@ dotnet run --project tools/AnnouncerChecks -c Release
 pwsh -NoProfile -File tools/AnnouncerChecks/Verify-Regression.ps1
 ```
 
-The harness compiles the actual `AnnouncerService.cs`. Only its external game,
+The harness compiles the actual `AnnouncerService.cs` and `ArenaAnnouncerOutput.cs`. Only external game,
 Unity audio, transport, configuration and logging dependencies are stand-ins.
 It drives `EnsureLoaded`, `Attach`, `Detach` and match callout events; assertions
 observe native playback requests, transport requests, clips and logs rather than
@@ -37,21 +37,27 @@ Coverage includes:
   diagnostics when mixer, listener, voice or DSP-buffer state changes. The
   service observes `UIVolume` and never probes the nonexistent
   `InterfaceVolume` parameter or overrides mixer volume, listener mute or pause.
-- Direct requests through EFT's native
+- Explicit legacy requests through EFT's native
   `GUISounds.PlaySound(clip, single: true, commonUiSound: false, volume)` route.
   Callouts and immediately eligible cues request playback synchronously. The
   clip is reconstructed from the signal-bearing managed Arena PCM cache, and
   every event produces at most one native request.
 - Requested WARLORD award keys, priority/coalescing of rapid awards, bounded
   four-second pending age, and match results superseding pending situation cues.
-- A Tactical result arriving while a successfully requested kill callout owns
-  the single UI channel waits for that clip's actual duration plus a short gap.
+- A Tactical result arriving while a successfully requested kill callout plays
+  waits for that clip's actual duration plus a short gap on either selected route.
   The controlled per-frame tick drains a result or one pending award; round start
   remains immediate, and detach, shutdown or a new round cancels stale work with
   a diagnostic rather than leaking it into another round or match.
-- No Arena-owned `AudioSource`, BetterAudio prerequisite, output watchdog,
-  reflection, fallback, or shared-source priority lease. Detach and shutdown do
-  not stop or reprioritize the shared GUISounds source.
+- Default independent output: one owned 2D source on GUISounds.gameObject,
+  exact Master group and matching mixer, independent of UIVolume. Master/listener
+  volume and pause remain effective; shared GUI sources are never touched.
+- Mid-phrase volume changes, native audio reset, destroyed sources, replaced
+  hosts/mixers, missing/substring/foreign/ambiguous Master group rejection,
+  GUI-button sounds not interrupting Arena, and owned cleanup on disable/detach.
+- Native Stop/Destroy failures cannot retain a subscription to an ended match.
+- No BetterAudio prerequisite, output watchdog, reflection, automatic fallback
+  or shared-source priority lease. Only the explicit legacy switch uses UI.
 - Fail-soft handling when GUISounds is unavailable or rejects a request, without
   a second output path or an exception escaping the match event.
 
@@ -62,16 +68,18 @@ integration, mixer routing and audible output need a real client. The harness
 proves the reset-recovery, serialized request and ownership contracts, not that
 Unity's audio device made the request audible.
 
-`Verify-Regression.ps1` compiles controlled copies of the current service. It
+`Verify-Regression.ps1` compiles controlled copies of the current service/output. It
 keeps the loading flag set, accepts a zeroed runtime wrapper as valid, replaces
 the managed samples with silence during reconstruction, disables the shutdown
 load-epoch guard, mutates both native GUISounds routing flags, removes the real
 callout duration, bypasses result admission, prevents queue draining, and removes
-both lifecycle cancellation boundaries. Each mutation must fail at its claimed
-boundary. A
+both lifecycle cancellation boundaries. Independent-output mutants change the
+Master route, listener-pause policy, mixer/uniqueness validation and hot volume.
+Each mutation must fail at its claimed boundary. A
 source-contract check requires the managed PCM/rebuild guards and rejects a
-decoder-owned durable cache along with the old private-source, BetterAudio,
-reflection, priority-lease and output-watchdog machinery. No test replaces a
-production file; a hash check verifies the source stayed unchanged, and the
+decoder-owned durable cache along with BetterAudio, reflection, priority-lease
+and output-watchdog machinery. The owned Master source is deliberately confined
+to the small output adapter. No test replaces a
+production file; hash checks verify both sources stayed unchanged, and the
 unchanged service is tested again afterward. Temporary negative-test evidence
 is retained in the printed directory.

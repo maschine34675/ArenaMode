@@ -48,6 +48,7 @@ public static class Settings
     public static ConfigEntry<bool> ShowDamageNumbers { get; private set; }
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
+    public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
     public static ConfigEntry<bool> ArenaLightingEnabled { get; private set; }
     public static ConfigEntry<float> ArenaLightingStrength { get; private set; }
@@ -704,14 +705,20 @@ public static class Settings
             "Audio",
             "Announcer",
             true,
-            "Announcer stingers (multi-kills, streaks, Tactical round cues) — plays .ogg files from " +
+            "Announcer stingers (combat awards, streaks, Tactical round/match cues) — plays .ogg files from " +
             "BepInEx/plugins/ArenaMode/sounds/. Missing sounds are skipped and logged.");
 
         AnnouncerVolume = config.Bind(
             "Audio",
             "AnnouncerVolume",
             0.8f,
-            new ConfigDescription("Announcer volume.", new AcceptableValueRange<float>(0f, 1f)));
+            new ConfigDescription("Announcer volume, independent of Interface volume by default. " +
+                "Still respects the game's overall volume and mute.", new AcceptableValueRange<float>(0f, 1f)));
+
+        AnnouncerUseUiVolume = config.Bind(
+            "Audio", "AnnouncerUseUiVolume", false,
+            "Off: use the dedicated Arena output controlled by AnnouncerVolume and overall game volume. " +
+            "On: restore the legacy Interface-volume output for compatibility.");
 
         ArenaLightingEnabled = config.Bind(
             "Effects",

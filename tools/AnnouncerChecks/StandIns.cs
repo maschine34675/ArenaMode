@@ -30,6 +30,7 @@ namespace ArenaMode.Config
     {
         public static Entry<bool> AnnouncerEnabled { get; } = new() { Value = true };
         public static Entry<float> AnnouncerVolume { get; } = new() { Value = 0.37f };
+        public static Entry<bool> AnnouncerUseUiVolume { get; } = new() { Value = true };
     }
 }
 
@@ -78,9 +79,12 @@ namespace UnityEngine
     internal class Object
     {
         private bool _destroyed;
+        public bool ThrowOnDestroy { get; set; }
         public HideFlags hideFlags { get; set; }
         public static void Destroy(Object value)
         {
+            if (!ReferenceEquals(value, null) && value.ThrowOnDestroy)
+                throw new InvalidOperationException("injected native Destroy failure");
             if (!ReferenceEquals(value, null)) value._destroyed = true;
         }
         private static bool IsNull(Object value) => ReferenceEquals(value, null) || value._destroyed;
@@ -252,6 +256,10 @@ namespace UnityEngine
         public float volume { get; set; }
         public bool enabled { get; set; } = true;
         public bool mute { get; set; }
+        public bool ignoreListenerPause { get; set; }
+        public bool ignoreListenerVolume { get; set; }
+        public int PlayCalls { get; private set; }
+        public bool ThrowOnStop { get; set; }
         private bool _isPlaying;
         private bool _isVirtual;
         private bool _startPending;
@@ -264,11 +272,13 @@ namespace UnityEngine
         public void Stop()
         {
             StopCalls++;
+            if (ThrowOnStop) throw new InvalidOperationException("injected native Stop failure");
             _startPending = false;
             _isPlaying = false;
         }
         public void Play()
         {
+            PlayCalls++;
             if (ForceSilent)
             {
                 _startPending = false;
@@ -322,6 +332,7 @@ namespace UnityEngine.Audio
 {
     internal sealed class AudioMixer : UnityEngine.Object
     {
+        public AudioMixerGroup[] MatchingOverride;
         public Dictionary<string, float> Parameters { get; } = new(StringComparer.OrdinalIgnoreCase)
         {
             ["UIVolume"] = -4f,
@@ -329,10 +340,16 @@ namespace UnityEngine.Audio
         };
         public bool GetFloat(string name, out float value) => Parameters.TryGetValue(name, out value);
         public AudioMixerGroup[] FindMatchingGroups(string name)
-            => name == "UI" ? new[] { new AudioMixerGroup { name = "UI" } } : Array.Empty<AudioMixerGroup>();
+            => MatchingOverride ?? (name == "UI" || name == "Master"
+                ? new[] { new AudioMixerGroup { name = name, audioMixer = this } }
+                : Array.Empty<AudioMixerGroup>());
     }
 
-    internal sealed class AudioMixerGroup : UnityEngine.Object { public string name { get; set; } }
+    internal sealed class AudioMixerGroup : UnityEngine.Object
+    {
+        public string name { get; set; }
+        public AudioMixer audioMixer { get; set; }
+    }
 }
 
 internal sealed class BetterAudio

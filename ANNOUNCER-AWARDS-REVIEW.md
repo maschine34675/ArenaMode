@@ -86,3 +86,35 @@ independent adversarial reviews found and confirmed the fixes for retained
 environmental aggressors and initially wounded bodies; no P0-P2 issue remains
 in their reviewed event/lifecycle scope. Client Release build has only the four
 existing shared-model CS8632 warnings.
+
+## Independent volume follow-up
+
+`Audio / AnnouncerUseUiVolume=false` is the default. `AnnouncerVolume` controls
+one owned 2D source directly on the exact Master mixer root. Overall game
+volume and listener mute/pause remain effective. Set the switch true explicitly
+for the old UI output; there is no automatic fallback when Master resolution
+fails. Neither route changes global audio preferences, and the independent route
+never stops/borrows native button audio. The PCM cache/rebuild remains unchanged.
+
+Native evidence: `EFT.UI/GUISounds.cs:144-170,418-434` confirms no suitable
+independent PlaySound route; commonUiSound also overrides the requested volume.
+`EFT/ClientApplication.cs:68-70` locates GUISounds on the persistent application
+host. `BetterAudio.cs:931,1036-1038` uses the Master root;
+`EFT.Settings.Sound/SoundSettingsController.cs:102-115,137-143` independently
+sets MasterVolume and UIVolume. FindMatchingGroups uses substring matching, so
+the adapter additionally requires the exact name and owning mixer and rejects
+multiple candidates. It never calls ForcePlaySound/SetFloat or changes listeners.
+
+The adapter resets on host/mixer/source drift, mute/disable and detach, updates
+owned gain while a phrase plays, and never replays a failed request/watchdog.
+Cleanup errors are isolated so they cannot retain a match subscription or skip
+spectator/HUD updates. Root-Master rendering and real audibility remain GPU-only:
+test Interface=0 with Master>0, then Master=0, AnnouncerVolume=0, pause and
+round-2/respawn; verify normal button/raid audio is unchanged.
+
+Final output verification: 142 audio assertions and 17 controlled negative
+mutations passed; 135 unit tests and the affected 5v5/lifecycle/loadout/light/
+spawn/tracer harnesses passed. Independent audio review has no remaining P0-P2
+finding. Release binaries and all 20 audio/license/source-record files match
+the installed copies. Detailed hashes and GPU handoff are in
+`tools/AnnouncerChecks/GATES.md` (four local gates met, one GPU gate handed off).

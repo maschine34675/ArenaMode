@@ -3,16 +3,19 @@ $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $project = Join-Path $PSScriptRoot 'AnnouncerChecks.csproj'
 $sourcePath = Join-Path $repoRoot 'ArenaMode.Client\Audio\AnnouncerService.cs'
 $source = [System.IO.File]::ReadAllText($sourcePath)
+$outputSourcePath = Join-Path $repoRoot 'ArenaMode.Client\Audio\ArenaAnnouncerOutput.cs'
+$outputSource = [System.IO.File]::ReadAllText($outputSourcePath)
+$outputSourceHash = (Get-FileHash -LiteralPath $outputSourcePath -Algorithm SHA256).Hash
 $sourceHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ('ArenaAnnouncerMutation-' + [guid]::NewGuid())
 [System.IO.Directory]::CreateDirectory($scratch) | Out-Null
 
-function Invoke-NegativeCase([string]$name, [string]$candidate, [string]$expectedFailure) {
+function Invoke-NegativeCase([string]$name, [string]$candidate, [string]$expectedFailure, [string]$property = 'AnnouncerServiceSource') {
     $copyPath = Join-Path $scratch ($name + '.cs')
     [System.IO.File]::WriteAllText($copyPath, $candidate)
     $outputPath = Join-Path $scratch ($name + '-bin\')
     $intermediatePath = Join-Path $scratch ($name + '-obj\')
-    $output = & dotnet run --project $project -c Release "-p:AnnouncerServiceSource=$copyPath" "-p:OutputPath=$outputPath" "-p:IntermediateOutputPath=$intermediatePath" 2>&1
+    $output = & dotnet run --project $project -c Release "-p:${property}=$copyPath" "-p:OutputPath=$outputPath" "-p:IntermediateOutputPath=$intermediatePath" 2>&1
     $resultCode = $LASTEXITCODE
     $output | ForEach-Object { Write-Output $_ }
     if ($resultCode -eq 0 -or ($output -join "`n") -notmatch [regex]::Escape($expectedFailure)) {
@@ -149,8 +152,23 @@ Invoke-NegativeCase 'result-queue-round-start' ($source.Replace($roundStartCance
 Invoke-NegativeCase 'award-queue-admission' ($source.Replace('SubmitCallout(key);', 'StartCallout(key);')) `
     'Rapid awards cannot cut off the spoken First Blood phrase.'
 
+Invoke-NegativeCase 'independent-master-route' ($outputSource.Replace('FindMatchingGroups("Master")', 'FindMatchingGroups("UI")')) `
+    'Independent output uses an owned source on the native host''s exact Master branch.' 'AnnouncerOutputSource'
+Invoke-NegativeCase 'independent-listener-pause' ($outputSource.Replace('_source.ignoreListenerPause = false;', '_source.ignoreListenerPause = true;')) `
+    'Independent output honors its volume, remains 2D and cannot bypass listener mute/pause.' 'AnnouncerOutputSource'
+Invoke-NegativeCase 'independent-foreign-mixer' ($outputSource.Replace('!ReferenceEquals(candidate.audioMixer, host.MasterMixer) || master != null', 'master != null')) `
+    'Missing, substring-only, foreign or ambiguous Master groups fail soft without fallback.' 'AnnouncerOutputSource'
+Invoke-NegativeCase 'independent-ambiguous-master' ($outputSource.Replace(' || master != null', '')) `
+    'Missing, substring-only, foreign or ambiguous Master groups fail soft without fallback.' 'AnnouncerOutputSource'
+Invoke-NegativeCase 'independent-hot-volume' ($outputSource.Replace('_source.volume = Volume(volume); // F12 changes', '_source.volume = 0.42f; // F12 changes')) `
+    'Announcer volume updates even during a spoken phrase.' 'AnnouncerOutputSource'
+
+if ((Get-FileHash -LiteralPath $outputSourcePath -Algorithm SHA256).Hash -ne $outputSourceHash) {
+    throw 'Production output source changed during negative verification.'
+}
+
 $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its final positive check.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, reset-rebuild, managed-PCM, shutdown-epoch, native-route and result-queue timing/lifecycle mutants rejected; production source unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, PCM reset, native legacy route, independent Master route, listener, mixer validation, hot volume and cue queue mutants rejected; production sources unchanged; evidence: $scratch)"

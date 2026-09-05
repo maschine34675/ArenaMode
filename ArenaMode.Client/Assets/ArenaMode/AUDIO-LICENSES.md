@@ -42,7 +42,7 @@ The original pack does **not** contain MULTI KILL, MONSTER KILL or UNSTOPPABLE.
 MULTI KILL and MONSTER KILL still have no bundled sound; UNSTOPPABLE now uses
 the separately licensed WARLORD recording below. Other
 recordings in the original pack are not included because the current mod does
-not emit those labels. Scoring, streak thresholds and callout names are unchanged.
+not emit those labels. Existing scoring and streak thresholds are unchanged.
 
 Original WAV SHA-256 checksums, for identifying the conversion inputs:
 
@@ -122,17 +122,24 @@ not just the client DLL or the OGG files alone.
 
 Restart the game after installing or replacing audio. In the F12 configuration,
 `Audio / Announcer` enables playback and `Audio / AnnouncerVolume` controls its
-volume. Playback also respects Tarkov's Interface volume. Only arena matches
-subscribe to the callouts and Tactical round cues; normal raids do not use this
+volume independently of Tarkov's Interface slider by default. Overall game
+volume and listener mute/pause still apply. `Audio / AnnouncerUseUiVolume`
+defaults to false; set it to true only to restore the legacy Interface route
+for compatibility. The independent output never changes other game sounds or
+silently falls back to that route. Only arena matches
+subscribe to the callouts and Tactical cues; normal raids do not use this
 announcer. A Tactical cue plays when combat actually becomes live and when a
-round is decided. Technical no-contest exits are silent.
+round is decided. The final protected 5v5 result uses Mission Accomplished or
+Game Over instead of repeating an intermediate round result. Technical
+no-contest exits are silent.
 
 Clips begin loading asynchronously when Arena is selected in the native start
 screen, with round lifecycle cues first. A callout that still occurs before its
 clip has finished loading is skipped, without queueing a stale announcement.
 When a round ends immediately after a kill callout, its win/loss cue waits for
-the callout's actual duration plus a short gap so EFT's single UI audio channel
-does not cut the kill phrase off. Round-start cues remain immediate; if a custom
+the callout's actual duration plus a short gap so it does not cut the kill
+phrase off. Rapid awards retain only one pending phrase, selected by priority,
+with a four-second age limit. Round-start cues remain immediate; if a custom
 callout outlasts the complete round aftermath, the stale result is skipped and
 reported instead of leaking into the next round.
 Once loaded, clips remain available for subsequent arena matches in that
@@ -145,7 +152,8 @@ Client logs include match attachment, loading results, and a summary of received
 requested and skipped announcements. Each skip reason is logged once per clip and match.
 The first three playback requests, and later changes in output settings, include
 the Interface/master mixer levels and listener state. A logged playback request
-means that audio was submitted to the native UI sound system, not that it was
+names the selected route (`Arena.Master` by default; `GUISounds.SingleUI.Primary`
+for legacy compatibility). It means audio was submitted for playback, not that it was
 audible on the player's device. These diagnostics do not change mixer settings.
 
 The headless lifecycle regression is runnable from the repository root:

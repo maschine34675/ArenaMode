@@ -212,6 +212,7 @@ internal static class AnnouncerService
 
     public static void Detach()
     {
+        ArenaAnnouncerOutput.Reset();
         CancelPendingResult("match detached");
         if (_match != null)
         {
@@ -340,6 +341,13 @@ internal static class AnnouncerService
     /// </summary>
     internal static void Tick()
     {
+        ArenaAnnouncerOutput.Tick(_match != null && Settings.AnnouncerEnabled.Value
+            && !Settings.AnnouncerUseUiVolume.Value, Settings.AnnouncerVolume.Value);
+        if (_match != null && (!Settings.AnnouncerEnabled.Value || Settings.AnnouncerVolume.Value <= 0f))
+        {
+            CancelPendingResult("announcer muted");
+            return;
+        }
         if (_match == null || Time.realtimeSinceStartup < _calloutBusyUntil)
             return;
 
@@ -440,7 +448,8 @@ internal static class AnnouncerService
 
             _requested++;
             clipLengthSeconds = clip.length;
-            const string route = "GUISounds.SingleUI.Primary";
+            string route = Settings.AnnouncerUseUiVolume.Value
+                ? "GUISounds.SingleUI.Primary" : "Arena.Master";
             var outputState = $"volume={Number(volume)}, clipGeneration={cached.RuntimeGeneration}, "
                 + $"clipBeforePlay={clipBeforePlay}, clipAfterPlay={RuntimeClipState(clip)}, "
                 + $"clipFrames={clip.samples}, "
@@ -462,6 +471,9 @@ internal static class AnnouncerService
 
     private static bool TryStartNativeUi(AudioClip clip, float volume, out string problem)
     {
+        if (!Settings.AnnouncerUseUiVolume.Value)
+            return ArenaAnnouncerOutput.TryPlay(clip, volume, out problem);
+        ArenaAnnouncerOutput.Reset();
         problem = null;
         if (!Singleton<GUISounds>.Instantiated || Singleton<GUISounds>.Instance == null)
         {
