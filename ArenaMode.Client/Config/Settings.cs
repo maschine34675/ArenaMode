@@ -49,6 +49,7 @@ public static class Settings
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
+    public static ConfigEntry<bool> MuteLabyrinthAlarm { get; private set; }
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
     public static ConfigEntry<bool> ArenaLightingEnabled { get; private set; }
     public static ConfigEntry<float> ArenaLightingStrength { get; private set; }
@@ -719,6 +720,12 @@ public static class Settings
             "Audio", "AnnouncerUseUiVolume", false,
             "Off: use the dedicated Arena output controlled by AnnouncerVolume and overall game volume. " +
             "On: restore the legacy Interface-volume output for compatibility.");
+
+        MuteLabyrinthAlarm = config.Bind(
+            "Audio", "MuteLabyrinthAlarm", true,
+            "Silence the repeating center siren on Labyrinth during Arena only. " +
+            "Other sounds and map triggers are unchanged. Takes effect immediately; " +
+            "turning this off lets an active alarm resume at its next sound cycle (about 4 seconds).");
 
         ArenaLightingEnabled = config.Bind(
             "Effects",

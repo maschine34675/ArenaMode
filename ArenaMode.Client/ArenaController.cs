@@ -31,6 +31,7 @@ internal sealed class ArenaController : MonoBehaviour
         Modes.ArenaMatchService.Tick();
         Effects.ArenaLightingDirector.Tick();
         Audio.AnnouncerService.Tick();
+        Audio.LabyrinthAlarmPatches.Tick();
         Spectator.ArenaSpectatorService.Tick();
         Hud.ArenaHud.Tick();
     }

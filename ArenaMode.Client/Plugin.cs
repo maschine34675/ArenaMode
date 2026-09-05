@@ -53,6 +53,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
         Effects.ArenaTracerPatches.Enable();
+        Audio.LabyrinthAlarmPatches.Enable();
         Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.SprintAdsPatches.Enable();
@@ -81,6 +82,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMedicalPatches.Shutdown();
         Effects.ArenaLightingDirector.Shutdown();
         Audio.AnnouncerService.Shutdown();
+        Audio.LabyrinthAlarmPatches.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();
     }
 }
