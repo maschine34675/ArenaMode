@@ -357,6 +357,12 @@ internal static class CorpseCleanupService
 
                 try
                 {
+                    // ProcessActivity matches completion by event type + item,
+                    // not by event ID. Do not consume another operation's Begin
+                    // (HasForeignEvents deliberately ignores the same owner).
+                    if (controller.SelectEvents(item).Any())
+                        continue;
+
                     var result = EFT.InventoryLogic.ItemManipulator
                         .RemoveWithoutRestrictions(item, controller);
 
@@ -367,13 +373,27 @@ internal static class CorpseCleanupService
                     // hears about it. Discarding the result, which is what this
                     // did at first, detaches the gear and frees nothing at all.
                     if (result.Succeeded)
-                        result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);
+                    {
+                        // Native immediate operations notify Begin/Succeed AFTER
+                        // mutation. Pair both: Succeed alone logs a missing
+                        // inventory activity for every stripped item. Complete
+                        // even if a Begin observer throws after registration;
+                        // removal already happened, so Failed/rollback is wrong.
+                        try
+                        {
+                            result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Begin);
+                        }
+                        finally
+                        {
+                            result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);
+                        }
+                    }
                     else
                         Plugin.ModLogger.LogWarning($"Arena corpse strip: {item.TemplateId} stayed on: {result.Error}");
                 }
                 catch (Exception inner)
                 {
-                    Plugin.ModLogger.LogWarning($"Arena corpse strip: {item.TemplateId} stayed on: {inner.Message}");
+                    Plugin.ModLogger.LogWarning($"Arena corpse strip: {item.TemplateId} removal/notification failed: {inner.Message}");
                 }
             }
         }
