@@ -58,6 +58,7 @@ public static class Settings
     public static ConfigEntry<float> ArenaLightingOutcomeSeconds { get; private set; }
     public static ConfigEntry<bool> ArenaLightingRespectExternalMods { get; private set; }
     public static ConfigEntry<bool> TeamTracers { get; private set; }
+    public static ConfigEntry<bool> TeamLasers { get; private set; }
     public static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; private set; }
     public static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
@@ -793,17 +794,24 @@ public static class Settings
             "Give every Arena projectile a team-colored tracer, including ammunition " +
             "that has no tracer in ordinary raids.");
 
+        TeamLasers = config.Bind(
+            "Effects",
+            "TeamLasers",
+            true,
+            "Team Deathmatch: color visible weapon lasers using FriendlyTracerColor and OpponentTracerColor. " +
+            "Does not switch lasers on or change infrared visibility, flashlights or brightness. Ordinary raids stay unchanged.");
+
         FriendlyTracerColor = config.Bind(
             "Effects",
             "FriendlyTracerColor",
             ArenaTracerColor.Cyan,
-            "Tracer color for the local PMC and protected 5v5 teammates.");
+            "Tracer color for the local PMC and friendly teammates; also used by Team Deathmatch lasers when TeamLasers is enabled.");
 
         OpponentTracerColor = config.Bind(
             "Effects",
             "OpponentTracerColor",
             ArenaTracerColor.Red,
-            "Tracer color for Arena opponents.");
+            "Tracer color for Arena opponents; also used by Team Deathmatch lasers when TeamLasers is enabled.");
 
         RagdollImpulseScale = config.Bind(
             "Effects",

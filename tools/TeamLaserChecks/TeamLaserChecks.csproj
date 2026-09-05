@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LaserSource Condition="'$(LaserSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Effects\ArenaTeamLaserColors.cs</LaserSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Effects\ArenaTeamLaserPolicy.cs</PolicySource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(LaserSource)" Link="Production/ArenaTeamLaserColors.cs" />
+    <Compile Include="$(PolicySource)" Link="Production/ArenaTeamLaserPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Production/ArenaTracerColor.cs" />
+  </ItemGroup>
+</Project>

@@ -29,6 +29,7 @@ internal sealed class ArenaController : MonoBehaviour
         Combat.ArenaSkills.Tick();
         Combat.ArenaGiveUp.Tick();
         Modes.ArenaMatchService.Tick();
+        Effects.ArenaTeamLaserColors.Tick();
         Effects.ArenaLightingDirector.Tick();
         Audio.AnnouncerService.Tick();
         Audio.LabyrinthAlarmPatches.Tick();

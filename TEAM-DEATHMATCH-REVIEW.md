@@ -21,6 +21,25 @@ personal run; they do not impersonate a previous bot. Existing team-colored
 tracers classify admitted friendly/enemy identities and preserve the color of
 posthumous projectiles. Same-team kills do not earn points or announcements.
 
+Generated Team DM bots now receive fixed native faction armbands: **USEC blue,
+BEAR red**. Arena applies them after APBS inventory generation and before native
+profile bundle loading, with no APBS configuration changes. Human equipment and
+protected PFT kits are unchanged. Armbands use faction colors independently of
+the configurable friendly/opponent tracer palette.
+
+`Effects / TeamLasers` defaults to enabled for Team DM. Visible mounted weapon
+lasers and their dots use `FriendlyTracerColor` / `OpponentTracerColor`, including
+the current human body and admitted active bots. Infrared lasers, flashlight
+colors, activation and native intensity settings are unchanged. Unknown owners
+and shaders remain native; pooled state is restored. See `tools/TeamLaserChecks`.
+
+A successful **Give up** in Team DM adds one kill and the normal PMC base score
+(currently 200 points) to the opponent team. It awards no individual bot a kill,
+headshot, spree or announcer event. Normal local death/respawn accounting remains
+responsible for the player's death. Failed, duplicate or stale actions do not
+earn team points, and a stopped mode still permits the existing Give up escape
+action. Leaving the raid is not treated as Give up. See `tools/TeamGiveUpChecks`.
+
 Same-faction attributed bullets/explosions are blocked before health and armor
 mutations. Self-damage, environmental effects and unknown attribution retain
 their native behavior. Friendly grenade camera shake/contusion can remain:
@@ -62,7 +81,10 @@ Weak affiliation records preserve dead-body attribution without retaining
 corpses. No global faction/profile, cached difficulty or ammo template is changed.
 Both sides retain Arena's configured corpse-looting restriction.
 
-## Verification and remaining playtest
+## Initial Team DM verification
+
+The following results describe the original Team DM implementation. The later
+identification and Give up changes are verified separately below.
 
 The implementation has production-linked population/dispatch/score/award/tracer
 tests, modeled mode lifecycle scenarios, server clone and native picker tests,
@@ -114,3 +136,40 @@ There is no GPU on this host. **Restart both game and server**, then test:
 
 Actual navigation, combat and mod interactions remain unverified until that
 playtest. Offline passes are not a claim that a live Unity raid was run.
+
+## Identification and Give up verification, 2026-09-05
+
+The user confirmed the underlying Team DM works in game before these additions.
+Armbands, laser coloring and Give up team credit now have independent source and
+native-contract review plus fresh parent-run checks. Review found and corrected
+one regression: a failed Team DM must still allow the existing Give up action
+even when it cannot award team points. No unresolved P0-P2 findings remain.
+
+- All 187 server/profile/scoreboard tests passed, none skipped; 30 new armband
+  cases and four deliberately incorrect policy/session variants were checked.
+- Give up: 373 production-linked assertions and six rejected behavioral mutants,
+  including exact current-body affiliation for the laser service.
+- Lasers: 79 production-linked assertions and six rejected mutants; installed
+  native rendering fields and six visible/six IR material definitions verified.
+  Installed APBS and BrightLasers contracts were inspected without editing them.
+- Existing Team DM population/scoring (14,931), runtime (143), tracer (144),
+  PFT (231), team/SAIN (767), Solo Tactical (47), announcer (142), cleanup (44)
+  and native mode-selection (76) checks all passed again.
+
+Final server and client Release builds passed; the client was explicitly built
+last to retain Redeploy.Core Release. Server reported one MUD0002 warning in the
+unchanged config page; client reported four existing CS8632 warnings. Installed
+files match the built files by SHA256:
+
+| Artifact | SHA256 |
+|---|---|
+| Arena client | `67EADDCEDEFBBD7C15CACDEF1F84B04029BE38F0930037AEF04E192F878993A2` |
+| Arena server | `913BB606AD02A037CA70C1196881C050F55F08F3A6636B35C4C38D771CE8803A` |
+| Redeploy.Core | `3973761FDE09BBDBBD924AA893F3D351ECA50EFE14B93183A6E1C8CE947BAA8C` |
+
+Restart **both server and game** for the new patch and client service. GPU checks
+remain a handoff: inspect both factions' freshly spawned armbands with APBS,
+visible laser beam/dot colors with weapon swaps and respawns, unchanged IR and
+flashlight modes, and one opponent team kill/+200 points for each successful
+Give up. Then check ordinary raids and protected Tactical remain unchanged.
+No GPU raid was started on this host.

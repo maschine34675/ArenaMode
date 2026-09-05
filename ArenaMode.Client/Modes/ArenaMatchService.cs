@@ -148,6 +148,7 @@ internal static class ArenaMatchService
             Try(Hud.ArenaHud.Detach, "hud detach");
             Try(Audio.AnnouncerService.Detach, "announcer detach");
             Try(Effects.ArenaLightingDirector.Reset, "lighting detach");
+            Try(Effects.ArenaTeamLaserColors.Reset, "team laser detach");
             Effects.ArenaTracerTeams.Reset();
             Bots.TeamDeathmatchRelations.Reset();
             if (partialMatch != null)
@@ -164,6 +165,7 @@ internal static class ArenaMatchService
 
     private static void OnRaidEnded()
     {
+        Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
         Bots.TeamDeathmatchRelations.Reset();
@@ -197,6 +199,7 @@ internal static class ArenaMatchService
     {
         // This boundary also runs for an ordinary raid after a missed GameEnd.
         // Clear cosmetic state even when no match latch survived.
+        Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
         Bots.TeamDeathmatchRelations.Reset();
