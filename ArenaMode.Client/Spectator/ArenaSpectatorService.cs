@@ -156,11 +156,24 @@ internal static class ArenaSpectatorService
             if (!_ownsCamera || _currentTarget == null)
                 return null;
 
-            string side = _currentTarget.Side == ArenaSpectatorSide.Ally ? "ALLY" : "OPPONENT";
-            string name = string.IsNullOrEmpty(_currentTarget.DisplayName)
-                ? _currentTarget.ProfileId
-                : _currentTarget.DisplayName;
-            return $"SPECTATING {side}: {name}    LMB/RMB switch";
+            try
+            {
+                if (_renderFaulted || !HasExactCameraOwnership()
+                    || string.IsNullOrEmpty(_currentTarget.ProfileId)
+                    || !FrozenBodiesByProfileId.TryGetValue(_currentTarget.ProfileId, out Player frozenBody))
+                {
+                    return null;
+                }
+
+                return SpectatorHealthReadout.ReadStatus(
+                    ArenaSession.IsActive, PitFireTeamCompat.TeamArenaActive, _ownsCamera,
+                    _request, _currentTarget, frozenBody);
+            }
+            catch
+            {
+                // The camera/body may disappear between Tick and this GUI event.
+                return null;
+            }
         }
     }
 

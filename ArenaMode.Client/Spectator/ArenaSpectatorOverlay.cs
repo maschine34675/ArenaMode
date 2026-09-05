@@ -22,6 +22,7 @@ internal sealed class ArenaSpectatorOverlay : MonoBehaviour
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 15,
                 fontStyle = FontStyle.Bold,
+                richText = false,
                 normal = { textColor = Color.white }
             };
         }
@@ -29,7 +30,7 @@ internal sealed class ArenaSpectatorOverlay : MonoBehaviour
         GUI.depth = 75;
         float width = Mathf.Min(560f, Screen.width * 0.8f);
         GUI.Box(
-            new Rect((Screen.width - width) * 0.5f, Screen.height - 90f, width, 32f),
+            new Rect((Screen.width - width) * 0.5f, Screen.height - 112f, width, 54f),
             status,
             _style);
     }

@@ -617,7 +617,7 @@ public static class Settings
             "SpectatorAfterDeath",
             true,
             "Protected PitFireTeam 5v5: follow living teammates or opponents in third person " +
-            "after your PMC dies, until the round ends.");
+            "after your PMC dies, until the round ends. The observer banner shows the selected bot's current and maximum HP.");
 
         GunGameRedrawLadder = config.Bind(
             "Gun Game",

@@ -1,0 +1,81 @@
+param()
+$ErrorActionPreference = 'Stop'
+$project = Join-Path $PSScriptRoot 'SpectatorHealthChecks.csproj'
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+$source = Join-Path $repo 'ArenaMode.Client/Spectator/SpectatorHealthReadout.cs'
+$before = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+$scratch = Join-Path ([IO.Path]::GetTempPath()) ('arena-spectator-health-mutations-' + [Guid]::NewGuid().ToString('N'))
+[IO.Directory]::CreateDirectory($scratch) | Out-Null
+
+function Invoke-Checks([string[]] $properties) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & dotnet run --project $project --configuration Release @properties 2>&1 |
+            ForEach-Object { $_.ToString() } | Out-String -Width 10000
+        return @{ Output = $output; Code = $LASTEXITCODE }
+    }
+    finally { $ErrorActionPreference = $previous }
+}
+
+$baseline = Invoke-Checks @()
+if ($baseline.Code -ne 0 -or $baseline.Output -notmatch 'ARENA_SPECTATOR_HEALTH_CHECKS_PASSED') {
+    throw ('Spectator health baseline failed: ' + $baseline.Output)
+}
+
+$cases = @(
+    @{
+        Name = 'same-profile-replacement';
+        Find = '|| !ReferenceEquals(player, frozenBody)'; Replace = '|| false';
+        Failure = 'same profile on a different frozen body cannot authorize target HP'
+    },
+    @{
+        Name = 'ended-epoch';
+        Find = '&& request.ReadEpoch() == request.Epoch'; Replace = '&& true';
+        Failure = 'round epoch drift hides a live old-round body'
+    },
+    @{
+        Name = 'camera-release';
+        Find = '|| !ownsCamera'; Replace = '|| false';
+        Failure = 'stop or killcam ownership hides the prior readout'
+    },
+    @{
+        Name = 'wrong-body-part';
+        Find = 'health.GetBodyPartHealth(EBodyPart.Common)'; Replace = 'health.GetBodyPartHealth(EBodyPart.Head)';
+        Failure = 'native read must aggregate Common, not one body part'
+    },
+    @{
+        Name = 'nonfinite-health';
+        Find = 'float.IsNaN(total.Current) || float.IsInfinity(total.Current)'; Replace = 'false';
+        Failure = 'malformed native health must replace old HP with unavailable'
+    },
+    @{
+        Name = 'replaced-controller';
+        Find = '!ReferenceEquals(health, player.HealthController)'; Replace = 'false';
+        Failure = 'controller replacement during read cannot display prior controller HP'
+    }
+)
+
+foreach ($case in $cases) {
+    $text = [IO.File]::ReadAllText($source)
+    if (($text.Split(@($case.Find), [StringSplitOptions]::None).Length - 1) -ne 1) {
+        throw ('Mutation anchor must occur exactly once: ' + $case.Name)
+    }
+    $copy = Join-Path $scratch ($case.Name + '.cs')
+    [IO.File]::WriteAllText($copy, $text.Replace($case.Find, $case.Replace))
+    $result = Invoke-Checks @('-p:ReadoutSource=' + $copy)
+    if ($result.Code -eq 0 -or $result.Output -notmatch [regex]::Escape($case.Failure)) {
+        throw ('Mutation did not fail for its intended assertion: ' + $case.Name + [Environment]::NewLine + $result.Output)
+    }
+    Write-Output ('PASS mutation: ' + $case.Name)
+}
+
+if ($before -ne (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash) {
+    throw 'Production source changed during the regression runner.'
+}
+$final = Invoke-Checks @()
+if ($final.Code -ne 0 -or $final.Output -notmatch 'ARENA_SPECTATOR_HEALTH_CHECKS_PASSED') {
+    throw ('Unchanged production source failed after mutation controls: ' + $final.Output)
+}
+Write-Output $final.Output.Trim()
+Write-Output 'ARENA_SPECTATOR_HEALTH_REGRESSION_PASSED'
