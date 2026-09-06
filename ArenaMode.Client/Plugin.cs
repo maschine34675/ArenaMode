@@ -13,6 +13,7 @@ namespace ArenaMode;
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInDependency("com.SPT.core", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(PitFireTeamCompat.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("me.sol.sain", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -52,6 +53,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
+        Bots.ArenaSainPersonalities.Enable();
         Effects.ArenaTracerPatches.Enable();
         Effects.ArenaTeamLaserColors.Enable();
         Notifications.ArenaProgressNotifications.Enable();
@@ -81,6 +83,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Bots.ArenaSainPersonalities.Shutdown();
         Notifications.ArenaProgressNotifications.Shutdown();
         Hud.ArenaHud.Detach();
         Combat.ArenaMagazinePatches.Shutdown();

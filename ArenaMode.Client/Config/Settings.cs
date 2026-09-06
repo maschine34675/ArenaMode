@@ -64,6 +64,7 @@ public static class Settings
     public static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
     public static ConfigEntry<bool> HuntPlayer { get; private set; }
+    public static ConfigEntry<bool> ExcludePassiveSainPersonalities { get; private set; }
     public static ConfigEntry<bool> MaxSkills { get; private set; }
     public static ConfigEntry<int> LegInjurySlowdownReductionPercent { get; private set; }
     public static ConfigEntry<float> MedicalUseSpeed { get; private set; }
@@ -405,6 +406,14 @@ public static class Settings
             "Keep pointing every living bot at the player's position, so they " +
             "actively close in instead of patrolling until they happen to see you. " +
             "Team Deathmatch instead keeps both factions aware of live opponents.");
+
+        ExcludePassiveSainPersonalities = config.Bind(
+            "Bots",
+            "ExcludePassiveSainPersonalities",
+            true,
+            "Arena only: replace SAIN Rat, Timmy and Coward assignments with the current preset's Normal personality. " +
+            "Other personalities and SAIN preset files stay unchanged. Start a new raid when comparing this setting; " +
+            "existing bots are not reassigned. PFT keeps its own follower combat behavior.");
 
         CorpseLightsOff = config.Bind(
             "Performance",
