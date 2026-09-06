@@ -12,9 +12,10 @@ using UnityEngine.UI;
 int checks = 0;
 void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
 int Visible(RectTransform root) => root.Children.Count(v => v.gameObject != null && v.gameObject.activeSelf);
+int Drawn(RectTransform root) => root.Children.Count(v => v.gameObject != null && v.gameObject.activeInHierarchy && v.gameObject.GetComponent<Image>().HasGeometry);
 void Reset()
 {
-    Camera.Reset(); ArenaSession.IsActive = ArenaSession.Exact = true; ArenaSession.ActiveMode = "teamdeathmatch";
+    Canvas.Reset(); Camera.Reset(); Time.unscaledTime = 0; ArenaMode.Plugin.ModLogger.Info.Clear(); ArenaSession.IsActive = ArenaSession.Exact = true; ArenaSession.ActiveMode = "teamdeathmatch";
     Settings.HudEnabled.Value = Settings.ShowFriendlyMarkers.Value = true; PitFireTeamCompat.TeamArenaActive = true;
     Settings.FriendlyTracerColor.Value = ArenaMode.Effects.ArenaTracerColor.Cyan;
     Singleton<GameWorld>.Instance = new(); Singleton<AbstractGame>.Instance = new LocalGame();
@@ -41,7 +42,7 @@ Player TeamBot(string id, bool friendly = true)
 {
     var p = Player(id); ((TeamDeathmatchMode)ArenaMatchService.Current.Mode).Bodies.Add(p, friendly); return p;
 }
-void Render() => Camera.Cull(CameraManager.Instance.Camera);
+void Render() { Canvas.Rebuild(); Camera.Cull(CameraManager.Instance.Camera); }
 TacticalMode Tactical()
 {
     ArenaSession.ActiveMode = "tactical";
@@ -54,8 +55,10 @@ TacticalMode Tactical()
 Reset(); var localTdm = Player("local", true); var friend = TeamBot("friend"); TeamBot("enemy", false); Player("unowned");
 ((TeamDeathmatchMode)ArenaMatchService.Current.Mode).Bodies.Add(localTdm, true);
 var ui = Markers();
-Check(Camera.Subscribers == 1 && ui.root.Children.Count == 11 && Visible(ui.root) == 0, "eleven hidden reused markers and one exact camera callback are created");
+Check(ui.root.Children.Count == 11 && Visible(ui.root) == 0, "eleven hidden reused markers are created");
 Render();
+Check(Drawn(ui.root) > 0, "friendly geometry must be ready in the same canvas rebuild, before camera culling");
+Check(Canvas.Subscribers == 1 && Camera.Subscribers == 0, "one pre-rebuild canvas callback and no late camera activation are registered");
 Check(Visible(ui.root) == 1 && Physics.Rays == 1, "only the exact current friendly bot gets one LOS-tested marker");
 var first = (RectTransform)ui.root.Children[0];
 Check(first.anchoredPosition.Equals(new Vector2(0, 20)), "marker sits slightly above the head in overlay local coordinates");
@@ -66,7 +69,9 @@ Check(Physics.LastMask == 31 && Physics.LastTrigger == QueryTriggerInteraction.I
 Check(Physics.LastEnd.Equals(friend.PlayerBones.Head.Original.position), "LOS tests the actual head rather than an above-cover marker anchor");
 
 int allocations = GameObject.Created;
-for (int i = 0; i < 500; i++) { ui.markers.Tick(ArenaMatchService.Current); Render(); }
+bool allFramesDrawn = true;
+for (int i = 0; i < 500; i++) { ui.markers.Tick(ArenaMatchService.Current); Render(); allFramesDrawn &= Drawn(ui.root) == 1; }
+Check(allFramesDrawn, "consecutive UI rebuilds keep visible friendly geometry");
 Check(GameObject.Created == allocations && ui.root.Children.Count == 11, "hundreds of frames reuse the same bounded marker views");
 Physics.IsBlocked = () => true; Render();
 Check(Visible(ui.root) == 0, "newly occluded teammates hide immediately without a positive LOS cache");
@@ -79,8 +84,8 @@ Check(Visible(ui.root) == 0, "historical bodies removed from the exact roster ar
 var replacement = TeamBot("friend"); Render();
 Check(Visible(ui.root) == 1, "only the new exact body can be displayed under a reused profile ID");
 ui.markers.Dispose();
-Check(Camera.Subscribers == 0 && Visible(ui.root) == 0, "dispose unsubscribes the render callback and destroys all views");
-ui.markers.Dispose(); Check(Camera.Subscribers == 0, "disposal is idempotent");
+Check(Canvas.Subscribers == 0 && Visible(ui.root) == 0, "dispose unsubscribes the render callback and destroys all views");
+ui.markers.Dispose(); Check(Canvas.Subscribers == 0, "disposal is idempotent");
 
 foreach (string invalid in new[] { "normal", "wrongmode", "hudoff", "settingoff", "wrongraid", "wrongmatch", "noworld", "nogame", "nomode", "complete", "cameraoff", "nocamera", "behind", "offscreen", "far", "nan", "nohead", "projectionfailed" })
 {
@@ -115,9 +120,9 @@ Render(); ui.markers.Tick(null);
 Check(Visible(ui.root) == 0, "Update clears old display even if no game camera renders next");
 ui.markers.Tick(ArenaMatchService.Current); Render(); CameraManager.Instance.Camera.isActiveAndEnabled = false; Render();
 Check(Visible(ui.root) == 0, "camera disabling clears already displayed markers without waiting for another Update");
-ui.markers.Create(ui.root); Check(Camera.Subscribers == 1, "recreating the helper never duplicates render subscriptions"); ui.markers.Dispose();
+ui.markers.Create(ui.root); Check(Canvas.Subscribers == 1, "recreating the helper never duplicates render subscriptions"); ui.markers.Dispose();
 Reset(); TeamBot("friend"); ui = Markers(); ui.root.Destroyed = true; Render();
-Check(Camera.Subscribers == 0, "a destroyed HUD root removes its own camera callback even without normal teardown");
+Check(Canvas.Subscribers == 0, "a destroyed HUD root removes its own canvas callback even without normal teardown");
 
 Reset(); for (int i = 0; i < 24; i++) TeamBot("friendly" + i); ui = Markers(); Render();
 Check(Visible(ui.root) == 11 && Physics.Rays == 11, "visible views and raycasts are capped even for an oversized collaborator roster");
@@ -173,4 +178,46 @@ Check(Visible(ui.root) == 0, "Tactical round transition immediately removes the 
 Check(!ArenaFriendlyMarkerPolicy.Projectable(new Vector3(.5f, .5f, 1), .64f), "too-close camera target does not fill the sight picture");
 Check(!ArenaFriendlyMarkerPolicy.Projectable(new Vector3(.02f, .5f, 1), 10), "screen edge has padding instead of offscreen arrows");
 Check(!ArenaFriendlyMarkerPolicy.Projectable(new Vector3(.5f, .5f, float.PositiveInfinity), 10), "non-finite projection is never displayed");
+
+// Positive control for the reported bug: activeSelf alone is not rendering.
+// Reproduce the old ordering with an independent late-activated UI Image.
+Reset();
+var late = new GameObject("late marker", typeof(RectTransform)); var lateImage = late.AddComponent<Image>();
+Camera.onPreCull += _ => late.SetActive(true);
+for (int i = 0; i < 3; i++)
+{
+    late.SetActive(false); Canvas.Rebuild(); Camera.Cull(CameraManager.Instance.Camera);
+    Check(late.activeSelf && !lateImage.HasGeometry, "old pre-cull activation reproduces active-but-empty UI geometry");
+}
+Reset(); TeamBot("friend"); ui = Markers(); Canvas.Rebuild();
+Check(Drawn(ui.root) == 1, "canvas path draws without any camera cull callbacks");
+ui.markers.Dispose();
+
+Reset(); friend = TeamBot("virtual head"); ui = Markers();
+var headPose = friend.PlayerBones.Head;
+headPose.Original.position = new Vector3(8, 8, -100);
+headPose.UseImitation = true; headPose.Imitator = () => new Vector3(.4f, .6f, 10);
+Render();
+Check(Drawn(ui.root) == 1 && Physics.LastEnd.Equals(headPose.Imitator()), "virtualized head pose must override the stale Original transform");
+headPose.AccumulatePositionAndRotation = true; headPose.AccumulatedPosition = new Vector3(.6f, .4f, 10);
+Render();
+Check(Drawn(ui.root) == 1 && Physics.LastEnd.Equals(headPose.AccumulatedPosition), "accumulated head pose takes precedence over imitation");
+headPose.Original = null; Render();
+Check(Drawn(ui.root) == 1, "valid virtualized pose does not require the unused Original transform");
+headPose.UseImitation = headPose.AccumulatePositionAndRotation = false;
+TeamBot("another friend"); Render();
+Check(Drawn(ui.root) == 1, "missing physical head does not hide other valid teammates");
+ui.markers.Dispose();
+
+// A watchdog outside rendering reports total render failure, with a hard cap.
+Reset(); TeamBot("friend"); ui = Markers();
+Time.unscaledTime = 5; ui.markers.Tick(ArenaMatchService.Current);
+Check(ArenaMode.Plugin.ModLogger.Info.Count == 1 && ArenaMode.Plugin.ModLogger.Info[0].Contains("canvasPasses=0"), "no canvas callback is diagnosable from Update");
+Render(); Time.unscaledTime = 15; ui.markers.Tick(ArenaMatchService.Current);
+Check(ArenaMode.Plugin.ModLogger.Info[1].Contains("friendly=1") && ArenaMode.Plugin.ModLogger.Info[1].Contains("shown=1"), "diagnostics separate ownership and shown geometry candidates");
+Physics.IsBlocked = () => true; Render(); Time.unscaledTime = 25; ui.markers.Tick(ArenaMatchService.Current);
+Check(ArenaMode.Plugin.ModLogger.Info[2].Contains("blocked=1") && ArenaMode.Plugin.ModLogger.Info[2].Contains("shown=0"), "diagnostics identify occlusion separately");
+for (int i = 0; i < 100; i++) { Time.unscaledTime += 10; ui.markers.Tick(ArenaMatchService.Current); }
+Check(ArenaMode.Plugin.ModLogger.Info.Count == 3, "render diagnostics remain capped over long matches");
+ui.markers.Dispose();
 Console.WriteLine($"ARENA_FRIENDLY_MARKER_CHECKS_PASSED ({checks} assertions)");

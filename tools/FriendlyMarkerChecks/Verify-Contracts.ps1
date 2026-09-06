@@ -6,6 +6,8 @@ $managed = Join-Path $SptPath 'EscapeFromTarkov_Data/Managed'
 $game = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'Assembly-CSharp.dll'))
 $unity = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.CoreModule.dll'))
 $physics = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.PhysicsModule.dll'))
+$uiModule = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.UIModule.dll'))
+$ui = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.UI.dll'))
 try {
     foreach ($spec in @(
         @('PlayerBones', 'Head', 'EFT.BifacialTransform'),
@@ -20,11 +22,28 @@ try {
         if ($field.Count -ne 1 -or $field[0].FieldType.FullName -ne $spec[2]) { throw "Native marker field drift: $($spec[0]).$($spec[1])" }
     }
     $manager = $game.MainModule.GetType('EFT.CameraControl.CameraManager')
+    $bone = $game.MainModule.GetType('EFT.BifacialTransform')
+    $pose = @($bone.Methods | Where-Object Name -eq 'get_position')
+    if ($pose.Count -ne 1 -or $pose[0].ReturnType.FullName -ne 'UnityEngine.Vector3') { throw 'Native head pose getter changed.' }
+    $poseReads = $pose[0].Body.Instructions.Operand | Out-String
+    foreach ($field in @('_accumulatePositionAndRotation', '_accumulatedPosition', '_useImitation', '_positionImitator')) {
+        if (!$poseReads.Contains($field)) { throw "Native virtualized head pose path missing: $field" }
+    }
     foreach ($name in @('Exist', 'Instance', 'Camera')) {
         if (@($manager.Properties | Where-Object Name -eq $name).Count -ne 1) { throw "Native CameraManager.$name missing" }
     }
     $camera = $unity.MainModule.GetType('UnityEngine.Camera')
-    if (@($camera.Fields | Where-Object { $_.Name -eq 'onPreCull' -and $_.IsStatic -and $_.FieldType.FullName -eq 'UnityEngine.Camera/CameraCallback' }).Count -ne 1) { throw 'Native exact-camera pre-cull callback drifted.' }
+    $canvas = $uiModule.MainModule.GetType('UnityEngine.Canvas')
+    if (@($canvas.Events | Where-Object Name -eq 'preWillRenderCanvases').Count -ne 1) { throw 'Native pre-rebuild canvas callback missing.' }
+    $force = ($canvas.Methods | Where-Object Name -eq 'ForceUpdateCanvases').Body.Instructions.Operand | Out-String
+    if ($force.IndexOf('SendPreWillRenderCanvases') -lt 0 -or $force.IndexOf('SendWillRenderCanvases') -le $force.IndexOf('SendPreWillRenderCanvases')) { throw 'Native canvas callback order changed.' }
+    $registry = $ui.MainModule.GetType('UnityEngine.UI.CanvasUpdateRegistry')
+    $ctor = ($registry.Methods | Where-Object Name -eq '.ctor').Body.Instructions.Operand | Out-String
+    if (!$ctor.Contains('add_willRenderCanvases') -or !$ctor.Contains('PerformUpdate')) { throw 'Native UI rebuild callback changed.' }
+    $graphic = $ui.MainModule.GetType('UnityEngine.UI.Graphic')
+    $disable = ($graphic.Methods | Where-Object Name -eq 'OnDisable').Body.Instructions.Operand | Out-String
+    $enable = ($graphic.Methods | Where-Object Name -eq 'OnEnable').Body.Instructions.Operand | Out-String
+    if (!$disable.Contains('CanvasRenderer::Clear') -or !$enable.Contains('SetAllDirty')) { throw 'Native UI geometry invalidation changed.' }
     foreach ($method in @('WorldToViewportPoint', 'WorldToScreenPoint')) {
         if (@($camera.Methods | Where-Object { $_.Name -eq $method -and $_.Parameters.Count -eq 1 -and $_.Parameters[0].ParameterType.FullName -eq 'UnityEngine.Vector3' }).Count -ne 1) { throw "Camera.$method(Vector3) unavailable" }
     }
@@ -44,4 +63,4 @@ try {
     }
     Write-Output 'ARENA_FRIENDLY_MARKER_CONTRACTS_PASSED'
 }
-finally { $game.Dispose(); $unity.Dispose(); $physics.Dispose() }
+finally { $game.Dispose(); $unity.Dispose(); $physics.Dispose(); $uiModule.Dispose(); $ui.Dispose() }

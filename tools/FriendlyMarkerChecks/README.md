@@ -12,7 +12,7 @@ The second runs a .NET 10 harness linking the actual marker lifecycle, projectio
 policy, palette and `TacticalMode.FriendlyMarkers.cs` partial. Other Unity/EFT state
 is modeled, not a working renderer. Existing TDM `TryClassifyCurrentBody` is a
 collaborator here; its actual implementation is covered by `TeamGiveUpChecks`.
-No plugin/server project is built or deployed. Eight deliberate changes in scratch
+No plugin/server project is built or deployed. Eleven deliberate changes in scratch
 source copies must fail their intended assertions; production sources stay intact.
 
 ## Behavior and integration
@@ -28,11 +28,14 @@ source copies must fail their intended assertions; production sources stay intac
   owner/body/profile bindings only while Live, in the same game/match, with current
   alive and ever-existed dictionaries agreeing. No PFT discovery/admission call or
   historical tracer roster is used; rebind/aftermath hides all old markers.
-- Tick clears previous display. Only the current FPS camera's pre-cull callback
-  projects the current head and performs fresh geometric LOS; this follows native
-  camera positioning and the spectator's onBeforeRender pose. Secondary cameras
-  cannot add markers. Disposing or destroying the HUD removes the callback.
-- Limits: 128 scanned players, eleven rays/views per camera callback, 100m range,
+- Tick clears previous display. `Canvas.preWillRenderCanvases` projects the current
+  head and performs fresh geometric LOS using the native FPS camera, before Unity
+  rebuilds UI graphics. No camera callback or forced recursive canvas rebuild is
+  used. Disposing or destroying the HUD removes the callback.
+- Three capped diagnostic samples from Tick report scope, camera readiness, canvas
+  callbacks and last-pass alive/friendly/head/projected/blocked/shown counts. Samples
+  start after five seconds, at least ten seconds apart, even if rendering never runs.
+- Limits: 128 scanned players, eleven rays/views per canvas callback, 100m range,
   0.65m minimum distance, and 2% screen-edge padding. Duplicate physical entries are
   deduplicated without retaining the bodies across frames. No positive LOS cache.
 
@@ -41,10 +44,18 @@ source copies must fail their intended assertions; production sources stay intac
 Read against `../_decompiled/` and installed assemblies:
 
 - `EFT.CameraControl/CameraManager.cs`: `Exist` avoids constructing the singleton;
-  `Camera` is EFT's current FPS camera. Unity `Camera.onPreCull` supplies that exact
-  camera after its pose is set; viewport/screen projection uses that camera.
-- `PlayerBones.cs`, `EFT/BifacialTransform.cs`: `PlayerBones.Head.Original` is the
-  physical head Transform. Missing/non-finite anchors are hidden without guessing.
+  `Camera` is EFT's current FPS camera; viewport/screen projection uses that camera.
+- `PlayerBones.cs`, `EFT/BifacialTransform.cs`, `EFT/PlayerSpiritBase.cs` and
+  `EnemyPart.cs`: `Head.position` resolves accumulated/imitated bone poses before
+  falling back to the Original Transform. Reading Original directly bypasses live
+  virtualized poses. Missing/non-finite anchors are hidden without guessing.
+- Installed `UnityEngine.UI.dll`: `Graphic.OnDisable` calls `CanvasRenderer.Clear`
+  and disables rebuild participation; `OnEnable` only calls `SetAllDirty`.
+  `CanvasUpdateRegistry` subscribes `PerformUpdate` to `willRenderCanvases`.
+  Installed `UnityEngine.UIModule.dll`: `ForceUpdateCanvases` explicitly invokes
+  `SendPreWillRenderCanvases` before `SendWillRenderCanvases`. We subscribe to the
+  earlier event and never call ForceUpdateCanvases. See also Unity's
+  [callback documentation](https://docs.unity3d.com/2022.3/Documentation/ScriptReference/Canvas-preWillRenderCanvases.html).
 - `LayersMaskController.cs`: HighPolyWithTerrain covers HighPolyCollider + Terrain;
   LowPolyColliderLayerMask adds geometry proxies; PlayerStaticDoorMask is specifically
   DoorLowPolyCollider, not player colliders; TransparentLayerMask adds glass blockers.
@@ -58,18 +69,29 @@ Read against `../_decompiled/` and installed assemblies:
 
 ## Four passes and limits
 
-1. Native source/assembly pass established current camera, physical head, mask and
-   follower binding contracts before implementation.
-2. Production-linked pass covers 99 assertions across TDM/PFT eligibility, walls,
-   camera changes, geometry/range/projection, identical IDs, dead/missing/rebound
-   actors, normal raids, setting changes, pooling and callback disposal.
-3. Adversarial pass rejects eight regressions: enemy visibility, through-wall marker,
-   dead marker, rear-camera marker, callback leak, PFT transition leak, PFT body alias
-   and PFT live-world alias. No production source is edited by the test runner.
-4. Independently read root integration (Settings, ArenaHud and Plugin.OnDestroy).
-   Independently reviewed and re-ran the root assembly-banner checks as well; no
-   open correctness findings. Parent performs independent review/reverification of
-   this leaf before release.
+1. User playtest on 2026-09-06 found no visible diamonds despite enabled settings
+   and admitted friendly TDM bodies in the log. The old tests asserted GameObject
+   activation, not rebuilt geometry. Native inspection identified late activation
+   and direct Original-head reads as concrete implementation defects; their exact
+   contribution in that raid is not observable in the old log.
+2. The 114 production-linked assertions now model active state separately from
+   rebuilt geometry. An independent positive control reproduces active-but-empty
+   graphics over repeated old-order frames; the new callback must have geometry
+   ready in the same UI rebuild even without camera-cull callbacks. Virtual head
+   poses override stale Original coordinates. Existing ownership/LOS/lifecycle,
+   pooling and normal-raid checks remain, plus capped/no-callback diagnostics.
+3. Eleven temporary mutants include old late camera activation, stale Original
+   head reads and uncapped logging, alongside the eight prior ownership/visibility
+   failures. Each must fail its intended assertion, never merely compilation.
+4. Independent native/render audit reviewed implementation, harness fidelity and
+   root lifecycle hooks. Parent reruns installed contracts and regressions before
+   Release deployment. This remains model/native-contract proof, not GPU output.
+
+Technique comparison: `../_reference/enemymarkers-master` uses world `TextMesh`,
+coroutine updates and native `MainParts[head].Position`, rather than toggling UI
+images in camera pre-cull. Its last-known/ghost markers are not adopted. Its README
+declares MIT but the supplied tree has no complete license file; no code, binary
+or asset from it is copied or bundled. Arena keeps its original pooled UI diamonds.
 
 GPU handoff remains required: ordinary first person and protected-team spectator,
 standing/crouching/prone heads, movement behind walls/closed doors and glass, head

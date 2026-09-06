@@ -3,6 +3,12 @@
 Reviewed and installed on 2026-09-06 against the local SPT 4.1 assemblies.
 These changes do not alter persistent profiles or ordinary raid behavior.
 
+This is the initial implementation snapshot, including its historical DLL hashes.
+The following user playtest found the friendly diamonds invisible. The corrected
+UI rebuild timing, virtualized head reads and expanded regression evidence are in
+`tools/FriendlyMarkerChecks/README.md`; the initial offline checks below did not
+prove rendering and must not be read as a successful marker playtest.
+
 ## Changes
 
 - Small team-colored diamonds identify current living friendly bots in Team

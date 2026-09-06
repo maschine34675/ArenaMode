@@ -16,6 +16,7 @@ namespace UnityEngine
         public static int Created;
         public string name;
         public bool activeSelf = true;
+        public bool activeInHierarchy => !Destroyed && activeSelf && (transform.parent == null || transform.parent.gameObject.activeInHierarchy);
         public readonly Transform transform;
         private readonly List<Component> _components = new();
         public GameObject(string name = "", params Type[] types)
@@ -26,7 +27,14 @@ namespace UnityEngine
         }
         public T AddComponent<T>() where T : Component, new() { var c = new T { gameObject = this }; _components.Add(c); return c; }
         public T GetComponent<T>() where T : Component => _components.OfType<T>().FirstOrDefault();
-        public void SetActive(bool active) => activeSelf = active;
+        public void SetActive(bool active)
+        {
+            activeSelf = active;
+            // Native Graphic.OnDisable clears CanvasRenderer geometry; OnEnable
+            // merely marks it dirty. A later UI rebuild must restore geometry.
+            if (!active)
+                foreach (var image in UI.Image.All.Where(i => !i.gameObject.activeInHierarchy)) image.HasGeometry = false;
+        }
     }
     public class Component : Object { public GameObject gameObject; public Transform transform => gameObject.transform; }
     public class Transform : Component
@@ -56,6 +64,20 @@ namespace UnityEngine
         public static void Cull(Camera camera) => onPreCull?.Invoke(camera);
         public static void Reset() => onPreCull = null;
     }
+    public static class Time { public static float unscaledTime; }
+    public static class Canvas
+    {
+        public static event Action preWillRenderCanvases;
+        public static int Subscribers => preWillRenderCanvases?.GetInvocationList().Length ?? 0;
+        public static void Rebuild()
+        {
+            preWillRenderCanvases?.Invoke();
+            // CanvasUpdateRegistry.PerformUpdate is subscribed to the later
+            // willRenderCanvases event in the installed UnityEngine.UI assembly.
+            foreach (var image in UI.Image.All) image.HasGeometry = image.gameObject.activeInHierarchy;
+        }
+        public static void Reset() { preWillRenderCanvases = null; UI.Image.All.Clear(); }
+    }
     public static class RectTransformUtility
     {
         public static bool ConversionWorks = true;
@@ -75,13 +97,29 @@ namespace UnityEngine
         { Rays++; LastOrigin = origin; LastEnd = end; LastMask = mask; LastTrigger = query; return IsBlocked(); }
     }
 }
-namespace UnityEngine.UI { public class Image : UnityEngine.Component { public UnityEngine.Color color; public bool raycastTarget = true; } }
+namespace UnityEngine.UI
+{
+    public class Image : UnityEngine.Component
+    {
+        public static readonly List<Image> All = new();
+        public Image() => All.Add(this);
+        public UnityEngine.Color color;
+        public bool raycastTarget = true, HasGeometry;
+    }
+}
 public static class LayersMaskController { public static int HighPolyWithTerrainMask = 3, LowPolyColliderLayerMask = 4, PlayerStaticDoorMask = 8, TransparentLayerMask = 16; }
 public enum EBotState { PreActive, Active, NonActive, Disposed }
 public class PlayerBones { public EFT.BifacialTransform Head = new(); }
 namespace EFT
 {
-    public class BifacialTransform { public UnityEngine.Transform Original = new UnityEngine.GameObject().transform; }
+    public class BifacialTransform
+    {
+        public UnityEngine.Transform Original = new UnityEngine.GameObject().transform;
+        public bool UseImitation, AccumulatePositionAndRotation;
+        public UnityEngine.Vector3 AccumulatedPosition;
+        public Func<UnityEngine.Vector3> Imitator;
+        public UnityEngine.Vector3 position => AccumulatePositionAndRotation ? AccumulatedPosition : UseImitation ? Imitator() : Original.position;
+    }
     public class Health { public bool IsAlive = true; }
     public class AIData { public BotOwner BotOwner; }
     public class Player : UnityEngine.Component
@@ -124,7 +162,7 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive = true, Exact = true; public static string ActiveMode = "teamdeathmatch"; public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world) => Exact; } }
 namespace ArenaMode.Compat { public static class PitFireTeamCompat { public static bool TeamArenaActive = true; } }
-namespace ArenaMode { public static class Plugin { public static Logger ModLogger = new(); public class Logger { public void LogWarning(string text) { } } } }
+namespace ArenaMode { public static class Plugin { public static Logger ModLogger = new(); public class Logger { public readonly List<string> Info = new(); public void LogInfo(string text) => Info.Add(text); public void LogWarning(string text) { } } } }
 namespace ArenaMode.Modes
 {
     public interface IMode { bool IsComplete { get; } }

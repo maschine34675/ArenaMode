@@ -17,10 +17,13 @@ foreach ($key in $sources.Keys) {
 }
 $mutants = @(
     @{ Name='EnemyMarker'; Key='MarkerSource'; From='team.TryClassifyCurrentBody(player, out bool friendly) && friendly'; To='team.TryClassifyCurrentBody(player, out bool friendly)'; Failure='only the exact current friendly bot gets one LOS-tested marker' },
-    @{ Name='ThroughWall'; Key='MarkerSource'; From='if (Physics.Linecast(origin, headPosition, mask, QueryTriggerInteraction.Ignore)) continue;'; To='if (Physics.Linecast(origin, headPosition, mask, QueryTriggerInteraction.Ignore) && false) continue;'; Failure='newly occluded teammates hide immediately without a positive LOS cache' },
+    @{ Name='ThroughWall'; Key='MarkerSource'; From='if (Physics.Linecast(origin, headPosition, mask, QueryTriggerInteraction.Ignore))'; To='if (Physics.Linecast(origin, headPosition, mask, QueryTriggerInteraction.Ignore) && false)'; Failure='newly occluded teammates hide immediately without a positive LOS cache' },
     @{ Name='DeadMarker'; Key='MarkerSource'; From='player.HealthController?.IsAlive != true || !_seen.Add(player)'; To='!_seen.Add(player)'; Failure='dead friendly bodies never retain a marker' },
     @{ Name='RearMarker'; Key='PolicySource'; From='viewport.z > 0f && distance'; To='distance'; Failure='invalid display remains hidden: behind' },
-    @{ Name='LeakedCallback'; Key='MarkerSource'; From='if (_subscribed) Camera.onPreCull -= BeforeCameraCull;'; To='if (false) Camera.onPreCull -= BeforeCameraCull;'; Failure='dispose unsubscribes the render callback and destroys all views' },
+    @{ Name='LeakedCallback'; Key='MarkerSource'; From='if (_subscribed) Canvas.preWillRenderCanvases -= BeforeCanvasRebuild;'; To='if (false) Canvas.preWillRenderCanvases -= BeforeCanvasRebuild;'; Failure='dispose unsubscribes the render callback and destroys all views' },
+    @{ Name='LateCameraActivation'; Key='MarkerSource'; From='Canvas.preWillRenderCanvases += BeforeCanvasRebuild;'; To='Camera.onPreCull += _ => BeforeCanvasRebuild();'; Failure='friendly geometry must be ready in the same canvas rebuild, before camera culling' },
+    @{ Name='UnboundedDiagnostics'; Key='MarkerSource'; From='_samples < 3'; To='true'; Failure='render diagnostics remain capped over long matches' },
+    @{ Name='StaleOriginalHead'; Key='MarkerSource'; From='Vector3 headPosition = head.position;'; To='Vector3 headPosition = head.Original.position;'; Failure='virtualized head pose must override the stale Original transform' },
     @{ Name='TacticalRebind'; Key='TacticalMarkerSource'; From='_phase != Phase.Live'; To='false'; Failure='invalid Tactical identity is rejected: staging' },
     @{ Name='HistoricalFollower'; Key='TacticalMarkerSource'; From='!ReferenceEquals(owner.GetPlayer, player)'; To='false'; Failure='invalid Tactical identity is rejected: aliasbody' },
     @{ Name='TacticalWorldAlias'; Key='TacticalMarkerSource'; From='!ReferenceEquals(world.GetAlivePlayerByProfileID(player.ProfileId), player)'; To='false'; Failure='invalid Tactical identity is rejected: alivealias' }
