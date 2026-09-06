@@ -94,6 +94,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMedicalPatches.Shutdown();
         Effects.ArenaLightingDirector.Shutdown();
         Effects.ArenaTeamLaserColors.Reset();
+        Effects.ArenaLaserBrightness.Reset();
         Audio.AnnouncerService.Shutdown();
         Audio.LabyrinthAlarmPatches.Shutdown();
         LabyrinthSpawnTraps.Shutdown();

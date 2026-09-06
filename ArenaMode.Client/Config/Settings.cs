@@ -60,6 +60,7 @@ public static class Settings
     public static ConfigEntry<bool> ArenaLightingRespectExternalMods { get; private set; }
     public static ConfigEntry<bool> TeamTracers { get; private set; }
     public static ConfigEntry<bool> TeamLasers { get; private set; }
+    public static ConfigEntry<float> VisibleLaserBrightness { get; private set; }
     public static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; private set; }
     public static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
@@ -813,20 +814,30 @@ public static class Settings
             "Effects",
             "TeamLasers",
             true,
-            "Team Deathmatch: color visible weapon lasers using FriendlyTracerColor and OpponentTracerColor. " +
-            "Does not switch lasers on or change infrared visibility, flashlights or brightness. Ordinary raids stay unchanged.");
+            "Team Deathmatch and protected Tactical 5v5: color active visible weapon lasers using FriendlyTracerColor and OpponentTracerColor. " +
+            "Does not switch lasers on or change infrared visibility or flashlights. Ordinary raids stay unchanged.");
+
+        VisibleLaserBrightness = config.Bind(
+            "Effects",
+            "VisibleLaserBrightness",
+            2f,
+            new ConfigDescription(
+                "Arena visible weapon laser intensity minimum relative to the original prefab (1 = no Arena boost). " +
+                "An existing larger intensity, including BrightLasers, is preserved rather than multiplied again. " +
+                "Independent of team colors; does not change laser activation, IR, flashlights, width or ordinary raids.",
+                new AcceptableValueRange<float>(1f, 5f)));
 
         FriendlyTracerColor = config.Bind(
             "Effects",
             "FriendlyTracerColor",
             ArenaTracerColor.Cyan,
-            "Tracer color for the local PMC and friendly teammates; also used by Team Deathmatch lasers when TeamLasers is enabled.");
+            "Tracer color for the local PMC and friendly teammates; also used by team-mode lasers when TeamLasers is enabled.");
 
         OpponentTracerColor = config.Bind(
             "Effects",
             "OpponentTracerColor",
             ArenaTracerColor.Red,
-            "Tracer color for Arena opponents; also used by Team Deathmatch lasers when TeamLasers is enabled.");
+            "Tracer color for Arena opponents; also used by team-mode lasers when TeamLasers is enabled.");
 
         RagdollImpulseScale = config.Bind(
             "Effects",
