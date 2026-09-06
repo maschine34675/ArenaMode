@@ -22,8 +22,10 @@ $mutants = @(
        Failure = 'direct subtask and NotificationFilter replacement sounds suppressed' },
     @{ Name = 'deferred-achievement'; From = 'harmony.Patch(achievement, prefix: Prefix(nameof(DirectPresentationPrefix)));'; To = '';
        Failure = 'Arena achievement does not schedule a delayed postraid popup' },
-    @{ Name = 'wrong-type-filter'; From = '(notification is NotificationQuest || notification is NotificationAchievement)'; To = 'notification != null';
+    @{ Name = 'wrong-type-filter'; From = 'notification is NotificationQuest'; To = 'notification != null';
        Failure = 'unrelated warnings remain audible after a dropped queued message' },
+    @{ Name = 'missed-xp-toast'; From = '|| notification is StatisticNotification'; To = '';
+       Failure = 'Arena XP gain is silent before UI queue admission' },
     @{ Name = 'stale-raid-latch'; From = '&& ArenaSession.IsExactActiveRaid(game, Singleton<GameWorld>.Instance)'; To = '';
        Failure = 'outside exact Arena including postraid, stale worlds and shutdown is native' },
     @{ Name = 'busy-queue'; From = '__result = false;'; To = '__result = true;';

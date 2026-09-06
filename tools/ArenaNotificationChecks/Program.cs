@@ -80,12 +80,12 @@ internal static class Program
         var manager = Reset(); ArenaProgressNotifications.Enable();
         Notification[] allowed = [new CustomNotification { Text = "FIRST BLOOD Quest completed" },
             new MalfunctionOccurredNotification(), new ProfileChangeEventNotification(),
-            new StatisticNotification(), new SkillLevelUpNotification(), new Notification()];
+            new SkillLevelUpNotification(), new Notification()];
         foreach (var note in allowed) NotificationManager.DisplayNotification(note);
         Drain(manager.View);
         GUISounds.ArenaAnnouncerSounds++; GUISounds.WarningSounds++;
         Check(manager.View.Visible.SequenceEqual(allowed) && manager.View.PopupSounds == allowed.Length,
-            "unrelated custom/XP/skills/warning notifications remain unchanged");
+            "unrelated custom/skills/warning notifications remain unchanged");
         Check(manager.View.ProfileChangeChecks == 1 && manager.OtherSubscribers == allowed.Length,
             "profile-change handler and other subscribers untouched");
         Check(GUISounds.ArenaAnnouncerSounds == 1 && GUISounds.WarningSounds == 1 && GUISounds.GlobalVolume == 0.25f,
@@ -100,15 +100,38 @@ internal static class Program
         {
             manager = Reset(); ArenaProgressNotifications.Enable(); invalidate();
             NotificationManager.DisplayNotification(new NotificationQuest());
-            NotificationManager.DisplayNotification(new NotificationAchievement()); Drain(manager.View);
+            NotificationManager.DisplayNotification(new NotificationAchievement());
+            NotificationManager.DisplayNotification(new StatisticNotification()); Drain(manager.View);
             var quest = new Quest(); new QuestControllerClient().CompleteCondition(quest); Drain(manager.View);
-            Check(manager.View.PopupSounds == 3 && GUISounds.DirectQuestSounds == 1 && quest.Progress == 1,
+            Check(manager.View.PopupSounds == 4 && GUISounds.DirectQuestSounds == 1 && quest.Progress == 1,
                 "outside exact Arena including postraid, stale worlds and shutdown is native");
         }
         manager = Reset(false); ArenaProgressNotifications.Enable();
         var ordinary = new Quest(); new QuestControllerClient().CompleteCondition(ordinary); Drain(manager.View);
         Check(ordinary.Progress == 1 && manager.View.PopupSounds == 1 && GUISounds.DirectQuestSounds == 1,
             "ordinary raid condition progress and both native sounds preserved");
+    }
+    private static void ExperiencePresentation()
+    {
+        foreach (bool immediate in new[] { false, true })
+        {
+            var manager = Reset(); ArenaProgressNotifications.Enable();
+            var xp = new StatisticNotification { ShowImmediately = immediate };
+            NotificationManager.DisplayNotification(xp);
+            Check(manager.History.SequenceEqual(new[] { xp }) && manager.OtherSubscribers == 1,
+                "XP history and non-UI subscribers remain intact");
+            Check(manager.View.Queue.Count == 0 && manager.View.Visible.Count == 0 && manager.View.PopupSounds == 0,
+                "Arena XP gain is silent before UI queue admission");
+            Check(!manager.View.ShowNotification(xp), "direct XP display is suppressed inside Arena");
+            manager.View.Queue.Enqueue(xp);
+            manager.View.ProcessQueuedNotifications();
+            Check(!manager.View.Busy, "suppressed queued XP releases the UI processing flag");
+            ArenaSession.IsActive = false;
+            Drain(manager.View);
+            Check(manager.View.Visible.Count == 0, "Arena XP does not replay after raid end");
+            NotificationManager.DisplayNotification(new StatisticNotification()); Drain(manager.View);
+            Check(manager.View.PopupSounds == 1, "postraid XP presentation is native");
+        }
     }
     private static void DirectSoundAndProgress()
     {
@@ -200,7 +223,7 @@ internal static class Program
     }
     private static void Main()
     {
-        TypedAndDirectPaths(); SelectiveAndLifecycle(); DirectSoundAndProgress(); InstallationFailureAndReentry();
+        TypedAndDirectPaths(); SelectiveAndLifecycle(); ExperiencePresentation(); DirectSoundAndProgress(); InstallationFailureAndReentry();
         Console.WriteLine($"PASS: {_checks} production notification filter/presentation model checks.");
         Console.WriteLine("ARENA_NOTIFICATION_CHECKS_PASSED");
     }

@@ -1,4 +1,4 @@
-# Quiet Arena quest and achievement notifications
+# Quiet Arena quest, achievement and XP notifications
 
 Run from the repository:
 
@@ -28,6 +28,11 @@ Native source evidence under `../_decompiled`:
 - `EFT.Communications/NotificationManager.cs:515`: static display feeds
   `AddNotification`, which retains history and notifies subscribers. Arena does
   not patch either method or the progression/network notification pipeline.
+- `EFT/LocalStatisticManager.cs` and `EFT/OfflineStatisticManager.cs` emit XP
+  toasts as `StatisticNotification` through that same display path. This type
+  is now suppressed only at the two UI boundaries, including direct or queued
+  display. Notification history and other subscribers still receive it. Skill
+  level-up messages, Arena announcer text and ordinary warnings remain unchanged.
 - `EFT.UI/NotifierView.cs:256`: the UI subscriber either displays immediately or
   enqueues. Its selective Arena gate prevents messages leaking out of the raid
   through an unprocessed queue.
@@ -43,7 +48,7 @@ replacement at both UI boundaries, without changing NotificationFilter's
 settings or any global sound source. This is an original narrower integration;
 no NotificationFilter code or binary is bundled.
 
-Coverage: both quest/achievement types, immediate/queued/direct display, native
+Coverage: quest/achievement/XP types, immediate/queued/direct display, native
 queue release, unchanged history/other subscribers/profile-change behavior,
 unrelated notifications and Arena sounds, normal raids and stale game/world
 pairs, shutdown/re-enable/partial-install failure, conditions and achievements

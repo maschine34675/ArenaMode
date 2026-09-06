@@ -41,6 +41,18 @@ try {
     Require-Call $sound 'EFT.UI.GUISounds::PlayUISound'
     Require-Call $sound 'EFT.UI.GUISounds::PlayNotificationSound'
 
+    $statistic = $game.MainModule.GetType('EFT.Communications.StatisticNotification')
+    if ($statistic.BaseType.FullName -ne $notification) { throw 'XP notification no longer follows native Notification presentation' }
+    $xpConstructor = Require-Method $game 'EFT.Communications.StatisticNotification' '.ctor' 'EFT.LocalizationKey,EFT.LocalizationKey,System.Int32' 'System.Void'
+    Require-Call $xpConstructor 'EFT.Communications.Notification::.ctor'
+    foreach ($statisticsType in @('EFT.LocalStatisticManager', 'EFT.OfflineStatisticManager')) {
+        $methods = @($game.MainModule.GetType($statisticsType).Methods | Where-Object {
+            $_.HasBody -and (($_.Body.Instructions.Operand | Out-String).Contains('StatisticNotification::.ctor'))
+        })
+        if ($methods.Count -eq 0) { throw "XP producer contract drift: $statisticsType" }
+        foreach ($method in $methods) { Require-Call $method 'EFT.Communications.NotificationManager::DisplayNotification' }
+    }
+
     $subtask = Require-Method $game 'EFT.Quests.QuestControllerClient' 'TryNotifyConditionChanged' 'EFT.Quests.Quest' 'System.Void'
     Require-Call $subtask 'EFT.UI.GUISounds::PlayUISound'
     Require-Call $subtask 'EFT.Communications.NotificationManager::DisplayNotification'

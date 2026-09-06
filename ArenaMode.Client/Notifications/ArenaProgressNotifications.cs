@@ -12,7 +12,7 @@ using System.Reflection;
 namespace ArenaMode.Notifications;
 
 /// <summary>
-/// Quiet quest/achievement presentation in the exact active Arena raid. Do not
+/// Quiet quest/achievement/XP-toast presentation in the exact active Arena raid. Do not
 /// intercept NotificationManager.AddNotification or quest/achievement updates:
 /// their history, other subscribers and in-memory progression still run.
 /// </summary>
@@ -82,7 +82,8 @@ internal static class ArenaProgressNotifications
            && ArenaSession.IsExactActiveRaid(game, Singleton<GameWorld>.Instance);
 
     private static bool ShouldSuppress(Notification notification)
-        => InArena() && (notification is NotificationQuest || notification is NotificationAchievement);
+        => InArena() && (notification is NotificationQuest || notification is NotificationAchievement
+                        || notification is StatisticNotification);
 
     private static bool ReceivePrefix(Notification notification) => !ShouldSuppress(notification);
 
