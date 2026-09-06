@@ -43,6 +43,7 @@ public static class Settings
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
+    public static ConfigEntry<bool> ShowFriendlyMarkers { get; private set; }
     public static ConfigEntry<bool> ShowKillfeed { get; private set; }
     public static ConfigEntry<bool> KillfeedOtherKills { get; private set; }
     public static ConfigEntry<bool> ShowHitmarker { get; private set; }
@@ -699,6 +700,11 @@ public static class Settings
             "Enabled",
             true,
             "Arena HUD (score panel, killfeed, callouts) during arena sessions.");
+
+        ShowFriendlyMarkers = config.Bind(
+            "HUD", "ShowFriendlyMarkers", true,
+            "Show a small diamond above visible friendly bots in Team Deathmatch and protected Tactical 5v5. " +
+            "Uses FriendlyTracerColor; markers are hidden behind obstacles and in ordinary raids.");
 
         ShowKillfeed = config.Bind(
             "HUD",

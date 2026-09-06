@@ -80,6 +80,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Hud.ArenaHud.Detach();
         Combat.ArenaMagazinePatches.Shutdown();
         Combat.ArenaMedicalPatches.Shutdown();
         Effects.ArenaLightingDirector.Shutdown();

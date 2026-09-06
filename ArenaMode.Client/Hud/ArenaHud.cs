@@ -24,6 +24,7 @@ internal static class ArenaHud
     private static HitmarkerElement _hitmarker;
     private static DamageNumbersElement _numbers;
     private static ArenaAssemblyBanner _assembly;
+    private static ArenaFriendlyMarkers _friendlyMarkers;
 
     public static void Attach(ArenaMatch match)
     {
@@ -48,6 +49,8 @@ internal static class ArenaHud
 
     public static void Detach()
     {
+        _friendlyMarkers?.Dispose();
+        _friendlyMarkers = null;
         if (_match != null)
         {
             _match.OnKill -= OnKill;
@@ -83,6 +86,7 @@ internal static class ArenaHud
             _hitmarker.Tick();
             _numbers.Tick();
             _assembly.Tick(_match);
+            _friendlyMarkers.Tick(_match);
         }
         catch (Exception ex)
         {
@@ -120,6 +124,8 @@ internal static class ArenaHud
         _numbers.Create(root, canvas);
         _assembly = new ArenaAssemblyBanner();
         _assembly.Create(root);
+        _friendlyMarkers = new ArenaFriendlyMarkers();
+        _friendlyMarkers.Create(root);
     }
 
     private static void OnKill(ArenaKill kill)

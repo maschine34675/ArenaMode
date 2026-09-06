@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <MarkerSource Condition="'$(MarkerSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\ArenaFriendlyMarkers.cs</MarkerSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\ArenaFriendlyMarkerPolicy.cs</PolicySource>
+    <TacticalMarkerSource Condition="'$(TacticalMarkerSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TacticalMode.FriendlyMarkers.cs</TacticalMarkerSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MarkerSource)" Link="Production/ArenaFriendlyMarkers.cs" />
+    <Compile Include="$(PolicySource)" Link="Production/ArenaFriendlyMarkerPolicy.cs" />
+    <Compile Include="$(TacticalMarkerSource)" Link="Production/TacticalMode.FriendlyMarkers.cs" />
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Production/ArenaTracerColor.cs" />
+  </ItemGroup>
+</Project>
