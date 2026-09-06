@@ -429,6 +429,109 @@ internal static class Program
             "three genuine NonActive failures while Started still retire bodies and report the stopped match");
     }
 
+    private static void RuntimeDiagnostics()
+    {
+        var missing = new Raid();
+        var storage = missing.Bots;
+        missing.Game.BotsController.BotSpawner._bots.BotOwners = null;
+        missing.Step(0);
+        missing.Step(1);
+        missing.Step(50);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("native roster unavailable")) == 1
+            && BurstSpawnService.Requests.Count == 0,
+            "unreadable roster is reported once while refills remain paused");
+        missing.Game.BotsController.BotSpawner._bots.BotOwners = storage;
+        missing.Step(51);
+        missing.Step(52);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("native roster readable again")) == 1,
+            "readable roster recovery is reported once");
+
+        var stalled = new Raid();
+        stalled.Step(0);
+        var loading = Request(EPlayerSide.Usec);
+        var dispatched = Request(EPlayerSide.Bear);
+        dispatched.DispatchFinished(true);
+        stalled.Step(45);
+        var timeout = ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("spawn request timed out"));
+        Check(timeout.Contains("status=Started, respawn=False")
+            && timeout.Contains("USEC occupied=0/4") && timeout.Contains("BEAR occupied=0/5")
+            && timeout.Contains("#1:loading:45s:expired") && timeout.Contains("#2:native:45s:expired")
+            && timeout.Contains("#3:loading:0s"),
+            "timeout diagnostics distinguish faction capacity, profile loading and uncertain native work");
+        stalled.Step(46);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("spawn request timed out")) == 1,
+            "unchanged spawn stall does not log every tick");
+        Check(BurstSpawnService.Requests.Count == 3 && Request(EPlayerSide.Bear).Current(),
+            "diagnostic inspection neither opens a second profile load nor settles valid tickets");
+        loading.DispatchFinished(false);
+        dispatched.Rejected();
+        Request(EPlayerSide.Bear).DispatchFinished(false);
+        stalled.Step(47);
+        stalled.Step(48);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("expired spawn requests settled")) == 1
+            && stalled.Match.Cues.Count == 0,
+            "settled timeout debt is reported once without claiming combat readiness");
+
+        var activation = new Raid(size: 2);
+        activation.Step(0);
+        Deliver(Request(EPlayerSide.Usec));
+        activation.Step(45);
+        string failure = ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("Team Deathmatch retired"));
+        Check(failure.Contains("PreActive; faction=USEC, wait=45s, failure=1/3")
+            && failure.Contains("status=Started") && failure.Contains("USEC occupied=0/1"),
+            "activation failure describes the pre-retirement state, wait, faction and failure budget");
+        activation.Step(50);
+        var recovered = Deliver(Request(EPlayerSide.Usec), EBotState.Active);
+        activation.Step(51);
+        activation.Step(52);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("USEC activation recovered after 1")) == 1,
+            "successful activation reports recovery once and resets the consecutive-failure budget");
+        Check(ArenaMode.Plugin.ModLogger.Lines.Any(line => line.Contains("state=Active, arrival=0.0s")),
+            "existing admission line includes request duration and actual arrival state");
+        recovered.HealthController.IsAlive = false;
+        activation.Step(53);
+        Deliver(Request(EPlayerSide.Usec), EBotState.ActiveFail);
+        activation.Step(54);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Last(line => line.Contains("Team Deathmatch retired")).Contains("failure=1/3"),
+            "diagnostics preserve failure reset after a successfully activated replacement");
+        Check(!ArenaMode.Plugin.ModLogger.Lines.Any(line => line.Contains(recovered.ProfileId)),
+            "TDM diagnostics do not disclose profile identities");
+
+        var exit = new Raid();
+        exit.Step(0);
+        exit.Game.Status = GameStatus.Stopping;
+        exit.Step(1);
+        var summary = ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("native raid shutdown"));
+        Check(summary.Contains("status=Stopping") && summary.Contains("#1:loading:1s")
+            && summary.Contains("#2:loading:1s"),
+            "shutdown diagnostics capture pending work before cancellation clears it");
+
+        var fault = new Raid();
+        fault.Step(0);
+        fault.Local.Profile.Info.Side = EPlayerSide.Bear;
+        fault.Step(1);
+        Check(ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("Team Deathmatch stopped:"))
+            .Contains("#1:loading:1s"), "genuine failure diagnostics capture pending work before stopping");
+        Check(Model.Events.Single(item => item.StartsWith("toast:")).Equals("toast:TEAM DM stopped: local PMC faction changed"),
+            "technical diagnostics stay in the log rather than expanding player error toasts");
+
+        var damagedSnapshot = new Raid();
+        damagedSnapshot.Fill();
+        damagedSnapshot.Bots.First().GetPlayer.ProfileId = null; // unreadable identity during disposal
+        damagedSnapshot.Game.Status = GameStatus.Stopping;
+        bool exitThrew = false;
+        try { damagedSnapshot.Step(Time.time + 1); }
+        catch { exitThrew = true; }
+        damagedSnapshot.Step(Time.time + 2);
+        Check(!exitThrew && !damagedSnapshot.Mode.IsComplete
+            && damagedSnapshot.Bots.All(bot => bot.HealthController.KillCalls == 0)
+            && !Model.Events.Any(item => item.StartsWith("toast:")),
+            "a broken diagnostic snapshot cannot interrupt native shutdown or fail the mode");
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("native raid shutdown")
+            && line.Contains("roster snapshot unavailable (ArgumentNullException)")) == 1,
+            "unreadable shutdown snapshot emits one fallback diagnostic without repeated logging");
+    }
+
     private static void NativeFriendshipAndDamagePolicy()
     {
         var raid = new Raid(size: 3);
@@ -542,6 +645,7 @@ internal static class Program
         ActivationLifetime();
         ExactRaidAndLateCallbacks();
         NativeShutdownWindow();
+        RuntimeDiagnostics();
         NativeFriendshipAndDamagePolicy();
         ScoreAwardsTracersAndLoot();
         Console.WriteLine($"PASS: {_checks} production TDM mode/relations runtime-model checks.");

@@ -201,3 +201,36 @@ controls, with deliberate regressions for both stop gating and the reentrant
 failure/ready-cue paths. The installed metadata oracle also verifies native Stop
 ordering. A GPU test still requires a game restart and remains user-side: leave
 TDM from the native menu, then separately test life-only Give up and respawn.
+
+## Bounded TDM diagnostics, 2026-09-06
+
+Failure, timeout and native shutdown logs now include game status, whether a
+local respawn is running, and both factions' occupied/target, Active, PreActive
+and other living body counts. Pending work lists only process-local request
+numbers, phase (`loading` or dispatched to `native`), age and expiry. The queue
+is captured before failure/shutdown clears it; inspection never settles tickets.
+Snapshots tolerate disposed properties without raising a new mode failure.
+
+Existing admission lines include the arrival state and request duration. An
+activation retirement records its state before Kill, faction, time waiting and
+failure number out of three. A previously Active bot reports that fact instead
+of an invented activation age. A successful replacement records and resets the
+previous consecutive-failure count.
+
+Unavailable native roster, readable-again, request timeout and expired-work
+settled are transition-only messages, with no per-frame/periodic heartbeat.
+Settled work is deliberately not called combat-ready: readiness still requires
+all team slots filled by Active bodies. Detailed snapshots stay in the log;
+player error toasts retain their short reason. No profile IDs are logged by
+these diagnostics. Shared burst cleanup and all spawn/scoring policies remain
+unchanged.
+
+Verification for the exit and diagnostic changes: 189 production-linked mode
+checks passed, with eleven deliberate regressions rejected for their intended
+assertions; 373 Give up checks and 14,931 existing population/dispatch/scoreboard
+checks passed. Installed native/SAIN contract checks, existing bot/PFT/SAIN
+regressions and the final client Release deployment passed. Built/live client
+and Redeploy.Core hashes match; 31 external mod/configuration files are unchanged.
+Independent adversarial review has no open P0-P2 findings. Five acceptance gates
+are met, zero are unmet, and the GPU raid gate remains a user-side handoff.
+These client-only changes require a game restart, not a server restart.

@@ -10,7 +10,7 @@ registry, administrative death scope and no-corpse-looting patch. The actual
 native prefix methods run through the modeled dispatch, rather than reimplementing
 their decisions in test callbacks.
 
-The current run covers 173 assertions:
+The current run covers 189 assertions:
 
 - USEC and BEAR with 2, 5 and 12 players per faction; human slot reservation,
   one-shot readiness, actual faction scoreboard and no overfill.
@@ -27,17 +27,26 @@ The current run covers 173 assertions:
   detection, late dispatch completion, reentrant stop during retirement and
   suppression of new requests/score/readiness cues after committed shutdown.
   Genuine NonActive failures while Started still retire bodies and stop at three.
+- Bounded unavailable/recovery and timeout/settled diagnostics, request phases
+  and age, active/occupied faction counts, pre-retirement state and failure
+  budget, successful activation recovery, and snapshots before queue cancellation.
+  Technical details stay out of player toasts and do not include profile IDs.
+  An unreadable disposed identity forces a snapshot exception and verifies it
+  cannot interrupt native shutdown, retire bodies or create a failure toast.
 - Friendly enemy admission for initial, direct and revenge causes, memory-only
   and goal-setter bypasses, old relation cleanup and dead attacker attribution.
 - Friendly-fire decision, self/unknown damage, same-profile foreign bodies,
   score/awards, retained dead shooter tracer colors and no-looting exceptions.
 
 `Verify-Regression.ps1` creates only temporary copies of production sources. It
-proves seven independent changes fail for the intended behavioral assertion:
+proves eleven independent changes fail for the intended behavioral assertion:
 removing the reserved human slot; allowing native friendly enemy admission; and
 adopting a partially built local body during respawn; restoring the native exit
 failure window; accepting detached requests after Started; failing the mode on a
-reentrant stop; and announcing readiness after a stop during refill. It verifies production
+reentrant stop; announcing readiness after a stop during refill; logging an
+unchanged missing roster every tick; reporting the wrong request phase; and
+capturing diagnostics only after cancelling the pending queue; and letting a
+diagnostic exception interrupt shutdown. It verifies production
 source hashes never changed and finishes by rebuilding/running the original
 production inputs. Temporary copies are outside the repository and are retained
 for inspection; no recursive cleanup is performed.

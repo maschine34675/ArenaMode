@@ -64,6 +64,28 @@ $cases = @(
         Name = 'shutdown-ready-cue'; Path = $mode; Property = 'ModeSource';
         Find = 'if (ObserveNativeStop() || !IsCurrentRaid()) return;'; Replace = '';
         Failure = 'stop in last arrival prevents a round-start announcement during native shutdown'
+    },
+    @{
+        Name = 'diagnostic-spam'; Path = $mode; Property = 'ModeSource';
+        Find = 'if (!_reportedUnreadableRoster)'; Replace = 'if (true)';
+        Failure = 'unreadable roster is reported once while refills remain paused'
+    },
+    @{
+        Name = 'diagnostic-request-phase'; Path = $population; Property = 'PopulationSource';
+        Find = '(item.Dispatched ? "native" : "loading")'; Replace = '"loading"';
+        Failure = 'timeout diagnostics distinguish faction capacity, profile loading and uncertain native work'
+    },
+    @{
+        Name = 'diagnostic-after-cancellation'; Path = $mode; Property = 'ModeSource';
+        Find = 'string state = DescribeState(); // capture pending work before Stop clears it';
+        Replace = '_population.Stop(); string state = DescribeState();';
+        Failure = 'shutdown diagnostics capture pending work before cancellation clears it'
+    },
+    @{
+        Name = 'diagnostic-exception-isolation'; Path = $mode; Property = 'ModeSource';
+        Find = 'catch (Exception ex) { return "roster snapshot unavailable (" + ex.GetType().Name + ")"; }';
+        Replace = 'catch (Exception) { throw; }';
+        Failure = 'a broken diagnostic snapshot cannot interrupt native shutdown or fail the mode'
     }
 )
 foreach ($case in $cases) {

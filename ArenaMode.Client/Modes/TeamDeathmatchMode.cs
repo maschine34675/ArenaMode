@@ -35,6 +35,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     private bool _nativeStopObserved;
     private bool _announcedReady;
     private bool _reportedStall;
+    private bool _reportedUnreadableRoster;
     private readonly float[] _retryAt = new float[2];
     private string _failure;
     private Player _pendingGiveUpLife;
@@ -105,7 +106,18 @@ public sealed class TeamDeathmatchMode : IArenaMode
             if (!ValidateActivations()) return;
             _bots.RemoveAll(bot => !Alive(bot));
             var owners = Singleton<IBotGame>.Instance?.BotsController?.BotSpawner?._bots?.BotOwners;
-            if (owners == null) return; // unreadable occupancy must never become zero
+            if (owners == null)
+            {
+                // Unreadable occupancy must never become zero. Report the
+                // transition, not every tick while native storage is missing.
+                if (!_reportedUnreadableRoster)
+                    Plugin.ModLogger.LogWarning("Team Deathmatch: native roster unavailable; refill paused; " + DescribeState());
+                _reportedUnreadableRoster = true;
+                return;
+            }
+            if (_reportedUnreadableRoster)
+                Plugin.ModLogger.LogInfo("Team Deathmatch: native roster readable again; " + DescribeState());
+            _reportedUnreadableRoster = false;
             foreach (BotOwner bot in owners.ToArray())
             {
                 if (Alive(bot) && !_bots.Any(known => ReferenceEquals(known, bot)))
@@ -123,7 +135,10 @@ public sealed class TeamDeathmatchMode : IArenaMode
             bool stalled = _population.IsStalled(Time.time);
             if (stalled && !_reportedStall)
                 Plugin.ModLogger.LogWarning("Team Deathmatch: spawn request timed out; late arrivals are rejected, "
-                    + "profile loads remain single-flight and uncertain native activations have a bounded retry budget.");
+                    + "profile loads remain single-flight and uncertain native activations have a bounded retry budget; "
+                    + DescribeState());
+            else if (!stalled && _reportedStall)
+                Plugin.ModLogger.LogInfo("Team Deathmatch: expired spawn requests settled; " + DescribeState());
             _reportedStall = stalled;
             if (!_announcedReady && CountBots(true) == _population.BotTarget(true)
                 && CountBots(false) == _population.BotTarget(false)
@@ -175,7 +190,14 @@ public sealed class TeamDeathmatchMode : IArenaMode
             { Fail("admitted bot faction/group changed"); return false; }
             if (bot.BotState == EBotState.Active)
             {
-                if (_activationDeadline.Remove(bot)) _activationFailures[index] = 0;
+                if (_activationDeadline.Remove(bot))
+                {
+                    int previousFailures = _activationFailures[index];
+                    _activationFailures[index] = 0;
+                    if (previousFailures > 0)
+                        Plugin.ModLogger.LogInfo($"Team Deathmatch: {(usec ? "USEC" : "BEAR")} activation recovered "
+                            + $"after {previousFailures} consecutive failures; " + DescribeState());
+                }
                 continue;
             }
             if (bot.BotState == EBotState.PreActive
@@ -183,7 +205,11 @@ public sealed class TeamDeathmatchMode : IArenaMode
             // EFT can leave a healthy body in ActiveFail or wait forever for
             // its weapon manager. Arrival acknowledged the request, not combat
             // readiness: retire the exact failed body before freeing its slot.
-            if (!Retire(bot, "failed or timed-out activation (" + bot.BotState + ")")) return false;
+            string wait = _activationDeadline.TryGetValue(bot, out float expires)
+                ? FormattableString.Invariant($"{Math.Max(0f, Time.time - expires + TeamDeathmatchPopulation.RequestTimeout):F0}s")
+                : "n/a (previously active)";
+            if (!Retire(bot, $"failed or timed-out activation ({bot.BotState}; faction={(usec ? "USEC" : "BEAR")}, "
+                + $"wait={wait}, failure={_activationFailures[index] + 1}/3)")) return false;
             _activationDeadline.Remove(bot);
             _retryAt[index] = Time.time + 5f;
             if (++_activationFailures[index] >= 3)
@@ -223,7 +249,8 @@ public sealed class TeamDeathmatchMode : IArenaMode
                 Fail("scoreboard affiliation drift: " + problem);
             _nextTick = 0f;
             Plugin.ModLogger.LogInfo($"Team Deathmatch admitted {(ticket.Usec ? "USEC" : "BEAR")} "
-                + $"request {ticket.Id}: {CountBots(ticket.Usec)}/{_population.BotTarget(ticket.Usec)} bots.");
+                + $"request {ticket.Id}: {CountBots(ticket.Usec)}/{_population.BotTarget(ticket.Usec)} bots; "
+                + FormattableString.Invariant($"state={bot.BotState}, arrival={Math.Max(0f, Time.time - ticket.CreatedAt):F1}s."));
         }
         finally { _population.Settle(ticket); }
     }
@@ -267,10 +294,39 @@ public sealed class TeamDeathmatchMode : IArenaMode
         if (_population == null || _game == null
             || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
         _nativeStopObserved = true;
+        string state = DescribeState(); // capture pending work before Stop clears it
         _population.Stop();
         _pendingGiveUpLife = null;
-        Plugin.ModLogger.LogInfo("Team Deathmatch: native raid shutdown; pending spawn work cancelled.");
+        Plugin.ModLogger.LogInfo("Team Deathmatch: native raid shutdown; pending spawn work cancelled; " + state);
         return true;
+    }
+
+    private string DescribeState()
+    {
+        // Diagnostics must never turn a disposed Unity property or incomplete
+        // startup into another mode failure. Only inspect the bounded live roster.
+        try
+        {
+            string state = $"status={_game?.Status.ToString() ?? "missing"}, "
+                + $"respawn={Respawn.ArenaRespawnDriver.IsRespawnInProgress}";
+            if (_population == null) return state + "; roster=unavailable";
+            return state + "; USEC " + DescribeFaction(true) + "; BEAR " + DescribeFaction(false);
+        }
+        catch (Exception ex) { return "roster snapshot unavailable (" + ex.GetType().Name + ")"; }
+    }
+
+    private string DescribeFaction(bool usec)
+    {
+        int occupied = 0, active = 0, preActive = 0;
+        foreach (BotOwner bot in _bots)
+        {
+            if (!Alive(bot) || !_usecById.TryGetValue(bot.ProfileId, out bool side) || side != usec) continue;
+            occupied++;
+            if (bot.BotState == EBotState.Active) active++;
+            else if (bot.BotState == EBotState.PreActive) preActive++;
+        }
+        return $"occupied={occupied}/{_population.BotTarget(usec)}, active={active}, preActive={preActive}, "
+            + $"other={occupied - active - preActive}, " + _population.DescribePending(usec, Time.time);
     }
 
     internal bool TrySynchronizeScoreboardRoster(out string problem)
@@ -392,8 +448,9 @@ public sealed class TeamDeathmatchMode : IArenaMode
     {
         if (_failure != null || ObserveNativeStop()) return;
         _failure = reason;
+        string state = DescribeState();
         _population?.Stop();
-        Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason);
+        Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason + "; " + state);
         ArenaToasts.Show("TEAM DM stopped: " + reason);
     }
 
@@ -408,7 +465,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             // Native death callbacks can synchronously begin leaving the raid.
             if (ObserveNativeStop()) return false;
             if (Alive(bot)) throw new InvalidOperationException("body stayed alive after administrative retirement");
-            Plugin.ModLogger.LogWarning("Team Deathmatch retired " + reason + ".");
+            Plugin.ModLogger.LogWarning("Team Deathmatch retired " + reason + "; " + DescribeState());
             return true;
         }
         catch (Exception ex)

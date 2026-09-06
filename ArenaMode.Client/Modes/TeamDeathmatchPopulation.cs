@@ -58,6 +58,16 @@ internal sealed class TeamDeathmatchPopulation
     internal bool IsStalled(float now)
         => !_stopped && _pending.Any(item => !IsCurrent(item, now));
 
+    // At most three tickets per faction. Use process-local request numbers,
+    // never profile IDs; inspection must not settle or reopen uncertain work.
+    internal string DescribePending(bool usec, float now)
+    {
+        Ticket[] tickets = _pending.Where(item => item.Usec == usec).ToArray();
+        if (tickets.Length == 0) return "pending=0";
+        return "pending=" + tickets.Length + " [" + string.Join(", ", tickets.Select(item =>
+            FormattableString.Invariant($"#{item.Id}:{(item.Dispatched ? "native" : "loading")}:{Math.Max(0f, now - item.CreatedAt):F0}s{(IsCurrent(item, now) ? "" : ":expired")}"))) + "]";
+    }
+
     internal void Stop()
     {
         _stopped = true;
