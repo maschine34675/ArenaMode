@@ -1754,9 +1754,12 @@ public sealed partial class TacticalMode : IArenaMode
             : "raid ending";
         ArenaToasts.Show($"5v5 {outcome} — {RoundsWon}-{RoundsLost}, {continuation}");
 
-        Plugin.ModLogger.LogWarning(
-            $"Tactical team Arena round {RoundNumber}: {outcome} — {reason}; "
-            + $"score {RoundsWon}-{RoundsLost}, continuation {decision.Continuation}.");
+        string roundResult = $"Tactical team Arena round {RoundNumber}: {outcome} — {reason}; "
+            + $"score {RoundsWon}-{RoundsLost}, continuation {decision.Continuation}.";
+        // Victory/defeat are normal outcomes. Preserve visibility of readiness,
+        // identity and lifecycle failures that end a round without a valid result.
+        if (won.HasValue) Plugin.ModLogger.LogInfo(roundResult);
+        else Plugin.ModLogger.LogWarning(roundResult);
     }
 
     private void EnterTeamRebinding()
