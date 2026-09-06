@@ -49,10 +49,9 @@ internal static class KitSummary
             if (weapon != null)
                 parts.Add(weapon);
 
-            // The class the player will actually be wearing, which is the best
-            // plate anywhere under the armour or the rig — a plate carrier's own
-            // template is class 0 and says nothing.
-            var armour = BestClass(kit, "ArmorVest", "TacticalVest");
+            // Front protection is what the buyer compares. A class-6 SIDE plate
+            // must not advertise a carrier whose installed front plate is class 4.
+            var armour = FrontBodyClass(kit);
             if (armour > 0)
                 parts.Add($"armour {armour}");
 
@@ -79,6 +78,42 @@ internal static class KitSummary
 
     private static string TplInSlot(KitDefinition kit, string slotId)
         => kit.Items?.FirstOrDefault(n => string.Equals(n.SlotId, slotId, StringComparison.OrdinalIgnoreCase))?.Tpl;
+
+    internal static int FrontBodyClass(KitDefinition kit)
+    {
+        if (kit?.Items == null) return 0;
+        const EArmorPlateCollider chest = EArmorPlateCollider.Plate_Granit_SAPI_chest
+                                         | EArmorPlateCollider.Plate_Korund_chest;
+        var equipmentIds = new HashSet<string>(kit.Items.Where(n => string.IsNullOrEmpty(n.ParentId))
+            .Select(n => n.Id), StringComparer.Ordinal);
+        int frontPlate = 0, softFront = 0;
+        foreach (var root in kit.Items.Where(n => n.ParentId != null && equipmentIds.Contains(n.ParentId)
+                     && (string.Equals(n.SlotId, "ArmorVest", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(n.SlotId, "TacticalVest", StringComparison.OrdinalIgnoreCase))))
+        {
+            var rootTemplate = Template(root.Tpl);
+            if (rootTemplate is IArmorComponentTemplate integral && integral.ArmorPlateColliders == 0
+                && integral.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true)
+                softFront = Math.Max(softFront, integral.ArmorClass);
+
+            if (!(rootTemplate is CompoundItemTemplate compound)) continue;
+            foreach (var node in kit.Items.Where(n => n.ParentId == root.Id))
+            {
+                // Native ArmorComponent intersects the installed part's coverage
+                // with its ArmorSlot. Looking at the part alone counts universal
+                // plates in back/side slots, or spare plates stored in a rig grid.
+                var slot = compound.Slots?.FirstOrDefault(s => s.ID == node.SlotId) as ArmorSlot;
+                if (slot == null || !(Template(node.Tpl) is IArmorComponentTemplate armour)) continue;
+                if ((armour.ArmorPlateColliders & slot.ArmorPlateColliderMask & chest) != 0)
+                    frontPlate = Math.Max(frontPlate, armour.ArmorClass);
+                else if (armour.ArmorPlateColliders == 0
+                         && armour.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true
+                         && slot.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true)
+                    softFront = Math.Max(softFront, armour.ArmorClass);
+            }
+        }
+        return frontPlate > 0 ? frontPlate : softFront;
+    }
 
     /// <summary>
     /// The best armour class anywhere under the given slots, plates included.
