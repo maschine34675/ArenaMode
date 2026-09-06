@@ -1424,7 +1424,7 @@ internal static class Program
             "!profiles.Add(profileId)",
             "RefreshSafely(ally, liveOpponents, epoch)",
             "RefreshSafely(opponent, liveAllies, epoch)",
-            "RefreshNative(source, nearest, out enemyInfo)",
+            "RefreshNative(source, nearest, out enemyInfo, out nativeStage)",
             "SelectEngagedTarget(source, candidates)",
             "SelectRetainedTarget(sourceProfile, candidates, rejectedTargets)",
             "PrepareRejectedTargetPass(rejectedTargets, liveTargets)",
@@ -1459,7 +1459,7 @@ internal static class Program
             "source.Memory.AddEnemy(playerKey, groupInfo, onActivation: false)",
             "ReferenceEquals(enemyInfo.Person, playerKey)",
             "groupInfo.IsLastPositionChecked = false",
-            "TeamArenaGoalHandoff.TrySetGoal(source, enemyInfo, _epoch, out _)",
+            "TeamArenaGoalHandoff.TrySetGoal(source, enemyInfo, _epoch, out stage)",
             "TeamArenaPursuitPolicy.Decide(",
             "IsMedicalActionActive(source)",
             "source.DoorOpener?.Interacting == true",
@@ -1517,12 +1517,12 @@ internal static class Program
             "ReferenceEquals(_sainPlayer.GetValue(sainBot), source.GetPlayer)",
             "TeamArenaSainRebindTransaction.TryEnsureExact(",
             "_sainRemoveEnemy.Invoke(",
-            "RefreshNative(source, targetOwner, out EnemyInfo rebuiltNativeEnemy)",
+            "RefreshNative(source, targetOwner, out EnemyInfo rebuiltNativeEnemy, out nativeRepairStage)",
             "IsExactCurrentSainEnemy(",
             "ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), target.GetPlayer)",
             "wrappedNativeEnemy",
             "ReferenceEquals(registered, candidateNativeEnemy)",
-            "TeamArenaGoalHandoff.TrySetGoal(source, currentNativeEnemy, epoch, out _)",
+            "TeamArenaGoalHandoff.TrySetGoal(source, currentNativeEnemy, epoch, out string goalProblem)",
             "UpdateLastSeenPosition",
             "ReferenceEquals(_sainGoalEnemy.GetValue(enemyController), enemy)");
 
@@ -1701,7 +1701,7 @@ internal static class Program
             "_nativeRunToEnemy = new ArenaRunToEnemy(botOwner)",
             "UnresolvedArrivalGraceSeconds = 1.5f",
             "RouteRefreshSeconds = 1f",
-            "ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _)",
+            "ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _, out string goalProblem)",
             "ArenaSainMovementHandoff.EnsureSuspended(",
             "ArenaSainHandoffState.WaitingForDeactivation",
             "ArenaSainHandoffState.Unavailable",
@@ -1727,7 +1727,7 @@ internal static class Program
             "ArenaSainMovementHandoff.EnsureSuspended(",
             StringComparison.Ordinal);
         int targetBind = bigBrainLogic.IndexOf(
-            "ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _)",
+            "ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _, out string goalProblem)",
             StringComparison.Ordinal);
         int firstRouteStop = bigBrainLogic.IndexOf(
             "BotOwner.Mover?.Stop()",
@@ -1883,7 +1883,7 @@ internal static class Program
             "bot?.Medecine?.Stimulators?.Using == true",
             "TryGetExactEnemy(bot, current.TargetProfileId",
             "TryBindLeaseTarget(",
-            "TeamArenaGoalHandoff.TrySetLeaseGoal(bot, lease, enemy, out _)",
+            "TeamArenaGoalHandoff.TrySetLeaseGoal(bot, lease, enemy, out problem)",
             "pair.Key.ProfileId?.Trim()",
             "ReferenceEquals(pair.Key, candidate.Person)",
             "ReferenceEquals(candidate.Owner, bot)",

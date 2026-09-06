@@ -45,8 +45,16 @@ internal static class ArenaPursuitRuntime
         BotOwner bot,
         TeamArenaPursuitLease lease,
         out EnemyInfo enemy)
+        => TryBindLeaseTarget(bot, lease, out enemy, out _);
+
+    internal static bool TryBindLeaseTarget(
+        BotOwner bot,
+        TeamArenaPursuitLease lease,
+        out EnemyInfo enemy,
+        out string problem)
     {
         enemy = null;
+        problem = "source-or-exact-enemy-unavailable";
         try
         {
             if (!IsLive(bot)
@@ -56,11 +64,12 @@ internal static class ArenaPursuitRuntime
                 return false;
             }
 
-            return TeamArenaGoalHandoff.TrySetLeaseGoal(bot, lease, enemy, out _);
+            return TeamArenaGoalHandoff.TrySetLeaseGoal(bot, lease, enemy, out problem);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             enemy = null;
+            problem = "consumer-bind-exception:" + ex.GetBaseException().GetType().Name;
             return false;
         }
     }

@@ -56,12 +56,12 @@ public sealed class ArenaPursuitLogic : CustomLogic
             // SAIN's decision loop may replace GoalEnemy while Arena owns the
             // higher-priority movement layer. Rebind the exact lease target on
             // every update before either system can inspect or move toward it.
-            if (!ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _))
+            if (!ArenaPursuitRuntime.TryBindLeaseTarget(BotOwner, lease, out _, out string goalProblem))
             {
                 RejectLease(
                     lease,
-                    "target-bind",
-                    "the exact current-round EFT enemy could not be rebound");
+                    "target-bind:" + goalProblem,
+                    "the exact current-round EFT enemy could not be rebound toward '" + lease.TargetProfileId + "'");
                 return;
             }
 

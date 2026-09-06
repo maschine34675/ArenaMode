@@ -45,6 +45,25 @@ a nested goal assignment to another bot; the reviewed native path requires a new
 enemy within 25 metres, actual visibility and `CanShoot`, and preserves mission
 vetos. Arbitrary callbacks added by other mods remain outside this offline proof.
 
+## Follow-up diagnostics
+
+Native and SAIN failures now name their failing stage. Native registration,
+identity validation and actual goal refusal are separate, and BigBrain forwards
+the same concrete handoff failure. Goal snapshots show requested/current profile,
+exact EnemyInfo identity, key type and real visible/shootable flags. They do not
+rerun PFT policy or infer which external prefix vetoed the native setter.
+
+Each new source/target/channel/stage combination is reported immediately. Repeated
+failures share one 30-second reporting budget per source and channel, with a count
+of suppressed occurrences and targets whose binding has not since validated.
+That target count is diagnostic history, not a count of living enemies. One
+recovery per pair/channel/round confirms binding only, not physical movement.
+All bookkeeping is cleared at round/reset and stores no bot references. Busy
+messages show the same medical/reload/grenade/door snapshot used by the movement
+policy; no additional danger evaluation or movement intervention is introduced.
+Exceptions retain their complete inner stack once per stage/type; repeated reports
+stay compact. Independent follow-up review found no changed AI return paths.
+
 ## Verification and limits
 
 `tools/TeamArenaGoalHandoffChecks` links the actual helper, reflection adapter,
@@ -60,6 +79,13 @@ the final client Release deployment. External mod files are hash-checked unchang
 Independent reviewers identified the post-set source/lease/relation revalidation
 requirements; all three are included. No profile, inventory or server path changes.
 No third-party implementation or binaries are copied or bundled.
+
+Final offline verification on 2026-09-06: 1,129 handoff/diagnostic assertions
+(including a 1,000-call suppression loop), ten deliberately broken variants
+rejected, installed contracts and all regression/deployment runners passed.
+Client, BigBrain companion and Redeploy.Core Release/live files matched; 31
+external mod/configuration files were unchanged. Existing nullable-context build
+warnings are unrelated to this change.
 
 This host has no GPU. Restart the game before testing Factory Tactical after
 death, another round and player respawn, plus an ordinary PFT raid with explicit

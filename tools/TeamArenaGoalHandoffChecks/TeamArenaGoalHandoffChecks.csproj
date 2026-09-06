@@ -10,11 +10,13 @@
     <HandoffSource Condition="'$(HandoffSource)' == ''">../../ArenaMode.Client/Bots/TeamArenaGoalHandoff.cs</HandoffSource>
     <ContextSource Condition="'$(ContextSource)' == ''">../../ArenaMode.Client/Compat/PitFireTeamGoalContext.cs</ContextSource>
     <RoundSource Condition="'$(RoundSource)' == ''">../../ArenaMode.Client/Modes/TacticalMode.Pursuit.cs</RoundSource>
+    <DiagnosticsSource Condition="'$(DiagnosticsSource)' == ''">../../ArenaMode.Client/Bots/TeamArenaAwarenessDiagnostics.cs</DiagnosticsSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(HandoffSource)" Link="Production/TeamArenaGoalHandoff.cs" />
     <Compile Include="$(ContextSource)" Link="Production/PitFireTeamGoalContext.cs" />
     <Compile Include="$(RoundSource)" Link="Production/TacticalMode.Pursuit.cs" />
+    <Compile Include="$(DiagnosticsSource)" Link="Production/TeamArenaAwarenessDiagnostics.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamArenaEnemyIdentityPolicy.cs" Link="Production/TeamArenaEnemyIdentityPolicy.cs" />
     <Compile Include="../../ArenaMode.BigBrainCompat/ArenaPursuitRuntime.cs" Link="Production/ArenaPursuitRuntime.cs" />
   </ItemGroup>

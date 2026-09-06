@@ -4,6 +4,7 @@ $paths = @{
     HandoffSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../ArenaMode.Client/Bots/TeamArenaGoalHandoff.cs'))
     ContextSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../ArenaMode.Client/Compat/PitFireTeamGoalContext.cs'))
     RoundSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../ArenaMode.Client/Modes/TacticalMode.Pursuit.cs'))
+    DiagnosticsSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../ArenaMode.Client/Bots/TeamArenaAwarenessDiagnostics.cs'))
 }
 $hashes = @{}
 foreach ($key in $paths.Keys) { $hashes[$key] = (Get-FileHash -LiteralPath $paths[$key]).Hash }
@@ -19,7 +20,9 @@ $mutants = @(
     @{ Name='OldRound'; Property='RoundSource'; Anchor='|| epoch != _teamRoundEpoch'; Replacement=''; Failure='isolation: old round' },
     @{ Name='MissingPrevious'; Property='HandoffSource'; Anchor='if (previous != null)'; Replacement='if (false)'; Failure='missing previous subscription is rejected before' },
     @{ Name='ReplacedLease'; Property='HandoffSource'; Anchor='if (!TeamArenaPursuitLeaseBridge.TryGet(source.ProfileId, lease.Epoch, lease.Generation, out var after)'; Replacement='if (!TeamArenaPursuitLeaseBridge.TryGet(source.ProfileId, out var after)'; Failure='lease replacement during native callback' },
-    @{ Name='RemovedRelation'; Property='HandoffSource'; Anchor=('if (!HasExactRelation(source, target, enemy))' + "`n" + '            { problem = "pursuit-relation-ended-during-setter"; return false; }'); Replacement=''; Failure='removed relation during native callback' }
+    @{ Name='RemovedRelation'; Property='HandoffSource'; Anchor=('if (!HasExactRelation(source, target, enemy))' + "`n" + '            { problem = "pursuit-relation-ended-during-setter"; return false; }'); Replacement=''; Failure='removed relation during native callback' },
+    @{ Name='LogFlood'; Property='DiagnosticsSource'; Anchor='if (!firstReason && now < channel.NextRepeat)'; Replacement='if (false)'; Failure='repeated per-frame refusal cannot flood the log' },
+    @{ Name='HiddenPersistentFailure'; Property='DiagnosticsSource'; Anchor='if (!firstReason && now < channel.NextRepeat)'; Replacement='if (!firstReason)'; Failure='persistent failures return with their suppressed count' }
 )
 foreach ($mutant in $mutants) {
     $source = [IO.File]::ReadAllText($paths[$mutant.Property]).Replace("`r`n", "`n")

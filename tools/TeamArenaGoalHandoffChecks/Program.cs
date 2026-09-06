@@ -202,6 +202,14 @@ internal static class Program
         Check(ArenaPursuitRuntime.TryBindLeaseTarget(raid2.Ally, TeamArenaPursuitLeaseBridge.Current, out var enemy)
             && ReferenceEquals(enemy, raid2.Enemy) && FollowerGoalEnemyTracker.Entered == 1,
             "actual BigBrain consumer uses the scoped producer handoff");
+        var consumerVeto = new Raid();
+        consumerVeto.Ally.Memory.MissionVeto = true;
+        Check(!ArenaPursuitRuntime.TryBindLeaseTarget(consumerVeto.Ally, TeamArenaPursuitLeaseBridge.Current, out _, out var consumerProblem)
+            && consumerProblem == "native-goal-setter-refused", "consumer preserves the actual goal-refusal diagnosis");
+        var consumerRelation = new Raid();
+        consumerRelation.Ally.EnemiesController.EnemyInfos.Clear();
+        Check(!ArenaPursuitRuntime.TryBindLeaseTarget(consumerRelation.Ally, TeamArenaPursuitLeaseBridge.Current, out _, out consumerProblem)
+            && consumerProblem == "source-or-exact-enemy-unavailable", "consumer distinguishes a missing relation from a goal refusal");
         foreach (var stale in new[] { new TeamArenaPursuitLease("ally0", "enemy0", 2, 41),
             new TeamArenaPursuitLease("ally0", "enemy0", 3, 40), new TeamArenaPursuitLease("ally0", "enemy1", 3, 41),
             new TeamArenaPursuitLease("other-source", "enemy0", 3, 41) })
@@ -216,6 +224,29 @@ internal static class Program
             && absent.Ally.Memory.SetCalls == 0, "missing contract fails closed without unscoped fallback");
     }
 
+    private static void Diagnostics()
+    {
+        var ledger = new TeamArenaAwarenessDiagnostics();
+        Check(!ledger.Recovery("ally:native", "target"), "never report a recovery without a failed binding");
+        Check(ledger.Failure("ally:native", "target", "veto", 0, out _, out var pending) && pending == 1,
+            "initial binding refusal is immediately visible");
+        for (int i = 0; i < 1000; i++)
+            Check(!ledger.Failure("ally:native", "target", "veto", 1, out _, out _), "repeated per-frame refusal cannot flood the log");
+        Check(ledger.Failure("ally:native", "target", "veto", 30, out var suppressed, out _) && suppressed == 1000,
+            "persistent failures return with their suppressed count after thirty seconds");
+        Check(ledger.Failure("ally:native", "target", "missing-pair", 31, out _, out _), "new failure branch is not hidden by an earlier veto");
+        Check(ledger.Failure("ally:native", "target2", "veto", 32, out _, out pending) && pending == 2,
+            "new target failures remain distinguishable");
+        Check(!ledger.Failure("ally:native", "target", "veto", 60, out _, out _), "cycling targets shares a single repeat budget");
+        Check(ledger.Recovery("ally:native", "target") && !ledger.Recovery("ally:native", "target"), "binding recovery is reported once");
+        ledger.Failure("ally:native", "target", "veto", 65, out _, out _);
+        Check(!ledger.Recovery("ally:native", "target"), "flapping binding cannot flood recovery logs");
+        Check(ledger.Failure("ally:sain", "target", "veto", 1, out _, out _), "native and SAIN failures are independent channels");
+        ledger.Clear();
+        Check(!ledger.Recovery("ally:native", "target") && ledger.Failure("ally:native", "target", "veto", 0, out _, out _),
+            "round reset forgets pending reports and suppression");
+    }
+
     private static int Main()
     {
         try
@@ -223,6 +254,7 @@ internal static class Program
             SuccessAndVetoes();
             Isolation();
             RegistryAndLease();
+            Diagnostics();
             Console.WriteLine($"ARENA_PFT_GOAL_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }

@@ -38,6 +38,7 @@ internal static class TeamArenaPursuit
 
     private static readonly HashSet<string> LoggedFailures = new(StringComparer.Ordinal);
     private static readonly HashSet<string> LoggedRoutes = new(StringComparer.Ordinal);
+    private static readonly TeamArenaAwarenessDiagnostics AwarenessDiagnostics = new();
     private static readonly NavMeshPath RoutePath = new();
     private static readonly Dictionary<string, string> KnownTargetsBySource = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, RouteMovementProbe> RouteMovementBySource = new(StringComparer.Ordinal);
@@ -254,13 +255,14 @@ internal static class TeamArenaPursuit
         }
 
         EnemyInfo enemyInfo;
+        string nativeStage = "native-refresh-entry";
         try
         {
-            if (!RefreshNative(source, nearest, out enemyInfo))
+            if (!RefreshNative(source, nearest, out enemyInfo, out nativeStage))
             {
                 TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
                 RejectTargetForCurrentPass(source, nearest, epoch);
-                LogAwarenessRejectedOnce(epoch, source, nearest);
+                LogAwarenessRejectedOnce(epoch, source, nearest, nativeStage, enemyInfo);
                 return;
             }
         }
@@ -268,7 +270,7 @@ internal static class TeamArenaPursuit
         {
             TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
             RejectTargetForCurrentPass(source, nearest, epoch);
-            LogOnce(epoch, source, targetProfile, "eft-awareness", ex);
+            LogAwarenessRejectedOnce(epoch, source, nearest, nativeStage + ":" + ex.GetBaseException().GetType().Name, null, ex);
             return;
         }
 
@@ -296,26 +298,30 @@ internal static class TeamArenaPursuit
         {
             TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
             RejectTargetForCurrentPass(source, nearest, epoch);
-            LogAwarenessRejectedOnce(epoch, source, nearest);
+            LogAwarenessRejectedOnce(epoch, source, nearest,
+                exactNativeRelation ? "sain-source-incompatible" : "after-sain-native-relation-invalid", enemyInfo);
             return;
         }
+        LogAwarenessRecoveryOnce(epoch, source, targetProfile, "native");
 
+        bool visible = enemyInfo.IsVisible;
+        bool shootable = enemyInfo.CanShoot;
+        bool medical = IsMedicalActionActive(source);
+        bool reload = source.WeaponManager?.Reload?.Reloading == true;
+        bool grenade = source.WeaponManager?.Grenades?.ThrowindNow == true;
+        bool door = source.DoorOpener?.Interacting == true;
+        bool danger = HasImmediateDanger(source);
         TeamArenaApproachDecision decision = TeamArenaPursuitPolicy.Decide(
             bestDistance,
-            enemyInfo.IsVisible,
-            enemyInfo.CanShoot,
-            IsMedicalActionActive(source),
-            source.WeaponManager?.Reload?.Reloading == true,
-            source.WeaponManager?.Grenades?.ThrowindNow == true,
-            source.DoorOpener?.Interacting == true,
-            HasImmediateDanger(source));
+            visible, shootable,
+            medical, reload, grenade, door, danger);
         if (decision != TeamArenaApproachDecision.Approach)
         {
             TeamArenaPursuitLeaseBridge.Revoke(sourceProfile, epoch);
             RouteMovementBySource.Remove(sourceProfile);
             if (decision == TeamArenaApproachDecision.Busy
                 || decision == TeamArenaApproachDecision.ImmediateDanger)
-                LogDecisionOnce(epoch, source, nearest, decision);
+                LogDecisionOnce(epoch, source, nearest, decision, medical, reload, grenade, door);
             return;
         }
 
@@ -512,9 +518,10 @@ internal static class TeamArenaPursuit
         RouteMovementBySource.Remove(sourceProfile);
     }
 
-    private static bool RefreshNative(BotOwner source, BotOwner target, out EnemyInfo enemyInfo)
+    private static bool RefreshNative(BotOwner source, BotOwner target, out EnemyInfo enemyInfo, out string stage)
     {
         enemyInfo = null;
+        stage = "source-components-or-live-target-missing";
         var group = source?.BotsGroup;
         if (group == null
             || target == null
@@ -527,12 +534,14 @@ internal static class TeamArenaPursuit
         }
 
         IPlayer playerKey = target.GetPlayer;
+        stage = "canonical-group-add";
         bool hasCanonicalPlayerGroupKey = TeamArenaEnemyIdentityPolicy.ContainsReferenceKey(
             group.Enemies,
             playerKey);
         if (!hasCanonicalPlayerGroupKey)
             group.AddEnemy(playerKey, EBotEnemyCause.bossKillArena);
 
+        stage = "canonical-group-or-pair-invalid";
         if (!TryResolveCanonicalPlayerEnemy(
                 source,
                 target,
@@ -548,11 +557,13 @@ internal static class TeamArenaPursuit
         // that distinction by comparing IDs, while PFT's SAIN acquire gate
         // intentionally accepts same-side AI only as the concrete Player. Keep
         // PFT's BotOwner relation, but establish and use a complete Player pair.
+        stage = "group-report";
         group.ReportAboutEnemy(playerKey, EEnemyPartVisibleType.Sence, source);
         groupInfo.IsLastPositionChecked = false;
 
         if (!hasEnemyInfo)
         {
+            stage = "memory-add-or-rebound-pair-invalid";
             source.Memory.AddEnemy(playerKey, groupInfo, onActivation: false);
             if (!TryResolveCanonicalPlayerEnemy(
                     source,
@@ -567,6 +578,7 @@ internal static class TeamArenaPursuit
             }
         }
 
+        stage = "enemy-pair-owner-group-person-mismatch";
         if (enemyInfo == null
             || !ReferenceEquals(enemyInfo.Person, playerKey)
             || !ReferenceEquals(enemyInfo.GroupInfo, groupInfo)
@@ -578,8 +590,12 @@ internal static class TeamArenaPursuit
 
         enemyInfo.IgnoreUntilAggression = false;
         source.Memory.IsPeace = false;
-        return TeamArenaGoalHandoff.TrySetGoal(source, enemyInfo, _epoch, out _)
-            && GoalEnemyMatches(source, target, enemyInfo);
+        if (!TeamArenaGoalHandoff.TrySetGoal(source, enemyInfo, _epoch, out stage))
+        { stage = "goal-handoff:" + stage; return false; }
+        stage = "goal-readback-mismatch";
+        if (!GoalEnemyMatches(source, target, enemyInfo)) return false;
+        stage = null;
+        return true;
     }
 
     private static bool TryResolveCanonicalPlayerEnemy(
@@ -957,6 +973,7 @@ internal static class TeamArenaPursuit
         string targetProfile)
     {
         bool exactSourceEstablished = false;
+        string stage = "target-input-invalid";
         try
         {
             if (targetOwner?.GetPlayer == null
@@ -964,9 +981,11 @@ internal static class TeamArenaPursuit
                 || expectedNativeEnemy == null
                 || !ReferenceEquals(expectedNativeEnemy.Person, targetPerson))
             {
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, stage, expectedNativeEnemy);
                 return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
+            stage = "source-wrapper-incompatible";
             TeamArenaSainSourceState sourceState = TryGetExactSainBot(
                 source,
                 out object sainBot);
@@ -975,17 +994,23 @@ internal static class TeamArenaPursuit
 
             if (sourceState != TeamArenaSainSourceState.Exact)
             {
-                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, stage, expectedNativeEnemy);
                 return TeamArenaSainAwarenessState.SourceIncompatible;
             }
             exactSourceEstablished = true;
 
+            stage = "enemy-controller-missing";
             object enemyController = _sainEnemyController.GetValue(sainBot);
             if (enemyController == null)
+            {
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, stage, expectedNativeEnemy);
                 return TeamArenaSainAwarenessState.SourceIncompatible;
+            }
 
             EnemyInfo currentNativeEnemy = expectedNativeEnemy;
             EnemyInfo exactSainNativeEnemy = null;
+            string nativeRepairStage = null;
+            stage = "target-wrapper-rebind";
             TeamArenaSainRebindOutcome outcome = TeamArenaSainRebindTransaction.TryEnsureExact(
                 resolveOrCreate: () => _sainCheckAddEnemy.Invoke(
                     enemyController,
@@ -1000,7 +1025,7 @@ internal static class TeamArenaPursuit
                     new object[] { targetProfile }),
                 rebuildExactNative: () =>
                 {
-                    if (!RefreshNative(source, targetOwner, out EnemyInfo rebuiltNativeEnemy)
+                    if (!RefreshNative(source, targetOwner, out EnemyInfo rebuiltNativeEnemy, out nativeRepairStage)
                         || rebuiltNativeEnemy == null
                         || !IsCurrentTargetPerson(rebuiltNativeEnemy.Person, targetOwner))
                     {
@@ -1015,14 +1040,15 @@ internal static class TeamArenaPursuit
                 && outcome != TeamArenaSainRebindOutcome.ExactRebuilt)
             {
                 expectedNativeEnemy = currentNativeEnemy;
-                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile,
+                    "target-wrapper:" + outcome + (nativeRepairStage == null ? "" : ":" + nativeRepairStage), currentNativeEnemy);
                 return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
             if (exactSainNativeEnemy == null || source.Memory == null)
             {
                 expectedNativeEnemy = currentNativeEnemy;
-                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, "native-wrapper-or-memory-missing", currentNativeEnemy);
                 return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
@@ -1030,31 +1056,36 @@ internal static class TeamArenaPursuit
             // pairs. Otherwise visibility on one pair and CanShoot on the other
             // can make each system believe the other owns combat.
             currentNativeEnemy = exactSainNativeEnemy;
-            if (!TeamArenaGoalHandoff.TrySetGoal(source, currentNativeEnemy, epoch, out _))
+            if (!TeamArenaGoalHandoff.TrySetGoal(source, currentNativeEnemy, epoch, out string goalProblem))
             {
                 expectedNativeEnemy = currentNativeEnemy;
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, "native-goal-handoff:" + goalProblem, currentNativeEnemy);
                 return TeamArenaSainAwarenessState.TargetUnavailable;
             }
             expectedNativeEnemy = currentNativeEnemy;
             if (!GoalEnemyMatches(source, targetOwner, currentNativeEnemy))
             {
-                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, "native-goal-readback-mismatch", currentNativeEnemy);
                 return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
+            stage = "last-position-update";
             _sainUpdateLastSeen.Invoke(enemy, new object[] { targetOwner.Position, Time.time });
+            stage = "sain-goal-setter-or-readback";
             _sainGoalEnemy.GetSetMethod(nonPublic: true)?.Invoke(enemyController, new[] { enemy });
             if (!ReferenceEquals(_sainGoalEnemy.GetValue(enemyController), enemy))
             {
-                LogSainIdentityRejectedOnce(epoch, source, targetProfile);
+                LogSainIdentityRejectedOnce(epoch, source, targetProfile, stage, currentNativeEnemy);
                 return TeamArenaSainAwarenessState.TargetUnavailable;
             }
 
+            LogAwarenessRecoveryOnce(epoch, source, targetProfile, "sain");
             return TeamArenaSainAwarenessState.Exact;
         }
         catch (Exception ex)
         {
-            LogOnce(epoch, source, targetProfile, "sain-awareness", ex);
+            LogSainIdentityRejectedOnce(epoch, source, targetProfile,
+                stage + ":" + ex.GetBaseException().GetType().Name, expectedNativeEnemy, ex);
             return exactSourceEstablished
                 ? TeamArenaSainAwarenessState.TargetUnavailable
                 : TeamArenaSainAwarenessState.SourceIncompatible;
@@ -1303,31 +1334,69 @@ internal static class TeamArenaPursuit
     private static void LogAwarenessRejectedOnce(
         int epoch,
         BotOwner source,
-        BotOwner target)
+        BotOwner target,
+        string stage,
+        EnemyInfo requested,
+        Exception exception = null)
     {
         string targetProfile = target?.ProfileId ?? "?";
-        string key = epoch + ":" + (source?.ProfileId ?? "?") + ":" + targetProfile + ":eft-awareness:rejected";
-        if (!LoggedFailures.Add(key))
+        string key = AwarenessKey(epoch, source, "native");
+        if (!AwarenessDiagnostics.Failure(key, targetProfile, stage, Time.time, out int suppressed, out int pending))
             return;
 
         Plugin.ModLogger.LogWarning(
-            $"Team Arena pursuit could not register '{target?.Profile?.Nickname ?? "?"}' as a live enemy "
-            + $"for {Describe(source)} in round epoch {epoch}; another live target will be tried.");
+            $"Team Arena native awareness rejected for {Describe(source)} toward '{targetProfile}' "
+            + $"in round epoch {epoch}: stage={stage}; {DescribeGoal(source, requested)}; "
+            + $"pendingTargets={pending}, suppressedSinceReport={suppressed}; another live target will be tried."
+            + ExceptionDetailOnce(key, targetProfile, stage, exception));
     }
 
     private static void LogSainIdentityRejectedOnce(
         int epoch,
         BotOwner source,
-        string targetProfile)
+        string targetProfile,
+        string stage,
+        EnemyInfo requested,
+        Exception exception = null)
     {
-        string key = epoch + ":" + (source?.ProfileId ?? "?") + ":"
-            + (targetProfile ?? "?") + ":sain-awareness:stale";
-        if (!LoggedFailures.Add(key))
+        string key = AwarenessKey(epoch, source, "sain");
+        if (!AwarenessDiagnostics.Failure(key, targetProfile, stage, Time.time, out int suppressed, out int pending))
             return;
 
         Plugin.ModLogger.LogWarning(
-            $"Team Arena could not bind SAIN awareness for {Describe(source)} to the exact live "
-            + $"enemy '{targetProfile ?? "?"}'; Arena will continue only if the exact native EFT relation remains valid.");
+            $"Team Arena SAIN awareness rejected for {Describe(source)} toward '{targetProfile ?? "?"}' "
+            + $"in round epoch {epoch}: stage={stage}; {DescribeGoal(source, requested)}; "
+            + $"pendingTargets={pending}, suppressedSinceReport={suppressed}; "
+            + "Arena will continue only if the exact native EFT relation remains valid."
+            + ExceptionDetailOnce(key, targetProfile, stage, exception));
+    }
+
+    private static string ExceptionDetailOnce(string channel, string target, string stage, Exception exception)
+        => exception != null && LoggedFailures.Add(channel + ":" + target + ":" + stage + ":exception-detail")
+            ? " " + exception.GetBaseException() : "";
+
+    private static string AwarenessKey(int epoch, BotOwner source, string channel)
+        => epoch + ":" + (source?.ProfileId ?? "?") + ":" + channel;
+
+    private static void LogAwarenessRecoveryOnce(int epoch, BotOwner source, string target, string channel)
+    {
+        string key = AwarenessKey(epoch, source, channel);
+        if (AwarenessDiagnostics.Recovery(key, target))
+            Plugin.ModLogger.LogInfo($"Team Arena {channel} awareness validated again for {Describe(source)} "
+                + $"toward '{target}' in round epoch {epoch}; this confirms binding, not movement execution.");
+    }
+
+    private static string DescribeGoal(BotOwner source, EnemyInfo requested)
+    {
+        // Pure observation; never rerun PFT decision functions for a diagnosis.
+        try
+        {
+            EnemyInfo actual = source?.Memory?.GoalEnemy;
+            return $"requested={requested?.Person?.ProfileId ?? "none"}, actual={actual?.Person?.ProfileId ?? "none"}, "
+                + $"exact={ReferenceEquals(actual, requested) && requested != null}, key={requested?.Person?.GetType().Name ?? "none"}, "
+                + $"visible={requested?.IsVisible == true}, shootable={requested?.CanShoot == true}";
+        }
+        catch (Exception) { return "goal snapshot unavailable"; }
     }
 
     private static void LogOwnerUnavailableOnce(
@@ -1350,16 +1419,21 @@ internal static class TeamArenaPursuit
         int epoch,
         BotOwner source,
         BotOwner target,
-        TeamArenaApproachDecision decision)
+        TeamArenaApproachDecision decision,
+        bool medical,
+        bool reload,
+        bool grenade,
+        bool door)
     {
         string targetProfile = target?.ProfileId ?? "?";
-        string key = epoch + ":" + (source?.ProfileId ?? "?") + ":" + targetProfile + ":decision:" + decision;
+        string flags = $"medical={medical}, reload={reload}, grenade={grenade}, door={door}";
+        string key = epoch + ":" + (source?.ProfileId ?? "?") + ":" + targetProfile + ":decision:" + decision + ":" + flags;
         if (!LoggedFailures.Add(key))
             return;
 
         Plugin.ModLogger.LogInfo(
             $"Team Arena pursuit paused for {Describe(source)} toward "
-            + $"'{target?.Profile?.Nickname ?? "?"}' while its current {decision} action owns movement.");
+            + $"'{target?.Profile?.Nickname ?? "?"}' in round epoch {epoch}: decision={decision}, {flags}.");
     }
 
     private static void LogStalledOnce(
@@ -1416,6 +1490,7 @@ internal static class TeamArenaPursuit
     {
         LoggedFailures.Clear();
         LoggedRoutes.Clear();
+        AwarenessDiagnostics.Clear();
         KnownTargetsBySource.Clear();
         RouteMovementBySource.Clear();
         RejectedTargetsBySource.Clear();
