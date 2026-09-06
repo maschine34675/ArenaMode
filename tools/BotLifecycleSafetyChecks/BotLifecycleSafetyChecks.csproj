@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <!-- Reflection fixture only; never deployed as a SAIN replacement. -->
+    <AssemblyName>SAIN</AssemblyName>
+    <AssemblyVersion>4.5.1.0</AssemblyVersion>
+    <NativeSource Condition="'$(NativeSource)' == ''">../../../_decompiled</NativeSource>
+    <SafetySource Condition="'$(SafetySource)' == ''">../../ArenaMode.Client/Bots/ArenaBotLifecycleSafety.cs</SafetySource>
+    <ScopeSource Condition="'$(ScopeSource)' == ''">../../ArenaMode.Client/Bots/ArenaBotLifecycleScope.cs</ScopeSource>
+    <SainSource Condition="'$(SainSource)' == ''">../../ArenaMode.Client/Bots/ArenaSainActionSafety.cs</SainSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(SafetySource)" Link="Production/ArenaBotLifecycleSafety.cs" />
+    <Compile Include="$(ScopeSource)" Link="Production/ArenaBotLifecycleScope.cs" />
+    <Compile Include="$(SainSource)" Link="Production/ArenaSainActionSafety.cs" />
+    <!-- Native algorithm is linked from local decompilation, not copied/bundled. -->
+    <Compile Include="$(BaseIntermediateOutputPath)native/BotEnemiesController.cs" Link="Native/BotEnemiesController.cs" />
+    <Compile Include="$(NativeSource)/BotData.cs" Link="Native/BotData.cs" />
+  </ItemGroup>
+  <Target Name="PrepareNativeOracle" BeforeTargets="BeforeBuild">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="pwsh -NoProfile -File &quot;$(MSBuildProjectDirectory)/Prepare-NativeSource.ps1&quot; -SourceDirectory &quot;$(NativeSource)&quot; -OutputPath &quot;$(BaseIntermediateOutputPath)native/BotEnemiesController.cs&quot;" />
+  </Target>
+</Project>

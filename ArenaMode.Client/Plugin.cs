@@ -53,6 +53,8 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
+        Bots.ArenaBotLifecycleSafety.Enable();
+        Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
         Effects.ArenaTracerPatches.Enable();
         Effects.ArenaTeamLaserColors.Enable();
@@ -83,6 +85,8 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Bots.ArenaSainActionSafety.Shutdown();
+        Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
         Notifications.ArenaProgressNotifications.Shutdown();
         Hud.ArenaHud.Detach();
