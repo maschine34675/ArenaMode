@@ -12,9 +12,11 @@ modified. The real menu's existing `Clear` restores the former location referenc
 on return to PMC/Scav or exit; no field snapshots can overwrite external changes.
 
 The server mirrors `Enabled=true` and `ForceOnlineRaidInPVE=false` only on its
-existing exact Arena raid clone. On that Labyrinth clone it also zeros both
-Way Up timers: `MinTime`/`MaxTime` control availability, while `ExfiltrationTime`
-controls the extraction countdown; all three PVE counterparts are zero as well.
+existing exact Arena raid clone. On that Labyrinth clone Way Up is immediately
+available (`MinTime`/`MaxTime` = 0), with a **10-second extraction countdown**
+(`ExfiltrationTime` = 10). The corresponding PVE fields use the same values.
+The former zero-second countdown caused accidental extractions when crossing
+the exit doorway during Tactical matches; only the countdown has changed.
 Only the exact native exit name `labir_exit` is affected. Its native extraction
 type, requirements, chance and every other field remain intact. The matching
 exit record is copied before changing its timers, protecting shared aliases even
@@ -71,9 +73,9 @@ Native evidence in `../_decompiled/`:
   delay; eligibility begins after the first positive game-time update.
 - `CommonAssets.Scripts.Game/EndByExitTrigerScenario.cs`: `Update` separately
   consumes `ExfiltrationTime` for individual and shared extraction countdowns.
-  Zero removes the stock five-second countdown; native trigger, living-player
-  and requirement checks still apply, and extraction completes on a native
-  update. Arena does not bypass the extraction lifecycle.
+  The Arena override uses ten seconds; native trigger, living-player and
+  requirement checks still apply, and extraction completes on a native update.
+  Arena does not bypass the extraction lifecycle.
 
 Run in the repo with PowerShell 7:
 
@@ -98,13 +100,20 @@ The timer check separately verifies the installed native loader and timer
 consumers. Actual server/session tests cover all five Arena modes, standalone
 and co-installed metadata, ordinary/armed/foreign sessions, raid exit, disabled
 maps, other maps/exits, absent exits, idempotence and shared exit aliases. Four
-temporary mutants must fail: a nonzero availability timer, a nonzero PVE
+temporary mutants must fail: a nonzero availability timer, a zero-second PVE
 countdown, changes to every exit and an in-place write through a shared alias.
 The unmodified timer tests and existing location mutator suite then run again.
+
+Countdown correction verified on 2026-09-06: all 35 timer/location tests passed
+without skips, all four mutation controls failed as intended, and the installed
+native timer contracts passed. Independent review found no issues. Release
+server build succeeded and its deployed DLL hash matched the build. Restart the
+server before the next Arena raid; the ten-second countdown still needs an
+in-game check on a GPU-capable client.
 
 GPU handoff: restart client/server; test Arena Labyrinth with EnableLabyrinth
 absent and present, menu highlight after Back, no entry card, local map load and
 return to ordinary PMC/Scav. Confirm ordinary metadata/exits match the relevant
 stock or upstream-mod configuration. In Arena, confirm Way Up is immediately
-eligible and extracts without a countdown, while other exits retain their
+eligible and shows a ten-second extraction countdown, while other exits retain their
 configuration. Offline passing checks are not gameplay proof.

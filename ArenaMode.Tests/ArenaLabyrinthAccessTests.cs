@@ -122,7 +122,7 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
     [InlineData("gungame")]
     [InlineData("tactical")]
     [InlineData("teamdeathmatch")]
-    public void WayUpBothTimersAreZeroInEveryArenaMode(string mode)
+    public void WayUpIsImmediatelyAvailableWithTenSecondCountdownInEveryArenaMode(string mode)
     {
         var original = Location(coInstalled: true);
         var clone = JsonSerializer.Deserialize<LocationBase>(JsonSerializer.Serialize(original))!;
@@ -231,7 +231,7 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
                 Assert.Equal(JsonSerializer.Serialize(expected[i]), JsonSerializer.Serialize(result[i]));
                 continue;
             }
-            Assert.Equal(new double?[] { 0, 0, 0, 0, 0, 0 },
+            Assert.Equal(new double?[] { 0, 0, 0, 0, 10, 10 },
                 [result[i].MinTime, result[i].MaxTime, result[i].MinTimePVE, result[i].MaxTimePVE,
                  result[i].ExfiltrationTime, result[i].ExfiltrationTimePVE]);
             // Every field outside the requested timers stays unchanged,

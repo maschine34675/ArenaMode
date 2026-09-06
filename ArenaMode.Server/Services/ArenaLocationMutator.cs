@@ -54,7 +54,9 @@ public static class ArenaLocationMutator
 
             // Way Up has two independent timers: Min/MaxTime determine when
             // TimerRequirement becomes available; ExfiltrationTime is the
-            // extraction countdown. Keep its native type/requirements and all
+            // extraction countdown. Keep availability immediate, but use a
+            // ten-second countdown instead of extracting on doorway entry.
+            // Keep its native type/requirements and all
             // other exits, including EnableLabyrinth's optional Scav exit.
             // Copy the matching record so aliases never receive Arena timers.
             if (location.Exits != null)
@@ -65,8 +67,8 @@ public static class ArenaLocationMutator
                         MaxTime = 0,
                         MinTimePVE = 0,
                         MaxTimePVE = 0,
-                        ExfiltrationTime = 0,
-                        ExfiltrationTimePVE = 0,
+                        ExfiltrationTime = 10,
+                        ExfiltrationTimePVE = 10,
                     }
                     : exit!).ToList();
         }

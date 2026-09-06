@@ -64,9 +64,9 @@ function Invoke-Test([string[]] $Arguments) {
 
 foreach ($mutant in @(
     @{ Name = 'Availability'; From = 'MinTime = 0,'; To = 'MinTime = 900,';
-       Test = 'WayUpBothTimersAreZeroInEveryArenaMode' },
-    @{ Name = 'PveCountdown'; From = 'ExfiltrationTimePVE = 0,'; To = 'ExfiltrationTimePVE = 8,';
-       Test = 'WayUpBothTimersAreZeroInEveryArenaMode' },
+       Test = 'WayUpIsImmediatelyAvailableWithTenSecondCountdownInEveryArenaMode' },
+    @{ Name = 'PveCountdown'; From = 'ExfiltrationTimePVE = 10,'; To = 'ExfiltrationTimePVE = 0,';
+       Test = 'WayUpIsImmediatelyAvailableWithTenSecondCountdownInEveryArenaMode' },
     @{ Name = 'EveryExit'; From = 'exit?.Name == "labir_exit"'; To = 'true';
        Test = 'OtherExitNamesRemainUntouchedWithoutCreatingWayUp' },
     @{ Name = 'SharedAlias'; From = '? exit with'; To = '? MutateSharedExit(exit) with';
