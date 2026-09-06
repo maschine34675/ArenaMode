@@ -20,10 +20,21 @@ internal static class Program
         DatabaseBoundary.Install(db);
         foreach (string catalog in new[] { Path.Combine(root, "ArenaMode.Server/defaults/kits.json"), Path.Combine(Path.GetDirectoryName(database)!, "../../../user/mods/ArenaMode/config/kits.json") })
         {
-            if (!File.Exists(catalog)) continue;
+            Check(File.Exists(catalog), "required real kit catalog exists " + catalog);
+            KitSummary.Reset(); // The two catalogs deliberately reuse the same IDs.
             var kits = JsonConvert.DeserializeObject<List<KitDefinition>>(File.ReadAllText(catalog));
             foreach (var kit in kits)
             {
+                var line = KitSummary.For(kit);
+                Check(!string.IsNullOrWhiteSpace(line), "real kit description is visible " + kit.Id);
+                foreach (string slot in new[] { "FirstPrimaryWeapon", "Headwear", "Earpiece" })
+                {
+                    var node = kit.Items.FirstOrDefault(n => n.SlotId == slot);
+                    if (node != null)
+                        Check(line.Contains(db[node.Tpl]["_name"].ToString()), "real description retains " + slot + " " + kit.Id);
+                }
+                if (kit.Fill?.SpareMagazines > 0)
+                    Check(line.Contains($"{kit.Fill.SpareMagazines} spare mag"), "real description retains spare magazines " + kit.Id);
                 // Independent oracle for the shipped formats: an actual node in
                 // Front_plate wins, otherwise the fitted Soft_armor_front node.
                 int expected = kit.Items.Where(n => n.SlotId == "Front_plate")
@@ -31,10 +42,53 @@ internal static class Program
                 if (expected == 0) expected = kit.Items.Where(n => n.SlotId == "Soft_armor_front")
                     .Select(n => int.Parse(db[n.Tpl]["_props"]["armorClass"].ToString())).DefaultIfEmpty().Max();
                 Check(KitSummary.FrontBodyClass(kit) == expected, "real front armor " + kit.Id);
+                if (expected > 0) Check(line.Contains($"armour {expected}"), "real description retains front armor " + kit.Id);
             }
             Console.WriteLine($"Real front armor: {kits.Count} kits from {catalog}.");
         }
+        DescriptionFixtures();
         Console.WriteLine($"KIT_POLISH_ASSERTIONS_PASSED: {_checks}");
+    }
+    private static void DescriptionFixtures()
+    {
+        var factory = Comfort.Common.Singleton<EFT.ItemFactory>.Instance;
+        var vest = new VestTemplate { armorClass=3, armorColliders=[EBodyPartColliderType.RibcageUp] };
+        // Positive control for the independently inspected native boundary. The
+        // old harness silently converted every vest's missing array into mask 0.
+        bool nativeFault = false;
+        try { _ = vest.ArmorPlateColliders; } catch (NullReferenceException) { nativeFault = true; }
+        Check(nativeFault, "native vest boundary reproduces missing-array failure");
+        factory.ItemTemplates[new MongoID("legacyVest")] = vest;
+        factory.ItemTemplates[new MongoID("testGun")] = new ItemTemplate { Name="test rifle" };
+        factory.ItemTemplates[new MongoID("testHelmet")] = new ArmorTemplate { Name="test helmet", ArmorClass=3 };
+        factory.ItemTemplates[new MongoID("testEars")] = new ItemTemplate { Name="test headset" };
+        var kit = new KitDefinition { Id="description-legacy-vest", Fill=new KitFill { SpareMagazines=3 }, Items=[
+            new() { Id="equipment",Tpl="root" },
+            new() { Id="vest",Tpl="legacyVest",ParentId="equipment",SlotId="TacticalVest" },
+            new() { Id="gun",Tpl="testGun",ParentId="equipment",SlotId="FirstPrimaryWeapon" },
+            new() { Id="helmet",Tpl="testHelmet",ParentId="equipment",SlotId="Headwear" },
+            new() { Id="ears",Tpl="testEars",ParentId="equipment",SlotId="Earpiece" }
+        ] };
+        KitSummary.Reset();
+        string line=KitSummary.For(kit);
+        Check(line.Contains("armour 3"), "positive legacy soft vest with null plate array remains described");
+        Check(line.Contains("test rifle") && line.Contains("test helmet (3)") && line.Contains("test headset") && line.Contains("3 spare mags"), "complete legacy description");
+        vest.armorPlateColliders = [EArmorPlateCollider.Plate_Granit_SAPI_back];
+        KitSummary.Reset();
+        Check(!KitSummary.For(kit).Contains("armour 3"), "nonzero vest plate mask is not invented integral soft armor");
+
+        factory.ItemTemplates[new MongoID("legacyVest")] = new BrokenArmorTemplate();
+        KitSummary.Reset();
+        int warnings=ArenaMode.Plugin.ModLogger.Warnings.Count;
+        line=KitSummary.For(kit);
+        Check(line.Contains("test rifle") && line.Contains("test helmet (3)") && line.Contains("test headset") && line.Contains("3 spare mags"), "broken armor preserves all unrelated description sections");
+        Check(!line.Contains("armour "), "broken armor does not advertise fabricated class");
+        Check(ArenaMode.Plugin.ModLogger.Warnings.Count==warnings+1, "one diagnostic for broken armor");
+        Check(KitSummary.For(kit)==line && ArenaMode.Plugin.ModLogger.Warnings.Count==warnings+1, "cached partial description does not spam every draw");
+        factory.ItemTemplates[new MongoID("legacyVest")] = vest;
+        vest.armorPlateColliders=null;
+        KitSummary.Reset();
+        Check(KitSummary.For(kit).Contains("armour 3"), "catalog reset clears partial cached descriptions");
     }
     private static void ArmorFixtures()
     {

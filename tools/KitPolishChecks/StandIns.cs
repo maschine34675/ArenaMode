@@ -50,9 +50,33 @@ namespace EFT.InventoryLogic
     }
     public class ArmorTemplate : CompoundItemTemplate, IArmorComponentTemplate
     {
-        public int ArmorClass { get; set; }
+        public virtual int ArmorClass { get; set; }
         public EBodyPartColliderType[] ArmorColliders { get; set; } = [];
         public EArmorPlateCollider ArmorPlateColliders { get; set; }
+    }
+    // Native VestTemplate differs from ArmoredEquipmentTemplate: its optional
+    // plate array is not normalized, and reading the mask with null throws.
+    // This boundary behavior is checked against the installed native IL.
+    public class VestTemplate : CompoundItemTemplate, IArmorComponentTemplate
+    {
+        public int armorClass;
+        public EBodyPartColliderType[] armorColliders;
+        public EArmorPlateCollider[] armorPlateColliders;
+        public int ArmorClass => armorClass;
+        public EBodyPartColliderType[] ArmorColliders => armorColliders;
+        public EArmorPlateCollider ArmorPlateColliders
+        {
+            get
+            {
+                var mask = (EArmorPlateCollider)0;
+                for (int i = 0; i < armorPlateColliders.Length; i++) mask |= armorPlateColliders[i];
+                return mask;
+            }
+        }
+    }
+    public class BrokenArmorTemplate : ArmorTemplate
+    {
+        public override int ArmorClass { get => throw new InvalidOperationException("broken custom armor metadata"); set { } }
     }
     public class Slot
     {
@@ -69,7 +93,7 @@ internal static class DatabaseBoundary
         foreach (var entry in db.Properties())
         {
             var p = entry.Value["_props"];
-            var template = new ArmorTemplate
+            var armor = new ArmorTemplate
             {
                 Name = entry.Value["_name"]?.Value<string>(),
                 ArmorClass = int.TryParse(p?["armorClass"]?.ToString(), out int level) ? level : 0,
@@ -85,6 +109,14 @@ internal static class DatabaseBoundary
                     return slot;
                 }).ToArray()
             };
+            CompoundItemTemplate template = armor;
+            if (entry.Value["_parent"]?.Value<string>() == "5448e5284bdc2dcb718b4567")
+                template = new VestTemplate
+                {
+                    Name = armor.Name, Slots = armor.Slots, armorClass = armor.ArmorClass,
+                    armorColliders = p?["armorColliders"] is JArray ? armor.ArmorColliders : null,
+                    armorPlateColliders = p?["armorPlateColliders"] is JArray ? Enums<EArmorPlateCollider>(p["armorPlateColliders"]) : null
+                };
             factory.ItemTemplates[new MongoID(entry.Name)] = template;
         }
         Comfort.Common.Singleton<EFT.ItemFactory>.Instance = factory;

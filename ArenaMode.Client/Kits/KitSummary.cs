@@ -51,9 +51,19 @@ internal static class KitSummary
 
             // Front protection is what the buyer compares. A class-6 SIDE plate
             // must not advertise a carrier whose installed front plate is class 4.
-            var armour = FrontBodyClass(kit);
-            if (armour > 0)
-                parts.Add($"armour {armour}");
+            try
+            {
+                var armour = FrontBodyClass(kit);
+                if (armour > 0)
+                    parts.Add($"armour {armour}");
+            }
+            catch (Exception ex)
+            {
+                // A content mod's broken armor metadata must not erase the gun,
+                // helmet, headset and magazine information as well. For() caches
+                // this result, so the diagnostic is emitted once per kit/raid.
+                Plugin.ModLogger.LogWarning($"Kit summary for '{kit.Id}': armor unavailable ({ex.GetType().Name}: {ex.Message}); other details retained.");
+            }
 
             var helmetClass = BestClass(kit, "Headwear");
             var helmet = NameOf(TplInSlot(kit, "Headwear"));
@@ -92,8 +102,9 @@ internal static class KitSummary
                          || string.Equals(n.SlotId, "TacticalVest", StringComparison.OrdinalIgnoreCase))))
         {
             var rootTemplate = Template(root.Tpl);
-            if (rootTemplate is IArmorComponentTemplate integral && integral.ArmorPlateColliders == 0
-                && integral.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true)
+            if (rootTemplate is IArmorComponentTemplate integral && integral.ArmorClass > 0
+                && integral.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true
+                && PlateMask(integral) == 0)
                 softFront = Math.Max(softFront, integral.ArmorClass);
 
             if (!(rootTemplate is CompoundItemTemplate compound)) continue;
@@ -104,15 +115,29 @@ internal static class KitSummary
                 // plates in back/side slots, or spare plates stored in a rig grid.
                 var slot = compound.Slots?.FirstOrDefault(s => s.ID == node.SlotId) as ArmorSlot;
                 if (slot == null || !(Template(node.Tpl) is IArmorComponentTemplate armour)) continue;
-                if ((armour.ArmorPlateColliders & slot.ArmorPlateColliderMask & chest) != 0)
+                var plateMask = PlateMask(armour);
+                if ((plateMask & slot.ArmorPlateColliderMask & chest) != 0)
                     frontPlate = Math.Max(frontPlate, armour.ArmorClass);
-                else if (armour.ArmorPlateColliders == 0
+                else if (plateMask == 0
                          && armour.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true
                          && slot.ArmorColliders?.Contains(EBodyPartColliderType.RibcageUp) == true)
                     softFront = Math.Max(softFront, armour.ArmorClass);
             }
         }
         return frontPlate > 0 ? frontPlate : softFront;
+    }
+
+    private static EArmorPlateCollider PlateMask(IArmorComponentTemplate armour)
+    {
+        // VestTemplate's native getter iterates its optional backing array without
+        // a null check. Standard rigs omit this field, including all twenty kits.
+        // Match ArmoredEquipmentTemplate's null-means-no-plate behavior locally;
+        // do not normalize or modify the shared game database.
+        if (!(armour is VestTemplate vest)) return armour.ArmorPlateColliders;
+        var mask = (EArmorPlateCollider)0;
+        if (vest.armorPlateColliders != null)
+            foreach (var collider in vest.armorPlateColliders) mask |= collider;
+        return mask;
     }
 
     /// <summary>
