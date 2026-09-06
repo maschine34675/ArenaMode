@@ -51,6 +51,24 @@ public static class ArenaLocationMutator
         {
             location.Enabled = true;
             location.ForceOnlineRaidInPVE = false;
+
+            // Way Up has two independent timers: Min/MaxTime determine when
+            // TimerRequirement becomes available; ExfiltrationTime is the
+            // extraction countdown. Keep its native type/requirements and all
+            // other exits, including EnableLabyrinth's optional Scav exit.
+            // Copy the matching record so aliases never receive Arena timers.
+            if (location.Exits != null)
+                location.Exits = location.Exits.Select(exit => exit?.Name == "labir_exit"
+                    ? exit with
+                    {
+                        MinTime = 0,
+                        MaxTime = 0,
+                        MinTimePVE = 0,
+                        MaxTimePVE = 0,
+                        ExfiltrationTime = 0,
+                        ExfiltrationTimePVE = 0,
+                    }
+                    : exit!).ToList();
         }
 
         var raidSeconds = Math.Max(60, config.RaidTimeMinutes * 60);

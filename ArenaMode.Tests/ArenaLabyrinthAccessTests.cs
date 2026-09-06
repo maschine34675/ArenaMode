@@ -5,6 +5,7 @@ using ArenaMode.Server.Services;
 using ArenaMode.Shared;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common;
+using SPTarkov.Server.Core.Models.Enums;
 
 namespace ArenaMode.Tests;
 
@@ -54,7 +55,7 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
         Assert.Equal(original.AccessKeysPvE, clone.AccessKeysPvE);
         Assert.Equal(original.DisabledForScav, clone.DisabledForScav);
         Assert.Equal(original.IconY, clone.IconY); // Position projection is menu-only.
-        Assert.Equal(JsonSerializer.Serialize(original.Exits), JsonSerializer.Serialize(clone.Exits));
+        AssertOnlyWayUpTimersChanged(original.Exits!, clone.Exits!);
         Assert.Equal(original.RequiredPlayerLevelMin, clone.RequiredPlayerLevelMin);
         Assert.Equal(original.RequiredPlayerLevelMax, clone.RequiredPlayerLevelMax);
         Assert.True(ArenaContext.Sessions!.TryGetStashedCloneMode(clone, out var mode));
@@ -79,17 +80,21 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
     {
         var location = Location();
         location.Id = map;
+        var originalExits = JsonSerializer.Serialize(location.Exits);
         ArenaLocationMutator.Mutate(location, new ArenaMapConfig(), new ArenaModeConfig(), "teamdeathmatch");
         Assert.False(location.Enabled);
         Assert.True(location.ForceOnlineRaidInPVE);
         Assert.Equal(325, location.IconY);
         Assert.Equal(["679b9819a2f2dd4da9023512"], location.AccessKeys);
+        Assert.Equal(originalExits, JsonSerializer.Serialize(location.Exits));
     }
 
-    [Fact]
-    public void OrdinaryArmedOtherSessionDisabledMapAndRaidExitAreUnchanged()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OrdinaryArmedOtherSessionDisabledMapAndRaidExitAreUnchanged(bool coInstalled)
     {
-        var ordinary = Location();
+        var ordinary = Location(coInstalled);
         var baseline = JsonSerializer.Serialize(ordinary);
         GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
         Assert.Equal(baseline, JsonSerializer.Serialize(ordinary));
@@ -111,9 +116,71 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
         Assert.False(ArenaContext.Sessions.TryGetStashedCloneMode(ordinary, out _));
     }
 
-    private static void Start()
+    [Theory]
+    [InlineData("endless")]
+    [InlineData("rounds")]
+    [InlineData("gungame")]
+    [InlineData("tactical")]
+    [InlineData("teamdeathmatch")]
+    public void WayUpBothTimersAreZeroInEveryArenaMode(string mode)
     {
-        var token = ArenaContext.Sessions!.Arm(Session, "labyrinth", "teamdeathmatch");
+        var original = Location(coInstalled: true);
+        var clone = JsonSerializer.Deserialize<LocationBase>(JsonSerializer.Serialize(original))!;
+        Start(mode);
+        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
+        AssertOnlyWayUpTimersChanged(original.Exits!, clone.Exits!);
+    }
+
+    [Fact]
+    public void WayUpTimerReplacementDoesNotMutateSharedExitRecords()
+    {
+        var source = Location(coInstalled: true);
+        var before = JsonSerializer.Serialize(source);
+        // Even an upstream consumer retaining aliases into the native raid
+        // clone must not receive our per-Arena timer writes.
+        var clone = source with { };
+        var originalRecords = source.Exits!.ToArray();
+        ArenaLocationMutator.Mutate(clone, new ArenaMapConfig(), new ArenaModeConfig(), "teamdeathmatch");
+
+        Assert.Equal(before, JsonSerializer.Serialize(source));
+        Assert.NotSame(source.Exits, clone.Exits);
+        Assert.NotSame(originalRecords[0], clone.Exits!.First());
+        Assert.Same(originalRecords[1], clone.Exits!.Skip(1).First());
+        Assert.Same(originalRecords[2], clone.Exits!.Last());
+        AssertOnlyWayUpTimersChanged(originalRecords, clone.Exits!);
+    }
+
+    [Theory]
+    [InlineData("The Way Up (scav)")]
+    [InlineData("labyrinth_secret_tagilla_key")]
+    [InlineData("labir_exit_custom")]
+    [InlineData("LABIR_EXIT")]
+    public void OtherExitNamesRemainUntouchedWithoutCreatingWayUp(string name)
+    {
+        var location = Location();
+        var exit = TimedExit(name, 27);
+        location.Exits = [exit];
+        var before = JsonSerializer.Serialize(location.Exits);
+        ArenaLocationMutator.Mutate(location, new ArenaMapConfig(), new ArenaModeConfig(), "teamdeathmatch");
+        Assert.Equal(before, JsonSerializer.Serialize(location.Exits));
+        Assert.Same(exit, Assert.Single(location.Exits!));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingExitsRemainMissing(bool nullList)
+    {
+        var location = Location();
+        location.Exits = nullList ? null! : [];
+        ArenaLocationMutator.Mutate(location, new ArenaMapConfig(), new ArenaModeConfig(), "teamdeathmatch");
+        if (nullList) Assert.Null(location.Exits);
+        else Assert.Empty(location.Exits!);
+    }
+
+    private static void Start(string mode = "teamdeathmatch")
+    {
+        var token = ArenaContext.Sessions!.Arm(Session, "labyrinth", mode);
         Assert.Equal(ArenaLocalRaidStartDisposition.ArenaStarted,
             ArenaContext.Sessions.ProcessLocalRaidStart(Session, "labyrinth", Protocol.BuildNativeStartIdentity(token)));
     }
@@ -130,9 +197,54 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
         RequiredPlayerLevelMax = 100,
         DisabledForScav = !coInstalled,
         Exits = coInstalled
-            ? [new Exit { Name = "labir_exit" }, new Exit { Name = "The Way Up (scav)" }]
-            : [new Exit { Name = "labir_exit" }],
+            ? [TimedExit("labir_exit", 57), TimedExit("labyrinth_secret_tagilla_key", 31), TimedExit("The Way Up (scav)", 30)]
+            : [TimedExit("labir_exit", 900), TimedExit("labyrinth_secret_tagilla_key", 31)],
         Waves = [],
         BossLocationSpawn = [],
     };
+
+    private static Exit TimedExit(string name, double availability) => new()
+    {
+        Name = name,
+        MinTime = availability,
+        MaxTime = availability + 5,
+        MinTimePVE = availability + 7,
+        MaxTimePVE = availability + 12,
+        ExfiltrationTime = 5,
+        ExfiltrationTimePVE = 8,
+        ExfiltrationType = ExfiltrationType.SharedTimer,
+        PassageRequirement = RequirementState.Timer,
+        Chance = 100,
+        ChancePVE = 87,
+        EntryPoints = "keep-native-entry-points",
+    };
+
+    private static void AssertOnlyWayUpTimersChanged(IEnumerable<Exit> originals, IEnumerable<Exit> actual)
+    {
+        var expected = originals.ToArray();
+        var result = actual.ToArray();
+        Assert.Equal(expected.Length, result.Length);
+        for (var i = 0; i < expected.Length; i++)
+        {
+            if (expected[i].Name != "labir_exit")
+            {
+                Assert.Equal(JsonSerializer.Serialize(expected[i]), JsonSerializer.Serialize(result[i]));
+                continue;
+            }
+            Assert.Equal(new double?[] { 0, 0, 0, 0, 0, 0 },
+                [result[i].MinTime, result[i].MaxTime, result[i].MinTimePVE, result[i].MaxTimePVE,
+                 result[i].ExfiltrationTime, result[i].ExfiltrationTimePVE]);
+            // Every field outside the requested timers stays unchanged,
+            // including mode, requirements, names, chance and entry points.
+            Assert.Equal(WithoutTimers(expected[i]), WithoutTimers(result[i]));
+        }
+    }
+
+    private static string WithoutTimers(Exit exit)
+    {
+        var value = JsonSerializer.SerializeToNode(exit)!.AsObject();
+        foreach (var key in new[] { "MinTime", "MaxTime", "MinTimePVE", "MaxTimePVE", "ExfiltrationTime", "ExfiltrationTimePVE" })
+            value.Remove(key);
+        return value.ToJsonString();
+    }
 }
