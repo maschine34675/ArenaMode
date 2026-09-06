@@ -617,7 +617,7 @@ internal static class Program
             root,
             "..",
             "_reference",
-            "SPT-PitFireTeam-main",
+            "SPT-PitFireTeam-beta-0.10.0",
             "client",
             "Patches",
             "BotsControllerPatch.cs")));
@@ -625,7 +625,7 @@ internal static class Program
             root,
             "..",
             "_reference",
-            "SPT-PitFireTeam-main",
+            "SPT-PitFireTeam-beta-0.10.0",
             "client",
             "Modules",
             "BossPlayers.cs")));
@@ -633,7 +633,7 @@ internal static class Program
             root,
             "..",
             "_reference",
-            "SPT-PitFireTeam-main",
+            "SPT-PitFireTeam-beta-0.10.0",
             "client",
             "Components",
             "AIBossPlayer.cs")));
@@ -641,7 +641,7 @@ internal static class Program
             root,
             "..",
             "_reference",
-            "SPT-PitFireTeam-main",
+            "SPT-PitFireTeam-beta-0.10.0",
             "client",
             "Patches",
             "BotOwnerPatch.cs")));
@@ -649,7 +649,7 @@ internal static class Program
             root,
             "..",
             "_reference",
-            "SPT-PitFireTeam-main",
+            "SPT-PitFireTeam-beta-0.10.0",
             "client",
             "Components",
             "BotFollowerPlayer.cs")));
