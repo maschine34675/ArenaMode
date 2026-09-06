@@ -239,13 +239,7 @@ internal static class LiveKitRespawn
         // during the swap window, its GameObject IS the corpse now — leave it alone.
         try
         {
-            if (oldBody != null
-                && oldBody.HealthController != null
-                && oldBody.HealthController.IsAlive
-                && CorpseField(oldBody) == null)
-            {
-                UnityEngine.Object.Destroy(oldBody.gameObject);
-            }
+            ArenaRetiredBodyEffects.TryDestroy(game, oldBody);
         }
         catch (Exception ex)
         {
@@ -292,9 +286,6 @@ internal static class LiveKitRespawn
             Plugin.ModLogger.LogWarning($"Arena respawn callback failed: {ex.Message}");
         }
     }
-
-    private static readonly HarmonyLib.AccessTools.FieldRef<Player, EFT.Interactive.Corpse> CorpseField =
-        HarmonyLib.AccessTools.FieldRefAccess<Player, EFT.Interactive.Corpse>("Corpse");
 
     /// <summary>
     /// The engine's teardown (owner destroyed, death handler unsubscribed, player
@@ -361,13 +352,7 @@ internal static class LiveKitRespawn
 
             // The pre-swap body is unregistered and ownerless — remove it unless it
             // somehow became a corpse in the failure window.
-            if (oldBody != null
-                && oldBody.HealthController != null
-                && oldBody.HealthController.IsAlive
-                && CorpseField(oldBody) == null)
-            {
-                UnityEngine.Object.Destroy(oldBody.gameObject);
-            }
+            ArenaRetiredBodyEffects.TryDestroy(game, oldBody);
 
             Plugin.ModLogger.LogWarning("Arena: live respawn failed mid-rewire — recovered onto the replacement body.");
         }

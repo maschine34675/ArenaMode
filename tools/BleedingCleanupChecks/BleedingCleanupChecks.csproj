@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <CleanupSource Condition="'$(CleanupSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Respawn\ArenaRetiredBodyEffects.cs</CleanupSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CleanupSource)" Link="Production/ArenaRetiredBodyEffects.cs" />
+    <Compile Include=".work/NativeBleeding.cs" />
+  </ItemGroup>
+</Project>
