@@ -7,7 +7,7 @@ using EFT.Game.Spawning;
 using SPT.Reflection.Patching;
 using UnityEngine;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _assertions;
     private static readonly BotZone Gate1 = new("BotZoneGate1");
@@ -30,6 +30,7 @@ internal static class Program
             CheckDispatchAccounting();
             CheckTeamDispatchAccounting();
             CheckBurstPointSelection();
+            CheckFactory();
             CheckPolicy();
             Console.WriteLine($"LABS_BOT_SPAWN_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -47,7 +48,7 @@ internal static class Program
     {
         ModulePatch.EnabledTargets.Clear();
         ArenaBotSpawnPatches.Enable();
-        Assert(ModulePatch.EnabledTargets.Count == 3, "exactly three bot hooks registered");
+        Assert(ModulePatch.EnabledTargets.Count == 4, "exactly four spawn hooks registered");
         AssertTarget(0, typeof(BotSpawner), nameof(BotSpawner.SpawnZones),
             typeof(IEnumerable<BotZone>), typeof(bool));
         AssertTarget(1, typeof(SpawnSystem), nameof(SpawnSystem.SelectAISpawnPoints),
@@ -56,6 +57,8 @@ internal static class Program
         AssertTarget(2, typeof(BotSpawner), nameof(BotSpawner.SpawnBotsInZoneOnPositions),
             typeof(void), typeof(List<ISpawnPoint>), typeof(BotZone),
             typeof(BotCreationData), typeof(Action<BotOwner>));
+        AssertTarget(3, typeof(SpawnPointsCollection), nameof(SpawnPointsCollection.CreateFromScene),
+            typeof(SpawnPointsCollection), typeof(DateTime?), typeof(SpawnPointParams[]));
     }
 
     private static void AssertTarget(int index, Type owner, string name, Type result, params Type[] arguments)
@@ -350,8 +353,10 @@ internal static class Program
         ArenaSession.ArmedForNextRaid = armed;
         ArenaSession.IsActive = active;
         ArenaSession.ActiveMode = "endless";
+        ArenaSession.ArmedMode = "endless";
+        ArenaMode.Compat.PitFireTeamCompat.TeamArenaActive = false;
         ArenaSession.Game = Comfort.Common.Singleton<AbstractGame>.Instance = new AbstractGame();
-        ArenaSession.World = Comfort.Common.Singleton<GameWorld>.Instance = new GameWorld();
+        ArenaSession.World = Comfort.Common.Singleton<GameWorld>.Instance = new GameWorld { LocationId = map };
     }
 
     private static TestSpawnPoint Point(string zone, ESpawnCategoryMask category = ESpawnCategoryMask.Bot)
@@ -364,16 +369,17 @@ internal static class Program
     private static List<ISpawnPoint> Points()
         => new() { Point("BotZoneFloor2"), Point("BotZoneGate1"), Point("BotZoneGate2") };
 
-    private sealed record PointSnapshot(ISpawnPoint Instance, string Zone, ESpawnCategoryMask Categories,
+    private sealed record PointSnapshot(ISpawnPoint Instance, string Id, string Zone, ESpawnCategoryMask Categories,
         bool Blocked, float NextBorn, int CoreId, Vector3 Position);
 
     private static PointSnapshot[] Snapshot(IEnumerable<ISpawnPoint> points)
-        => points.Select(point => new PointSnapshot(point, point.BotZoneName, point.Categories,
+        => points.Select(point => new PointSnapshot(point, point.Id, point.BotZoneName, point.Categories,
             point.SpawnBlocked, point.NextBornTime, point.CorePointId, point.Position)).ToArray();
 
     private static void AssertUnchanged(List<ISpawnPoint> points, PointSnapshot[] before, string message)
         => Assert(points.Count == before.Length && points.Zip(before).All(pair =>
             ReferenceEquals(pair.First, pair.Second.Instance)
+            && pair.First.Id == pair.Second.Id
             && pair.First.BotZoneName == pair.Second.Zone && pair.First.Categories == pair.Second.Categories
             && pair.First.SpawnBlocked == pair.Second.Blocked && pair.First.NextBornTime == pair.Second.NextBorn
             && pair.First.CorePointId == pair.Second.CoreId && pair.First.Position.Equals(pair.Second.Position)), message);

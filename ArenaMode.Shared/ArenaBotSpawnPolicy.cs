@@ -6,17 +6,35 @@ using System.Linq;
 namespace ArenaMode.Shared;
 
 /// <summary>
-/// Bot-only exclusions for Arena raids. The caller must already have established
-/// that the current raid is Arena; ordinary raids and player spawn selection
-/// never consult this policy.
+/// Bot exclusions for Arena raids. Callers establish the current Arena context;
+/// ordinary raids never consult this policy. Protected 5v5 also applies the
+/// individual point rule to its leader, where PFT places the allied bots.
 /// </summary>
 public static class ArenaBotSpawnPolicy
 {
     public static bool IsRestrictedMap(string? mapId)
+        // Existing server callers use this for whole-zone wave restrictions.
+        // A single Factory marker must not opt that map into Labs processing.
+        => HasZoneExclusions(mapId);
+
+    public static bool HasZoneExclusions(string? mapId)
         => string.Equals(mapId, "laboratory", StringComparison.OrdinalIgnoreCase);
 
+    public static bool HasPointExclusions(string? mapId)
+        => string.Equals(mapId, "factory4_day", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(mapId, "factory4_night", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Player marker in Factory's courtyard near the Woods transit. PFT places
+    /// followers at their leader, so protected 5v5 must also exclude this marker
+    /// from the leader's spawn choices. Keep the rest of Factory's BotZone.
+    /// </summary>
+    public static bool IsExcludedPoint(string? mapId, string? pointId)
+        => HasPointExclusions(mapId)
+           && string.Equals(pointId, "c671337f-e58f-4de6-a387-307d877954a3", StringComparison.OrdinalIgnoreCase);
+
     public static bool IsExcludedZone(string? mapId, string? zoneName)
-        => IsRestrictedMap(mapId)
+        => HasZoneExclusions(mapId)
            && (string.Equals(zoneName, "BotZoneGate1", StringComparison.OrdinalIgnoreCase)
                || string.Equals(zoneName, "BotZoneGate2", StringComparison.OrdinalIgnoreCase));
 
@@ -28,7 +46,7 @@ public static class ArenaBotSpawnPolicy
     /// </summary>
     public static string FilterZones(string? mapId, string? csv)
     {
-        if (!IsRestrictedMap(mapId))
+        if (!HasZoneExclusions(mapId))
             return csv ?? string.Empty;
 
         return string.Join(",", (csv ?? string.Empty)

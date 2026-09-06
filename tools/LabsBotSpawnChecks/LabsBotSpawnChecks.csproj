@@ -6,12 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ProductionPolicySource Condition="'$(ProductionPolicySource)' == ''">../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs</ProductionPolicySource>
     <ProductionFilterSource Condition="'$(ProductionFilterSource)' == ''">../../ArenaMode.Client/Bots/ArenaBotSpawnFilter.cs</ProductionFilterSource>
+    <ProductionPlannerSource Condition="'$(ProductionPlannerSource)' == ''">../../ArenaMode.Client/Bots/BurstSpawnPointSelector.cs</ProductionPlannerSource>
+    <ProductionTeamPointsSource Condition="'$(ProductionTeamPointsSource)' == ''">../../ArenaMode.Client/Bots/ArenaTeamSpawnPointsPatch.cs</ProductionTeamPointsSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ProductionFilterSource)" Link="Production/ArenaBotSpawnFilter.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/ArenaBotSpawnPatches.cs" Link="Production/ArenaBotSpawnPatches.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamDeathmatchSpawnDispatch.cs" Link="Production/TeamDeathmatchSpawnDispatch.cs" />
-    <Compile Include="../../ArenaMode.Client/Bots/BurstSpawnPointSelector.cs" Link="Production/BurstSpawnPointSelector.cs" />
+    <Compile Include="$(ProductionPlannerSource)" Link="Production/BurstSpawnPointSelector.cs" />
+    <Compile Include="$(ProductionTeamPointsSource)" Link="Production/ArenaTeamSpawnPointsPatch.cs" />
     <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaBotSpawnPolicy.cs" />
   </ItemGroup>
 </Project>

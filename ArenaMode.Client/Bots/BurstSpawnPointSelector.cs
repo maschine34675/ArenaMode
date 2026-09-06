@@ -59,7 +59,8 @@ internal static class BurstSpawnPointSelector
 
     /// <summary>
     /// Returns distinct points in priority order: 25-70 m first, then points
-    /// beyond 70 m. Points closer than 25 m and blocked points remain excluded.
+    /// beyond 70 m. Points closer than 25 m, blocked and Arena-excluded points
+    /// remain excluded before planning a full squad, not after dispatch starts.
     /// </summary>
     internal static List<ISpawnPoint> PickPoints(
         BotZone zone,
@@ -82,7 +83,7 @@ internal static class BurstSpawnPointSelector
 
         foreach (var point in all)
         {
-            if (point == null || point.SpawnBlocked)
+            if (point == null || point.SpawnBlocked || ArenaBotSpawnFilter.IsExcludedPoint(point))
                 continue;
 
             if (!seenPositions.Add(new PositionKey(point.Position)))
@@ -125,7 +126,7 @@ internal static class BurstSpawnPointSelector
         var seenPositions = new HashSet<PositionKey>();
         foreach (var point in all)
         {
-            if (point == null || point.SpawnBlocked)
+            if (point == null || point.SpawnBlocked || ArenaBotSpawnFilter.IsExcludedPoint(point))
                 continue;
 
             if (!playerPosition.HasValue

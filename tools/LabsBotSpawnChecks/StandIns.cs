@@ -28,7 +28,7 @@ namespace UnityEngine
 namespace EFT
 {
     public sealed class AbstractGame { }
-    public sealed class GameWorld { }
+    public sealed class GameWorld { public string LocationId; }
     public sealed class BotOwner { }
 
     public sealed class BotCreationData
@@ -67,6 +67,7 @@ namespace EFT.Game.Spawning
 
     public interface ISpawnPoint
     {
+        string Id { get; }
         string BotZoneName { get; }
         UnityEngine.Vector3 Position { get; }
         ESpawnCategoryMask Categories { get; }
@@ -77,12 +78,35 @@ namespace EFT.Game.Spawning
 
     public sealed class TestSpawnPoint : ISpawnPoint
     {
+        public string Id { get; set; }
         public string BotZoneName { get; set; }
         public UnityEngine.Vector3 Position { get; set; }
         public ESpawnCategoryMask Categories { get; set; }
         public bool SpawnBlocked { get; set; }
         public float NextBornTime { get; set; }
         public int CorePointId { get; set; }
+    }
+
+    // Exact public collection members read by the production result-view patch.
+    // Marker state is a sentinel: view filtering must never mutate scene markers.
+    public sealed class SpawnPointMarker
+    {
+        public ISpawnPoint SpawnPoint;
+        public bool Active = true;
+    }
+    public struct SpawnPointParams { public string Id; }
+    public sealed class SpawnPointsCollection : IReadOnlyCollection<ISpawnPoint>
+    {
+        public sealed class Logger { }
+        public Dictionary<ISpawnPoint, SpawnPointMarker> _dictionary;
+        public Logger _logger;
+        public SpawnPointsCollection(Dictionary<ISpawnPoint, SpawnPointMarker> dictionary, Logger logger)
+            => (_dictionary, _logger) = (dictionary, logger);
+        public int Count => _dictionary.Count;
+        public IEnumerator<ISpawnPoint> GetEnumerator() => _dictionary.Keys.GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        public static SpawnPointsCollection CreateFromScene(DateTime? locationExportDateTime = null,
+            SpawnPointParams[] parameters = null) => new(new(), new Logger());
     }
 
     public enum ActionIfNotEnoughPoints
@@ -156,11 +180,17 @@ namespace ArenaMode.Session
         public static bool ArmedForNextRaid;
         public static string ArmedMap;
         public static string ActiveMode = "endless";
+        public static string ArmedMode = "endless";
         public static EFT.AbstractGame Game;
         public static EFT.GameWorld World;
         public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world)
             => IsActive && ReferenceEquals(game, Game) && ReferenceEquals(world, World);
     }
+}
+
+namespace ArenaMode.Compat
+{
+    public static class PitFireTeamCompat { public static bool TeamArenaActive; }
 }
 
 namespace Comfort.Common
@@ -179,5 +209,6 @@ namespace ArenaMode
     {
         public readonly List<string> Warnings = new();
         public void LogWarning(object message) => Warnings.Add(message.ToString());
+        public void LogInfo(object message) { }
     }
 }

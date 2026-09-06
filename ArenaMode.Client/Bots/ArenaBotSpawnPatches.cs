@@ -18,6 +18,7 @@ internal static class ArenaBotSpawnPatches
         new SpawnZonesPatch().Enable();
         new SelectAiPointsPatch().Enable();
         new DispatchPatch().Enable();
+        new ArenaTeamSpawnPointsPatch().Enable();
     }
 
     public static void ResetRaidState()
@@ -92,7 +93,7 @@ internal static class ArenaBotSpawnPatches
             TeamDeathmatchSpawnDispatch.MarkRejected(__instance, data);
             _rejectedBatches++;
             if (_rejectedBatches <= 3 || _rejectedBatches % 25 == 0)
-                Plugin.ModLogger.LogWarning($"Arena: rejected Labs gate bot spawn batch #{_rejectedBatches}.");
+                Plugin.ModLogger.LogWarning($"Arena: rejected excluded bot spawn batch #{_rejectedBatches}.");
             return false;
         }
     }
