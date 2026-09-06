@@ -26,6 +26,33 @@ try {
     $player = $game.MainModule.GetType('EFT.Player')
     $group = $game.MainModule.GetType('BotsGroup')
     $memory = $game.MainModule.GetType('EFT.BotMemory')
+    # Read the installed IL, not just a test enum: the quiet-exit distinction
+    # depends on native Stop committing Stopping before it disposes bots.
+    $status = $game.MainModule.GetType('EFT.GameStatus')
+    $stopping = @($status.Fields | Where-Object Name -eq 'Stopping')
+    $local = $game.MainModule.GetType('EFT.BaseLocalGame`1')
+    $stop = @($local.Methods | Where-Object { $_.Name -eq 'Stop' -and $_.Parameters.Count -eq 4 })
+    if ($stopping.Count -ne 1 -or $stop.Count -ne 1 -or !$stop[0].HasBody) {
+        throw 'Installed native stop/status contract is unavailable.'
+    }
+    $instructions = @($stop[0].Body.Instructions)
+    $commit = -1
+    $dispose = -1
+    for ($i = 1; $i -lt $instructions.Count; $i++) {
+        $instruction = $instructions[$i]
+        if ($instruction.Operand -isnot [Mono.Cecil.MethodReference]) { continue }
+        if ($instruction.Operand.Name -eq 'set_Status') {
+            $previous = $instructions[$i - 1]
+            $value = if ($previous.OpCode.Name -match '^ldc\.i4\.([0-8])$') { [int]$Matches[1] }
+                elseif ($previous.OpCode.Name -in @('ldc.i4', 'ldc.i4.s')) { [int]$previous.Operand }
+                else { -1 }
+            if ($value -eq [int]$stopping[0].Constant) { $commit = $i }
+        }
+        if ($instruction.Operand.Name -eq 'StopGettingInfo') { $dispose = $i }
+    }
+    if ($commit -lt 0 -or $dispose -le $commit) {
+        throw 'Installed native Stop no longer commits Stopping before disposing bots.'
+    }
     foreach ($expected in @(
         @{ Type = $group; Method = 'AddEnemy'; Args = 'EFT.IPlayer,EBotEnemyCause'; Returns = 'System.Boolean' },
         @{ Type = $memory; Method = 'AddEnemy'; Args = 'EFT.IPlayer,BotGroupEnemyInfo,System.Boolean'; Returns = 'System.Void' },

@@ -37,7 +37,8 @@ namespace EFT
     public enum EEnemyPartVisibleType { Sence }
     public enum EBotEnemyCause { initial, byKill, addPlayer, bossKillArena, AddEnemyToAllGroupsInBotZone }
     public enum BotDifficulty { normal }
-    public class AbstractGame { }
+    public enum GameStatus { Stopped, Running, Runned, Starting, Started, Stopping, SoftStopping }
+    public class AbstractGame { public GameStatus Status = GameStatus.Started; }
     public sealed class LocalGame : AbstractGame, IBotGame
     { public BotsController BotsController { get; } = new(); }
     public interface IBotGame { BotsController BotsController { get; } }

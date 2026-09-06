@@ -10,7 +10,7 @@ registry, administrative death scope and no-corpse-looting patch. The actual
 native prefix methods run through the modeled dispatch, rather than reimplementing
 their decisions in test callbacks.
 
-The current run covers 143 assertions:
+The current run covers 173 assertions:
 
 - USEC and BEAR with 2, 5 and 12 players per faction; human slot reservation,
   one-shot readiness, actual faction scoreboard and no overfill.
@@ -23,15 +23,21 @@ The current run covers 143 assertions:
 - Healthy bodies in all five native activation states, timeout retirement,
   retry spacing and the three-consecutive-failure boundary.
 - Old exact game/world, late observers, match end, normal/non-PMC/PFT refusal.
+- Native Stopping/Stopped with healthy teardown bodies, first-observer stop
+  detection, late dispatch completion, reentrant stop during retirement and
+  suppression of new requests/score/readiness cues after committed shutdown.
+  Genuine NonActive failures while Started still retire bodies and stop at three.
 - Friendly enemy admission for initial, direct and revenge causes, memory-only
   and goal-setter bypasses, old relation cleanup and dead attacker attribution.
 - Friendly-fire decision, self/unknown damage, same-profile foreign bodies,
   score/awards, retained dead shooter tracer colors and no-looting exceptions.
 
 `Verify-Regression.ps1` creates only temporary copies of production sources. It
-proves three independent changes fail for the intended behavioral assertion:
+proves seven independent changes fail for the intended behavioral assertion:
 removing the reserved human slot; allowing native friendly enemy admission; and
-adopting a partially built local body during respawn. It verifies production
+adopting a partially built local body during respawn; restoring the native exit
+failure window; accepting detached requests after Started; failing the mode on a
+reentrant stop; and announcing readiness after a stop during refill. It verifies production
 source hashes never changed and finishes by rebuilding/running the original
 production inputs. Temporary copies are outside the repository and are retained
 for inspection; no recursive cleanup is performed.
@@ -39,7 +45,8 @@ for inspection; no recursive cleanup is performed.
 `Verify-InstalledContracts.ps1` uses the installed Mono.Cecil to read metadata,
 without loading EFT/SAIN game code. It verifies the installed SAIN private enemy
 admission/body properties and native group/memory plus all four attributed
-damage surfaces. The reviewed SAIN 4.5.1 DLL SHA256 is
+damage surfaces. It also verifies installed native Stop IL commits Stopping
+before StopGettingInfo disposes the bot owners. The reviewed SAIN 4.5.1 DLL SHA256 is
 `C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489`.
 Run it with PowerShell 7 (`pwsh -NoProfile -File
 tools/TeamDeathmatchRuntimeChecks/Verify-InstalledContracts.ps1`). Windows
@@ -61,6 +68,8 @@ The complete production burst extension was independently traced against native
 callback suppression is in that extension and was reviewed there, before its
 expired-ticket test; this harness does not claim a copied duplicate filter in
 its burst stub as production coverage. A different second body is retired.
+The shutdown observer scenarios likewise exercise the actual mode, not the
+shared burst helper: its existing rejected-arrival cleanup remains unchanged.
 Root's separate population/dispatch harness exercises the actual one-shot
 dispatch lease. No local test is proof of live SAIN movement or GPU raid behavior.
 

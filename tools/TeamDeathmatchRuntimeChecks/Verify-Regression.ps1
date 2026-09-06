@@ -43,15 +43,42 @@ $cases = @(
         Name = 'partial-respawn'; Path = $mode; Property = 'ModeSource';
         Find = 'if (!Respawn.ArenaRespawnDriver.IsRespawnInProgress'; Replace = 'if (true';
         Failure = 'intermediate local body published during respawn must not be adopted before readiness'
+    },
+    @{
+        Name = 'native-stop-window'; Path = $mode; Property = 'ModeSource';
+        Find = @('if (_nativeStopObserved) return true;', ' && _game.Status == GameStatus.Started');
+        Replace = @('if (true) return false;', '');
+        Failure = 'native teardown wrappers must not count as activation failures or be killed by TDM'
+    },
+    @{
+        Name = 'detached-request-status'; Path = $mode; Property = 'ModeSource';
+        Find = ' && _game.Status == GameStatus.Started'; Replace = '';
+        Failure = 'native stop immediately invalidates detached request predicates'
+    },
+    @{
+        Name = 'reentrant-stop-failure'; Path = $mode; Property = 'ModeSource';
+        Find = 'if (_failure != null || ObserveNativeStop()) return;'; Replace = 'if (_failure != null) return;';
+        Failure = 'reentrant stop during retirement cannot become a false mode failure or warning'
+    },
+    @{
+        Name = 'shutdown-ready-cue'; Path = $mode; Property = 'ModeSource';
+        Find = 'if (ObserveNativeStop() || !IsCurrentRaid()) return;'; Replace = '';
+        Failure = 'stop in last arrival prevents a round-start announcement during native shutdown'
     }
 )
 foreach ($case in $cases) {
     $text = [IO.File]::ReadAllText($case.Path)
-    if (($text.Split(@($case.Find), [StringSplitOptions]::None).Length - 1) -ne 1) {
-        throw ('Mutation anchor must occur exactly once: ' + $case.Name)
+    $finds = @($case.Find)
+    $replacements = @($case.Replace)
+    if ($finds.Count -ne $replacements.Count) { throw ('Mutation replacement count differs: ' + $case.Name) }
+    for ($i = 0; $i -lt $finds.Count; $i++) {
+        if (($text.Split(@($finds[$i]), [StringSplitOptions]::None).Length - 1) -ne 1) {
+            throw ('Mutation anchor must occur exactly once: ' + $case.Name)
+        }
+        $text = $text.Replace($finds[$i], $replacements[$i])
     }
     $copy = Join-Path $scratch ($case.Name + '.cs')
-    [IO.File]::WriteAllText($copy, $text.Replace($case.Find, $case.Replace))
+    [IO.File]::WriteAllText($copy, $text)
     $result = Invoke-Model @('-p:' + $case.Property + '=' + $copy)
     if ($result.Code -eq 0 -or $result.Output -notmatch [regex]::Escape($case.Failure)) {
         throw ('Mutation did not fail for its intended behavioral assertion: ' + $case.Name + [Environment]::NewLine + $result.Output)

@@ -32,6 +32,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     private readonly Dictionary<string, bool> _usecById = new(StringComparer.Ordinal);
     private float _nextTick;
     private bool _ended;
+    private bool _nativeStopObserved;
     private bool _announcedReady;
     private bool _reportedStall;
     private readonly float[] _retryAt = new float[2];
@@ -90,7 +91,8 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     public void Tick(float deltaTime)
     {
-        if (_ended || IsComplete || _population == null || !IsCurrentRaid() || Time.time < _nextTick) return;
+        if (ObserveNativeStop() || _ended || IsComplete || _population == null
+            || !IsCurrentRaid() || Time.time < _nextTick) return;
         _nextTick = Time.time + 1f;
         try
         {
@@ -117,6 +119,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             { Fail("scoreboard affiliation drift: " + problem); return; }
             Refill(true);
             Refill(false);
+            if (ObserveNativeStop() || !IsCurrentRaid()) return;
             bool stalled = _population.IsStalled(Time.time);
             if (stalled && !_reportedStall)
                 Plugin.ModLogger.LogWarning("Team Deathmatch: spawn request timed out; late arrivals are rejected, "
@@ -139,7 +142,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     private void Refill(bool usec)
     {
-        if (IsComplete || _ended || Time.time < _retryAt[usec ? 0 : 1]) return;
+        if (ObserveNativeStop() || IsComplete || !IsCurrentRaid() || Time.time < _retryAt[usec ? 0 : 1]) return;
         if (!_population.TryReserve(usec, CountBots(usec), Time.time, out var ticket)) return;
         var role = usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR;
         int planned = BurstSpawnService.SpawnFactionBot(role, ArenaPressure.DifficultyFor(true),
@@ -161,6 +164,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     {
         foreach (BotOwner bot in _bots)
         {
+            if (ObserveNativeStop() || !IsCurrentRaid()) return false;
             if (!Alive(bot)) { _activationDeadline.Remove(bot); continue; }
             bool usec = _usecById[bot.ProfileId];
             int index = usec ? 0 : 1;
@@ -192,6 +196,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     {
         try
         {
+            if (ObserveNativeStop()) return;
             var player = bot?.GetPlayer;
             EPlayerSide expected = ticket.Usec ? EPlayerSide.Usec : EPlayerSide.Bear;
             if (!IsCurrentRaid() || !_population.IsCurrent(ticket, Time.time) || !Alive(bot)
@@ -245,11 +250,28 @@ public sealed class TeamDeathmatchMode : IArenaMode
            && bot.HealthController?.IsAlive == true;
 
     private bool IsCurrentRaid()
-        => !_ended && _game != null && _world != null
+        => !_ended && !_nativeStopObserved && _game != null && _game.Status == GameStatus.Started && _world != null
            && Singleton<AbstractGame>.Instantiated && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
            && Singleton<GameWorld>.Instantiated && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
            && ArenaSession.IsExactActiveRaid(_game, _world)
            && string.Equals(ArenaSession.ActiveMode, Id, StringComparison.OrdinalIgnoreCase);
+
+    private bool ObserveNativeStop()
+    {
+        if (_nativeStopObserved) return true;
+        // BaseLocalGame.Stop commits Stopping BEFORE disposing the bot owners,
+        // then defers GameEnd until the black screen. Healthy NonActive/Disposed
+        // wrappers in that gap are native teardown, not failed activations.
+        // Use our captured game, never a replacement raid's status. Life-only
+        // Give up is intercepted by Redeploy and leaves that game Started.
+        if (_population == null || _game == null
+            || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
+        _nativeStopObserved = true;
+        _population.Stop();
+        _pendingGiveUpLife = null;
+        Plugin.ModLogger.LogInfo("Team Deathmatch: native raid shutdown; pending spawn work cancelled.");
+        return true;
+    }
 
     internal bool TrySynchronizeScoreboardRoster(out string problem)
     {
@@ -368,7 +390,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     private void Fail(string reason)
     {
-        if (_failure != null) return;
+        if (_failure != null || ObserveNativeStop()) return;
         _failure = reason;
         _population?.Stop();
         Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason);
@@ -379,9 +401,12 @@ public sealed class TeamDeathmatchMode : IArenaMode
     {
         try
         {
+            if (ObserveNativeStop()) return false;
             if (!Alive(bot)) return true;
             using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
                 bot.GetPlayer.ActiveHealthController.Kill(EDamageType.Undefined);
+            // Native death callbacks can synchronously begin leaving the raid.
+            if (ObserveNativeStop()) return false;
             if (Alive(bot)) throw new InvalidOperationException("body stayed alive after administrative retirement");
             Plugin.ModLogger.LogWarning("Team Deathmatch retired " + reason + ".");
             return true;

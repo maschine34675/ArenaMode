@@ -325,6 +325,110 @@ internal static class Program
         Check(BurstSpawnService.Requests.Count == count, "match end invalidates detached observers and refill");
     }
 
+    private static void NativeShutdownWindow()
+    {
+        foreach (var status in new[] { GameStatus.Stopping, GameStatus.Stopped })
+        foreach (var state in new[] { EBotState.NonActive, EBotState.Disposed })
+        {
+            var raid = new Raid();
+            raid.Fill();
+            foreach (var bot in raid.Bots.Where(bot => bot.Profile.Info.Side == EPlayerSide.Bear))
+                bot.BotState = state;
+            int before = BurstSpawnService.Requests.Count;
+            raid.Game.Status = status;
+            raid.Step(Time.time + 1);
+            raid.Step(Time.time + 100);
+            Check(!raid.Mode.IsComplete && raid.Bots.All(bot => bot.HealthController.KillCalls == 0),
+                "native teardown wrappers must not count as activation failures or be killed by TDM");
+            Check(BurstSpawnService.Requests.Count == before
+                && !Model.Events.Any(item => item.StartsWith("toast:")),
+                "native shutdown must not refill or show an error toast");
+            Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("native raid shutdown")) == 1
+                && !ArenaMode.Plugin.ModLogger.Lines.Any(line => line.Contains("Team Deathmatch retired")
+                    || line.Contains("Team Deathmatch stopped:")),
+                "native shutdown is recorded once without false retirement or failure messages");
+            var kill = Kill("local", raid.Bots.First().ProfileId, true);
+            raid.Mode.ClassifyKill(kill);
+            Check(!kill.ScoreEligible && !kill.AwardEligible, "shutdown rejects delayed combat scoring");
+        }
+
+        // No Tick between Stop and observer: a dispatched callback can be first
+        // to see the committed stop while ArenaSession still owns the old raid.
+        foreach (var status in new[] { GameStatus.Stopping, GameStatus.Stopped })
+        {
+            var raid = new Raid();
+            raid.Step(0);
+            var request = Request(EPlayerSide.Usec);
+            int rosterBefore = raid.Match.Scoreboard.Count(ArenaScoreboardSide.Friendly, true);
+            raid.Game.Status = status;
+            Check(!request.Current(), "native stop immediately invalidates detached request predicates");
+            var late = Deliver(request, EBotState.NonActive);
+            request.DispatchFinished(true);
+            raid.Step(1);
+            Check(late.HealthController.KillCalls == 0 && !raid.Mode.IsComplete,
+                "late arrival after native shutdown is left to native disposal without a mode failure");
+            Check(raid.Match.Scoreboard.Count(ArenaScoreboardSide.Friendly, true) == rosterBefore
+                && BurstSpawnService.Requests.Count == 2,
+                "late shutdown callback cannot admit a bot or reopen settled work");
+        }
+
+        foreach (bool throwAfterStop in new[] { false, true })
+        {
+            var raid = new Raid();
+            raid.Step(0);
+            var bot = Deliver(Request(EPlayerSide.Usec), EBotState.ActiveFail);
+            bot.HealthController.OnKilled = () =>
+            {
+                raid.Game.Status = GameStatus.Stopping;
+                if (throwAfterStop) throw new InvalidOperationException("native stop during death callback");
+            };
+            raid.Step(1);
+            Check(!raid.Mode.IsComplete && !Model.Events.Any(item => item.StartsWith("toast:"))
+                && !ArenaMode.Plugin.ModLogger.Lines.Any(line => line.Contains("Team Deathmatch retired")
+                    || line.Contains("Team Deathmatch stopped:")),
+                "reentrant stop during retirement cannot become a false mode failure or warning");
+            Check(BurstSpawnService.Requests.Count == 2 && !ArenaAdministrativeDeathGate.IsActive(bot.ProfileId),
+                "reentrant exit prevents refill and releases the administrative scope");
+        }
+
+        var dispatchExit = new Raid();
+        BurstSpawnService.OnRequest = request =>
+        {
+            dispatchExit.Game.Status = GameStatus.Stopping;
+            request.DispatchFinished(false);
+        };
+        dispatchExit.Step(0);
+        Check(BurstSpawnService.Requests.Count == 1 && !dispatchExit.Mode.IsComplete,
+            "native stop in first faction dispatch prevents second faction refill");
+
+        var readyExit = new Raid(size: 2);
+        BurstSpawnService.OnRequest = request =>
+        {
+            Deliver(request, EBotState.Active);
+            if (readyExit.Alive(EPlayerSide.Bear) == 2) readyExit.Game.Status = GameStatus.Stopping;
+            request.DispatchFinished(true);
+        };
+        readyExit.Step(0);
+        readyExit.Step(1);
+        Check(readyExit.Match.Cues.Count == 0,
+            "stop in last arrival prevents a round-start announcement during native shutdown");
+
+        var suspended = new Raid();
+        suspended.Game.Status = GameStatus.Starting;
+        suspended.Step(0);
+        Check(BurstSpawnService.Requests.Count == 0 && !suspended.Mode.IsComplete,
+            "TDM work requires Started even before a terminal stop has been observed");
+
+        var genuineFailure = new Raid();
+        genuineFailure.Fill();
+        foreach (var bot in genuineFailure.Bots.Where(bot => bot.Profile.Info.Side == EPlayerSide.Bear))
+            bot.BotState = EBotState.NonActive;
+        genuineFailure.Step(Time.time + 1);
+        Check(genuineFailure.Mode.IsComplete && genuineFailure.Bots.Sum(bot => bot.HealthController.KillCalls) == 3
+            && Model.Events.Count(item => item.StartsWith("toast:TEAM DM stopped:")) == 1,
+            "three genuine NonActive failures while Started still retire bodies and report the stopped match");
+    }
+
     private static void NativeFriendshipAndDamagePolicy()
     {
         var raid = new Raid(size: 3);
@@ -437,6 +541,7 @@ internal static class Program
         RejectionsAndRetirement();
         ActivationLifetime();
         ExactRaidAndLateCallbacks();
+        NativeShutdownWindow();
         NativeFriendshipAndDamagePolicy();
         ScoreAwardsTracersAndLoot();
         Console.WriteLine($"PASS: {_checks} production TDM mode/relations runtime-model checks.");
