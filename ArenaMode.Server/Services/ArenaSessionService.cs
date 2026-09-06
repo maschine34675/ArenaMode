@@ -61,6 +61,10 @@ public class ArenaSessionService
         public bool LocationMutationReady;
         public string? LocationMutationFailure;
         public object? LocationClone;
+        public string? KitsJson;
+        public string? LadderJson;
+        public string? LadderPoolJson;
+        public int LadderRungs;
     }
 
     private readonly Dictionary<string, SessionEntry> _sessions = new();
@@ -304,6 +308,7 @@ public class ArenaSessionService
             }
 
             entry.State = ArenaSessionState.Idle;
+            entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
             entry.ArmToken = null;
             entry.ClientRaidStarted = false;
@@ -421,12 +426,9 @@ public class ArenaSessionService
             }
             Patches.BotTierScalePatch.ResetReporting();
 
-            // A fresh ladder per raid, cut here rather than when the client asks
-            // for it: the ask happens while the raid loads and can repeat.
-            LadderPicker.DrawForRaid(
-                ArenaContext.LadderJson,
-                ArenaContext.Config.GunGameRungs,
-                message => logger.Info(message));
+            // KitCatalog preloads while Armed, before this native request. Keep
+            // that exact result, or draw here if no catalogue was requested yet.
+            EnsureWeaponCatalogsLocked(entry);
             return ArenaLocalRaidStartDisposition.ArenaStarted;
         }
     }
@@ -736,6 +738,7 @@ public class ArenaSessionService
             bool protectPitFireTeam = entry.ProtectPitFireTeam;
             string? completedArmToken = entry.ArmToken;
             entry.State = ArenaSessionState.Idle;
+            entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
             entry.ArmToken = null;
             entry.ClientRaidStarted = false;
@@ -889,6 +892,7 @@ public class ArenaSessionService
             if (_sessions.TryGetValue(key, out var entry))
             {
                 entry.State = ArenaSessionState.Idle;
+            entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ProtectPitFireTeam = false;
                 entry.ArmToken = null;
                 entry.ClientRaidStarted = false;
@@ -922,6 +926,7 @@ public class ArenaSessionService
             {
                 protectPitFireTeam = entry.ProtectPitFireTeam;
                 entry.State = ArenaSessionState.Idle;
+            entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ArmToken = null;
                 entry.ClientRaidStarted = false;
                 entry.NativeStartIdentity = null;
@@ -1327,5 +1332,57 @@ public class ArenaSessionService
 
             return (ArenaSessionState.Idle, null, null);
         }
+    }
+
+    public string GetKits(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry) || !CanServeWeaponCatalog(entry))
+                return ArenaContext.KitsJson;
+            EnsureWeaponCatalogsLocked(entry);
+            return entry.KitsJson!;
+        }
+    }
+
+    public string GetLadder(MongoId sessionId, bool redraw = false)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry) || !CanServeWeaponCatalog(entry))
+                return ArenaContext.LadderJson;
+            EnsureWeaponCatalogsLocked(entry);
+            if (redraw && entry.State == ArenaSessionState.InRaid)
+                entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson ?? ArenaContext.LadderJson,
+                    entry.LadderRungs, message => logger.Info(message), ArenaContext.WeaponVariants);
+            return entry.LadderJson ?? ArenaContext.LadderJson;
+        }
+    }
+
+    private static bool CanServeWeaponCatalog(SessionEntry entry)
+        => entry.State == ArenaSessionState.InRaid
+           || (entry.State == ArenaSessionState.Armed
+               && (DateTime.UtcNow - entry.ArmedAtUtc).TotalSeconds <= ArenaContext.Config.ArmedFlagTtlSeconds);
+
+    private void EnsureWeaponCatalogsLocked(SessionEntry entry)
+    {
+        if (entry.KitsJson != null && entry.LadderJson != null) return;
+        // Exact session ownership already checked by the caller. Freeze before
+        // loading-screen preload and retain through Armed -> InRaid and reloads.
+        entry.KitsJson = ArenaContext.KitsJson;
+        entry.LadderPoolJson = ArenaContext.LadderJson;
+        entry.LadderRungs = ArenaContext.Config.GunGameRungs;
+        if (ArenaContext.WeaponVariants is { } variants)
+        {
+            try
+            {
+                entry.KitsJson = variants.CreateCatalog(entry.KitsJson, Random.Shared.Next(), out var report);
+                logger.Info(ArenaWeaponVariants.Summarize("kit", report));
+            }
+            catch (Exception ex)
+            { logger.Warning($"[ArenaMode] Kit attachment draw failed ({ex.Message}); authored builds retained."); }
+        }
+        entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson, entry.LadderRungs,
+            message => logger.Info(message), ArenaContext.WeaponVariants);
     }
 }

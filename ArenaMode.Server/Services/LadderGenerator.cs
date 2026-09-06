@@ -7,6 +7,7 @@ using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Spt.Tables;
 using SPTarkov.Server.Core.Models.Utils;
+using SPTarkov.Server.Core.Utils;
 
 namespace ArenaMode.Server.Services;
 
@@ -54,6 +55,16 @@ public class LadderGenerator(
     {
         try
         {
+            ArenaContext.WeaponVariants = CreateVariantIndex(templateTable);
+            logger.Info($"[ArenaMode] Weapon variant index ready: {templateTable.Items.Count} live templates; no bot generator/config changes.");
+        }
+        catch (Exception ex)
+        {
+            ArenaContext.WeaponVariants = null;
+            logger.Warning($"[ArenaMode] Weapon variants unavailable ({ex.Message}); existing builds remain unchanged.");
+        }
+        try
+        {
             _items = templateTable.Items;
             var pool = Build();
 
@@ -74,6 +85,25 @@ public class LadderGenerator(
         }
 
         return Task.CompletedTask;
+    }
+
+    internal static ArenaWeaponVariants CreateVariantIndex(TemplateTable table, JsonSerializerOptions? serializerOptions = null)
+    {
+        // MongoId is a struct. Default System.Text.Json serializes it as an
+        // object, silently losing every slot filter/conflict template. Use the
+        // server's registered converters without creating/changing global options.
+        var options = serializerOptions ?? JsonUtil.JsonSerializerOptionsNoIndent
+            ?? throw new InvalidOperationException("SPT JSON converters are not initialized");
+        var templates = new JsonObject();
+        foreach (var (id, item) in table.Items)
+            templates[id.ToString()] = new JsonObject
+            {
+                ["_name"] = item.Name,
+                ["_parent"] = item.Parent.ToString(),
+                ["_type"] = item.Type,
+                ["_props"] = JsonSerializer.SerializeToNode(item.Properties, options),
+            };
+        return new ArenaWeaponVariants(templates);
     }
 
     // ---------------------------------------------------------------- helpers

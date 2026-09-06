@@ -107,20 +107,17 @@ public sealed class ArenaModeRouter : StaticRouter
         new RouteAction<EmptyRequestData>(
             Protocol.KitsRoute,
             (url, info, sessionId, output, _) =>
-                new ValueTask<string>(ArenaContext.KitsJson)),
+                new ValueTask<string>(Sessions?.GetKits(sessionId) ?? ArenaContext.KitsJson)),
 
         new RouteAction<EmptyRequestData>(
             Protocol.LadderRoute,
             (url, info, sessionId, output, _) =>
-                new ValueTask<string>(Services.LadderPicker.Current)),
+                new ValueTask<string>(Sessions?.GetLadder(sessionId) ?? ArenaContext.LadderJson)),
 
         new RouteAction<EmptyRequestData>(
             Protocol.LadderRedrawRoute,
             (url, info, sessionId, output, _) =>
-                new ValueTask<string>(Services.LadderPicker.Redraw(
-                    ArenaContext.LadderJson,
-                    ArenaContext.Config.GunGameRungs,
-                    message => Instance?._logger.Info(message)))),
+                new ValueTask<string>(Sessions?.GetLadder(sessionId, redraw: true) ?? ArenaContext.LadderJson)),
 
         new RouteAction<EmptyRequestData>(
             Protocol.ClientSettingsRoute,

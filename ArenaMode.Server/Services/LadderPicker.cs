@@ -50,9 +50,22 @@ public static class LadderPicker
     /// Installs it as Current as well, so a respawn asking for the ladder after
     /// this point gets the one the player is actually climbing.
     /// </summary>
-    public static string Redraw(string poolJson, int rungs, Action<string>? log = null)
+    public static string Redraw(string poolJson, int rungs, Action<string>? log = null,
+        ArenaWeaponVariants? variants = null)
     {
         var drawn = Draw(poolJson, rungs, log);
+        if (variants != null)
+        {
+            try
+            {
+                int seed;
+                lock (Rng) seed = Rng.Next();
+                drawn = variants.CreateCatalog(drawn, seed, out var report);
+                log?.Invoke(ArenaWeaponVariants.Summarize("Gun Game", report));
+            }
+            catch (Exception ex)
+            { log?.Invoke($"[ArenaMode] Gun Game attachment draw failed ({ex.Message}); original drawn builds retained."); }
+        }
         lock (Lock)
             _current = drawn;
 

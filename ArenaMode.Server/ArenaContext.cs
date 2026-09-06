@@ -20,8 +20,9 @@ public static class ArenaContext
     public static MatchBotDetailsCacheService? MatchBotCache { get; internal set; }
     public static ISptLogger<PatchManager>? Logger { get; internal set; }
     public static ArenaModeConfig Config { get; internal set; } = new();
+    public static ArenaWeaponVariants? WeaponVariants { get; internal set; }
 
-    /// <summary>Raw kit catalog JSON served verbatim to the client (config/kits.json).</summary>
+    /// <summary>Authored kit source; raid-owned variants never overwrite this or config/kits.json.</summary>
     public static string KitsJson { get; internal set; } = "[]";
 
     /// <summary>
