@@ -18,4 +18,5 @@ $polishOutput=& dotnet run --project $polishProject -c Release "-p:SummarySource
 if($LASTEXITCODE -eq 0 -or ($polishOutput -join "`n") -notmatch 'ASSERT: actual buy summary uses front class'){throw "Armor negative control failed unexpectedly: $polishOutput"}
 dotnet run --project $polishProject -c Release -- $polishRoot $Database
 if($LASTEXITCODE -ne 0){throw 'Production recheck failed.'}
+& (Join-Path $PSScriptRoot 'Verify-Supplies.ps1') -Database $Database
 Write-Output 'ARENA_KIT_POLISH_PASSED'

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <BuilderSource Condition="'$(BuilderSource)' == ''">../../../ArenaMode.Client/Kits/KitBuilder.cs</BuilderSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove=".work/**" />
+    <Compile Include="$(BuilderSource)" Link="Production/KitBuilder.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitMerge.cs" Link="Production/KitMerge.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitBundlePreloader.cs" Link="Production/KitBundlePreloader.cs" />
+    <Compile Include="../../../ArenaMode.Server/Services/ArenaKitSupplies.cs" Link="Production/ArenaKitSupplies.cs" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="SPTarkov.Server.Core" Version="4.1.0" />
+    <PackageReference Include="SPTarkov.DI" Version="4.1.0" />
+  </ItemGroup>
+</Project>

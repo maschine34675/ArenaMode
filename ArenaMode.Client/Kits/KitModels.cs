@@ -50,4 +50,8 @@ public class KitStackedItem
 {
     [JsonProperty("tpl")] public string Tpl;
     [JsonProperty("count")] public int Count = 1;
+
+    /// <summary>Optional Arena grenade: add after authored supplies, only to
+    /// native grenade-throwing containers; lack of space is an expected skip.</summary>
+    [JsonProperty("optionalQuickUseOnly")] public bool OptionalQuickUseOnly;
 }

@@ -1382,6 +1382,19 @@ public class ArenaSessionService
             catch (Exception ex)
             { logger.Warning($"[ArenaMode] Kit attachment draw failed ({ex.Message}); authored builds retained."); }
         }
+        // Protected 5v5 uses the PMC entry loadout, never catalog supplies.
+        // Freeze requests before loading-screen preload, together with the
+        // weapons; re-reading the catalog or advancing Gun Game does not refill.
+        if (!entry.ProtectPitFireTeam && ArenaKitSupplies.Current is { } supplies)
+        {
+            try
+            {
+                entry.KitsJson = supplies.CreateCatalog(entry.KitsJson, out int added);
+                logger.Info($"[ArenaMode] Kit supplies: {added} optional grenade requests; native rig/pocket space decides at kit build.");
+            }
+            catch (Exception ex)
+            { logger.Warning($"[ArenaMode] Optional kit supplies unavailable ({ex.Message}); existing kit contents retained."); }
+        }
         entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson, entry.LadderRungs,
             message => logger.Info(message), ArenaContext.WeaponVariants);
     }

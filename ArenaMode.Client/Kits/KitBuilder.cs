@@ -493,14 +493,29 @@ public static class KitBuilder
                 FillSpareMagazines(containers, factory, template, ammoTpl, kit.Fill.SpareMagazines);
         }
 
-        foreach (var entry in kit.Fill.RigContents ?? Enumerable.Empty<KitStackedItem>())
+        // Optional Arena grenades never evict/repack authored supplies. The
+        // native quick-throw container list excludes the backpack, whose free
+        // space does not make a grenade available to the grenade key.
+        var grenadeContainers = equipment.GrenadeThrowingSlots
+            .Select(slot => slot?.ContainedItem).OfType<CompoundItem>()
+            .Where(container => container.Grids?.Length > 0).ToList();
+        foreach (var entry in (kit.Fill.RigContents ?? Enumerable.Empty<KitStackedItem>())
+                     .OrderBy(entry => entry.OptionalQuickUseOnly))
         {
-            for (var i = 0; i < Math.Max(1, entry.Count); i++)
+            for (var i = 0; i < (entry.OptionalQuickUseOnly ? 1 : Math.Max(1, entry.Count)); i++)
             {
                 var item = factory.CreateItem(factory.NextId, entry.Tpl, null);
-                if (!AddToAnyGrid(containers, item, out var reason))
+                if (entry.OptionalQuickUseOnly && !(item is ThrowWeap))
                 {
-                    Plugin.ModLogger.LogWarning($"Kit: {Describe(item)} did not fit - {reason}");
+                    Plugin.ModLogger.LogInfo($"Kit: optional grenade {entry.Tpl} is not a throwable in the live database; skipped.");
+                    break;
+                }
+                if (!AddToAnyGrid(entry.OptionalQuickUseOnly ? grenadeContainers : containers, item, out var reason))
+                {
+                    if (entry.OptionalQuickUseOnly)
+                        Plugin.ModLogger.LogInfo($"Kit: optional grenade {Describe(item)} skipped; no compatible quick-use space ({reason}).");
+                    else
+                        Plugin.ModLogger.LogWarning($"Kit: {Describe(item)} did not fit - {reason}");
                     break;
                 }
             }
