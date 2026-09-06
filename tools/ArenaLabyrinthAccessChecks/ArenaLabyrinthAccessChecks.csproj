@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ProductionAccessSource Condition="'$(ProductionAccessSource)' == ''">../../ArenaMode.Client/Session/ArenaLabyrinthAccess.cs</ProductionAccessSource>
+    <ProductionKeycardSource Condition="'$(ProductionKeycardSource)' == ''">../../ArenaMode.Client/Session/MapAccessPatch.cs</ProductionKeycardSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionAccessSource)" Link="Production/ArenaLabyrinthAccess.cs" />
+    <Compile Include="$(ProductionKeycardSource)" Link="Production/MapAccessPatch.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaMenuSelection.cs" Link="Production/ArenaMenuSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaClaim.cs" Link="Production/ArenaClaim.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+  </ItemGroup>
+</Project>

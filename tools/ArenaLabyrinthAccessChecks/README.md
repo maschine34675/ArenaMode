@@ -1,0 +1,79 @@
+# Self-contained Arena Labyrinth access
+
+Arena shows its allowlisted Labyrinth tile and waives its entry card already.
+The missing native values are the menu position and forced-online PVE flag:
+the stock SPT map has `Enabled=false`, `IconY=325`, and
+`ForceOnlineRaidInPVE=true`. Arena now projects a **separate client location
+object** with `Enabled=true`, `IconY=350`, and `ForceOnlineRaidInPVE=false` for
+the exact selected Arena PMC setup only. The button and selected-location
+setter receive it before native rendering / `LocationInfoPanel.Set` and
+`RaidSettings.NeedToGoOnlineInPve` read it. The native location database is never
+modified. The real menu's existing `Clear` restores the former location reference
+on return to PMC/Scav or exit; no field snapshots can overwrite external changes.
+
+The server mirrors `Enabled=true` and `ForceOnlineRaidInPVE=false` only on its
+existing exact Arena raid clone. Map cards remain governed by the existing
+`MapAccessPatch`/`ArenaClaim` checks: known enabled server map, exact PMC selection,
+current group eligibility, server availability and no Fika. User online-PVE
+preferences are neither read into a replacement preference store nor written;
+clearing the map's mandatory-online flag allows the native local option.
+
+Co-installed EnableLabyrinth metadata already has all three menu values. It is
+reused unchanged instead of cloned again. Its optional card requirements, Scav
+entry setting and extra exits stay intact. Arena creates **no** Scav scene exit,
+boss key loot, scav raid-time table, or Blazor configuration. Existing Arena scene
+trap/alarm/light handling remains separate. Without EnableLabyrinth, ordinary
+raids keep the stock map restrictions; with it, ordinary raids keep that mod's
+configuration.
+
+Only three scalar fields differ in the client projection. `MemberwiseClone`
+preserves all other native metadata and scene/resource references; shared key,
+exit and configuration arrays are never edited. The server's native deep clone
+is independently verified. There is no global unlock to restore after a crash.
+
+Reference reviewed: `../_reference/enablelabyrinth-csharp-master`, both MIT
+licenses, `Server/EnableLabyrinthOnLoad.cs` and
+`Client/Patches/LocationSceneAwake.cs`. Thanks to acidphantasm for the reference
+mod. This access projection is original code, not copied upstream implementation;
+no upstream assets, binaries or config app are included. The unchanged reference
+license is retained here for attribution.
+
+Native evidence in `../_decompiled/`:
+
+- `JsonType/LocationSettings.cs`: `Enabled`, `IconY`, `RelativeMapPos`,
+  `ForceOnlineRaidInPVE`, `AccessKeys`.
+- `EFT.UI/LocationButton.cs`: exact nine-argument `Show`, position and selection
+  callback capture.
+- `EFT.UI.Matchmaker/MatchMakerSelectionLocationScreen.cs`: button callback bound
+  to that screen's `OnLocationSelected`; selected setter forwards the object to
+  raid settings and `LocationInfoPanel.Set`.
+- `EFT.UI/LocationInfoPanel.cs`: `SetupPveServerModeToggle` reads the location's
+  forced-online flag. `EFT/RaidSettings.cs`: `NeedToGoOnlineInPve` combines it with
+  the existing user's preference.
+- `EFT/MainMenuShowOperation.cs`: `method_54` checks `AccessKeys` and clears KeyId;
+  `method_27` consumes the local/online decision.
+- SPT `LocationLifecycleService.GenerateLocationAndLoot` performs its own deep
+  clone before the synchronous Arena postfix runs.
+
+Run in the repo with PowerShell 7:
+
+```powershell
+pwsh -NoProfile -File tools/ArenaLabyrinthAccessChecks/Verify-Contracts.ps1
+pwsh -NoProfile -File tools/ArenaLabyrinthAccessChecks/Verify-Regression.ps1
+```
+
+The installed-assembly check validates method signatures, parameter names and
+the reviewed native readers, plus production source hook wiring. The executable
+links actual projection, menu selection, Arena claim and keycard code against
+small data/transport stand-ins; it does not run Unity or the Harmony map-screen
+hooks. It covers standalone and co-installation, idempotence, eligibility,
+unavailable server/maps, Fika, PMC/Scav restoration, external source changes and
+the unchanged user preference. Server xUnit tests use actual raid-session and
+clone mutation code. Six temporary mutants must fail targeted checks; the
+unaltered production, existing native-map/menu and server mutator tests then run.
+Every server test build targets a verified nonexistent `SPTUserMods` path.
+
+GPU handoff: restart client/server; test Arena Labyrinth with EnableLabyrinth
+absent and present, menu highlight after Back, no entry card, local map load and
+return to ordinary PMC/Scav. Confirm ordinary metadata/exits match the relevant
+stock or upstream-mod configuration. Offline passing checks are not gameplay proof.

@@ -40,6 +40,7 @@ internal static class ArenaLocationSelectionPatch
         new DisplayPatch().Enable();
         new SelectionPatch().Enable();
         new SelectedValuePatch().Enable();
+        new ButtonLocationPatch().Enable();
         new FactoryTimePatch().Enable();
         new ClosePatch().Enable();
     }
@@ -166,8 +167,47 @@ internal static class ArenaLocationSelectionPatch
         {
             // Group/level refreshes assign this property directly and can restore
             // Ground Zero even after a null selection. Guard that path as well.
-            if (IsArena(__instance) && !ArenaMenuSelection.IsMapAvailable(value?.Id))
-                value = null;
+            if (IsArena(__instance))
+            {
+                if (!ArenaMenuSelection.IsMapAvailable(value?.Id))
+                    value = null;
+                else
+                    value = ArenaLabyrinthAccess.Project(Controller(__instance)?.RaidSettings, value);
+            }
+        }
+    }
+
+    private sealed class ButtonLocationPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(LocationButton), nameof(LocationButton.Show), new[]
+            {
+                typeof(LocationSettings.Location), typeof(ESideType), typeof(bool), typeof(int),
+                typeof(bool), typeof(bool), typeof(System.Action<LocationSettings.Location>),
+                typeof(bool), typeof(bool),
+            });
+
+        [PatchPrefix]
+        private static void Prefix(ref LocationSettings.Location location, ref bool onAtStart,
+            System.Action<LocationSettings.Location> onSelected)
+        {
+            // Other menus use LocationButton too. Only the callback owned by
+            // this exact Arena map screen may receive projected metadata.
+            if (onSelected?.Target is not MatchMakerSelectionLocationScreen screen
+                || onSelected.Method.Name != nameof(MatchMakerSelectionLocationScreen.OnLocationSelected)
+                || onSelected.Method.DeclaringType != typeof(MatchMakerSelectionLocationScreen)
+                || !IsArena(screen))
+                return;
+
+            if (!ArenaLabyrinthAccess.CanProject(Controller(screen)?.RaidSettings, location))
+                return;
+            location = ArenaLabyrinthAccess.Project(Controller(screen)?.RaidSettings, location);
+            // Vanilla compares references before Show. Our selected projection
+            // and the original database row have the same map identity, so
+            // restore the selected highlight when returning to this screen.
+            if (ArenaLabyrinthAccess.IsLabyrinth(location)
+                && string.Equals(screen.SelectedLocation?.Id, location.Id, System.StringComparison.OrdinalIgnoreCase))
+                onAtStart = true;
         }
     }
 

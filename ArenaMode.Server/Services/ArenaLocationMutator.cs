@@ -44,6 +44,15 @@ public static class ArenaLocationMutator
 
     public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config, string? mode = null)
     {
+        // This object is already the exact Arena raid's clone. Mirror the
+        // client menu projection without globally enabling Labyrinth, touching
+        // entry keys or importing EnableLabyrinth's optional Scav/exfil changes.
+        if (string.Equals(location.Id, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase))
+        {
+            location.Enabled = true;
+            location.ForceOnlineRaidInPVE = false;
+        }
+
         var raidSeconds = Math.Max(60, config.RaidTimeMinutes * 60);
         var quiet = IsQuietMap(mode);
         var spawnZones = ArenaBotSpawnPolicy.FilterZones(location.Id, map.SpawnZones);

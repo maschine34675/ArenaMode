@@ -9,16 +9,17 @@ namespace ArenaMode.Session;
 /// <summary>
 /// Opens a keycard-locked map for arena raids, and for those only.
 ///
-/// The Lab is the reason this exists. Its location entry is Enabled and not
-/// Locked; what stops you selecting it is AccessKeys — a single keycard the menu
-/// insists you are carrying before it will let the raid start. An arena kit is
-/// conjured at spawn and the profile is snapshotted around the raid, so the
-/// player never has one and never could.
+/// Labs and Labyrinth both need this. Their location entries are not Locked;
+/// ArenaLabyrinthAccess projects Labyrinth's hidden/online-only menu metadata
+/// without changing its key list. What still stops the raid is AccessKeys —
+/// a keycard the menu insists you are carrying before it lets the raid start.
+/// Arena entry must never require or consume one, whether the player receives
+/// a generated kit or retains the protected PMC entry equipment.
 ///
 /// The check lives in the MENU (method_54, reading raidSettings_0.SelectedLocation
 /// .AccessKeys), which is why the server cannot help here: the per-raid location
 /// clone the rest of the mod mutates does not exist yet, and clearing AccessKeys
-/// in the shared database would unlock the Lab for ordinary raids too. A client
+/// in the shared database would unlock these maps for ordinary raids too. A client
 /// prefix gated on "this raid would be an arena raid" is the narrow instrument —
 /// same predicate as the pre-raid screen skip, so the two cannot drift apart.
 /// </summary>
