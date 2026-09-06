@@ -20,6 +20,12 @@ $supplyMutant=Join-Path $supplyWork 'KitBuilder.mutant.cs'
 [IO.File]::WriteAllText($supplyMutant,$supplySource.Replace($supplyNeedle,'containers'))
 $supplyOutput=& dotnet run --project $supplyProject -c Release "-p:BuilderSource=$supplyMutant" -- $supplyRoot $Database 2>&1
 if($LASTEXITCODE -eq 0 -or ($supplyOutput -join "`n") -notmatch 'ASSERT: optional supplies never spill to backpack'){throw "Supplies negative control failed unexpectedly: $supplyOutput"}
+
+$supplyGetterNeedle='new[] { equipment.GetSlot(EquipmentSlot.TacticalVest), equipment.GetSlot(EquipmentSlot.Pockets) }'
+if(-not $supplySource.Contains($supplyGetterNeedle)){throw 'Supplies patched-getter negative-control anchor drifted.'}
+[IO.File]::WriteAllText($supplyMutant,$supplySource.Replace($supplyGetterNeedle,'equipment.GrenadeThrowingSlots'))
+$supplyOutput=& dotnet run --project $supplyProject -c Release "-p:BuilderSource=$supplyMutant" -- $supplyRoot $Database 2>&1
+if($LASTEXITCODE -eq 0 -or ($supplyOutput -join "`n") -notmatch 'ASSERT: patched quick-throw list cannot redirect grenades to backpack'){throw "Supplies patched-getter negative control failed unexpectedly: $supplyOutput"}
 dotnet run --project $supplyProject -c Release -- $supplyRoot $Database
 if($LASTEXITCODE -ne 0){throw 'Supplies production recheck failed.'}
 dotnet test (Join-Path $supplyRoot 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release --filter 'FullyQualifiedName~KitSuppliesTests'

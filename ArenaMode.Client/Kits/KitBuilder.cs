@@ -494,9 +494,9 @@ public static class KitBuilder
         }
 
         // Optional Arena grenades never evict/repack authored supplies. The
-        // native quick-throw container list excludes the backpack, whose free
-        // space does not make a grenade available to the grenade key.
-        var grenadeContainers = equipment.GrenadeThrowingSlots
+        // vanilla quick-throw slots are rig/pockets. Select them explicitly:
+        // UseItemsAnywhere can patch GrenadeThrowingSlots to include the backpack.
+        var grenadeContainers = new[] { equipment.GetSlot(EquipmentSlot.TacticalVest), equipment.GetSlot(EquipmentSlot.Pockets) }
             .Select(slot => slot?.ContainedItem).OfType<CompoundItem>()
             .Where(container => container.Grids?.Length > 0).ToList();
         foreach (var entry in (kit.Fill.RigContents ?? Enumerable.Empty<KitStackedItem>())

@@ -19,7 +19,8 @@ internal static class Program
     { _checks++;if(!condition)throw new InvalidOperationException("ASSERT: "+message); }
     private static readonly MethodInfo Populate=typeof(KitBuilder).GetMethod("Populate",BindingFlags.NonPublic|BindingFlags.Static)!;
     private static readonly MethodInfo Fill=typeof(KitBuilder).GetMethod("FillGrids",BindingFlags.NonPublic|BindingFlags.Static)!;
-    private static readonly string[] Grenades=[ArenaKitSupplies.Frag,ArenaKitSupplies.Flash];
+    // A second throwable type is retained only for filter-boundary fixtures.
+    private static readonly string[] Grenades=[ArenaKitSupplies.Frag,"5a0c27731526d80618476ac4"];
     private static void Main(string[] args)
     {
         string root=args[0],database=args[1];
@@ -47,11 +48,13 @@ internal static class Program
                 var actual=enhanced.Descendants().Where(i=>!string.IsNullOrEmpty(i.TemplateId)).GroupBy(i=>i.TemplateId).ToDictionary(g=>g.Key,g=>g.Count());
                 foreach(var (tpl,count) in baseline)Check(actual.TryGetValue(tpl,out int n)&&n==count,"authored item/ammo count preserved "+before[k].Id+"/"+tpl);
                 var quick=enhanced.GrenadeThrowingSlots.Select(s=>s.ContainedItem).OfType<CompoundItem>().SelectMany(c=>c.Grids).SelectMany(g=>g.Items).ToList();
-                int here=quick.Count(i=>Grenades.Contains(i.TemplateId));packed+=here;
-                Check(here==2,"real kit packs both grenades in quick slots "+before[k].Id);
+                int here=quick.Count(i=>i.TemplateId==ArenaKitSupplies.Frag);packed+=here;
+                Check(here==2,"real kit packs two RGD-5s in quick slots "+before[k].Id);
+                Check(!enhanced.Descendants().Any(i=>i.TemplateId==Grenades[1]),"real kit has no added flashbang "+before[k].Id);
                 Check(!enhanced.GetSlot(EquipmentSlot.Backpack).ContainedItem.Descendants().Any(i=>Grenades.Contains(i.TemplateId)),"grenades never added to backpack");
                 Preload(after[k]);
-                foreach(string tpl in Grenades)Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(tpl),"real production preload includes grenade "+tpl);
+                Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(ArenaKitSupplies.Frag),"real production preload includes RGD-5");
+                Check(!Singleton<ObjectsFactory>.Instance.Loaded.Contains(Grenades[1]),"removed flashbang needs no preload");
             }
             Console.WriteLine($"Supplies real catalog: {before.Count} kits, {added} requests, {packed} packed in native quick-use container layout: {path}");
             Check(source==File.ReadAllText(path),"authored catalog file untouched");
@@ -82,7 +85,8 @@ internal static class Program
             Check(ReferenceEquals(merged.Fill.RigContents,baseKit.Fill.RigContents),"Gun Game retains exact base supplies");
             Check(merged.Fill.RigContents.Count(x=>x.OptionalQuickUseOnly)==2,"Gun Game does not multiply requests");
             Preload(merged);
-            foreach(string tpl in Grenades)Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(tpl),"merged kit grenade preload");
+            Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(ArenaKitSupplies.Frag),"merged kit RGD-5 preload");
+            Check(!Singleton<ObjectsFactory>.Instance.Loaded.Contains(Grenades[1]),"merged kit does not restore flashbang");
             Singleton<ItemFactory>.Instance.Created.Clear();
             KitBuilder.BuildPrimaryWeapon(merged,merged.Fill.SpareMagazines,out _);
             Check(!Singleton<ItemFactory>.Instance.Created.Any(t=>Grenades.Contains(t)),"live Gun Game promotion never replenishes grenades");
@@ -118,6 +122,18 @@ internal static class Program
         Check(backpack.Items.Count==0,"optional supplies never spill to backpack");
         Check(ArenaMode.Plugin.ModLogger.Warnings.Count==warnings,"expected optional no-space is not warning");
         Check(ArenaMode.Plugin.ModLogger.Infos.Any(s=>s.Contains("optional grenade")&&s.Contains("skipped")),"optional skip diagnostic");
+
+        // UseItemsAnywhere 1.4.0 patches the getter to put Backpack before rig
+        // and pockets (also includes secure/armband). Arena placement must remain
+        // useful in vanilla regardless of that global quick-throw policy.
+        rig=Grid(1,1);var patchedPockets=Grid(1,1);backpack=Grid(4,4);eq=Equipment(rig,patchedPockets,backpack);
+        eq.GrenadeSlotsOverride=[eq.GetSlot(EquipmentSlot.Backpack),eq.GetSlot(EquipmentSlot.TacticalVest),eq.GetSlot(EquipmentSlot.Pockets)];
+        RunFill(eq,Request(Optional(Grenades[0]),Optional(Grenades[0])));
+        Check(backpack.Items.Count==0,"patched quick-throw list cannot redirect grenades to backpack");
+        Check(rig.Items.Count==1&&patchedPockets.Items.Count==1
+              &&rig.Items[0].TemplateId==Grenades[0]&&patchedPockets.Items[0].TemplateId==Grenades[0],"two RGD-5s use rig then pockets despite patched getter");
+        RunFill(eq,Request(Optional(Grenades[0])));
+        Check(backpack.Items.Count==0,"patched quick-throw list cannot bypass full rig and pockets");
 
         var filter=new JArray(new JObject{["Filter"]=new JArray(Grenades[1])});
         rig=Grid(1,1,filter);backpack=Grid(3,3);eq=Equipment(rig,null,backpack);

@@ -29,10 +29,10 @@ P0-P2 findings. These are offline/build results, not a GPU raid observation.
 
 ## Optional grenade supplies (K2)
 
-Each eligible Arena kit receives a request for one RGD-5 and one Zarya. A timed
-frag provides a limited way to flush cover; one flash gives a nonlethal entry
-option without filling the inventory with explosives. A pre-existing frag or
-flash/stun of any live template satisfies that type instead of adding another.
+Each eligible Arena kit receives two separate one-item requests for RGD-5s;
+the former automatic Zarya request is removed. A pre-existing authored frag of
+any live template retains the custom kit's grenade policy without adding more.
+Authored user supplies, including flashes, are never deleted or replaced.
 The exact RGD-5 must still be a normal timed frag (negative contact-explosion
 time); missing or changed target templates disable that request. Neither authored
 kit files, prices, items, ammunition counts, nor user supplies are rewritten.
@@ -51,7 +51,14 @@ Ordinary sessions never receive this transformed catalog; protected PFT 5v5 is
 explicitly excluded, so its PMC entry loadout gains no Arena grenades.
 
 `KitBuilder` handles optional entries after spare ammo AND all authored fill,
-using the native `InventoryEquipment.GrenadeThrowingSlots` (TacticalVest/Pockets).
+using explicit `GetSlot(TacticalVest)` / `GetSlot(Pockets)` calls.
+The native `GrenadeThrowingSlots` getter normally returns that pair, but the
+installed UseItemsAnywhere 1.4.0 replaces it with Backpack, TacticalVest,
+Pockets, SecuredContainer, ArmBand, in that order. The old getter-dependent
+placement therefore preferred the backpack. The fix only decouples Arena kit
+placement from this external getter; it does not patch the other mod or normal
+inventory behavior. The active patch appears in `BepInEx/LogOutput.log`; its
+order was verified in the installed `UseItemsFromAnywhere.dll`.
 Only actual ThrowWeap items qualify; each optional entry is limited to one item.
 Every attempt calls existing native `Grid.AddAnywhere` with restrictions enabled.
 No replacement, repacking, forced slot insertion, or backpack fallback occurs.
@@ -77,17 +84,28 @@ system. Production always delegates final placement to the actual native grid.
 Checks cover both real 20-kit catalogs, original item/ammo counts, exact optional
 requests and quick-use placement, full/filtered grids, backpack exclusion, ammo
 and authored fill priority, existing item identity, non-throwable rejection,
-preload and Gun Game stability/no promotion refill. A deliberate mutation
-restores backpack fallback in the actual builder and must fail its specific
-fixture. Actual server xunit checks cover typed live template projection,
+preload and Gun Game stability/no promotion refill. Deliberate mutations
+restore backpack fallback and the externally patched getter in the actual
+builder; both must fail their specific fixtures. Actual server xunit checks cover typed live template projection,
 idempotency/custom grenades/fallbacks and Armed/native-start/protected/session
 lifecycle. `Verify.ps1` runs Armor then `Verify-Supplies.ps1` sequentially.
 
-Root's complete kits-G1 passed (exit 0, expected marker), including the Armor
-recheck, Supplies production harness, deliberately restored backpack-fallback
-mutation rejected at its intended assertion, and all nine actual server test
-cases. Both shipped and installed catalogs produced exactly 40 requests for
-20 kits; the real DB layout oracle placed both grenades in quick-use grids for
-each kit without reducing original item/ammo counts. Independent review found
-no open P0-P2 findings. No GPU raid result is claimed; final build/deployment
-and commits remain root's serialized integration responsibility.
+The September 6 follow-up verifies two RGD-5s per default/installed kit, no
+automatically added flashbang, and a backpack-first patched getter. Space
+shortages still skip optional grenades rather than evicting gear or using the
+backpack; all 20 current rigs/pockets are checked against real DB dimensions.
+Root validation passed: 1,605 production-linked assertions, both deliberate
+mutations rejected at their intended assertions, nine targeted server cases,
+and the complete 222-test server suite (zero failures/skips). Both 20-kit
+catalogs packed 40 RGD-5s in rig/pocket grids while preserving original item/ammo
+counts. Independent adversarial review found no open findings.
+
+Server and client Release builds succeeded; the client reports only the four
+existing Shared nullable warnings. Built and locally installed SHA-256 match:
+
+- Client: `47D37E298E052401E06EAB49CEDDFEC41BD6AC8953CAE893BF209F5E69A37F51`
+- Server: `FCE6C394DF9184E81FE6D43B0D236380DE71E3BB110708497E2471D395B2DBE8`
+- Redeploy.Core: `3973761FDE09BBDBBD924AA893F3D351ECA50EFE14B93183A6E1C8CE947BAA8C`
+
+Restart server and game before testing a newly armed session. These are local
+offline/build/deployment results, not a verified test-PC sync or GPU raid result.

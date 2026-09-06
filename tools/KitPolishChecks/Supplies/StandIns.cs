@@ -149,7 +149,8 @@ namespace EFT.InventoryLogic
     {
         public InventoryEquipment() { Slots=Enum.GetNames<EquipmentSlot>().Select(n=>new Slot{ID=n}).ToArray(); }
         public Slot GetSlot(EquipmentSlot slot)=>Slots.Single(s=>s.ID==slot.ToString());
-        public IReadOnlyList<Slot> GrenadeThrowingSlots=>[GetSlot(EquipmentSlot.TacticalVest),GetSlot(EquipmentSlot.Pockets)];
+        public IReadOnlyList<Slot> GrenadeSlotsOverride;
+        public IReadOnlyList<Slot> GrenadeThrowingSlots=>GrenadeSlotsOverride??[GetSlot(EquipmentSlot.TacticalVest),GetSlot(EquipmentSlot.Pockets)];
     }
     public class RepairableComponent { public float Durability,MaxDurability; }
     public class FireModeComponent { public void SetFireMode(Weapon.EFireMode mode){} }

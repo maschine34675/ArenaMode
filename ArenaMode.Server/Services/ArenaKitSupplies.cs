@@ -19,7 +19,6 @@ namespace ArenaMode.Server.Services;
 internal sealed class ArenaKitSupplies
 {
     internal const string Frag = "5448be9a4bdc2dfd2f8b456a"; // RGD-5: ordinary timed frag, no impact grenade
-    internal const string Flash = "5a0c27731526d80618476ac4"; // Zarya
     internal static ArenaKitSupplies? Current { get; set; }
     private readonly Dictionary<string, ThrowWeapType?> _types;
     private readonly HashSet<string> _available;
@@ -28,9 +27,8 @@ internal sealed class ArenaKitSupplies
     {
         var items = templates.Where(t => t.Type == "Item").ToArray();
         _types = items.ToDictionary(t => t.Id.ToString(), t => t.Properties?.ThrowType, StringComparer.Ordinal);
-        _available = items.Where(t => (t.Id.ToString() == Frag && t.Properties?.ThrowType == ThrowWeapType.frag_grenade
-                                      && t.Properties.MinTimeToContactExplode < 0)
-                                     || (t.Id.ToString() == Flash && t.Properties?.ThrowType == ThrowWeapType.flash_grenade))
+        _available = items.Where(t => t.Id.ToString() == Frag && t.Properties?.ThrowType == ThrowWeapType.frag_grenade
+                                     && t.Properties.MinTimeToContactExplode < 0)
             .Where(t => t.Properties?.Width > 0 && t.Properties.Height > 0 && t.Properties.Prefab?.Path?.Length > 0)
             .Select(t => t.Id.ToString()).ToHashSet(StringComparer.Ordinal);
     }
@@ -54,16 +52,14 @@ internal sealed class ArenaKitSupplies
             var existing = items.Select(i => Text(i?["_tpl"]))
                 .Concat((contents ?? []).Select(i => Text(i?["tpl"]))).ToArray();
             if (existing.Any(tpl => !_types.ContainsKey(tpl))) continue; // unknown content: no guessing
-            bool Has(ThrowWeapType type) => existing.Any(tpl => _types[tpl] == type);
-            var requests = new List<string>(2);
-            if (!Has(ThrowWeapType.frag_grenade) && _available.Contains(Frag)) requests.Add(Frag);
-            if (!Has(ThrowWeapType.flash_grenade) && !Has(ThrowWeapType.stun_grenade)
-                && _available.Contains(Flash)) requests.Add(Flash);
-            if (requests.Count == 0) continue;
+            // Preserve custom grenade policies and keep repeat transformations
+            // idempotent. Standard kits have no authored frags and get two RGD-5s.
+            if (existing.Any(tpl => _types[tpl] == ThrowWeapType.frag_grenade) || !_available.Contains(Frag)) continue;
             if (contents == null) fill["rigContents"] = contents = [];
-            foreach (string tpl in requests)
-                contents.Add(new JsonObject { ["tpl"] = tpl, ["count"] = 1, ["optionalQuickUseOnly"] = true });
-            added += requests.Count;
+            // Each optional entry creates at most one item in the client.
+            for (int i = 0; i < 2; i++)
+                contents.Add(new JsonObject { ["tpl"] = Frag, ["count"] = 1, ["optionalQuickUseOnly"] = true });
+            added += 2;
         }
         return added == 0 ? source : catalog.ToJsonString();
     }
@@ -81,7 +77,7 @@ public sealed class ArenaKitSuppliesPostLoad(TemplateTable templates, ISptLogger
         try
         {
             ArenaKitSupplies.Current = new ArenaKitSupplies(templates.Items.Values);
-            logger.Info("[ArenaMode] Optional kit grenade supplies ready: one timed frag and one flash, native quick-use space permitting.");
+            logger.Info("[ArenaMode] Optional kit grenade supplies ready: two RGD-5s, rig/pocket space permitting; no added flashbang.");
         }
         catch (Exception ex)
         {
