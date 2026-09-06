@@ -59,7 +59,7 @@ Read against `../_decompiled/` and installed assemblies:
 - `LayersMaskController.cs`: HighPolyWithTerrain covers HighPolyCollider + Terrain;
   LowPolyColliderLayerMask adds geometry proxies; PlayerStaticDoorMask is specifically
   DoorLowPolyCollider, not player colliders; TransparentLayerMask adds glass blockers.
-  Trigger volumes are ignored. Head LOS is checked before the 20px UI offset, so an
+  Trigger volumes are ignored. Head LOS is checked before the 30px UI offset, so an
   above-cover icon position cannot expose a head concealed by a wall.
 - `EFT/GameWorld.cs`: current alive and ever-existed dictionaries return physical
   Player objects; a reused profile ID is not sufficient ownership evidence.
@@ -93,7 +93,11 @@ images in camera pre-cull. Its last-known/ghost markers are not adopted. Its REA
 declares MIT but the supplied tree has no complete license file; no code, binary
 or asset from it is copied or bundled. Arena keeps its original pooled UI diamonds.
 
-GPU handoff remains required: ordinary first person and protected-team spectator,
+The user confirmed visible diamonds after the render fix. The requested follow-up
+raises the marker from 20 to 30 HUD pixels above the projected head; line-of-sight
+still targets the head itself, so this does not reveal a teammate behind cover.
+
+Further GPU coverage remains required: ordinary first person and protected-team spectator,
 standing/crouching/prone heads, movement behind walls/closed doors and glass, head
 hidden behind cover, quick camera/target changes, bot death/replacement, round rebind,
 UI scaling and a following normal raid. Physics LOS is conservative geometry

@@ -61,7 +61,7 @@ Check(Drawn(ui.root) > 0, "friendly geometry must be ready in the same canvas re
 Check(Canvas.Subscribers == 1 && Camera.Subscribers == 0, "one pre-rebuild canvas callback and no late camera activation are registered");
 Check(Visible(ui.root) == 1 && Physics.Rays == 1, "only the exact current friendly bot gets one LOS-tested marker");
 var first = (RectTransform)ui.root.Children[0];
-Check(first.anchoredPosition.Equals(new Vector2(0, 20)), "marker sits slightly above the head in overlay local coordinates");
+Check(first.anchoredPosition.Equals(new Vector2(0, 30)), "marker sits slightly above the head in overlay local coordinates");
 Check(first.localRotation.Equals(Quaternion.Euler(0, 0, 45)) && first.sizeDelta.Equals(new Vector2(10, 10)), "small square geometry is rotated into a diamond without assets");
 Check(!first.gameObject.GetComponent<Image>().raycastTarget && !first.Children[0].gameObject.GetComponent<Image>().raycastTarget, "both diamond images never intercept input");
 Check(first.Children[0].gameObject.GetComponent<Image>().color.Equals(new Color(.125f, .625f, 1f, .9f)), "friendly tracer HDR palette is normalized for the UI");

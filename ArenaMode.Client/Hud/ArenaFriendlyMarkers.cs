@@ -184,7 +184,7 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
             Vector3 screen = camera.WorldToScreenPoint(headPosition);
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, screen, null, out Vector2 local)) continue;
             View view = _views[displayed++];
-            view.Rect.anchoredPosition = local + new Vector2(0f, 20f);
+            view.Rect.anchoredPosition = local + new Vector2(0f, 30f);
             view.Fill.color = color;
             view.Rect.gameObject.SetActive(true);
             _shown = displayed;
