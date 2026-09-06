@@ -18,11 +18,12 @@ void Setup()
     ArenaSession.IsActive = ArenaSession.Exact = true; ArenaSession.ActiveMode = "teamdeathmatch";
     Settings.TeamLasers.Value = true;
     Settings.VisibleLaserBrightness.Value = 1f;
+    Settings.VisibleLaserBeamBrightness.Value = 1f;
     ArenaMode.Compat.PitFireTeamCompat.TeamArenaActive = true;
     Singleton<GameWorld>.Instance = new(); Singleton<AbstractGame>.Instance = new();
     ArenaMatchService.Current = new(); Time.unscaledTime += 1f;
 }
-(LaserBeam laser, Player owner, WeaponPrefab weapon, TacticalComboVisualController tactical) Fixture(bool friendly = true)
+(LaserBeam laser, Player owner, WeaponPrefab weapon, TacticalComboVisualController tactical) Fixture(bool friendly = true, float intensity = 4f, bool initialized = true)
 {
     var owner = new GameObject().Add<Player>();
     var weaponGo = new GameObject(); var weapon = weaponGo.Add<WeaponPrefab>(); weapon.Init(owner);
@@ -32,10 +33,12 @@ void Setup()
     laser.BeamMaterial = Material("Custom/LaserBeam", new Color(.8f, .1f, .1f, .37f));
     laser.PointMaterial = Material("Custom/LaserPoint", new Color(6f, 1f, 1f, .81f));
     laser.NativeLight.color = new Color(.2f, .05f, .03f, .9f);
+    laser.IntensityFactor = intensity;
     ((TeamDeathmatchMode)ArenaMatchService.Current.Mode).CurrentBodies.Add(owner, friendly);
     Singleton<GameWorld>.Instance.Alive[owner.ProfileId] = owner;
     Singleton<GameWorld>.Instance.Ever[owner.ProfileId] = owner;
     ArenaLaserBrightness.Capture(laser);
+    if (initialized) ArenaLaserBrightness.ObserveInitialized(laser);
     return (laser, owner, weapon, tactical);
 }
 Material Material(string shader, Color color) => new() { shader = new Shader { name = shader }, Colors = { [1] = color }, Floats = { [2] = 2.5f } };
@@ -323,9 +326,13 @@ foreach (string invalid in new[] { "rebind", "staging", "aftermath", "epoch", "p
 
 Setup(); var observed = Fixture(); ArenaSession.IsActive = false;
 var savedBeam = observed.laser.NativeBeam; Color savedColor = observed.laser.BeamMaterial.GetColor(1);
-ArenaLaserBrightness.Reset(); ArenaLaserBrightness.Capture(observed.laser);
+float observedFactor = observed.laser.BeamMaterial.GetFloat(2), observedLight = observed.laser.NativeLight.intensity;
+var observedMaterial = observed.laser.BeamMaterial;
+ArenaLaserBrightness.Reset(); ArenaLaserBrightness.Capture(observed.laser); ArenaLaserBrightness.ObserveInitialized(observed.laser);
 Check(Near(observed.laser.IntensityFactor, 4f) && Near(observed.laser.LightIntensity, 8f)
-    && ReferenceEquals(savedBeam, observed.laser.NativeBeam) && ColorNear(savedColor, observed.laser.BeamMaterial.GetColor(1)), "global baseline capture is read-only in ordinary raids");
+    && ReferenceEquals(savedBeam, observed.laser.NativeBeam) && ColorNear(savedColor, observed.laser.BeamMaterial.GetColor(1))
+    && ReferenceEquals(observedMaterial, observed.laser.BeamMaterial) && Near(observedFactor, observed.laser.BeamMaterial.GetFloat(2))
+    && Near(observedLight, observed.laser.NativeLight.intensity), "global baseline capture and initialization observation are read-only in ordinary raids");
 observed.laser.IntensityFactor = 8f; ArenaLaserBrightness.Capture(observed.laser);
 Check(Near(ArenaLaserBrightness.Resolve(observed.laser, 3f), 12f), "repeated baseline observation cannot recapture a modded intensity");
 foreach (float value in new[] { 0f, -1f, float.NaN, float.PositiveInfinity })
@@ -354,6 +361,112 @@ ArenaTeamLaserColors.Reset();
 var weakPrefab = ObserveTemporaryPrefab();
 GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
 Check(!weakPrefab.IsAlive, "weak brightness baseline does not retain an abandoned prefab");
+
+// The installed DX11 shader oracle verifies this independent rendering boundary:
+// beam vertex gain = lerp(4, _Intensity, meshY), then visible _Factor * color;
+// the point fragment multiplies _Intensity directly. Noise/textures are held
+// constant here, so relative energy is meaningful, not an actual rendered image.
+float BeamEnergy(LaserBeam laser, float meshY) => (4f + meshY * (laser.DrawnIntensity - 4f)) * laser.DrawnBeamFactor * Peak(laser.DrawnBeam);
+float PointEnergy(LaserBeam laser) => laser.DrawnIntensity * laser.DrawnPointFactor * Peak(laser.DrawnPoint);
+Setup(); var beamOnly = Fixture(intensity: 1f); var positions = new[] { 0f, .25f, .5f, .75f, 1f };
+Draw(beamOnly.laser); float originalNear = BeamEnergy(beamOnly.laser, 0f), originalPoint = PointEnergy(beamOnly.laser);
+Settings.VisibleLaserBrightness.Value = 2f; Draw(beamOnly.laser);
+Check(Near(BeamEnergy(beamOnly.laser, 0f), originalNear) && Near(PointEnergy(beamOnly.laser), originalPoint * 2f), "reproduced old scalar-only boost: near beam unchanged while point doubles");
+var beforeBeamBoost = positions.Select(p => BeamEnergy(beamOnly.laser, p)).ToArray();
+float pointBeforeBeamBoost = PointEnergy(beamOnly.laser), beforeSpot = beamOnly.laser.NativeLight.intensity;
+var originalBeamBlock = beamOnly.laser.NativeBeam; var originalPointBlock = beamOnly.laser.NativePoint;
+Settings.VisibleLaserBeamBrightness.Value = 2f; Draw(beamOnly.laser);
+Check(Near(PointEnergy(beamOnly.laser), pointBeforeBeamBoost) && Near(beamOnly.laser.NativeLight.intensity, beforeSpot), "beam setting does not further brighten point or spot light");
+for (int i = 0; i < positions.Length; i++)
+    Check(Near(BeamEnergy(beamOnly.laser, positions[i]), beforeBeamBoost[i] * 2f), "beam factor boost reaches the full native taper: " + positions[i]);
+Check(ReferenceEquals(originalBeamBlock, beamOnly.laser.NativeBeam) && ReferenceEquals(originalPointBlock, beamOnly.laser.NativePoint)
+    && !originalBeamBlock.Floats.ContainsKey(2) && !originalPointBlock.Floats.ContainsKey(2), "beam factor override never survives the draw in native blocks");
+Check(Near(beamOnly.laser.BeamMaterial.GetFloat(2), 2.5f) && Near(beamOnly.laser.PointMaterial.GetFloat(2), 2.5f), "beam and point materials remain unchanged after beam boost");
+Check(ColorNear(beamOnly.laser.DrawnBeam, ArenaTeamLaserPolicy.Tint(beamOnly.laser.BeamMaterial.GetColor(1), ArenaTracerPalette.Resolve(ArenaTracerColor.Cyan))), "beam brightness retains team hue and alpha");
+allocationStart = MaterialPropertyBlock.Created;
+for (int i = 0; i < 1000; i++) Draw(beamOnly.laser);
+Check(MaterialPropertyBlock.Created == allocationStart && Near(beamOnly.laser.DrawnBeamFactor, 5f), "beam boost reuses blocks without factor accumulation");
+Settings.VisibleLaserBeamBrightness.Value = 1f; Draw(beamOnly.laser);
+Check(Near(beamOnly.laser.DrawnBeamFactor, 2.5f) && Near(PointEnergy(beamOnly.laser), pointBeforeBeamBoost), "beam setting one restores previous appearance independently of point setting");
+beamOnly.laser.BeamMaterial.Floats[2] = .25f; Draw(beamOnly.laser);
+Check(Near(beamOnly.laser.DrawnBeamFactor, .25f), "beam setting one adds nothing even when another mod dims the initialized material");
+
+// Replay Bright's material cloning inside native Awake/CreateLight, before our
+// initialization observation. The original factor must remain the baseline.
+Setup(); var brightBeam = Fixture(intensity: 1f, initialized: false);
+brightBeam.laser.BeamMaterial = Material("Custom/LaserBeam", brightBeam.laser.BeamMaterial.GetColor(1));
+brightBeam.laser.BeamMaterial.Floats[2] = 5f; brightBeam.laser.IntensityFactor = 2f;
+brightBeam.laser.LightIntensity *= 2f; ArenaLaserBrightness.ObserveInitialized(brightBeam.laser);
+Settings.VisibleLaserBeamBrightness.Value = 2f; Settings.VisibleLaserBrightness.Value = 2f;
+Draw(brightBeam.laser);
+Check(Near(brightBeam.laser.DrawnBeamFactor, 5f) && Near(brightBeam.laser.DrawnIntensity, 2f), "Bright factor two plus Arena beam two stays two");
+Settings.VisibleLaserBeamBrightness.Value = 4f; Draw(brightBeam.laser);
+Check(Near(brightBeam.laser.DrawnBeamFactor, 10f) && Near(brightBeam.laser.BeamMaterial.GetFloat(2), 5f), "Arena beam four raises Bright factor two only to original four");
+float brightPoint = PointEnergy(brightBeam.laser), brightSpot = brightBeam.laser.NativeLight.intensity;
+for (int i = 0; i < 250; i++) Draw(brightBeam.laser);
+Check(Near(brightBeam.laser.DrawnBeamFactor, 10f) && Near(PointEnergy(brightBeam.laser), brightPoint)
+    && Near(brightBeam.laser.NativeLight.intensity, brightSpot), "Bright coexistence beam boost remains stable without extra point amplification");
+var initializedMaterial = brightBeam.laser.BeamMaterial;
+brightBeam.laser.BeamMaterial = Material("Custom/LaserBeam", initializedMaterial.GetColor(1));
+brightBeam.laser.BeamMaterial.Floats[2] = .25f; ArenaLaserBrightness.ObserveInitialized(brightBeam.laser);
+Draw(brightBeam.laser);
+Check(Near(brightBeam.laser.DrawnBeamFactor, .25f), "unrelated later material cannot inherit or recapture a foreign beam baseline");
+brightBeam.laser.BeamMaterial = initializedMaterial; Draw(brightBeam.laser);
+Check(Near(brightBeam.laser.DrawnBeamFactor, 10f), "return to initialized material retains its original beam baseline");
+
+foreach (string invalid in new[] { "normal", "wrongraid", "off", "inactive", "dead", "held", "body", "irbeam", "irpoint", "unknownshader", "missingbaseline", "uninitialized", "nan", "zero" })
+{
+    Setup(); var f = Fixture(intensity: 1f, initialized: invalid != "uninitialized");
+    Settings.TeamLasers.Value = false; Settings.VisibleLaserBeamBrightness.Value = 2f;
+    switch (invalid)
+    {
+        case "normal": ArenaSession.IsActive = false; break;
+        case "wrongraid": ArenaSession.Exact = false; break;
+        case "off": f.tactical.LightMod.IsActive = false; break;
+        case "inactive": f.laser.isActiveAndEnabled = false; break;
+        case "dead": f.owner.HealthController.IsAlive = false; break;
+        case "held": ((Player.FirearmController)f.owner.HandsController).ControllerGameObject = new(); break;
+        case "body": Singleton<GameWorld>.Instance.Ever[f.owner.ProfileId] = new Player { ProfileId = f.owner.ProfileId }; break;
+        case "irbeam": f.laser.BeamMaterial.Floats[2] = 0f; break;
+        case "irpoint": f.laser.PointMaterial.Floats[2] = 0f; break;
+        case "unknownshader": f.laser.BeamMaterial.shader.name = "Unknown/Laser"; break;
+        case "missingbaseline": ArenaLaserBrightness.Reset(); break;
+        case "nan": Settings.VisibleLaserBeamBrightness.Value = float.NaN; break;
+        case "zero": Settings.VisibleLaserBeamBrightness.Value = 0f; break;
+    }
+    var native = f.laser.NativeBeam;
+    render = ArenaTeamLaserColors.Begin(f.laser);
+    if (invalid != "missingbaseline" && invalid != "uninitialized") Check(render == null, "beam-only invalid scope stays native: " + invalid);
+    f.laser.LateUpdate(); ArenaTeamLaserColors.End(render);
+    Check(Near(f.laser.DrawnBeamFactor, f.laser.BeamMaterial.GetFloat(2)) && Near(f.laser.DrawnIntensity, 1f)
+        && ReferenceEquals(native, f.laser.NativeBeam), "invalid or missing beam baseline leaves native draw untouched: " + invalid);
+}
+
+Setup(); var only = Fixture(intensity: 1f); Settings.TeamLasers.Value = false; Settings.VisibleLaserBeamBrightness.Value = 2f;
+Draw(only.laser);
+Check(Near(only.laser.DrawnBeamFactor, 5f) && Near(only.laser.DrawnIntensity, 1f) && ColorNear(only.laser.DrawnBeam, only.laser.BeamMaterial.GetColor(1)), "beam setting works independently with point boost and team colors disabled");
+Settings.VisibleLaserBeamBrightness.Value = 99f; Draw(only.laser);
+Check(Near(only.laser.DrawnBeamFactor, 12.5f), "beam setting has bounded effective maximum");
+ArenaTeamLaserColors.Reset(); Draw(only.laser);
+Check(Near(only.laser.DrawnBeamFactor, 12.5f), "beam baseline survives effect reset for reused pooled prefab");
+only.laser.FailAfterLight = true; render = ArenaTeamLaserColors.Begin(only.laser);
+try { only.laser.LateUpdate(); } catch { } finally { ArenaTeamLaserColors.End(render); }
+Check(!only.laser.NativeBeam.Floats.ContainsKey(2) && Near(only.laser.BeamMaterial.GetFloat(2), 2.5f), "failed native draw restores beam factor override without touching material");
+only.laser.isActiveAndEnabled = false; Time.unscaledTime += 1f; ArenaTeamLaserColors.Tick();
+Check(!only.laser.NativeBeam.Floats.ContainsKey(2), "inactive pooled beam has no persistent factor override");
+
+[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+static (LaserBeam laser, WeakReference material) ObserveTemporaryMaterial()
+{
+    var material = new Material { shader = new Shader { name = "Custom/LaserBeam" }, Floats = { [2] = 1f } };
+    var laser = new LaserBeam { BeamMaterial = material };
+    ArenaLaserBrightness.Capture(laser); ArenaLaserBrightness.ObserveInitialized(laser);
+    laser.BeamMaterial = null;
+    return (laser, new WeakReference(material));
+}
+var weakMaterial = ObserveTemporaryMaterial(); GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+Check(!weakMaterial.material.IsAlive, "beam baseline holds initialized materials only weakly");
+GC.KeepAlive(weakMaterial.laser);
 
 ArenaTeamLaserColors.Reset();
 Console.WriteLine($"ARENA_TEAM_LASER_CHECKS_PASSED ({count} assertions)");

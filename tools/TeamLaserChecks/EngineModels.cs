@@ -28,6 +28,7 @@ namespace UnityEngine
         public bool HasProperty(int id) => Colors.ContainsKey(id) || Floats.ContainsKey(id);
         public Color GetColor(int id) => Colors[id];
         public float GetFloat(int id) => Floats[id];
+        public void SetFloat(int id, float value) => Floats[id] = value;
     }
     public class MaterialPropertyBlock
     {
@@ -55,6 +56,7 @@ public class LaserBeam : UnityEngine.MonoBehaviour
     public float IntensityFactor = 4f, LightIntensity = 8f, BeamSize = 0.004f;
     public UnityEngine.Color DrawnBeam, DrawnPoint;
     public float DrawnIntensity;
+    public float DrawnBeamFactor, DrawnPointFactor;
     public bool Hit = true, FailBeforeLight, FailAfterLight;
     public void Awake() { }
     public void LateUpdate()
@@ -65,6 +67,8 @@ public class LaserBeam : UnityEngine.MonoBehaviour
         _light.intensity = Hit ? IntensityFactor * LightIntensity : 0f;
         if (FailAfterLight) throw new InvalidOperationException("after native light");
         DrawnIntensity = IntensityFactor;
+        DrawnBeamFactor = _beamBlock.Floats.TryGetValue(2, out var beamFactor) ? beamFactor : BeamMaterial.GetFloat(2);
+        DrawnPointFactor = _pointBlock.Floats.TryGetValue(2, out var pointFactor) ? pointFactor : PointMaterial.GetFloat(2);
         DrawnBeam = _beamBlock.Colors.TryGetValue(1, out var b) ? b : BeamMaterial.GetColor(1);
         DrawnPoint = _pointBlock.Colors.TryGetValue(1, out var p) ? p : PointMaterial.GetColor(1);
     }
@@ -118,6 +122,7 @@ namespace ArenaMode.Config
     {
         public static Setting<bool> TeamLasers = new(true);
         public static Setting<float> VisibleLaserBrightness = new(1f);
+        public static Setting<float> VisibleLaserBeamBrightness = new(1f);
         public static Setting<ArenaMode.Effects.ArenaTracerColor> FriendlyTracerColor = new(ArenaMode.Effects.ArenaTracerColor.Cyan), OpponentTracerColor = new(ArenaMode.Effects.ArenaTracerColor.Red);
     }
 }
@@ -155,7 +160,7 @@ namespace ArenaMode.Compat { public static class PitFireTeamCompat { public stat
 namespace ArenaMode { public static class Plugin { public static Logger ModLogger = new(); public class Logger { public void LogWarning(string message) { } } } }
 namespace HarmonyLib
 {
-    public static class Priority { public const int First = 800; }
+    public static class Priority { public const int First = 800, Last = 0; }
     public class HarmonyPriority : Attribute { public HarmonyPriority(int priority) { } }
     public static class AccessTools
     {
@@ -167,5 +172,6 @@ namespace SPT.Reflection.Patching
 {
     public abstract class ModulePatch { protected abstract MethodBase GetTargetMethod(); public void Enable() { } }
     public class PatchPrefixAttribute : Attribute { }
+    public class PatchPostfixAttribute : Attribute { }
     public class PatchFinalizerAttribute : Attribute { }
 }

@@ -61,6 +61,7 @@ public static class Settings
     public static ConfigEntry<bool> TeamTracers { get; private set; }
     public static ConfigEntry<bool> TeamLasers { get; private set; }
     public static ConfigEntry<float> VisibleLaserBrightness { get; private set; }
+    public static ConfigEntry<float> VisibleLaserBeamBrightness { get; private set; }
     public static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; private set; }
     public static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; private set; }
     public static ConfigEntry<int> PmcFloor { get; private set; }
@@ -825,6 +826,17 @@ public static class Settings
                 "Arena visible weapon laser intensity minimum relative to the original prefab (1 = no Arena boost). " +
                 "An existing larger intensity, including BrightLasers, is preserved rather than multiplied again. " +
                 "Independent of team colors; does not change laser activation, IR, flashlights, width or ordinary raids.",
+                new AcceptableValueRange<float>(1f, 5f)));
+
+        VisibleLaserBeamBrightness = config.Bind(
+            "Effects",
+            "VisibleLaserBeamBrightness",
+            2f,
+            new ConfigDescription(
+                "Arena visible laser BEAM brightness minimum relative to the original material (1 = no extra beam boost). " +
+                "Brightens the full beam without further brightening its impact point or spot light. " +
+                "An already larger beam factor, including BrightLasers, is preserved rather than multiplied again. " +
+                "Independent of VisibleLaserBrightness; leaves IR/night-vision factors, width and ordinary raids unchanged.",
                 new AcceptableValueRange<float>(1f, 5f)));
 
         FriendlyTracerColor = config.Bind(

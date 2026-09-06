@@ -18,8 +18,9 @@ namespace ArenaMode.Effects;
 /// the exact original block references after every call, including exceptions.
 /// TDM and protected Tactical use exact current teams. Brightness temporarily
 /// raises native IntensityFactor to a prefab-relative minimum; it never stacks
-/// another multiplier on BrightLasers. No material, shader, activation, mode,
-/// alpha, _Factor, LightIntensity or beam width is changed.
+/// another multiplier on BrightLasers. An independent beam-only minimum overrides
+/// _Factor in its draw block, after the shader's native near-to-far taper. No
+/// material, shader, activation, mode, alpha, IR factor, LightIntensity or width is changed.
 /// </summary>
 internal static class ArenaTeamLaserColors
 {
@@ -87,7 +88,8 @@ internal static class ArenaTeamLaserColors
     }
 
     private static bool InScope()
-        => ArenaSession.IsActive && (Settings.TeamLasers?.Value == true || Settings.VisibleLaserBrightness?.Value > 1f)
+        => ArenaSession.IsActive && (Settings.TeamLasers?.Value == true || Settings.VisibleLaserBrightness?.Value > 1f
+                                    || Settings.VisibleLaserBeamBrightness?.Value > 1f)
            && ArenaMatchService.Current?.Mode != null && !ArenaMatchService.Current.Mode.IsComplete
            && string.Equals(ArenaSession.ActiveMode, ArenaMatchService.Current.Mode.Id, StringComparison.Ordinal)
            && Singleton<GameWorld>.Instantiated && Singleton<AbstractGame>.Instantiated
@@ -143,7 +145,7 @@ internal static class ArenaTeamLaserColors
             }
         }
         return (friendly.HasValue && Settings.TeamLasers?.Value == true)
-               || Settings.VisibleLaserBrightness?.Value > 1f;
+               || Settings.VisibleLaserBrightness?.Value > 1f || Settings.VisibleLaserBeamBrightness?.Value > 1f;
     }
 
     private static bool Visible(LaserBeam laser)
@@ -189,6 +191,9 @@ internal static class ArenaTeamLaserColors
             // blocks are reused, never installed permanently and never shared.
             state.Beam.Clear();
             state.Point.Clear();
+            float beamFactor = ArenaLaserBrightness.ResolveBeamFactor(laser, Settings.VisibleLaserBeamBrightness?.Value ?? 1f);
+            if (beamFactor > laser.BeamMaterial.GetFloat(FactorId))
+                state.Beam.SetFloat(FactorId, beamFactor);
             if (tint)
             {
                 state.Beam.SetColor(ColorId, ArenaTeamLaserPolicy.Tint(laser.BeamMaterial.GetColor(ColorId), palette));

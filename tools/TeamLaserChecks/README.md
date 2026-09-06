@@ -1,9 +1,13 @@
 # Mounted Arena laser verification
 
-Run `pwsh -NoProfile -File tools/TeamLaserChecks/Verify-Brightness.ps1` from the repository.
-It runs installed contracts, production-linked draw replays and targeted mutations.
+Run `pwsh -NoProfile -File tools/TeamLaserChecks/Verify-Beam.ps1` from the repository.
+It includes `Verify-Brightness.ps1` and adds installed DX11 beam/point shader
+instructions, production-linked beam-versus-point draw replays and six additional
+targeted mutations (nineteen total).
 Contracts require PowerShell 7, installed EFT assemblies/bundles and Python with
-UnityPy; only metadata is read, no extracted assets are packaged. The harness
+UnityPy and lz4, plus the Windows system `d3dcompiler_47.dll`. Shader programs are
+decompressed and disassembled in memory only, with no GPU device; no extracted
+assets are written or packaged. The harness
 requires .NET 10. It never builds or deploys the game plugin.
 
 The executable links the actual color service, hue/restore policy, brightness
@@ -34,7 +38,7 @@ Verified in `../_decompiled/LaserBeam.cs`, `TacticalComboVisualController.cs`,
   The active laser must also be below a mounted, active TacticalCombo controller.
 - `LaserBeam.LateUpdate` draws beam and dot with separate property blocks. Every
   float consumed by its draws is written by that invocation. Arena's reused blocks
-  contain the team `_Color` plus those native writes. A finalizer restores the exact
+  contain the team `_Color`, optional visible beam `_Factor`, plus those native writes. A finalizer restores the exact
   original block references even if drawing throws. Only the draw's temporary
   `IntensityFactor` can increase, and it is restored in that same finalizer.
   Materials, keywords, shaders, modes, width, `LightIntensity` and activation are
@@ -44,10 +48,19 @@ Verified in `../_decompiled/LaserBeam.cs`, `TacticalComboVisualController.cs`,
   have `_Factor = 0` and `_IkFactor > 0`; either invisible material makes the whole
   beam stay native. Unknown shaders stay native too.
 - Laser hue uses the existing tracer palette but preserves each beam/dot's peak
-  RGB magnitude and alpha. `_Factor` stays unchanged. The intensity setting is a
+  RGB magnitude and alpha. Material `_Factor` stays unchanged. The intensity setting is a
   minimum relative to the original prefab, not another multiplier: Bright 2 plus
   Arena 2 stays 2; Arena 4 raises that to 4. Bright's factor/width/color settings
   remain its own. Setting 1 adds nothing even if another mod dimmed the laser.
+- `VisibleLaserBeamBrightness` separately raises the beam draw's visible `_Factor`
+  to a minimum relative to its original prefab material. The installed beam vertex
+  shader computes `4 + meshY * (_Intensity - 4)`, so the old intensity control has
+  no effect at the muzzle end. The new factor multiplies after that taper, reaching
+  every beam segment equally without further changing the dot or spot light.
+  `_IkFactor` and NVG/thermal selection remain native. Default 2 and range 1..5;
+  Bright factor 2 plus Arena beam 2 remains 2, not 4. The exact initialized material
+  is weakly observed after Awake/CreateLight and Bright's clone; unrelated later
+  replacements and missing observations get no inherited beam boost.
 - Only the private laser spot light is colored; flashlights are never inspected.
   It stays colored until camera rendering and restores on inactive/pool/owner,
   setting, mode or raid cleanup. A later external color write wins over our stale
@@ -64,7 +77,7 @@ GPU handoff is still required: both teams' weapon lasers and dots in TDM and
 protected Tactical (including local death and round rebind), quick weapon
 switch/drop/pickup, flashlight-only and IR modes with/without night vision,
 BrightLasers override/RGB options, changing F12 team colors/TeamLasers and
-VisibleLaserBrightness (1/2/4), respawn,
+VisibleLaserBrightness and VisibleLaserBeamBrightness independently (1/2/4), respawn,
 and then a normal raid. The modeled renderer cannot prove Unity rendering,
 actual component hierarchy, Harmony execution order or every custom attachment.
 
@@ -74,3 +87,15 @@ the recent protected Tactical rounds could not receive Arena team laser colors.
 See `../../LASER-BRIGHTNESS-REVIEW.md` for the diagnosis, design and review limits.
 The scripts print current installed hashes when the optional Bright plugin is
 present; its absence does not disable the replay of its reviewed 3.0.0 contract.
+
+The beam oracle pins the four installed DXBC program hashes and their relevant
+constant-buffer offsets/instructions. It rejects shader drift rather than quietly
+assuming the old formula still applies. Replays compare relative beam energy at
+five positions against the independently inspected shader boundary, preserve point
+and deferred-light energy, and cover native/Bright/foreign-material baselines,
+scope exclusion, disabled/dimmed settings, weak material references, 1,000-frame
+reuse and failure cleanup. Six scratch-source negative controls reject missing
+beam output, stacked Bright amplification, point amplification, material writes,
+foreign baselines and a disabled-setting regression. This is evidence for the
+draw inputs and linear shader factor, not a substitute for GPU perception tests.
+See `../../LASER-BEAM-REVIEW.md` for the native evidence and current verification status.

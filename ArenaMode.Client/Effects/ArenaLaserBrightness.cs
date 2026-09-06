@@ -3,6 +3,7 @@ using SPT.Reflection.Patching;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace ArenaMode.Effects;
 
@@ -15,7 +16,13 @@ namespace ArenaMode.Effects;
 /// </summary>
 internal static class ArenaLaserBrightness
 {
-    private sealed class Baseline { internal float Intensity; }
+    private sealed class Baseline
+    {
+        internal float Intensity, BeamFactor;
+        internal WeakReference InitializedBeamMaterial;
+        internal bool Initialized;
+    }
+    private static readonly int FactorId = Shader.PropertyToID("_Factor");
     private static ConditionalWeakTable<LaserBeam, Baseline> Baselines = new();
 
     internal static void Enable() => new AwakePatch().Enable();
@@ -25,12 +32,47 @@ internal static class ArenaLaserBrightness
     {
         try
         {
-            if (laser == null || Baselines.TryGetValue(laser, out _)
-                || !Positive(laser.IntensityFactor)) return;
-            Baselines.Add(laser, new Baseline { Intensity = laser.IntensityFactor });
+            if (laser == null || Baselines.TryGetValue(laser, out _)) return;
+            float factor = VisibleBeamFactor(laser.BeamMaterial);
+            if (!Positive(laser.IntensityFactor) && !Positive(factor)) return;
+            Baselines.Add(laser, new Baseline { Intensity = laser.IntensityFactor, BeamFactor = factor });
         }
         catch { /* Observation must never interfere with native initialization. */ }
     }
+
+    /// <summary>
+    /// Native Awake has now completed its CreateLight call (and any BrightLasers
+    /// material clone). Bind that exact resulting material weakly. A later
+    /// unrelated replacement must not inherit this prefab's original factor.
+    /// This observation has no rendering effects, even outside Arena.
+    /// </summary>
+    internal static void ObserveInitialized(LaserBeam laser)
+    {
+        try
+        {
+            if (laser == null || !Baselines.TryGetValue(laser, out var baseline) || baseline.Initialized) return;
+            baseline.Initialized = true;
+            if (Positive(VisibleBeamFactor(laser.BeamMaterial)))
+                baseline.InitializedBeamMaterial = new WeakReference(laser.BeamMaterial);
+        }
+        catch { /* A missing initialization observation disables only the extra beam factor. */ }
+    }
+
+    internal static float ResolveBeamFactor(LaserBeam laser, float setting)
+    {
+        float current = VisibleBeamFactor(laser.BeamMaterial);
+        if (!Positive(current) || !Positive(setting) || setting <= 1f
+            || !Baselines.TryGetValue(laser, out var baseline) || !Positive(baseline.BeamFactor)
+            || !ReferenceEquals(laser.BeamMaterial, baseline.InitializedBeamMaterial?.Target)) return current;
+        float minimum = baseline.BeamFactor * Math.Min(setting, 5f);
+        // The beam shader multiplies _Factor after its vertex intensity taper.
+        // Override only the draw's visible factor, never the material or _IkFactor.
+        return Positive(minimum) ? Math.Max(current, minimum) : current;
+    }
+
+    private static float VisibleBeamFactor(Material material)
+        => material != null && string.Equals(material.shader?.name, "Custom/LaserBeam", StringComparison.Ordinal)
+           && material.HasProperty(FactorId) ? material.GetFloat(FactorId) : 0f;
 
     internal static float Resolve(LaserBeam laser, float setting)
     {
@@ -50,6 +92,8 @@ internal static class ArenaLaserBrightness
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(LaserBeam), nameof(LaserBeam.Awake));
         [PatchPrefix, HarmonyPriority(Priority.First)]
         private static void Prefix(LaserBeam __instance) => Capture(__instance);
+        [PatchPostfix, HarmonyPriority(Priority.Last)]
+        private static void Postfix(LaserBeam __instance) => ObserveInitialized(__instance);
     }
 }
 
