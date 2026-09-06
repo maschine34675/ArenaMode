@@ -56,8 +56,7 @@ internal static class ArenaPursuitRuntime
                 return false;
             }
 
-            bot.Memory.GoalEnemy = enemy;
-            return ReferenceEquals(bot.Memory.GoalEnemy, enemy);
+            return TeamArenaGoalHandoff.TrySetLeaseGoal(bot, lease, enemy, out _);
         }
         catch (Exception)
         {

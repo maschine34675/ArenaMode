@@ -1583,6 +1583,8 @@ internal static class PitFireTeamCompat
                     + roundCapability.Reason);
             }
 
+            if (!PitFireTeamGoalContext.Configure(assembly, out string goalContextProblem))
+                Plugin.ModLogger.LogWarning("Arena PFT pursuit goal handoff unavailable: " + goalContextProblem);
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
             Plugin.ModLogger.LogInfo(

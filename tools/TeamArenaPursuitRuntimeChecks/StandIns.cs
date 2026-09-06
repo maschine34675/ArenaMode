@@ -3,6 +3,19 @@
 // production companion project.
 namespace ArenaMode.Bots
 {
+    // This older harness isolates consumer enemy resolution. The full actual
+    // cross-assembly handoff/context/round guard runs in TeamArenaGoalHandoffChecks.
+    internal static class TeamArenaGoalHandoff
+    {
+        internal static bool TrySetLeaseGoal(EFT.BotOwner bot, TeamArenaPursuitLease lease,
+            EFT.EnemyInfo enemy, out string problem)
+        {
+            problem = null;
+            bot.Memory.GoalEnemy = enemy;
+            return ReferenceEquals(bot.Memory.GoalEnemy, enemy);
+        }
+    }
+
     internal readonly struct TeamArenaPursuitLease
     {
         public TeamArenaPursuitLease(

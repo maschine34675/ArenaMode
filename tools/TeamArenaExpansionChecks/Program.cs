@@ -1459,7 +1459,7 @@ internal static class Program
             "source.Memory.AddEnemy(playerKey, groupInfo, onActivation: false)",
             "ReferenceEquals(enemyInfo.Person, playerKey)",
             "groupInfo.IsLastPositionChecked = false",
-            "source.Memory.GoalEnemy = enemyInfo",
+            "TeamArenaGoalHandoff.TrySetGoal(source, enemyInfo, _epoch, out _)",
             "TeamArenaPursuitPolicy.Decide(",
             "IsMedicalActionActive(source)",
             "source.DoorOpener?.Interacting == true",
@@ -1522,7 +1522,7 @@ internal static class Program
             "ReferenceEquals(_sainEnemyPlayer.GetValue(candidate), target.GetPlayer)",
             "wrappedNativeEnemy",
             "ReferenceEquals(registered, candidateNativeEnemy)",
-            "source.Memory.GoalEnemy = currentNativeEnemy",
+            "TeamArenaGoalHandoff.TrySetGoal(source, currentNativeEnemy, epoch, out _)",
             "UpdateLastSeenPosition",
             "ReferenceEquals(_sainGoalEnemy.GetValue(enemyController), enemy)");
 
@@ -1883,7 +1883,7 @@ internal static class Program
             "bot?.Medecine?.Stimulators?.Using == true",
             "TryGetExactEnemy(bot, current.TargetProfileId",
             "TryBindLeaseTarget(",
-            "bot.Memory.GoalEnemy = enemy",
+            "TeamArenaGoalHandoff.TrySetLeaseGoal(bot, lease, enemy, out _)",
             "pair.Key.ProfileId?.Trim()",
             "ReferenceEquals(pair.Key, candidate.Person)",
             "ReferenceEquals(candidate.Owner, bot)",

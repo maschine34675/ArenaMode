@@ -578,8 +578,8 @@ internal static class TeamArenaPursuit
 
         enemyInfo.IgnoreUntilAggression = false;
         source.Memory.IsPeace = false;
-        source.Memory.GoalEnemy = enemyInfo;
-        return GoalEnemyMatches(source, target, enemyInfo);
+        return TeamArenaGoalHandoff.TrySetGoal(source, enemyInfo, _epoch, out _)
+            && GoalEnemyMatches(source, target, enemyInfo);
     }
 
     private static bool TryResolveCanonicalPlayerEnemy(
@@ -1030,7 +1030,11 @@ internal static class TeamArenaPursuit
             // pairs. Otherwise visibility on one pair and CanShoot on the other
             // can make each system believe the other owns combat.
             currentNativeEnemy = exactSainNativeEnemy;
-            source.Memory.GoalEnemy = currentNativeEnemy;
+            if (!TeamArenaGoalHandoff.TrySetGoal(source, currentNativeEnemy, epoch, out _))
+            {
+                expectedNativeEnemy = currentNativeEnemy;
+                return TeamArenaSainAwarenessState.TargetUnavailable;
+            }
             expectedNativeEnemy = currentNativeEnemy;
             if (!GoalEnemyMatches(source, targetOwner, currentNativeEnemy))
             {
