@@ -59,6 +59,7 @@ public class Plugin : BaseUnityPlugin
         Effects.ArenaTracerPatches.Enable();
         Effects.ArenaTeamLaserColors.Enable();
         Notifications.ArenaProgressNotifications.Enable();
+        Diagnostics.ArenaPreviewDiagnostics.Enable();
         Audio.LabyrinthAlarmPatches.Enable();
         LabyrinthSpawnTraps.Enable();
         Movement.ArenaWeightPatches.Enable();
@@ -89,6 +90,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
         Notifications.ArenaProgressNotifications.Shutdown();
+        Diagnostics.ArenaPreviewDiagnostics.Shutdown();
         Hud.ArenaHud.Detach();
         Combat.ArenaMagazinePatches.Shutdown();
         Combat.ArenaMedicalPatches.Shutdown();
