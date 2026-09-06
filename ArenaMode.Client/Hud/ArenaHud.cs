@@ -23,6 +23,7 @@ internal static class ArenaHud
     private static CalloutElement _callout;
     private static HitmarkerElement _hitmarker;
     private static DamageNumbersElement _numbers;
+    private static ArenaAssemblyBanner _assembly;
 
     public static void Attach(ArenaMatch match)
     {
@@ -66,6 +67,7 @@ internal static class ArenaHud
         _callout = null;
         _hitmarker = null;
         _numbers = null;
+        _assembly = null;
     }
 
     public static void Tick()
@@ -80,6 +82,7 @@ internal static class ArenaHud
             _callout.Tick();
             _hitmarker.Tick();
             _numbers.Tick();
+            _assembly.Tick(_match);
         }
         catch (Exception ex)
         {
@@ -115,6 +118,8 @@ internal static class ArenaHud
         _hitmarker.Create(root);
         _numbers = new DamageNumbersElement();
         _numbers.Create(root, canvas);
+        _assembly = new ArenaAssemblyBanner();
+        _assembly.Create(root);
     }
 
     private static void OnKill(ArenaKill kill)

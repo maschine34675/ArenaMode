@@ -28,7 +28,7 @@ namespace ArenaMode.Modes;
 /// silences ours with BurstSpawnService.ManualControl. Either alone would be a
 /// single point of failure for a mode whose rounds would then never end.
 /// </summary>
-public sealed class TacticalMode : IArenaMode
+public sealed partial class TacticalMode : IArenaMode
 {
     public enum Phase
     {

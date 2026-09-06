@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <NoticeSource Condition="'$(NoticeSource)' == ''">../../ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs</NoticeSource>
+    <BannerSource Condition="'$(BannerSource)' == ''">../../ArenaMode.Client/Hud/ArenaAssemblyBanner.cs</BannerSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(NoticeSource)" Link="Production/AssemblyStatus.cs" />
+    <Compile Include="$(BannerSource)" Link="Production/ArenaAssemblyBanner.cs" />
+  </ItemGroup>
+</Project>
