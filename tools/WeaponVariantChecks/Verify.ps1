@@ -33,6 +33,21 @@ $variantExit = $LASTEXITCODE
 if ($variantExit -eq 0 -or ($variantOutput -join "`n") -notmatch 'ASSERT: explicit incompatible slot rejected')
 { throw "Negative control did not fail at its intended assertion (exit $variantExit): $variantOutput" }
 Write-Output 'Weapon variant incompatible-slot negative control: rejected as expected.'
+# The primary socket is optional in EFT, so slot validity alone cannot catch
+# this regression. Challenge both newly generated rings and authored cap paths.
+foreach ($opticMutation in @(
+    @{ Name='empty-ring'; Needle='if (!IsA(parent.Id, Mount) || IsPrimaryScopeSocket(branch)) return true;'; Replacement='if (parent != null) return true; // deliberate empty-ring bypass'; Expected='ASSERT: new empty scope rings reject reflex-only chain' },
+    @{ Name='ancestor'; Needle='if (category == "optic" && !CanStartOpticChain(weapon, parent, slot)) continue;'; Replacement='// deliberate authored ring ancestor bypass'; Expected='ASSERT: existing ring cap cannot bypass empty ancestor scope socket' }
+))
+{
+    if (-not $variantSource.Contains($opticMutation.Needle)) { throw "Optic $($opticMutation.Name) mutation anchor drifted." }
+    $opticMutant = Join-Path $variantWork ("ArenaWeaponVariants." + $opticMutation.Name + '.cs')
+    [IO.File]::WriteAllText($opticMutant, $variantSource.Replace($opticMutation.Needle, $opticMutation.Replacement))
+    $opticOutput = & dotnet run --project $variantProject -c Release "-p:VariantSource=$opticMutant" -- $variantRoot $Database 2>&1
+    if ($LASTEXITCODE -eq 0 -or ($opticOutput -join "`n") -notmatch [regex]::Escape($opticMutation.Expected))
+    { throw "Optic $($opticMutation.Name) negative control did not fail at its intended assertion: $opticOutput" }
+    Write-Output "Optic $($opticMutation.Name) negative control: rejected as expected."
+}
 dotnet run --project $variantProject -c Release -- $variantRoot $Database
 if ($LASTEXITCODE -ne 0) { throw 'Production recheck after negative control failed.' }
 # These exercise the actual SessionService lifecycle and the actual typed

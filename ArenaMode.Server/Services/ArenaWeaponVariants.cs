@@ -62,6 +62,7 @@ public sealed class ArenaWeaponVariants
     private readonly Dictionary<string, Definition> _definitions = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<string>> _ancestors = new(StringComparer.Ordinal);
     private readonly Dictionary<Slot, Definition[]> _candidates = new();
+    private readonly Dictionary<Slot, bool> _primaryScopeSockets = new();
     private readonly object _gate = new();
 
     private sealed record Filter(string[] Include, string[] Exclude);
@@ -174,6 +175,7 @@ public sealed class ArenaWeaponVariants
             foreach (var slot in definition.Slots)
             {
                 if (!EligibleSlot(slot.Name, category) || Occupied(weapon, Text(parent, "_id"), slot.Name)) continue;
+                if (category == "optic" && !CanStartOpticChain(weapon, parent, slot)) continue;
                 FindChains(slot, category, new List<Step>(), new HashSet<string>(), choices, Text(parent, "_id"), ref budget);
             }
         }
@@ -263,6 +265,11 @@ public sealed class ArenaWeaponVariants
             {
                 foreach (var child in item.Slots.Where(x => EligibleSlot(x.Name, category)))
                 {
+                    // A new scope ring is empty. Its reflex rail/cap is a
+                    // secondary route, even when the actual scope slot is not
+                    // marked required by EFT. Do not spend the search/draw
+                    // budget on a standalone reflex sight above an empty ring.
+                    if (category == "optic" && !CanUseOpticBranch(item, child, null, null)) continue;
                     // A path must satisfy every required sibling too. Complex
                     // multi-child adapters are intentionally outside this first-stage generator.
                     if (item.Slots.Any(x => x.Required && !ReferenceEquals(x, child))) continue;
@@ -273,6 +280,52 @@ public sealed class ArenaWeaponVariants
             visited.Remove(item.Id);
         }
     }
+
+    private bool CanStartOpticChain(List<JsonObject> weapon, JsonObject parent, Slot branch)
+    {
+        // The start can be an authored ring cap several levels below the ring.
+        // Inspect every mount ancestor, not just the reflex sight's immediate
+        // parent. This is a generation policy, never a new native validity rule
+        // that could reject/remove authored equipment.
+        for (int depth = 0; depth < MaximumWeaponNodes; depth++)
+        {
+            var definition = _definitions[Text(parent, "_tpl")];
+            if (!CanUseOpticBranch(definition, branch, weapon, Text(parent, "_id"))) return false;
+            var ancestor = weapon.FirstOrDefault(x => Text(x, "_id") == Text(parent, "parentId"));
+            if (ancestor == null) return true;
+            var ancestorSlot = _definitions[Text(ancestor, "_tpl")].Slots.FirstOrDefault(x => x.Name == Text(parent, "slotId"));
+            if (ancestorSlot == null) return false;
+            parent = ancestor;
+            branch = ancestorSlot;
+        }
+        return false;
+    }
+
+    private bool CanUseOpticBranch(Definition parent, Slot branch, List<JsonObject>? existing, string? parentId)
+    {
+        if (!IsA(parent.Id, Mount) || IsPrimaryScopeSocket(branch)) return true;
+        var primary = parent.Slots.Where(IsPrimaryScopeSocket).ToArray();
+        if (primary.Length == 0) return true; // ordinary rail, direct/offset reflex mount
+        return existing != null && primary.Any(socket => existing.Any(node => Text(node, "parentId") == parentId
+            && Text(node, "slotId") == socket.Name && IsPrimaryScopeItem(_definitions[Text(node, "_tpl")])));
+    }
+
+    private bool IsPrimaryScopeSocket(Slot slot)
+    {
+        if (_primaryScopeSockets.TryGetValue(slot, out bool found)) return found;
+        // Use the native compatibility filters, not English names, ring sizes
+        // or a denylist. A general-purpose rail also accepts reflex sights or
+        // adapters; a primary ring socket accepts only actual OpticScope items.
+        // Do not classify AssaultScope/prism adapters as rings. Include scopes
+        // above the Arena zoom limit here: that limit must not turn an empty
+        // long-range ring into a valid standalone reflex mount.
+        var accepted = slot.Name.StartsWith("mod_scope", StringComparison.Ordinal)
+            ? Candidates(slot).Where(x => x.Kind == "Item").ToArray() : [];
+        return _primaryScopeSockets[slot] = accepted.Length > 0 && accepted.All(IsPrimaryScopeItem);
+    }
+
+    private bool IsPrimaryScopeItem(Definition item)
+        => IsA(item.Id, OpticScope);
 
     private static T Weighted<T>(IReadOnlyList<T> pool, Func<T, double> weight, Random random)
     {

@@ -24,6 +24,49 @@ public class WeaponVariantTests
     }
 
     [SkippableFact]
+    public void RealJpScopeRingDoesNotGenerateItsSecondaryDeltaPointWithoutPrimaryScope()
+    {
+        Skip.If(RepoFiles.ItemDatabase == null, "real item database required");
+        var db = JsonNode.Parse(File.ReadAllText(RepoFiles.ItemDatabase!))!.AsObject();
+        const string ring = "5a37ca54c4a282000d72296a", delta = "58d268fc86f774111273f8c2";
+        const string anchor = "eeeeeeeeeeeeeeeeeeeeee01";
+        // A controlled anchor isolates the exact live JP+optic templates and
+        // filters. The full real kit/ladder checks run in the companion harness.
+        db[anchor] = new JsonObject
+        {
+            ["_parent"] = "5422acb9af1c889c16000029", ["_type"] = "Item", ["_props"] = new JsonObject
+            {
+                ["Slots"] = new JsonArray(new JsonObject
+                {
+                    ["_name"] = "mod_scope", ["_required"] = false, ["_props"] = new JsonObject
+                    { ["filters"] = new JsonArray(new JsonObject { ["Filter"] = new JsonArray(ring) }) }
+                })
+            }
+        };
+        var nodes = new JsonArray(
+            new JsonObject { ["_id"] = "eq", ["_tpl"] = "55d7217a4bdc2d86028b456d" },
+            new JsonObject { ["_id"] = "gun", ["_tpl"] = anchor, ["parentId"] = "eq", ["slotId"] = "FirstPrimaryWeapon" });
+        string Catalog() => new JsonArray(new JsonObject { ["id"] = "JP regression", ["items"] = nodes.DeepClone() }).ToJsonString();
+        var engine = new ArenaWeaponVariants(db);
+        string input = Catalog();
+        for (int seed = 0; seed < 16; seed++)
+        {
+            string output = engine.CreateCatalog(input, seed, out _);
+            var result = JsonNode.Parse(output)![0]!["items"]!.AsArray();
+            Assert.True(engine.TryValidate(result, out _));
+            Assert.DoesNotContain(result, item => item!["_tpl"]!.GetValue<string>() == delta);
+            Assert.Equal(output, engine.CreateCatalog(input, seed, out _));
+        }
+        // The same native-valid arrangement can be intentionally authored.
+        // Do not turn this generation-quality fix into a destructive validator.
+        nodes.Add(new JsonObject { ["_id"] = "ring", ["_tpl"] = ring, ["parentId"] = "gun", ["slotId"] = "mod_scope" });
+        nodes.Add(new JsonObject { ["_id"] = "dot", ["_tpl"] = delta, ["parentId"] = "ring", ["slotId"] = "mod_scope_001" });
+        Assert.True(engine.TryValidate(nodes, out _));
+        var preserved = JsonNode.Parse(engine.CreateCatalog(Catalog(), 2, out _))![0]!["items"]!;
+        Assert.True(JsonNode.DeepEquals(nodes, preserved));
+    }
+
+    [SkippableFact]
     public void RealKitDrawIsStableAndPreservesEveryAuthoredNodeAndMetadata()
     {
         Skip.If(RepoFiles.ItemDatabase == null, "real item database required");

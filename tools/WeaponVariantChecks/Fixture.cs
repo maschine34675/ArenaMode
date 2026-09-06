@@ -6,10 +6,10 @@ static class Fixture
     public const string Dot = "111111111111111111111114", Scope = "111111111111111111111115", LongScope = "111111111111111111111116";
     public const string Thermal = "111111111111111111111117", Grip = "111111111111111111111118", Laser = "111111111111111111111119";
     public const string Equipment = "55d7217a4bdc2d86028b456d";
-    private static JsonObject Slot(string name, bool required, params string[] allowed)
+    internal static JsonObject Slot(string name, bool required, params string[] allowed)
         => new() { ["_name"] = name, ["_required"] = required, ["_props"] = new JsonObject
             { ["filters"] = new JsonArray(new JsonObject { ["Filter"] = new JsonArray(allowed.Select(x => (JsonNode?)JsonValue.Create(x)).ToArray()), ["ExcludedFilter"] = new JsonArray() }) } };
-    private static JsonObject Item(string parent, double zoom = 1, params JsonObject[] slots)
+    internal static JsonObject Item(string parent, double zoom = 1, params JsonObject[] slots)
         => new() { ["_parent"] = parent, ["_type"] = "Item", ["_name"] = "fixture", ["_props"] = new JsonObject
             { ["Slots"] = new JsonArray(slots.Cast<JsonNode?>().ToArray()), ["Weight"] = 0.1, ["QuestItem"] = false,
                 ["Prefab"] = new JsonObject { ["path"] = "test.bundle" }, ["Zooms"] = new JsonArray(new JsonArray(zoom)), ["ConflictingItems"] = new JsonArray() } };

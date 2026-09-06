@@ -16,6 +16,7 @@ static class Checks
             Synthetic();
             if (!File.Exists(database)) throw new InvalidOperationException("Real item database required: " + database);
             var db = JsonNode.Parse(File.ReadAllText(database))!.AsObject();
+            OpticMountChecks.Run(db, Check);
             var engine = new ArenaWeaponVariants(db);
             string beforeDb = db.ToJsonString();
             RealCatalog(engine, db, File.ReadAllText(Path.Combine(root, "ArenaMode.Server/defaults/kits.json")), "kits", 20);
@@ -148,6 +149,7 @@ static class Checks
                 {
                     Check(engine.TryValidate(variantItems, out var reason), label + " full real validation " + reason);
                     AuditNewNodes(db, baseItems, variantItems);
+                    OpticMountChecks.AuditNewReflexPaths(db, baseItems, variantItems, Check);
                 }
                 else Check(JsonNode.DeepEquals(baseItems, variantItems), label + " invalid authored base exact fallback");
                 if (!report[i].HadOptic && report[i].HasOptic) { improvements++; improved.Add(report[i].Id); }
