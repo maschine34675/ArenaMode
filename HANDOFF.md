@@ -13,8 +13,8 @@ current. User-facing communication is normally German.
 - User-confirmed GPU host installation: `C:\SPT41`, a mirror of this host's
   `D:\SPT41`. If Development is included, the corresponding repository is
   `C:\SPT41\Development\ArenaMode`. Check that checkout before editing. Mirror
-  direction/schedule/exclusions, installed hashes and remote-control capabilities
-  have not been inspected by this session.
+  inspection on the GPU host confirmed bidirectional Syncthing of all `C:\SPT41`
+  without exclusions, matching installed hashes, and working native capture/input.
 - **The user performs actual in-raid gameplay tests.** Do not assign autonomous
   raids to the GPU session. Its next intended work is UI redesign and automated
   visual/menu checks, with local development/build/review here as useful.
@@ -27,6 +27,22 @@ current. User-facing communication is normally German.
   `Co-authored-by: Codex <codex@openai.com>`. Do not push without authorization.
 - Preserve normal raids and profiles. Protected PFT Tactical uses the PMC entry
   loadout and must not receive standard Arena kits or grenade additions.
+
+### User clarification on the GPU host (2026-09-07)
+
+- EFT/SPT is never run on both PCs simultaneously. The user accepts immediate
+  mirroring/overwriting of logs and saves; these profiles are disposable test data
+  and even their loss is acceptable. Routine menu checks do not require pausing
+  Syncthing or restoring all runtime changes for test-data protection. The local
+  `SPT41` folder was resumed at 11:03:21 MESZ after the initial menu inspection.
+- This test-data policy does not change Arena's profile-isolation behavior or
+  authorize autonomous raids. Concurrent source edits/builds still need the
+  coordination described below; single-host game execution does not imply that
+  two source checkouts cannot be edited concurrently.
+- The baseline contains 22 screenshots covering menus, maps/times, all five modes
+  and return to normal PMC selection; no raid was started. The initial report's
+  claim that BACK was incomplete was incorrect and has been withdrawn. Do not
+  treat missing BACK text or other unverified glyph gaps as an established bug.
 
 ## Current behavior and recent work
 
@@ -75,10 +91,11 @@ always record that build's hashes and compare them with its installed copies.
 2. For UI checks only, use a fixed mirrored build with its commit/hash record.
    A complete development toolchain is unnecessary for simply running the game.
    For development, transfer/clone the repositories and dependencies listed below.
-3. Use a dedicated test profile, back it up while the server is stopped, and
-   compare the relevant mod versions/settings between hosts. Do not synchronize
-   a live profile directory in both directions. Keep test configuration changes
-   explicit so a difference in mods is not mistaken for an Arena regression.
+3. Use the existing disposable test profile and compare relevant mod versions/settings
+   between hosts. The user permits live bidirectional mirroring of this test data
+   under the single-host execution policy above; routine menu checks need no
+   mandatory profile backup/restore. Keep test configuration changes explicit so
+   a difference in mods is not mistaken for an Arena regression.
 4. Only the designated test owner replaces installed artifacts. Finish the test,
    stop game/server, deploy one coherent build, verify hashes, restart both,
    then run the next test. Never auto-copy a newer build into an ongoing test.
@@ -90,7 +107,8 @@ always record that build's hashes and compare them with its installed copies.
 6. Return a report per test run: hostname, source commit, actual DLL hashes,
    mod versions/config changes, mode/map/kit, local time and time zone, steps,
    expected/observed behavior, pass/fail/blocked, and exact log/screenshot paths.
-   Save logs before the next launch overwrites them. Raw logs/screenshots belong
+   Save logs before the next launch only when needed as diagnostic evidence;
+   routine menu checks do not require log backups. Raw logs/screenshots belong
    in a private artifact location (local `artifacts/` is ignored); commit a small
    redacted report if useful. Never commit profiles, tokens or unrelated logs.
 
@@ -99,8 +117,9 @@ always record that build's hashes and compare them with its installed copies.
 - Run the UI-focused session directly on the GPU host. First inspect available
   tools; if native Computer Use is available, verify that it can capture EFT's
   window and perform one harmless menu interaction. Browser-only tools cannot validate the native Unity
-  UI. Game capture/input and RDP-disconnect behavior remain untested; do not
-  infer them from the presence of a GPU or a mirrored installation.
+  UI. Native game capture/input were verified on the GPU host on 2026-09-07.
+  RDP-disconnect behavior remains untested; do not infer it from the presence of
+  a GPU or a mirrored installation.
 - Native Computer Use on Windows requires the active unlocked desktop, a visible
   target window and app permission. Do not compete with the user's mouse/keyboard
   during a run. See [official Computer Use documentation](https://learn.chatgpt.com/docs/computer-use).
