@@ -1,8 +1,9 @@
 # Bounded Team Deathmatch prototype
 
-Recorded 2026-09-07. Implementation and offline verification only; **the user
-still needs to test collision, navigation and combat in a GPU raid**. No raid
-was started on the development host.
+Recorded 2026-09-07. Implementation `0c54b77` has offline verification and a
+successful user GPU playtest of its core boundary/spawn behavior. The confirmed
+coverage and remaining checks are recorded below. No raid was started by an
+agent on the development host.
 
 ## Scope and enablement
 
@@ -156,12 +157,31 @@ Verified Release / local installed SHA256 identities:
 | ArenaMode.Server | `25F610B261B30084A7685F74B6DB7D9B19B002479785061C54BF3C6A33AE5C2B` |
 | Redeploy.Core | `EFBA4A93354A28E7F6A21B619C36D96A06F3CCDB9CAF70704F5D158987251362` |
 
-Deployment here means D:\SPT41. The last Syncthing status check reported the
-SPT-GPU device disconnected, so remote receipt is **not verified**. Reconnect
-and let the mirror finish before testing C:\SPT41; compare these hashes there
-if there is doubt about the loaded version.
+Deployment hashes above refer to D:\SPT41. At initial delivery Syncthing reported
+SPT-GPU disconnected. The subsequent user playtest confirms the prototype ran
+on the GPU host; it is not a new remote hash or synchronization-status check.
+Compare these hashes there if there is doubt about the loaded version.
 
-## Required user raid test
+## User GPU playtest and remaining acceptance
+
+User report on 2026-09-07, following delivery of `0c54b77`:
+
+- The grid was visible and could not be crossed.
+- The player and bots always spawned within the zone during the test.
+- Bots stayed inside the zone; no bots were observed getting stuck.
+
+This confirms the core prototype behavior in the reported playtest. It does not
+establish exhaustive edge/corner/vault coverage, a tested match count or duration,
+or successful cleanup in subsequent ordinary raids. This update records the
+user's observations; it adds no new log analysis or automated test results.
+
+Still explicitly unconfirmed: Escape/give-up during preparation and combat,
+re-entry into another bounded match, switching back to full-map TDM, and a
+subsequent ordinary PMC/Scav raid with clean enclosure/input/navigation teardown
+and intact profile isolation. The combined manual acceptance gate therefore
+remains partially satisfied rather than being marked fully passed.
+
+Retained test checklist (core behavior above is already user-confirmed):
 
 1. Start the configured Factory-day TDM. Expect `Arena area READY:` in the log,
    the cyan boundary and 2v2. If preparation aborts, keep the specific

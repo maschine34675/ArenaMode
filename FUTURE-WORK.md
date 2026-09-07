@@ -1,8 +1,9 @@
 # Deferred Arena design work
 
 Recorded 2026-09-07 at the user's request. These are discussion notes and proposed
-work, not implemented features or acceptance evidence. Recheck the current source
-and saved configuration when resuming. Read `AGENTS.md` and `HANDOFF.md` first.
+work unless a section explicitly records implementation or test progress with
+a linked review. Recheck current source and saved configuration when resuming.
+Read `AGENTS.md` and `HANDOFF.md` first.
 
 ## Difficulty controls in the native game menu
 
@@ -74,8 +75,11 @@ User question: mark an area visibly in-game, prevent the player from crossing it
 boundary, and restrict bots to the same area. Implementation was authorized on
 2026-09-07; the first opt-in prototype is now Factory South v1 for independent
 TDM 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md). Source/build tests
-are separate from the pending user GPU raid check. Customs is the next desired
-map after validating this smaller-map approach; no Customs area is enabled yet.
+are separate from user GPU evidence. The user subsequently confirmed a visible,
+impassable grid, contained player/bot spawns and bots staying inside without
+observed stalls. Escape/re-entry and teardown into full-map/ordinary raids still
+need explicit confirmation. Customs is the next desired area candidate; no
+Customs area is enabled yet.
 
 Design direction (partly implemented by the prototype; broader support remains):
 

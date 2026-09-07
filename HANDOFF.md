@@ -7,9 +7,9 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Last gameplay change: `20462c049b5a3ae154ba289f24e43d0b1ed3e3f8` on
-  `feature/arena-visibility-and-labyrinth`. Subsequent work includes the
-  documentation and GPU menu redesign below.
+- Last gameplay change: `0c54b7745534798a09662511281978ffbb20acc4` on
+  `feature/bounded-arena-prototype`, including the earlier kit changes and
+  GPU menu redesign. Its core boundary/spawn behavior is user-confirmed below.
 - Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution there.
 - User-confirmed GPU host installation: `C:\SPT41`, a mirror of this host's
   `D:\SPT41`. If Development is included, the corresponding repository is
@@ -47,14 +47,20 @@ current. User-facing communication is normally German.
 
 ## Current behavior and recent work
 
-New gameplay prototype on `feature/bounded-arena-prototype`, based on `7298980`
+Gameplay prototype `0c54b77` on `feature/bounded-arena-prototype`, based on `7298980`
 including the GPU menu redesign: opt-in Factory South, Factory daytime,
 independent TDM fixed 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md)
 for the exact area, server/client contract, verification and required user raid
 checks. Enable before the raid via F12 -> Team Deathmatch -> `ExperimentalArea`
 = `factory-south-v1`; default/disable is `full-map`. Other modes are unchanged.
-Server and game need a restart after this deployment. No GPU raid was performed.
-Customs remains the next candidate after validating this small-map prototype;
+Server and game need a restart after a gameplay deployment. User GPU playtest
+on 2026-09-07 confirms: visible impassable grid, player and bot spawns always
+inside the zone, and bots staying inside without observed stalls. This is the
+user's report, not a new agent raid or log inspection. Remaining explicit checks:
+Escape/give-up, another bounded match, full-map TDM and a subsequent ordinary
+PMC/Scav raid with clean teardown/profile behavior. No gameplay code changed
+in this acceptance update.
+Customs remains the next area candidate now that the core small-map test passed;
 CTF, an editor, native area picker and PFT region support are not implemented.
 
 The user confirmed game and development work on the GPU host were stopped and
@@ -62,8 +68,9 @@ new DLLs may be installed. This change was prepared in an independent local
 clone outside the Syncthing tree, then integrated into the shared repository;
 do not resume that old isolated clone as a second source writer. Deployment
 hash checks on D:\SPT41 do not by themselves prove completed GPU synchronization.
-The local Syncthing query reported SPT-GPU disconnected during this delivery;
-remote receipt remains pending until it reconnects and finishes synchronization.
+The local Syncthing query reported SPT-GPU disconnected at initial delivery.
+The later user playtest confirms the prototype ran there; no fresh remote hash
+or current synchronization-status verification is implied by that report.
 
 Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
 Team Deathmatch is independent of PFT; protected Tactical 5v5 is a separate path.
@@ -275,9 +282,9 @@ Server log: `<SPT>/SPT_Runtime/user/logs/spt/sptYYYYMMDD.log` (UTC).
 Kits/config: `<SPT>/SPT_Runtime/user/mods/ArenaMode/config/`.
 
 - `KIT-POLISH-REVIEW.md`: grenade conflict, placement rules, evidence.
-- `FUTURE-WORK.md`: deferred difficulty controls, proposed bounded map areas and
-  more complex objective-based modes such as Capture the Flag; design notes only,
-  not implemented features.
+- `FUTURE-WORK.md`: deferred difficulty controls, further bounded map areas and
+  objective-based modes such as Capture the Flag; the area section also records
+  current prototype progress and links its review/test evidence.
 - `PREVIEW-DIAGNOSTICS-REVIEW.md`: unresolved post-match preview issue.
 - `CHARACTER-PREVIEW-REVIEW.md`: separate third menu figure, ownership, GPU/fixture
   evidence and missing genuine-BEAR-profile coverage.
