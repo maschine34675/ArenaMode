@@ -79,9 +79,13 @@ are separate from user GPU evidence. The user subsequently confirmed a visible,
 impassable grid, contained player/bot spawns and bots staying inside without
 observed stalls. Escape/re-entry and teardown into full-map/ordinary raids still
 need explicit confirmation. A first Customs Factory Center 2v2 candidate now
-follows in [CUSTOMS-AREA-REVIEW.md](CUSTOMS-AREA-REVIEW.md); its geometry, connected
-navigation and repeated respawns still need the user's playtest. Further areas,
-larger teams and an area picker remain future work.
+follows in [CUSTOMS-AREA-REVIEW.md](CUSTOMS-AREA-REVIEW.md). The user subsequently
+reported that Customs also works overall without problems, while its boundaries
+should eventually be refined manually. Keep that contour polish as a separate
+scene-guided task, including renewed spawn/connectivity validation and a new
+preset version when geometry changes. Detailed respawn/edge, menu and teardown
+checks remain individually unconfirmed; further areas, larger teams and an area
+picker remain future work.
 
 Design direction (partly implemented by the prototype; broader support remains):
 

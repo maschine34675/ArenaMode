@@ -7,8 +7,10 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Current gameplay work: bounded Customs on `feature/customs-arena-area`,
-  based on `011beb5`, delivered with this handoff. See `CUSTOMS-AREA-REVIEW.md`.
+- Current gameplay baseline: bounded Customs `a690ce2` on
+  `feature/customs-arena-area`, based on `011beb5`. The subsequent user playtest
+  reports overall trouble-free operation, with boundary refinement still needed.
+  See `CUSTOMS-AREA-REVIEW.md`; this acceptance update changes documentation only.
   Prior Factory prototype `0c54b7745534798a09662511281978ffbb20acc4` includes the
   earlier kits/GPU menu redesign; its core behavior is user-confirmed below.
 - Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution there.
@@ -59,18 +61,23 @@ lists and explicit server disables remain unchanged. Restart game and server.
 
 This first Customs candidate spans X305..420 / Z-135..-65, with 15 PMC and seven
 bot positions in installed data. These are coordinate checks, not live NavMesh
-evidence. The northern face can cut a building footprint; actual layout,
-navigation and respawns remain the user's GPU tests. Its live readiness gate
-must reject an unusable component rather than spawn outside. Factory South
-geometry remains unchanged; loading/readiness/respawn now share an explicit
+evidence. The northern face can cut a building footprint. In the subsequent
+2026-09-07 playtest the user reports that Customs also works without overall
+problems, but the boundaries should eventually be refined by hand. This confirms
+basic practical operation, not every detailed test case below. Boundary polish,
+explicit repeated-respawn/edge checks, Escape/re-entry, menu setting changes and
+teardown into ordinary raids remain to be confirmed individually. Its live
+readiness gate must reject an unusable component rather than spawn outside.
+Factory South geometry remains unchanged; loading/readiness/respawn now share an explicit
 PMC-side check so Savage-only Player markers cannot become human spawn choices.
 `CUSTOMS-AREA-REVIEW.md` records checks, deployment evidence and the test list.
 Final local verification: 330 server/data tests passed without skips; targeted
 client regressions and nine negative controls passed, independent review has no
 open P0-P2 findings. Release outputs match all four DLLs installed on D:\SPT41.
-The current local Syncthing query reports SPT-GPU disconnected (not paused), so
-this does not prove the new build has reached C:\SPT41. Do not test a stale GPU
-copy; allow the existing mirror to complete and verify the documented hashes.
+At delivery the local Syncthing query reported SPT-GPU disconnected (not paused).
+The later user playtest confirms the Customs preset ran there; it is not a fresh
+remote hash comparison or a current synchronization-status check. No code,
+boundary coordinates, DLLs or installed settings changed in this acceptance update.
 
 Gameplay prototype `0c54b77` on `feature/bounded-arena-prototype`, based on `7298980`
 including the GPU menu redesign: opt-in Factory South, Factory daytime,

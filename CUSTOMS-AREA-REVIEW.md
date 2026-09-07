@@ -2,6 +2,9 @@
 
 2026-09-07. Continuation of the user-confirmed Factory boundary/spawn prototype
 (`0c54b77`; acceptance record `011beb5`). The user owns actual raid testing.
+Customs implementation `a690ce2` subsequently received a successful user playtest:
+overall trouble-free operation, with manual boundary refinement still desired.
+The exact scope of that report and remaining checks are recorded below.
 
 ## Scope and activation
 
@@ -16,7 +19,7 @@ For existing full-map matches set `ExperimentalArea = full-map`; the existing
 Factory South preset remains `factory-south-v1` on Factory daytime. Its geometry
 is unchanged. Other modes ignore the saved TDM area and retain their old maps.
 
-## Candidate geometry, not live scene proof
+## Candidate geometry and limits
 
 Shared versioned definition `ArenaAreaCatalog.CustomsFactoryCenter`:
 
@@ -123,12 +126,31 @@ Final Release/local deployment identities:
 | Redeploy.Core | `47505BB1687E9565F79C54894C5AA16C23BAED08247D9D51609C35E5CC788F94` |
 
 These identify the installation on D:\SPT41. The read-only local Syncthing query
-at delivery reported **SPT-GPU disconnected, not paused**. Therefore completed
-GPU synchronization and remote hashes are not verified. Let the existing mirror
-finish before testing and compare hashes if necessary; no second transfer path
-or remote deployment was started.
+at delivery reported **SPT-GPU disconnected, not paused**. The subsequent user
+playtest confirms the Customs preset ran on the GPU host; it does not establish
+current synchronization status or a fresh match of remote hashes. No second
+transfer path or remote deployment was started.
 
-## Required user tests
+## User playtest and remaining acceptance
+
+User follow-up on 2026-09-07 after delivery of `a690ce2`: Customs also works,
+overall without problems; the boundaries should probably be refined manually
+later. This is a positive practical test of the Customs prototype. It is the
+user's report, not an agent raid, log inspection or new automated test run.
+
+Boundary placement remains provisional: refine the final contour in the actual
+scene around walls, doorways and stairs rather than treating the current box as
+a finished layout. No particular replacement coordinates are established by the
+report. Any later geometry change needs a new preset version and renewed
+spawn-capacity/connectivity checks; do not weaken the existing safety checks.
+
+The report does not specify match count/duration or confirm every scenario
+individually. Detailed edge/vault coverage, repeated respawns, Escape/give-up,
+re-entry, subsequent full-map/ordinary raids and F12/native-menu transitions
+remain explicitly unconfirmed. The combined acceptance checklist therefore
+remains partly satisfied rather than being marked fully passed.
+
+Retained checklist (basic operation is now user-confirmed):
 
 1. Select the new preset and independent TDM on Customs. Expect a visible grid,
    `Arena area READY: customs-factory-center-v1` and 2v2. If preparation stops,
@@ -147,5 +169,7 @@ or remote deployment was started.
    to the matching preset/TDM must make it selectable again. Normal PMC/Scav
    map selection must remain unchanged.
 
-These GPU checks remain unperformed by the agent. The prior Factory user report
-is retained as prior evidence, not extended to Customs or all teardown cases.
+No GPU raid was performed by the agent. The Factory and Customs user reports
+are separate evidence and do not imply that all teardown cases passed. This
+acceptance update changes documentation only; geometry, code, DLLs and settings
+remain unchanged.
