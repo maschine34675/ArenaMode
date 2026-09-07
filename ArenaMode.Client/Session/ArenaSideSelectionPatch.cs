@@ -75,7 +75,7 @@ internal static class ArenaSideSelectionPatch
                 var eligibility = EvaluateEligibility(
                     Controller(__instance), allowPendingModeSelection: true);
                 ArenaSideSelectionView.Show(__instance.transform, arena, eligibility.Allowed);
-                ArenaSideSelectionLayout.Apply(__instance);
+                ArenaSideSelectionLayout.Apply(__instance, Controller(__instance)?.Session.Profile);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     EnsureCompatibleMode(eligibility);

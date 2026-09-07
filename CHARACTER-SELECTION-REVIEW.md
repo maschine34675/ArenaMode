@@ -1,5 +1,9 @@
 # Native character selection row — 2026-09-07
 
+Historical review of the initial row alignment (`328665d`). The subsequent own-PMC
+preview also moves the complete native columns outward; its implementation and
+separate GPU evidence are documented in [CHARACTER-PREVIEW-REVIEW.md](CHARACTER-PREVIEW-REVIEW.md).
+
 Arena's existing third toggle is aligned vertically with SCAV and PMC, below
 the two character previews. A small neutral `SEPARATE MATCH` caption uses the
 native font and description tint. The selected style, hover, sounds and input

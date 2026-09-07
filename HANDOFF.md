@@ -59,11 +59,32 @@ copy correctly says five modes. Player count/difficulty are future rows, with no
 placeholder controls or gameplay changes. See `NATIVE-MENU-REVIEW.md` for native
 contracts, reference/licensing notes, 123 passing state checks and visual scope.
 
-The subsequent character-selection polish aligns the existing Arena toggle with
-SCAV/PMC under the previews and adds a native-style `SEPARATE MATCH` subheading.
-Only Arena's wrapper is moved; its original position and owned caption restore
-on Show/Close/failure, including before PFT squad management. See
-`CHARACTER-SELECTION-REVIEW.md` for contracts, 29 side/53 flow checks and GPU scope.
+The earlier character-selection polish at `328665d` aligned the Arena toggle with
+SCAV/PMC and added a native-style `SEPARATE MATCH` subheading. At that historical
+stage only Arena's wrapper moved; `CHARACTER-SELECTION-REVIEW.md` records its
+contracts and evidence.
+
+The new character preview adds the current PMC's native posed appearance above
+ARENA, with a separate fixed M4 USEC / AK-74M BEAR example kit. It moves the complete
+native PMC/SCAV columns outward together, restoring them on Close/Show and before
+PFT squad management. Model, camera, lights, render texture and bundle retention
+have their own owner; no profile inventory or gameplay kit is used or changed.
+Preview setup/load failure preserves the working Arena choice. See
+`CHARACTER-PREVIEW-REVIEW.md` for native contracts, independent review, production
+and fixture build identities, logs and exact GPU coverage. The 29 side/53 flow
+checks still pass but do not execute the new Unity/async owner.
+
+On `WIN-Q470OL2A14A`, the production menu run covered USEC/M4 rendering, label
+selection, Arena and normal SCAV map/Back routes, repeated reopening, populated
+MY SQUAD without Arena, and clean ordinary M60 inspection afterward. A temporary
+fixture also rendered the BEAR kit on an unchanged USEC character and verified
+closing during delayed bundle loading; the final production source/DLL contains
+neither fixture override nor delay. Real BEAR profile appearance remains untested.
+Final production standard-M4 smoke passed: all three figures, ARENA label and
+description, then clean Back to the main menu. Its saved client log contains no
+error-level entries, Arena warnings or fixture markers; game and owned server
+were stopped. No raid was started. Captures are 1920 x 945, native UI scale 0.875; private
+screenshots/manifest are in the GPU task's `outputs/Arena-Charaktervorschau`.
 
 | Commit | Change | Verification still needed (raid work belongs to user) |
 | --- | --- | --- |
@@ -83,13 +104,14 @@ at their intended assertions. Default and installed 20-kit catalogs each packed
 grid model. Full grids still skip optional grenades, never spill into backpack.
 Independent review found no open issues. These are not GPU test results.
 
-GPU Release/installed hashes after the native menu redesign (2026-09-07).
+GPU Release/installed hashes after the character-preview production rebuild
+(2026-09-07; final menu smoke passed).
 The server binary remains the prior gameplay build; Redeploy.Core was rebuilt
 from unchanged source `58abf5876629bb51be808d78ee2cd7a5d34af77a`:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| ArenaMode.Client | `11A71C665D07E12EA736152319988DD32D524B335553FC41129EB7C7D382FA23` |
+| ArenaMode.Client | `2FAE06042ED6D43BFD2D33F71414087C34281DD2C338E35385B00C12F1482044` |
 | ArenaMode.Server | `FCE6C394DF9184E81FE6D43B0D236380DE71E3BB110708497E2471D395B2DBE8` |
 | Redeploy.Core | `F923B0D709908F75969B3101E9F8290CD2BB06DF457F64B1FFF8876A7BBFEA00` |
 
@@ -225,6 +247,8 @@ Kits/config: `<SPT>/SPT_Runtime/user/mods/ArenaMode/config/`.
 
 - `KIT-POLISH-REVIEW.md`: grenade conflict, placement rules, evidence.
 - `PREVIEW-DIAGNOSTICS-REVIEW.md`: unresolved post-match preview issue.
+- `CHARACTER-PREVIEW-REVIEW.md`: separate third menu figure, ownership, GPU/fixture
+  evidence and missing genuine-BEAR-profile coverage.
 - `tools/ArenaLabyrinthAccessChecks/README.md`: Way Up and Arena-only map access.
 - `PRESET-DESCRIPTION-REVIEW.md`, `OPTIC-MOUNT-REVIEW.md`: latest kit/UI fixes.
 - `TEAM-DEATHMATCH-REVIEW.md`, `PITFIRETEAM-MULTIROUND-GATES.md`: team modes.

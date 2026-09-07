@@ -1,3 +1,4 @@
+using EFT;
 using EFT.UI.Matchmaker;
 using System;
 using System.Runtime.CompilerServices;
@@ -15,6 +16,11 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
     private RectTransform _wrapper;
     private Vector3 _originalPosition;
     private GameObject _caption;
+    private Transform _pmcColumn;
+    private Transform _scavColumn;
+    private Vector3 _pmcPosition;
+    private Vector3 _scavPosition;
+    private ArenaCharacterPreview _preview;
     private bool _disposed;
 
     public static void Restore(MatchMakerSideSelectionScreen screen)
@@ -26,7 +32,7 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
         }
     }
 
-    public static void Apply(MatchMakerSideSelectionScreen screen)
+    public static void Apply(MatchMakerSideSelectionScreen screen, Profile profile)
     {
         Restore(screen);
         var layout = new ArenaSideSelectionLayout();
@@ -40,6 +46,13 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
             layout.Dispose();
             // Optional presentation must not disable the working native choice.
             Plugin.ModLogger.LogWarning($"Arena character-row layout unavailable: {ex.Message}");
+            return;
+        }
+        try { layout.AddPreview(screen, profile); }
+        catch (Exception ex)
+        {
+            layout.RestoreColumns();
+            Plugin.ModLogger.LogWarning($"Arena character preview layout unavailable: {ex.Message}");
         }
     }
 
@@ -54,8 +67,7 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
             || arenaLabel == null || pmcLabel == null)
             throw new InvalidOperationException("The native character-choice row could not be located.");
 
-        // Compare the real labels in the same coordinate space. The two character
-        // previews, large click targets, Scav cooldown and PMC health UI stay put.
+        // Compare the real labels in the same coordinate space.
         var arenaCenter = screen.transform.InverseTransformPoint(
             arenaLabel.rectTransform.TransformPoint(arenaLabel.rectTransform.rect.center));
         var pmcCenter = screen.transform.InverseTransformPoint(
@@ -92,20 +104,63 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
         _caption.SetActive(true);
     }
 
+    private void AddPreview(MatchMakerSideSelectionScreen screen, Profile profile)
+    {
+        // Keep each model, click target, label, cooldown and health panel together.
+        var pmcColumn = Column(screen, screen._pmcButton.transform);
+        var scavColumn = Column(screen, screen._savagesButton.transform);
+        if (pmcColumn == scavColumn
+            || !screen._pmcModelView.transform.IsChildOf(pmcColumn)
+            || !screen._savageModelView.transform.IsChildOf(scavColumn))
+            throw new InvalidOperationException("Native character columns could not be identified.");
+        _pmcColumn = pmcColumn;
+        _scavColumn = scavColumn;
+        _pmcPosition = _pmcColumn.localPosition;
+        _scavPosition = _scavColumn.localPosition;
+        _pmcColumn.localPosition += new Vector3(150f, 0f, 0f);
+        _scavColumn.localPosition -= new Vector3(150f, 0f, 0f);
+        _preview = new ArenaCharacterPreview(screen, profile, RestoreColumns);
+    }
+
+    private static Transform Column(MatchMakerSideSelectionScreen screen, Transform child)
+    {
+        while (child.parent != null && child.parent != screen.transform) child = child.parent;
+        if (child.parent != screen.transform)
+            throw new InvalidOperationException("Native character column has an unexpected parent.");
+        return child;
+    }
+
     public void Dispose()
     {
         if (_disposed)
             return;
         _disposed = true;
 
-        if (_wrapper != null)
-            _wrapper.localPosition = _originalPosition;
+        RestoreColumns();
+        Safe(() => _preview?.Dispose());
+        _preview = null;
+
+        Safe(() => { if (_wrapper != null) _wrapper.localPosition = _originalPosition; });
         if (_caption != null)
         {
-            _caption.SetActive(false);
-            UnityEngine.Object.Destroy(_caption);
+            Safe(() => _caption.SetActive(false));
+            Safe(() => UnityEngine.Object.Destroy(_caption));
         }
         _wrapper = null;
         _caption = null;
+    }
+
+    private void RestoreColumns()
+    {
+        Safe(() => { if (_pmcColumn != null) _pmcColumn.localPosition = _pmcPosition; });
+        Safe(() => { if (_scavColumn != null) _scavColumn.localPosition = _scavPosition; });
+        _pmcColumn = null;
+        _scavColumn = null;
+    }
+
+    private static void Safe(Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena character-row restore: {ex.Message}"); }
     }
 }
