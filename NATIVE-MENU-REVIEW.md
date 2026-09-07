@@ -1,165 +1,72 @@
-# Native Arena selection
+# Arena native menu settings — 2026-09-07
 
-Implemented 2026-08-31 for the installed SPT 4.1 client. Runtime acceptance is still open; see `GATES.md`.
+The map screen now uses an EFT raid-settings dropdown in an Arena settings group
+instead of five flat, orange-highlighted mode buttons. The selected mode has a
+larger description underneath. The native popup opens upward so Next and Back
+remain visible. The side-selection description now correctly names five modes.
 
-## Player flow
+## Implementation and boundaries
 
-Choose **Arena** on the native PMC/Scav screen. The existing, unused third native toggle is reused, including its group, animation and layout. Arena remains a PMC raid internally because that is the post-raid path protected by the server.
+- Clone only the closed, owned `RaidSettingsWindow._aiDifficultyDropdown`
+  subtree through `MenuUI.MatchmakerOfflineRaidScreen`. Preserve EFT's sprites,
+  font/material, hover behavior and selection sounds. Never show/apply the
+  original raid-settings window or alter shared visual assets.
+- Use the existing screen canvas and its scaling. The 620 x 126 settings group
+  sits above navigation; Factory conditions move with it and restore their
+  original position on close. The popup is configured before native initialization.
+- Native dropdowns temporarily reparent their open panel into ContextMenuArea.
+  Unsubscribe the Arena callback and close the dropdown before destroying its
+  group so no popup is left on another screen.
+- The production-linked selection state owns stable ids, accepted writes and
+  Tactical-only PFT restrictions. Rejected or throwing writes restore the visible
+  saved choice. No raid-start calls, protocol changes or additional settings.
 
-The next screen offers **Factory (day/night), Labyrinth and The Lab**, subject to the client allowlist and server Arena configuration. Other locations and Marathon are hidden. Factory keeps one native tile and uses its ordinary time panel to switch between the two location variants. Labyrinth is exposed only in this Arena view even when the ordinary game location has `Enabled=false`. Native map locks are not changed globally; the existing Arena keycard waiver remains in use.
+Player count and difficulty belong in this group when their behavior is
+implemented. Do not add placeholder controls that appear to change a match.
+Counts are currently mode-specific (Team DM, solo Tactical, fixed PFT 5v5);
+there is no uniform participant-count or easy/normal/hard setting with consistent
+Arena semantics. Their future implementation needs an explicit per-match policy.
 
-The same map screen now contains an Arena-only mode bar for **Endless, Rounds, Gun Game and Tactical**. It writes the existing `Match/GameMode` entry, saves it, and reports the client-owned value to the server settings mirror. F12 remains an alternate editor for that entry and for detailed rules and kits, but it is no longer required to choose the mode. A complete PitFireTeam roster enters the screen in Tactical and cannot select the three solo modes; final raid negotiation independently keeps the existing strict Tactical-only check.
+## Sources and licensing
 
-Returning from the map screen preserves Arena and the chosen mode. Selecting PMC or Scav, leaving setup through the main menu/taskbar, or beginning a new setup clears the Arena claim and restores the previous ordinary map/time/transition/key selection. The old persistent `General/Enabled` setting no longer controls raid activation.
+Native contracts were checked in `../_decompiled/EFT.UI/DropDownBox.cs`,
+`BaseDropDownBox.cs`, `MenuUI.cs`, `Diz.Binding/BindableEvent.cs` and
+`EFT.UI.Matchmaker/RaidSettingsWindow.cs`.
 
-## Safety review
+Local technique references:
 
-Two independent read-only review passes compared the implementation with the complete decompiled game source. Findings fixed during review:
+- `../_reference/UIFixes-main/src/Patches/FleaPrevSearchPatches.cs` (MIT):
+  native control reuse and subscription lifetime.
+- `../_reference/SPT-PitFireTeam-beta-0.10.0/client/Components/SquadControlMenuUi.Settings.cs`
+  and `Patches/OtherPlayerProfileScreenPatch.ProfileOptions.cs`: native option
+  rows and dropdowns, inspected only as technique under the project license rules.
 
-- Use the native hidden Random toggle rather than cloning an initialized UI spawner. Translate its selection to PMC without removing native listeners or changing the game's side enum.
-- Preserve selection by side-controller identity when returning from the map screen; do not clear it in the screen's `Close`, which also runs on forward navigation.
-- Observe actual screen changes, since returning to an existing root does not call `ShowMenuScreen`.
-- Guard both map selection and the selected-location setter; group/level refreshes can otherwise restore Ground Zero after a null selection.
-- Filter the Arena view independently of vanilla `Enabled`, which excludes stock Labyrinth. No shared location objects are mutated.
-- Suppress the ordinary PMC health warnings while Arena is selected; vanilla Update/hover would restore them every frame.
-- Require server acknowledgement before the original local-raid start request. Rejected/failed Arena negotiation returns a faulted task through vanilla's error/menu-return path, which reloads the server profile. Clear the legacy `InGameStatus.InRaid` flag because that error path never calls `OnGameEnd`.
-- Keep uncertain server arming pending after lost/malformed responses. Failed cancellation blocks subsequent normal PMC and Scav starts until acknowledgement succeeds.
-- Reconcile server state before the first local raid of each client process, including normal raids. This covers a server arm surviving a client restart. Only that initial reconciliation adds a request to an otherwise ordinary raid; normal gameplay/profile processing is unchanged.
-- Recheck solo/non-coop eligibility, selected map and refreshed server configuration at negotiation time, after remote settings synchronization.
+No third-party mod code, DLLs, UI bundles or new dependency were copied.
 
-The server's snapshot/restore and post-raid skip implementations were not changed or weakened. No third-party mod source or assets were copied.
+## Validation
 
-## Verification and limitations
+- Client Release build and deployment succeeded: zero errors, four existing
+  CS8632 warnings in the unchanged shared settings model. The referenced
+  Redeploy.Core was also built/deployed from its unchanged source.
+- 123 production-linked catalog/selection-state assertions passed. Removing the
+  selection guard from an isolated source copy failed the intended PFT
+  unauthorized-selection assertion. No mutant was deployed.
+- Independent adversarial review found no actionable functional issue in the
+  state, native lifecycle, popup ownership or selection callback contracts.
+- Native menu run on the GPU host: all five modes and descriptions, Factory
+  day/night, Labs, Labyrinth, Back with the dropdown open, return to PMC and
+  repeated Arena entry passed. No raid was started.
+- A second game launch verified the final upward popup, Team DM to Tactical
+  selection and Back with the list open. Next and Back remained unobstructed;
+  no popup remained on character selection. The record contains 19 original
+  1920 x 945 captures: 01-15 from the first menu run, 16-19 from the final build.
+- Neither run logged an Arena warning/error or a client error. The installed
+  client hash matches the Release output; game, launcher and owned test server
+  were stopped after inspection. Syncthing remains enabled under the user's
+  disposable-test-data policy.
+- Actual PFT roster rendering, other resolutions and gameplay remain outside
+  this menu check; the user performs raid tests.
 
-`tools/NativeMenuChecks` compiles the production selection, HTTP-client and negotiation files with explicit stand-ins for the game/BepInEx/transport. Its 31 assertions include normal selection restoration, controller isolation, map/Scav rejection, lost announcement and cancellation responses, recovery, client-restart reconciliation, joining a party after selection, missing server mod (the installed SPT HTTP wrapper throws on 404), transport/500 failures and malformed ping responses. These checks do not exercise Unity rendering, actual Harmony invocation or real profile persistence.
-
-Run:
-
-```powershell
-dotnet run --project tools/NativeMenuChecks/NativeMenuChecks.csproj -c Release
-dotnet build ArenaMode.sln -c Release --nologo
-powershell -NoProfile -File tools/Verify-NativeMenuDeployment.ps1
-```
-
-The runtime attempt loaded the native menu Harmony patches successfully, but the existing `spt41dev` profile remained at **Loading profile data...** before reaching the main menu. No raid was started. The client log showed no Arena initialization error. The user subsequently confirmed that this server has no GPU and cannot run the game. Further game-launch attempts were stopped; visual/gameplay acceptance requires a GPU-equipped machine. The final negotiation hardening was verified offline and is included in the final build, not in that earlier startup attempt.
-
-Required live acceptance: restart the game with the final DLL; verify Arena/PMC/Scav selection, Factory day and night through the one Factory tile, Labyrinth, The Lab, map Back, taskbar/main-menu return, normal PMC/Scav maps and Lab key requirements; then compare the profile before/after a short Arena raid and confirm an ordinary raid still processes normally. Do not treat the source review and fault-injection harness as completion of this live check.
-
-## Follow-up: third button invisible in the user's playtest
-
-The user's 2026-08-31 test reached the side-selection screen but showed only PMC and Scav. The supplied client log registered the Arena menu patches without an initialization error. The original implementation enabled `_randomButton.gameObject`, but source review alone had missed its serialized parent state.
-
-Read-only inspection of the actual EFT 0.16.9.5.40743 files (SPT 4.1.3, Unity 2022.3.43f1) found:
-
-| Object in `EscapeFromTarkov_Data/level48` | Serialized state |
-| --- | --- |
-| Side screen component 25165 on GameObject 364 | `_randomButton` references component 25177. |
-| RandomToggleSpawner, GameObject 385 | Under `AlphaBlocker`; its own `_canvasGroup` reference is null. Vanilla `Show` hides this spawner. |
-| AlphaBlocker, GameObject 368 | Inactive; direct child of the screen; its only child is RandomToggleSpawner. |
-| Wrapper CanvasGroup 23550 | Alpha 0.3, interactable false, blocksRaycasts true. |
-| Wrapper HoverTooltipArea 25204 | Enabled, with the obsolete message `Not available in alpha`. |
-
-The shared toggle prefab in `sharedassets44.assets` (component 8925, GameObject 1051) is active and is the same prefab used by PMC and Scav. Activating only RandomToggleSpawner can therefore never show the button while AlphaBlocker remains inactive. Merely activating AlphaBlocker would still leave the button dim and unclickable.
-
-`ArenaSideSelectionView` now validates that the wrapper belongs exclusively to Arena, enables both wrapper and spawner, sets its CanvasGroup to full opacity and the current solo availability, and disables the obsolete tooltip. It retains native placement, ToggleGroup and listeners. It never unlocks ancestors or the Scav cooldown group. Unexpected hierarchy fails with a logged error and hides only Arena; it does not modify the ordinary sides. No scene asset is modified or distributed. Each menu opening logs `Arena side button: active=..., interactable=..., wrapper=...` for the next live test.
-
-An independent adversarial review found no remaining correction to make in the helper or its integration. Release build and installed-file hash verification succeeded; server tests (31), selection/negotiation assertions (31) and announcer assertions (17) passed. The installed client SHA-256 is `FDBDD0F6B0ED90EEC4B9C50497CEB05DBC7E70D0C9045B8CA458684E69A51550`; the server is unchanged at `D1F6603F7CB15CF3FCD578CF8F24C0A83064F8E328F01637084077ED896904F5`.
-
-`dotnet run --project tools/NativeSideViewChecks -c Release` also passes 29 focused checks. It compiles the real view helper with Unity/EFT stand-ins and a fixture based on the inspected scene. Coverage includes the inactive parent, disabled CanvasGroup, obsolete tooltip, solo availability, repeated opening, unchanged PMC/Scav controls and safe rejection of shared or unknown hierarchy. These checks verify the helper's state changes, not actual Unity rendering or native event delivery.
-
-Mutation verification used temporary source copies, never the deployed source: removing wrapper activation and canvas unlocking fails the visibility check; retaining activation but removing canvas unlocking fails the opacity/input check. The production source hash was unchanged, and the final normal run passed again.
-
-Visual acceptance remains pending a fresh user test with this DLL. No game was launched on the GPU-less server during this diagnosis.
-
-## Follow-up: Arena map screen empty
-
-The next user test confirmed the Arena side button is visible, but no maps appeared on the following screen. The updated log confirms a visible/interactable side button and successful Arena configuration requests. The installed client allowlist and server configuration enable Factory day, Labyrinth and The Lab.
-
-Actual scene inspection found the cause in `level48`: MatchMakerSelectionLocationScreen component 25068 on GameObject 305 has **both** `_locationButtonsContainer` and `_locationPathsContainer` pointing at Transform 15523 / GameObject 269 (`Paths Container`). The former postfix disabled that shared container to remove transit lines, also hiding every map button. The path template (component 25098 / GameObject 276) is a separate sibling outside the shared container.
-
-`ArenaLocationSelectionView` now hides only individual generated `LocationPath` GameObjects and Marathon. It preserves each original `activeSelf` value, restores before another `ShowInternal` and before native `Close`, and skips views that Unity has already destroyed. The shared container and map buttons are never toggled. The existing map filter, selection guards and both profile protection layers are unchanged. A diagnostic logs native button count, visible-in-hierarchy count and whether the two containers are shared.
-
-Independent adversarial review found no remaining issue in this helper or its integration. The Release solution builds with four existing CS8632 warnings and no errors. The 31 server tests, 31 menu/negotiation assertions, 29 side-button assertions and 17 announcer assertions pass again. Build and installed client SHA-256 match at `4454634119025A2903E0757B608DF43C3E69D6224A9B08960C8E58A760C6517A`; the server hash is unchanged. The installed client was also decompiled to verify that it contains the per-path fix.
-
-`dotnet run --project tools/NativeMapViewChecks -c Release` passes 40 additional checks against the linked production helper with Unity/EFT stand-ins. They cover the shared-container regression, unchanged map buttons/template/ancestors, exact restoration of active and inactive views, reopening, new or destroyed path views, duplicate references and separate-container layouts. A temporary source-copy mutant that hides the entire container fails the map-visibility assertion; the production source hash stays unchanged and the final normal run passes. The test code was inspected independently of its author. These checks do not execute native map filtering, click listeners or Unity rendering.
-
-The user's side-button confirmation is a passed visual check for that button only. The corrected map screen and subsequent raid/profile flow still need a game restart and live retest; no game was launched on this server.
-
-Subsequent user confirmation: the corrected map selection works on the gaming PC.
-Both reported visibility regressions are therefore confirmed fixed by the user.
-This does not close the broader navigation, ordinary-raid and profile-integrity
-acceptance checks above.
-
-## Follow-up: native Arena mode picker
-
-The mode picker is created only from the Arena-gated location-screen postfix and
-is destroyed before every screen rebuild or close. Its fixed bottom-center strip
-uses the native navigation-button font and the free space recorded in the installed
-`level48` layout, above the Back/Next row and below the closed Arena time panel.
-Ordinary PMC/Scav screens never create it. Failure to construct the optional view
-is logged and leaves the native map screen usable.
-
-`tools/NativeModeSelectionChecks` links the production catalog and Unity view. Its
-checks cover all four registry ids and labels, selection propagation, descriptions,
-font fallback, exact placement, re-entry without duplicates, teardown, rejected
-config writes and the Tactical-only PitFireTeam state. `tools/PitFireTeamChecks`
-also proves that mode-pending side-screen admission relaxes only the old mode value;
-invalid rosters, Fika/co-op and the final non-Tactical start remain rejected.
-
-The offline checks and Release build cannot prove final rendering or pointer input.
-That visual acceptance remains for the GPU-equipped client.
-
-## Follow-up: Factory night
-
-The installed EFT source confirms that `factory4_night` is not a second map
-button. `DisplayLocation` hides it, while selecting the Factory-day button opens
-the native time panel and `GetLocationByTime` maps CURR to day and PAST to night.
-The installed server database supplies the separate night scene, uses the same
-`BotZone`, has no access key or lock, and SPT clones it by location id without
-checking the menu-only `Enabled=false` flag.
-
-Arena now preserves that representation. The day tile appears when either
-Factory variant is enabled; the night database entry never creates a duplicate
-tile. With both variants enabled the time panel stays open. A day-only or
-night-only configuration is forced to the available variant and hides the dead
-choice. Returning from the next screen preserves a selected night raid. Every
-branch is still inside the Arena screen gate, so ordinary PMC/Scav filtering and
-time selection continue through the unmodified native code.
-
-Existing installs are handled on both sides. BepInEx otherwise preserves the old
-`factory4_day,labyrinth,laboratory` value forever, so only that exact former
-default is upgraded; any edited client allowlist remains untouched. The server's
-existing recursive missing-key merge adds the new `factory4_night` map section
-to an old `config.json` and preserves all saved map values.
-
-The native Conditions Panel occupies screen Y 175–264 in the installed `level48`;
-the Arena mode bar originally occupied Y 82–168. Their seven-pixel gap meant enabling the
-time panel does not geometrically overlap the mode buttons at the reference
-1920×1080 layout. Resolution scaling, actual rendering and pointer delivery still
-require the GPU-equipped live test.
-
-Independent adversarial review found no actionable code issue. Offline verification
-passed 102 server tests, 58 native map/catalog checks, 51 negotiation checks, 79 Labs
-bot-spawn checks and 47 mode-picker checks. Three temporary catalog mutants proved
-that the harness detects a duplicate night tile, a discarded night choice and a
-skipped legacy-client migration. The Release build completed with zero errors and
-the four pre-existing nullable warnings; deployed client and server hashes match
-their build outputs. No game was launched on this GPU-less server.
-
-## Follow-up: mode picker overlaps native buttons
-
-The user's live rendering showed that the native bottom controls extend beyond
-the zero-sized `ScreenDefaultButtons`, `MapButton` and `ReadyButton` roots recorded
-in `level48`, so the original Y 82–168 strip was too low. The actual vertical
-layout reaches approximately Y 168.36: two active buttons, each with 16 pixels of
-vertical padding and a 40.68-pixel preferred text height, plus 15 pixels spacing.
-Arena now lifts the mode bar by 93 pixels to Y 175–261, leaving about 6.64 pixels
-above that stack. While the Arena view owns the screen it also lifts Factory's
-native Conditions Panel by the same 93 pixels to Y 268–357, retaining the measured
-seven-pixel gap. Closing or rebuilding the view restores the exact
-position inherited from the native screen or another mod, and ordinary map
-screens never enter this path.
-
-The native mode harness now checks the lifted coordinates, equal Conditions Panel
-offset, non-stacking re-entry and exact restoration. Rendering acceptance remains
-for the next GPU-equipped playtest.
+Private visual report and original screenshots:
+`C:\Users\Administrator\Documents\Codex\2026-09-07\lies-agents-md-und-handoff-md\outputs\Arena-UI-Ueberarbeitung\`.
+Build and run logs are in the sibling `work\arena-native-menu\` directory.

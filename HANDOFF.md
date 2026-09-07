@@ -8,8 +8,9 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - Last gameplay change: `20462c049b5a3ae154ba289f24e43d0b1ed3e3f8` on
-  `feature/arena-visibility-and-labyrinth`. This handoff is a later docs-only change.
-- Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution here.
+  `feature/arena-visibility-and-labyrinth`. Subsequent work includes the
+  documentation and GPU menu redesign below.
+- Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution there.
 - User-confirmed GPU host installation: `C:\SPT41`, a mirror of this host's
   `D:\SPT41`. If Development is included, the corresponding repository is
   `C:\SPT41\Development\ArenaMode`. Check that checkout before editing. Mirror
@@ -51,6 +52,13 @@ Team Deathmatch is independent of PFT; protected Tactical 5v5 is a separate path
 Maps: Factory day/night, Labs, Labyrinth. Factory night uses the native time
 selection on the Factory tile, not a separate night tile.
 
+GPU menu redesign on `feature/arena-native-menu-options`: Arena's five modes now
+use the native EFT raid-settings dropdown in one settings group, with a larger
+description. Its popup opens upward to leave navigation free. The side-selection
+copy correctly says five modes. Player count/difficulty are future rows, with no
+placeholder controls or gameplay changes. See `NATIVE-MENU-REVIEW.md` for native
+contracts, reference/licensing notes, 123 passing state checks and visual scope.
+
 | Commit | Change | Verification still needed (raid work belongs to user) |
 | --- | --- | --- |
 | `20462c0` | Standard kits request two RGD-5s, no automatic Zarya. Explicit rig/pocket placement bypasses UseItemsAnywhere's backpack-first `GrenadeThrowingSlots` patch. Custom authored supplies and protected PFT gear are retained. | In-game placement and grenade-key use, including respawn/Gun Game. |
@@ -69,13 +77,15 @@ at their intended assertions. Default and installed 20-kit catalogs each packed
 grid model. Full grids still skip optional grenades, never spill into backpack.
 Independent review found no open issues. These are not GPU test results.
 
-Local Release/installed hashes verified after `20462c0` gameplay changes:
+GPU Release/installed hashes after the native menu redesign (2026-09-07).
+The server binary remains the prior gameplay build; Redeploy.Core was rebuilt
+from unchanged source `58abf5876629bb51be808d78ee2cd7a5d34af77a`:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| ArenaMode.Client | `47D37E298E052401E06EAB49CEDDFEC41BD6AC8953CAE893BF209F5E69A37F51` |
+| ArenaMode.Client | `D5A49310FF577FF58718D4687F4A4107468B6BCBBBD23BC5139BB9331FB69789` |
 | ArenaMode.Server | `FCE6C394DF9184E81FE6D43B0D236380DE71E3BB110708497E2471D395B2DBE8` |
-| Redeploy.Core | `3973761FDE09BBDBBD924AA893F3D351ECA50EFE14B93183A6E1C8CE947BAA8C` |
+| Redeploy.Core | `F923B0D709908F75969B3101E9F8290CD2BB06DF457F64B1FFF8876A7BBFEA00` |
 
 Hashes identify these built files. A fresh build on another machine may differ;
 always record that build's hashes and compare them with its installed copies.

@@ -19,25 +19,24 @@ function Get-TdmSource([string] $RelativePath) {
     return [IO.File]::ReadAllText((Join-Path $tdmRepo $RelativePath))
 }
 
-$tdmView = 'ArenaMode.Client\Session\ArenaModeSelectionView.cs'
+$tdmState = 'ArenaMode.Client\Session\ArenaModeSelectionState.cs'
 $tdmHostility = 'ArenaMode.Server\Patches\AdjustBotHostilityPatch.cs'
 $tdmLocation = 'ArenaMode.Server\Services\ArenaLocationMutator.cs'
 $tdmOriginals = @{}
-foreach ($tdmFile in @($tdmView, $tdmHostility, $tdmLocation)) {
+foreach ($tdmFile in @($tdmState, $tdmHostility, $tdmLocation)) {
     $tdmOriginals[$tdmFile] = Get-TdmSource $tdmFile
 }
 
-$tdmLayoutAnchor = 'var width = Math.Min(190f,'
-if (-not $tdmOriginals[$tdmView].Contains($tdmLayoutAnchor)) { throw 'Missing adaptive layout anchor' }
-$tdmMutantView = Join-Path $tdmTemp 'fixed-width-view.cs'
-# Keeping the original multiline second operand is valid C# and forces 190px.
-[IO.File]::WriteAllText($tdmMutantView, $tdmOriginals[$tdmView].Replace($tdmLayoutAnchor, 'var width = Math.Max(190f,'))
+$tdmStateAnchor = 'if (!CanSelectIndex(index))'
+if (-not $tdmOriginals[$tdmState].Contains($tdmStateAnchor)) { throw 'Missing state selection guard anchor' }
+$tdmMutantState = Join-Path $tdmTemp 'unguarded-selection-state.cs'
+[IO.File]::WriteAllText($tdmMutantState, $tdmOriginals[$tdmState].Replace($tdmStateAnchor, 'if (false)'))
 $tdmResult = Invoke-TdmCheck @('run', '--project', (Join-Path $PSScriptRoot 'NativeModeSelectionChecks.csproj'),
-    '-c', 'TeamDeathmatchMutantLayout', "-p:ProductionViewSource=$tdmMutantView")
-if ($tdmResult.Exit -eq 0 -or -not $tdmResult.Output.Contains('each button stays inside the original 820-pixel panel')) {
-    throw "Fixed-width mutant did not fail its intended geometry assertion:`n$($tdmResult.Output)"
+    '-c', 'TeamDeathmatchMutantStateGuard', "-p:ProductionStateSource=$tdmMutantState")
+if ($tdmResult.Exit -eq 0 -or -not $tdmResult.Output.Contains('protected team rejects a non-Tactical selection without calling the writer')) {
+    throw "Unguarded state mutant did not fail its intended selection assertion:`n$($tdmResult.Output)"
 }
-Write-Output 'Rejected mutant: fifth button exceeds original panel'
+Write-Output 'Rejected mutant: protected-team selection bypasses state guard'
 
 $tdmMutants = @(
     @{ Name = 'FfaTeams'; Source = $tdmHostility; Compile = 'Patches\AdjustBotHostilityPatch.cs';
@@ -88,7 +87,7 @@ foreach ($tdmFile in $tdmOriginals.Keys) {
     if ((Get-TdmSource $tdmFile) -cne $tdmOriginals[$tdmFile]) { throw "Production source changed: $tdmFile" }
 }
 $tdmResult = Invoke-TdmCheck @('run', '--project', (Join-Path $PSScriptRoot 'NativeModeSelectionChecks.csproj'), '-c', 'Release')
-if ($tdmResult.Exit -ne 0) { throw "Production menu checks failed:`n$($tdmResult.Output)" }
+if ($tdmResult.Exit -ne 0) { throw "Production state checks failed:`n$($tdmResult.Output)" }
 Write-Output $tdmResult.Output.Trim()
 $tdmResult = Invoke-TdmCheck @('test', (Join-Path $tdmRepo 'ArenaMode.Tests'), '--no-restore', '-c', 'Release',
     "-p:SPTUserMods=$tdmNoDeploy", '--filter', 'FullyQualifiedName~TeamDeathmatchServerTests|FullyQualifiedName~LocationMutatorTests')

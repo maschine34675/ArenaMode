@@ -2,11 +2,7 @@ using ArenaMode.Modes;
 using ArenaMode.Session;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using TMPro;
-using UnityEngine;
-using UnityEngine.UI;
 
 internal static class Program
 {
@@ -18,58 +14,46 @@ internal static class Program
         _checks++;
     }
 
-    private static bool Near(float actual, float expected)
-        => Math.Abs(actual - expected) < 0.001f;
-
-    private static GameObject Screen() => new("Matchmaker Location Selection", typeof(RectTransform));
-
-    private static TMP_Text NativeText(GameObject screen)
+    private static TException Throws<TException>(Action action, string message)
+        where TException : Exception
     {
-        var source = new GameObject("Native button label",
-            typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        source.transform.SetParent(screen.transform, false);
-        var text = source.GetComponent<TextMeshProUGUI>();
-        text.font = new TMP_FontAsset();
-        return text;
+        try { action(); }
+        catch (TException exception)
+        {
+            _checks++;
+            return exception;
+        }
+        throw new Exception(message);
     }
 
-    private static RectTransform Conditions(GameObject screen)
+    private static int IndexOf(string id)
+        => ArenaModeCatalog.All.Select(mode => mode.Id).ToList().IndexOf(id);
+
+    private static void AssertSelection(ArenaModeSelectionState state, string id)
     {
-        var conditions = new GameObject("Conditions Panel", typeof(RectTransform));
-        conditions.transform.SetParent(screen.transform, false);
-        var rect = (RectTransform)conditions.transform;
-        rect.anchoredPosition = new Vector2(0f, 175f);
-        rect.sizeDelta = new Vector2(571f, 89f);
-        return rect;
+        var index = IndexOf(id);
+        Assert(state.SelectedMode == id && state.SelectedIndex == index
+               && ReferenceEquals(state.SelectedDefinition, ArenaModeCatalog.All[index]),
+            $"selected id, index and catalog definition agree for '{id}'");
     }
-
-    private static Button ButtonFor(ArenaModeSelectionView view, string id)
-        => view.Root.GetComponentsInChildren<Button>(true)
-            .Single(button => button.gameObject.name == "Mode " + id);
-
-    private static TextMeshProUGUI TextFor(ArenaModeSelectionView view, string name)
-        => view.Root.GetComponentsInChildren<TextMeshProUGUI>(true)
-            .Single(text => text.gameObject.name == name);
 
     private static void CatalogContract()
     {
         var expected = new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch" };
         Assert(ArenaModeCatalog.All.Select(mode => mode.Id).SequenceEqual(expected),
-            "the native picker exposes the five registry ids in the intended order");
+            "the picker exposes the five stable registry ids in the intended order");
         Assert(ArenaModeCatalog.All.All(mode => !string.IsNullOrWhiteSpace(mode.Label)
                                                && !string.IsNullOrWhiteSpace(mode.Description)),
-            "every mode has visible copy");
+            "every selectable mode has a label and description");
         Assert(ArenaModeCatalog.All.Select(mode => mode.Label).Distinct().Count() == expected.Length,
             "mode labels are distinct");
-        Assert(ArenaModeCatalog.All.Single(mode => mode.Id == ArenaModeCatalog.TeamDeathmatchId).Label == "TEAM DM",
-            "standalone team mode has the compact TEAM DM label");
 
         foreach (var id in expected)
         {
             Assert(ArenaModeCatalog.NormalizeId("  " + id.ToUpperInvariant() + "  ") == id,
                 $"mode id '{id}' normalizes case and surrounding whitespace");
             Assert(ArenaModeCatalog.CanSelect(id, tacticalOnly: false),
-                $"solo Arena can select '{id}'");
+                $"solo Arena permits '{id}'");
         }
 
         foreach (var invalid in new[] { null, "", " ", "unknown" })
@@ -78,257 +62,186 @@ internal static class Program
 
         Assert(ArenaModeCatalog.ResolveSelection("gungame", tacticalOnly: true)
                == ArenaModeCatalog.TacticalId,
-            "a protected team flow resolves an old solo choice to Tactical");
-        Assert(!ArenaModeCatalog.CanSelect("endless", tacticalOnly: true)
-               && !ArenaModeCatalog.CanSelect("rounds", tacticalOnly: true)
-               && !ArenaModeCatalog.CanSelect("gungame", tacticalOnly: true)
-               && !ArenaModeCatalog.CanSelect("teamdeathmatch", tacticalOnly: true)
-               && ArenaModeCatalog.CanSelect("TACTICAL", tacticalOnly: true),
-            "a protected team flow permits only Tactical");
+            "a protected team resolves an old solo choice to Tactical");
+        foreach (var id in expected)
+            Assert(ArenaModeCatalog.CanSelect(id, tacticalOnly: true) == (id == "tactical"),
+                $"protected-team catalog eligibility is correct for '{id}'");
     }
 
-    private static void SoloPickerInteraction()
+    private static void ProtectedTeamSelection()
     {
-        var screen = Screen();
-        var nativeText = NativeText(screen);
-        var conditions = Conditions(screen);
-        var choices = new List<string>();
-        var view = new ArenaModeSelectionView();
-        view.Show(screen.transform, nativeText, "rounds", tacticalOnly: false,
-            mode => { choices.Add(mode); return true; }, conditions);
+        var writes = new List<string>();
+        var state = new ArenaModeSelectionState("endless", tacticalOnly: true,
+            mode => { writes.Add(mode); return true; });
+        Assert(state.TacticalOnly && writes.Count == 0,
+            "constructing a protected-team state does not write settings");
+        AssertSelection(state, "tactical");
+        state.CommitInitialSelection();
+        Assert(writes.SequenceEqual(new[] { "tactical" }),
+            "initial commit persists the protected-team fallback exactly once");
+        state.CommitInitialSelection();
+        Assert(writes.Count == 1, "successful initial team commit is idempotent");
 
-        Assert(view.Root != null && view.Root.activeSelf,
-            "show creates one active picker root");
-        Assert(screen.transform.Children.Last().gameObject == view.Root,
-            "picker renders as the last screen child");
-        var rect = (RectTransform)view.Root.transform;
-        Assert(Near(rect.anchorMin.x, 0.5f) && Near(rect.anchorMin.y, 0f)
-               && Near(rect.anchoredPosition.y, 175f)
-               && Near(rect.sizeDelta.x, 820f) && Near(rect.sizeDelta.y, 86f),
-            "picker is lifted clear of the live-tested native navigation buttons");
-        Assert(Near(conditions.anchoredPosition.y, 268f),
-            "Factory conditions move by the same offset while the picker owns the screen");
-        Assert(Near(conditions.anchoredPosition.y -
-                    (rect.anchoredPosition.y + rect.sizeDelta.y), 7f),
-            "the lifted panels retain the inspected seven-pixel separation");
-        Assert(view.Root.GetComponentsInChildren<Button>(true).Length == 5,
-            "picker creates exactly five buttons");
-        Assert(view.Root.GetComponentsInChildren<Button>(true)
-                   .Select(button => button.gameObject
-                       .GetComponentsInChildren<TextMeshProUGUI>(true).Single().text)
-                   .SequenceEqual(ArenaModeCatalog.All.Select(mode => mode.Label)),
-            "all five buttons render their catalog labels in order");
-        var buttonRects = view.Root.GetComponentsInChildren<Button>(true)
-            .Select(button => (RectTransform)button.transform).ToArray();
-        for (var index = 0; index < buttonRects.Length; index++)
+        for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
         {
-            var button = buttonRects[index];
-            Assert(button.sizeDelta.x >= 150f && button.sizeDelta.x <= 190f,
-                "five readable labels keep at least 150 pixels each");
-            Assert(button.anchoredPosition.x - button.sizeDelta.x / 2f >= -400f
-                   && button.anchoredPosition.x + button.sizeDelta.x / 2f <= 400f,
-                "each button stays inside the original 820-pixel panel with side padding");
-            Assert(Near(button.anchoredPosition.y, 41f) && Near(button.sizeDelta.y, 32f),
-                "the fifth mode does not move the button row down onto vanilla controls");
-            if (index > 0)
-                Assert(Near(button.anchoredPosition.x - button.sizeDelta.x / 2f
-                    - (buttonRects[index - 1].anchoredPosition.x + buttonRects[index - 1].sizeDelta.x / 2f), 8f),
-                    "neighboring mode buttons retain an eight-pixel gap");
+            if (ArenaModeCatalog.All[index].Id == "tactical") continue;
+            Assert(!state.CanSelectIndex(index),
+                "protected team reports non-Tactical choices as unavailable");
+            Assert(!state.TrySelectIndex(index) && writes.Count == 1,
+                "protected team rejects a non-Tactical selection without calling the writer");
+            AssertSelection(state, "tactical");
         }
-        Assert(view.Root.GetComponentsInChildren<TextMeshProUGUI>(true)
-                   .All(text => ReferenceEquals(text.font, nativeText.font)),
-            "picker inherits the native screen font");
-        Assert(view.SelectedMode == "rounds" && choices.Count == 0,
-            "stored valid mode is selected without writing config again");
-        Assert(TextFor(view, "Description").text.Contains("Score-limited", StringComparison.Ordinal),
-            "selected mode description is visible");
-
-        ButtonFor(view, "gungame").onClick.Invoke();
-        Assert(view.SelectedMode == "gungame" && choices.SequenceEqual(new[] { "gungame" }),
-            "a native button click publishes the stable mode id exactly once");
-        Assert(TextFor(view, "Description").text.Contains("weapon ladder", StringComparison.Ordinal),
-            "click refreshes the selected description");
-        ButtonFor(view, "gungame").onClick.Invoke();
-        Assert(choices.Count == 1,
-            "clicking the already selected mode does not rewrite config");
-
-        ButtonFor(view, "teamdeathmatch").onClick.Invoke();
-        Assert(view.SelectedMode == ArenaModeCatalog.TeamDeathmatchId
-               && choices.SequenceEqual(new[] { "gungame", "teamdeathmatch" }),
-            "standalone TEAM DM publishes its stable id through the normal selection callback");
-        Assert(TextFor(view, "Description").text.Contains("USEC versus BEAR", StringComparison.Ordinal),
-            "TEAM DM explains its faction assignment without a PFT requirement");
-
-        var oldRoot = view.Root;
-        view.Show(screen.transform, nativeText, "tactical", tacticalOnly: false,
-            mode => { choices.Add(mode); return true; }, conditions);
-        Assert(oldRoot == null && view.Root != null && view.SelectedMode == "tactical",
-            "reopening disposes the old picker before creating the replacement");
-        Assert(Near(conditions.anchoredPosition.y, 268f),
-            "reopening restores then reapplies one conditions-panel offset without stacking");
-        Assert(screen.transform.Children.Count(child => child.gameObject.name == "Arena Mode Selection") == 1,
-            "reopening cannot duplicate the picker root");
-        view.Close();
-        Assert(oldRoot == null && view.Root == null
-               && screen.transform.Children.All(child => child.gameObject.name != "Arena Mode Selection"),
-            "close removes the picker without touching native siblings");
-        Assert(Near(conditions.anchoredPosition.y, 175f),
-            "close restores the exact native conditions-panel position");
+        Assert(state.CanSelectIndex(IndexOf("tactical"))
+               && state.TrySelectIndex(IndexOf("tactical")) && writes.Count == 1,
+            "protected team can retain Tactical without rewriting settings");
     }
 
-    private static void TacticalTeamRestriction()
+    private static void InitialSelectionAndFallback()
     {
-        var screen = Screen();
-        var nativeText = NativeText(screen);
-        var choices = new List<string>();
-        var view = new ArenaModeSelectionView();
-        view.Show(screen.transform, nativeText, "endless", tacticalOnly: true,
-            mode => { choices.Add(mode); return true; });
-
-        Assert(view.SelectedMode == "tactical" && choices.SequenceEqual(new[] { "tactical" }),
-            "opening a team picker immediately commits Tactical over a stale solo mode");
-        Assert(TextFor(view, "Title").text.Contains("PITFIRETEAM 5v5", StringComparison.Ordinal),
-            "team restriction is visible in the picker title");
-        Assert(TextFor(view, "Description").text.Contains("require Tactical", StringComparison.Ordinal),
-            "team restriction is explained beside the selected description");
-        Assert(!ButtonFor(view, "endless").interactable
-               && !ButtonFor(view, "rounds").interactable
-               && !ButtonFor(view, "gungame").interactable
-               && !ButtonFor(view, "teamdeathmatch").interactable
-               && ButtonFor(view, "tactical").interactable,
-            "only Tactical is interactable for a protected team");
-        ButtonFor(view, "gungame").onClick.Invoke();
-        ButtonFor(view, "teamdeathmatch").onClick.Invoke();
-        Assert(view.SelectedMode == "tactical" && choices.Count == 1,
-            "the view-level guard also rejects a synthetic click on a disabled team mode");
-    }
-
-    private static void FailureAndFallbackHandling()
-    {
-        var screen = Screen();
-        var view = new ArenaModeSelectionView();
-        var choices = new List<string>();
-        view.Show(screen.transform, null, "invalid", tacticalOnly: false,
-            mode => { choices.Add(mode); return true; });
-        Assert(view.SelectedMode == "endless" && choices.SequenceEqual(new[] { "endless" }),
-            "invalid config is repaired to the catalog default");
-        Assert(view.Root.GetComponentsInChildren<TextMeshProUGUI>(true)
-                   .All(text => ReferenceEquals(text.font, TMP_Settings.defaultFontAsset)),
-            "missing native font safely falls back to TMP's default");
-        view.Close();
-
-        view.Show(screen.transform, null, "rounds", tacticalOnly: false,
-            mode => false);
-        ButtonFor(view, "gungame").onClick.Invoke();
-        Assert(view.SelectedMode == "rounds",
-            "a rejected config write cannot make the picker display an inactive mode");
-        view.Close();
-
-        try
+        foreach (var definition in ArenaModeCatalog.All)
         {
-            view.Show(screen.transform, null, "invalid", false, mode => false);
-            Assert(false, "failed fallback repair must throw");
-        }
-        catch (InvalidOperationException)
-        {
-            Assert(view.Root == null,
-                "failed fallback repair removes the partially created picker");
+            var writes = 0;
+            var state = new ArenaModeSelectionState("  " + definition.Id.ToUpperInvariant() + "  ", false,
+                mode => { writes++; return true; });
+            Assert(!state.TacticalOnly && writes == 0,
+                "constructing a valid solo state does not write settings");
+            AssertSelection(state, definition.Id);
+            state.CommitInitialSelection();
+            state.CommitInitialSelection();
+            Assert(writes == 0,
+                "valid case and whitespace differences do not cause a repair write");
         }
 
-        try
+        foreach (var invalid in new[] { null, "", " ", "unknown" })
         {
-            view.Show(null, null, "endless", false,
-                mode => { choices.Add(mode); return true; });
-            Assert(false, "missing screen must throw");
+            var writes = new List<string>();
+            var state = new ArenaModeSelectionState(invalid, false,
+                mode => { writes.Add(mode); return true; });
+            Assert(writes.Count == 0, "constructing an invalid selection does not perform its repair");
+            AssertSelection(state, "endless");
+            state.CommitInitialSelection();
+            state.CommitInitialSelection();
+            Assert(writes.SequenceEqual(new[] { "endless" }),
+                "invalid solo selection is repaired once by an explicit initial commit");
         }
-        catch (InvalidOperationException) { Assert(view.Root == null, "missing screen leaves no picker"); }
 
-        try
+        var tacticalWrites = 0;
+        var tactical = new ArenaModeSelectionState(" TACTICAL ", true,
+            mode => { tacticalWrites++; return true; });
+        tactical.CommitInitialSelection();
+        Assert(tacticalWrites == 0, "an existing normalized team selection does not write settings");
+
+        var replacedWrites = new List<string>();
+        var replaced = new ArenaModeSelectionState("unknown", false,
+            mode => { replacedWrites.Add(mode); return true; });
+        Assert(replaced.TrySelectIndex(IndexOf("rounds")),
+            "a user may replace a pending fallback before initial commit");
+        replaced.CommitInitialSelection();
+        Assert(replacedWrites.SequenceEqual(new[] { "rounds" }),
+            "initial commit cannot overwrite a newer accepted choice with the stale fallback");
+        AssertSelection(replaced, "rounds");
+    }
+
+    private static void SoloSelectionAndBounds()
+    {
+        var writes = new List<string>();
+        ArenaModeSelectionState state = null;
+        var previouslySelected = "rounds";
+        state = new ArenaModeSelectionState(previouslySelected, false, mode =>
         {
-            view.Show(screen.transform, null, "endless", false, null);
-            Assert(false, "missing selection callback must throw");
+            AssertSelection(state, previouslySelected);
+            writes.Add(mode);
+            return true;
+        });
+        state.CommitInitialSelection();
+
+        for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
+        {
+            var id = ArenaModeCatalog.All[index].Id;
+            Assert(state.CanSelectIndex(index), $"solo picker allows catalog index {index}");
+            var expectedWrites = writes.Count + (previouslySelected == id ? 0 : 1);
+            Assert(state.TrySelectIndex(index), $"solo picker accepts '{id}'");
+            Assert(writes.Count == expectedWrites
+                   && (previouslySelected == id || writes.Last() == id),
+                "a changed selection publishes the stable id exactly once");
+            AssertSelection(state, id);
+            previouslySelected = id;
+            Assert(state.TrySelectIndex(index) && writes.Count == expectedWrites,
+                "selecting the current mode succeeds without another write");
         }
-        catch (ArgumentNullException) { Assert(view.Root == null, "missing callback leaves no picker"); }
+
+        foreach (var invalid in new[] { int.MinValue, -1, ArenaModeCatalog.All.Count, int.MaxValue })
+        {
+            var writesBefore = writes.Count;
+            Assert(!state.CanSelectIndex(invalid) && !state.TrySelectIndex(invalid)
+                   && writes.Count == writesBefore,
+                "an out-of-range index is rejected before any write");
+            AssertSelection(state, "teamdeathmatch");
+        }
     }
 
-    private static void PatchIntegrationContract()
+    private static void RejectedAndThrowingWrites()
     {
-        var repository = FindRepositoryRoot();
-        var locationPatch = File.ReadAllText(Path.Combine(repository,
-            "ArenaMode.Client", "Session", "ArenaLocationSelectionPatch.cs"));
-        var settings = File.ReadAllText(Path.Combine(repository,
-            "ArenaMode.Client", "Config", "Settings.cs"));
-        var localStart = File.ReadAllText(Path.Combine(repository,
-            "ArenaMode.Client", "Session", "LocalRaidStartedPatch.cs"));
-        var registry = File.ReadAllText(Path.Combine(repository,
-            "ArenaMode.Client", "Modes", "ModeRegistry.cs"));
-        var sidePatch = File.ReadAllText(Path.Combine(repository,
-            "ArenaMode.Client", "Session", "ArenaSideSelectionPatch.cs"));
+        var writes = 0;
+        var allowWrite = false;
+        var state = new ArenaModeSelectionState("rounds", false,
+            mode => { writes++; return allowWrite; });
+        Assert(!state.TrySelectIndex(IndexOf("gungame")) && writes == 1,
+            "a rejected selection is reported as unsuccessful");
+        AssertSelection(state, "rounds");
+        allowWrite = true;
+        Assert(state.TrySelectIndex(IndexOf("gungame")) && writes == 2,
+            "a previously rejected selection can be retried successfully");
+        AssertSelection(state, "gungame");
 
-        var showPatch = Slice(locationPatch,
-            "private sealed class ShowPatch", "private sealed class DisplayPatch");
-        var postfix = showPatch.IndexOf("[PatchPostfix]", StringComparison.Ordinal);
-        var arenaGate = showPatch.IndexOf("if (!IsArena(__instance))", postfix,
-            StringComparison.Ordinal);
-        var pickerShow = showPatch.IndexOf("state.Modes.Show(", postfix,
-            StringComparison.Ordinal);
-        Assert(postfix >= 0 && arenaGate > postfix && pickerShow > arenaGate,
-            "the production picker is created only after the Arena map-screen gate");
-        Assert(showPatch.Contains("Restore(__instance);", StringComparison.Ordinal)
-               && locationPatch.Contains(
-                   "private static void Prefix(MatchMakerSelectionLocationScreen __instance) => Restore(__instance);",
-                   StringComparison.Ordinal)
-               && locationPatch.Contains("state.Modes.Close();", StringComparison.Ordinal),
-            "re-entry, native close and construction failure all tear the picker down");
-        Assert(settings.Contains("GameMode.Value = normalized;", StringComparison.Ordinal)
-               && settings.Contains("SettingsSync.Report();", StringComparison.Ordinal)
-               && settings.Contains("ArenaModeCatalog.GunGameId", StringComparison.Ordinal),
-            "the map choice updates, persists and reports the existing GameMode entry");
-        var teamSize = Slice(settings, "TeamDeathmatchSize = config.Bind(", "RoundKillTarget = config.Bind(");
-        Assert(settings.Contains("ArenaModeCatalog.TeamDeathmatchId", StringComparison.Ordinal)
-               && teamSize.Contains("\"Team Deathmatch\"", StringComparison.Ordinal)
-               && teamSize.Contains("\"PlayersPerTeam\"", StringComparison.Ordinal)
-               && teamSize.Contains("new AcceptableValueRange<int>(2, 12)", StringComparison.Ordinal)
-               && teamSize.Contains("            5,", StringComparison.Ordinal),
-            "F12 exposes TEAM DM and a 2-12 players-per-team setting with five as default");
-        Assert(localStart.Contains("var requestedMode = Settings.SelectedGameModeId;",
-                   StringComparison.Ordinal)
-               && localStart.Contains("ArenaSession.MarkArmed(settings.location, requestedMode);",
-                   StringComparison.Ordinal)
-               && registry.Contains("[ArenaModeCatalog.GunGameId]", StringComparison.Ordinal),
-            "the selected catalog id reaches both mode construction and the armed raid latch");
-        Assert(sidePatch.Contains("allowPendingModeSelection: true", StringComparison.Ordinal)
-               && sidePatch.Contains("EnsureCompatibleMode(eligibility);", StringComparison.Ordinal)
-               && sidePatch.Contains("ArenaModeCatalog.TacticalId", StringComparison.Ordinal),
-            "the side screen can reach the picker with a team while immediately pinning that flow to Tactical");
-    }
+        var failure = new ApplicationException("intentional settings write failure");
+        var throwing = new ArenaModeSelectionState("rounds", false, mode => throw failure);
+        Assert(ReferenceEquals(Throws<ApplicationException>(
+                () => throwing.TrySelectIndex(IndexOf("teamdeathmatch")),
+                "a throwing writer must propagate its exception"), failure),
+            "selection propagates the original writer exception");
+        AssertSelection(throwing, "rounds");
+        Assert(throwing.TrySelectIndex(IndexOf("rounds")),
+            "retaining the selected mode does not call even a throwing writer");
 
-    private static string Slice(string source, string startMarker, string endMarker)
-    {
-        var start = source.IndexOf(startMarker, StringComparison.Ordinal);
-        var end = source.IndexOf(endMarker, start + startMarker.Length,
-            StringComparison.Ordinal);
-        if (start < 0 || end <= start)
-            throw new Exception($"Could not slice production source between '{startMarker}' and '{endMarker}'.");
-        return source.Substring(start, end - start);
-    }
+        var repairWrites = 0;
+        var allowRepair = false;
+        var repair = new ArenaModeSelectionState("unknown", false,
+            mode => { repairWrites++; return allowRepair; });
+        Throws<InvalidOperationException>(() => repair.CommitInitialSelection(),
+            "a rejected initial repair must abort initialization");
+        Assert(repairWrites == 1, "a rejected initial repair calls the writer once");
+        allowRepair = true;
+        repair.CommitInitialSelection();
+        repair.CommitInitialSelection();
+        Assert(repairWrites == 2, "a failed initial repair remains retryable until its first success");
 
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "ArenaMode.sln")))
-            directory = directory.Parent;
-        return directory?.FullName
-               ?? throw new DirectoryNotFoundException("ArenaMode repository root not found.");
+        var throwRepair = true;
+        var exceptionWrites = 0;
+        var throwingRepair = new ArenaModeSelectionState("endless", true, mode =>
+        {
+            exceptionWrites++;
+            if (throwRepair) throw failure;
+            return true;
+        });
+        Assert(ReferenceEquals(Throws<ApplicationException>(() => throwingRepair.CommitInitialSelection(),
+                "an initial writer exception must propagate"), failure),
+            "initial commit propagates the original writer exception");
+        throwRepair = false;
+        throwingRepair.CommitInitialSelection();
+        throwingRepair.CommitInitialSelection();
+        Assert(exceptionWrites == 2, "an initial writer exception does not mark the repair as committed");
     }
 
     public static void Main()
     {
         CatalogContract();
-        SoloPickerInteraction();
-        TacticalTeamRestriction();
-        FailureAndFallbackHandling();
-        PatchIntegrationContract();
-        Console.WriteLine($"PASS: {_checks} native Arena mode-selection checks (production view and catalog linked).");
+        // Run the protected-team guard before bounds so its mutation fails at
+        // the intended policy check, not at an incidental indexing exception.
+        ProtectedTeamSelection();
+        InitialSelectionAndFallback();
+        SoloSelectionAndBounds();
+        RejectedAndThrowingWrites();
+        Console.WriteLine($"PASS: {_checks} Arena mode-selection state checks (production state and catalog linked).");
     }
 }

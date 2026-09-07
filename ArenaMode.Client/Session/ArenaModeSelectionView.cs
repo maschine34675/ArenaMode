@@ -1,54 +1,33 @@
 using ArenaMode.Modes;
+using EFT.UI;
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace ArenaMode.Session;
 
-/// <summary>Arena-only mode picker attached to the native location screen.</summary>
+/// <summary>Arena settings using EFT's own raid-settings dropdown.</summary>
 internal sealed class ArenaModeSelectionView
 {
-    // The first live rendering showed that the serialized navigation controls
-    // extend above their zero-sized roots through Y=168.36. Keep the whole
-    // Arena block above that measured stack. Factory's native Conditions Panel
-    // is shifted by the same amount while this view owns the screen, preserving
-    // the inspected seven-pixel gap between the two panels.
-    private const float LayoutLift = 93f;
-    private const float RootBottom = 82f + LayoutLift;
+    // Native navigation extends through Y=168.36 in the verified EFT scene.
+    // The settings group stays above it; Factory conditions retain a 7px gap.
+    private const float RootBottom = 175f;
+    private const float PanelWidth = 620f;
+    private const float PanelHeight = 126f;
+    private const float ConditionsLift = PanelHeight + 7f;
 
-    private sealed class ButtonVisual
-    {
-        public ArenaModeDefinition Definition;
-        public Button Button;
-        public Image Background;
-        public TextMeshProUGUI Label;
-    }
-
-    private static readonly Color PanelColor = new(0.025f, 0.03f, 0.035f, 0.94f);
-    private static readonly Color IdleColor = new(0.13f, 0.15f, 0.17f, 0.98f);
-    private static readonly Color HoverColor = new(0.26f, 0.29f, 0.32f, 1f);
-    private static readonly Color PressedColor = new(0.36f, 0.39f, 0.41f, 1f);
-    private static readonly Color SelectedColor = new(0.76f, 0.46f, 0.13f, 1f);
-    private static readonly Color SelectedHoverColor = new(0.92f, 0.59f, 0.19f, 1f);
-    private static readonly Color DisabledColor = new(0.07f, 0.08f, 0.09f, 0.82f);
-    private static readonly Color PrimaryTextColor = new(0.94f, 0.95f, 0.96f, 1f);
-    private static readonly Color SecondaryTextColor = new(0.68f, 0.71f, 0.74f, 1f);
-
-    private readonly List<ButtonVisual> _buttons = new();
     private GameObject _root;
-    private TextMeshProUGUI _title;
+    private DropDownBox _dropdown;
     private TextMeshProUGUI _description;
-    private Func<string, bool> _onSelected;
-    private string _selectedMode;
-    private bool _tacticalOnly;
+    private ArenaModeSelectionState _selection;
+    private Action _unsubscribe;
     private RectTransform _conditionsRect;
     private Vector2 _conditionsPosition;
-    private bool _conditionsShifted;
 
     internal GameObject Root => _root;
-    internal string SelectedMode => _selectedMode;
+    internal string SelectedMode => _selection?.SelectedMode;
 
     public void Show(Transform screen, TMP_Text nativeText, string selectedMode,
         bool tacticalOnly, Func<string, bool> onSelected,
@@ -58,27 +37,22 @@ internal sealed class ArenaModeSelectionView
         if (screen == null)
             throw new InvalidOperationException("The native location-screen transform is missing.");
 
-        _tacticalOnly = tacticalOnly;
-        _onSelected = onSelected ?? throw new ArgumentNullException(nameof(onSelected));
-        _selectedMode = ArenaModeCatalog.ResolveSelection(selectedMode, tacticalOnly);
+        // Clone only this control, never RaidSettingsWindow: its Show/Apply
+        // methods own unrelated native RaidSettings and group state.
+        var template = MenuUI.Instance?.MatchmakerOfflineRaidScreen
+            ?._raidSettingsWindow?._aiDifficultyDropdown;
+        if (template == null || template.CurrentState || template.OpenPanel == null
+            || !template.OpenPanel.IsChildOf(template.transform)
+            || ItemUiContext.Instance?.ContextMenuArea == null)
+            throw new InvalidOperationException("The native raid-settings dropdown template is unavailable.");
 
+        _selection = new ArenaModeSelectionState(selectedMode, tacticalOnly, onSelected);
         try
         {
-            Create(screen, nativeText, conditionsRect);
+            Create(screen, template, nativeText, conditionsRect);
+            _selection.CommitInitialSelection();
             Refresh();
-
-            // A complete PitFireTeam roster can enter Arena while an older solo
-            // mode is still stored. Commit Tactical before any later claim or
-            // raid-start check sees that flow.
-            if (!string.Equals(selectedMode?.Trim(), _selectedMode,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                if (!_onSelected(_selectedMode))
-                {
-                    throw new InvalidOperationException(
-                        $"Arena could not apply mode '{_selectedMode}'.");
-                }
-            }
+            _root.SetActive(true);
         }
         catch
         {
@@ -89,196 +63,167 @@ internal sealed class ArenaModeSelectionView
 
     public void Close()
     {
-        if (_conditionsShifted && _conditionsRect != null)
-            _conditionsRect.anchoredPosition = _conditionsPosition;
-
-        _conditionsRect = null;
-        _conditionsPosition = default;
-        _conditionsShifted = false;
-
-        if (_root != null)
+        _unsubscribe?.Invoke();
+        _unsubscribe = null;
+        try
         {
-            _root.SetActive(false);
-            UnityEngine.Object.Destroy(_root);
+            // An open native dropdown lives temporarily in ContextMenuArea.
+            // Close reparents it before the owning group is destroyed.
+            if (_dropdown != null)
+                _dropdown.Close();
         }
+        finally
+        {
+            if (_conditionsRect != null)
+                _conditionsRect.anchoredPosition = _conditionsPosition;
+            _conditionsRect = null;
+            _conditionsPosition = default;
 
-        _root = null;
-        _title = null;
-        _description = null;
-        _onSelected = null;
-        _selectedMode = null;
-        _tacticalOnly = false;
-        _buttons.Clear();
+            if (_root != null)
+            {
+                _root.SetActive(false);
+                UnityEngine.Object.Destroy(_root);
+            }
+            _root = null;
+            _dropdown = null;
+            _description = null;
+            _selection = null;
+        }
     }
 
-    private void Create(Transform screen, TMP_Text nativeText,
-        RectTransform conditionsRect)
+    private void Create(Transform screen, DropDownBox template,
+        TMP_Text nativeText, RectTransform conditionsRect)
     {
-        if (conditionsRect != null)
-        {
-            _conditionsRect = conditionsRect;
-            _conditionsPosition = conditionsRect.anchoredPosition;
-            conditionsRect.anchoredPosition = new Vector2(
-                _conditionsPosition.x,
-                _conditionsPosition.y + LayoutLift);
-            _conditionsShifted = true;
-        }
-
-        _root = new GameObject("Arena Mode Selection",
+        _root = new GameObject("Arena Settings",
             typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        _root.SetActive(false);
         _root.transform.SetParent(screen, false);
         _root.transform.SetAsLastSibling();
 
         var rootRect = (RectTransform)_root.transform;
-        rootRect.anchorMin = new Vector2(0.5f, 0f);
-        rootRect.anchorMax = new Vector2(0.5f, 0f);
+        rootRect.anchorMin = rootRect.anchorMax = new Vector2(0.5f, 0f);
         rootRect.pivot = new Vector2(0.5f, 0f);
         rootRect.anchoredPosition = new Vector2(0f, RootBottom);
-        rootRect.sizeDelta = new Vector2(820f, 86f);
+        rootRect.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+        var background = _root.GetComponent<Image>();
+        background.color = new Color(0f, 0f, 0f, 0.62f);
+        background.raycastTarget = false;
 
-        var panel = _root.GetComponent<Image>();
-        panel.color = PanelColor;
-        panel.raycastTarget = false;
+        // Typography and dropdown chrome come from EFT. Shared assets are
+        // referenced without changing the original control or its materials.
+        var typography = template._currentValueText != null
+            ? template._currentValueText : nativeText;
+        var title = CreateText("Title", typography, 18f);
+        title.text = _selection.TacticalOnly
+            ? "ARENA SETTINGS — PITFIRETEAM 5v5" : "ARENA SETTINGS";
+        SetRect(title.rectTransform, new Vector2(0f, 1f),
+            new Vector2(20f, -8f), new Vector2(PanelWidth - 40f, 24f));
 
-        _title = CreateText(_root.transform, "Title", nativeText, 15f,
-            TextAlignmentOptions.Center, FontStyles.Bold);
-        SetRect(_title.rectTransform, new Vector2(0.5f, 1f),
-            new Vector2(0f, -10f), new Vector2(800f, 20f));
-        _title.color = SecondaryTextColor;
+        var ruleObject = new GameObject("Divider",
+            typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        ruleObject.transform.SetParent(_root.transform, false);
+        SetRect((RectTransform)ruleObject.transform, new Vector2(0f, 1f),
+            new Vector2(20f, -35f), new Vector2(PanelWidth - 40f, 1f));
+        var rule = ruleObject.GetComponent<Image>();
+        var textColor = typography != null ? typography.color : Color.white;
+        rule.color = new Color(textColor.r, textColor.g, textColor.b, 0.25f);
+        rule.raycastTarget = false;
 
-        const float spacing = 8f;
-        // Keep all five modes inside the existing panel instead of widening it
-        // into native controls or changing the live-tested vertical placement.
-        var width = Math.Min(190f,
-            (800f - (ArenaModeCatalog.All.Count - 1) * spacing) / ArenaModeCatalog.All.Count);
-        var totalWidth = ArenaModeCatalog.All.Count * width
-                         + (ArenaModeCatalog.All.Count - 1) * spacing;
-        var firstX = -totalWidth * 0.5f + width * 0.5f;
+        // Future implemented settings can add rows to this same group.
+        var label = CreateText("Game mode label", typography, 18f);
+        label.text = "GAME MODE";
+        SetRect(label.rectTransform, new Vector2(0f, 1f),
+            new Vector2(20f, -43f), new Vector2(180f, 34f));
 
-        for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
+        _dropdown = UnityEngine.Object.Instantiate(template, _root.transform, false);
+        _dropdown.name = "Arena Game Mode";
+        _dropdown.transform.localScale = Vector3.one;
+        SetRect(_dropdown.RectTransform, new Vector2(0f, 1f),
+            new Vector2(210f, -43f), new Vector2(PanelWidth - 230f, 34f));
+        // At the bottom of the map screen, a downward list covers Next/Back.
+        // Set the cloned popup's geometry before Show caches its closed position.
+        var popup = _dropdown.OpenPanel;
+        popup.anchorMin = new Vector2(0f, 1f);
+        popup.anchorMax = new Vector2(1f, 1f);
+        popup.pivot = new Vector2(0.5f, 0f);
+        popup.anchoredPosition = new Vector2(0f, 2f);
+        popup.sizeDelta = new Vector2(0f, popup.sizeDelta.y);
+        _dropdown.gameObject.SetActive(true);
+        // Show initializes inactive clones itself. Calling Init separately
+        // would duplicate the native hover handlers.
+        _dropdown.Show(ArenaModeCatalog.All.Select(mode => mode.Label),
+            index => _selection != null && _selection.CanSelectIndex(index));
+        _dropdown.Interactable = true;
+        _dropdown._maxVisibleHeight = 200f;
+        _dropdown.UpdateValue(_selection.SelectedIndex, sendCallback: false);
+        _unsubscribe = _dropdown.OnValueChanged.Subscribe(Select);
+
+        _description = CreateText("Description", typography, 16f);
+        _description.enableWordWrapping = true;
+        _description.alignment = TextAlignmentOptions.TopLeft;
+        SetRect(_description.rectTransform, new Vector2(0f, 1f),
+            new Vector2(20f, -84f), new Vector2(PanelWidth - 40f, 38f));
+
+        if (conditionsRect != null)
         {
-            var definition = ArenaModeCatalog.All[index];
-            var buttonObject = new GameObject("Mode " + definition.Id,
-                typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            buttonObject.transform.SetParent(_root.transform, false);
-
-            var rect = (RectTransform)buttonObject.transform;
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(firstX + index * (width + spacing), 41f);
-            rect.sizeDelta = new Vector2(width, 32f);
-
-            var background = buttonObject.GetComponent<Image>();
-            background.color = IdleColor;
-            background.raycastTarget = true;
-
-            var button = buttonObject.GetComponent<Button>();
-            button.targetGraphic = background;
-            var capturedId = definition.Id;
-            button.onClick.AddListener(() => Select(capturedId));
-
-            var label = CreateText(buttonObject.transform, "Label", nativeText, 16f,
-                TextAlignmentOptions.Center, FontStyles.Bold);
-            var labelRect = label.rectTransform;
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
-            label.text = definition.Label;
-            label.color = PrimaryTextColor;
-
-            _buttons.Add(new ButtonVisual
-            {
-                Definition = definition,
-                Button = button,
-                Background = background,
-                Label = label,
-            });
+            _conditionsRect = conditionsRect;
+            _conditionsPosition = conditionsRect.anchoredPosition;
+            conditionsRect.anchoredPosition = _conditionsPosition
+                + new Vector2(0f, ConditionsLift);
         }
-
-        _description = CreateText(_root.transform, "Description", nativeText, 13f,
-            TextAlignmentOptions.Center, FontStyles.Normal);
-        SetRect(_description.rectTransform, new Vector2(0.5f, 0f),
-            new Vector2(0f, 8f), new Vector2(800f, 18f));
-        _description.color = SecondaryTextColor;
     }
 
-    private void Select(string id)
+    private void Select(int index)
     {
-        if (!ArenaModeCatalog.CanSelect(id, _tacticalOnly))
+        if (_selection == null)
             return;
-
-        var normalized = ArenaModeCatalog.NormalizeId(id);
-        if (string.Equals(_selectedMode, normalized, StringComparison.Ordinal))
-            return;
-
-        if (!_onSelected(normalized))
-            return;
-
-        _selectedMode = normalized;
+        try
+        {
+            _selection.TrySelectIndex(index);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena mode selection could not be saved: {ex.Message}");
+        }
+        // Native UpdateValue displays its label before invoking us. Restore the
+        // saved selection too when the callback rejects or fails to save.
         Refresh();
     }
 
     private void Refresh()
     {
-        _title.text = _tacticalOnly
-            ? "ARENA MODE  —  PITFIRETEAM 5v5"
-            : "ARENA MODE";
-
-        ArenaModeDefinition selected = null;
-        foreach (var visual in _buttons)
-        {
-            var isSelected = string.Equals(
-                visual.Definition.Id, _selectedMode, StringComparison.Ordinal);
-            var canSelect = ArenaModeCatalog.CanSelect(
-                visual.Definition.Id, _tacticalOnly);
-            visual.Button.interactable = canSelect;
-
-            var colors = visual.Button.colors;
-            colors.normalColor = isSelected ? SelectedColor : IdleColor;
-            colors.highlightedColor = isSelected ? SelectedHoverColor : HoverColor;
-            colors.pressedColor = isSelected ? SelectedHoverColor : PressedColor;
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = DisabledColor;
-            colors.colorMultiplier = 1f;
-            colors.fadeDuration = 0.08f;
-            visual.Button.colors = colors;
-            visual.Background.color = canSelect ? colors.normalColor : colors.disabledColor;
-            visual.Label.color = canSelect ? PrimaryTextColor : SecondaryTextColor;
-
-            if (isSelected)
-                selected = visual.Definition;
-        }
-
-        _description.text = (selected?.Description ?? string.Empty)
-            + (_tacticalOnly ? "  PitFireTeam companions require Tactical." : string.Empty);
+        _dropdown.UpdateValue(_selection.SelectedIndex, sendCallback: false);
+        _description.text = _selection.SelectedDefinition.Description
+            + (_selection.TacticalOnly ? "\nPitFireTeam companions require Tactical." : string.Empty);
     }
 
-    private static TextMeshProUGUI CreateText(Transform parent, string name,
-        TMP_Text nativeText, float fontSize, TextAlignmentOptions alignment,
-        FontStyles fontStyle)
+    private TextMeshProUGUI CreateText(string name, TMP_Text source, float size)
     {
         var textObject = new GameObject(name,
             typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(parent, false);
+        textObject.transform.SetParent(_root.transform, false);
         var text = textObject.GetComponent<TextMeshProUGUI>();
-        text.font = nativeText?.font ?? TMP_Settings.defaultFontAsset;
-        text.fontSize = fontSize;
-        text.alignment = alignment;
-        text.fontStyle = fontStyle;
+        text.font = source?.font ?? TMP_Settings.defaultFontAsset;
+        if (source != null)
+        {
+            text.fontSharedMaterial = source.fontSharedMaterial;
+            text.color = source.color;
+            text.fontStyle = source.fontStyle;
+            text.characterSpacing = source.characterSpacing;
+        }
+        text.fontSize = size;
+        text.alignment = TextAlignmentOptions.MidlineLeft;
         text.raycastTarget = false;
         text.enableWordWrapping = false;
-        text.overflowMode = TextOverflowModes.Overflow;
+        text.overflowMode = TextOverflowModes.Ellipsis;
         return text;
     }
 
     private static void SetRect(RectTransform rect, Vector2 anchor,
         Vector2 position, Vector2 size)
     {
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchorMin = rect.anchorMax = anchor;
+        rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
     }

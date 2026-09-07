@@ -179,7 +179,7 @@ internal static class ArenaSideSelectionPatch
             ? "ARENA — TACTICAL 5v5\nYour PMC and four selected PitFireTeam companions versus five opponents.\n"
               + $"First to {Settings.TacticalTeamRoundsToWin.Value}; after death, spectate the remaining fighters until the next round.\n"
               + "The shown PMC equipment returns after death; both profile stores stay untouched."
-            : "ARENA\nInstant respawns, arena kits and four game modes.\n"
+            : "ARENA\nFive game modes, from instant-respawn deathmatch to single-life Tactical rounds.\n"
               + "Factory (day/night), Labyrinth and The Lab.\n"
               + "Nothing gained, nothing lost — your profile stays untouched.";
         screen.SetHealthPanelVisibility(false, true);
