@@ -49,6 +49,8 @@ Test-EnclosureMutant 'unclipped-grid-strip' $arenaPlan 'polygon=Clip(polygon,axi
 Test-EnclosureMutant 'convex-cap-fills-void' $arenaBuilder 'collider.convex = false;' 'collider.convex = true;' 'new actual builder intact' 'BuilderSource'
 Test-EnclosureMutant 'visual-disable-undetected' $arenaBuilder '|| !_renderer.enabled' '' 'integrity detects visual disabled' 'BuilderSource'
 Test-EnclosureMutant 'detached-objects-leaked' $arenaBuilder 'if (go != null) { go.SetActive(false); UnityEngine.Object.Destroy(go); }' 'if (false) { go.SetActive(false); UnityEngine.Object.Destroy(go); }' 'detached owned children are still destroyed' 'BuilderSource'
+Test-EnclosureMutant 'unlimited-area-gets-floor' $arenaPlan 'bounds.LimitsHeight ? CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY) : null' 'CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY)' 'height unlimited plan has no physical or navigation caps'
+Test-EnclosureMutant 'scene-height-flattened' $arenaPlan 'Include(a.Y); Include(b.Y); Include(c.Y); surface = true;' 'Include(0); surface = true;' 'side walls span overlapping low and high surfaces without interior vertices'
 # Recompile actual production sources after every mutated source has been exercised.
 Invoke-Enclosure
 Write-Output 'ARENA_POLYGON_ENCLOSURE_ORACLE_PASSED'

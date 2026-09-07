@@ -72,8 +72,8 @@ internal sealed class ArenaAreaEnclosure : IDisposable
         foreach (var wall in _plan.Walls) AddBox("edge " + index++, wall, true);
         index = 0;
         foreach (var corner in _plan.Corners) AddCorner("corner " + index++, corner);
-        AddCap("floor", _plan.Floor);
-        AddCap("ceiling", _plan.Ceiling);
+        if (_plan.Floor != null) AddCap("floor", _plan.Floor);
+        if (_plan.Ceiling != null) AddCap("ceiling", _plan.Ceiling);
         index = 0;
         foreach (var cap in _plan.CapCarvers) AddBox("vertical cap carver " + index++, cap, false);
 

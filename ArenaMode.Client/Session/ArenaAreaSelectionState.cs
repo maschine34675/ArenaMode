@@ -28,6 +28,7 @@ internal sealed class ArenaAreaSelectionState
         new(ArenaAreaCatalog.FullMapId, "Whole map"),
         new(ArenaAreaCatalog.FactorySouthId, "Factory South", ArenaAreaCatalog.FactorySouth.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterId, "Factory Center", ArenaAreaCatalog.CustomsFactoryCenter.MaxTeamSize),
+        new(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "Factory Center (contour)", ArenaAreaCatalog.CustomsFactoryCenterPolygon.MaxTeamSize),
     };
 
     private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string mode, bool pitFireTeam, int teamSize)

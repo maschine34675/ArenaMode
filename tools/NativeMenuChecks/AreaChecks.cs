@@ -70,6 +70,35 @@ internal static partial class Program
         Assert(ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.FactorySouth),
             "changing F12 after negotiation cannot rewrite the captured area");
 
+        ConfigureAreaNegotiation();
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        Select(ArenaMapCatalog.CustomsId);
+        request = Request(map: ArenaMapCatalog.CustomsId);
+        Assert(Start(request, out task) && task == null
+            && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon)
+            && !ArenaAreaRuntime.ArmedArea.Bounds.LimitsHeight,
+            "Actual local start arms the selected height-unlimited contour");
+        sent = JObject.Parse(RequestHandler.LastPostBody);
+        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterPolygonId
+            && ArenaAreaRuntime.Token == sent["requestId"].Value<string>()
+            && Protocol.IsNativeStartIdentity(request.serverId, ArenaAreaRuntime.Token),
+            "The new contour uses the same exact acknowledged identity on both halves");
+
+        foreach (string wrongArea in new[] { ArenaAreaCatalog.CustomsFactoryCenterId,
+                     ArenaAreaCatalog.FullMapId, "customs-factory-center-polygon-v2",
+                     ArenaAreaCatalog.CustomsFactoryCenterPolygonId.ToUpperInvariant() })
+        {
+            ConfigureAreaNegotiation();
+            RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
+                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["areaId"] = wrongArea }.ToString()
+                : "{\"disarmed\":true,\"state\":\"Idle\"}";
+            Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false,
+                    ArenaAreaCatalog.CustomsFactoryCenterPolygonId) && ArenaAreaRuntime.ArmCalls == 0,
+                "A contour cannot downgrade to the old rectangle or accept another version in a server reply");
+            Assert(ArenaServerClient.PostRaidCancel(startFailed: true) && !ArenaServerClient.HasPendingArm,
+                "Contour negotiation mismatch preserves exact-token recovery");
+        }
+
         foreach (string map in new[] { "factory4_night", "laboratory", "labyrinth" })
         {
             ConfigureAreaNegotiation();

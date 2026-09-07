@@ -12,7 +12,7 @@ internal static partial class Program
     private static void CheckNativeAreas()
     {
         const string full = ArenaAreaCatalog.FullMapId, south = ArenaAreaCatalog.FactorySouthId,
-            center = ArenaAreaCatalog.CustomsFactoryCenterId;
+            center = ArenaAreaCatalog.CustomsFactoryCenterId, contour = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
         const string day = ArenaMapCatalog.FactoryDayId, night = ArenaMapCatalog.FactoryNightId,
             customs = ArenaMapCatalog.CustomsId;
         var factory = ArenaAreaSelectionState.Create(day, "teamdeathmatch", false, full, 7);
@@ -25,11 +25,12 @@ internal static partial class Program
         var pftState = ArenaAreaSelectionState.Create(day, "tactical", true, south, 7);
         Assert(pftState.SelectedId == full && pftState.Summary == "5v5 - fixed teams"
             && pftState.ModeHint == "Tactical only - PitFireTeam", "PFT display describes protected Tactical 5v5 without bounded choices");
-        foreach (string saved in new[] { null, "", full, south, center, "unknown-area" })
+        foreach (string saved in new[] { null, "", full, south, center, contour, "unknown-area" })
         {
             var custom = ArenaAreaSelectionState.Create(customs, "teamdeathmatch", false, saved, 12);
-            Assert(custom.Options.Count == 1 && custom.SelectedId == center && custom.Summary.Contains("2v2"),
-                "Customs proposes its only supported area without a prior F12 choice");
+            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { center, contour })
+                && custom.SelectedId == (saved == contour ? contour : center) && custom.Summary.Contains("2v2"),
+                "Customs exposes both versioned areas, preserves a saved contour, and retains the legacy default");
             var nights = ArenaAreaSelectionState.Create(night, "teamdeathmatch", false, saved, 5);
             Assert(nights.Options.Count == 1 && nights.SelectedId == full, "Night never offers Factory South");
         }
@@ -65,6 +66,14 @@ internal static partial class Program
             "Stable menu polling performs no repeated settings changes or raid announcements");
         Assert(!ArenaMenuSelection.TrySelectArea(owner, customs, full) && Settings.TeamDeathmatchArea.Value == center,
             "An injected unsupported area click is rejected");
+        Assert(ArenaMenuSelection.TrySelectArea(owner, customs, contour)
+            && Settings.TeamDeathmatchArea.Value == contour
+            && ArenaMenuSelection.MatchesRequest(Request(map: customs)),
+            "The surveyed contour is explicitly selectable and passes exact request validation");
+        Assert(ArenaMenuSelection.TryPrepareMapArea(owner, customs) && Settings.TeamDeathmatchArea.Value == contour,
+            "Menu refresh preserves the selected contour without restoring the old rectangle");
+        Assert(!ArenaMenuSelection.TrySelectArea(owner, customs, contour.ToUpperInvariant())
+            && Settings.TeamDeathmatchArea.Value == contour, "Versioned contour IDs remain case-sensitive");
         Assert(ArenaMenuSelection.TryPrepareMapArea(owner, day) && Settings.TeamDeathmatchArea.Value == full,
             "Switching away from Customs settles to a supported area");
         Assert(ArenaMenuSelection.TrySelectArea(owner, day, south), "Factory South is selected explicitly");

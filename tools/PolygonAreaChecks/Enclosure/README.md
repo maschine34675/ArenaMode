@@ -1,9 +1,11 @@
 # Polygon enclosure review
 
-This leaf owns the client enclosure plan, builder and its narrow runtime wiring.
-It does not change presets, map coordinates, profile/session ownership, spawn
-selection, accepted-path containment, movement rejection, teleports or TDM rules.
-Customs still uses its existing rectangle until the user supplies captured points.
+This harness exercises the actual client enclosure plan and builder, plus their
+narrow runtime wiring. The subsequent Customs-contour change adds an opt-in
+side-only construction path; see `../../../CUSTOMS-CONTOUR-REVIEW.md` for its
+selection/spawn contract and current verification. Legacy finite-height presets
+still use the construction described below; their original milestone evidence
+at the end of this file is historical.
 
 ## Physical and navigation contract
 
@@ -78,10 +80,11 @@ resized, disabled, destroyed, reparented and dynamic components; mesh binding,
 convexification, missing shader/collision compatibility and three injected native
 mesh-setter failures; repeated disposal and detached-child cleanup.
 
-Seven deliberate production-source mutations must return nonzero and the named
+Nine deliberate production-source mutations must return nonzero and the named
 behavioral assertion: inward legacy walls, omitted corners, reversed cap winding,
 unclipped strips, convex caps, ignored visual disablement and leaked detached
-children. A fresh production run follows the mutations. Mutant sources and logs
+children, an unexpected floor in an unlimited area, and ignored scene heights.
+A fresh production run follows the mutations. Mutant sources and logs
 live only in a unique ignored artifacts/polygon-checks/enclosure directory.
 
 The small runtime source checks only verify wiring of the independently executed

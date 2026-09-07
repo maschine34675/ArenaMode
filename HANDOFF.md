@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Current follow-up: `feature/customs-contour`, based on clean `235b285`. The
+  user's 15-point Customs survey is registered as a NEW selectable
+  `customs-factory-center-polygon-v1` / **Factory Center (contour)**, independent
+  TDM 2v2 only. Choose it explicitly; legacy area IDs/defaults remain unchanged.
+  The new preset has only lateral containment: no actor/path/spawn height band,
+  physical floor/ceiling or vertical cap carving. Scene-derived side walls cover
+  overlapping NavMesh triangles and spawn anchors with padding. The elevated
+  sniper marker is excluded by exact identity on both client and server.
+  See `CUSTOMS-CONTOUR-REVIEW.md` for scope, staging checks and user GPU tests.
+  Work is isolated outside Syncthing until integration; use the integrated
+  shared checkout afterwards. Client AND server need a restart after deployment.
+  Offline verification passed 386/386 tests (zero skips), focused real-data and
+  native-menu checks, enclosure/fault-control checks and staged Release builds.
+  Review has no open P0–P2. At preparation SPT-GPU was disconnected; live DLLs
+  remain unchanged until game/server stop coordination. Pending prepared client
+  and server DLLs plus manifest are in ignored `artifacts/customs-contour/prepared`
+  in the shared checkout. Compare hashes in the contour review before copying;
+  these are not GPU deployment or in-raid acceptance claims.
 - Current follow-up: `fix/pmc-area-capture`, based on clean `83a26cf`. The user
   found Arena-only capture impractical because they cannot walk outside the old
   contour. F12 `Development - Area outline` now offers `AllowInNormalPmc`
@@ -73,6 +91,12 @@ current. User-facing communication is normally German.
 
 ## Current behavior and recent work
 
+The surveyed Customs contour is now a separate selectable area alongside the
+legacy rectangle. It is the first height-unlimited preset; existing box/polygon
+presets and capture-export defaults keep their previous semantics. Source draft
+JSON remains review data and is never autoloaded. Installed database checks give
+17 PMC/11 bot candidate points, not yet a proof of loaded scene connectivity.
+
 Polygon support now accepts simple concave XZ outlines plus enclosing heights.
 Walls/grid, floor/ceiling caps, spawn containment and full path-segment checks
 share that contour. F12 `Development - Area outline` optionally captures ordered
@@ -82,10 +106,10 @@ and does not change settings/geometry for it. Normal PMC capture additionally
 requires `AllowInNormalPmc`; Scav/Hideout and ending/invalid Arena identities are
 rejected. Ordinary raids retain ordinary equipment/profile consequences; this
 helper grants no Arena protection. Export before leaving/disabling.
-The user supplies a draft for later Customs fitting and a new shared preset ID.
-Waypoints remains the spawn viewer. No new playable polygon preset, CTF, team
-size change or autonomous raid is part of this turn. See the polygon review for
-test evidence and what still needs actual Unity/GPU confirmation.
+The user subsequently supplied the Customs draft, now integrated as described
+above. Waypoints remains the spawn viewer. CTF, team-size changes and autonomous
+raids remain out of scope. See the polygon and contour reviews for test evidence
+and what still needs actual Unity/GPU confirmation.
 
 Historical polygon-stage verification at `83a26cf`: 363 complete database-backed tests (no skips),
 focused geometry/capture/enclosure and native/TDM regressions, plus 14 deliberate

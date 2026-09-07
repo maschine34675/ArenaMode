@@ -14,9 +14,11 @@ public sealed class ArenaAreaDefinition
     public float SpawnMinY { get; }
     public float SpawnMaxY { get; }
     public int MaxTeamSize { get; }
+    private readonly HashSet<string> _excludedSpawnIds;
 
     public ArenaAreaDefinition(string id, string displayName, string mapId,
-        ArenaAreaBounds bounds, float spawnMinY, float spawnMaxY, int maxTeamSize)
+        ArenaAreaBounds bounds, float spawnMinY, float spawnMaxY, int maxTeamSize,
+        IEnumerable<string>? excludedSpawnIds = null)
     {
         if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(mapId)
             || !ArenaAreaBounds.Finite(spawnMinY) || !ArenaAreaBounds.Finite(spawnMaxY)
@@ -31,17 +33,31 @@ public sealed class ArenaAreaDefinition
         SpawnMinY = spawnMinY;
         SpawnMaxY = spawnMaxY;
         MaxTeamSize = maxTeamSize;
+        // Never retain a caller-owned mutable collection. Identities are exact:
+        // an exclusion must not broaden into a zone, category or height filter.
+        _excludedSpawnIds = new HashSet<string>(StringComparer.Ordinal);
+        if (excludedSpawnIds != null)
+            foreach (string spawnId in excludedSpawnIds)
+            {
+                if (string.IsNullOrWhiteSpace(spawnId))
+                    throw new ArgumentException("Excluded spawn identities must not be empty.", nameof(excludedSpawnIds));
+                _excludedSpawnIds.Add(spawnId);
+            }
     }
 
-    // Foot-point band is deliberately separate from the enclosing volume:
-    // an ordinary jump must not hit a ceiling placed at the spawn's height.
-    public bool AllowsSpawn(float x, float y, float z)
+    public bool IsExcludedSpawn(string? spawnId)
+        => spawnId != null && _excludedSpawnIds.Contains(spawnId);
+
+    // Legacy foot-point bands remain separate from enclosing volumes. A
+    // height-unlimited contour applies only horizontal clearance and exact IDs.
+    public bool AllowsSpawn(float x, float y, float z, string? spawnId = null)
         => Bounds.Contains(x, y, z, ArenaAreaCatalog.SpawnInset)
-           && y >= SpawnMinY && y <= SpawnMaxY;
+           && (!Bounds.LimitsHeight || y >= SpawnMinY && y <= SpawnMaxY)
+           && !IsExcludedSpawn(spawnId);
 }
 
 /// <summary>
-/// A finite simple XZ polygon extruded between two heights. Its extents are an
+/// A finite simple XZ polygon with optional vertical containment. Its extents are an
 /// acceleration bound, not the playable shape. The original box constructor
 /// retains its inclusive float comparisons and convex path fast path.
 /// </summary>
@@ -49,6 +65,8 @@ public readonly struct ArenaAreaBounds
 {
     public const int MaxVertices = 64;
     public readonly float MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
+    /// <summary>False means MinY/MaxY are construction hints, never actor/spawn limits.</summary>
+    public readonly bool LimitsHeight;
     private readonly IReadOnlyList<ArenaAreaVertex>? _outline;
     private readonly IReadOnlyList<int>? _floorTriangles;
     private readonly bool _rectangle;
@@ -65,7 +83,8 @@ public readonly struct ArenaAreaBounds
         _rectangle = true;
     }
 
-    public ArenaAreaBounds(IReadOnlyList<ArenaAreaVertex> outline, float minY, float maxY)
+    public ArenaAreaBounds(IReadOnlyList<ArenaAreaVertex> outline, float minY, float maxY,
+        bool limitsHeight = true)
     {
         if (outline == null || outline.Count < 3 || outline.Count > MaxVertices
             || !Finite(minY) || !Finite(maxY) || minY >= maxY)
@@ -96,6 +115,7 @@ public readonly struct ArenaAreaBounds
         }
         MinX = minX; MinY = minY; MinZ = minZ;
         MaxX = maxX; MaxY = maxY; MaxZ = maxZ;
+        LimitsHeight = limitsHeight;
         _outline = Array.AsReadOnly(copy);
         _floorTriangles = Array.AsReadOnly(triangles);
         _rectangle = false;
@@ -105,7 +125,7 @@ public readonly struct ArenaAreaBounds
     public bool Contains(float x, float y, float z, float horizontalInset = 0f)
     {
         if (!IsValid || !Finite(x) || !Finite(y) || !Finite(z) || !Finite(horizontalInset)
-            || horizontalInset < 0 || y < MinY || y > MaxY) return false;
+            || horizontalInset < 0 || LimitsHeight && (y < MinY || y > MaxY)) return false;
         if (_rectangle)
             return x >= MinX + horizontalInset && x <= MaxX - horizontalInset
                 && z >= MinZ + horizontalInset && z <= MaxZ - horizontalInset;
@@ -141,8 +161,8 @@ public readonly struct ArenaAreaBounds
 
     private bool ContainsSegment(ArenaAreaPoint from, ArenaAreaPoint to, float inset)
     {
-        // Endpoints were checked by Contains. The prism's height interval is
-        // convex, so only the complete horizontal segment needs more work.
+        // Endpoints were checked by Contains. Both an optional height interval
+        // and unlimited height are convex, so only the horizontal segment needs more work.
         if (from.X == to.X && from.Z == to.Z) return true;
         if (inset > 0)
         {
@@ -346,6 +366,7 @@ public static class ArenaAreaCatalog
     // must not silently pair its old boundary with a newer server spawn filter.
     public const string FactorySouthId = "factory-south-v1";
     public const string CustomsFactoryCenterId = "customs-factory-center-v1";
+    public const string CustomsFactoryCenterPolygonId = "customs-factory-center-polygon-v1";
     public const float SpawnInset = 0.75f;
     public const float NavigationInset = 0.4f;
 
@@ -363,6 +384,33 @@ public static class ArenaAreaCatalog
         CustomsFactoryCenterId, "Customs Factory Center (experimental 2v2)", ArenaMapCatalog.CustomsId,
         new ArenaAreaBounds(305f, 0f, -135f, 420f, 12f, -65f), 0.5f, 3f, 2);
 
+    // User survey 20260907-192946, geometry SHA256
+    // ff45e11f287393f189229d07e8034d7c5cb229cca81b96ce9ec782a9de990967.
+    // Copy the measured XZ outline exactly; heights in the draft are not limits.
+    // The elevated sniper marker is excluded by identity instead of hiding
+    // all elevated or underground positions behind an arbitrary height band.
+    public static readonly ArenaAreaDefinition CustomsFactoryCenterPolygon = new ArenaAreaDefinition(
+        CustomsFactoryCenterPolygonId, "Customs Factory Center contour (experimental 2v2)", ArenaMapCatalog.CustomsId,
+        new ArenaAreaBounds(new[]
+        {
+            new ArenaAreaVertex(464.7143f, -145.724579f),
+            new ArenaAreaVertex(467.552673f, -128.753784f),
+            new ArenaAreaVertex(485.3326f, -117.640137f),
+            new ArenaAreaVertex(493.686554f, -103.316223f),
+            new ArenaAreaVertex(505.736938f, -27.9927254f),
+            new ArenaAreaVertex(506.786652f, -24.71637f),
+            new ArenaAreaVertex(379.45694f, -7.35720825f),
+            new ArenaAreaVertex(372.48645f, -10.0381222f),
+            new ArenaAreaVertex(355.6324f, -8.132172f),
+            new ArenaAreaVertex(349.910278f, -3.30896f),
+            new ArenaAreaVertex(327.595f, -1.9775393f),
+            new ArenaAreaVertex(311.6721f, -104.798462f),
+            new ArenaAreaVertex(315.104736f, -112.206207f),
+            new ArenaAreaVertex(322.2989f, -117.058868f),
+            new ArenaAreaVertex(330.003784f, -129.5967f),
+        }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 2,
+        new[] { "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e" });
+
     public static string NormalizeId(string? id)
         => string.IsNullOrWhiteSpace(id) || string.Equals(id, FullMapId, StringComparison.Ordinal)
             ? FullMapId : id;
@@ -376,11 +424,12 @@ public static class ArenaAreaCatalog
         if (id == FullMapId)
         {
             if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))
-            { reason = "Customs currently requires the experimental Factory Center Team Deathmatch area."; return false; }
+            { reason = "Customs currently requires an experimental Factory Center Team Deathmatch area."; return false; }
             return true;
         }
         var candidate = id == FactorySouthId ? FactorySouth
-            : id == CustomsFactoryCenterId ? CustomsFactoryCenter : null;
+            : id == CustomsFactoryCenterId ? CustomsFactoryCenter
+            : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon : null;
         if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
         if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))

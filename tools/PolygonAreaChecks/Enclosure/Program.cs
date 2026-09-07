@@ -35,7 +35,7 @@ internal static class Program
             var concavePlan = Plan.Create(concave);
             Check(!CoversXZ(concavePlan.Floor, 20, 20) && !CoversXZ(concavePlan.Ceiling, 20, 20), "concave cap void remains empty");
             Check(CoversXZ(concavePlan.Floor, 5, 20) && CoversXZ(concavePlan.Floor, 20, 5), "both concave arms have physical floor");
-            Budgets(); Builder(concave); IntegrationSource();
+            Budgets(); Builder(concave); HeightUnlimited(concave); IntegrationSource();
             Console.WriteLine($"ARENA_POLYGON_ENCLOSURE_CONTRACTS_PASSED assertions={_checks}");
             return 0;
         }
@@ -329,12 +329,84 @@ internal static class Program
         string source = File.ReadAllText(Path.Combine(directory.FullName, "ArenaMode.Client", "Areas", "ArenaAreaRuntime.cs"));
         Check(source.Contains("_enclosurePlan = ArenaAreaEnclosurePlan.Create(_area.Bounds)")
             && source.Contains("_enclosure = new ArenaAreaEnclosure(_root, _enclosurePlan)") && source.Contains("_enclosure.Build()"), "runtime consumes exact polygon plan and builder");
+        Check(source.Contains("if (_area.Bounds.LimitsHeight)") && source.Contains("NavMesh.CalculateTriangulation()")
+            && source.Contains("ArenaAreaEnclosurePlan.CreateForScene(_area.Bounds,")
+            && source.Contains("navigation.vertices, navigation.indices, ToPoint, anchors"), "runtime consumes loaded scene heights for uncapped walls");
+        Check(source.Contains("!_area.IsExcludedSpawn(pair.Key.Id)") && source.Contains("!_area.IsExcludedSpawn(point.Id)"),
+            "client collection and readiness exclude area-specific sniper identity");
         Check(source.Contains("foreach (var probe in _enclosurePlan.Probes)")
             && source.Contains("Contains(a.position) && !Contains(b.position)"), "runtime consumes edge probes with correct sampled sides");
         Check(source.Contains("collider.transform.IsChildOf(_root.transform)"), "capture ignores only owned enclosure colliders");
         int reset = source.IndexOf("internal static void Reset()", StringComparison.Ordinal);
         Check(source.IndexOf("_root.SetActive(false)", reset, StringComparison.Ordinal) < source.IndexOf("_enclosure?.Dispose()", reset, StringComparison.Ordinal),
             "runtime disables root before deferred mesh destruction");
+    }
+
+    private static void HeightUnlimited(ArenaAreaBounds original)
+    {
+        var bounds = new ArenaAreaBounds(original.Outline, 0, 12, limitsHeight: false);
+        Reject(bounds, "loaded navigation surface");
+        // Two large triangles span the area without a single vertex inside it.
+        // A separate high triangle elsewhere must not inflate local side walls.
+        var vertices = new[] {
+            new ArenaAreaPoint(-100, -8, -100), new ArenaAreaPoint(100, -8, -100), new ArenaAreaPoint(0, -8, 100),
+            new ArenaAreaPoint(-100, 35, -100), new ArenaAreaPoint(100, 35, -100), new ArenaAreaPoint(0, 35, 100),
+            new ArenaAreaPoint(1000, 900, 1000), new ArenaAreaPoint(1010, 900, 1000), new ArenaAreaPoint(1000, 900, 1010)
+        };
+        var indices = Enumerable.Range(0, vertices.Length).ToArray();
+        Plan Scene(ArenaAreaPoint[] anchors) => Plan.CreateForScene(bounds, vertices, indices, p => p, anchors);
+        var plan = Scene(Array.Empty<ArenaAreaPoint>());
+        Check(Near(plan.SideMinY, -24) && Near(plan.SideMaxY, 51), "side walls span overlapping low and high surfaces without interior vertices");
+        Check(plan.Floor == null && plan.Ceiling == null && plan.CapCarvers.Count == 0,
+            "height unlimited plan has no physical or navigation caps");
+        Check(plan.ColliderCount == bounds.Outline.Count * 2 && plan.ObstacleCount == plan.ColliderCount,
+            "height unlimited component counts contain only side walls and corners");
+        Check(plan.Walls.All(w => w.Center.Y-w.Size.Y/2 <= -24 && w.Center.Y+w.Size.Y/2 >= 51)
+            && plan.Corners.All(c => c.Center.Y-c.Height/2 <= -24 && c.Center.Y+c.Height/2 >= 51),
+            "all physical and navigation sides cover the scene height range");
+        Check(plan.Grid.Vertices.All(p => p.Y >= -24 && p.Y <= 51)
+            && plan.Grid.Vertices.Any(p => Near(p.Y, -24)) && plan.Grid.Vertices.Any(p => Near(p.Y, 51)),
+            "side grid spans the same low and high surfaces");
+        foreach (var (a, b, c) in Triangles(plan.Grid))
+            Check(BoundaryDistance(bounds.Outline, (a.X+b.X+c.X)/3d, (a.Z+b.Z+c.Z)/3d) < .0003,
+                "height unlimited grid contains only side faces");
+        var withActors = Scene(new[] { new ArenaAreaPoint(5, -12, 5), new ArenaAreaPoint(5, 70, 5) });
+        Check(Near(withActors.SideMinY, -28) && Near(withActors.SideMaxY, 86), "scene wall coverage also includes actual actor spawn heights");
+        Check(bounds.Contains(5, -1000, 5) && bounds.Contains(5, 1000, 5)
+            && !bounds.Contains(-1, 1000, 5), "finite wall coverage does not become a logical height limit");
+
+        var root = new GameObject("height unlimited fixture"); var enclosure = new ArenaAreaEnclosure(root, plan);
+        enclosure.Build();
+        Check(enclosure.Intact() && root.GetComponentsInChildren<Collider>().Length == plan.ColliderCount,
+            "height unlimited actual builder intact with expected side colliders");
+        Check(root.GetComponentsInChildren<MeshCollider>().Length == 0
+            && !root.GetComponentsInChildren<Transform>().Any(t => t.gameObject.name.Contains("vertical cap")),
+            "height unlimited actual builder creates no floor ceiling or cap carver");
+        var children = root.GetComponentsInChildren<Transform>().Select(t => t.gameObject).ToArray();
+        var assets = root.GetComponentsInChildren<MeshFilter>().Select(f => f.sharedMesh).ToArray();
+        root.GetComponentsInChildren<BoxCollider>()[0].enabled = false;
+        Check(!enclosure.Intact(), "height unlimited integrity detects disabled side wall");
+        root.SetActive(false); UObject.Destroy(root); enclosure.Dispose();
+        Check(children.All(c => c == null) && assets.All(a => a == null), "height unlimited owned objects and grid cleaned up");
+
+        void Refuse(Action action, string label)
+        {
+            try { action(); Check(false, label); }
+            catch (InvalidOperationException e) when (!e.Message.StartsWith("ASSERT:")) { Check(true, label); }
+        }
+        Refuse(() => Plan.CreateForScene(bounds, vertices, new[] { -1, 1, 2 }, p => p, Array.Empty<ArenaAreaPoint>()), "invalid navigation indices rejected");
+        Refuse(() => Plan.CreateForScene(bounds, vertices, new[] { 0, 1 }, p => p, Array.Empty<ArenaAreaPoint>()), "incomplete navigation triangles rejected");
+        Refuse(() => Plan.CreateForScene(bounds, vertices, new[] { 6, 7, 8 }, p => p, Array.Empty<ArenaAreaPoint>()), "no overlapping navigation surface rejected");
+        Refuse(() => Scene(new[] { new ArenaAreaPoint(5, float.NaN, 5) }), "nonfinite actor height rejected");
+        Refuse(() => Scene(new[] { new ArenaAreaPoint(50, 1, 50) }), "outside actor anchor rejected");
+        Refuse(() => Scene(new[] { new ArenaAreaPoint(5, 1000, 5) }), "excessive side mesh budget rejected instead of clipping height");
+        var nonfinite = vertices.ToArray(); nonfinite[0] = new ArenaAreaPoint(0, float.PositiveInfinity, 0);
+        Refuse(() => Plan.CreateForScene(bounds, nonfinite, indices, p => p, Array.Empty<ArenaAreaPoint>()), "nonfinite navigation vertex rejected");
+        var current = ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds;
+        var actualNav = new[] { new ArenaAreaPoint(290, -6, -160), new ArenaAreaPoint(540, 32, -160), new ArenaAreaPoint(400, 2, 20) };
+        var actual = Plan.CreateForScene(current, actualNav, new[] { 0, 1, 2 }, p => p, Array.Empty<ArenaAreaPoint>());
+        Check(actual.Walls.Count == 15 && actual.Grid.Vertices.Count < Plan.MaxVertices && actual.Probes.Count < Plan.MaxProbes,
+            "user contour side-only enclosure fits work budgets");
     }
 
     private static IEnumerable<(Plan.Point a, Plan.Point b, Plan.Point c)> Triangles(Plan.MeshData mesh)

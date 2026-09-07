@@ -166,7 +166,8 @@ public static class Settings
     internal static bool TrySelectArea(string areaId)
     {
         if (TeamDeathmatchArea == null || (areaId != ArenaAreaCatalog.FullMapId
-                && areaId != ArenaAreaCatalog.FactorySouthId && areaId != ArenaAreaCatalog.CustomsFactoryCenterId))
+                && areaId != ArenaAreaCatalog.FactorySouthId && areaId != ArenaAreaCatalog.CustomsFactoryCenterId
+                && areaId != ArenaAreaCatalog.CustomsFactoryCenterPolygonId))
             return false;
         if (TeamDeathmatchArea.Value == areaId) return true;
         try { TeamDeathmatchArea.Value = areaId; }
@@ -544,11 +545,12 @@ public static class Settings
                 "Experimental bounded arena. Full-map preserves normal TDM settings. " +
                 "Factory South requires Factory daytime and fixes the match at 2v2. " +
                 "Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. " +
+                "Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +
                 "Selected before loading; changes during a raid apply next match. " +
                 "Other modes ignore this setting. The area must pass its live navigation checks.",
                 new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId,
-                    ArenaAreaCatalog.CustomsFactoryCenterId)));
+                    ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId)));
 
         TeamDeathmatchSize = config.Bind(
             "Team Deathmatch",

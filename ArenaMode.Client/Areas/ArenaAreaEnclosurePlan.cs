@@ -60,24 +60,85 @@ internal sealed class ArenaAreaEnclosurePlan
     internal readonly IReadOnlyList<Probe> Probes;
     internal readonly MeshData Floor, Ceiling, Grid;
     internal readonly bool LegacyRectangle;
-    internal int ColliderCount => Walls.Count + Corners.Count + 2;
+    internal readonly float SideMinY, SideMaxY;
+    internal int ColliderCount => Walls.Count + Corners.Count + (Floor == null ? 0 : 2);
     internal int ObstacleCount => Walls.Count + Corners.Count + CapCarvers.Count;
 
     private ArenaAreaEnclosurePlan(List<Box> walls, List<Box> caps, List<Corner> corners,
-        List<Probe> probes, MeshData floor, MeshData ceiling, MeshData grid, bool rectangle)
+        List<Probe> probes, MeshData floor, MeshData ceiling, MeshData grid, bool rectangle, float sideMinY, float sideMaxY)
     {
         Walls = walls.AsReadOnly(); CapCarvers = caps.AsReadOnly(); Corners = corners.AsReadOnly();
         Probes = probes.AsReadOnly(); Floor = floor; Ceiling = ceiling; Grid = grid; LegacyRectangle = rectangle;
+        SideMinY = sideMinY; SideMaxY = sideMaxY;
     }
 
     internal static ArenaAreaEnclosurePlan Create(ArenaAreaBounds bounds)
     {
+        if (!bounds.IsValid)
+            throw new InvalidOperationException("Arena enclosure requires a valid bounded polygon.");
+        if (!bounds.LimitsHeight)
+            throw new InvalidOperationException("Height-unlimited Arena walls require the loaded navigation surface.");
+        return Create(bounds, bounds.MinY, bounds.MaxY);
+    }
+
+    /// <summary>
+    /// Unity colliders need a finite height even when the play area has none.
+    /// Cover every navigation triangle overlapping the area footprint, including
+    /// triangles whose vertices are all outside it, and all allowed actor spawns.
+    /// The extra headroom is side-wall coverage, never a floor or ceiling.
+    /// </summary>
+    internal static ArenaAreaEnclosurePlan CreateForScene<T>(ArenaAreaBounds bounds,
+        IReadOnlyList<T> vertices, IReadOnlyList<int> indices, Func<T, ArenaAreaPoint> position,
+        IReadOnlyList<ArenaAreaPoint> spawns)
+    {
+        if (bounds.LimitsHeight) return Create(bounds);
+        if (!bounds.IsValid || vertices == null || indices == null || position == null || spawns == null
+            || vertices.Count == 0 || indices.Count == 0 || indices.Count % 3 != 0)
+            throw new InvalidOperationException("Arena side-wall heights require a valid loaded navigation triangulation.");
+        float low = float.PositiveInfinity, high = float.NegativeInfinity;
+        bool surface = false;
+        ArenaAreaPoint Vertex(int index)
+        {
+            if (index < 0 || index >= vertices.Count)
+                throw new InvalidOperationException("Arena navigation triangulation has an invalid index.");
+            var point = position(vertices[index]);
+            if (!ArenaAreaBounds.Finite(point.X) || !ArenaAreaBounds.Finite(point.Y) || !ArenaAreaBounds.Finite(point.Z))
+                throw new InvalidOperationException("Arena navigation triangulation has a nonfinite vertex.");
+            return point;
+        }
+        void Include(float y) { low = Math.Min(low, y); high = Math.Max(high, y); }
+        for (int i = 0; i < indices.Count; i += 3)
+        {
+            var a = Vertex(indices[i]); var b = Vertex(indices[i+1]); var c = Vertex(indices[i+2]);
+            // Conservative projected triangle/AABB overlap also includes the
+            // outside probe margin; no interior-vertex shortcut may miss a roof.
+            if (Math.Max(a.X, Math.Max(b.X, c.X)) < bounds.MinX - 2f
+                || Math.Min(a.X, Math.Min(b.X, c.X)) > bounds.MaxX + 2f
+                || Math.Max(a.Z, Math.Max(b.Z, c.Z)) < bounds.MinZ - 2f
+                || Math.Min(a.Z, Math.Min(b.Z, c.Z)) > bounds.MaxZ + 2f) continue;
+            Include(a.Y); Include(b.Y); Include(c.Y); surface = true;
+        }
+        if (!surface) throw new InvalidOperationException("Arena contour has no overlapping navigation surface.");
+        foreach (var point in spawns)
+        {
+            if (!bounds.Contains(point.X, point.Y, point.Z))
+                throw new InvalidOperationException("Arena side-wall anchor is outside the contour or invalid.");
+            Include(point.Y);
+        }
+        // Generous headroom above mapped surfaces, without installing a cap.
+        // Logical containment remains independent of these finite side walls.
+        return Create(bounds, low - 16f, high + 16f);
+    }
+
+    private static ArenaAreaEnclosurePlan Create(ArenaAreaBounds bounds, float sideMinY, float sideMaxY)
+    {
         if (!bounds.IsValid || bounds.Outline == null || bounds.Outline.Count < 3 || bounds.Outline.Count > 64)
             throw new InvalidOperationException("Arena enclosure requires a valid bounded polygon.");
-        float sx = bounds.MaxX - bounds.MinX, sy = bounds.MaxY - bounds.MinY, sz = bounds.MaxZ - bounds.MinZ;
-        if (sx > 2048f || sz > 2048f || sy > 256f
+        float sx = bounds.MaxX - bounds.MinX, sy = sideMaxY - sideMinY, sz = bounds.MaxZ - bounds.MinZ;
+        if (!ArenaAreaBounds.Finite(sideMinY) || !ArenaAreaBounds.Finite(sideMaxY) || sy <= 0f
+            || sx > 2048f || sz > 2048f || sy > 256f
             || Math.Abs(bounds.MinX) > 100000f || Math.Abs(bounds.MaxX) > 100000f
-            || Math.Abs(bounds.MinY) > 100000f || Math.Abs(bounds.MaxY) > 100000f
+            || Math.Abs(sideMinY) > 100000f || Math.Abs(sideMaxY) > 100000f
             || Math.Abs(bounds.MinZ) > 100000f || Math.Abs(bounds.MaxZ) > 100000f)
             throw new InvalidOperationException("Arena enclosure exceeds the supported coordinate/extent budget.");
         if (Math.Sqrt(CornerRadius * CornerRadius + EndOverlap * EndOverlap) >= ArenaAreaCatalog.NavigationInset)
@@ -89,7 +150,7 @@ internal sealed class ArenaAreaEnclosurePlan
         var probes = new List<Probe>();
         var gridVertices = new List<Point>();
         var gridTriangles = new List<int>();
-        float middleY = (bounds.MinY + bounds.MaxY) / 2f;
+        float middleY = (sideMinY + sideMaxY) / 2f;
         double perimeter = 0;
         for (int edge = 0; edge < bounds.Outline.Count; edge++)
         {
@@ -122,23 +183,26 @@ internal sealed class ArenaAreaEnclosurePlan
             double bx = nx - pz / plen, bz = nz + px / plen;
             double blen = Math.Sqrt(bx * bx + bz * bz);
             if (blen > 0.000001) AddProbe(probes, a.X, a.Z, (float)(bx / blen), (float)(bz / blen), edge, -1f);
-            AddSideGrid(gridVertices, gridTriangles, a, b, bounds.MinY, bounds.MaxY);
+            AddSideGrid(gridVertices, gridTriangles, a, b, sideMinY, sideMaxY);
         }
 
         // These two carvers preserve the previous vertical rejection of
         // basement/roof shortcuts. Their bounding footprints can include a
         // concave void, but ONLY below/above the playable height interval.
         // They have no collider or visual; both physical caps are clipped.
-        var capCarvers = new List<Box>
+        var capCarvers = new List<Box>();
+        if (bounds.LimitsHeight)
         {
+            capCarvers.AddRange(new[] {
             new Box(new Point((bounds.MinX + bounds.MaxX)/2, bounds.MinY - Thickness/2, (bounds.MinZ + bounds.MaxZ)/2), new Point(sx + 2*Thickness, Thickness, sz + 2*Thickness)),
             new Box(new Point((bounds.MinX + bounds.MaxX)/2, bounds.MaxY + Thickness/2, (bounds.MinZ + bounds.MaxZ)/2), new Point(sx + 2*Thickness, Thickness, sz + 2*Thickness))
-        };
-        AddCapGrid(gridVertices, gridTriangles, bounds);
+            });
+            AddCapGrid(gridVertices, gridTriangles, bounds);
+        }
         return new ArenaAreaEnclosurePlan(walls, capCarvers, corners, probes,
-            CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY),
-            CreateCap(bounds, bounds.MaxY, bounds.MaxY + Thickness),
-            new MeshData(gridVertices, gridTriangles), rectangle);
+            bounds.LimitsHeight ? CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY) : null,
+            bounds.LimitsHeight ? CreateCap(bounds, bounds.MaxY, bounds.MaxY + Thickness) : null,
+            new MeshData(gridVertices, gridTriangles), rectangle, sideMinY, sideMaxY);
     }
 
     private static bool IsAxisRectangle(IReadOnlyList<ArenaAreaVertex> outline)

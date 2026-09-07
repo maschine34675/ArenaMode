@@ -160,6 +160,7 @@ internal static class ArenaAreaRuntime
             throw new InvalidOperationException("Arena area cannot inspect the native spawn collection.");
         var allowed = collection._dictionary.Where(pair => pair.Key != null
             && AllowsGeometrySpawn(pair.Key.Position)
+            && !_area.IsExcludedSpawn(pair.Key.Id)
             && !ArenaBotSpawnPolicy.IsExcludedPoint(_area.MapId, pair.Key.Id))
             .ToDictionary(pair => pair.Key, pair => pair.Value);
         if (loading)
@@ -256,12 +257,12 @@ internal static class ArenaAreaRuntime
         var local = _world.MainPlayer;
         if (local == null || !AllowsGeometrySpawn(local.Position)
             || !TrySample(local.Position, out _anchor))
-        { problem = "the initial player spawn is not on the allowed ground-level navigation surface"; return false; }
+        { problem = "the initial player spawn is not on an allowed navigation surface"; return false; }
         if (!CarvingSealed())
         { problem = "navigation still crosses an enclosing wall"; return false; }
         Connected.Clear();
         foreach (var point in Candidates)
-            if (point != null && AllowsGeometrySpawn(point.Position)
+            if (point != null && !_area.IsExcludedSpawn(point.Id) && AllowsGeometrySpawn(point.Position)
                 && TrySample(point.Position, out var sample) && CompleteInsidePath(_anchor, sample))
                 Connected.Add(point);
         var players = Connected.Where(IsPlayerPoint).ToArray();
@@ -338,7 +339,7 @@ internal static class ArenaAreaRuntime
     internal static bool AllowsSpawn(ISpawnPoint point)
     {
         if (!IsCurrentActive()) return true;
-        return IsReady && point != null && AllowsGeometrySpawn(point.Position)
+        return IsReady && point != null && !_area.IsExcludedSpawn(point.Id) && AllowsGeometrySpawn(point.Position)
             && Connected.Any(p => p.Id == point.Id && (p.Position - point.Position).sqrMagnitude < 0.01f)
             && TrySample(point.Position, out var sample) && CompleteInsidePath(_anchor, sample);
     }
@@ -534,7 +535,18 @@ internal static class ArenaAreaRuntime
 
     private static void BuildEnclosure()
     {
-        _enclosurePlan = ArenaAreaEnclosurePlan.Create(_area.Bounds);
+        if (_area.Bounds.LimitsHeight)
+            _enclosurePlan = ArenaAreaEnclosurePlan.Create(_area.Bounds);
+        else
+        {
+            var navigation = NavMesh.CalculateTriangulation();
+            var anchors = Candidates.Select(p => ToPoint(p.Position)).ToList();
+            if (_world.MainPlayer != null) anchors.Add(ToPoint(_world.MainPlayer.Position));
+            _enclosurePlan = ArenaAreaEnclosurePlan.CreateForScene(_area.Bounds,
+                navigation.vertices, navigation.indices, ToPoint, anchors);
+            Plugin.ModLogger.LogInfo($"Arena area side walls: {_area.Id}; scene coverage Y "
+                + $"{_enclosurePlan.SideMinY:F1}..{_enclosurePlan.SideMaxY:F1}; no floor, ceiling or spawn-height restriction.");
+        }
         _enclosure = new ArenaAreaEnclosure(_root, _enclosurePlan);
         // Publish ownership before construction so a failed partial build is
         // still cleaned up by the exact raid's normal Reset path.

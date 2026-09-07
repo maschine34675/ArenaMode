@@ -183,7 +183,7 @@ public static class ArenaLocationMutator
         var source = (location.SpawnPointParams ?? []).ToList();
         var allowed = source.Where(point =>
             point != null && !string.IsNullOrWhiteSpace(point.Id)
-            && point.Position is { } p && area.AllowsSpawn(p.X, p.Y, p.Z)).ToList();
+            && point.Position is { } p && area.AllowsSpawn(p.X, p.Y, p.Z, point.Id)).ToList();
         if (requireAlreadyContained && allowed.Count != source.Count)
             throw new InvalidOperationException($"Arena area '{area.Id}' received an outside or invalid spawn after filtering.");
         if (allowed.Select(point => point.Id).Distinct(StringComparer.Ordinal).Count() != allowed.Count)
