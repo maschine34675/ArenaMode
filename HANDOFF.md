@@ -10,11 +10,17 @@ current. User-facing communication is normally German.
 - Last gameplay change: `20462c049b5a3ae154ba289f24e43d0b1ed3e3f8` on
   `feature/arena-visibility-and-labyrinth`. This handoff is a later docs-only change.
 - Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution here.
-- The user now has a second server with a GPU that can run the game. Its paths,
-  installed mod versions, repository setup and remote-control capabilities have
-  **not** been verified by this session. Do not assume its drive is D: or C:.
-- Recommended initial split: development/build/review here, reproduction and
-  GPU testing there. This is a proposed workflow, not an already configured link.
+- User-confirmed GPU host installation: `C:\SPT41`, a mirror of this host's
+  `D:\SPT41`. If Development is included, the corresponding repository is
+  `C:\SPT41\Development\ArenaMode`. Check that checkout before editing. Mirror
+  direction/schedule/exclusions, installed hashes and remote-control capabilities
+  have not been inspected by this session.
+- **The user performs actual in-raid gameplay tests.** Do not assign autonomous
+  raids to the GPU session. Its next intended work is UI redesign and automated
+  visual/menu checks, with local development/build/review here as useful.
+- Use the existing mirrored installation for UI checks; no second full game copy
+  is needed solely for testing. Before editing source on both machines, establish
+  separate writable checkouts/branches outside any conflicting mirror scope.
 - For simultaneous implementation, assign a separate feature/fix and branch to
   each session. Agree who integrates changes and who owns each test deployment.
 - Commit every completed change with tests/documentation and
@@ -29,7 +35,7 @@ Team Deathmatch is independent of PFT; protected Tactical 5v5 is a separate path
 Maps: Factory day/night, Labs, Labyrinth. Factory night uses the native time
 selection on the Factory tile, not a separate night tile.
 
-| Commit | Change | Verification still needed |
+| Commit | Change | Verification still needed (raid work belongs to user) |
 | --- | --- | --- |
 | `20462c0` | Standard kits request two RGD-5s, no automatic Zarya. Explicit rig/pocket placement bypasses UseItemsAnywhere's backpack-first `GrenadeThrowingSlots` patch. Custom authored supplies and protected PFT gear are retained. | In-game placement and grenade-key use, including respawn/Gun Game. |
 | `1119b56` | Labyrinth Way Up (`labir_exit`) has a 10-second extraction countdown on the Arena raid clone; availability timers remain zero. | Walking past the doorway must not immediately end a match. |
@@ -60,11 +66,13 @@ always record that build's hashes and compare them with its installed copies.
 
 ## Continue on the GPU host
 
-1. Open a new session in that host's own checkout. Read this file and `AGENTS.md`,
-   inspect branch/commit/uncommitted files, and verify the actual SPT paths.
-   The handoff and commits must first be transferred through Git; a new session
+1. Open a new session in `C:\SPT41\Development\ArenaMode` if present. Read this
+   file and `AGENTS.md`, inspect branch/commit/uncommitted files, and verify that
+   references/deployment resolve to `C:\SPT41` and `C:\SPT41\SPT_Runtime`.
+   Confirm the latest handoff/commits arrived through the existing mirror or an
+   agreed Git transfer; do not create a competing sync mechanism. A new session
    must not assume access to the original conversation or live agent memory.
-2. For tests only, use a fixed transferred build with its commit/hash record.
+2. For UI checks only, use a fixed mirrored build with its commit/hash record.
    A complete development toolchain is unnecessary for simply running the game.
    For development, transfer/clone the repositories and dependencies listed below.
 3. Use a dedicated test profile, back it up while the server is stopped, and
@@ -74,10 +82,11 @@ always record that build's hashes and compare them with its installed copies.
 4. Only the designated test owner replaces installed artifacts. Finish the test,
    stop game/server, deploy one coherent build, verify hashes, restart both,
    then run the next test. Never auto-copy a newer build into an ongoing test.
-5. Begin with the pending tests above. For preview contamination, enter Arena,
-   finish the match, open the affected item in menu/Hideout and leave the preview
-   open briefly. Reopen after ten seconds if the probe was throttled. Compare a
-   clean preview with an affected one; do not destroy guessed scene objects.
+5. Begin with the UI workflow below, not the pending raid tests. For the existing
+   preview-contamination investigation, the user supplies the post-match state
+   after their manual raid; the agent can then inspect the affected item in
+   menu/Hideout and collect the probe. Reopen after ten seconds if throttled.
+   Compare clean/affected previews; do not destroy guessed scene objects.
 6. Return a report per test run: hostname, source commit, actual DLL hashes,
    mod versions/config changes, mode/map/kit, local time and time zone, steps,
    expected/observed behavior, pass/fail/blocked, and exact log/screenshot paths.
@@ -85,15 +94,46 @@ always record that build's hashes and compare them with its installed copies.
    in a private artifact location (local `artifacts/` is ignored); commit a small
    redacted report if useful. Never commit profiles, tokens or unrelated logs.
 
-Automated UI testing/remote desktop is a separate setup task. Validate available
-tools directly on the GPU host before promising mouse/keyboard control or an
-unattended raid. None was configured or tested as part of this handoff.
+## Next work: UI redesign with automated visual checks
+
+- Run the UI-focused session directly on the GPU host. First inspect available
+  tools; if native Computer Use is available, verify that it can capture EFT's
+  window and perform one harmless menu interaction. Browser-only tools cannot validate the native Unity
+  UI. Game capture/input and RDP-disconnect behavior remain untested; do not
+  infer them from the presence of a GPU or a mirrored installation.
+- Native Computer Use on Windows requires the active unlocked desktop, a visible
+  target window and app permission. Do not compete with the user's mouse/keyboard
+  during a run. See [official Computer Use documentation](https://learn.chatgpt.com/docs/computer-use).
+- Start with reachable menu flows: PMC/Scav/Arena selection, map/time/mode
+  selection, back navigation, and overlap/readability checks at recorded
+  resolution/UI scale. Stop before starting a raid. Save before/after screenshots
+  and associate them with the tested build.
+- Raid HUD, scoreboard, Tactical buy panel and spectator UI depend on live match
+  state. For their redesign, prefer a development-only preview using the same
+  rendering code with fixed sample data (long names, empty/full lists, different
+  scores), without spawning bots or simulating a real match. This preview is a
+  proposed implementation, not an existing tool or completed feature. Keep it
+  opt-in and isolated from profiles, normal raids and production gameplay gates.
+  Do not fake `ArenaSession.IsActive` or call match-start hooks just to show a
+  panel. Preview buy/ready controls must not purchase, start or end anything;
+  preview teardown must not stop a real spectator service. The existing
+  `ArenaPreviewDiagnostics` is unrelated item-preview diagnostics, not this UI
+  preview facility.
+- Distinguish visual results (layout, clipping, fonts, hover/click, scaling) from
+  gameplay integration. A preview pass does not prove scoring, respawn, purchase
+  transactions or raid input ownership; the user verifies those in actual raids.
+- Iterate one agreed screen at a time: capture baseline, implement, review,
+  build/deploy between runs, reopen and compare. No autonomous raid playtest or
+  scheduled/unattended loop was configured by this handoff update.
 
 ## Parallel development without collisions
 
 - Use a separate clone on each machine; exchange reviewed commits using Git
   through the agreed remote or a Git bundle. Do not live-mirror two writable
-  working directories or `.git` folders. Push/transfer is not set up here.
+  working directories or `.git` folders. If the existing SPT mirror includes
+  Development, exclude/separate the GPU working checkout before parallel edits;
+  otherwise the next mirror pass may overwrite local UI changes. Do not change
+  synchronization configuration without inspecting it and agreeing its scope.
 - Within one machine, worktrees can isolate feature edits, but they share Git
   metadata and do not isolate Arena's deployment directories or external projects.
 - Agree the starting commit, scope and touched areas before parallel work. Avoid
@@ -116,7 +156,9 @@ unattended raid. None was configured or tested as part of this handoff.
   server root under `SPT_Runtime`. In a different layout, verify/override both
   `SPTPath` and `SPTUserPath`. Local `Shared.props.user` is imported and ignored by
   Git, so it must be configured separately on a new machine. Redeploy has its own
-  props/deployment target. Check its effective paths too.
+  props/deployment target. Check its effective paths too. With both repos under
+  `C:\SPT41\Development`, relative defaults already resolve to C:; only override
+  where necessary, and inspect mirrored `.user` files for stale D: paths.
 - Builds auto-deploy, including the server build triggered by `dotnet test`.
   A generic `DeployToSpt=false` switch is not honored by the current Arena targets.
   Do not build from an arbitrary worktree until paths, references and deployment
@@ -132,7 +174,8 @@ unattended raid. None was configured or tested as part of this handoff.
   actual `SPT_Runtime/SPT_Data/database` **directory** for server tests. This is
   separate from a harness's `-Database` parameter pointing at `templates/items.json`;
   the nested server tests do not automatically inherit that parameter. Require
-  the expected tests to run, not silently skip.
+  the expected tests to run, not silently skip. On the GPU host the environment
+  variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
 - Keep licensed audio and attribution together with client assets; use the
   build's asset deployment or a complete verified package, not a guessed DLL set.
   The full solution also needs the installed BigBrain reference DLL. Optional
