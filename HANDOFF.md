@@ -1,0 +1,158 @@
+# ArenaMode working handoff
+
+Snapshot: 2026-09-07. Read `AGENTS.md` first. This is a compact handoff, not the
+conversation transcript or a live synchronization channel. Verify current files,
+commit IDs, installed artifacts and logs before treating a recorded result as
+current. User-facing communication is normally German.
+
+## Baseline and responsibilities
+
+- Last gameplay change: `20462c049b5a3ae154ba289f24e43d0b1ed3e3f8` on
+  `feature/arena-visibility-and-labyrinth`. This handoff is a later docs-only change.
+- Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution here.
+- The user now has a second server with a GPU that can run the game. Its paths,
+  installed mod versions, repository setup and remote-control capabilities have
+  **not** been verified by this session. Do not assume its drive is D: or C:.
+- Recommended initial split: development/build/review here, reproduction and
+  GPU testing there. This is a proposed workflow, not an already configured link.
+- For simultaneous implementation, assign a separate feature/fix and branch to
+  each session. Agree who integrates changes and who owns each test deployment.
+- Commit every completed change with tests/documentation and
+  `Co-authored-by: Codex <codex@openai.com>`. Do not push without authorization.
+- Preserve normal raids and profiles. Protected PFT Tactical uses the PMC entry
+  loadout and must not receive standard Arena kits or grenade additions.
+
+## Current behavior and recent work
+
+Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
+Team Deathmatch is independent of PFT; protected Tactical 5v5 is a separate path.
+Maps: Factory day/night, Labs, Labyrinth. Factory night uses the native time
+selection on the Factory tile, not a separate night tile.
+
+| Commit | Change | Verification still needed |
+| --- | --- | --- |
+| `20462c0` | Standard kits request two RGD-5s, no automatic Zarya. Explicit rig/pocket placement bypasses UseItemsAnywhere's backpack-first `GrenadeThrowingSlots` patch. Custom authored supplies and protected PFT gear are retained. | In-game placement and grenade-key use, including respawn/Gun Game. |
+| `1119b56` | Labyrinth Way Up (`labir_exit`) has a 10-second extraction countdown on the Arena raid clone; availability timers remain zero. | Walking past the doorway must not immediately end a match. |
+| `f17ae7b` | Read-only diagnostics for stationary foreign helmets/equipment in the item/weapon preview after Arena, in menu/Hideout. **No causal rendering fix yet.** | Reproduce affected preview and collect `Arena preview probe:` plus screenshot. |
+| `50d2a89`, `fae3a43` | Restored Tactical preset descriptions and excluded generated reflex sights on empty scope rings. | UI appearance and generated weapon samples. |
+
+The last two investigated Solo Tactical endings were native Labyrinth extractions,
+not opponent-spawn failures; the user confirmed walking past the exit door.
+Do not reopen that spawn diagnosis without new evidence.
+
+Latest grenade verification: 222 server tests passed, zero skips; 1,605
+production-linked supply assertions; both old-placement negative controls failed
+at their intended assertions. Default and installed 20-kit catalogs each packed
+40 RGD-5s in rig/pockets without displacing original supplies in the offline
+grid model. Full grids still skip optional grenades, never spill into backpack.
+Independent review found no open issues. These are not GPU test results.
+
+Local Release/installed hashes verified after `20462c0` gameplay changes:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| ArenaMode.Client | `47D37E298E052401E06EAB49CEDDFEC41BD6AC8953CAE893BF209F5E69A37F51` |
+| ArenaMode.Server | `FCE6C394DF9184E81FE6D43B0D236380DE71E3BB110708497E2471D395B2DBE8` |
+| Redeploy.Core | `3973761FDE09BBDBBD924AA893F3D351ECA50EFE14B93183A6E1C8CE947BAA8C` |
+
+Hashes identify these built files. A fresh build on another machine may differ;
+always record that build's hashes and compare them with its installed copies.
+
+## Continue on the GPU host
+
+1. Open a new session in that host's own checkout. Read this file and `AGENTS.md`,
+   inspect branch/commit/uncommitted files, and verify the actual SPT paths.
+   The handoff and commits must first be transferred through Git; a new session
+   must not assume access to the original conversation or live agent memory.
+2. For tests only, use a fixed transferred build with its commit/hash record.
+   A complete development toolchain is unnecessary for simply running the game.
+   For development, transfer/clone the repositories and dependencies listed below.
+3. Use a dedicated test profile, back it up while the server is stopped, and
+   compare the relevant mod versions/settings between hosts. Do not synchronize
+   a live profile directory in both directions. Keep test configuration changes
+   explicit so a difference in mods is not mistaken for an Arena regression.
+4. Only the designated test owner replaces installed artifacts. Finish the test,
+   stop game/server, deploy one coherent build, verify hashes, restart both,
+   then run the next test. Never auto-copy a newer build into an ongoing test.
+5. Begin with the pending tests above. For preview contamination, enter Arena,
+   finish the match, open the affected item in menu/Hideout and leave the preview
+   open briefly. Reopen after ten seconds if the probe was throttled. Compare a
+   clean preview with an affected one; do not destroy guessed scene objects.
+6. Return a report per test run: hostname, source commit, actual DLL hashes,
+   mod versions/config changes, mode/map/kit, local time and time zone, steps,
+   expected/observed behavior, pass/fail/blocked, and exact log/screenshot paths.
+   Save logs before the next launch overwrites them. Raw logs/screenshots belong
+   in a private artifact location (local `artifacts/` is ignored); commit a small
+   redacted report if useful. Never commit profiles, tokens or unrelated logs.
+
+Automated UI testing/remote desktop is a separate setup task. Validate available
+tools directly on the GPU host before promising mouse/keyboard control or an
+unattended raid. None was configured or tested as part of this handoff.
+
+## Parallel development without collisions
+
+- Use a separate clone on each machine; exchange reviewed commits using Git
+  through the agreed remote or a Git bundle. Do not live-mirror two writable
+  working directories or `.git` folders. Push/transfer is not set up here.
+- Within one machine, worktrees can isolate feature edits, but they share Git
+  metadata and do not isolate Arena's deployment directories or external projects.
+- Agree the starting commit, scope and touched areas before parallel work. Avoid
+  having both sessions independently fix the same code. Integrate selected commits,
+  rerun affected checks, build once, then test that exact integration build.
+- When moving a whole task, finish/commit local work and hand over the current
+  state. When keeping both sessions active, one handles integration and updates
+  this shared summary; each test run can have its own report to avoid conflicts.
+
+## Build and dependency traps
+
+- Keep the normal layout when practical: `<SPT>/Development/ArenaMode`, sibling
+  `Redeploy`, `_decompiled`, and the needed private `_reference` sources.
+  ArenaMode does not contain those other repositories or game DLLs.
+- The client references `../Redeploy/Redeploy.Core` relative to the Arena repo.
+  Verified Redeploy checkout at handoff: `58abf5876629bb51be808d78ee2cd7a5d34af77a`,
+  clean. Transfer compatible source separately if building; do not assume a DLL
+  alone satisfies the project reference.
+- `Shared.props` resolves the game root two directories above the repo and the
+  server root under `SPT_Runtime`. In a different layout, verify/override both
+  `SPTPath` and `SPTUserPath`. Local `Shared.props.user` is imported and ignored by
+  Git, so it must be configured separately on a new machine. Redeploy has its own
+  props/deployment target. Check its effective paths too.
+- Builds auto-deploy, including the server build triggered by `dotnet test`.
+  A generic `DeployToSpt=false` switch is not honored by the current Arena targets.
+  Do not build from an arbitrary worktree until paths, references and deployment
+  ownership are settled. Never run concurrent builds into the same installation
+  or shared Redeploy output. Prefer Release; rebuild the client last if another
+  check rebuilt the shared dependency in Debug.
+- Usual commands from the verified repo layout:
+  `dotnet build ArenaMode.sln -c Release` and
+  `dotnet test ArenaMode.Tests/ArenaMode.Tests.csproj -c Release`.
+  `tools/KitPolishChecks/Verify-Supplies.ps1` covers the latest grenade change.
+  Many harnesses use local `_decompiled` sources, native DLLs or D: defaults;
+  inspect their parameters before running elsewhere. Set `SPT_DATABASE` to the
+  actual `SPT_Runtime/SPT_Data/database` **directory** for server tests. This is
+  separate from a harness's `-Database` parameter pointing at `templates/items.json`;
+  the nested server tests do not automatically inherit that parameter. Require
+  the expected tests to run, not silently skip.
+- Keep licensed audio and attribution together with client assets; use the
+  build's asset deployment or a complete verified package, not a guessed DLL set.
+  The full solution also needs the installed BigBrain reference DLL. Optional
+  runtime BigBrain/PFT/SAIN dependencies must match the actual compatibility
+  checks; re-read source and installed versions rather than trusting old notes.
+
+## Where to look next
+
+Client log: `<SPT>/BepInEx/LogOutput.log` (local time).
+Server log: `<SPT>/SPT_Runtime/user/logs/spt/sptYYYYMMDD.log` (UTC).
+Kits/config: `<SPT>/SPT_Runtime/user/mods/ArenaMode/config/`.
+
+- `KIT-POLISH-REVIEW.md`: grenade conflict, placement rules, evidence.
+- `PREVIEW-DIAGNOSTICS-REVIEW.md`: unresolved post-match preview issue.
+- `tools/ArenaLabyrinthAccessChecks/README.md`: Way Up and Arena-only map access.
+- `PRESET-DESCRIPTION-REVIEW.md`, `OPTIC-MOUNT-REVIEW.md`: latest kit/UI fixes.
+- `TEAM-DEATHMATCH-REVIEW.md`, `PITFIRETEAM-MULTIROUND-GATES.md`: team modes.
+- `ANNOUNCER-REVIEW.md`, `ANNOUNCER-AWARDS-REVIEW.md`: audio behavior/licensing.
+- `CORPSE-CLEANUP-REVIEW.md`, `PFT-GOAL-HANDOFF-REVIEW.md`: bot lifecycle/movement.
+
+Read the relevant topic document and recent commits when starting a change,
+rather than loading every historical review. Maintain this file as a concise,
+dated snapshot of decisions, open evidence gaps and the next owner's scope.

@@ -10,6 +10,13 @@ it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.m
 
 Read this before changing anything. Most of it was learned the expensive way.
 
+Then read [HANDOFF.md](HANDOFF.md) for the dated working state, pending GPU tests,
+and coordination between development/test machines. Verify its recorded commits
+against the current checkout; it is a handoff snapshot, not an automatic record
+of another running session. Update it when handing work over or changing the
+agreed responsibilities. Historical milestone/test counts below are not current
+acceptance evidence; use the dated handoff and the relevant review document.
+
 ---
 
 ## Layout
