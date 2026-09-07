@@ -73,14 +73,26 @@ Test-ScopeControl 'ARENA_POLYGON_SCOPE_PASSED' $true
 $arenaCaptureAnchor = 'ReferenceEquals(local.LocalPlayer, _world.MainPlayer)'
 if (!$arenaCaptureOriginal.Contains($arenaCaptureAnchor)) { throw 'Capture body mutation anchor missing.' }
 $arenaCaptureOriginal.Replace($arenaCaptureAnchor, 'true') | Set-Content -LiteralPath $arenaCaptureMutant -Encoding UTF8
-Test-ScopeControl 'main and local body mismatch: interaction gated before polling input' $false
+Test-ScopeControl 'normal local body mismatch: normal capture/export blocked' $false
 $arenaWorldAnchor = 'ReferenceEquals(local.GameWorld, world)'
 if (!$arenaCaptureOriginal.Contains($arenaWorldAnchor)) { throw 'Capture world mutation anchor missing.' }
 $arenaCaptureOriginal.Replace($arenaWorldAnchor, 'true') | Set-Content -LiteralPath $arenaCaptureMutant -Encoding UTF8
-Test-ScopeControl 'game world mismatch: intended draft lifetime' $false
+Test-ScopeControl 'normal world mismatch: normal capture/export blocked' $false
+$arenaPmcMutations = @(
+    @('Settings.AreaCaptureAllowInNormalPmc?.Value != true', 'false', 'normal opt-in off: normal capture/export blocked'),
+    @('settings.playerSide == ESideType.Pmc', 'true', 'scav request: normal capture/export blocked'),
+    @('(side == EPlayerSide.Usec || side == EPlayerSide.Bear)', 'true', 'scav body: normal capture/export blocked'),
+    @('string.Equals(settings.location, world.LocationId, StringComparison.OrdinalIgnoreCase)', 'true', 'normal location mismatch: normal capture/export blocked'),
+    @('(Protocol.IsNativeOrdinaryStartIdentity(settings.serverId) || !Protocol.HasNativeEndMarker(settings.serverId))', 'true', 'inactive Arena marker cannot enter normal capture')
+)
+foreach ($arenaMutation in $arenaPmcMutations) {
+    if (!$arenaCaptureOriginal.Contains($arenaMutation[0])) { throw 'PMC capture mutation anchor missing.' }
+    $arenaCaptureOriginal.Replace($arenaMutation[0], $arenaMutation[1]) | Set-Content -LiteralPath $arenaCaptureMutant -Encoding UTF8
+    Test-ScopeControl $arenaMutation[2] $false
+}
 $arenaCaptureOriginal | Set-Content -LiteralPath $arenaCaptureMutant -Encoding UTF8
 Test-ScopeControl 'ARENA_POLYGON_SCOPE_PASSED' $true
 if ((Get-PolygonHash $arenaCaptureSource) -ne $arenaCaptureBefore) {
     throw 'Production capture source changed during negative controls.'
 }
-Write-Output 'ARENA_POLYGON_NEGATIVE_CONTROLS_PASSED (4 mutants fail named assertions, production hashes unchanged)'
+Write-Output 'ARENA_POLYGON_NEGATIVE_CONTROLS_PASSED (9 mutants fail named assertions, production hashes unchanged)'

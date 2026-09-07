@@ -26,16 +26,32 @@ namespace Comfort.Common
 
 namespace EFT
 {
+    public enum EPlayerSide { Usec, Bear, Savage }
+    public sealed class Profile { public ProfileInfo Info = new(); }
+    public sealed class ProfileInfo { public EPlayerSide Side = EPlayerSide.Usec; }
+    public sealed class LocalRaidSettings { public string serverId; public string location; public JsonType.ESideType playerSide; }
     public enum GameStatus { Starting, Started, Stopping, Stopped }
     public class AbstractGame { public GameStatus Status = GameStatus.Started; public GameWorld GameWorld; }
-    public sealed class LocalGame : AbstractGame { public Player LocalPlayer; }
+    public sealed class LocalGame : AbstractGame { public Player LocalPlayer; public LocalRaidSettings RaidSettings; }
     public sealed class GameWorld { public string LocationId; public Player MainPlayer; }
     public sealed class HealthController { public bool IsAlive = true; }
     public sealed class Player
     {
         public bool IsYourPlayer = true;
+        public Profile Profile = new();
         public HealthController HealthController = new();
         public UnityEngine.Vector3 Position;
+    }
+}
+
+namespace JsonType { public enum ESideType { Pmc, Savage } }
+namespace Redeploy.Core.GameAccess
+{
+    public static class LocalGameAccessor
+    {
+        // Native helper reflects BaseLocalGame._raidSettings; only that stored
+        // reference is modeled here, with no additional admission checks.
+        public static EFT.LocalRaidSettings GetLocalRaidSettings(EFT.LocalGame game) => game.RaidSettings;
     }
 }
 
@@ -66,12 +82,13 @@ namespace ArenaMode.Config
     using UnityEngine;
     internal static class Settings
     {
-        public static ConfigEntry<bool> AreaCaptureEnabled;
+        public static ConfigEntry<bool> AreaCaptureEnabled, AreaCaptureAllowInNormalPmc;
         public static ConfigEntry<float> AreaCaptureMinY, AreaCaptureMaxY, AreaCaptureSpawnMinY, AreaCaptureSpawnMaxY;
         public static ConfigEntry<KeyboardShortcut> AreaCaptureUndo, AreaCaptureExport, AreaCaptureFeet, AreaCaptureAim;
         public static void Reset()
         {
             AreaCaptureEnabled = new(true);
+            AreaCaptureAllowInNormalPmc = new(false);
             AreaCaptureMinY = new(0); AreaCaptureMaxY = new(8);
             AreaCaptureSpawnMinY = new(0.5f); AreaCaptureSpawnMaxY = new(2);
             AreaCaptureUndo = new(new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl));
@@ -87,6 +104,7 @@ namespace ArenaMode.Session
     internal static class ArenaSession
     {
         public static bool IsActive;
+        public static bool ArmedForNextRaid;
         public static EFT.AbstractGame ExactGame;
         public static EFT.GameWorld ExactWorld;
         // Models the identity boundary, not the full profile/session lifecycle.

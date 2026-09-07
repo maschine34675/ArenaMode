@@ -93,7 +93,10 @@ verification; the user subsequently reported "ja passt" for the picker. This
 does not independently confirm each detailed menu/PFT transition.
 
 The next authorized step now implements simple concave polygon prisms and a small
-exact-Arena-only point capture/undo/export aid; see `POLYGON-AREA-REVIEW.md`.
+local-raid point capture/undo/export aid; see `POLYGON-AREA-REVIEW.md`. Following
+the user's finding that Arena-only capture prevents walking a new outline,
+normal PMC surveying has its own opt-in switch alongside the capture master.
+It changes no ordinary raid rules/profile behavior and never opens Arena borders.
 The user explicitly has no Customs coordinates yet and chose capture help first.
 Factory/Customs preset coordinates and IDs remain unchanged. JSON drafts never
 activate themselves; later scene fitting, spawn/connectivity checks and a new

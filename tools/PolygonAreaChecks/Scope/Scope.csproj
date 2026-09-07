@@ -13,6 +13,7 @@
     <Compile Include="../../../ArenaMode.Client/Areas/ArenaAreaDraftFile.cs" Link="Production/ArenaAreaDraftFile.cs" />
     <Compile Include="../../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />
     <Reference Include="Newtonsoft.Json"><HintPath>$(SPTPath)/EscapeFromTarkov_Data/Managed/Newtonsoft.Json.dll</HintPath></Reference>
   </ItemGroup>
 </Project>

@@ -22,6 +22,7 @@ internal static class Program
         try
         {
             DormantScopes();
+            NormalPmcCapture();
             ExactIdentityAndSuspensions();
             RetentionAndReset();
             RealInputOrdering();
@@ -71,6 +72,101 @@ internal static class Program
             Check(Input.Reads == 0 && Physics.Calls == 0, scenario.Name + ": no input or physics work");
             Check(f.Files().Length == 0 && GUI.Labels == 0 && GUI.Textures == 0, scenario.Name + ": no export or preview");
             Check(Plugin.ModLogger.Warnings.Count == 0, scenario.Name + ": expected absence is not a fault");
+        }
+    }
+
+    private static void NormalPmcCapture()
+    {
+        // This is the actual reported workflow: normal Customs, far outside
+        // the current Arena box, with both explicit capture switches enabled.
+        foreach (var side in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+        {
+            using var f = new Fixture();
+            f.NormalPmc(); f.World.MainPlayer.Profile.Info.Side = side;
+            var settings = f.Game.RaidSettings;
+            var frozenArea = ArenaAreaRuntime.CurrentArea;
+            foreach (var point in new[] { new Vector3(450, 1, -80), new Vector3(465, 1, -80), new Vector3(450, 1, -60) })
+            {
+                Check(!ArenaAreaCatalog.CustomsFactoryCenter.Bounds.Contains(point.x, point.y, point.z), "normal survey points lie outside the old Arena contour");
+                f.World.MainPlayer.Position = point; f.Press(KeyCode.F7);
+            }
+            f.Press(KeyCode.F9); f.Call("OnGUI");
+            Check(f.Draft?.Points.Count == 3 && f.Files().Length == 1, "normal PMC captures and exports outside the Arena boundary");
+            Check(GUI.Labels > 0 && GUI.Boxes == 1, "normal PMC preview is reachable");
+            Check(!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid && ReferenceEquals(settings, f.Game.RaidSettings)
+                && settings.serverId == "native-pmc-raid" && ReferenceEquals(frozenArea, ArenaAreaRuntime.CurrentArea),
+                "normal capture leaves session, raid identity and existing area untouched");
+            using var body = JsonDocument.Parse(File.ReadAllText(f.Files()[0]));
+            Check(body.RootElement.GetProperty("sourceAreaId").GetString() == ArenaAreaCatalog.FullMapId
+                && body.RootElement.GetProperty("geometry").GetProperty("mapId").GetString() == ArenaMapCatalog.CustomsId,
+                "normal export has whole-map source and actual Customs map");
+        }
+        foreach (var scenario in new (string Name, Action<Fixture> Change)[]
+        {
+            ("normal opt-in off", _ => Settings.AreaCaptureAllowInNormalPmc.Value = false),
+            ("normal opt-in absent", _ => Settings.AreaCaptureAllowInNormalPmc = null),
+            ("master off in normal", _ => Settings.AreaCaptureEnabled.Value = false),
+            ("normal while Arena armed", _ => ArenaSession.ArmedForNextRaid = true),
+            ("missing normal settings", f => f.Game.RaidSettings = null),
+            ("missing normal identity", f => f.Game.RaidSettings.serverId = null),
+            ("blank normal identity", f => f.Game.RaidSettings.serverId = " "),
+            ("normal location mismatch", f => f.Game.RaidSettings.location = ArenaMapCatalog.FactoryDayId),
+            ("scav request", f => f.Game.RaidSettings.playerSide = JsonType.ESideType.Savage),
+            ("scav body", f => f.World.MainPlayer.Profile.Info.Side = EPlayerSide.Savage),
+            ("missing PMC profile", f => f.World.MainPlayer.Profile = null),
+            ("missing PMC profile info", f => f.World.MainPlayer.Profile.Info = null),
+            ("normal foreign own body", f => f.World.MainPlayer.IsYourPlayer = false),
+            ("normal local body mismatch", f => f.Game.LocalPlayer = new Player()),
+            ("normal world mismatch", f => f.Game.GameWorld = new GameWorld()),
+            ("active foreign Arena with normal opt-in", _ => { ArenaSession.IsActive = true; ArenaSession.ExactGame = new LocalGame(); }),
+            ("normal menu", _ => EftScreenManager.Instance.Screen = EEftScreenType.Menu),
+            ("normal unlocked cursor", _ => Cursor.lockState = CursorLockMode.None),
+            ("normal dead", f => f.World.MainPlayer.HealthController.IsAlive = false),
+            ("normal stopping", f => f.Game.Status = GameStatus.Stopping),
+            ("normal spectating", _ => ArenaSpectatorService.IsActive = true),
+            ("normal respawning", _ => ArenaRespawnDriver.IsRespawnInProgress = true),
+            ("normal foreign game type", f => Singleton<AbstractGame>.Instance = new AbstractGame { GameWorld = f.World })
+        })
+        {
+            using var f = new Fixture(); f.NormalPmc(); f.SeedTriangle();
+            scenario.Change(f); Input.Reads = 0;
+            f.Call("OnGUI"); f.Press(KeyCode.F9); f.Press(KeyCode.F7); f.Press(KeyCode.F6);
+            Check(f.Files().Length == 0 && Input.Reads == 0 && Physics.Calls == 0 && GUI.Labels == 0,
+                scenario.Name + ": normal capture/export blocked");
+        }
+        foreach (string marker in new[] { "arenamode-start:token", "native|arenamode:token", "ARENAmodE-invalid",
+            "arenamode-ordinary-start:bad", "native|ARENAmoDE:token" })
+        {
+            using var f = new Fixture(); f.NormalPmc(); f.SeedTriangle();
+            f.Game.RaidSettings.serverId = marker; Input.Reads = 0;
+            f.Call("OnGUI"); f.Press(KeyCode.F9);
+            Check(f.Draft == null && Input.Reads == 0 && f.Files().Length == 0 && GUI.Labels == 0,
+                "inactive Arena marker cannot enter normal capture");
+        }
+        using (var f = new Fixture())
+        {
+            f.NormalPmc();
+            f.Game.RaidSettings.serverId = Protocol.BuildNativeOrdinaryStartIdentity(Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"));
+            f.SeedTriangle(); f.Press(KeyCode.F9);
+            Check(f.Files().Length == 1, "strict valid ordinary-start marker remains supported");
+        }
+        using (var f = new Fixture())
+        {
+            Settings.AreaCaptureAllowInNormalPmc.Value = true; f.SeedTriangle();
+            ArenaSession.IsActive = false; f.Press(KeyCode.F9);
+            Check(f.Draft == null && f.Files().Length == 0, "ending Arena cannot export through enabled normal fallback");
+        }
+        using (var f = new Fixture())
+        {
+            f.NormalPmc(); f.SeedTriangle(); var old = f.Draft;
+            f.World.LocationId = ArenaMapCatalog.FactoryDayId; f.Game.RaidSettings.location = f.World.LocationId;
+            f.Call("OnGUI"); Check(GUI.Labels == 0, "changed normal map cannot display old points before Update");
+            f.Step();
+            Check(!ReferenceEquals(old, f.Draft) && f.Draft?.Points.Count == 0, "same-world map transition clears old contour");
+            f.SeedTriangle(); old = f.Draft; ArenaSession.IsActive = true;
+            f.Call("OnGUI"); f.Step();
+            Check(GUI.Labels == 0 && !ReferenceEquals(old, f.Draft) && f.Draft?.Points.Count == 0,
+                "same-world mode transition clears old contour");
         }
     }
 
@@ -295,8 +391,11 @@ internal static class Program
             Settings.Reset();
             var body = new Player { Position = new Vector3(0, 1, 0) };
             World = new GameWorld { LocationId = ArenaMapCatalog.FactoryDayId, MainPlayer = body };
-            Game = new LocalGame { GameWorld = World, LocalPlayer = body };
+            Game = new LocalGame { GameWorld = World, LocalPlayer = body,
+                RaidSettings = new LocalRaidSettings { location = World.LocationId, playerSide = JsonType.ESideType.Pmc,
+                    serverId = Protocol.BuildNativeEndIdentity("native-raid", "test-token") } };
             Bind();
+            ArenaSession.ArmedForNextRaid = false;
             ArenaRespawnDriver.IsRespawnInProgress = false; ArenaSpectatorService.IsActive = false;
             Cursor.lockState = CursorLockMode.Locked; EftScreenManager.Instance = new();
             CameraManager.Instance = new() { Camera = new Camera() };
@@ -312,6 +411,14 @@ internal static class Program
         {
             Singleton<AbstractGame>.Instance = Game; Singleton<GameWorld>.Instance = World;
             ArenaSession.IsActive = true; ArenaSession.ExactGame = Game; ArenaSession.ExactWorld = World;
+        }
+        public void NormalPmc()
+        {
+            ArenaSession.IsActive = false;
+            Settings.AreaCaptureAllowInNormalPmc.Value = true;
+            World.LocationId = ArenaMapCatalog.CustomsId;
+            Game.RaidSettings.location = World.LocationId;
+            Game.RaidSettings.serverId = "native-pmc-raid";
         }
         public void Press(KeyCode key, bool withModifier = true)
             => Step(new[] { key }, withModifier ? new[] { key, KeyCode.LeftControl } : new[] { key });

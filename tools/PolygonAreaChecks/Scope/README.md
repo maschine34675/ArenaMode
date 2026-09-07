@@ -19,7 +19,10 @@ plugin directory; repeated exports preserve the first file. Cleanup resolves and
 checks that temporary target before deleting it. No installed game/profile/config
 files are read or changed (except reading the Newtonsoft.Json assembly).
 
-Coverage includes dormant normal raids/off, exact game/world/body mismatches,
+Coverage includes dormant normal raids by default, explicit PMC opt-in with real
+exports from positions outside the current Customs boundary, both factions,
+Scav request/body exclusion, native map/identity checks and ending/rejected Arena
+fallback refusal, exact game/world/body mismatches,
 missing/dead bodies, respawn/spectator/menu suspension, same-world draft retention
 after body replacement, scope/setting lifecycle resets, nearest eligible aim hits,
 Arena-owned versus foreign colliders, explicit export, fault latching and GUI

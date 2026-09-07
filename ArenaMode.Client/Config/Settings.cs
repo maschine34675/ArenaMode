@@ -93,6 +93,7 @@ public static class Settings
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
     public static ConfigEntry<bool> AreaCaptureEnabled { get; private set; }
+    public static ConfigEntry<bool> AreaCaptureAllowInNormalPmc { get; private set; }
     public static ConfigEntry<KeyboardShortcut> AreaCaptureAim { get; private set; }
     public static ConfigEntry<KeyboardShortcut> AreaCaptureFeet { get; private set; }
     public static ConfigEntry<KeyboardShortcut> AreaCaptureUndo { get; private set; }
@@ -186,8 +187,11 @@ public static class Settings
     {
         File = config;
         AreaCaptureEnabled = config.Bind("Development - Area outline", "Enabled", false,
-            "Opt-in Arena-only point capture. Exports drafts; NEVER changes live boundaries or spawns. " +
+            "Opt-in point capture. Normal PMC raids additionally require AllowInNormalPmc. Exports drafts; NEVER changes live boundaries or spawns. " +
             "Use Waypoints for spawn visualization. Draft points survive respawns but clear when disabled or the raid ends; export first.");
+        AreaCaptureAllowInNormalPmc = config.Bind("Development - Area outline", "AllowInNormalPmc", false,
+            "Allow the enabled capture tool in normal local PMC raids so you can walk an entire new outline. " +
+            "Survey only: NO Arena kit, respawn, invulnerability or profile protection. Normal raid consequences still apply. No Scav or Hideout capture.");
         AreaCaptureAim = config.Bind("Development - Area outline", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftControl),
             "Capture the map surface under the crosshair, up to 250m away. Ignores Arena's own boundary colliders for this read-only ray.");
         AreaCaptureFeet = config.Bind("Development - Area outline", "CaptureFeet", new KeyboardShortcut(KeyCode.F10, KeyCode.LeftControl),

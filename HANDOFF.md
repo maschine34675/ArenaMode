@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Current follow-up: `fix/pmc-area-capture`, based on clean `83a26cf`. The user
+  found Arena-only capture impractical because they cannot walk outside the old
+  contour. F12 `Development - Area outline` now offers `AllowInNormalPmc`
+  (default false), in addition to `Enabled`, for measuring in a normal local PMC
+  raid. This is a read/draw/explicit-export exception only; normal raid/profile
+  consequences remain and Arena borders stay closed. No server/geometry change.
+  The production-linked capture checks pass 292 assertions plus nine deliberate
+  fault controls; independent review has no open P0-P2. Release client compilation
+  uses isolated deployment staging, with live DLL hashes unchanged during tests.
+  The reviewed client is then copied only after game-state coordination. The
+  follow-up needs a game restart, not a server restart; GPU behavior is unrun.
 - Current work: polygon boundaries and an opt-in scene capture/export helper on
   `feature/polygon-arena-areas`, based on clean `e61b6e3`. See
   `POLYGON-AREA-REVIEW.md` for controls, validation and pending user GPU checks.
@@ -66,14 +77,17 @@ Polygon support now accepts simple concave XZ outlines plus enclosing heights.
 Walls/grid, floor/ceiling caps, spawn containment and full path-segment checks
 share that contour. F12 `Development - Area outline` optionally captures ordered
 scene points (Ctrl+F6 aim, Ctrl+F10 feet, Ctrl+F7 undo, Ctrl+F8 export). JSONs go to
-`BepInEx/plugins/ArenaMode/AreaDrafts`; capture is exact-Arena-only and does not
-change settings/geometry for the live match. Export before leaving/disabling.
+`BepInEx/plugins/ArenaMode/AreaDrafts`; capture is scoped to the exact local raid
+and does not change settings/geometry for it. Normal PMC capture additionally
+requires `AllowInNormalPmc`; Scav/Hideout and ending/invalid Arena identities are
+rejected. Ordinary raids retain ordinary equipment/profile consequences; this
+helper grants no Arena protection. Export before leaving/disabling.
 The user supplies a draft for later Customs fitting and a new shared preset ID.
 Waypoints remains the spawn viewer. No new playable polygon preset, CTF, team
 size change or autonomous raid is part of this turn. See the polygon review for
 test evidence and what still needs actual Unity/GPU confirmation.
 
-Polygon-stage verification: 363 complete database-backed tests (no skips),
+Historical polygon-stage verification at `83a26cf`: 363 complete database-backed tests (no skips),
 focused geometry/capture/enclosure and native/TDM regressions, plus 14 deliberate
 fault controls. Independent review closed the body/world ownership and visual
 layer findings. The user confirmed server and game stopped before deployment.

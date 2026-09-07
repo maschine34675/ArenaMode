@@ -100,6 +100,15 @@ test above was verified that way — reintroduce the comma and three tests go re
    latch, a deadlocked game mode. Do not skip it because a change looks small. The tests
    are a floor, not a substitute: none of those three would have been caught by one.
 
+## User-authorized survey helper exception (2026-09-07)
+
+The area-outline development tool may read scene positions, draw its preview and
+explicitly export draft files in a normal local PMC raid when BOTH `Enabled` and
+`AllowInNormalPmc` are enabled. The user needs to walk beyond the existing Arena
+contour. This does not authorize ordinary-raid gameplay/profile changes, Arena
+activation, invulnerability, Scav/Hideout capture or weakening any Arena barrier.
+Both switches default off. See `POLYGON-AREA-REVIEW.md` for the exact boundary.
+
 ## Traps this project has already fallen into
 
 Each of these cost a debugging session. They recur.

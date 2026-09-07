@@ -7,6 +7,8 @@ using Comfort.Common;
 using EFT;
 using EFT.CameraControl;
 using EFT.UI.Screens;
+using JsonType;
+using Redeploy.Core.GameAccess;
 using System;
 using System.IO;
 using System.Linq;
@@ -27,18 +29,33 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
     private string _status = "Capture points around the outline; the last edge closes automatically.";
     private bool _valid;
     private bool _faulted;
+    private bool _arenaScope;
     private float _minY, _maxY, _spawnMinY, _spawnMaxY;
     private GUIStyle _text, _pointText;
 
     private bool TryScope(out AbstractGame game, out GameWorld world)
     {
         game = null; world = null;
-        if (Settings.AreaCaptureEnabled?.Value != true || !ArenaSession.IsActive) return false;
+        if (Settings.AreaCaptureEnabled?.Value != true) return false;
         game = Singleton<AbstractGame>.Instantiated ? Singleton<AbstractGame>.Instance : null;
         world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
-        return game is LocalGame local && game.Status == GameStatus.Started && world != null
-            && ReferenceEquals(local.GameWorld, world)
-            && ArenaSession.IsExactActiveRaid(game, world) && ArenaMapCatalog.IsSupportedMap(world.LocationId);
+        if (!(game is LocalGame local) || game.Status != GameStatus.Started || world == null
+            || !ReferenceEquals(local.GameWorld, world) || !ArenaMapCatalog.IsSupportedMap(world.LocationId)) return false;
+        // An active but mismatched Arena may never fall through to ordinary capture.
+        if (ArenaSession.IsActive) return ArenaSession.IsExactActiveRaid(game, world);
+        if (Settings.AreaCaptureAllowInNormalPmc?.Value != true || ArenaSession.ArmedForNextRaid) return false;
+
+        var settings = LocalGameAccessor.GetLocalRaidSettings(local);
+        var side = local.LocalPlayer?.Profile?.Info?.Side;
+        // The native game retains the server response ID, including Arena's
+        // end marker after IsActive clears. Never reclassify that old game as
+        // ordinary. A valid ordinary-start tag is also accepted for integrations
+        // retaining the request ID. This path only reads metadata; it arms nothing.
+        return settings != null && settings.playerSide == ESideType.Pmc
+            && (side == EPlayerSide.Usec || side == EPlayerSide.Bear)
+            && string.Equals(settings.location, world.LocationId, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(settings.serverId)
+            && (Protocol.IsNativeOrdinaryStartIdentity(settings.serverId) || !Protocol.HasNativeEndMarker(settings.serverId));
     }
 
     private bool CanInteract()
@@ -57,11 +74,14 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
         try
         {
             if (!TryScope(out var game, out var world)) { Reset(); return; }
-            if (!ReferenceEquals(_world, world) || !ReferenceEquals(_game, game))
+            if (!ReferenceEquals(_world, world) || !ReferenceEquals(_game, game)
+                || _arenaScope != ArenaSession.IsActive
+                || !string.Equals(_draft?.MapId, world.LocationId, StringComparison.OrdinalIgnoreCase))
             {
                 Reset();
                 _world = world; _game = game;
-                _draft = new ArenaAreaDraft(world.LocationId, ArenaAreaRuntime.CurrentArea?.Id);
+                _arenaScope = ArenaSession.IsActive;
+                _draft = new ArenaAreaDraft(world.LocationId, _arenaScope ? ArenaAreaRuntime.CurrentArea?.Id : null);
                 Revalidate();
             }
             if (_faulted) return;
@@ -140,7 +160,8 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
         try
         {
             if (!TryScope(out var game, out var world) || !ReferenceEquals(_game, game)
-                || !ReferenceEquals(_world, world) || !CanInteract()) return;
+                || !ReferenceEquals(_world, world) || _arenaScope != ArenaSession.IsActive
+                || !string.Equals(_draft.MapId, world.LocationId, StringComparison.OrdinalIgnoreCase) || !CanInteract()) return;
             var camera = CameraManager.Exist ? CameraManager.Instance.Camera : null;
             if (camera == null || !camera.isActiveAndEnabled) return;
             _text ??= new GUIStyle(GUI.skin.label) { fontSize = 14, wordWrap = true };
@@ -166,14 +187,16 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
                         $"{i + 1} ({p.Y:F1}m)", _pointText);
             }
             GUI.color = Color.white;
-            var box = new Rect(20f, Mathf.Max(20, Screen.height - 200), 465f, 175f);
+            float height = _arenaScope ? 175f : 205f;
+            var box = new Rect(20f, Mathf.Max(20, Screen.height - height - 25), 465f, height);
             GUI.Box(box, GUIContent.none);
             GUI.Label(new Rect(box.x + 12, box.y + 8, box.width - 24, box.height - 16),
                 $"AREA OUTLINE DRAFT — {_draft.MapId} — {points.Count}/64 points\n"
                 + $"{Settings.AreaCaptureAim.Value}: aim point  |  {Settings.AreaCaptureFeet.Value}: feet\n"
                 + $"{Settings.AreaCaptureUndo.Value}: undo  |  {Settings.AreaCaptureExport.Value}: export\n"
                 + $"Floor/ceiling: {_minY:F1} .. {_maxY:F1}m; spawn feet: {_spawnMinY:F1} .. {_spawnMaxY:F1}m\n"
-                + _status + "\nPreview only; visible through walls. Spawn display: Waypoints.", _text);
+                + _status + "\nPreview only; visible through walls. Spawn display: Waypoints."
+                + (_arenaScope ? "" : "\nNormal PMC raid: ordinary gear/profile consequences still apply."), _text);
         }
         catch (Exception ex)
         {
@@ -203,7 +226,7 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
 
     private void Reset()
     {
-        _draft = null; _world = null; _game = null; _faulted = false; _valid = false;
+        _draft = null; _world = null; _game = null; _faulted = false; _valid = false; _arenaScope = false;
         _text = null; _pointText = null;
     }
     private void OnDisable() => Reset();

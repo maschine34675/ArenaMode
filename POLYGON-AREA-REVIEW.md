@@ -11,10 +11,20 @@ visualization tool. The previous native area menu received the user's broad
 
 ## Capture controls
 
-Restart both server and game after deployment. In F12, enable ArenaMode's
-`Development - Area outline` / `Enabled`. The tool runs only in the exact active
-local Arena raid. Customs is still selected through Arena -> Team Deathmatch ->
-Customs (Factory Center); its current physical boundary stays enabled.
+Follow-up based on `83a26cf`, branch `fix/pmc-area-capture`: the user found that
+Arena-only capture cannot be used to walk a new contour outside the old boundary.
+An explicit normal-PMC survey option fixes that workflow. This is a client-only
+change; restart the game. The server needs no update for this follow-up.
+
+To walk an unrestricted Customs outline, start a **normal PMC raid**, not Arena.
+In F12 -> ArenaMode -> `Development - Area outline`, set BOTH `Enabled` and
+`AllowInNormalPmc` to true. Both default off; the second switch is new. The tool
+only measures and exports: ordinary raid rules, equipment losses and profile
+consequences still apply. It grants no invulnerability or Arena respawn/profile
+protection. Disable the helper when not surveying. Scav and Hideout are excluded.
+
+Arena capture still works with just `Enabled`, but its current physical boundary
+stays enabled. There is no boundary bypass or playable whole-map Customs Arena.
 
 | Default shortcut (left Ctrl) | Action |
 | --- | --- |
@@ -47,8 +57,9 @@ connectivity, unobstructed terrain or runtime enclosure budget acceptance.
 
 Capture/export is suspended while dead, respawning, spectating, in menus or with
 an unlocked cursor. It requires the exact game's current own local player body.
-Points survive a respawn in that same raid. Disabling capture, leaving that raid
-or changing the exact game/world clears them. **Export before leaving or
+Points survive an Arena respawn in that same raid. Disabling capture, leaving
+that raid or changing the exact game/world, map or Arena/ordinary context clears
+them. Switching off `AllowInNormalPmc` also clears a normal-raid draft. **Export before leaving or
 disabling it.** There is no automatic save or import.
 
 Each export is a separate complete file under the plugin's adjacent
@@ -63,6 +74,17 @@ ID. They explicitly say `draftOnly: true`; the mod does not load them. Send the
 chosen JSON back for review, spawn/connectivity checks and publication of the
 same new versioned preset in both halves. Do not overwrite a v1 preset's
 geometry under its old ID. No existing captures are overwritten.
+
+Normal-PMC drafts report `sourceAreaId: full-map`, even if a bounded Arena area is
+saved in the menu. This describes where points were captured, not an active
+whole-map Customs preset. The normal predicate requires a started `LocalGame`,
+matching singleton/game world and map, PMC raid settings, and its own living
+USEC/BEAR body. `_raidSettings.serverId` must be present and unmarked, or a
+strictly valid ordinary-start correlation ID. Reserved malformed/Arena markers
+remain rejected after Arena's active flag clears; an active mismatched Arena
+can never fall through to normal capture. No Session flags or native settings
+are written. Native evidence: `TarkovApplication.cs:2993`,
+`BaseLocalGame.cs:442`, `LocalGameAccessor.GetLocalRaidSettings`.
 
 ## Geometry and enclosure
 
@@ -111,7 +133,25 @@ use standalone client models and a deliberately nonexistent server deployment
 target. **Build deploys** the solution, runs the full database-backed suite and
 compares all four final Release DLLs with the local installed files.
 
-Verification outcomes (2026-09-07):
+PMC follow-up verification (2026-09-07): the production-linked controller suite
+passes 292 assertions, including capture/export outside the current Customs
+boundary in normal USEC/BEAR raids, off/default behavior, both Scav checks,
+world/map/body and active/ending Arena refusal. Nine deliberate polygon/capture
+mutants fail named assertions, followed by original-source rechecks. The 101
+draft/export assertions also pass. Independent review found no open P0-P2.
+
+`PmcCaptureVerify.ps1 -Stage Scope` reproduces those checks. `-Stage Build`
+compiles the actual client against installed game references while automatic
+deployment targets a fresh isolated staging directory. It verifies the installed
+client/core stayed unchanged and that the staged and built client hashes match.
+Staged client SHA-256:
+`316954F9B9E82ECA4441B587B20093EF2FF88094E9CF590FD4CFE587C40D08E7`.
+Delivery copies only this client DLL after game-state coordination. Server,
+companion and Redeploy code are unchanged. Actual normal-PMC GPU use still needs
+the user's test; no autonomous raid was run. The full server/data suite below is
+historical polygon evidence, not a new run for this client-only follow-up.
+
+Historical polygon implementation verification (`83a26cf`, 2026-09-07):
 
 - 363 server/data tests passed with the installed database, no skips; the focused
   geometry/Customs group contains 46 cases, including 33 added polygon cases.
@@ -151,9 +191,11 @@ actual keyboard/game interaction. No autonomous raid was run.
 
 ## User GPU handoff
 
-1. On the unchanged Customs candidate, enable capture; check the help panel,
-   aim/feet points, order labels, undo and an export. A capture beyond the current
-   border must leave that border impassable. Use Waypoints for native spawns.
+1. Start normal PMC Customs; enable both capture switches. Walk outside the old
+   Factory Center contour, capture aim/feet points in order, undo and export.
+   The panel must identify ordinary raid/profile consequences. Use Waypoints for
+   native spawns. Default/off, Scav and Hideout must not admit capture.
+   In an Arena match, capture must still leave the existing border impassable.
 2. Check that menu, death, killcam and observer input does not add/export points;
    the draft should remain after respawn but disappear when disabled or after
    leaving the exact raid. Check return to ordinary/full-map raids for leftovers.
@@ -165,5 +207,7 @@ actual keyboard/game interaction. No autonomous raid was run.
    floor/ceiling routes, bot navigation, repeated respawns and teardown in-game.
    No newly authored concave contour is selectable in this capture-first build.
 
-The user confirmed game and server stopped before final deployment. Live GPU
+The user confirmed game and server stopped before the original polygon deployment.
+The normal-PMC follow-up is verified in isolated deployment staging first; actual
+game-state coordination and installed hash comparison precede delivery. Live GPU
 physics/UI and precise Customs fitting remain user-owned, unrun checks.
