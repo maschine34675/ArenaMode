@@ -8,7 +8,7 @@ using Comfort.Common;
 using EFT;
 using UnityEngine;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static void Check(bool result, string description)
@@ -26,8 +26,12 @@ internal static class Program
         internal Player Local => World.MainPlayer;
         internal List<BotOwner> Bots => Game.BotsController.BotSpawner._bots.BotOwners;
         internal Raid(bool usec = true, int size = 5, bool active = true,
-            string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null)
+            string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
+            bool bounded = false, bool areaPending = false)
         {
+            ArenaMode.Areas.ArenaAreaRuntime.Reset();
+            ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
+            ArenaMode.Areas.ArenaAreaRuntime.IsPending = bounded && areaPending;
             Time.time = 0;
             Model.Events.Clear();
             BurstSpawnService.Requests.Clear();
@@ -648,6 +652,7 @@ internal static class Program
         RuntimeDiagnostics();
         NativeFriendshipAndDamagePolicy();
         ScoreAwardsTracersAndLoot();
+        BoundedAreaModeContract();
         Console.WriteLine($"PASS: {_checks} production TDM mode/relations runtime-model checks.");
         Console.WriteLine("ARENA_TDM_RUNTIME_CHECKS_PASSED");
     }

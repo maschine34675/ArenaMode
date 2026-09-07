@@ -47,6 +47,24 @@ current. User-facing communication is normally German.
 
 ## Current behavior and recent work
 
+New gameplay prototype on `feature/bounded-arena-prototype`, based on `7298980`
+including the GPU menu redesign: opt-in Factory South, Factory daytime,
+independent TDM fixed 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md)
+for the exact area, server/client contract, verification and required user raid
+checks. Enable before the raid via F12 -> Team Deathmatch -> `ExperimentalArea`
+= `factory-south-v1`; default/disable is `full-map`. Other modes are unchanged.
+Server and game need a restart after this deployment. No GPU raid was performed.
+Customs remains the next candidate after validating this small-map prototype;
+CTF, an editor, native area picker and PFT region support are not implemented.
+
+The user confirmed game and development work on the GPU host were stopped and
+new DLLs may be installed. This change was prepared in an independent local
+clone outside the Syncthing tree, then integrated into the shared repository;
+do not resume that old isolated clone as a second source writer. Deployment
+hash checks on D:\SPT41 do not by themselves prove completed GPU synchronization.
+The local Syncthing query reported SPT-GPU disconnected during this delivery;
+remote receipt remains pending until it reconnects and finishes synchronization.
+
 Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
 Team Deathmatch is independent of PFT; protected Tactical 5v5 is a separate path.
 Maps: Factory day/night, Labs, Labyrinth. Factory night uses the native time

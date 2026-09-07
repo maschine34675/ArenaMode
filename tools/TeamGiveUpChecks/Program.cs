@@ -10,7 +10,7 @@ using EFT;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static void Check(bool value, string message)
@@ -29,8 +29,10 @@ internal static class Program
         internal Player Local => World.MainPlayer;
         internal int CapturedKills;
         internal readonly List<string> Callouts = new();
-        internal Raid(bool usec = true)
+        internal Raid(bool usec = true, bool bounded = false)
         {
+            ArenaMode.Areas.ArenaAreaRuntime.Reset();
+            ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
             Usec = usec;
             Time.time = 0;
             ArenaGiveUp.Reset();
@@ -358,6 +360,7 @@ internal static class Program
         FailuresAndLifecycle();
         RequestAndTypingGates();
         ExactVisibleBodies();
+        BoundedGiveUpContract();
         Console.WriteLine($"PASS: {_checks} production-linked Give up, scoreboard, awards and exact-body checks.");
         Console.WriteLine("ARENA_TEAM_GIVE_UP_CHECKS_PASSED");
     }

@@ -133,6 +133,11 @@ internal static class LiveKitRespawn
         Action<bool> onComplete,
         int raidEpoch)
     {
+        while (Areas.ArenaAreaRuntime.IsPending
+               && ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+               && !ArenaRespawnDriver.StandDown)
+            yield return null;
+
         if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
             || ArenaRespawnDriver.StandDown)
         {
@@ -200,13 +205,21 @@ internal static class LiveKitRespawn
             yield break;
         }
 
+        var requestedSpawn = spawn ?? new FixedSpawnSelector(oldBody.Position, oldBody.Transform.rotation);
+        if (!Areas.ArenaAreaRespawn.TryPrepare(game, requestedSpawn, out var preparedSpawn))
+        {
+            ArenaRespawnDriver.EndPipelineUse(raidEpoch);
+            Report(onComplete, false);
+            yield break;
+        }
+
         var request = new RespawnRequest
         {
             Game = game,
             DeadPlayer = oldBody,
             // Resolved here, not by the caller: for the raid-start swap "where
             // the player is" means where they are NOW, after the waits above.
-            SpawnSelector = spawn ?? new FixedSpawnSelector(oldBody.Position, oldBody.Transform.rotation),
+            SpawnSelector = preparedSpawn,
             EquipmentStrategy = (profile, dead) => KitBuilder.ApplyToProfile(profile, dead, kit, requireCorpse: false),
             HealthPercent = 100f,
             Protection = protection,
@@ -299,6 +312,11 @@ internal static class LiveKitRespawn
     /// </summary>
     private static void RecoverOldBody(LocalGame game, LocalPlayer oldBody)
     {
+        if (Areas.ArenaAreaRuntime.CurrentArea != null)
+        {
+            Areas.ArenaAreaRuntime.Abort("live body replacement failed; unsafe rewiring was refused");
+            return;
+        }
         try
         {
             var current = game.LocalPlayer;

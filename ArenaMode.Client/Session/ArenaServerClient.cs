@@ -230,7 +230,10 @@ public static class ArenaServerClient
         return true;
     }
 
-    public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false)
+    internal static string PendingArmToken => _pendingArmToken;
+
+    public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
+        string areaId = ArenaAreaCatalog.FullMapId)
     {
         HasPendingArm = true;
         HasPendingEnd = false;
@@ -248,12 +251,15 @@ public static class ArenaServerClient
                 map,
                 mode,
                 pitFireTeamTeam,
+                areaId,
                 requestId = _pendingArmToken,
             });
             var response = RequestHandler.PostJson(Protocol.RaidStartRoute, body);
             var parsed = string.IsNullOrEmpty(response) ? null : JObject.Parse(response);
             string returnedArmToken = parsed?["armToken"]?.Value<string>();
             var ok = parsed?["armed"]?.Value<bool>() == true
+                && (areaId == ArenaAreaCatalog.FullMapId
+                    || string.Equals(parsed?["areaId"]?.Value<string>(), areaId, StringComparison.Ordinal))
                 && string.Equals(
                     returnedArmToken,
                     _pendingArmToken,

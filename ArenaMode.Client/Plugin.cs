@@ -56,6 +56,9 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotLifecycleSafety.Enable();
         Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
+        Areas.ArenaAreaNavigationPatches.Enable();
+        Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
+        Areas.ArenaAreaLoadPatch.Enable();
         Effects.ArenaTracerPatches.Enable();
         Effects.ArenaTeamLaserColors.Enable();
         Notifications.ArenaProgressNotifications.Enable();
@@ -86,6 +89,10 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Areas.ArenaAreaRuntime.Reset();
+        Areas.ArenaAreaNavigationPatches.Shutdown();
+        Areas.ArenaAreaSpawnPointsPatch.Shutdown();
+        Areas.ArenaAreaLoadPatch.Shutdown();
         Bots.ArenaSainActionSafety.Shutdown();
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();

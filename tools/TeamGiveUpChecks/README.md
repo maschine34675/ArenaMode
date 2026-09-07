@@ -49,3 +49,12 @@ block the existing escape action, and added reentrancy/failed-match regressions;
 (4) checked exact visual body ownership, unchanged other-mode behavior, bounded
 state, scoreboard compaction and scratch-only mutant execution. Final verification
 runs production checks, behavioral mutants and the unchanged runtime harness.
+
+## Bounded-area consumer contract
+
+The 2026-09-07 standalone run passed 385 assertions. Added 2v2 cases verify that
+giving up grants the opponent exactly one kill, pending area/respawn work cannot
+duplicate that credit, and an accepted replacement permits a new life. The
+shared `AreaStandIns.cs` supplies the readiness/position verdict only; actual
+scene validation, physical respawn and protected native exit are outside this
+harness. All previous give-up, typing and lifecycle assertions are retained.

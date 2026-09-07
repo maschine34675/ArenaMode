@@ -45,7 +45,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     public string DisplayName => "Team Deathmatch";
     public bool IsComplete => _failure != null;
     public float DeathReplaySeconds => 0f;
-    public bool HoldRespawn => false;
+    public bool HoldRespawn => Areas.ArenaAreaRuntime.IsPending;
     public bool ControlsOwnSpawns => true;
     public int TeamSize => _population?.TeamSize ?? 5;
     public string FriendlyFaction => _population?.LocalUsec == true ? "USEC" : "BEAR";
@@ -56,6 +56,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
         get
         {
             if (_failure != null) return "TEAM DM stopped — " + _failure;
+            if (Areas.ArenaAreaRuntime.IsPending) return "PREPARING ARENA AREA — checking navigation";
             if (_match == null) return "TEAM DM";
             int friendly = _match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Kills;
             int opponent = _match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills;
@@ -79,7 +80,9 @@ public sealed class TeamDeathmatchMode : IArenaMode
             Fail("local PMC identity or independent roster unavailable");
             return;
         }
-        _population = new TeamDeathmatchPopulation(Settings.TeamDeathmatchSize.Value, faction == EPlayerSide.Usec);
+        _population = new TeamDeathmatchPopulation(
+            Areas.ArenaAreaRuntime.CurrentArea?.MaxTeamSize ?? Settings.TeamDeathmatchSize.Value,
+            faction == EPlayerSide.Usec);
         TeamDeathmatchRelations.Reset();
         TeamDeathmatchRelations.Register(_local);
         _usecById.Add(_localId, _population.LocalUsec);
@@ -93,7 +96,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     public void Tick(float deltaTime)
     {
         if (ObserveNativeStop() || _ended || IsComplete || _population == null
-            || !IsCurrentRaid() || Time.time < _nextTick) return;
+            || !IsCurrentRaid() || Areas.ArenaAreaRuntime.IsPending || Time.time < _nextTick) return;
         _nextTick = Time.time + 1f;
         try
         {
@@ -434,6 +437,9 @@ public sealed class TeamDeathmatchMode : IArenaMode
     public void OnLocalRespawn(Player player)
     {
         if (_population == null || !IsCurrentRaid()) return;
+        try { if (player != null) Areas.ArenaAreaRuntime.RequirePosition(player.Position); }
+        catch (Exception ex)
+        { Areas.ArenaAreaRuntime.Abort("replacement body left the verified area: " + ex.Message); return; }
         if (player == null || player.ProfileId != _localId
             || TeamDeathmatchRelations.Faction(player) != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear))
         { Fail("local PMC faction changed"); return; }

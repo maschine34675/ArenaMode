@@ -48,6 +48,7 @@ public class ArenaSessionService
         public ArenaSessionState State;
         public string? Map;
         public string? Mode;
+        public string AreaId = ArenaAreaCatalog.FullMapId;
         public DateTime ArmedAtUtc;
         public DateTime InRaidAtUtc;
         public bool ProtectPitFireTeam;
@@ -91,8 +92,11 @@ public class ArenaSessionService
         string map,
         string? mode,
         bool protectPitFireTeam = false,
-        string? armToken = null)
+        string? armToken = null,
+        string? areaId = null)
     {
+        if (!ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out _, out var areaFailure))
+            throw new ArgumentException(areaFailure, nameof(areaId));
         string key = sessionId.ToString();
         string token = string.IsNullOrWhiteSpace(armToken)
             ? Guid.NewGuid().ToString("N")
@@ -104,6 +108,7 @@ public class ArenaSessionService
                 State = ArenaSessionState.Armed,
                 Map = map.ToLowerInvariant(),
                 Mode = mode,
+                AreaId = ArenaAreaCatalog.NormalizeId(areaId!),
                 ArmedAtUtc = DateTime.UtcNow,
                 ProtectPitFireTeam = protectPitFireTeam,
                 ArmToken = token,
@@ -125,7 +130,7 @@ public class ArenaSessionService
 
         logger.Info(
             $"[ArenaMode] Armed for session {sessionId}: map={map}, mode={mode}, " +
-            $"pitFireTeamProtection={protectPitFireTeam}");
+            $"pitFireTeamProtection={protectPitFireTeam}, area={ArenaAreaCatalog.NormalizeId(areaId!)}");
         return token;
     }
 
@@ -142,7 +147,8 @@ public class ArenaSessionService
         string? mode,
         bool protectPitFireTeam,
         string? requestId,
-        out string? armToken)
+        out string? armToken,
+        string? areaId = null)
     {
         armToken = null;
         lock (_lock)
@@ -152,6 +158,7 @@ public class ArenaSessionService
                 || string.IsNullOrWhiteSpace(entry.ArmToken)
                 || !string.Equals(entry.ArmToken, requestId, StringComparison.Ordinal)
                 || entry.ProtectPitFireTeam != protectPitFireTeam
+                || !string.Equals(entry.AreaId, ArenaAreaCatalog.NormalizeId(areaId!), StringComparison.Ordinal)
                 || !string.Equals(entry.Map, map, StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(entry.Mode, mode, StringComparison.OrdinalIgnoreCase))
             {
@@ -190,9 +197,11 @@ public class ArenaSessionService
         string map,
         string? mode,
         bool protectPitFireTeam,
-        string armToken)
+        string armToken,
+        string? areaId = null)
     {
-        if (!Protocol.IsLifecycleRequestId(armToken))
+        if (!Protocol.IsLifecycleRequestId(armToken)
+            || !ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out _, out _))
             return false;
 
         string key = sessionId.ToString();
@@ -214,7 +223,8 @@ public class ArenaSessionService
                         map,
                         mode,
                         protectPitFireTeam,
-                        armToken);
+                        armToken,
+                        ArenaAreaCatalog.NormalizeId(areaId!));
             }
         }
 
@@ -224,7 +234,8 @@ public class ArenaSessionService
                 map,
                 mode,
                 protectPitFireTeam,
-                armToken);
+                armToken,
+                ArenaAreaCatalog.NormalizeId(areaId!));
     }
 
     private bool PublishArmPreparationLocked(
@@ -232,7 +243,8 @@ public class ArenaSessionService
         string map,
         string? mode,
         bool protectPitFireTeam,
-        string armToken)
+        string armToken,
+        string areaId)
     {
         if (_sessions.TryGetValue(key, out var existing)
             && existing.State != ArenaSessionState.Idle)
@@ -245,6 +257,7 @@ public class ArenaSessionService
             State = ArenaSessionState.Preparing,
             Map = map.ToLowerInvariant(),
             Mode = mode,
+            AreaId = areaId,
             ArmedAtUtc = DateTime.UtcNow,
             ProtectPitFireTeam = protectPitFireTeam,
             ArmToken = armToken,
@@ -308,6 +321,7 @@ public class ArenaSessionService
             }
 
             entry.State = ArenaSessionState.Idle;
+            entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
             entry.ArmToken = null;
@@ -550,6 +564,10 @@ public class ArenaSessionService
                 return false;
             }
 
+            if (entry.AreaId != ArenaAreaCatalog.FullMapId
+                && !IsAreaLocationReady(entry, out _))
+                return false;
+
             entry.ClientRaidStarted = true;
             return true;
         }
@@ -629,6 +647,83 @@ public class ArenaSessionService
             return _sessions.TryGetValue(sessionId.ToString(), out var entry)
                    && entry.State == ArenaSessionState.InRaid;
         }
+    }
+
+    /// <summary>The immutable area belongs to one non-idle arm, never a later ordinary raid.</summary>
+    public string GetAreaId(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State != ArenaSessionState.Idle
+                   && !string.IsNullOrEmpty(entry.ArmToken)
+                ? entry.AreaId : ArenaAreaCatalog.FullMapId;
+        }
+    }
+
+    /// <summary>
+    /// A bounded raid may leave native server start only after its exact clone
+    /// was filtered. Full-map raids retain their existing location behavior.
+    /// </summary>
+    public bool ValidateAreaLocation(MongoId sessionId, out string? reason)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid)
+            {
+                reason = "the exact Arena raid is no longer active";
+                return false;
+            }
+            return IsAreaLocationReady(entry, out reason);
+        }
+    }
+
+    public bool ValidateAreaResponse(MongoId sessionId, object? responseLocation, out string? reason)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid)
+            {
+                reason = "the exact Arena raid is no longer active";
+                return false;
+            }
+            if (entry.AreaId != ArenaAreaCatalog.FullMapId
+                && !ReferenceEquals(entry.LocationClone, responseLocation))
+            {
+                reason = "the bounded Arena response did not retain its exact filtered location clone";
+                return false;
+            }
+            return IsAreaLocationReady(entry, out reason);
+        }
+    }
+
+    private static bool IsAreaLocationReady(SessionEntry entry, out string? reason)
+    {
+        reason = null;
+        if (entry.AreaId == ArenaAreaCatalog.FullMapId)
+            return true;
+        if (!ArenaAreaCatalog.TryResolve(entry.AreaId, entry.Map!, entry.Mode!,
+                entry.ProtectPitFireTeam, out _, out reason))
+            return false;
+        if (entry.LocationMutationReady
+            && entry.LocationClone is SPTarkov.Server.Core.Models.Eft.Common.LocationBase location
+            && string.IsNullOrEmpty(entry.LocationMutationFailure))
+        {
+            try
+            {
+                ArenaLocationMutator.ValidateAreaSpawns(location, entry.Mode, entry.AreaId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                reason = ex.GetBaseException().Message;
+                return false;
+            }
+        }
+        reason = entry.LocationMutationFailure ?? "the bounded Arena location filter has not completed";
+        return false;
     }
 
     public bool IsProtectedTeamRaid(MongoId sessionId)
@@ -738,6 +833,7 @@ public class ArenaSessionService
             bool protectPitFireTeam = entry.ProtectPitFireTeam;
             string? completedArmToken = entry.ArmToken;
             entry.State = ArenaSessionState.Idle;
+            entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
             entry.ArmToken = null;
@@ -892,7 +988,8 @@ public class ArenaSessionService
             if (_sessions.TryGetValue(key, out var entry))
             {
                 entry.State = ArenaSessionState.Idle;
-            entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
+                entry.AreaId = ArenaAreaCatalog.FullMapId;
+                entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ProtectPitFireTeam = false;
                 entry.ArmToken = null;
                 entry.ClientRaidStarted = false;
@@ -926,7 +1023,8 @@ public class ArenaSessionService
             {
                 protectPitFireTeam = entry.ProtectPitFireTeam;
                 entry.State = ArenaSessionState.Idle;
-            entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
+                entry.AreaId = ArenaAreaCatalog.FullMapId;
+                entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ArmToken = null;
                 entry.ClientRaidStarted = false;
                 entry.NativeStartIdentity = null;

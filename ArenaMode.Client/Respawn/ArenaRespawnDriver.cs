@@ -165,6 +165,15 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             yield break;
         }
 
+        var requestedSpawn = new ArenaSpawnSelector(
+            new InfilSpawnSelector(new NearPositionSpawnSelector(() => corpsePosition, () => 25f)),
+            () => corpsePosition, Settings.RespawnMinDistance.Value);
+        if (!Areas.ArenaAreaRespawn.TryPrepare(game, requestedSpawn, out var preparedSpawn))
+        {
+            EndPipelineUse(raidEpoch);
+            yield break;
+        }
+
         var request = new RespawnRequest
         {
             Game = game,
@@ -172,10 +181,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             // Random and away from the body, rather than the engine's "farthest
             // from everyone", which is stable enough to hand out the same corner
             // over and over.
-            SpawnSelector = new ArenaSpawnSelector(
-                new InfilSpawnSelector(new NearPositionSpawnSelector(() => corpsePosition, () => 25f)),
-                () => corpsePosition,
-                Settings.RespawnMinDistance.Value),
+            SpawnSelector = preparedSpawn,
             EquipmentStrategy = (profile, dead) =>
             {
                 if (kit != null)
@@ -210,6 +216,11 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             Plugin.ModLogger.LogError($"Arena respawn failed: {failure}");
             StandDown = true;
             EndPipelineUse(raidEpoch);
+            if (Areas.ArenaAreaRuntime.CurrentArea != null)
+            {
+                Areas.ArenaAreaRuntime.Abort("body replacement failed: " + failure.GetBaseException().Message);
+                yield break;
+            }
             LocalGameAccessor.InvokeDeathScreen(game);
             yield break;
         }

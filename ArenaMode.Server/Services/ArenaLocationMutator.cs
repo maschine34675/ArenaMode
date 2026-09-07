@@ -42,8 +42,13 @@ public static class ArenaLocationMutator
         => string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
            || string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase);
 
-    public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config, string? mode = null)
+    public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config,
+        string? mode = null, string? areaId = null)
     {
+        // Validate the complete retained set before changing any raid data.
+        // A missing area preserves the legacy path, including its original list.
+        ApplyAreaSpawns(location, mode, areaId);
+
         // This object is already the exact Arena raid's clone. Mirror the
         // client menu projection without globally enabling Labyrinth, touching
         // entry keys or importing EnableLabyrinth's optional Scav/exfil changes.
@@ -151,6 +156,67 @@ public static class ArenaLocationMutator
         if (config.StripLoot)
             location.Loot = [];
     }
+
+    private static void ApplyAreaSpawns(LocationBase location, string? mode, string? areaId)
+    {
+        var allowed = GetAreaSpawns(location, mode, areaId, requireAlreadyContained: false);
+        if (allowed != null)
+            location.SpawnPointParams = allowed;
+    }
+
+    /// <summary>Read-only final check after all native/other-mod location work has finished.</summary>
+    internal static void ValidateAreaSpawns(LocationBase location, string? mode, string? areaId)
+        => GetAreaSpawns(location, mode, areaId, requireAlreadyContained: true);
+
+    private static List<SpawnPointParam>? GetAreaSpawns(
+        LocationBase location, string? mode, string? areaId, bool requireAlreadyContained)
+    {
+        if (!ArenaAreaCatalog.TryResolve(areaId!, location.Id, mode!, false,
+                out var area, out var failure))
+            throw new InvalidOperationException(failure);
+        if (area == null)
+            return null;
+
+        // Retain every category only within the area, including Player, Coop,
+        // Group and unknown mod categories. Never alter the marker objects or
+        // their flags: later ordinary raids may share those records upstream.
+        var source = (location.SpawnPointParams ?? []).ToList();
+        var allowed = source.Where(point =>
+            point != null && !string.IsNullOrWhiteSpace(point.Id)
+            && point.Position is { } p && area.AllowsSpawn(p.X, p.Y, p.Z)).ToList();
+        if (requireAlreadyContained && allowed.Count != source.Count)
+            throw new InvalidOperationException($"Arena area '{area.Id}' received an outside or invalid spawn after filtering.");
+        if (allowed.Select(point => point.Id).Distinct(StringComparer.Ordinal).Count() != allowed.Count)
+            throw new InvalidOperationException($"Arena area '{area.Id}' contains duplicate spawn identities.");
+
+        int PlayerCount(string side) => allowed.Where(point =>
+                HasCategory(point, "Player")
+                && point.Sides?.Any(value => string.Equals(value, "All", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, "Pmc", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, side, StringComparison.OrdinalIgnoreCase)) == true)
+            .Select(point => point.Position!.Value).Distinct().Count();
+        int botCount = allowed.Where(point =>
+                (HasCategory(point, "Bot") || HasCategory(point, "BotPmc") || HasCategory(point, "Boss"))
+                && !ArenaBotSpawnPolicy.IsExcludedZone(location.Id, point.BotZoneName)
+                && !ArenaBotSpawnPolicy.IsExcludedPoint(location.Id, point.Id))
+            .Select(point => point.Position!.Value).Distinct().Count();
+
+        // Two independent entry/respawn choices per PMC side and one marker per
+        // AI participant are a static minimum, not proof of live navigation.
+        // The client additionally validates distance, carving and connectivity.
+        int usecCount = PlayerCount("Usec");
+        int bearCount = PlayerCount("Bear");
+        int requiredBots = area.MaxTeamSize * 2 - 1;
+        if (usecCount < 2 || bearCount < 2 || botCount < requiredBots)
+            throw new InvalidOperationException(
+                $"Arena area '{area.Id}' has insufficient distinct spawn positions "
+                + $"(USEC {usecCount}/2, BEAR {bearCount}/2, bots {botCount}/{requiredBots}).");
+
+        return allowed;
+    }
+
+    private static bool HasCategory(SpawnPointParam point, string category)
+        => point.Categories?.Any(value => string.Equals(value, category, StringComparison.OrdinalIgnoreCase)) == true;
 
     private static IEnumerable<Wave> GenerateAssaultWaves(ArenaMapConfig map, int raidSeconds,
         string spawnZones, string mapId)

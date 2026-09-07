@@ -106,6 +106,15 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // not make the client create a different mode than the protected
             // location clone the server just armed.
             var requestedMode = Settings.SelectedGameModeId;
+            var areaId = string.Equals(requestedMode, ArenaModeCatalog.TeamDeathmatchId, StringComparison.Ordinal)
+                ? Shared.ArenaAreaCatalog.NormalizeId(Settings.TeamDeathmatchArea.Value)
+                : Shared.ArenaAreaCatalog.FullMapId;
+            if (!Shared.ArenaAreaCatalog.TryResolve(areaId, settings.location, requestedMode,
+                    ArenaMenuSelection.CompatibilityTeamArenaActive, out var area, out var areaFailure))
+                throw new InvalidOperationException(areaFailure);
+            if (area != null && (!Areas.ArenaAreaNavigationPatches.IsReady || !Areas.ArenaAreaLoadPatch.IsReady
+                || !Areas.ArenaAreaSpawnPointsPatch.IsReady))
+                throw new InvalidOperationException("Arena area protection is unavailable; use full-map TDM.");
             if (ArenaMenuSelection.CompatibilityTeamArenaActive
                 && !string.Equals(requestedMode, ArenaModeCatalog.TacticalId,
                     StringComparison.Ordinal))
@@ -121,7 +130,7 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // CompatibilityTeamArenaActive queries PitFireTeamCompat.TeamArenaActive;
             // at this point it reflects the roster frozen just above.
             if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode,
-                    ArenaMenuSelection.CompatibilityTeamArenaActive))
+                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId))
                 throw new InvalidOperationException("The server did not arm Arena profile protection.");
 
             if (!ArenaServerClient.BindNativeStartIdentity(settings))
@@ -129,6 +138,7 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
                     "Arena could not bind the native local-start request to its exact arm token.");
 
             ArenaSession.MarkArmed(settings.location, requestedMode);
+            Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken);
 
             // Fetch catalog now (loading screen) instead of inside a gameplay frame.
             Kits.KitCatalog.Preload();

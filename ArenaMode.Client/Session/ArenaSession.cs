@@ -92,6 +92,7 @@ public static class ArenaSession
 
         ArmedForNextRaid = false;
         ArmedMode = null;
+        Areas.ArenaAreaRuntime.Reset();
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
         PitFireTeamCompat.Clear(reason);
         ArenaServerClient.PostRaidCancel(startFailed: true);
@@ -215,6 +216,11 @@ public static class ArenaSession
         ActiveMode = armedMode;
         LastRaidWasArena = true;
         Respawn.ArenaRespawnDriver.ResetSession();
+        if (!Areas.ArenaAreaRuntime.Begin(world, currentGame as LocalGame))
+        {
+            Modes.ArenaMatchService.ScheduleFailedStartAbort("bounded Arena area initialization failed");
+            return;
+        }
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
         try
         {
@@ -302,6 +308,7 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        Areas.ArenaAreaRuntime.Reset();
         // Clear exact start identity before any early return. A later GameWorld
         // must never be mistaken for a duplicate of this completed raid.
         _startedWorld = null;

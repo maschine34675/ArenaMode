@@ -96,6 +96,7 @@ namespace ArenaMode.Config
     public static class Settings
     {
         public static Entry<string> GameMode = new() { Value = "endless" };
+        public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId };
         public static string SelectedGameModeId
             => ArenaMode.Modes.ArenaModeCatalog.NormalizeId(GameMode.Value);
         public static bool IsArenaMap(string map) => map == "factory4_day" || map == "factory4_night"

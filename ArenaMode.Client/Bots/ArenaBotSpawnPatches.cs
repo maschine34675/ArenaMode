@@ -72,6 +72,11 @@ internal static class ArenaBotSpawnPatches
         private static bool Prefix(BotSpawner __instance, List<ISpawnPoint> openedPositions,
             BotZone botZone, BotCreationData data)
         {
+            if (Areas.ArenaAreaRuntime.ShouldBlockLoadingBotDispatch())
+            {
+                TeamDeathmatchSpawnDispatch.MarkRejected(__instance, data);
+                return false;
+            }
             if (!TeamDeathmatchSpawnDispatch.CanDispatch(__instance, data))
             {
                 // Deny unowned batches before the native method charges its

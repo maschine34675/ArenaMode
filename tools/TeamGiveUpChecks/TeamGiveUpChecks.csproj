@@ -14,6 +14,9 @@
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
     <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="EngineModel.cs" />
+    <Compile Include="../TeamDeathmatchRuntimeChecks/AreaStandIns.cs" Link="AreaModel.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaMatch.cs" Link="Production/ArenaMatch.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />

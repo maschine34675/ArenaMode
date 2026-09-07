@@ -16,5 +16,7 @@
     <Compile Include="$(ProductionPlannerSource)" Link="Production/BurstSpawnPointSelector.cs" />
     <Compile Include="$(ProductionTeamPointsSource)" Link="Production/ArenaTeamSpawnPointsPatch.cs" />
     <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaBotSpawnPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
   </ItemGroup>
 </Project>

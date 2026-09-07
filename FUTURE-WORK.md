@@ -71,10 +71,13 @@ server `Patches/BotTierScalePatch.cs` and `Services/ArenaSessionService.cs`.
 ## Smaller playable areas within larger maps
 
 User question: mark an area visibly in-game, prevent the player from crossing its
-boundary, and restrict bots to the same area. No concrete map polygon has been
-selected and no boundary implementation has been authorized/built by these notes.
+boundary, and restrict bots to the same area. Implementation was authorized on
+2026-09-07; the first opt-in prototype is now Factory South v1 for independent
+TDM 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md). Source/build tests
+are separate from the pending user GPU raid check. Customs is the next desired
+map after validating this smaller-map approach; no Customs area is enabled yet.
 
-Proposed design:
+Design direction (partly implemented by the prototype; broader support remains):
 
 - Named per-map area definitions, selected before the raid and frozen for both
   halves of the exact Arena session. Start with one connected, manually authored

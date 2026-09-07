@@ -11,7 +11,7 @@ using SPT.Common.Http;
 // Fault-injection checks compile the actual selection/HTTP/negotiation files.
 // Only game, BepInEx and transport dependencies are stand-ins; this is not a
 // substitute for Harmony binding, Unity layout or a real raid/profile diff.
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static readonly MethodInfo Hook = typeof(LocalRaidStartedPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
@@ -264,6 +264,7 @@ internal static class Program
                && ArenaMode.Plugin.ModLogger.WarningCount == warnings + 1
                && ArenaMode.Plugin.ModLogger.LastWarning.Contains("empty response", StringComparison.Ordinal),
             "A malformed empty success response remains visible without the wrapper");
+        CheckAreaNegotiation();
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

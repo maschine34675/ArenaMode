@@ -27,6 +27,9 @@ public record ArenaRaidStartRequest : IRequestData
 
     [JsonPropertyName("requestId")]
     public string? RequestId { get; set; }
+
+    [JsonPropertyName("areaId")]
+    public string? AreaId { get; set; }
 }
 
 public record ArenaRaidLifecycleRequest : IRequestData
@@ -235,6 +238,7 @@ public sealed class ArenaModeRouter : StaticRouter
                 state = state.ToString(),
                 map,
                 mode,
+                areaId = Sessions?.GetAreaId(sessionId) ?? ArenaAreaCatalog.FullMapId,
                 armToken = Sessions?.GetArmToken(sessionId),
                 clientRaidStarted = Sessions?.IsClientRaidStarted(sessionId) == true,
                 pitFireTeamTeam = protectedTeam,
@@ -456,6 +460,13 @@ public sealed class ArenaModeRouter : StaticRouter
             });
         }
 
+        // Resolve before snapshot recovery/preparation, and before replay: an
+        // unknown or mismatched area must never silently become a full-map raid.
+        string areaId = ArenaAreaCatalog.NormalizeId(request.AreaId!);
+        if (!ArenaAreaCatalog.TryResolve(areaId, request.Map!, request.Mode!,
+                request.PitFireTeamTeam, out _, out string? areaFailure))
+            return Json(new { armed = false, reason = areaFailure });
+
         ArenaSessionState existingState = Sessions.GetStatus(sessionId).state;
         if (existingState != ArenaSessionState.Idle)
         {
@@ -472,7 +483,8 @@ public sealed class ArenaModeRouter : StaticRouter
                     request.Mode,
                     request.PitFireTeamTeam,
                     request.RequestId,
-                    out string? replayedArmToken))
+                    out string? replayedArmToken,
+                    areaId))
             {
                 _logger.Info(
                     $"[ArenaMode] Replayed identical committed raid-start for session {sessionId}.");
@@ -481,6 +493,7 @@ public sealed class ArenaModeRouter : StaticRouter
                     armed = true,
                     snapshotTaken = true,
                     armToken = replayedArmToken,
+                    areaId = Sessions.GetAreaId(sessionId),
                     replayed = true,
                 });
             }
@@ -560,7 +573,8 @@ public sealed class ArenaModeRouter : StaticRouter
                 request.Map!,
                 request.Mode,
                 request.PitFireTeamTeam,
-                armToken))
+                armToken,
+                areaId))
         {
             return Json(new
             {
@@ -596,7 +610,7 @@ public sealed class ArenaModeRouter : StaticRouter
             return Json(new { armed = false, reason = "protected Arena arm was cancelled during snapshot" });
         }
 
-        return Json(new { armed = true, snapshotTaken = true, armToken });
+        return Json(new { armed = true, snapshotTaken = true, armToken, areaId });
     }
 
     private async ValueTask<string> HandleRaidEnd(

@@ -42,7 +42,7 @@ temporary mutation/build evidence stays in the printed directory.
 ## Factory exact-point coverage
 
 `FactoryChecks.cs` links the production methods instead of copying their logic.
-The complete harness currently passes 265 assertions, including these new cases:
+The complete harness passed 288 assertions on 2026-09-07, including these cases:
 
 - Both Factory variants reject only `c671337f-e58f-4de6-a387-307d877954a3`, including
   a Player-only marker passed through bot dispatch. Neighboring, partial, null and
@@ -85,3 +85,12 @@ The accounting stand-in observes whether the production prefix allows the
 native boundary; it does not claim to reproduce the native bot lifecycle. Real
 method binding must also be checked against the deployed DLL, and a raid remains
 necessary to validate actual placement and normal-player behavior.
+
+## Bounded-area consumer contract
+
+`AreaChecks.cs` additionally exercises the production AI result filter and
+native dispatch prefix with explicit external area verdicts: loading/preparing
+must reject before counters, outside/disconnected or null/empty batches must not
+use native fallback, and accepted one-point requests retain their accounting.
+Ordinary/full-map calls remain unchanged. `AreaStandIns.cs` supplies readiness
+and point verdicts; these tests do not implement or prove scene/NavMesh behavior.

@@ -32,6 +32,7 @@ internal static partial class Program
             CheckBurstPointSelection();
             CheckFactory();
             CheckPolicy();
+            CheckBoundedAreaDispatch();
             Console.WriteLine($"LABS_BOT_SPAWN_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -349,6 +350,7 @@ internal static partial class Program
 
     private static void SetSession(string map, bool armed, bool active)
     {
+        ArenaMode.Areas.ArenaAreaRuntime.Reset();
         ArenaSession.ArmedMap = map;
         ArenaSession.ArmedForNextRaid = armed;
         ArenaSession.IsActive = active;

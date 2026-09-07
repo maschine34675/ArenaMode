@@ -34,7 +34,7 @@ internal static class ArenaBotSpawnFilter
            && ArenaBotSpawnPolicy.IsExcludedZone(ArenaSession.ArmedMap, zone?.NameZone);
 
     public static bool IsExcludedPoint(ISpawnPoint point)
-        => IsEnabled
+        => !Areas.ArenaAreaRuntime.AllowsSpawn(point) || IsEnabled
            && (ArenaBotSpawnPolicy.IsExcludedZone(ArenaSession.ArmedMap, point?.BotZoneName)
                || (IsPointRestrictedRaid && ArenaBotSpawnPolicy.IsExcludedPoint(ArenaSession.ArmedMap, point?.Id)));
 
@@ -49,7 +49,7 @@ internal static class ArenaBotSpawnFilter
 
     public static List<ISpawnPoint> FilterBotPoints(List<ISpawnPoint> points)
     {
-        if (points == null || !IsEnabled || !points.Any(IsExcludedPoint))
+        if (points == null || !points.Any(IsExcludedPoint))
             return points;
 
         // The public AI selector returns before its interface wrapper applies
@@ -59,5 +59,7 @@ internal static class ArenaBotSpawnFilter
     }
 
     public static bool CanDispatch(BotZone zone, List<ISpawnPoint> points)
-        => !IsEnabled || (!IsExcludedZone(zone) && (points == null || !points.Any(IsExcludedPoint)));
+        => !Areas.ArenaAreaRuntime.ShouldBlockLoadingBotDispatch()
+           && (Areas.ArenaAreaRuntime.CurrentArea == null || points is { Count: > 0 })
+           && !IsExcludedZone(zone) && (points == null || !points.Any(IsExcludedPoint));
 }

@@ -137,6 +137,12 @@ public sealed class ArenaProtectedRaidStartService(
                         request,
                         transactionTimeout.Token);
 
+                // Do not return an unrestricted location after the bounded
+                // filter failed. The finally block settles native work before
+                // exact-token failed-start recovery may restore the snapshot.
+                if (!sessions.ValidateAreaResponse(sessionId, response.LocationLoot, out string? areaFailure))
+                    throw new InvalidOperationException($"Arena area location rejected: {areaFailure}");
+
                 if (!sessions.BindNativeEndIdentity(
                         sessionId,
                         nativeStartIdentity,

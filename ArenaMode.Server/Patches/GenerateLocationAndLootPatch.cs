@@ -30,9 +30,12 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
             return;
 
         var protectedTeam = sessions.IsProtectedTeamRaid(sessionId);
+        var areaId = sessions.GetAreaId(sessionId);
+        var boundedArea = areaId != ArenaMode.Shared.ArenaAreaCatalog.FullMapId;
+        var requiresLocation = protectedTeam || boundedArea;
         if (__result == null)
         {
-            if (protectedTeam)
+            if (requiresLocation)
                 sessions.MarkLocationMutationFailed(sessionId, "the server returned no location clone");
             return;
         }
@@ -41,7 +44,7 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
             || !ArenaContext.Config.Maps.TryGetValue(name.ToLowerInvariant(), out var mapConfig)
             || !mapConfig.Enabled)
         {
-            if (protectedTeam)
+            if (requiresLocation)
                 sessions.MarkLocationMutationFailed(sessionId, $"Arena map '{name}' is no longer enabled");
             return;
         }
@@ -49,7 +52,7 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
         try
         {
             var mode = sessions.GetStatus(sessionId).mode;
-            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode);
+            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode, areaId);
             sessions.StashLocationClone(sessionId, __result);
             sessions.MarkLocationMutationReady(sessionId);
 
@@ -59,16 +62,17 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
 
             ArenaContext.Logger?.Info(
                 $"[ArenaMode] Location clone mutated for arena ({name}, mode={mode ?? "?"}): botMax={mapConfig.BotMax}, " +
-                $"spawn strategy={strategy}, " +
+                $"spawn strategy={strategy}, area={areaId}, " +
                 $"raid={ArenaContext.Config.RaidTimeMinutes}min, stripLoot={ArenaContext.Config.StripLoot}.");
         }
         catch (Exception ex)
         {
-            if (protectedTeam)
+            if (requiresLocation)
             {
                 sessions.MarkLocationMutationFailed(sessionId, ex.GetBaseException().Message);
                 ArenaContext.Logger?.Error(
-                    $"[ArenaMode] Protected 5v5 location mutation failed — client must end the raid as no contest: {ex}");
+                    $"[ArenaMode] Required Arena location mutation failed (area={areaId}, protectedTeam={protectedTeam}); "
+                    + $"the invalid raid must not become playable: {ex}");
                 return;
             }
 

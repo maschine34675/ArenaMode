@@ -69,6 +69,9 @@ internal static class CombatPatches
             if (!ArenaSession.IsActive)
                 return false;
 
+            if (Areas.ArenaAreaRuntime.IsPending
+                && Areas.ArenaAreaRuntime.TryGetForPlayer(victim, out _)) return true;
+
             var tactical = ArenaMatchService.Current?.Mode as TacticalMode;
             return tactical != null && tactical.ShouldBlockStagingDamage(victim);
         }

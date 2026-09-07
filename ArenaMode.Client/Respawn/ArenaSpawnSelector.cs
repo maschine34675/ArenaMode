@@ -45,6 +45,9 @@ internal sealed class ArenaSpawnSelector : ISpawnSelector
 
     public (Vector3 position, Quaternion rotation) Resolve(LocalGame game)
     {
+        if (Areas.ArenaAreaRuntime.CurrentArea != null)
+            return Areas.ArenaAreaRuntime.PickRespawn(_avoid?.Invoke() ?? game.LocalPlayer.Position, _minDistance);
+
         try
         {
             var picked = Pick(game);

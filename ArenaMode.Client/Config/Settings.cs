@@ -91,6 +91,7 @@ public static class Settings
     public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
+    public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
@@ -482,6 +483,17 @@ public static class Settings
                     ArenaModeCatalog.GunGameId,
                     ArenaModeCatalog.TacticalId,
                     ArenaModeCatalog.TeamDeathmatchId)));
+
+        TeamDeathmatchArea = config.Bind(
+            "Team Deathmatch",
+            "ExperimentalArea",
+            ArenaAreaCatalog.FullMapId,
+            new ConfigDescription(
+                "Experimental bounded arena. Full-map preserves normal TDM settings. " +
+                "Factory South requires Factory daytime and fixes the match at 2v2. " +
+                "Selected before loading; changes during a raid apply next match. " +
+                "Other modes ignore this setting. The area must pass its live navigation checks.",
+                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId)));
 
         TeamDeathmatchSize = config.Bind(
             "Team Deathmatch",

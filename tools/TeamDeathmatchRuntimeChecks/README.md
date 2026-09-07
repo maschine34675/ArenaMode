@@ -10,7 +10,7 @@ registry, administrative death scope and no-corpse-looting patch. The actual
 native prefix methods run through the modeled dispatch, rather than reimplementing
 their decisions in test callbacks.
 
-The current run covers 189 assertions:
+The 2026-09-07 run covers 209 assertions:
 
 - USEC and BEAR with 2, 5 and 12 players per faction; human slot reservation,
   one-shot readiness, actual faction scoreboard and no overfill.
@@ -115,3 +115,14 @@ Source evidence: `ArenaMode.Client/Bots/BurstSpawnService.cs`,
 `ArenaMode.Client/Bots/TeamDeathmatchSpawnDispatch.cs`,
 `ArenaMode.Client/Bots/ArenaBotSpawnPatches.cs`, and
 `../_decompiled/EFT/BotSpawner.cs:899`, `:958`, `:982`.
+
+## Bounded-area consumer contract
+
+The production mode now also runs against explicit area-state inputs: it freezes
+2v2 despite a larger configured size, holds respawn and suppresses bot requests
+while preparing, releases exactly one teammate/two opponents when ready, and
+checks replacement positions before reactivating the local roster. A rejected
+position requests abort instead of admitting the body. `AreaStandIns.cs` models
+those external verdicts and records the abort request; it does not execute
+geometry, NavMesh, native Stop or profile restoration. Earlier assertions remain
+unchanged, and normal/full-map fixtures reset the new external input.
