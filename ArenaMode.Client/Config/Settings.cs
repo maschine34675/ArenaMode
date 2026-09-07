@@ -92,6 +92,15 @@ public static class Settings
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
+    public static ConfigEntry<bool> AreaCaptureEnabled { get; private set; }
+    public static ConfigEntry<KeyboardShortcut> AreaCaptureAim { get; private set; }
+    public static ConfigEntry<KeyboardShortcut> AreaCaptureFeet { get; private set; }
+    public static ConfigEntry<KeyboardShortcut> AreaCaptureUndo { get; private set; }
+    public static ConfigEntry<KeyboardShortcut> AreaCaptureExport { get; private set; }
+    public static ConfigEntry<float> AreaCaptureMinY { get; private set; }
+    public static ConfigEntry<float> AreaCaptureMaxY { get; private set; }
+    public static ConfigEntry<float> AreaCaptureSpawnMinY { get; private set; }
+    public static ConfigEntry<float> AreaCaptureSpawnMaxY { get; private set; }
     public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
     public static ConfigEntry<int> PressureRampMinutes { get; private set; }
@@ -176,6 +185,25 @@ public static class Settings
     public static void Init(ConfigFile config)
     {
         File = config;
+        AreaCaptureEnabled = config.Bind("Development - Area outline", "Enabled", false,
+            "Opt-in Arena-only point capture. Exports drafts; NEVER changes live boundaries or spawns. " +
+            "Use Waypoints for spawn visualization. Draft points survive respawns but clear when disabled or the raid ends; export first.");
+        AreaCaptureAim = config.Bind("Development - Area outline", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftControl),
+            "Capture the map surface under the crosshair, up to 250m away. Ignores Arena's own boundary colliders for this read-only ray.");
+        AreaCaptureFeet = config.Bind("Development - Area outline", "CaptureFeet", new KeyboardShortcut(KeyCode.F10, KeyCode.LeftControl),
+            "Capture the current local player's foot position. Walk the contour in order; the closing edge is automatic.");
+        AreaCaptureUndo = config.Bind("Development - Area outline", "Undo", new KeyboardShortcut(KeyCode.F7, KeyCode.LeftControl),
+            "Remove the last draft point.");
+        AreaCaptureExport = config.Bind("Development - Area outline", "Export", new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl),
+            "Validate and export a new draft JSON to BepInEx/plugins/ArenaMode/AreaDrafts. Not automatically loaded or applied.");
+        AreaCaptureMinY = config.Bind("Development - Area outline", "FloorY", 0f,
+            "Draft enclosing floor in absolute map Y coordinates. Defaults match the existing Customs candidate.");
+        AreaCaptureMaxY = config.Bind("Development - Area outline", "CeilingY", 12f,
+            "Draft enclosing ceiling in absolute map Y coordinates; leave headroom for jumping and vaulting.");
+        AreaCaptureSpawnMinY = config.Bind("Development - Area outline", "SpawnMinY", .5f,
+            "Draft minimum spawn foot height in absolute map Y coordinates. Separate from the enclosing floor.");
+        AreaCaptureSpawnMaxY = config.Bind("Development - Area outline", "SpawnMaxY", 3f,
+            "Draft maximum spawn foot height in absolute map Y coordinates; must remain inside floor/ceiling.");
 
         Maps = config.Bind(
             "General",

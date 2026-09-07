@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PlanSource Condition="'$(PlanSource)' == ''">../../../ArenaMode.Client/Areas/ArenaAreaEnclosurePlan.cs</PlanSource>
+    <BuilderSource Condition="'$(BuilderSource)' == ''">../../../ArenaMode.Client/Areas/ArenaAreaEnclosure.cs</BuilderSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove=".work/**" />
+    <Compile Include="$(PlanSource)" Link="Production/ArenaAreaEnclosurePlan.cs" />
+    <Compile Include="$(BuilderSource)" Link="Production/ArenaAreaEnclosure.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+  </ItemGroup>
+</Project>

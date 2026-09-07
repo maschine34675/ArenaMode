@@ -7,7 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Current work: native area selection on `feature/native-area-menu`, based on
+- Current work: polygon boundaries and an opt-in scene capture/export helper on
+  `feature/polygon-arena-areas`, based on clean `e61b6e3`. See
+  `POLYGON-AREA-REVIEW.md` for controls, validation and pending user GPU checks.
+  The user has no Customs vertices yet and explicitly chose capture help first;
+  both existing presets stay unchanged. No draft is loaded into a live match.
+  Work was prepared in an isolated checkout outside Syncthing; continue from the
+  safely integrated shared checkout after delivery, not temporary author clones.
+- Previous work: native area selection on `feature/native-area-menu`, based on
   the clean `ec11aa8` handoff snapshot. See `NATIVE-AREA-MENU-REVIEW.md` for the
   selection rules, verification and pending GPU menu checks. The source was
   prepared outside Syncthing in an isolated checkout; use the integrated shared
@@ -55,6 +62,27 @@ current. User-facing communication is normally German.
 
 ## Current behavior and recent work
 
+Polygon support now accepts simple concave XZ outlines plus enclosing heights.
+Walls/grid, floor/ceiling caps, spawn containment and full path-segment checks
+share that contour. F12 `Development - Area outline` optionally captures ordered
+scene points (Ctrl+F6 aim, Ctrl+F10 feet, Ctrl+F7 undo, Ctrl+F8 export). JSONs go to
+`BepInEx/plugins/ArenaMode/AreaDrafts`; capture is exact-Arena-only and does not
+change settings/geometry for the live match. Export before leaving/disabling.
+The user supplies a draft for later Customs fitting and a new shared preset ID.
+Waypoints remains the spawn viewer. No new playable polygon preset, CTF, team
+size change or autonomous raid is part of this turn. See the polygon review for
+test evidence and what still needs actual Unity/GPU confirmation.
+
+Polygon-stage verification: 363 complete database-backed tests (no skips),
+focused geometry/capture/enclosure and native/TDM regressions, plus 14 deliberate
+fault controls. Independent review closed the body/world ownership and visual
+layer findings. The user confirmed server and game stopped before deployment.
+Final Release outputs are hash-compared with the local installation; this is not
+a fresh GPU host hash comparison or an in-raid test.
+
+The previous native picker received the user's "ja passt" acceptance. This is
+broad functional acceptance, not proof of every individual PFT/menu transition.
+
 Native area selection now appears below the five Arena mode rows on the map
 screen. Choose Arena -> Team Deathmatch -> Customs: the map is directly offered
 and selects Factory Center automatically, with fixed 2v2 displayed. No F12
@@ -82,7 +110,7 @@ readiness gate must reject an unusable component rather than spawn outside.
 Factory South geometry remains unchanged; loading/readiness/respawn now share an explicit
 PMC-side check so Savage-only Player markers cannot become human spawn choices.
 `CUSTOMS-AREA-REVIEW.md` records checks, deployment evidence and the test list.
-Final local verification: 330 server/data tests passed without skips; targeted
+Historical Customs-stage local verification: 330 server/data tests passed without skips; targeted
 client regressions and nine negative controls passed, independent review has no
 open P0-P2 findings. Release outputs match all four DLLs installed on D:\SPT41.
 At delivery the local Syncthing query reported SPT-GPU disconnected (not paused).

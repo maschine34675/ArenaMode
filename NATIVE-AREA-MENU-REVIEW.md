@@ -4,6 +4,11 @@ Date: 2026-09-07. Branch: `feature/native-area-menu`, based on `ec11aa8`.
 Scope: expose the two user-tested bounded prototypes in the existing Arena map
 screen. No new area geometry, team sizes, AI, server/profile code or game modes.
 
+Subsequent user acceptance on 2026-09-07: "ja passt"; Factory subdivision remains
+useful only as a test. This confirms broad practical picker operation, not every
+individual case in the GPU checklist. The following polygon/capture change is
+documented in `POLYGON-AREA-REVIEW.md` and preserves both existing preset shapes.
+
 ## User-visible contract
 
 | Selection | Available areas | Population |

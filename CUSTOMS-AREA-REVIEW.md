@@ -8,6 +8,13 @@ The exact scope of that report and remaining checks are recorded below.
 
 ## Scope and activation
 
+Historical activation below describes `a690ce2`. Since `e61b6e3`, the native
+area picker selects Factory Center when choosing Arena -> Team Deathmatch ->
+Customs; F12 preselection is no longer required. See
+`NATIVE-AREA-MENU-REVIEW.md`. The following polygon/capture work is described in
+`POLYGON-AREA-REVIEW.md`; it preserves this candidate's v1 coordinates and adds
+no live Customs contour until scene points have been supplied and reviewed.
+
 Restart server and game after deployment. Before loading, set F12 -> Team
 Deathmatch -> `ExperimentalArea` to `customs-factory-center-v1`. Select Arena,
 Team Deathmatch and the native Customs tile. This preset fixes the match at

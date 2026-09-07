@@ -21,7 +21,7 @@ public sealed class ArenaAreaDefinition
         if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(mapId)
             || !ArenaAreaBounds.Finite(spawnMinY) || !ArenaAreaBounds.Finite(spawnMaxY)
             || spawnMinY > spawnMaxY || spawnMinY < bounds.MinY || spawnMaxY > bounds.MaxY
-            || bounds.MinX >= bounds.MaxX || bounds.MinY >= bounds.MaxY || bounds.MinZ >= bounds.MaxZ
+            || !bounds.IsValid
             || maxTeamSize < 2)
             throw new ArgumentException("Invalid Arena area definition.");
         Id = id;
@@ -41,29 +41,84 @@ public sealed class ArenaAreaDefinition
 }
 
 /// <summary>
-/// A finite convex volume. Every segment between contained endpoints remains
-/// inside, including body-to-first-corner; concave polygons need a different rule.
+/// A finite simple XZ polygon extruded between two heights. Its extents are an
+/// acceleration bound, not the playable shape. The original box constructor
+/// retains its inclusive float comparisons and convex path fast path.
 /// </summary>
 public readonly struct ArenaAreaBounds
 {
+    public const int MaxVertices = 64;
     public readonly float MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
+    private readonly IReadOnlyList<ArenaAreaVertex>? _outline;
+    private readonly IReadOnlyList<int>? _floorTriangles;
+    private readonly bool _rectangle;
+
+    /// <summary>Defensive copy, counterclockwise in the X/Z plane.</summary>
+    public IReadOnlyList<ArenaAreaVertex> Outline => _outline ?? Array.Empty<ArenaAreaVertex>();
+    /// <summary>CCW index triples into Outline; collinear vertices may be unused.</summary>
+    public IReadOnlyList<int> FloorTriangles => _floorTriangles ?? Array.Empty<int>();
+    public bool IsValid => _outline != null && _floorTriangles != null;
 
     public ArenaAreaBounds(float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
+        : this(BoxOutline(minX, minZ, maxX, maxZ), minY, maxY)
     {
-        if (!Finite(minX) || !Finite(minY) || !Finite(minZ)
-            || !Finite(maxX) || !Finite(maxY) || !Finite(maxZ)
-            || minX >= maxX || minY >= maxY || minZ >= maxZ)
-            throw new ArgumentException("Arena area bounds must be finite and ordered.");
-        MinX = minX; MinY = minY; MinZ = minZ;
-        MaxX = maxX; MaxY = maxY; MaxZ = maxZ;
+        _rectangle = true;
     }
 
+    public ArenaAreaBounds(IReadOnlyList<ArenaAreaVertex> outline, float minY, float maxY)
+    {
+        if (outline == null || outline.Count < 3 || outline.Count > MaxVertices
+            || !Finite(minY) || !Finite(maxY) || minY >= maxY)
+            throw new ArgumentException("Arena polygon requires 3..64 vertices and finite ordered heights.");
+
+        var copy = new ArenaAreaVertex[outline.Count];
+        for (int i = 0; i < copy.Length; i++)
+        {
+            copy[i] = outline[i];
+            if (!Finite(copy[i].X) || !Finite(copy[i].Z))
+                throw new ArgumentException("Arena polygon coordinates must be finite.");
+            for (int j = 0; j < i; j++)
+                if (copy[i].X == copy[j].X && copy[i].Z == copy[j].Z)
+                    throw new ArgumentException("Arena polygon vertices must be distinct; do not repeat its closing point.");
+        }
+        ValidateSimple(copy);
+        double area = SignedDoubleArea(copy);
+        if (area == 0)
+            throw new ArgumentException("Arena polygon has no enclosed area.");
+        if (area < 0) Array.Reverse(copy);
+        var triangles = Triangulate(copy);
+
+        float minX = copy[0].X, maxX = copy[0].X, minZ = copy[0].Z, maxZ = copy[0].Z;
+        for (int i = 1; i < copy.Length; i++)
+        {
+            minX = Math.Min(minX, copy[i].X); maxX = Math.Max(maxX, copy[i].X);
+            minZ = Math.Min(minZ, copy[i].Z); maxZ = Math.Max(maxZ, copy[i].Z);
+        }
+        MinX = minX; MinY = minY; MinZ = minZ;
+        MaxX = maxX; MaxY = maxY; MaxZ = maxZ;
+        _outline = Array.AsReadOnly(copy);
+        _floorTriangles = Array.AsReadOnly(triangles);
+        _rectangle = false;
+    }
+
+    /// <summary>Boundary belongs to the area at zero inset; positive inset is Euclidean edge clearance.</summary>
     public bool Contains(float x, float y, float z, float horizontalInset = 0f)
-        => Finite(x) && Finite(y) && Finite(z) && Finite(horizontalInset)
-           && horizontalInset >= 0f && MinX < MaxX && MinY < MaxY && MinZ < MaxZ
-           && x >= MinX + horizontalInset && x <= MaxX - horizontalInset
-           && y >= MinY && y <= MaxY
-           && z >= MinZ + horizontalInset && z <= MaxZ - horizontalInset;
+    {
+        if (!IsValid || !Finite(x) || !Finite(y) || !Finite(z) || !Finite(horizontalInset)
+            || horizontalInset < 0 || y < MinY || y > MaxY) return false;
+        if (_rectangle)
+            return x >= MinX + horizontalInset && x <= MaxX - horizontalInset
+                && z >= MinZ + horizontalInset && z <= MaxZ - horizontalInset;
+        if (x < MinX || x > MaxX || z < MinZ || z > MaxZ || !ContainsXZ(x, z)) return false;
+        if (horizontalInset == 0) return true;
+        double requiredSquared = (double)horizontalInset * horizontalInset;
+        for (int i = 0; i < Outline.Count; i++)
+        {
+            var a = Outline[i]; var b = Outline[(i + 1) % Outline.Count];
+            if (PointSegmentDistanceSquared(x, z, a.X, a.Z, b.X, b.Z) < requiredSquared) return false;
+        }
+        return true;
+    }
 
     public bool ContainsPath(ArenaAreaPoint origin, IReadOnlyList<ArenaAreaPoint> path,
         bool complete, float horizontalInset = 0f)
@@ -77,12 +132,205 @@ public readonly struct ArenaAreaBounds
         for (int i = 0; i < path.Count; i++)
         {
             var point = position(path[i]);
-            if (!Contains(point.X, point.Y, point.Z, horizontalInset)) return false;
+            if (!Contains(point.X, point.Y, point.Z, horizontalInset)
+                || (!_rectangle && !ContainsSegment(origin, point, horizontalInset))) return false;
+            origin = point;
         }
         return true;
     }
 
+    private bool ContainsSegment(ArenaAreaPoint from, ArenaAreaPoint to, float inset)
+    {
+        // Endpoints were checked by Contains. The prism's height interval is
+        // convex, so only the complete horizontal segment needs more work.
+        if (from.X == to.X && from.Z == to.Z) return true;
+        if (inset > 0)
+        {
+            double requiredSquared = (double)inset * inset;
+            for (int i = 0; i < Outline.Count; i++)
+            {
+                var a = Outline[i]; var b = Outline[(i + 1) % Outline.Count];
+                if (SegmentsTouch(from.X, from.Z, to.X, to.Z, a.X, a.Z, b.X, b.Z)
+                    || PointSegmentDistanceSquared(from.X, from.Z, a.X, a.Z, b.X, b.Z) < requiredSquared
+                    || PointSegmentDistanceSquared(to.X, to.Z, a.X, a.Z, b.X, b.Z) < requiredSquared
+                    || PointSegmentDistanceSquared(a.X, a.Z, from.X, from.Z, to.X, to.Z) < requiredSquared
+                    || PointSegmentDistanceSquared(b.X, b.Z, from.X, from.Z, to.X, to.Z) < requiredSquared)
+                    return false;
+            }
+            return true;
+        }
+
+        // At zero inset tangencies and travel along the boundary are legal.
+        // Split at every actual segment/edge intersection, including collinear
+        // endpoints. Interior membership cannot change inside any resulting
+        // open interval. One test per interval is therefore exact subdivision,
+        // not fixed-spacing sampling that could jump across a narrow notch.
+        var cuts = new List<double>(Outline.Count + 2) { 0, 1 };
+        double rx = (double)to.X - from.X, rz = (double)to.Z - from.Z;
+        double lengthSquared = rx * rx + rz * rz;
+        for (int i = 0; i < Outline.Count; i++)
+        {
+            var a = Outline[i]; var b = Outline[(i + 1) % Outline.Count];
+            // Any strict crossing already leaves the polygon. Reject it before
+            // computing parameters, even if an extremely short outside interval
+            // would round to the same parameter at the far end of a long path.
+            if (Opposite(Cross(from.X, from.Z, to.X, to.Z, a.X, a.Z), Cross(from.X, from.Z, to.X, to.Z, b.X, b.Z))
+                && Opposite(Cross(a.X, a.Z, b.X, b.Z, from.X, from.Z), Cross(a.X, a.Z, b.X, b.Z, to.X, to.Z)))
+                return false;
+            double sx = (double)b.X - a.X, sz = (double)b.Z - a.Z;
+            double qx = (double)a.X - from.X, qz = (double)a.Z - from.Z;
+            double denominator = rx * sz - rz * sx;
+            if (denominator != 0)
+            {
+                double t = (qx * sz - qz * sx) / denominator;
+                double u = (qx * rz - qz * rx) / denominator;
+                if (t >= 0 && t <= 1 && u >= 0 && u <= 1) cuts.Add(t);
+            }
+            else if (qx * rz - qz * rx == 0)
+            {
+                double t0 = (qx * rx + qz * rz) / lengthSquared;
+                double t1 = (((double)b.X - from.X) * rx + ((double)b.Z - from.Z) * rz) / lengthSquared;
+                if (t0 > 0 && t0 < 1) cuts.Add(t0);
+                if (t1 > 0 && t1 < 1) cuts.Add(t1);
+            }
+        }
+        cuts.Sort();
+        for (int i = 1; i < cuts.Count; i++)
+        {
+            if (cuts[i] <= cuts[i - 1]) continue;
+            double t = cuts[i - 1] + (cuts[i] - cuts[i - 1]) * 0.5;
+            if (!ContainsXZ(from.X + t * rx, from.Z + t * rz)) return false;
+        }
+        return true;
+    }
+
+    private bool ContainsXZ(double x, double z)
+    {
+        int winding = 0;
+        for (int i = 0; i < Outline.Count; i++)
+        {
+            var a = Outline[i]; var b = Outline[(i + 1) % Outline.Count];
+            double cross = Cross(a.X, a.Z, b.X, b.Z, x, z);
+            if (cross == 0 && Between(x, z, a.X, a.Z, b.X, b.Z)) return true;
+            if (a.Z <= z && b.Z > z && cross > 0) winding++;
+            else if (a.Z > z && b.Z <= z && cross < 0) winding--;
+        }
+        return winding != 0;
+    }
+
+    private static ArenaAreaVertex[] BoxOutline(float minX, float minZ, float maxX, float maxZ)
+    {
+        if (!Finite(minX) || !Finite(minZ) || !Finite(maxX) || !Finite(maxZ) || minX >= maxX || minZ >= maxZ)
+            throw new ArgumentException("Arena area bounds must be finite and ordered.");
+        return new[] { new ArenaAreaVertex(minX, minZ), new ArenaAreaVertex(maxX, minZ),
+            new ArenaAreaVertex(maxX, maxZ), new ArenaAreaVertex(minX, maxZ) };
+    }
+
+    private static void ValidateSimple(ArenaAreaVertex[] vertices)
+    {
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            var a = vertices[(i + vertices.Length - 1) % vertices.Length];
+            var b = vertices[i]; var c = vertices[(i + 1) % vertices.Length];
+            if (Cross(a.X, a.Z, b.X, b.Z, c.X, c.Z) == 0
+                && ((double)b.X - a.X) * ((double)c.X - b.X) + ((double)b.Z - a.Z) * ((double)c.Z - b.Z) <= 0)
+                throw new ArgumentException("Arena polygon adjacent edges overlap or reverse direction.");
+            for (int j = i + 1; j < vertices.Length; j++)
+            {
+                if (j == i + 1 || (i == 0 && j == vertices.Length - 1)) continue;
+                var d = vertices[j]; var e = vertices[(j + 1) % vertices.Length];
+                if (SegmentsTouch(b.X, b.Z, c.X, c.Z, d.X, d.Z, e.X, e.Z))
+                    throw new ArgumentException("Arena polygon edges must not cross or touch non-adjacent edges.");
+            }
+        }
+    }
+
+    private static double SignedDoubleArea(ArenaAreaVertex[] vertices)
+    {
+        // Translate before summing to avoid cancellation from a large map origin.
+        double area = 0;
+        for (int i = 1; i < vertices.Length - 1; i++)
+            area += Cross(vertices[0].X, vertices[0].Z, vertices[i].X, vertices[i].Z, vertices[i + 1].X, vertices[i + 1].Z);
+        return area;
+    }
+
+    private static int[] Triangulate(ArenaAreaVertex[] vertices)
+    {
+        var remaining = new List<int>(vertices.Length);
+        for (int i = 0; i < vertices.Length; i++) remaining.Add(i);
+        var triangles = new List<int>((vertices.Length - 2) * 3);
+        while (remaining.Count > 3)
+        {
+            bool removed = false;
+            for (int i = 0; i < remaining.Count; i++)
+            {
+                int previous = remaining[(i + remaining.Count - 1) % remaining.Count];
+                int current = remaining[i], next = remaining[(i + 1) % remaining.Count];
+                var a = vertices[previous]; var b = vertices[current]; var c = vertices[next];
+                double cross = Cross(a.X, a.Z, b.X, b.Z, c.X, c.Z);
+                if (cross < 0) continue;
+                if (cross == 0)
+                {
+                    // Preserve the immutable original contour but do not emit
+                    // zero-area cap triangles for straight intermediate points.
+                    remaining.RemoveAt(i); removed = true; break;
+                }
+                bool occupied = false;
+                foreach (int other in remaining)
+                {
+                    if (other == previous || other == current || other == next) continue;
+                    var p = vertices[other];
+                    if (Cross(a.X, a.Z, b.X, b.Z, p.X, p.Z) >= 0
+                        && Cross(b.X, b.Z, c.X, c.Z, p.X, p.Z) >= 0
+                        && Cross(c.X, c.Z, a.X, a.Z, p.X, p.Z) >= 0)
+                    { occupied = true; break; }
+                }
+                if (occupied) continue;
+                triangles.Add(previous); triangles.Add(current); triangles.Add(next);
+                remaining.RemoveAt(i); removed = true; break;
+            }
+            if (!removed) throw new ArgumentException("Arena polygon could not be triangulated safely.");
+        }
+        var first = vertices[remaining[0]]; var second = vertices[remaining[1]]; var third = vertices[remaining[2]];
+        if (Cross(first.X, first.Z, second.X, second.Z, third.X, third.Z) <= 0)
+            throw new ArgumentException("Arena polygon triangulation has a degenerate final face.");
+        triangles.AddRange(remaining);
+        return triangles.ToArray();
+    }
+
+    private static bool SegmentsTouch(double ax, double az, double bx, double bz,
+        double cx, double cz, double dx, double dz)
+    {
+        double c = Cross(ax, az, bx, bz, cx, cz), d = Cross(ax, az, bx, bz, dx, dz);
+        double a = Cross(cx, cz, dx, dz, ax, az), b = Cross(cx, cz, dx, dz, bx, bz);
+        return (Opposite(c, d) && Opposite(a, b))
+            || (c == 0 && Between(cx, cz, ax, az, bx, bz))
+            || (d == 0 && Between(dx, dz, ax, az, bx, bz))
+            || (a == 0 && Between(ax, az, cx, cz, dx, dz))
+            || (b == 0 && Between(bx, bz, cx, cz, dx, dz));
+    }
+
+    private static bool Opposite(double a, double b) => (a < 0 && b > 0) || (a > 0 && b < 0);
+    private static bool Between(double x, double z, double ax, double az, double bx, double bz)
+        => x >= Math.Min(ax, bx) && x <= Math.Max(ax, bx) && z >= Math.Min(az, bz) && z <= Math.Max(az, bz);
+    private static double Cross(double ax, double az, double bx, double bz, double cx, double cz)
+        => (bx - ax) * (cz - az) - (bz - az) * (cx - ax);
+    private static double PointSegmentDistanceSquared(double x, double z, double ax, double az, double bx, double bz)
+    {
+        double dx = bx - ax, dz = bz - az, lengthSquared = dx * dx + dz * dz;
+        double t = lengthSquared == 0 ? 0 : Math.Max(0, Math.Min(1, ((x - ax) * dx + (z - az) * dz) / lengthSquared));
+        double ex = x - (ax + t * dx), ez = z - (az + t * dz);
+        return ex * ex + ez * ez;
+    }
+
     public static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+}
+
+/// <summary>One horizontal outline vertex; validation belongs to the complete polygon.</summary>
+public readonly struct ArenaAreaVertex
+{
+    public readonly float X, Z;
+    public ArenaAreaVertex(float x, float z) { X = x; Z = z; }
 }
 
 public readonly struct ArenaAreaPoint

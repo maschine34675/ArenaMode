@@ -78,6 +78,7 @@ public class Plugin : BaseUnityPlugin
         Spectator.ArenaSpectatorCameraPatches.Enable();
         Spectator.ArenaSpectatorInputPatch.Enable();
         gameObject.AddComponent<ArenaController>();
+        gameObject.AddComponent<Areas.ArenaAreaCapture>();
         gameObject.AddComponent<Hud.ArenaPanel>();
         gameObject.AddComponent<Hud.TacticalBuyPanel>();
         gameObject.AddComponent<Spectator.ArenaSpectatorOverlay>();

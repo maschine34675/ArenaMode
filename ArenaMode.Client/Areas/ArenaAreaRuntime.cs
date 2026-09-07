@@ -42,14 +42,12 @@ internal static class ArenaAreaRuntime
     private static Phase _phase;
     private static string _failure;
     private static GameObject _root;
-    private static Material _material;
-    private static Mesh _mesh;
+    private static ArenaAreaEnclosurePlan _enclosurePlan;
+    private static ArenaAreaEnclosure _enclosure;
     private static readonly object InputOwner = new object();
     private static readonly List<ISpawnPoint> Candidates = new List<ISpawnPoint>();
     private static readonly HashSet<ISpawnPoint> Connected = new HashSet<ISpawnPoint>();
     private static readonly Dictionary<Player, ActorState> Actors = new Dictionary<Player, ActorState>();
-    private static readonly List<NavMeshObstacle> Obstacles = new List<NavMeshObstacle>();
-    private static readonly List<BoxCollider> Barriers = new List<BoxCollider>();
     private static readonly NavMeshPath ScratchPath = new NavMeshPath();
     private static readonly Func<Vector3, ArenaAreaPoint> ToPoint = p => new ArenaAreaPoint(p.x, p.y, p.z);
     private static Vector3 _anchor;
@@ -59,6 +57,8 @@ internal static class ArenaAreaRuntime
     internal static ArenaAreaDefinition CurrentArea => IsCurrentActive() ? _area : null;
     internal static bool IsPending => IsCurrentActive() && _phase != Phase.Ready;
     internal static bool IsReady => IsCurrentActive() && _phase == Phase.Ready;
+    internal static bool OwnsCollider(Collider collider)
+        => _root != null && collider != null && collider.transform.IsChildOf(_root.transform);
 
     internal static void Arm(ArenaAreaDefinition area, string token)
     {
@@ -280,27 +280,28 @@ internal static class ArenaAreaRuntime
     }
 
     private static bool EnclosureIntact()
-        => _root != null && _root.activeInHierarchy && Barriers.Count == 6 && Obstacles.Count == 6
-           && Barriers.All(c => c != null && c.enabled && c.gameObject.activeInHierarchy)
-           && Obstacles.All(o => o != null && o.enabled && o.carving && o.gameObject.activeInHierarchy);
+        => _enclosure != null && _enclosure.Intact();
 
     private static bool CarvingSealed()
     {
-        var b = _area.Bounds;
         // Direct crossing probes distinguish delayed carving from two frames
-        // merely having elapsed. Missing floor outside a wall is already closed.
-        for (float x = b.MinX + 2; x < b.MaxX; x += 4)
-            if (Crosses(new Vector3(x, _anchor.y, b.MinZ + 1), Vector3.back)
-                || Crosses(new Vector3(x, _anchor.y, b.MaxZ - 1), Vector3.forward)) return false;
-        for (float z = b.MinZ + 2; z < b.MaxZ; z += 4)
-            if (Crosses(new Vector3(b.MinX + 1, _anchor.y, z), Vector3.left)
-                || Crosses(new Vector3(b.MaxX - 1, _anchor.y, z), Vector3.right)) return false;
+        // merely having elapsed. Every contour edge, endpoint and corner gets
+        // probes; a missing outside floor needs no carve. Sharp corners may not
+        // yield an opposite-side sample pair. Physical walls and the complete
+        // path containment guards remain independent of these sampled probes.
+        if (_enclosurePlan == null) return false;
+        foreach (var probe in _enclosurePlan.Probes)
+            if (Crosses(new Vector3(probe.Inside.X, _anchor.y, probe.Inside.Z),
+                new Vector3(probe.Outside.X, _anchor.y, probe.Outside.Z))) return false;
         return true;
     }
 
-    private static bool Crosses(Vector3 inside, Vector3 outward)
-        => NavMesh.SamplePosition(inside, out var a, 0.5f, NavMesh.AllAreas)
-           && NavMesh.SamplePosition(inside + outward * 2f, out var b, 0.5f, NavMesh.AllAreas)
+    private static bool Crosses(Vector3 inside, Vector3 outside)
+        => Contains(inside) && !Contains(outside)
+           && NavMesh.SamplePosition(inside, out var a, 0.5f, NavMesh.AllAreas)
+           && NavMesh.SamplePosition(outside, out var b, 0.5f, NavMesh.AllAreas)
+           && Mathf.Abs(a.position.y - inside.y) <= 0.5f && Mathf.Abs(b.position.y - outside.y) <= 0.5f
+           && Contains(a.position) && !Contains(b.position)
            && !NavMesh.Raycast(a.position, b.position, out _, NavMesh.AllAreas);
 
     private static bool TrySample(Vector3 point, out Vector3 result)
@@ -533,74 +534,11 @@ internal static class ArenaAreaRuntime
 
     private static void BuildEnclosure()
     {
-        int layer = LayerMask.NameToLayer("LowPolyCollider");
-        int playerLayer = LayerMask.NameToLayer("Player");
-        if (layer < 0 || playerLayer < 0 || Physics.GetIgnoreLayerCollision(layer, playerLayer))
-            throw new InvalidOperationException("the existing Player/LowPolyCollider collision matrix does not block bodies");
-        var b = _area.Bounds;
-        float x = (b.MinX + b.MaxX) / 2, y = (b.MinY + b.MaxY) / 2, z = (b.MinZ + b.MaxZ) / 2;
-        float sx = b.MaxX - b.MinX, sy = b.MaxY - b.MinY, sz = b.MaxZ - b.MinZ;
-        const float t = 0.6f;
-        AddBarrier("west", new Vector3(b.MinX - t / 2, y, z), new Vector3(t, sy + t * 2, sz + t * 2), layer);
-        AddBarrier("east", new Vector3(b.MaxX + t / 2, y, z), new Vector3(t, sy + t * 2, sz + t * 2), layer);
-        AddBarrier("south", new Vector3(x, y, b.MinZ - t / 2), new Vector3(sx + t * 2, sy + t * 2, t), layer);
-        AddBarrier("north", new Vector3(x, y, b.MaxZ + t / 2), new Vector3(sx + t * 2, sy + t * 2, t), layer);
-        AddBarrier("bottom", new Vector3(x, b.MinY - t / 2, z), new Vector3(sx + t * 2, t, sz + t * 2), layer);
-        AddBarrier("top", new Vector3(x, b.MaxY + t / 2, z), new Vector3(sx + t * 2, t, sz + t * 2), layer);
-        var shader = Shader.Find("Sprites/Default");
-        if (shader == null) throw new InvalidOperationException("Sprites/Default boundary shader is unavailable");
-        _material = new Material(shader) { name = "ArenaMode.AreaGrid", color = new Color(0.15f, 0.85f, 1f, 0.42f) };
-        var vertices = new List<Vector3>();
-        var triangles = new List<int>();
-        // Thin double-sided ribbons make the grid visible in perspective while
-        // respecting ordinary depth occlusion. One mesh/material, not hundreds
-        // of independent line renderers or borrowed pooled map materials.
-        AddGrid(vertices, triangles, new Vector3(b.MinX, b.MinY, b.MinZ), Vector3.right * sx, Vector3.up * sy);
-        AddGrid(vertices, triangles, new Vector3(b.MinX, b.MinY, b.MaxZ), Vector3.right * sx, Vector3.up * sy);
-        AddGrid(vertices, triangles, new Vector3(b.MinX, b.MinY, b.MinZ), Vector3.forward * sz, Vector3.up * sy);
-        AddGrid(vertices, triangles, new Vector3(b.MaxX, b.MinY, b.MinZ), Vector3.forward * sz, Vector3.up * sy);
-        AddGrid(vertices, triangles, new Vector3(b.MinX, b.MinY + 0.01f, b.MinZ), Vector3.right * sx, Vector3.forward * sz);
-        AddGrid(vertices, triangles, new Vector3(b.MinX, b.MaxY, b.MinZ), Vector3.right * sx, Vector3.forward * sz);
-        _mesh = new Mesh { name = "ArenaMode.AreaGrid" };
-        _mesh.SetVertices(vertices); _mesh.SetTriangles(triangles, 0);
-        _mesh.colors32 = Enumerable.Repeat(new Color32(255, 255, 255, 255), vertices.Count).ToArray();
-        _mesh.RecalculateBounds();
-        var visual = new GameObject("Visible boundary");
-        visual.transform.SetParent(_root.transform, false);
-        visual.transform.position = Vector3.zero;
-        visual.AddComponent<MeshFilter>().sharedMesh = _mesh;
-        var renderer = visual.AddComponent<MeshRenderer>();
-        renderer.sharedMaterial = _material;
-        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        renderer.receiveShadows = false;
-    }
-
-    private static void AddBarrier(string name, Vector3 center, Vector3 size, int layer)
-    {
-        var go = new GameObject("Arena boundary " + name) { layer = layer };
-        go.transform.SetParent(_root.transform, false); go.transform.position = center;
-        var collider = go.AddComponent<BoxCollider>(); collider.size = size;
-        Barriers.Add(collider);
-        var obstacle = go.AddComponent<NavMeshObstacle>();
-        obstacle.shape = NavMeshObstacleShape.Box; obstacle.size = size;
-        obstacle.carveOnlyStationary = true; obstacle.carvingTimeToStationary = 0f; obstacle.carving = true;
-        Obstacles.Add(obstacle);
-    }
-
-    private static void AddGrid(List<Vector3> vertices, List<int> triangles, Vector3 origin, Vector3 u, Vector3 v)
-    {
-        const float spacing = 3f, width = 0.055f;
-        int nu = Mathf.CeilToInt(u.magnitude / spacing), nv = Mathf.CeilToInt(v.magnitude / spacing);
-        for (int i = 0; i <= nu; i++) Ribbon(vertices, triangles, origin + u * i / nu, v, u.normalized * width);
-        for (int i = 0; i <= nv; i++) Ribbon(vertices, triangles, origin + v * i / nv, u, v.normalized * width);
-    }
-
-    private static void Ribbon(List<Vector3> vertices, List<int> indices, Vector3 start, Vector3 direction, Vector3 width)
-    {
-        int n = vertices.Count;
-        vertices.Add(start - width / 2); vertices.Add(start + width / 2);
-        vertices.Add(start + direction + width / 2); vertices.Add(start + direction - width / 2);
-        indices.Add(n); indices.Add(n + 1); indices.Add(n + 2); indices.Add(n); indices.Add(n + 2); indices.Add(n + 3);
+        _enclosurePlan = ArenaAreaEnclosurePlan.Create(_area.Bounds);
+        _enclosure = new ArenaAreaEnclosure(_root, _enclosurePlan);
+        // Publish ownership before construction so a failed partial build is
+        // still cleaned up by the exact raid's normal Reset path.
+        _enclosure.Build();
     }
 
     internal static void Reset()
@@ -609,11 +547,11 @@ internal static class ArenaAreaRuntime
         // Disable synchronously; Unity's deferred Destroy must not leave a wall
         // or carver participating in the next frame/raid.
         if (_root != null) { _root.SetActive(false); UnityEngine.Object.Destroy(_root); }
-        if (_material != null) UnityEngine.Object.Destroy(_material);
-        if (_mesh != null) UnityEngine.Object.Destroy(_mesh);
-        _root = null; _material = null; _mesh = null;
+        _enclosure?.Dispose();
+
+        _root = null; _enclosure = null; _enclosurePlan = null;
         _area = null; _token = null; _game = null; _world = null; _failure = null;
-        Candidates.Clear(); Connected.Clear(); Actors.Clear(); Barriers.Clear(); Obstacles.Clear();
+        Candidates.Clear(); Connected.Clear(); Actors.Clear();
         _phase = Phase.Armed; _totalRejections = 0; _nextActorCheck = 0; _nextRejectionLog = 0;
     }
 }

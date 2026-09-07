@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <SPTPath Condition="'$(SPTPath)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\</SPTPath>
+    <ProductionCaptureSource Condition="'$(ProductionCaptureSource)' == ''">../../../ArenaMode.Client/Areas/ArenaAreaCapture.cs</ProductionCaptureSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionCaptureSource)" Link="Production/ArenaAreaCapture.cs" />
+    <Compile Include="../../../ArenaMode.Client/Areas/ArenaAreaDraft.cs" Link="Production/ArenaAreaDraft.cs" />
+    <Compile Include="../../../ArenaMode.Client/Areas/ArenaAreaDraftFile.cs" Link="Production/ArenaAreaDraftFile.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>$(SPTPath)/EscapeFromTarkov_Data/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

@@ -89,7 +89,17 @@ future work. A native area picker is now implemented below the mode panel:
 Factory day offers Whole map/South, and Customs automatically selects Factory
 Center in independent TDM without an F12 prerequisite. Both bounded choices
 remain fixed 2v2 with unchanged geometry. See `NATIVE-AREA-MENU-REVIEW.md` for
-verification and the pending GPU menu pass.
+verification; the user subsequently reported "ja passt" for the picker. This
+does not independently confirm each detailed menu/PFT transition.
+
+The next authorized step now implements simple concave polygon prisms and a small
+exact-Arena-only point capture/undo/export aid; see `POLYGON-AREA-REVIEW.md`.
+The user explicitly has no Customs coordinates yet and chose capture help first.
+Factory/Customs preset coordinates and IDs remain unchanged. JSON drafts never
+activate themselves; later scene fitting, spawn/connectivity checks and a new
+shared preset version are required. No duplicate Waypoints spawn viewer or large
+editor is included. Polygon capture/UI and actual Unity collision/navigation
+still require the user's GPU test; offline evidence alone cannot establish them.
 
 Design direction (partly implemented by the prototype; broader support remains):
 
