@@ -173,11 +173,41 @@ internal static class ArenaMenuSelection
     public static bool IsMapAvailable(string map) => IsMapAvailable(map, CurrentEligibility);
 
     private static bool IsMapAvailable(string map, Eligibility eligibility)
-        => IsMapConfigured(map)
-           && (!string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)
-               || (eligibility?.Allowed == true && ArenaAreaCatalog.TryResolve(
-                   Config.Settings.TeamDeathmatchArea?.Value, map, Config.Settings.SelectedGameModeId,
-                   eligibility.IsTeam, out _, out _)));
+        => IsMapConfigured(map) && eligibility?.Allowed == true
+           && ArenaAreaCatalog.TryResolve(
+               Config.Settings.SelectedGameModeId == Modes.ArenaModeCatalog.TeamDeathmatchId
+                   ? Config.Settings.TeamDeathmatchArea?.Value : ArenaAreaCatalog.FullMapId,
+               map, Config.Settings.SelectedGameModeId, eligibility.IsTeam, out _, out _);
+
+    public static ArenaAreaSelectionState AreaSelection(string map)
+    {
+        var eligibility = CurrentEligibility;
+        return ArenaAreaSelectionState.Create(IsMapConfigured(map) && eligibility.Allowed ? map : null,
+            Config.Settings.SelectedGameModeId, eligibility.IsTeam, Config.Settings.TeamDeathmatchArea?.Value,
+            Config.Settings.TeamDeathmatchSize?.Value ?? 5);
+    }
+
+    public static bool IsMapDiscoverable(string map) => AreaSelection(map).Available;
+
+    // Repair only during this exact native setup flow, never at claim/start.
+    // The caller supplies the incoming map: RaidSettings still holds the old
+    // location in the native SelectedLocation prefix, including time changes.
+    public static bool TryPrepareMapArea(RaidSettings owner, string map)
+    {
+        if (!IsSelectedFor(owner)) return false;
+        var proposal = AreaSelection(map);
+        return proposal.Available && Config.Settings.TrySelectArea(proposal.SelectedId)
+            && IsMapAvailable(map);
+    }
+
+    public static bool TrySelectArea(RaidSettings owner, string map, string areaId)
+    {
+        if (!IsSelectedFor(owner)) return false;
+        var proposal = AreaSelection(map);
+        bool offered = false;
+        foreach (var option in proposal.Options) if (option.Id == areaId) offered = true;
+        return offered && Config.Settings.TrySelectArea(areaId) && IsMapAvailable(map);
+    }
 
     public static bool MatchesRequest(LocalRaidSettings settings)
         => MatchesRequest(settings, CurrentEligibility);

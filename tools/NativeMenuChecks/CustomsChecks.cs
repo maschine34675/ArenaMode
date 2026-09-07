@@ -27,7 +27,7 @@ internal static partial class Program
         int changes = 0, clears = 0;
         var row = new ArenaConditionalMapView(true, value => { visible = value; changes++; },
             () => { selected = false; clears++; });
-        void Refresh() => row.Refresh(ArenaMenuSelection.IsMapAvailable(map), selected);
+        void Refresh() => row.Refresh(ArenaMenuSelection.IsMapDiscoverable(map), selected);
         Refresh();
         Assert(visible && changes == 0 && clears == 0, "Valid Customs selection remains untouched");
         Settings.GameMode.Value = "gungame"; // native sidebar and F12 share this saved entry
@@ -42,7 +42,8 @@ internal static partial class Program
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
         selected = true;
         Refresh();
-        Assert(!visible && !selected, "F12 area downgrade also clears and hides Customs");
+        Assert(visible && selected && !ArenaMenuSelection.IsMapAvailable(map),
+            "Customs stays discoverable after F12 area downgrade, but final start still requires preparation");
         row.Close();
         Assert(visible, "Closing restores the native row's original visibility");
         changes = clears = 0;

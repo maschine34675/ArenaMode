@@ -11,6 +11,9 @@
     <Compile Include="$(ProductionAccessSource)" Link="Production/ArenaLabyrinthAccess.cs" />
     <Compile Include="$(ProductionKeycardSource)" Link="Production/MapAccessPatch.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaMenuSelection.cs" Link="Production/ArenaMenuSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaClaim.cs" Link="Production/ArenaClaim.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
   </ItemGroup>

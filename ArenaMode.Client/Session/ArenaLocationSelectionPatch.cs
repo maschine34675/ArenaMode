@@ -26,21 +26,29 @@ internal static class ArenaLocationSelectionPatch
     {
         public readonly ArenaLocationSelectionView Map = new();
         public readonly ArenaModeSelectionView Modes = new();
+        public readonly ArenaAreaSelectionView Areas = new();
         public readonly List<ArenaConditionalMapView> Customs = new();
         public ArenaMapMenuUpdater Updater;
+        public object Generation;
 
         public void Refresh(MatchMakerSelectionLocationScreen screen)
         {
-            var available = ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.CustomsId);
+            var eligibility = ArenaMenuSelection.CurrentModeEligibility;
+            Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
+            var available = ArenaMenuSelection.IsMapDiscoverable(ArenaMapCatalog.CustomsId);
             var selected = string.Equals(screen.SelectedLocation?.Id, ArenaMapCatalog.CustomsId,
                 System.StringComparison.OrdinalIgnoreCase);
             foreach (var row in Customs) row.Refresh(available, selected);
-            var eligibility = ArenaMenuSelection.CurrentModeEligibility;
-            Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
+            var map = screen.SelectedLocation?.Id;
+            if (map != null && !ArenaMenuSelection.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
+                screen.OnLocationSelected(null);
+            Areas.Refresh(ArenaMenuSelection.AreaSelection(screen.SelectedLocation?.Id),
+                eligibility.Allowed && eligibility.IsTeam);
         }
 
         public void Restore()
         {
+            Generation = null;
             if (Updater != null)
             {
                 Updater.Tick = null;
@@ -50,6 +58,7 @@ internal static class ArenaLocationSelectionPatch
             }
             foreach (var row in Customs) row.Close();
             Customs.Clear();
+            Areas.Close();
             Modes.Close();
             Map.Restore();
         }
@@ -93,7 +102,7 @@ internal static class ArenaLocationSelectionPatch
             // creates views or enables Next/Ready. A supported Factory variant
             // keeps its matching CURR/PAST value when returning from the next screen.
             raidSettings.transitionType = ELocationTransition.Common;
-            if (!ArenaMenuSelection.IsMapAvailable(raidSettings.SelectedLocation?.Id))
+            if (!ArenaMenuSelection.TryPrepareMapArea(raidSettings, raidSettings.SelectedLocation?.Id))
             {
                 raidSettings.SelectedLocation = null;
                 raidSettings.SelectedDateTime = EDateTime.CURR;
@@ -112,11 +121,15 @@ internal static class ArenaLocationSelectionPatch
             // Own a single updater for this exact native controller. This also
             // observes direct F12 changes; it reads cached settings, never HTTP.
             var owner = Controller(__instance);
+            var generation = state.Generation = new object();
             var updaterRoot = new GameObject("Arena Conditional Map Updater");
             updaterRoot.transform.SetParent(__instance.transform, false);
             state.Updater = updaterRoot.AddComponent<ArenaMapMenuUpdater>();
             state.Updater.Tick = () =>
             {
+                // A retired callback cannot dispose a replacement panel owned
+                // by a newer Show, even when Unity delivers it late.
+                if (!ReferenceEquals(state.Generation, generation)) return;
                 if (__instance == null || !ReferenceEquals(Controller(__instance), owner) || !IsArena(__instance))
                 { state.Restore(); return; }
                 state.Refresh(__instance);
@@ -131,11 +144,20 @@ internal static class ArenaLocationSelectionPatch
                     Settings.GameMode?.Value,
                     eligibility.Allowed && eligibility.IsTeam,
                     Settings.TrySelectGameMode);
+                state.Areas.Show(__instance.transform, __instance._acceptButton?._headerLabel, areaId =>
+                {
+                    if (__instance == null || !ReferenceEquals(state.Generation, generation)
+                        || !ReferenceEquals(Controller(__instance), owner) || !IsArena(__instance)) return false;
+                    var accepted = ArenaMenuSelection.TrySelectArea(owner.RaidSettings, __instance.SelectedLocation?.Id, areaId);
+                    if (accepted) state.Refresh(__instance);
+                    return accepted;
+                });
                 state.Refresh(__instance);
             }
             catch (System.Exception ex)
             {
                 state.Modes.Close();
+                state.Areas.Close();
                 // The native map screen remains fully usable if our optional
                 // picker cannot be constructed on an unexpected UI layout.
                 Plugin.ModLogger.LogWarning($"Arena map-screen mode picker unavailable: {ex.Message}");
@@ -162,9 +184,12 @@ internal static class ArenaLocationSelectionPatch
                 // allowlist is authoritative for THIS view; normal raids still
                 // use vanilla DisplayLocation and retain that restriction.
                 // Factory night remains the time choice on the single day tile.
+                // Materialize configured rows before the mode view exists. A
+                // PFT roster with a stale F12 mode is repaired only in Postfix;
+                // strict discovery here would permanently omit all its rows.
+                // Customs visibility and all selections are guarded separately.
                 __result = ArenaMapCatalog.ShouldDisplayNativeLocation(
-                    location?.Id, map => string.Equals(map, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase)
-                        ? ArenaMenuSelection.IsMapConfigured(map) : ArenaMenuSelection.IsMapAvailable(map));
+                    location?.Id, ArenaMenuSelection.IsMapConfigured);
         }
     }
 
@@ -176,10 +201,15 @@ internal static class ArenaLocationSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSelectionLocationScreen __instance, ref LocationSettings.Location location)
         {
-            if (IsArena(__instance)
-                && !ArenaMapCatalog.CanSelectNativeLocation(
-                    location?.Id, ArenaMenuSelection.IsMapAvailable))
-                location = null;
+            if (!IsArena(__instance)) return;
+            if (!ArenaMapCatalog.CanSelectNativeLocation(location?.Id, ArenaMenuSelection.IsMapDiscoverable))
+            { location = null; return; }
+            // Resolve the actual Factory time before entering vanilla's non-null
+            // branch, which dereferences SelectedLocation after its setter.
+            // An area write failure must reach vanilla as a null input instead.
+            var settings = Controller(__instance)?.RaidSettings;
+            var target = __instance.GetLocationByTime(location, settings.SelectedDateTime);
+            if (!ArenaMenuSelection.TryPrepareMapArea(settings, target?.Id)) location = null;
         }
 
         [PatchPostfix]
@@ -188,8 +218,8 @@ internal static class ArenaLocationSelectionPatch
             if (IsArena(__instance)
                 && ArenaMapCatalog.IsFactoryVariant(__instance.SelectedLocation?.Id)
                 && !ArenaMapCatalog.HasFactoryTimeChoice(
-                    ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryDayId),
-                    ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryNightId)))
+                    ArenaMenuSelection.IsMapConfigured(ArenaMapCatalog.FactoryDayId),
+                    ArenaMenuSelection.IsMapConfigured(ArenaMapCatalog.FactoryNightId)))
                 __instance._conditions.Close();
         }
     }
@@ -206,7 +236,7 @@ internal static class ArenaLocationSelectionPatch
             // Ground Zero even after a null selection. Guard that path as well.
             if (IsArena(__instance))
             {
-                if (!ArenaMenuSelection.IsMapAvailable(value?.Id))
+                if (!ArenaMenuSelection.TryPrepareMapArea(Controller(__instance)?.RaidSettings, value?.Id))
                     value = null;
                 else
                     value = ArenaLabyrinthAccess.Project(Controller(__instance)?.RaidSettings, value);
@@ -267,7 +297,7 @@ internal static class ArenaLocationSelectionPatch
                     if (screen != null) screen.OnLocationSelected(null);
                 });
             States.GetOrCreateValue(screen).Customs.Add(row);
-            row.Refresh(ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.CustomsId),
+            row.Refresh(ArenaMenuSelection.IsMapDiscoverable(ArenaMapCatalog.CustomsId),
                 string.Equals(screen.SelectedLocation?.Id, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase));
         }
     }
@@ -288,8 +318,8 @@ internal static class ArenaLocationSelectionPatch
 
             var selectNight = ArenaMapCatalog.ShouldSelectFactoryNight(
                 time != EDateTime.CURR,
-                ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryDayId),
-                ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.FactoryNightId));
+                ArenaMenuSelection.IsMapConfigured(ArenaMapCatalog.FactoryDayId),
+                ArenaMenuSelection.IsMapConfigured(ArenaMapCatalog.FactoryNightId));
             time = selectNight ? EDateTime.PAST : EDateTime.CURR;
         }
     }

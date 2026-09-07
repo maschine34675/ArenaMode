@@ -84,8 +84,12 @@ reported that Customs also works overall without problems, while its boundaries
 should eventually be refined manually. Keep that contour polish as a separate
 scene-guided task, including renewed spawn/connectivity validation and a new
 preset version when geometry changes. Detailed respawn/edge, menu and teardown
-checks remain individually unconfirmed; further areas, larger teams and an area
-picker remain future work.
+checks remain individually unconfirmed; further areas and larger teams remain
+future work. A native area picker is now implemented below the mode panel:
+Factory day offers Whole map/South, and Customs automatically selects Factory
+Center in independent TDM without an F12 prerequisite. Both bounded choices
+remain fixed 2v2 with unchanged geometry. See `NATIVE-AREA-MENU-REVIEW.md` for
+verification and the pending GPU menu pass.
 
 Design direction (partly implemented by the prototype; broader support remains):
 

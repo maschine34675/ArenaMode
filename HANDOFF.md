@@ -7,7 +7,12 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Current gameplay baseline: bounded Customs `a690ce2` on
+- Current work: native area selection on `feature/native-area-menu`, based on
+  the clean `ec11aa8` handoff snapshot. See `NATIVE-AREA-MENU-REVIEW.md` for the
+  selection rules, verification and pending GPU menu checks. The source was
+  prepared outside Syncthing in an isolated checkout; use the integrated shared
+  checkout for subsequent work, not that temporary clone.
+- Previous gameplay baseline: bounded Customs `a690ce2` on
   `feature/customs-arena-area`, based on `011beb5`. The subsequent user playtest
   reports overall trouble-free operation, with boundary refinement still needed.
   See `CUSTOMS-AREA-REVIEW.md`; this acceptance update changes documentation only.
@@ -50,14 +55,20 @@ current. User-facing communication is normally German.
 
 ## Current behavior and recent work
 
-New experimental Customs Factory Center: independent TDM fixed 2v2, selected
-before loading via F12 -> Team Deathmatch -> `ExperimentalArea =
-customs-factory-center-v1`, then Arena -> Team Deathmatch -> Customs. Customs is
-available only with this combination; there is no whole-map Customs Arena or
-PFT support there. Client/server checks reject stale or incompatible selection
-before arming. The native Customs tile updates when mode/F12 area changes without
-rebuilding the map screen. Historical exact standard allowlists migrate; edited
-lists and explicit server disables remain unchanged. Restart game and server.
+Native area selection now appears below the five Arena mode rows on the map
+screen. Choose Arena -> Team Deathmatch -> Customs: the map is directly offered
+and selects Factory Center automatically, with fixed 2v2 displayed. No F12
+preselection is required. Factory daytime offers Whole map / Factory South;
+South remains fixed 2v2. Factory nighttime, Labs and Labyrinth offer Whole map.
+Area selection shares the existing F12 `ExperimentalArea` setting. Map/time/mode
+changes preserve compatible choices and normalize incompatible ones during menu
+selection; leaving independent TDM hides Customs and clears its selected map.
+There is no whole-map Customs Arena or PFT area support. Final client/server
+arm validation remains strict and never repairs settings. Configured native rows
+are constructed before the mode view's PFT repair, avoiding an empty picker from
+a stale F12 mode. No repeated native ShowInternal, geometry or gameplay changes.
+Edited allowlists and explicit server disables remain authoritative. Restart the
+game after this client change; server source and area protocol are unchanged.
 
 This first Customs candidate spans X305..420 / Z-135..-65, with 15 PMC and seven
 bot positions in installed data. These are coordinate checks, not live NavMesh
@@ -93,7 +104,8 @@ Escape/give-up, another bounded match, full-map TDM and a subsequent ordinary
 PMC/Scav raid with clean teardown/profile behavior. No gameplay code changed
 in this acceptance update.
 The Customs candidate above follows this successful core small-map test;
-CTF, an editor, native area picker and PFT region support remain unimplemented.
+CTF, an editor and PFT region support remain unimplemented. The native area picker
+is now implemented; its current verification is in `NATIVE-AREA-MENU-REVIEW.md`.
 
 The user confirmed game and development work on the GPU host were stopped and
 new DLLs may be installed. This change was prepared in an independent local

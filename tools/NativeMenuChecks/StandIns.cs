@@ -97,6 +97,15 @@ namespace ArenaMode.Config
     {
         public static Entry<string> GameMode = new() { Value = "endless" };
         public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId };
+        public static Entry<int> TeamDeathmatchSize = new() { Value = 5 };
+        public static bool RefuseAreaWrite;
+        public static int AreaChanges;
+        public static bool TrySelectArea(string area)
+        {
+            if (RefuseAreaWrite) return false;
+            if (area != TeamDeathmatchArea.Value) { AreaChanges++; TeamDeathmatchArea.Value = area; }
+            return true;
+        }
         public static string SelectedGameModeId
             => ArenaMode.Modes.ArenaModeCatalog.NormalizeId(GameMode.Value);
         public static string Allowlist = ArenaMode.Shared.ArenaMapCatalog.DefaultClientAllowlist;
