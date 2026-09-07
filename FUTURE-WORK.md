@@ -123,3 +123,20 @@ Native/source anchors: `../_decompiled/NavMeshDoorLink.cs`,
 Native BorderZone is trigger/threat handling, not a ready-made enclosing hard
 barrier. Unity's obstacle documentation explains why carving is distinct from
 short-range avoidance; see [NavMesh Obstacle (Unity 2022.3)](https://docs.unity3d.com/cn/2022.3/Manual/class-NavMeshObstacle.html).
+
+## More complex objective-based modes
+
+Recorded 2026-09-07: the user wants to revisit more complex game modes, with
+**Capture the Flag** as an explicit example. Deferred idea only; no implementation
+or final rules selected.
+
+For a later CTF design, consider two team bases, flag pickup/carry/drop/return and
+capture rules, team scoring, win conditions and clear objective markers. Bots
+would need objective-aware roles such as attacking, defending, escorting the
+carrier and recovering a dropped flag; ordinary opponent pursuit alone is not
+enough. Define flag handling on death, respawn, round reset and match teardown.
+
+Map-area presets could also store bases and objective positions, with reachable
+routes and suitable team spawns. Assess reuse of independent Team Deathmatch team
+handling without assuming PFT is required. Preserve Arena-only state and profile
+isolation; detailed feasibility, rules and other candidate modes remain open.

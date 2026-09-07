@@ -257,8 +257,9 @@ Server log: `<SPT>/SPT_Runtime/user/logs/spt/sptYYYYMMDD.log` (UTC).
 Kits/config: `<SPT>/SPT_Runtime/user/mods/ArenaMode/config/`.
 
 - `KIT-POLISH-REVIEW.md`: grenade conflict, placement rules, evidence.
-- `FUTURE-WORK.md`: deferred difficulty controls and proposed bounded map areas;
-  design notes only, no implemented boundary or new difficulty UI.
+- `FUTURE-WORK.md`: deferred difficulty controls, proposed bounded map areas and
+  more complex objective-based modes such as Capture the Flag; design notes only,
+  not implemented features.
 - `PREVIEW-DIAGNOSTICS-REVIEW.md`: unresolved post-match preview issue.
 - `CHARACTER-PREVIEW-REVIEW.md`: separate third menu figure, ownership, GPU/fixture
   evidence and missing genuine-BEAR-profile coverage.
