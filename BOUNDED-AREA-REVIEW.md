@@ -5,6 +5,11 @@ successful user GPU playtest of its core boundary/spawn behavior. The confirmed
 coverage and remaining checks are recorded below. No raid was started by an
 agent on the development host.
 
+The subsequent first Customs preset is documented separately in
+[CUSTOMS-AREA-REVIEW.md](CUSTOMS-AREA-REVIEW.md). The Factory geometry and the
+historical measurements below are retained; use the Customs document for the
+latest combined build/verification and pending new GPU checks.
+
 ## Scope and enablement
 
 The first preset is `factory-south-v1`: Factory **daytime**, independent Team

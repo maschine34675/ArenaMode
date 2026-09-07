@@ -13,18 +13,22 @@ public static class ArenaMapCatalog
     public const string FactoryNightId = "factory4_night";
     public const string LabyrinthId = "labyrinth";
     public const string LaboratoryId = "laboratory";
+    public const string CustomsId = "bigmap";
 
     public const string LegacyDefaultClientAllowlist =
         FactoryDayId + "," + LabyrinthId + "," + LaboratoryId;
 
-    public const string DefaultClientAllowlist =
+    public const string PreviousDefaultClientAllowlist =
         FactoryDayId + "," + FactoryNightId + "," + LabyrinthId + "," + LaboratoryId;
+
+    public const string DefaultClientAllowlist = PreviousDefaultClientAllowlist + "," + CustomsId;
 
     public static bool IsSupportedMap(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, FactoryNightId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, LabyrinthId, StringComparison.OrdinalIgnoreCase)
-           || string.Equals(locationId, LaboratoryId, StringComparison.OrdinalIgnoreCase);
+           || string.Equals(locationId, LaboratoryId, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase);
 
     public static bool IsFactoryVariant(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
@@ -53,6 +57,7 @@ public static class ArenaMapCatalog
     /// </summary>
     public static string UpgradeLegacyClientAllowlist(string allowlist)
         => string.Equals(allowlist, LegacyDefaultClientAllowlist, StringComparison.Ordinal)
+           || string.Equals(allowlist, PreviousDefaultClientAllowlist, StringComparison.Ordinal)
             ? DefaultClientAllowlist
             : allowlist;
 
@@ -61,7 +66,8 @@ public static class ArenaMapCatalog
            && (isAvailable(FactoryDayId)
                || isAvailable(FactoryNightId)
                || isAvailable(LabyrinthId)
-               || isAvailable(LaboratoryId));
+               || isAvailable(LaboratoryId)
+               || isAvailable(CustomsId));
 
     /// <summary>
     /// EFT represents both Factory variants with the day tile. Keep the night

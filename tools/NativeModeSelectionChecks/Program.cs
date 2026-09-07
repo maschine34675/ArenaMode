@@ -233,6 +233,33 @@ internal static class Program
         Assert(exceptionWrites == 2, "an initial writer exception does not mark the repair as committed");
     }
 
+    private static void LiveSettingsSynchronization()
+    {
+        string saved = "tactical";
+        int writes = 0;
+        bool accept = true;
+        var state = new ArenaModeSelectionState(saved, true, mode =>
+        {
+            writes++;
+            if (!accept) return false;
+            saved = mode;
+            return true;
+        });
+        Assert(!state.Synchronize(saved, true) && writes == 0, "unchanged polling does not rewrite F12 settings");
+        saved = "gungame";
+        Assert(state.Synchronize(saved, true) && saved == "tactical" && writes == 1,
+            "PFT repairs a forbidden F12 mode even when its displayed resolved mode was already Tactical");
+        AssertSelection(state, "tactical");
+        saved = "teamdeathmatch";
+        Assert(state.Synchronize(saved, false) && !state.TacticalOnly && writes == 1,
+            "leaving PFT and accepting a valid F12 mode refreshes without an unnecessary settings write");
+        AssertSelection(state, "teamdeathmatch");
+        accept = false;
+        Throws<InvalidOperationException>(() => state.Synchronize(saved, true),
+            "a rejected live team-mode repair cannot claim synchronization succeeded");
+        Assert(!state.TacticalOnly && state.SelectedMode == "teamdeathmatch", "failed synchronization preserves previous accepted view state");
+    }
+
     public static void Main()
     {
         CatalogContract();
@@ -242,6 +269,7 @@ internal static class Program
         InitialSelectionAndFallback();
         SoloSelectionAndBounds();
         RejectedAndThrowingWrites();
+        LiveSettingsSynchronization();
         Console.WriteLine($"PASS: {_checks} Arena mode-selection state checks (production state and catalog linked).");
     }
 }

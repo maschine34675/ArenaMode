@@ -491,9 +491,11 @@ public static class Settings
             new ConfigDescription(
                 "Experimental bounded arena. Full-map preserves normal TDM settings. " +
                 "Factory South requires Factory daytime and fixes the match at 2v2. " +
+                "Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. " +
                 "Selected before loading; changes during a raid apply next match. " +
                 "Other modes ignore this setting. The area must pass its live navigation checks.",
-                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId)));
+                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId,
+                    ArenaAreaCatalog.CustomsFactoryCenterId)));
 
         TeamDeathmatchSize = config.Bind(
             "Team Deathmatch",

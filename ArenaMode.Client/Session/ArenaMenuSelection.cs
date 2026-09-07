@@ -1,6 +1,7 @@
 using EFT;
 using JsonType;
 using System;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Session;
 
@@ -19,6 +20,7 @@ internal static class ArenaMenuSelection
     private static string _previousKey;
     private static Func<bool> _canStart;
     private static Func<Eligibility> _eligibility;
+    private static Func<Eligibility> _modeEligibility;
     private static Func<Eligibility, string> _freezeRoster;
     private static Action<string> _compatibilityCleanup;
     private static Func<bool> _teamArenaActive;
@@ -58,6 +60,7 @@ internal static class ArenaMenuSelection
             _settings = settings;
             _canStart = canStart;
             _eligibility = null;
+            _modeEligibility = null;
             _freezeRoster = null;
         }
     }
@@ -68,9 +71,10 @@ internal static class ArenaMenuSelection
     /// only the final result is frozen, immediately before server arming.
     /// </summary>
     public static void ConfigureEligibility(Func<Eligibility> eligibility,
-        Func<Eligibility, string> freezeRoster)
+        Func<Eligibility, string> freezeRoster, Func<Eligibility> modeEligibility = null)
     {
         _eligibility = eligibility;
+        _modeEligibility = modeEligibility;
         _freezeRoster = freezeRoster;
     }
 
@@ -134,10 +138,46 @@ internal static class ArenaMenuSelection
 
     public static bool CanStart => CurrentEligibility.Allowed;
 
+    // The strict PFT policy deliberately rejects a wrong saved mode with
+    // IsTeam=false. The picker needs a fresh roster-only decision so it can
+    // repair that mode; this presentation result never authorizes raid start.
+    public static Eligibility CurrentModeEligibility
+    {
+        get
+        {
+            if (_modeEligibility == null) return CurrentEligibility;
+            try
+            {
+                return _modeEligibility() ?? new Eligibility(false, false,
+                    "Arena could not inspect the current raid group.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger?.LogWarning($"Arena mode eligibility check failed: {ex.Message}");
+                return new Eligibility(false, false, "Arena could not inspect the current raid group.");
+            }
+        }
+    }
+
     public static string CannotStartReason => CurrentEligibility.Reason;
 
-    public static bool IsMapAvailable(string map)
+    public static bool IsMapConfigured(string map)
         => Config.Settings.IsArenaMap(map) && ArenaClientConfig.IsMapEnabledOnServer(map);
+
+    // A solo player must reach the mode picker even when only bounded Customs
+    // is configured and the previous match left a different mode in settings.
+    public static bool HasConfiguredMap(bool pitFireTeam)
+        => ArenaMapCatalog.AnyMapAvailable(map => IsMapConfigured(map)
+            && (!pitFireTeam || !string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)));
+
+    public static bool IsMapAvailable(string map) => IsMapAvailable(map, CurrentEligibility);
+
+    private static bool IsMapAvailable(string map, Eligibility eligibility)
+        => IsMapConfigured(map)
+           && (!string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)
+               || (eligibility?.Allowed == true && ArenaAreaCatalog.TryResolve(
+                   Config.Settings.TeamDeathmatchArea?.Value, map, Config.Settings.SelectedGameModeId,
+                   eligibility.IsTeam, out _, out _)));
 
     public static bool MatchesRequest(LocalRaidSettings settings)
         => MatchesRequest(settings, CurrentEligibility);
@@ -175,7 +215,7 @@ internal static class ArenaMenuSelection
            && settings.playerSide == ESideType.Pmc
            && settings.transitionType == ELocationTransition.Common
            && string.Equals(settings.location, _settings.SelectedLocation?.Id, StringComparison.OrdinalIgnoreCase)
-           && IsMapAvailable(settings.location);
+           && IsMapAvailable(settings.location, eligibility);
 
     /// <summary>
     /// Repair only the exact Common-to-None loss caused by EFT applying an
@@ -232,6 +272,7 @@ internal static class ArenaMenuSelection
         _controller = null;
         _canStart = null;
         _eligibility = null;
+        _modeEligibility = null;
         _freezeRoster = null;
     }
 }

@@ -9,6 +9,8 @@ using ArenaMode.Shared;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace ArenaMode.Session;
 
@@ -24,9 +26,30 @@ internal static class ArenaLocationSelectionPatch
     {
         public readonly ArenaLocationSelectionView Map = new();
         public readonly ArenaModeSelectionView Modes = new();
+        public readonly List<ArenaConditionalMapView> Customs = new();
+        public ArenaMapMenuUpdater Updater;
+
+        public void Refresh(MatchMakerSelectionLocationScreen screen)
+        {
+            var available = ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.CustomsId);
+            var selected = string.Equals(screen.SelectedLocation?.Id, ArenaMapCatalog.CustomsId,
+                System.StringComparison.OrdinalIgnoreCase);
+            foreach (var row in Customs) row.Refresh(available, selected);
+            var eligibility = ArenaMenuSelection.CurrentModeEligibility;
+            Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
+        }
 
         public void Restore()
         {
+            if (Updater != null)
+            {
+                Updater.Tick = null;
+                Updater.gameObject.SetActive(false);
+                UnityEngine.Object.Destroy(Updater.gameObject);
+                Updater = null;
+            }
+            foreach (var row in Customs) row.Close();
+            Customs.Clear();
             Modes.Close();
             Map.Restore();
         }
@@ -86,15 +109,29 @@ internal static class ArenaLocationSelectionPatch
             var state = States.GetOrCreateValue(__instance);
             state.Map.HideExtras(__instance._locationPathsContainer, __instance._marathonButton.gameObject);
 
+            // Own a single updater for this exact native controller. This also
+            // observes direct F12 changes; it reads cached settings, never HTTP.
+            var owner = Controller(__instance);
+            var updaterRoot = new GameObject("Arena Conditional Map Updater");
+            updaterRoot.transform.SetParent(__instance.transform, false);
+            state.Updater = updaterRoot.AddComponent<ArenaMapMenuUpdater>();
+            state.Updater.Tick = () =>
+            {
+                if (__instance == null || !ReferenceEquals(Controller(__instance), owner) || !IsArena(__instance))
+                { state.Restore(); return; }
+                state.Refresh(__instance);
+            };
+
             try
             {
-                var eligibility = ArenaMenuSelection.CurrentEligibility;
+                var eligibility = ArenaMenuSelection.CurrentModeEligibility;
                 state.Modes.Show(
                     __instance.transform,
                     __instance._acceptButton?._headerLabel,
                     Settings.GameMode?.Value,
                     eligibility.Allowed && eligibility.IsTeam,
                     Settings.TrySelectGameMode);
+                state.Refresh(__instance);
             }
             catch (System.Exception ex)
             {
@@ -126,7 +163,8 @@ internal static class ArenaLocationSelectionPatch
                 // use vanilla DisplayLocation and retain that restriction.
                 // Factory night remains the time choice on the single day tile.
                 __result = ArenaMapCatalog.ShouldDisplayNativeLocation(
-                    location?.Id, ArenaMenuSelection.IsMapAvailable);
+                    location?.Id, map => string.Equals(map, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase)
+                        ? ArenaMenuSelection.IsMapConfigured(map) : ArenaMenuSelection.IsMapAvailable(map));
         }
     }
 
@@ -207,6 +245,30 @@ internal static class ArenaLocationSelectionPatch
             if (ArenaLabyrinthAccess.IsLabyrinth(location)
                 && string.Equals(screen.SelectedLocation?.Id, location.Id, System.StringComparison.OrdinalIgnoreCase))
                 onAtStart = true;
+        }
+
+        [PatchPostfix]
+        private static void Postfix(LocationButton __instance, LocationSettings.Location location,
+            System.Action<LocationSettings.Location> onSelected)
+        {
+            if (!string.Equals(location?.Id, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase)
+                || onSelected?.Target is not MatchMakerSelectionLocationScreen screen
+                || onSelected.Method.Name != nameof(MatchMakerSelectionLocationScreen.OnLocationSelected)
+                || onSelected.Method.DeclaringType != typeof(MatchMakerSelectionLocationScreen)
+                || !IsArena(screen)) return;
+
+            var row = new ArenaConditionalMapView(__instance.gameObject.activeSelf,
+                visible => { if (__instance != null) __instance.gameObject.SetActive(visible); },
+                () =>
+                {
+                    // Native Select(false) actually selects unconditionally.
+                    // Turning off the native toggle does not invoke OnSelected.
+                    if (__instance != null) __instance._spawnableToggle.Toggle.IsToggled = false;
+                    if (screen != null) screen.OnLocationSelected(null);
+                });
+            States.GetOrCreateValue(screen).Customs.Add(row);
+            row.Refresh(ArenaMenuSelection.IsMapAvailable(ArenaMapCatalog.CustomsId),
+                string.Equals(screen.SelectedLocation?.Id, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase));
         }
     }
 

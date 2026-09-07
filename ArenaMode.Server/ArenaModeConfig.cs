@@ -46,6 +46,15 @@ public class ArenaModeConfig
         // a duplicate tile. Arena's client filter opens only that native variant.
         [ArenaMapCatalog.FactoryNightId] = new ArenaMapConfig(),
 
+        // Customs is admitted only with its versioned bounded independent TDM
+        // preset; enabling this map never enables a whole-map Arena raid.
+        // This is the native zone carried by the Factory Center bot markers,
+        // not Factory's similarly named single "BotZone".
+        [ArenaMapCatalog.CustomsId] = new ArenaMapConfig
+        {
+            SpawnZones = "ZoneFactoryCenter",
+        },
+
         // Labyrinth needs a third-party mod to be selectable at all (it ships
         // disabled and keycard-gated, and those fields are read at the MENU,
         // before any per-raid clone exists). With that mod present it needs

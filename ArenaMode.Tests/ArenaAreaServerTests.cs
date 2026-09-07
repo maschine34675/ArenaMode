@@ -13,7 +13,7 @@ using SPTarkov.Server.Core.Models.Spt.Config;
 namespace ArenaMode.Tests;
 
 [Collection(ArenaContextSerialCollection.Name)]
-public sealed class ArenaAreaServerTests : IDisposable
+public sealed partial class ArenaAreaServerTests : IDisposable
 {
     private const string Map = ArenaMapCatalog.FactoryDayId;
     private const string Mode = "teamdeathmatch";
@@ -36,6 +36,7 @@ public sealed class ArenaAreaServerTests : IDisposable
             Maps = new(StringComparer.OrdinalIgnoreCase)
             {
                 [Map] = new() { Enabled = true },
+                [ArenaMapCatalog.CustomsId] = new ArenaModeConfig().Maps[ArenaMapCatalog.CustomsId],
             },
         };
         ArenaContext.Sessions = new(BotTierScalePatchTests.TestLogger.Create<ArenaSessionService>());
@@ -329,11 +330,11 @@ public sealed class ArenaAreaServerTests : IDisposable
         return Start();
     }
 
-    private string Start()
+    private string Start(string map = Map)
     {
         string identity = Protocol.BuildNativeStartIdentity(Token);
         Assert.Equal(ArenaLocalRaidStartDisposition.ArenaStarted,
-            Sessions.ProcessLocalRaidStart(Session, Map, identity));
+            Sessions.ProcessLocalRaidStart(Session, map, identity));
         Assert.True(Sessions.BindNativeEndIdentity(Session, identity, "factory.Pmc area-test", out var nativeEnd));
         return nativeEnd!;
     }

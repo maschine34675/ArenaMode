@@ -238,6 +238,11 @@ internal static class Program
         const string customized = "factory4_day, labyrinth,laboratory";
         Assert(ArenaMapCatalog.UpgradeLegacyClientAllowlist(customized) == customized,
             "A customized client allowlist must remain user-owned during upgrade");
+        Assert(ArenaMapCatalog.UpgradeLegacyClientAllowlist(ArenaMapCatalog.PreviousDefaultClientAllowlist)
+               == ArenaMapCatalog.DefaultClientAllowlist && ArenaMapCatalog.IsSupportedMap("BIGMAP"),
+            "The exact previous four-map default gains the bounded-only Customs capability");
+        Assert(ArenaMapCatalog.AnyMapAvailable(map => map == ArenaMapCatalog.CustomsId),
+            "Customs-only configuration remains discoverable independently of current mode admission");
     }
 
     private static void FactoryNightNativeSelectionPolicy()

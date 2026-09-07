@@ -231,8 +231,8 @@ internal static class ArenaAreaRuntime
                     _phase = Phase.Ready;
                     Hud.ArenaInputBlocker.Request(InputOwner, false);
                     Plugin.ModLogger.LogInfo($"Arena area READY: {_area.Id}; connected player={Connected.Count(IsPlayerPoint)}, "
-                        + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, fixed 2v2.");
-                    ArenaToasts.Show("FACTORY SOUTH — experimental 2v2 area ready");
+                        + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, fixed {_area.MaxTeamSize}v{_area.MaxTeamSize}.");
+                    ArenaToasts.Show(_area.DisplayName + " — area ready");
                 }
                 else if (Time.realtimeSinceStartup >= _deadline)
                     Abort("navigation validation timed out: " + problem);
@@ -266,13 +266,14 @@ internal static class ArenaAreaRuntime
                 Connected.Add(point);
         var players = Connected.Where(IsPlayerPoint).ToArray();
         var bots = Connected.Where(IsBotPoint).Select(p => p.Position).Distinct().ToArray();
-        if (players.Length < 2 || bots.Length < 3)
-        { problem = $"insufficient connected spawns (player {players.Length}, bot {bots.Length}; need 2/3)"; return false; }
+        int requiredBots = _area.MaxTeamSize * 2 - 1;
+        if (players.Length < 2 || bots.Length < requiredBots)
+        { problem = $"insufficient connected spawns (player {players.Length}, bot {bots.Length}; need 2/{requiredBots})"; return false; }
         // Require a real alternative away from each starting player cluster.
         foreach (var point in players)
         {
             if (!players.Any(p => Vector3.Distance(p.Position, point.Position) >= 40f)
-                || bots.Count(p => Vector3.Distance(p, point.Position) >= BurstSpawnPointSelector.MinSpawnDistance) < 3)
+                || bots.Count(p => Vector3.Distance(p, point.Position) >= BurstSpawnPointSelector.MinSpawnDistance) < requiredBots)
             { problem = "a connected player spawn lacks separated respawn/bot choices"; return false; }
         }
         return true;
@@ -325,7 +326,11 @@ internal static class ArenaAreaRuntime
 
     private static bool Contains(Vector3 p, float inset = 0f) => _area != null && _area.Bounds.Contains(p.x, p.y, p.z, inset);
     private static bool AllowsGeometrySpawn(Vector3 p) => _area != null && _area.AllowsSpawn(p.x, p.y, p.z);
-    private static bool IsPlayerPoint(ISpawnPoint p) => p != null && (p.Categories & ESpawnCategoryMask.Player) != 0;
+    // BaseLocalGame.Create publishes Profile before Run constructs scene spawns;
+    // MainPlayer does not exist yet at that first filter. Use that same profile
+    // side again for readiness and respawns, including after body replacement.
+    private static bool IsPlayerPoint(ISpawnPoint p)
+        => ArenaAreaSpawnPolicy.IsPlayerPoint(p, _game?.Profile?.Info?.Side);
     private static bool IsBotPoint(ISpawnPoint p) => p != null && !string.IsNullOrEmpty(p.BotZoneName)
         && ((p.Categories & ESpawnCategoryMask.Bot) != 0 || p.Categories.ContainBotPmcCategory());
 

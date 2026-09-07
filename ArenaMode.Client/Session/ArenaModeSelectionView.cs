@@ -20,10 +20,31 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _rules;
     private TextMeshProUGUI _respawn;
     private TextMeshProUGUI _equipment;
+    private TextMeshProUGUI _subtitle;
+    private GameObject _restrictionNote;
     private ArenaModeSelectionState _selection;
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selection?.SelectedMode;
+
+    internal void Synchronize(string selectedMode, bool tacticalOnly)
+    {
+        if (_selection == null || _root == null) return;
+        if (!_selection.Synchronize(selectedMode, tacticalOnly)) return;
+        _subtitle.text = tacticalOnly ? "GAME MODE / PITFIRETEAM 5v5" : "GAME MODE";
+        ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, tacticalOnly ? 524f : 488f);
+        _restrictionNote.SetActive(tacticalOnly);
+        for (var index = 0; index < _buttons.Count; index++)
+        {
+            var allowed = _selection.CanSelectIndex(index);
+            _buttons[index].interactable = allowed;
+            var tooltip = _buttons[index].GetComponent<HoverTooltipArea>();
+            if (tooltip == null) continue;
+            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical.", rawText: true);
+            tooltip.SetUnlockStatus(allowed);
+        }
+        Refresh();
+    }
 
     public void Show(Transform screen, TMP_Text nativeText, string selectedMode,
         bool tacticalOnly, Func<string, bool> onSelected)
@@ -60,7 +81,8 @@ internal sealed class ArenaModeSelectionView
         _markers.Clear();
         var root = _root;
         _root = null;
-        _rules = _respawn = _equipment = null;
+        _rules = _respawn = _equipment = _subtitle = null;
+        _restrictionNote = null;
         Safe(() => { if (root != null) root.SetActive(false); });
         Safe(() => { if (root != null) UnityEngine.Object.Destroy(root); });
     }
@@ -86,6 +108,7 @@ internal sealed class ArenaModeSelectionView
         var subtitle = CreateText("Mode heading", typography,
             _selection.TacticalOnly ? "GAME MODE / PITFIRETEAM 5v5" : "GAME MODE", 14f, 51f, 22f);
         subtitle.color = Dim(typography, .65f);
+        _subtitle = subtitle;
 
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
             CreateRow(template, typography, index, 84f + index * 42f);
@@ -97,12 +120,11 @@ internal sealed class ArenaModeSelectionView
         _respawn = CreateFact("RESPAWN", typography, 394f);
         _equipment = CreateFact("EQUIPMENT", typography, 434f);
 
-        if (_selection.TacticalOnly)
-        {
-            var note = CreateText("Team restriction", typography,
-                "Companions require Tactical.", 15f, 484f, 24f);
-            note.color = Dim(typography, .75f);
-        }
+        var note = CreateText("Team restriction", typography,
+            "Companions require Tactical.", 15f, 484f, 24f);
+        note.color = Dim(typography, .75f);
+        _restrictionNote = note.gameObject;
+        _restrictionNote.SetActive(_selection.TacticalOnly);
     }
 
     private void CreateRow(Button template, TMP_Text typography, int index, float top)

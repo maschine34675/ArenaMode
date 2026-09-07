@@ -26,8 +26,22 @@ internal sealed class ArenaModeSelectionState
 
     public string SelectedMode => SelectedDefinition.Id;
     public int SelectedIndex { get; private set; }
-    public bool TacticalOnly { get; }
+    public bool TacticalOnly { get; private set; }
     public ArenaModeDefinition SelectedDefinition => ArenaModeCatalog.All[SelectedIndex];
+
+    public bool Synchronize(string savedMode, bool tacticalOnly)
+    {
+        // Compare the persisted input too: resolving a forbidden F12 mode to
+        // Tactical must not make an unchanged-looking team panel skip repair.
+        if (TacticalOnly == tacticalOnly && string.Equals(savedMode?.Trim(), SelectedMode,
+                StringComparison.OrdinalIgnoreCase)) return false;
+        var next = new ArenaModeSelectionState(savedMode, tacticalOnly, _onSelected);
+        next.CommitInitialSelection();
+        SelectedIndex = next.SelectedIndex;
+        TacticalOnly = next.TacticalOnly;
+        _initialSelectionNeedsCommit = false;
+        return true;
+    }
 
     public bool CanSelectIndex(int index)
         => index >= 0 && index < ArenaModeCatalog.All.Count

@@ -260,6 +260,8 @@ public class ArenaModeConfigTests
         Assert.True(config.IsMapEnabled("FACTORY4_DAY"));
         Assert.True(config.IsMapEnabled("factory4_night"));
         Assert.True(config.IsMapEnabled("FACTORY4_NIGHT"));
+        Assert.True(config.IsMapEnabled("bigmap"));
+        Assert.True(config.IsMapEnabled("BIGMAP"));
         Assert.False(config.IsMapEnabled("customs"));
         Assert.False(config.IsMapEnabled(null));
     }
@@ -290,6 +292,8 @@ public class ArenaModeConfigTests
         Assert.True(ConfigStore.FillMissingKeys(saved, defaults));
         Assert.False(saved!["maps"]![ArenaMapCatalog.FactoryDayId]!["enabled"]!.GetValue<bool>());
         Assert.True(saved["maps"]![ArenaMapCatalog.FactoryNightId]!["enabled"]!.GetValue<bool>());
+        Assert.True(saved["maps"]![ArenaMapCatalog.CustomsId]!["enabled"]!.GetValue<bool>());
+        Assert.Equal("ZoneFactoryCenter", saved["maps"]![ArenaMapCatalog.CustomsId]!["spawnZones"]!.GetValue<string>());
         Assert.False(ConfigStore.FillMissingKeys(saved, defaults));
     }
 }

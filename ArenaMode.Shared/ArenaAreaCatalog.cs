@@ -97,6 +97,7 @@ public static class ArenaAreaCatalog
     // Change this versioned ID when geometry/rules change: a mismatched client
     // must not silently pair its old boundary with a newer server spawn filter.
     public const string FactorySouthId = "factory-south-v1";
+    public const string CustomsFactoryCenterId = "customs-factory-center-v1";
     public const float SpawnInset = 0.75f;
     public const float NavigationInset = 0.4f;
 
@@ -106,6 +107,13 @@ public static class ArenaAreaCatalog
     public static readonly ArenaAreaDefinition FactorySouth = new ArenaAreaDefinition(
         FactorySouthId, "Factory South (experimental 2v2)", ArenaMapCatalog.FactoryDayId,
         new ArenaAreaBounds(-25f, -1f, -46f, 40f, 10f, 26f), -0.5f, 2f, 2);
+
+    // Native ZoneFactoryCenter spawns provide a compact first Customs candidate.
+    // Coordinates are not proof of connectivity: each raid must still pass the
+    // live enclosure/path checks before releasing either players or bots.
+    public static readonly ArenaAreaDefinition CustomsFactoryCenter = new ArenaAreaDefinition(
+        CustomsFactoryCenterId, "Customs Factory Center (experimental 2v2)", ArenaMapCatalog.CustomsId,
+        new ArenaAreaBounds(305f, 0f, -135f, 420f, 12f, -65f), 0.5f, 3f, 2);
 
     public static string NormalizeId(string? id)
         => string.IsNullOrWhiteSpace(id) || string.Equals(id, FullMapId, StringComparison.Ordinal)
@@ -117,14 +125,21 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        if (id == FullMapId) return true;
-        if (id != FactorySouthId)
+        if (id == FullMapId)
+        {
+            if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))
+            { reason = "Customs currently requires the experimental Factory Center Team Deathmatch area."; return false; }
+            return true;
+        }
+        var candidate = id == FactorySouthId ? FactorySouth
+            : id == CustomsFactoryCenterId ? CustomsFactoryCenter : null;
+        if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
         if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
         { reason = "Bounded areas currently require independent Team Deathmatch without PitFireTeam."; return false; }
-        if (!string.Equals(map, FactorySouth.MapId, StringComparison.OrdinalIgnoreCase))
-        { reason = "The experimental Factory South area requires Factory daytime."; return false; }
-        area = FactorySouth;
+        if (!string.Equals(map, candidate.MapId, StringComparison.OrdinalIgnoreCase))
+        { reason = candidate.DisplayName + " requires map " + candidate.MapId + "."; return false; }
+        area = candidate;
         return true;
     }
 }

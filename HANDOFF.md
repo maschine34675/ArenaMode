@@ -7,9 +7,10 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Last gameplay change: `0c54b7745534798a09662511281978ffbb20acc4` on
-  `feature/bounded-arena-prototype`, including the earlier kit changes and
-  GPU menu redesign. Its core boundary/spawn behavior is user-confirmed below.
+- Current gameplay work: bounded Customs on `feature/customs-arena-area`,
+  based on `011beb5`, delivered with this handoff. See `CUSTOMS-AREA-REVIEW.md`.
+  Prior Factory prototype `0c54b7745534798a09662511281978ffbb20acc4` includes the
+  earlier kits/GPU menu redesign; its core behavior is user-confirmed below.
 - Development host: `D:\SPT41\Development\ArenaMode`; no GPU raid execution there.
 - User-confirmed GPU host installation: `C:\SPT41`, a mirror of this host's
   `D:\SPT41`. If Development is included, the corresponding repository is
@@ -47,6 +48,30 @@ current. User-facing communication is normally German.
 
 ## Current behavior and recent work
 
+New experimental Customs Factory Center: independent TDM fixed 2v2, selected
+before loading via F12 -> Team Deathmatch -> `ExperimentalArea =
+customs-factory-center-v1`, then Arena -> Team Deathmatch -> Customs. Customs is
+available only with this combination; there is no whole-map Customs Arena or
+PFT support there. Client/server checks reject stale or incompatible selection
+before arming. The native Customs tile updates when mode/F12 area changes without
+rebuilding the map screen. Historical exact standard allowlists migrate; edited
+lists and explicit server disables remain unchanged. Restart game and server.
+
+This first Customs candidate spans X305..420 / Z-135..-65, with 15 PMC and seven
+bot positions in installed data. These are coordinate checks, not live NavMesh
+evidence. The northern face can cut a building footprint; actual layout,
+navigation and respawns remain the user's GPU tests. Its live readiness gate
+must reject an unusable component rather than spawn outside. Factory South
+geometry remains unchanged; loading/readiness/respawn now share an explicit
+PMC-side check so Savage-only Player markers cannot become human spawn choices.
+`CUSTOMS-AREA-REVIEW.md` records checks, deployment evidence and the test list.
+Final local verification: 330 server/data tests passed without skips; targeted
+client regressions and nine negative controls passed, independent review has no
+open P0-P2 findings. Release outputs match all four DLLs installed on D:\SPT41.
+The current local Syncthing query reports SPT-GPU disconnected (not paused), so
+this does not prove the new build has reached C:\SPT41. Do not test a stale GPU
+copy; allow the existing mirror to complete and verify the documented hashes.
+
 Gameplay prototype `0c54b77` on `feature/bounded-arena-prototype`, based on `7298980`
 including the GPU menu redesign: opt-in Factory South, Factory daytime,
 independent TDM fixed 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md)
@@ -60,8 +85,8 @@ user's report, not a new agent raid or log inspection. Remaining explicit checks
 Escape/give-up, another bounded match, full-map TDM and a subsequent ordinary
 PMC/Scav raid with clean teardown/profile behavior. No gameplay code changed
 in this acceptance update.
-Customs remains the next area candidate now that the core small-map test passed;
-CTF, an editor, native area picker and PFT region support are not implemented.
+The Customs candidate above follows this successful core small-map test;
+CTF, an editor, native area picker and PFT region support remain unimplemented.
 
 The user confirmed game and development work on the GPU host were stopped and
 new DLLs may be installed. This change was prepared in an independent local
@@ -74,8 +99,9 @@ or current synchronization-status verification is implied by that report.
 
 Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
 Team Deathmatch is independent of PFT; protected Tactical 5v5 is a separate path.
-Maps: Factory day/night, Labs, Labyrinth. Factory night uses the native time
-selection on the Factory tile, not a separate night tile.
+Maps: Factory day/night, Labs, Labyrinth; Customs only with its bounded independent
+TDM preset. Factory night uses the native time selection on the Factory tile,
+not a separate night tile.
 
 GPU menu redesign on `feature/arena-native-menu-options`: Arena's five modes now
 appear as five permanently visible native button rows in a left-side panel on

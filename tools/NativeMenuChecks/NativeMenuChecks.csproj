@@ -5,15 +5,20 @@
     <Nullable>disable</Nullable>
     <SPTPath Condition="'$(SPTPath)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\</SPTPath>
     <ProductionServerClientSource Condition="'$(ProductionServerClientSource)' == ''">../../ArenaMode.Client/Session/ArenaServerClient.cs</ProductionServerClientSource>
+    <ProductionConditionalMapSource Condition="'$(ProductionConditionalMapSource)' == ''">../../ArenaMode.Client/Session/ArenaConditionalMapView.cs</ProductionConditionalMapSource>
+    <ProductionAreaCatalogSource Condition="'$(ProductionAreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</ProductionAreaCatalogSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Session/ArenaMenuSelection.cs" Link="Production/ArenaMenuSelection.cs" />
+    <Compile Include="$(ProductionConditionalMapSource)" Link="Production/ArenaConditionalMapView.cs" />
     <Compile Include="$(ProductionServerClientSource)" Link="Production/ArenaServerClient.cs" />
     <Compile Include="../../ArenaMode.Client/Session/LocalRaidStartedPatch.cs" Link="Production/LocalRaidStartedPatch.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Client/Compat/PitFireTeamSelectionPolicy.cs" Link="Production/PitFireTeamSelectionPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
-    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="$(ProductionAreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(SPTPath)/EscapeFromTarkov_Data/Managed/Newtonsoft.Json.dll</HintPath>
     </Reference>

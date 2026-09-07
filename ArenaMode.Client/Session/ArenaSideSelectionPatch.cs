@@ -50,7 +50,8 @@ internal static class ArenaSideSelectionPatch
             ArenaMenuSelection.Begin(controller, controller.RaidSettings);
             ArenaMenuSelection.ConfigureEligibility(
                 () => EvaluateEligibility(controller),
-                FreezeEligibility);
+                FreezeEligibility,
+                () => EvaluateEligibility(controller, allowPendingModeSelection: true));
             ArenaMenuSelection.RestoringSideScreen = true;
         }
 
@@ -160,7 +161,7 @@ internal static class ArenaSideSelectionPatch
                 if (!ArenaServerClient.RefreshAvailability() || !ArenaClientConfig.Refresh())
                     throw new InvalidOperationException("Arena server mod is unavailable. No arena raid was selected.");
 
-                if (!ArenaMapCatalog.AnyMapAvailable(ArenaMenuSelection.IsMapAvailable))
+                if (!ArenaMenuSelection.HasConfiguredMap(eligibility.IsTeam))
                     throw new InvalidOperationException("No arena maps are enabled on the server.");
 
                 // Let a complete PFT roster reach the new map-screen picker even

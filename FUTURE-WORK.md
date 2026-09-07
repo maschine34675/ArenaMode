@@ -78,8 +78,10 @@ TDM 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md). Source/build test
 are separate from user GPU evidence. The user subsequently confirmed a visible,
 impassable grid, contained player/bot spawns and bots staying inside without
 observed stalls. Escape/re-entry and teardown into full-map/ordinary raids still
-need explicit confirmation. Customs is the next desired area candidate; no
-Customs area is enabled yet.
+need explicit confirmation. A first Customs Factory Center 2v2 candidate now
+follows in [CUSTOMS-AREA-REVIEW.md](CUSTOMS-AREA-REVIEW.md); its geometry, connected
+navigation and repeated respawns still need the user's playtest. Further areas,
+larger teams and an area picker remain future work.
 
 Design direction (partly implemented by the prototype; broader support remains):
 

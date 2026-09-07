@@ -99,8 +99,8 @@ namespace ArenaMode.Config
         public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId };
         public static string SelectedGameModeId
             => ArenaMode.Modes.ArenaModeCatalog.NormalizeId(GameMode.Value);
-        public static bool IsArenaMap(string map) => map == "factory4_day" || map == "factory4_night"
-            || map == "labyrinth" || map == "laboratory";
+        public static string Allowlist = ArenaMode.Shared.ArenaMapCatalog.DefaultClientAllowlist;
+        public static bool IsArenaMap(string map) => ArenaMode.Shared.ArenaMapCatalog.AllowlistContains(Allowlist, map);
     }
     public static class SettingsSync { public static void SyncNow() { } }
 }
@@ -119,7 +119,8 @@ namespace ArenaMode.Session
     public static class ArenaClientConfig
     {
         public static bool Refresh() => true;
-        public static bool IsMapEnabledOnServer(string map) => ArenaMode.Config.Settings.IsArenaMap(map);
+        public static Func<string, bool> Enabled = ArenaMode.Config.Settings.IsArenaMap;
+        public static bool IsMapEnabledOnServer(string map) => Enabled(map);
     }
     public static class ArenaSession
     {
