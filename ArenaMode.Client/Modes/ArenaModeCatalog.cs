@@ -5,16 +5,23 @@ namespace ArenaMode.Modes;
 
 internal sealed class ArenaModeDefinition
 {
-    public ArenaModeDefinition(string id, string label, string description)
+    public ArenaModeDefinition(string id, string label, string description,
+        string rules, string respawn, string equipment)
     {
         Id = id;
         Label = label;
         Description = description;
+        Rules = rules;
+        Respawn = respawn;
+        Equipment = equipment;
     }
 
     public string Id { get; }
     public string Label { get; }
     public string Description { get; }
+    public string Rules { get; }
+    public string Respawn { get; }
+    public string Equipment { get; }
 }
 
 /// <summary>Stable mode ids and the copy shown by the native map-screen picker.</summary>
@@ -30,15 +37,20 @@ internal static class ArenaModeCatalog
         Array.AsReadOnly(new[]
         {
             new ArenaModeDefinition(EndlessId, "ENDLESS",
-                "Continuous deathmatch with instant respawns."),
+                "Continuous deathmatch with instant respawns.",
+                "Deathmatch", "Instant", "Arena kits"),
             new ArenaModeDefinition(RoundsId, "ROUNDS",
-                "Score-limited rounds with a break between them."),
+                "Rounds with a kill target or time limit, and a break between them.",
+                "Kill target / time limit", "Instant", "Arena kits"),
             new ArenaModeDefinition(GunGameId, "GUN GAME",
-                "Advance through the weapon ladder with every kill."),
+                "Advance through the weapon ladder with every kill.",
+                "Weapon progression", "Instant", "Weapon ladder"),
             new ArenaModeDefinition(TacticalId, "TACTICAL",
-                "Single-life rounds with bought or carried equipment."),
+                "Single-life rounds with bought or retained Arena kits.",
+                "Elimination rounds", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
-                "USEC versus BEAR teams with instant respawns. No companions required."),
+                "USEC versus BEAR teams with instant respawns. No companions required.",
+                "USEC vs BEAR", "Instant", "Arena kits"),
         });
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;

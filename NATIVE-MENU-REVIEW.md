@@ -1,5 +1,8 @@
 # Arena native menu settings — 2026-09-07
 
+Historical review of the first native dropdown presentation. The later visible
+sidebar and compact mode facts are documented in [MODE-SIDEBAR-REVIEW.md](MODE-SIDEBAR-REVIEW.md).
+
 The map screen now uses an EFT raid-settings dropdown in an Arena settings group
 instead of five flat, orange-highlighted mode buttons. The selected mode has a
 larger description underneath. The native popup opens upward so Next and Back

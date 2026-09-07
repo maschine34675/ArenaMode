@@ -53,18 +53,29 @@ Maps: Factory day/night, Labs, Labyrinth. Factory night uses the native time
 selection on the Factory tile, not a separate night tile.
 
 GPU menu redesign on `feature/arena-native-menu-options`: Arena's five modes now
-use the native EFT raid-settings dropdown in one settings group, with a larger
-description. Its popup opens upward to leave navigation free. The side-selection
-copy correctly says five modes. Player count/difficulty are future rows, with no
-placeholder controls or gameplay changes. See `NATIVE-MENU-REVIEW.md` for native
-contracts, reference/licensing notes, 123 passing state checks and visual scope.
+appear as five permanently visible native button rows in a left-side panel on
+the map screen. Three short rules/respawn/equipment facts replace the mode
+paragraph. The selected row keeps a marker after hover ends; native map points,
+right-hand location information and navigation stay in place. Factory time
+selection is back at its original native position. Player count/difficulty remain
+future implemented options, with no placeholders or gameplay changes.
+
+`MODE-SIDEBAR-REVIEW.md` records native row ownership, corrected mode copy, 123
+passing selection-state checks and the GPU pass: all five modes, Factory day/night,
+Labs/Labyrinth, clean Back/normal PMC maps and exactly one sidebar on Arena reentry.
+The disabled PFT row/tooltip presentation and true 16:9 geometry were not tested
+on the GPU. Actual captures are 1920 x 945 at native UI scale 0.875. Private
+comparison artifacts are in the GPU task's `outputs/Arena-Modusauswahl` and logs
+in `work/arena-mode-sidebar`; the final runtime log has no error entries or Arena
+warnings. The earlier upward-opening dropdown is historical and documented in
+`NATIVE-MENU-REVIEW.md`; its source/licensing research remains relevant.
 
 The earlier character-selection polish at `328665d` aligned the Arena toggle with
 SCAV/PMC and added a native-style `SEPARATE MATCH` subheading. At that historical
 stage only Arena's wrapper moved; `CHARACTER-SELECTION-REVIEW.md` records its
 contracts and evidence.
 
-The new character preview adds the current PMC's native posed appearance above
+The character preview at `70a65c0` adds the current PMC's native posed appearance above
 ARENA, with a separate fixed M4 USEC / AK-74M BEAR example kit. It moves the complete
 native PMC/SCAV columns outward together, restoring them on Close/Show and before
 PFT squad management. Model, camera, lights, render texture and bundle retention
@@ -104,14 +115,14 @@ at their intended assertions. Default and installed 20-kit catalogs each packed
 grid model. Full grids still skip optional grenades, never spill into backpack.
 Independent review found no open issues. These are not GPU test results.
 
-GPU Release/installed hashes after the character-preview production rebuild
-(2026-09-07; final menu smoke passed).
+GPU Release/installed hashes after the mode-sidebar client build
+(2026-09-07; menu pass completed at the recorded window geometry).
 The server binary remains the prior gameplay build; Redeploy.Core was rebuilt
 from unchanged source `58abf5876629bb51be808d78ee2cd7a5d34af77a`:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| ArenaMode.Client | `2FAE06042ED6D43BFD2D33F71414087C34281DD2C338E35385B00C12F1482044` |
+| ArenaMode.Client | `67B55E0A532BFACE875AF556D6760B1AD454698AB9FE4B4125A8A99350390986` |
 | ArenaMode.Server | `FCE6C394DF9184E81FE6D43B0D236380DE71E3BB110708497E2471D395B2DBE8` |
 | Redeploy.Core | `F923B0D709908F75969B3101E9F8290CD2BB06DF457F64B1FFF8876A7BBFEA00` |
 
@@ -249,6 +260,8 @@ Kits/config: `<SPT>/SPT_Runtime/user/mods/ArenaMode/config/`.
 - `PREVIEW-DIAGNOSTICS-REVIEW.md`: unresolved post-match preview issue.
 - `CHARACTER-PREVIEW-REVIEW.md`: separate third menu figure, ownership, GPU/fixture
   evidence and missing genuine-BEAR-profile coverage.
+- `MODE-SIDEBAR-REVIEW.md`: five visible map-screen modes, compact facts and
+  GPU coverage; PFT presentation and true 16:9 appearance remain untested.
 - `tools/ArenaLabyrinthAccessChecks/README.md`: Way Up and Arena-only map access.
 - `PRESET-DESCRIPTION-REVIEW.md`, `OPTIC-MOUNT-REVIEW.md`: latest kit/UI fixes.
 - `TEAM-DEATHMATCH-REVIEW.md`, `PITFIRETEAM-MULTIROUND-GATES.md`: team modes.
