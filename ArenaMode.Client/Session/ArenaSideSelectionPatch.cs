@@ -23,6 +23,7 @@ internal static class ArenaSideSelectionPatch
     public static void Enable()
     {
         new ShowPatch().Enable();
+        new ClosePatch().Enable();
         new SelectPatch().Enable();
         new HealthWarningPatch().Enable();
         new LeaveSetupPatch().Enable();
@@ -35,8 +36,10 @@ internal static class ArenaSideSelectionPatch
                 new[] { typeof(MatchMakerSideSelectionScreen.RaidSideSelectionScreenController) });
 
         [PatchPrefix]
-        private static void Prefix(MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller)
+        private static void Prefix(MatchMakerSideSelectionScreen __instance,
+            MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller)
         {
+            ArenaSideSelectionLayout.Restore(__instance);
             if (PitFireTeamCompat.IsSquadManagementScreen)
             {
                 ArenaMenuSelection.EndFlow();
@@ -65,12 +68,14 @@ internal static class ArenaSideSelectionPatch
                 }
 
                 // This is BSG's existing third toggle. Keep its ToggleGroup,
-                // animation listeners and native placement intact; translate its
+                // animation listeners intact; align its view with the other
+                // character choices and translate its
                 // otherwise unused Random selection to PMC in SelectPatch.
                 var arena = __instance._randomButton;
                 var eligibility = EvaluateEligibility(
                     Controller(__instance), allowPendingModeSelection: true);
                 ArenaSideSelectionView.Show(__instance.transform, arena, eligibility.Allowed);
+                ArenaSideSelectionLayout.Apply(__instance);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     EnsureCompatibleMode(eligibility);
@@ -85,6 +90,7 @@ internal static class ArenaSideSelectionPatch
             catch (Exception ex)
             {
                 ArenaMenuSelection.Clear();
+                ArenaSideSelectionLayout.Restore(__instance);
                 ArenaSideSelectionView.Hide(__instance.transform, __instance._randomButton);
                 Plugin.ModLogger.LogError($"Arena side selection unavailable: {ex}");
             }
@@ -95,13 +101,26 @@ internal static class ArenaSideSelectionPatch
         }
 
         [PatchFinalizer]
-        private static Exception Finalizer(Exception __exception)
+        private static Exception Finalizer(MatchMakerSideSelectionScreen __instance, Exception __exception)
         {
             ArenaMenuSelection.RestoringSideScreen = false;
             if (__exception != null)
+            {
+                ArenaSideSelectionLayout.Restore(__instance);
                 ArenaMenuSelection.EndFlow();
+            }
             return __exception;
         }
+    }
+
+    private sealed class ClosePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(MatchMakerSideSelectionScreen), nameof(MatchMakerSideSelectionScreen.Close));
+
+        [PatchPrefix]
+        private static void Prefix(MatchMakerSideSelectionScreen __instance)
+            => ArenaSideSelectionLayout.Restore(__instance);
     }
 
     private sealed class SelectPatch : ModulePatch

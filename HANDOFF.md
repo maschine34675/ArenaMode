@@ -59,6 +59,12 @@ copy correctly says five modes. Player count/difficulty are future rows, with no
 placeholder controls or gameplay changes. See `NATIVE-MENU-REVIEW.md` for native
 contracts, reference/licensing notes, 123 passing state checks and visual scope.
 
+The subsequent character-selection polish aligns the existing Arena toggle with
+SCAV/PMC under the previews and adds a native-style `SEPARATE MATCH` subheading.
+Only Arena's wrapper is moved; its original position and owned caption restore
+on Show/Close/failure, including before PFT squad management. See
+`CHARACTER-SELECTION-REVIEW.md` for contracts, 29 side/53 flow checks and GPU scope.
+
 | Commit | Change | Verification still needed (raid work belongs to user) |
 | --- | --- | --- |
 | `20462c0` | Standard kits request two RGD-5s, no automatic Zarya. Explicit rig/pocket placement bypasses UseItemsAnywhere's backpack-first `GrenadeThrowingSlots` patch. Custom authored supplies and protected PFT gear are retained. | In-game placement and grenade-key use, including respawn/Gun Game. |
@@ -83,7 +89,7 @@ from unchanged source `58abf5876629bb51be808d78ee2cd7a5d34af77a`:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| ArenaMode.Client | `D5A49310FF577FF58718D4687F4A4107468B6BCBBBD23BC5139BB9331FB69789` |
+| ArenaMode.Client | `11A71C665D07E12EA736152319988DD32D524B335553FC41129EB7C7D382FA23` |
 | ArenaMode.Server | `FCE6C394DF9184E81FE6D43B0D236380DE71E3BB110708497E2471D395B2DBE8` |
 | Redeploy.Core | `F923B0D709908F75969B3101E9F8290CD2BB06DF457F64B1FFF8876A7BBFEA00` |
 

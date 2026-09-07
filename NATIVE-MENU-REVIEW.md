@@ -5,6 +5,9 @@ instead of five flat, orange-highlighted mode buttons. The selected mode has a
 larger description underneath. The native popup opens upward so Next and Back
 remain visible. The side-selection description now correctly names five modes.
 
+The later character-choice row improvement is recorded separately in
+`CHARACTER-SELECTION-REVIEW.md`; this document records the map-settings work.
+
 ## Implementation and boundaries
 
 - Clone only the closed, owned `RaidSettingsWindow._aiDifficultyDropdown`
