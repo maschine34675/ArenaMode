@@ -1,0 +1,39 @@
+{
+  "areaId": "customs-factory-center-polygon-v1",
+  "maxTeamSize": 5,
+  "minimumOpposingStartDistance": 30,
+  "minimumSameTeamStartDistance": 2,
+  "sides": [
+    {
+      "name": "west",
+      "players": [
+        "2051eb7b-3ae8-49b8-adcb-c13f0ddc7972",
+        "f8fa00b6-4941-4c21-b10b-77ff30b0c382"
+      ],
+      "bots": [
+        "046309a0-3d13-48c4-a3e6-9bb509ac339d",
+        "570f30b0-d2da-4f91-9270-45783c7c6a88",
+        "75558193-c46a-490f-aa68-15650a803d6f",
+        "785e4aeb-03eb-45f8-a521-2a870204a7d3",
+        "cffefb6b-e763-4386-9625-8c002b16d4f3"
+      ]
+    },
+    {
+      "name": "east",
+      "players": [
+        "2cb9950d-20ec-484e-919c-5489bb7abd5c",
+        "4d2e6d0c-078c-4918-8227-8df098a47a39",
+        "582b9ea6-4404-4af1-8443-da3db48fcaad",
+        "6d8626ec-449b-4d63-a066-38e802756ec9",
+        "b54ce786-74b8-41b1-889f-0fe62c36d8e0"
+      ],
+      "bots": [
+        "13adbe1b-21b0-4422-90a9-eab3ee8313fb",
+        "295048b1-140d-47c3-85f8-ab5bdaaafa67",
+        "75c4714c-1d9f-411a-8a42-e9d5ee16a77a",
+        "dd28bf37-44a2-4407-a30b-2b0e9ed732eb",
+        "e880fea7-94e8-440f-874b-fd131ac2d998"
+      ]
+    }
+  ]
+}

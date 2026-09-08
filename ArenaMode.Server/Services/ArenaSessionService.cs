@@ -49,6 +49,7 @@ public class ArenaSessionService
         public string? Map;
         public string? Mode;
         public string AreaId = ArenaAreaCatalog.FullMapId;
+        public int AreaTeamSize;
         public DateTime ArmedAtUtc;
         public DateTime InRaidAtUtc;
         public bool ProtectPitFireTeam;
@@ -93,9 +94,11 @@ public class ArenaSessionService
         string? mode,
         bool protectPitFireTeam = false,
         string? armToken = null,
-        string? areaId = null)
+        string? areaId = null,
+        int? areaTeamSize = null)
     {
-        if (!ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out _, out var areaFailure))
+        if (!ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out var areaFailure)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out areaFailure))
             throw new ArgumentException(areaFailure, nameof(areaId));
         string key = sessionId.ToString();
         string token = string.IsNullOrWhiteSpace(armToken)
@@ -109,6 +112,7 @@ public class ArenaSessionService
                 Map = map.ToLowerInvariant(),
                 Mode = mode,
                 AreaId = ArenaAreaCatalog.NormalizeId(areaId!),
+                AreaTeamSize = selectedSize,
                 ArmedAtUtc = DateTime.UtcNow,
                 ProtectPitFireTeam = protectPitFireTeam,
                 ArmToken = token,
@@ -130,7 +134,7 @@ public class ArenaSessionService
 
         logger.Info(
             $"[ArenaMode] Armed for session {sessionId}: map={map}, mode={mode}, " +
-            $"pitFireTeamProtection={protectPitFireTeam}, area={ArenaAreaCatalog.NormalizeId(areaId!)}");
+            $"pitFireTeamProtection={protectPitFireTeam}, area={ArenaAreaCatalog.NormalizeId(areaId!)}, areaTeamSize={selectedSize}");
         return token;
     }
 
@@ -148,9 +152,13 @@ public class ArenaSessionService
         bool protectPitFireTeam,
         string? requestId,
         out string? armToken,
-        string? areaId = null)
+        string? areaId = null,
+        int? areaTeamSize = null)
     {
         armToken = null;
+        if (!ArenaAreaCatalog.TryResolve(areaId, map, mode, protectPitFireTeam, out var area, out _)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
+            return false;
         lock (_lock)
         {
             if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
@@ -159,6 +167,7 @@ public class ArenaSessionService
                 || !string.Equals(entry.ArmToken, requestId, StringComparison.Ordinal)
                 || entry.ProtectPitFireTeam != protectPitFireTeam
                 || !string.Equals(entry.AreaId, ArenaAreaCatalog.NormalizeId(areaId!), StringComparison.Ordinal)
+                || entry.AreaTeamSize != selectedSize
                 || !string.Equals(entry.Map, map, StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(entry.Mode, mode, StringComparison.OrdinalIgnoreCase))
             {
@@ -184,13 +193,15 @@ public class ArenaSessionService
         MongoId sessionId,
         string map,
         string? mode,
-        string armToken)
+        string armToken,
+        int? areaTeamSize = null)
         => BeginArmPreparation(
             sessionId,
             map,
             mode,
             protectPitFireTeam: true,
-            armToken);
+            armToken,
+            areaTeamSize: areaTeamSize);
 
     public bool BeginArmPreparation(
         MongoId sessionId,
@@ -198,10 +209,12 @@ public class ArenaSessionService
         string? mode,
         bool protectPitFireTeam,
         string armToken,
-        string? areaId = null)
+        string? areaId = null,
+        int? areaTeamSize = null)
     {
         if (!Protocol.IsLifecycleRequestId(armToken)
-            || !ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out _, out _))
+            || !ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out _)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
             return false;
 
         string key = sessionId.ToString();
@@ -224,7 +237,7 @@ public class ArenaSessionService
                         mode,
                         protectPitFireTeam,
                         armToken,
-                        ArenaAreaCatalog.NormalizeId(areaId!));
+                        ArenaAreaCatalog.NormalizeId(areaId!), selectedSize);
             }
         }
 
@@ -235,7 +248,7 @@ public class ArenaSessionService
                 mode,
                 protectPitFireTeam,
                 armToken,
-                ArenaAreaCatalog.NormalizeId(areaId!));
+                ArenaAreaCatalog.NormalizeId(areaId!), selectedSize);
     }
 
     private bool PublishArmPreparationLocked(
@@ -244,7 +257,8 @@ public class ArenaSessionService
         string? mode,
         bool protectPitFireTeam,
         string armToken,
-        string areaId)
+        string areaId,
+        int areaTeamSize)
     {
         if (_sessions.TryGetValue(key, out var existing)
             && existing.State != ArenaSessionState.Idle)
@@ -258,6 +272,7 @@ public class ArenaSessionService
             Map = map.ToLowerInvariant(),
             Mode = mode,
             AreaId = areaId,
+            AreaTeamSize = areaTeamSize,
             ArmedAtUtc = DateTime.UtcNow,
             ProtectPitFireTeam = protectPitFireTeam,
             ArmToken = armToken,
@@ -661,6 +676,18 @@ public class ArenaSessionService
         }
     }
 
+    /// <summary>Zero is the legacy protocol; a new-area size stays frozen until the arm is idle.</summary>
+    public int GetAreaTeamSize(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State != ArenaSessionState.Idle
+                   && !string.IsNullOrEmpty(entry.ArmToken)
+                ? entry.AreaTeamSize : 0;
+        }
+    }
+
     /// <summary>
     /// A bounded raid may leave native server start only after its exact clone
     /// was filtered. Full-map raids retain their existing location behavior.
@@ -713,7 +740,7 @@ public class ArenaSessionService
         {
             try
             {
-                ArenaLocationMutator.ValidateAreaSpawns(location, entry.Mode, entry.AreaId);
+                ArenaLocationMutator.ValidateAreaSpawns(location, entry.Mode, entry.AreaId, entry.AreaTeamSize);
                 return true;
             }
             catch (Exception ex)

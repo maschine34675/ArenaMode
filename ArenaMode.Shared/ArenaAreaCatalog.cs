@@ -14,11 +14,12 @@ public sealed class ArenaAreaDefinition
     public float SpawnMinY { get; }
     public float SpawnMaxY { get; }
     public int MaxTeamSize { get; }
+    public ArenaTeamStarts? TeamStarts { get; }
     private readonly HashSet<string> _excludedSpawnIds;
 
     public ArenaAreaDefinition(string id, string displayName, string mapId,
         ArenaAreaBounds bounds, float spawnMinY, float spawnMaxY, int maxTeamSize,
-        IEnumerable<string>? excludedSpawnIds = null)
+        IEnumerable<string>? excludedSpawnIds = null, ArenaTeamStarts? teamStarts = null)
     {
         if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(mapId)
             || !ArenaAreaBounds.Finite(spawnMinY) || !ArenaAreaBounds.Finite(spawnMaxY)
@@ -33,6 +34,7 @@ public sealed class ArenaAreaDefinition
         SpawnMinY = spawnMinY;
         SpawnMaxY = spawnMaxY;
         MaxTeamSize = maxTeamSize;
+        TeamStarts = teamStarts;
         // Never retain a caller-owned mutable collection. Identities are exact:
         // an exclusion must not broaden into a zone, category or height filter.
         _excludedSpawnIds = new HashSet<string>(StringComparer.Ordinal);
@@ -367,6 +369,7 @@ public static class ArenaAreaCatalog
     public const string FactorySouthId = "factory-south-v1";
     public const string CustomsFactoryCenterId = "customs-factory-center-v1";
     public const string CustomsFactoryCenterPolygonId = "customs-factory-center-polygon-v1";
+    public const string CustomsFactoryCenterTeamsId = "customs-factory-center-teams-v1";
     public const float SpawnInset = 0.75f;
     public const float NavigationInset = 0.4f;
 
@@ -411,6 +414,32 @@ public static class ArenaAreaCatalog
         }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 2,
         new[] { "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e" });
 
+    // Separate protocol identity: the old surveyed contour remains fixed 2v2.
+    public static readonly ArenaAreaDefinition CustomsFactoryCenterTeams = new ArenaAreaDefinition(
+        CustomsFactoryCenterTeamsId, "Customs contour — team starts", ArenaMapCatalog.CustomsId,
+        CustomsFactoryCenterPolygon.Bounds, 0.5f, 3f, 5,
+        new[] { "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e" }, new ArenaTeamStarts(
+            new[] { "2051eb7b-3ae8-49b8-adcb-c13f0ddc7972", "f8fa00b6-4941-4c21-b10b-77ff30b0c382" },
+            new[] { "046309a0-3d13-48c4-a3e6-9bb509ac339d", "570f30b0-d2da-4f91-9270-45783c7c6a88", "75558193-c46a-490f-aa68-15650a803d6f", "785e4aeb-03eb-45f8-a521-2a870204a7d3", "cffefb6b-e763-4386-9625-8c002b16d4f3" },
+            new[] { "2cb9950d-20ec-484e-919c-5489bb7abd5c", "4d2e6d0c-078c-4918-8227-8df098a47a39", "582b9ea6-4404-4af1-8443-da3db48fcaad", "6d8626ec-449b-4d63-a066-38e802756ec9", "b54ce786-74b8-41b1-889f-0fe62c36d8e0" },
+            new[] { "13adbe1b-21b0-4422-90a9-eab3ee8313fb", "295048b1-140d-47c3-85f8-ab5bdaaafa67", "75c4714c-1d9f-411a-8a42-e9d5ee16a77a", "dd28bf37-44a2-4407-a30b-2b0e9ed732eb", "e880fea7-94e8-440f-874b-fd131ac2d998" }));
+
+    /// <summary>Zero denotes the unchanged full-map/legacy protocol, never an inferred new-area choice.</summary>
+    public static bool TryResolveTeamSize(ArenaAreaDefinition? area, int? requested, out int selected, out string? reason)
+    {
+        selected = 0; reason = null;
+        if (area?.TeamStarts == null)
+        {
+            if (requested.HasValue && requested.Value != 0)
+            { reason = "This area does not accept a team-size override."; return false; }
+            return true;
+        }
+        if (!requested.HasValue || requested.Value < 2 || requested.Value > area.MaxTeamSize)
+        { reason = "Select an explicit supported area team size (2.." + area.MaxTeamSize + ")."; return false; }
+        selected = requested.Value;
+        return true;
+    }
+
     public static string NormalizeId(string? id)
         => string.IsNullOrWhiteSpace(id) || string.Equals(id, FullMapId, StringComparison.Ordinal)
             ? FullMapId : id;
@@ -429,7 +458,8 @@ public static class ArenaAreaCatalog
         }
         var candidate = id == FactorySouthId ? FactorySouth
             : id == CustomsFactoryCenterId ? CustomsFactoryCenter
-            : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon : null;
+            : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon
+            : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams : null;
         if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
         if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
@@ -438,5 +468,32 @@ public static class ArenaAreaCatalog
         { reason = candidate.DisplayName + " requires map " + candidate.MapId + "."; return false; }
         area = candidate;
         return true;
+    }
+}
+/// <summary>Exact surveyed starts: USEC west, BEAR east. Never retains caller-owned sets.</summary>
+public sealed class ArenaTeamStarts
+{
+    private readonly HashSet<string> _usecPlayers, _usecBots, _bearPlayers, _bearBots;
+    public ArenaTeamStarts(IEnumerable<string> usecPlayers, IEnumerable<string> usecBots,
+        IEnumerable<string> bearPlayers, IEnumerable<string> bearBots)
+    {
+        _usecPlayers = Copy(usecPlayers); _usecBots = Copy(usecBots);
+        _bearPlayers = Copy(bearPlayers); _bearBots = Copy(bearBots);
+        if (_usecPlayers.Overlaps(_bearPlayers) || _usecBots.Overlaps(_bearBots)
+            || _usecPlayers.Overlaps(_bearBots) || _bearPlayers.Overlaps(_usecBots))
+            throw new ArgumentException("Opposing start identities must be disjoint.");
+    }
+    public bool Allows(bool usec, bool player, string? id)
+        => id != null && (usec ? (player ? _usecPlayers : _usecBots)
+            : (player ? _bearPlayers : _bearBots)).Contains(id);
+    private static HashSet<string> Copy(IEnumerable<string> ids)
+    {
+        if (ids == null) throw new ArgumentNullException(nameof(ids));
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string id in ids)
+            if (string.IsNullOrWhiteSpace(id) || !result.Add(id))
+                throw new ArgumentException("Start identities must be non-empty and unique.");
+        if (result.Count == 0) throw new ArgumentException("A start side must not be empty.");
+        return result;
     }
 }

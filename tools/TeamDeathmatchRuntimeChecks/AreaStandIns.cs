@@ -8,6 +8,11 @@ namespace ArenaMode.Areas;
 internal static class ArenaAreaRuntime
 {
     internal static ArenaAreaDefinition CurrentArea;
+    internal static int? FrozenTeamSize;
+    internal static int? CurrentTeamSize => FrozenTeamSize ?? CurrentArea?.MaxTeamSize;
+    internal static int TeamAssemblyReleases, PlayerReservationReleases;
+    internal static void FinishTeamAssembly() { TeamAssemblyReleases++; }
+    internal static void ReleasePlayerReservation(EFT.Player player) { PlayerReservationReleases++; }
     internal static bool IsPending;
     internal static Func<Vector3, bool> PositionAccepted = _ => true;
     internal static readonly List<string> Aborts = new();
@@ -20,5 +25,5 @@ internal static class ArenaAreaRuntime
     }
     internal static void Abort(string reason) { Aborts.Add(reason); IsPending = true; }
     internal static void Reset()
-    { CurrentArea = null; IsPending = false; PositionAccepted = _ => true; Aborts.Clear(); PositionChecks = 0; }
+    { CurrentArea = null; FrozenTeamSize = null; IsPending = false; PositionAccepted = _ => true; Aborts.Clear(); PositionChecks = 0; TeamAssemblyReleases = PlayerReservationReleases = 0; }
 }

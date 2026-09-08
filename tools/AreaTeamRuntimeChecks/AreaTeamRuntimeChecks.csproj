@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <RuntimeSource Condition="'$(RuntimeSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaTeamRuntime.cs</RuntimeSource>
+    <InitialSource Condition="'$(InitialSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaInitialSpawnPatch.cs</InitialSource>
+    <PickSource Condition="'$(PickSource)' == ''">artifacts/PickRespawn.cs</PickSource>
+    <PreparedSource Condition="'$(PreparedSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaRespawn.cs</PreparedSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="artifacts/**" />
+    <Compile Include="$(RuntimeSource)" Link="Production/ArenaAreaTeamRuntime.cs" />
+    <Compile Include="$(InitialSource)" Link="Production/ArenaAreaInitialSpawnPatch.cs" />
+    <Compile Include="$(PickSource)" Link="Production/PickRespawn.cs" />
+    <Compile Include="$(PreparedSource)" Link="Production/ArenaAreaRespawn.cs" />
+    <Compile Include="../../ArenaMode.Client/Respawn/ArenaSpawnSelector.cs" Link="Production/ArenaSpawnSelector.cs" />
+    <Compile Include="../../ArenaMode.Client/Areas/ArenaAreaSpawnPolicy.cs" Link="Production/ArenaAreaSpawnPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs" Link="Production/ArenaBotSpawnPolicy.cs" />
+  </ItemGroup>
+</Project>

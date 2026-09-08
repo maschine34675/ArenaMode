@@ -115,6 +115,11 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (area != null && (!Areas.ArenaAreaNavigationPatches.IsReady || !Areas.ArenaAreaLoadPatch.IsReady
                 || !Areas.ArenaAreaSpawnPointsPatch.IsReady))
                 throw new InvalidOperationException("Arena area protection is unavailable; use full-map TDM.");
+            if (!Shared.ArenaAreaCatalog.TryResolveTeamSize(area, area?.TeamStarts != null
+                    ? Settings.AreaTeamSize?.Value : null, out var areaTeamSize, out var sizeFailure))
+                throw new InvalidOperationException(sizeFailure);
+            if (area?.TeamStarts != null && !Areas.ArenaAreaInitialSpawnPatch.IsReady)
+                throw new InvalidOperationException("Arena initial team placement is unavailable; choose a legacy area.");
             if (ArenaMenuSelection.CompatibilityTeamArenaActive
                 && !string.Equals(requestedMode, ArenaModeCatalog.TacticalId,
                     StringComparison.Ordinal))
@@ -130,7 +135,7 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // CompatibilityTeamArenaActive queries PitFireTeamCompat.TeamArenaActive;
             // at this point it reflects the roster frozen just above.
             if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode,
-                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId))
+                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize))
                 throw new InvalidOperationException("The server did not arm Arena profile protection.");
 
             if (!ArenaServerClient.BindNativeStartIdentity(settings))
@@ -138,7 +143,7 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
                     "Arena could not bind the native local-start request to its exact arm token.");
 
             ArenaSession.MarkArmed(settings.location, requestedMode);
-            Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken);
+            Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);
 
             // Fetch catalog now (loading screen) instead of inside a gameplay frame.
             Kits.KitCatalog.Preload();

@@ -268,6 +268,7 @@ internal static partial class Program
         CheckCustomsNegotiation();
         CheckLivePftModeRepair();
         CheckNativeAreas();
+        CheckAreaTeamMenu();
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

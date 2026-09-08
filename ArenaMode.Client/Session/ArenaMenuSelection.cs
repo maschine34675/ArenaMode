@@ -184,7 +184,7 @@ internal static class ArenaMenuSelection
         var eligibility = CurrentEligibility;
         return ArenaAreaSelectionState.Create(IsMapConfigured(map) && eligibility.Allowed ? map : null,
             Config.Settings.SelectedGameModeId, eligibility.IsTeam, Config.Settings.TeamDeathmatchArea?.Value,
-            Config.Settings.TeamDeathmatchSize?.Value ?? 5);
+            Config.Settings.TeamDeathmatchSize?.Value ?? 5, Config.Settings.AreaTeamSize?.Value ?? 0);
     }
 
     public static bool IsMapDiscoverable(string map) => AreaSelection(map).Available;
@@ -211,6 +211,17 @@ internal static class ArenaMenuSelection
 
     public static bool MatchesRequest(LocalRaidSettings settings)
         => MatchesRequest(settings, CurrentEligibility);
+
+    public static bool TrySelectAreaTeamSize(RaidSettings owner, string map, string areaId, int size)
+    {
+        if (!IsSelectedFor(owner) || !string.Equals(map, owner.SelectedLocation?.Id, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(Config.Settings.TeamDeathmatchArea?.Value, areaId, StringComparison.Ordinal)) return false;
+        var proposal = AreaSelection(map);
+        if (!proposal.Available || !proposal.HasTeamSizeChoice || proposal.SelectedId != areaId) return false;
+        bool offered = false;
+        foreach (int option in proposal.TeamSizeOptions) if (option == size) offered = true;
+        return offered && Config.Settings.TrySelectAreaTeamSize(size) && IsMapAvailable(map);
+    }
 
     /// <summary>
     /// Final request validation and roster freeze are one operation. The same
@@ -245,7 +256,18 @@ internal static class ArenaMenuSelection
            && settings.playerSide == ESideType.Pmc
            && settings.transitionType == ELocationTransition.Common
            && string.Equals(settings.location, _settings.SelectedLocation?.Id, StringComparison.OrdinalIgnoreCase)
-           && IsMapAvailable(settings.location, eligibility);
+           && IsMapAvailable(settings.location, eligibility)
+           && HasValidAreaTeamSize(settings.location, eligibility);
+
+    private static bool HasValidAreaTeamSize(string map, Eligibility eligibility)
+    {
+        var mode = Config.Settings.SelectedGameModeId;
+        var id = mode == Modes.ArenaModeCatalog.TeamDeathmatchId
+            ? Config.Settings.TeamDeathmatchArea?.Value : ArenaAreaCatalog.FullMapId;
+        return ArenaAreaCatalog.TryResolve(id, map, mode, eligibility.IsTeam, out var area, out _)
+            && ArenaAreaCatalog.TryResolveTeamSize(area,
+                area?.TeamStarts != null ? Config.Settings.AreaTeamSize?.Value : null, out _, out _);
+    }
 
     /// <summary>
     /// Repair only the exact Common-to-None loss caused by EFT applying an

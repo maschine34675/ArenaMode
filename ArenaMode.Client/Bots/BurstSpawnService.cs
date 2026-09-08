@@ -207,6 +207,7 @@ internal static class BurstSpawnService
         var operationGeneration = Volatile.Read(ref _operationGeneration);
         BotCreationData data = null;
         bool handedToNative = false;
+        Areas.ArenaAreaRuntime.TeamSpawnLease areaSpawnLease = null;
 
         try
         {
@@ -290,7 +291,8 @@ internal static class BurstSpawnService
             // a 25 m boundary while it runs, so an exact squad must choose its
             // zone again from the current scene state instead of trusting the
             // synchronous preflight performed by SpawnSquad.
-            if (requireExactCount)
+            bool areaTeamSpawn = explicitFaction && Areas.ArenaAreaRuntime.HasTeamStarts;
+            if (requireExactCount && !areaTeamSpawn)
             {
                 zone = PickZone(spawner, count);
                 if (zone == null)
@@ -309,13 +311,22 @@ internal static class BurstSpawnService
             // also hit an unguarded Profiles[0] in another mod's hook.)
             var playerPosition = GetPlayerPosition();
             var profileCount = data.Count;
-            var points = BurstSpawnPointSelector.PickPoints(
-                zone,
-                playerPosition,
-                profileCount,
-                ref _pointCursor,
-                out var preferredAvailable,
-                out var distantAvailable);
+            List<ISpawnPoint> points;
+            int preferredAvailable, distantAvailable;
+            if (areaTeamSpawn)
+            {
+                if (profileCount != 1 || !Areas.ArenaAreaRuntime.TryPlanTeamBot(spawner.SpawnZones(false),
+                    role == WildSpawnType.pmcUSEC, true, out zone, out var teamPoint, out areaSpawnLease))
+                {
+                    data.StopSpawn();
+                    Plugin.ModLogger.LogInfo($"Arena team spawn deferred: no unoccupied connected point for {role}.");
+                    return;
+                }
+                points = new List<ISpawnPoint> { teamPoint };
+                preferredAvailable = 1; distantAvailable = 0;
+            }
+            else points = BurstSpawnPointSelector.PickPoints(zone, playerPosition, profileCount,
+                ref _pointCursor, out preferredAvailable, out distantAvailable);
 
             Plugin.ModLogger.LogInfo(
                 $"Arena burst spawn plan: zone {zone.NameZone}, requested {count}, profiles {profileCount}, "
@@ -398,6 +409,7 @@ internal static class BurstSpawnService
 
                 if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner))
                 {
+                    areaSpawnLease?.Dispose();
                     ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
                     RetireStaleSpawn(bot, role);
                     if (explicitFaction)
@@ -411,10 +423,27 @@ internal static class BurstSpawnService
                 if (explicitFaction && (!IsRequestStillCurrent(requestStillCurrent, role)
                     || !HasRequestedFaction(bot, role)))
                 {
+                    areaSpawnLease?.Dispose();
                     ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
                     RetireStaleSpawn(bot, role);
                     NotifyArrivalRejected(arrivalRejected);
                     return;
+                }
+
+                if (areaSpawnLease != null)
+                {
+                    bool accepted = areaSpawnLease.Accept(bot?.GetPlayer);
+                    areaSpawnLease.Dispose();
+                    if (!accepted)
+                    {
+                        ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
+                        Plugin.ModLogger.LogWarning($"Arena team arrival rejected: {role}, marker {areaSpawnLease.PointId}, "
+                            + $"reserved {areaSpawnLease.Position}, actual {bot?.GetPlayer?.Position}; "
+                            + "reservation, faction, distance, occupancy or navigation no longer valid.");
+                        RetireStaleSpawn(bot, role);
+                        NotifyArrivalRejected(arrivalRejected);
+                        return;
+                    }
                 }
 
                 OnBotSpawned(bot, ledger, role, includeLifecycleIdentity: requireExactCount);
@@ -481,6 +510,7 @@ internal static class BurstSpawnService
         }
         finally
         {
+            if (!handedToNative) areaSpawnLease?.Dispose();
             if (explicitFaction && !handedToNative)
             {
                 try
@@ -701,8 +731,12 @@ internal static class BurstSpawnService
                 return 0;
             }
 
-            var zone = PickZone(spawner, 1);
-            if (zone == null || BurstSpawnPointSelector.CountUsable(zone, GetPlayerPosition()) < 1)
+            BotZone zone;
+            bool available = Areas.ArenaAreaRuntime.HasTeamStarts
+                ? Areas.ArenaAreaRuntime.TryPlanTeamBot(spawner.SpawnZones(false), role == WildSpawnType.pmcUSEC,
+                    false, out zone, out _, out _)
+                : (zone = PickZone(spawner, 1)) != null && BurstSpawnPointSelector.CountUsable(zone, GetPlayerPosition()) >= 1;
+            if (!available)
             {
                 NotifyDispatchFinished(dispatchFinished, false);
                 return 0;

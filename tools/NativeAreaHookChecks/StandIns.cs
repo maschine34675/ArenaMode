@@ -132,6 +132,9 @@ namespace ArenaMode.Config
         public static Entry<string> GameMode = new() { Value = "teamdeathmatch" };
         public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaAreaCatalog.FullMapId };
         public static Entry<int> TeamDeathmatchSize = new() { Value = 5 };
+        public static Entry<int> AreaTeamSize = new() { Value = 2 };
+        public static bool TrySelectAreaTeamSize(int size)
+        { if (RejectAreaWrite || size < 2 || size > 5) return false; AreaTeamSize.Value = size; return true; }
         public static string Allowlist = ArenaMapCatalog.DefaultClientAllowlist;
         public static bool RejectAreaWrite;
         public static int AreaWrites;
@@ -180,12 +183,13 @@ namespace ArenaMode.Session
     {
         public static ArenaAreaSelectionView Last;
         internal Func<string, bool> Callback;
+        internal Func<string, int, bool> SizeCallback;
         internal ArenaAreaSelectionState State;
         internal bool Closed = true;
         internal bool Team;
-        public void Show(UnityEngine.Transform screen, TMPro.TMP_Text text, Func<string, bool> callback)
-        { Last = this; Callback = callback; Closed = false; }
+        public void Show(UnityEngine.Transform screen, TMPro.TMP_Text text, Func<string, bool> callback, Func<string, int, bool> sizeCallback = null)
+        { Last = this; Callback = callback; SizeCallback = sizeCallback; Closed = false; }
         public void Refresh(ArenaAreaSelectionState state, bool team) { State = state; Team = team; }
-        public void Close() { Closed = true; Callback = null; State = null; }
+        public void Close() { Closed = true; Callback = null; SizeCallback = null; State = null; }
     }
 }

@@ -98,6 +98,9 @@ namespace ArenaMode.Config
         public static Entry<string> GameMode = new() { Value = "endless" };
         public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId };
         public static Entry<int> TeamDeathmatchSize = new() { Value = 5 };
+        public static Entry<int> AreaTeamSize = new() { Value = 2 };
+        public static bool TrySelectAreaTeamSize(int size)
+        { if (RefuseAreaWrite || size < 2 || size > 5) return false; AreaTeamSize.Value = size; return true; }
         public static bool RefuseAreaWrite;
         public static int AreaChanges;
         public static bool TrySelectArea(string area)
@@ -111,7 +114,7 @@ namespace ArenaMode.Config
         public static string Allowlist = ArenaMode.Shared.ArenaMapCatalog.DefaultClientAllowlist;
         public static bool IsArenaMap(string map) => ArenaMode.Shared.ArenaMapCatalog.AllowlistContains(Allowlist, map);
     }
-    public static class SettingsSync { public static void SyncNow() { } }
+    public static class SettingsSync { public static Action OnSync; public static void SyncNow() { OnSync?.Invoke(); } }
 }
 namespace ArenaMode.Audio
 {

@@ -21,7 +21,9 @@ internal static class ArenaAreaRespawn
         {
             var point = original.Resolve(game);
             ArenaAreaRuntime.RequirePosition(point.position);
-            prepared = new Prepared(game, game.GameWorld, area.Id, point.position, point.rotation);
+            var reservation = original is Respawn.ArenaSpawnSelector
+                ? ArenaAreaRuntime.ReservePlayerPosition(point.position) : null;
+            prepared = new Prepared(game, game.GameWorld, area.Id, point.position, point.rotation, reservation);
             return true;
         }
         catch (Exception ex)
@@ -38,14 +40,18 @@ internal static class ArenaAreaRespawn
         private readonly string _areaId;
         private readonly Vector3 _position;
         private readonly Quaternion _rotation;
-        internal Prepared(LocalGame game, GameWorld world, string areaId, Vector3 position, Quaternion rotation)
-        { _game = game; _world = world; _areaId = areaId; _position = position; _rotation = rotation; }
+        private readonly ArenaAreaRuntime.TeamSpawnLease _reservation;
+        internal Prepared(LocalGame game, GameWorld world, string areaId, Vector3 position, Quaternion rotation,
+            ArenaAreaRuntime.TeamSpawnLease reservation)
+        { _game = game; _world = world; _areaId = areaId; _position = position; _rotation = rotation; _reservation = reservation; }
         public (Vector3 position, Quaternion rotation) Resolve(LocalGame game)
         {
             if (!ReferenceEquals(game, _game) || !ArenaSession.IsExactActiveRaid(_game, _world)
                 || ArenaAreaRuntime.CurrentArea?.Id != _areaId)
                 throw new InvalidOperationException("The prepared Arena-area respawn lost its exact raid.");
             ArenaAreaRuntime.RequirePosition(_position);
+            if (_reservation != null && !_reservation.CanReleasePlayer)
+                throw new InvalidOperationException("The prepared team spawn lost its exact unoccupied reservation.");
             return (_position, _rotation);
         }
     }

@@ -31,6 +31,7 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
 
         var protectedTeam = sessions.IsProtectedTeamRaid(sessionId);
         var areaId = sessions.GetAreaId(sessionId);
+        var areaTeamSize = sessions.GetAreaTeamSize(sessionId);
         var boundedArea = areaId != ArenaMode.Shared.ArenaAreaCatalog.FullMapId;
         var requiresLocation = protectedTeam || boundedArea;
         if (__result == null)
@@ -52,7 +53,7 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
         try
         {
             var mode = sessions.GetStatus(sessionId).mode;
-            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode, areaId);
+            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode, areaId, areaTeamSize);
             sessions.StashLocationClone(sessionId, __result);
             sessions.MarkLocationMutationReady(sessionId);
 
@@ -62,7 +63,7 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
 
             ArenaContext.Logger?.Info(
                 $"[ArenaMode] Location clone mutated for arena ({name}, mode={mode ?? "?"}): botMax={mapConfig.BotMax}, " +
-                $"spawn strategy={strategy}, area={areaId}, " +
+                $"spawn strategy={strategy}, area={areaId}, areaTeamSize={areaTeamSize}, " +
                 $"raid={ArenaContext.Config.RaidTimeMinutes}min, stripLoot={ArenaContext.Config.StripLoot}.");
         }
         catch (Exception ex)

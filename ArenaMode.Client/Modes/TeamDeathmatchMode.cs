@@ -81,7 +81,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             return;
         }
         _population = new TeamDeathmatchPopulation(
-            Areas.ArenaAreaRuntime.CurrentArea?.MaxTeamSize ?? Settings.TeamDeathmatchSize.Value,
+            Areas.ArenaAreaRuntime.CurrentTeamSize ?? Settings.TeamDeathmatchSize.Value,
             faction == EPlayerSide.Usec);
         TeamDeathmatchRelations.Reset();
         TeamDeathmatchRelations.Register(_local);
@@ -148,6 +148,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
                 && _bots.All(bot => bot.BotState == EBotState.Active))
             {
                 _announcedReady = true;
+                Areas.ArenaAreaRuntime.FinishTeamAssembly();
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
                 Plugin.ModLogger.LogInfo($"Team Deathmatch ready: {TeamSize}v{TeamSize}.");
             }
@@ -444,6 +445,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             || TeamDeathmatchRelations.Faction(player) != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear))
         { Fail("local PMC faction changed"); return; }
         _local = player;
+        Areas.ArenaAreaRuntime.ReleasePlayerReservation(player);
         _pendingGiveUpLife = null;
         _creditedGiveUpLife = null;
         TeamDeathmatchRelations.Register(player);

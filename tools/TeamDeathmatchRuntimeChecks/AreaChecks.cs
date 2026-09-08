@@ -11,6 +11,22 @@ internal static partial class Program
     private static void BoundedAreaModeContract()
     {
         foreach (bool usec in new[] { true, false })
+        foreach (int size in new[] { 2, 3, 4, 5 })
+        {
+            var raid = new Raid(usec, size: 12, bounded: true, areaPending: true, areaSize: size);
+            Check(raid.Mode.TeamSize == size && raid.Game.BotsController.BotSpawner.MaxBots == 2*size-1,
+                "the area negotiated count, not maximum capacity or full-map config, owns every faction slot");
+            ArenaAreaRuntime.FrozenTeamSize = size == 5 ? 2 : 5;
+            Settings.TeamDeathmatchSize.Value = 9;
+            ArenaAreaRuntime.IsPending = false;
+            raid.Fill();
+            Check(raid.Mode.TeamSize == size && raid.Alive(usec ? EPlayerSide.Usec : EPlayerSide.Bear) == size-1
+                && raid.Alive(usec ? EPlayerSide.Bear : EPlayerSide.Usec) == size,
+                "each negotiated2..5 roster remains frozen despite later configuration changes");
+            Check(ArenaAreaRuntime.TeamAssemblyReleases == 1,
+                "exactly one complete first roster transitions area placements to ongoing respawns");
+        }
+        foreach (bool usec in new[] { true, false })
         {
             var raid = new Raid(usec, size: 12, bounded: true, areaPending: true);
             Check(raid.Mode.TeamSize == 2 && raid.Game.BotsController.BotSpawner.MaxBots == 3,

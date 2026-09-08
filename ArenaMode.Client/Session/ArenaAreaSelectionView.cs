@@ -16,35 +16,39 @@ internal sealed class ArenaAreaSelectionView
 {
     private const float PanelWidth = 360f;
     private const float Inset = 20f;
-    private const float RowTop = 44f;
-    private const float RowHeight = 34f;
-    private const float RowStride = 38f;
-    private const int MaxRows = 2;
+    private const float RowTop = 36f;
+    private const float RowHeight = 28f;
+    private const float RowStride = 30f;
+    private const int MaxRows = 3;
     private const string SelectMapPrompt = "Select a map to choose its area.";
 
     private sealed class Row
     {
         internal readonly string Id;
         internal readonly Button Button;
+        internal readonly int Size;
         internal TextMeshProUGUI Label;
         internal GameObject Marker;
 
-        internal Row(string id, Button button) { Id = id; Button = button; }
+        internal Row(string id, Button button, int size = 0) { Id = id; Button = button; Size = size; }
     }
 
     private readonly List<Row> _rows = new(MaxRows);
+    private readonly List<Row> _sizeRows = new(4);
     private GameObject _root;
     private Button _template;
     private TMP_Text _typography;
     private TextMeshProUGUI _summary, _modeHint;
     private ArenaAreaSelectionState _state;
     private Func<string, bool> _onSelected;
+    private Func<string, int, bool> _onTeamSizeSelected;
     private bool _dispatching, _layoutTactical;
-    private int _layoutRows = -1;
+    private int _layoutRows = -1, _layoutSizes = -1;
 
     internal GameObject Root => _root;
 
-    public void Show(Transform screen, TMP_Text nativeText, Func<string, bool> onSelected)
+    public void Show(Transform screen, TMP_Text nativeText, Func<string, bool> onSelected,
+        Func<string, int, bool> onTeamSizeSelected = null)
     {
         Close();
         var dropdown = MenuUI.Instance?.MatchmakerOfflineRaidScreen
@@ -56,6 +60,7 @@ internal sealed class ArenaAreaSelectionView
         _template = dropdown._elementTemplate;
         _typography = dropdown._currentValueText ?? nativeText;
         _onSelected = onSelected;
+        _onTeamSizeSelected = onTeamSizeSelected;
         try
         {
             Create(screen);
@@ -79,9 +84,20 @@ internal sealed class ArenaAreaSelectionView
             // the same choices. Preserve every row, native event and listener.
             if (!SameOptionIds(state))
             {
-                ClearRows();
+                ClearRows(_rows);
                 if (state != null)
                     foreach (var option in state.Options) CreateRow(option);
+            }
+
+            int sizeCount = state?.TeamSizeOptions.Count ?? 0;
+            bool sameSizes = _sizeRows.Count == sizeCount;
+            for (int i = 0; sameSizes && i < sizeCount; i++) sameSizes = _sizeRows[i].Size == state.TeamSizeOptions[i];
+            if (!sameSizes)
+            {
+                ClearRows(_sizeRows);
+                if (state != null)
+                    foreach (int size in state.TeamSizeOptions)
+                        CreateRow(new ArenaAreaOption(size.ToString(), $"{size}v{size}"), size);
             }
 
             bool available = state?.Available == true;
@@ -92,6 +108,11 @@ internal sealed class ArenaAreaSelectionView
                 row.Button.interactable = available && _onSelected != null;
                 bool selected = available && string.Equals(row.Id, state.SelectedId, StringComparison.Ordinal);
                 SetActive(row.Marker, selected);
+            }
+            foreach (var row in _sizeRows)
+            {
+                row.Button.interactable = available && _onTeamSizeSelected != null;
+                SetActive(row.Marker, row.Size == state.SelectedTeamSize);
             }
             SetText(_summary, available ? state.Summary : SelectMapPrompt);
             SetText(_modeHint, available ? state.ModeHint : string.Empty);
@@ -111,15 +132,18 @@ internal sealed class ArenaAreaSelectionView
     public void Close()
     {
         _onSelected = null;
+        _onTeamSizeSelected = null;
         _state = null;
         _dispatching = false;
         var root = _root;
         _root = null;
-        ClearRows();
+        ClearRows(_rows);
+        ClearRows(_sizeRows);
         _template = null;
         _typography = null;
         _summary = _modeHint = null;
         _layoutRows = -1;
+        _layoutSizes = -1;
         Safe(() => { if (root != null) root.SetActive(false); });
         Safe(() => { if (root != null) UnityEngine.Object.Destroy(root); });
     }
@@ -141,29 +165,32 @@ internal sealed class ArenaAreaSelectionView
         _modeHint.color = Dim(_typography, .75f);
     }
 
-    private void CreateRow(ArenaAreaOption option)
+    private void CreateRow(ArenaAreaOption option, int size = 0)
     {
         // Clone only the dropdown's list-item prefab, never the dropdown owner
         // or context menu. Replace its UnityEvent so no native callback leaks.
         var button = UnityEngine.Object.Instantiate(_template, _root.transform, false);
-        var row = new Row(option.Id, button);
-        _rows.Add(row);
-        button.name = "Arena Area " + row.Id;
+        var row = new Row(option.Id, button, size);
+        var rows = size == 0 ? _rows : _sizeRows;
+        rows.Add(row);
+        button.name = (size == 0 ? "Arena Area " : "Arena Team Size ") + row.Id;
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
-        SetRect((RectTransform)button.transform, Inset, RowTop + (_rows.Count - 1) * RowStride,
-            PanelWidth - 2f * Inset, RowHeight);
+        float width = size == 0 ? PanelWidth - 2f * Inset : 74f;
+        SetRect((RectTransform)button.transform, size == 0 ? Inset : Inset + (rows.Count - 1) * 82f,
+            size == 0 ? RowTop + (rows.Count - 1) * RowStride : RowTop + _rows.Count * RowStride + 6f,
+            width, RowHeight);
         var layout = button.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
         row.Label = button.GetComponentInChildren<TextMeshProUGUI>(true)
             ?? throw new InvalidOperationException("The native area-row label is missing.");
         row.Label.text = option.Label;
-        row.Label.fontSize = 20f;
+        row.Label.fontSize = 18f;
         row.Label.enableWordWrapping = false;
         row.Label.overflowMode = TextOverflowModes.Ellipsis;
         row.Label.alignment = TextAlignmentOptions.MidlineLeft;
         row.Label.raycastTarget = false;
-        SetRect(row.Label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, RowHeight);
+        SetRect(row.Label.rectTransform, 14f, 0f, width - 28f, RowHeight);
 
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
@@ -184,8 +211,25 @@ internal sealed class ArenaAreaSelectionView
         markerImage.raycastTarget = false;
         row.Marker.SetActive(false);
         // Stable identity plus row ownership, never a mutable option index.
-        button.onClick.AddListener(() => Select(row));
+        button.onClick.AddListener(() => { if (size == 0) Select(row); else SelectTeamSize(row); });
         button.gameObject.SetActive(true);
+    }
+
+    private void SelectTeamSize(Row row)
+    {
+        if (_dispatching || _root == null || !_root.activeInHierarchy
+            || _state?.HasTeamSizeChoice != true || _onTeamSizeSelected == null || !_sizeRows.Contains(row)) return;
+        var owner = _root;
+        var areaId = _state.SelectedId;
+        _dispatching = true;
+        try
+        {
+            bool accepted = _onTeamSizeSelected(areaId, row.Size);
+            if (accepted && ReferenceEquals(owner, _root) && owner != null && Singleton<GUISounds>.Instantiated)
+                Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.MenuDropdownSelect);
+        }
+        catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena team-size selection could not be saved: {ex.Message}"); }
+        finally { if (ReferenceEquals(owner, _root)) _dispatching = false; }
     }
 
     private void Select(Row row)
@@ -227,7 +271,7 @@ internal sealed class ArenaAreaSelectionView
     {
         if (state == null) return;
         if (state.Options.Count > MaxRows)
-            throw new InvalidOperationException("The area panel supports at most two visible choices.");
+            throw new InvalidOperationException("The area panel supports at most three visible choices.");
         for (int index = 0; index < state.Options.Count; index++)
         {
             var option = state.Options[index];
@@ -241,24 +285,25 @@ internal sealed class ArenaAreaSelectionView
 
     private void UpdateLayout(bool tacticalOnly)
     {
-        if (_layoutRows == _rows.Count && _layoutTactical == tacticalOnly) return;
+        if (_layoutRows == _rows.Count && _layoutSizes == _sizeRows.Count && _layoutTactical == tacticalOnly) return;
         _layoutRows = _rows.Count;
         _layoutTactical = tacticalOnly;
-        float summaryTop = _rows.Count == 0 ? RowTop : RowTop + _rows.Count * RowStride + 8f;
-        float height = _rows.Count == 0 ? 100f : summaryTop + 60f;
-        // Mode panel: top 168, height 488/524. Keep a 12px gap, and at most 188px
-        // height, ending at 856/892 in the native 1080-unit reference layout.
+        _layoutSizes = _sizeRows.Count;
+        float summaryTop = _rows.Count == 0 ? RowTop : RowTop + _rows.Count * RowStride + 6f + (_sizeRows.Count == 0 ? 0f : 34f);
+        float height = _rows.Count == 0 ? 100f : summaryTop + 48f;
+        // Mode panel ends at 656/692; keep its 12px gap. Three Customs rows
+        // plus size buttons end at Y=882, above the native bottom controls.
         SetRect((RectTransform)_root.transform, 56f, tacticalOnly ? 704f : 668f, PanelWidth, height);
         SetRect(_summary.rectTransform, Inset, summaryTop, PanelWidth - 2f * Inset,
             _rows.Count == 0 ? 40f : 22f);
         _summary.enableWordWrapping = _rows.Count == 0;
-        SetRect(_modeHint.rectTransform, Inset, summaryTop + 26f, PanelWidth - 2f * Inset, 20f);
+        SetRect(_modeHint.rectTransform, Inset, summaryTop + 24f, PanelWidth - 2f * Inset, 20f);
     }
 
-    private void ClearRows()
+    private void ClearRows(List<Row> rows)
     {
-        var retired = _rows.ToArray();
-        _rows.Clear();
+        var retired = rows.ToArray();
+        rows.Clear();
         foreach (var row in retired)
         {
             Safe(() => { if (row.Button != null) row.Button.onClick.RemoveAllListeners(); });

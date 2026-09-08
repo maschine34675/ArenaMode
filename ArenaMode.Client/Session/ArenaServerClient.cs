@@ -233,8 +233,11 @@ public static class ArenaServerClient
     internal static string PendingArmToken => _pendingArmToken;
 
     public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
-        string areaId = ArenaAreaCatalog.FullMapId)
+        string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null)
     {
+        if (!ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam, out var area, out _)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
+            return false;
         HasPendingArm = true;
         HasPendingEnd = false;
         // The client must know the transaction identity before the first byte is
@@ -246,7 +249,7 @@ public static class ArenaServerClient
         _boundNativeEndIdentity = null;
         try
         {
-            var body = JsonConvert.SerializeObject(new
+            var payload = JObject.FromObject(new
             {
                 map,
                 mode,
@@ -254,10 +257,16 @@ public static class ArenaServerClient
                 areaId,
                 requestId = _pendingArmToken,
             });
+            if (selectedSize != 0) payload["areaTeamSize"] = selectedSize;
+            var body = payload.ToString(Formatting.None);
             var response = RequestHandler.PostJson(Protocol.RaidStartRoute, body);
             var parsed = string.IsNullOrEmpty(response) ? null : JObject.Parse(response);
             string returnedArmToken = parsed?["armToken"]?.Value<string>();
             var ok = parsed?["armed"]?.Value<bool>() == true
+                && (selectedSize == 0
+                    ? parsed?["areaTeamSize"] == null || parsed["areaTeamSize"].Type == JTokenType.Null
+                        || parsed["areaTeamSize"].Type == JTokenType.Integer && parsed["areaTeamSize"].Value<int>() == 0
+                    : parsed?["areaTeamSize"]?.Type == JTokenType.Integer && parsed["areaTeamSize"].Value<int>() == selectedSize)
                 && (areaId == ArenaAreaCatalog.FullMapId
                     || string.Equals(parsed?["areaId"]?.Value<string>(), areaId, StringComparison.Ordinal))
                 && string.Equals(

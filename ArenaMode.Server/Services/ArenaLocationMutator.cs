@@ -43,11 +43,11 @@ public static class ArenaLocationMutator
            || string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase);
 
     public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config,
-        string? mode = null, string? areaId = null)
+        string? mode = null, string? areaId = null, int? areaTeamSize = null)
     {
         // Validate the complete retained set before changing any raid data.
         // A missing area preserves the legacy path, including its original list.
-        ApplyAreaSpawns(location, mode, areaId);
+        ApplyAreaSpawns(location, mode, areaId, areaTeamSize);
 
         // This object is already the exact Arena raid's clone. Mirror the
         // client menu projection without globally enabling Labyrinth, touching
@@ -157,22 +157,23 @@ public static class ArenaLocationMutator
             location.Loot = [];
     }
 
-    private static void ApplyAreaSpawns(LocationBase location, string? mode, string? areaId)
+    private static void ApplyAreaSpawns(LocationBase location, string? mode, string? areaId, int? areaTeamSize)
     {
-        var allowed = GetAreaSpawns(location, mode, areaId, requireAlreadyContained: false);
+        var allowed = GetAreaSpawns(location, mode, areaId, areaTeamSize, requireAlreadyContained: false);
         if (allowed != null)
             location.SpawnPointParams = allowed;
     }
 
     /// <summary>Read-only final check after all native/other-mod location work has finished.</summary>
-    internal static void ValidateAreaSpawns(LocationBase location, string? mode, string? areaId)
-        => GetAreaSpawns(location, mode, areaId, requireAlreadyContained: true);
+    internal static void ValidateAreaSpawns(LocationBase location, string? mode, string? areaId, int? areaTeamSize = null)
+        => GetAreaSpawns(location, mode, areaId, areaTeamSize, requireAlreadyContained: true);
 
     private static List<SpawnPointParam>? GetAreaSpawns(
-        LocationBase location, string? mode, string? areaId, bool requireAlreadyContained)
+        LocationBase location, string? mode, string? areaId, int? areaTeamSize, bool requireAlreadyContained)
     {
         if (!ArenaAreaCatalog.TryResolve(areaId!, location.Id, mode!, false,
-                out var area, out var failure))
+                out var area, out var failure)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out failure))
             throw new InvalidOperationException(failure);
         if (area == null)
             return null;
@@ -188,6 +189,12 @@ public static class ArenaLocationMutator
             throw new InvalidOperationException($"Arena area '{area.Id}' received an outside or invalid spawn after filtering.");
         if (allowed.Select(point => point.Id).Distinct(StringComparer.Ordinal).Count() != allowed.Count)
             throw new InvalidOperationException($"Arena area '{area.Id}' contains duplicate spawn identities.");
+
+        if (area.TeamStarts != null)
+        {
+            ValidateTeamStarts(area, selectedSize, allowed);
+            return allowed;
+        }
 
         int PlayerCount(string side) => allowed.Where(point =>
                 HasCategory(point, "Player")
@@ -214,6 +221,74 @@ public static class ArenaLocationMutator
 
         return allowed;
     }
+
+    private static void ValidateTeamStarts(ArenaAreaDefinition area, int selectedSize, List<SpawnPointParam> allowed)
+    {
+        // Keep the full contour's native records for later movement/respawns.
+        // Only initial placement uses the versioned exact west/east identities.
+        // Either faction may be the local player: each side therefore needs a
+        // full enemy team, not merely (size - 1) allied bots.
+        var playerStarts = new List<SpawnPointParam>();
+        var botStarts = new List<SpawnPointParam>();
+        var sectors = new List<SpawnPointParam[]>();
+        foreach (bool usec in new[] { true, false })
+        {
+            string side = usec ? "Usec" : "Bear";
+            var eligible = allowed.Where(point =>
+                !ArenaBotSpawnPolicy.IsExcludedPoint(area.MapId, point.Id)
+                && !ArenaBotSpawnPolicy.IsExcludedZone(area.MapId, point.BotZoneName)
+                && HasKnownCategories(point)).ToArray();
+            var players = eligible.Where(point => area.TeamStarts!.Allows(usec, true, point.Id)
+                && HasNativeCategory(point, "Player") && HasPmcSide(point, side)).ToArray();
+            var bots = eligible.Where(point => area.TeamStarts!.Allows(usec, false, point.Id)
+                && !string.IsNullOrWhiteSpace(point.BotZoneName)
+                && (HasNativeCategory(point, "Bot") || HasNativeCategory(point, "BotPmc"))).ToArray();
+            if (players.Length < 1 || bots.Length < selectedSize)
+                throw new InvalidOperationException($"Arena area '{area.Id}' team starts have insufficient {side} capacity "
+                    + $"(PMC {players.Length}/1, bots {bots.Length}/{selectedSize}).");
+            playerStarts.AddRange(players);
+            botStarts.AddRange(bots);
+            sectors.Add(players.Concat(bots).ToArray());
+        }
+
+        var all = playerStarts.Concat(botStarts).ToArray();
+        if (all.Select(point => point.Position!.Value).Distinct().Count() != all.Length)
+            throw new InvalidOperationException($"Arena area '{area.Id}' team starts repeat a physical position.");
+        // Alternative PMC markers do not coexist. Check every bot pair and
+        // every possible local PMC against every bot, including the other side.
+        for (int i = 0; i < botStarts.Count; i++)
+            foreach (var other in botStarts.Skip(i + 1).Concat(playerStarts))
+            {
+                var a = botStarts[i].Position!.Value; var b = other.Position!.Value;
+                double dx = (double)a.X - b.X, dz = (double)a.Z - b.Z;
+                if (dx * dx + dz * dz < 1.5 * 1.5)
+                    throw new InvalidOperationException($"Arena area '{area.Id}' team starts are less than 1.5m apart horizontally.");
+            }
+        foreach (var west in sectors[0])
+            foreach (var east in sectors[1])
+            {
+                var a = west.Position!.Value; var b = east.Position!.Value;
+                double dx = (double)a.X - b.X, dz = (double)a.Z - b.Z;
+                if (dx * dx + dz * dz < 25 * 25)
+                    throw new InvalidOperationException($"Arena area '{area.Id}' opposing start sectors are less than 25m apart horizontally.");
+            }
+    }
+
+    private static bool HasNativeCategory(SpawnPointParam point, string category)
+        => HasCategory(point, category) || HasCategory(point, "All");
+
+    private static bool HasKnownCategories(SpawnPointParam point)
+        => point.Categories?.Any() == true && point.Categories.All(value =>
+            new[] { "None", "Player", "Bot", "Boss", "Coop", "Group", "Opposite", "BotPmc", "All" }
+                .Contains(value, StringComparer.OrdinalIgnoreCase));
+
+    private static bool HasPmcSide(SpawnPointParam point, string side)
+        => point.Sides?.Any() == true
+           && point.Sides.All(value => new[] { "None", "Usec", "Bear", "Savage", "Pmc", "All" }
+               .Contains(value, StringComparer.OrdinalIgnoreCase))
+           && point.Sides.Any(value => string.Equals(value, side, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(value, "Pmc", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(value, "All", StringComparison.OrdinalIgnoreCase));
 
     private static bool HasCategory(SpawnPointParam point, string category)
         => point.Categories?.Any(value => string.Equals(value, category, StringComparison.OrdinalIgnoreCase)) == true;

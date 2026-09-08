@@ -27,10 +27,15 @@ internal static partial class Program
         internal List<BotOwner> Bots => Game.BotsController.BotSpawner._bots.BotOwners;
         internal Raid(bool usec = true, int size = 5, bool active = true,
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
-            bool bounded = false, bool areaPending = false)
+            bool bounded = false, bool areaPending = false, int? areaSize = null)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
+            if (areaSize.HasValue)
+            {
+                ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = ArenaMode.Shared.ArenaAreaCatalog.CustomsFactoryCenterTeams;
+                ArenaMode.Areas.ArenaAreaRuntime.FrozenTeamSize = areaSize;
+            }
             ArenaMode.Areas.ArenaAreaRuntime.IsPending = bounded && areaPending;
             Time.time = 0;
             Model.Events.Clear();

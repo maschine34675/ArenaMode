@@ -91,6 +91,7 @@ public static class Settings
     public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
+    public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
     public static ConfigEntry<bool> AreaCaptureEnabled { get; private set; }
     public static ConfigEntry<bool> AreaCaptureAllowInNormalPmc { get; private set; }
@@ -167,7 +168,7 @@ public static class Settings
     {
         if (TeamDeathmatchArea == null || (areaId != ArenaAreaCatalog.FullMapId
                 && areaId != ArenaAreaCatalog.FactorySouthId && areaId != ArenaAreaCatalog.CustomsFactoryCenterId
-                && areaId != ArenaAreaCatalog.CustomsFactoryCenterPolygonId))
+                && areaId != ArenaAreaCatalog.CustomsFactoryCenterPolygonId && areaId != ArenaAreaCatalog.CustomsFactoryCenterTeamsId))
             return false;
         if (TeamDeathmatchArea.Value == areaId) return true;
         try { TeamDeathmatchArea.Value = areaId; }
@@ -181,6 +182,21 @@ public static class Settings
         catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena play-area save failed: {ex.Message}"); }
         SettingsSync.Report();
         Plugin.ModLogger?.LogInfo($"Arena play area selected in map screen: {areaId}.");
+        return true;
+    }
+
+    internal static bool TrySelectAreaTeamSize(int size)
+    {
+        if (AreaTeamSize == null || size < 2 || size > 5) return false;
+        if (AreaTeamSize.Value == size) return true;
+        try { AreaTeamSize.Value = size; }
+        catch (Exception ex)
+        { Plugin.ModLogger?.LogWarning($"Arena area team-size selection failed: {ex.Message}"); return false; }
+        if (AreaTeamSize.Value != size) return false;
+        try { if (File?.SaveOnConfigSet == false) File.Save(); }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena area team-size save failed: {ex.Message}"); }
+        SettingsSync.Report();
+        Plugin.ModLogger?.LogInfo($"Arena area team size selected in map screen: {size}v{size}.");
         return true;
     }
 
@@ -550,7 +566,13 @@ public static class Settings
                 "Selected before loading; changes during a raid apply next match. " +
                 "Other modes ignore this setting. The area must pass its live navigation checks.",
                 new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId,
-                    ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId)));
+                    ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
+                    ArenaAreaCatalog.CustomsFactoryCenterTeamsId)));
+
+        AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,
+            new ConfigDescription("Players per faction, including your PMC, for the Customs contour with team starts. " +
+                "Separate from whole-map team size. Selected before loading; changes apply next match.",
+                new AcceptableValueRange<int>(2, 5)));
 
         TeamDeathmatchSize = config.Bind(
             "Team Deathmatch",

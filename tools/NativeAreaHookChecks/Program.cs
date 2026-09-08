@@ -294,9 +294,38 @@ internal static class Program
             SameScreenGenerationAndCleanup();
             StrictStartAndTeamBoundaryStayStrict();
             PftWrongF12ModeStillMaterializesMapsBeforePostfixRepair();
+            AreaTeamSizeCallbacksStayOwned();
             Console.WriteLine($"NATIVE_AREA_HOOK_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+
+    private static void AreaTeamSizeCallbacksStayOwned()
+    {
+        const string teams = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+        using var f = new Fixture(teams, Customs);
+        Settings.AreaTeamSize.Value = 2;
+        f.Screen.ShowInternal(f.SettingsOwner);
+        var callback = ArenaAreaSelectionView.Last.SizeCallback;
+        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 3
+            && ArenaAreaSelectionView.Last.State.HasTeamSizeChoice,
+            "native area adapter publishes three Customs choices and size state");
+        Assert(callback(teams, 5) && Settings.AreaTeamSize.Value == 5
+            && ArenaAreaSelectionView.Last.State.SelectedTeamSize == 5, "native size callback pushes confirmed selection back into view");
+        Assert(!callback(teams, 6) && Settings.AreaTeamSize.Value == 5, "native size callback rejects unsupported count");
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        Assert(!callback(teams, 3), "retained callback rejects changed area before next periodic refresh");
+        Settings.TeamDeathmatchArea.Value = teams;
+        f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
+        Assert(!callback(teams, 3), "retained callback rejects changed map");
+        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
+        Settings.TeamDeathmatchArea.Value = teams;
+        f.Screen.ShowInternal(f.SettingsOwner);
+        Assert(!callback(teams, 4), "old Show generation cannot change new area team size");
+        var current = ArenaAreaSelectionView.Last.SizeCallback;
+        Assert(current(teams, 4), "replacement Show generation has independent live callback");
+        f.Screen.Close();
+        Assert(!current(teams, 2), "closed native screen rejects deferred size click");
     }
 }

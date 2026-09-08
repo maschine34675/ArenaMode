@@ -29,21 +29,27 @@ internal sealed class ArenaAreaSelectionState
         new(ArenaAreaCatalog.FactorySouthId, "Factory South", ArenaAreaCatalog.FactorySouth.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterId, "Factory Center", ArenaAreaCatalog.CustomsFactoryCenter.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "Factory Center (contour)", ArenaAreaCatalog.CustomsFactoryCenterPolygon.MaxTeamSize),
+        new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Customs contour (team starts)"),
     };
 
-    private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string mode, bool pitFireTeam, int teamSize)
+    private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string mode, bool pitFireTeam, int teamSize, int areaTeamSize)
     {
         Options = Array.AsReadOnly(options);
         var selected = options.FirstOrDefault(option => option.Id == ArenaAreaCatalog.NormalizeId(requestedArea))
             ?? options.FirstOrDefault();
         SelectedId = selected?.Id;
+        HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+        SelectedTeamSize = HasTeamSizeChoice && ArenaAreaCatalog.TryResolveTeamSize(
+            ArenaAreaCatalog.CustomsFactoryCenterTeams, areaTeamSize, out var validSize, out _) ? validSize : 0;
+        TeamSizeOptions = Array.AsReadOnly(HasTeamSizeChoice ? new[] { 2, 3, 4, 5 } : Array.Empty<int>());
         Summary = selected == null ? "Select a map to choose its area."
+            : HasTeamSizeChoice ? SelectedTeamSize > 0 ? $"{SelectedTeamSize}v{SelectedTeamSize} - opposing team starts" : "Select a supported team size."
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"
             : pitFireTeam ? "5v5 - fixed teams"
             : mode == ArenaModeCatalog.TeamDeathmatchId ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
             : "Whole map";
         ModeHint = selected == null ? string.Empty
-            : selected.FixedTeamSize > 0 ? "Team Deathmatch only - experimental"
+            : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Team Deathmatch only - experimental"
             : pitFireTeam ? "Tactical only - PitFireTeam"
             : "Available in all Arena modes";
     }
@@ -52,10 +58,13 @@ internal sealed class ArenaAreaSelectionState
     public string SelectedId { get; }
     public string Summary { get; }
     public string ModeHint { get; }
+    public bool HasTeamSizeChoice { get; }
+    public int SelectedTeamSize { get; }
+    public IReadOnlyList<int> TeamSizeOptions { get; }
     public bool Available => SelectedId != null;
 
     public static ArenaAreaSelectionState Create(string map, string mode, bool pitFireTeam,
-        string requestedArea, int fullMapTeamSize)
+        string requestedArea, int fullMapTeamSize, int areaTeamSize = 2)
     {
         mode = ArenaModeCatalog.NormalizeId(mode);
         var choices = !ArenaMapCatalog.IsSupportedMap(map)
@@ -63,6 +72,6 @@ internal sealed class ArenaAreaSelectionState
             ? Array.Empty<ArenaAreaOption>()
             : Candidates.Where(option => ArenaAreaCatalog.TryResolve(option.Id, map, mode, pitFireTeam,
                 out _, out _)).ToArray();
-        return new ArenaAreaSelectionState(choices, requestedArea, mode, pitFireTeam, fullMapTeamSize);
+        return new ArenaAreaSelectionState(choices, requestedArea, mode, pitFireTeam, fullMapTeamSize, areaTeamSize);
     }
 }

@@ -7,6 +7,10 @@ PitFireTeam 0.10.0 compatibility path supports protected Tactical 5v5 matches.
 Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
+The optional Customs contour team-start preset adds independent TDM 2v2–5v5,
+with exact per-raid team-size negotiation and reserved faction starts/respawns.
+Legacy bounded presets remain fixed 2v2. See AREA-TEAM-SETUP-REVIEW.md and the
+dated HANDOFF.md for implementation, delivery and pending user GPU acceptance.
 
 Read this before changing anything. Most of it was learned the expensive way.
 

@@ -151,6 +151,14 @@ internal static class ArenaLocationSelectionPatch
                     var accepted = ArenaMenuSelection.TrySelectArea(owner.RaidSettings, __instance.SelectedLocation?.Id, areaId);
                     if (accepted) state.Refresh(__instance);
                     return accepted;
+                }, (areaId, size) =>
+                {
+                    if (__instance == null || !ReferenceEquals(state.Generation, generation)
+                        || !ReferenceEquals(Controller(__instance), owner) || !IsArena(__instance)) return false;
+                    var accepted = ArenaMenuSelection.TrySelectAreaTeamSize(owner.RaidSettings,
+                        __instance.SelectedLocation?.Id, areaId, size);
+                    if (accepted) state.Refresh(__instance);
+                    return accepted;
                 });
                 state.Refresh(__instance);
             }

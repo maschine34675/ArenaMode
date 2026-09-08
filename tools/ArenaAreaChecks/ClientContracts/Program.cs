@@ -99,6 +99,8 @@ namespace ArenaMode.Areas
     public sealed class Area { public string Id; }
     public static class ArenaAreaRuntime
     {
+        public sealed class TeamSpawnLease { public bool CanReleasePlayer = true; }
+        public static TeamSpawnLease ReservePlayerPosition(Vector3 position) => null;
         public static Area CurrentArea;
         public static bool InvalidPosition, RejectPick, Aborted;
         public static int Picks;

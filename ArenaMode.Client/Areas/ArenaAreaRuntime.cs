@@ -20,7 +20,7 @@ namespace ArenaMode.Areas;
 /// are edited. Geometry alone is not readiness: actual paths are checked after
 /// carving, and all spawns are restricted to that connected component.
 /// </summary>
-internal static class ArenaAreaRuntime
+internal static partial class ArenaAreaRuntime
 {
     private enum Phase { Armed, Loading, Preparing, Ready, Failed }
     private sealed class ActorState
@@ -60,16 +60,20 @@ internal static class ArenaAreaRuntime
     internal static bool OwnsCollider(Collider collider)
         => _root != null && collider != null && collider.transform.IsChildOf(_root.transform);
 
-    internal static void Arm(ArenaAreaDefinition area, string token)
+    internal static void Arm(ArenaAreaDefinition area, string token, int areaTeamSize = 0)
     {
         Reset();
         if (area == null) return;
         if (!Protocol.IsLifecycleRequestId(token))
             throw new InvalidOperationException("Bounded Arena has no exact arm identity.");
+        if (!ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selected, out var sizeProblem))
+            throw new InvalidOperationException(sizeProblem);
         _area = area;
+        _teamSize = selected == 0 ? area.MaxTeamSize : selected;
+        _teamStarting = area.TeamStarts != null;
         _token = token;
         _phase = Phase.Armed;
-        Plugin.ModLogger.LogInfo($"Arena area armed: {area.Id}; fixed {area.MaxTeamSize}v{area.MaxTeamSize}.");
+        Plugin.ModLogger.LogInfo($"Arena area armed: {area.Id}; frozen {_teamSize}v{_teamSize}.");
     }
 
     private static bool IsCurrentActive()
@@ -177,7 +181,9 @@ internal static class ArenaAreaRuntime
             throw new InvalidOperationException(_failure);
         }
         Plugin.ModLogger.LogInfo($"Arena area scene spawns: {allowed.Count}/{collection.Count} markers inside {_area.Id}.");
-        return new SpawnPointsCollection(allowed, collection._logger);
+        var filtered = new SpawnPointsCollection(allowed, collection._logger);
+        if (loading) _loadingCollection = filtered;
+        return filtered;
     }
 
     internal static bool Begin(GameWorld world, LocalGame game)
@@ -193,6 +199,8 @@ internal static class ArenaAreaRuntime
         {
             if (!ArenaAreaNavigationPatches.IsReady || !ArenaAreaLoadPatch.IsReady || !ArenaAreaSpawnPointsPatch.IsReady)
                 throw new InvalidOperationException("native area hooks are unavailable");
+            if (_area.TeamStarts != null && (!ArenaAreaInitialSpawnPatch.IsReady || _initialTeamPoint == null))
+                throw new InvalidOperationException("the initial team spawn was not verified");
             _phase = Phase.Preparing;
             Hud.ArenaInputBlocker.Request(InputOwner, true); // Escape/release commands still pass.
             _root = new GameObject("ArenaMode.Area." + _area.Id);
@@ -232,7 +240,7 @@ internal static class ArenaAreaRuntime
                     _phase = Phase.Ready;
                     Hud.ArenaInputBlocker.Request(InputOwner, false);
                     Plugin.ModLogger.LogInfo($"Arena area READY: {_area.Id}; connected player={Connected.Count(IsPlayerPoint)}, "
-                        + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, fixed {_area.MaxTeamSize}v{_area.MaxTeamSize}.");
+                        + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, frozen {_teamSize}v{_teamSize}.");
                     ArenaToasts.Show(_area.DisplayName + " — area ready");
                 }
                 else if (Time.realtimeSinceStartup >= _deadline)
@@ -267,7 +275,8 @@ internal static class ArenaAreaRuntime
                 Connected.Add(point);
         var players = Connected.Where(IsPlayerPoint).ToArray();
         var bots = Connected.Where(IsBotPoint).Select(p => p.Position).Distinct().ToArray();
-        int requiredBots = _area.MaxTeamSize * 2 - 1;
+        if (_area.TeamStarts != null) return ValidateTeamStarts(out problem);
+        int requiredBots = _teamSize * 2 - 1;
         if (players.Length < 2 || bots.Length < requiredBots)
         { problem = $"insufficient connected spawns (player {players.Length}, bot {bots.Length}; need 2/{requiredBots})"; return false; }
         // Require a real alternative away from each starting player cluster.
@@ -356,6 +365,13 @@ internal static class ArenaAreaRuntime
         if (!IsReady) throw new InvalidOperationException("Bounded Arena is not ready to release a respawn.");
         var all = Connected.Where(p => IsPlayerPoint(p) && !p.SpawnBlocked && AllowsSpawn(p)).ToList();
         if (all.Count == 0) throw new InvalidOperationException("Bounded Arena has no verified player respawn; no outside fallback is permitted.");
+        if (_area.TeamStarts != null)
+        {
+            var chosen = PickTeamPoint(all, _game.Profile.Info.Side == EPlayerSide.Usec, avoid, _world.MainPlayer);
+            if (chosen == null) throw new InvalidOperationException("No unoccupied connected team respawn is available.");
+            Plugin.ModLogger.LogInfo($"Arena team player respawn: {chosen.Id}; nearest enemy {NearestEnemyDistance(chosen.Position, _game.Profile.Info.Side == EPlayerSide.Usec):F1}m.");
+            return (chosen.Position, chosen.Rotation);
+        }
         var distant = all.Where(p => Vector3.Distance(p.Position, avoid) >= requestedDistance).ToList();
         var selected = (distant.Count > 0 ? distant : all);
         var point = selected[UnityEngine.Random.Range(0, selected.Count)];
@@ -567,6 +583,7 @@ internal static class ArenaAreaRuntime
 
         _root = null; _enclosure = null; _enclosurePlan = null;
         _area = null; _token = null; _game = null; _world = null; _failure = null;
+        ResetTeamStarts();
         Candidates.Clear(); Connected.Clear(); Actors.Clear();
         _phase = Phase.Armed; _totalRejections = 0; _nextActorCheck = 0; _nextRejectionLog = 0;
     }

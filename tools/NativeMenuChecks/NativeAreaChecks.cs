@@ -28,7 +28,7 @@ internal static partial class Program
         foreach (string saved in new[] { null, "", full, south, center, contour, "unknown-area" })
         {
             var custom = ArenaAreaSelectionState.Create(customs, "teamdeathmatch", false, saved, 12);
-            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { center, contour })
+            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { center, contour, ArenaAreaCatalog.CustomsFactoryCenterTeamsId })
                 && custom.SelectedId == (saved == contour ? contour : center) && custom.Summary.Contains("2v2"),
                 "Customs exposes both versioned areas, preserves a saved contour, and retains the legacy default");
             var nights = ArenaAreaSelectionState.Create(night, "teamdeathmatch", false, saved, 5);
