@@ -64,6 +64,7 @@ public class Plugin : BaseUnityPlugin
         Effects.ArenaTeamLaserColors.Enable();
         Notifications.ArenaProgressNotifications.Enable();
         Diagnostics.ArenaPreviewDiagnostics.Enable();
+        ArenaGpuAcceptanceCompat.Enable();
         Audio.LabyrinthAlarmPatches.Enable();
         LabyrinthSpawnTraps.Enable();
         Movement.ArenaWeightPatches.Enable();
@@ -92,6 +93,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();
         Kits.KitOpticPreloadGuard.Shutdown();
         Areas.ArenaAreaRuntime.Reset();
