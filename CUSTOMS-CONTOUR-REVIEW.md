@@ -2,6 +2,49 @@
 
 2026-09-07; based on `235b285`, implemented on `feature/customs-contour`.
 
+## User-confirmed successful run, 2026-09-08 07:26-07:36 local
+
+The user reports that the contour now works after `714b80b`. The mirrored client
+log confirms `Arena area READY` at 07:26:34.025, about 0.4 seconds after enclosure
+construction, with all **17 player / 11 bot** candidates connected. Independent
+2v2 TDM became ready at 07:26:51.718. The run ended at 07:36:10.932 after
+9.6 minutes, with 8 player kills, 3 deaths and score 1900.
+
+There were 17 bot-admission messages, no reported activation failure, no boundary
+integrity abort, no rejected-movement/stall-watch message and no actor-recovery
+warning. Three logged player respawns completed in 0.68, 0.70 and 0.71 seconds;
+the last was a surrender respawn. Corpse cleanup trimmed seven old bodies while
+retaining ten visible bodies. Round-start and killing-spree audio requests were
+logged, with zero skipped requests; the log alone does not prove audibility.
+
+The client warning `raid-end remains pending` at 07:36:10.930 was transient:
+the server restored the snapshot at 05:36:11.014 UTC and persisted the protected
+end at 05:36:11.038 UTC, skipping ordinary post-raid processing. No unresolved
+profile-restore failure is shown.
+
+Two isolated Unity errors remain worth separating from the solved boundary
+failure: an optic-camera NRE at 07:27:12.675 during asset-pool instantiation
+among kit-preload messages, and an inactive `MenuScreen` coroutine error at
+07:36:03.993 shortly before exit. Neither repeated or stopped this match.
+The optic error is plausibly an indirect Arena preload side effect: our
+`KitBundlePreloader` creates Raid/Local pools, and native `AbstractAssetsPool`
+instantiates a resource before deactivating it. `OpticSight.OnEnable` announces
+the sight globally; `CameraManager.method_10` then dereferences a parent
+`WeaponPrefab` without a null check. A standalone pooled optic has no such
+weapon parent. The stack and the Enforcer preload completion 25 ms later fit
+this path, but the stack lacks an IL offset identifying the exact null value.
+Investigate a narrowly scoped preload safeguard separately; do not simply
+attribute the error to vanilla or suppress all camera exceptions. The menu
+error has no call stack here, so its originating caller remains unproven.
+The negative-size BoxCollider warnings at 07:26:02 name existing scene objects
+such as `ServerSpatialController/.../AudioTriggerArea` and `BordersColliders`,
+precede Arena enclosure construction, and do not name Arena boundary objects.
+
+This confirms a successful user-played contour raid and the normal completion
+path; it does not claim exhaustive edge/upper-floor coverage, a long-duration
+stress test or fault-free camera/preload behavior. No gameplay code or DLL was
+changed for this acceptance/log review.
+
 ## 2026-09-08 measured capsule-height follow-up
 
 The next user test, with client `922d656`, identifies the exact failed predicate
@@ -40,9 +83,8 @@ check unchanged physical capsules, full-height navigation boxes containing the
 capsule envelope, size/shape/deletion faults and retained roundoff diagnostics.
 Additional negative controls deliberately halve corner-box height and width.
 
-Only the client needs delivery and a game restart. The next user GPU test must
-still confirm `Arena area READY`, movement and respawns; successful load is
-not claimed by offline verification.
+Only the client needed delivery and a game restart. Offline verification did
+not claim successful load; the subsequent user run is recorded separately above.
 
 Final follow-up checks: **69,023 enclosure assertions**, all **13 deliberate
 fault controls**, and an isolated Release client build pass. Independent
@@ -51,8 +93,8 @@ installed locally on 2026-09-08 with build/staging/installed SHA256
 `20D76AA252C3B2939DC17B6FC4E7A2A3B21C614F324D8EBC7512C7B640714167`.
 The server remains unchanged. Prepared client, previous-DLL backup, manifest,
 log excerpts and original-builder reproduction are retained in ignored
-`artifacts/corner-carvers/prepared` in the shared checkout. GPU synchronization
-and native raid behavior were not independently checked here.
+`artifacts/corner-carvers/prepared` in the shared checkout. At delivery, GPU
+synchronization and native raid behavior had not been independently checked.
 
 ## Previous 2026-09-08 loading follow-up (`922d656`)
 

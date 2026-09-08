@@ -7,7 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Latest follow-up: `fix/contour-corner-carvers`, based on `922d656`. The user's
+- Latest user acceptance (2026-09-08): `714b80b` now loads and plays successfully.
+  The 07:26-07:36 local log confirms contour READY with 17 player/11 bot spawn
+  candidates, 2v2 readiness, 9.6 minutes of play, 8 kills/3 deaths, no reported
+  boundary or activation failure, and completed server snapshot restoration.
+  See `CUSTOMS-CONTOUR-REVIEW.md` for exact observations and the two isolated
+  optic-camera/menu errors still worth tracking. This is one successful user
+  raid, not exhaustive geometric or long-duration acceptance. No new DLL needed.
+- Latest implementation: `fix/contour-corner-carvers`, `714b80b`, based on `922d656`. The user's
   07:04:53 local attempt on 2026-09-08 identifies the exact cause: corner 0's
   navigation capsule reports height 27.7499981 instead of assigned 55.4999962.
   The previous small-rounding hypothesis was insufficient. Physical capsules
@@ -15,8 +22,8 @@ current. User-facing communication is normally German.
   via the same size API as edges; physical limits, grid, area/spawn rules and
   server remain unchanged. The boxes carve slightly more conservatively at
   diagonals (up to 0.125 m extra); all navigation readiness checks stay strict.
-  See the newest `CUSTOMS-CONTOUR-REVIEW.md` follow-up. No GPU success is claimed;
-  retest after restarting the game. No server restart is needed.
+  See `CUSTOMS-CONTOUR-REVIEW.md` for implementation and subsequent user success.
+  The delivered change required only a game restart, no server restart.
   Offline checks: 69,023 enclosure assertions, 13 deliberate fault controls,
   staged Release client build and independent review without open P0-P2.
   Locally installed client SHA256:
