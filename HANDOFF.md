@@ -7,6 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Native GPU retest of `e2859e8` (2026-09-08, `C:\SPT41`): installed client
+  `DEFC7DA2...`, server `D7879AEF...` and Redeploy `7D950A47...` match the current
+  delivery. New USEC team starts now reach actual full 2v2, 3v3, 4v4 and 5v5
+  rosters; the previous 13-second navigation abort did not recur. 5v5 shows
+  moving bot markers, combat and both-side refills; 3v3 shows bot kills and BEAR
+  refills. Both 2v2 runs (15:09 and the sole targeted 5:14 retry) have unchanged
+  bot marker positions in sampled maps and no bot kills/refills: movement/combat
+  acceptance fails for these observations, with cause not isolated. Player
+  respawns work; the first fixed-kit 5v5 respawn took 21.52 seconds including
+  bundle loading. All five Arena ends restored and persisted protected profiles
+  unchanged. Human USEC F9 role, sampled upscaled replacement rendering, PFT
+  Escape/settings menu, magnifying ADS after respawn and bounded double-jump
+  cases passed; these are not a full geometry/input/optic acceptance.
+  **Continuation blocked by native input:** after a fresh game start for a new
+  separate Standard BEAR test account at 14:04:09 MESZ, the game remains at
+  faction selection, before character initialization or a BEAR raid. Window
+  capture works, but activation fails and mouse input twice returns
+  `GetCursorPos failed: Zugriff verweigert (0x80070005)` after refreshed selection.
+  RDP reports active; a locked desktop is not proven. Restore visible, unlocked
+  interactive access before continuing. No active raid, no forced game exit;
+  game/server still run. BEAR sizes 2–5, current-build legacy/normal PMC and the
+  remaining detailed movement cases are **not executed**. Initialize BEAR natively
+  and secure its baseline with game/server stopped before its first Arena raid.
+  Native test settings still require restoration: `RandomKit=false`,
+  `SelectedKit=vanguard`; last menu selection is TDM/new contour/2v2.
+  Double jump is back to enabled/height 1. Graphics and server config are unchanged.
+  See [GPU-RETEST-2026-09-08.md](GPU-RETEST-2026-09-08.md) for exact limits and
+  ignored evidence `artifacts/gpu-acceptance/2026-09-08_125900-retest/`.
+  No code/build/deploy/profile repair or push occurred. No complete GPU approval
+  or stopped final state is claimed.
 - GPU report follow-up (2026-09-08): the user authorized implementation from
   report `2327f63`, with double jump merged into the main branch first. `master`
   includes that merge as `227fb10`; all three reviewed fixes are now integrated
