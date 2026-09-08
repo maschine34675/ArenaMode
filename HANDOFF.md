@@ -7,7 +7,8 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Independent TDM match flow (2026-09-08, `feature/tdm-match-flow`): implements
+- Independent TDM match flow delivered (2026-09-08, code `94a8c38`,
+  branch `feature/tdm-match-flow`): implements
   a complete-roster/initial-kit readiness gate, fresh three-second countdown,
   frozen client kill/time limits (default 50/600s, each zero disables), and an
   immutable victory/defeat/draw result. Native map-screen presets fit inside the
@@ -21,8 +22,7 @@ current. User-facing communication is normally German.
   terminal factory failures never route through the generic unsafe-owner abort.
   No global AI pause, SAIN/path repair, server, Redeploy or profile-rule changes.
   See `TDM-MATCH-FLOW-REVIEW.md` and `tools/TdmMatchChecks/GATES.md` for verification
-  and the native GPU acceptance matrix. Source/deployment hashes are recorded
-  after the final clean build below; no GPU playtest is implied by compilation.
+  and the native GPU acceptance matrix. No GPU playtest is implied by compilation.
   The latest user diagnostic run before this feature had 103 awareness samples
   with no invalid-path reproduction; the bounded position diagnostics remain.
   Offline verification passed: policy/native exit/extracted respawn guards
@@ -36,7 +36,17 @@ current. User-facing communication is normally German.
   `7e4cf77` by supplying the already-existing area team-size setting; no
   production Labyrinth behavior or assertions changed. Independent adversarial
   review has no unresolved P0-P2. Staged client build passed with zero errors
-  and four existing nullable warnings. Final delivery remains the last gate.
+  and four existing nullable warnings. All eleven scoped gates are met, zero
+  unmet/abandoned; these gates explicitly do not certify native GPU behavior.
+  Client rebuilt from clean `94a8c38` and delivered locally, SHA256
+  `436C770A289480AAB9BC7407CAC5EA4D59A2702EEE97503F660076696969C1D7`.
+  Clean staged manifest:
+  `artifacts/double-jump-build/df64595a0ce642f7b6fd4a76864555ea/manifest.json`.
+  Verified previous-client backup and delivery record:
+  `artifacts/tdm-match-delivery/6c5be9363f7e448a87ac64a4e874ed30/`.
+  Server/Redeploy remain byte-identical. **Restart only the game.** No GitHub
+  push, native GPU playtest or GPU mirror-completion verification. Check the
+  delivered client hash in `C:\SPT41` before running the acceptance matrix.
 - TDM invalid-path positions delivered (2026-09-08, code `f209955` on `master`):
   the user's next log has eight
   sampled invalid paths, six for the same actor; another actor also cannot path

@@ -25,5 +25,5 @@ Scope: deliver frozen match limits, shared scoring start, terminal result and sa
 - [x] G5: independent adversarial review finds no unresolved high/medium correctness issues, including in-flight respawns and native teardown
   EVIDENCE: Independent double_jump_hooks final rereview found no remaining P0-P2 after countdown invalidation, terminal factory failure fallback, paused-stop and give-up deadline fixes. Root verified native owner/Stop source and added actual extracted driver guard tests. Native GPU behavior is not claimed.
 
-- [ ] G6: committed source and locally installed client match, unrelated installed server and Redeploy are unchanged, and GPU acceptance steps are documented
-  EVIDENCE: pending
+- [x] G6: committed source and locally installed client match, unrelated installed server and Redeploy are unchanged, and GPU acceptance steps are documented
+  EVIDENCE: Clean code commit 94a8c38 rebuilt with the staged client builder (exit 0, expected token, zero errors/four existing warnings); manifest artifacts/double-jump-build/df64595a0ce642f7b6fd4a76864555ea/manifest.json has no source changes. Verified previous-client backup and local delivery in artifacts/tdm-match-delivery/6c5be9363f7e448a87ac64a4e874ed30/delivery.json; staged/installed client SHA256 436C770A289480AAB9BC7407CAC5EA4D59A2702EEE97503F660076696969C1D7. Server D7879AEF... and Redeploy 7D950A47... remain byte-identical. TDM-MATCH-FLOW-REVIEW.md documents native acceptance and lifecycle limitations; GPU playtest and mirror completion are not claimed.
