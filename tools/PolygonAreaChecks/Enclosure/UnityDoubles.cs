@@ -133,7 +133,11 @@ namespace UnityEngine.AI
     {
         public NavMeshObstacleShape shape;
         public UnityEngine.Vector3 center, size;
-        public float radius, height, carvingTimeToStationary;
+        public float radius, carvingTimeToStationary;
+        private float _height;
+        // Reproduce the observed SPT getter/setter mismatch only. This does
+        // not claim to model its internal storage or actual carving geometry.
+        public float height { get => _height * .5f; set => _height = value; }
         public bool carving, carveOnlyStationary;
     }
 }

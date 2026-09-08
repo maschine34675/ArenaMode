@@ -2,7 +2,59 @@
 
 2026-09-07; based on `235b285`, implemented on `feature/customs-contour`.
 
-## 2026-09-08 loading follow-up
+## 2026-09-08 measured capsule-height follow-up
+
+The next user test, with client `922d656`, identifies the exact failed predicate
+at **07:04:53.977 local**: `Arena boundary corner 0 navigation capsule`, radius
+0.3 as intended, but height **27.7499981 instead of 55.4999962**. This is exactly
+half the assigned height, not the small floating-point rounding suspected in
+the earlier follow-up. All physical colliders and the preceding edge-box
+obstacles passed the same integrity traversal. All 28 scene markers were again
+accepted. The server restored and persisted the profile at 05:04:55 UTC.
+
+Keep physical corner capsules and all side-wall/grid geometry unchanged. Only
+corner navigation obstacles now use explicit `Box` shape, zero center and
+`size=(2*radius, full height, 2*radius)`, through the same construction and
+readback checks as edge boxes. There is no guessed height multiplier and no
+acceptance of a half-height obstruction. The installed EFT `NavMeshDoorLink`
+also constructs carvers via `size`; Unity documents the
+[Box/size API](https://docs.unity3d.com/2022.3/Documentation/ScriptReference/AI.NavMeshObstacle-size.html).
+Unity's [2022.3 inspector source](https://raw.githubusercontent.com/Unity-Technologies/UnityCsReference/2022.3/Editor/Mono/Inspector/NavMeshObstacleInspector.cs)
+uses half extents internally, but that alone does not establish the native
+getter implementation in this game's custom Unity build.
+
+The 0.6 m square cross-section contains the old radius-0.3 m circle completely.
+Its diagonal extends 0.124264 m farther from the vertex (0.424264 m total),
+or 0.024264 m beyond the existing 0.4 m path inset. This can conservatively
+remove a little more walkable navigation at a tight corner; it cannot open
+a new passage. Connected-spawn, carve-crossing and full-path validation remain
+strict. No additional actor-height restriction, physical floor/ceiling,
+spawn-policy change or server update is introduced.
+
+The state double now reproduces the observed capsule height readback relation.
+Against that fixture, the original `922d656` builder fails its actual integrity
+check at the same component/property (13.2 -> 6.6 m in the small fixture).
+The updated builder passes, including the surveyed 15-point contour. These
+checks model the reported getter mismatch, not native carving or PhysX. They
+check unchanged physical capsules, full-height navigation boxes containing the
+capsule envelope, size/shape/deletion faults and retained roundoff diagnostics.
+Additional negative controls deliberately halve corner-box height and width.
+
+Only the client needs delivery and a game restart. The next user GPU test must
+still confirm `Arena area READY`, movement and respawns; successful load is
+not claimed by offline verification.
+
+Final follow-up checks: **69,023 enclosure assertions**, all **13 deliberate
+fault controls**, and an isolated Release client build pass. Independent
+adversarial review has no unresolved P0-P2 finding. The updated client was
+installed locally on 2026-09-08 with build/staging/installed SHA256
+`20D76AA252C3B2939DC17B6FC4E7A2A3B21C614F324D8EBC7512C7B640714167`.
+The server remains unchanged. Prepared client, previous-DLL backup, manifest,
+log excerpts and original-builder reproduction are retained in ignored
+`artifacts/corner-carvers/prepared` in the shared checkout. GPU synchronization
+and native raid behavior were not independently checked here.
+
+## Previous 2026-09-08 loading follow-up (`922d656`)
 
 The user GPU attempt with the original contour client failed at 06:45:16.077
 local time. The scene accepted all 28 candidate markers and constructed side
@@ -18,7 +70,7 @@ radius/height were checked using exact float equality, unlike vector dimensions.
 Installed Unity APIs use native getters/setters, whose actual readback values
 were not logged. Rounding is a candidate cause, not an established diagnosis.
 
-The client follow-up allows an absolute 0.0001 m dimension deviation for capsule
+That first client follow-up allowed an absolute 0.0001 m dimension deviation for capsule
 radius/height, still against planned geometry. Nonfinite values and larger
 deviations remain invalid. All component, transform, collision and navigation
 guards remain enabled. Preparation and active-match failures now report the
@@ -46,7 +98,7 @@ installed client/Core stay unchanged during verification. Independent adversaria
 review has no unresolved P0-P2 finding. These results do not prove the suspected
 native rounding cause or successful in-raid loading.
 
-The follow-up client was installed locally on 2026-09-08 with matching SHA256
+That first follow-up client was installed locally on 2026-09-08 with matching SHA256
 `326405FD7021EC2E9A7E60075EE70198851443370307549DA1FBA6D7754C891E`.
 Prepared DLL, backup and deployment manifest are retained in ignored
 `artifacts/contour-integrity/prepared` in the shared checkout. The server retains

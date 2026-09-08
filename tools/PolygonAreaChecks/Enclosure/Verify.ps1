@@ -53,6 +53,8 @@ Test-EnclosureMutant 'unlimited-area-gets-floor' $arenaPlan 'bounds.LimitsHeight
 Test-EnclosureMutant 'scene-height-flattened' $arenaPlan 'Include(a.Y); Include(b.Y); Include(c.Y); surface = true;' 'Include(0); surface = true;' 'side walls span overlapping low and high surfaces without interior vertices'
 Test-EnclosureMutant 'exact-capsule-readback' $arenaBuilder 'Math.Abs(a - b) <= .0001f' 'a == b' 'small capsule readback deviation accepted: capsule collider' 'BuilderSource'
 Test-EnclosureMutant 'capsule-drift-unchecked' $arenaBuilder 'Math.Abs(a - b) <= .0001f' 'true' 'changed capsule geometry reports object and readback values: capsule collider' 'BuilderSource'
+Test-EnclosureMutant 'corner-navigation-height-halved' $arenaBuilder 'new Vector3(diameter, corner.Height, diameter)' 'new Vector3(diameter, corner.Height / 2f, diameter)' 'corner box preserves planned diameter and full height' 'BuilderSource'
+Test-EnclosureMutant 'corner-navigation-width-halved' $arenaBuilder 'float diameter = 2f * ArenaAreaEnclosurePlan.CornerRadius;' 'float diameter = ArenaAreaEnclosurePlan.CornerRadius;' 'corner box preserves planned diameter and full height' 'BuilderSource'
 # Recompile actual production sources after every mutated source has been exercised.
 Invoke-Enclosure
 Write-Output 'ARENA_POLYGON_ENCLOSURE_ORACLE_PASSED'

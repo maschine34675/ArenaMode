@@ -244,7 +244,7 @@ internal static class Program
             var root = new GameObject("owned fixture root"); var enclosure = new ArenaAreaEnclosure(root, plan);
             enclosure.Build();
             Check(root.GetComponentsInChildren<MeshRenderer>().Single().gameObject.layer == 0, "visible boundary retains Default camera layer");
-            Check(enclosure.Intact(), "new actual builder intact"); return (root, enclosure);
+            Check(enclosure.Intact(out string problem), "new actual builder intact" + (problem == null ? "" : ": " + problem)); return (root, enclosure);
         }
         void Cleanup(GameObject root, ArenaAreaEnclosure enclosure)
         {
@@ -261,32 +261,34 @@ internal static class Program
         Check(go.GetComponentsInChildren<MeshCollider>().Length == 2
             && go.GetComponentsInChildren<MeshCollider>().All(c => !c.convex), "actual cap collider never convexifies concave shape");
         Check(go.GetComponentsInChildren<Rigidbody>().Length == 0, "static nonconvex caps have no rigidbody");
-        Check(go.GetComponentsInChildren<NavMeshObstacle>().Count(o => o.shape == NavMeshObstacleShape.Capsule) == bounds.Outline.Count,
-            "actual builder creates corner capsule carvers");
+        CheckCornerCarvers(go, plan);
         var caps = go.GetComponentsInChildren<NavMeshObstacle>().Where(o => o.gameObject.name.Contains("vertical cap carver")).ToArray();
         Check(caps.Length == 2 && caps.All(o => o.gameObject.GetComponentsInChildren<Collider>().Length == 0), "vertical carvers own no bounding-box physical caps");
         Cleanup(go, owned);
-        // Inject possible native readback deviations without pretending to
-        // emulate Unity's native capsule storage. Both rounded dimensions and
-        // materially changed/nonfinite geometry exercise the actual validator.
+        // Exercise physical scalar and navigation-vector readback deviations.
+        // The native half-height observation is separately reproduced below.
         foreach (bool navigation in new[] { false, true })
         foreach (bool radius in new[] { false, true })
         {
-            string component = navigation ? "navigation capsule" : "capsule collider";
+            string component = navigation ? "navigation box" : "capsule collider";
             foreach (float delta in new[] { -.00005f, .00005f, -.0002f, .0002f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
             {
                 (go, owned) = Fresh();
                 var corner = go.GetComponentsInChildren<CapsuleCollider>()[0];
-                var obstacle = go.GetComponentsInChildren<NavMeshObstacle>().First(o => o.shape == NavMeshObstacleShape.Capsule);
+                var obstacle = corner.gameObject.GetComponentsInChildren<NavMeshObstacle>().Single();
                 float original = radius ? Plan.CornerRadius : plan.Corners[0].Height;
-                if (navigation) { if (radius) obstacle.radius = original + delta; else obstacle.height = original + delta; }
+                if (navigation)
+                {
+                    var size = obstacle.size;
+                    obstacle.size = radius ? new Vector3(size.x + delta, size.y, size.z) : new Vector3(size.x, size.y + delta, size.z);
+                }
                 else { if (radius) corner.radius = original + delta; else corner.height = original + delta; }
                 bool intact = owned.Intact(out string reason);
                 if (Math.Abs(delta) < .0001f)
                     Check(intact && reason == null, "small capsule readback deviation accepted: " + component);
                 else
                     Check(!intact && reason != null && reason.Contains("Arena boundary corner 0 " + component)
-                        && reason.Contains(radius ? "radius actual=" : "height actual=") && reason.Contains("expected="),
+                        && reason.Contains(navigation ? "size actual=" : radius ? "radius actual=" : "height actual=") && reason.Contains("expected="),
                         "changed capsule geometry reports object and readback values: " + component);
                 Cleanup(go, owned);
             }
@@ -310,6 +312,8 @@ internal static class Program
             ("carver not carving", r => r.GetComponentsInChildren<NavMeshObstacle>()[0].carving = false),
             ("carver moved", r => r.GetComponentsInChildren<NavMeshObstacle>()[^1].transform.position = new Vector3(1, 0, 0)),
             ("carver shape", r => r.GetComponentsInChildren<NavMeshObstacle>()[0].shape = NavMeshObstacleShape.Capsule),
+            ("corner carver shape", r => r.GetComponentsInChildren<CapsuleCollider>()[0].gameObject.GetComponentsInChildren<NavMeshObstacle>()[0].shape = NavMeshObstacleShape.Capsule),
+            ("corner carver destroyed", r => UObject.Destroy(r.GetComponentsInChildren<CapsuleCollider>()[0].gameObject.GetComponentsInChildren<NavMeshObstacle>()[0])),
             ("cap convex", r => r.GetComponentsInChildren<MeshCollider>()[0].convex = true),
             ("cap mesh removed", r => r.GetComponentsInChildren<MeshCollider>()[0].sharedMesh = null),
             ("visual disabled", r => r.GetComponentsInChildren<MeshRenderer>()[0].enabled = false),
@@ -414,9 +418,14 @@ internal static class Program
         Check(enclosure.Intact() && root.GetComponentsInChildren<Collider>().Length == plan.ColliderCount,
             "height unlimited actual builder intact with expected side colliders");
         foreach (var corner in root.GetComponentsInChildren<CapsuleCollider>()) corner.height += .00001f;
-        foreach (var obstacle in root.GetComponentsInChildren<NavMeshObstacle>().Where(o => o.shape == NavMeshObstacleShape.Capsule)) obstacle.height -= .00001f;
+        CheckCornerCarvers(root, plan);
+        foreach (var corner in root.GetComponentsInChildren<CapsuleCollider>())
+        {
+            var obstacle = corner.gameObject.GetComponentsInChildren<NavMeshObstacle>().Single();
+            obstacle.size = new Vector3(obstacle.size.x, obstacle.size.y - .00001f, obstacle.size.z);
+        }
         Check(enclosure.Intact(out string roundingProblem) && roundingProblem == null,
-            "tall side-only capsules accept submillimeter native readback rounding");
+            "tall side-only corners accept submillimeter dimension readback rounding");
         Check(root.GetComponentsInChildren<MeshCollider>().Length == 0
             && !root.GetComponentsInChildren<Transform>().Any(t => t.gameObject.name.Contains("vertical cap")),
             "height unlimited actual builder creates no floor ceiling or cap carver");
@@ -445,6 +454,48 @@ internal static class Program
         var actual = Plan.CreateForScene(current, actualNav, new[] { 0, 1, 2 }, p => p, Array.Empty<ArenaAreaPoint>());
         Check(actual.Walls.Count == 15 && actual.Grid.Vertices.Count < Plan.MaxVertices && actual.Probes.Count < Plan.MaxProbes,
             "user contour side-only enclosure fits work budgets");
+        var actualRoot = new GameObject("surveyed contour fixture");
+        using var actualEnclosure = new ArenaAreaEnclosure(actualRoot, actual);
+        actualEnclosure.Build();
+        Check(actualEnclosure.Intact(), "surveyed contour builder survives half-height capsule API fixture");
+        CheckCornerCarvers(actualRoot, actual);
+        actualRoot.SetActive(false); UObject.Destroy(actualRoot);
+    }
+
+    private static void CheckCornerCarvers(GameObject root, Plan plan)
+    {
+        var corners = root.GetComponentsInChildren<CapsuleCollider>();
+        Check(corners.Length == plan.Corners.Count, "physical corner count unchanged");
+        Check(root.GetComponentsInChildren<NavMeshObstacle>().All(o => o.shape == NavMeshObstacleShape.Box),
+            "all navigation obstacles use box size API");
+        for (int i = 0; i < corners.Length; i++)
+        {
+            var corner = corners[i];
+            var obstacle = corner.gameObject.GetComponentsInChildren<NavMeshObstacle>().Single();
+            Check(Near(obstacle.size.x, 2 * Plan.CornerRadius) && Near(obstacle.size.z, 2 * Plan.CornerRadius)
+                && Near(obstacle.size.y, plan.Corners[i].Height) && obstacle.center.sqrMagnitude == 0,
+                "corner box preserves planned diameter and full height");
+            Check(Near(corner.height, plan.Corners[i].Height) && Near(corner.radius, Plan.CornerRadius),
+                "physical corner dimensions unchanged");
+            // The box must cover every radial direction and both vertical ends
+            // of the capsule's bounding cylinder, including concave vertices.
+            for (int degrees = 0; degrees < 360; degrees += 5)
+            {
+                double angle = degrees * Math.PI / 180;
+                Check(Math.Abs(Plan.CornerRadius * Math.Cos(angle)) <= obstacle.size.x / 2 + .000001
+                    && Math.Abs(Plan.CornerRadius * Math.Sin(angle)) <= obstacle.size.z / 2 + .000001
+                    && obstacle.size.y / 2 + .000001 >= plan.Corners[i].Height / 2,
+                    "corner navigation box contains entire physical capsule envelope");
+            }
+        }
+        // Positive control for the live failure: setter 55.4999962 -> getter
+        // 27.7499981. Using a box must not compensate or depend on this API.
+        var fixture = new GameObject("observed capsule readback fixture");
+        var halfHeight = fixture.AddComponent<NavMeshObstacle>();
+        halfHeight.shape = NavMeshObstacleShape.Capsule;
+        halfHeight.height = 55.4999962f;
+        Check(halfHeight.height == 27.7499981f, "fixture reproduces observed half-height readback");
+        UObject.Destroy(fixture);
     }
 
     private static IEnumerable<(Plan.Point a, Plan.Point b, Plan.Point c)> Triangles(Plan.MeshData mesh)

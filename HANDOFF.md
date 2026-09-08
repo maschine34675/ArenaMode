@@ -7,7 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Latest follow-up: `fix/contour-integrity`, based on `63affca`. The first user
+- Latest follow-up: `fix/contour-corner-carvers`, based on `922d656`. The user's
+  07:04:53 local attempt on 2026-09-08 identifies the exact cause: corner 0's
+  navigation capsule reports height 27.7499981 instead of assigned 55.4999962.
+  The previous small-rounding hypothesis was insufficient. Physical capsules
+  and edge-box checks pass. Corner navigation now uses full-height box obstacles
+  via the same size API as edges; physical limits, grid, area/spawn rules and
+  server remain unchanged. The boxes carve slightly more conservatively at
+  diagonals (up to 0.125 m extra); all navigation readiness checks stay strict.
+  See the newest `CUSTOMS-CONTOUR-REVIEW.md` follow-up. No GPU success is claimed;
+  retest after restarting the game. No server restart is needed.
+  Offline checks: 69,023 enclosure assertions, 13 deliberate fault controls,
+  staged Release client build and independent review without open P0-P2.
+  Locally installed client SHA256:
+  `20D76AA252C3B2939DC17B6FC4E7A2A3B21C614F324D8EBC7512C7B640714167`.
+  Prepared DLL/backup/manifest and failure excerpts are in ignored
+  `artifacts/corner-carvers/prepared`. Continue in the integrated shared checkout,
+  not the old isolated author clones; GPU synchronization is not newly verified.
+- Previous follow-up: `fix/contour-integrity`, implementation `922d656`, based on `63affca`. The first user
   polygon raid failed at 06:45:16 local on 2026-09-08: all 28 markers were
   accepted, but the aggregate enclosure-integrity guard failed before navigation
   readiness. Exact capsule dimension comparisons are a suspected cause only;

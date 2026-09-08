@@ -50,8 +50,6 @@ internal sealed class ArenaAreaEnclosure : IDisposable
         internal NavMeshObstacle Obstacle;
         internal TransformState Transform;
         internal Vector3 Size;
-        internal float Height;
-        internal bool Capsule;
     }
 
     private readonly GameObject _root;
@@ -160,13 +158,7 @@ internal sealed class ArenaAreaEnclosure : IDisposable
             if (!obstacle.enabled || !obstacle.carving || !obstacle.carveOnlyStationary
                 || obstacle.carvingTimeToStationary != 0f || !Same(obstacle.center, Vector3.zero))
                 return Fail($"{state.Transform.Name} navigation obstacle: enabled={obstacle.enabled}, carving={obstacle.carving}, stationaryOnly={obstacle.carveOnlyStationary} (expected all true), stationaryTime={Format(obstacle.carvingTimeToStationary)} (expected 0), center={Format(obstacle.center)} (expected zero)", out problem);
-            if (state.Capsule)
-            {
-                if (obstacle.shape != NavMeshObstacleShape.Capsule || !Same(obstacle.radius, ArenaAreaEnclosurePlan.CornerRadius)
-                    || !Same(obstacle.height, state.Height))
-                    return Fail($"{state.Transform.Name} navigation capsule: shape={obstacle.shape} (expected Capsule), radius actual={Format(obstacle.radius)}, expected={Format(ArenaAreaEnclosurePlan.CornerRadius)}, height actual={Format(obstacle.height)}, expected={Format(state.Height)}", out problem);
-            }
-            else if (obstacle.shape != NavMeshObstacleShape.Box || !Same(obstacle.size, state.Size))
+            if (obstacle.shape != NavMeshObstacleShape.Box || !Same(obstacle.size, state.Size))
                 return Fail($"{state.Transform.Name} navigation box: shape={obstacle.shape} (expected Box), size actual={Format(obstacle.size)}, expected={Format(state.Size)}", out problem);
         }
         return true;
@@ -192,11 +184,7 @@ internal sealed class ArenaAreaEnclosure : IDisposable
             collider.size = size;
             _colliders.Add(new ColliderState { Collider = collider, Transform = new TransformState(go.transform), Size = size });
         }
-        var obstacle = go.AddComponent<NavMeshObstacle>();
-        obstacle.shape = NavMeshObstacleShape.Box;
-        obstacle.size = size;
-        Configure(obstacle);
-        _obstacles.Add(new ObstacleState { Obstacle = obstacle, Transform = new TransformState(go.transform), Size = size });
+        AddBoxObstacle(go, size);
     }
 
     private void AddCorner(string name, ArenaAreaEnclosurePlan.Corner corner)
@@ -207,12 +195,24 @@ internal sealed class ArenaAreaEnclosure : IDisposable
         collider.radius = ArenaAreaEnclosurePlan.CornerRadius;
         collider.height = corner.Height;
         _colliders.Add(new ColliderState { Collider = collider, Transform = new TransformState(go.transform), Height = corner.Height });
+        // The installed game's capsule obstacle reports exactly half the height
+        // assigned through its height API (07:04:53, 2026-09-08). Do not guess a
+        // correction factor or adopt that readback as intended geometry. Use
+        // the same box/size path as the verified side walls. This box contains
+        // the physical capsule; at XZ diagonals it carves up to 0.125 m farther
+        // from the vertex. Connected-spawn and whole-path checks stay strict.
+        float diameter = 2f * ArenaAreaEnclosurePlan.CornerRadius;
+        AddBoxObstacle(go, new Vector3(diameter, corner.Height, diameter));
+    }
+
+    private void AddBoxObstacle(GameObject go, Vector3 size)
+    {
         var obstacle = go.AddComponent<NavMeshObstacle>();
-        obstacle.shape = NavMeshObstacleShape.Capsule;
-        obstacle.radius = ArenaAreaEnclosurePlan.CornerRadius;
-        obstacle.height = corner.Height;
+        obstacle.shape = NavMeshObstacleShape.Box;
+        obstacle.center = Vector3.zero;
+        obstacle.size = size;
         Configure(obstacle);
-        _obstacles.Add(new ObstacleState { Obstacle = obstacle, Transform = new TransformState(go.transform), Capsule = true, Height = corner.Height });
+        _obstacles.Add(new ObstacleState { Obstacle = obstacle, Transform = new TransformState(go.transform), Size = size });
     }
 
     private void AddCap(string name, ArenaAreaEnclosurePlan.MeshData shape)
