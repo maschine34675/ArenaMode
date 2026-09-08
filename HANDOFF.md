@@ -7,6 +7,33 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Latest implementation (2026-09-08): `2407351` scopes Arena's cold optic-pool
+  callbacks; `6843e1e` adds the separate **Customs contour (team starts)** preset
+  with native **2v2–5v5** selection. Choose Arena / Team Deathmatch / Customs /
+  that new preset explicitly. USEC starts west and BEAR east; after initial
+  assembly, respawns use connected in-area points ranked against live enemies.
+  Position/identity reservations protect asynchronous bot and player handover.
+  Legacy contours stay fixed 2v2; full-map/PFT/ordinary raid paths are unchanged.
+  See `AREA-TEAM-SETUP-REVIEW.md`, its linked scope reports and
+  `OPTIC-PRELOAD-REVIEW.md` for limitations and user test steps.
+  The final implementation passed 444/444 server tests (zero skips), focused
+  production-linked runtime/menu/optic checks and deliberate fault controls,
+  full legacy area/polygon regressions and independent adversarial reviews.
+  No native GPU raid or actual menu rendering is claimed for this update.
+  Both DLLs were rebuilt from clean code commit `6843e1e` into isolated staging
+  and installed locally in `D:\SPT41`, with matching SHA256 hashes:
+  client `49762EB638B244F3E2D45ADB3BC040CA6A42FBAF895B7A2A3C80B1CC006839E9`;
+  server `D7879AEFD593B8CA2915B8F8FAF7106C9F007A6E6BE2D02425D3892AF253AAF2`.
+  Previous DLLs, prepared outputs and `delivery.json` are in ignored
+  `artifacts/area-team-setup/prepared` in the shared repository.
+  **Restart game and SPT server** before testing 2v2 and 5v5, initial team sides,
+  several deaths/refills and optics during background kit preloading. Distance
+  scoring is not a cover/visibility guarantee, and the broad start sectors still
+  need a gameplay fairness check. GPU mirror completion is not newly verified.
+  Both code commits are integrated in the shared checkout; continue there, not
+  in the temporary `Documents/Codex/AreaTeamSetup` author clone. No GitHub push
+  was performed for this follow-up. Normal mirrored delivery needs no repeated
+  stop-confirmation prompt; the existing user-authorized workflow is unchanged.
 - Latest user acceptance (2026-09-08): `714b80b` now loads and plays successfully.
   The 07:26-07:36 local log confirms contour READY with 17 player/11 bot spawn
   candidates, 2v2 readiness, 9.6 minutes of play, 8 kills/3 deaths, no reported
@@ -14,7 +41,7 @@ current. User-facing communication is normally German.
   See `CUSTOMS-CONTOUR-REVIEW.md` for exact observations and the two isolated
   optic-camera/menu errors still worth tracking. This is one successful user
   raid, not exhaustive geometric or long-duration acceptance. No new DLL needed.
-- Latest implementation: `fix/contour-corner-carvers`, `714b80b`, based on `922d656`. The user's
+- Previous implementation: `fix/contour-corner-carvers`, `714b80b`, based on `922d656`. The user's
   07:04:53 local attempt on 2026-09-08 identifies the exact cause: corner 0's
   navigation capsule reports height 27.7499981 instead of assigned 55.4999962.
   The previous small-rounding hypothesis was insufficient. Physical capsules
