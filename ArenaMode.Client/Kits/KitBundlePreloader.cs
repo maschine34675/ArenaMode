@@ -41,6 +41,7 @@ public static class KitBundlePreloader
     {
         unchecked { _raidEpoch++; }
         WarmedTemplates.Clear();
+        KitOpticPreloadGuard.Reset();
     }
 
     /// <summary>Coroutine: resolves all kit templates and awaits the bundle/pool load.</summary>
@@ -166,12 +167,12 @@ public static class KitBundlePreloader
     private static bool IsCurrentRaid(int epoch)
         => epoch == _raidEpoch && Session.ArenaSession.IsActive;
 
-    private static Task PreloadAsync(List<string> templates)
+    private static async Task PreloadAsync(List<string> templates)
     {
         var factory = Singleton<ItemFactory>.Instance;
         var objectsFactory = Singleton<ObjectsFactory>.Instance;
         if (factory == null || objectsFactory == null)
-            return Task.CompletedTask;
+            return;
 
         var resources = new List<ResourceKey>();
 
@@ -200,14 +201,20 @@ public static class KitBundlePreloader
             .ToArray();
 
         if (keys.Length == 0)
-            return Task.CompletedTask;
+            return;
 
-        return objectsFactory.LoadBundlesAndCreatePools(
-            ObjectsFactory.PoolsCategory.Raid,
-            ObjectsFactory.AssemblyType.Local,
-            keys,
-            JobYieldPriority.General,
-            null,
-            ObjectsFactory.DefaultCancellationToken);
+        // Keep ownership in this async operation, not in the yielding coroutine:
+        // a disposed coroutine must not leak ownership into another request, and
+        // a native pool job may still finish after its caller stopped polling.
+        using (KitOpticPreloadGuard.Begin(objectsFactory, keys))
+        {
+            await objectsFactory.LoadBundlesAndCreatePools(
+                ObjectsFactory.PoolsCategory.Raid,
+                ObjectsFactory.AssemblyType.Local,
+                keys,
+                JobYieldPriority.General,
+                null,
+                ObjectsFactory.DefaultCancellationToken);
+        }
     }
 }

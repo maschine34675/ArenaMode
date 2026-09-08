@@ -90,6 +90,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Kits.KitOpticPreloadGuard.Shutdown();
         Areas.ArenaAreaRuntime.Reset();
         Areas.ArenaAreaNavigationPatches.Shutdown();
         Areas.ArenaAreaSpawnPointsPatch.Shutdown();
