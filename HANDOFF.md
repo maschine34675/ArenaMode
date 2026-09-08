@@ -7,7 +7,8 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- TDM invalid-path position follow-up (2026-09-08): the user's next log has eight
+- TDM invalid-path positions delivered (2026-09-08, code `f209955` on `master`):
+  the user's next log has eight
   sampled invalid paths, six for the same actor; another actor also cannot path
   to that actor. `Arena TDM path detail:` adds one bounded position snapshot per
   physical bot/raid after two qualified invalid-path samples at the existing
@@ -22,7 +23,15 @@ current. User-facing communication is normally German.
   without changing installed artifacts. The production-linked verifier passed
   596 assertions, 28 named negative controls and its final production rerun;
   evidence: `artifacts/tdm-awareness-checks/804fdf3544e848378a96f6b8f4023533/`.
-  Clean final build/delivery follows the code commit; no new native GPU test.
+  Client rebuilt from clean `f209955` and delivered locally, SHA256
+  `DCD43FC0E60049C4F1D86FD22FA2E398C0CC43E5852B2B1AC1FFDC13A6ECB677`.
+  Staged manifest: `artifacts/double-jump-build/2b969a3756c2434aa73feac8a0993a35/manifest.json`.
+  Verified previous-client backup and delivery record:
+  `artifacts/tdm-path-positions/delivery-f9cc8380573d4486ae02bc9bf14de670/`.
+  Server/Redeploy remain byte-identical. **Restart only the game.** No new native
+  GPU test, mirror-completion verification or push. Next test: allow a repeatedly
+  failing bot to reach two qualified 30-second samples, then inspect its
+  `Arena TDM path detail:` line with the adjoining awareness records.
 - TDM search diagnostics delivered (2026-09-08, code `f619b7d` on `master`):
   the user's two Customs team-start
   USEC 5v5 logs confirm completed rosters after 104.141/37.059 seconds, preserved
