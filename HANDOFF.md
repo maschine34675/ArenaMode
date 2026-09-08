@@ -7,6 +7,42 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- GPU retest follow-up delivered (2026-09-08): `55164e4` was reviewed against
+  its archived logs and installed native/SAIN contracts. Three reviewed fixes
+  are now on `master`: `8fb502c` supplies a guarded SAIN hearing search cue per
+  native contact episode and bounded decision/movement diagnostics; `8ee1b05`
+  separates slow bot preparation from the 45-second native-arrival deadline;
+  `4a979cf` defers optional kit-catalog loading until initial TDM teams and current
+  native kit loading/respawn work settle. The 300-second preparation watchdog
+  uses the existing mode-failure path, without retrying unresolved work, claiming
+  native task cancellation or adding an automatic raid exit. Actual path/area
+  guards, faction capacity, profile/end protection and normal raids are unchanged.
+  See `TDM-RETEST-FOLLOWUP.md`, `TDM-PREPARATION-REVIEW.md` and
+  `TDM-AWARENESS-REVIEW.md` for evidence and remaining uncertainty.
+  Offline verification: all seven runnable gates passed, plus three reviewed
+  manual gates (10/10 total, zero unmet/abandoned). Policy 14972 assertions,
+  runtime 268, extracted actual async Burst methods 21, awareness 565,
+  warmup/native-pool ownership 37, actual optic guards 67; 84 named source-fault
+  controls across these suites. All 444 server tests passed without skips,
+  existing menu/team/give-up/polygon integration passed, and supplies packing
+  passed 1605 checks. Independent adversarial reviews have no unresolved P0-P2.
+  Full clean client build has zero errors and four existing nullable warnings.
+  **Client delivered locally** from clean code commit `4a979cf`, SHA256:
+  `04D47F6DD8B7C9C252C564604819405F89E0ED9F3BD621999032571B8A349C9D`.
+  Staged manifest: `artifacts/double-jump-build/907b9b5c983344b78b993bb40a13a63e/manifest.json`.
+  Verified previous client and delivery record:
+  `artifacts/tdm-retest/delivery-5f45d5094fe54298a490ea46e1f81d9c/`.
+  Server and Redeploy remain byte-identical to the retest baseline below.
+  **Restart only the game.** GPU mirror completion and new native raid behavior
+  are not newly verified; check the above client hash in `C:\SPT41` before testing.
+  No GitHub push. The ordinary authorized mirroring workflow needs no new stop
+  confirmation. First retest quiet USEC/BEAR 2v2 and cold BEAR 5v5 without player
+  shots: observe actual combat, roster time, refills and boundary containment;
+  compare first casualties against initial full-roster READY. Early combat can
+  delay that latch, but required kits/refills never wait for optional warmup.
+  Preserve the profile checks. The 20-second first cold Vanguard load is not a
+  proven timeout defect; the two Unity archive-close errors remain unattributed
+  and were not suppressed or patched speculatively.
 - Native GPU retest of `e2859e8` completed (2026-09-08, `C:\SPT41`): installed
   client `DEFC7DA2...`, server `D7879AEF...` and Redeploy `7D950A47...` match
   the delivery. Both separate USEC and BEAR profiles reached actual full new-preset

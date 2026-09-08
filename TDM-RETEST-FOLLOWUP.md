@@ -76,5 +76,31 @@ never wait for optional catalog warmup; there is no circular dependency. If this
 test repeatedly fails to reach READY because of casualties, initial assembly
 needs explicit gameplay design rather than selectively hiding one hearing cue.
 
-Verification, review and delivery evidence will be recorded in HANDOFF.md and
-the task ledgers after integration.
+## Completed offline verification and delivery
+
+All seven executable gates and three manual review/delivery gates are met:
+10/10, zero unmet or abandoned. The parent independently reran both child suites.
+Policy checks: 14972 assertions/18 source faults; runtime: 268/17; complete
+extracted async Burst methods: 21/8; SAIN awareness: 565/20; catalog scheduling
+and native pool lifetime: 37/10; actual optic guards: 67/11. These are 84 targeted
+source-fault controls, each required to fail its intended assertion. Existing
+integration also passed all 444 server tests without skips, native menu/team/
+give-up/polygon regressions, and 1605 supplies checks. The supplies harness's
+previously missing renderer-free optic boundary was updated; actual optic
+ownership is verified independently, not by that no-renderer double.
+
+Independent review found and corrected the opening-kit loading gap, permanent
+SAIN-wrapper contact latch and callback/native-stop ownership gap. No remaining
+P0-P2 findings in the revised changes. See `tools/TdmRetestChecks/` for the parent
+gate fingerprints and `tools/TeamDeathmatchRuntimeChecks/PREPARATION-GATES.md`
+for leaf self-verification.
+
+Commits `8fb502c`, `8ee1b05` and `4a979cf` are integrated into `master`. A fresh
+client build from clean `4a979cf` passed with zero errors/four existing nullable
+warnings. Only the client was installed locally, SHA256
+`04D47F6DD8B7C9C252C564604819405F89E0ED9F3BD621999032571B8A349C9D`.
+The staged artifact and installed client match; the previous client backup is
+verified and server/Redeploy hashes are unchanged. Delivery manifest:
+`artifacts/tdm-retest/delivery-5f45d5094fe54298a490ea46e1f81d9c/delivery.json`.
+No push, GPU mirror confirmation or native success is claimed. Restart only the
+game after checking the mirrored hash. HANDOFF.md contains the current test entry.
