@@ -1,13 +1,14 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-07. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-08. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Current follow-up: `feature/customs-contour`, based on clean `235b285`. The
+- Current follow-up: `feature/customs-contour`, implementation `4a1d0f4`, based
+  on clean `235b285`. The
   user's 15-point Customs survey is registered as a NEW selectable
   `customs-factory-center-polygon-v1` / **Factory Center (contour)**, independent
   TDM 2v2 only. Choose it explicitly; legacy area IDs/defaults remain unchanged.
@@ -16,15 +17,15 @@ current. User-facing communication is normally German.
   overlapping NavMesh triangles and spawn anchors with padding. The elevated
   sniper marker is excluded by exact identity on both client and server.
   See `CUSTOMS-CONTOUR-REVIEW.md` for scope, staging checks and user GPU tests.
-  Work is isolated outside Syncthing until integration; use the integrated
-  shared checkout afterwards. Client AND server need a restart after deployment.
+  The implementation is integrated in the shared checkout; continue there,
+  not in the old isolated author clone. Client AND server need a restart after deployment.
   Offline verification passed 386/386 tests (zero skips), focused real-data and
   native-menu checks, enclosure/fault-control checks and staged Release builds.
-  Review has no open P0–P2. At preparation SPT-GPU was disconnected; live DLLs
-  remain unchanged until game/server stop coordination. Pending prepared client
+  Review has no open P0–P2. On 2026-09-08, both reviewed DLLs were installed in
+  D:\SPT41 and their SHA256 hashes matched the prepared build. Retained client
   and server DLLs plus manifest are in ignored `artifacts/customs-contour/prepared`
-  in the shared checkout. Compare hashes in the contour review before copying;
-  these are not GPU deployment or in-raid acceptance claims.
+  in the shared checkout. See the contour review for hashes; local installation
+  does not by itself prove GPU synchronization or in-raid acceptance.
 - Current follow-up: `fix/pmc-area-capture`, based on clean `83a26cf`. The user
   found Arena-only capture impractical because they cannot walk outside the old
   contour. F12 `Development - Area outline` now offers `AllowInNormalPmc`
@@ -34,8 +35,8 @@ current. User-facing communication is normally German.
   The production-linked capture checks pass 292 assertions plus nine deliberate
   fault controls; independent review has no open P0-P2. Release client compilation
   uses isolated deployment staging, with live DLL hashes unchanged during tests.
-  The reviewed client is then copied only after game-state coordination. The
-  follow-up needs a game restart, not a server restart; GPU behavior is unrun.
+  That capture follow-up needs a game restart, not a server restart; its
+  historical offline checks are distinct from user GPU testing.
 - Current work: polygon boundaries and an opt-in scene capture/export helper on
   `feature/polygon-arena-areas`, based on clean `e61b6e3`. See
   `POLYGON-AREA-REVIEW.md` for controls, validation and pending user GPU checks.
@@ -75,6 +76,14 @@ current. User-facing communication is normally German.
 
 ### User clarification on the GPU host (2026-09-07)
 
+- **Artifact delivery update (2026-09-08):** do not ask again whether the game
+  and SPT server are stopped before routine delivery into the existing mirrored
+  installation. The user states that their synchronization defers files while
+  they are in use and explicitly removed the stop-confirmation prerequisite.
+  An offline GPU host is not a reason to hold back local deployment. Keep local
+  hash verification and report remote synchronization separately; source/build
+  ownership rules below still apply. Restart changed components before testing
+  the new version; copying a DLL is not proof a running process has loaded it.
 - EFT/SPT is never run on both PCs simultaneously. The user accepts immediate
   mirroring/overwriting of logs and saves; these profiles are disposable test data
   and even their loss is acceptable. Routine menu checks do not require pausing
@@ -281,9 +290,10 @@ always record that build's hashes and compare them with its installed copies.
    under the single-host execution policy above; routine menu checks need no
    mandatory profile backup/restore. Keep test configuration changes explicit so
    a difference in mods is not mistaken for an Arena regression.
-4. Only the designated test owner replaces installed artifacts. Finish the test,
-   stop game/server, deploy one coherent build, verify hashes, restart both,
-   then run the next test. Never auto-copy a newer build into an ongoing test.
+4. Keep one deployment owner and deliver one coherent build through the existing
+   mirror without an additional game/server stop question. Verify installed
+   hashes locally and synchronization separately. The user manages restart and
+   test timing; identify the actually loaded build when recording test results.
 5. Begin with the UI workflow below, not the pending raid tests. For the existing
    preview-contamination investigation, the user supplies the post-match state
    after their manual raid; the agent can then inspect the affected item in

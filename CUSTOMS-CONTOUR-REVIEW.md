@@ -96,12 +96,13 @@ Release build/staging SHA256:
 | Client | `EDCC4B486D80EB7E36A48BEC60AA646DA5615124465B58BF002D21918B0CB9AB` |
 | Server | `B73791EE2E561D6791DA4B4FF8F17107797DA536B0B132074081843F47538E5F` |
 
-At preparation, installed DLLs were unchanged and SPT-GPU was disconnected from
-Syncthing. The staged files are prepared for coordinated installation after
-game/server stop confirmation, not evidence of current GPU deployment. No other
-plugin or default configuration file needs replacing. Pending prepared files
-and their manifest are retained under ignored `artifacts/customs-contour/prepared`
-in the shared checkout; compare them to these hashes before installation.
+On 2026-09-08 both reviewed DLLs were installed into the local D:\SPT41 client
+and server plugin directories; their hashes match the table above. No other
+plugin or default configuration file was replaced. Prepared files and their
+deployment manifest remain under ignored `artifacts/customs-contour/prepared`
+in the shared checkout. This proves local installation, not a loaded GPU raid.
+The user removed the routine stop-confirmation prerequisite for delivery;
+their mirror handles files in use. See the current delivery policy in HANDOFF.md.
 
 ## User GPU checks
 
