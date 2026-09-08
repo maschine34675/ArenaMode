@@ -49,6 +49,10 @@ function Test-Mutant([string]$Name,[string]$Before,[string]$After,[string]$Asser
 try {
     Assert-Production
     if(-not $ProductionOnly){
+        Test-Mutant 'unused-opponent-pmc-required' 'players.Length < requiredPlayers' 'players.Length < 1' 'exact roster needs no opponent PMC or surplus ally bot:'
+        Test-Mutant 'surplus-allied-bot-required' 'int requiredBots = _teamSize - requiredPlayers;' 'int requiredBots = _teamSize;' 'exact roster needs no opponent PMC or surplus ally bot:'
+        Test-Mutant 'required-ally-undercounted' 'int requiredBots = _teamSize - requiredPlayers;' 'int requiredBots = _teamSize - requiredPlayers - (localTeam ? 1 : 0);' 'one missing required ally rejects readiness'
+        Test-Mutant 'required-opponent-undercounted' 'int requiredBots = _teamSize - requiredPlayers;' 'int requiredBots = _teamSize - requiredPlayers - (localTeam ? 0 : 1);' 'missing native dispatch marker rejects readiness'
         Test-Mutant 'initial-foreign-collection' '|| !ReferenceEquals(system._spawnPoints, _loadingCollection)' '' 'initial native pass-through for collection'
         Test-Mutant 'initial-wrong-faction' '_area.TeamStarts.Allows(side == EPlayerSide.Usec, true, p.Id)' '_area.TeamStarts.Allows(true, true, p.Id)' 'initial PMC uses faction start pool'
         Test-Mutant 'initial-grouping-removed' '(!_teamStarting || _area.TeamStarts.Allows(usec, false, point.Id))' 'true' 'initial bots use their assigned side only'

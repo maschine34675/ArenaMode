@@ -244,7 +244,12 @@ internal static partial class ArenaAreaRuntime
                     ArenaToasts.Show(_area.DisplayName + " — area ready");
                 }
                 else if (Time.realtimeSinceStartup >= _deadline)
+                {
+                    LogConnectivityAttempt(problem, true);
                     Abort("navigation validation timed out: " + problem);
+                }
+                else if (ConnectivityScanning)
+                    _nextValidation = Time.realtimeSinceStartup; // Continue bounded work next frame.
                 return;
             }
             if (_phase == Phase.Ready && Time.realtimeSinceStartup >= _nextActorCheck)
@@ -264,10 +269,15 @@ internal static partial class ArenaAreaRuntime
         { problem = "boundary integrity: " + problem; return false; }
         var local = _world.MainPlayer;
         if (local == null || !AllowsGeometrySpawn(local.Position)
-            || !TrySample(local.Position, out _anchor))
+            || !TrySample(local.Position, out var liveAnchor))
         { problem = "the initial player spawn is not on an allowed navigation surface"; return false; }
+        if (_area.TeamStarts == null || _connectivity == null) _anchor = liveAnchor;
         if (!CarvingSealed())
-        { problem = "navigation still crosses an enclosing wall"; return false; }
+        {
+            ResetConnectivityAttempt();
+            problem = "navigation still crosses an enclosing wall"; return false;
+        }
+        if (_area.TeamStarts != null) return TryTeamConnectivity(liveAnchor, out problem);
         Connected.Clear();
         foreach (var point in Candidates)
             if (point != null && !_area.IsExcludedSpawn(point.Id) && AllowsGeometrySpawn(point.Position)
@@ -275,7 +285,6 @@ internal static partial class ArenaAreaRuntime
                 Connected.Add(point);
         var players = Connected.Where(IsPlayerPoint).ToArray();
         var bots = Connected.Where(IsBotPoint).Select(p => p.Position).Distinct().ToArray();
-        if (_area.TeamStarts != null) return ValidateTeamStarts(out problem);
         int requiredBots = _teamSize * 2 - 1;
         if (players.Length < 2 || bots.Length < requiredBots)
         { problem = $"insufficient connected spawns (player {players.Length}, bot {bots.Length}; need 2/{requiredBots})"; return false; }
@@ -319,10 +328,18 @@ internal static partial class ArenaAreaRuntime
            && !NavMesh.Raycast(a.position, b.position, out _, NavMesh.AllAreas);
 
     private static bool TrySample(Vector3 point, out Vector3 result)
+        => TrySample(point, out result, out _);
+
+    private static bool TrySample(Vector3 point, out Vector3 result, out string reason)
     {
         result = default;
-        if (!NavMesh.SamplePosition(point, out var hit, 0.75f, NavMesh.AllAreas)
-            || Mathf.Abs(hit.position.y - point.y) > 0.5f || !Contains(hit.position, ArenaAreaCatalog.NavigationInset)) return false;
+        reason = null;
+        if (!NavMesh.SamplePosition(point, out var hit, 0.75f, NavMesh.AllAreas))
+        { reason = "no NavMesh sample within 0.75m"; return false; }
+        if (Mathf.Abs(hit.position.y - point.y) > 0.5f)
+        { reason = $"wrong floor height (sample {hit.position}, delta {hit.position.y - point.y:F3}m)"; return false; }
+        if (!Contains(hit.position, ArenaAreaCatalog.NavigationInset))
+        { reason = "sample outside navigation inset at " + hit.position; return false; }
         result = hit.position;
         return true;
     }
@@ -354,7 +371,7 @@ internal static partial class ArenaAreaRuntime
         if (!IsCurrentActive()) return true;
         return IsReady && point != null && !_area.IsExcludedSpawn(point.Id) && AllowsGeometrySpawn(point.Position)
             && Connected.Any(p => p.Id == point.Id && (p.Position - point.Position).sqrMagnitude < 0.01f)
-            && TrySample(point.Position, out var sample) && CompleteInsidePath(_anchor, sample);
+            && TrySample(point.Position, out var sample) && CompleteConnectedPath(sample);
     }
 
     internal static bool ShouldBlockLoadingBotDispatch()
@@ -382,7 +399,7 @@ internal static partial class ArenaAreaRuntime
     {
         if (!IsCurrentActive()) return;
         if (!IsReady || !Contains(position, ArenaAreaCatalog.NavigationInset)
-            || !TrySampleBody(position, out var sample) || !CompleteInsidePath(_anchor, sample))
+            || !TrySampleBody(position, out var sample) || !CompleteConnectedPath(sample))
             throw new InvalidOperationException("Bounded Arena replacement position is outside its verified navigation component.");
     }
 
@@ -433,7 +450,7 @@ internal static partial class ArenaAreaRuntime
 
     internal static bool AllowTeleport(Player player, Vector3 target)
         => !TryGetForPlayer(player, out _) || (IsReady && TrySample(target, out var sample)
-            && Contains(target, ArenaAreaCatalog.NavigationInset) && CompleteInsidePath(_anchor, sample));
+            && Contains(target, ArenaAreaCatalog.NavigationInset) && CompleteConnectedPath(sample));
 
     private static ActorState State(Player player)
     {
@@ -584,6 +601,7 @@ internal static partial class ArenaAreaRuntime
         _root = null; _enclosure = null; _enclosurePlan = null;
         _area = null; _token = null; _game = null; _world = null; _failure = null;
         ResetTeamStarts();
+        ResetConnectivity();
         Candidates.Clear(); Connected.Clear(); Actors.Clear();
         _phase = Phase.Armed; _totalRejections = 0; _nextActorCheck = 0; _nextRejectionLog = 0;
     }

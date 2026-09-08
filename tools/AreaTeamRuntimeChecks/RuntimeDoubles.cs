@@ -179,6 +179,9 @@ namespace ArenaMode.Areas
         private static bool Contains(Vector3 p,float inset=0)=>_area!=null&&_area.Bounds.Contains(p.x,p.y,p.z,inset);
         private static bool TrySample(Vector3 p,out Vector3 sample) {sample=p;return Sample(p)&&Contains(p,ArenaAreaCatalog.NavigationInset);}
         private static bool CompleteInsidePath(Vector3 a,Vector3 b)=>Contains(a,ArenaAreaCatalog.NavigationInset)&&Contains(b,ArenaAreaCatalog.NavigationInset)&&Path(a,b);
+        // Real navigation composition is covered by AreaConnectivityChecks;
+        // this seam controls only the success/failure seen by team lifetimes.
+        private static bool CompleteConnectedPath(Vector3 sample)=>CompleteInsidePath(_anchor,sample);
         internal static bool AllowsSpawn(ISpawnPoint p)=>IsReady&&p!=null&&_area.AllowsSpawn(p.Position.x,p.Position.y,p.Position.z,p.Id)
             &&Connected.Any(c=>c.Id==p.Id&&(c.Position-p.Position).sqrMagnitude<.01f)
             &&TrySample(p.Position,out var sample)&&CompleteInsidePath(_anchor,sample);

@@ -133,6 +133,37 @@ internal static class Program
         east.Position=p.Position+new Vector3(10,0,0);Need(!ArenaAreaRuntime.TestValidate(out _),"opposing start separation drift rejects readiness");
     }
 
+    private static void ExactRosterCapacity()
+    {
+        // Reproduce the GPU report: no unused opponent PMC marker, exactly
+        // N opponent bot points, and only N-1 allied bot points are connected.
+        foreach(var side in new[]{EPlayerSide.Usec,EPlayerSide.Bear})
+            for(int size=2;size<=5;size++)
+            {
+                var s=Setup(side,size);var initial=Initial(s,side);ArenaAreaRuntime.TestActivate(initial);
+                bool localUsec=side==EPlayerSide.Usec;
+                foreach(var p in s._spawnPoints.Where(p=>Area.TeamStarts.Allows(!localUsec,true,p.Id)))
+                    ArenaAreaRuntime.TestDisconnect(p);
+                foreach(bool usec in new[]{true,false})
+                {
+                    int needed=size-(usec==localUsec?1:0);
+                    foreach(var p in s._spawnPoints.Where(p=>Area.TeamStarts.Allows(usec,false,p.Id)).Skip(needed))
+                        ArenaAreaRuntime.TestDisconnect(p);
+                }
+                Need(ArenaAreaRuntime.TestValidate(out var why),"exact roster needs no opponent PMC or surplus ally bot: "+why);
+                var lastAlly=s._spawnPoints.OfType<Point>().First(p=>Area.TeamStarts.Allows(localUsec,false,p.Id));
+                lastAlly.SpawnBlocked=true;
+                Need(!ArenaAreaRuntime.TestValidate(out why)&&why.Contains("bots"),"one missing required ally rejects readiness");
+                lastAlly.SpawnBlocked=false;
+                var lastEnemy=s._spawnPoints.OfType<Point>().First(p=>Area.TeamStarts.Allows(!localUsec,false,p.Id));
+                lastEnemy.SpawnBlocked=true;
+                Need(!ArenaAreaRuntime.TestValidate(out why)&&why.Contains("bots"),"one missing required opponent rejects readiness");
+                lastEnemy.SpawnBlocked=false;
+                foreach(var p in s._spawnPoints.OfType<Point>().Where(p=>Area.TeamStarts.Allows(localUsec,true,p.Id)))p.SpawnBlocked=true;
+                Need(!ArenaAreaRuntime.TestValidate(out why)&&why.Contains("PMC 0/1"),"missing local PMC still rejects readiness");
+            }
+    }
+
     private static void ReservationLifetimes()
     {
         var s=Setup();ArenaAreaRuntime.TestActivate(Initial(s,EPlayerSide.Usec));
@@ -242,7 +273,7 @@ internal static class Program
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
             Need(ReadPoints().Length==28&&ReadPoints().Count(Bot)==11,"installed Customs corpus retains 28 markers and 11 bot points");
-            InitialAndCapacity();ReadinessRejections();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();
+            InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;
         }

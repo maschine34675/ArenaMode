@@ -59,8 +59,14 @@ internal static partial class ArenaAreaRuntime
                 && !ArenaBotSpawnPolicy.IsExcludedPoint(_area.MapId, p.Id)
                 && !ArenaBotSpawnPolicy.IsExcludedZone(_area.MapId, p.BotZoneName)
                 && _area.TeamStarts.Allows(usec, false, p.Id)).ToArray();
-            if (players.Length < 1 || bots.Length < _teamSize)
-            { problem = $"{(usec ? "USEC" : "BEAR")} starts: PMC {players.Length}, bots {bots.Length}/{_teamSize}"; return false; }
+            // Only the local faction places a PMC body. Requiring an unused
+            // opponent PMC marker (and an extra allied bot) rejected valid
+            // formations before native bot activation could even begin.
+            bool localTeam = usec == (_game.Profile.Info.Side == EPlayerSide.Usec);
+            int requiredPlayers = localTeam ? 1 : 0;
+            int requiredBots = _teamSize - requiredPlayers;
+            if (players.Length < requiredPlayers || bots.Length < requiredBots)
+            { problem = $"{(usec ? "USEC" : "BEAR")} starts: PMC {players.Length}/{requiredPlayers}, bots {bots.Length}/{requiredBots}"; return false; }
             // Alternatives for the one local PMC are not simultaneous occupants.
             for (int i = 0; i < bots.Length; i++)
             {
@@ -85,6 +91,41 @@ internal static partial class ArenaAreaRuntime
         Plugin.ModLogger.LogInfo("Arena team starts released: subsequent placements rank all connected spawns against live enemies.");
     }
 
+    // Only used at a failed preparation deadline. Connectivity diagnostics
+    // identify path failures; these explain why a reached marker still cannot
+    // participate in the exact native formation (without changing selection).
+    private static void LogTeamStartDiagnostics()
+    {
+        if (_area?.TeamStarts == null || !IsCurrentActive()) return;
+        var zones = (_game as IBotGame)?.BotsController?.BotSpawner?.SpawnZones(false);
+        var native = (zones ?? Enumerable.Empty<BotZone>())
+            .Where(z => z != null && !ArenaBotSpawnFilter.IsExcludedZone(z))
+            .SelectMany(z => z.SpawnPoints ?? Enumerable.Empty<ISpawnPoint>()).ToArray();
+        foreach (bool usec in new[] { true, false })
+        foreach (bool pmc in new[] { true, false })
+        {
+            var pool = Candidates.Where(p => p != null && _area.TeamStarts.Allows(usec, pmc, p.Id)).ToArray();
+            foreach (var point in pool)
+            {
+                bool category = pmc
+                    ? ArenaAreaSpawnPolicy.IsPlayerPoint(point, usec ? EPlayerSide.Usec : EPlayerSide.Bear)
+                    : IsBotPoint(point);
+                bool dispatch = pmc || native.Any(d => d != null && d.Id == point.Id
+                    && (d.Position-point.Position).sqrMagnitude < 0.01f && IsBotPoint(d) && !d.SpawnBlocked
+                    && !ArenaBotSpawnPolicy.IsExcludedZone(_area.MapId, d.BotZoneName)
+                    && !ArenaBotSpawnPolicy.IsExcludedPoint(_area.MapId, d.Id));
+                bool excluded = _area.IsExcludedSpawn(point.Id)
+                    || ArenaBotSpawnPolicy.IsExcludedPoint(_area.MapId, point.Id)
+                    || (!pmc && ArenaBotSpawnPolicy.IsExcludedZone(_area.MapId, point.BotZoneName));
+                Plugin.ModLogger.LogInfo($"Arena team start diagnostic: {(usec ? "USEC" : "BEAR")} {(pmc ? "PMC" : "bot")} "
+                    + $"{point.Id} at {point.Position}; connected={Connected.Contains(point)}, blocked={point.SpawnBlocked}, "
+                    + $"category/side={category}, native-dispatch={dispatch}, excluded={excluded}.");
+            }
+            if (pool.Length == 0)
+                Plugin.ModLogger.LogInfo($"Arena team start diagnostic: {(usec ? "USEC" : "BEAR")} {(pmc ? "PMC" : "bot")} pool absent from scene candidates.");
+        }
+    }
+
     // A reservation spans only native body activation, never the entire match.
     // Exact object/token checks prevent an old callback releasing a newer lease.
     internal sealed class TeamSpawnLease : IDisposable
@@ -107,7 +148,7 @@ internal static partial class ArenaAreaRuntime
                && player.Profile?.Info?.Side == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear)
                && (player.Position - Position).sqrMagnitude <= 4f
                && Contains(player.Position, ArenaAreaCatalog.NavigationInset)
-               && TrySample(player.Position, out var sample) && CompleteInsidePath(_anchor, sample)
+               && TrySample(player.Position, out var sample) && CompleteConnectedPath(sample)
                && IsUnoccupied(player.Position, player, this);
         internal bool CanReleasePlayer => IsCurrent && AllowsSpawn(Point)
             && IsUnoccupied(Position, _world.MainPlayer, this);

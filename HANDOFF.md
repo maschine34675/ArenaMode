@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- GPU report follow-up (2026-09-08): the user authorized implementation from
+  report `2327f63`, with double jump merged into the main branch first. `master`
+  includes that merge as `227fb10`; fixes are finishing on
+  `fix/team-start-gpu-acceptance` before integration back into master.
+  `853a2ce` fixes the human PMC scoreboard role; `77469cc` guards the replacement
+  grass-camera ordering and optional PFT inactive-menu warmup. Team-start
+  readiness now requires the actual 1 PMC + N-1 allies versus N opponents and
+  verifies contained bidirectional waypoint connections between existing native
+  markers. Fresh final and placement checks reject stale paths; actual bot path
+  corners are still checked independently. Legacy areas retain direct validation.
+  See `TEAM-START-ACCEPTANCE-REVIEW.md`, `AREA-CONNECTIVITY-REVIEW.md`,
+  `ROLE-LABEL-REVIEW.md` and `GPU-ACCEPTANCE-COMPAT-REVIEW.md`.
+  Offline code review and staged client build pass; final ledger verification,
+  main-branch integration and local delivery are being recorded below before
+  handing this task over. No native GPU success is claimed for these corrections.
+  Retest new team starts on both factions at sizes 2-5, initial roster and refills,
+  actual movement/boundaries, F9 role, upscaled rendering after respawn and PFT
+  Escape/settings menu. Double jump also needs its first GPU acceptance. Only
+  the client changes; no server/Redeploy rebuild is required for this follow-up.
 - Native GPU acceptance (2026-09-08, `C:\SPT41`): **new team-start preset fails**.
   Expected DLL hashes matched before/after testing at documentation HEAD `62c7b70`.
   All four sizes are selectable in the native 1920x945 menu; 2v2 (including its
