@@ -100,6 +100,21 @@ internal sealed class ArenaController : MonoBehaviour
         if (Time.time < _kitWarmupAt)
             return;
 
+        // TDM profile preparation also builds native item pools. Loading the
+        // whole optional catalog alongside the initial teams competes with
+        // those jobs and can even duplicate the opening player's cold kit.
+        // Required per-life Preload calls remain untouched. Read the latched
+        // mode, including its gap before Current exists, not the mutable menu.
+        if (string.Equals(Session.ArenaSession.ActiveMode, "teamdeathmatch",
+                System.StringComparison.Ordinal)
+            && (!(Modes.ArenaMatchService.Current?.Mode is Modes.TeamDeathmatchMode team)
+                || !team.InitialRosterReady
+                || Kits.KitBundlePreloader.IsPreloading
+                || Respawn.ArenaRespawnDriver.IsRespawnInProgress))
+        {
+            return;
+        }
+
         _kitWarmupStarted = true;
         StartCoroutine(Kits.KitBundlePreloader.PreloadAll());
     }

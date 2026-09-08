@@ -33,6 +33,14 @@ namespace ArenaMode.Kits
 {
     public static class KitCatalog { public static List<KitDefinition> Kits; }
     public static class LadderCatalog { public static List<KitDefinition> Rungs; }
+    // Supplies checks have no renderer. The actual optic ownership guard and
+    // native callbacks are exercised separately in tools/OpticPreloadChecks.
+    public static class KitOpticPreloadGuard
+    {
+        public static void Reset() { }
+        public static IDisposable Begin(ObjectsFactory factory, ResourceKey[] keys) => new Scope();
+        private sealed class Scope : IDisposable { public void Dispose() { } }
+    }
 }
 namespace Redeploy.Core.Inventory
 {

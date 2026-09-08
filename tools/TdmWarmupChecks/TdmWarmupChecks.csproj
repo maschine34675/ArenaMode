@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ControllerSource Condition="'$(ControllerSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\ArenaController.cs</ControllerSource>
+    <PreloaderSource Condition="'$(PreloaderSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Kits\KitBundlePreloader.cs</PreloaderSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ControllerSource)" Link="Production/ArenaController.cs" />
+    <Compile Include="$(PreloaderSource)" Link="Production/KitBundlePreloader.cs" />
+  </ItemGroup>
+</Project>

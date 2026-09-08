@@ -35,11 +35,17 @@ public static class KitBundlePreloader
     /// </summary>
     private static readonly HashSet<string> WarmedTemplates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private static int _raidEpoch;
+    private static int _activePoolLoads;
+
+    // Includes the live raid-start swap, whose preload precedes the respawn
+    // driver's pipeline flag. Only used to defer optional catalog work.
+    internal static bool IsPreloading => _activePoolLoads > 0;
 
     // Pools are per-raid (PoolsCategory.Raid) — cleared on raid end via ResetSession.
     public static void Reset()
     {
         unchecked { _raidEpoch++; }
+        _activePoolLoads = 0;
         WarmedTemplates.Clear();
         KitOpticPreloadGuard.Reset();
     }
@@ -122,9 +128,11 @@ public static class KitBundlePreloader
     /// Warms every catalog kit in the background, one after another.
     ///
     /// Random kits are drawn per life, and a kit is only preloaded the first time
-    /// it comes up — which would stall that respawn while its bundles load. Doing
-    /// it up front costs nothing noticeable: the loads are sequential, already-warm
-    /// kits are skipped, and the raid is playable throughout.
+    /// it comes up — which would stall that respawn while its bundles load. The
+    /// controller schedules this optional work after initial TDM assembly and
+    /// current native kit loading. Loads are sequential and already-warm
+    /// templates are skipped, but pool creation still shares resources with
+    /// other loading work.
     /// </summary>
     public static IEnumerator PreloadAll()
     {
@@ -206,15 +214,27 @@ public static class KitBundlePreloader
         // Keep ownership in this async operation, not in the yielding coroutine:
         // a disposed coroutine must not leak ownership into another request, and
         // a native pool job may still finish after its caller stopped polling.
-        using (KitOpticPreloadGuard.Begin(objectsFactory, keys))
+        int epoch = _raidEpoch;
+        _activePoolLoads++;
+        try
         {
-            await objectsFactory.LoadBundlesAndCreatePools(
-                ObjectsFactory.PoolsCategory.Raid,
-                ObjectsFactory.AssemblyType.Local,
-                keys,
-                JobYieldPriority.General,
-                null,
-                ObjectsFactory.DefaultCancellationToken);
+            using (KitOpticPreloadGuard.Begin(objectsFactory, keys))
+            {
+                await objectsFactory.LoadBundlesAndCreatePools(
+                    ObjectsFactory.PoolsCategory.Raid,
+                    ObjectsFactory.AssemblyType.Local,
+                    keys,
+                    JobYieldPriority.General,
+                    null,
+                    ObjectsFactory.DefaultCancellationToken);
+            }
+        }
+        finally
+        {
+            // Disposing a polling coroutine does not stop its native Task.
+            // An old completion must not release a new raid's active load.
+            if (epoch == _raidEpoch)
+                _activePoolLoads--;
         }
     }
 }
