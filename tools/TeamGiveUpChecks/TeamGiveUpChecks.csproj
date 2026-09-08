@@ -7,17 +7,22 @@
     <DefineConstants>$(DefineConstants);TEAM_GIVE_UP_CHECKS</DefineConstants>
     <GiveUpSource Condition="'$(GiveUpSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Combat\ArenaGiveUp.cs</GiveUpSource>
     <ModeSource Condition="'$(ModeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.cs</ModeSource>
+    <FlowSource Condition="'$(FlowSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMatchFlow.cs</FlowSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMatchPolicy.cs</PolicySource>
+    <MatchSource Condition="'$(MatchSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\ArenaMatch.cs</MatchSource>
     <ScoreboardSource Condition="'$(ScoreboardSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\ArenaScoreboard.cs</ScoreboardSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(GiveUpSource)" Link="Production/ArenaGiveUp.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />
+    <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
     <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="EngineModel.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/AreaStandIns.cs" Link="AreaModel.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
-    <Compile Include="../../ArenaMode.Client/Modes/ArenaMatch.cs" Link="Production/ArenaMatch.cs" />
+    <Compile Include="$(MatchSource)" Link="Production/ArenaMatch.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchPopulation.cs" Link="Production/TeamDeathmatchPopulation.cs" />

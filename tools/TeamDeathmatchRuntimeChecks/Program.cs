@@ -27,7 +27,8 @@ internal static partial class Program
         internal List<BotOwner> Bots => Game.BotsController.BotSpawner._bots.BotOwners;
         internal Raid(bool usec = true, int size = 5, bool active = true,
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
-            bool bounded = false, bool areaPending = false, int? areaSize = null)
+            bool bounded = false, bool areaPending = false, int? areaSize = null,
+            int killLimit = 0, int timeLimit = 0)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
@@ -37,7 +38,9 @@ internal static partial class Program
                 ArenaMode.Areas.ArenaAreaRuntime.FrozenTeamSize = areaSize;
             }
             ArenaMode.Areas.ArenaAreaRuntime.IsPending = bounded && areaPending;
-            Time.time = Time.realtimeSinceStartup = 0;
+            Time.time = Time.realtimeSinceStartup = Time.unscaledTime = 0;
+            TdmMatchExit.Reset();
+            ArenaMode.Respawn.LiveKitRespawn.IsInitialSwapPending = false;
             Model.Events.Clear();
             BurstSpawnService.Requests.Clear();
             BurstSpawnService.OnRequest = null;
@@ -52,6 +55,8 @@ internal static partial class Program
             ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = pft;
             ArenaMode.Respawn.ArenaRespawnDriver.IsRespawnInProgress = false;
             Settings.TeamDeathmatchSize.Value = size;
+            Settings.TeamDeathmatchKillLimit.Value = killLimit;
+            Settings.TeamDeathmatchTimeLimitSeconds.Value = timeLimit;
             Settings.NoCorpseLooting.Value = true;
             TeamDeathmatchRelations.Reset();
             ArenaTracerTeams.Reset();
@@ -62,7 +67,7 @@ internal static partial class Program
             ArenaMatchService.Current = Match;
             Mode.OnMatchStart(Match);
         }
-        internal void Step(float at) { Time.time = Time.realtimeSinceStartup = at; Mode.Tick(1f); }
+        internal void Step(float at) { Time.time = Time.realtimeSinceStartup = Time.unscaledTime = at; Mode.Tick(1f); }
         internal int Alive(EPlayerSide side) => Bots.Count(bot => bot.HealthController.IsAlive && bot.Profile.Info.Side == side);
         internal void Fill()
         {
@@ -73,6 +78,10 @@ internal static partial class Program
                 request.DispatchFinished(true);
             };
             for (int tick = 0; tick < Mode.TeamSize + 2; tick++) Step(Time.time + 1);
+            // Do not bypass the phase: keep ticking actual readiness and the
+            // production countdown until the public ready contract releases.
+            for (int tick = 0; !Mode.InitialRosterReady && !Mode.IsComplete
+                && tick <= TeamDeathmatchMatchPolicy.CountdownSeconds + 2; tick++) Step(Time.time + 1);
         }
     }
 
@@ -163,6 +172,9 @@ internal static partial class Program
         Check(raid.Match.Cues.Count == 0, "physical fullness alone cannot announce combat readiness");
         usec.BotState = firstBear.BotState = secondBear.BotState = EBotState.Active;
         raid.Step(58);
+        Check(raid.Match.Cues.Count == 0 && !raid.Mode.InitialRosterReady,
+            "full active roster starts the real countdown rather than instant combat");
+        raid.Step(58 + TeamDeathmatchMatchPolicy.CountdownSeconds);
         Check(raid.Match.Cues.Count == 1, "ready waits until every admitted body reaches Active");
     }
 
@@ -498,7 +510,7 @@ internal static partial class Program
         };
         readyExit.Step(0);
         readyExit.Step(1);
-        Check(readyExit.Match.Cues.Count == 0,
+        Check(readyExit.Match.Cues.Count == 0 && !readyExit.Mode.HudStatusLine.Contains("START IN"),
             "stop in last arrival prevents a round-start announcement during native shutdown");
 
         var suspended = new Raid();
@@ -738,6 +750,10 @@ internal static partial class Program
         NativeFriendshipAndDamagePolicy();
         ScoreAwardsTracersAndLoot();
         BoundedAreaModeContract();
+        MatchReadinessAndCountdown();
+        MatchReadinessLossBetweenRosterTicks();
+        MatchTerminalPopulationAndPresentation();
+        MatchTimeLimitAndRuleSnapshot();
         Console.WriteLine($"PASS: {_checks} production TDM mode/relations runtime-model checks.");
         Console.WriteLine("ARENA_TDM_RUNTIME_CHECKS_PASSED");
     }

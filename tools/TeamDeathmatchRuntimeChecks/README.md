@@ -101,6 +101,36 @@ shared burst helper: its existing rejected-arrival cleanup remains unchanged.
 Root's separate population/dispatch harness exercises the actual one-shot
 dispatch lease. No local test is proof of live SAIN movement or GPU raid behavior.
 
+## Match lifecycle regression (2026-09-08)
+
+The harness now also links the actual partial match-flow implementation and its
+immutable kill/time policy. Existing scoring fixtures fill the real mode's
+reserved slots, wait for active native wrappers, and advance its published
+countdown rather than directly setting readiness. The current standalone suite
+contains 313 assertions; the mutation runner retains all 17 previous runtime
+fault controls and adds nine for the new lifecycle.
+
+New scenarios verify full roster plus completed initial kit replacement before
+countdown, reset on lost readiness, no elapsed combat time before release,
+participant-only staging damage decisions, fixed per-match settings, exact
+time-limit draw, and explicit unlimited matches. Readiness loss includes an
+unreadable native roster, area preparation, a pending death/initial kit,
+dead local body and temporarily mismatched MainPlayer between the roster ticks.
+
+Terminal scenarios cover score-limit victory, pending request invalidation,
+administrative retirement of a late native arrival, no refills, immutable final
+roster/score, no delayed kill awards, one result cue, and a result interval that
+starts after actual replacement work finishes. The held death-driver flag does
+not stall that interval; another raid cannot inherit old exit/protection work.
+`TdmMatchExit` is deliberately a recording adapter in this suite: native owner,
+pause and Stop semantics are checked by the separate production exit harness.
+
+Four review passes covered (1) complete linked-source fixture adaptation,
+(2) native reservation/activation and countdown semantics, (3) event/lifecycle
+races plus intended-failure source controls, and (4) portable scratch-only
+mutations, unchanged production hashes and rerun evidence. Standalone gameplay
+fixtures remain models, not live Unity or GPU acceptance.
+
 ## Independent burst review (2026-09-05)
 
 The review found a retirement confirmation gap: a no-op Kill could leave an

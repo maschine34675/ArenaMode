@@ -47,11 +47,14 @@ internal sealed class ArenaAssemblyBanner
     public void Tick(ArenaMatch match)
     {
         if (_root == null) return;
+        string heading = null, detail = null;
+        bool notice = match?.Mode is TacticalMode tactical
+            ? tactical.TryGetAssemblyNotice(out heading, out detail)
+            : match?.Mode is TeamDeathmatchMode teams && teams.TryGetMatchNotice(out heading, out detail);
         if (!ArenaSession.IsActive || !ReferenceEquals(match, ArenaMatchService.Current)
             || !Singleton<GameWorld>.Instantiated || !Singleton<AbstractGame>.Instantiated
             || !ArenaSession.IsExactActiveRaid(Singleton<AbstractGame>.Instance, Singleton<GameWorld>.Instance)
-            || !(match?.Mode is TacticalMode tactical)
-            || !tactical.TryGetAssemblyNotice(out string heading, out string detail))
+            || !notice)
         {
             // Never wait for the refresh timer to remove an obsolete notice.
             _root.SetActive(false);

@@ -7,6 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Independent TDM match flow (2026-09-08, `feature/tdm-match-flow`): implements
+  a complete-roster/initial-kit readiness gate, fresh three-second countdown,
+  frozen client kill/time limits (default 50/600s, each zero disables), and an
+  immutable victory/defeat/draw result. Native map-screen presets fit inside the
+  current mode panel; other modes and PFT retain their controls. Damage/scoring
+  are held during preparation/countdown and after result; actors may still move.
+  The final scoreboard opens once the native replacement pipeline settles,
+  uses existing win/loss audio (draw is neutral text), and offers Return to menu
+  or automatic protected exit after 15 seconds. New bot requests/respawn entry
+  stop immediately; an already-started body replacement may safely finish.
+  Native exit requires the exact game/world/profile and a valid current owner;
+  terminal factory failures never route through the generic unsafe-owner abort.
+  No global AI pause, SAIN/path repair, server, Redeploy or profile-rule changes.
+  See `TDM-MATCH-FLOW-REVIEW.md` and `tools/TdmMatchChecks/GATES.md` for verification
+  and the native GPU acceptance matrix. Source/deployment hashes are recorded
+  after the final clean build below; no GPU playtest is implied by compilation.
+  The latest user diagnostic run before this feature had 103 awareness samples
+  with no invalid-path reproduction; the bounded position diagnostics remain.
+  Offline verification passed: policy/native exit/extracted respawn guards
+  227 assertions + 15 deliberate source faults; actual TDM runtime 313 + 26,
+  preserved extracted burst checks 21 + 8; actual match/give-up 618 + 16;
+  actual native-menu rules/views/settings 80 + 8. Each fault must fail its
+  intended assertion, and the original production inputs are rerun afterwards.
+  Parent independently reran both delegated suites; shared banner (36), area
+  menu (397), warmup, native map/access, announcer, PFT/round expansion and the
+  server/profile suite passed. Existing Labyrinth fixture was repaired in
+  `7e4cf77` by supplying the already-existing area team-size setting; no
+  production Labyrinth behavior or assertions changed. Independent adversarial
+  review has no unresolved P0-P2. Staged client build passed with zero errors
+  and four existing nullable warnings. Final delivery remains the last gate.
 - TDM invalid-path positions delivered (2026-09-08, code `f209955` on `master`):
   the user's next log has eight
   sampled invalid paths, six for the same actor; another actor also cannot path

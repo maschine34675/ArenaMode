@@ -16,7 +16,7 @@ namespace ArenaMode.Modes;
 /// Continuous faction deathmatch. The human owns one permanent faction slot;
 /// bots own disposable bodies, never PFT follower accounts or persisted kits.
 /// </summary>
-public sealed class TeamDeathmatchMode : IArenaMode
+public sealed partial class TeamDeathmatchMode : IArenaMode
 {
     private ArenaMatch _match;
     private GameWorld _world;
@@ -43,9 +43,9 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     public string Id => ArenaModeCatalog.TeamDeathmatchId;
     public string DisplayName => "Team Deathmatch";
-    public bool IsComplete => _failure != null;
+    public bool IsComplete => _failure != null || HasResult;
     public float DeathReplaySeconds => 0f;
-    public bool HoldRespawn => Areas.ArenaAreaRuntime.IsPending;
+    public bool HoldRespawn => Areas.ArenaAreaRuntime.IsPending || HasResult;
     public bool ControlsOwnSpawns => true;
     public int TeamSize => _population?.TeamSize ?? 5;
     public string FriendlyFaction => _population?.LocalUsec == true ? "USEC" : "BEAR";
@@ -57,13 +57,14 @@ public sealed class TeamDeathmatchMode : IArenaMode
         get
         {
             if (_failure != null) return "TEAM DM stopped — " + _failure;
+            if (HasResult) return ResultHeading + " — " + _rules.FriendlyKills + " : " + _rules.OpponentKills;
             if (Areas.ArenaAreaRuntime.IsPending) return "PREPARING ARENA AREA — checking navigation";
             if (_match == null) return "TEAM DM";
             int friendly = _match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Kills;
             int opponent = _match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills;
             string waiting = _reportedStall ? " | spawn delayed" : "";
             return $"{TeamSize}v{TeamSize}  <color=#7FDBFF>{FriendlyFaction} {friendly}</color> : "
-                   + $"<color=#FF6B6B>{opponent} {OpponentFaction}</color>{waiting}";
+                   + $"<color=#FF6B6B>{opponent} {OpponentFaction}</color> | {RulesStatus}{waiting}";
         }
     }
 
@@ -74,6 +75,8 @@ public sealed class TeamDeathmatchMode : IArenaMode
         _game = Singleton<AbstractGame>.Instance as LocalGame;
         _local = _world?.MainPlayer;
         _localId = _local?.ProfileId;
+        _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
+            Settings.TeamDeathmatchTimeLimitSeconds.Value);
         EPlayerSide? faction = TeamDeathmatchRelations.Faction(_local);
         if (!IsCurrentRaid() || string.IsNullOrEmpty(_localId)
             || !faction.HasValue || Compat.PitFireTeamCompat.HasFrozenTeamRoster)
@@ -96,6 +99,13 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     public void Tick(float deltaTime)
     {
+        if (ObserveNativeStop()) return;
+        CheckMatchLimits();
+        if (HasResult) { TickResult(); return; }
+        if (IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Countdown
+            && (Areas.ArenaAreaRuntime.IsPending || Respawn.ArenaRespawnDriver.IsRespawnInProgress
+                || Respawn.LiveKitRespawn.IsInitialSwapPending || _local?.HealthController?.IsAlive != true
+                || !ReferenceEquals(_world.MainPlayer, _local))) TickMatchStart(false);
         // Check before the simulation-clock tick throttle. Pausing or a slow
         // frame must not extend the preparation's real-time watchdog.
         if (ObserveNativeStop() || CheckPreparationWatchdog()) return;
@@ -115,6 +125,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             var owners = Singleton<IBotGame>.Instance?.BotsController?.BotSpawner?._bots?.BotOwners;
             if (owners == null)
             {
+                TickMatchStart(false);
                 // Unreadable occupancy must never become zero. Report the
                 // transition, not every tick while native storage is missing.
                 if (!_reportedUnreadableRoster)
@@ -147,9 +158,15 @@ public sealed class TeamDeathmatchMode : IArenaMode
             else if (!stalled && _reportedStall)
                 Plugin.ModLogger.LogInfo("Team Deathmatch: delayed spawn requests settled; " + DescribeState());
             _reportedStall = stalled;
-            if (!_announcedReady && CountBots(true) == _population.BotTarget(true)
+            bool ready = CountBots(true) == _population.BotTarget(true)
                 && CountBots(false) == _population.BotTarget(false)
-                && _bots.All(bot => bot.BotState == EBotState.Active))
+                && _bots.All(bot => bot.BotState == EBotState.Active)
+                && _local?.HealthController?.IsAlive == true
+                && ReferenceEquals(_world.MainPlayer, _local)
+                && !Respawn.ArenaRespawnDriver.IsRespawnInProgress
+                && !Respawn.LiveKitRespawn.IsInitialSwapPending;
+            TickMatchStart(ready);
+            if (!_announcedReady && _rules.Phase == TdmMatchPhase.Live)
             {
                 _announcedReady = true;
                 Areas.ArenaAreaRuntime.FinishTeamAssembly();
@@ -368,7 +385,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     internal bool TrySynchronizeScoreboardRoster(out string problem)
     {
         problem = null;
-        if (_population == null || _match == null || _local == null || !IsCurrentRaid()) return true;
+        if (_population == null || _match == null || _local == null || !IsCurrentRaid() || HasResult) return true;
         var friendly = new List<ArenaScoreboardActor>();
         var opposing = new List<ArenaScoreboardActor>();
         foreach (BotOwner bot in _bots)
@@ -384,7 +401,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     {
         kill.KillerIsFriendly = Friendly(kill.KillerProfileId);
         kill.VictimIsFriendly = Friendly(kill.VictimProfileId);
-        kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid()
+        kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Live
             && kill.KillerIsFriendly.HasValue && kill.VictimIsFriendly.HasValue
             && kill.KillerIsFriendly != kill.VictimIsFriendly;
         kill.AwardEligible &= kill.ScoreEligible;
@@ -394,13 +411,17 @@ public sealed class TeamDeathmatchMode : IArenaMode
         => _population != null && id != null && _usecById.TryGetValue(id, out bool usec)
             ? usec == _population.LocalUsec : null;
 
-    public void OnKill(ArenaKill kill) { }
-    public void OnLocalDeath() => _nextTick = 0f;
+    public void OnKill(ArenaKill kill) => CheckMatchLimits();
+    public void OnLocalDeath()
+    {
+        if (IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Countdown) TickMatchStart(false);
+        _nextTick = 0f;
+    }
 
     /// <summary>Reserve this exact living body for the synchronous Give up call.</summary>
     internal bool TryBeginLocalGiveUp(Player player)
     {
-        if (_pendingGiveUpLife != null || ReferenceEquals(_creditedGiveUpLife, player)
+        if (!TryBeginScoredEvent() || _pendingGiveUpLife != null || ReferenceEquals(_creditedGiveUpLife, player)
             || !IsCurrentLocalGiveUpLife(player) || player.ActiveHealthController?.IsAlive != true)
             return false;
         _pendingGiveUpLife = player;
@@ -421,6 +442,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             || ReferenceEquals(_creditedGiveUpLife, player)) return;
         _creditedGiveUpLife = player;
         _match.Scoreboard.ReportOpponentForfeitKill();
+        CheckMatchLimits();
     }
 
     private bool IsCurrentLocalGiveUpLife(Player player)
@@ -470,6 +492,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     public void OnLocalRespawn(Player player)
     {
         if (_population == null || !IsCurrentRaid()) return;
+        if (_rules?.Phase == TdmMatchPhase.Countdown) TickMatchStart(false);
         try { if (player != null) Areas.ArenaAreaRuntime.RequirePosition(player.Position); }
         catch (Exception ex)
         { Areas.ArenaAreaRuntime.Abort("replacement body left the verified area: " + ex.Message); return; }
@@ -480,6 +503,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
         Areas.ArenaAreaRuntime.ReleasePlayerReservation(player);
         _pendingGiveUpLife = null;
         _creditedGiveUpLife = null;
+        _localDeathCounted = false;
         TeamDeathmatchRelations.Register(player);
         _nextTick = 0f;
     }

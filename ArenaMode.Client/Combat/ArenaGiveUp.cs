@@ -59,6 +59,12 @@ internal static class ArenaGiveUp
         if (!ArenaSession.IsActive || _requestInProgress || Time.time < _nextAllowedAt)
             return;
 
+        if (ArenaMatchService.Current?.Mode is TeamDeathmatchMode terminal && terminal.HasResult)
+        {
+            terminal.RequestResultExit();
+            return;
+        }
+
         // Nothing to give up on while the round is already over and the player
         // is standing behind intermission protection.
         if (ArenaMatchService.Current?.Mode is RoundsMode rounds && rounds.InIntermission)
@@ -79,6 +85,14 @@ internal static class ArenaGiveUp
 
             var teams = ArenaMatchService.Current?.Mode as TeamDeathmatchMode;
             bool scoreReserved = teams?.TryBeginLocalGiveUp(player) == true;
+            // The reservation checks the clock and can itself discover the
+            // terminal result before this frame's match Tick. Do not kill the
+            // player after that synchronous transition.
+            if (teams?.HasResult == true)
+            {
+                teams.RequestResultExit();
+                return;
+            }
 
             // Raises the death event the player subscribes to, so the normal
             // death pipeline runs and the arena driver picks it up. No aggressor

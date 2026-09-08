@@ -1,3 +1,4 @@
+using ArenaMode.Config;
 using ArenaMode.Modes;
 using Comfort.Common;
 using EFT.UI;
@@ -16,6 +17,9 @@ internal sealed class ArenaModeSelectionView
     private const float Inset = 20f;
     private readonly List<Button> _buttons = new();
     private readonly List<GameObject> _markers = new();
+    private readonly List<GameObject> _factObjects = new();
+    private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
+    private ArenaTdmMatchRulesState _tdmRules;
     private GameObject _root;
     private TextMeshProUGUI _rules;
     private TextMeshProUGUI _respawn;
@@ -30,7 +34,12 @@ internal sealed class ArenaModeSelectionView
     internal void Synchronize(string selectedMode, bool tacticalOnly)
     {
         if (_selection == null || _root == null) return;
-        if (!_selection.Synchronize(selectedMode, tacticalOnly)) return;
+        if (!_selection.Synchronize(selectedMode, tacticalOnly))
+        {
+            // F12 can change a limit without changing the selected mode.
+            RefreshTdmRules();
+            return;
+        }
         _subtitle.text = tacticalOnly ? "GAME MODE / PITFIRETEAM 5v5" : "GAME MODE";
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, tacticalOnly ? 524f : 488f);
         _restrictionNote.SetActive(tacticalOnly);
@@ -57,6 +66,12 @@ internal sealed class ArenaModeSelectionView
             throw new InvalidOperationException("The native mode-row template is unavailable.");
 
         _selection = new ArenaModeSelectionState(selectedMode, tacticalOnly, onSelected);
+        _tdmRules = new ArenaTdmMatchRulesState(
+            () => Settings.TeamDeathmatchKillLimit?.Value ?? -1,
+            () => Settings.TeamDeathmatchTimeLimitSeconds?.Value ?? -1,
+            Settings.TrySelectTeamDeathmatchKillLimit,
+            Settings.TrySelectTeamDeathmatchTimeLimit,
+            () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
         try
         {
             Create(screen, template._elementTemplate, template._currentValueText ?? nativeText);
@@ -75,6 +90,9 @@ internal sealed class ArenaModeSelectionView
     {
         // Each clone has a fresh event; no callback or popup belongs to another screen.
         _selection = null;
+        _tdmRules = null;
+        Safe(_tdmRulesView.Close);
+        _factObjects.Clear();
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
@@ -119,6 +137,7 @@ internal sealed class ArenaModeSelectionView
         _rules = CreateFact("RULES", typography, 354f);
         _respawn = CreateFact("RESPAWN", typography, 394f);
         _equipment = CreateFact("EQUIPMENT", typography, 434f);
+        _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
 
         var note = CreateText("Team restriction", typography,
             "Companions require Tactical.", 15f, 484f, 24f);
@@ -198,14 +217,25 @@ internal sealed class ArenaModeSelectionView
         _rules.text = mode.Rules;
         _respawn.text = mode.Respawn;
         _equipment.text = _selection.TacticalOnly ? "PMC entry gear" : mode.Equipment;
+        RefreshTdmRules();
+    }
+
+    private void RefreshTdmRules()
+    {
+        if (_selection == null || _tdmRules == null) return;
+        _tdmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
+        foreach (var fact in _factObjects) fact.SetActive(!_tdmRules.Visible);
+        _tdmRulesView.Refresh();
     }
 
     private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top)
     {
         var key = CreateText(label + " label", typography, label, 14f, top, 30f);
+        _factObjects.Add(key.gameObject);
         key.rectTransform.sizeDelta = new Vector2(98f, 30f);
         key.color = Dim(typography, .65f);
         var value = CreateText(label + " value", typography, string.Empty, 17f, top, 30f);
+        _factObjects.Add(value.gameObject);
         SetRect(value.rectTransform, 122f, top, PanelWidth - 142f, 30f);
         return value;
     }

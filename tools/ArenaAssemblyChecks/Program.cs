@@ -52,4 +52,16 @@ match.Mode = team; banner.Tick(match); banner.Tick(null); Check(!root.activeSelf
 Check(!((Image)root.Components[typeof(Image)]).raycastTarget
     && HudStyle.Texts.Values.All(t => !t.raycastTarget), "banner does not intercept input");
 Check(HudStyle.Texts["AssemblyHeading"].fontSize >= 28, "heading is materially larger than old 16pt subline");
+ArenaMatchService.Current = match;
+var tdm = new TeamDeathmatchMode { Visible = true, Heading = "MATCH STARTS IN 3", Detail = "Damage and scoring disabled" };
+match.Mode = tdm;
+Time.unscaledTime++; banner.Tick(match);
+Check(root.activeSelf && HudStyle.Texts["AssemblyHeading"].text == tdm.Heading, "TDM countdown uses actual shared banner");
+tdm.Visible = false; banner.Tick(match);
+Check(!root.activeSelf, "TDM live release hides banner immediately");
+tdm.Visible = true; tdm.Heading = "VICTORY"; tdm.Detail = "50 : 47";
+Time.unscaledTime++; banner.Tick(match);
+Check(root.activeSelf && HudStyle.Texts["AssemblyHeading"].text == "VICTORY", "TDM terminal result is rendered by shared banner");
+ArenaSession.Exact = false; banner.Tick(match);
+Check(!root.activeSelf, "TDM stale raid result cannot show banner");
 Console.WriteLine($"ARENA_ASSEMBLY_CHECKS_PASSED ({checks} assertions)");

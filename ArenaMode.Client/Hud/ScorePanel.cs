@@ -53,7 +53,7 @@ internal sealed class ScorePanel
         _mainLine.text =
             $"<b>{match.Kills}</b> Kills   {match.Deaths} Deaths   <color=#7FDBFF>{match.Score:n0}</color>";
 
-        var elapsed = match.Elapsed;
+        var elapsed = match.Mode is TeamDeathmatchMode teams ? teams.PlayingElapsed : match.Elapsed;
         var minutes = (int)(elapsed / 60f);
         var seconds = (int)(elapsed % 60f);
         var streakPart = match.Streak >= 2

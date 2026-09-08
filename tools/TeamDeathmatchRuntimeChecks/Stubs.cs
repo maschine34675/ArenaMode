@@ -9,7 +9,7 @@ using EFT;
 
 namespace UnityEngine
 {
-    public static class Time { public static float time; public static float realtimeSinceStartup; }
+    public static class Time { public static float time; public static float realtimeSinceStartup; public static float unscaledTime; }
     public readonly struct Vector3
     {
         public readonly float x, y, z;
@@ -288,6 +288,8 @@ namespace ArenaMode.Config
     internal static partial class Settings
     {
         internal static readonly Entry<int> TeamDeathmatchSize = new(5);
+        internal static readonly Entry<int> TeamDeathmatchKillLimit = new(0);
+        internal static readonly Entry<int> TeamDeathmatchTimeLimitSeconds = new(0);
         internal static readonly Entry<bool> NoCorpseLooting = new(true);
     }
 }
@@ -304,14 +306,18 @@ namespace ArenaMode.Session
     }
 }
 namespace ArenaMode.Compat { internal static class PitFireTeamCompat { internal static bool HasFrozenTeamRoster; } }
-namespace ArenaMode.Respawn { internal static class ArenaRespawnDriver { internal static bool IsRespawnInProgress; } }
+namespace ArenaMode.Respawn
+{
+    internal static class ArenaRespawnDriver { internal static bool IsRespawnInProgress; }
+    internal static class LiveKitRespawn { internal static bool IsInitialSwapPending; }
+}
 namespace ArenaMode.Effects
 {
     internal static class ArenaTracerPatches { internal static void ResetDiagnostics() { } }
-    internal static class ArenaToasts { internal static void Show(string text) => Model.Events.Add("toast:" + text); }
 }
 namespace ArenaMode.Modes
 {
+    internal static class ArenaToasts { internal static void Show(string text) => Model.Events.Add("toast:" + text); }
 #if !TEAM_GIVE_UP_CHECKS
     public sealed class ArenaMatch
     {
@@ -320,8 +326,18 @@ namespace ArenaMode.Modes
         internal readonly List<ArenaAnnouncerCue> Cues = new();
         public void ReportAnnouncerCue(ArenaAnnouncerCue cue) => Cues.Add(cue);
     }
-    public enum ArenaAnnouncerCue { RoundStart }
+    public enum ArenaAnnouncerCue { RoundStart, MatchWon, MatchLost }
 #endif
+    // Native stop/owner handling has a separate production-linked adapter suite.
+    // Here record the real mode's intent without pretending to run EFT teardown.
+    internal static class TdmMatchExit
+    {
+        internal static bool PipelineRunning;
+        internal static int StopCalls;
+        internal static void Reset() { PipelineRunning = false; StopCalls = 0; }
+        internal static void TryStop(LocalGame game, GameWorld world, string profileId,
+            Action<string> reportProblem = null) => StopCalls++;
+    }
     public static class ArenaModeCatalog { public const string TeamDeathmatchId = "teamdeathmatch"; }
     public static class ArenaMatchService
     {

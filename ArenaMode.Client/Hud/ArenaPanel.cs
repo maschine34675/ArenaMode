@@ -73,7 +73,9 @@ internal sealed class ArenaPanel : MonoBehaviour
         // black screen would freeze input around a body that is still being
         // built. The check is edge-triggered on the whole condition, so the
         // scoreboard still shows itself once the player is standing.
-        var intermission = ArenaMatchService.Current?.Mode is RoundsMode rounds
+        var result = ArenaMatchService.Current?.Mode is TeamDeathmatchMode resultTeams
+            && resultTeams.ResultOwnsCurrentRaid && !TdmMatchExit.PipelineRunning;
+        var intermission = result && IsBattleUiActive() || ArenaMatchService.Current?.Mode is RoundsMode rounds
             && rounds.InIntermission
             && rounds.IntermissionProtected
             && IsBattleUiActive()
@@ -226,7 +228,11 @@ internal sealed class ArenaPanel : MonoBehaviour
             ClearScoreboardCache();
 
         GUILayout.Space(6);
-        GUILayout.Label(match.Mode?.DisplayName ?? "Arena", _titleStyle);
+        var resultTeams = match.Mode as TeamDeathmatchMode;
+        bool terminalResult = resultTeams?.HasResult == true;
+        GUILayout.Label(terminalResult ? resultTeams.ResultHeading : match.Mode?.DisplayName ?? "Arena", _titleStyle);
+        if (terminalResult)
+            GUILayout.Label(resultTeams.ResultDetail + "\n" + resultTeams.ResultExitStatus, _statStyle);
 
         _scrollPosition = GUILayout.BeginScrollView(
             _scrollPosition,
@@ -248,31 +254,35 @@ internal sealed class ArenaPanel : MonoBehaviour
         DrawStat("K/D", match.Deaths > 0
             ? ((float)match.Kills / match.Deaths).ToString("0.00")
             : match.Kills.ToString("0.00"));
-        DrawStat("Time", $"{Mathf.FloorToInt(match.Elapsed / 60f):00}:{Mathf.FloorToInt(match.Elapsed % 60f):00}");
-        DrawStat("Pressure", Bots.ArenaPressure.Describe());
+        var played = resultTeams != null ? resultTeams.PlayingElapsed : match.Elapsed;
+        DrawStat("Time", $"{Mathf.FloorToInt(played / 60f):00}:{Mathf.FloorToInt(played % 60f):00}");
+        if (!terminalResult)
+        {
+            DrawStat("Pressure", Bots.ArenaPressure.Describe());
 
-        GUILayout.Space(10);
-        GUILayout.Label("Live settings", _titleStyle);
-        GUILayout.Space(4);
+            GUILayout.Space(10);
+            GUILayout.Label("Live settings", _titleStyle);
+            GUILayout.Space(4);
 
-        if (match.Mode is TeamDeathmatchMode)
-            GUILayout.Label("Both factions track opposing combatants. Team size is fixed for this match.", _mutedStyle);
-        else
-            Settings.HuntPlayer.Value = GUILayout.Toggle(
-                Settings.HuntPlayer.Value, " Bots keep hunting the player", _bodyStyle);
-        Settings.ScaleDifficulty.Value = GUILayout.Toggle(
-            Settings.ScaleDifficulty.Value, " Arena pushes back harder over time", _bodyStyle);
-        Settings.ShowKillfeed.Value = GUILayout.Toggle(
-            Settings.ShowKillfeed.Value, " Killfeed", _bodyStyle);
-        Settings.ShowHitmarker.Value = GUILayout.Toggle(
-            Settings.ShowHitmarker.Value, " Hitmarker", _bodyStyle);
-        Settings.ShowDamageNumbers.Value = GUILayout.Toggle(
-            Settings.ShowDamageNumbers.Value, " Damage numbers", _bodyStyle);
+            if (match.Mode is TeamDeathmatchMode)
+                GUILayout.Label("Both factions track opposing combatants. Team size is fixed for this match.", _mutedStyle);
+            else
+                Settings.HuntPlayer.Value = GUILayout.Toggle(
+                    Settings.HuntPlayer.Value, " Bots keep hunting the player", _bodyStyle);
+            Settings.ScaleDifficulty.Value = GUILayout.Toggle(
+                Settings.ScaleDifficulty.Value, " Arena pushes back harder over time", _bodyStyle);
+            Settings.ShowKillfeed.Value = GUILayout.Toggle(
+                Settings.ShowKillfeed.Value, " Killfeed", _bodyStyle);
+            Settings.ShowHitmarker.Value = GUILayout.Toggle(
+                Settings.ShowHitmarker.Value, " Hitmarker", _bodyStyle);
+            Settings.ShowDamageNumbers.Value = GUILayout.Toggle(
+                Settings.ShowDamageNumbers.Value, " Damage numbers", _bodyStyle);
 
-        GUILayout.Space(6);
-        if (!(match.Mode is TeamDeathmatchMode))
-            DrawSlider("PMC floor", Settings.PmcFloor, 0, 20);
-        DrawSlider("Visible corpses", Settings.MaxCorpses, 0, 50);
+            GUILayout.Space(6);
+            if (!(match.Mode is TeamDeathmatchMode))
+                DrawSlider("PMC floor", Settings.PmcFloor, 0, 20);
+            DrawSlider("Visible corpses", Settings.MaxCorpses, 0, 50);
+        }
 
         GUILayout.EndScrollView();
 
@@ -280,11 +290,12 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
 
-        if (GUILayout.Button("Give up", _buttonStyle, GUILayout.Width(120f), GUILayout.Height(30f)))
+        if (GUILayout.Button(terminalResult ? "Return to menu" : "Give up", _buttonStyle, GUILayout.Width(150f), GUILayout.Height(30f)))
         {
             _autoOpened = false;
             SetOpen(false);
-            Combat.ArenaGiveUp.Request();
+            if (terminalResult) resultTeams.RequestResultExit();
+            else Combat.ArenaGiveUp.Request();
         }
 
         GUILayout.Space(12);

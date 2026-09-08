@@ -5,12 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <ModeSource Condition="'$(ModeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.cs</ModeSource>
+    <FlowSource Condition="'$(FlowSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMatchFlow.cs</FlowSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMatchPolicy.cs</PolicySource>
     <PopulationSource Condition="'$(PopulationSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchPopulation.cs</PopulationSource>
     <RelationsSource Condition="'$(RelationsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TeamDeathmatchRelations.cs</RelationsSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="BurstIntegration/**/*.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />
+    <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
     <Compile Include="$(PopulationSource)" Link="Production/TeamDeathmatchPopulation.cs" />
     <Compile Include="$(RelationsSource)" Link="Production/TeamDeathmatchRelations.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TdmSearchAwareness.cs" Link="Production/TdmSearchAwareness.cs" />

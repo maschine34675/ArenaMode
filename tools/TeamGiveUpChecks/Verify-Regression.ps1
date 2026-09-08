@@ -5,8 +5,11 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $modePath = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMode.cs'
 $giveUpPath = Join-Path $repo 'ArenaMode.Client/Combat/ArenaGiveUp.cs'
 $scoreboardPath = Join-Path $repo 'ArenaMode.Client/Modes/ArenaScoreboard.cs'
+$flowPath = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchFlow.cs'
+$policyPath = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs'
+$matchPath = Join-Path $repo 'ArenaMode.Client/Modes/ArenaMatch.cs'
 $originalHashes = @{}
-foreach ($path in @($modePath, $giveUpPath, $scoreboardPath)) {
+foreach ($path in @($modePath, $giveUpPath, $scoreboardPath, $flowPath, $policyPath, $matchPath)) {
     $originalHashes[$path] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
 }
 $scratch = Join-Path $PSScriptRoot ('obj/giveup-regression-' + [guid]::NewGuid().ToString('N'))
@@ -38,7 +41,38 @@ $mutants = @(
        Failure = 'give-up grants exactly one opposing PMC kill and base points' },
     @{ Name = 'historical-visual-owner'; Source = $modePath; Property = 'ModeSource';
        From = '|| !ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)'; To = '';
-       Failure = 'historical profile/new body alias cannot borrow visual affiliation' }
+       Failure = 'historical profile/new body alias cannot borrow visual affiliation' },
+    @{ Name = 'staging-kill-event'; Source = $matchPath; Property = 'MatchSource';
+       From = 'if (!teams.TryBeginScoredEvent()) return;'; To = '';
+       Failure = 'assembling callbacks cannot change scores, deaths, awards or kill events' },
+    @{ Name = 'staging-death-score'; Source = $matchPath; Property = 'MatchSource';
+       From = 'Mode is TeamDeathmatchMode teams && !teams.TryRecordLocalDeath()';
+       To = 'Mode is TeamDeathmatchMode teams && false';
+       Failure = 'stopped/failed/unbound team scoring never blocks the existing give-up escape action' },
+    @{ Name = 'duplicate-local-death'; Source = $flowPath; Property = 'FlowSource';
+       From = '_localDeathCounted || !TryBeginScoredEvent()'; To = '!TryBeginScoredEvent()';
+       Failure = 'final local kill and driver death count exactly once in either native event order' },
+    @{ Name = 'kill-first-local-death'; Source = $matchPath; Property = 'MatchSource';
+       From = 'if (kill.LocalIsVictim) ReportLocalDeath();'; To = '';
+       Failure = 'final local kill and driver death count exactly once in either native event order' },
+    @{ Name = 'terminal-respawn-board'; Source = $matchPath; Property = 'MatchSource';
+       From = 'if (Mode is TeamDeathmatchMode teams && teams.HasResult) return;'; To = '';
+       Failure = 'post-result kill, death and replacement callbacks cannot mutate the final board or events' },
+    @{ Name = 'event-before-deadline-check'; Source = $flowPath; Property = 'FlowSource';
+       From = 'CheckMatchLimits();'; To = '';
+       Failure = 'an event at the exact time limit cannot score into an expired match' },
+    @{ Name = 'terminal-giveup-exit'; Source = $giveUpPath; Property = 'GiveUpSource';
+       From = 'terminal && terminal.HasResult)'; To = 'terminal && terminal.HasResult && false)';
+       Failure = 'result exit works while the dead-player respawn hold remains set' },
+    @{ Name = 'staging-death-countdown'; Source = $matchPath; Property = 'MatchSource';
+       From = 'RaiseSafe(teams.OnLocalDeath, "mode.OnLocalDeath");'; To = '';
+       Failure = 'unscored staging death immediately invalidates countdown before any roster tick' },
+    @{ Name = 'staging-handover-countdown'; Source = $modePath; Property = 'ModeSource';
+       From = 'if (_rules?.Phase == TdmMatchPhase.Countdown) TickMatchStart(false);'; To = '';
+       Failure = 'staging body handover immediately invalidates countdown without a score' },
+    @{ Name = 'giveup-discovers-deadline'; Source = $giveUpPath; Property = 'GiveUpSource';
+       From = 'if (teams?.HasResult == true)'; To = 'if (false)';
+       Failure = 'give-up that first discovers an expired match requests exit without a post-result native death' }
 )
 foreach ($mutant in $mutants) {
     $source = Get-Content -LiteralPath $mutant.Source -Raw

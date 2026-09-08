@@ -60,6 +60,13 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Modes
 {
+    public sealed class TeamDeathmatchMode
+    {
+        public bool Visible;
+        public string Heading, Detail;
+        public bool TryGetMatchNotice(out string heading, out string detail)
+        { heading = Heading; detail = Detail; return Visible; }
+    }
     public class ArenaMatch { public object Mode; }
     public static class ArenaMatchService { public static ArenaMatch Current; }
     // Only the state boundary is modeled. The production partial contains all

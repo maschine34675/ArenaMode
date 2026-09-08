@@ -93,6 +93,8 @@ public static class Settings
     public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
+    public static ConfigEntry<int> TeamDeathmatchKillLimit { get; private set; }
+    public static ConfigEntry<int> TeamDeathmatchTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
     public static ConfigEntry<bool> AreaCaptureEnabled { get; private set; }
@@ -199,6 +201,29 @@ public static class Settings
         catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena area team-size save failed: {ex.Message}"); }
         SettingsSync.Report();
         Plugin.ModLogger?.LogInfo($"Arena area team size selected in map screen: {size}v{size}.");
+        return true;
+    }
+
+    internal static bool TrySelectTeamDeathmatchKillLimit(int value)
+        => TrySelectTeamDeathmatchLimit(TeamDeathmatchKillLimit, value, 1000, "kill limit");
+
+    internal static bool TrySelectTeamDeathmatchTimeLimit(int value)
+        => TrySelectTeamDeathmatchLimit(TeamDeathmatchTimeLimitSeconds, value, 7200, "time limit");
+
+    private static bool TrySelectTeamDeathmatchLimit(ConfigEntry<int> entry, int value, int maximum, string label)
+    {
+        // Menu writes are pre-raid only. F12 remains editable, but the running
+        // match owns its frozen limits and never reads later config changes.
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid
+            || entry == null || value < 0 || value > maximum) return false;
+        if (entry.Value == value) return true;
+        try { entry.Value = value; }
+        catch (Exception ex)
+        { Plugin.ModLogger?.LogWarning($"Arena TDM {label} selection failed: {ex.Message}"); return false; }
+        if (entry.Value != value) return false;
+        try { if (File?.SaveOnConfigSet == false) File.Save(); }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena TDM {label} save failed: {ex.Message}"); }
+        // Limits are client-owned. No route/protocol change or settings report.
         return true;
     }
 
@@ -599,6 +624,16 @@ public static class Settings
                 "Both teams refill fallen bots; your slot stays reserved while you respawn. " +
                 "Read at match start. PitFireTeam companions are not used in this mode.",
                 new AcceptableValueRange<int>(2, 12)));
+
+        TeamDeathmatchKillLimit = config.Bind("Team Deathmatch", "KillLimit", 50,
+            new ConfigDescription("Team kills needed to win independent Team Deathmatch (0 = unlimited). " +
+                "The first kill or time limit reached ends the match. Selected before loading; changes during a raid apply next match.",
+                new AcceptableValueRange<int>(0, 1000)));
+
+        TeamDeathmatchTimeLimitSeconds = config.Bind("Team Deathmatch", "TimeLimitSeconds", 600,
+            new ConfigDescription("Independent Team Deathmatch duration after both teams are ready and the countdown ends (0 = unlimited). " +
+                "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
+                new AcceptableValueRange<int>(0, 7200)));
 
         RoundKillTarget = config.Bind(
             "Match",

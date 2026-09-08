@@ -23,6 +23,8 @@ hotkey, respawn and intermission guards; ordinary-mode isolation; and team total
 persistence through actual scoreboard history compaction.
 Stopped or failed Team DM matches retain the existing Give up escape action;
 scoring eligibility is deliberately separate from permission to end that life.
+Completed score/time-limit matches instead use that action to request safe exit
+from the result display without killing a replacement body.
 
 The read-only visual-owner API is tested with current local bodies, both admitted
 bot teams, inactive wrappers, unknown bots, stale profile aliases, role drift,
@@ -58,3 +60,33 @@ duplicate that credit, and an accepted replacement permits a new life. The
 shared `AreaStandIns.cs` supplies the readiness/position verdict only; actual
 scene validation, physical respawn and protected native exit are outside this
 harness. All previous give-up, typing and lifecycle assertions are retained.
+
+## Match lifecycle regression (2026-09-08)
+
+The actual `TeamDeathmatchMatchFlow` and immutable policy are now linked alongside
+`ArenaMatch`. Scoring setups assemble actual reserved bot slots and complete the
+real countdown; ownership-only cases explicitly remain in assembly. Original
+team-only forfeit assertions now account for the real four-person roster while
+still requiring zero personal opponent kills and no invented participant.
+Stopped/failed/foreign-mode callbacks retain native Give up but cannot add new
+match deaths; still-current live bodies retain ordinary death accounting.
+
+The current standalone suite contains 618 assertions. Added cases reject all
+score/death/award/kill-event accounting during assembly, verify that a short
+unscored death or body handover immediately invalidates countdown, and exercise
+the final local casualty with native kill/death notifications in both orders.
+Both factions can lose at the kill limit through exactly one confirmed forfeit.
+No later kill, death, roster replacement or repeated forfeit may change the final
+board or re-emit its lifecycle cue. Events arriving at the exact time deadline
+before the controller Tick cannot score into the expired match.
+If Give up itself discovers that deadline, it requests exit without calling
+native Kill after the synchronous terminal transition.
+
+All six existing scratch-source controls remain; ten additional controls break
+the actual admission, deadline, death-deduplication, final-casualty ordering,
+terminal respawn/exit and short staging-callback branches. These must fail named
+behavioral assertions, not compilation. The runner fingerprints every linked
+changed production source and reruns the original after the controls. The shared
+exit adapter only records mode intent; native Stop and real respawn are outside
+this fixture. The four passes rechecked full delivery, native-event semantics,
+adversarial races/source controls, and final portability/evidence limitations.

@@ -29,12 +29,15 @@ internal static partial class Program
         internal Player Local => World.MainPlayer;
         internal int CapturedKills;
         internal readonly List<string> Callouts = new();
-        internal Raid(bool usec = true, bool bounded = false)
+        internal Raid(bool usec = true, bool bounded = false, bool startLive = true,
+            int killLimit = 0, int timeLimit = 0)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
             Usec = usec;
-            Time.time = Time.realtimeSinceStartup = 0;
+            Time.time = Time.realtimeSinceStartup = Time.unscaledTime = 0;
+            TdmMatchExit.Reset();
+            LiveKitRespawn.IsInitialSwapPending = false;
             ArenaGiveUp.Reset();
             ArenaAdministrativeDeathGate.Reset();
             ArenaTracerTeams.Reset();
@@ -49,6 +52,8 @@ internal static partial class Program
             ArenaSession.OwnedGame = Game;
             ArenaSession.OwnedWorld = World;
             Settings.TeamDeathmatchSize.Value = 2;
+            Settings.TeamDeathmatchKillLimit.Value = killLimit;
+            Settings.TeamDeathmatchTimeLimitSeconds.Value = timeLimit;
             Input.Down = Input.Held = true;
             GUIUtility.keyboardControl = 0;
             EventSystem.current = null;
@@ -62,6 +67,28 @@ internal static partial class Program
             Match.OnCallout += text => Callouts.Add(text);
             Mode.OnMatchStart(Match);
             WireDeath(Local);
+            if (startLive) StartPlaying();
+        }
+        internal void Step(float at)
+        {
+            Time.time = Time.realtimeSinceStartup = Time.unscaledTime = at;
+            Match.Tick(1f);
+        }
+        internal void StartPlaying()
+        {
+            BurstSpawnService.OnRequest = request =>
+            {
+                var body = Model.Body("bot-" + ++Model.NextId,
+                    request.Role == WildSpawnType.pmcUSEC ? EPlayerSide.Usec : EPlayerSide.Bear, true);
+                body.AIData.BotOwner.BotState = EBotState.Active;
+                Check(request.Submit(), "live give-up setup submits an actual reservation");
+                request.Observer(body.AIData.BotOwner);
+                request.DispatchFinished(true);
+            };
+            for (int i = 0; !Mode.InitialRosterReady && !Mode.IsComplete
+                && i < 2 * Mode.TeamSize + TeamDeathmatchMatchPolicy.CountdownSeconds + 3; i++) Step(Time.time + 1);
+            BurstSpawnService.OnRequest = null;
+            Check(Mode.InitialRosterReady, "give-up setup completed real roster and countdown");
         }
         internal void WireDeath(Player body)
         {
@@ -80,10 +107,14 @@ internal static partial class Program
             Match.ReportLocalRespawn(Local);
             WireDeath(Local);
             ArenaRespawnDriver.IsRespawnInProgress = false;
-            Time.time += 2;
+            Time.time = Time.realtimeSinceStartup = Time.unscaledTime = Time.time + 2;
         }
         internal BotOwner AddBot(bool usec)
         {
+            var existing = Game.BotsController.BotSpawner._bots.BotOwners.FirstOrDefault(bot =>
+                bot.HealthController.IsAlive && bot.BotState == EBotState.Active
+                && (bot.Profile.Info.Side == EPlayerSide.Usec) == usec);
+            if (existing != null) return existing;
             // Drive actual mode reservation/adoption rather than inject its list.
             BotOwner adopted = null;
             BurstSpawnService.OnRequest = request =>
@@ -123,7 +154,8 @@ internal static partial class Program
                     "ordinary local death accounting remains single, no local kill or points");
                 Check(raid.Match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Deaths == life,
                     "team death count remains normal");
-                Check(raid.Match.Scoreboard.ParticipantCount == 1 && raid.Match.Scoreboard.Leader(ArenaScoreboardSide.Opponent) == null,
+                Check(raid.Match.Scoreboard.ParticipantCount == 4
+                    && raid.Match.Scoreboard.Leader(ArenaScoreboardSide.Opponent)?.Kills == 0,
                     "no fabricated opponent or personal killer");
                 Check(raid.CapturedKills == 0 && raid.Callouts.Count == 0 && enemies.Headshots == 0,
                     "no synthetic kill event, headshot, spree or revenge callout");
@@ -261,15 +293,18 @@ internal static partial class Program
             raid => ArenaSession.ActiveMode = "tactical",
             raid => raid.Local.Profile.Info.Side = EPlayerSide.Bear,
             raid => { Model.Body("local", EPlayerSide.Usec); raid.WireDeath(raid.Local); },
-            raid => { raid.Local.Profile.Info.Side = EPlayerSide.Savage; raid.Mode.Tick(1); }
+            raid => { raid.Local.Profile.Info.Side = EPlayerSide.Savage; raid.Step(Time.time + 1); }
         ];
-        foreach (var invalidate in unavailableScore)
+        for (int index = 0; index < unavailableScore.Length; index++)
         {
-            var raid = new Raid(); invalidate(raid); var health = raid.Local.HealthController;
+            var raid = new Raid(); unavailableScore[index](raid); var health = raid.Local.HealthController;
             ArenaGiveUp.Request();
-            Check(health.KillCalls == 1 && !health.IsAlive && raid.Match.Deaths == 1
+            // A still-current live match keeps its native death bookkeeping;
+            // ended, foreign-mode and failed lifecycles reject further scores.
+            int expectedDeaths = index == 2 || index == 3 ? 1 : 0;
+            Check(health.KillCalls == 1 && !health.IsAlive && raid.Match.Deaths == expectedDeaths
                 && raid.Match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills == 0,
-                "stopped/failed/unbound team scoring never blocks the existing give-up escape action");
+                $"stopped/failed/unbound team scoring never blocks the existing give-up escape action (case={index}, calls={health.KillCalls}, alive={health.IsAlive}, deaths={raid.Match.Deaths})");
         }
         {
             var raid = new Raid();
@@ -315,7 +350,7 @@ internal static partial class Program
     {
         foreach (bool usec in new[] { true, false })
         {
-            var raid = new Raid(usec);
+            var raid = new Raid(usec, startLive: false);
             Check(raid.Mode.TryClassifyCurrentBody(raid.Local, out bool localFriendly) && localFriendly, "current local body friendly");
             var friend = raid.AddBot(usec);
             // The prior tick already reserved an enemy request; deliver that
@@ -364,6 +399,11 @@ internal static partial class Program
         RequestAndTypingGates();
         ExactVisibleBodies();
         BoundedGiveUpContract();
+        MatchStagingAccounting();
+        CountdownDeathAndHandoverCallbacks();
+        FinalLocalDeathOrdering();
+        GiveUpCanFinishMatch();
+        DeadlineBeforeCombatAndForfeit();
         Console.WriteLine($"PASS: {_checks} production-linked Give up, scoreboard, awards and exact-body checks.");
         Console.WriteLine("ARENA_TEAM_GIVE_UP_CHECKS_PASSED");
     }

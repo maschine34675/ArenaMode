@@ -24,6 +24,9 @@ namespace ArenaMode.Respawn;
 /// </summary>
 internal static class LiveKitRespawn
 {
+    private static int _initialSwapEpoch = -1;
+    internal static bool IsInitialSwapPending => _initialSwapEpoch >= 0
+        && _initialSwapEpoch == ArenaRespawnDriver.CaptureRaidEpoch();
     private sealed class FixedSpawnSelector : ISpawnSelector
     {
         private readonly Vector3 _position;
@@ -56,7 +59,15 @@ internal static class LiveKitRespawn
         // when the swap actually lands, and everything before that point waits
         // (for the draw animation, for the kit's bundles). Deciding the spot up
         // here would teleport them back to where the raid started.
-        game.StartCoroutine(SwapRoutine(
+        _initialSwapEpoch = raidEpoch;
+        game.StartCoroutine(InitialSwapRoutine(game, kit, raidEpoch));
+    }
+
+    private static IEnumerator InitialSwapRoutine(LocalGame game, KitDefinition kit, int raidEpoch)
+    {
+        try
+        {
+            yield return game.StartCoroutine(SwapRoutine(
             game,
             kit,
             null,
@@ -65,6 +76,11 @@ internal static class LiveKitRespawn
             null,
             null,
             raidEpoch));
+        }
+        finally
+        {
+            if (_initialSwapEpoch == raidEpoch) _initialSwapEpoch = -1;
+        }
     }
 
     /// <summary>

@@ -156,6 +156,11 @@ short-range avoidance; see [NavMesh Obstacle (Unity 2022.3)](https://docs.unity3
 
 ## More complex objective-based modes
 
+2026-09-08 follow-up: independent TDM match limits, shared scoring countdown and
+terminal results are implemented in `TDM-MATCH-FLOW-REVIEW.md`; GPU acceptance is
+separate. Respawn line-of-sight fairness, a single control-point prototype and CTF
+remain proposed later work. This feature adds no objective bot steering.
+
 Recorded 2026-09-07: the user wants to revisit more complex game modes, with
 **Capture the Flag** as an explicit example. Deferred idea only; no implementation
 or final rules selected.

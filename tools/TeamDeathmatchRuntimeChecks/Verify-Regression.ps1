@@ -6,7 +6,9 @@ $mode = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMode.cs'
 $population = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchPopulation.cs'
 $relations = Join-Path $repo 'ArenaMode.Client/Bots/TeamDeathmatchRelations.cs'
 $awareness = Join-Path $repo 'ArenaMode.Client/Bots/TdmSearchAwareness.cs'
-$sources = @($mode, $population, $relations, $awareness)
+$flow = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchFlow.cs'
+$policy = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs'
+$sources = @($mode, $population, $relations, $awareness, $flow, $policy)
 $before = @{}
 foreach ($source in $sources) { $before[$source] = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }
 $scratch = Join-Path ([IO.Path]::GetTempPath()) ('arena-tdm-runtime-mutations-' + [Guid]::NewGuid().ToString('N'))
@@ -117,12 +119,62 @@ $cases = @(
         Find = 'catch (Exception ex) { return "roster snapshot unavailable (" + ex.GetType().Name + ")"; }';
         Replace = 'catch (Exception) { throw; }';
         Failure = 'a broken diagnostic snapshot cannot interrupt native shutdown or fail the mode'
+    },
+    @{
+        Name = 'initial-kit-readiness'; Path = $mode; Property = 'ModeSource';
+        Find = '&& !Respawn.LiveKitRespawn.IsInitialSwapPending;'; Replace = ';';
+        Failure = 'the initial player kit swap must finish before countdown admission'
+    },
+    @{
+        Name = 'unreadable-countdown'; Path = $mode; Property = 'ModeSource';
+        Find = "if (owners == null)`r`n            {`r`n                TickMatchStart(false);";
+        Replace = "if (owners == null)`r`n            {";
+        Failure = 'unreadable native roster cancels an already running countdown'
+    },
+    @{
+        Name = 'subtick-readiness-loss'; Path = $mode; Property = 'ModeSource';
+        Find = 'if (IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Countdown';
+        Replace = 'if (false && _rules?.Phase == TdmMatchPhase.Countdown';
+        Failure = 'short local readiness loss cancels countdown before the roster tick'
+    },
+    @{
+        Name = 'terminal-board-sync'; Path = $mode; Property = 'ModeSource';
+        Find = '|| !IsCurrentRaid() || HasResult) return true;';
+        Replace = '|| !IsCurrentRaid()) return true;';
+        Failure = 'terminal roster synchronization cannot mutate the final scoreboard'
+    },
+    @{
+        Name = 'terminal-kill-classification'; Path = $mode; Property = 'ModeSource';
+        Find = 'kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Live';
+        Replace = 'kill.ScoreEligible &= !_ended && IsCurrentRaid()';
+        Failure = 'terminal delayed kills have neither score nor award eligibility'
+    },
+    @{
+        Name = 'staging-score-admission'; Path = $flow; Property = 'FlowSource';
+        Find = 'return !IsComplete && _rules?.Phase == TdmMatchPhase.Live;'; Replace = 'return !IsComplete;';
+        Failure = 'preactive full roster cannot release scoring, time or staging damage'
+    },
+    @{
+        Name = 'result-before-engine-drain'; Path = $flow; Property = 'FlowSource';
+        Find = 'if (TdmMatchExit.PipelineRunning) return;'; Replace = '';
+        Failure = 'result display waits for actual replacement work without spending its display interval'
+    },
+    @{
+        Name = 'result-waits-held-death'; Path = $flow; Property = 'FlowSource';
+        Find = 'if (TdmMatchExit.PipelineRunning) return;';
+        Replace = 'if (TdmMatchExit.PipelineRunning || Respawn.ArenaRespawnDriver.IsRespawnInProgress) return;';
+        Failure = 'terminal match requests exit after its display without refills or final-score mutation'
+    },
+    @{
+        Name = 'late-time-limit'; Path = $policy; Property = 'PolicySource';
+        Find = 'now - StartedAt >= TimeLimitSeconds'; Replace = 'now - StartedAt > TimeLimitSeconds';
+        Failure = 'frozen time-limit settings finish an equal score as a draw exactly at deadline'
     }
 )
 foreach ($case in $cases) {
-    $text = [IO.File]::ReadAllText($case.Path)
-    $finds = @($case.Find)
-    $replacements = @($case.Replace)
+    $text = [IO.File]::ReadAllText($case.Path).Replace("`r`n", "`n")
+    $finds = @($case.Find | ForEach-Object { $_.Replace("`r`n", "`n") })
+    $replacements = @($case.Replace | ForEach-Object { $_.Replace("`r`n", "`n") })
     if ($finds.Count -ne $replacements.Count) { throw ('Mutation replacement count differs: ' + $case.Name) }
     for ($i = 0; $i -lt $finds.Count; $i++) {
         if (($text.Split(@($finds[$i]), [StringSplitOptions]::None).Length - 1) -ne 1) {

@@ -29,6 +29,9 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
     public static bool StandDown { get; internal set; }
     public static int DeathsThisSession { get; private set; }
 
+    private static bool IsTerminalTdmHold => Modes.ArenaMatchService.Current?.Mode
+        is Modes.TeamDeathmatchMode teams && teams.ResultOwnsCurrentRaid;
+
     public string Name => "ArenaMode";
 
     public int Priority => 100;
@@ -154,6 +157,12 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         yield return KitBundlePreloader.Preload(kit);
         var preloadedAt = Time.realtimeSinceStartup;
 
+        // A final kill or time limit can land while kit bundles are loading.
+        // Keep death interception alive, but never start a new body replacement
+        // after the immutable Team DM result. Native stop releases this hold.
+        while (IsTerminalTdmHold && IsSameActiveRaid(game, raidEpoch) && !StandDown)
+            yield return null;
+
         // Preload yields across arbitrary frames. GameEnd advances the epoch and
         // clears Arena before the old coroutine resumes, so never enter Redeploy
         // or open UI from a continuation owned by the stopped raid.
@@ -213,6 +222,16 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         if (failure != null)
         {
+            if (IsTerminalTdmHold && Modes.ArenaMatchService.Current?.Mode is Modes.TeamDeathmatchMode terminal)
+            {
+                // The engine may have failed after destroying the old owner.
+                // Neither the generic death screen nor area abort verifies that
+                // owner before Stop. Keep interception; the result coordinator
+                // alone may exit after verifying the actual native owner.
+                EndPipelineUse(raidEpoch);
+                terminal.ReportResultExitProblem("Player replacement failed; safe exit pending: " + failure.GetBaseException().Message);
+                yield break;
+            }
             Plugin.ModLogger.LogError($"Arena respawn failed: {failure}");
             StandDown = true;
             EndPipelineUse(raidEpoch);
@@ -364,10 +383,10 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
     }
 
     public bool ShouldBlockDeathScreen(LocalGame game)
-        => ArenaSession.IsActive && IsRespawnInProgress && !StandDown;
+        => ArenaSession.IsActive && (IsRespawnInProgress || IsTerminalTdmHold) && !StandDown;
 
     public bool ShouldBlockKilledStop(LocalGame game)
-        => ArenaSession.IsActive && IsRespawnInProgress && !StandDown;
+        => ArenaSession.IsActive && (IsRespawnInProgress || IsTerminalTdmHold) && !StandDown;
 
     public void OnExternalStop()
     {
@@ -379,10 +398,11 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
     }
 
     public bool ShouldHoldBlackScreen()
-        => ArenaSession.IsActive && IsRespawnInProgress && !StandDown;
+        => ArenaSession.IsActive && IsRespawnInProgress && !StandDown
+           && (!IsTerminalTdmHold || RespawnEngineState.IsPipelineRunning);
 
     public bool ShouldSuppressKilledSessionResult()
-        => ArenaSession.IsActive && IsRespawnInProgress && !StandDown;
+        => ArenaSession.IsActive && (IsRespawnInProgress || IsTerminalTdmHold) && !StandDown;
 
     public void OnRaidEnded() => ResetSession();
 

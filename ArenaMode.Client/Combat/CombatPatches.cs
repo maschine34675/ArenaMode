@@ -69,6 +69,9 @@ internal static class CombatPatches
             if (!ArenaSession.IsActive)
                 return false;
 
+            if (ArenaMatchService.Current?.Mode is TeamDeathmatchMode teams
+                && teams.ShouldBlockMatchDamage(victim)) return true;
+
             if (Areas.ArenaAreaRuntime.IsPending
                 && Areas.ArenaAreaRuntime.TryGetForPlayer(victim, out _)) return true;
 

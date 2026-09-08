@@ -61,7 +61,14 @@ public sealed class ArenaMatch
             return;
 
         if (Mode is TeamDeathmatchMode teams)
+        {
+            if (!teams.TryBeginScoredEvent()) return;
             teams.ClassifyKill(kill);
+            // Native death and kill notifications can arrive in either order.
+            // Count the final local casualty before the terminal score freezes;
+            // Team DM deduplicates the later driver's event for the same life.
+            if (kill.LocalIsVictim) ReportLocalDeath();
+        }
         Scoreboard.ReportKill(kill);
 
         string existingLabel = null;
@@ -84,6 +91,12 @@ public sealed class ArenaMatch
 
     public void ReportLocalDeath()
     {
+        if (Mode is TeamDeathmatchMode teams && !teams.TryRecordLocalDeath())
+        {
+            // Unscored staging deaths still invalidate the current countdown.
+            RaiseSafe(teams.OnLocalDeath, "mode.OnLocalDeath");
+            return;
+        }
         Scoreboard.ReportLocalDeath();
         _awards.LocalDeath();
         _multiKillChain = 0;
@@ -94,6 +107,7 @@ public sealed class ArenaMatch
 
     public void ReportLocalRespawn(Player player)
     {
+        if (Mode is TeamDeathmatchMode teams && teams.HasResult) return;
         Scoreboard.ReportLocalRespawn(
             player?.ProfileId,
             RoleClassifier.DisplayName(player),

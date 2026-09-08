@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs</PolicySource>
+    <ExitSource Condition="'$(ExitSource)' == ''">../../ArenaMode.Client/Modes/TdmMatchExit.cs</ExitSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
+    <Compile Include="$(ExitSource)" Link="Production/TdmMatchExit.cs" />
+    <Compile Include="$(RespawnGuardSource)" Link="Production/RespawnGuards.cs" Condition="'$(RespawnGuardSource)' != ''" />
+  </ItemGroup>
+</Project>
