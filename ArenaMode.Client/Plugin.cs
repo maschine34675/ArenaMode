@@ -68,6 +68,7 @@ public class Plugin : BaseUnityPlugin
         LabyrinthSpawnTraps.Enable();
         Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
+        Movement.ArenaDoubleJump.Enable();
         Movement.SprintAdsPatches.Enable();
         Movement.FastDeployPatches.Enable();
         Loot.OpenLootTracker.Enable();
@@ -91,6 +92,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Movement.ArenaDoubleJump.Shutdown();
         Kits.KitOpticPreloadGuard.Shutdown();
         Areas.ArenaAreaRuntime.Reset();
         Areas.ArenaAreaInitialSpawnPatch.Shutdown();

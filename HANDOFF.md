@@ -22,6 +22,19 @@ current. User-facing communication is normally German.
   Game/server are stopped; only documentation changed, no fixes/build/deploy/push.
   Raw evidence and private test-profile backups are ignored under
   `artifacts/gpu-acceptance/2026-09-08_102800/`.
+- Integrated into `master` before the navigation fix (2026-09-08):
+  `feature/double-jump` / `fcfcd71` adds an optional extra
+  jump after a normal local Arena takeoff, using the configured jump binding.
+  F12 Movement: `DoubleJumpEnabled` (default true), `DoubleJumpHeightMult`
+  (default 1, range 0.25-1.5). Native collision, lateral motion and stamina remain
+  in charge; bots/ordinary raids and ledge-fall rescue are excluded. See
+  `DOUBLE-JUMP-REVIEW.md` and `tools/DoubleJumpChecks/GATES.md`.
+  Offline: 143 production-linked assertions and seven deliberate source faults,
+  full staged client build (four existing nullable warnings), independent review
+  without unresolved P0-P2. Live client/server/Redeploy hashes remain unchanged.
+  **Not yet deployed or GPU-tested**: the previous GPU acceptance is complete.
+  The user authorized integration before fixing its navigation failures. Client
+  delivery follows the reviewed fix; server unchanged by the double jump.
 - Latest implementation (2026-09-08): `2407351` scopes Arena's cold optic-pool
   callbacks; `6843e1e` adds the separate **Customs contour (team starts)** preset
   with native **2v2–5v5** selection. Choose Arena / Team Deathmatch / Customs /
