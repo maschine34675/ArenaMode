@@ -62,6 +62,24 @@ tools/TeamDeathmatchRuntimeChecks/Verify-InstalledContracts.ps1`). Windows
 PowerShell 5.1's .NET Framework can refuse the installed downloaded Mono.Cecil
 assembly; this check does not unblock or modify any installed file metadata.
 
+## Preparation phase follow-up (2026-09-08)
+
+The current model adds the 154-second cold-load case, separate submission/arrival
+clock, all three 300-second watchdog races, a paused simulation clock, premature
+observers, and current-match readiness invalidation. Native arrival expiry and
+the separate PreActive timeout remain independent. See
+`../../TDM-PREPARATION-REVIEW.md` and `PREPARATION-GATES.md` for the current evidence.
+
+`Verify-Regression.ps1` now also runs `BurstIntegration/Run.ps1`. That runner
+extracts the complete current production `SpawnFactionBot`, async `SpawnPair`
+and request predicate, compiles their exact source alongside the actual
+population and synchronous dispatch lease, and drives a controlled native
+profile Task. It covers synchronous/delayed completion, phase placement,
+missing/throwing callbacks, stale or overdue work, placement refusal, native
+prefix rejection/uncertainty, and same-body duplicate callbacks. Deliberate
+source faults must fail specific behavioral assertions. Native engine methods,
+actual scene reservations and Unity asset jobs remain stand-ins.
+
 ## Deliberate limits
 
 `Stubs.cs` models the small engine surface and provides a controlled burst-service
@@ -76,7 +94,8 @@ The complete production burst extension was independently traced against native
 `BotSpawner.method_7`, `method_10` and `ActivateBotCallback`. Same-body duplicate
 callback suppression is in that extension and was reviewed there, before its
 expired-ticket test; this harness does not claim a copied duplicate filter in
-its burst stub as production coverage. A different second body is retired.
+its burst stub as production coverage. The new extracted-method integration
+does exercise that actual duplicate filter. A different second body is retired.
 The shutdown observer scenarios likewise exercise the actual mode, not the
 shared burst helper: its existing rejected-arrival cleanup remains unchanged.
 Root's separate population/dispatch harness exercises the actual one-shot

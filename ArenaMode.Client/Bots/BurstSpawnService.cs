@@ -197,7 +197,8 @@ internal static class BurstSpawnService
     private static async void SpawnPair(BotSpawner spawner, BotZone zone, WildSpawnType role,
         BotDifficulty difficulty, bool isPmc, int count = BotsPerBurst, Action<BotOwner> observer = null,
         bool requireExactCount = false, Func<bool> requestStillCurrent = null,
-        bool explicitFaction = false, Action<bool> dispatchFinished = null, Action arrivalRejected = null)
+        bool explicitFaction = false, Action<bool> dispatchFinished = null, Action arrivalRejected = null,
+        Func<bool> beginNativeDispatch = null, int requestId = 0, float preflightSeconds = 0f)
     {
         // TDM owns keyed population tickets. Its requests must not release an
         // unrelated request's reservation through the ambient FIFO ledger.
@@ -231,7 +232,12 @@ internal static class BurstSpawnService
 
             // Profile generation is best-effort: the request can come back with
             // fewer profiles than asked for, or with none at all.
+            float profileStartedAt = Time.realtimeSinceStartup;
             data = await BotCreationData.Create(profileParams, spawner._botCreator, count, spawner);
+            float profileSeconds = Time.realtimeSinceStartup - profileStartedAt;
+            if (explicitFaction)
+                Plugin.ModLogger.LogInfo($"Team Deathmatch preparation request {requestId} ({role}): "
+                    + FormattableString.Invariant($"preflight={preflightSeconds:F3}s, BotCreationData.Create={profileSeconds:F3}s; profiles={data?.Count ?? 0}."));
 
             // GameEnd can run while profile generation is awaiting the server.
             // Stop the detached creation data before touching cursors, ledgers or
@@ -244,10 +250,9 @@ internal static class BurstSpawnService
                 return;
             }
 
-            // A mode-local request can expire while BotCreationData.Create is
-            // awaiting profiles or pools even though the raid itself remains
-            // current. Stop before EFT receives bodies: cancelling after batch
-            // dispatch can leak its per-point in-spawn counter.
+            // Preparation has a separate terminal watchdog from native arrival.
+            // Always recheck ownership after profiles/pools return; a completed
+            // task is not permission to reopen a stopped/expired preparation.
             if (!IsRequestStillCurrent(requestStillCurrent, role))
             {
                 data?.StopSpawn();
@@ -311,6 +316,7 @@ internal static class BurstSpawnService
             // also hit an unguarded Profiles[0] in another mod's hook.)
             var playerPosition = GetPlayerPosition();
             var profileCount = data.Count;
+            float placementStartedAt = Time.realtimeSinceStartup;
             List<ISpawnPoint> points;
             int preferredAvailable, distantAvailable;
             if (areaTeamSpawn)
@@ -320,6 +326,8 @@ internal static class BurstSpawnService
                 {
                     data.StopSpawn();
                     Plugin.ModLogger.LogInfo($"Arena team spawn deferred: no unoccupied connected point for {role}.");
+                    Plugin.ModLogger.LogInfo($"Team Deathmatch placement request {requestId} ({role}) deferred: "
+                        + FormattableString.Invariant($"fresh plan={Time.realtimeSinceStartup - placementStartedAt:F3}s."));
                     return;
                 }
                 points = new List<ISpawnPoint> { teamPoint };
@@ -327,6 +335,10 @@ internal static class BurstSpawnService
             }
             else points = BurstSpawnPointSelector.PickPoints(zone, playerPosition, profileCount,
                 ref _pointCursor, out preferredAvailable, out distantAvailable);
+
+            if (explicitFaction)
+                Plugin.ModLogger.LogInfo($"Team Deathmatch placement request {requestId} ({role}): "
+                    + FormattableString.Invariant($"fresh plan={Time.realtimeSinceStartup - placementStartedAt:F3}s."));
 
             Plugin.ModLogger.LogInfo(
                 $"Arena burst spawn plan: zone {zone.NameZone}, requested {count}, profiles {profileCount}, "
@@ -468,6 +480,21 @@ internal static class BurstSpawnService
 
             if (explicitFaction)
             {
+                // This is the only preparation -> native transition. Do not
+                // move it before the await or after submission: a warmed native
+                // call may synchronously deliver its observer. The repeated
+                // request predicate cannot reset this one-shot arrival clock.
+                if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner)
+                    || !IsRequestStillCurrent(requestStillCurrent, role)
+                    || beginNativeDispatch == null
+                    || !IsRequestStillCurrent(beginNativeDispatch, role)
+                    || !IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner)
+                    || !IsRequestStillCurrent(requestStillCurrent, role))
+                {
+                    ReleaseReservedIfCurrent(ledger, reserved, operationGeneration);
+                    reserved = 0;
+                    return;
+                }
                 // The ownership scope must NEVER span an await: only this exact
                 // spawner/data dispatch may pass the TDM prefix. A callback may
                 // arrive synchronously before the terminal dispatch notification.
@@ -707,13 +734,15 @@ internal static class BurstSpawnService
         BotDifficulty difficulty,
         Action<BotOwner> observer,
         Func<bool> requestStillCurrent,
+        Func<bool> beginNativeDispatch,
         Action<bool> dispatchFinished,
-        Action arrivalRejected)
+        Action arrivalRejected,
+        int requestId)
     {
         try
         {
             if ((role != WildSpawnType.pmcUSEC && role != WildSpawnType.pmcBEAR)
-                || observer == null || requestStillCurrent == null
+                || observer == null || requestStillCurrent == null || beginNativeDispatch == null
                 || !TeamDeathmatchSpawnDispatch.IsActive
                 || !IsRequestStillCurrent(requestStillCurrent, role)
                 || !Singleton<IBotGame>.Instantiated)
@@ -732,12 +761,15 @@ internal static class BurstSpawnService
             }
 
             BotZone zone;
+            float preflightStartedAt = Time.realtimeSinceStartup;
             bool available = Areas.ArenaAreaRuntime.HasTeamStarts
                 ? Areas.ArenaAreaRuntime.TryPlanTeamBot(spawner.SpawnZones(false), role == WildSpawnType.pmcUSEC,
                     false, out zone, out _, out _)
                 : (zone = PickZone(spawner, 1)) != null && BurstSpawnPointSelector.CountUsable(zone, GetPlayerPosition()) >= 1;
             if (!available)
             {
+                Plugin.ModLogger.LogInfo($"Team Deathmatch preflight request {requestId} ({role}) deferred: no usable point; "
+                    + FormattableString.Invariant($"preflight={Time.realtimeSinceStartup - preflightStartedAt:F3}s."));
                 NotifyDispatchFinished(dispatchFinished, false);
                 return 0;
             }
@@ -747,7 +779,10 @@ internal static class BurstSpawnService
                 requestStillCurrent: requestStillCurrent,
                 explicitFaction: true,
                 dispatchFinished: dispatchFinished,
-                arrivalRejected: arrivalRejected);
+                arrivalRejected: arrivalRejected,
+                beginNativeDispatch: beginNativeDispatch,
+                requestId: requestId,
+                preflightSeconds: Time.realtimeSinceStartup - preflightStartedAt);
             return 1;
         }
         catch (Exception ex)

@@ -37,7 +37,7 @@ internal static partial class Program
                 ArenaMode.Areas.ArenaAreaRuntime.FrozenTeamSize = areaSize;
             }
             ArenaMode.Areas.ArenaAreaRuntime.IsPending = bounded && areaPending;
-            Time.time = 0;
+            Time.time = Time.realtimeSinceStartup = 0;
             Model.Events.Clear();
             BurstSpawnService.Requests.Clear();
             BurstSpawnService.OnRequest = null;
@@ -58,9 +58,11 @@ internal static partial class Program
             ArenaAdministrativeDeathGate.Reset();
             Model.Body("local", localSide ?? (usec ? EPlayerSide.Usec : EPlayerSide.Bear));
             Match = new ArenaMatch { Scoreboard = new ArenaScoreboard("local", "You", "PMC") };
+            Match.Mode = Mode;
+            ArenaMatchService.Current = Match;
             Mode.OnMatchStart(Match);
         }
-        internal void Step(float at) { Time.time = at; Mode.Tick(1f); }
+        internal void Step(float at) { Time.time = Time.realtimeSinceStartup = at; Mode.Tick(1f); }
         internal int Alive(EPlayerSide side) => Bots.Count(bot => bot.HealthController.IsAlive && bot.Profile.Info.Side == side);
         internal void Fill()
         {
@@ -75,8 +77,9 @@ internal static partial class Program
     }
 
     private static BotOwner Deliver(SpawnRequest request, EBotState state = EBotState.PreActive,
-        string id = null, EPlayerSide? actualSide = null, Action<BotOwner> change = null)
+        string id = null, EPlayerSide? actualSide = null, Action<BotOwner> change = null, bool submit = true)
     {
+        if (submit && !request.Submitted) request.Submit();
         EPlayerSide side = actualSide ?? (request.Role == WildSpawnType.pmcUSEC ? EPlayerSide.Usec : EPlayerSide.Bear);
         var player = Model.Body(id ?? "bot-" + ++Model.NextId, side, true, request.World, request.Game);
         var owner = player.AIData.BotOwner;
@@ -99,6 +102,7 @@ internal static partial class Program
             var raid = new Raid(usec, size);
             Check(!raid.Mode.IsComplete && raid.Mode.ControlsOwnSpawns && !raid.Mode.HoldRespawn
                 && raid.Mode.DeathReplaySeconds == 0, "TDM starts as independent continuous instant-respawn mode");
+            Check(!raid.Mode.InitialRosterReady, "optional warmup remains blocked before the complete initial roster");
             Check(raid.Game.BotsController.BotSpawner.MaxBots == 2 * size - 1,
                 "native cap reserves the human slot");
             raid.Fill();
@@ -108,6 +112,7 @@ internal static partial class Program
                 "opposing faction has exactly N bots");
             Check(raid.Match.Cues.Count == 1 && raid.Match.Cues[0] == ArenaAnnouncerCue.RoundStart,
                 "synchronous arrivals and later ticks announce ready exactly once");
+            Check(raid.Mode.InitialRosterReady, "optional warmup is released only after the initial active roster");
             Check(raid.Match.Scoreboard.Count(ArenaScoreboardSide.Friendly, true) == size
                 && raid.Match.Scoreboard.Count(ArenaScoreboardSide.Opponent, true) == size,
                 "real mode populates real scoreboard with both complete factions");
@@ -159,6 +164,80 @@ internal static partial class Program
         usec.BotState = firstBear.BotState = secondBear.BotState = EBotState.Active;
         raid.Step(58);
         Check(raid.Match.Cues.Count == 1, "ready waits until every admitted body reaches Active");
+    }
+
+    private static void PreparationLifecycle()
+    {
+        var cold = new Raid(size: 2);
+        cold.Step(0);
+        var request = Request(EPlayerSide.Usec);
+        cold.Step(154);
+        Check(request.Current() && BurstSpawnService.Requests.Count == 2 && !cold.Mode.IsComplete,
+            "154-second cold preparation remains owned without a replacement load");
+        Check(request.Submit(), "completed cold preparation may submit once after fresh validation");
+        Check(!request.Submit(), "runtime submission cannot reset its native clock");
+        Time.realtimeSinceStartup = 198.99f;
+        Check(request.Current(), "cold preparation does not consume the separate native arrival budget");
+        Time.realtimeSinceStartup = 199f;
+        Check(!request.Current(), "native request expires exactly 45 seconds after slow preparation");
+        var late = Deliver(request);
+        Check(!late.HealthController.IsAlive, "slow-prepared but late native body is still retired");
+
+        var premature = new Raid(size: 2);
+        premature.Step(0);
+        var unsolicited = Deliver(Request(EPlayerSide.Usec), submit: false);
+        Check(!unsolicited.HealthController.IsAlive && premature.Match.Cues.Count == 0,
+            "an observer cannot admit a body while its ticket is still preparing");
+
+        foreach (int completionKind in new[] { 0, 1, 2 })
+        {
+            var hung = new Raid();
+            hung.Step(0);
+            var unresolved = Request(EPlayerSide.Usec);
+            // The simulation clock does not move. Exercise the tick, predicate
+            // and terminal-completion races independently at the hard boundary.
+            Time.realtimeSinceStartup = 300f;
+            if (completionKind == 0) hung.Mode.Tick(0f);
+            else if (completionKind == 1) unresolved.Current();
+            else unresolved.DispatchFinished(false);
+            Check(hung.Mode.IsComplete && !unresolved.Current() && !unresolved.Submit(),
+                "preparation watchdog terminally closes ownership even between simulation ticks");
+            int before = BurstSpawnService.Requests.Count;
+            unresolved.DispatchFinished(false);
+            hung.Step(999f);
+            Check(BurstSpawnService.Requests.Count == before,
+                "an unresolved overdue preparation never frees capacity for a retry");
+            Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("Team Deathmatch stopped:")) == 1,
+                "preparation watchdog failure is reported once");
+        }
+
+        var ending = new Raid(size: 2);
+        ending.Fill();
+        Check(ending.Mode.InitialRosterReady, "current match publishes initial readiness after full activation");
+        var replacement = new Raid();
+        Check(!ending.Mode.InitialRosterReady, "old match readiness cannot release another raid's optional warmup");
+        replacement.Fill();
+        replacement.Mode.OnMatchEnd();
+        Check(!replacement.Mode.InitialRosterReady, "ended match readiness cannot release optional warmup");
+
+        var stopped = new Raid(size: 2);
+        stopped.Fill();
+        stopped.Game.Status = GameStatus.Stopping;
+        Check(!stopped.Mode.InitialRosterReady, "native stop invalidates initial readiness before the next tick");
+        var staleWorld = new Raid(size: 2);
+        staleWorld.Fill();
+        Singleton<GameWorld>.Instance = new GameWorld();
+        Check(!staleWorld.Mode.InitialRosterReady, "foreign world cannot inherit initial roster readiness");
+        var staleMatch = new Raid();
+        staleMatch.Step(0);
+        var orphan = Request(EPlayerSide.Usec);
+        ArenaMatchService.Current = new ArenaMatch { Mode = new TeamDeathmatchMode() };
+        Check(!orphan.Current() && !orphan.Submit(),
+            "replaced current match cannot submit its old preparation into the same raid");
+        Time.realtimeSinceStartup = 300f;
+        orphan.DispatchFinished(false);
+        Check(!staleMatch.Mode.IsComplete,
+            "superseded match completion cannot publish a watchdog failure into its replacement");
     }
 
     private static void HumanDeathRespawnAndAwareness()
@@ -461,14 +540,14 @@ internal static partial class Program
         var dispatched = Request(EPlayerSide.Bear);
         dispatched.DispatchFinished(true);
         stalled.Step(45);
-        var timeout = ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("spawn request timed out"));
+        var timeout = ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("spawn delayed;"));
         Check(timeout.Contains("status=Started, respawn=False")
             && timeout.Contains("USEC occupied=0/4") && timeout.Contains("BEAR occupied=0/5")
-            && timeout.Contains("#1:loading:45s:expired") && timeout.Contains("#2:native:45s:expired")
-            && timeout.Contains("#3:loading:0s"),
+            && timeout.Contains("#1:preparing:45s:slow") && timeout.Contains("#2:native:45s:expired:prepared=0.0s")
+            && timeout.Contains("#3:preparing:0s"),
             "timeout diagnostics distinguish faction capacity, profile loading and uncertain native work");
         stalled.Step(46);
-        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("spawn request timed out")) == 1,
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("spawn delayed;")) == 1,
             "unchanged spawn stall does not log every tick");
         Check(BurstSpawnService.Requests.Count == 3 && Request(EPlayerSide.Bear).Current(),
             "diagnostic inspection neither opens a second profile load nor settles valid tickets");
@@ -477,7 +556,7 @@ internal static partial class Program
         Request(EPlayerSide.Bear).DispatchFinished(false);
         stalled.Step(47);
         stalled.Step(48);
-        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("expired spawn requests settled")) == 1
+        Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("delayed spawn requests settled")) == 1
             && stalled.Match.Cues.Count == 0,
             "settled timeout debt is reported once without claiming combat readiness");
 
@@ -495,7 +574,7 @@ internal static partial class Program
         activation.Step(52);
         Check(ArenaMode.Plugin.ModLogger.Lines.Count(line => line.Contains("USEC activation recovered after 1")) == 1,
             "successful activation reports recovery once and resets the consecutive-failure budget");
-        Check(ArenaMode.Plugin.ModLogger.Lines.Any(line => line.Contains("state=Active, arrival=0.0s")),
+        Check(ArenaMode.Plugin.ModLogger.Lines.Any(line => line.Contains("state=Active, prepared=0.0s, native arrival=0.0s")),
             "existing admission line includes request duration and actual arrival state");
         recovered.HealthController.IsAlive = false;
         activation.Step(53);
@@ -511,8 +590,8 @@ internal static partial class Program
         exit.Game.Status = GameStatus.Stopping;
         exit.Step(1);
         var summary = ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("native raid shutdown"));
-        Check(summary.Contains("status=Stopping") && summary.Contains("#1:loading:1s")
-            && summary.Contains("#2:loading:1s"),
+        Check(summary.Contains("status=Stopping") && summary.Contains("#1:preparing:1s")
+            && summary.Contains("#2:preparing:1s"),
             "shutdown diagnostics capture pending work before cancellation clears it");
 
         var fault = new Raid();
@@ -520,7 +599,7 @@ internal static partial class Program
         fault.Local.Profile.Info.Side = EPlayerSide.Bear;
         fault.Step(1);
         Check(ArenaMode.Plugin.ModLogger.Lines.Single(line => line.Contains("Team Deathmatch stopped:"))
-            .Contains("#1:loading:1s"), "genuine failure diagnostics capture pending work before stopping");
+            .Contains("#1:preparing:1s"), "genuine failure diagnostics capture pending work before stopping");
         Check(Model.Events.Single(item => item.StartsWith("toast:")).Equals("toast:TEAM DM stopped: local PMC faction changed"),
             "technical diagnostics stay in the log rather than expanding player error toasts");
 
@@ -654,6 +733,7 @@ internal static partial class Program
         ActivationLifetime();
         ExactRaidAndLateCallbacks();
         NativeShutdownWindow();
+        PreparationLifecycle();
         RuntimeDiagnostics();
         NativeFriendshipAndDamagePolicy();
         ScoreAwardsTracersAndLoot();

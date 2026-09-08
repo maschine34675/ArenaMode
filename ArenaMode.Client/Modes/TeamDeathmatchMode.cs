@@ -50,6 +50,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
     public int TeamSize => _population?.TeamSize ?? 5;
     public string FriendlyFaction => _population?.LocalUsec == true ? "USEC" : "BEAR";
     public string OpponentFaction => _population?.LocalUsec == true ? "BEAR" : "USEC";
+    internal bool InitialRosterReady => _announcedReady && IsCurrentMatch();
 
     public string HudStatusLine
     {
@@ -95,6 +96,9 @@ public sealed class TeamDeathmatchMode : IArenaMode
 
     public void Tick(float deltaTime)
     {
+        // Check before the simulation-clock tick throttle. Pausing or a slow
+        // frame must not extend the preparation's real-time watchdog.
+        if (ObserveNativeStop() || CheckPreparationWatchdog()) return;
         if (ObserveNativeStop() || _ended || IsComplete || _population == null
             || !IsCurrentRaid() || Areas.ArenaAreaRuntime.IsPending || Time.time < _nextTick) return;
         _nextTick = Time.time + 1f;
@@ -135,13 +139,13 @@ public sealed class TeamDeathmatchMode : IArenaMode
             Refill(true);
             Refill(false);
             if (ObserveNativeStop() || !IsCurrentRaid()) return;
-            bool stalled = _population.IsStalled(Time.time);
+            bool stalled = _population.IsStalled(Time.realtimeSinceStartup);
             if (stalled && !_reportedStall)
-                Plugin.ModLogger.LogWarning("Team Deathmatch: spawn request timed out; late arrivals are rejected, "
-                    + "profile loads remain single-flight and uncertain native activations have a bounded retry budget; "
+                Plugin.ModLogger.LogWarning("Team Deathmatch: spawn delayed; preparation remains single-flight "
+                    + "with a terminal 300s watchdog; expired native arrivals are rejected and retain bounded debt; "
                     + DescribeState());
             else if (!stalled && _reportedStall)
-                Plugin.ModLogger.LogInfo("Team Deathmatch: expired spawn requests settled; " + DescribeState());
+                Plugin.ModLogger.LogInfo("Team Deathmatch: delayed spawn requests settled; " + DescribeState());
             _reportedStall = stalled;
             if (!_announcedReady && CountBots(true) == _population.BotTarget(true)
                 && CountBots(false) == _population.BotTarget(false)
@@ -162,18 +166,46 @@ public sealed class TeamDeathmatchMode : IArenaMode
     private void Refill(bool usec)
     {
         if (ObserveNativeStop() || IsComplete || !IsCurrentRaid() || Time.time < _retryAt[usec ? 0 : 1]) return;
-        if (!_population.TryReserve(usec, CountBots(usec), Time.time, out var ticket)) return;
+        if (!_population.TryReserve(usec, CountBots(usec), Time.realtimeSinceStartup, out var ticket)) return;
         var role = usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR;
+        Plugin.ModLogger.LogInfo($"Team Deathmatch preparing {(usec ? "USEC" : "BEAR")} request {ticket.Id}.");
         int planned = BurstSpawnService.SpawnFactionBot(role, ArenaPressure.DifficultyFor(true),
             bot => Adopt(ticket, bot),
-            () => IsCurrentRaid() && !_ended && !IsComplete && _population.IsCurrent(ticket, Time.time),
+            () => IsRequestCurrent(ticket),
+            () => BeginNativeDispatch(ticket),
             dispatched =>
             {
+                // Completion can race the watchdog tick. Never turn an overdue
+                // unresolved preparation into an ordinary retry by removing it.
+                if (CheckPreparationWatchdog(ticket)) return;
                 _population.DispatchFinished(ticket, dispatched);
                 if (!dispatched) DelayRetry(ticket);
             },
-            () => { _population.Settle(ticket); DelayRetry(ticket); });
+            () => { _population.Settle(ticket); DelayRetry(ticket); }, ticket.Id);
         if (planned == 0) { _population.Settle(ticket); DelayRetry(ticket); }
+    }
+
+    private bool IsRequestCurrent(TeamDeathmatchPopulation.Ticket ticket)
+        => IsCurrentMatch() && !CheckPreparationWatchdog(ticket)
+           && _population.IsCurrent(ticket, Time.realtimeSinceStartup);
+
+    private bool BeginNativeDispatch(TeamDeathmatchPopulation.Ticket ticket)
+    {
+        if (!IsRequestCurrent(ticket)
+            || !_population.TryBeginDispatch(ticket, CountBots(ticket.Usec), Time.realtimeSinceStartup)) return false;
+        Plugin.ModLogger.LogInfo($"Team Deathmatch submitting {(ticket.Usec ? "USEC" : "BEAR")} request {ticket.Id}: "
+            + FormattableString.Invariant($"prepared={ticket.SubmittedAt - ticket.CreatedAt:F1}s; native arrival budget=45s."));
+        return true;
+    }
+
+    private bool CheckPreparationWatchdog(TeamDeathmatchPopulation.Ticket ticket = null)
+    {
+        if (!IsCurrentMatch()) return false;
+        ticket ??= _population.ExpiredPreparation(Time.realtimeSinceStartup);
+        if (!_population.PreparationExpired(ticket, Time.realtimeSinceStartup)) return false;
+        Fail($"{(ticket.Usec ? "USEC" : "BEAR")} request {ticket.Id} profile/pool preparation exceeded the 300s watchdog; "
+            + "unresolved native loading is not cancelled or retried");
+        return true;
     }
 
     private void DelayRetry(TeamDeathmatchPopulation.Ticket ticket)
@@ -229,7 +261,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             if (ObserveNativeStop()) return;
             var player = bot?.GetPlayer;
             EPlayerSide expected = ticket.Usec ? EPlayerSide.Usec : EPlayerSide.Bear;
-            if (!IsCurrentRaid() || !_population.IsCurrent(ticket, Time.time) || !Alive(bot)
+            if (!IsRequestCurrent(ticket) || !_population.CanAdmit(ticket, Time.realtimeSinceStartup) || !Alive(bot)
                 || TeamDeathmatchRelations.Faction(player) != expected
                 || string.IsNullOrWhiteSpace(bot.ProfileId) || _usecById.ContainsKey(bot.ProfileId)
                 || CountBots(ticket.Usec) >= _population.BotTarget(ticket.Usec)
@@ -254,7 +286,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             _nextTick = 0f;
             Plugin.ModLogger.LogInfo($"Team Deathmatch admitted {(ticket.Usec ? "USEC" : "BEAR")} "
                 + $"request {ticket.Id}: {CountBots(ticket.Usec)}/{_population.BotTarget(ticket.Usec)} bots; "
-                + FormattableString.Invariant($"state={bot.BotState}, arrival={Math.Max(0f, Time.time - ticket.CreatedAt):F1}s."));
+                + FormattableString.Invariant($"state={bot.BotState}, prepared={ticket.SubmittedAt - ticket.CreatedAt:F1}s, native arrival={Math.Max(0f, Time.realtimeSinceStartup - ticket.SubmittedAt):F1}s."));
         }
         finally { _population.Settle(ticket); }
     }
@@ -330,7 +362,7 @@ public sealed class TeamDeathmatchMode : IArenaMode
             else if (bot.BotState == EBotState.PreActive) preActive++;
         }
         return $"occupied={occupied}/{_population.BotTarget(usec)}, active={active}, preActive={preActive}, "
-            + $"other={occupied - active - preActive}, " + _population.DescribePending(usec, Time.time);
+            + $"other={occupied - active - preActive}, " + _population.DescribePending(usec, Time.realtimeSinceStartup);
     }
 
     internal bool TrySynchronizeScoreboardRoster(out string problem)

@@ -26,14 +26,29 @@ $tdmMutants = @(
        From = 'TeamSize - (usec == LocalUsec ? 1 : 0)'; To = 'TeamSize';
        Failure = 'human slot is reserved on its actual PMC side' },
     @{ Name = 'ParallelLoading'; Property = 'PopulationSource';
-       From = '!item.Dispatched || IsCurrent(item, now)'; To = 'IsCurrent(item, now)';
+       From = 'item.Preparing || IsCurrent(item, now)'; To = 'IsCurrent(item, now)';
        Failure = 'expiry does not start a concurrent profile assembly' },
     @{ Name = 'UnlimitedDebt'; Property = 'PopulationSource';
        From = 'MaxOutstandingPerFaction = 3'; To = 'MaxOutstandingPerFaction = 4';
        Failure = 'three uncertain dispatched requests pause further growth' },
     @{ Name = 'StaleAdmission'; Property = 'PopulationSource';
-       From = 'now - ticket.CreatedAt < RequestTimeout'; To = 'true';
-       Failure = 'ticket admission expires exactly at its bounded deadline' },
+       From = 'now - ticket.SubmittedAt < RequestTimeout'; To = 'true';
+       Failure = 'native admission expires exactly 45 seconds after submission' },
+    @{ Name = 'ColdLoadExpiry'; Property = 'PopulationSource';
+       From = 'now - ticket.CreatedAt < PreparationTimeout'; To = 'now - ticket.CreatedAt < RequestTimeout';
+       Failure = 'slow preparation remains owned but cannot admit a body before submission' },
+    @{ Name = 'UnboundedPreparation'; Property = 'PopulationSource';
+       From = 'now - ticket.CreatedAt < PreparationTimeout'; To = 'true';
+       Failure = 'preparation expires exactly at its distinct terminal watchdog' },
+    @{ Name = 'PreparingAdmission'; Property = 'PopulationSource';
+       From = 'IsCurrent(ticket, now) && !ticket.Preparing'; To = 'IsCurrent(ticket, now)';
+       Failure = 'slow preparation remains owned but cannot admit a body before submission' },
+    @{ Name = 'SubmissionClockReset'; Property = 'PopulationSource';
+       From = '!IsCurrent(ticket, now) || !ticket.Preparing'; To = '!IsCurrent(ticket, now)';
+       Failure = 'repeated submission cannot reset the arrival deadline' },
+    @{ Name = 'SubmissionOverfill'; Property = 'PopulationSource';
+       From = 'occupied < 0 || occupied >= BotTarget(ticket.Usec)'; To = 'occupied < 0';
+       Failure = 'fresh full occupancy prevents native submission after a slow load' },
     @{ Name = 'UnstoppedPopulation'; Property = 'PopulationSource';
        From = '_stopped = true;'; To = '_stopped = false;';
        Failure = 'Stop invalidates callbacks and prohibits every later reservation' },

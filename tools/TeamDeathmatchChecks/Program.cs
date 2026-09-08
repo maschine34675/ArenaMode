@@ -43,12 +43,16 @@ internal static class Program
                     "only one profile load may assemble per faction");
                 Check(!population.IsCurrent(loading, -1f),
                     "a callback from before ticket creation cannot be admitted");
-                Check(population.IsCurrent(loading, 44.99f)
-                      && !population.IsCurrent(loading, TeamDeathmatchPopulation.RequestTimeout),
-                    "ticket admission expires exactly at its bounded deadline");
-                Check(!population.TryReserve(usec, 0, 90f, out _),
+                Check(population.IsCurrent(loading, 154f) && !population.CanAdmit(loading, 154f),
+                    "slow preparation remains owned but cannot admit a body before submission");
+                Check(population.IsCurrent(loading, 299.99f)
+                      && !population.IsCurrent(loading, TeamDeathmatchPopulation.PreparationTimeout),
+                    "preparation expires exactly at its distinct terminal watchdog");
+                Check(!population.TryReserve(usec, 0, 350f, out _),
                     "expiry does not start a concurrent profile assembly");
-                Check(population.IsStalled(90f), "unreturned expired loading is reported stalled");
+                Check(population.IsStalled(90f) && !population.PreparationExpired(loading, 90f)
+                    && ReferenceEquals(population.ExpiredPreparation(300f), loading),
+                    "slow preparation diagnostics do not expire the owned flight");
                 population.DispatchFinished(loading, handedToNative: false);
                 Check(!population.IsCurrent(loading, 1f), "terminal failure permanently invalidates its ticket");
                 Check(population.TryReserve(usec, target - 1, 91f, out var next),
@@ -84,6 +88,7 @@ internal static class Program
                 Check(population.TryReserve(usec, 0, now, out var ticket),
                     "an expired dispatched request permits a bounded replacement per faction");
                 (usec ? usecTickets : bearTickets).Add(ticket);
+                Check(population.TryBeginDispatch(ticket, 0, now), "native submission starts its own deadline");
                 population.DispatchFinished(ticket, handedToNative: true);
                 Check(!population.TryReserve(usec, 0, now + 1f, out _),
                     "a dispatched but current request still owns the faction admission slot");
@@ -129,6 +134,12 @@ internal static class Program
     {
         var population = new TeamDeathmatchPopulation(2, false);
         Check(population.TryReserve(true, 0, 5f, out var ticket), "synchronous dispatch has a reserved request");
+        Check(population.TryBeginDispatch(ticket, 0, 159f) && population.CanAdmit(ticket, 159f),
+            "cold preparation gets a fresh native admission clock");
+        Check(!population.TryBeginDispatch(ticket, 0, 170f) && ticket.SubmittedAt == 159f,
+            "repeated submission cannot reset the arrival deadline");
+        Check(population.CanAdmit(ticket, 203.99f) && !population.CanAdmit(ticket, 204f),
+            "native admission expires exactly 45 seconds after submission");
         population.Settle(ticket);
         population.DispatchFinished(ticket, handedToNative: true);
         Check(population.OutstandingCount == 0 && !population.IsCurrent(ticket, 6f),
@@ -141,6 +152,18 @@ internal static class Program
         population.Settle(null);
         Check(population.OutstandingCount == 2 && !population.IsCurrent(null, 6f),
             "missing callbacks cannot consume unrelated reservations");
+
+        var isolated = new TeamDeathmatchPopulation(2, true);
+        isolated.TryReserve(true, 0, 0f, out var reserved);
+        Check(!isolated.TryBeginDispatch(reserved, 1, 154f) && reserved.Preparing,
+            "fresh full occupancy prevents native submission after a slow load");
+        Check(!isolated.TryBeginDispatch(reserved, -1, 154f),
+            "unreadable occupancy cannot begin native submission");
+        Check(!isolated.TryBeginDispatch(reserved, 0, 300f),
+            "overdue preparation cannot become a fresh native request");
+        Check(!isolated.TryReserve(false, 0, float.NaN, out _)
+            && !isolated.TryReserve(false, 0, float.PositiveInfinity, out _),
+            "invalid clocks cannot create permanent preparation tickets");
     }
 
     private static void DispatchOwnership()
@@ -409,8 +432,8 @@ internal static class Program
     private static void Main()
     {
         CapacityAndLoading();
-        BoundedDebtAndIndependentFactions();
         SynchronousCompletion();
+        BoundedDebtAndIndependentFactions();
         DispatchOwnership();
         CapturedFactionScoresAndAwards();
         LongMatchFactionTotals();

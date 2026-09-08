@@ -5,7 +5,8 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $mode = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMode.cs'
 $population = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchPopulation.cs'
 $relations = Join-Path $repo 'ArenaMode.Client/Bots/TeamDeathmatchRelations.cs'
-$sources = @($mode, $population, $relations)
+$awareness = Join-Path $repo 'ArenaMode.Client/Bots/TdmSearchAwareness.cs'
+$sources = @($mode, $population, $relations, $awareness)
 $before = @{}
 foreach ($source in $sources) { $before[$source] = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }
 $scratch = Join-Path ([IO.Path]::GetTempPath()) ('arena-tdm-runtime-mutations-' + [Guid]::NewGuid().ToString('N'))
@@ -72,8 +73,38 @@ $cases = @(
     },
     @{
         Name = 'diagnostic-request-phase'; Path = $population; Property = 'PopulationSource';
-        Find = '(item.Dispatched ? "native" : "loading")'; Replace = '"loading"';
+        Find = 'item.Preparing ? "preparing" : "native"'; Replace = '"preparing"';
         Failure = 'timeout diagnostics distinguish faction capacity, profile loading and uncertain native work'
+    },
+    @{
+        Name = 'cold-load-expiry'; Path = $population; Property = 'PopulationSource';
+        Find = 'now - ticket.CreatedAt < PreparationTimeout'; Replace = 'now - ticket.CreatedAt < RequestTimeout';
+        Failure = '154-second cold preparation remains owned without a replacement load'
+    },
+    @{
+        Name = 'preparation-consumes-arrival'; Path = $population; Property = 'PopulationSource';
+        Find = 'now - ticket.SubmittedAt < RequestTimeout'; Replace = 'now - ticket.CreatedAt < RequestTimeout';
+        Failure = 'cold preparation does not consume the separate native arrival budget'
+    },
+    @{
+        Name = 'admit-preparing-body'; Path = $mode; Property = 'ModeSource';
+        Find = '!_population.CanAdmit(ticket, Time.realtimeSinceStartup)'; Replace = '!_population.IsCurrent(ticket, Time.realtimeSinceStartup)';
+        Failure = 'an observer cannot admit a body while its ticket is still preparing'
+    },
+    @{
+        Name = 'watchdog-simulation-throttle'; Path = $mode; Property = 'ModeSource';
+        Find = 'if (ObserveNativeStop() || CheckPreparationWatchdog()) return;'; Replace = 'if (ObserveNativeStop()) return;';
+        Failure = 'preparation watchdog terminally closes ownership even between simulation ticks'
+    },
+    @{
+        Name = 'watchdog-completion-race'; Path = $mode; Property = 'ModeSource';
+        Find = 'if (CheckPreparationWatchdog(ticket)) return;'; Replace = '';
+        Failure = 'preparation watchdog terminally closes ownership even between simulation ticks'
+    },
+    @{
+        Name = 'stale-initial-readiness'; Path = $mode; Property = 'ModeSource';
+        Find = '_announcedReady && IsCurrentMatch()'; Replace = '_announcedReady';
+        Failure = 'old match readiness cannot release another raid''s optional warmup'
     },
     @{
         Name = 'diagnostic-after-cancellation'; Path = $mode; Property = 'ModeSource';
@@ -117,4 +148,6 @@ if ($restored.Code -ne 0 -or $restored.Output -notmatch 'ARENA_TDM_RUNTIME_CHECK
     throw ('Unchanged production source failed after mutation controls: ' + $restored.Output)
 }
 Write-Output $restored.Output.Trim()
+& pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'BurstIntegration/Run.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Extracted production burst preparation regression failed' }
 Write-Output 'ARENA_TDM_RUNTIME_REGRESSION_PASSED'

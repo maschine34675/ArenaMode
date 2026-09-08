@@ -9,7 +9,7 @@ using EFT;
 
 namespace UnityEngine
 {
-    public static class Time { public static float time; }
+    public static class Time { public static float time; public static float realtimeSinceStartup; }
     public readonly struct Vector3
     {
         public readonly float x, y, z;
@@ -346,9 +346,9 @@ namespace ArenaMode.Bots
         internal static Action<SpawnRequest> OnRequest;
         internal static int SpawnFactionBot(WildSpawnType role, BotDifficulty difficulty,
             Action<BotOwner> observer, Func<bool> requestStillCurrent,
-            Action<bool> dispatchFinished, Action arrivalRejected)
+            Func<bool> beginNativeDispatch, Action<bool> dispatchFinished, Action arrivalRejected, int requestId)
         {
-            var request = new SpawnRequest(role, observer, requestStillCurrent, dispatchFinished, arrivalRejected);
+            var request = new SpawnRequest(role, observer, requestStillCurrent, beginNativeDispatch, dispatchFinished, arrivalRejected);
             Requests.Add(request);
             Model.Events.Add("request:" + role);
             OnRequest?.Invoke(request);
@@ -361,15 +361,26 @@ internal sealed class SpawnRequest
     internal readonly WildSpawnType Role;
     internal readonly Action<BotOwner> Observer;
     internal readonly Func<bool> Current;
+    internal readonly Func<bool> BeginDispatch;
     internal readonly Action<bool> DispatchFinished;
     internal readonly Action Rejected;
     internal bool RejectedBeforePlan;
     internal bool Delivered;
+    internal bool Submitted;
     internal readonly GameWorld World = Singleton<GameWorld>.Instance;
     internal readonly LocalGame Game = Singleton<AbstractGame>.Instance as LocalGame;
     internal SpawnRequest(WildSpawnType role, Action<BotOwner> observer, Func<bool> current,
-        Action<bool> dispatchFinished, Action rejected)
-    { Role = role; Observer = observer; Current = current; DispatchFinished = dispatchFinished; Rejected = rejected; }
+        Func<bool> beginDispatch, Action<bool> dispatchFinished, Action rejected)
+    {
+        Role = role; Observer = observer; Current = current; BeginDispatch = beginDispatch; Rejected = rejected;
+        DispatchFinished = handed => { if (handed && !Submitted) Submit(); dispatchFinished(handed); };
+    }
+    internal bool Submit()
+    {
+        bool accepted = BeginDispatch();
+        if (accepted) Submitted = true;
+        return accepted;
+    }
 }
 internal static class Model
 {

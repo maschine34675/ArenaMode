@@ -34,7 +34,7 @@ internal static partial class Program
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
             Usec = usec;
-            Time.time = 0;
+            Time.time = Time.realtimeSinceStartup = 0;
             ArenaGiveUp.Reset();
             ArenaAdministrativeDeathGate.Reset();
             ArenaTracerTeams.Reset();
@@ -93,6 +93,7 @@ internal static partial class Program
                     usec ? EPlayerSide.Usec : EPlayerSide.Bear, true);
                 adopted = body.AIData.BotOwner;
                 adopted.BotState = EBotState.Active;
+                Check(request.Submit(), "native give-up fixture submits before physical arrival");
                 request.Observer(adopted);
                 request.DispatchFinished(true);
             };
@@ -322,7 +323,9 @@ internal static partial class Program
             var request = BurstSpawnService.Requests.Last(r => (r.Role == WildSpawnType.pmcUSEC) != usec);
             var foeBody = Model.Body("foe", usec ? EPlayerSide.Bear : EPlayerSide.Usec, true);
             var foe = foeBody.AIData.BotOwner;
-            foe.BotState = EBotState.Active; request.Observer(foe); request.DispatchFinished(true);
+            foe.BotState = EBotState.Active;
+            Check(request.Submit(), "opponent fixture submits before physical arrival");
+            request.Observer(foe); request.DispatchFinished(true);
             Check(raid.Mode.TryClassifyCurrentBody(friend.GetPlayer, out bool friendly) && friendly, "admitted friendly body classified");
             Check(raid.Mode.TryClassifyCurrentBody(foe.GetPlayer, out friendly) && !friendly, "admitted opposing body classified");
             string originalId = friend.GetPlayer.ProfileId;
