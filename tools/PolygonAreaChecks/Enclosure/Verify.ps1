@@ -51,6 +51,8 @@ Test-EnclosureMutant 'visual-disable-undetected' $arenaBuilder '|| !_renderer.en
 Test-EnclosureMutant 'detached-objects-leaked' $arenaBuilder 'if (go != null) { go.SetActive(false); UnityEngine.Object.Destroy(go); }' 'if (false) { go.SetActive(false); UnityEngine.Object.Destroy(go); }' 'detached owned children are still destroyed' 'BuilderSource'
 Test-EnclosureMutant 'unlimited-area-gets-floor' $arenaPlan 'bounds.LimitsHeight ? CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY) : null' 'CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY)' 'height unlimited plan has no physical or navigation caps'
 Test-EnclosureMutant 'scene-height-flattened' $arenaPlan 'Include(a.Y); Include(b.Y); Include(c.Y); surface = true;' 'Include(0); surface = true;' 'side walls span overlapping low and high surfaces without interior vertices'
+Test-EnclosureMutant 'exact-capsule-readback' $arenaBuilder 'Math.Abs(a - b) <= .0001f' 'a == b' 'small capsule readback deviation accepted: capsule collider' 'BuilderSource'
+Test-EnclosureMutant 'capsule-drift-unchecked' $arenaBuilder 'Math.Abs(a - b) <= .0001f' 'true' 'changed capsule geometry reports object and readback values: capsule collider' 'BuilderSource'
 # Recompile actual production sources after every mutated source has been exercised.
 Invoke-Enclosure
 Write-Output 'ARENA_POLYGON_ENCLOSURE_ORACLE_PASSED'

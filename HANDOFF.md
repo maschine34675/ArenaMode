@@ -7,7 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- Current follow-up: `feature/customs-contour`, implementation `4a1d0f4`, based
+- Latest follow-up: `fix/contour-integrity`, based on `63affca`. The first user
+  polygon raid failed at 06:45:16 local on 2026-09-08: all 28 markers were
+  accepted, but the aggregate enclosure-integrity guard failed before navigation
+  readiness. Exact capsule dimension comparisons are a suspected cause only;
+  native getter values were absent from that log. The client now allows bounded
+  0.1-mm scalar roundoff against planned capsule dimensions and propagates precise
+  component/property diagnostics through preparation and active-match failure.
+  Safety guards, server, contour and spawn policy are unchanged. See the dated
+  follow-up in `CUSTOMS-CONTOUR-REVIEW.md`; the next GPU raid remains unverified.
+  Follow-up verification passed 67,002 enclosure assertions, 11 fault controls
+  and a staged Release client build; independent review has no open P0-P2.
+  The client is installed locally, hash `326405FD7021EC2E9A7E60075EE70198851443370307549DA1FBA6D7754C891E`;
+  backup/prepared DLL/manifest are in ignored `artifacts/contour-integrity/prepared`.
+  Restart the game for this update; no server restart is needed. Continue from
+  the integrated shared checkout, not the temporary isolated author clone.
+- Previous follow-up: `feature/customs-contour`, implementation `4a1d0f4`, based
   on clean `235b285`. The
   user's 15-point Customs survey is registered as a NEW selectable
   `customs-factory-center-polygon-v1` / **Factory Center (contour)**, independent

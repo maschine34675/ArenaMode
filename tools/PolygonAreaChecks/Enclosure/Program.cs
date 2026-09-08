@@ -266,6 +266,31 @@ internal static class Program
         var caps = go.GetComponentsInChildren<NavMeshObstacle>().Where(o => o.gameObject.name.Contains("vertical cap carver")).ToArray();
         Check(caps.Length == 2 && caps.All(o => o.gameObject.GetComponentsInChildren<Collider>().Length == 0), "vertical carvers own no bounding-box physical caps");
         Cleanup(go, owned);
+        // Inject possible native readback deviations without pretending to
+        // emulate Unity's native capsule storage. Both rounded dimensions and
+        // materially changed/nonfinite geometry exercise the actual validator.
+        foreach (bool navigation in new[] { false, true })
+        foreach (bool radius in new[] { false, true })
+        {
+            string component = navigation ? "navigation capsule" : "capsule collider";
+            foreach (float delta in new[] { -.00005f, .00005f, -.0002f, .0002f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
+            {
+                (go, owned) = Fresh();
+                var corner = go.GetComponentsInChildren<CapsuleCollider>()[0];
+                var obstacle = go.GetComponentsInChildren<NavMeshObstacle>().First(o => o.shape == NavMeshObstacleShape.Capsule);
+                float original = radius ? Plan.CornerRadius : plan.Corners[0].Height;
+                if (navigation) { if (radius) obstacle.radius = original + delta; else obstacle.height = original + delta; }
+                else { if (radius) corner.radius = original + delta; else corner.height = original + delta; }
+                bool intact = owned.Intact(out string reason);
+                if (Math.Abs(delta) < .0001f)
+                    Check(intact && reason == null, "small capsule readback deviation accepted: " + component);
+                else
+                    Check(!intact && reason != null && reason.Contains("Arena boundary corner 0 " + component)
+                        && reason.Contains(radius ? "radius actual=" : "height actual=") && reason.Contains("expected="),
+                        "changed capsule geometry reports object and readback values: " + component);
+                Cleanup(go, owned);
+            }
+        }
         var mutations = new (string label, Action<GameObject> action)[]
         {
             ("root moved", r => r.transform.position = new Vector3(1, 0, 0)),
@@ -295,7 +320,12 @@ internal static class Program
         {
             (go, owned) = Fresh();
             var originalChildren = go.GetComponentsInChildren<Transform>().Where(t => !ReferenceEquals(t, go.transform)).Select(t => t.gameObject).ToArray();
-            action(go); Check(!owned.Intact(), "integrity detects " + label); Cleanup(go, owned);
+            action(go);
+            Check(!owned.Intact(out string reason), "integrity detects " + label);
+            Check(!string.IsNullOrWhiteSpace(reason), "integrity supplies reason for " + label);
+            if (label == "collider destroyed") Check(reason.Contains("Arena boundary edge 0: collider missing"), "destroyed component keeps owned object name");
+            if (label == "wall moved") Check(reason.Contains("position actual=") && reason.Contains("expected="), "moved transform reports actual and expected position");
+            Cleanup(go, owned);
             Check(originalChildren.All(c => c == null), "detached owned children are still destroyed");
         }
         foreach (int failWrite in new[] { 1, 2, 3 })
@@ -329,6 +359,10 @@ internal static class Program
         string source = File.ReadAllText(Path.Combine(directory.FullName, "ArenaMode.Client", "Areas", "ArenaAreaRuntime.cs"));
         Check(source.Contains("_enclosurePlan = ArenaAreaEnclosurePlan.Create(_area.Bounds)")
             && source.Contains("_enclosure = new ArenaAreaEnclosure(_root, _enclosurePlan)") && source.Contains("_enclosure.Build()"), "runtime consumes exact polygon plan and builder");
+        Check(source.Contains("if (!EnclosureIntact(out problem))")
+            && source.Contains("problem = \"boundary integrity: \" + problem")
+            && source.Contains("if (!EnclosureIntact(out string problem)) { Abort(\"boundary integrity: \" + problem)")
+            && source.Contains("return _enclosure.Intact(out problem)"), "runtime forwards integrity reason during preparation and active play");
         Check(source.Contains("if (_area.Bounds.LimitsHeight)") && source.Contains("NavMesh.CalculateTriangulation()")
             && source.Contains("ArenaAreaEnclosurePlan.CreateForScene(_area.Bounds,")
             && source.Contains("navigation.vertices, navigation.indices, ToPoint, anchors"), "runtime consumes loaded scene heights for uncapped walls");
@@ -379,6 +413,10 @@ internal static class Program
         enclosure.Build();
         Check(enclosure.Intact() && root.GetComponentsInChildren<Collider>().Length == plan.ColliderCount,
             "height unlimited actual builder intact with expected side colliders");
+        foreach (var corner in root.GetComponentsInChildren<CapsuleCollider>()) corner.height += .00001f;
+        foreach (var obstacle in root.GetComponentsInChildren<NavMeshObstacle>().Where(o => o.shape == NavMeshObstacleShape.Capsule)) obstacle.height -= .00001f;
+        Check(enclosure.Intact(out string roundingProblem) && roundingProblem == null,
+            "tall side-only capsules accept submillimeter native readback rounding");
         Check(root.GetComponentsInChildren<MeshCollider>().Length == 0
             && !root.GetComponentsInChildren<Transform>().Any(t => t.gameObject.name.Contains("vertical cap")),
             "height unlimited actual builder creates no floor ceiling or cap carver");

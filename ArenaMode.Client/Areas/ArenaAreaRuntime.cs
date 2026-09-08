@@ -242,7 +242,7 @@ internal static class ArenaAreaRuntime
             if (_phase == Phase.Ready && Time.realtimeSinceStartup >= _nextActorCheck)
             {
                 _nextActorCheck = Time.realtimeSinceStartup + 0.2f;
-                if (!EnclosureIntact()) { Abort("a boundary collider or navigation obstacle was disabled or removed"); return; }
+                if (!EnclosureIntact(out string problem)) { Abort("boundary integrity: " + problem); return; }
                 CheckActors();
             }
         }
@@ -252,8 +252,8 @@ internal static class ArenaAreaRuntime
     private static bool TryValidateScene(out string problem)
     {
         problem = null;
-        if (!EnclosureIntact())
-        { problem = "a boundary collider or navigation obstacle is missing"; return false; }
+        if (!EnclosureIntact(out problem))
+        { problem = "boundary integrity: " + problem; return false; }
         var local = _world.MainPlayer;
         if (local == null || !AllowsGeometrySpawn(local.Position)
             || !TrySample(local.Position, out _anchor))
@@ -280,8 +280,12 @@ internal static class ArenaAreaRuntime
         return true;
     }
 
-    private static bool EnclosureIntact()
-        => _enclosure != null && _enclosure.Intact();
+    private static bool EnclosureIntact(out string problem)
+    {
+        if (_enclosure != null) return _enclosure.Intact(out problem);
+        problem = "enclosure owner missing";
+        return false;
+    }
 
     private static bool CarvingSealed()
     {

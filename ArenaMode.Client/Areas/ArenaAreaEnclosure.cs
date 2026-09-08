@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
@@ -12,15 +13,25 @@ internal sealed class ArenaAreaEnclosure : IDisposable
     private sealed class TransformState
     {
         internal readonly Transform Transform, Parent;
+        internal readonly string Name;
         internal readonly Vector3 Position, Scale;
         internal readonly Quaternion Rotation;
         internal TransformState(Transform transform)
-        { Transform = transform; Parent = transform.parent; Position = transform.position; Rotation = transform.rotation; Scale = transform.localScale; }
-        internal bool Intact => Transform != null && Transform.gameObject.activeInHierarchy
-            && ReferenceEquals(Transform.parent, Parent)
-            && (Transform.position - Position).sqrMagnitude <= .00000001f
-            && (Transform.localScale - Scale).sqrMagnitude <= .00000001f
-            && Quaternion.Angle(Transform.rotation, Rotation) <= .001f;
+        { Transform = transform; Name = transform.gameObject.name; Parent = transform.parent; Position = transform.position; Rotation = transform.rotation; Scale = transform.localScale; }
+        internal bool Intact(out string problem)
+        {
+            problem = null;
+            if (Transform == null) return Fail(Name + ": transform missing", out problem);
+            if (!Transform.gameObject.activeInHierarchy) return Fail(Name + ": inactive hierarchy", out problem);
+            if (!ReferenceEquals(Transform.parent, Parent)) return Fail(Name + ": parent changed", out problem);
+            if (!Same(Transform.position, Position))
+                return Fail($"{Name}: position actual={Format(Transform.position)}, expected={Format(Position)}", out problem);
+            if (!Same(Transform.localScale, Scale))
+                return Fail($"{Name}: scale actual={Format(Transform.localScale)}, expected={Format(Scale)}", out problem);
+            float angle = Quaternion.Angle(Transform.rotation, Rotation);
+            if (!(angle <= .001f)) return Fail($"{Name}: rotation delta={Format(angle)} degrees, limit=0.001", out problem);
+            return true;
+        }
     }
 
     private sealed class ColliderState
@@ -94,48 +105,69 @@ internal sealed class ArenaAreaEnclosure : IDisposable
         _built = true;
     }
 
-    internal bool Intact()
+    internal bool Intact() => Intact(out _);
+
+    // Keep the first failed component/property so readiness and mid-match
+    // failures cannot mislabel native dimension roundoff as a missing object.
+    // Formatting only happens on failure, not on each successful actor tick.
+    internal bool Intact(out string problem)
     {
-        if (!_built || !_rootState.Intact || _colliders.Count != _plan.ColliderCount
-            || _obstacles.Count != _plan.ObstacleCount || _material == null || _grid == null
-            || _grid.vertexCount != _plan.Grid.Vertices.Count || !_visualState.Intact
-            || _renderer == null || !_renderer.enabled || _renderer.sharedMaterial != _material
-            || _renderer.gameObject.layer != 0
-            || _filter == null || _filter.sharedMesh != _grid) return false;
+        problem = null;
+        if (!_built) return Fail("enclosure build incomplete or disposed", out problem);
+        if (!_rootState.Intact(out problem)) return false;
+        if (_colliders.Count != _plan.ColliderCount || _obstacles.Count != _plan.ObstacleCount)
+            return Fail($"component counts: colliders={_colliders.Count}/{_plan.ColliderCount}, obstacles={_obstacles.Count}/{_plan.ObstacleCount}", out problem);
+        if (_material == null || _grid == null) return Fail("visible boundary: material or mesh missing", out problem);
+        if (_grid.vertexCount != _plan.Grid.Vertices.Count)
+            return Fail($"visible boundary: vertices actual={_grid.vertexCount}, expected={_plan.Grid.Vertices.Count}", out problem);
+        if (!_visualState.Intact(out problem)) return false;
+        if (_renderer == null) return Fail("visible boundary: renderer missing", out problem);
+        if (_renderer.sharedMaterial != _material || !_renderer.enabled || _renderer.gameObject.layer != 0)
+            return Fail($"visible boundary: enabled={_renderer.enabled}, materialMatches={_renderer.sharedMaterial == _material}, layer={_renderer.gameObject.layer} (expected 0)", out problem);
+        if (_filter == null || _filter.sharedMesh != _grid) return Fail("visible boundary: filter missing or mesh changed", out problem);
         foreach (var state in _colliders)
         {
             var collider = state.Collider;
-            if (collider == null || !collider.enabled || collider.isTrigger || !state.Transform.Intact
-                || collider.gameObject.layer != _layer || collider.attachedRigidbody != null) return false;
+            if (collider == null) return Fail(state.Transform.Name + ": collider missing", out problem);
+            if (!state.Transform.Intact(out problem)) return false;
+            if (!collider.enabled || collider.isTrigger || collider.gameObject.layer != _layer || collider.attachedRigidbody != null)
+                return Fail($"{state.Transform.Name} collider: enabled={collider.enabled}, trigger={collider.isTrigger}, layer={collider.gameObject.layer} (expected {_layer}), rigidbody={collider.attachedRigidbody != null}", out problem);
             if (collider is BoxCollider box)
             {
-                if (!Same(box.center, Vector3.zero) || !Same(box.size, state.Size)) return false;
+                if (!Same(box.center, Vector3.zero) || !Same(box.size, state.Size))
+                    return Fail($"{state.Transform.Name} box collider: center={Format(box.center)} (expected zero), size actual={Format(box.size)}, expected={Format(state.Size)}", out problem);
             }
             else if (collider is CapsuleCollider capsule)
             {
                 if (!Same(capsule.center, Vector3.zero) || capsule.direction != 1
-                    || capsule.radius != ArenaAreaEnclosurePlan.CornerRadius || capsule.height != state.Height) return false;
+                    || !Same(capsule.radius, ArenaAreaEnclosurePlan.CornerRadius) || !Same(capsule.height, state.Height))
+                    return Fail($"{state.Transform.Name} capsule collider: center={Format(capsule.center)} (expected zero), direction={capsule.direction} (expected 1), radius actual={Format(capsule.radius)}, expected={Format(ArenaAreaEnclosurePlan.CornerRadius)}, height actual={Format(capsule.height)}, expected={Format(state.Height)}", out problem);
             }
             else if (collider is MeshCollider cap)
             {
                 if (cap.convex || state.Mesh == null || cap.sharedMesh != state.Mesh
                     || state.Mesh.vertexCount != state.Vertices || !Same(state.Mesh.bounds.center, state.MeshBounds.center)
-                    || !Same(state.Mesh.bounds.size, state.MeshBounds.size)) return false;
+                    || !Same(state.Mesh.bounds.size, state.MeshBounds.size))
+                    return Fail($"{state.Transform.Name} cap collider: convex={cap.convex}, meshMissing={state.Mesh == null}, meshMatches={cap.sharedMesh == state.Mesh}; vertices actual={(state.Mesh == null ? -1 : state.Mesh.vertexCount)}, expected={state.Vertices}, bounds center actual={(state.Mesh == null ? "missing" : Format(state.Mesh.bounds.center))}, expected={Format(state.MeshBounds.center)}, size actual={(state.Mesh == null ? "missing" : Format(state.Mesh.bounds.size))}, expected={Format(state.MeshBounds.size)}", out problem);
             }
-            else return false;
+            else return Fail(state.Transform.Name + ": unsupported collider type", out problem);
         }
         foreach (var state in _obstacles)
         {
             var obstacle = state.Obstacle;
-            if (obstacle == null || !obstacle.enabled || !obstacle.carving || !obstacle.carveOnlyStationary
-                || obstacle.carvingTimeToStationary != 0f || !state.Transform.Intact
-                || !Same(obstacle.center, Vector3.zero)) return false;
+            if (obstacle == null) return Fail(state.Transform.Name + ": navigation obstacle missing", out problem);
+            if (!state.Transform.Intact(out problem)) return false;
+            if (!obstacle.enabled || !obstacle.carving || !obstacle.carveOnlyStationary
+                || obstacle.carvingTimeToStationary != 0f || !Same(obstacle.center, Vector3.zero))
+                return Fail($"{state.Transform.Name} navigation obstacle: enabled={obstacle.enabled}, carving={obstacle.carving}, stationaryOnly={obstacle.carveOnlyStationary} (expected all true), stationaryTime={Format(obstacle.carvingTimeToStationary)} (expected 0), center={Format(obstacle.center)} (expected zero)", out problem);
             if (state.Capsule)
             {
-                if (obstacle.shape != NavMeshObstacleShape.Capsule || obstacle.radius != ArenaAreaEnclosurePlan.CornerRadius
-                    || obstacle.height != state.Height) return false;
+                if (obstacle.shape != NavMeshObstacleShape.Capsule || !Same(obstacle.radius, ArenaAreaEnclosurePlan.CornerRadius)
+                    || !Same(obstacle.height, state.Height))
+                    return Fail($"{state.Transform.Name} navigation capsule: shape={obstacle.shape} (expected Capsule), radius actual={Format(obstacle.radius)}, expected={Format(ArenaAreaEnclosurePlan.CornerRadius)}, height actual={Format(obstacle.height)}, expected={Format(state.Height)}", out problem);
             }
-            else if (obstacle.shape != NavMeshObstacleShape.Box || !Same(obstacle.size, state.Size)) return false;
+            else if (obstacle.shape != NavMeshObstacleShape.Box || !Same(obstacle.size, state.Size))
+                return Fail($"{state.Transform.Name} navigation box: shape={obstacle.shape} (expected Box), size actual={Format(obstacle.size)}, expected={Format(state.Size)}", out problem);
         }
         return true;
     }
@@ -213,6 +245,13 @@ internal sealed class ArenaAreaEnclosure : IDisposable
 
     private static Vector3 Vector(ArenaAreaEnclosurePlan.Point point) => new Vector3(point.X, point.Y, point.Z);
     private static bool Same(Vector3 a, Vector3 b) => (a - b).sqrMagnitude <= .00000001f;
+    // Allow bounded native dimension readback rounding, using the same absolute
+    // 0.1-mm allowance as box dimensions. Compare with the plan, never adopt clamped geometry.
+    // NaN/infinity differences fail the ordered comparison as well.
+    private static bool Same(float a, float b) => Math.Abs(a - b) <= .0001f;
+    private static string Format(float value) => value.ToString("R", CultureInfo.InvariantCulture);
+    private static string Format(Vector3 value) => $"({Format(value.x)},{Format(value.y)},{Format(value.z)})";
+    private static bool Fail(string detail, out string problem) { problem = detail; return false; }
 
     public void Dispose()
     {

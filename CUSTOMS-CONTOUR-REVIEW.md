@@ -2,6 +2,57 @@
 
 2026-09-07; based on `235b285`, implemented on `feature/customs-contour`.
 
+## 2026-09-08 loading follow-up
+
+The user GPU attempt with the original contour client failed at 06:45:16.077
+local time. The scene accepted all 28 candidate markers and constructed side
+walls covering Y -21.1..33.2, but `ArenaAreaEnclosure.Intact()` did not pass within
+the 12-second preparation deadline. No bots were released. Server logs (UTC)
+confirm successful arming and subsequent profile restoration; this was a client
+boundary-integrity rejection before connected navigation was examined.
+
+The old aggregate message "a boundary collider or navigation obstacle is missing"
+does not identify which predicate failed. Polygon corners are the first live
+use of capsule colliders/carvers; previously tested rectangles have none. Their
+radius/height were checked using exact float equality, unlike vector dimensions.
+Installed Unity APIs use native getters/setters, whose actual readback values
+were not logged. Rounding is a candidate cause, not an established diagnosis.
+
+The client follow-up allows an absolute 0.0001 m dimension deviation for capsule
+radius/height, still against planned geometry. Nonfinite values and larger
+deviations remain invalid. All component, transform, collision and navigation
+guards remain enabled. Preparation and active-match failures now report the
+first failed object/property, including round-trip float values for geometry,
+instead of describing every failure as missing components. Successful checks
+do not format diagnostic strings.
+
+Regression coverage injects both signs of small and excessive readback changes
+and NaN/infinity into both dimensions of both capsule types. These limited state
+doubles exercise the production validator, not Unity's native implementation.
+The same suite retains deletion, disabled-object, transform, mesh, carving and
+cleanup checks, plus deliberate exact-equality and disabled-dimension-guard
+mutants. Runtime diagnostic forwarding is source-checked and client-compiled;
+native execution and successful contour loading still require the user test.
+
+Only the client changes for this follow-up; restart the game before retesting.
+The server and the contour/spawn rules remain unchanged. If loading still fails,
+the next log should distinguish the precise integrity failure from subsequent
+navigation readiness failures.
+
+Final follow-up verification: the planner/builder suite passes 67,002 assertions
+and all 11 deliberate faults fail their named behavioral assertions. The Release
+client compiles against the installed Unity/EFT assemblies into isolated staging;
+installed client/Core stay unchanged during verification. Independent adversarial
+review has no unresolved P0-P2 finding. These results do not prove the suspected
+native rounding cause or successful in-raid loading.
+
+The follow-up client was installed locally on 2026-09-08 with matching SHA256
+`326405FD7021EC2E9A7E60075EE70198851443370307549DA1FBA6D7754C891E`.
+Prepared DLL, backup and deployment manifest are retained in ignored
+`artifacts/contour-integrity/prepared` in the shared checkout. The server retains
+the original hash below. Remote synchronization and the next GPU raid have not
+been verified in this follow-up.
+
 ## Selection and scope
 
 Choose **Arena -> Team Deathmatch -> Customs -> Factory Center (contour)**.
@@ -73,7 +124,7 @@ its only junctions provide Managed and SPT dependency references. It compares
 build/staging hashes and checks that installed client/server/Redeploy DLLs were
 not changed. No live raid is launched by these checks.
 
-Final offline verification: **386/386 tests, no skips**, including 23 focused
+Original contour (`4a1d0f4`) offline verification: **386/386 tests, no skips**, including 23 focused
 contour cases and the installed database. Native menu checks passed 340
 assertions. The actual enclosure planner/builder passed 66,836 assertions with
 limited Unity state doubles, and nine deliberate faults failed their named
@@ -89,14 +140,14 @@ restoration. The native Unity API was inspected in the installed
 `UnityEngine.AIModule.dll`: `NavMesh.CalculateTriangulation()` returns the
 vertices/indices consumed by the pure enclosure planner.
 
-Release build/staging SHA256:
+Original contour (`4a1d0f4`) Release build/staging SHA256 (client superseded above):
 
 | Artifact | SHA256 |
 |---|---|
 | Client | `EDCC4B486D80EB7E36A48BEC60AA646DA5615124465B58BF002D21918B0CB9AB` |
 | Server | `B73791EE2E561D6791DA4B4FF8F17107797DA536B0B132074081843F47538E5F` |
 
-On 2026-09-08 both reviewed DLLs were installed into the local D:\SPT41 client
+Before the integrity follow-up, on 2026-09-08 both original DLLs were installed into the local D:\SPT41 client
 and server plugin directories; their hashes match the table above. No other
 plugin or default configuration file was replaced. Prepared files and their
 deployment manifest remain under ignored `artifacts/customs-contour/prepared`
