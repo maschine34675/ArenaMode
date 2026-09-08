@@ -9,8 +9,8 @@ current. User-facing communication is normally German.
 
 - GPU report follow-up (2026-09-08): the user authorized implementation from
   report `2327f63`, with double jump merged into the main branch first. `master`
-  includes that merge as `227fb10`; fixes are finishing on
-  `fix/team-start-gpu-acceptance` before integration back into master.
+  includes that merge as `227fb10`; all three reviewed fixes are now integrated
+  into `master` through code commit `e2859e8` (the source of the delivered DLL).
   `853a2ce` fixes the human PMC scoreboard role; `77469cc` guards the replacement
   grass-camera ordering and optional PFT inactive-menu warmup. Team-start
   readiness now requires the actual 1 PMC + N-1 allies versus N opponents and
@@ -19,9 +19,20 @@ current. User-facing communication is normally German.
   corners are still checked independently. Legacy areas retain direct validation.
   See `TEAM-START-ACCEPTANCE-REVIEW.md`, `AREA-CONNECTIVITY-REVIEW.md`,
   `ROLE-LABEL-REVIEW.md` and `GPU-ACCEPTANCE-COMPAT-REVIEW.md`.
-  Offline code review and staged client build pass; final ledger verification,
-  main-branch integration and local delivery are being recorded below before
-  handing this task over. No native GPU success is claimed for these corrections.
+  Final verification: all seven executable gates passed, plus independent review
+  and verified delivery (9/9 gates). Targeted checks: team runtime 369, connectivity
+  630, role 174, double jump 143, render/PFT 47 assertions and 54 named source
+  controls; ten connectivity source contracts. All 444 server tests passed with
+  zero skips and the existing menu/team/polygon regressions passed. Full client
+  build: zero errors, four existing nullable warnings.
+  **Client delivered locally** in `D:\SPT41` from clean `e2859e8`, SHA256:
+  `DEFC7DA21EA311A5078F83037FEA56972C24C36CAE499F5D9FEF7FCC06CE973E`.
+  Server and Redeploy hashes remain identical to the GPU baseline below. Staging:
+  `artifacts/double-jump-build/c96304a3078740c78c60610cf5757cca/manifest.json`;
+  previous client and verified `delivery.json`:
+  `artifacts/team-start-acceptance/delivery-267f829d91bf4dd98c88287380fef267/`.
+  GPU mirror completion is not newly verified; check the delivered hash there.
+  No GitHub push or native GPU success is claimed. Restart only the game.
   Retest new team starts on both factions at sizes 2-5, initial roster and refills,
   actual movement/boundaries, F9 role, upscaled rendering after respawn and PFT
   Escape/settings menu. Double jump also needs its first GPU acceptance. Only
@@ -36,9 +47,11 @@ current. User-facing communication is normally German.
   All six Arena ends restored and persisted protected profile fields unchanged.
   Normal PMC/PSO test passed the observed start/ADS/hotkey separation; its ordinary
   LEFT gear loss is documented separately. PFT group and other-faction tests remain
-  unexecuted. Separate Unity render/menu errors remain unattributed. See
+  unexecuted. At that point the Unity render/menu errors were unattributed; the
+  follow-up above records source-supported repairs and remaining uncertainty. See
   [GPU-ACCEPTANCE-2026-09-08.md](GPU-ACCEPTANCE-2026-09-08.md) for exact limits/times.
-  Game/server are stopped; only documentation changed, no fixes/build/deploy/push.
+  At the end of this test run, game/server were stopped and only documentation
+  had changed; no fixes/build/deploy/push occurred during the acceptance itself.
   Raw evidence and private test-profile backups are ignored under
   `artifacts/gpu-acceptance/2026-09-08_102800/`.
 - Integrated into `master` before the navigation fix (2026-09-08):
@@ -48,12 +61,12 @@ current. User-facing communication is normally German.
   (default 1, range 0.25-1.5). Native collision, lateral motion and stamina remain
   in charge; bots/ordinary raids and ledge-fall rescue are excluded. See
   `DOUBLE-JUMP-REVIEW.md` and `tools/DoubleJumpChecks/GATES.md`.
-  Offline: 143 production-linked assertions and seven deliberate source faults,
+  At feature preparation: 143 production-linked assertions and seven deliberate source faults,
   full staged client build (four existing nullable warnings), independent review
-  without unresolved P0-P2. Live client/server/Redeploy hashes remain unchanged.
-  **Not yet deployed or GPU-tested**: the previous GPU acceptance is complete.
-  The user authorized integration before fixing its navigation failures. Client
-  delivery follows the reviewed fix; server unchanged by the double jump.
+  without unresolved P0-P2. The live test baseline stayed unchanged at that time.
+  **Now delivered with `e2859e8`; GPU acceptance still pending.** The user
+  authorized integration before correcting the report's navigation failures.
+  See the current delivery entry above; server unchanged by the double jump.
 - Latest implementation (2026-09-08): `2407351` scopes Arena's cold optic-pool
   callbacks; `6843e1e` adds the separate **Customs contour (team starts)** preset
   with native **2v2–5v5** selection. Choose Arena / Team Deathmatch / Customs /

@@ -88,9 +88,13 @@ not change the protected end pipeline or the generic native summary screen.
 Root reran all seven executable integration gates successfully after independent
 review: team runtime, connectivity, roles, double jump, staged build, render/menu
 compatibility and existing integration regressions. Exact output fingerprints
-are recorded in `tools/TeamStartAcceptanceChecks/GATES.md`. The remaining delivery
-gate is completed from the clean committed build and local hash comparison in
-the handoff. Only the client needs replacing; server and Redeploy stay fixed.
+are recorded in `tools/TeamStartAcceptanceChecks/GATES.md`. All nine gates are
+now met including integration into master and local delivery from clean code
+commit `e2859e8`. The delivered client SHA256 is
+`DEFC7DA21EA311A5078F83037FEA56972C24C36CAE499F5D9FEF7FCC06CE973E`;
+the previous-client backup and delivery manifest are recorded in `HANDOFF.md`.
+Server and Redeploy remain unchanged. GPU mirror completion and native retesting
+remain explicitly unverified; the build/graph checks do not prove AI movement.
 
 ## Required native follow-up
 

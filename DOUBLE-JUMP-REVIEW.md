@@ -2,9 +2,10 @@
 
 Prepared 2026-09-08 on `feature/double-jump`, based on `62c7b70`.
 The user authorized integration into `master` after GPU report `2327f63` and
-before the Customs team-start navigation fix. It is **not yet deployed or
-GPU-tested**; client delivery follows that reviewed fix. Original isolated
-preparation and its unchanged-DLL checks are recorded below.
+before the Customs team-start navigation fix. Merge `227fb10` integrated it;
+the combined client was delivered locally from clean `master` code commit
+`e2859e8`. **GPU acceptance remains pending.** Original isolated preparation
+and its unchanged-DLL checks are recorded below; current delivery is in HANDOFF.md.
 
 ## Player behavior
 
@@ -76,7 +77,7 @@ the external Redeploy project build, references its installed DLL read-only,
 overrides client/audio deployment targets and redirects SPT paths to unique
 ignored staging. It checks installed client/server/Redeploy hashes before and
 after, including failure paths. Use `-SptRoot C:\SPT41` on the GPU host if staging
-there is deliberately needed; do not rebuild during the current acceptance run.
+there is deliberately needed.
 
 Full staged build: zero errors, four existing nullable-annotation warnings.
 Independent adversarial review found and resolved the reused-credit/stamina-
@@ -89,16 +90,15 @@ The parent re-runs verification; evidence is recorded in
 These checks substitute EFT/Unity objects and do not prove native Mono detouring,
 animation transitions, collision behavior or gameplay acceptance.
 
-The current installed client remains
-`49762EB638B244F3E2D45ADB3BC040CA6A42FBAF895B7A2A3C80B1CC006839E9`,
-and the server remains
-`D7879AEFD593B8CA2915B8F8FAF7106C9F007A6E6BE2D02425D3892AF253AAF2`.
-Prepared client outputs and manifests live only in this worktree's ignored
-`artifacts/double-jump-build/`. They have not been copied into the mirrored game.
-Integrate the feature branch and deliver the new client separately after the
-current test baseline is no longer needed; the server needs no code update.
+The original feature preparation preserved the old test client
+`49762EB638B244F3E2D45ADB3BC040CA6A42FBAF895B7A2A3C80B1CC006839E9`.
+After the tests and authorized merge, the combined client was installed locally:
+`DEFC7DA21EA311A5078F83037FEA56972C24C36CAE499F5D9FEF7FCC06CE973E`.
+Server and Redeploy remain unchanged. The clean-build and delivery manifests,
+previous-client backup and GPU mirror limitations are recorded in `HANDOFF.md`.
+The merged double-jump checks passed again; no GPU success is inferred.
 
-## Pending GPU acceptance for the separate double-jump build
+## Pending GPU acceptance for the merged double jump
 
 1. Start a fresh Arena raid; jump from standing and sprinting, then press again
    during ascent, near the apex and during descent. Confirm one visible second

@@ -32,8 +32,8 @@ Scope: Integrate double jump into master first, correct the native GPU report's 
 - [x] G6: Adversarial reviews have no unresolved consequential defects; the report records the source-supported render/menu findings without speculative global patches.
   EVIDENCE: 2026-09-08 independent tdm_role_label_fix reviewed root roster counts and the new navigation adapter, found stale preparation ancestry and confirmed its final parent-first verification plus targeted fixtures; final review no P0-P2. Root independently reviewed human role classification and the native GPU/PFT ordering guards, their tests and plugin lifecycle; no unresolved P0-P2. All three review documents and TEAM-START-ACCEPTANCE-REVIEW.md distinguish measured offline results from required GPU acceptance and preserve profile/end isolation.
 
-- [ ] G7: Small reviewed commits are integrated into master; local client delivery matches the staged artifact, server/Redeploy remain unchanged, and handoff identifies pending GPU checks.
-  EVIDENCE: pending
+- [x] G7: Small reviewed commits are integrated into master; local client delivery matches the staged artifact, server/Redeploy remain unchanged, and handoff identifies pending GPU checks.
+  EVIDENCE: 2026-09-08 merge 227fb10 preceded fixes 853a2ce, 77469cc and e2859e8, all now in master. Clean e2859e8 staged build c96304a3078740c78c60610cf5757cca delivered locally with matching client SHA256 DEFC7DA21EA311A5078F83037FEA56972C24C36CAE499F5D9FEF7FCC06CE973E. Atomic replacement retained verified old-client backup; server and Redeploy hashes match baseline. Manifest artifacts/team-start-acceptance/delivery-267f829d91bf4dd98c88287380fef267/delivery.json records source, before hashes, final hash, local delivery and explicit false GPU mirror/live-test claims. HANDOFF.md lists required native retests and client-only restart; no push.
 
 - [x] G8: Production render/menu guards repair only the exact active Arena replacement-camera and inactive optional PFT warmup cases, with deliberate fault controls.
   CHECK: pwsh -NoProfile -ExecutionPolicy Bypass -File tools/GpuAcceptanceCompatChecks/Verify.ps1
