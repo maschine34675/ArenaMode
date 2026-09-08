@@ -7,7 +7,8 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- TDM search diagnostics follow-up (2026-09-08): the user's two Customs team-start
+- TDM search diagnostics delivered (2026-09-08, code `f619b7d` on `master`):
+  the user's two Customs team-start
   USEC 5v5 logs confirm completed rosters after 104.141/37.059 seconds, preserved
   slow preparations and working hearing/search in both runs. Remaining sampled
   path failures need better attribution. `TdmSearchAwareness` now adds the selected
@@ -25,8 +26,16 @@ current. User-facing communication is normally German.
   `artifacts/tdm-awareness-checks/f607bc3c1aaa44fea1663f71e3b91ee6/`.
   Installed SAIN 4.5.1 contracts independently inspected; adversarial review has
   no remaining P0-P2 findings. Full staged client build: zero errors/four existing
-  nullable warnings, installed artifacts unchanged by that build. Final clean
-  build/delivery follows the code commit; no new native GPU test or push.
+  nullable warnings, installed artifacts unchanged by that build.
+  Client rebuilt from clean `f619b7d` and delivered locally, SHA256
+  `9C174F3DCEAE8988853B3F6CD0D8E807B6FD9823CA3EA096586D7EBB7C2A1A60`.
+  Staged manifest: `artifacts/double-jump-build/d77c04233bd04412a194ca513f7e756e/manifest.json`.
+  Verified previous-client backup and delivery record:
+  `artifacts/tdm-search-diagnostics/delivery-8f92b6fbfdf048bcaa2f3dc899f9c5d7/`.
+  Server/Redeploy remain byte-identical. **Restart only the game.** No new native
+  GPU test, mirror-completion verification or push. Next test: capture the same
+  `Arena TDM awareness:` lines during a stalled search; inspect `sainGoal`,
+  goal contact, `shallSearch` and `pathReason` together with movement samples.
 - GPU retest follow-up delivered (2026-09-08): `55164e4` was reviewed against
   its archived logs and installed native/SAIN contracts. Three reviewed fixes
   are now on `master`: `8fb502c` supplies a guarded SAIN hearing search cue per
