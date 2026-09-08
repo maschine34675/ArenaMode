@@ -28,6 +28,8 @@ public static class Settings
     public static ConfigEntry<bool> SlideEnabled { get; private set; }
     public static ConfigEntry<bool> NoBushSlowdown { get; private set; }
     public static ConfigEntry<float> JumpHeightMult { get; private set; }
+    public static ConfigEntry<bool> DoubleJumpEnabled { get; private set; }
+    public static ConfigEntry<float> DoubleJumpHeightMult { get; private set; }
     public static ConfigEntry<bool> NoFallDamage { get; private set; }
     public static ConfigEntry<float> VaultSpeedMult { get; private set; }
     public static ConfigEntry<float> VaultReachMult { get; private set; }
@@ -369,6 +371,20 @@ public static class Settings
             "JumpHeightMult",
             1.3f,
             new ConfigDescription("Jump height multiplier.", new AcceptableValueRange<float>(1f, 2f)));
+
+        DoubleJumpEnabled = config.Bind(
+            "Movement",
+            "DoubleJumpEnabled",
+            true,
+            "Press the normal jump binding again in the air for one extra jump after a ground takeoff. " +
+            "Local Arena player only; landing restores the extra jump. Falling from a ledge does not grant one.");
+
+        DoubleJumpHeightMult = config.Bind(
+            "Movement",
+            "DoubleJumpHeightMult",
+            1f,
+            new ConfigDescription("Extra jump height relative to the initial Arena jump (1 = same upward impulse).",
+                new AcceptableValueRange<float>(0.25f, 1.5f)));
 
         NoFallDamage = config.Bind(
             "Movement",

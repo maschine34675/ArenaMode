@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <DoubleJumpSource Condition="'$(DoubleJumpSource)' == ''">../../ArenaMode.Client/Movement/ArenaDoubleJump.cs</DoubleJumpSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(DoubleJumpSource)" Link="Production/ArenaDoubleJump.cs" />
+  </ItemGroup>
+</Project>

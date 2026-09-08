@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Prepared separately (2026-09-08): `feature/double-jump` adds an optional extra
+  jump after a normal local Arena takeoff, using the configured jump binding.
+  F12 Movement: `DoubleJumpEnabled` (default true), `DoubleJumpHeightMult`
+  (default 1, range 0.25-1.5). Native collision, lateral motion and stamina remain
+  in charge; bots/ordinary raids and ledge-fall rescue are excluded. See
+  `DOUBLE-JUMP-REVIEW.md` and `tools/DoubleJumpChecks/GATES.md`.
+  Offline: 143 production-linked assertions and seven deliberate source faults,
+  full staged client build (four existing nullable warnings), independent review
+  without unresolved P0-P2. Live client/server/Redeploy hashes remain unchanged.
+  **Not deployed or GPU-tested**: this work is isolated while the other Codex
+  instance tests the previous Customs team-start/optic build below. Keep that
+  installed build until its acceptance is recorded. Prepared DLLs/manifests are
+  only in this worktree's ignored `artifacts/double-jump-build/`; server unchanged.
 - Latest implementation (2026-09-08): `2407351` scopes Arena's cold optic-pool
   callbacks; `6843e1e` adds the separate **Customs contour (team starts)** preset
   with native **2v2–5v5** selection. Choose Arena / Team Deathmatch / Customs /
