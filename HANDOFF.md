@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Native GPU acceptance (2026-09-08, `C:\SPT41`): **new team-start preset fails**.
+  Expected DLL hashes matched before/after testing at documentation HEAD `62c7b70`.
+  All four sizes are selectable in the native 1920x945 menu; 2v2 (including its
+  sole retry), 5v5, 3v3 and 4v4 abort after 13 seconds during navigation validation:
+  `BEAR starts: PMC 0`. No active new-preset teams, sector/boundary or refill pass.
+  Legacy contour 2v2 played for 3:45 with three player respawns, friendly refills
+  and working observed optics; preload guard diagnostic occurred, no camera NRE.
+  All six Arena ends restored and persisted protected profile fields unchanged.
+  Normal PMC/PSO test passed the observed start/ADS/hotkey separation; its ordinary
+  LEFT gear loss is documented separately. PFT group and other-faction tests remain
+  unexecuted. Separate Unity render/menu errors remain unattributed. See
+  [GPU-ACCEPTANCE-2026-09-08.md](GPU-ACCEPTANCE-2026-09-08.md) for exact limits/times.
+  Game/server are stopped; only documentation changed, no fixes/build/deploy/push.
+  Raw evidence and private test-profile backups are ignored under
+  `artifacts/gpu-acceptance/2026-09-08_102800/`.
 - Latest implementation (2026-09-08): `2407351` scopes Arena's cold optic-pool
   callbacks; `6843e1e` adds the separate **Customs contour (team starts)** preset
   with native **2v2–5v5** selection. Choose Arena / Team Deathmatch / Customs /
