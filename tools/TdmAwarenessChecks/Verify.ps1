@@ -58,6 +58,10 @@ try {
     Test-Mutant 'post-hearing-owner-check-omitted' $awarenessSource 'AwarenessSource' "if (!TeamDeathmatchRelations.OwnsAwareness(source, target, controller, enemy, native)) return;`n                        cue.Admitted" 'cue.Admitted' 'native stop at hearing-set blocks success readback'
     Test-Mutant 'diagnostic-cadence-omitted' $awarenessSource 'AwarenessSource' 'if (now < observation.NextLog) return;' '' 'diagnostics bounded to thirty seconds'
     Test-Mutant 'old-position-refresh-removed' $relationsSource 'RelationsSource' '_sainLastSeen.Invoke(enemy, new object[] { target.Position, Time.time });' '' 'existing position refresh retained'
+    Test-Mutant 'cue-contact-as-selected-goal' $awarenessSource 'AwarenessSource' 'var goalPlayer = Read(goalEnemy, "EnemyPlayer") as Player;' 'goalEnemy = enemy; var goalPlayer = Read(goalEnemy, "EnemyPlayer") as Player;' 'selected SAIN goal stays distinct from nearest and native goals'
+    Test-Mutant 'wrong-path-reason-member' $awarenessSource 'AwarenessSource' 'Read(reason, "PathCalcFailReason")' 'Read(reason, "MissingPathReason")' 'evaluated search exposes the exact path failure'
+    Test-Mutant 'stale-search-reasons' $awarenessSource 'AwarenessSource' 'shallSearch is bool ? Read(enemyDecisions, "DebugSearchReasons") : null' 'Read(enemyDecisions, "DebugSearchReasons")' 'unevaluated search does not relabel retained reasons as current'
+    Test-Mutant 'grenade-early-return-ignored' $awarenessSource 'AwarenessSource' ' && Value(combat) != "AvoidGrenade"' '' 'early decision cannot expose stale search result'
 }
 finally {
     Assert-Production 'production-after'

@@ -88,6 +88,51 @@ is at most nine snapshots per 30 seconds, plus observations for newly spawned bo
 Correlate with the unchanged Arena movement-rejection diagnostics; absence of a
 rejection still does not prove a traversable/searchable path was attempted.
 
+## Search diagnosis follow-up — 2026-09-08
+
+The user's two subsequent Customs team-start USEC 5v5 runs contain 86 and 158
+awareness samples, respectively. Hearing/known state is present in every sample,
+but selected bots still report `PathCalcFailed` and `NullTargetPlace`. In 19/27
+samples the nearest cue target differs from the native goal. These are samples,
+not a continuous movement trace. Read-only log snapshots are under ignored
+`artifacts/log-comparison/20260908-201507/`.
+
+The diagnostic-only extension retains `target`/`distance` and the original
+unprefixed contact flags for the nearest hearing-cue target. `goal` still means
+the EFT native goal. Added fields are:
+
+- `sainGoal`: the physical actor selected by SAIN's filtered
+  `BotComponent.GoalEnemy`, read once for this snapshot; `none` for an available
+  getter with no goal, `n/a` for absent/failed optional support.
+- `goalMatchesTarget`, `goalDistance`, `goalSeen`, `goalHeard`, `goalVisible`,
+  `goalKnown`, `goalHeardAge`: read from that same SAIN goal/body, never borrowed
+  from the nearest opponent or the native goal. Missing goal values stay `n/a`.
+- `shallSearch`: SAIN's nullable `EnemyDecisionClass.DebugShallSearch` result;
+  both `True` and `False` indicate that search was evaluated in its cached
+  decision pass. `pathReason` exposes `DebugSearchReasons.PathCalcFailReason`,
+  including its existing distinction between absent known positions, invalid or
+  incomplete paths, insufficient corners and targets too close to search.
+
+Installed SAIN 4.5.1 clears `DebugShallSearch` before the ordinary decision
+checks, but can retain `DebugSearchReasons` when another decision wins first.
+Its no-enemy and `AvoidGrenade` returns precede even that nullable reset.
+Therefore all search reasons are reported as `n/a` if the nullable result is
+absent, no SAIN goal is available, or the combat decision is unavailable/`None`/
+`AvoidGrenade`. Never report a retained error as if those branches had just
+attempted a path. These remain cached SAIN decision values alongside the sampled
+current goal; no timestamp or fresh path calculation is fabricated.
+
+All added members were verified against the installed SAIN DLL with the hashes
+above. Getters only read existing state. No enemy selection, path calculation,
+hearing refresh, decision evaluation, movement, load scheduling, profile mutation,
+LootOutline change or external dependency was added. The same 30-second cadence,
+weak per-raid actor numbers and ordinary-raid separation remain in force.
+
+Verification adds distinct cue/native/SAIN goals, differing contact ages/flags,
+no-goal and failing optional getter cases, retained reasons after skipped search,
+and early grenade/no-combat decisions to the existing production-linked harness.
+The review and final verification result are recorded in the dated handoff.
+
 ## Offline checks and review
 
 Run only the isolated harness:

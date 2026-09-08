@@ -222,6 +222,7 @@ internal static class Program
         var absent = Fresh(); absent.Source.Component = null; absent.Tick(0);
         Check(absent.Source.BotsGroup.PositionReports == 1 && !absent.Source.Memory.IsPeace, "absent SAIN retains native fallback");
         Check(Snapshots().Single().Contains("cue=native-only"), "absent SAIN diagnostic is explicit");
+        Check(Snapshots().Single().Contains("sainGoal=n/a") && Snapshots().Single().Contains("pathReason=n/a"), "absent SAIN diagnostic does not invent a goal or path failure");
         var drift = Fresh(); var enemy = drift.Enemy();
         TdmSearchAwareness.Configure(typeof(UnsupportedEnemy), typeof(BotComponent));
         drift.Tick(0);
@@ -231,9 +232,11 @@ internal static class Program
 
         var diagnostic = Fresh(); var observed = diagnostic.Enemy();
         diagnostic.Source.Memory.GoalEnemy = observed.EnemyInfo;
+        diagnostic.Sain.EnemyController.GoalEnemy = observed;
         diagnostic.Sain.Decision.CurrentCombatDecision = "Search";
+        diagnostic.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
         diagnostic.Sain.Decision.EnemyDecisions.DebugSearchReasons = new SearchReasons
-        { NotSearchReason = "DontWantTo", WantSearchReasons = new WantReasons { NotWantToSearchReason = "TimeBeforeSearch", WantToSearchReason = "None", CantStartReason = "NoPath" } };
+        { NotSearchReason = "DontWantTo", PathCalcFailReason = "", WantSearchReasons = new WantReasons { NotWantToSearchReason = "TimeBeforeSearch", WantToSearchReason = "None", CantStartReason = "NoPath" } };
         diagnostic.Tick(0);
         diagnostic.Source.GetPlayer.Position = new Vector3(10);
         diagnostic.Source.Mover.IsMoving = true;
@@ -252,9 +255,64 @@ internal static class Program
         var ordinary = Fresh(); ArenaSession.ActiveMode = "tactical"; ordinary.Tick(0);
         Check(Snapshots().Length == 0 && ordinary.Source.BotsGroup.PositionReports == 0, "other modes have no TDM awareness mutation or diagnostics");
     }
+
+    private static void SelectedGoalDiagnostics()
+    {
+        var raid = Fresh(); var nearest = raid.Enemy();
+        var selectedPlayer = new Player { ProfileId = "private-other-goal", Position = new Vector3(400) };
+        var selected = new Enemy { EnemyPlayer = selectedPlayer, Seen = true, IsVisible = true, EnemyKnown = false };
+        selected.HearingState.Heard = true; selected.HearingState.At = -20;
+        raid.Source.Memory.GoalEnemy = nearest.EnemyInfo;
+        raid.Sain.EnemyController.GoalEnemy = selected;
+        raid.Sain.Decision.CurrentCombatDecision = "SeekCover";
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
+        raid.Sain.Decision.EnemyDecisions.DebugSearchReasons = new SearchReasons
+        {
+            NotSearchReason = "PathCalcFailed", PathCalcFailReason = "path not complete",
+            WantSearchReasons = new WantReasons { WantToSearchReason = "NewSearch_EnemyNotSeen" }
+        };
+        raid.Tick(0);
+        string line = Snapshots().Single();
+        Check(line.Contains("target=2, distance=200.0m") && line.Contains("goal=2,") && line.Contains("sainGoal=3, goalMatchesTarget=False, goalDistance=400.0m"), "selected SAIN goal stays distinct from nearest and native goals");
+        Check(line.Contains("seen=False, heard=True, visible=False, known=True, heardAge=0.0")
+            && line.Contains("goalSeen=True, goalHeard=True, goalVisible=True, goalKnown=False, goalHeardAge=20.0"), "selected goal contact never borrows nearest contact");
+        Check(line.Contains("shallSearch=False, searchReason=PathCalcFailed, pathReason=path not complete"), "evaluated search exposes the exact path failure");
+        Check(selected.HearingState.Calls == 0 && selected.PositionUpdates == 0 && nearest.HearingState.Calls == 1
+            && ReferenceEquals(raid.Sain.EnemyController.GoalEnemy, selected), "goal diagnostics neither seed nor update nor select an opponent");
+        Check(!line.Contains("private-"), "selected goal diagnostic keeps identities private");
+
+        // A higher-priority SAIN decision did not evaluate search this pass;
+        // its retained reasons must not be attributed to the newly selected goal.
+        raid.Sain.EnemyController.GoalEnemy = nearest;
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = null;
+        raid.Tick(30);
+        line = Snapshots().Last();
+        Check(line.Contains("goalMatchesTarget=True") && line.Contains("shallSearch=n/a, searchReason=n/a, pathReason=n/a")
+            && line.Contains("want=n/a, notWant=n/a, cantStart=n/a"), "unevaluated search does not relabel retained reasons as current");
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
+        raid.Sain.EnemyController.GoalEnemy = null;
+        raid.Tick(60);
+        line = Snapshots().Last();
+        Check(line.Contains("sainGoal=none, goalMatchesTarget=n/a, goalDistance=n/am") && line.Contains("goalSeen=n/a")
+            && line.Contains("pathReason=n/a"), "no selected goal never falls back to cue target");
+        raid.Sain.OnGetGoal = () => throw new InvalidOperationException("modeled optional getter failure");
+        raid.Tick(90);
+        line = Snapshots().Last();
+        Check(line.Contains("sainGoal=n/a") && line.Contains("heardAge=90.0"), "unavailable goal getter retains independent cue diagnostics");
+        Check(nearest.HearingState.Calls == 1 && nearest.PositionUpdates == 4 && Snapshots().Length == 4,
+            "extended diagnostics retain hearing age position refresh and cadence");
+        raid.Sain.OnGetGoal = null;
+        raid.Sain.EnemyController.GoalEnemy = nearest;
+        foreach (string earlyDecision in new[] { "None", "AvoidGrenade" })
+        {
+            raid.Sain.Decision.CurrentCombatDecision = earlyDecision;
+            raid.Tick(Time.time + 30);
+            Check(Snapshots().Last().Contains("shallSearch=n/a, searchReason=n/a, pathReason=n/a"), "early decision cannot expose stale search result");
+        }
+    }
     internal static void Main()
     {
-        AdmissionAndAge(); ContactAndForget(); Ownership(); PolicyAndCallbacks(); FallbackAndDiagnostics();
+        AdmissionAndAge(); ContactAndForget(); Ownership(); PolicyAndCallbacks(); FallbackAndDiagnostics(); SelectedGoalDiagnostics();
         Console.WriteLine($"TDM_AWARENESS_CONTRACTS_PASSED: {_checks} assertions; production Relations and hearing bridge linked, no GPU claim.");
     }
 }

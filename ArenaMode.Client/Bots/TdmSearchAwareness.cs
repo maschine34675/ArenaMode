@@ -160,22 +160,45 @@ internal static class TdmSearchAwareness
             observation.HasPosition = true;
             object component = _botType == null ? null : source.GetComponent(_botType);
             var decision = Read(component, "Decision");
-            var reason = Read(Read(decision, "EnemyDecisions"), "DebugSearchReasons");
+            var combat = Read(decision, "CurrentCombatDecision");
+            string sourceId = ActorId(source), targetId = ActorId(target);
+            // The hearing cue targets the nearest opponent, which need not be
+            // SAIN's selected opponent. Snapshot its filtered GoalEnemy once;
+            // all goal-prefixed contact fields below belong to that wrapper.
+            var goalEnemy = Read(component, "GoalEnemy", out bool goalAvailable);
+            var goalPlayer = Read(goalEnemy, "EnemyPlayer") as Player;
+            string sainGoal = !goalAvailable || (goalEnemy != null && goalPlayer == null) ? "n/a" : ActorId(goalPlayer);
+            string goalMatchesTarget = goalPlayer == null || target == null ? "n/a" : ReferenceEquals(goalPlayer, target).ToString();
+            string goalDistance = goalPlayer == null ? "n/a" : Number(Math.Sqrt((goalPlayer.Position - position).sqrMagnitude));
+            var enemyDecisions = Read(decision, "EnemyDecisions");
+            // SAIN normally clears this nullable result before decision checks,
+            // but no-enemy and grenade-avoidance returns precede even that reset.
+            // Reasons are a cached decision sample, never a forced path query.
+            var shallSearch = goalPlayer != null && combat != null && Value(combat) != "None" && Value(combat) != "AvoidGrenade"
+                ? Read(enemyDecisions, "DebugShallSearch") : null;
+            var reason = shallSearch is bool ? Read(enemyDecisions, "DebugSearchReasons") : null;
             var want = Read(reason, "WantSearchReasons");
             string distance = target == null ? "n/a" : Number(Math.Sqrt((target.Position - position).sqrMagnitude));
-            Plugin.ModLogger.LogInfo($"Arena TDM awareness: bot={ActorId(source)}, side={source.GetPlayer?.Profile?.Info?.Side}, target={ActorId(target)}, distance={distance}m, cue={status}, "
+            Plugin.ModLogger.LogInfo($"Arena TDM awareness: bot={sourceId}, side={source.GetPlayer?.Profile?.Info?.Side}, target={targetId}, distance={distance}m, cue={status}, "
                 + $"goal={ActorId(source.Memory?.GoalEnemy?.Person)}, seen={Value(Read(enemy, "Seen"))}, heard={Value(Read(enemy, "Heard"))}, "
                 + $"visible={Value(Read(enemy, "IsVisible"))}, known={Value(Read(enemy, "EnemyKnown"))}, heardAge={Value(Read(enemy, "TimeSinceHeard"))}, "
-                + $"searchDelay={Value(Read(Read(component, "Info"), "TimeBeforeSearch"))}, combat={Value(Read(decision, "CurrentCombatDecision"))}, "
-                + $"searchReason={Value(Read(reason, "NotSearchReason"))}, want={Value(Read(want, "WantToSearchReason"))}, notWant={Value(Read(want, "NotWantToSearchReason"))}, "
+                + $"sainGoal={sainGoal}, goalMatchesTarget={goalMatchesTarget}, goalDistance={goalDistance}m, "
+                + $"goalSeen={Value(Read(goalEnemy, "Seen"))}, goalHeard={Value(Read(goalEnemy, "Heard"))}, "
+                + $"goalVisible={Value(Read(goalEnemy, "IsVisible"))}, goalKnown={Value(Read(goalEnemy, "EnemyKnown"))}, goalHeardAge={Value(Read(goalEnemy, "TimeSinceHeard"))}, "
+                + $"searchDelay={Value(Read(Read(component, "Info"), "TimeBeforeSearch"))}, combat={Value(combat)}, "
+                + $"shallSearch={Value(shallSearch)}, searchReason={Value(Read(reason, "NotSearchReason"))}, pathReason={Value(Read(reason, "PathCalcFailReason"))}, "
+                + $"want={Value(Read(want, "WantToSearchReason"))}, notWant={Value(Read(want, "NotWantToSearchReason"))}, "
                 + $"cantStart={Value(Read(want, "CantStartReason"))}, mover={Value(Read(Read(source, "Mover"), "IsMoving"))}, "
                 + $"standby={Value(Read(Read(source, "StandBy"), "StandByType"))}, moved={moved}m/{elapsed}s.");
         }
         catch (Exception ex) { Failure(ex); }
     }
 
-    private static object Read(object instance, string name)
+    private static object Read(object instance, string name) => Read(instance, name, out _);
+
+    private static object Read(object instance, string name, out bool available)
     {
+        available = false;
         if (instance == null) return null;
         try
         {
@@ -186,8 +209,10 @@ internal static class TdmSearchAwareness
                 member = (MemberInfo)key.Item1.GetProperty(name, flags) ?? key.Item1.GetField(name, flags);
                 Members[key] = member;
             }
-            return member is PropertyInfo property ? property.GetValue(instance)
+            object value = member is PropertyInfo property ? property.GetValue(instance)
                 : (member as FieldInfo)?.GetValue(instance);
+            available = member != null;
+            return value;
         }
         catch { return null; }
     }

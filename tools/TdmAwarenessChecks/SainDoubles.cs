@@ -49,6 +49,7 @@ namespace SAIN.SAINComponent.Classes.EnemyClasses
     public class EnemyController
     {
         public BotOwner Owner;
+        public Enemy GoalEnemy { get; set; }
         public Dictionary<string, Enemy> Enemies = new();
         public Func<IPlayer, Enemy> OverrideAdd;
         public Action OnAdd, OnRemove;
@@ -97,6 +98,10 @@ namespace SAIN.Components
         public BotOwner BotOwner { get; set; }
         public Player Player { get; set; }
         public EnemyController EnemyController { get; set; }
+        public Action OnGetGoal;
+        // The fixture explicitly supplies the active goal; it does not simulate
+        // SAIN's target selection or liveness filter.
+        public Enemy GoalEnemy { get { OnGetGoal?.Invoke(); return EnemyController.GoalEnemy; } }
         public Info Info { get; } = new();
         public Decision Decision { get; } = new();
     }
@@ -106,7 +111,11 @@ namespace SAIN.Components
         public string CurrentCombatDecision { get; set; } = "None";
         public EnemyDecision EnemyDecisions { get; } = new();
     }
-    public class EnemyDecision { public SearchReasons DebugSearchReasons { get; set; } = new() { NotSearchReason = "StillDelaying" }; }
-    public struct SearchReasons { public string NotSearchReason; public WantReasons WantSearchReasons; }
+    public class EnemyDecision
+    {
+        public bool? DebugShallSearch { get; set; }
+        public SearchReasons DebugSearchReasons { get; set; } = new() { NotSearchReason = "StillDelaying" };
+    }
+    public struct SearchReasons { public string NotSearchReason, PathCalcFailReason; public WantReasons WantSearchReasons; }
     public struct WantReasons { public string WantToSearchReason, NotWantToSearchReason, CantStartReason; }
 }

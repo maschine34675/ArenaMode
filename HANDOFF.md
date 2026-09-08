@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- TDM search diagnostics follow-up (2026-09-08): the user's two Customs team-start
+  USEC 5v5 logs confirm completed rosters after 104.141/37.059 seconds, preserved
+  slow preparations and working hearing/search in both runs. Remaining sampled
+  path failures need better attribution. `TdmSearchAwareness` now adds the selected
+  SAIN goal with its own contact/distance fields and the exact cached
+  `PathCalcFailReason`. Nullable `DebugShallSearch`, no-goal and `None`/`AvoidGrenade`
+  checks prevent reporting retained reasons as a current evaluation. Cue target
+  and EFT native goal stay separate. No movement, hearing, loading, profile,
+  server, Redeploy or LootOutline changes. User removed LootOutline for now;
+  its interaction with hidden/trimmed corpses remains a separate diagnostic lead.
+  See the follow-up in `TDM-AWARENESS-REVIEW.md` and ignored log comparison
+  `artifacts/log-comparison/20260908-201507/` (both matching server ends confirm
+  snapshot restore/persistence; not a new independent profile-diff test).
+  Verification: 577 production-linked assertions, 24 named negative controls and
+  final production rerun passed, evidence
+  `artifacts/tdm-awareness-checks/f607bc3c1aaa44fea1663f71e3b91ee6/`.
+  Installed SAIN 4.5.1 contracts independently inspected; adversarial review has
+  no remaining P0-P2 findings. Full staged client build: zero errors/four existing
+  nullable warnings, installed artifacts unchanged by that build. Final clean
+  build/delivery follows the code commit; no new native GPU test or push.
 - GPU retest follow-up delivered (2026-09-08): `55164e4` was reviewed against
   its archived logs and installed native/SAIN contracts. Three reviewed fixes
   are now on `master`: `8fb502c` supplies a guarded SAIN hearing search cue per
