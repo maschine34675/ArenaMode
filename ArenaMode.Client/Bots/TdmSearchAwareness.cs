@@ -24,6 +24,9 @@ internal static class TdmSearchAwareness
         internal float SampleAt;
         internal Vector3 Position;
         internal bool HasPosition;
+        internal int InvalidPathSamples;
+        internal float FirstInvalidPathAt;
+        internal bool PathDetailLogged;
     }
 
     private static ConditionalWeakTable<object, Cue> _cues = new();
@@ -190,9 +193,61 @@ internal static class TdmSearchAwareness
                 + $"want={Value(Read(want, "WantToSearchReason"))}, notWant={Value(Read(want, "NotWantToSearchReason"))}, "
                 + $"cantStart={Value(Read(want, "CantStartReason"))}, mover={Value(Read(Read(source, "Mover"), "IsMoving"))}, "
                 + $"standby={Value(Read(Read(source, "StandBy"), "StandByType"))}, moved={moved}m/{elapsed}s.");
+            ObserveInvalidPath(observation, source, position, component, goalEnemy, goalPlayer, reason, now);
         }
         catch (Exception ex) { Failure(ex); }
     }
+
+    // Once per physical bot/raid, after two invalid-path samples at the existing
+    // 30-second cadence. Different selected goals may expose the same bad origin.
+    // Read only cached SAIN state: never sample, calculate, clear or repair a path.
+    private static void ObserveInvalidPath(Observation observation, BotOwner source, Vector3 position,
+        object component, object goalEnemy, Player goalPlayer, object reason, float now)
+    {
+        if (observation.PathDetailLogged || goalPlayer == null
+            || Value(Read(reason, "NotSearchReason")) != "PathCalcFailed"
+            || Value(Read(reason, "PathCalcFailReason")) != "path Invalid") return;
+        if (observation.InvalidPathSamples++ == 0) observation.FirstInvalidPathAt = now;
+        if (observation.InvalidPathSamples < 2) return;
+
+        var sourceNav = Read(Read(component, "Transform"), "NavData");
+        var goalNav = Read(Read(goalEnemy, "EnemyTransform"), "NavData");
+        var knownPosition = Read(Read(goalEnemy, "KnownPlaces"), "LastKnownPosition");
+        var path = Read(goalEnemy, "Path");
+        string sourceDetails = NavigationSnapshot("source", position, sourceNav, now);
+        string goalDetails = NavigationSnapshot("goal", goalPlayer.Position, goalNav, now);
+        // Optional getters may fail or change ownership. Do not mix endpoints
+        // from different selected wrappers; the ordinary snapshot remains intact.
+        if (!ReferenceEquals(Read(component, "GoalEnemy"), goalEnemy)) return;
+        observation.PathDetailLogged = true;
+        Plugin.ModLogger.LogInfo($"Arena TDM path detail: bot={ActorId(source)}, sainGoal={ActorId(goalPlayer)}, "
+            + $"invalidSamples={observation.InvalidPathSamples}, sampleWindow={Number(now - observation.FirstInvalidPathAt)}s, "
+            + sourceDetails + ", " + goalDetails
+            + $", goalKnown={Point(knownPosition)}, goalKnownMinusNav={Delta(knownPosition, Read(goalNav, "Position"))}, "
+            + $"pathStatus={Value(Read(path, "PathToEnemyStatus"))}, pathCorners={Value(Read(path, "PathCornerCount"))}, "
+            + $"pathLength={Value(Read(path, "PathLength"))}. Cached SAIN state; lastOnAge is not hit age.");
+    }
+
+    private static string NavigationSnapshot(string prefix, Vector3 actual, object nav, float now)
+    {
+        var position = Read(nav, "Position");
+        var hit = Read(nav, "LastValidHit");
+        var hitPosition = Read(hit, "position");
+        var lastOn = Read(nav, "TimeLastOnNavMesh");
+        string age = lastOn is float time && time > 0f && time <= now ? Number(now - time) : "n/a";
+        // SAIN can retain old hits and reconstruct Position using current XZ
+        // with only the sampled Y. Its status/IsOnNavMesh are not fresh probes.
+        return $"{prefix}Actual={Point(actual)}, {prefix}Nav={Point(position)}, "
+            + $"{prefix}LastHit={Point(hitPosition)}, {prefix}HitValid={Value(Read(hit, "hit"))}, "
+            + $"{prefix}Status={Value(Read(nav, "Status"))}, {prefix}OnNav={Value(Read(nav, "IsOnNavMesh"))}, {prefix}LastOnAge={age}, "
+            + $"{prefix}ActualMinusNav={Delta(actual, position)}, {prefix}NavMinusHit={Delta(position, hitPosition)}";
+    }
+
+    private static string Point(object value) => value is Vector3 point
+        ? $"({point.x.ToString("0.00", CultureInfo.InvariantCulture)};{point.y.ToString("0.00", CultureInfo.InvariantCulture)};{point.z.ToString("0.00", CultureInfo.InvariantCulture)})"
+        : "n/a";
+
+    private static string Delta(object first, object second) => first is Vector3 a && second is Vector3 b ? Point(a - b) : "n/a";
 
     private static object Read(object instance, string name) => Read(instance, name, out _);
 

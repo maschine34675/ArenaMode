@@ -62,6 +62,10 @@ try {
     Test-Mutant 'wrong-path-reason-member' $awarenessSource 'AwarenessSource' 'Read(reason, "PathCalcFailReason")' 'Read(reason, "MissingPathReason")' 'evaluated search exposes the exact path failure'
     Test-Mutant 'stale-search-reasons' $awarenessSource 'AwarenessSource' 'shallSearch is bool ? Read(enemyDecisions, "DebugSearchReasons") : null' 'Read(enemyDecisions, "DebugSearchReasons")' 'unevaluated search does not relabel retained reasons as current'
     Test-Mutant 'grenade-early-return-ignored' $awarenessSource 'AwarenessSource' ' && Value(combat) != "AvoidGrenade"' '' 'early decision cannot expose stale search result'
+    Test-Mutant 'path-detail-on-first-failure' $awarenessSource 'AwarenessSource' 'observation.InvalidPathSamples < 2' 'observation.InvalidPathSamples < 1' 'first invalid path sample performs no detailed reads'
+    Test-Mutant 'path-detail-cap-omitted' $awarenessSource 'AwarenessSource' 'observation.PathDetailLogged || goalPlayer == null' 'goalPlayer == null' 'path detail and extra reads bounded to once per body per raid'
+    Test-Mutant 'current-position-as-known-destination' $awarenessSource 'AwarenessSource' 'var knownPosition = Read(Read(goalEnemy, "KnownPlaces"), "LastKnownPosition");' 'var knownPosition = (object)goalPlayer.Position;' 'last known path destination is distinct from actual target position'
+    Test-Mutant 'path-detail-goal-recheck-omitted' $awarenessSource 'AwarenessSource' 'if (!ReferenceEquals(Read(component, "GoalEnemy"), goalEnemy)) return;' '' 'goal change during detail reads discards mixed endpoints'
 }
 finally {
     Assert-Production 'production-after'

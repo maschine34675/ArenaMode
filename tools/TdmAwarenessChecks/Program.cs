@@ -61,6 +61,7 @@ internal static class Program
     private static void Refresh(Raid raid, Enemy enemy)
         => TdmSearchAwareness.Refresh(raid.Source, raid.Target, raid.Sain.EnemyController, enemy, enemy.EnemyInfo);
     private static string[] Snapshots() => Plugin.ModLogger.Lines.Where(line => line.StartsWith("Arena TDM awareness:")).ToArray();
+    private static string[] PathDetails() => Plugin.ModLogger.Lines.Where(line => line.StartsWith("Arena TDM path detail:")).ToArray();
 
     private static void AdmissionAndAge()
     {
@@ -312,7 +313,103 @@ internal static class Program
     }
     internal static void Main()
     {
-        AdmissionAndAge(); ContactAndForget(); Ownership(); PolicyAndCallbacks(); FallbackAndDiagnostics(); SelectedGoalDiagnostics();
+        AdmissionAndAge(); ContactAndForget(); Ownership(); PolicyAndCallbacks(); FallbackAndDiagnostics(); SelectedGoalDiagnostics(); InvalidPathPositions();
         Console.WriteLine($"TDM_AWARENESS_CONTRACTS_PASSED: {_checks} assertions; production Relations and hearing bridge linked, no GPU claim.");
+    }
+
+    private static void InvalidPathPositions()
+    {
+        var raid = Fresh(); var nearest = raid.Enemy();
+        var selected = new Enemy
+        {
+            EnemyPlayer = new Player { ProfileId = "private-selected-path-target", Position = new Vector3(510, 9, 19) },
+            KnownPlaces = new KnownPlaces { LastKnownPosition = new Vector3(501, 4, 14) },
+            Path = new EnemyPath { PathToEnemyStatus = "PathInvalid", PathCornerCount = 0, PathLength = 321 }
+        };
+        selected.EnemyTransform.NavData = new NavData
+        {
+            Position = new Vector3(500, 3, 12), LastValidHit = new NavHit { position = new Vector3(497, 3, 10), hit = true },
+            Status = "CloseToNavMesh", IsOnNavMesh = true, TimeLastOnNavMesh = 10
+        };
+        raid.Source.GetPlayer.Position = new Vector3(3, 8, 7);
+        raid.Sain.TransformState.NavData = new NavData
+        {
+            Position = new Vector3(3, 1, 7), LastValidHit = new NavHit { position = new Vector3(1, 1, 4), hit = true },
+            Status = "OnNavMesh", IsOnNavMesh = false, TimeLastOnNavMesh = 10
+        };
+        int navReads = 0; raid.Sain.OnGetTransform = () => navReads++;
+        raid.Sain.EnemyController.GoalEnemy = nearest;
+        raid.Sain.Decision.CurrentCombatDecision = "SeekCover";
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
+        raid.Sain.Decision.EnemyDecisions.DebugSearchReasons = new SearchReasons
+        { NotSearchReason = "PathCalcFailed", PathCalcFailReason = "path Invalid" };
+        raid.Tick(0);
+        Check(PathDetails().Length == 0 && navReads == 0, "first invalid path sample performs no detailed reads");
+        for (int i = 0; i < 200; i++) Refresh(raid, nearest);
+        Check(PathDetails().Length == 0 && navReads == 0, "same-frame calls cannot reach repeated path threshold");
+        raid.Sain.EnemyController.GoalEnemy = selected;
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = null;
+        raid.Tick(30);
+        Check(PathDetails().Length == 0 && navReads == 0, "retained invalid reason cannot count as a repeated failure");
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
+        raid.Tick(60);
+        string line = PathDetails().Single();
+        Check(line.Contains("bot=1, sainGoal=3, invalidSamples=2, sampleWindow=60.0s"), "repeated invalid samples across goals capture selected endpoint");
+        Check(line.Contains("sourceActual=(3.00;8.00;7.00), sourceNav=(3.00;1.00;7.00), sourceLastHit=(1.00;1.00;4.00), sourceHitValid=True"), "source actual nav and hit positions stay distinct");
+        Check(line.Contains("sourceActualMinusNav=(0.00;7.00;0.00), sourceNavMinusHit=(2.00;0.00;3.00)"), "source offsets preserve height and lateral sample drift");
+        Check(line.Contains("goalActual=(510.00;9.00;19.00), goalNav=(500.00;3.00;12.00), goalLastHit=(497.00;3.00;10.00)"), "path detail uses selected goal nav rather than cue target");
+        Check(line.Contains("goalKnown=(501.00;4.00;14.00), goalKnownMinusNav=(1.00;1.00;2.00)"), "last known path destination is distinct from actual target position");
+        Check(line.Contains("sourceStatus=OnNavMesh, sourceOnNav=False, sourceLastOnAge=50.0")
+            && line.Contains("goalStatus=CloseToNavMesh, goalOnNav=True, goalLastOnAge=50.0"), "cached navigation flags and status age retain native meaning");
+        Check(line.Contains("pathStatus=PathInvalid, pathCorners=0, pathLength=321.0"), "path detail reads cached status corners and length");
+        Check(!line.Contains("private-"), "path detail never prints profile identities");
+        for (int time = 90; time <= 300; time += 30) raid.Tick(time);
+        Check(PathDetails().Length == 1 && navReads == 1, "path detail and extra reads bounded to once per body per raid");
+        Check(nearest.HearingState.Calls == 1 && selected.HearingState.Calls == 0 && selected.PositionUpdates == 0
+            && raid.Source.GetPlayer.Position.sqrMagnitude == new Vector3(3, 8, 7).sqrMagnitude
+            && selected.Path.PathCornerCount == 0 && selected.Path.PathLength == 321, "path diagnosis leaves contacts bodies and path cache untouched");
+
+        TeamDeathmatchRelations.Reset();
+        raid.Tick(330); raid.Tick(360);
+        Check(PathDetails().Length == 2 && navReads == 2, "new raid resets per-body path detail allowance");
+
+        // Best-effort diagnostics must not invent zero coordinates when optional
+        // state disappeared. A getter exception is also represented as n/a.
+        raid = Fresh(); nearest = raid.Enemy();
+        raid.Sain.EnemyController.GoalEnemy = nearest;
+        raid.Sain.OnGetTransform = () => throw new InvalidOperationException("modeled missing nav getter");
+        nearest.EnemyTransform = null; nearest.KnownPlaces = null; nearest.Path = null;
+        raid.Sain.Decision.CurrentCombatDecision = "SeekCover";
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
+        raid.Sain.Decision.EnemyDecisions.DebugSearchReasons = new SearchReasons
+        { NotSearchReason = "PathCalcFailed", PathCalcFailReason = "path Invalid" };
+        raid.Tick(0); raid.Tick(30);
+        line = PathDetails().Single();
+        Check(line.Contains("sourceNav=n/a, sourceLastHit=n/a, sourceHitValid=n/a") && line.Contains("goalKnown=n/a")
+            && line.Contains("pathStatus=n/a, pathCorners=n/a, pathLength=n/a"), "missing path diagnostic members never invent coordinates or state");
+
+        TeamDeathmatchRelations.Reset();
+        raid.Sain.OnGetTransform = () => raid.Sain.EnemyController.GoalEnemy = selected;
+        raid.Tick(60); raid.Tick(90);
+        Check(PathDetails().Length == 1, "goal change during detail reads discards mixed endpoints");
+        raid.Sain.EnemyController.GoalEnemy = nearest;
+        raid.Sain.OnGetTransform = null;
+        raid.Tick(120);
+        Check(PathDetails().Length == 2, "discarded mixed snapshot does not consume the detail allowance");
+
+        // A non-invalid result does not meet the trigger even if path details
+        // were retained elsewhere; normal raids never enter the observer.
+        raid = Fresh(); nearest = raid.Enemy();
+        raid.Sain.EnemyController.GoalEnemy = nearest;
+        raid.Sain.Decision.CurrentCombatDecision = "SeekCover";
+        raid.Sain.Decision.EnemyDecisions.DebugShallSearch = false;
+        raid.Sain.Decision.EnemyDecisions.DebugSearchReasons = new SearchReasons
+        { NotSearchReason = "PathCalcFailed", PathCalcFailReason = "path not complete" };
+        raid.Tick(0); raid.Tick(30);
+        Check(PathDetails().Length == 0, "other path failures do not trigger invalid-path position detail");
+        raid.Sain.Decision.EnemyDecisions.DebugSearchReasons = new SearchReasons
+        { NotSearchReason = "PathCalcFailed", PathCalcFailReason = "path Invalid" };
+        ArenaSession.IsActive = false; raid.Tick(60); raid.Tick(90);
+        Check(PathDetails().Length == 0, "ordinary raid has no path position diagnosis");
     }
 }

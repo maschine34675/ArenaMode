@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- TDM invalid-path position follow-up (2026-09-08): the user's next log has eight
+  sampled invalid paths, six for the same actor; another actor also cannot path
+  to that actor. `Arena TDM path detail:` adds one bounded position snapshot per
+  physical bot/raid after two qualified invalid-path samples at the existing
+  30-second cadence. It reads actual body positions, cached SAIN NavData and last
+  hits, signed XYZ offsets, the selected goal's last-known destination and cached
+  path status/corner count/length. No sampling, path calculation, cache repair,
+  teleport, loading, AI behavior, profile, server or Redeploy changes.
+  SAIN's `IsOnNavMesh` and last-on time are cached heuristics, not fresh hit proof;
+  last-on age is explicitly not hit age. See `TDM-AWARENESS-REVIEW.md`.
+  Installed native getters checked; independent adversarial review has no P0-P2.
+  Full staged client build passed with zero errors/four existing nullable warnings,
+  without changing installed artifacts. The production-linked verifier passed
+  596 assertions, 28 named negative controls and its final production rerun;
+  evidence: `artifacts/tdm-awareness-checks/804fdf3544e848378a96f6b8f4023533/`.
+  Clean final build/delivery follows the code commit; no new native GPU test.
 - TDM search diagnostics delivered (2026-09-08, code `f619b7d` on `master`):
   the user's two Customs team-start
   USEC 5v5 logs confirm completed rosters after 104.141/37.059 seconds, preserved

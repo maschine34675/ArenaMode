@@ -34,6 +34,9 @@ namespace SAIN.SAINComponent.Classes.EnemyClasses
         public float TimeSinceHeard => Heard ? Time.time - HearingState.At : float.MaxValue;
         public int PositionUpdates;
         public Vector3 KnownPosition;
+        public Components.PlayerTransform EnemyTransform { get; set; } = new();
+        public Components.KnownPlaces KnownPlaces { get; set; } = new();
+        public Components.EnemyPath Path { get; set; } = new();
         public Action OnPositionUpdate, OnGetHearing;
         public Components.BotComponentSpace.Classes.EnemyClasses.EnemyHearing Hearing
         { get { OnGetHearing?.Invoke(); return HearingState; } }
@@ -99,6 +102,9 @@ namespace SAIN.Components
         public Player Player { get; set; }
         public EnemyController EnemyController { get; set; }
         public Action OnGetGoal;
+        public Action OnGetTransform;
+        public PlayerTransform TransformState = new();
+        public PlayerTransform Transform { get { OnGetTransform?.Invoke(); return TransformState; } }
         // The fixture explicitly supplies the active goal; it does not simulate
         // SAIN's target selection or liveness filter.
         public Enemy GoalEnemy { get { OnGetGoal?.Invoke(); return EnemyController.GoalEnemy; } }
@@ -106,6 +112,24 @@ namespace SAIN.Components
         public Decision Decision { get; } = new();
     }
     public class Info { public float TimeBeforeSearch { get; set; } = 60; }
+    // Value fixtures only. No NavMesh sampling or path computation is available.
+    public class PlayerTransform { public NavData NavData { get; set; } = new(); }
+    public class NavData
+    {
+        public Vector3 Position { get; set; }
+        public NavHit LastValidHit { get; set; }
+        public string Status { get; set; }
+        public bool IsOnNavMesh { get; set; }
+        public float TimeLastOnNavMesh { get; set; }
+    }
+    public struct NavHit { public Vector3 position; public bool hit; }
+    public class KnownPlaces { public Vector3? LastKnownPosition { get; set; } }
+    public class EnemyPath
+    {
+        public string PathToEnemyStatus { get; set; }
+        public int PathCornerCount { get; set; }
+        public float PathLength { get; set; }
+    }
     public class Decision
     {
         public string CurrentCombatDecision { get; set; } = "None";

@@ -133,6 +133,59 @@ no-goal and failing optional getter cases, retained reasons after skipped search
 and early grenade/no-combat decisions to the existing production-linked harness.
 The review and final verification result are recorded in the dated handoff.
 
+## Invalid-path positions — 2026-09-08
+
+The next user log (`artifacts/log-review/20260908-211257/client.log`) contains
+eight sampled `path Invalid` failures. Six concern actor 6, whose sampled position
+stays unchanged after initially moving 19.3 metres; another actor also cannot find
+a path to actor 6. Different selected opponents fail while contact/search delay
+requirements are met. This suggests an endpoint/navigation issue, but the log does
+not prove which endpoint is invalid or that the Arena boundary caused it.
+
+`Arena TDM path detail:` now records one additional snapshot per physical bot per
+raid after its second evaluated `PathCalcFailed` / exact `path Invalid` sample.
+Counting uses the existing 30-second observer cadence, not every reconcile call;
+intervening other decisions or changed targets do not erase the first sample.
+Ordinary raids, skipped search evaluations and other path failures cannot trigger
+it. Extra navigation reads only occur after the threshold, and stop after emission.
+A selected-goal change during the reads discards the mixed snapshot without using
+up the one-message allowance. Weak observation state resets with the raid.
+
+The line identifies the same selected SAIN goal as the ordinary snapshot and adds:
+
+- `sourceActual`/`goalActual`: physical player positions; `sourceNav`/`goalNav`:
+  cached `Transform.NavData.Position` values. The source NavData is precisely what
+  SAIN's `Bot.NavMeshPosition` getter reads.
+- Each endpoint's `LastHit`, `HitValid`, `Status`, `OnNav`, `LastOnAge`,
+  `ActualMinusNav` and `NavMinusHit`. Coordinates/differences are signed `(X;Y;Z)`
+  metres with two decimal places and invariant formatting.
+- `goalKnown` and `goalKnownMinusNav`: the selected enemy's cached
+  `KnownPlaces.LastKnownPosition`, which is the destination used by SAIN's path
+  calculation; it is not substituted with the current or nearest player's position.
+- `pathStatus`, `pathCorners`, `pathLength`: existing selected-enemy path state.
+
+All new SAIN getters and Unity's `NavMeshHit.hit`/`position` were checked against
+the installed DLLs (same SAIN hash above; UnityEngine.AIModule SHA256
+`A446A7EC1D78C853617D8C751EB7F089E903C4E4EB18677915471265471CD893`).
+No third-party implementation was copied or bundled.
+
+**Cached status is not an independent NavMesh probe.** Installed SAIN samples
+within one metre, but constructs NavData.Position with current XZ and the hit's Y.
+Its status comparison ignores height, and a failed sample can retain an old hit.
+`IsOnNavMesh` adds a 0.15-second status buffer. `TimeLastOnNavMesh` may therefore
+advance without a new successful hit; `LastOnAge` is not the age of LastValidHit.
+Unset/future last-on times and missing/throwing optional members remain `n/a`;
+a hit with `HitValid=False` must not be interpreted as a valid origin coordinate.
+These values help distinguish candidate endpoint errors without pretending that
+they prove fresh connectivity. There is no SamplePosition/CalculatePath call,
+path/cache edit, teleport, recovery, AI decision or loading change.
+
+Production-linked checks cover deferred reads, retained reasons, differing targets
+and coordinates, vertical/lateral offsets, per-body limits/reset, missing getters,
+selected-goal drift and unchanged contacts/bodies/path fixtures. Four additional
+named source faults exercise threshold, emission cap, destination attribution and
+the selected-goal recheck. Final evidence/review/delivery are in the dated handoff.
+
 ## Offline checks and review
 
 Run only the isolated harness:
