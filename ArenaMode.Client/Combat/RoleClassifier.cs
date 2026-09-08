@@ -4,13 +4,17 @@ namespace ArenaMode.Combat;
 
 /// <summary>
 /// WildSpawnType → score bucket + short killfeed label. Condensed from the
-/// proven AutoIFF switch (same author); PMC humans/bots read the profile side.
+/// proven AutoIFF switch (same author); human PMCs use their profile faction,
+/// while AI keeps its explicit spawn role (including raiders, rogues and bosses).
 /// Buckets are deliberately coarse — labels carry the flavor.
 /// </summary>
 internal static class RoleClassifier
 {
     public static ArenaRole Bucket(IPlayer player)
     {
+        if (HumanPmcSide(player).HasValue)
+            return ArenaRole.Pmc;
+
         var settings = player?.Profile?.Info?.Settings;
         if (settings == null)
             return ArenaRole.Other;
@@ -56,6 +60,10 @@ internal static class RoleClassifier
 
     public static string Label(IPlayer player)
     {
+        var humanSide = HumanPmcSide(player);
+        if (humanSide.HasValue)
+            return humanSide.Value == EPlayerSide.Usec ? "USEC" : "BEAR";
+
         var settings = player?.Profile?.Info?.Settings;
         if (settings == null)
             return "?";
@@ -93,5 +101,20 @@ internal static class RoleClassifier
     {
         var nickname = player?.Profile?.Info?.Nickname;
         return string.IsNullOrEmpty(nickname) ? "?" : nickname;
+    }
+
+    private static EPlayerSide? HumanPmcSide(IPlayer player)
+    {
+        // Native ProfileSettings.Role defaults to assault even for the local
+        // PMC. Only human PMC identity comes from faction: using faction for AI
+        // would turn USEC-side rogues/raiders into PMCs and change their points.
+        // A human Scav must still follow the existing spawn-role mapping.
+        var info = player?.Profile?.Info;
+        if (info == null || player.IsAI)
+            return null;
+
+        return info.Side == EPlayerSide.Usec || info.Side == EPlayerSide.Bear
+            ? info.Side
+            : (EPlayerSide?)null;
     }
 }
