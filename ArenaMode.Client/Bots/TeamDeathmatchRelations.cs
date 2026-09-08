@@ -78,6 +78,7 @@ internal static class TeamDeathmatchRelations
         _world = null;
         _game = null;
         _loggedFailure = false;
+        TdmSearchAwareness.Reset();
     }
 
     /// <summary>
@@ -279,14 +280,23 @@ internal static class TeamDeathmatchRelations
             nearestDistance = distance;
             nearest = actor;
         }
-        if (nearest == null) return;
+        if (nearest == null)
+        {
+            TdmSearchAwareness.Observe(bot, null, null, "no-opponent");
+            return;
+        }
         EnemyInfo info = EnsureNativeEnemy(bot, nearest);
-        if (info == null) return;
+        if (info == null)
+        {
+            TdmSearchAwareness.Observe(bot, nearest, null, "native-pair-unavailable");
+            return;
+        }
         bot.BotsGroup.ReportAboutEnemy(nearest, EEnemyPartVisibleType.Sence, bot);
         info.GroupInfo.IsLastPositionChecked = false;
         info.IgnoreUntilAggression = false;
         bot.Memory.IsPeace = false;
         if (sain != null) RefreshSain(bot, nearest, sain, info);
+        else TdmSearchAwareness.Observe(bot, nearest, null, "native-only");
     }
 
     private static EnemyInfo EnsureNativeEnemy(BotOwner source, Player target)
@@ -351,6 +361,7 @@ internal static class TeamDeathmatchRelations
             _sainLastSeen = seen;
             SainHarmony.Patch(admission, prefix: new HarmonyMethod(
                 typeof(TeamDeathmatchRelations), nameof(SainEnemyPrefix)));
+            TdmSearchAwareness.Configure(enemyType, bot);
             Plugin.ModLogger.LogInfo("Arena TDM: optional SAIN faction admission and awareness available.");
         }
         catch (Exception ex)
@@ -385,18 +396,46 @@ internal static class TeamDeathmatchRelations
 
     private static void RefreshSain(BotOwner source, Player target, object controller, EnemyInfo native)
     {
+        if (!IsCurrentSainOpponent(source, target, controller)) return;
         object enemy = _sainAddEnemy.Invoke(controller, new object[] { target });
+        if (!IsCurrentSainOpponent(source, target, controller)) return;
         if (!IsExactEnemy(enemy, target, native))
         {
             // SAIN.RemoveEnemy also deletes native memory. Rebuild AFTER removal
             // and verify the new exact dictionary pair before feeding knowledge.
             _sainRemoveEnemy.Invoke(controller, new object[] { target.ProfileId });
+            if (!IsCurrentSainOpponent(source, target, controller)) return;
             native = EnsureNativeEnemy(source, target);
             if (native == null) return;
             enemy = _sainAddEnemy.Invoke(controller, new object[] { target });
         }
-        if (IsExactEnemy(enemy, target, native))
+        if (OwnsAwareness(source, target, controller, enemy, native))
+        {
             _sainLastSeen.Invoke(enemy, new object[] { target.Position, Time.time });
+            TdmSearchAwareness.Refresh(source, target, controller, enemy, native);
+        }
+        else TdmSearchAwareness.Observe(source, target, null, "sain-pair-unavailable");
+    }
+
+    private static bool IsCurrentSainOpponent(BotOwner source, Player target, object controller)
+        => Enabled && _game.Status == GameStatus.Started
+            && source != null && source.BotState == EBotState.Active
+            && Register(source.GetPlayer) && Register(target)
+            && GroupFaction(source.BotsGroup).HasValue && AreOpponents(source, target)
+            && controller != null && ReferenceEquals(ExactSainController(source), controller);
+
+    // Recheck after optional mod callbacks: a profile id alone must never transfer
+    // a search cue to a replacement body, another raid, or a foreign enemy wrapper.
+    internal static bool OwnsAwareness(BotOwner source, Player target, object controller,
+        object enemy, EnemyInfo native)
+    {
+        if (!IsCurrentSainOpponent(source, target, controller) || native == null) return false;
+        return source.EnemiesController?.EnemyInfos.TryGetValue(target, out var current) == true
+            && ReferenceEquals(current, native) && ReferenceEquals(native.Person, target)
+            && ReferenceEquals(native.Owner, source) && ReferenceEquals(native.GroupOwner, source.BotsGroup)
+            && source.BotsGroup.Enemies.TryGetValue(target, out var group)
+            && ReferenceEquals(native.GroupInfo, group) && ReferenceEquals(group?.Player, target)
+            && ReferenceEquals(group._botGroup, source.BotsGroup) && IsExactEnemy(enemy, target, native);
     }
 
     private static bool IsExactEnemy(object enemy, Player player, EnemyInfo native)

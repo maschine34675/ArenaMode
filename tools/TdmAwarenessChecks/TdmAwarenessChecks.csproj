@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <!-- Only a local contract double: exercises production's actual optional
+         assembly discovery. No SAIN/EFT implementation or DLL is included. -->
+    <AssemblyName>SAIN</AssemblyName>
+    <AwarenessSource Condition="'$(AwarenessSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TdmSearchAwareness.cs</AwarenessSource>
+    <RelationsSource Condition="'$(RelationsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TeamDeathmatchRelations.cs</RelationsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AwarenessSource)" Link="Production/TdmSearchAwareness.cs" />
+    <Compile Include="$(RelationsSource)" Link="Production/TeamDeathmatchRelations.cs" />
+  </ItemGroup>
+</Project>
