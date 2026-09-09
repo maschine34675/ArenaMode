@@ -124,6 +124,11 @@ nothing is notified — items stay visible, models stay in the pool. Call `Raise
 use `IsPureBoss()`. `ShallBossAttack == true` means "do NOT attack". `ActivateBotsByWave`
 is a boss spawn path despite the name.
 
+**An enum's `default` is a real value, not "none".** `EBoundItem.default` is
+`ItemG` — the grenade slot — so a `FirstOrDefault` over quick slots cannot say
+"nothing found", and acting on the result writes over the grenade picker. Same
+family as the MongoId trap above: check the count, do not compare to default.
+
 **The client caches server answers per game process.** Bot difficulties are fetched once
 and never again. Anything that must vary per raid cannot live there.
 

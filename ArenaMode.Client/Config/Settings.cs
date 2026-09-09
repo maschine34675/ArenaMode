@@ -42,6 +42,7 @@ public static class Settings
     public static ConfigEntry<bool> FastDeploy { get; private set; }
     public static ConfigEntry<bool> SkipPreRaidScreens { get; private set; }
     public static ConfigEntry<bool> InstantSearch { get; private set; }
+    public static ConfigEntry<bool> AutoQuickSlots { get; private set; }
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
@@ -484,6 +485,15 @@ public static class Settings
             "InstantSearch",
             true,
             "Corpse/container searches complete instantly during arena sessions.");
+
+        AutoQuickSlots = config.Bind(
+            "Kits",
+            "AutoQuickSlots",
+            true,
+            "Bind the kit's medical items to the free quick slots (keys 4-0) on every " +
+            "life. The game clears bindings with the body, which is a chore in a mode " +
+            "built on dying. The layout is fixed by what an item DOES, so the same key " +
+            "always holds the same kind of thing.");
 
         AutoSearchCorpses = config.Bind(
             "Loot",
