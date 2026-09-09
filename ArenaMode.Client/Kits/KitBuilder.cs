@@ -262,13 +262,21 @@ public static class KitBuilder
         var existing = FindOccupied(parent, node.SlotId);
         if (existing != null)
         {
-            // ...unless the kit asked for a DIFFERENT one. The surgeon builds
-            // empty pockets from the player's own template, which carries three
-            // special slots; the kits ask for the plain four-cell pockets that a
-            // scav wears, which has none. Letting the kit win removes those slots
-            // rather than emptying them, so nothing of the player's is destroyed
-            // and there is nothing left to hide.
-            if (string.Equals(existing.TemplateId, node.Tpl, StringComparison.OrdinalIgnoreCase))
+            // ...unless this is the POCKETS and the kit asked for a different
+            // template. The surgeon builds empty pockets from the player's own,
+            // which carries three special slots; the kits ask for the plain
+            // four-cell pockets, which has none, so letting the kit win removes
+            // those slots rather than emptying them.
+            //
+            // Pockets and nothing else, by name. Written without that guard, the
+            // rule also fired on SecuredContainer — every kit carries an Alpha
+            // node, so a player wearing anything else had their REAL container
+            // detached from the equipment tree and replaced with an empty one,
+            // contents and all. That slot is unlocked, so the swap succeeded;
+            // the pockets slot is Locked, so the one case it was written for was
+            // the one case that quietly failed. Exactly inverted.
+            if (!string.Equals(node.SlotId, PocketsSlot, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(existing.TemplateId, node.Tpl, StringComparison.OrdinalIgnoreCase))
                 return existing;
 
             var replacement = ReplaceOccupant(parent, node, existing, factory);
@@ -351,12 +359,17 @@ public static class KitBuilder
         }
     }
 
+    private const string PocketsSlot = "Pockets";
+
     /// <summary>
-    /// Swaps what is in a slot for what the kit actually asked for.
+    /// Swaps the pockets for the template the kit asked for.
     ///
-    /// Only reached when the two templates differ, which today means the pockets
-    /// and nothing else. Fails soft: if the swap will not take, the caller keeps
-    /// the item that was already there, which is the pre-existing behaviour.
+    /// Pockets only — the caller guarantees it by name, not by hoping the
+    /// templates happen to differ nowhere else.
+    ///
+    /// Fails soft in both directions: if the slot will not give up its item, or
+    /// will not take the new one, the original goes back and the caller keeps
+    /// what was already there.
     /// </summary>
     private static Item ReplaceOccupant(Item parent, KitItemNode node, Item existing, ItemFactory factory)
     {
@@ -370,7 +383,20 @@ public static class KitBuilder
             if (wanted == null)
                 return null;
 
-            slot.RemoveItem();
+            // WithoutRestrictions, and the result CHECKED. The equipment's
+            // Pockets slot is Locked in the item database, so the restricted
+            // removal returns SlotLockedError and changes nothing — and
+            // discarding that result made the failure look like a success, so
+            // the add that followed hit a still-occupied slot, the rollback add
+            // hit it too, and the whole swap reported "kept the original" while
+            // the special slots stayed exactly where they were.
+            var removed = slot.RemoveItemWithoutRestrictions();
+            if (removed.Failed)
+            {
+                Plugin.ModLogger.LogWarning(
+                    $"Kit '{node.SlotId}': could not free the slot ({removed.Error}); kept {existing.TemplateId}.");
+                return null;
+            }
 
             var result = slot.AddWithoutRestrictions(wanted);
             if (result.Failed)

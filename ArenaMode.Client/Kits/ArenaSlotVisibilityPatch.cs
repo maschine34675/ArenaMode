@@ -8,8 +8,13 @@ using System.Reflection;
 namespace ArenaMode.Kits;
 
 /// <summary>
-/// Hides the secure container from the inventory screen during an arena raid,
-/// the way a scav raid hides it.
+/// Hides the secure container from the inventory screen during an arena raid.
+///
+/// Not "the way a scav raid does", which is what this said first and is wrong
+/// about the game: _hiddenFromOthers holds SecuredContainer, so vanilla hides it
+/// from OTHER people and never from its owner — a scav sees their own container
+/// slot just as a PMC does. Hiding it from the owner is something only this mod
+/// does, and only because the arena has emptied it.
 ///
 /// Cosmetic, and downstream of the real change: the container is emptied anyway,
 /// so this only stops the player opening a slot that has nothing in it and

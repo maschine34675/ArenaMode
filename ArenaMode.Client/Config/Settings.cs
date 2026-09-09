@@ -509,10 +509,12 @@ public static class Settings
             "Kits",
             "EmptySecureContainer",
             true,
-            "Leave the contents of the secure container and the special slots at home, and " +
-            "hide the container slot the way a scav raid does. The container itself still " +
-            "comes along because it is unlootable. Off: your own supplies come with you, " +
-            "which outclasses every kit's medicine and makes the medical tiers decorative.");
+            "Leave the contents of the secure container at home and hide the now-empty " +
+            "slot. The container itself still comes along because it is unlootable. Off: " +
+            "your own supplies come with you, which outclasses every kit's medicine and " +
+            "makes the medical tiers decorative. The special slots are a separate matter " +
+            "and this switch does not reach them: arena kits wear pockets that have none, " +
+            "so there is nothing there to empty either way.");
 
         AutoSearchCorpses = config.Bind(
             "Loot",

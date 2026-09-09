@@ -60,17 +60,19 @@ EARPIECE_LAST_RESORT = '68bf405779c8186398099017'    # Peltor TEP-300 earplugs
 BACKPACK = '56e33680d2720be2748b4576'
 
 # Kept from the original kit rather than generated: the secure container and the
-# armband are the surgeon's business. The pockets CONTAINER is kept too, because
-# it is the right template for this profile — but its CONTENTS are now generated.
+# armband are the surgeon's business. The pockets node is kept as the ANCHOR the
+# medicine hangs off, but both its template and its contents are now generated —
+# see POCKETS below.
 # Carrying those over is why every kit in the catalogue, class 2 and class 6
 # alike, held the same bandage, tourniquet, splint and AI-2.
 CARRY_OVER_SLOTS = {'Pockets', 'SecuredContainer', 'Scabbard', 'ArmBand'}
 
 # The plain four-cell pockets a scav wears. Same four single cells the medicine
 # goes in, but WITHOUT the three special slots the player's own pockets carry —
-# so those slots do not EXIST in an arena raid rather than being emptied of the
-# player's compass and armband. Nothing of theirs is destroyed, and there is
-# nothing left over to hide in the UI.
+# so those slots do not EXIST in an arena raid rather than being emptied of what
+# rides in them — a compass, a map, a marker. Not the armband: that has its own
+# root equipment slot and was never in here. Nothing of the player's is
+# destroyed, and there is nothing left over to hide in the UI.
 POCKETS = '557ffd194bdc2d28148b457f'
 
 # One item per condition that can end a round, getting better as the armour does.
