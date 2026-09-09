@@ -89,10 +89,28 @@ internal static class AutoQuickSlots
     private static float _nextCheckAt;
     private static bool _loggedFailure;
 
+    /// <summary>
+    /// What this service put where, so it can tell its own work from the
+    /// player's. Without it there is no way to notice a deliberate unbind.
+    /// </summary>
+    private static readonly Dictionary<EBoundItem, Item> Ours = new Dictionary<EBoundItem, Item>();
+
+    /// <summary>
+    /// Keys the player emptied by hand. Left alone for the rest of the raid.
+    ///
+    /// Raid-scoped rather than per-life on purpose: the items are new instances
+    /// every life, but "I want this key clear" is about the KEY, and re-asking
+    /// the player to say so after every death is the chore this service exists
+    /// to remove.
+    /// </summary>
+    private static readonly HashSet<EBoundItem> ClearedByPlayer = new HashSet<EBoundItem>();
+
     public static void Reset()
     {
         _nextCheckAt = 0f;
         _loggedFailure = false;
+        Ours.Clear();
+        ClearedByPlayer.Clear();
     }
 
     /// <summary>
@@ -102,9 +120,12 @@ internal static class AutoQuickSlots
     /// Polled rather than hooked to the paths that hand out gear. There are
     /// several of those now — the raid-start swap, the respawn, a Gun Game
     /// promotion, a Tactical re-issue — and more will arrive; a poll is correct
-    /// for all of them including the ones that do not exist yet. It costs a
-    /// dictionary comparison a second, and nothing at all once everything is
-    /// bound.
+    /// for all of them including the ones that do not exist yet.
+    ///
+    /// It costs one walk of the carried items a second. NOT zero once everything
+    /// is bound: a kit carries four medical items into seven keys, so the
+    /// free-slot early-out never fires. A few dozen items once a second, in a
+    /// mode that spawns two dozen bots.
     /// </summary>
     public static void Tick()
     {
@@ -140,19 +161,25 @@ internal static class AutoQuickSlots
 
     private static void Assign(InventoryController inventory, Dictionary<EBoundItem, Item> bound)
     {
-        var free = FreeSlots.Where(slot => !bound.ContainsKey(slot)).ToList();
-        if (free.Count == 0)
-            return;
-
         var carried = inventory.Inventory?.GetPlayerItems(EPlayerItems.Equipment);
         if (carried == null)
+            return;
+
+        var onBody = new HashSet<Item>(carried);
+        NoteWhatThePlayerCleared(bound, onBody);
+
+        var free = FreeSlots
+            .Where(slot => !bound.ContainsKey(slot) && !ClearedByPlayer.Contains(slot))
+            .ToList();
+
+        if (free.Count == 0)
             return;
 
         // Already-bound items are skipped wherever they sit: re-binding one would
         // move it off the key the player has been using all round.
         var alreadyBound = new HashSet<Item>(bound.Values);
 
-        var candidates = carried
+        var candidates = onBody
             .OfType<Meds>()
             .Where(item => !alreadyBound.Contains(item))
             .Where(inventory.IsAtBindablePlace)
@@ -210,6 +237,50 @@ internal static class AutoQuickSlots
         }
     }
 
+    /// <summary>
+    /// Spots the keys the player emptied on purpose.
+    ///
+    /// A binding this service made can only leave BoundItems through
+    /// UnbindResult.Run, which is the player dragging the item out of the quick
+    /// slot. Without noticing that, the next poll put it straight back inside a
+    /// second and the key could never be cleared at all: the service would be
+    /// arguing with the person it is meant to be helping.
+    ///
+    /// A key emptied because the ITEM is gone -- used up, or replaced along with
+    /// the kit -- is not a clear, and says nothing about what the player wants
+    /// on that key.
+    /// </summary>
+    private static void NoteWhatThePlayerCleared(Dictionary<EBoundItem, Item> bound, HashSet<Item> onBody)
+    {
+        if (Ours.Count == 0)
+            return;
+
+        List<EBoundItem> gone = null;
+
+        foreach (var pair in Ours)
+        {
+            if (bound.ContainsKey(pair.Key))
+                continue;
+
+            if (gone == null)
+                gone = new List<EBoundItem>();
+
+            gone.Add(pair.Key);
+
+            // Still on the body means the player took it off the key. Gone means
+            // the item was used up or swapped out with the kit, which is not a
+            // statement about the key at all.
+            if (pair.Value != null && onBody.Contains(pair.Value))
+                ClearedByPlayer.Add(pair.Key);
+        }
+
+        if (gone == null)
+            return;
+
+        foreach (var slot in gone)
+            Ours.Remove(slot);
+    }
+
     private static bool Bind(InventoryController inventory, Item item, EBoundItem index)
     {
         var result = BindResult.Run(inventory, item, index, simulate: false);
@@ -221,6 +292,7 @@ internal static class AutoQuickSlots
         // empty slot on screen — the same trap as a removal whose events are
         // never raised.
         result.Value.RaiseEvents(inventory, CommandStatus.Succeed);
+        Ours[index] = item;
 
         Plugin.ModLogger.LogInfo(
             $"Arena quick slots: bound {item.ShortName?.Localized() ?? item.TemplateId.ToString()} to {index}.");
