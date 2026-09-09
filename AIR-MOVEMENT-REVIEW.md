@@ -102,7 +102,7 @@ physics or the animator graph. Neither offline success nor compilation proves
 the airborne climb transition, animation timing or visible live shot behavior.
 See the dated delivery entry in `HANDOFF.md` for final evidence and client hash.
 
-Final parent verification (2026-09-09): handling 161 assertions/12 source faults,
+Historical initial verification (f53bffa, 2026-09-09): handling 161 assertions/12 source faults,
 air vault 70/13, hip fire and shared scope 92/10, double jump 144/8 and native
 TDM menu/settings 80/8 all passed, including final production reruns. Parent
 independently repeated both delegated suites. Evidence is retained in ignored
@@ -121,13 +121,15 @@ four existing nullable-context warnings, without changing installed artifacts.
 
 ## User GPU follow-up, 2026-09-09
 
-The user reports all four requested changes tested successfully, including the
-native airborne mantle transition. The 12:28–12:43 client log confirms successful
+The earlier broad user report was initially recorded as acceptance of all four
+changes. The later explicit report that airborne mantle still fails retracts
+that part of acceptance. The other three changes remain user-reported working.
+The 12:28–12:43 client log confirms successful
 registration of all eleven handling/vault/fire patches and contains none of the
 new movement failure/fallback/timeout messages. The TDM completed its ten-minute
 limit normally; all three player respawns completed in 0.76–0.80 seconds.
 
-This records user-observed feature acceptance, not an automated measurement of
+This records user feedback, not proof of the mantle transition or a measurement of
 animation timings or separate proof for every regression case below. The same
 run has one recovered initial bot activation failure and one SAIN unload-time
 exception; the server confirms the profile was restored and persisted. See the
@@ -158,6 +160,69 @@ the game, then test an Arena with the same weapon/obstacle and movement settings
 6. Disable movement during each action, end the raid, and enter an ordinary PMC
    raid. Verify native handling and movement there and unchanged bot behavior.
 
-If air vault never enters despite valid geometry, collect its bounded timeout
-diagnostic and a short recording. Inspect the actual native animator transition
-before adding any alternative; do not bypass collision or force animation states.
+If air vault never enters despite valid geometry, collect the bounded
+`Arena airborne mantle` diagnostics and a short recording. Native geometry,
+clip blending and physical collision still need the GPU test; do not infer
+success from hook registration or an empty error log.
+
+## Airborne mantle correction after failed playtest
+
+The user also tried releasing Space to jump, then pressing and holding it again
+in flight. Installed Control.ini uses Jump=Release and Vaulting=Continuous;
+this is not explained by merely forgetting the second press.
+
+The installed `player_anim_controller.animatorcontrollerdata.bundle` has SHA256
+`2896AFC2C1C4AF8F36758B89EB34AEAB94D97545B27FE650DD80A31968CE0DF3`.
+Sequential native binary parsing found 97 parameters, 245 states and 496
+transitions. Its DoClimb/DoVault entrances originate only from standing/moving/
+sprinting states, never from Jump. The original queued flags therefore lacked
+an animation path. The old offline fixture did not exercise that graph.
+
+The correction scopes a single temporary edge to the captured FastAnimator
+processor, controller-state instance, base layer, exact live Jump owner and
+one pending held request. A native transition always wins. A real manual
+geometry rescan, same strategy/stamina and full hands restrictions run again
+at animator consumption, including validation after native float callbacks.
+Moving to another valid obstacle refreshes the four native parameters without
+repeating TryVaulting side effects or extending the original 0.5s expiry.
+
+The edge targets the existing native MOVE-to-Climb/Vault destination, retaining
+native height variants, blend seconds, destination offset and interruption
+settings. It is not inserted into any stored graph list and owns no shared
+parameter listeners. Normal ProcessState enters the target before dispatching
+old Jump motion; MovementContext runs the real Jump.Exit and target.Enter.
+Jump's animator flag is consumed only after verified native entry (Jump.Exit
+alone does not clear it). A pre-entry exception removes only the exact injected
+transition, preserves native errors and requires release before retry. Once
+native entry starts, no generic state/capsule rollback is attempted.
+
+`Base Layer.JUMP.Jump_Loop` is a real behaviorless leaf, reached from Jump_Idle.
+It deliberately keeps that managed Jump owner. Only this exact graph leaf and
+its verified incoming Jump_Idle owner receive the exception; arbitrary
+behaviorless states do not. Non-FastAnimator bodies retain native behavior and
+produce a bounded diagnostic. No Animator.Play, teleport, grounded override,
+profile change or bot movement patch is used.
+
+The updated checks link both production files and extract native ProcessState,
+ProcessImmediateTransition, interruption selection, MovementState callbacks,
+MovementContext.ProcessStateEnter and held ToggleVaulting dispatch. Graph data,
+Unity geometry, animation blending and native state internals remain host
+fixtures: offline success is not visual or in-raid acceptance.
+
+Final correction verification (2026-09-09): airborne mantle 120 assertions and
+25 separately compiled source faults passed, followed by a final production
+run. Hip-fire/shared scope (92 assertions/10 faults), double jump (144/8) and
+TDM menu (80/8) regressions were repeated successfully. Final source builds
+against the installed game APIs with zero errors and four existing nullable
+warnings; staged builds leave installed client/server/Redeploy files unchanged.
+Independent final review found no remaining P0-P2 for the exact source hashes
+below, including the weak diagnostic-world reference and stage-aware logging:
+
+- `ArenaAirVault.cs`: `AFC80B1FEDE073C1EA78D9E215AF3CFCD630C965B42C2EFE32F72F64127FA6CE`
+- `ArenaAirVault.Animator.cs`: `5F9E38A0F3EA071F84A4B6446D2270B85F77B692F79ED2E128663566CAA450E3`
+
+Evidence: `artifacts/air-vault-checks/477a9030a7a04d5ba3963129aa164463/`,
+`artifacts/air-fire-checks/6ec54b73c8e942f985a4b0f83a1d21b4/`,
+`artifacts/double-jump-checks/9293e07d3b9b4f7fba2a30d92c609610/` and
+`artifacts/tdm-match-menu-checks/cf3d9606391e46baaba941f1de66fa35/`.
+GPU acceptance is still pending; the dated handoff records client delivery.

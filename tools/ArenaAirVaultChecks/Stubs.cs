@@ -22,12 +22,13 @@ namespace SPT.Reflection.Patching
     public abstract class ModulePatch { protected abstract MethodBase GetTargetMethod(); public void Enable() { if(GetTargetMethod()==null) throw new Exception("missing target"); } }
     public class PatchPrefixAttribute : Attribute { }
     public class PatchPostfixAttribute : Attribute { }
+    public class PatchFinalizerAttribute : Attribute { }
 }
 namespace Comfort.Common { public static class Singleton<T> { public static T Instance; } }
 namespace ArenaMode
 {
     internal static class Plugin { public static Logger ModLogger = new(); }
-    internal sealed class Logger { public void LogDebug(object value) { } public void LogWarning(object value) { } }
+    internal sealed class Logger { public void LogInfo(object value) { } public void LogDebug(object value) { } public void LogWarning(object value) { } }
 }
 namespace ArenaMode.Config
 {
@@ -48,17 +49,33 @@ namespace ArenaMode.Movement
 }
 namespace EFT
 {
-    public class GameWorld { }
+    public class GameWorld { public Player MainPlayer; }
     public class AbstractGame { }
-    public class BaseMovementState { }
-    public class MovementState : BaseMovementState { public virtual void Vaulting() { } }
+    public class LocalGame : AbstractGame { public Player LocalPlayer; }
+    public class BaseMovementState
+    {
+        public float NormalizedTime, AnimationAuthority, AuthoritySpeed; public int AnimatorStateHash, Name; public bool CanInteract;
+        public int Enters, Exits, Moves; public Action OnEnter;
+        public virtual void Enter(bool same) { Enters++; OnEnter?.Invoke(); }
+        public virtual void Exit(bool same) { Exits++; }
+        public void ReEnter() { }
+        public virtual void OnStateEnter(float nt) { }
+        public virtual void OnStateMove(float nt) { }
+        public virtual void OnStateExit(float nt) { }
+    }
+    public partial class MovementState : BaseMovementState
+    { public MovementContext MovementContext; public virtual void Vaulting() { }
+      public void ManualAnimatorMoveUpdate(float dt) { Moves++; } }
     public class JumpPlayerState : MovementState
     {
         public enum EJumpState { PushingFromTheGround, Jump, Bumbped }
         public EJumpState _jumpState = EJumpState.Jump;
     }
     public class FallDown : JumpPlayerState { }
-    public class VaultingMovementState : MovementState { }
+    public class VaultingMovementState : MovementState
+    { public override void Enter(bool same) { base.Enter(same); MovementContext.Vaulting=true; } }
+    public class ClimbState : VaultingMovementState { }
+    public class VaultState : VaultingMovementState { }
     public class PlayerAnimator
     {
         public object Animator = new();
@@ -69,7 +86,14 @@ namespace EFT
     public partial class MovementContext
     {
         public Player _player;
-        public BaseMovementState CurrentState, OverridenState, OverridenControlsState;
+        public BaseMovementState CurrentState, PreviousState, OverridenState, OverridenControlsState;
+        public float LastDeltaTime=.02f; public Holder CanUseProp=new();
+        public PlayerAnimator _playerAnimator=>PlayerAnimator;
+        public Action<int,int> OnStateChanged;
+        public bool IsSameStates(BaseMovementState a,BaseMovementState b)=>ReferenceEquals(a,b);
+        public void UpdateCharacterControllerSpeedLimit() { }
+        public void PlayerAnimatorEnableJump(bool enabled)=>JumpSet=enabled;
+        public class Holder { public bool Value; }
         public bool IsGrounded, IsInPronePose, IsInMountedState, IsStationaryWeaponInHands, Vaulting, Transition, JumpSet = true, IsSprintEnabled;
         public int BlindFire, PoseToInt = 2;
         public UnityEngine.Vector3 MovementDirection = new(0,1,0);
@@ -90,7 +114,7 @@ namespace EFT
         public class Animation { public int Value; public int GetInteger(int key) => Value; }
     }
     public static class AnimationControllerParametersTable { public const int INT_GRENADEFIRE=0; }
-    public class Player
+    public partial class Player
     {
         public MovementContext MovementContext;
         public IVaultingComponent VaultingComponent;
@@ -101,9 +125,12 @@ namespace EFT
         public Inventory InventoryController = new();
         public object HandsController;
         public int LeftHandRemoved, VaultNotifications, NativeToggleCalls;
+        public Authority AuthorityBlender=new();
+        public class Authority { public float Target, Speed; }
         public void RemoveLeftHandItem(float time) => LeftHandRemoved++;
         public virtual void OnVaulting() => VaultNotifications++;
-        public void ToggleVaulting() { NativeToggleCalls++; CurrentManagedState.Vaulting(); Harness.Held(this); }
+        public float _vaultingTiming;
+        public void ToggleVaulting() { NativeToggleCalls++; NativeToggleVaulting(); Harness.Held(this); }
         public class GrenadeHandsController { public FirearmsAnimator FirearmsAnimator = new(); }
         public class FirearmController
         {
@@ -158,10 +185,11 @@ namespace EFT.Vaulting
         public float VaultingLength=.5f, AbsoluteForwardVelocity=2;
         public UnityEngine.Vector3 MaxWeightPointPosition=new(4,2,1);
         public int Ticks, AnimatorParameters;
-        public Action OnTick;
+        public Action OnTick, OnParameters;
+        public float WrittenHeight, WrittenLength;
         public void Tick() { Ticks++; OnTick?.Invoke(); }
         public bool IsVaulting()=>_vaultingContext.PlayerAnimatorGetIsVaulting();
-        public void SetParametersInAnimator()=>AnimatorParameters++;
+        public void SetParametersInAnimator() { AnimatorParameters++; WrittenHeight=VaultingHeight; WrittenLength=VaultingLength; OnParameters?.Invoke(); }
         public EVaultingStrategy GetVaultingStrategy()
         {
             var result=NativeGetVaultingStrategy();
@@ -177,7 +205,7 @@ namespace EFT.Vaulting
     }
 }
 
-internal static class Harness
+internal static partial class Harness
 {
     private static MethodInfo Method(string patch,string name)=>typeof(ArenaMode.Movement.ArenaAirVault)
         .GetNestedType(patch,BindingFlags.NonPublic).GetMethod(name,BindingFlags.NonPublic|BindingFlags.Static);

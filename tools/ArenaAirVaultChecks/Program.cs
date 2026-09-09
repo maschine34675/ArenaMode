@@ -10,12 +10,15 @@ void Check(bool condition,string label) { assertions++; if(!condition) throw new
 (Player p,MovementContext c,VaultingComponent v) Setup()
 {
     ArenaAirVault.Shutdown(); ArenaMovementScope.Active=true; Settings.AirVaultEnabled.Value=true; Time.unscaledTime=1;
-    Singleton<GameWorld>.Instance=new(); Singleton<AbstractGame>.Instance=new();
+    Singleton<GameWorld>.Instance=new(); Singleton<AbstractGame>.Instance=new LocalGame();
     var settings=new SettingsModel(); Singleton<GlobalConfiguration>.Instance=new() { VaultingSettings=settings };
     var p=new Player(); var c=new MovementContext { _player=p, CurrentState=new JumpPlayerState() };
     p.MovementContext=c; var v=new VaultingComponent { _vaultingContext=c,_vaultingSettings=settings };
     v._vaultingModelDebug.VaultingStatesModel.ClimbState.Allowed=true;
     p.VaultingComponent=v; p.VaultingParameters=v; p.VaultingGameplayRestrictions=new(p,v);
+    ((JumpPlayerState)c.CurrentState).MovementContext=c;
+    Singleton<GameWorld>.Instance.MainPlayer=p; ((LocalGame)Singleton<AbstractGame>.Instance).LocalPlayer=p;
+    c.PlayerAnimator.Animator=AnimatorFixture.Create(c);
     ArenaMovementScope.Local=p; ArenaAirVault.Enable(); return(p,c,v);
 }
 void Denied(Action<Player,MovementContext,VaultingComponent> alter,string label)
@@ -112,11 +115,12 @@ var pendingComponent=Setup(); pendingComponent.p.ToggleVaulting(); pendingCompon
 Check(pendingComponent.c.PlayerAnimator.Climb && !ArenaAirVault.HasPendingRequest(pendingComponent.p),"replacement vault component cannot inherit old pending request");
 foreach (var changeGeometry in new Action<VaultingComponent>[] {
     v=>v.VaultingHeight+=.2f, v=>v.VaultingLength+=.2f, v=>v.BehindObstacleRatio+=.2f,
-    v=>v.AbsoluteForwardVelocity+=.2f, v=>v.MaxWeightPointPosition=new(4.2f,2,1),
-    v=>v.VaultingLength=float.PositiveInfinity })
+    v=>v.AbsoluteForwardVelocity+=.2f, v=>v.MaxWeightPointPosition=new(4.2f,2,1) })
 {
     var drift=Setup(); drift.p.ToggleVaulting(); changeGeometry(drift.v); ArenaAirVault.Tick();
-    Check(!drift.c.PlayerAnimator.Climb,"same strategy with changed geometry cannot use stale animator parameters");
+    Check(drift.c.PlayerAnimator.Climb && drift.v.WrittenHeight==drift.v.VaultingHeight
+        && drift.v.WrittenLength==drift.v.VaultingLength && drift.v.AnimatorParameters==2
+        && drift.p.VaultNotifications==1,"changed valid geometry refreshes animator parameters without repeating request effects");
 }
 var stable=Setup(); stable.p.ToggleVaulting(); stable.v.VaultingHeight+=.001f; ArenaAirVault.Tick();
 Check(stable.c.PlayerAnimator.Climb,"negligible scan noise preserves pending native request");
@@ -129,5 +133,6 @@ Check(blend.c.PlayerAnimator.Climb,"pending native transition is not cancelled b
 
 var ordinary=Setup(); ArenaMovementScope.Active=false; ordinary.c.IsGrounded=true; ordinary.c.JumpSet=false;
 Check(ordinary.v.TryVaulting() && ordinary.c.PlayerAnimator.Climb,"ordinary grounded native mantle is untouched");
+AnimatorChecks.Run(Check, Setup);
 ArenaAirVault.Shutdown();
 Console.WriteLine($"ARENA_AIR_VAULT_CONTRACTS_PASSED ({assertions} assertions; actual production with extracted native strategy/request and full native gameplay restrictions)");

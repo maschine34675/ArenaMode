@@ -7,16 +7,38 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Movement correction and bot-log diagnosis (2026-09-09, later follow-up):**
+  the user explicitly reports airborne mantle still fails, including a second
+  Space press held after jumping. This supersedes the earlier broad acceptance
+  below: absence of errors never proved an actual Jump-to-Climb transition.
+  The installed animator graph has no Jump-to-Climb/Vault edges. A client-only
+  correction adds a one-shot local native transition with fresh geometry,
+  stamina and hands checks; native callbacks retain movement/capsule ownership.
+  It supports the actual behaviorless Jump_Loop via its verified Jump_Idle
+  owner, consumes Jump only after confirmed target entry, and retains ordinary
+  native transitions and exception cleanup. No fake grounding or global graph
+  edits. See AIR-MOVEMENT-REVIEW.md and tools/ArenaAirVaultChecks/README.md.
+  New GPU acceptance remains pending; game restart required after delivery.
+  The latest frozen log is `artifacts/movement-followup/20260909-1540/LogOutput.log`
+  (SHA256 `E2BFA57FCA2E850D7CF5C0D7661C3EB4B76E23917CDDB67D6061B56C594D0F05`).
+  The diagnostic report there finds two bots repeatedly stranded at
+  `(464.91,1.05,-43.64)` for about 182 seconds, a source also present in the prior
+  test. Cached SAIN OnNavMesh is misleading at that spot; a sampled hit is
+  about 0.94m away. It is 24.4m inside the contour and not a spawn, so do not
+  remove a spawn or shift the border on this evidence. Wider low movement
+  correlates with search delays up to 78.8s; one active-search stall still needs
+  actual SAIN ActivePath/corner diagnostics. No AI behavior mutation is included.
+
 - User movement playtest confirmed (2026-09-09, client log 12:28:36–12:43:28):
   user reports all four requested movement changes work, including airborne
   mantle. All eleven new handling/vault/fire patches enabled successfully;
   no movement fallback, request-error or mantle-timeout diagnostics appear.
-  This is user-observed GPU acceptance with a log review, not an independently
-  replayed test of every edge case. The historical delivery entry below records
+  This remains user-observed acceptance for the other three changes with a
+  log review, not an independently replayed test of every edge case. The historical delivery entry below records
   the pre-test state. The logged client has the 11:06 build timestamp and later
   quick-slot work; its exact DLL hash is not present in the log. Current checkout
   also includes `35abdeb`, `8cf0391` and `edb2418`; the movement sources themselves
-  are unchanged since `f53bffa`. Do not treat the currently installed DLL as proof
+  in that logged snapshot were unchanged since `f53bffa`. Do not treat the currently installed DLL as proof
   of the historical test binary or claim this run tested the later `edb2418`.
   Customs contour TDM reached 5v5 ready at 12:32:05.920, then ended normally at
   its 600-second limit (12:42:08.427), USEC 15:14 BEAR. Local player: 11 kills,
