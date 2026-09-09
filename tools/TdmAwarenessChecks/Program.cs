@@ -7,7 +7,7 @@ using SAIN.Components;
 using SAIN.SAINComponent.Classes.EnemyClasses;
 using UnityEngine;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private sealed record Raid(GameWorld World, AbstractGame Game, BotOwner Source, Player Target, BotComponent Sain)
@@ -313,7 +313,7 @@ internal static class Program
     }
     internal static void Main()
     {
-        AdmissionAndAge(); ContactAndForget(); Ownership(); PolicyAndCallbacks(); FallbackAndDiagnostics(); SelectedGoalDiagnostics(); InvalidPathPositions();
+        AdmissionAndAge(); ContactAndForget(); Ownership(); PolicyAndCallbacks(); FallbackAndDiagnostics(); SelectedGoalDiagnostics(); InvalidPathPositions(); MoverDiagnostics();
         Console.WriteLine($"TDM_AWARENESS_CONTRACTS_PASSED: {_checks} assertions; production Relations and hearing bridge linked, no GPU claim.");
     }
 

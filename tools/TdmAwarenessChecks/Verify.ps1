@@ -38,6 +38,11 @@ function Test-Mutant([string]$Name, [string]$Source, [string]$Property, [string]
 
 try {
     Assert-Production 'production-before'
+    Test-Mutant 'mover-detail-early' $awarenessSource 'AwarenessSource' 'observation.LowMotionSamples < 2' 'observation.LowMotionSamples < 1' 'mover detail waits for two measured low-motion samples'
+    Test-Mutant 'mover-detail-unbounded' $awarenessSource 'AwarenessSource' 'observation.MoverDetailLogged || observation.LowMotionSamples' 'observation.LowMotionSamples' 'mover detail reads bounded per body raid'
+    Test-Mutant 'mover-reuse-not-checked' $awarenessSource 'AwarenessSource' ' || !Equals(Read(path, "TimeStarted"), started)' '' 'mover rejects changed reuse'
+    Test-Mutant 'mover-path-not-checked' $awarenessSource 'AwarenessSource' '|| !ReferenceEquals(Read(mover, "ActivePath"), path)' '|| false' 'mover rejects changed path'
+    Test-Mutant 'mover-auto-registers' $awarenessSource 'AwarenessSource' 'TeamDeathmatchRelations.IsRegisteredCurrentBot(source)' 'TeamDeathmatchRelations.Register(source.GetPlayer)' 'mover diagnosis cannot register a missing affiliation'
     Test-Mutant 'cue-omitted' $awarenessSource 'AwarenessSource' '_setHeard.Invoke(hearing, new[] { report, (object)Time.time })' 'null' 'cold opponent receives search cue'
     Test-Mutant 'heard-contact-ignored' $awarenessSource 'AwarenessSource' '(bool)_seen.GetValue(enemy) || (bool)_heard.GetValue(enemy)' '(bool)_seen.GetValue(enemy) || false' 'existing heard timer ages without refresh'
     Test-Mutant 'visible-guard-omitted' $awarenessSource 'AwarenessSource' '(bool)_visible.GetValue(enemy)' 'false' 'existing visible is never reseeded'

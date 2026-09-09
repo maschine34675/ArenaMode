@@ -1,5 +1,12 @@
 # Arena landing, weapon handling and airborne actions
 
+**Latest retest, 2026-09-09 19:19–19:29:** airborne mantle remains unaccepted.
+The player has `UnityAnimatorWrapper`; the later FastAnimator transition bridge
+rejects it before queuing. No successful transition is logged. Earlier broad
+playtest acceptance does not cover mantle. See `TDM-SEARCH-TEMPO-REVIEW.md` for
+the frozen log evidence. A safe Unity transition/cancellation path remains open;
+the subsequent bot search-tempo change does not repair it.
+
 Implementation: 2026-09-09, on `feature/arena-air-movement`, inheriting the
 independent TDM match flow. This is client-only work. Server settings, profiles,
 AI, area barriers, loadouts and Redeploy are unchanged.

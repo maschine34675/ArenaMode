@@ -119,8 +119,18 @@ namespace HarmonyLib
 {
     [AttributeUsage(AttributeTargets.Method)] public class PatchPrefix : Attribute { }
     public class Harmony(string id)
-    { public void Patch(MethodBase method, HarmonyMethod prefix) { } }
-    public class HarmonyMethod(Type type, string name) { }
+    {
+        public static readonly List<(string Id, MethodBase Original, MethodInfo Prefix)> Hooks = new();
+        public static string ThrowOnMethod;
+        public void Patch(MethodBase method, HarmonyMethod prefix)
+        {
+            if (method.Name == ThrowOnMethod) throw new InvalidOperationException("modeled patch failure");
+            Hooks.Add((id, method, prefix.Method));
+        }
+        public void UnpatchSelf() => Hooks.RemoveAll(h => h.Id == id);
+    }
+    public class HarmonyMethod(Type type, string name)
+    { public MethodInfo Method = type.GetMethod(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic); }
     public static class AccessTools
     {
         public static MethodBase Method(Type type, string name, Type[] args) => type.GetMethod(name, args);

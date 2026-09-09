@@ -12,6 +12,8 @@ public sealed partial class TeamDeathmatchMode
     private string _resultExitProblem;
 
     internal bool HasResult => _rules?.Phase == TdmMatchPhase.Finished;
+    // Read-only: AI admission must never advance clocks or publish a result.
+    internal bool IsSearchActive => IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Live;
     internal bool ResultOwnsCurrentRaid => HasResult && IsCurrentRaid()
         && ReferenceEquals(ArenaMatchService.Current, _match);
     internal float PlayingElapsed => _rules?.Elapsed(Time.time) ?? 0f;

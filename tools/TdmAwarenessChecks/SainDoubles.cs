@@ -24,6 +24,7 @@ namespace SAIN.SAINComponent.Classes.EnemyClasses
     public class EnemyPlace { }
     public class Enemy
     {
+        public SAIN.Components.BotComponent Bot { get; set; }
         public Player EnemyPlayer { get; set; }
         public EnemyInfo EnemyInfo { get; set; }
         public bool Seen { get; set; }
@@ -98,6 +99,10 @@ namespace SAIN.Components
 {
     public class BotComponent
     {
+        public Action OnGetMover;
+        public MoverState MoverState = new();
+        public MoverState Mover { get { OnGetMover?.Invoke(); return MoverState; } }
+        public SAIN.Classes.Bot.Search.SearchClass Search { get; set; }
         public BotOwner BotOwner { get; set; }
         public Player Player { get; set; }
         public EnemyController EnemyController { get; set; }
@@ -112,6 +117,33 @@ namespace SAIN.Components
         public Decision Decision { get; } = new();
     }
     public class Info { public float TimeBeforeSearch { get; set; } = 60; }
+    public class MoverState
+    {
+        public ActivePath State;
+        public Action OnGetPath;
+        public ActivePath ActivePath { get { OnGetPath?.Invoke(); return State; } }
+        public bool Moving { get; set; }
+        public bool Running { get; set; }
+    }
+    public class ActivePath
+    {
+        public int Id { get; set; } = 17;
+        public float TimeStarted { get; set; } = 1;
+        public int CurrentIndex { get; set; }
+        public List<Corner> PathCorners { get; set; } = new();
+        public string Status { get; set; } = "Paused";
+        public bool PausedRequested { get; set; } = true;
+        public bool CancelRequested { get; set; }
+        public bool PathRecalcRequested { get; set; }
+        public Vector3 StartPosition { get; set; }
+        public Vector3 Destination { get; set; } = new(200);
+        public Progress CurrentCornerMoveData { get; set; } = new();
+        public string PathStatus { get; set; } = "PathInvalid";
+        public NativePath NavMeshPath { get; set; } = new();
+    }
+    public class NativePath { public string status { get; set; } = "PathComplete"; }
+    public class Corner { public Vector3 Position { get; set; } = new(3); public string Status { get; set; } = "Moving"; }
+    public struct Progress { public float Magnitude, PercentageComplete; }
     // Value fixtures only. No NavMesh sampling or path computation is available.
     public class PlayerTransform { public NavData NavData { get; set; } = new(); }
     public class NavData

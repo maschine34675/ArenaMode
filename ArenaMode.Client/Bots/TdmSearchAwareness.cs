@@ -1,5 +1,6 @@
 using EFT;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -27,6 +28,8 @@ internal static class TdmSearchAwareness
         internal int InvalidPathSamples;
         internal float FirstInvalidPathAt;
         internal bool PathDetailLogged;
+        internal int LowMotionSamples;
+        internal bool MoverDetailLogged;
     }
 
     private static ConditionalWeakTable<object, Cue> _cues = new();
@@ -158,6 +161,8 @@ internal static class TdmSearchAwareness
             var position = source.Position;
             string moved = observation.HasPosition ? Number(Math.Sqrt((position - observation.Position).sqrMagnitude)) : "n/a";
             string elapsed = observation.HasPosition ? Number(now - observation.SampleAt) : "n/a";
+            observation.LowMotionSamples = observation.HasPosition && (position - observation.Position).sqrMagnitude <= 1f
+                ? observation.LowMotionSamples + 1 : 0;
             observation.Position = position;
             observation.SampleAt = now;
             observation.HasPosition = true;
@@ -194,8 +199,47 @@ internal static class TdmSearchAwareness
                 + $"cantStart={Value(Read(want, "CantStartReason"))}, mover={Value(Read(Read(source, "Mover"), "IsMoving"))}, "
                 + $"standby={Value(Read(Read(source, "StandBy"), "StandByType"))}, moved={moved}m/{elapsed}s.");
             ObserveInvalidPath(observation, source, position, component, goalEnemy, goalPlayer, reason, now);
+            ObserveMover(observation, source, component, now);
         }
         catch (Exception ex) { Failure(ex); }
+    }
+
+    // Two low-displacement samples (not continuous immobility), then at most
+    // one snapshot per body/raid. Only cached path/corner state; no path queries.
+    private static void ObserveMover(Observation observation, BotOwner source, object component, float now)
+    {
+        if (observation.MoverDetailLogged || observation.LowMotionSamples < 2 || component == null) return;
+        var mover = Read(component, "Mover");
+        var path = Read(mover, "ActivePath", out bool available);
+        var id = Read(path, "Id");
+        var started = Read(path, "TimeStarted");
+        var index = Read(path, "CurrentIndex");
+        var corners = Read(path, "PathCorners") as IList;
+        int count = corners?.Count ?? -1;
+        object corner = index is int i && i >= 0 && i < count ? corners[i] : null;
+        var progress = Read(path, "CurrentCornerMoveData");
+        string age = started is float time && !float.IsNaN(time) && time >= 0f && time <= now ? Number(now - time) : "n/a";
+        string details = $"path={(available ? path == null ? "none" : "present" : "n/a")}, pathId={Value(id)}, pathAge={age}s, "
+            + $"moving={Value(Read(mover, "Moving"))}, running={Value(Read(mover, "Running"))}, status={Value(Read(path, "Status"))}, "
+            + $"paused={Value(Read(path, "PausedRequested"))}, cancel={Value(Read(path, "CancelRequested"))}, recalc={Value(Read(path, "PathRecalcRequested"))}, "
+            + $"index={Value(index)}, corners={(count < 0 ? "n/a" : count.ToString(CultureInfo.InvariantCulture))}, "
+            + $"corner={Point(Read(corner, "Position"))}, cornerStatus={Value(Read(corner, "Status"))}, "
+            + $"cornerDistance={Value(Read(progress, "Magnitude"))}, progress={Value(Read(progress, "PercentageComplete"))}, "
+            + $"start={Point(Read(path, "StartPosition"))}, destination={Point(Read(path, "Destination"))}, "
+            + $"cachedPathStatus={Value(Read(path, "PathStatus"))}, nativePathStatus={Value(Read(Read(path, "NavMeshPath"), "status"))}";
+        // Path objects and IDs are reused. TimeStarted, index and collection
+        // identity/count must still match after all optional property reads.
+        if (!TeamDeathmatchRelations.Enabled || !ReferenceEquals(source.GetComponent(_botType), component)
+            || !ReferenceEquals(Read(component, "BotOwner"), source)
+            || !ReferenceEquals(Read(component, "Player"), source.GetPlayer)
+            || !TeamDeathmatchRelations.IsRegisteredCurrentBot(source)
+            || !ReferenceEquals(Read(component, "Mover"), mover)
+            || !ReferenceEquals(Read(mover, "ActivePath"), path)
+            || !Equals(Read(path, "Id"), id) || !Equals(Read(path, "TimeStarted"), started)
+            || !Equals(Read(path, "CurrentIndex"), index)
+            || !ReferenceEquals(Read(path, "PathCorners"), corners) || (corners?.Count ?? -1) != count) return;
+        observation.MoverDetailLogged = true;
+        Plugin.ModLogger.LogInfo($"Arena TDM mover detail: bot={ActorId(source)}, lowMotionSamples={observation.LowMotionSamples}, {details}. Endpoint samples; cached invalid status alone does not prove a bad active path.");
     }
 
     // Once per physical bot/raid, after two invalid-path samples at the existing

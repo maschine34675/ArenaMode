@@ -79,6 +79,7 @@ internal static partial class Program
     {
         var raid = new Raid(size: 2);
         raid.Step(0);
+        Check(!raid.Mode.IsSearchActive, "search admission is disabled while assembling");
         var friend = Deliver(Request(EPlayerSide.Usec), EBotState.Active);
         var foe = Deliver(Request(EPlayerSide.Bear), EBotState.Active);
         raid.Step(1);
@@ -99,6 +100,7 @@ internal static partial class Program
         Check(raid.Mode.TryGetMatchNotice(out string heading, out _) && heading.Contains("MATCH STARTS IN")
             && !raid.Mode.TryBeginScoredEvent() && raid.Match.Cues.Count == 0,
             "full roster and completed kit begin a visible non-scoring countdown");
+        Check(!raid.Mode.IsSearchActive, "search admission is disabled during countdown");
         var stranger = new Player { ProfileId = "foreign" };
         Check(raid.Mode.ShouldBlockMatchDamage(raid.Local) && raid.Mode.ShouldBlockMatchDamage(foe.GetPlayer)
             && !raid.Mode.ShouldBlockMatchDamage(stranger), "countdown protects exact participants only");
@@ -116,6 +118,7 @@ internal static partial class Program
             && raid.Match.Cues.SequenceEqual(new[] { ArenaAnnouncerCue.RoundStart })
             && raid.Mode.PlayingElapsed == 0 && !raid.Mode.ShouldBlockMatchDamage(foe.GetPlayer),
             "combat and match clock release together exactly once after the countdown");
+        Check(raid.Mode.IsSearchActive, "search admission is enabled for live match");
         raid.Step(Time.time + 2);
         Check(raid.Mode.PlayingElapsed == 2, "only released combat consumes match time");
     }
@@ -137,6 +140,7 @@ internal static partial class Program
         Check(raid.Mode.HasResult && raid.Mode.IsComplete && raid.Mode.HoldRespawn
             && raid.Mode.ResultHeading == "VICTORY" && !raid.Mode.InitialRosterReady,
             "a kill-limit result freezes play and holds local respawn");
+        Check(!raid.Mode.IsSearchActive, "search admission is disabled after result");
         Check(raid.Match.Cues.Count(cue => cue == ArenaAnnouncerCue.MatchWon) == 1,
             "a terminal winning cue is emitted exactly once");
         Check(!pending.Current() && !pending.Submit(), "result immediately revokes pending request and dispatch ownership");
@@ -188,6 +192,10 @@ internal static partial class Program
         Settings.TeamDeathmatchKillLimit.Value = 1;
         raid.Step(releasedAt + 4);
         Check(!raid.Mode.IsComplete, "time limit is not reached before its exact deadline");
+        Time.time = releasedAt + 5;
+        int cuesBeforeRead = raid.Match.Cues.Count;
+        Check(raid.Mode.IsSearchActive && !raid.Mode.HasResult && raid.Match.Cues.Count == cuesBeforeRead,
+            "search phase read does not publish an overdue result or advance lifecycle");
         raid.Step(releasedAt + 5);
         Check(raid.Mode.HasResult && raid.Mode.ResultHeading == "DRAW" && raid.Mode.PlayingElapsed == 5,
             "frozen time-limit settings finish an equal score as a draw exactly at deadline");

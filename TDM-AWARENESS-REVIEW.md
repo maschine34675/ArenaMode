@@ -1,5 +1,10 @@
 # Independent TDM search awareness — 2026-09-08
 
+Later 2026-09-09 follow-up: `TDM-SEARCH-TEMPO-REVIEW.md` adds a separate native
+search-argument cap and passive actual-mover diagnostics. The hearing admission
+and contact-aging behavior described here remains unchanged; references below
+to unchanged search delays describe this original hearing-only milestone.
+
 Scope: `TeamDeathmatchRelations`, optional `TdmSearchAwareness`, and the isolated
 production-linked `tools/TdmAwarenessChecks` harness. No new movement owner,
 navigation graph change, path-guard relaxation, personality override, PFT change,

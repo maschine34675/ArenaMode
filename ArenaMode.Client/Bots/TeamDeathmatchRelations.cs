@@ -197,6 +197,25 @@ internal static class TeamDeathmatchRelations
         catch { return false; }
     }
 
+    // Passive diagnostics must not auto-register an actor or resolve optional
+    // patches. Read only the already established raid/body affiliations.
+    internal static bool IsRegisteredCurrentBot(BotOwner owner)
+    {
+        var body = owner?.GetPlayer;
+        return _world != null && _game?.Status == GameStatus.Started
+            && ArenaSession.IsActive && ArenaSession.ActiveMode == "teamdeathmatch"
+            && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
+            && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
+            && ArenaSession.IsExactActiveRaid(_game, _world)
+            && body?.IsAI == true && owner.BotState == EBotState.Active
+            && ReferenceEquals(body.AIData?.BotOwner, owner) && IsCurrentBody(body)
+            && _affiliations.TryGetValue(body, out var affiliation)
+            && _affiliations.TryGetValue(owner, out var ownerAffiliation)
+            && ReferenceEquals(affiliation, ownerAffiliation)
+            && affiliation.ProfileId == body.ProfileId && affiliation.Side == body.Profile?.Info?.Side
+            && body.Profile?.Info?.Settings?.Role == (affiliation.Side == EPlayerSide.Usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR);
+    }
+
     /// <summary>
     /// Caller supplies adopted live bodies once per second and owns population
     /// limits. All removals precede additions because SAIN removes by profile id.

@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Latest retest and bot search follow-up (2026-09-09, 19:19–19:29):**
+  see TDM-SEARCH-TEMPO-REVIEW.md for the frozen log hash and exact evidence.
+  TDM ended normally, USEC 23:13 BEAR. Repeated Freeze/DontWantTo samples have
+  roughly 61–62s delays. The new optional exact-SAIN-4.5.1 adapter caps only the
+  two native search predicate arguments to 5s for adopted live TDM opponents;
+  native priorities and shared Info/personality values remain unchanged.
+  Passive actual-mover detail is bounded to one snapshot per bot/raid after
+  two low-displacement samples. No teleport or path rewrite. Normal raids/PFT
+  remain outside this adapter. This is a new behavior requiring user GPU testing.
+  **Airborne mantle still fails:** this run uses UnityAnimatorWrapper, so the
+  previous FastAnimator-only fix rejected every logged attempt before queuing.
+  The earlier acceptance below is superseded for mantle; no Unity repair is
+  included in this bot change. Source branch: `feature/arena-bot-search-followup`,
+  based on `5c9d00b` and retaining the later protected-loadout work.
+  Offline checks passed: tempo 104 assertions/7 source faults, awareness 620/33,
+  actual TDM mode 318 checks with 28 source faults plus burst-preparation
+  regression. Independent final review: no unresolved P0–P2. Client staging:
+  zero errors, four existing nullable warnings. Delivery is recorded separately
+  after building the clean source commit; no new GPU acceptance is claimed.
+
 - **Movement correction and bot-log diagnosis (2026-09-09, later follow-up):**
   the user explicitly reports airborne mantle still fails, including a second
   Space press held after jumping. This supersedes the earlier broad acceptance
@@ -43,9 +63,9 @@ current. User-facing communication is normally German.
   correlates with search delays up to 78.8s; one active-search stall still needs
   actual SAIN ActivePath/corner diagnostics. No AI behavior mutation is included.
 
-- User movement playtest confirmed (2026-09-09, client log 12:28:36–12:43:28):
-  user reports all four requested movement changes work, including airborne
-  mantle. All eleven new handling/vault/fire patches enabled successfully;
+- Historical broad movement playtest (2026-09-09, client log 12:28:36–12:43:28):
+  user initially reported the requested changes worked. Later explicit mantle
+  retests supersede that initial impression. All eleven handling/vault/fire patches enabled successfully;
   no movement fallback, request-error or mantle-timeout diagnostics appear.
   This remains user-observed acceptance for the other three changes with a
   log review, not an independently replayed test of every edge case. The historical delivery entry below records

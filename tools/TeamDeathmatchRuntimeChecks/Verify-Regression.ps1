@@ -32,6 +32,18 @@ if ($baseline.Code -ne 0 -or $baseline.Output -notmatch 'ARENA_TDM_RUNTIME_CHECK
 }
 $cases = @(
     @{
+        Name = 'search-phase-admission'; Path = $flow; Property = 'FlowSource';
+        Find = 'internal bool IsSearchActive => IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Live;';
+        Replace = 'internal bool IsSearchActive => IsCurrentMatch();';
+        Failure = 'search admission is disabled while assembling'
+    },
+    @{
+        Name = 'search-read-publishes-result'; Path = $flow; Property = 'FlowSource';
+        Find = 'internal bool IsSearchActive => IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Live;';
+        Replace = 'internal bool IsSearchActive => TryBeginScoredEvent();';
+        Failure = 'search phase read does not publish an overdue result or advance lifecycle'
+    },
+    @{
         Name = 'human-slot'; Path = $population; Property = 'PopulationSource';
         Find = '=> TeamSize - (usec == LocalUsec ? 1 : 0);'; Replace = '=> TeamSize;';
         Failure = 'human capacity: local faction has exactly N minus one bots'

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <AssemblyName>SAIN</AssemblyName><AssemblyVersion>4.5.1.0</AssemblyVersion>
+    <TempoSource Condition="'$(TempoSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TdmSearchTempo.cs</TempoSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(TempoSource)" Link="Production/TdmSearchTempo.cs" />
+    <Compile Include="..\..\ArenaMode.Client\Bots\TdmSearchAwareness.cs" Link="Production/TdmSearchAwareness.cs" />
+    <Compile Include="..\..\ArenaMode.Client\Bots\TeamDeathmatchRelations.cs" Link="Production/TeamDeathmatchRelations.cs" />
+    <Compile Include="..\TdmAwarenessChecks\Doubles.cs" Link="Doubles.cs" />
+    <Compile Include="..\TdmAwarenessChecks\SainDoubles.cs" Link="SainDoubles.cs" />
+    <Compile Include="..\TdmAwarenessChecks\SearchDoubles.cs" Link="SearchDoubles.cs" />
+  </ItemGroup>
+</Project>

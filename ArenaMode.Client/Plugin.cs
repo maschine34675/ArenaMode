@@ -56,6 +56,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotLifecycleSafety.Enable();
         Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
+        Bots.TdmSearchTempo.Enable();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
         Areas.ArenaAreaInitialSpawnPatch.EnablePatch();
@@ -111,6 +112,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaSainActionSafety.Shutdown();
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
+        Bots.TdmSearchTempo.Shutdown();
         Notifications.ArenaProgressNotifications.Shutdown();
         Diagnostics.ArenaPreviewDiagnostics.Shutdown();
         Hud.ArenaHud.Detach();
