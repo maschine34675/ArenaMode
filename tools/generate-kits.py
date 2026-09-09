@@ -71,8 +71,11 @@ CARRY_OVER_SLOTS = {'Pockets', 'SecuredContainer', 'Scabbard', 'ArmBand'}
 # goes in, but WITHOUT the three special slots the player's own pockets carry —
 # so those slots do not EXIST in an arena raid rather than being emptied of what
 # rides in them — a compass, a map, a marker. Not the armband: that has its own
-# root equipment slot and was never in here. Nothing of the player's is
-# destroyed, and there is nothing left over to hide in the UI.
+# root equipment slot and was never in here.
+#
+# Their contents are discarded with the pockets the kit replaces and come back
+# from the server's profile snapshot, the same way the secure container's do.
+# Nothing is permanently lost, and there is nothing left over to hide in the UI.
 POCKETS = '557ffd194bdc2d28148b457f'
 
 # One item per condition that can end a round, getting better as the armour does.

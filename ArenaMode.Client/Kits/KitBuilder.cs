@@ -268,6 +268,15 @@ public static class KitBuilder
             // four-cell pockets, which has none, so letting the kit win removes
             // those slots rather than emptying them.
             //
+            // What was IN them goes with the discarded pockets item, and it is
+            // worth being exact about that because the first version of this
+            // comment was not: TryTransferSpecialSlots has already moved the
+            // player's compass off the old body and into the pockets being
+            // thrown away, so it does not ride the corpse — it is discarded and
+            // comes back from the server's profile snapshot, exactly like the
+            // secure container's contents. Nothing is permanently lost; nothing
+            // stays behind either.
+            //
             // Pockets and nothing else, by name. Written without that guard, the
             // rule also fired on SecuredContainer — every kit carries an Alpha
             // node, so a player wearing anything else had their REAL container
