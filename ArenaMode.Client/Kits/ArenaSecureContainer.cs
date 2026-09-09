@@ -108,12 +108,12 @@ internal static class ArenaSecureContainer
         if (item == null)
             return false;
 
-        // Unbound FIRST, and by hand, because the removal will not do it for us
-        // here. ItemManipulator.TryUnbindOneItem only unbinds what is NOT at a
-        // bindable place — and this mod (and UseItemsAnywhere, if installed)
-        // widens exactly that test to anything worn, so a container item that
-        // had been bound stays bound while the item itself is destroyed. The key
-        // would then look occupied and do nothing.
+        // Unbound FIRST, because the removal will not do it. ItemManipulator's
+        // Remove path never calls TryUnbindItems at all — only the MOVE path
+        // does — so a bound container item would be destroyed with its binding
+        // intact and the key would look occupied and do nothing. (The first
+        // version of this comment blamed the reach widening for that; it is
+        // simpler and worse than that, the removal just never unbinds.)
         Unbind(controller, item);
 
         var result = ItemManipulator.RemoveWithoutRestrictions(item, controller);
@@ -127,19 +127,23 @@ internal static class ArenaSecureContainer
         return true;
     }
 
+    /// <summary>
+    /// Unbinds the item AND everything inside it.
+    ///
+    /// The game's own walker rather than a hand-written check of the one item:
+    /// a container holds cases, a case holds a medkit, and the medkit is what
+    /// was bound. Looking only at the item being removed left exactly the dead
+    /// key this is here to prevent.
+    /// </summary>
     private static void Unbind(InventoryController controller, Item item)
     {
-        var bound = controller.Inventory?.FastAccess?.BoundItems;
-        if (bound == null)
+        if (controller.Inventory?.FastAccess?.BoundItems == null)
             return;
 
-        // Materialised: UnbindItemDirect mutates the dictionary being read.
-        var keys = bound.Where(pair => ReferenceEquals(pair.Value, item)).Select(pair => pair.Key).ToList();
-        if (keys.Count == 0)
-            return;
+        var unbound = new List<UnbindResult>();
+        ItemManipulator.TryUnbindItems(controller, item, in unbound, simulate: false);
 
-        var result = controller.UnbindItemDirect(item, simulate: false);
-        if (result.Succeeded)
-            result.Value.RaiseEvents(controller, CommandStatus.Succeed);
+        foreach (var result in unbound)
+            result.RaiseEvents(controller, CommandStatus.Succeed);
     }
 }
