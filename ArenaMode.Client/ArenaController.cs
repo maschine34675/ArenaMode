@@ -23,6 +23,7 @@ internal sealed class ArenaController : MonoBehaviour
         Compat.PitFireTeamCompat.Tick();
         Areas.ArenaAreaRuntime.Tick();
         BurstSpawnService.Tick();
+        BotLoadBoost.Tick();
         ArenaHostility.Tick();
         Movement.MovementRuntime.Tick();
         CorpseLightService.Tick();

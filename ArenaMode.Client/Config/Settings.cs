@@ -45,6 +45,9 @@ public static class Settings
     public static ConfigEntry<bool> AutoQuickSlots { get; private set; }
     public static ConfigEntry<bool> UseItemsAnywhere { get; private set; }
     public static ConfigEntry<bool> EmptySecureContainer { get; private set; }
+    public static ConfigEntry<bool> BotLoadBoost { get; private set; }
+    public static ConfigEntry<float> BotLoadBoostBudget { get; private set; }
+    public static ConfigEntry<float> BotLoadBoostDelaySeconds { get; private set; }
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
@@ -488,6 +491,37 @@ public static class Settings
             "InstantSearch",
             true,
             "Corpse/container searches complete instantly during arena sessions.");
+
+        BotLoadBoost = config.Bind(
+            "Performance",
+            "BotLoadBoost",
+            true,
+            "Let bot and kit loading borrow frame time while it is running. Once a frame is over " +
+            "the game's scheduler budget (1000 / framerate limit, the lobby limit if the game " +
+            "limit is off), loading advances one pass per frame instead of running until the " +
+            "budget is spent - so a machine held at 60 fps under a 120 limit turns a one-second " +
+            "bot load into a minute. This re-enables the scheduler's own force mode for the " +
+            "duration of a load, at the cost of a longer frame while it runs. Arena only.");
+
+        BotLoadBoostBudget = config.Bind(
+            "Performance",
+            "BotLoadBoostBudget",
+            1f,
+            new ConfigDescription(
+                "Loading time granted per frame while boosted, as a multiple of half the target " +
+                "frame (at a 120 fps limit, 1.0 = 4 ms). Higher loads faster and dips the framerate " +
+                "more while a bot is loading; the game itself uses 3 behind loading screens.",
+                new AcceptableValueRange<float>(0.25f, 3f)));
+
+        BotLoadBoostDelaySeconds = config.Bind(
+            "Performance",
+            "BotLoadBoostDelaySeconds",
+            1f,
+            new ConfigDescription(
+                "How long loading must have been running before the boost kicks in. A machine " +
+                "that finishes each load inside this window never pays a frame for it. Gaps " +
+                "under half a second between loads do not restart the clock.",
+                new AcceptableValueRange<float>(0f, 10f)));
 
         AutoQuickSlots = config.Bind(
             "Kits",
