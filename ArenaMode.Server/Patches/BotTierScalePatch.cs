@@ -4,6 +4,8 @@ using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Bot;
 using SPTarkov.Server.Core.Models.Spt.Bots;
 using System.Reflection;
+using System.Text.Json;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Server.Patches;
 
@@ -30,9 +32,8 @@ namespace ArenaMode.Server.Patches;
 /// team Arena leaves SPT's real player-relative values alone; the solo modes keep
 /// this progression curve.
 ///
-/// The ramp runs on raid TIME rather than the client's pressure curve. Time is
-/// that curve's backbone anyway, and reading it here costs no traffic and
-/// cannot desync.
+/// Finite TDM transports its frozen live-match clock in the existing native
+/// demand request. Other modes/older clients retain the server raid-time ramp.
 /// </summary>
 public sealed class BotTierScalePatch : AbstractPatch
 {
@@ -81,7 +82,7 @@ public sealed class BotTierScalePatch : AbstractPatch
     }
 
     [PatchPrefix]
-    public static void Prefix(MongoId sessionId, BotGenerationDetails botGenerationDetails)
+    public static void Prefix(MongoId sessionId, BotGenerationDetails botGenerationDetails, GenerateCondition? __1 = null)
     {
         try
         {
@@ -107,14 +108,33 @@ public sealed class BotTierScalePatch : AbstractPatch
             if (protectedTeam)
                 return;
 
-            if (!ArenaContext.Config.Maps.TryGetValue(location!.ToLowerInvariant(), out var map)
-                || !map.ScaleBotTier)
+            if (!ArenaContext.Config.Maps.TryGetValue(location!.ToLowerInvariant(), out var map))
             {
                 return;
             }
 
             var rampMinutes = Math.Max(1, map.BotTierRampMinutes);
-            var progress = Math.Clamp(elapsed.TotalMinutes / rampMinutes, 0d, 1d);
+            int duration = 0;
+            if (__1?.ExtensionData?.TryGetValue(ArenaDifficultyClock.WireKey, out var wireClock) == true)
+            {
+                // The native serializer preserves this condition through Task.Run.
+                // Bind its clock to the exact current session/map/arm, never to a
+                // map-wide or ambient last-received time. Old clients keep the ramp above.
+                var clock = wireClock is JsonElement element ? element.Deserialize<ArenaDifficultyClock>() : null;
+                if (clock?.IsValid() != true
+                    || __1.Limit <= 0 || botGenerationDetails.BotCountToGenerate <= 0
+                    || !sessions.TryGetTeamDeathmatchBotContext(sessionId, location, out var token)
+                    || !string.Equals(token, clock.ArmToken, StringComparison.Ordinal)) return;
+                duration = clock.TimeLimitSeconds;
+                elapsed = TimeSpan.FromSeconds(clock.PlayingElapsedSeconds);
+                // Do not fill a 15-profile reserve with early-match gear. This
+                // changes only the current finite TDM request, never SPT config.
+                botGenerationDetails.BotCountToGenerate = Math.Min(botGenerationDetails.BotCountToGenerate, __1.Limit);
+            }
+            // The one-profile demand remains bounded even when the user opts
+            // out of gear progression; the native level/range then stay intact.
+            if (!map.ScaleBotTier) return;
+            var progress = ArenaDifficultyClock.Progress(elapsed.TotalSeconds, duration, rampMinutes * 60d);
 
             var start = Math.Clamp(map.BotTierStartLevel, 1, MaxUsableLevel);
             var end = Math.Clamp(map.BotTierEndLevel, start, MaxUsableLevel);
@@ -126,7 +146,7 @@ public sealed class BotTierScalePatch : AbstractPatch
             botGenerationDetails.LocationSpecificPmcLevelOverride =
                 new MinMax<int>(Math.Max(1, here - Spread), here + Spread);
 
-            Report(location!, elapsed, here);
+            Report(location!, elapsed, here, duration, progress);
         }
         catch (Exception ex)
         {
@@ -146,7 +166,7 @@ public sealed class BotTierScalePatch : AbstractPatch
     /// feature after a playtest was what levels it had actually handed out, and
     /// the log had nothing to say.
     /// </summary>
-    private static void Report(string location, TimeSpan elapsed, int level)
+    private static void Report(string location, TimeSpan elapsed, int level, int duration, double progress)
     {
         if (level == _lastReported)
             return;
@@ -154,7 +174,8 @@ public sealed class BotTierScalePatch : AbstractPatch
         _lastReported = level;
         ArenaContext.Logger?.Info(
             $"[ArenaMode] Bot tier ramp on {location}: {elapsed.TotalMinutes:0} min in, "
-            + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}.");
+            + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}; "
+            + $"clock={(duration > 0 ? "match" : "legacy")}, duration={duration}s, progress={progress:P0}.");
     }
 
     /// <summary>A new raid starts the ramp over, so it should report from the bottom again.</summary>

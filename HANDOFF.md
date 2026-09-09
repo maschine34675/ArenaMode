@@ -7,6 +7,30 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Duration-scaled TDM and latest retest (2026-09-09, evening):**
+  `DURATION-DIFFICULTY-REVIEW.md` records the 600s USEC 35:17 BEAR match and
+  frozen log hash. Low-displacement endpoint samples declined; one bot still
+  revisited the known Customs invalid-nav position. Keep that geometry issue
+  and the earlier UnityAnimatorWrapper airborne-mantle issue open. No new
+  in-raid error or activation failure; protected end completed in server log.
+  Finite independent TDM now linearly scales existing pressure and equipment
+  against frozen live-play duration, reaching full curve at 80% (5min -> 4min).
+  Assembly/countdown are excluded; streak surge/caps remain. PMC impossible
+  starts at 64% absent streak. Existing bots are not retroactively re-equipped.
+  Native provider-scoped requests carry the exact arm clock without polling;
+  one-profile demands, unused cache-reference exclusion and exact PMC backup
+  suppression prevent early equipment stockpiles. Partial hook installation
+  leaves generation native. Normal raids/unlimited modes/PFT preserve their
+  documented boundaries (unlimited pressure live time, gear server raid time).
+  Branch `feature/arena-duration-balance` inherits `ea26880` and its prior
+  protected-loadout work. Host checks cover the actual clock/pressure/request
+  patches plus nine source faults; actual TDM mode has 325 checks and its
+  existing 28 source faults/burst regression. Server: 468 passed, one skipped
+  installed-Factory geometry fixture. Staged builds succeeded; independent
+  final review has no unresolved P0-P2. Delivery/source hashes are recorded in
+  a following entry, not inferred from these pre-commit builds. No GPU raid
+  run, push or branch merge is included in this change.
+
 - **Arena bleeding balance (2026-09-09):** `ARENA-BLEEDING-REVIEW.md` documents
   native light/heavy bleed HP loss at default x3, configurable under F12
   Character / BleedingDamageMultiplier (1-10). Exact live Arena bodies only;

@@ -751,6 +751,7 @@ internal static partial class Program
         ScoreAwardsTracersAndLoot();
         BoundedAreaModeContract();
         MatchReadinessAndCountdown();
+        MatchDifficultyClock();
         MatchReadinessLossBetweenRosterTicks();
         MatchTerminalPopulationAndPresentation();
         MatchTimeLimitAndRuleSnapshot();

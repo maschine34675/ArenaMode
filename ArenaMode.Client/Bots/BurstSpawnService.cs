@@ -1011,6 +1011,11 @@ internal static class BurstSpawnService
     /// </summary>
     public static void PrewarmPmcProfiles()
     {
+        // This runs before ArenaMatch is constructed. Finite TDM freezes these
+        // same settings at OnMatchStart; do not preload its peak difficulty with
+        // opening-tier equipment. Its per-wave server batch is request-sized.
+        if (ArenaSession.IsActive && ArenaBotDifficultyClockPatch.IsReady && ArenaSession.ActiveMode == "teamdeathmatch"
+            && Settings.TeamDeathmatchTimeLimitSeconds.Value > 0) return;
         try
         {
             var spawner = (Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;

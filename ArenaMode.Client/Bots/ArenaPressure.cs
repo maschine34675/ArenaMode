@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Modes;
+using ArenaMode.Shared;
 using EFT;
 using System;
 using UnityEngine;
@@ -63,7 +64,11 @@ internal static class ArenaPressure
             try
             {
                 var rampSeconds = Mathf.Max(60f, Settings.PressureRampMinutes.Value * 60f);
-                var overTime = Mathf.Clamp01(match.Elapsed / rampSeconds);
+                float elapsed = match.Elapsed;
+                int duration = 0;
+                if (match.Mode is TeamDeathmatchMode teams && !teams.TryGetDifficultyClock(out elapsed, out duration))
+                    return 0f;
+                var overTime = (float)ArenaDifficultyClock.Progress(elapsed, duration, rampSeconds);
 
                 var surge = Mathf.Clamp01(match.Streak / (float)StreakForFullSurge)
                             * Mathf.Clamp01(Settings.PressureStreakPercent.Value / 100f);

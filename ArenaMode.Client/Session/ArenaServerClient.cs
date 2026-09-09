@@ -231,6 +231,7 @@ public static class ArenaServerClient
     }
 
     internal static string PendingArmToken => _pendingArmToken;
+    internal static string ActiveArmToken => _activeArmToken;
 
     public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
         string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null)

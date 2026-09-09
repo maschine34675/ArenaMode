@@ -14,7 +14,7 @@ using SPTarkov.Server.Core.Models.Spt.Bots;
 namespace ArenaMode.Tests;
 
 [Collection(ArenaContextSerialCollection.Name)]
-public sealed class BotTierScalePatchTests : IDisposable
+public sealed partial class BotTierScalePatchTests : IDisposable
 {
     private const string ArenaSession = "0123456789abcdef01234567";
     private const string OrdinarySession = "89abcdef0123456701234567";

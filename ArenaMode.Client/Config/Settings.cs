@@ -861,7 +861,8 @@ public static class Settings
             "PressureRampMinutes",
             12,
             new ConfigDescription(
-                "Minutes of raid time to reach full pressure on the clock alone. " +
+                "For matches without a time limit: minutes to reach full pressure on the clock alone. " +
+                "Timed Team DM instead reaches full pressure at 80% of its frozen match duration, excluding assembly/countdown. " +
                 "This half only ever climbs — it is what stops a long raid from " +
                 "getting easier as you settle in.",
                 new AcceptableValueRange<int>(1, 60)));
