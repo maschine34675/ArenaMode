@@ -15,6 +15,11 @@ public static class Settings
     public static ConfigEntry<float> SpawnProtectionSeconds { get; private set; }
     public static ConfigEntry<bool> DisableLabyrinthSpawnTraps { get; private set; }
     public static ConfigEntry<bool> MovementEnabled { get; private set; }
+    public static ConfigEntry<float> LandingRecoveryMultiplier { get; private set; }
+    public static ConfigEntry<float> WeaponDrawSpeedMultiplier { get; private set; }
+    public static ConfigEntry<float> WeaponHolsterSpeedMultiplier { get; private set; }
+    public static ConfigEntry<bool> AirVaultEnabled { get; private set; }
+    public static ConfigEntry<bool> AirHipFireEnabled { get; private set; }
     public static ConfigEntry<float> WalkSpeedMult { get; private set; }
     public static ConfigEntry<float> SprintSpeedMult { get; private set; }
     public static ConfigEntry<float> ExtraMotionScale { get; private set; }
@@ -302,6 +307,20 @@ public static class Settings
             "Enabled",
             true,
             "Arena movement overhaul (all knobs below only apply during arena sessions).");
+
+        LandingRecoveryMultiplier = config.Bind("Movement", "LandingRecoveryMultiplier", 0.5f,
+            new ConfigDescription("Duration of the local Arena player's hard-landing slowdown (0.5 = half, 1 = vanilla).",
+                new AcceptableValueRange<float>(0.1f, 1f)));
+        WeaponDrawSpeedMultiplier = config.Bind("Movement", "WeaponDrawSpeedMultiplier", 1.5f,
+            new ConfigDescription("Local Arena firearm draw speed. Does not change reload or firing speed.",
+                new AcceptableValueRange<float>(1f, 3f)));
+        WeaponHolsterSpeedMultiplier = config.Bind("Movement", "WeaponHolsterSpeedMultiplier", 1.5f,
+            new ConfigDescription("Local Arena firearm holster speed. Does not change reload or firing speed.",
+                new AcceptableValueRange<float>(1f, 3f)));
+        AirVaultEnabled = config.Bind("Movement", "AirVaultEnabled", true,
+            "Allow a deliberate native vault/climb input during an Arena jump when the obstacle and hands checks permit it.");
+        AirHipFireEnabled = config.Bind("Movement", "AirHipFireEnabled", true,
+            "Allow firearm hip fire during an Arena jump. Native aiming, ammo, reload, malfunction and vault restrictions remain.");
 
         WalkSpeedMult = config.Bind(
             "Movement",

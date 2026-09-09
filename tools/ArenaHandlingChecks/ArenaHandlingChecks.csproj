@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <HandlingSource Condition="'$(HandlingSource)' == ''">../../ArenaMode.Client/Movement/ArenaHandlingPatches.cs</HandlingSource>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="$(HandlingSource)" Link="Production/ArenaHandlingPatches.cs" /></ItemGroup>
+</Project>

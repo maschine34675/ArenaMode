@@ -53,6 +53,7 @@ try {
     Test-Mutant 'vertical-clock-reset-removed' 'jump._stateTime = jump._liftDelay;' '// missing vertical clock reset' 'extra impulse restarts native vertical clock'
     Test-Mutant 'captured-credit-identity-removed' '|| !ReferenceEquals(credit, expectedCredit)' '' 'same-object exit and entry cannot replace captured credit'
     Test-Mutant 'post-debit-ownership-revalidation-removed' 'if (!OwnsCredit(jump, __state.Player, __state.Credit)' 'if (false' 'body swap during debit rejects impulse'
+    Test-Mutant 'pending-mantle-guard-removed' '&& !ArenaAirVault.HasPendingRequest(player)' '' 'pending native mantle takes precedence'
 }
 finally { Assert-Production }
 Write-Output "Double jump check evidence: $arenaWork"

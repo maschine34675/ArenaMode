@@ -44,6 +44,7 @@ internal static class Program
             Settings.MovementEnabled.Value = true;
             Settings.DoubleJumpEnabled.Value = true;
             Settings.DoubleJumpHeightMult.Value = 0.8f;
+            ArenaAirVault.Pending = false;
             ArenaInputBlocker.Blocked = ArenaRespawnDriver.IsRespawnInProgress = ArenaSpectatorService.IsActive = false;
             ArenaSession.IsActive = true;
             Jump = falling ? new FallDownPlayerState(Context) : new JumpPlayerState(Context);
@@ -141,6 +142,7 @@ internal static class Program
             ("native stamina restriction denies", f => f.Player.Physical.CanJump = false),
             ("vault input guard denies", f => f.Player._vaultingTiming = 0.3f),
             ("vault animation denies", f => f.Context.Vaulting = true),
+            ("pending native mantle takes precedence", f => ArenaAirVault.Pending = true),
         };
         foreach (var test in cases)
         {

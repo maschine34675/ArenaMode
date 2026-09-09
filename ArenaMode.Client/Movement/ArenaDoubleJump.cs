@@ -133,6 +133,7 @@ internal static class ArenaDoubleJump
         // Exactly the native Player.Jump vault guard, plus physical restrictions
         // from MovementContext.TryJump. Do not fake IsGrounded or CanJump.
         return !context.IsGrounded
+            && !ArenaAirVault.HasPendingRequest(player)
             && jump._jumpState == JumpPlayerState.EJumpState.Jump
             && !context.IsInPronePose && !context.IsInMountedState
             && context.CanJump && player.Physical != null

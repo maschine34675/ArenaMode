@@ -1,0 +1,349 @@
+using ArenaMode.Config;
+using Comfort.Common;
+using EFT;
+using EFT.Vaulting;
+using HarmonyLib;
+using SPT.Reflection.Patching;
+using System;
+using System.Reflection;
+using UnityEngine;
+
+namespace ArenaMode.Movement;
+
+/// <summary>
+/// The held native vault binding may request a mantle during a real jump.
+/// Only this synchronous request supplies an airborne strategy: native geometry,
+/// stamina, gameplay restrictions and the animator still execute the actual move.
+/// No grounded flag, transform, controller motion or global settings are written.
+/// </summary>
+internal static class ArenaAirVault
+{
+    private sealed class Request
+    {
+        internal Player Player;
+        internal MovementContext Context;
+        internal JumpPlayerState Jump;
+        internal VaultingComponent Component;
+        internal GameWorld World;
+        internal AbstractGame Game;
+        internal PlayerAnimator Animator;
+        internal object AnimatorHandle;
+        internal Geometry CommittedGeometry;
+    }
+
+    private readonly struct Geometry
+    {
+        private readonly float _length, _height, _behind, _velocity;
+        private readonly Vector3 _obstacle;
+
+        internal Geometry(VaultingComponent component)
+        {
+            _length = component.VaultingLength;
+            _height = component.VaultingHeight;
+            _behind = component.BehindObstacleRatio;
+            _velocity = component.AbsoluteForwardVelocity;
+            _obstacle = component.MaxWeightPointPosition;
+        }
+
+        internal bool IsFinite => Finite(_length) && Finite(_height) && Finite(_behind)
+            && Finite(_velocity) && Finite(_obstacle.x) && Finite(_obstacle.y) && Finite(_obstacle.z);
+
+        internal bool Matches(VaultingComponent component)
+        {
+            var current = new Geometry(component);
+            // A queued animator flag must not start a later move using an old
+            // obstacle scan. These are tolerances for scan noise, never relaxed
+            // native obstacle limits: CanMove still runs against fresh geometry.
+            return IsFinite && current.IsFinite
+                && Math.Abs(_length - current._length) <= 0.01f
+                && Math.Abs(_height - current._height) <= 0.01f
+                && Math.Abs(_behind - current._behind) <= 0.01f
+                && Math.Abs(_velocity - current._velocity) <= 0.05f
+                && (_obstacle - current._obstacle).sqrMagnitude <= 0.0001f;
+        }
+
+        private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+    }
+
+    private sealed class Pending
+    {
+        internal Request Request;
+        internal EVaultingStrategy Strategy;
+        internal float ExpiresAt;
+    }
+
+    private static Request _request;
+    private static Pending _pending;
+    private static Player _blockedUntilRelease;
+    private static bool _enabled;
+    private static bool _warned;
+
+    internal static void Enable()
+    {
+        try
+        {
+            new HeldVaultPatch().Enable();
+            new StrategyPatch().Enable();
+            new CommitPatch().Enable();
+            _enabled = true;
+        }
+        catch (Exception ex) { _enabled = false; Warn(ex); }
+    }
+
+    internal static void Shutdown()
+    {
+        _enabled = false;
+        _request = null;
+        CancelPending();
+        _blockedUntilRelease = null;
+    }
+
+    internal static bool HasPendingRequest(Player player)
+    {
+        try { return _pending != null && ReferenceEquals(_pending.Request.Player, player) && OwnsTarget(_pending.Request); }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>Called even when movement is disabled, to release our own queued flag.</summary>
+    internal static void Tick()
+    {
+        if (_request != null) return;
+        try
+        {
+            if (_blockedUntilRelease != null
+                && (!_blockedUntilRelease.IsVaultingPressed || !ArenaMovementScope.IsLocal(_blockedUntilRelease)))
+                _blockedUntilRelease = null;
+
+            Pending pending = _pending;
+            if (pending == null) return;
+            Request request = pending.Request;
+            if (!OwnsTarget(request))
+            { _pending = null; return; }
+
+            // Once EFT has entered the move, its state owns flags/capsule/cleanup.
+            // Never clear a successfully entered native climb or vault.
+            if (request.Context.CurrentState is VaultingMovementState)
+            { _pending = null; return; }
+
+            if (!IsEligible(request) || !HasFlag(pending))
+            { CancelPending(); return; }
+
+            if (Time.unscaledTime >= pending.ExpiresAt)
+            {
+                _blockedUntilRelease = request.Player;
+                CancelPending();
+                Plugin.ModLogger.LogDebug("Arena airborne mantle: native animation did not accept the request; release vault to retry.");
+                return;
+            }
+
+            // The animator may already be blending into its move. Do not cancel
+            // that handoff merely because native strategy selection blocks NEW
+            // requests while an animation transition is running.
+            if (request.Context.IsAnimatorInTransitionState(0)) return;
+            request.Component.Tick();
+            if (!ReferenceEquals(_pending, pending)) return;
+            bool valid = IsEligible(request)
+                && SelectGeometryStrategy(request) == pending.Strategy
+                && request.CommittedGeometry.Matches(request.Component);
+            if (valid)
+            {
+                // Supply the same real airborne strategy to the unmodified
+                // height-dependent gameplay checks, including changed hands.
+                _request = request;
+                try { valid = request.Player.VaultingGameplayRestrictions?.CanVaulting() == true; }
+                finally { if (ReferenceEquals(_request, request)) _request = null; }
+            }
+            if (!valid)
+                CancelPending();
+        }
+        catch (Exception ex) { CancelPending(); Warn(ex); }
+    }
+
+    private static bool IsEligible(Request request)
+    {
+        if (!_enabled || !Settings.AirVaultEnabled.Value || request == null
+            || !ArenaMovementScope.IsLocal(request.Player, requireInput: true)
+            || !OwnsTarget(request)
+            || !ReferenceEquals(request.Context.CurrentState, request.Jump)
+            || !ReferenceEquals(request.Player.CurrentManagedState, request.Jump)
+            || request.Jump.GetType() != typeof(JumpPlayerState)
+            || request.Context.OverridenState != null || request.Context.OverridenControlsState != null)
+            return false;
+
+        return request.Player.IsVaultingPressed
+            && !request.Context.IsGrounded
+            && request.Jump._jumpState == JumpPlayerState.EJumpState.Jump
+            && !request.Context.IsInPronePose && !request.Context.IsInMountedState
+            && !request.Context.IsStationaryWeaponInHands
+            && !request.Context.PlayerAnimatorGetIsVaulting()
+            && request.Player.IsForwardInputDirection;
+    }
+
+    private static bool OwnsTarget(Request request)
+    {
+        // A pooled body/context can survive an epoch boundary or receive a new
+        // animator. Neither its new flags nor a new raid belong to this lease.
+        if (request == null || request.Player == null || request.World == null || request.Game == null
+            || !ReferenceEquals(Singleton<GameWorld>.Instance, request.World)
+            || !ReferenceEquals(Singleton<AbstractGame>.Instance, request.Game)) return false;
+        return ReferenceEquals(request.Player.MovementContext, request.Context)
+            && ReferenceEquals(request.Player.VaultingComponent, request.Component)
+            && ReferenceEquals(request.Player.VaultingParameters, request.Component)
+            && ReferenceEquals(request.Component._vaultingContext, request.Context)
+            && request.Animator != null && request.AnimatorHandle != null
+            && ReferenceEquals(request.Context.PlayerAnimator, request.Animator)
+            && ReferenceEquals(request.Animator.Animator, request.AnimatorHandle);
+    }
+
+    /// <summary>
+    /// Mirrors the native explicit strategy policy except its two ground-jump
+    /// exclusions. Actual CanMove checks keep roof/wall/height/distance/landing
+    /// geometry native; all later inventory/meds/weapon/grenade checks remain in
+    /// MovementContext.TryVaulting -> VaultingGameplayRestrictions.CanVaulting.
+    /// </summary>
+    private static EVaultingStrategy SelectGeometryStrategy(Request request)
+    {
+        VaultingComponent component = request.Component;
+        MovementContext context = request.Context;
+        var model = component._vaultingModelDebug;
+        if (component._vaultingSettings?.IsActive != true || model == null
+            || component.IsVaulting() || context.MovementDirection.y < 0f
+            || context.IsAnimatorInTransitionState(0)
+            || model.ObstacleCalculatorModel.IsTerrain
+            || model.StairsCalculatorModel.IsStairsCondition()) return EVaultingStrategy.None;
+
+        bool sprintVaultBlocked = context.IsSprintEnabled && component.BehindObstacleRatio > -0.5f;
+        if (component._canVaultByStaminaGetter?.Invoke() == true
+            && model.VaultingStatesModel.VaultState.CanMove() && !sprintVaultBlocked)
+            return EVaultingStrategy.Vault;
+        if (component._canClimbByStaminaGetter?.Invoke() == true
+            && model.VaultingStatesModel.ClimbState.CanMove() && !context.IsSprintEnabled)
+            return EVaultingStrategy.Climb;
+        return EVaultingStrategy.None;
+    }
+
+    private static bool HasFlag(Pending pending)
+        => pending.Strategy == EVaultingStrategy.Climb
+            ? pending.Request.Context.PlayerAnimator.GetDoClimb()
+            : pending.Request.Context.PlayerAnimator.GetDoVault();
+
+    private static void CancelPending()
+    {
+        Pending pending = _pending;
+        _pending = null;
+        if (pending == null) return;
+        try
+        {
+            Request request = pending.Request;
+            if (!OwnsTarget(request) || request.Context.CurrentState is VaultingMovementState) return;
+            if (pending.Strategy == EVaultingStrategy.Climb)
+                request.Context.PlayerAnimatorSetDoClimb(false);
+            else request.Context.PlayerAnimatorSetDoVault(false);
+        }
+        catch (Exception ex) { Warn(ex); }
+    }
+
+    private static void Warn(Exception exception)
+    {
+        if (_warned) return;
+        _warned = true;
+        Plugin.ModLogger.LogWarning("Arena airborne mantle unavailable for this request; native movement retained: "
+            + exception.GetBaseException().Message);
+    }
+
+    private sealed class HeldVaultPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.ToggleVaulting));
+
+        [PatchPostfix]
+        private static void Postfix(Player __instance)
+        {
+            if (_request != null || _pending != null || ReferenceEquals(_blockedUntilRelease, __instance)) return;
+            Request request = null;
+            try
+            {
+                if (__instance?.VaultingComponent is not VaultingComponent component
+                    || __instance.CurrentManagedState is not JumpPlayerState jump) return;
+                request = new Request { Player = __instance, Context = __instance.MovementContext,
+                    Jump = jump, Component = component, World = Singleton<GameWorld>.Instance,
+                    Game = Singleton<AbstractGame>.Instance, Animator = __instance.MovementContext?.PlayerAnimator };
+                request.AnimatorHandle = request.Animator?.Animator;
+                if (!IsEligible(request) || request.Context.IsAnimatorInTransitionState(0)
+                    || request.Context.PlayerAnimator.GetDoClimb() || request.Context.PlayerAnimator.GetDoVault()) return;
+
+                // Manual mode normally refreshes after gameplay restrictions.
+                // Refresh before them too, so their height-dependent checks see
+                // the actual airborne obstacle, never the earlier ground scan.
+                component.Tick();
+                if (!IsEligible(request)) return;
+                _request = request;
+                request.Context.TryVaulting();
+            }
+            catch (Exception ex) { Warn(ex); }
+            finally { if (ReferenceEquals(_request, request)) _request = null; }
+        }
+    }
+
+    private sealed class StrategyPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(VaultingComponent), nameof(VaultingComponent.GetVaultingStrategy));
+
+        [PatchPostfix]
+        private static void Postfix(VaultingComponent __instance, ref EVaultingStrategy __result)
+        {
+            Request request = _request;
+            if (__result != EVaultingStrategy.None || request == null
+                || !ReferenceEquals(request.Component, __instance)) return;
+            try
+            {
+                if (IsEligible(request)) __result = SelectGeometryStrategy(request);
+            }
+            catch (Exception ex) { Warn(ex); }
+        }
+    }
+
+    private sealed class CommitPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(VaultingComponent), nameof(VaultingComponent.DoVaultingByStrategy));
+
+        [PatchPrefix]
+        private static bool Prefix(VaultingComponent __instance, EVaultingStrategy strategy, ref bool __result)
+        {
+            Request request = _request;
+            if (request == null || !ReferenceEquals(request.Component, __instance)) return true;
+            try
+            {
+                // Native manual TryVaulting refreshes its grid a second time.
+                // Recheck the ordinary height-dependent hands restrictions on
+                // that final geometry before the animator receives any flag.
+                if (IsEligible(request) && SelectGeometryStrategy(request) == strategy
+                    && request.Player.VaultingGameplayRestrictions?.CanVaulting() == true)
+                {
+                    request.CommittedGeometry = new Geometry(__instance);
+                    if (request.CommittedGeometry.IsFinite) return true;
+                }
+            }
+            catch (Exception ex) { Warn(ex); }
+            __result = false;
+            return false;
+        }
+
+        [PatchPostfix]
+        private static void Postfix(VaultingComponent __instance, EVaultingStrategy strategy, bool __result)
+        {
+            Request request = _request;
+            if (!__result || request == null || !ReferenceEquals(request.Component, __instance)
+                || (strategy != EVaultingStrategy.Climb && strategy != EVaultingStrategy.Vault)) return;
+            try
+            {
+                if (request.Context.CurrentState is VaultingMovementState) return;
+                _pending = new Pending { Request = request, Strategy = strategy, ExpiresAt = Time.unscaledTime + 0.5f };
+                if (!IsEligible(request) || !HasFlag(_pending)) CancelPending();
+            }
+            catch (Exception ex) { CancelPending(); Warn(ex); }
+        }
+    }
+}

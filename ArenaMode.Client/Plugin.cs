@@ -70,6 +70,9 @@ public class Plugin : BaseUnityPlugin
         Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.ArenaDoubleJump.Enable();
+        Movement.ArenaHandlingPatches.Enable();
+        Movement.ArenaAirVault.Enable();
+        Movement.ArenaAirFire.Enable();
         Movement.SprintAdsPatches.Enable();
         Movement.FastDeployPatches.Enable();
         Loot.OpenLootTracker.Enable();
@@ -95,6 +98,8 @@ public class Plugin : BaseUnityPlugin
     {
         ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();
+        Movement.ArenaHandlingPatches.Shutdown();
+        Movement.ArenaAirVault.Shutdown();
         Kits.KitOpticPreloadGuard.Shutdown();
         Areas.ArenaAreaRuntime.Reset();
         Areas.ArenaAreaInitialSpawnPatch.Shutdown();

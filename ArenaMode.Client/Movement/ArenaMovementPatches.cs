@@ -52,7 +52,11 @@ internal static class ArenaMovementPatches
         new VaultingReachPatch().Enable();
     }
 
-    internal static void ResetPerRaidState() => InertiaValuesPatch.LoggedThisRaid = false;
+    internal static void ResetPerRaidState()
+    {
+        InertiaValuesPatch.LoggedThisRaid = false;
+        ArenaHandlingPatches.ResetPerRaidState();
+    }
 
     private static bool IsArenaMovement(MovementContext context)
     {

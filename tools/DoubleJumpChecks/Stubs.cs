@@ -66,6 +66,14 @@ namespace ArenaMode.Config
 namespace ArenaMode.Hud { public static class ArenaInputBlocker { public static bool Blocked; } }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
+namespace ArenaMode.Movement
+{
+    internal static class ArenaAirVault
+    {
+        internal static bool Pending;
+        internal static bool HasPendingRequest(EFT.Player player) => Pending;
+    }
+}
 namespace Redeploy.Core.Engine
 {
     public static class RaidLifecycle
