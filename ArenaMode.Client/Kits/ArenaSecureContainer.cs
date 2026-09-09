@@ -108,6 +108,14 @@ internal static class ArenaSecureContainer
         if (item == null)
             return false;
 
+        // Unbound FIRST, and by hand, because the removal will not do it for us
+        // here. ItemManipulator.TryUnbindOneItem only unbinds what is NOT at a
+        // bindable place — and this mod (and UseItemsAnywhere, if installed)
+        // widens exactly that test to anything worn, so a container item that
+        // had been bound stays bound while the item itself is destroyed. The key
+        // would then look occupied and do nothing.
+        Unbind(controller, item);
+
         var result = ItemManipulator.RemoveWithoutRestrictions(item, controller);
         if (!result.Succeeded)
             return false;
@@ -117,5 +125,21 @@ internal static class ArenaSecureContainer
         // the model and stays on the screen.
         result.Value.RaiseEvents(controller, CommandStatus.Succeed);
         return true;
+    }
+
+    private static void Unbind(InventoryController controller, Item item)
+    {
+        var bound = controller.Inventory?.FastAccess?.BoundItems;
+        if (bound == null)
+            return;
+
+        // Materialised: UnbindItemDirect mutates the dictionary being read.
+        var keys = bound.Where(pair => ReferenceEquals(pair.Value, item)).Select(pair => pair.Key).ToList();
+        if (keys.Count == 0)
+            return;
+
+        var result = controller.UnbindItemDirect(item, simulate: false);
+        if (result.Succeeded)
+            result.Value.RaiseEvents(controller, CommandStatus.Succeed);
     }
 }

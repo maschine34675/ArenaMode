@@ -213,9 +213,14 @@ internal static class AutoQuickSlots
             spare.AddRange(items);
         }
 
-        // Second medkits, stimulants, anything a content mod added. Keys no
-        // purpose claimed go first, so a home key stays empty — and therefore
-        // still means what it means — until nothing else is left.
+        // Second medkits, stimulants, anything a content mod added.
+        //
+        // NEAREST key first, and key 0 genuinely last. The first version filled
+        // the keys no purpose owns before the unused home keys, on the theory
+        // that a home key should stay empty to keep its meaning — but an unused
+        // home key has no meaning to keep. All that theory bought was a second
+        // medkit on key 0, which is the furthest reach on the keyboard, while
+        // key 6 sat empty because that kit's bleed injector covers both bleeds.
         //
         // Indexed rather than searched with FirstOrDefault: EBoundItem's default
         // is ItemG, the grenade slot, so a "nothing found" result would be
@@ -223,7 +228,6 @@ internal static class AutoQuickSlots
         // medkit over the grenade picker.
         var leftover = free
             .Where(candidate => !taken.Contains(candidate))
-            .OrderBy(candidate => HomeSlot.ContainsValue(candidate) ? 1 : 0)
             .ToList();
 
         var next = 0;
