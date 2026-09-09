@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Balance delivery (2026-09-09, 19:48 UTC):** bleeding code `dc642ec`, duration
+  code `6327247`; both binaries were built from clean `6327247` and delivered
+  locally with verified previous-DLL backups under
+  `artifacts/duration-balance/delivery-6327247/`. Combined clean-build manifest:
+  `artifacts/duration-balance/build/1b67304a8c774341b05c8022fb468e26/manifest.json`.
+  Client SHA256 `B40F0B08757B1218EB7E5980556E3B4259C7CE39008A253347BD9F3C0930149E`;
+  server SHA256 `3933A49BB3B2E5F5228A28619259886E5E18154DAA286EE76C57260ABA3D1440`.
+  Redeploy stayed byte-identical (`7FAFDD65...`, full hash in delivery record).
+  Final builds: client zero errors/four existing nullable warnings; server
+  zero errors/warnings. All declared host/server/regression checks passed,
+  including nine difficulty and six bleeding source faults; independent final
+  review has no open P0-P2. **Restart game and SPT server.** GPU mirror completion
+  and native playtest remain unverified. No push or branch merge performed.
+
 - **Duration-scaled TDM and latest retest (2026-09-09, evening):**
   `DURATION-DIFFICULTY-REVIEW.md` records the 600s USEC 35:17 BEAR match and
   frozen log hash. Low-displacement endpoint samples declined; one bot still
