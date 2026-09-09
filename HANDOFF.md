@@ -24,8 +24,16 @@ current. User-facing communication is normally German.
   Offline checks passed: tempo 104 assertions/7 source faults, awareness 620/33,
   actual TDM mode 318 checks with 28 source faults plus burst-preparation
   regression. Independent final review: no unresolved P0–P2. Client staging:
-  zero errors, four existing nullable warnings. Delivery is recorded separately
-  after building the clean source commit; no new GPU acceptance is claimed.
+  zero errors, four existing nullable warnings. **Delivered locally from clean
+  source commit `acad49e`**, client SHA256
+  `302986ADCD914B4140744FE66F185D12A335E424961867DD30548F05777B9861`.
+  Clean staging: `artifacts/double-jump-build/e3286d8e79f240eeb9007dee89b0ac91/`.
+  Verified previous-client backup and delivery record:
+  `artifacts/bot-movement-improvements/delivery-acad49e/`; prior client SHA256
+  `52F98D2116CD212E943C022C861A71CF7A3D483D253892DC0F80E4B1A0CF2220`.
+  Server (`851409A1...`) and Redeploy (`7FAFDD65...`) stayed byte-identical; full
+  hashes are in the delivery record. **Restart only the game.** New GPU test and
+  mirror completion are not verified. No push or branch merge was performed.
 
 - **Movement correction and bot-log diagnosis (2026-09-09, later follow-up):**
   the user explicitly reports airborne mantle still fails, including a second
