@@ -80,6 +80,7 @@ public static class Settings
     public static ConfigEntry<bool> MaxSkills { get; private set; }
     public static ConfigEntry<int> LegInjurySlowdownReductionPercent { get; private set; }
     public static ConfigEntry<float> MedicalUseSpeed { get; private set; }
+    public static ConfigEntry<float> BleedingDamageMultiplier { get; private set; }
     public static ConfigEntry<float> MagazineHandlingSpeed { get; private set; }
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
@@ -604,6 +605,13 @@ public static class Settings
                 "0.65; both legs: 0.20 to 0.60). Injuries and the vanilla sprint " +
                 "restriction remain active; 0 keeps vanilla movement.",
                 new AcceptableValueRange<int>(0, 100)));
+
+        BleedingDamageMultiplier = config.Bind(
+            "Character", "BleedingDamageMultiplier", 3f,
+            new ConfigDescription(
+                "HP loss from light and heavy bleeding for living Arena players and bots. " +
+                "1 keeps vanilla damage; treatment, bleed duration and other damage stay unchanged.",
+                new AcceptableValueRange<float>(1f, 10f)));
 
         MedicalUseSpeed = config.Bind(
             "Character",

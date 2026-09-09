@@ -7,6 +7,16 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Arena bleeding balance (2026-09-09):** `ARENA-BLEEDING-REVIEW.md` documents
+  native light/heavy bleed HP loss at default x3, configurable under F12
+  Character / BleedingDamageMultiplier (1-10). Exact live Arena bodies only;
+  bots remain affected while the local player respawns. Existing protection
+  vetoes run first. No effect-duration, treatment, profile or ordinary-raid
+  changes. Host checks: 130 assertions and six rejected source faults; native
+  call-chain review found no recursive amplification and no open P0-P2.
+  User GPU acceptance and delivery are recorded separately below/above; a
+  successful host check does not certify Unity raid behavior.
+
 - **Latest retest and bot search follow-up (2026-09-09, 19:19–19:29):**
   see TDM-SEARCH-TEMPO-REVIEW.md for the frozen log hash and exact evidence.
   TDM ended normally, USEC 23:13 BEAR. Repeated Freeze/DontWantTo samples have

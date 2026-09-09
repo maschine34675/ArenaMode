@@ -345,12 +345,13 @@ internal static class CombatPatches
                 new[] { typeof(EBodyPart), typeof(float), typeof(DamageInfo) });
 
         [PatchPrefix]
-        private static bool Prefix(ActiveHealthController __instance, float damage, DamageInfo damageInfo,
+        private static bool Prefix(ActiveHealthController __instance, ref float damage, DamageInfo damageInfo,
             ref float __result)
         {
             if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage")
                 && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance?.Player, damageInfo.Player?.iPlayer))
             {
+                damage = ArenaBleedingDamage.Adjust(__instance, damage, damageInfo.DamageType);
                 if (ArenaSession.IsActive && ArenaMatchService.Current != null
                     && __instance?.IsAlive == true)
                     ArenaHitHistory.ObserveHealthDamage(__instance.Player, damageInfo.Player?.iPlayer,
