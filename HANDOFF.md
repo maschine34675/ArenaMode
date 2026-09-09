@@ -18,7 +18,21 @@ current. User-facing communication is normally German.
   owner, consumes Jump only after confirmed target entry, and retains ordinary
   native transitions and exception cleanup. No fake grounding or global graph
   edits. See AIR-MOVEMENT-REVIEW.md and tools/ArenaAirVaultChecks/README.md.
-  New GPU acceptance remains pending; game restart required after delivery.
+  **Delivered locally from clean commit `8bb4547`.** The client SHA256 is
+  `6093E5BB570C879D614EC84D57A29DAA941C91181CF3E60D35AAC9F817046E0D`.
+  Clean staging: `artifacts/double-jump-build/daeb40bbc1034da4bb7964776b4e83a7/`;
+  verified prior-client backup and delivery record:
+  `artifacts/movement-followup/delivery-8bb4547/`. The previous DLL hash was
+  `4826B7805D4182C0BC4D14BB4BB34C896BD44D1F9EE145043F7F28E8EF7ADF4C`.
+  Final client build: zero errors, four existing nullable warnings. Mantle
+  checks: 120 assertions/25 source faults; hip-fire/shared scope 92/10,
+  double jump 144/8 and native TDM menu 80/8 passed. Final independent review
+  has no unresolved P0-P2 findings. Server and Redeploy stayed byte-identical
+  (`2E394A32...` / `6FCE5366...`); full hashes are in the staging manifest.
+  **Restart only the game.** GPU mirror completion and native playtest are not
+  newly verified. No push or branch merge. New GPU acceptance remains pending;
+  test varied obstacle heights and prolonged/double jumps, failed attempts,
+  no extra jump after mantle, native standing vault and normal PMC behavior.
   The latest frozen log is `artifacts/movement-followup/20260909-1540/LogOutput.log`
   (SHA256 `E2BFA57FCA2E850D7CF5C0D7661C3EB4B76E23917CDDB67D6061B56C594D0F05`).
   The diagnostic report there finds two bots repeatedly stranded at
