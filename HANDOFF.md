@@ -1,12 +1,45 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-08. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-09. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- Arena movement expansion delivered (2026-09-09, code `f53bffa`, branch
+  `feature/arena-air-movement`, inheriting the previous independent TDM flow):
+  hard-landing speed-limit duration defaults to 0.5 of native; firearm draw and
+  holster animations each default to 1.5 times native speed. Both use scoped
+  local-body changes, without altering damage, reload/fire/global animator speed.
+  Deliberate native vault input may request a mantle during a genuine jump;
+  native geometry/stamina/hands restrictions and animation entry remain in use.
+  Conventional firearms may hip-fire during that jump without unlocking aiming.
+  A pending mantle takes precedence over double jump and the hip-fire exception;
+  stale geometry or replaced raid/body/animator cancels ownership safely.
+  All five settings are under F12 Movement and its existing master switch.
+  No new key, forced animation, teleport, server/profile/AI/Redeploy change.
+  See `AIR-MOVEMENT-REVIEW.md` for native anchors, limitations and GPU checklist.
+  Offline checks passed: handling 161 assertions/12 deliberate source faults,
+  air vault 70/13, hip fire/shared scope 92/10, double jump 144/8 and native TDM
+  menu/settings 80/8, including final original-production reruns. Parent reran
+  both delegated suites independently. Four-pass adversarial review has no
+  unresolved P0-P2. All eight scoped implementation/delivery gates are met,
+  zero unmet/abandoned; native GPU acceptance is explicitly outside those gates.
+  Client rebuilt from clean `f53bffa` with zero errors/four existing nullable
+  warnings and delivered locally, SHA256
+  `375D7AE61F58A5AFE168EEAE4AEA3FB0CC6ADBB52B8F5EB2917FEA9338AA456F`.
+  Clean staged manifest:
+  `artifacts/double-jump-build/1087c40163954f3fb0779ec9a1d5fe5c/manifest.json`.
+  Verified previous-client backup and delivery record:
+  `artifacts/air-movement-delivery/e3b1314bf10d4551baf1b7416cf67528/`.
+  Server/Redeploy remain byte-identical. **Restart only the game.** No GitHub
+  push, merge to master, GPU mirror-completion verification or native playtest.
+  Compare the client hash in `C:\SPT41` before testing. Airborne mantle graph
+  acceptance/timing is unverified; its pending geometry tolerances need a real
+  scene test. Walk-off falling and underbarrel launcher fire remain native.
+  A potentially inlined native mid-operation speed refresh safely relinquishes
+  acceleration for that operation; do not replace this with global speed hooks.
 - Independent TDM match flow delivered (2026-09-08, code `94a8c38`,
   branch `feature/tdm-match-flow`): implements
   a complete-roster/initial-kit readiness gate, fresh three-second countdown,
