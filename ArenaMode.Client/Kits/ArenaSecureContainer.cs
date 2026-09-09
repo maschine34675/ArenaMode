@@ -11,7 +11,7 @@ using UnityEngine;
 namespace ArenaMode.Kits;
 
 /// <summary>
-/// Leaves the contents of the secure container and the special slots at home.
+/// Leaves the contents of the secure container at home.
 ///
 /// The container itself has to come along: it is unlootable, so a body carrying
 /// one into the raid and dying with it would lose it — which is why
@@ -68,14 +68,17 @@ internal static class ArenaSecureContainer
             if (equipment == null)
                 return;
 
-            var removed = EmptyContainer(controller, equipment) + EmptySpecialSlots(controller, equipment);
+            // Special slots are not emptied here any more: the kits ask for the
+            // plain pockets, which HAS none, so there is nothing to empty and
+            // nothing of the player's is destroyed mid-round.
+            var removed = EmptyContainer(controller, equipment);
             if (removed <= 0)
                 return;
 
             _emptied += removed;
             Plugin.ModLogger.LogInfo(
-                $"Arena: left {removed} item(s) out of the secure container and special slots "
-                + $"({_emptied} this raid). They are in the profile snapshot and come back at raid end.");
+                $"Arena: left {removed} item(s) out of the secure container ({_emptied} this raid). "
+                + "They are in the profile snapshot and come back at raid end.");
         }
         catch (Exception ex)
         {
@@ -96,20 +99,6 @@ internal static class ArenaSecureContainer
         // Materialised before removing: the grid's own collection is what the
         // removal mutates, and enumerating it while it changes throws.
         var inside = container.Grids.SelectMany(grid => grid.Items).ToList();
-
-        return inside.Count(item => Discard(controller, item));
-    }
-
-    private static int EmptySpecialSlots(InventoryController controller, InventoryEquipment equipment)
-    {
-        var pockets = equipment.GetSlot(EquipmentSlot.Pockets)?.ContainedItem as CompoundItem;
-        if (pockets?.Slots == null)
-            return 0;
-
-        var inside = pockets.Slots
-            .Where(slot => slot.IsSpecial && slot.ContainedItem != null)
-            .Select(slot => slot.ContainedItem)
-            .ToList();
 
         return inside.Count(item => Discard(controller, item));
     }

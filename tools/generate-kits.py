@@ -66,6 +66,13 @@ BACKPACK = '56e33680d2720be2748b4576'
 # alike, held the same bandage, tourniquet, splint and AI-2.
 CARRY_OVER_SLOTS = {'Pockets', 'SecuredContainer', 'Scabbard', 'ArmBand'}
 
+# The plain four-cell pockets a scav wears. Same four single cells the medicine
+# goes in, but WITHOUT the three special slots the player's own pockets carry —
+# so those slots do not EXIST in an arena raid rather than being emptied of the
+# player's compass and armband. Nothing of theirs is destroyed, and there is
+# nothing left over to hide in the UI.
+POCKETS = '557ffd194bdc2d28148b457f'
+
 # One item per condition that can end a round, getting better as the armour does.
 #
 # The conditions worth carrying for are a light bleed, a heavy bleed, a fracture
@@ -429,6 +436,10 @@ def stock_medicine(out, cls):
     pockets = next((n for n in out if n.get('slotId') == 'Pockets'), None)
     if not pockets:
         return
+
+    # The kit names the plain pockets; KitBuilder swaps the surgeon's copy for
+    # this one, which is how the special slots stop existing.
+    pockets['_tpl'] = POCKETS
 
     inside = {n['_id'] for n in out if n.get('parentId') == pockets['_id']}
     grew = True

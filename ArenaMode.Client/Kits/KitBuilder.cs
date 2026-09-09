@@ -261,7 +261,22 @@ public static class KitBuilder
         // children instead of fighting over the slot.
         var existing = FindOccupied(parent, node.SlotId);
         if (existing != null)
+        {
+            // ...unless the kit asked for a DIFFERENT one. The surgeon builds
+            // empty pockets from the player's own template, which carries three
+            // special slots; the kits ask for the plain four-cell pockets that a
+            // scav wears, which has none. Letting the kit win removes those slots
+            // rather than emptying them, so nothing of the player's is destroyed
+            // and there is nothing left to hide.
+            if (string.Equals(existing.TemplateId, node.Tpl, StringComparison.OrdinalIgnoreCase))
+                return existing;
+
+            var replacement = ReplaceOccupant(parent, node, existing, factory);
+            if (replacement != null)
+                return replacement;
+
             return existing;
+        }
 
         var item = factory.CreateItem(factory.NextId, node.Tpl, null);
         ApplyUpd(item, node.Upd);
@@ -333,6 +348,47 @@ public static class KitBuilder
                 return compound.AllSlots.FirstOrDefault(s => s.ID == slotId);
             default:
                 return null;
+        }
+    }
+
+    /// <summary>
+    /// Swaps what is in a slot for what the kit actually asked for.
+    ///
+    /// Only reached when the two templates differ, which today means the pockets
+    /// and nothing else. Fails soft: if the swap will not take, the caller keeps
+    /// the item that was already there, which is the pre-existing behaviour.
+    /// </summary>
+    private static Item ReplaceOccupant(Item parent, KitItemNode node, Item existing, ItemFactory factory)
+    {
+        try
+        {
+            var slot = FindSlot(parent, node.SlotId);
+            if (slot == null)
+                return null;
+
+            var wanted = factory.CreateItem(factory.NextId, node.Tpl, null);
+            if (wanted == null)
+                return null;
+
+            slot.RemoveItem();
+
+            var result = slot.AddWithoutRestrictions(wanted);
+            if (result.Failed)
+            {
+                // Put the original back rather than leaving the slot empty.
+                slot.AddWithoutRestrictions(existing);
+                Plugin.ModLogger.LogWarning(
+                    $"Kit '{node.SlotId}': could not swap in {node.Tpl} ({result.Error}); kept {existing.TemplateId}.");
+                return null;
+            }
+
+            ApplyUpd(wanted, node.Upd);
+            return wanted;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Kit '{node.SlotId}': swapping the occupant failed: {ex.Message}");
+            return null;
         }
     }
 
