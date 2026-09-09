@@ -119,7 +119,23 @@ exact-target cleanup and transactional weapon-speed corrections. The complete
 final source also built against the installed client APIs with zero errors and
 four existing nullable-context warnings, without changing installed artifacts.
 
-## Pending GPU acceptance
+## User GPU follow-up, 2026-09-09
+
+The user reports all four requested changes tested successfully, including the
+native airborne mantle transition. The 12:28–12:43 client log confirms successful
+registration of all eleven handling/vault/fire patches and contains none of the
+new movement failure/fallback/timeout messages. The TDM completed its ten-minute
+limit normally; all three player respawns completed in 0.76–0.80 seconds.
+
+This records user-observed feature acceptance, not an automated measurement of
+animation timings or separate proof for every regression case below. The same
+run has one recovered initial bot activation failure and one SAIN unload-time
+exception; the server confirms the profile was restored and persisted. See the
+dated `HANDOFF.md` entry and `artifacts/movement-playtest/20260909-1228/` evidence.
+Movement production sources are unchanged; no corrective patch was inferred
+from the unload-time stack alone.
+
+## GPU regression checklist
 
 Compare the installed `C:\SPT41` client hash against the dated handoff, restart
 the game, then test an Arena with the same weapon/obstacle and movement settings:

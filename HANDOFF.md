@@ -7,6 +7,35 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- User movement playtest confirmed (2026-09-09, client log 12:28:36–12:43:28):
+  user reports all four requested movement changes work, including airborne
+  mantle. All eleven new handling/vault/fire patches enabled successfully;
+  no movement fallback, request-error or mantle-timeout diagnostics appear.
+  This is user-observed GPU acceptance with a log review, not an independently
+  replayed test of every edge case. The historical delivery entry below records
+  the pre-test state. The logged client has the 11:06 build timestamp and later
+  quick-slot work; its exact DLL hash is not present in the log. Current checkout
+  also includes `35abdeb`, `8cf0391` and `edb2418`; the movement sources themselves
+  are unchanged since `f53bffa`. Do not treat the currently installed DLL as proof
+  of the historical test binary or claim this run tested the later `edb2418`.
+  Customs contour TDM reached 5v5 ready at 12:32:05.920, then ended normally at
+  its 600-second limit (12:42:08.427), USEC 15:14 BEAR. Local player: 11 kills,
+  three deaths; replacement pipelines completed in 0.78/0.76/0.80 seconds.
+  One initial BEAR activation became native `ActiveFail` at 12:31:44.172;
+  replacement recovered at 12:31:48.848, with no further activation failures.
+  Native `BotOwner.Activate` swallows its exception when setting that state, so
+  the exact activation cause is not exposed by this log.
+  The client's deferred raid-end warning at 12:42:17.148 is resolved by the
+  matching UTC server log: native end arrived 10:42:17.211, snapshot restored
+  at .230 and protected end/persistence completed at .256. No stuck restore
+  is indicated. The sole error is a SAIN `BotComponent.OnDisable` NRE during
+  native pool/world unloading at 12:42:17.339, after profile persistence; no
+  movement hook is in that stack. Its precise null/cause remains unattributed.
+  Retain the isolated activation and unload findings for follow-up, without
+  speculative patches. Evidence snapshots and summary are ignored under
+  `artifacts/movement-playtest/20260909-1228/`; client log SHA256
+  `850047ADE5075C69176A3B14212D38DFF560C811FA15FA8A34575625C5EFA41C`.
+  This follow-up changes documentation only; no build, deployment or push.
 - Arena movement expansion delivered (2026-09-09, code `f53bffa`, branch
   `feature/arena-air-movement`, inheriting the previous independent TDM flow):
   hard-landing speed-limit duration defaults to 0.5 of native; firearm draw and
