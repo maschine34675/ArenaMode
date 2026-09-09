@@ -77,6 +77,8 @@ public class Plugin : BaseUnityPlugin
         Movement.FastDeployPatches.Enable();
         Loot.OpenLootTracker.Enable();
         Loot.ArenaLootPatches.Enable();
+        Kits.ArenaReachPatches.Enable();
+        Kits.ArenaSlotVisibilityPatches.Enable();
         Loot.AutoSearchService.Initialize();
         PerfectCullingFix.EnableOnce();
 

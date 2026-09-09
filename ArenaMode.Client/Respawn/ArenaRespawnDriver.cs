@@ -428,6 +428,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Combat.ArenaGiveUp.Reset();
         Combat.WeaponSwapService.Reset();
         Kits.AutoQuickSlots.Reset();
+        Kits.ArenaSecureContainer.Reset();
         ArenaSpawnSelector.Reset();
         KitCatalog.KitProvider = null;
         LadderCatalog.Reset();

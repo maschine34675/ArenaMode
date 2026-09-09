@@ -43,6 +43,8 @@ public static class Settings
     public static ConfigEntry<bool> SkipPreRaidScreens { get; private set; }
     public static ConfigEntry<bool> InstantSearch { get; private set; }
     public static ConfigEntry<bool> AutoQuickSlots { get; private set; }
+    public static ConfigEntry<bool> UseItemsAnywhere { get; private set; }
+    public static ConfigEntry<bool> EmptySecureContainer { get; private set; }
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
@@ -494,6 +496,23 @@ public static class Settings
             "life. The game clears bindings with the body, which is a chore in a mode " +
             "built on dying. The layout is fixed by what an item DOES, so the same key " +
             "always holds the same kind of thing.");
+
+        UseItemsAnywhere = config.Bind(
+            "Kits",
+            "UseItemsAnywhere",
+            true,
+            "Let anything worn be used and bound, not only what is in a pocket or a rig. " +
+            "The bulky medical items go where they FIT — a Grizzly is 2x2 and a Surv12 3x1 — " +
+            "so without this the best medicine in the catalogue sits unreachable in the backpack.");
+
+        EmptySecureContainer = config.Bind(
+            "Kits",
+            "EmptySecureContainer",
+            true,
+            "Leave the contents of the secure container and the special slots at home, and " +
+            "hide the container slot the way a scav raid does. The container itself still " +
+            "comes along because it is unlootable. Off: your own supplies come with you, " +
+            "which outclasses every kit's medicine and makes the medical tiers decorative.");
 
         AutoSearchCorpses = config.Bind(
             "Loot",
