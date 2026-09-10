@@ -62,8 +62,13 @@ public class LocationMutatorTests
 
         Assert.True(ArenaLocationMutator.IsQuietMap("teamdeathmatch"));
         Assert.Empty(clone.Waves!);
-        Assert.Equal(3, clone.BossLocationSpawn!.Count());
-        Assert.All(clone.BossLocationSpawn!, spawn => Assert.Equal(0, spawn.BossChance));
+        // Removed, not merely silenced. A zero chance already cannot spawn, but
+        // BotProfileClient's constructor orders profiles from every entry in
+        // this list without ever asking ShallSpawn, and the server rounds each
+        // role/difficulty pair up to bot.json's presetBatch — so three silenced
+        // bosses were still worth a full batch of profiles each in the loading
+        // screen.
+        Assert.Empty(clone.BossLocationSpawn!);
         Assert.Equal(1200, clone.BotStart);
         Assert.Equal(0, clone.BotStop);
         Assert.Equal(0, clone.BotSpawnCountStep);
@@ -76,6 +81,80 @@ public class LocationMutatorTests
         Assert.Equal(0, clone.BotLocationModifier!.NonWaveSpawnBotsLimitPerPlayer);
         Assert.Equal(0, clone.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE);
         Assert.Equal(templateSnapshot, JsonSerializer.Serialize(location, JsonOptions));
+    }
+
+    [Fact]
+    public void ThePopulationPolicyAgreesWithTheModesItNames()
+    {
+        // The two ids decide whether the server silences a map's own population
+        // and whether the client skips its profile preload. They are declared
+        // once, in the shared policy, and ArenaModeCatalog now points at them —
+        // this pins the meaning as well as the spelling.
+        Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation(ArenaPopulationPolicy.TeamDeathmatch));
+        Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation(ArenaPopulationPolicy.Tactical));
+        Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation("TEAMDEATHMATCH"));
+        foreach (var loud in new[] { "endless", "rounds", "gungame", "", null })
+            Assert.False(ArenaPopulationPolicy.OwnsEntirePopulation(loud));
+
+        // The preload skip is NARROWER than that: Team Deathmatch is the only
+        // mode that also throws the pre-generated PMC pool away, so it is the
+        // only one that loses nothing by never fetching it.
+        Assert.True(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap",
+            ArenaPopulationPolicy.TeamDeathmatch, "BIGMAP"));
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap",
+            ArenaPopulationPolicy.Tactical, "bigmap"));
+
+        // Everything else about the gate, one refusal at a time.
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(false, "bigmap", "teamdeathmatch", "bigmap"));
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, "factory4_day", "teamdeathmatch", "bigmap"));
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, null, "teamdeathmatch", "bigmap"));
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap", "teamdeathmatch", null));
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap", "endless", "bigmap"));
+    }
+
+    [Fact]
+    public void ALoudModeDropsTheBossesItDisabledButKeepsItsPmcs()
+    {
+        var location = FreshLocation();
+        location.BossLocationSpawn =
+        [
+            new BossLocationSpawn { BossName = "pmcUSEC", BossChance = 40 },
+            new BossLocationSpawn { BossName = "bossTagilla", BossChance = 100 },
+            new BossLocationSpawn { BossName = "bossKilla", BossChance = 0 },
+        ];
+
+        WithAbps(false, () => ArenaLocationMutator.Mutate(location,
+            new ArenaMapConfig { DisableBosses = true, PmcWaveIntervalSeconds = 0 },
+            new ArenaModeConfig { RaidTimeMinutes = 20 }, "endless"));
+
+        // The PMC entry is the pressure this mode wants and is raised to
+        // certainty; the two bosses were switched off and are now gone rather
+        // than sitting at zero, which is what stops them being ordered as
+        // profiles nobody can spawn.
+        var spawns = location.BossLocationSpawn!.ToList();
+        Assert.Single(spawns);
+        Assert.Equal("pmcUSEC", spawns[0].BossName);
+        Assert.Equal(100, spawns[0].BossChance);
+    }
+
+    [Fact]
+    public void ALoudModeKeepsItsBossesWhenTheyAreNotDisabled()
+    {
+        // Labyrinth ships with DisableBosses false and its bosses are the point.
+        // A filter that removed them would empty the fight the same way the
+        // comma in SpawnPoints once emptied the Lab.
+        var location = FreshLocation();
+        location.BossLocationSpawn =
+        [
+            new BossLocationSpawn { BossName = "bossTagilla", BossChance = 100 },
+            new BossLocationSpawn { BossName = "bossKilla", BossChance = 35 },
+        ];
+
+        WithAbps(false, () => ArenaLocationMutator.Mutate(location,
+            new ArenaMapConfig { DisableBosses = false, PmcWaveIntervalSeconds = 0 },
+            new ArenaModeConfig { RaidTimeMinutes = 20 }, "rounds"));
+
+        Assert.Equal(2, location.BossLocationSpawn!.Count());
     }
 
     [Theory]

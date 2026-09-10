@@ -137,6 +137,14 @@ public sealed class BotTierScalePatch : AbstractPatch
                 elapsed = TimeSpan.FromSeconds(clock.PlayingElapsedSeconds);
                 // Do not fill a 15-profile reserve with early-match gear. This
                 // changes only the current finite TDM request, never SPT config.
+                //
+                // It stays scoped to this branch on purpose. Widening it to every
+                // arena request would also shrink the raid-start pool the three
+                // scav modes draw from, and their misses are paid on the SPAWN
+                // path mid-raid rather than in a loading screen. The saving is
+                // real and the risk is unmeasured; measuring it needs a long
+                // Endless or Gun Game raid past the twenty-minute mark, which is
+                // the one performance question this project already has open.
                 botGenerationDetails.BotCountToGenerate = Math.Min(botGenerationDetails.BotCountToGenerate, __1.Limit);
             }
             // The one-profile demand remains bounded even when the user opts

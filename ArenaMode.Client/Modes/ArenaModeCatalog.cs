@@ -1,3 +1,4 @@
+using ArenaMode.Shared;
 using System;
 using System.Collections.Generic;
 
@@ -30,8 +31,12 @@ internal static class ArenaModeCatalog
     public const string EndlessId = "endless";
     public const string RoundsId = "rounds";
     public const string GunGameId = "gungame";
-    public const string TacticalId = "tactical";
-    public const string TeamDeathmatchId = "teamdeathmatch";
+    // Taken from the shared policy rather than repeated: these two ids decide
+    // whether the server silences the map's own population and whether the
+    // client skips the profile preload, and a rename here that did not reach
+    // ArenaPopulationPolicy would compile and quietly turn both off.
+    public const string TacticalId = ArenaPopulationPolicy.Tactical;
+    public const string TeamDeathmatchId = ArenaPopulationPolicy.TeamDeathmatch;
 
     private static readonly IReadOnlyList<ArenaModeDefinition> Definitions =
         Array.AsReadOnly(new[]

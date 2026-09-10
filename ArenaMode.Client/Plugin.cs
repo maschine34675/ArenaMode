@@ -58,6 +58,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaSainPersonalities.Enable();
         Bots.TdmSearchTempo.Enable();
         Bots.ArenaBotDifficultyClockPatch.EnablePatch();
+        Bots.ArenaProfilePreloadPatch.EnablePatch();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
         Areas.ArenaAreaInitialSpawnPatch.EnablePatch();

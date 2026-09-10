@@ -206,6 +206,14 @@ public class LabsBotSpawnExclusionTests
 
         Assert.Equal(JsonSerializer.Serialize(expected, JsonOptions), JsonSerializer.Serialize(clone.SpawnPointParams, JsonOptions));
         Assert.Equal(75, clone.SpawnPointParams!.Count(point => point.Categories!.Contains("Player")));
+        // Say which case this is before walking the boss list: a quiet mode
+        // empties it, and Assert.All over an empty collection passes without
+        // running its lambda — so without this the zone coverage would go quiet
+        // rather than red if the mutation ever stopped happening. The wave list
+        // is deliberately NOT pinned the same way: with ABPS installed the mod
+        // leaves its plan alone, and the zone filter can empty it in a loud mode
+        // too, so emptiness there says nothing about the mode.
+        Assert.Equal(ArenaPopulationPolicy.OwnsEntirePopulation(mode), !clone.BossLocationSpawn!.Any());
         Assert.All(clone.BossLocationSpawn, spawn => AssertNoGates(spawn.BossZone));
         Assert.All(clone.Waves, wave => AssertNoGates(wave.SpawnPoints));
         Assert.Equal(originalSnapshot, JsonSerializer.Serialize(original, JsonOptions));
@@ -214,6 +222,14 @@ public class LabsBotSpawnExclusionTests
         // markers or resurrect forbidden zones through appended PMC waves.
         WithAbps(abps, () => ArenaLocationMutator.Mutate(clone, map, config, mode));
         Assert.Equal(JsonSerializer.Serialize(expected, JsonOptions), JsonSerializer.Serialize(clone.SpawnPointParams, JsonOptions));
+        // Say which case this is before walking the boss list: a quiet mode
+        // empties it, and Assert.All over an empty collection passes without
+        // running its lambda — so without this the zone coverage would go quiet
+        // rather than red if the mutation ever stopped happening. The wave list
+        // is deliberately NOT pinned the same way: with ABPS installed the mod
+        // leaves its plan alone, and the zone filter can empty it in a loud mode
+        // too, so emptiness there says nothing about the mode.
+        Assert.Equal(ArenaPopulationPolicy.OwnsEntirePopulation(mode), !clone.BossLocationSpawn!.Any());
         Assert.All(clone.BossLocationSpawn, spawn => AssertNoGates(spawn.BossZone));
         Assert.All(clone.Waves, wave => AssertNoGates(wave.SpawnPoints));
         Assert.Equal(originalSnapshot, JsonSerializer.Serialize(original, JsonOptions));

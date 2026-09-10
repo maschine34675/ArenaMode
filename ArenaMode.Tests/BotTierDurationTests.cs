@@ -63,6 +63,24 @@ public sealed partial class BotTierScalePatchTests
         Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
         Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(15,details.BotCountToGenerate);
     }
+
+    [Theory]
+    [InlineData("endless")] [InlineData("rounds")] [InlineData("gungame")] [InlineData("tactical")]
+    public void AModeWithoutTheTimedClockKeepsItsGeneratedReserve(string mode)
+    {
+        // The count cap is scoped to the timed Team Deathmatch request on
+        // purpose. The three scav modes draw from this reserve during the raid
+        // and pay a miss on the SPAWN path rather than in a loading screen, and
+        // Tactical keeps its pool as well; shrinking it for them is a trade
+        // nobody has measured past minute twenty. If that measurement ever
+        // happens, this test is the one that has to change.
+        StartTimedArena(mode);
+        var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=45;
+        BotTierScalePatch.Prefix(new MongoId(ArenaSession),details,
+            new GenerateCondition {Role="assault",Limit=2,Difficulty="normal"});
+        Assert.Equal(45,details.BotCountToGenerate);
+    }
+
     [Fact]
     public void GearOptOutPreservesNativeLevelsWithoutGeneratingAnUnusedReserve()
     {

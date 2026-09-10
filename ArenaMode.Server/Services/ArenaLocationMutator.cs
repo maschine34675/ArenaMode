@@ -39,8 +39,7 @@ public static class ArenaLocationMutator
     /// The mode is announced at raid start and remembered by the exact session.
     /// </summary>
     public static bool IsQuietMap(string? mode)
-        => string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase);
+        => ArenaPopulationPolicy.OwnsEntirePopulation(mode);
 
     public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config,
         string? mode = null, string? areaId = null, int? areaTeamSize = null)
@@ -375,6 +374,30 @@ public static class ArenaLocationMutator
                 spawn.BossChance = 0;
             }
         }
+
+        // REMOVED, not merely silenced. A zero chance already means the spawn
+        // cannot happen — ShallSpawn is IsTrue100(BossChance) and both
+        // ActivateWave and ActivateWavesAfterGameStarted return on it — so
+        // dropping these entries changes no bot that would have existed. What
+        // it does change is the raid-start bill: BotProfileClient's constructor
+        // walks BossLocationSpawn and orders GetUsingTypes() from every entry
+        // WITHOUT asking ShallSpawn, and the server then rounds each of those
+        // role/difficulty pairs up to its presetBatch. Fourteen silenced boss
+        // and follower pairs were costing a hundred and forty generated
+        // profiles per raid for bots that could never appear.
+        //
+        // It also closes a door: ABPS prefixes BossSpawnScenario.Create and can
+        // raise a zeroed chance back up when its progressive-boss option is on.
+        // It is off in the installed config, so that is a hole rather than a
+        // leak — but an entry that is gone cannot be re-chanced.
+        // Written as "not greater than zero" rather than "<= 0" because the
+        // model's chance is a double?, and a lifted `null <= 0` is FALSE: a
+        // null-chance entry would have survived the filter and gone on costing
+        // a full batch of profiles. No shipped location has one, but SPT's own
+        // custom-wave service and any server mod can append one. Same family as
+        // the MongoId and EBoundItem traps: a default that a comparison quietly
+        // reads as "does not match".
+        spawns.RemoveAll(spawn => spawn.BossChance is not > 0);
 
         if (!quietMap && map.PmcWaveIntervalSeconds > 0
             && (!ArenaBotSpawnPolicy.IsRestrictedMap(location.Id)

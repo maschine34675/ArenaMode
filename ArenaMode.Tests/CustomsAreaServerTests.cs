@@ -277,7 +277,12 @@ public sealed partial class ArenaAreaServerTests
             }
         }
         Assert.Empty(clone.Waves!);
-        Assert.All(clone.BossLocationSpawn!, spawn => Assert.Equal(0, spawn.BossChance));
+        // Empty, not "all silenced": the mutator now REMOVES an entry it zeroed,
+        // because BotProfileClient orders profiles from every entry in this list
+        // without asking ShallSpawn. Assert.All over an empty collection passes
+        // without running its lambda, so the old assertion would have gone quiet
+        // rather than red.
+        Assert.Empty(clone.BossLocationSpawn!);
         Assert.Equal(before, JsonSerializer.Serialize(original, CustomsJsonOptions));
         // Coordinate capacity is not a claim about live NavMesh connectivity.
     }

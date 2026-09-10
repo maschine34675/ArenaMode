@@ -103,6 +103,13 @@ test above was verified that way — reintroduce the comma and three tests go re
 2. **Normal raids must be bit-identical.** Every patch starts with an
    `ArenaSession.IsActive` gate and fails open to vanilla. A setting that leaks into a
    non-arena raid is a bug even if it is harmless.
+   One patch bends this, argued here rather than only at the code:
+   `ArenaProfilePreloadPatch` runs inside the loading screen, where `IsActive`
+   cannot yet be latched, so it gates on ARMED + the map being loaded instead.
+   If the server then refuses the arm token, that raid runs ordinary with an
+   emptied bot-profile pool — not broken (a pool miss fetches three more) but
+   not vanilla either. It is the only patch in the mod that can act on a raid
+   which does not become an arena raid.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with
