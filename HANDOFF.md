@@ -1,11 +1,33 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-09. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-10. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **APBS 2.4.1 compatibility (2026-09-10):** user installed the complete update.
+  Work is on `feature/apbs-2.4.1-compat` from `ff18eab`, preserving the newer
+  client load-boost work. Only the Arena server changes. The optional exact
+  metadata-version adapter restores Arena's request-owned bot level range after
+  APBS's new global raid-level/Weighted-or-Delta selection. Native deferred
+  parallel waves and per-bot clones retain exact session-entry/arm ownership;
+  normal raids, protected PFT, saved companions and APBS config stay untouched.
+  See `APBS-COMPATIBILITY-REVIEW.md` and `tools/ApbsCompatibilityChecks/`.
+  Full server suite: **516 passed, one pre-existing installed-Factory geometry
+  skip**. The installed APBS test runs real native wave/clone/level processing;
+  full inventory/cache bodies are stubbed. Actual USEC/BEAR/Scav and enabled
+  prestige paths, all selection switches, deferred rearm and exception cleanup
+  passed. Source-fault positive control: 13 passed; missing session validation
+  then causes three assertion failures including same-token rearm. Installed IL
+  and armband checks passed. Final independent review: no open P0-P2 after two
+  exception-path fixes. No GPU raid, mirror verification, push or merge.
+  APBS root config was still pre-migration and is left for APBS's next startup.
+  Delivery source/hash evidence follows in a separate entry. **Restart SPT
+  server after delivery; client DLL is unchanged.** Pending user acceptance:
+  short finite TDM, one solo legacy mode, saved-companion PFT round transition,
+  ordinary PMC raid after Arena, and APBS startup/config migration log check.
 
 - **Balance delivery (2026-09-09, 19:48 UTC):** bleeding code `dc642ec`, duration
   code `6327247`; both binaries were built from clean `6327247` and delivered

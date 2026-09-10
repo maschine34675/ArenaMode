@@ -1330,9 +1330,23 @@ public class ArenaSessionService
         string? location,
         out TimeSpan elapsed,
         out bool protectedTeam)
+        => TryGetBotTierContext(sessionId, location, out elapsed, out protectedTeam, out _);
+
+    // An arm string can be supplied again by a caller. Retain the actual entry
+    // as well, so deferred bot generation cannot attach to a replacement raid.
+    internal sealed record BotTierIdentity(
+        object Entry, string Session, string Map, string Arm, DateTime StartedAt);
+
+    internal bool TryGetBotTierContext(
+        MongoId sessionId,
+        string? location,
+        out TimeSpan elapsed,
+        out bool protectedTeam,
+        out BotTierIdentity? identity)
     {
         elapsed = TimeSpan.Zero;
         protectedTeam = false;
+        identity = null;
         if (string.IsNullOrEmpty(location))
             return false;
 
@@ -1345,7 +1359,23 @@ public class ArenaSessionService
 
             elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
             protectedTeam = entry.ProtectPitFireTeam;
+            if (!string.IsNullOrEmpty(entry.ArmToken))
+                identity = new(entry, sessionId.ToString(), entry.Map!, entry.ArmToken, entry.InRaidAtUtc);
             return true;
+        }
+    }
+
+    internal bool IsCurrentBotTierIdentity(BotTierIdentity identity)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(identity.Session, out var entry)
+                && ReferenceEquals(entry, identity.Entry)
+                && IsLiveRaid(entry)
+                && !entry.ProtectPitFireTeam
+                && entry.InRaidAtUtc == identity.StartedAt
+                && string.Equals(entry.ArmToken, identity.Arm, StringComparison.Ordinal)
+                && string.Equals(entry.Map, identity.Map, StringComparison.OrdinalIgnoreCase);
         }
     }
 

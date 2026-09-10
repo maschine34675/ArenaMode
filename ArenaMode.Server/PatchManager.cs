@@ -6,6 +6,7 @@ using SPTarkov.Common.Models.Logging;
 using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Services.Bot;
 using SPTarkov.Reflection.Patching;
+using SPTarkov.Server.Core.Models.Spt.Mod;
 
 namespace ArenaMode.Server;
 
@@ -19,6 +20,7 @@ public sealed class PatchManager(
     ArenaProtectedRaidEndService protectedRaidEnd,
     OrdinaryRaidLifecycleService ordinaryRaids,
     MatchBotDetailsCacheService matchBotCache,
+    IReadOnlyList<SptMod> loadedMods,
     ISptLogger<PatchManager> logger) : IOnLoad
 {
     public Task OnLoadAsync(CancellationToken cancellationToken)
@@ -39,6 +41,7 @@ public sealed class PatchManager(
         new AdjustBotHostilityPatch().Enable();
         new BotCapPatch().Enable();
         new BotTierScalePatch().Enable();
+        ApbsBotTierCompatibility.TryEnable(loadedMods);
         new TeamDeathmatchArmbandPatch().Enable();
         AbstractPatch[] pitFireTeamFilePatches =
         [

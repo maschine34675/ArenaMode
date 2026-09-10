@@ -6,6 +6,7 @@ using SPTarkov.Server.Core.Models.Spt.Bots;
 using System.Reflection;
 using System.Text.Json;
 using ArenaMode.Shared;
+using ArenaMode.Server.Services;
 
 namespace ArenaMode.Server.Patches;
 
@@ -19,7 +20,7 @@ namespace ArenaMode.Server.Patches;
 /// never moves — on a fresh profile every raid is tier one, forever, and the
 /// system's entire progression is inert in here.
 ///
-/// It does read one field first, though: a per-map level range that overrides
+/// Native SPT and older APBS read a per-map level range that overrides
 /// the player-relative roll. That range is rebuilt for EVERY bot generation
 /// request, which is what makes this work — raise it as the raid goes on and
 /// each new wave is kitted a little better than the last, without a single
@@ -34,6 +35,8 @@ namespace ArenaMode.Server.Patches;
 ///
 /// Finite TDM transports its frozen live-match clock in the existing native
 /// demand request. Other modes/older clients retain the server raid-time ramp.
+/// APBS 2.4.1 instead reads its global raid level; the optional range adapter
+/// carries this request's explicit Arena bounds through SPT's per-bot clone.
 /// </summary>
 public sealed class BotTierScalePatch : AbstractPatch
 {
@@ -86,6 +89,10 @@ public sealed class BotTierScalePatch : AbstractPatch
     {
         try
         {
+            // Native details can be reused by another caller. An early return
+            // must never retain a previous Arena request's ownership marker.
+            if (botGenerationDetails != null)
+                ArenaBotTierOwnership.ForgetWave(botGenerationDetails);
             var location = botGenerationDetails?.Location;
             if (botGenerationDetails == null || string.IsNullOrEmpty(location))
                 return;
@@ -96,7 +103,8 @@ public sealed class BotTierScalePatch : AbstractPatch
                     sessionId,
                     location,
                     out var elapsed,
-                    out var protectedTeam))
+                    out var protectedTeam,
+                    out var identity))
             {
                 return;
             }
@@ -140,11 +148,15 @@ public sealed class BotTierScalePatch : AbstractPatch
             var end = Math.Clamp(map.BotTierEndLevel, start, MaxUsableLevel);
             var here = (int)Math.Round(start + (end - start) * progress);
 
-            // Both together, and neither works alone: the level the window is
-            // built around, and the bounds that window is then clamped into.
+            // Native SPT/older APBS use both the anchor and the clamp. The
+            // optional APBS 2.4.1 adapter restores these explicit Arena bounds
+            // after its global-level/weighted range selection.
             botGenerationDetails.PlayerLevel = here;
             botGenerationDetails.LocationSpecificPmcLevelOverride =
                 new MinMax<int>(Math.Max(1, here - Spread), here + Spread);
+
+            if (identity != null)
+                ArenaBotTierOwnership.MarkWave(botGenerationDetails, sessions, identity);
 
             Report(location!, elapsed, here, duration, progress);
         }
@@ -179,5 +191,9 @@ public sealed class BotTierScalePatch : AbstractPatch
     }
 
     /// <summary>A new raid starts the ramp over, so it should report from the bottom again.</summary>
-    public static void ResetReporting() => _lastReported = -1;
+    public static void ResetReporting()
+    {
+        _lastReported = -1;
+        ApbsBotTierCompatibility.ResetReporting();
+    }
 }
