@@ -33,6 +33,15 @@ namespace ArenaMode.Kits
 {
     public static class KitCatalog { public static List<KitDefinition> Kits; }
     public static class LadderCatalog { public static List<KitDefinition> Rungs; }
+
+    // The loading-screen half of the preloader (KitBundlePreloader.LoadingScreen.cs)
+    // is not linked here; these are the two hooks the raid's half asks of it.
+    // Nothing is ever in flight from the loading screen in these checks.
+    public static partial class KitBundlePreloader
+    {
+        private static bool IsRaidStartRunning => false;
+        private static bool RaidStartStillLoading(List<string> templates) => false;
+    }
     // Supplies checks have no renderer. The actual optic ownership guard and
     // native callbacks are exercised separately in tools/OpticPreloadChecks.
     public static class KitOpticPreloadGuard
@@ -152,6 +161,8 @@ namespace EFT.InventoryLogic
         public string ID; public Item ContainedItem;
         public Result AddWithoutRestrictions(Item item)
         { if(ContainedItem!=null)return new(){Failed=true,Error="occupied"};ContainedItem=item;return new(); }
+        public Result RemoveItemWithoutRestrictions()
+        { if(ContainedItem==null)return new(){Failed=true,Error="empty"};ContainedItem=null;return new(); }
     }
     public class InventoryEquipment:CompoundItem
     {

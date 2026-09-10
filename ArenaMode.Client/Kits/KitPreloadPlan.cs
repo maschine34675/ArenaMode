@@ -99,28 +99,28 @@ public static class KitPreloadPlan
 
     /// <summary>
     /// The kit the raid-start swap will hand out, asked the way the swap asks:
-    /// Tactical hands out what its opening buy affords, Gun Game the first rung
-    /// of its ladder, every other mode the base kit (the configured one or the
-    /// random draw). Null means the raid does not swap at all — a protected
-    /// PitFireTeam raid keeps the PMC's entry loadout — or nothing could be
-    /// resolved, and in both cases there is nothing to warm.
+    /// Gun Game the first rung of its ladder merged onto the base kit, every
+    /// other mode the base kit (the configured one or the random draw).
+    /// Tactical included, and not by accident: it pre-selects the dearest
+    /// affordable kit at match start, but its opening buy phase clears that
+    /// selection again before the swap asks, so the provider falls through to
+    /// the base kit for the first life — the review that found this had the
+    /// plan warming a kit the raid never handed out. Null means the raid does
+    /// not swap at all — a protected PitFireTeam raid keeps the PMC's entry
+    /// loadout — and there is nothing to warm.
     ///
     /// The suppliers are delegates so that only the one that applies runs: the
     /// base-kit supplier is expected to DRAW the raid's kit and reserve it, and
-    /// drawing it for a mode that never asks for it would burn a random pick.
+    /// drawing it for a raid that never asks for it would burn a random pick.
     /// </summary>
     public static KitDefinition? OpeningKit(
         string? mode,
         bool protectedTeamRaid,
         Func<KitDefinition?> baseKit,
-        Func<KitDefinition?> tacticalOpening,
         Func<KitDefinition?> gunGameOpening)
     {
         if (protectedTeamRaid)
             return null;
-
-        if (string.Equals(mode, ArenaPopulationPolicy.Tactical, StringComparison.OrdinalIgnoreCase))
-            return tacticalOpening();
 
         if (string.Equals(mode, GunGameModeId, StringComparison.OrdinalIgnoreCase))
             return gunGameOpening();
@@ -130,10 +130,13 @@ public static class KitPreloadPlan
 
     /// <summary>
     /// The batches to load, in order. The first is the opening kit, which the
-    /// raid start waits for; with the whole catalogue in scope a second batch
-    /// carries everything else, minus what the first already covers, and the
-    /// raid start does not wait for that one. A batch with nothing to load is
-    /// left out rather than started empty.
+    /// raid start waits for. With the whole catalogue in scope every other kit
+    /// (and every ladder rung) follows as a batch of its own, minus whatever an
+    /// earlier batch covers — one request per kit rather than one for the lot,
+    /// so a raid that begins while a batch is in flight waits for one kit at
+    /// most, and the batches not yet started can be left to the in-raid
+    /// warm-up. A batch with nothing to load is left out rather than started
+    /// empty.
     /// </summary>
     public static List<Batch> Batches(
         KitPreloadScope scope,
@@ -156,10 +159,7 @@ public static class KitPreloadPlan
         if (scope != KitPreloadScope.WholeCatalogue)
             return batches;
 
-        var rest = new List<string>();
-        int kits = 0, rungs = 0;
-
-        void Add(IEnumerable<KitDefinition>? source, ref int counted)
+        void Add(IEnumerable<KitDefinition>? source, string kind)
         {
             if (source == null)
                 return;
@@ -169,26 +169,20 @@ public static class KitPreloadPlan
                 if (kit == null)
                     continue;
 
-                counted++;
+                var fresh = new List<string>();
                 foreach (var tpl in TemplatesOf(kit))
                 {
                     if (covered.Add(tpl))
-                        rest.Add(tpl);
+                        fresh.Add(tpl);
                 }
+
+                if (fresh.Count > 0)
+                    batches.Add(new Batch($"{kind} '{kit.Id}'", fresh));
             }
         }
 
-        Add(catalogue, ref kits);
-        Add(ladder, ref rungs);
-
-        if (rest.Count > 0)
-        {
-            var label = rungs > 0
-                ? $"catalogue ({kits} kits, {rungs} rungs)"
-                : $"catalogue ({kits} kits)";
-            batches.Add(new Batch(label, rest));
-        }
-
+        Add(catalogue, "kit");
+        Add(ladder, "rung");
         return batches;
     }
 }

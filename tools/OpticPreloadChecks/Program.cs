@@ -328,7 +328,7 @@ internal static class Program
         Singleton<ObjectsFactory>.Instance = f.Factory;
         Singleton<ItemFactory>.Instance = new ItemFactory();
         Singleton<ItemFactory>.Instance.ItemTemplates[new MongoID("scope")] = new ItemTemplate { AllResources = new() { f.Key } };
-        return new KitDefinition { Id = "optic-kit", Items = new() { new KitItem { Tpl = "scope", ParentId = "weapon" } } };
+        return new KitDefinition { Id = "optic-kit", Items = new() { new KitItemNode { Tpl = "scope", ParentId = "weapon" } } };
     }
 
     private static async Task PreloaderIntegration()

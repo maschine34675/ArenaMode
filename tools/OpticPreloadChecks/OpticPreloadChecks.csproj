@@ -11,5 +11,7 @@
   <ItemGroup>
     <Compile Include="$(GuardSource)" Link="Production/KitOpticPreloadGuard.cs" />
     <Compile Include="$(PreloaderSource)" Link="Production/KitBundlePreloader.cs" />
+    <Compile Include="../../ArenaMode.Client/Kits/KitPreloadPlan.cs" Link="Production/KitPreloadPlan.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
   </ItemGroup>
 </Project>

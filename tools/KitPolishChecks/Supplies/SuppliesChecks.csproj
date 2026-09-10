@@ -10,6 +10,8 @@
     <Compile Include="../../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />
     <Compile Include="../../../ArenaMode.Client/Kits/KitMerge.cs" Link="Production/KitMerge.cs" />
     <Compile Include="../../../ArenaMode.Client/Kits/KitBundlePreloader.cs" Link="Production/KitBundlePreloader.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitPreloadPlan.cs" Link="Production/KitPreloadPlan.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../../ArenaMode.Server/Services/ArenaKitSupplies.cs" Link="Production/ArenaKitSupplies.cs" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="SPTarkov.Server.Core" Version="4.1.0" />

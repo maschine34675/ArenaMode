@@ -48,9 +48,10 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // Clearing here (before any gate) keeps a stale factory arming from
             // arena-izing an unrelated raid (wrong map, or a scav run).
             ArenaSession.ClearArmed("new raid negotiation started");
-            // ClearArmed returns early when nothing is armed; a preload whose
-            // raid never reached OnGameStarted may still be parked, so the
-            // discard is asked for outright.
+            // Defensive only: every path that clears the arming discards the
+            // loading-screen preload with it, and a preload only ever exists
+            // while armed. This is a second line for the day a path is added
+            // that does not, and a no-op on every other.
             Kits.KitBundlePreloader.DiscardRaidStart("new raid negotiation started");
 
             if (ArenaServerClient.HasPendingEnd

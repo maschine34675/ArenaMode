@@ -112,10 +112,12 @@ test above was verified that way — reintroduce the comma and three tests go re
    raid which does not become an arena raid. The other is the loading-screen
    kit preload (`KitBundlePreloader.BeginRaidStart`, started from the armed
    `LocalRaidStarted` continuation) together with the optic guard it engages
-   (`KitOpticPreloadGuard`, gated on IsActive OR armed for loading-screen
-   requests only): both build prefab pools for the coming kit inside the raid's
-   own pools, and the guard touches nothing but the role models of those pools.
-   A raid that then runs ordinary carries a few unused pools that die with it.
+   (`KitOpticPreloadGuard`, whose loading-screen requests stay current from
+   Begin until the native call returns, whatever the arming or IsActive do in
+   between): both build prefab pools for the coming kit inside the raid's own
+   pools, and the guard touches nothing but the role models of those pools. A
+   raid that then runs ordinary carries a few unused pools that die with it,
+   and the guard covers their building to the end.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with

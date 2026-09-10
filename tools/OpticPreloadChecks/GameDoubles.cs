@@ -200,7 +200,7 @@ namespace ArenaMode
         public void LogWarning(string text) => Lines.Add(text);
     }
 }
-namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive; } }
+namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; } }
 namespace ArenaMode.Modes
 {
     public sealed class GunGameMode { }
@@ -208,10 +208,19 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Kits
 {
-    public class KitDefinition { public string Id; public List<KitItem> Items = new(); public KitFill Fill; }
-    public class KitItem { public string ParentId; public string Tpl; }
+    public class KitDefinition { public string Id; public List<KitItemNode> Items = new(); public KitFill Fill; }
+    public class KitItemNode { public string ParentId; public string Tpl; }
     public class KitStackedItem { public string Tpl; }
     public class KitFill { public List<KitStackedItem> RigContents = new(); }
     public static class KitCatalog { public static List<KitDefinition> Kits; }
     public static class LadderCatalog { public static List<KitDefinition> Rungs; }
+
+    // The loading-screen half of the preloader (KitBundlePreloader.LoadingScreen.cs)
+    // is not linked here; these are the two hooks the raid's half asks of it.
+    // Nothing is ever in flight from the loading screen in these checks.
+    public static partial class KitBundlePreloader
+    {
+        private static bool IsRaidStartRunning => false;
+        private static bool RaidStartStillLoading(List<string> templates) => false;
+    }
 }

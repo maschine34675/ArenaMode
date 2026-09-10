@@ -33,14 +33,25 @@ namespace ArenaMode.Kits
     public class KitDefinition
     {
         public string Id;
-        public List<KitNode> Items = new();
+        public List<KitItemNode> Items = new();
         public KitFill Fill;
     }
-    public class KitNode { public string Tpl, ParentId; }
+    public class KitItemNode { public string Tpl, ParentId; }
     public class KitFill { public List<KitStackedItem> RigContents = new(); }
     public class KitStackedItem { public string Tpl; }
     public static class KitCatalog { public static object KitProvider; public static List<KitDefinition> Kits; }
     public static class LadderCatalog { public static List<KitDefinition> Rungs; }
+    public static class AutoQuickSlots { public static void Tick() { } }
+    public static class ArenaSecureContainer { public static void Tick() { } }
+
+    // The loading-screen half of the preloader (KitBundlePreloader.LoadingScreen.cs)
+    // is not linked here; these are the two hooks the raid's half asks of it.
+    // Nothing is ever in flight from the loading screen in these checks.
+    public static partial class KitBundlePreloader
+    {
+        private static bool IsRaidStartRunning => false;
+        private static bool RaidStartStillLoading(List<string> templates) => false;
+    }
     public static class KitOpticPreloadGuard
     {
         public static bool ThrowOnBegin;
@@ -62,6 +73,7 @@ namespace ArenaMode.Areas { public static class ArenaAreaRuntime { public static
 namespace ArenaMode.Bots
 {
     public static class BurstSpawnService { public static void Tick() { } }
+    public static class BotLoadBoost { public static void Tick() { } }
     public static class ArenaHostility { public static void Tick() { } }
     public static class CorpseLightService { public static void Tick() { } }
     public static class CorpseCleanupService { public static void Tick() { } }

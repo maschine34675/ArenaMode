@@ -20,10 +20,14 @@ namespace ArenaMode.Kits;
 /// Engaged for the loading-screen kit preload as well, which runs while
 /// IsActive is still false: the raid camera comes alive partway through the
 /// level load, and a batch still building pools at that moment is exposed
-/// exactly like an in-raid load. That is a deliberate bend of the IsActive
-/// rule, recorded in AGENTS.md; what makes it safe is that every gate below
-/// still asks whether the pool being built is one of OUR request's resources,
-/// so a vanilla object never sees anything but vanilla.
+/// exactly like an in-raid load. Such a request stays current until the native
+/// call it wraps returns, whatever the session flags do meanwhile — a raid the
+/// server then refuses clears the arming while the batch is still filling
+/// pools, and the guard must not go dark on its own objects at that moment.
+/// That is a deliberate bend of the IsActive rule, recorded in AGENTS.md; what
+/// makes it safe is that every gate below still asks whether the pool being
+/// built is one of OUR request's resources, so a vanilla object never sees
+/// anything but vanilla.
 /// </summary>
 internal static class KitOpticPreloadGuard
 {
@@ -33,6 +37,7 @@ internal static class KitOpticPreloadGuard
         new ConditionalWeakTable<OpticSight, Request>();
     [ThreadStatic] private static Frame _frame;
     private static int _epoch;
+    private static int _loadingScreenRequests;
     private static bool _installed;
     private static bool _installAttempted;
     private static bool _reported;
@@ -55,20 +60,26 @@ internal static class KitOpticPreloadGuard
             _previous = Current.Value;
             _generation = _epoch;
             _loadingScreen = loadingScreen;
+            if (loadingScreen) _loadingScreenRequests++;
             Current.Value = this;
         }
 
         // A loading-screen request outlives the per-raid generation on purpose:
         // Reset runs at the start of the very raid it was made for, and the
-        // request must stay current across that boundary. It is bound to the
-        // arming instead (the gate) and to its own resources (every caller).
-        internal bool IsCurrent => Gate(_loadingScreen) && !_disposed && (_loadingScreen || _generation == _epoch)
+        // request must stay current across that boundary. It outlives the
+        // session flags too: it is current from Begin until Dispose, which the
+        // preloader's using-block reaches only when the native call returns,
+        // and it is bound to its own resources by every caller.
+        internal bool IsCurrent => (_loadingScreen || (Session.ArenaSession.IsActive && _generation == _epoch))
+            && !_disposed
             && Pools != null
             && ReferenceEquals(Factory.GetPools(ObjectsFactory.PoolsCategory.Raid), Pools);
 
         public void Dispose()
         {
+            if (_disposed) return;
             _disposed = true;
+            if (_loadingScreen) _loadingScreenRequests--;
             if (ReferenceEquals(Current.Value, this)) Current.Value = _previous;
         }
     }
@@ -94,12 +105,16 @@ internal static class KitOpticPreloadGuard
 
     /// <summary>
     /// When the guard may act at all: in an arena raid, or — for the
-    /// loading-screen preload only — while one is armed. An armed raid that
-    /// never becomes an arena raid still had its kit pools built by us, and
-    /// their role models are the only objects this ever touches.
+    /// loading-screen preload only — while one is armed or one of its own
+    /// requests is still in flight. The second clause is what keeps a batch
+    /// covered to its end in a raid that never becomes an arena raid: the
+    /// arming is cleared the moment the server refuses the token, the batch
+    /// is not. Such a raid still had its kit pools built by us, and their role
+    /// models are the only objects this ever touches.
     /// </summary>
     private static bool Gate(bool loadingScreen)
-        => Session.ArenaSession.IsActive || (loadingScreen && Session.ArenaSession.ArmedForNextRaid);
+        => Session.ArenaSession.IsActive
+           || (loadingScreen && (Session.ArenaSession.ArmedForNextRaid || _loadingScreenRequests > 0));
 
     internal static void Reset()
     {
@@ -112,6 +127,7 @@ internal static class KitOpticPreloadGuard
     internal static void Shutdown()
     {
         Reset();
+        _loadingScreenRequests = 0;
         Patches.UnpatchSelf();
         _installed = false;
         _installAttempted = false;

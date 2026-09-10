@@ -575,10 +575,12 @@ public static class Settings
             "22 s to load on a 60 fps " +
             "machine (10 s on a fast one) once the raid had begun, sharing the loader with " +
             "the first bots. InitialKit = the kit the raid starts you in (the random draw is " +
-            "made at raid start and kept). WholeCatalogue = every kit afterwards as well, so " +
-            "no later respawn meets a cold kit; that second batch may still be running when " +
-            "the raid begins and then competes with the first bots - untested on a slow " +
-            "machine, try it and read the log line. Off = today's behaviour. Arena only.");
+            "made in the loading screen and kept for the raid start). WholeCatalogue = every " +
+            "other kit as well, one after another, for as long as the loading screen lasts; " +
+            "whatever has not started when the raid begins is left to the in-raid warm-up as " +
+            "before, and a respawn that lands while one kit is still loading waits for that " +
+            "kit. Untested on a slow machine - try it and read the log lines. Off = the " +
+            "previous behaviour. Arena only.");
 
         AutoQuickSlots = config.Bind(
             "Kits",

@@ -34,6 +34,16 @@ public static class ArenaSession
     /// </summary>
     internal static int ArmEpoch { get; private set; }
 
+    /// <summary>
+    /// The Gun Game ladder selection (F12 GunGameLadder) as it stood at
+    /// arming, kept for the raid. Frozen for the same reason the mode is: the
+    /// loading screen warms the first rung of the ladder the raid will build,
+    /// and an F12 edit made while the map loads would have the raid build a
+    /// different ladder than the one that was warmed. Null outside an arena
+    /// raid, when the mode reads the live setting.
+    /// </summary>
+    internal static string GunGameLadderSelection { get; private set; }
+
     public static bool IsActive { get; private set; }
     public static string ActiveMode { get; private set; }
 
@@ -90,6 +100,7 @@ public static class ArenaSession
         ArmedForNextRaid = true;
         ArmedMap = map;
         ArmedMode = mode;
+        GunGameLadderSelection = Settings.GunGameLadder.Value;
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
     }
 
@@ -101,6 +112,7 @@ public static class ArenaSession
 
         ArmedForNextRaid = false;
         ArmedMode = null;
+        GunGameLadderSelection = null;
         Areas.ArenaAreaRuntime.Reset();
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
@@ -167,6 +179,7 @@ public static class ArenaSession
             _rejectedServerRaidPendingEnd = false;
             ArmedMap = null;
             ArmedMode = null;
+            GunGameLadderSelection = null;
             ActiveMode = null;
             LastRaidWasArena = false;
             PitFireTeamCompat.Clear("ordinary raid started");
@@ -354,6 +367,7 @@ public static class ArenaSession
         ArmedForNextRaid = false;
         _rejectedServerRaidPendingEnd = false;
         ArmedMode = null;
+        GunGameLadderSelection = null;
         ActiveMode = null;
 
         // Defensive: an aborted load between the countdown patch and its restore

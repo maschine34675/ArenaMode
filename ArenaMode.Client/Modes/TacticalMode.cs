@@ -849,7 +849,7 @@ public sealed partial class TacticalMode : IArenaMode
         return true;
     }
 
-    public int PriceOf(KitDefinition kit) => Price(kit);
+    public int PriceOf(KitDefinition kit) => kit?.Price ?? 0;
 
     public bool CanAfford(KitDefinition kit) => PriceOf(kit) <= Money;
 
@@ -2520,24 +2520,15 @@ public sealed partial class TacticalMode : IArenaMode
     }
 
     /// <summary>The dearest kit the player can afford, so being broke still arms them.</summary>
-    private KitDefinition Affordable() => OpeningKit(KitCatalog.Kits, Money);
-
-    /// <summary>
-    /// The most expensive kit the purse covers, or the cheapest one when it
-    /// covers none. Static and pure so the loading-screen preload can ask the
-    /// same question with the starting purse before the mode exists: the kit
-    /// the raid opens on is this, not the catalogue's configured one.
-    /// </summary>
-    internal static KitDefinition OpeningKit(IEnumerable<KitDefinition> kits, int money)
+    private KitDefinition Affordable()
     {
-        var candidates = kits ?? new List<KitDefinition>();
         KitDefinition best = null;
-        foreach (var kit in candidates)
+        foreach (var kit in KitCatalog.Kits ?? new List<KitDefinition>())
         {
-            if (Price(kit) > money)
+            if (PriceOf(kit) > Money)
                 continue;
 
-            if (best == null || Price(kit) > Price(best))
+            if (best == null || PriceOf(kit) > PriceOf(best))
                 best = kit;
         }
 
@@ -2546,17 +2537,15 @@ public sealed partial class TacticalMode : IArenaMode
         // reason to stand in a corridor unarmed.
         if (best == null)
         {
-            foreach (var kit in candidates)
+            foreach (var kit in KitCatalog.Kits ?? new List<KitDefinition>())
             {
-                if (best == null || Price(kit) < Price(best))
+                if (best == null || PriceOf(kit) < PriceOf(best))
                     best = kit;
             }
         }
 
         return best;
     }
-
-    private static int Price(KitDefinition kit) => kit?.Price ?? 0;
 
     private void StartRound()
     {

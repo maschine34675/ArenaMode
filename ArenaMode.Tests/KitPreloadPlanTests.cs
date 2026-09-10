@@ -38,16 +38,21 @@ public sealed class KitPreloadPlanTests
         var bought = Kit("bought");
         var rung = Kit("rung");
 
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("endless", false, () => baseKit, Never("tactical"), Never("gun game")));
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("rounds", false, () => baseKit, Never("tactical"), Never("gun game")));
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.TeamDeathmatch, false, () => baseKit, Never("tactical"), Never("gun game")));
-        Assert.Same(bought, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, Never("base"), () => bought, Never("gun game")));
-        Assert.Same(rung, KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, false, Never("base"), Never("tactical"), () => rung));
-        Assert.Same(rung, KitPreloadPlan.OpeningKit("GUNGAME", false, Never("base"), Never("tactical"), () => rung));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("endless", false, () => baseKit, Never("gun game")));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("rounds", false, () => baseKit, Never("gun game")));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.TeamDeathmatch, false, () => baseKit, Never("gun game")));
+        Assert.Same(rung, KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, false, Never("base"), () => rung));
+        Assert.Same(rung, KitPreloadPlan.OpeningKit("GUNGAME", false, Never("base"), () => rung));
+
+        // Tactical too: its buy phase clears the pre-selected purchase before
+        // the swap asks, so the first life is the base kit, never the dearest
+        // affordable one. The plan once said otherwise and warmed the wrong kit.
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, () => baseKit, Never("gun game")));
+        Assert.NotSame(bought, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, () => baseKit, Never("gun game")));
 
         // A mode nobody recognises gets the base kit — the raid-start swap does
         // the same, because KitCatalog.GetSelectedKit falls through to it.
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(null, false, () => baseKit, Never("tactical"), Never("gun game")));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(null, false, () => baseKit, Never("gun game")));
     }
 
     [Fact]
@@ -56,8 +61,9 @@ public sealed class KitPreloadPlanTests
         // The base-kit supplier DRAWS the raid's random kit. A raid that keeps
         // the PMC's entry loadout must not burn that draw, so no supplier may
         // be asked at all.
-        Assert.Null(KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, true, Never("base"), Never("tactical"), Never("gun game")));
-        Assert.Null(KitPreloadPlan.OpeningKit("endless", true, Never("base"), Never("tactical"), Never("gun game")));
+        Assert.Null(KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, true, Never("base"), Never("gun game")));
+        Assert.Null(KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, true, Never("base"), Never("gun game")));
+        Assert.Null(KitPreloadPlan.OpeningKit("endless", true, Never("base"), Never("gun game")));
     }
 
     [Fact]
@@ -87,7 +93,7 @@ public sealed class KitPreloadPlanTests
     }
 
     [Fact]
-    public void TheWholeCatalogueFollowsInASecondBatchMinusWhatTheFirstCovers()
+    public void TheWholeCatalogueFollowsOneKitAtATimeMinusWhatEarlierBatchesCover()
     {
         var opening = Kit("a", "gun", "mag");
         var catalogue = new[] { opening, Kit("b", "mag", "armour"), Kit("c", "armour", "helmet") };
@@ -95,10 +101,16 @@ public sealed class KitPreloadPlanTests
 
         var batches = KitPreloadPlan.Batches(KitPreloadScope.WholeCatalogue, opening, catalogue, ladder);
 
-        Assert.Equal(2, batches.Count);
+        // One batch per kit, never one for the lot: a raid that begins while a
+        // batch is in flight waits for that kit alone. A kit the earlier
+        // batches already cover (the opening kit itself, rung r1) is left out.
+        Assert.Equal(
+            new[] { "kit 'a'", "kit 'b'", "kit 'c'", "rung 'r2'" },
+            batches.Select(batch => batch.Label));
         Assert.Equal(new[] { "gun", "mag" }, batches[0].Templates);
-        Assert.Equal("catalogue (3 kits, 2 rungs)", batches[1].Label);
-        Assert.Equal(new[] { "armour", "helmet", "rifle" }, batches[1].Templates);
+        Assert.Equal(new[] { "armour" }, batches[1].Templates);
+        Assert.Equal(new[] { "helmet" }, batches[2].Templates);
+        Assert.Equal(new[] { "rifle" }, batches[3].Templates);
     }
 
     [Fact]
@@ -107,7 +119,7 @@ public sealed class KitPreloadPlanTests
         var batches = KitPreloadPlan.Batches(KitPreloadScope.WholeCatalogue, null, new[] { Kit("b", "armour"), null! }, null);
 
         var batch = Assert.Single(batches);
-        Assert.Equal("catalogue (1 kits)", batch.Label);
+        Assert.Equal("kit 'b'", batch.Label);
         Assert.Equal(new[] { "armour" }, batch.Templates);
     }
 

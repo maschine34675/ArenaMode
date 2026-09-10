@@ -213,7 +213,11 @@ internal static class BotLoadBoost
         bool kits = Kits.KitBundlePreloader.IsPreloading;
 
         loading = bundles > 0 || kits;
-        signature = bundles + (kits ? 1 << 16 : 0);
+        // The kit part carries the preloader's completed-load count as well:
+        // a single flag would sit still for the whole of a long warm-up and
+        // read as a stuck counter after ninety seconds, releasing the boost
+        // from a load that is genuinely progressing.
+        signature = unchecked(bundles + (kits ? 1 << 16 : 0) + (Kits.KitBundlePreloader.LoadsCompleted << 20));
     }
 
     /// <summary>

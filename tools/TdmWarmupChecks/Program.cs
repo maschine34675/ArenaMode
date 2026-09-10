@@ -53,7 +53,7 @@ internal static class Program
         var factory = new EFT.ItemFactory();
         factory.ItemTemplates[new MongoID("test")] = new EFT.ItemTemplate { AllResources = new() { new ResourceKey("resource") } };
         Comfort.Common.Singleton<EFT.ItemFactory>.Instance = factory;
-        var openingKit = new KitDefinition { Id = "opening", Items = new() { new KitNode { Tpl = "test", ParentId = "root" } } };
+        var openingKit = new KitDefinition { Id = "opening", Items = new() { new KitItemNode { Tpl = "test", ParentId = "root" } } };
         var opening = KitBundlePreloader.Preload(openingKit);
         Check(opening.MoveNext() && KitBundlePreloader.IsPreloading, "opening preload owns active native pool work before pipeline flag");
         At(c, 430.5f);

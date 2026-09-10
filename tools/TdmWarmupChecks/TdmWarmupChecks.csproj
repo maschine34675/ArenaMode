@@ -10,5 +10,7 @@
   <ItemGroup>
     <Compile Include="$(ControllerSource)" Link="Production/ArenaController.cs" />
     <Compile Include="$(PreloaderSource)" Link="Production/KitBundlePreloader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Kits\KitPreloadPlan.cs" Link="Production/KitPreloadPlan.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Shared\ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
   </ItemGroup>
 </Project>

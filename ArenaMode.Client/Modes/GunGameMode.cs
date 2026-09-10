@@ -180,7 +180,11 @@ public sealed class GunGameMode : IArenaMode
         if (catalog == null || catalog.Count == 0)
             return new List<KitDefinition>();
 
-        var wanted = Settings.GunGameLadder.Value;
+        // The selection frozen at arming while a raid is armed or running:
+        // the loading screen warmed the first rung of THAT ladder, and a redraw
+        // later in the raid climbs the same selection. The live setting only
+        // outside a raid.
+        var wanted = ArenaSession.GunGameLadderSelection ?? Settings.GunGameLadder.Value;
         IEnumerable<KitDefinition> ordered;
 
         if (string.IsNullOrWhiteSpace(wanted))
