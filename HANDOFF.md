@@ -7,6 +7,45 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Mantle retest correction and weapon reload diagnostics (2026-09-10, 18:08):**
+  on `feature/arena-mantle-reload`. Implementation commits `0244048` and `5f35bc8`
+  retain the concurrently added preload correction `ea1a979`. Unity mantle now
+  recognizes the actual Move/Sprint jump leaves through each leaf's own initialized
+  native movement container. Landing/transition/geometry/hands checks remain;
+  bounded diagnostics identify exact rejection stage and native state flags.
+  The failed 17:18 archive confirms hooks loaded, 16 misleading unsupported-body
+  refusals, five native refusals and two queued requests without dispatch proof.
+  Unlogged source hashes mean individual failed attempts remain unclassified.
+  See `AIR-MOVEMENT-REVIEW.md` for native asset evidence and the required GPU test.
+
+  The user subsequently confirmed reload acceleration works. Their fast/slow
+  weapon list compared different kits at one fixed setting, not matching reloads
+  at 1 versus 3. Weight does not appear in the inspected native reload-speed path;
+  weapon/magazine/mastery/skill and reload variant preserve native differences.
+  Both slow/fast groups bind SpeedReload. No speculative timing replacement was
+  made. New bounded `Arena reload diagnostic` lines record weapon template,
+  factor, original/written/readback values, real Unity hands speed multiplier,
+  refusals and completion. F12 is live; web config is not polled in active Arena.
+  Compare the SAME weapon/magazine/reload type with F12 1 and 3 before comparing
+  different kit weights. See `RELOAD-HANDLING-REVIEW.md`.
+
+  Offline checks passed: mantle **320 assertions / 39 source faults**, reload
+  **724 / 8**, handling **161 / 12**, including installed native IL contracts.
+  Independent reviews found no remaining P0-P2. These are host contract checks,
+  not Unity physics/clip playback or live transaction acceptance. Native GPU
+  mantle and matched weapon timing tests remain pending with the user.
+
+  Clean build from `5f35bc8`: zero errors, four existing shared nullable warnings.
+  Client-only local delivery, verified SHA256
+  `97A8F509EB2D574406B669CBA8C753AD0131ACC5ADA5397798D1A05ECAF53B71`.
+  Verified previous-client backup and full protected-file receipt:
+  `artifacts/mantle-reload-retest/delivery-5f35bc8-533972a6d72842a0a35481f2c3675404/`.
+  The pre-delivery client was `48B5DB990F22F092FCB12F315DDC80B42AF50EF5BEE8667601817A03F9271D8D`,
+  not the older delivery below. Arena server, BigBrain companion, all three
+  Redeploy DLLs and APBS DLL/root config remained unchanged during this delivery.
+  **Restart the game only.** Mirroring configuration was left alone; completion
+  on the GPU machine is unverified. No game launch, push or merge performed.
+
 - **Unity airborne mantle and faster reload delivery (2026-09-10):** on
   `feature/arena-mantle-reload`, based on `5b058ac`. Separate implementation
   commits: `1339f00` Unity airborne mantle, `3e26b57` firearm reload speed.
