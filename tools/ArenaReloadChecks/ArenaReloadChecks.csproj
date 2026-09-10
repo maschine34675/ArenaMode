@@ -4,5 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <ReloadSource Condition="'$(ReloadSource)' == ''">../../ArenaMode.Client/Movement/ArenaReloadHandling.cs</ReloadSource>
   </PropertyGroup>
-  <ItemGroup><Compile Include="$(ReloadSource)" Link="Production/ArenaReloadHandling.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(ReloadSource)" Link="Production/ArenaReloadHandling.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaReloadHandling.Diagnostics.cs" Link="Production/Diagnostics.cs" />
+  </ItemGroup>
 </Project>

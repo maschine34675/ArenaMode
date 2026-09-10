@@ -15,7 +15,7 @@ public interface IAnimator
 {
     float GetFloat(int key); void SetFloat(int key, float value); bool HasParameter(int key);
 }
-public sealed class NativeAnimator(float reload = 1.2f) : IAnimator
+public class NativeAnimator(float reload = 1.2f) : IAnimator
 {
     public Dictionary<int, float> Values = new() { [12] = reload, [11] = 1.1f, [13] = 1.7f };
     public float GlobalSpeed = 1.05f, FireRate = 9f;
@@ -61,7 +61,7 @@ namespace EFT
         { Animator.SetFloat(12, reload); Animator.SetFloat(11, draw); }
     }
     public class MovementContext { public PlayerAnimator PlayerAnimator = new(); }
-    public class Weapon { public bool IsStationaryWeapon; }
+    public class Weapon { public bool IsStationaryWeapon; public string TemplateId = "weapon-template"; }
     public class Player
     {
         public MovementContext MovementContext = new();
@@ -132,12 +132,34 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode
 {
-    public static class Plugin { public static Logger ModLogger = new(); }
+    public static class Plugin { public static Logger ModLogger; }
     public class Logger
     {
         public List<string> Warnings = new(), Infos = new();
-        public void LogWarning(string value) => Warnings.Add(value);
-        public void LogInfo(string value) => Infos.Add(value);
+        public bool Throw;
+        public void LogWarning(string value) { if (Throw) throw new Exception("log sink"); Warnings.Add(value); }
+        public void LogInfo(string value) { if (Throw) throw new Exception("log sink"); Infos.Add(value); }
+    }
+}
+namespace AnimationSystem
+{
+    public sealed class UnityAnimatorWrapper : NativeAnimator
+    {
+        public UnityAnimatorDouble Animator = new();
+    }
+    public sealed class UnityAnimatorDouble
+    {
+        public int layerCount = 2;
+        public bool ThrowState;
+        public State GetCurrentAnimatorStateInfo(int layer)
+        { if (ThrowState) throw new Exception("state getter"); return new(); }
+        public struct State
+        {
+            public int fullPathHash => 456;
+            public float normalizedTime => .4f;
+            public float speed => .73f;
+            public float speedMultiplier => 2.5f;
+        }
     }
 }
 namespace HarmonyLib

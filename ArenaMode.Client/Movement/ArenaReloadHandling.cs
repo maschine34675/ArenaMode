@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 namespace ArenaMode.Movement;
 
 /// <summary>Leases only SpeedReload during reviewed live-local firearm reload operations.</summary>
-internal static class ArenaReloadHandling
+internal static partial class ArenaReloadHandling
 {
     private sealed class ValueLease
     {
@@ -39,7 +39,7 @@ internal static class ArenaReloadHandling
     private static readonly List<WeakReference<Player.FirearmController>> Owners = new();
     private static readonly ModulePatch[] Patches = { new ReloadStatePatch(), new RefreshPatch(), new DeathPatch() };
     private static int _attempted;
-    private static bool _enabled, _warned, _reported;
+    private static bool _enabled, _warned;
 
     internal static void Enable()
     {
@@ -76,14 +76,15 @@ internal static class ArenaReloadHandling
             if (weak.TryGetTarget(out var controller)) Release(controller);
         Owners.Clear();
         Leases = new ConditionalWeakTable<Player.FirearmController, ReloadLease>();
-        _reported = false;
+        ResetDiagnostics();
     }
 
     private static void Warn(Exception ex)
     {
         if (_warned) return;
         _warned = true;
-        Plugin.ModLogger?.LogWarning("Arena firearm reload speed failed open: " + ex.Message);
+        try { Plugin.ModLogger?.LogWarning("Arena firearm reload speed failed open: " + ex.Message); }
+        catch { /* A logging failure must not escape a gameplay hook. */ }
     }
 
     private static bool Positive(float value) => !float.IsNaN(value) && !float.IsInfinity(value) && value > 0;
@@ -128,18 +129,24 @@ internal static class ArenaReloadHandling
             if (Leases.TryGetValue(controller, out var lease)
                 && !ReferenceEquals(controller.CurrentOperation, lease.Operation))
             { Release(controller); lease = null; }
+            ObserveReload(controller);
             if (!TryFactor(controller, controller.CurrentOperation, out float factor))
             {
+                TraceReload(controller, "native-setting-or-ineligible-operation");
+                SampleReload(controller);
                 if (lease != null) Block(lease);
                 return;
             }
             if (lease != null)
             {
                 if (lease.Blocked) return;
-                if (!SameOwners(lease) || !StillOwned(lease.Arms) || !StillOwned(lease.Body))
-                { Block(lease); return; }
+                if (!SameOwners(lease))
+                { TraceReload(controller, "blocked-animator-owner-changed"); Block(lease); return; }
+                if (!StillOwned(lease.Arms) || !StillOwned(lease.Body))
+                { TraceReload(controller, "blocked-speed-readback-changed"); Block(lease); return; }
                 Write(lease.Arms, lease.Arms.Original * factor);
                 Write(lease.Body, lease.Body.Original * factor);
+                SampleReload(controller);
                 return;
             }
             var operation = controller.CurrentOperation;
@@ -147,14 +154,17 @@ internal static class ArenaReloadHandling
             var body = operation.Player.MovementContext.PlayerAnimator;
             if (arms?.Animator == null || body?.Animator == null
                 || !arms.HasParameter(AnimationControllerParametersTable.FLOAT_SPEEDRELOAD)
-                || !body.Animator.HasParameter(AnimationControllerParametersTable.FLOAT_SPEEDRELOAD)) return;
+                || !body.Animator.HasParameter(AnimationControllerParametersTable.FLOAT_SPEEDRELOAD))
+            { TraceReload(controller, "missing-animator-or-reload-parameter"); return; }
             // Shared wrappers would cause a duplicate multiplier / ambiguous
             // restoration. Treat that runtime arrangement as unsupported.
-            if (ReferenceEquals(arms.Animator, body.Animator)) return;
+            if (ReferenceEquals(arms.Animator, body.Animator))
+            { TraceReload(controller, "shared-arms-body-animator"); return; }
             float armsBase = AnimationControllerParametersTable.GetFloatSpeedReload(arms.Animator);
             float bodyBase = AnimationControllerParametersTable.GetFloatSpeedReload(body.Animator);
             if (!Positive(armsBase) || !Positive(bodyBase)
-                || !Positive(armsBase * factor) || !Positive(bodyBase * factor)) return;
+                || !Positive(armsBase * factor) || !Positive(bodyBase * factor))
+            { TraceReload(controller, "invalid-native-baseline"); return; }
             lease = new ReloadLease
             {
                 Controller = controller, Operation = operation, ArmsOwner = arms, BodyOwner = body,
@@ -165,14 +175,11 @@ internal static class ArenaReloadHandling
             Owners.Add(new WeakReference<Player.FirearmController>(controller));
             Write(lease.Arms, armsBase * factor);
             Write(lease.Body, bodyBase * factor);
-            if (!_reported)
-            {
-                _reported = true;
-                Plugin.ModLogger?.LogInfo($"Arena firearm reload speed active: {factor:0.##}x for the local PMC.");
-            }
+            TraceReload(controller, "write-requested");
         }
         catch (Exception ex)
         {
+            TraceReload(controller, "blocked-speed-access-error");
             if (Leases.TryGetValue(controller, out var failed)) Block(failed);
             Warn(ex);
         }
@@ -220,6 +227,7 @@ internal static class ArenaReloadHandling
 
     internal static void Release(Player.FirearmController controller)
     {
+        EndReloadDiagnostic(controller, null, "released");
         if (controller == null || !Leases.TryGetValue(controller, out var lease)) return;
         Leases.Remove(controller);
         Owners.RemoveAll(weak => !weak.TryGetTarget(out var target) || ReferenceEquals(target, controller));
@@ -228,6 +236,8 @@ internal static class ArenaReloadHandling
 
     private static void BeforeReloadState(Player.FirearmController.BaseReloadOperation operation, Player.EOperationState next)
     {
+        if (next != Player.EOperationState.Executing)
+            EndReloadDiagnostic(operation?.Controller, operation, "native-state-" + next);
         // Release before the native Finished callback and subsequent idle/fire
         // transition; native animator events continue without an Arena override.
         if (next != Player.EOperationState.Executing && operation?.Controller != null
@@ -247,7 +257,7 @@ internal static class ArenaReloadHandling
             if (value == null) continue;
             if (!TryFactor(controller, lease.Operation, out float factor) || !SameOwners(lease)
                 || !StillOwned(value) || !Positive(reload) || !Positive(reload * factor))
-            { Block(lease); return null; }
+            { TraceReload(controller, "blocked-native-refresh-validation"); Block(lease); return null; }
             var pending = new PendingWrite { Reload = lease, Value = value, Original = reload, Written = reload * factor };
             reload = pending.Written;
             return pending;
@@ -266,7 +276,8 @@ internal static class ArenaReloadHandling
                 pending.Value.Original = pending.Original;
                 pending.Value.Written = pending.Written;
             }
-            if (!succeeded || actual != pending.Written) Block(pending.Reload);
+            if (!succeeded || actual != pending.Written)
+            { TraceReload(pending.Reload.Controller, "blocked-native-refresh-readback"); Block(pending.Reload); }
         }
         catch (Exception ex) { Block(pending.Reload); Warn(ex); }
     }

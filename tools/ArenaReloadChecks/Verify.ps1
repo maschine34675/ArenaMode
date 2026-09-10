@@ -32,7 +32,9 @@ $reloadFaults = @(
     @('compounding', 'Write(lease.Arms, lease.Arms.Original * factor);', 'Write(lease.Arms, lease.Arms.Written * factor);', 'both reload animators use their own baseline'),
     @('foreign-clobber', 'if (StillOwned(value)) AnimationControllerParametersTable.SetSpeedReload', 'if (true) AnimationControllerParametersTable.SetSpeedReload', 'foreign parameter writer is preserved while owned body restores'),
     @('lost-body-speed', 'Write(lease.Body, bodyBase * factor);', 'Write(lease.Body, bodyBase);', 'both reload animators use their own baseline'),
-    @('early-write-claim', "AnimationControllerParametersTable.SetSpeedReload(value.Animator, changed);`n            value.Written = changed;", "value.Written = changed;`n            AnimationControllerParametersTable.SetSpeedReload(value.Animator, changed);", 'native arm and body baselines preserved')
+    @('early-write-claim', "AnimationControllerParametersTable.SetSpeedReload(value.Animator, changed);`n            value.Written = changed;", "value.Written = changed;`n            AnimationControllerParametersTable.SetSpeedReload(value.Animator, changed);", 'native arm and body baselines preserved'),
+    @('missing-diagnostic-owner', 'ObserveReload(controller);', '/* observation removed */', 'diagnostic distinguishes request from subsequent readback'),
+    @('missing-write-request-log', 'TraceReload(controller, "write-requested");', '/* request diagnostic removed */', 'diagnostic distinguishes request from subsequent readback')
 )
 try {
     foreach ($reloadFault in $reloadFaults) {

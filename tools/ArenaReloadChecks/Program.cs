@@ -150,5 +150,41 @@ foreach (var bad in new[] { Calls(2, 2), Calls(3, 1), Calls(4, 2), Calls(3, 3) }
     try { Hook.Call("RefreshPatch", "Transpiler", bad); } catch (InvalidOperationException) { rejected = true; }
     Need(rejected, "drifted native refresh IL is rejected");
 }
+Fresh(); ArenaMode.Plugin.ModLogger = new();
+current = Start(families[0]); Tick(); Tick(); Boost();
+Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("write-requested") && x.Contains("weapon=weapon-template"))
+    && ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("readback-tick-2")), "diagnostic distinguishes request from subsequent readback");
+Settings.WeaponReloadSpeedMultiplier.Value = 3; Tick();
+Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("factor-changed") && x.Contains("factor=3")), "diagnostic sees live factor changes");
+arms.SetFloat(12, 7); Tick();
+Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("blocked-speed-readback-changed") && x.Contains("reload=7")), "foreign speed readback is reported before restore");
+Need(A() == 7 && B() == 1.4f, "diagnostic preserves foreign writer and native restoration");
+for (int i = 0; i < 1000; i++) Tick();
+Need(ArenaMode.Plugin.ModLogger.Infos.Count < 12, "diagnostic does not repeat unchanged refusals per frame");
+current.State = Player.EOperationState.Finished;
+Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("native-state-Finished")), "native completion ends the diagnostic");
+Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(families[0]); Settings.WeaponReloadSpeedMultiplier.Value = 1;
+for (int i = 0; i < 50; i++) Tick(); Native();
+Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("factor=1") && x.Contains("readback-tick-30")), "native factor one remains an observable control");
+Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(families[0]);
+controller.FirearmsAnimator.Animator = new AnimationSystem.UnityAnimatorWrapper(); Tick(); Tick();
+Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("/speed=0.73/mult=2.5")), "diagnostic retains real Unity speed multiplier separately from state speed");
+Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(families[0]);
+var unityArms = new AnimationSystem.UnityAnimatorWrapper(); unityArms.Animator.ThrowState = true;
+controller.FirearmsAnimator.Animator = unityArms; Tick(); Tick();
+Need(Same(unityArms.GetFloat(12), 1.8f) && Same(B(), 2.1f)
+    && ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("arms=[unavailable]")), "diagnostic-only state getter failure leaves speed lease intact");
+controller.CurrentOperation.State = Player.EOperationState.Finished;
+Need(unityArms.GetFloat(12) == 1.2f && B() == 1.4f, "diagnostic-only getter failure leaves native cleanup intact");
+Fresh(); ArenaMode.Plugin.ModLogger = new();
+for (int i = 0; i < 50; i++) { current = Start(families[0]); Tick(); Tick(); current.State = Player.EOperationState.Finished; }
+Need(ArenaMode.Plugin.ModLogger.Infos.Count == 96 && ArenaMode.Plugin.ModLogger.Infos.Last().Contains("limit reached"), "diagnostic is capped per raid");
+Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(families[0]); current = controller.CurrentOperation;
+current.Player = new Player(); Tick();
+Need(ArenaMode.Plugin.ModLogger.Infos.Count == 0, "diagnostic excludes foreign players");
+Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(families[0]); ArenaMovementScope.Enabled = false; Tick();
+Need(ArenaMode.Plugin.ModLogger.Infos.Count == 0, "diagnostic excludes ordinary or disabled movement scope");
+Fresh(); ArenaMode.Plugin.ModLogger = new() { Throw = true }; Start(families[0]); Tick(); Tick(); Boost();
+controller.CurrentOperation.State = Player.EOperationState.Finished; Native();
 ArenaReloadHandling.Shutdown();
 Console.WriteLine($"ARENA_RELOAD_CHECKS_PASSED ({checks} assertions)");
