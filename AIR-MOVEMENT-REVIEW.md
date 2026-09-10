@@ -1,16 +1,79 @@
 # Arena landing, weapon handling and airborne actions
 
-**Latest retest, 2026-09-09 19:19–19:29:** airborne mantle remains unaccepted.
+**Historical retest, 2026-09-09 19:19–19:29:** airborne mantle remains unaccepted.
 The player has `UnityAnimatorWrapper`; the later FastAnimator transition bridge
 rejects it before queuing. No successful transition is logged. Earlier broad
 playtest acceptance does not cover mantle. See `TDM-SEARCH-TEMPO-REVIEW.md` for
-the frozen log evidence. A safe Unity transition/cancellation path remains open;
-the subsequent bot search-tempo change does not repair it.
+the frozen log evidence. The Unity implementation below supersedes that code;
+it still needs its own GPU acceptance.
 
 Implementation: 2026-09-09, on `feature/arena-air-movement`, inheriting the
 independent TDM match flow. This is client-only work. Server settings, profiles,
 AI, area barriers, loadouts and Redeploy are unchanged.
 
+## Unity airborne mantle implementation (2026-09-10)
+
+Client-only, on `feature/arena-mantle-reload`. The last user log (2026-09-10
+11:06:50 archive) still showed five deliberate UnityAnimatorWrapper rejections.
+The new Unity path removes that unsupported-animator failure for the reviewed
+body controller. **A build and offline contracts do not yet prove live climbing.**
+
+The actual installed `player_anim_controller.bundle` was inspected read-only,
+SHA256 `9A6B93737D806D6A563BD1AFCBDFB77538DFCCE917C9D1DB0E2BE2E1F39CDD9F`.
+Its Unity controller has Jump_Idle (232800732), behaviorless Jump_Loop
+(1889265959), Climb_on (-285230529), and Vault (262098243). The jump leaves
+have landing exits but no climb/vault entry. This is separate from FastAnimator's
+serialized graph; Unity does not have FastAnimator's timed Idle-to-Loop edge.
+
+`Player.BodyUpdate` submits one native CrossFade before manual body animation
+updates and also runs when Unity owns automatic animation updates. Admission
+requires the existing exact local living Arena Jump owner, held vault and
+forward input, fresh native obstacle geometry, stamina and complete native
+hands/inventory restrictions. Existing transition, Landing, FallingDown, missing
+IsJumping, disabled/uninitialized animator, stale body/controller and foreign or
+missing state containers reject the move. No shared controller asset is edited.
+
+The wrapper, underlying Unity Animator, runtime controller and initialized
+movement owner are bound to the request. Destination identity is checked against
+both the actual state hash and initialized ClimbState/VaultState. CrossFade uses
+the native MOVE entry's normalized blend and destination offset. Unity itself
+runs PlayerStateContainer.OnStateEnter, Jump.Exit, Climb/Vault.Enter, root motion,
+collider changes, stamina effects and exit cleanup. No manual Enter, Play,
+Animator.Update(0), teleport or fake grounded flag is used.
+
+CrossFade is the commitment boundary. Before it, input release, setting changes,
+geometry loss and the original 0.5-second request deadline cancel safely. After
+it, native movement and sibling animation-event behaviors own the move; releasing
+Space does not rewind an accepted climb. A finalizer observes actual native entry,
+with a polling fallback that also verifies the animator destination and absence
+of movement overrides. It then clears the old IsJumping flag and releases pending
+double-jump precedence. Captured movement identity cannot be replaced in-place.
+Cleanup still runs if the movement setting changes after dispatch. Native callback
+exceptions remain visible; partial native entry is not logged as clean success.
+
+A delayed native entry reports once after the original deadline and retains its
+observer until entry or body/state replacement. It never repeats CrossFade or
+rewinds a possibly executing native move. Post-dispatch errors do not discard
+that observer. Before native confirmation, a held request retains precedence over
+double jump; real Jump.Exit retires that jump's credit normally.
+
+The production-linked fixture now exercises extracted native Player.BodyUpdate
+and PlayerStateContainer.OnStateEnter in addition to the FastAnimator pipeline.
+Its Unity engine seam controls callback evaluation without pretending to execute
+Unity. It covers Auto/Manual updates, both jump leaves, both destinations,
+pre-admission refusals, native full state handoff, post-dispatch release/disable,
+late entry, native errors and replaced bodies/controllers/containers. Native
+physics, clips, sibling event timing and actual Unity scheduling remain GPU tests.
+An independent adversarial review found no remaining P0-P2 after lifecycle fixes.
+
+GPU acceptance: approach a climbable ledge during a real jump, hold the existing
+vault binding (with jump-on-release, press/hold again in flight), and verify a
+complete native climb and subsequent normal movement. Compare ordinary standing
+vault, unsupported walls/ceilings, empty stamina, reload/meds rejection, releasing
+before/after commitment, double jump away from a wall, death/respawn and an ordinary
+PMC raid. Expected success log: `Unity entered Climb through native state callback`
+or `Unity entered Vault through native state callback`; repeated delayed-entry
+messages or only `queued`/`transition requested` are not acceptance.
 ## Player controls and defaults
 
 The F12 `Movement` section has five new settings, all covered by its existing
@@ -233,3 +296,8 @@ Evidence: `artifacts/air-vault-checks/477a9030a7a04d5ba3963129aa164463/`,
 `artifacts/double-jump-checks/9293e07d3b9b4f7fba2a30d92c609610/` and
 `artifacts/tdm-match-menu-checks/cf3d9606391e46baaba941f1de66fa35/`.
 GPU acceptance is still pending; the dated handoff records client delivery.
+
+Verified offline on 2026-09-10 before delivery: 227 production-linked assertions
+and 35 required source-fault controls passed. Recorded evidence:
+`artifacts/air-vault-checks/bc51c539feb54a04bc81c177c809c551/`.
+This count includes both FastAnimator and Unity fixtures, not native GPU tests.

@@ -55,7 +55,7 @@ namespace EFT
     public class BaseMovementState
     {
         public float NormalizedTime, AnimationAuthority, AuthoritySpeed; public int AnimatorStateHash, Name; public bool CanInteract;
-        public int Enters, Exits, Moves; public Action OnEnter;
+        public int Enters, Exits, Moves; public string AnimatorStateName; public int AdditionalDirectionInfo, Type; public object SmoothLerpAnimCurve; public float RotationSpeedClamp, StateSensitivity; public bool DisableRootMotion; public void AssignAnimatorPose(object pose) { } public Action OnEnter;
         public virtual void Enter(bool same) { Enters++; OnEnter?.Invoke(); }
         public virtual void Exit(bool same) { Exits++; }
         public void ReEnter() { }
@@ -79,7 +79,7 @@ namespace EFT
     public class PlayerAnimator
     {
         public object Animator = new();
-        public bool Climb, Vault;
+        public const int LANDING_PARAM_HASH=11, FALLING_DOWN_PARAM_HASH=12, JUMP_PARAM_HASH=13; public bool Climb, Vault;
         public bool GetDoClimb() => Climb;
         public bool GetDoVault() => Vault;
     }

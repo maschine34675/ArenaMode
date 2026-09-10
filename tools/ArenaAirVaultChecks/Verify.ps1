@@ -1,4 +1,4 @@
-param()
+param([switch]$ProductionOnly)
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaNative = [IO.Path]::GetFullPath((Join-Path $arenaRepo '..\_decompiled'))
@@ -6,6 +6,7 @@ $arenaWork = Join-Path $arenaRepo ('artifacts\air-vault-checks\' + [Guid]::NewGu
 [IO.Directory]::CreateDirectory($arenaWork) | Out-Null
 $arenaProject = Join-Path $PSScriptRoot 'ArenaAirVaultChecks.csproj'
 $arenaSource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.cs')).Replace("`r`n","`n")
+$arenaUnitySource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.Unity.cs')).Replace("`r`n","`n")
 $arenaAnimatorSource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.Animator.cs')).Replace("`r`n","`n")
 
 function Read-Method([string]$File, [string]$Signature) {
@@ -41,11 +42,16 @@ $arenaExtraNative = [Environment]::NewLine + 'namespace FastAnimatorSystem { pub
     (Read-Method 'EFT\MovementContext.cs' 'public void ProcessStateEnter(BaseMovementState enteredState)').Replace('_playerAnimator.Animator.Play(', '((FastAnimatorSystem.FastAnimatorProcessor)_playerAnimator.Animator).Play(') + '} }'
 $arenaExtraNative += 'namespace EFT { public partial class Player {' +
     (Read-Method 'EFT\Player.cs' 'public void ToggleVaulting()').Replace('public void ToggleVaulting()', 'public void NativeToggleVaulting()').Replace('Time.deltaTime','UnityEngine.Time.deltaTime') + '} }'
+$arenaExtraNative += 'public partial class PlayerStateContainer {' +
+    (Read-Method 'PlayerStateContainer.cs' 'public sealed override void OnStateEnter(').Replace('public sealed override void OnStateEnter(', 'public void NativeOnStateEnter(').Replace('Animator animator, AnimatorStateInfo stateInfo', 'UnityEngine.Animator animator, UnityEngine.AnimatorStateInfo stateInfo') + '}' +
+    'namespace EFT { public partial class Player {' +
+    (Read-Method 'EFT\Player.cs' 'public virtual void BodyUpdate(float deltaTime, int loop = 1)').Replace('public virtual void BodyUpdate(', 'public void NativeBodyUpdate(') + '} }'
 [IO.File]::AppendAllText($arenaNativeFile, $arenaExtraNative)
 
-function Invoke-Checks([string]$Source = '', [string]$AnimatorSource = '') {
+function Invoke-Checks([string]$Source = '', [string]$AnimatorSource = '', [string]$UnitySource = '') {
     $arenaExtra = @("-p:NativeSource=$arenaNativeFile")
     if ($Source) { $arenaExtra += "-p:AirVaultSource=$Source" }
+    if ($UnitySource) { $arenaExtra += "-p:AirVaultUnitySource=$UnitySource" }
     if ($AnimatorSource) { $arenaExtra += "-p:AirVaultAnimatorSource=$AnimatorSource" }
     $arenaLog = @(& dotnet build $arenaProject -t:Rebuild -c Release --nologo @arenaExtra 2>&1)
     if ($LASTEXITCODE -ne 0) { throw ($arenaLog -join [Environment]::NewLine) }
@@ -58,18 +64,19 @@ function Assert-Production {
     if ($arenaResult.Exit -ne 0 -or !$arenaResult.Text.Contains('ARENA_AIR_VAULT_CONTRACTS_PASSED')) { throw $arenaResult.Text }
     Write-Output $arenaResult.Text
 }
-function Test-Fault([string]$Name,[string]$Before,[string]$After,[string]$Assertion,[switch]$Animator) {
-    $arenaCandidate = if ($Animator) { $arenaAnimatorSource } else { $arenaSource }
+function Test-Fault([string]$Name,[string]$Before,[string]$After,[string]$Assertion,[switch]$Animator,[switch]$Unity) {
+    $arenaCandidate = if ($Unity) { $arenaUnitySource } elseif ($Animator) { $arenaAnimatorSource } else { $arenaSource }
     if (!$arenaCandidate.Contains($Before) -or ($arenaCandidate.Length-$arenaCandidate.Replace($Before,'').Length)/$Before.Length -ne 1) { throw "Missing/ambiguous fault anchor: $Name" }
     $arenaFile=Join-Path $arenaWork ($Name+'.cs')
     [IO.File]::WriteAllText($arenaFile,$arenaCandidate.Replace($Before,$After))
-    $arenaResult=if ($Animator) { Invoke-Checks -AnimatorSource $arenaFile } else { Invoke-Checks -Source $arenaFile }
+    $arenaResult=if ($Unity) { Invoke-Checks -UnitySource $arenaFile } elseif ($Animator) { Invoke-Checks -AnimatorSource $arenaFile } else { Invoke-Checks -Source $arenaFile }
     [IO.File]::WriteAllText((Join-Path $arenaWork ($Name+'.log')),$arenaResult.Text)
     if ($arenaResult.Exit -eq 0 -or !$arenaResult.Text.Contains('ASSERT: '+$Assertion)) { throw "Fault $Name did not fail its intended assertion: $($arenaResult.Text)" }
     Write-Output "Air vault negative control rejected: $Name"
 }
 try {
     Assert-Production
+    if ($ProductionOnly) { return }
     Test-Fault 'scope-removed' '|| !ArenaMovementScope.IsLocal(request.Player, requireInput: true)' '' 'ordinary raid never receives airborne strategy'
     Test-Fault 'held-input-removed' 'return request.Player.IsVaultingPressed' 'return true' 'normal jump without held vault is untouched'
     Test-Fault 'geometry-removed' '&& model.VaultingStatesModel.ClimbState.CanMove() && !context.IsSprintEnabled' '&& !context.IsSprintEnabled' 'no native geometry means no mantle or jump consumption'
@@ -95,6 +102,16 @@ try {
     Test-Fault 'post-parameter-hands-removed' 'return valid && ReferenceEquals(_pending, pending)' 'return ReferenceEquals(_pending, pending)' 'parameter callbacks cannot bypass final hands restriction'
     Test-Fault 'post-parameter-strategy-removed' '&& SelectGeometryStrategy(request) == pending.Strategy;' ';' 'parameter callbacks cannot bypass final stamina strategy'
     Test-Fault 'deferred-admission-cancel' '{ if (ReferenceEquals(_pending, frame.Pending)) CancelPending(); return; }' '{ return; }' 'failed animator admission cancels pending flag immediately' -Animator
+    Test-Fault 'unity-managed-only-proof' '&& UnityDestinationIsActive(pending)' '' 'Unity polling cannot prove entry from managed state alone' -Unity
+    Test-Fault 'unity-dispatch-missing' 'animator.CrossFade(destination.StateFullNameHash, climb ? 0.15f : 0.1f, 0, climb ? 0f : 0.1f);' '' 'Unity Auto and Manual body updates both issue one transition' -Unity
+    Test-Fault 'unity-jump-cleanup-missing' 'request.Context.PlayerAnimatorEnableJump(false);' '' 'Unity committed entry consumes jump even after settings disable or release' -Unity
+    Test-Fault 'unity-native-landing-overwritten' '!animator.GetBool(PlayerAnimator.LANDING_PARAM_HASH)' 'true' 'Unity native landing always wins' -Unity
+    Test-Fault 'unity-foreign-destination' '|| !ReferenceEquals(movement.MovementContext, request.Context)' '' 'Unity foreign destination context cannot receive mantle' -Unity
+    Test-Fault 'unity-missing-state' 'if (!request.UnityAnimator.HasState(0, hash)) return null;' '' 'Unity missing destination state cannot receive mantle' -Unity
+    Test-Fault 'unity-controller-drift' '&& ReferenceEquals(request.UnityAnimator.runtimeAnimatorController, request.UnityController)' '' 'Unity controller replacement revokes pending ownership'
+    Test-Fault 'unity-observer-lost-on-error' 'if (pending.Unity == null) CancelPending();' 'CancelPending();' 'Unity queue acceptance followed by exception retains observer' -Unity
+    Test-Fault 'unity-rebound-movement' 'var target = pending.Unity.Movement;' 'var target = pending.Unity.Destination.EncapsulatedState;' 'Unity reinitialized container cannot impersonate captured destination movement' -Unity
+    Test-Fault 'unity-timeout-retires-observer' 'pending.Unity.TimeoutReported = true;' 'pending.Unity.TimeoutReported = true; _pending = null;' 'Unity missing entry retains observer without rewriting native committed move' -Unity
 }
 finally { Assert-Production }
 Write-Output "Air vault evidence: $arenaWork"

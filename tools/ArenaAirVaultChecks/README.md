@@ -6,12 +6,13 @@ Run from the repository root:
 pwsh -NoProfile -File tools/ArenaAirVaultChecks/Verify.ps1
 ```
 
-The fixture links both production `ArenaAirVault` files and the full native
+The fixture links all three production `ArenaAirVault` files and the full native
 `VaultingGameplayRestrictions`. The verifier extracts native component
 strategy/request/commit methods, MovementContext.TryVaulting, Player's held
 ToggleVaulting dispatch, FastAnimatorProcessor.ProcessState and immediate/
 interrupted transition paths, MovementState enter/move/exit callbacks and
-MovementContext.ProcessStateEnter. Only the overridden-state Play call receives
+MovementContext.ProcessStateEnter, Unity PlayerStateContainer.OnStateEnter and
+Player.BodyUpdate. Only the overridden-state Play call receives
 a host type cast; native control flow stays intact.
 
 It has no client project reference, deploy target or installed-file mutation.
@@ -95,3 +96,19 @@ Bounded Info diagnostics distinguish rejected native checks, queued requests,
 accepted native Climb/Vault, timeout and unsupported animator/entry. There is no
 Animator.Play, fake grounding, teleport, global graph mutation or collision
 bypass. Successful offline checks remain separate from GPU acceptance.
+
+## Unity-specific boundary
+
+`UnityChecks` drives the linked production Unity bridge through extracted native
+BodyUpdate and movement-container callbacks. An explicit engine double supplies
+Auto/Manual callback scheduling, current/next hashes, behavior containers and
+CrossFade recording. It intentionally cannot certify real Unity blending,
+collision, animation events, or GPU timing. Unity dispatch commits the native
+move once; subsequent release/settings changes do not cancel its sibling native
+animation behaviors. Entry proof still retires Jump after disable, dispatch error
+or delay. Temporary source faults verify that dispatch, cleanup, landing,
+destination/context/controller ownership and retained observers matter.
+
+For fast development only, `-ProductionOnly` runs the positive fixture without
+fault controls. Full acceptance always uses the default command above; the
+positive-only path does not emit the full verifier success marker.

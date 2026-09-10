@@ -134,5 +134,6 @@ Check(blend.c.PlayerAnimator.Climb,"pending native transition is not cancelled b
 var ordinary=Setup(); ArenaMovementScope.Active=false; ordinary.c.IsGrounded=true; ordinary.c.JumpSet=false;
 Check(ordinary.v.TryVaulting() && ordinary.c.PlayerAnimator.Climb,"ordinary grounded native mantle is untouched");
 AnimatorChecks.Run(Check, Setup);
+UnityChecks.Run(Check, Setup);
 ArenaAirVault.Shutdown();
 Console.WriteLine($"ARENA_AIR_VAULT_CONTRACTS_PASSED ({assertions} assertions; actual production with extracted native strategy/request and full native gameplay restrictions)");

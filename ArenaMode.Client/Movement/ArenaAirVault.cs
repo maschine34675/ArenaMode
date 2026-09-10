@@ -29,6 +29,8 @@ internal static partial class ArenaAirVault
         internal PlayerAnimator Animator;
         internal object AnimatorHandle;
         internal object AnimatorState;
+        internal Animator UnityAnimator;
+        internal RuntimeAnimatorController UnityController;
         internal Geometry CommittedGeometry;
     }
 
@@ -65,6 +67,7 @@ internal static partial class ArenaAirVault
         internal Request Request;
         internal EVaultingStrategy Strategy;
         internal float ExpiresAt;
+        internal UnityTransfer Unity;
     }
 
     private static Request _request;
@@ -82,6 +85,8 @@ internal static partial class ArenaAirVault
             new CommitPatch().Enable();
             new AnimatorFramePatch().Enable();
             new AnimatorTransitionPatch().Enable();
+            new UnityBodyPatch().Enable();
+            new UnityEntryPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { _enabled = false; Warn(ex); }
@@ -118,6 +123,8 @@ internal static partial class ArenaAirVault
             if (!OwnsTarget(request))
             { _pending = null; return; }
 
+            if (pending.Unity != null) { ObserveUnityEntry(pending); return; }
+
             // Once EFT has entered the move, its state owns flags/capsule/cleanup.
             // Never clear a successfully entered native climb or vault.
             if (request.Context.CurrentState is VaultingMovementState)
@@ -134,13 +141,18 @@ internal static partial class ArenaAirVault
                 return;
             }
 
+
             // The animator may already be blending into its move. Do not cancel
             // that handoff merely because native strategy selection blocks NEW
             // requests while an animation transition is running.
             if (request.Context.IsAnimatorInTransitionState(0)) return;
             if (!RefreshPending(pending)) CancelPending();
         }
-        catch (Exception ex) { CancelPending(); Warn(ex); }
+        catch (Exception ex)
+        {
+            if (_pending?.Unity == null) CancelPending();
+            Warn(ex);
+        }
     }
 
     // Refresh parameters, not the input request: TryVaulting has already sent
@@ -209,7 +221,11 @@ internal static partial class ArenaAirVault
             && ReferenceEquals(request.Context.PlayerAnimator, request.Animator)
             && ReferenceEquals(request.Animator.Animator, request.AnimatorHandle)
             && (request.AnimatorHandle is not FastAnimatorSystem.FastAnimatorProcessor fast
-                || ReferenceEquals(fast.FastControllerInfo, request.AnimatorState));
+                || ReferenceEquals(fast.FastControllerInfo, request.AnimatorState))
+            && (request.AnimatorHandle is not AnimationSystem.UnityAnimatorWrapper unity
+                || (request.UnityAnimator != null && request.UnityController != null
+                    && ReferenceEquals(unity.Animator, request.UnityAnimator)
+                    && ReferenceEquals(request.UnityAnimator.runtimeAnimatorController, request.UnityController)));
     }
 
     /// <summary>
@@ -253,6 +269,7 @@ internal static partial class ArenaAirVault
         {
             Request request = pending.Request;
             if (!OwnsTarget(request) || request.Context.CurrentState is VaultingMovementState) return;
+            if (pending.Unity != null) return; // Already dispatched: native callbacks own the move.
             if (pending.Strategy == EVaultingStrategy.Climb)
                 request.Context.PlayerAnimatorSetDoClimb(false);
             else request.Context.PlayerAnimatorSetDoVault(false);
@@ -287,9 +304,15 @@ internal static partial class ArenaAirVault
                     Game = Singleton<AbstractGame>.Instance, Animator = __instance.MovementContext?.PlayerAnimator };
                 request.AnimatorHandle = request.Animator?.Animator;
                 request.AnimatorState = (request.AnimatorHandle as FastAnimatorSystem.FastAnimatorProcessor)?.FastControllerInfo;
+                if (request.AnimatorHandle is AnimationSystem.UnityAnimatorWrapper unity)
+                {
+                    request.UnityAnimator = unity.Animator;
+                    request.UnityController = request.UnityAnimator?.runtimeAnimatorController;
+                }
                 if (!IsEligible(request) || request.Context.IsAnimatorInTransitionState(0)
                     || request.Context.PlayerAnimator.GetDoClimb() || request.Context.PlayerAnimator.GetDoVault()) return;
-                if (request.AnimatorHandle is not FastAnimatorSystem.FastAnimatorProcessor)
+                if (request.AnimatorHandle is not FastAnimatorSystem.FastAnimatorProcessor
+                    && (request.UnityAnimator == null || !UnitySourceOwnsJump(request)))
                 { Trace(request, "unsupported body animator: " + request.AnimatorHandle.GetType().Name); return; }
 
                 // Manual mode normally refreshes after gameplay restrictions.

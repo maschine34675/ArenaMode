@@ -4,8 +4,10 @@
     <LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <AirVaultSource Condition="'$(AirVaultSource)' == ''">../../ArenaMode.Client/Movement/ArenaAirVault.cs</AirVaultSource>
       <AirVaultAnimatorSource Condition="'$(AirVaultAnimatorSource)' == ''">../../ArenaMode.Client/Movement/ArenaAirVault.Animator.cs</AirVaultAnimatorSource>
+    <AirVaultUnitySource Condition="'$(AirVaultUnitySource)' == ''">../../ArenaMode.Client/Movement/ArenaAirVault.Unity.cs</AirVaultUnitySource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(AirVaultUnitySource)" Link="Production/ArenaAirVault.Unity.cs" />
     <Compile Include="$(AirVaultAnimatorSource)" Link="Production/ArenaAirVault.Animator.cs" />
     <Compile Include="$(AirVaultSource)" Link="Production/ArenaAirVault.cs" />
     <Compile Include="$(NativeSource)" Link="Native/Extracted.cs" />
