@@ -1,6 +1,11 @@
 # Arena firearm reload handling
 
-2026-09-10. Client-only change; native raid acceptance remains pending.
+2026-09-10. Client-only change. The user now confirms R reload speed is correct,
+including the previously missing UIFixes in-place magazine path. The extra pause
+between removal and insertion is understood as part of the native two-operation
+swap. No further reload timing changes are made in the mantle physical follow-up.
+This is user acceptance of observed reload behavior, not proof of every listed
+interruption/ordinary-raid regression case.
 
 ## Native in-place magazine reload after the 19:09 retest
 

@@ -6,13 +6,13 @@ Run from the repository root:
 pwsh -NoProfile -File tools/ArenaAirVaultChecks/Verify.ps1
 ```
 
-The fixture links all three production `ArenaAirVault` files and the full native
+The fixture links all four production `ArenaAirVault` files and the full native
 `VaultingGameplayRestrictions`. The verifier extracts native component
 strategy/request/commit methods, MovementContext.TryVaulting, Player's held
 ToggleVaulting dispatch, FastAnimatorProcessor.ProcessState and immediate/
 interrupted transition paths, MovementState enter/move/exit callbacks and
 MovementContext.ProcessStateEnter, Unity PlayerStateContainer.OnStateEnter and
-Player.BodyUpdate. Only the overridden-state Play call receives
+Player.BodyUpdate and VaultingMovementState.ApplyMotion. Only the overridden-state Play call receives
 a host type cast; native control flow stays intact.
 
 It has no client project reference, deploy target or installed-file mutation.
@@ -40,6 +40,14 @@ installed animator-asset hash.
 
 ## Contracts
 
+- Airborne Climb waits above the native 1.31m remaining-height limit, retries
+  held input after rising into reach and revalidates before dispatch. Standing
+  Arena climb and the native Vault preference are not narrowed.
+- A read-only physical observer logs accepted geometry, incoming motion versus
+  actual controller displacement, exit and post-exit position. Tests control
+  the controller's accepted fraction; they do not certify real collisions.
+  Exact controller/world/body ownership, native exception propagation, timeout,
+  shutdown and a separate twelve-attempt per-world log budget are verified.
 - Exact live local Arena Jump owner, held input and native forward/phase guards.
   Ordinary raids, bots, stale bodies, inventory/blocked input and automatic
   vaulting retain their native behavior.

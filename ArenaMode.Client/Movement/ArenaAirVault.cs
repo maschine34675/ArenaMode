@@ -87,6 +87,7 @@ internal static partial class ArenaAirVault
             new AnimatorTransitionPatch().Enable();
             new UnityBodyPatch().Enable();
             new UnityEntryPatch().Enable();
+            new ObservedMotionPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { _enabled = false; Warn(ex); }
@@ -97,6 +98,7 @@ internal static partial class ArenaAirVault
         _enabled = false;
         _request = null;
         _animatorFrame = null;
+        _motionObservation = null;
         CancelPending();
         _blockedUntilRelease = null;
     }
@@ -113,6 +115,7 @@ internal static partial class ArenaAirVault
         if (_request != null) return;
         try
         {
+            TickMotionObservation();
             if (_blockedUntilRelease != null
                 && (!_blockedUntilRelease.IsVaultingPressed || !ArenaMovementScope.IsLocal(_blockedUntilRelease)))
                 _blockedUntilRelease = null;
@@ -231,8 +234,8 @@ internal static partial class ArenaAirVault
 
     /// <summary>
     /// Mirrors the native explicit strategy policy except its two ground-jump
-    /// exclusions. Actual CanMove checks keep roof/wall/height/distance/landing
-    /// geometry native; all later inventory/meds/weapon/grenade checks remain in
+    /// exclusions, with a further native-clip height bound for airborne climbs.
+    /// CanMove retains roof/wall/distance geometry; later inventory/meds/weapon/grenade checks remain in
     /// MovementContext.TryVaulting -> VaultingGameplayRestrictions.CanVaulting.
     /// </summary>
     private static EVaultingStrategy SelectGeometryStrategy(Request request)
@@ -252,7 +255,19 @@ internal static partial class ArenaAirVault
             return EVaultingStrategy.Vault;
         if (component._canClimbByStaminaGetter?.Invoke() == true
             && model.VaultingStatesModel.ClimbState.CanMove() && !context.IsSprintEnabled)
+        {
+            // SPT 4.1 Climb_on clips end at 1.30m of vertical root travel.
+            // Retain vanilla's 1cm tolerance, not Arena's widened 1.70m search
+            // limit. Held input retries as the jump reduces the remaining height.
+            // This is request-local; standing reach and the search stay intact.
+            if (component.VaultingHeight > 1.31f)
+            {
+                Trace(request, "climb beyond native animation reach; waiting for closer height",
+                    detail: () => $"height={component.VaultingHeight:0.###}, max=1.31");
+                return EVaultingStrategy.None;
+            }
             return EVaultingStrategy.Climb;
+        }
         return EVaultingStrategy.None;
     }
 

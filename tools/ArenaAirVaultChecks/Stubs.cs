@@ -4,13 +4,16 @@ using EFT.Vaulting;
 
 namespace UnityEngine
 {
+    public class Transform { public Vector3 position; }
     public struct Vector3
     {
         public float x, y, z;
         public Vector3(float x, float y, float z) { this.x=x; this.y=y; this.z=z; }
         public float sqrMagnitude => x*x+y*y+z*z;
         public static Vector3 operator -(Vector3 a,Vector3 b)=>new(a.x-b.x,a.y-b.y,a.z-b.z);
+        public static Vector3 operator +(Vector3 a,Vector3 b)=>new(a.x+b.x,a.y+b.y,a.z+b.z);
     }
+    public static class Mathf { public static float Max(float a,float b)=>Math.Max(a,b); public static float Min(float a,float b)=>Math.Min(a,b); }
     public static class Time { public static float unscaledTime, deltaTime = .02f; }
 }
 namespace HarmonyLib
@@ -72,8 +75,28 @@ namespace EFT
         public EJumpState _jumpState = EJumpState.Jump;
     }
     public class FallDown : JumpPlayerState { }
-    public class VaultingMovementState : MovementState
-    { public override void Enter(bool same) { base.Enter(same); MovementContext.Vaulting=true; } }
+    public partial class VaultingMovementState : MovementState
+    {
+        public float vaultingHeight, vaultingLength; public UnityEngine.Vector3? currentMotion;
+        public override void Enter(bool same) { base.Enter(same); MovementContext.Vaulting=true;
+            var component=(VaultingComponent)MovementContext._player.VaultingComponent;
+            vaultingHeight=component.WrittenHeight; vaultingLength=component.WrittenLength; }
+        public void ApplyMotion(ref UnityEngine.Vector3 motion,float dt)
+        {
+            var sample=Harness.MotionBefore(this,motion); Exception error=null;
+            try { NativeApplyMotion(ref motion,dt); } catch(Exception ex) { error=ex; }
+            error=Harness.MotionAfter(error,sample); if(error!=null)throw error;
+        }
+    }
+    // Collision/Unity seam only: tests choose accepted displacement. Actual
+    // native ApplyMotion is extracted, but collision/clip playback is not tested.
+    public class MotionController
+    {
+        public MovementContext Context; public float height=1.6f;
+        public UnityEngine.Vector3 AcceptedFraction=new(1,1,1); public Action OnMove;
+        public void Move(UnityEngine.Vector3 motion,float dt)
+        { Context.TransformPosition+=new UnityEngine.Vector3(motion.x*AcceptedFraction.x,motion.y*AcceptedFraction.y,motion.z*AcceptedFraction.z); OnMove?.Invoke(); }
+    }
     public class ClimbState : VaultingMovementState { }
     public class VaultState : VaultingMovementState { }
     public class PlayerAnimator
@@ -85,6 +108,10 @@ namespace EFT
     }
     public partial class MovementContext
     {
+        public MotionController CharacterController;
+        public UnityEngine.Vector3 TransformPosition;
+        public UnityEngine.Transform VaultingGridRoot=new();
+        public UnityEngine.Vector3 PlayerRealForward=new(0,0,1);
         public Player _player;
         public BaseMovementState CurrentState, PreviousState, OverridenState, OverridenControlsState;
         public float LastDeltaTime=.02f; public Holder CanUseProp=new();
@@ -164,7 +191,7 @@ namespace EFT.Vaulting
     }
     public class Rule { public bool Allowed; public int Calls; public bool CanMove() { Calls++; return Allowed; } public bool CanMoveAutomaticly() => Allowed; }
     public class Moves { public Rule VaultState=new(), ClimbState=new(); }
-    public class Obstacle { public bool IsTerrain; }
+    public class Obstacle { public bool IsTerrain; public float DistanceToMainObstacle=.4f; }
     public class Stairs { public bool Blocked; public bool IsStairsCondition()=>Blocked; }
     public class Automatic { public bool IsEnableAutoVault, IsEnableAutoClimb; }
     public class Model
@@ -207,6 +234,11 @@ namespace EFT.Vaulting
 
 internal static partial class Harness
 {
+    public static object MotionBefore(VaultingMovementState movement,UnityEngine.Vector3 motion)
+    { object[] args={movement,motion,null}; Method("ObservedMotionPatch","Prefix").Invoke(null,args); return args[2]; }
+    public static Exception MotionAfter(Exception error,object sample)
+        =>(Exception)Method("ObservedMotionPatch","Finalizer").Invoke(null,new[]{error,sample});
+    public static bool HasObservation=>typeof(ArenaMode.Movement.ArenaAirVault).GetField("_motionObservation",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null)!=null;
     private static MethodInfo Method(string patch,string name)=>typeof(ArenaMode.Movement.ArenaAirVault)
         .GetNestedType(patch,BindingFlags.NonPublic).GetMethod(name,BindingFlags.NonPublic|BindingFlags.Static);
     public static void Held(Player p)=>Method("HeldVaultPatch","Postfix").Invoke(null,new object[]{p});

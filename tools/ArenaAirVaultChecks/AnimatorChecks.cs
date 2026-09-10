@@ -16,7 +16,7 @@ internal static class AnimatorChecks
             var(p,c,v)=setup(); var fast=Processor(c); var layer=fast.FastControllerInfo.Layer;
             var jump=layer.CurrentState; var original=c.CurrentState;
             v._vaultingModelDebug.VaultingStatesModel.VaultState.Allowed=vault;
-            p.ToggleVaulting(); v.VaultingHeight+=.2f; Step(c);
+            p.ToggleVaulting(); v.VaultingHeight+=.05f; Step(c);
             var edge=layer.Transition;
             check(c.CurrentState is VaultingMovementState,"missing graph edge enters native mantle through actual ProcessState");
             check(original.Exits==1 && original.Moves==0 && c.CurrentState.Enters==1 && c.CurrentState.Moves==1,

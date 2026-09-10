@@ -8,6 +8,7 @@ $arenaProject = Join-Path $PSScriptRoot 'ArenaAirVaultChecks.csproj'
 $arenaSource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.cs')).Replace("`r`n","`n")
 $arenaUnitySource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.Unity.cs')).Replace("`r`n","`n")
 $arenaAnimatorSource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.Animator.cs')).Replace("`r`n","`n")
+$arenaObservationSource = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client\Movement\ArenaAirVault.Observation.cs')).Replace("`r`n","`n")
 
 function Read-Method([string]$File, [string]$Signature) {
     $arenaText = [IO.File]::ReadAllText((Join-Path $arenaNative $File))
@@ -47,12 +48,15 @@ $arenaExtraNative += 'public partial class PlayerStateContainer {' +
     'namespace EFT { public partial class Player {' +
     (Read-Method 'EFT\Player.cs' 'public virtual void BodyUpdate(float deltaTime, int loop = 1)').Replace('public virtual void BodyUpdate(', 'public void NativeBodyUpdate(') + '} }'
 [IO.File]::AppendAllText($arenaNativeFile, $arenaExtraNative)
+[IO.File]::AppendAllText($arenaNativeFile, 'namespace EFT { using UnityEngine; public partial class VaultingMovementState {' +
+    (Read-Method 'EFT\VaultingMovementState.cs' 'public override void ApplyMotion(ref Vector3 motion, float deltaTime)').Replace('public override void ApplyMotion(', 'public void NativeApplyMotion(') + '} }')
 
-function Invoke-Checks([string]$Source = '', [string]$AnimatorSource = '', [string]$UnitySource = '') {
+function Invoke-Checks([string]$Source = '', [string]$AnimatorSource = '', [string]$UnitySource = '', [string]$ObservationSource = '') {
     $arenaExtra = @("-p:NativeSource=$arenaNativeFile")
     if ($Source) { $arenaExtra += "-p:AirVaultSource=$Source" }
     if ($UnitySource) { $arenaExtra += "-p:AirVaultUnitySource=$UnitySource" }
     if ($AnimatorSource) { $arenaExtra += "-p:AirVaultAnimatorSource=$AnimatorSource" }
+    if ($ObservationSource) { $arenaExtra += "-p:AirVaultObservationSource=$ObservationSource" }
     $arenaLog = @(& dotnet build $arenaProject -t:Rebuild -c Release --nologo @arenaExtra 2>&1)
     if ($LASTEXITCODE -ne 0) { throw ($arenaLog -join [Environment]::NewLine) }
     $arenaOutput = @(& dotnet run --project $arenaProject -c Release --no-build 2>&1)
@@ -64,12 +68,12 @@ function Assert-Production {
     if ($arenaResult.Exit -ne 0 -or !$arenaResult.Text.Contains('ARENA_AIR_VAULT_CONTRACTS_PASSED')) { throw $arenaResult.Text }
     Write-Output $arenaResult.Text
 }
-function Test-Fault([string]$Name,[string]$Before,[string]$After,[string]$Assertion,[switch]$Animator,[switch]$Unity) {
-    $arenaCandidate = if ($Unity) { $arenaUnitySource } elseif ($Animator) { $arenaAnimatorSource } else { $arenaSource }
+function Test-Fault([string]$Name,[string]$Before,[string]$After,[string]$Assertion,[switch]$Animator,[switch]$Unity,[switch]$Observation) {
+    $arenaCandidate = if ($Observation) { $arenaObservationSource } elseif ($Unity) { $arenaUnitySource } elseif ($Animator) { $arenaAnimatorSource } else { $arenaSource }
     if (!$arenaCandidate.Contains($Before) -or ($arenaCandidate.Length-$arenaCandidate.Replace($Before,'').Length)/$Before.Length -ne 1) { throw "Missing/ambiguous fault anchor: $Name" }
     $arenaFile=Join-Path $arenaWork ($Name+'.cs')
     [IO.File]::WriteAllText($arenaFile,$arenaCandidate.Replace($Before,$After))
-    $arenaResult=if ($Unity) { Invoke-Checks -UnitySource $arenaFile } elseif ($Animator) { Invoke-Checks -AnimatorSource $arenaFile } else { Invoke-Checks -Source $arenaFile }
+    $arenaResult=if ($Observation) { Invoke-Checks -ObservationSource $arenaFile } elseif ($Unity) { Invoke-Checks -UnitySource $arenaFile } elseif ($Animator) { Invoke-Checks -AnimatorSource $arenaFile } else { Invoke-Checks -Source $arenaFile }
     [IO.File]::WriteAllText((Join-Path $arenaWork ($Name+'.log')),$arenaResult.Text)
     if ($arenaResult.Exit -eq 0 -or !$arenaResult.Text.Contains('ASSERT: '+$Assertion)) { throw "Fault $Name did not fail its intended assertion: $($arenaResult.Text)" }
     Write-Output "Air vault negative control rejected: $Name"
@@ -118,6 +122,12 @@ try {
     Test-Fault 'unity-rejection-throttle-removed' 'Time.unscaledTime < nextTrace' 'false' 'Unity rejection logs explain source and throttle volatile details by stable reason' -Animator
     Test-Fault 'unity-stale-falling-rejected' '&& animator.GetBool(PlayerAnimator.JUMP_PARAM_HASH);' '&& !animator.GetBool(PlayerAnimator.FALLING_DOWN_PARAM_HASH) && animator.GetBool(PlayerAnimator.JUMP_PARAM_HASH);' 'Unity Auto and Manual body updates both issue one transition' -Unity
     Test-Fault 'alternating-reason-throttle-lost' 'TraceNext[message] = Time.unscaledTime + 2f;' 'TraceNext.Clear(); TraceNext[message] = Time.unscaledTime + 2f;' 'alternating queued and rejected reasons are independently throttled' -Animator
+    Test-Fault 'unreachable-climb-admitted' 'if (component.VaultingHeight > 1.31f)' 'if (false)' 'airborne climb above native clip reach waits without committing hands or flags'
+    Test-Fault 'motion-controller-identity-lost' '&& ReferenceEquals(observation.Request.Context.CharacterController, observation.Controller)' '' 'motion observer retires stale scope without touching native flags' -Observation
+    Test-Fault 'motion-request-mislabeled-applied' 'observation.Applied += position - __state.Before;' 'observation.Applied += __state.Requested;' 'motion evidence separates requested root motion from accepted controller movement' -Observation
+    Test-Fault 'motion-budget-removed' 'if (_motionCount >= 12) return;' '' 'physical diagnostics have a separate finite per-world attempt budget' -Observation
+    Test-Fault 'motion-timeout-removed' 'Time.unscaledTime - observation.StartedAt >= 8f' 'false' 'motion observation timeout never cancels native mantle' -Observation
+    Test-Fault 'motion-shutdown-retention' "        _animatorFrame = null;`n        _motionObservation = null;" '        _animatorFrame = null;' 'shutdown releases physical observer without changing native mantle'
 }
 finally { Assert-Production }
 Write-Output "Air vault evidence: $arenaWork"

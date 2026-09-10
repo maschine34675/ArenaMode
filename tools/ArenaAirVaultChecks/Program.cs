@@ -13,6 +13,7 @@ void Check(bool condition,string label) { assertions++; if(!condition) throw new
     Singleton<GameWorld>.Instance=new(); Singleton<AbstractGame>.Instance=new LocalGame();
     var settings=new SettingsModel(); Singleton<GlobalConfiguration>.Instance=new() { VaultingSettings=settings };
     var p=new Player(); var c=new MovementContext { _player=p, CurrentState=new JumpPlayerState() };
+    c.CharacterController=new() { Context=c };
     p.MovementContext=c; var v=new VaultingComponent { _vaultingContext=c,_vaultingSettings=settings };
     v._vaultingModelDebug.VaultingStatesModel.ClimbState.Allowed=true;
     p.VaultingComponent=v; p.VaultingParameters=v; p.VaultingGameplayRestrictions=new(p,v);
@@ -114,7 +115,7 @@ Check(pendingHandle.c.PlayerAnimator.Climb && !ArenaAirVault.HasPendingRequest(p
 var pendingComponent=Setup(); pendingComponent.p.ToggleVaulting(); pendingComponent.p.VaultingComponent=new VaultingComponent(); ArenaAirVault.Tick();
 Check(pendingComponent.c.PlayerAnimator.Climb && !ArenaAirVault.HasPendingRequest(pendingComponent.p),"replacement vault component cannot inherit old pending request");
 foreach (var changeGeometry in new Action<VaultingComponent>[] {
-    v=>v.VaultingHeight+=.2f, v=>v.VaultingLength+=.2f, v=>v.BehindObstacleRatio+=.2f,
+    v=>v.VaultingHeight+=.05f, v=>v.VaultingLength+=.2f, v=>v.BehindObstacleRatio+=.2f,
     v=>v.AbsoluteForwardVelocity+=.2f, v=>v.MaxWeightPointPosition=new(4.2f,2,1) })
 {
     var drift=Setup(); drift.p.ToggleVaulting(); changeGeometry(drift.v); ArenaAirVault.Tick();
@@ -135,5 +136,6 @@ var ordinary=Setup(); ArenaMovementScope.Active=false; ordinary.c.IsGrounded=tru
 Check(ordinary.v.TryVaulting() && ordinary.c.PlayerAnimator.Climb,"ordinary grounded native mantle is untouched");
 AnimatorChecks.Run(Check, Setup);
 UnityChecks.Run(Check, Setup);
+ObservationChecks.Run(Check, Setup);
 ArenaAirVault.Shutdown();
 Console.WriteLine($"ARENA_AIR_VAULT_CONTRACTS_PASSED ({assertions} assertions; actual production with extracted native strategy/request and full native gameplay restrictions)");

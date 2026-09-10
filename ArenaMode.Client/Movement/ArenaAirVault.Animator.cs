@@ -159,6 +159,7 @@ internal static partial class ArenaAirVault
                     // Jump.Exit does not clear this bool; normally landing does.
                     // Only native target entry commits our airborne handoff.
                     request.Context.PlayerAnimatorEnableJump(false);
+                    BeginMotionObservation(request, request.Context.CurrentState as VaultingMovementState);
                     Trace(request, "native " + frame.Pending.Strategy + " entered" +
                         (__exception == null ? "" : "; native callback failed after entry"), entered: true);
                     if (ReferenceEquals(_pending, frame.Pending)) _pending = null;

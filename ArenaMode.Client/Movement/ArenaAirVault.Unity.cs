@@ -121,6 +121,7 @@ internal static partial class ArenaAirVault
         {
             request.Context.PlayerAnimatorEnableJump(false);
             if (ReferenceEquals(_pending, pending)) _pending = null;
+            BeginMotionObservation(request, (VaultingMovementState)target);
             Trace(request, nativeFailure ? "Unity target owns movement after native callback error; see original exception"
                 : "Unity entered " + pending.Strategy + " through native state callback", entered: true);
         }

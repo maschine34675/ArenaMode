@@ -13,6 +13,69 @@ AI, area barriers, loadouts and Redeploy are unchanged.
 
 ## Unity airborne mantle implementation (2026-09-10)
 
+### Physical follow-up after the 19:40 retest
+
+The user confirms the animation now starts but the body usually drops back down.
+Frozen log: `artifacts/mantle-physical-retest/c023e425c1a74a0eaf7fa29fa620c96d/client.log`,
+SHA256 `83D5A349CA7B6B72429943A245175B5A0F2CDA11D229F12FC35CB4403C239B6A`.
+Eight actual Unity Climb entries are recorded (19:33:38 through 19:38:31).
+Entry alone does not prove completed traversal. The old log has no entry height
+or physical motion outcome; its 1.733m geometry line belongs to a rejected request.
+
+One concrete mismatch is established: Arena expands climb height from 1.31m to
+1.70m, while the native standard controller's Climb_on blend tree stops at 1.30m.
+The actual `Climb_on_130` clip travels only 1.299624m vertically and 0.605196m
+forward; neither ClimbState nor VaultingMovementState scales that travel to the
+expanded admission height. `character_animations.bundle` SHA256:
+`1434CB5B88871E0276CB26277438364D62600DC4F4B9EAA2F352FB791773C04E`.
+The native installed `globals.json` ClimbSettings.MoveRestrictions.MaxHeight is
+1.31. GridOffsetY is zero; the actual `playersuperior.bundle` VaultingGridRoot
+is directly under Player with zero offset, identity rotation and unit scale.
+GridPointsModel converts hits to grid-local coordinates; ObstacleCalculatorModel
+uses their maximum Y. Thus this is remaining height from the current airborne
+body, and it decreases as the jump rises.
+
+Additional airborne Climb requests now wait until that remaining height is at
+most **1.31m**, retaining the native 1cm tolerance. Held input retries naturally;
+no release latch, hands notification or committed animation is created while
+the ledge is too high. The same bound is rechecked before dispatch. Native vault
+preference, standing reach, global settings and the scan itself are unchanged.
+This fixes an unsupported admission range; it is **not yet proof** that height
+explains every reported drop. No speculative root-motion scaling, teleport,
+gravity reset or collider adjustment was added.
+
+`Arena mantle motion #...` records up to twelve accepted attempts per world,
+separate from the admission log budget. Entry includes cached native height,
+length, grid-local distance, obstacle/body/grid world positions, forward vector
+and scan velocity. Distance is not a direct body-to-ledge distance: the grid moves
+forward with velocity. ApplyMotion observers compare incoming motion with actual
+controller displacement. Exit and a sample 0.75s later record state, grounding,
+rise, capsule height and cumulative requested/applied motion. An eight-second
+timeout, shutdown, death, scope/controller/world replacement release observation
+only; the native move retains all flags and physics ownership. Logging cannot
+change native exceptions or movement, and samples never write physical state.
+
+Native source also rules out an ongoing jump-gravity write during Climb:
+MovementContext.ProcessStateEnter exits Jump before entering Climb; outgoing
+OnStateMove is guarded by current-state identity, and VaultingMovementState's
+ApplyMotion bypasses ordinary gravity. CrossFade duration/offset and root-motion
+flags match the installed native graph. The two 19:36:55/56 NREs concern optic
+activation during icon capture; the 19:38:40 NRE is SAIN OnDisable on unload.
+None of these stacks establishes a mantle connection; no unrelated fix applied.
+
+Offline checks include the production observer with extracted native ApplyMotion;
+collision responses and actual Unity clips remain controlled host doubles.
+Tests cover height boundaries/retries/refresh, ordinary standing/vault isolation,
+requested versus accepted movement, post-exit drop, stale ownership, original
+exceptions, timeout, per-world bounds and shutdown. GPU test still required:
+hold vault while approaching the same ledge in a jump, compare low/high ledges,
+then inspect entry/exit/after-exit lines if the body drops back down.
+
+Full offline verification passed: **363 assertions / 47 source-fault controls**.
+Evidence: `artifacts/air-vault-checks/a17fde8e2deb4c0580e27b3ea4918584/`.
+The native physical signature was independently inspected in the installed
+assembly; `motion` is a by-ref Vector3, read by value in the observer prefix.
+
 ### Native FallingDown flag correction after the 19:09 retest
 
 Frozen evidence: `artifacts/reload-mantle-retest/58b6d72db3324285838ec897c2104dfe/client.log`,

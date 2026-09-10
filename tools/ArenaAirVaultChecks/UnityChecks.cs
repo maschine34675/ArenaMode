@@ -23,7 +23,7 @@ internal static class UnityChecks
             p.ToggleVaulting();
             check(ArenaAirVault.HasPendingRequest(p),"Unity native moving and sprinting jump sources are admitted");
             check(ArenaAirVault.HasPendingRequest(p) && a.CrossFades==0,"Unity native held request queues before animation dispatch");
-            v.VaultingHeight+=.2f;
+            v.VaultingHeight+=.05f;
             p.BodyUpdate(.02f);
             check(a.CrossFades==1,"Unity Auto and Manual body updates both issue one transition");
             check(a.Falling,"Unity mantle leaves the stale native falling flag untouched");
@@ -94,7 +94,7 @@ internal static class UnityChecks
         Reject((p,c,v,a)=>v._canClimbByStaminaGetter=()=>false,"Unity fresh dispatch requires native stamina");
         Reject((p,c,v,a)=>v.OnTick=()=>v.VaultingHeight=float.NaN,"Unity fresh dispatch rejects nonfinite geometry");
         Reject((p,c,v,a)=>Time.unscaledTime=2,"Unity queued request expiry cannot dispatch");
-        var fresh=Ready(); fresh.p.ToggleVaulting(); fresh.v.VaultingHeight+=.2f; fresh.p.BodyUpdate(.02f);
+        var fresh=Ready(); fresh.p.ToggleVaulting(); fresh.v.VaultingHeight+=.05f; fresh.p.BodyUpdate(.02f);
         check(fresh.v.WrittenHeight==fresh.v.VaultingHeight,"Unity last geometry is refreshed before commit");
 
         foreach(int variant in new[]{0,1,2,3,4})
