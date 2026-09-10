@@ -99,6 +99,12 @@ bypass. Successful offline checks remain separate from GPU acceptance.
 
 ## Unity-specific boundary
 
+The real native Unity controller has initialized Idle, Move and Sprint Jump
+containers sharing one cached managed Jump owner. The fixture exercises each
+leaf against its own container and the exact behaviorless Loop-to-Idle exception;
+valid Idle cannot authorize a missing or foreign Move/Sprint container. It also
+checks bounded rejection reasons, changing detail values and throwing log sinks.
+
 `UnityChecks` drives the linked production Unity bridge through extracted native
 BodyUpdate and movement-container callbacks. An explicit engine double supplies
 Auto/Manual callback scheduling, current/next hashes, behavior containers and

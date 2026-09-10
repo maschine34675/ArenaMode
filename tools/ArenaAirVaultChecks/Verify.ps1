@@ -112,6 +112,10 @@ try {
     Test-Fault 'unity-observer-lost-on-error' 'if (pending.Unity == null) CancelPending();' 'CancelPending();' 'Unity queue acceptance followed by exception retains observer' -Unity
     Test-Fault 'unity-rebound-movement' 'var target = pending.Unity.Movement;' 'var target = pending.Unity.Destination.EncapsulatedState;' 'Unity reinitialized container cannot impersonate captured destination movement' -Unity
     Test-Fault 'unity-timeout-retires-observer' 'pending.Unity.TimeoutReported = true;' 'pending.Unity.TimeoutReported = true; _pending = null;' 'Unity missing entry retains observer without rewriting native committed move' -Unity
+    Test-Fault 'unity-moving-jump-removed' 'case 1056621489: ownerName = "Base Layer.JUMP.Jump_Move"; break;' 'case 1056621489: return "unsupported-jump-leaf";' 'Unity native moving and sprinting jump sources are admitted' -Unity
+    Test-Fault 'unity-sprinting-jump-removed' 'case 1332272753: ownerName = "Base Layer.JUMP.Jump_Sprint"; break;' 'case 1332272753: return "unsupported-jump-leaf";' 'Unity native moving and sprinting jump sources are admitted' -Unity
+    Test-Fault 'unity-moving-borrows-idle' 'if (behavior.StateFullNameHash != ownerHash || behavior.StateFullName != ownerName) continue;' 'if (behavior.StateFullNameHash != 232800732 || behavior.StateFullName != "Base Layer.JUMP.Jump_Idle") continue;' 'Unity moving source requires its own exact container despite valid Idle owner' -Unity
+    Test-Fault 'unity-rejection-throttle-removed' 'Time.unscaledTime < _nextTrace && _lastTraceMessage == message' 'false' 'Unity rejection logs explain source and throttle volatile details by stable reason' -Animator
 }
 finally { Assert-Production }
 Write-Output "Air vault evidence: $arenaWork"

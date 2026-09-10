@@ -28,7 +28,7 @@ namespace Comfort.Common { public static class Singleton<T> { public static T In
 namespace ArenaMode
 {
     internal static class Plugin { public static Logger ModLogger = new(); }
-    internal sealed class Logger { public void LogInfo(object value) { } public void LogDebug(object value) { } public void LogWarning(object value) { } }
+    internal sealed class Logger { public List<string> Info=new(); public bool ThrowInfo; public void LogInfo(object value) { if(ThrowInfo) throw new InvalidOperationException("logger"); Info.Add(value.ToString()); } public void LogDebug(object value) { } public void LogWarning(object value) { } }
 }
 namespace ArenaMode.Config
 {

@@ -23,23 +23,58 @@ internal static partial class ArenaAirVault
             && request.UnityAnimator.speed > 0f && !float.IsInfinity(request.UnityAnimator.speed);
 
     private static bool UnitySourceOwnsJump(Request request)
+        => UnitySourceRejection(request) == null;
+
+    private static string UnitySourceRejection(Request request)
     {
-        if (!UnityReady(request)) return false;
+        if (!UnityReady(request)) return "animator-not-ready";
         var animator = request.UnityAnimator;
         var state = animator.GetCurrentAnimatorStateInfo(0);
-        if (state.fullPathHash != 232800732 && state.fullPathHash != 1889265959) return false;
+        // Native PLAYER_DEFAULT_ANIMATOR_CONTROLLER has four jump leaves.
+        // Moving and sprinting jumps have their OWN initialized containers; all
+        // use the cached EPlayerState.Jump object (CreateUnique=false).
+        int ownerHash = state.fullPathHash;
+        string ownerName;
+        switch (state.fullPathHash)
+        {
+            case 232800732: ownerName = "Base Layer.JUMP.Jump_Idle"; break;
+            case 1056621489: ownerName = "Base Layer.JUMP.Jump_Move"; break;
+            case 1332272753: ownerName = "Base Layer.JUMP.Jump_Sprint"; break;
+            case 1889265959: ownerHash = 232800732; ownerName = "Base Layer.JUMP.Jump_Idle"; break;
+            default: return "unsupported-jump-leaf";
+        }
         if (float.IsNaN(state.normalizedTime) || float.IsInfinity(state.normalizedTime)
-            || !animator.HasState(0, state.fullPathHash)) return false;
+            || !animator.HasState(0, state.fullPathHash)) return "invalid-jump-state";
         // Unity Jump_Loop is behaviorless and retains the initialized Jump_Idle
         // owner. Unlike FastAnimator, Unity has no timed Idle -> Loop graph edge.
         PlayerStateContainer owner = null;
         foreach (var behavior in animator.GetBehaviours<PlayerStateContainer>())
         {
-            if (behavior.StateFullNameHash != 232800732 || behavior.StateFullName != "Base Layer.JUMP.Jump_Idle") continue;
-            if (owner != null || !ReferenceEquals(behavior.EncapsulatedState, request.Jump)) return false;
+            if (behavior.StateFullNameHash != ownerHash || behavior.StateFullName != ownerName) continue;
+            if (owner != null) return "ambiguous-jump-container";
+            if (!ReferenceEquals(behavior.EncapsulatedState, request.Jump)) return "foreign-jump-owner";
             owner = behavior;
         }
-        return owner != null && ReferenceEquals(request.Jump.MovementContext, request.Context);
+        if (owner == null) return "missing-jump-container";
+        return ReferenceEquals(request.Jump.MovementContext, request.Context) ? null : "foreign-jump-context";
+    }
+
+    private static void TraceUnityRejection(Request request, string stage, string reason)
+    {
+        if (request?.UnityAnimator == null) return;
+        Trace(request, "Unity rejected " + stage + ": " + reason, detail: () =>
+        {
+            var animator = request.UnityAnimator;
+            bool transition = animator.IsInTransition(0);
+            return $"state={animator.GetCurrentAnimatorStateInfo(0).fullPathHash}, transition={transition}, "
+                + $"next={(transition ? animator.GetNextAnimatorStateInfo(0).fullPathHash : 0)}, "
+                + $"active={animator.isActiveAndEnabled}, initialized={animator.isInitialized}, speed={animator.speed:0.###}, "
+                + $"update={request.Player.BodyUpdateMode}, phase={request.Jump._jumpState}, held={request.Player.IsVaultingPressed}, "
+                + $"grounded={request.Context.IsGrounded}, jump={animator.GetBool(PlayerAnimator.JUMP_PARAM_HASH)}, "
+                + $"landing={animator.GetBool(PlayerAnimator.LANDING_PARAM_HASH)}, falling={animator.GetBool(PlayerAnimator.FALLING_DOWN_PARAM_HASH)}, "
+                + $"climb={request.Animator.GetDoClimb()}, vault={request.Animator.GetDoVault()}, "
+                + $"height={request.Component.VaultingHeight:0.###}, length={request.Component.VaultingLength:0.###}";
+        });
     }
 
     private static bool UnityNativeJumpCanYield(Animator animator)
@@ -128,14 +163,15 @@ internal static partial class ArenaAirVault
             {
                 var request = pending.Request;
                 var animator = request.UnityAnimator;
-                if (!IsEligible(request) || !UnitySourceOwnsJump(request)
-                    || !UnityNativeJumpCanYield(animator)
-                    || !RefreshPending(pending))
-                { CancelPending(); return; }
+                string rejected = !IsEligible(request) ? "request-no-longer-eligible" : UnitySourceRejection(request);
+                if (rejected == null && !UnityNativeJumpCanYield(animator)) rejected = "native-jump-flags-or-transition";
+                if (rejected == null && !RefreshPending(pending)) rejected = "geometry-stamina-hands-refresh";
+                if (rejected != null)
+                { TraceUnityRejection(request, "dispatch", rejected); CancelPending(); return; }
                 var destination = UnityDestination(pending);
                 if (destination == null || !UnitySourceOwnsJump(request)
                     || !UnityNativeJumpCanYield(animator))
-                { CancelPending(); return; }
+                { TraceUnityRejection(request, "dispatch", destination == null ? "missing-or-foreign-destination" : "source-changed-after-refresh"); CancelPending(); return; }
                 // Fresh native geometry/hands/stamina checks above are the final
                 // admission. Release of Space AFTER this point must not cancel an
                 // accepted move; native sibling event behaviors would still run.

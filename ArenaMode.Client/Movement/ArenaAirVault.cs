@@ -131,7 +131,7 @@ internal static partial class ArenaAirVault
             { _pending = null; return; }
 
             if (!IsEligible(request) || !HasFlag(pending))
-            { CancelPending(); return; }
+            { TraceUnityRejection(request, "pending", "request-ineligible-or-flag-cleared"); CancelPending(); return; }
 
             if (Time.unscaledTime >= pending.ExpiresAt)
             {
@@ -146,7 +146,8 @@ internal static partial class ArenaAirVault
             // that handoff merely because native strategy selection blocks NEW
             // requests while an animation transition is running.
             if (request.Context.IsAnimatorInTransitionState(0)) return;
-            if (!RefreshPending(pending)) CancelPending();
+            if (!RefreshPending(pending))
+            { TraceUnityRejection(request, "pending", "geometry-stamina-hands-refresh"); CancelPending(); }
         }
         catch (Exception ex)
         {
@@ -312,8 +313,13 @@ internal static partial class ArenaAirVault
                 if (!IsEligible(request) || request.Context.IsAnimatorInTransitionState(0)
                     || request.Context.PlayerAnimator.GetDoClimb() || request.Context.PlayerAnimator.GetDoVault()) return;
                 if (request.AnimatorHandle is not FastAnimatorSystem.FastAnimatorProcessor
-                    && (request.UnityAnimator == null || !UnitySourceOwnsJump(request)))
+                    && request.UnityAnimator == null)
                 { Trace(request, "unsupported body animator: " + request.AnimatorHandle.GetType().Name); return; }
+                if (request.UnityAnimator != null)
+                {
+                    string reason = UnitySourceRejection(request);
+                    if (reason != null) { TraceUnityRejection(request, "held", reason); return; }
+                }
 
                 // Manual mode normally refreshes after gameplay restrictions.
                 // Refresh before them too, so their height-dependent checks see

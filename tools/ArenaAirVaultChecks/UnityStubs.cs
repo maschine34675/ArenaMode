@@ -22,7 +22,7 @@ namespace UnityEngine
         public float Offset, Blend;
         public Action OnCrossFade;
         public PlayerStateContainer[] Containers;
-        public HashSet<int> States=new() {232800732,1889265959,-285230529,262098243};
+        public HashSet<int> States=new() {232800732,1889265959,1056621489,1332272753,-285230529,262098243};
         public bool HasState(int layer,int hash)=>layer==0 && States.Contains(hash);
         public T[] GetBehaviours<T>()=>Containers.OfType<T>().ToArray();
         public AnimatorStateInfo GetCurrentAnimatorStateInfo(int layer)=>new() {fullPathHash=Current, normalizedTime=.35f};
@@ -100,7 +100,9 @@ internal static class UnityFixture
         a.Containers=new[] {
             new PlayerStateContainer {StateFullNameHash=232800732,StateFullName="Base Layer.JUMP.Jump_Idle",EncapsulatedState=context.CurrentState},
             new PlayerStateContainer {StateFullNameHash=-285230529,StateFullName="Base Layer.Vaulting.Climb_on",EncapsulatedState=new ClimbState {MovementContext=context}},
-            new PlayerStateContainer {StateFullNameHash=262098243,StateFullName="Base Layer.Vaulting.Vault",EncapsulatedState=new VaultState {MovementContext=context}}
+            new PlayerStateContainer {StateFullNameHash=262098243,StateFullName="Base Layer.Vaulting.Vault",EncapsulatedState=new VaultState {MovementContext=context}},
+            new PlayerStateContainer {StateFullNameHash=1056621489,StateFullName="Base Layer.JUMP.Jump_Move",EncapsulatedState=context.CurrentState},
+            new PlayerStateContainer {StateFullNameHash=1332272753,StateFullName="Base Layer.JUMP.Jump_Sprint",EncapsulatedState=context.CurrentState}
         };
         context.PlayerAnimator.Animator=new AnimationSystem.UnityAnimatorWrapper(a);
         return a;

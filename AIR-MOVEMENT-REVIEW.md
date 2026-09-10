@@ -13,6 +13,37 @@ AI, area barriers, loadouts and Redeploy are unchanged.
 
 ## Unity airborne mantle implementation (2026-09-10)
 
+### Moving/sprinting jump correction after the 17:18 retest
+
+The 17:18:45 archive loaded the Unity hooks, but recorded 16 misleading
+`unsupported body animator: UnityAnimatorWrapper` refusals, five native-check
+refusals and two queued Climbs without a recorded dispatch/entry. The frozen
+log is `artifacts/mantle-moving-source/retest-20260910-171845/client.log`, SHA256
+`66E91D32EF0789E83CE377A3EDE8FDCFE38CF1E7A8355E0D45F821E33EC6DFF4`.
+No state hashes were logged, so the exact cause of each attempt is unknown.
+
+Inspection of the actual standard Unity controller (bundle hash below) found
+two omitted native jump leaves: `Jump_Move` (1056621489) and `Jump_Sprint`
+(1332272753). Idle, Move and Sprint containers all initialize the same cached
+managed Jump state; incoming MOVE/Sprint transitions use these omitted leaves.
+The correction validates the exact current leaf's own initialized container,
+instead of accepting only Idle/Loop or borrowing the Idle container. Loop alone
+retains its verified behaviorless Idle-owner exception. Landing, falling,
+transition, geometry, hands, stamina and current-body restrictions remain intact.
+
+Bounded rejection diagnostics now distinguish admission from queued dispatch
+and record source/next hash, transition, update mode, jump phase and native flags.
+Dynamic values cannot defeat the existing reason throttle, and logging failures
+cannot change gameplay. No scheduling or native transition timing was changed.
+
+The linked fixture passes 320 assertions and 39 required source-fault controls,
+including Auto/Manual updates across all four jump leaves and both destinations,
+missing/foreign Move/Sprint owners, source changes while pending and throwing
+diagnostic sinks. Independent adversarial review found no remaining P0-P2.
+These checks do not prove native Unity physics or live mantle acceptance.
+
+### Original Unity bridge
+
 Client-only, on `feature/arena-mantle-reload`. The last user log (2026-09-10
 11:06:50 archive) still showed five deliberate UnityAnimatorWrapper rejections.
 The new Unity path removes that unsupported-animator failure for the reviewed

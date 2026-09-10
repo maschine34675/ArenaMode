@@ -13,13 +13,14 @@ internal static class UnityChecks
         { var(p,c,v)=setup(); return(p,c,v,UnityFixture.Create(c)); }
         foreach(bool manual in new[]{false,true})
         foreach(bool vault in new[]{false,true})
-        foreach(bool loop in new[]{false,true})
+        foreach(int source in new[]{232800732,1056621489,1332272753,1889265959})
         {
             var(p,c,v,a)=Ready(); var old=c.CurrentState;
             p.BodyUpdateMode=manual?EUpdateMode.Manual:EUpdateMode.Auto;
-            if(loop)a.Current=1889265959;
+            a.Current=source;
             v._vaultingModelDebug.VaultingStatesModel.VaultState.Allowed=vault;
             p.ToggleVaulting();
+            check(ArenaAirVault.HasPendingRequest(p),"Unity native moving and sprinting jump sources are admitted");
             check(ArenaAirVault.HasPendingRequest(p) && a.CrossFades==0,"Unity native held request queues before animation dispatch");
             v.VaultingHeight+=.2f;
             p.BodyUpdate(.02f);
@@ -42,6 +43,23 @@ internal static class UnityChecks
             check(p.VaultNotifications==1 && p.LeftHandRemoved==1,"Unity dispatch preserves one-shot native hands notifications");
             p.BodyUpdate(.02f);
             check(a.CrossFades==1,"Unity accepted entry is never issued twice");
+        }
+        foreach(int source in new[]{1056621489,1332272753})
+        foreach(bool missing in new[]{false,true})
+        {
+            var(p,c,v,a)=Ready(); a.Current=source;
+            var own=a.Containers.Single(x=>x.StateFullNameHash==source);
+            if(missing) a.Containers=a.Containers.Where(x=>!ReferenceEquals(x,own)).ToArray();
+            else own.EncapsulatedState=new JumpPlayerState {MovementContext=c};
+            p.ToggleVaulting(); p.BodyUpdate(.02f);
+            check(a.CrossFades==0 && !ArenaAirVault.HasPendingRequest(p),"Unity moving source requires its own exact container despite valid Idle owner");
+        }
+        // An already-queued idle request may switch to the native moving jump
+        // before the next BodyUpdate, while retaining its exact managed owner.
+        foreach(int next in new[]{1056621489,1332272753})
+        {
+            var(p,c,v,a)=Ready(); p.ToggleVaulting(); a.Current=next; p.BodyUpdate(.02f); a.Update(.02f);
+            check(c.CurrentState is ClimbState && !c.JumpSet,"Unity source changes within native Jump family retain valid pending request");
         }
         void Reject(Action<Player,MovementContext,VaultingComponent,Animator> alter,string label)
         {
@@ -116,6 +134,17 @@ internal static class UnityChecks
             over.c.CurrentState=over.a.Containers[1].EncapsulatedState; over.a.Current=-285230529;
             ArenaAirVault.Tick(); check(over.c.JumpSet,"Unity polling cannot accept overridden movement ownership");
         }
+        var diagnostic=Ready(); diagnostic.a.Current=999; ArenaMode.Plugin.ModLogger.Info.Clear();
+        for(int frame=0;frame<20;frame++) {diagnostic.a.Current++; diagnostic.p.ToggleVaulting();}
+        var rejected=ArenaMode.Plugin.ModLogger.Info.Where(x=>x.Contains("Unity rejected held: unsupported-jump-leaf")).ToArray();
+        check(rejected.Length==1 && rejected[0].Contains("state=1000") && rejected[0].Contains("update=Auto"),"Unity rejection logs explain source and throttle volatile details by stable reason");
+        var loggedCancel=Ready(); loggedCancel.p.ToggleVaulting(); loggedCancel.a.Landing=true;
+        ArenaMode.Plugin.ModLogger.Info.Clear(); loggedCancel.p.BodyUpdate(.02f);
+        check(ArenaMode.Plugin.ModLogger.Info.Any(x=>x.Contains("Unity rejected dispatch: native-jump-flags-or-transition") && x.Contains("landing=True")),"Unity queued cancellation logs its native dispatch reason");
+        var brokenLogger=Ready(); ArenaMode.Plugin.ModLogger.ThrowInfo=true;
+        try {brokenLogger.p.ToggleVaulting(); brokenLogger.p.BodyUpdate(.02f); brokenLogger.a.Update(.02f);}
+        finally {ArenaMode.Plugin.ModLogger.ThrowInfo=false;}
+        check(brokenLogger.c.CurrentState is ClimbState && !brokenLogger.c.JumpSet,"Unity diagnostics cannot break successful native mantle");
         var deadline=Ready(); deadline.p.ToggleVaulting(); deadline.p.BodyUpdate(.02f); Time.unscaledTime=3; ArenaAirVault.Tick();
         check(deadline.c.PlayerAnimator.Climb && deadline.a.CrossFades==1 && ArenaAirVault.HasPendingRequest(deadline.p),"Unity missing entry retains observer without rewriting native committed move");
         deadline.a.Update(.02f);
