@@ -170,10 +170,13 @@ bot in 13-54 s and the kit catalogue in 5.5 minutes where the other took 0.4-2 s
 with only 1.7-1.8x between them on plugin and map load. `BotLoadBoost` re-enables the
 scheduler's force mode while bots or kits load. Passes only help CPU-bound steps: an
 asynchronous wait costs at least one frame whatever the multiplier, because the engine
-integrates such an operation in a per-frame step. How much that step gets is
-`Application.backgroundLoadingPriority`, which `Streamer` drops to Low on maps that carry
-it — unproven for any arena map, so the lever that holds it higher ships off and the
-boost's log line reports the value it finds. And `MovingAverage` exists twice in
+integrates such an operation in a per-frame step. A bundle load's whole OPENING is of
+that kind — a `Task.Yield` lock spin, a `Task.Run` consistency check, then
+`LoadFromFileAsync` and `LoadAllAssetsAsync` — which is why shortening the boost's delay
+bought nothing measurable; force mode earns its keep in the asset scan and the pool build.
+How much the integration step gets is `Application.backgroundLoadingPriority`, which
+`Streamer` drops to Low on maps that carry it — measured as BelowNormal (Unity's default)
+on Customs on both machines, so no arena map streams and that lever ships off. And `MovingAverage` exists twice in
 Assembly-CSharp: the bare name is the global one, `Diz.Jobs.MovingAverage` must be
 spelled out.
 

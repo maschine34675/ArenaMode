@@ -55,24 +55,26 @@ namespace ArenaMode.Bots;
 /// The DELAY adapts, the multiplier does not. Whether a machine is over
 /// budget is read from the scheduler's own moving average of its budget
 /// window (see BotLoadBoostPolicy.IsOverBudget), latched per episode — over
-/// budget the boost is the only thing moving loads and comes on after a
-/// quarter second, under budget it is insurance and waits the configured
-/// delay. That is what lets one shared config serve a machine at 116 fps and
-/// one at 60.
+/// budget the boost comes on after a quarter second, under budget it waits
+/// the configured delay. One shared config, two machines. It bought no
+/// measurable speed-up and the reason is argued at OverBudgetDelaySeconds;
+/// what it is unarguably good for is telling the two regimes apart in the log:
+/// the 60 fps machine reads 12-30 ms against its 8 ms budget and is always
+/// over, the 116 fps one reads 5.9-8.5 ms and tips over only when a frame is
+/// full.
 ///
-/// There is a second lever, and it ships OFF. Unity integrates finished
-/// asynchronous loads in a per-frame step whose time slice is
-/// Application.backgroundLoadingPriority, and the game's scene streamer drops
-/// that to Low — two milliseconds a frame — at the start of every scene load
-/// and never puts it back. But Streamer is a component a MAP carries, not
-/// something the game runs everywhere, and no arena map has been shown to
-/// have one; without it the value is simply Unity's default. Nor is the prize
-/// measured: both machines run the same slice and land within a few frames of
-/// each other per bundle, which is what one expects if the residual is the
-/// NUMBER of awaits rather than any single integration overrunning 2 ms. So
-/// BotLoadBoostAsyncPriority defaults to Game — leave it alone — and the
-/// on-line prints the slice it observes, which is the measurement that would
-/// settle it. Raising it is real main-thread time on top of the step budget:
+/// There is a second lever, it ships OFF, and the log has now answered why.
+/// Unity integrates finished asynchronous loads in a per-frame step whose
+/// time slice is Application.backgroundLoadingPriority, and the game's scene
+/// streamer drops that to Low — two milliseconds a frame — at the start of
+/// every scene load and never puts it back. That was the case for raising it.
+/// But Streamer is a component a MAP carries, and the on-line reports the
+/// slice it finds: BelowNormal on BOTH machines, on Customs, which is Unity's
+/// own default. No streamer, no Low, nothing to lift. The earlier plan to
+/// default this to BelowNormal would have been a pure no-op on the very maps
+/// it was written for. It stays wired for a map that does stream, driven
+/// every tick so that streamer cannot take it back mid-hold, and defaulted to
+/// Game. Raising it is real main-thread time on top of the step budget:
 /// Normal is eight milliseconds more per frame than Low, High forty-eight.
 ///
 /// Arena-only, and not the game's toggle: if force mode is already on when the

@@ -50,17 +50,39 @@ internal static class BotLoadBoostPolicy
     ///
     /// The configured delay exists so a machine that finishes its loads
     /// quickly never pays a frame for the boost. Over budget there is no such
-    /// machine: every load runs one pass per frame until the boost arrives,
-    /// and the delay is simply that many frames lost — sixty of a bot's few
-    /// hundred steps at the default. Not zero: with the release grace this
-    /// bounds the toggle rate to one on/off pair per three quarters of a
-    /// second, which is what keeps a burst of tiny loads from chattering.
+    /// machine: every load runs one pass per frame until the boost arrives.
     ///
-    /// It is a trade, not a free lunch. "Over budget" also describes a fast
-    /// machine in a heavy moment — a spawn wave, the raid-start assembly —
-    /// whose frames are long because they are full, not because they are
-    /// waiting on a display. There the boost adds its budget to a frame that
-    /// has no wait to give. The on-line prints the window it decided on.
+    /// NO MEASURED GAIN, and the claim of one is withdrawn. A raid per machine
+    /// with this against a raid per machine with the flat second: every
+    /// quartile lands where it did (the 60 fps machine 3.05/4.17/8.24 s
+    /// before, 3.00/4.55/7.73 after). That is not a clean experiment — APBS
+    /// went 2.3.1 to 2.4.1 between the pairs, so a gain and a regression could
+    /// in principle cancel — but it is evidence of no harm and no evidence of
+    /// a speed-up, and the code says why one is unlikely.
+    ///
+    /// EasyBundle.LoadingCoroutine OPENS with a Task.Yield spin on the bundle
+    /// lock, a Task.Run consistency check, then LoadFromFileAsync and
+    /// LoadAllAssetsAsync: a thread hop and frame-bound waits, none of which
+    /// more scheduler passes can touch. Force mode earns its keep afterwards,
+    /// in the asset scan and the pool build. Shortening the delay adds it to
+    /// exactly the phase where it has nothing to do.
+    ///
+    /// Kept, because the cost is below measurement as well — the extra 0.7 s
+    /// of held force mode is four milliseconds on some forty frames, which the
+    /// framerate samples cannot resolve — and because a load that begins with
+    /// pool expansion over already-warm bundles IS CPU-bound from its first
+    /// step. But nothing here should be read as a speed-up, and if the moving
+    /// parts ever need trimming this is the first thing to cut.
+    ///
+    /// Not zero: with the release grace this bounds the toggle rate to one
+    /// on/off pair per three quarters of a second, which keeps a burst of tiny
+    /// loads from chattering. And "over budget" also describes a fast machine
+    /// in a heavy moment — a spawn wave, the raid-start assembly — whose
+    /// frames are long because they are full, not because they are waiting on
+    /// a display; there the boost adds its budget to a frame with no wait to
+    /// give. Measured on the 116 fps machine: mostly under at 5.9-8.5 ms
+    /// against its 8 ms budget, tipping over in the heavy moments exactly as
+    /// that paragraph predicts. The on-line prints the window it decided on.
     /// </summary>
     public const float OverBudgetDelaySeconds = 0.25f;
 
