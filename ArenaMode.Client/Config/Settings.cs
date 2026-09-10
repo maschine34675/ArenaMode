@@ -7,6 +7,19 @@ using UnityEngine;
 
 namespace ArenaMode.Config;
 
+/// <summary>
+/// Unity's per-frame time slice for integrating asynchronous loads, as the
+/// load boost sets it while held. Game = leave the streamer's Low alone.
+/// </summary>
+public enum AsyncLoadPriority
+{
+    Game,
+    Low,
+    BelowNormal,
+    Normal,
+    High,
+}
+
 public static class Settings
 {
     public static ConfigEntry<string> Maps { get; private set; }
@@ -48,6 +61,7 @@ public static class Settings
     public static ConfigEntry<bool> BotLoadBoost { get; private set; }
     public static ConfigEntry<float> BotLoadBoostBudget { get; private set; }
     public static ConfigEntry<float> BotLoadBoostDelaySeconds { get; private set; }
+    public static ConfigEntry<AsyncLoadPriority> BotLoadBoostAsyncPriority { get; private set; }
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
@@ -509,8 +523,10 @@ public static class Settings
             1f,
             new ConfigDescription(
                 "Loading time granted per frame while boosted, as a multiple of half the target " +
-                "frame (at a 120 fps limit, 1.0 = 4 ms). Higher loads faster and dips the framerate " +
-                "more while a bot is loading; the game itself uses 3 behind loading screens.",
+                "frame (at a 120 fps limit, 1.0 = 4 ms; the value scales with the limit). Untested " +
+                "above 1: on the scheduler's arithmetic only instantiation-bound steps get faster, " +
+                "while every asynchronous wait still costs at least one frame and that frame is " +
+                "longer by the extra budget. 3 is the game's own loading-screen value.",
                 new AcceptableValueRange<float>(0.25f, 3f)));
 
         BotLoadBoostDelaySeconds = config.Bind(
@@ -518,10 +534,28 @@ public static class Settings
             "BotLoadBoostDelaySeconds",
             1f,
             new ConfigDescription(
-                "How long loading must have been running before the boost kicks in. A machine " +
-                "that finishes each load inside this window never pays a frame for it. Gaps " +
+                "How long loading must have been running before the boost kicks in on a machine " +
+                "the scheduler sees as under budget, so one that finishes each load inside this " +
+                "window never pays a frame for it. A machine it sees as over budget boosts after " +
+                "0.25 s regardless (or this value if lower): there the boost is the only thing " +
+                "moving loads at all - and a fast machine in a heavy moment reads over budget too, " +
+                "which is a trade the log line shows. The verdict is fixed per load episode. Gaps " +
                 "under half a second between loads do not restart the clock.",
                 new AcceptableValueRange<float>(0f, 10f)));
+
+        BotLoadBoostAsyncPriority = config.Bind(
+            "Performance",
+            "BotLoadBoostAsyncPriority",
+            AsyncLoadPriority.Game,
+            "EXPERIMENTAL, off by default. Unity's per-frame time slice for finishing asynchronous " +
+            "loads, held at this level while the boost is held. On maps that use the game's scene " +
+            "streamer it drops the slice to Low (2 ms a frame) and never puts it back; no arena map " +
+            "has been shown to do that, and without it the value is Unity's own default - which the " +
+            "boost's log line now reports, so a raid settles it. Raising it only helps if a single " +
+            "load's integration needs more than the slice it has, which nothing has measured, while " +
+            "the cost is certain: main-thread time ON TOP of the step budget, paid during live " +
+            "combat. Low = 2 ms, BelowNormal = 4, Normal = 10, High = 50 (about 15 fps on a 60 fps " +
+            "machine while loading - diagnostic only). Game = leave it alone. Handed back on release.");
 
         AutoQuickSlots = config.Bind(
             "Kits",

@@ -8,8 +8,8 @@ public sealed class BotLoadBoostPolicyTests
     private const float Cap = BotLoadBoostPolicy.MaxHoldSeconds;
 
     private static bool Tick(ref BotLoadBoostPolicy.State s, bool loading, float now,
-        bool enabled = true, float delay = 1f, int signature = 1)
-        => BotLoadBoostPolicy.Wanted(ref s, enabled, loading, now, delay, signature);
+        bool enabled = true, float delay = 1f, int signature = 1, bool overBudget = false)
+        => BotLoadBoostPolicy.Wanted(ref s, enabled, loading, now, delay, overBudget, signature);
 
     [Fact]
     public void NotWantedBeforeTheDelayHasPassed()
@@ -214,5 +214,82 @@ public sealed class BotLoadBoostPolicyTests
             Assert.True(Tick(ref s, loading: true, now: i, signature: 1 + (i / 3) % 3));
 
         Assert.False(s.Tripped);
+    }
+
+    [Theory]
+    [InlineData(0d, 80000L, false)]      // no sample yet: unknown, treated as under
+    [InlineData(160000d, 0L, false)]     // no budget set: unknown
+    [InlineData(160000d, -1L, false)]
+    [InlineData(79999d, 80000L, false)]  // a hair under
+    [InlineData(80000d, 80000L, true)]   // exactly the budget is over, as HasFrameTime reads it
+    [InlineData(120000d, 80000L, true)]  // a 60 fps hold under the 120 limit, minus render: well over
+    public void OverBudgetMirrorsTheSchedulersOwnComparison(double windowTicks, long frameTicks, bool expected)
+        => Assert.Equal(expected, BotLoadBoostPolicy.IsOverBudget(windowTicks, frameTicks));
+
+    [Fact]
+    public void OverBudgetShortensTheDelayAndNeverLengthensIt()
+    {
+        Assert.Equal(1f, BotLoadBoostPolicy.DelayFor(overBudget: false, configuredDelaySeconds: 1f));
+        Assert.Equal(BotLoadBoostPolicy.OverBudgetDelaySeconds, BotLoadBoostPolicy.DelayFor(overBudget: true, configuredDelaySeconds: 1f));
+
+        // A user who asked for less than the short delay gets less.
+        Assert.Equal(0f, BotLoadBoostPolicy.DelayFor(overBudget: true, configuredDelaySeconds: 0f));
+        Assert.Equal(0.1f, BotLoadBoostPolicy.DelayFor(overBudget: true, configuredDelaySeconds: 0.1f));
+
+        // Negative is zero, both ways.
+        Assert.Equal(0f, BotLoadBoostPolicy.DelayFor(overBudget: false, configuredDelaySeconds: -2f));
+        Assert.Equal(0f, BotLoadBoostPolicy.DelayFor(overBudget: true, configuredDelaySeconds: -2f));
+    }
+
+    [Fact]
+    public void OverBudgetEpisodeUsesTheShortDelay()
+    {
+        var s = BotLoadBoostPolicy.State.Idle;
+        Assert.False(Tick(ref s, loading: true, now: 10f, overBudget: true));
+        Assert.False(Tick(ref s, loading: true, now: 10.2f, overBudget: true));
+        Assert.True(Tick(ref s, loading: true, now: 10.3f, overBudget: true));
+    }
+
+    [Fact]
+    public void TheVerdictIsLatchedForTheEpisode()
+    {
+        // Over at the start: the short delay admits the hold, and a flip to
+        // under a moment later must not grow the delay under the running hold.
+        var s = BotLoadBoostPolicy.State.Idle;
+        Tick(ref s, loading: true, now: 0f, overBudget: true);
+        Assert.True(Tick(ref s, loading: true, now: 0.3f, overBudget: true));
+        Assert.True(Tick(ref s, loading: true, now: 0.4f, overBudget: false));
+        Assert.True(Tick(ref s, loading: true, now: 0.9f, overBudget: false));
+
+        // Under at the start: a flip to over mid-wait must not shorten it.
+        var u = BotLoadBoostPolicy.State.Idle;
+        Tick(ref u, loading: true, now: 0f, overBudget: false);
+        Assert.False(Tick(ref u, loading: true, now: 0.3f, overBudget: true));
+        Assert.False(Tick(ref u, loading: true, now: 0.9f, overBudget: true));
+        Assert.True(Tick(ref u, loading: true, now: 1f, overBudget: true));
+    }
+
+    [Fact]
+    public void ANewEpisodeReadsTheVerdictAgain()
+    {
+        var s = BotLoadBoostPolicy.State.Idle;
+        Tick(ref s, loading: true, now: 0f, overBudget: false);
+        Assert.True(Tick(ref s, loading: true, now: 1f, overBudget: false));
+        Tick(ref s, loading: false, now: 1.1f, overBudget: true);
+        Assert.False(Tick(ref s, loading: false, now: 2f, overBudget: true));
+
+        // The next episode starts over budget and gets the short delay.
+        Assert.False(Tick(ref s, loading: true, now: 3f, overBudget: true));
+        Assert.True(Tick(ref s, loading: true, now: 3.3f, overBudget: true));
+    }
+
+    [Fact]
+    public void AGapInsideTheGraceKeepsTheLatchedVerdict()
+    {
+        var s = BotLoadBoostPolicy.State.Idle;
+        Tick(ref s, loading: true, now: 0f, overBudget: true);
+        Tick(ref s, loading: false, now: 0.1f, overBudget: false);
+        Assert.False(Tick(ref s, loading: true, now: 0.2f, overBudget: false));
+        Assert.True(Tick(ref s, loading: true, now: 0.3f, overBudget: false));
     }
 }

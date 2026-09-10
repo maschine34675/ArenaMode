@@ -163,12 +163,19 @@ family as the MongoId trap above: check the count, do not compare to default.
 **Loading is bound by frames, not CPU, once a frame is over budget.** Every bundle load
 and pool build is a chain of `JobScheduler.Yield` steps. Under budget (frame < 1000 /
 framerate limit, measured from the previous frame's end so VSync and limiter waits count)
-the scheduler keeps passing over the queue until half the budget is spent; over budget it
-makes ONE pass and stops, so every chain moves one step per frame. A machine held at
-60 fps under the 120 limit is over budget on every frame: it loaded a bot in 13-54 s and
-the kit catalogue in 5.5 minutes where the other took 0.4-2 s and 19 s, with only 1.7-1.8x
-between them on plugin and map load. `BotLoadBoost` re-enables the scheduler's force
-mode while bots or kits load.
+the scheduler keeps passing over the queue for the slack that is left, up to half the
+budget; over budget it makes ONE pass and stops, so every chain moves one step per frame.
+A machine held at 60 fps under the 120 limit is over budget on every frame: it loaded a
+bot in 13-54 s and the kit catalogue in 5.5 minutes where the other took 0.4-2 s and 19 s,
+with only 1.7-1.8x between them on plugin and map load. `BotLoadBoost` re-enables the
+scheduler's force mode while bots or kits load. Passes only help CPU-bound steps: an
+asynchronous wait costs at least one frame whatever the multiplier, because the engine
+integrates such an operation in a per-frame step. How much that step gets is
+`Application.backgroundLoadingPriority`, which `Streamer` drops to Low on maps that carry
+it — unproven for any arena map, so the lever that holds it higher ships off and the
+boost's log line reports the value it finds. And `MovingAverage` exists twice in
+Assembly-CSharp: the bare name is the global one, `Diz.Jobs.MovingAverage` must be
+spelled out.
 
 **The client caches server answers per game process.** Bot difficulties are fetched once
 and never again. Anything that must vary per raid cannot live there.

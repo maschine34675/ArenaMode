@@ -45,6 +45,63 @@ internal static class BotLoadBoostPolicy
     /// </summary>
     public const float ReleaseGraceSeconds = 0.5f;
 
+    /// <summary>
+    /// The delay on a machine the scheduler already sees as over budget.
+    ///
+    /// The configured delay exists so a machine that finishes its loads
+    /// quickly never pays a frame for the boost. Over budget there is no such
+    /// machine: every load runs one pass per frame until the boost arrives,
+    /// and the delay is simply that many frames lost — sixty of a bot's few
+    /// hundred steps at the default. Not zero: with the release grace this
+    /// bounds the toggle rate to one on/off pair per three quarters of a
+    /// second, which is what keeps a burst of tiny loads from chattering.
+    ///
+    /// It is a trade, not a free lunch. "Over budget" also describes a fast
+    /// machine in a heavy moment — a spawn wave, the raid-start assembly —
+    /// whose frames are long because they are full, not because they are
+    /// waiting on a display. There the boost adds its budget to a frame that
+    /// has no wait to give. The on-line prints the window it decided on.
+    /// </summary>
+    public const float OverBudgetDelaySeconds = 0.25f;
+
+    /// <summary>
+    /// Whether the scheduler has, on average, been over budget lately.
+    ///
+    /// The scheduler decides per frame: it compares the window from the
+    /// previous frame's end to LateUpdate — limiter and VSync waits included,
+    /// render submission and its own continuation time excluded — against
+    /// FrameTicks, raw Stopwatch ticks against raw TimeSpan ticks (they agree
+    /// on this hardware, 10 MHz; the game assumes it, so the mirror is exact
+    /// either way). It also keeps a hundred-frame moving average of that same
+    /// window, which it never consults itself; this is what the mod reads,
+    /// compared the same way. A mean is a coarse proxy — a hundred short
+    /// frames with a few long hitches can read over — but it is the game's own
+    /// measurement of the game's own quantity, and it costs nothing.
+    ///
+    /// The sample is taken before the continuations run and the stopwatch is
+    /// restarted after, so the boost's STEP time is never inside a sample.
+    /// Other things it does are: the display wait a longer frame may lengthen,
+    /// and - if the async slice lever is ever switched on - the engine's
+    /// integration step, which runs inside the sampled window. So the boost can
+    /// nudge the verdict it is judged by. Latching the verdict per episode is
+    /// what keeps that from becoming a loop: within an episode the reading
+    /// cannot change the decision, and between episodes a wrong reading costs
+    /// three quarters of a second of delay, never a hold.
+    /// </summary>
+    public static bool IsOverBudget(double averageWindowTicks, long frameTicks)
+        => frameTicks > 0 && averageWindowTicks > 0 && averageWindowTicks >= frameTicks;
+
+    /// <summary>
+    /// The delay that applies: the configured one where the boost is
+    /// insurance, the short one where it is the only thing moving loads. A
+    /// configured value below the short one is honoured either way.
+    /// </summary>
+    public static float DelayFor(bool overBudget, float configuredDelaySeconds)
+    {
+        float configured = Math.Max(0f, configuredDelaySeconds);
+        return overBudget ? Math.Min(OverBudgetDelaySeconds, configured) : configured;
+    }
+
     public struct State
     {
         /// <summary>When the current loading episode began; NaN when idle.</summary>
@@ -55,6 +112,14 @@ internal static class BotLoadBoostPolicy
 
         /// <summary>When the boost was first wanted in this episode; NaN when not wanted.</summary>
         public float WantedSince;
+
+        /// <summary>
+        /// The over-budget verdict as it stood when this episode began. Latched,
+        /// because the delay is re-checked every tick against a running clock:
+        /// a verdict that flipped under a hold would shrink or grow the delay
+        /// mid-episode, drop the hold, and re-acquire it a moment later.
+        /// </summary>
+        public bool OverBudget;
 
         /// <summary>The signature the cap clock is measuring against; reset whenever it moves.</summary>
         public int HeldSignature;
@@ -80,12 +145,13 @@ internal static class BotLoadBoostPolicy
     /// <param name="enabled">The setting; false releases at once.</param>
     /// <param name="loading">Anything loading bundles or building pools this tick.</param>
     /// <param name="now">Unscaled seconds.</param>
-    /// <param name="delaySeconds">How long loading must persist before boosting.</param>
+    /// <param name="configuredDelaySeconds">The setting: how long loading must persist before boosting where the boost is insurance.</param>
+    /// <param name="overBudget">The current verdict; latched into the episode when one begins.</param>
     /// <param name="signature">
     /// Any number that changes whenever the set of loads in flight changes —
     /// the raw counters are fine. Only compared for equality.
     /// </param>
-    public static bool Wanted(ref State state, bool enabled, bool loading, float now, float delaySeconds, int signature)
+    public static bool Wanted(ref State state, bool enabled, bool loading, float now, float configuredDelaySeconds, bool overBudget, int signature)
     {
         if (!enabled)
         {
@@ -144,9 +210,12 @@ internal static class BotLoadBoostPolicy
         }
 
         if (float.IsNaN(state.LoadingSince))
+        {
             state.LoadingSince = now;
+            state.OverBudget = overBudget;
+        }
 
-        if (now - state.LoadingSince < Math.Max(0f, delaySeconds))
+        if (now - state.LoadingSince < DelayFor(state.OverBudget, configuredDelaySeconds))
             return false;
 
         // The cap measures how long the signature has sat STILL, not how long
