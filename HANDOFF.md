@@ -7,6 +7,41 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Mantle physical follow-up / reload accepted (2026-09-10, 19:40 retest):**
+  implementation commit `b0a8664` on `feature/arena-mantle-reload`. User confirms
+  reload speed is now correct and understands the UIFixes in-place swap pause;
+  reload code stays unchanged. The log proves eight Unity Climb entries, but the
+  user usually falls back down. Native clips top out at 1.30m vertical travel;
+  Arena had admitted up to 1.70m. Additional airborne Climb now waits for at most
+  1.31m remaining height, so held input can retry as the jump rises. Standing
+  reach and Vault preference remain unchanged. This corrects a proven unsupported
+  range, not a proven explanation for all eight drops. See AIR-MOVEMENT-REVIEW.md
+  for native asset/grid-coordinate evidence and the frozen log hash.
+
+  New read-only `Arena mantle motion #...` diagnostics capture accepted geometry,
+  requested versus actual movement, capsule/rise and exit/0.75s post-exit state.
+  Twelve attempts per world, eight-second observation timeout; no position,
+  collider, gravity or native-state correction. Future logs can distinguish a
+  blocked displacement from an over-distant ledge or post-animation drop. The
+  separate optic-icon and SAIN unload NREs do not establish a mantle connection.
+
+  Full checks passed **363 assertions / 47 source-fault controls**; independent
+  source/production review found no P0-P2. Evidence:
+  `artifacts/air-vault-checks/a17fde8e2deb4c0580e27b3ea4918584/`.
+  Final clean staged build from `b0a8664`: zero errors/four existing nullable
+  warnings, manifest `artifacts/double-jump-build/f203e355b8774806b8142ffa687514e8/manifest.json`.
+  Verified client-only local delivery SHA256:
+  `51DFE284308A34DD65877CB0FA40AC0E812455CA5086597DDE7DC9AAECC84827`.
+  Receipt and verified previous-client backup:
+  `artifacts/mantle-physical/delivery-b0a8664-7e2c5618056e45118e8d5b6c0e201b9a/`.
+  Ten protected files unchanged: Arena server/BigBrain, three Redeploy DLLs,
+  APBS DLL/config, both UIFixes DLLs/config. **Restart the game only** after
+  existing mirroring. GPU mirror completion and actual physical mantle success
+  remain unverified here; no game launch, push or merge. User test: the same ledge
+  with held vault during a jump, plus lower/higher ledges; if it drops, inspect
+  entry/exit/after-exit motion records. Ordinary-raid/respawn isolation remains
+  a live regression check, not something offline collision doubles can prove.
+
 - **19:09 retest fixes: in-place reload and stale falling flag (2026-09-10):**
   still on `feature/arena-mantle-reload`, with separate implementation commits
   `d968bda` (mantle) and `d71fa13` (native magazine swap handling).
