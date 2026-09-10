@@ -115,7 +115,9 @@ try {
     Test-Fault 'unity-moving-jump-removed' 'case 1056621489: ownerName = "Base Layer.JUMP.Jump_Move"; break;' 'case 1056621489: return "unsupported-jump-leaf";' 'Unity native moving and sprinting jump sources are admitted' -Unity
     Test-Fault 'unity-sprinting-jump-removed' 'case 1332272753: ownerName = "Base Layer.JUMP.Jump_Sprint"; break;' 'case 1332272753: return "unsupported-jump-leaf";' 'Unity native moving and sprinting jump sources are admitted' -Unity
     Test-Fault 'unity-moving-borrows-idle' 'if (behavior.StateFullNameHash != ownerHash || behavior.StateFullName != ownerName) continue;' 'if (behavior.StateFullNameHash != 232800732 || behavior.StateFullName != "Base Layer.JUMP.Jump_Idle") continue;' 'Unity moving source requires its own exact container despite valid Idle owner' -Unity
-    Test-Fault 'unity-rejection-throttle-removed' 'Time.unscaledTime < _nextTrace && _lastTraceMessage == message' 'false' 'Unity rejection logs explain source and throttle volatile details by stable reason' -Animator
+    Test-Fault 'unity-rejection-throttle-removed' 'Time.unscaledTime < nextTrace' 'false' 'Unity rejection logs explain source and throttle volatile details by stable reason' -Animator
+    Test-Fault 'unity-stale-falling-rejected' '&& animator.GetBool(PlayerAnimator.JUMP_PARAM_HASH);' '&& !animator.GetBool(PlayerAnimator.FALLING_DOWN_PARAM_HASH) && animator.GetBool(PlayerAnimator.JUMP_PARAM_HASH);' 'Unity Auto and Manual body updates both issue one transition' -Unity
+    Test-Fault 'alternating-reason-throttle-lost' 'TraceNext[message] = Time.unscaledTime + 2f;' 'TraceNext.Clear(); TraceNext[message] = Time.unscaledTime + 2f;' 'alternating queued and rejected reasons are independently throttled' -Animator
 }
 finally { Assert-Production }
 Write-Output "Air vault evidence: $arenaWork"

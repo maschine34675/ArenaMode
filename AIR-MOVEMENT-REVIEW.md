@@ -13,6 +13,37 @@ AI, area barriers, loadouts and Redeploy are unchanged.
 
 ## Unity airborne mantle implementation (2026-09-10)
 
+### Native FallingDown flag correction after the 19:09 retest
+
+Frozen evidence: `artifacts/reload-mantle-retest/58b6d72db3324285838ec897c2104dfe/client.log`,
+SHA256 `17D6D61FC0BE42CB95C1ACF509ABCBE84C41AAD41B82323A76E0C56DB1E1355C`.
+The 100 mantle lines contain 49 queued Climbs, 47 dispatch refusals, three native
+check refusals and one geometry-refresh refusal. All 47 dispatch records show
+a real Move/Sprint jump with no transition, IsJumping=true, Landing=false and
+FallingDown=true. The old FallingDown-bool guard alone prevents these dispatches.
+
+Native `MovePlayerState.UpdatePosition` sets FallingDown when leaving the ground;
+only `FallDown.Exit` clears it. Jump, Climb and Vault do not. Inspection of the
+actual standard Unity controller found no FallingDown/FallingDownFloat conditions
+on any transition, selector or AnyState entry. Thus that bool is not a valid
+test for the current managed FallDown state. Only this bool guard is removed;
+the exact JumpPlayerState type, its initialized jump-leaf owner, !Landing,
+IsJumping and absence of a current native transition remain required. The bool
+itself is never rewritten. Native geometry, stamina, hands and barrier checks
+still run, and a real FallDown subtype remains excluded.
+
+The 16 Auto/Manual x Climb/Vault x four-jump-leaf fixture cases now start with
+the observed stale FallingDown=true. They also assert it remains untouched.
+New tests reject a real FallDown owner and exercise alternating queue/refusal
+logs. Logging now limits each stable reason separately per world, retaining the
+100-line world budget; alternating messages can no longer bypass the 2s delay.
+Independent source review found no remaining P0-P2. GPU acceptance is pending.
+
+Full verification passed: 339 production-linked assertions and 41 separately
+compiled source-fault controls, including reintroducing the stale flag guard and
+breaking the alternating-reason throttle. Evidence:
+`artifacts/air-vault-checks/4d6b0bff6d614094af3fa3bc1ab04f38/`.
+
 ### Moving/sprinting jump correction after the 17:18 retest
 
 The 17:18:45 archive loaded the Unity hooks, but recorded 16 misleading

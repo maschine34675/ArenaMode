@@ -79,7 +79,9 @@ internal static partial class ArenaAirVault
 
     private static bool UnityNativeJumpCanYield(Animator animator)
         => !animator.IsInTransition(0) && !animator.GetBool(PlayerAnimator.LANDING_PARAM_HASH)
-            && !animator.GetBool(PlayerAnimator.FALLING_DOWN_PARAM_HASH)
+            // MovePlayerState sets FallingDown whenever it leaves the ground;
+            // only FallDown.Exit clears it. It is not proof of active falling.
+            // Exact managed Jump and source-leaf ownership are checked separately.
             && animator.GetBool(PlayerAnimator.JUMP_PARAM_HASH);
 
     private static PlayerStateContainer UnityDestination(Pending pending)

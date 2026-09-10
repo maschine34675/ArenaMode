@@ -104,6 +104,9 @@ containers sharing one cached managed Jump owner. The fixture exercises each
 leaf against its own container and the exact behaviorless Loop-to-Idle exception;
 valid Idle cannot authorize a missing or foreign Move/Sprint container. It also
 checks bounded rejection reasons, changing detail values and throwing log sinks.
+The native MovePlayerState's stale FallingDown bool is retained during all 16
+main Unity cases; actual FallDown movement remains excluded. Alternating queue
+and refusal reasons have independent 2s log budgets that reset with the world.
 
 `UnityChecks` drives the linked production Unity bridge through extracted native
 BodyUpdate and movement-container callbacks. An explicit engine double supplies

@@ -18,6 +18,7 @@ internal static class UnityChecks
             var(p,c,v,a)=Ready(); var old=c.CurrentState;
             p.BodyUpdateMode=manual?EUpdateMode.Manual:EUpdateMode.Auto;
             a.Current=source;
+            a.Falling=true; // Real retest: stale MovePlayerState flag during a genuine Jump.
             v._vaultingModelDebug.VaultingStatesModel.VaultState.Allowed=vault;
             p.ToggleVaulting();
             check(ArenaAirVault.HasPendingRequest(p),"Unity native moving and sprinting jump sources are admitted");
@@ -25,6 +26,7 @@ internal static class UnityChecks
             v.VaultingHeight+=.2f;
             p.BodyUpdate(.02f);
             check(a.CrossFades==1,"Unity Auto and Manual body updates both issue one transition");
+            check(a.Falling,"Unity mantle leaves the stale native falling flag untouched");
             check(a.Blend==(vault?.1f:.15f) && a.Offset==(vault?.1f:0),"Unity transition retains native entry blend and offset");
             if(!manual)
             {
@@ -71,7 +73,10 @@ internal static class UnityChecks
         Reject((p,c,v,a)=>p.InputBlocked=true,"Unity blocked input before dispatch cancels mantle");
         Reject((p,c,v,a)=>Settings.AirVaultEnabled.Value=false,"Unity disabled feature before dispatch cancels mantle");
         Reject((p,c,v,a)=>a.Landing=true,"Unity native landing always wins");
-        Reject((p,c,v,a)=>a.Falling=true,"Unity native falling always wins");
+        var falling=Ready(); falling.c.CurrentState=new FallDown {MovementContext=falling.c};
+        falling.a.Containers[0].EncapsulatedState=falling.c.CurrentState;
+        falling.p.ToggleVaulting(); falling.p.BodyUpdate(.02f);
+        check(falling.a.CrossFades==0 && !ArenaAirVault.HasPendingRequest(falling.p),"Unity actual FallDown subtype cannot borrow a Jump leaf");
         Reject((p,c,v,a)=>c.JumpSet=false,"Unity missing native jump flag cannot dispatch");
         Reject((p,c,v,a)=>c.Transition=true,"Unity existing native transition always wins");
         Reject((p,c,v,a)=>a.Current=12345,"Unity unrelated animator state cannot borrow Jump owner");
@@ -141,6 +146,18 @@ internal static class UnityChecks
         var loggedCancel=Ready(); loggedCancel.p.ToggleVaulting(); loggedCancel.a.Landing=true;
         ArenaMode.Plugin.ModLogger.Info.Clear(); loggedCancel.p.BodyUpdate(.02f);
         check(ArenaMode.Plugin.ModLogger.Info.Any(x=>x.Contains("Unity rejected dispatch: native-jump-flags-or-transition") && x.Contains("landing=True")),"Unity queued cancellation logs its native dispatch reason");
+        var alternating=Ready(); ArenaMode.Plugin.ModLogger.Info.Clear();
+        for(int frame=0;frame<20;frame++)
+        {
+            alternating.a.Landing=false; alternating.p.ToggleVaulting();
+            alternating.a.Landing=true; alternating.p.BodyUpdate(.02f);
+        }
+        check(ArenaMode.Plugin.ModLogger.Info.Count==2,"alternating queued and rejected reasons are independently throttled");
+        Time.unscaledTime+=2.1f; alternating.a.Landing=false; alternating.p.ToggleVaulting();
+        alternating.a.Landing=true; alternating.p.BodyUpdate(.02f);
+        check(ArenaMode.Plugin.ModLogger.Info.Count==4,"mantle diagnostic reason budgets reopen after interval");
+        var newWorld=Ready(); newWorld.p.ToggleVaulting(); newWorld.a.Landing=true; newWorld.p.BodyUpdate(.02f);
+        check(ArenaMode.Plugin.ModLogger.Info.Count==6,"new world resets mantle diagnostic reason budgets");
         var brokenLogger=Ready(); ArenaMode.Plugin.ModLogger.ThrowInfo=true;
         try {brokenLogger.p.ToggleVaulting(); brokenLogger.p.BodyUpdate(.02f); brokenLogger.a.Update(.02f);}
         finally {ArenaMode.Plugin.ModLogger.ThrowInfo=false;}

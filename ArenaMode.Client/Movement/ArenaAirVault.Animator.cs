@@ -5,6 +5,7 @@ using FastAnimatorSystem;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -23,8 +24,7 @@ internal static partial class ArenaAirVault
 
     private static AnimatorFrame _animatorFrame;
     private static WeakReference<GameWorld> _traceWorld;
-    private static float _nextTrace;
-    private static string _lastTraceMessage;
+    private static readonly Dictionary<string, float> TraceNext = new();
     private static int _traceCount;
 
     private static void Trace(Request request, string message, bool entered = false, Func<string> detail = null)
@@ -34,12 +34,14 @@ internal static partial class ArenaAirVault
             if (!OwnsTarget(request)) return;
             if (_traceWorld == null || !_traceWorld.TryGetTarget(out var tracedWorld)
                 || !ReferenceEquals(tracedWorld, request.World))
-            { _traceWorld = new WeakReference<GameWorld>(request.World); _nextTrace = 0f; _traceCount = 0; }
+            { _traceWorld = new WeakReference<GameWorld>(request.World); TraceNext.Clear(); _traceCount = 0; }
             // Normal held input can request every frame. Keep useful diagnostics
             // without adding a per-frame log flood during long Arena matches.
-            if (_traceCount >= 100 || (!entered && Time.unscaledTime < _nextTrace && _lastTraceMessage == message)) return;
-            _nextTrace = Time.unscaledTime + 2f;
-            _lastTraceMessage = message;
+            if (_traceCount >= 100 || (!entered && TraceNext.TryGetValue(message, out float nextTrace)
+                && Time.unscaledTime < nextTrace)) return;
+            // Queue/refusal can alternate every frame. Throttle each stable
+            // reason independently, not merely the most recent log line.
+            TraceNext[message] = Time.unscaledTime + 2f;
             _traceCount++;
             // Throttle by the stable reason above, not changing per-frame geometry.
             // Formatting is lazy and diagnostics must never change gameplay results.
