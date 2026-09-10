@@ -44,6 +44,7 @@ internal static class ArenaHandlingPatches
             new SpeedParametersPatch().Enable();
             new ControllerUpdatePatch().Enable();
             new ControllerDestroyPatch().Enable();
+            ArenaReloadHandling.Enable();
             RaidLifecycle.OnRaidEnded += ResetPerRaidState;
             _enabled = true;
         }
@@ -53,12 +54,14 @@ internal static class ArenaHandlingPatches
     internal static void Shutdown()
     {
         _enabled = false;
+        ArenaReloadHandling.Shutdown();
         RaidLifecycle.OnRaidEnded -= ResetPerRaidState;
         ResetPerRaidState();
     }
 
     internal static void ResetPerRaidState()
     {
+        ArenaReloadHandling.ResetPerRaidState();
         foreach (var weak in DrawOwners.ToArray())
             if (weak.TryGetTarget(out var animator)) Release(animator);
         DrawOwners.Clear();
@@ -198,6 +201,7 @@ internal static class ArenaHandlingPatches
 
     internal static void OnControllerUpdate(Player.FirearmController controller)
     {
+        ArenaReloadHandling.OnControllerUpdate(controller);
         var animator = controller?.FirearmsAnimator;
         if (animator == null || !_draws.TryGetValue(animator, out var lease)) return;
         try
@@ -308,6 +312,7 @@ internal static class ArenaHandlingPatches
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.Destroy), Type.EmptyTypes);
-        [PatchPrefix] private static void Prefix(Player.FirearmController __instance) => Release(__instance?.FirearmsAnimator);
+        [PatchPrefix] private static void Prefix(Player.FirearmController __instance)
+        { ArenaReloadHandling.Release(__instance); Release(__instance?.FirearmsAnimator); }
     }
 }

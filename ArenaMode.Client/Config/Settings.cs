@@ -31,6 +31,7 @@ public static class Settings
     public static ConfigEntry<float> LandingRecoveryMultiplier { get; private set; }
     public static ConfigEntry<float> WeaponDrawSpeedMultiplier { get; private set; }
     public static ConfigEntry<float> WeaponHolsterSpeedMultiplier { get; private set; }
+    public static ConfigEntry<float> WeaponReloadSpeedMultiplier { get; private set; }
     public static ConfigEntry<bool> AirVaultEnabled { get; private set; }
     public static ConfigEntry<bool> AirHipFireEnabled { get; private set; }
     public static ConfigEntry<float> WalkSpeedMult { get; private set; }
@@ -337,6 +338,10 @@ public static class Settings
                 new AcceptableValueRange<float>(1f, 3f)));
         WeaponHolsterSpeedMultiplier = config.Bind("Movement", "WeaponHolsterSpeedMultiplier", 1.5f,
             new ConfigDescription("Local Arena firearm holster speed. Does not change reload or firing speed.",
+                new AcceptableValueRange<float>(1f, 3f)));
+        WeaponReloadSpeedMultiplier = config.Bind("Movement", "WeaponReloadSpeedMultiplier", 1.5f,
+            new ConfigDescription("Local Arena firearm reload animation speed, including quick reloads, internal magazines and revolvers. " +
+                "1 keeps native timing. Underbarrel launchers, firing, malfunction repair and inventory magazine loading stay unchanged.",
                 new AcceptableValueRange<float>(1f, 3f)));
         AirVaultEnabled = config.Bind("Movement", "AirVaultEnabled", true,
             "Allow a deliberate native vault/climb input during an Arena jump when the obstacle and hands checks permit it.");

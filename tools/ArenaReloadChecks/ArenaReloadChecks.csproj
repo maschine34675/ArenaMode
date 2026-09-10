@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <ReloadSource Condition="'$(ReloadSource)' == ''">../../ArenaMode.Client/Movement/ArenaReloadHandling.cs</ReloadSource>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="$(ReloadSource)" Link="Production/ArenaReloadHandling.cs" /></ItemGroup>
+</Project>

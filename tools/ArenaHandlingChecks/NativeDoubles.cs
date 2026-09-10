@@ -109,6 +109,15 @@ namespace EFT
 namespace EFT.InventoryLogic { public class Item { } }
 namespace ArenaMode.Movement
 {
+    // Reload production behavior is independently linked by ArenaReloadChecks.
+    internal static class ArenaReloadHandling
+    {
+        internal static void Enable() { }
+        internal static void Shutdown() { }
+        internal static void ResetPerRaidState() { }
+        internal static void OnControllerUpdate(EFT.Player.FirearmController controller) { }
+        internal static void Release(EFT.Player.FirearmController controller) { }
+    }
     internal static class ArenaMovementScope
     {
         internal static EFT.Player Local;
