@@ -2,6 +2,60 @@
 
 2026-09-10. Client-only change; native raid acceptance remains pending.
 
+## Native in-place magazine reload after the 19:09 retest
+
+The user confirmed normal R input. The frozen log in
+`artifacts/reload-mantle-retest/58b6d72db3324285838ec897c2104dfe/client.log`
+(SHA256 `17D6D61FC0BE42CB95C1ACF509ABCBE84C41AAD41B82323A76E0C56DB1E1355C`)
+contains 78 lines covering 13 ordinary reloads, below the 96-line cap. These
+show real Unity multipliers of 1.8 from native baseline 1.2 and Arena factor 1.5
+(once baseline 1 to 1.5 after injury). No refusal or lost speed ownership appears.
+The missing weapon observations cannot be explained by the diagnostic budget.
+
+The installed UIFixes SwapIfNoSpacePatch intercepts normal ReloadMag input when
+no free rig location exists and its in-place setting is enabled. It uses a native
+inventory swap. This runs `PullOutMagOperation` and `InsertMagOperation`, which
+are FirearmOperation siblings rather than BaseReloadOperation descendants. Both
+were excluded from Arena speed and from its observation filter. Native Player
+code itself includes both in its reload classification (`Player.cs:14471`).
+This is a source-backed explanation for kit-dependent differences, although the
+old log did not capture the individual swap operation for each missing weapon.
+
+The two exact native types now use the existing scoped SpeedReload lease and
+diagnostic observer. Ordinary R reloads, UIFixes in-place reloads and deliberate
+inventory magazine insertion/removal therefore receive consistent Arena handling.
+No UIFixes configuration, transaction, item address or Harmony patch is changed;
+no UIFixes assembly reference or copied mod implementation is added. Actual RD704,
+MCX, AKM/VPO and AKS74 controllers map MagInFromInv/MagOutFromInv to native reload
+states bound to SpeedReload. No global animator speed or graph edits are needed.
+
+Five nontrivial native boundaries release only their exact operation's owned
+values before the original code: Insert.SwitchToIdlingState, Insert.HideWeapon,
+Insert.Reset, PullOut.OnMagPuttedToRig and PullOut.Reset. Completion can immediately
+start the next swap step via inventory callbacks, so release must happen before
+those callbacks. FastForward funnels into these endpoints; existing death,
+destroy, scope and world cleanup remain. PullOut's inherited HideWeapon is a
+prohibited-call no-op, not an unhandled completion path. Five distinct Harmony
+IDs keep shared patch-class instances independent. Installed ModulePatch IL
+confirms target resolution happens after construction and removal is by target
+and ID. No tiny base-State setter patch is used.
+
+Regression checks cover both new types, native refresh, foreign writers, exact
+endpoint registration, callback ordering through a paired removal/insertion,
+pooled reset, stale endpoints and death. Installed native IL pins each endpoint,
+base type, state/next-operation ordering and fast-forward path. Unknown subclasses,
+loose cartridge packing, direct chamber manipulation, firing, malfunction clearing,
+underbarrel launchers, bots and ordinary raids remain outside this extension.
+The extra native swap transitions remain, so its complete reload may still take
+longer than an ordinary reload at the same factor. GPU acceptance is pending.
+
+Full verification passed: 779 production-linked assertions and eleven required
+source-fault controls; installed IL contract check also passed. Evidence:
+`artifacts/arena-reload-checks/cfa9f5083b974fc3b8c08809c72f0c3e/`.
+Existing handling regression: 161 assertions / twelve source faults, evidence
+`artifacts/arena-handling-checks/098d46c6b47142f4ae1740f167a91aa9/`.
+Independent adversarial review found no remaining P0-P2.
+
 ## Weapon comparison and bounded diagnostics (2026-09-10)
 
 The user first reported no difference between slider values, then confirmed that
@@ -73,7 +127,8 @@ reload. Server configuration, APBS, skill values and profile data are untouched.
 
 The exact reviewed native families are external magazine reloads (including
 quick/emergency reloads), internal magazines, internal magazines with open bolt,
-revolver cylinder reloads, and single-/multi-barrel reloads. Each retains its own
+revolver cylinder reloads, and single-/multi-barrel reloads, plus the two exact
+native inventory magazine insert/remove types described above. Each retains its own
 native animation, skill/injury baseline, rounds, cancellation, callbacks and
 inventory transactions. Only `SpeedReload` changes on the separate arms and body
 animators. This is independent from the existing loose-round magazine loading
@@ -82,7 +137,7 @@ speed, draw/holster speed, and medical speed settings.
 Underbarrel launchers remain native. Their launcher prefab has an additional
 animator (`WeaponPrefab.SetUnderbarrelFastAnimator`) whose timing relationship
 has not been validated; speeding only the main hands risks unsynchronized parts.
-Manual inventory chamber/insert/remove operations, firing (including bolt cycling),
+Manual inventory chamber/cartridge operations, firing (including bolt cycling),
 malfunction clearing, bots, corpse/preview bodies, normal raids and unknown derived
 reload operation types are excluded. Global animator speed and firing-rate values
 are never written.
@@ -97,7 +152,7 @@ not inferred from a successful client build:
   reload there. A body update immediately before the first arms tick can still
   have native timing for that one update.
 - `BaseReloadOperation.set_State` is the shared nontrivial lifecycle setter for
-  all six included families. Its prefix releases owned speeds before Finished/
+the six ordinary reload families. Its prefix releases owned speeds before Finished/
   Ready native callbacks, so following firing/idle operations inherit no boost.
 - The larger `FirearmController.SetAnimatorAndProceduralValues` contains exactly
   three firearm and two body speed setter call sites. These are wrapped directly;
@@ -126,12 +181,12 @@ pwsh -NoProfile -File tools/ArenaHandlingChecks/Verify.ps1
 ```
 
 The new executable links the actual production reload source against external
-API doubles; it does not duplicate the timing policy. It covers all six included
+API doubles; it does not duplicate the timing policy. It covers all eight included
 families, excluded states, reference/body guards, independent animator baselines,
 hot changes, skill/injury refresh, native exceptions, foreign writers, pooled
 replacement, immediate completion/death cleanup and partial patch installation.
 The installed-contract check verifies actual IL and handling integration sites.
-Six mutations of temporary source copies must fail their claimed assertions.
+Eleven mutations of temporary source copies must fail their claimed assertions.
 The separate existing handling suite checks draw/holster/landing regression.
 Evidence is written under ignored `artifacts/arena-reload-checks/` and
 `artifacts/arena-handling-checks/`; no check deploys a mod DLL.

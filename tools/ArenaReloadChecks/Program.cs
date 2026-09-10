@@ -37,7 +37,14 @@ Type[] families = [typeof(Player.FirearmController.ReloadExternalMagOperation), 
     typeof(Player.FirearmController.ReloadInternalMagWithOpenBoltOperation), typeof(Player.FirearmController.ReloadCylinderMagOperation),
     typeof(Player.FirearmController.ReloadSingleBarrelOperation), typeof(Player.FirearmController.ReloadMultiBarrelOperation)];
 ArenaReloadHandling.Enable();
-Need(ModulePatch.Targets.Count == 3, "three exact reload lifecycle refresh and death hooks install");
+Need(ModulePatch.Targets.Count == 8, "eight exact reload lifecycle and magazine boundary hooks install");
+foreach (var boundary in new[] {
+    (typeof(Player.FirearmController.InsertMagOperation),"SwitchToIdlingState"),
+    (typeof(Player.FirearmController.InsertMagOperation),"HideWeapon"),
+    (typeof(Player.FirearmController.InsertMagOperation),"Reset"),
+    (typeof(Player.FirearmController.PullOutMagOperation),"OnMagPuttedToRig"),
+    (typeof(Player.FirearmController.PullOutMagOperation),"Reset") })
+    Need(ModulePatch.Targets.Count(x=>x==boundary.Item1.GetMethod(boundary.Item2))==1,"each native magazine endpoint installs exactly once");
 foreach (Type family in families)
 {
     Fresh(); var operation = (Player.FirearmController.BaseReloadOperation)Start(family); Tick(); Boost();
@@ -49,7 +56,8 @@ foreach (Type family in families)
     Tick(); Native();
 }
 foreach (Type excluded in new[] { typeof(Player.FirearmController.LauncherReload), typeof(Player.FirearmController.FireOperation),
-    typeof(Player.FirearmController.BoltActionFireOperation), typeof(Player.FirearmController.Malfunction), typeof(Player.FirearmController.InsertMagOperation),
+    typeof(Player.FirearmController.BoltActionFireOperation), typeof(Player.FirearmController.Malfunction), typeof(Player.FirearmController.LoadCartridgeToChamber),
+    typeof(Player.FirearmController.UnknownInsert), typeof(Player.FirearmController.UnknownPullOut),
     typeof(Player.FirearmController.Remove), typeof(Player.FirearmController.UnknownReload) })
 { Fresh(); Start(excluded); Tick(); Native(); }
 Fresh(); var current = Start(families[0]); current.Player = new Player { HandsController = controller }; Tick();
@@ -124,7 +132,7 @@ ArenaReloadHandling.ResetPerRaidState(); Native();
 Fresh(); Start(families[0]); Tick(); controller.NativeDeath = Native; controller.OnPlayerDead(); Native();
 Fresh(); Start(families[0]); Tick(); ArenaReloadHandling.Shutdown(); Native(); Tick(); Native();
 Need(ModulePatch.Targets.Count == 0, "shutdown removes reload patches");
-foreach (int failAt in new[] { 1, 2, 3 })
+foreach (int failAt in Enumerable.Range(1, 8))
 {
     ModulePatch.FailEnableAt = failAt; ArenaReloadHandling.Enable();
     Need(ModulePatch.Targets.Count == 0, "partial patch installation rolls back");
@@ -132,9 +140,9 @@ foreach (int failAt in new[] { 1, 2, 3 })
 }
 ModulePatch.FailEnableAt = -1; ArenaReloadHandling.Enable();
 ModulePatch.FailDisableCount = 2; ArenaReloadHandling.Shutdown(); ArenaReloadHandling.Enable();
-Need(ModulePatch.Targets.Count == 3, "failed removal does not install duplicate reload hooks");
+Need(ModulePatch.Targets.Count == 8, "failed removal does not install duplicate reload hooks");
 ArenaReloadHandling.Shutdown(); ArenaReloadHandling.Enable();
-Need(ModulePatch.Targets.Count == 3, "clean retry installs one copy of each patch");
+Need(ModulePatch.Targets.Count == 8, "clean retry installs one copy of each patch");
 
 var armSetter = typeof(FirearmsAnimator).GetMethod("SetSpeedParameters");
 var bodySetter = typeof(PlayerAnimator).GetMethod("SetSpeedParameters");
@@ -150,6 +158,47 @@ foreach (var bad in new[] { Calls(2, 2), Calls(3, 1), Calls(4, 2), Calls(3, 3) }
     try { Hook.Call("RefreshPatch", "Transpiler", bad); } catch (InvalidOperationException) { rejected = true; }
     Need(rejected, "drifted native refresh IL is rejected");
 }
+foreach (Type magazineType in new[] { typeof(Player.FirearmController.InsertMagOperation), typeof(Player.FirearmController.PullOutMagOperation) })
+{
+    Fresh(); Start(magazineType); Tick(); Boost();
+    for (int i=0;i<20;i++) Tick(); Boost();
+    Settings.WeaponReloadSpeedMultiplier.Value=3; Tick();
+    Need(Same(A(),3.6f) && Same(B(),4.2f),"native magazine operations accept live multiplier without compounding");
+    ArenaReloadHandling.SetFirearmSpeeds(controller.FirearmsAnimator,1.1f,2);
+    Need(Same(A(),3.3f),"magazine operations retain native skill refresh");
+    ArenaReloadHandling.Release(controller);
+    Need(A()==1.1f && B()==1.4f,"magazine operation restores refreshed baseline");
+    Fresh(); Start(magazineType); Tick(); arms.SetFloat(12,7); Tick();
+    Need(A()==7 && B()==1.4f,"magazine operation preserves foreign speed owner");
+    Fresh(); Start(magazineType); Tick(); controller.NativeDeath=Native; controller.OnPlayerDead(); Native();
+    Fresh(); Start(magazineType); ArenaMovementScope.Enabled=false; Tick(); Native();
+    Fresh(); Start(magazineType); controller.CurrentOperation.Player=new Player(); Tick(); Native();
+}
+foreach (string boundary in new[] { "SwitchToIdlingState", "HideWeapon", "Reset" })
+{
+    Fresh(); var insert=(Player.FirearmController.InsertMagOperation)Start(typeof(Player.FirearmController.InsertMagOperation)); Tick();
+    int callbacks=0; insert.NativeContinuation=()=>{ Native(); callbacks++; };
+    typeof(Player.FirearmController.InsertMagOperation).GetMethod(boundary).Invoke(insert,null);
+    Need(callbacks==1,"insert completion hide and reset restore before native continuation");
+}
+foreach (string boundary in new[] { "OnMagPuttedToRig", "Reset" })
+{
+    Fresh(); var pull=(Player.FirearmController.PullOutMagOperation)Start(typeof(Player.FirearmController.PullOutMagOperation)); Tick();
+    int callbacks=0; pull.NativeContinuation=()=>{ Native(); callbacks++; };
+    typeof(Player.FirearmController.PullOutMagOperation).GetMethod(boundary).Invoke(pull,null);
+    Need(callbacks==1,"pullout completion and reset restore before native continuation");
+}
+Fresh(); var swapPull=(Player.FirearmController.PullOutMagOperation)Start(typeof(Player.FirearmController.PullOutMagOperation)); Tick();
+Player.FirearmController.InsertMagOperation swapInsert=null;
+swapPull.NativeContinuation=()=>{ Native(); swapInsert=(Player.FirearmController.InsertMagOperation)Start(typeof(Player.FirearmController.InsertMagOperation)); Tick(); Boost(); };
+swapPull.OnMagPuttedToRig(); Boost();
+swapInsert.NativeContinuation=()=>{ Native(); Start(typeof(Player.FirearmController.FireOperation)); Tick(); Native(); };
+swapInsert.SwitchToIdlingState(); Native();
+Fresh(); var oldInsert=(Player.FirearmController.InsertMagOperation)Start(typeof(Player.FirearmController.InsertMagOperation)); Tick();
+var newInsert=(Player.FirearmController.InsertMagOperation)Start(typeof(Player.FirearmController.InsertMagOperation)); Tick();
+oldInsert.Reset(); Boost();
+Need(ReferenceEquals(controller.CurrentOperation,newInsert),"stale magazine endpoint cannot release new operation owner");
+
 Fresh(); ArenaMode.Plugin.ModLogger = new();
 current = Start(families[0]); Tick(); Tick(); Boost();
 Need(ArenaMode.Plugin.ModLogger.Infos.Any(x => x.Contains("write-requested") && x.Contains("weapon=weapon-template"))

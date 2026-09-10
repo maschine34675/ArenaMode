@@ -34,7 +34,10 @@ $reloadFaults = @(
     @('lost-body-speed', 'Write(lease.Body, bodyBase * factor);', 'Write(lease.Body, bodyBase);', 'both reload animators use their own baseline'),
     @('early-write-claim', "AnimationControllerParametersTable.SetSpeedReload(value.Animator, changed);`n            value.Written = changed;", "value.Written = changed;`n            AnimationControllerParametersTable.SetSpeedReload(value.Animator, changed);", 'native arm and body baselines preserved'),
     @('missing-diagnostic-owner', 'ObserveReload(controller);', '/* observation removed */', 'diagnostic distinguishes request from subsequent readback'),
-    @('missing-write-request-log', 'TraceReload(controller, "write-requested");', '/* request diagnostic removed */', 'diagnostic distinguishes request from subsequent readback')
+    @('missing-write-request-log', 'TraceReload(controller, "write-requested");', '/* request diagnostic removed */', 'diagnostic distinguishes request from subsequent readback'),
+    @('magazine-family-excluded', '|| IsMagazineOperation(operation);', ';', 'both reload animators use their own baseline'),
+    @('magazine-boundary-cleanup-lost', '=> BeforeMagazineBoundary(__instance);', '=> _ = __instance;', 'native arm and body baselines preserved'),
+    @('magazine-old-operation-clobber', 'if (!ReferenceEquals(lease.Operation, operation)) return;', '/* stale endpoint guard removed */', 'both reload animators use their own baseline')
 )
 try {
     foreach ($reloadFault in $reloadFaults) {

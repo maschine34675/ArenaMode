@@ -49,6 +49,37 @@ try {
         }
         if ($reloadType.FullName -ne 'EFT.Player/FirearmController/BaseReloadOperation') { throw "Unknown reload lifecycle $reloadFamily" }
     }
+    # Native magazine swaps (also UIFixes in-place R reload) are FirearmOperation
+    # siblings, not BaseReloadOperation. Pin their nontrivial completion/reset
+    # endpoints rather than depending on the tiny base State setter being patched.
+    foreach ($reloadBoundary in @(
+        @('InsertMagOperation', 'SwitchToIdlingState', ''),
+        @('InsertMagOperation', 'HideWeapon', 'System.Action,System.Boolean,EFT.InventoryLogic.Item'),
+        @('InsertMagOperation', 'Reset', ''),
+        @('PullOutMagOperation', 'OnMagPuttedToRig', ''),
+        @('PullOutMagOperation', 'Reset', '')
+    )) {
+        $reloadBoundaryType = 'EFT.Player/FirearmController/' + $reloadBoundary[0]
+        $reloadEndpoint = Method $reloadBoundaryType $reloadBoundary[1] $reloadBoundary[2]
+        if ($reloadEndpoint.DeclaringType.BaseType.FullName -ne 'EFT.Player/FirearmController/FirearmOperation' -or
+            $reloadEndpoint.Body.CodeSize -lt 20) { throw 'Native magazine boundary ownership or nontrivial body changed.' }
+        if ($reloadBoundary[1] -eq 'Reset') {
+            if (@($reloadEndpoint.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.Name -eq 'Reset' }).Count -ne 1) { throw 'Magazine reset no longer chains native reset.' }
+        } else {
+            $reloadFinished = Calls $reloadEndpoint 'EFT.Player/ObjectInHandsOperation' 'set_State'
+            $reloadNext = @($reloadEndpoint.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.Name -eq 'InitiateOperation' })
+            if ($reloadFinished.Count -lt 1 -or $reloadNext.Count -ne 1 -or $reloadFinished[0].Offset -ge $reloadNext[0].Offset) { throw 'Magazine completion or next-operation boundary changed.' }
+        }
+    }
+    foreach ($reloadMagazineType in @('InsertMagOperation', 'PullOutMagOperation')) {
+        $reloadFastForward = Method ('EFT.Player/FirearmController/' + $reloadMagazineType) 'FastForward' ''
+        $reloadFinishMethod = if ($reloadMagazineType -eq 'InsertMagOperation') { 'SwitchToIdlingState' } else { 'OnMagPuttedToRig' }
+        $reloadFinishCalls = @($reloadFastForward.Body.Instructions | Where-Object {
+            $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.Name -eq $reloadFinishMethod -and
+            $_.Operand.DeclaringType.FullName -in @('EFT.Player/FirearmController/FirearmOperation', ('EFT.Player/FirearmController/' + $reloadMagazineType))
+        })
+        if ($reloadFinishCalls.Count -ne 1) { throw "Magazine fast-forward bypasses reviewed completion: $reloadMagazineType" }
+    }
     $reloadScope = Join-Path $PSScriptRoot '..\..\ArenaMode.Client\Movement\ArenaHandlingPatches.cs'
     $reloadIntegration = Get-Content -LiteralPath $reloadScope -Raw
     foreach ($reloadCall in @('ArenaReloadHandling.Enable();', 'ArenaReloadHandling.Shutdown();', 'ArenaReloadHandling.ResetPerRaidState();',

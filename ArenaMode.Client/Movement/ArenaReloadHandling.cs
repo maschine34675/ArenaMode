@@ -37,7 +37,15 @@ internal static partial class ArenaReloadHandling
     }
     private static ConditionalWeakTable<Player.FirearmController, ReloadLease> Leases = new();
     private static readonly List<WeakReference<Player.FirearmController>> Owners = new();
-    private static readonly ModulePatch[] Patches = { new ReloadStatePatch(), new RefreshPatch(), new DeathPatch() };
+    private static readonly ModulePatch[] Patches =
+    {
+        new ReloadStatePatch(), new RefreshPatch(), new DeathPatch(),
+        new MagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "SwitchToIdlingState"),
+        new MagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "HideWeapon"),
+        new MagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "Reset"),
+        new MagazineBoundaryPatch(typeof(Player.FirearmController.PullOutMagOperation), "OnMagPuttedToRig"),
+        new MagazineBoundaryPatch(typeof(Player.FirearmController.PullOutMagOperation), "Reset")
+    };
     private static int _attempted;
     private static bool _enabled, _warned;
 
@@ -102,15 +110,21 @@ internal static partial class ArenaReloadHandling
             || !ReferenceEquals(controller.FirearmsAnimator, operation.FirearmsAnimator)
             || operation.Weapon == null || operation.Weapon.IsStationaryWeapon) return false;
         Type type = operation.GetType();
-        // Only the exact reviewed families: no firing/bolt-cycle, malfunctions,
-        // manual inventory chamber actions or unknown subclasses inherit speed.
+        // Native inventory magazine actions also implement UIFixes' normal-R
+        // in-place reload when a rig has no empty slot. Only these two exact
+        // families join regular reloads; chamber actions and subclasses do not.
         return type == typeof(Player.FirearmController.ReloadExternalMagOperation)
             || type == typeof(Player.FirearmController.ReloadInternalMagOperation)
             || type == typeof(Player.FirearmController.ReloadInternalMagWithOpenBoltOperation)
             || type == typeof(Player.FirearmController.ReloadCylinderMagOperation)
             || type == typeof(Player.FirearmController.ReloadSingleBarrelOperation)
-            || type == typeof(Player.FirearmController.ReloadMultiBarrelOperation);
+            || type == typeof(Player.FirearmController.ReloadMultiBarrelOperation)
+            || IsMagazineOperation(operation);
     }
+
+    private static bool IsMagazineOperation(Player.FirearmController.FirearmOperation operation)
+        => operation?.GetType() == typeof(Player.FirearmController.InsertMagOperation)
+            || operation?.GetType() == typeof(Player.FirearmController.PullOutMagOperation);
 
     private static bool SameOwners(ReloadLease lease)
         => ReferenceEquals(lease.Controller.FirearmsAnimator, lease.ArmsOwner)
@@ -245,6 +259,19 @@ internal static partial class ArenaReloadHandling
             && ReferenceEquals(lease.Operation, operation)) Release(operation.Controller);
     }
 
+    private static void BeforeMagazineBoundary(Player.FirearmController.FirearmOperation operation)
+    {
+        // The native endpoint can immediately call an inventory callback that
+        // starts the next operation. Restore before it, never a frame later.
+        if (!IsMagazineOperation(operation) || operation.Controller == null) return;
+        EndReloadDiagnostic(operation.Controller, operation, "native-magazine-boundary");
+        if (Leases.TryGetValue(operation.Controller, out var lease))
+        {
+            if (!ReferenceEquals(lease.Operation, operation)) return;
+            Release(operation.Controller);
+        }
+    }
+
     private static PendingWrite PrepareNativeWrite(object owner, ref float reload)
     {
         // The native refresh site has no controller argument for its setters.
@@ -322,6 +349,18 @@ internal static partial class ArenaReloadHandling
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.OnPlayerDead), Type.EmptyTypes);
         [PatchPrefix] private static void Prefix(Player.FirearmController __instance) => Release(__instance);
+    }
+
+    private sealed class MagazineBoundaryPatch : ModulePatch
+    {
+        private readonly Type _type;
+        private readonly string _method;
+        internal MagazineBoundaryPatch(Type type, string method)
+            : base("ArenaReload." + type.Name + "." + method)
+        { _type = type; _method = method; }
+        protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(_type, _method);
+        [PatchPrefix] private static void Prefix(Player.FirearmController.FirearmOperation __instance)
+            => BeforeMagazineBoundary(__instance);
     }
 
     private sealed class RefreshPatch : ModulePatch

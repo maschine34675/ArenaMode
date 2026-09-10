@@ -106,7 +106,22 @@ namespace EFT
             public class FireOperation : FirearmOperation { }
             public class BoltActionFireOperation : FirearmOperation { }
             public class Malfunction : FirearmOperation { }
-            public class InsertMagOperation : FirearmOperation { }
+            public class InsertMagOperation : FirearmOperation
+            {
+                public Action NativeContinuation;
+                public void SwitchToIdlingState() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
+                public void HideWeapon() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
+                public void Reset() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Ready; NativeContinuation?.Invoke(); }
+            }
+            public class PullOutMagOperation : FirearmOperation
+            {
+                public Action NativeContinuation;
+                public void OnMagPuttedToRig() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
+                public void Reset() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Ready; NativeContinuation?.Invoke(); }
+            }
+            public class UnknownInsert : InsertMagOperation { }
+            public class UnknownPullOut : PullOutMagOperation { }
+            public class LoadCartridgeToChamber : FirearmOperation { }
             public class Remove : FirearmOperation { }
             public class UnknownReload : ReloadExternalMagOperation { }
         }
@@ -170,6 +185,7 @@ namespace HarmonyLib
     { public static bool Calls(this CodeInstruction instruction, MethodInfo target) => (instruction.opcode == OpCodes.Call || instruction.opcode == OpCodes.Callvirt) && Equals(instruction.operand, target); }
     public static class AccessTools
     {
+        public static MethodInfo DeclaredMethod(Type type, string name) => type.GetMethod(name, BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
         public static MethodInfo PropertySetter(Type type, string name) => type.GetProperty(name).SetMethod;
         public static MethodInfo Method(Type type, string name, Type[] parameters = null)
             => parameters == null ? type.GetMethod(name, BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
@@ -180,6 +196,7 @@ namespace SPT.Reflection.Patching
 {
     public abstract class ModulePatch
     {
+        protected ModulePatch(string name = null) { }
         public static readonly List<MethodBase> Targets = new();
         public static int FailEnableAt = -1, FailDisableCount;
         protected abstract MethodBase GetTargetMethod();

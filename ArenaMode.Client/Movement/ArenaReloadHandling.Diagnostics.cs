@@ -37,7 +37,7 @@ internal static partial class ArenaReloadHandling
         {
             if (!_enabled || Plugin.ModLogger == null || _diagnosticLines >= DiagnosticLimit) return;
             var operation = controller.CurrentOperation;
-            if (operation is not Player.FirearmController.BaseReloadOperation
+            if ((operation is not Player.FirearmController.BaseReloadOperation && !IsMagazineOperation(operation))
                 || operation.State != Player.EOperationState.Executing
                 || !ArenaMovementScope.IsLocal(operation.Player)
                 || !ReferenceEquals(operation.Controller, controller)
