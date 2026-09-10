@@ -7,6 +7,51 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Unity airborne mantle and faster reload delivery (2026-09-10):** on
+  `feature/arena-mantle-reload`, based on `5b058ac`. Separate implementation
+  commits: `1339f00` Unity airborne mantle, `3e26b57` firearm reload speed.
+  Native Unity body support now issues one guarded CrossFade from real jump
+  states into the initialized native Climb/Vault state. It retains native hands,
+  geometry, stamina, animation events, root motion and collider cleanup. Dispatch
+  commits the move; later key release/settings disable cannot strand native entry
+  cleanup. Delayed entry retains its observer, while old world/body/controller
+  identities cannot take over a new body. FastAnimator remains supported.
+  See `AIR-MOVEMENT-REVIEW.md`; actual GPU mantle acceptance is still pending.
+  Existing `AirVaultEnabled=true` applies, no new binding. With jump-on-release,
+  press/hold vault again while airborne and approaching a climbable obstacle.
+
+  F12 Movement `WeaponReloadSpeedMultiplier` defaults to **1.5**, range 1-3.
+  All six reviewed regular reload families (including quick reload, internal
+  magazines and revolvers) use separate native arms/body reload baselines with
+  skill/injury refresh preserved. Owned values restore on completion, interruption,
+  death, controller change and raid end. Ordinary raids, AI, firing, inventory
+  round loading, malfunction clearing and underbarrel launchers remain unchanged.
+  UBGL has an additional animator and needs separate synchronization validation.
+  See `RELOAD-HANDLING-REVIEW.md` for limits and the GPU test checklist.
+
+  Re-executed offline verification on the final implementation: mantle **227
+  assertions / 35 source-fault controls**, reload **707 / 6**, existing handling
+  **161 / 12**, air fire **92 / 10**, double jump **144 / 8**. Installed native IL
+  contracts passed. Independent adversarial reviews: no remaining P0-P2. These
+  are contract/ownership checks against native-extracted methods and host doubles;
+  they do not prove actual Unity animation/physics or live inventory transactions.
+  Final evidence: `artifacts/air-vault-checks/f9bd6fb12acb44cc951892184df9c563/`,
+  `artifacts/arena-reload-checks/09cd793bfce940668910f2eb8e0c32d9/`, plus current
+  handling/air-fire/double-jump evidence under their usual ignored artifact roots.
+
+  Built from clean `3e26b57`, zero errors and four existing shared nullable
+  annotation warnings. Only the client DLL was installed locally, with verified
+  previous-client backup and receipt:
+  `artifacts/mantle-reload/delivery-3e26b57-6c1dbf29096e4b05a2f7f159db852579/`.
+  Client SHA256 `0CF4F9936CF3805471310104B88D582B1016078E06A7939419F579AAF69567A2`;
+  previous client `4099C20E4D284650CA62A582801E2D8325F37B533B40EE41F70FEDE01B8C1F06`.
+  Arena server, BigBrain companion, all three Redeploy DLLs, APBS DLL and root
+  APBS config stayed byte-identical. **Restart the game only; no server restart.**
+  Existing mirroring is left in place; GPU mirror completion is not independently
+  verified here. No GPU game launch, push or merge performed. Pending user tests:
+  airborne ledge climb/vault, double jump away from obstacles, pre/post-commit
+  release, weapon reload/interrupt/death/respawn and a normal PMC raid afterward.
+
 - **APBS user TDM acceptance (2026-09-10, 10:53–11:06 local):** user reports
   good behavior; archived `LogOutput-2026-09-10_11-06-50.log` and associated
   server/APBS records confirm successful 2.4.1 migration and adapter activation.
