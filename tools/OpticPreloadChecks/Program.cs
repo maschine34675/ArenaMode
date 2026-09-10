@@ -82,6 +82,7 @@ internal static class Program
     private static void Reset()
     {
         ArenaSession.IsActive = true;
+        ArenaSession.ArmedForNextRaid = false;
         KitOpticPreloadGuard.Shutdown();
         KitBundlePreloader.Reset();
         HarmonyLib.Harmony.FailInstall = false;
@@ -201,6 +202,35 @@ internal static class Program
                 Orphan(g.Original, state + " registered pool task passes through without blocking");
             }
         }
+    }
+
+    private static void LoadingScreenLiveness()
+    {
+        // A loading-screen request is current from Begin until Dispose. The
+        // arming may be cleared (the server refused the token) and the raid
+        // reset may run (OnRaidStarted) while its batch is still building
+        // pools; neither may make the guard go dark on its own role models.
+        Reset(); var f = new Fixture();
+        ArenaSession.IsActive = false;
+        ArenaSession.ArmedForNextRaid = true;
+        using (KitOpticPreloadGuard.Begin(f.Factory, new[] { f.Key }, loadingScreen: true))
+        {
+            ArenaSession.ArmedForNextRaid = false;
+            KitBundlePreloader.Reset();
+            Protected(f.Original, "loading-screen request outlives the arming and the raid reset");
+            Check(f.Sight.NativeEnables == 0, "loading-screen request outlives the arming and the raid reset");
+            f.Sight.OnDisable();
+            Check(f.Sight.NativeDisables == 0, "loading-screen disable stays paired after the arming cleared");
+        }
+        Orphan(f.Original, "disposed loading-screen request releases the gate");
+
+        // Nothing armed, nothing active: no request is made and the factory
+        // stays vanilla, the same as an ordinary raid.
+        Reset(); f = new Fixture();
+        ArenaSession.IsActive = false;
+        Check(KitOpticPreloadGuard.Begin(f.Factory, new[] { f.Key }, loadingScreen: true) == null,
+            "no loading-screen request without an arming");
+        Orphan(f.Original, "refused loading-screen request leaves the factory vanilla");
     }
 
     private static void NestedAndExceptionCleanup()
@@ -390,6 +420,7 @@ internal static class Program
         {
             BasicOwnership();
             OwnershipExclusions();
+            LoadingScreenLiveness();
             NestedAndExceptionCleanup();
             await AsyncOwnership();
             await PreloaderIntegration();

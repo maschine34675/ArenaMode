@@ -79,7 +79,7 @@ internal static class KitOpticPreloadGuard
         {
             if (_disposed) return;
             _disposed = true;
-            if (_loadingScreen) _loadingScreenRequests--;
+            if (_loadingScreen && _loadingScreenRequests > 0) _loadingScreenRequests--;
             if (ReferenceEquals(Current.Value, this)) Current.Value = _previous;
         }
     }

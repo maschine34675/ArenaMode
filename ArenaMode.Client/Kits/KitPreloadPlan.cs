@@ -18,9 +18,10 @@ public enum KitPreloadScope
     InitialKit,
 
     /// <summary>
-    /// The initial kit first, then every other kit in the catalogue (and the
-    /// weapon ladder in Gun Game) in a second batch. The second batch may still
-    /// be running when the raid begins.
+    /// The initial kit first, then every other kit in the catalogue (and every
+    /// rung of the weapon ladder in Gun Game), one batch each, for as long as
+    /// the loading screen lasts. The batch in flight when the raid begins is
+    /// finished; the ones not yet started are left to the in-raid warm-up.
     /// </summary>
     WholeCatalogue,
 }
@@ -40,8 +41,8 @@ public enum KitPreloadScope
 ///
 /// The decisions here are pure so they can be tested: which kit the raid-start
 /// swap will actually hand out for a mode, which templates a kit conjures, and
-/// how the catalogue is split into an initial batch the raid start waits for
-/// and an optional second batch it does not.
+/// how the catalogue is split into the opening batch the raid start waits for
+/// and the per-kit batches behind it that it does not.
 /// </summary>
 public static class KitPreloadPlan
 {

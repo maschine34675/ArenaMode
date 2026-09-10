@@ -191,8 +191,8 @@ internal static class BotLoadBoost
     /// Anything that walks the scheduler's loading chains right now: the
     /// bot creator's own bundle counter (bumped around every profile's
     /// LoadBundlesAndCreatePools) and the arena's kit preloader. The
-    /// signature is those two numbers folded together; the policy only asks
-    /// whether it changed.
+    /// signature is those two folded together with the preloader's count of
+    /// finished loads; the policy only asks whether it changed.
     /// </summary>
     private static void ReadLoading(bool active, out bool loading, out int signature)
     {

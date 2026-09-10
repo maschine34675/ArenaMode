@@ -50,6 +50,8 @@ public static partial class KitBundlePreloader
     /// The load boost folds it into the signature it watches: a load that is
     /// genuinely progressing must look different from a counter that is stuck,
     /// or a long kit warm-up would be released as "stuck" after ninety seconds.
+    /// Process-lifetime on purpose — it is only ever compared for change, and
+    /// a reset would itself read as a change.
     /// </summary>
     internal static int LoadsCompleted => _loadsCompleted;
 
@@ -62,9 +64,9 @@ public static partial class KitBundlePreloader
     /// <summary>
     /// Pools are per-raid (PoolsCategory.Raid). Called through
     /// ArenaRespawnDriver.ResetSession at raid START — before the raid-start
-    /// swap, in every OnRaidStarted branch — and again at raid end. The
-    /// loading-screen preload is exempt on purpose: it is made for the raid
-    /// that is starting, and adopted right after this runs.
+    /// swap, in the ordinary and the arena branch of OnRaidStarted — and again
+    /// at raid end. The loading-screen preload is exempt on purpose: it is made
+    /// for the raid that is starting, and adopted right after this runs.
     /// </summary>
     public static void Reset()
     {

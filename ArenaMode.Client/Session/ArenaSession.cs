@@ -206,6 +206,7 @@ public static class ArenaSession
         if (FikaCompatCheck.IsFikaLoaded)
         {
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
+            GunGameLadderSelection = null;
             PitFireTeamCompat.Clear("Fika raid rejected");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -216,6 +217,7 @@ public static class ArenaSession
             Plugin.ModLogger.LogWarning(
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
+            GunGameLadderSelection = null;
             PitFireTeamCompat.Clear("armed map did not match started raid");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -230,6 +232,7 @@ public static class ArenaSession
         if (!ArenaServerClient.ConfirmRaidStarted())
         {
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
+            GunGameLadderSelection = null;
             _rejectedServerRaidPendingEnd = true;
             LastRaidWasArena = true;
             Plugin.ModLogger.LogError(

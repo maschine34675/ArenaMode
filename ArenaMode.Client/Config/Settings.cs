@@ -822,7 +822,9 @@ public static class Settings
             "GunGameLadder",
             "",
             "Rung ids in ladder order, comma separated. Empty uses the generated " +
-            "weapon ladder (config/ladder.json), or the kit catalog if there is none.");
+            "weapon ladder (config/ladder.json), or the kit catalog if there is none. " +
+            "Read when the arena raid is armed and kept for that raid; an edit made " +
+            "while a raid loads or runs applies to the next one.");
 
         GunGameSpareMagazines = config.Bind(
             "Gun Game",
