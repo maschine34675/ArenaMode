@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Airborne mantle user acceptance (2026-09-10, 20:37 retest):** user confirms
+  the tested lower climbs now work; higher places no longer trigger. Five logged
+  native entries at 0.676-1.302m remaining height all have nativeError=false,
+  restored 1.6m capsules and positive post-exit height. Four samples are grounded;
+  the first is already jumping again. Late higher requests at 1.617-1.703m are
+  rejected by the 1.31m cap. No Error-level lines in the current snapshot.
+  Preserve the working `9a550a5` implementation and 0.5m actual approach gate;
+  greater remaining height would be a separate physical/animation extension,
+  not an unverified limit increase. See AIR-MOVEMENT-REVIEW.md for frozen log
+  path/hash and scope of acceptance. This does not certify every ledge or the
+  still-unrun normal-raid/respawn regressions. Documentation only: no new build,
+  deployment or gameplay changes. Installed client hash remains the one below.
+
 - **Actual mantle approach correction (2026-09-10, 20:13 retest):** user reports
   unchanged drops despite `b0a8664`. Nine native entries have valid remaining
   heights. Seven apply their requested motion in full; several start 0.83-1.47m

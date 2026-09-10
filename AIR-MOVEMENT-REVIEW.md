@@ -1,17 +1,47 @@
 # Arena landing, weapon handling and airborne actions
 
+**Current acceptance (2026-09-10, 20:37 retest):** the user confirms the tested
+lower airborne climbs now work; higher places no longer trigger. The working
+0.5m approach and 1.31m remaining-height bounds are retained. See the acceptance
+section below; this is not blanket acceptance of every raid/respawn regression.
+
 **Historical retest, 2026-09-09 19:19–19:29:** airborne mantle remains unaccepted.
 The player has `UnityAnimatorWrapper`; the later FastAnimator transition bridge
 rejects it before queuing. No successful transition is logged. Earlier broad
 playtest acceptance does not cover mantle. See `TDM-SEARCH-TEMPO-REVIEW.md` for
 the frozen log evidence. The Unity implementation below supersedes that code;
-it still needs its own GPU acceptance.
+its later GPU acceptance is recorded below.
 
 Implementation: 2026-09-09, on `feature/arena-air-movement`, inheriting the
 independent TDM match flow. This is client-only work. Server settings, profiles,
 AI, area barriers, loadouts and Redeploy are unchanged.
 
 ## Unity airborne mantle implementation (2026-09-10)
+
+### User acceptance after the 20:37 retest
+
+User: tested lower climbs work, higher places no longer do. The log corroborates
+five native Climb entries with heights **0.676-1.302m**, all nativeError=false.
+Every exit restores capsule height to 1.6m. All five post-exit samples are above
+entry (+0.658 to +2.050m); four are grounded and the first is already in a new
+JumpPlayerState, so that sample alone is not proof of a settled landing. User
+feedback supplies the physical acceptance; no claim about every map/ledge or
+untested death/respawn/ordinary-raid regression follows from these five attempts.
+
+Late high-place requests report 1.666, 1.689, 1.703 and 1.617m remaining height,
+all above the retained 1.31m admission cap. They are refused before animation,
+not observed failed climbs. The current snapshot contains no Error-level lines.
+Keep the verified approach/height gates and client implementation `9a550a5`
+unchanged. Supporting greater remaining heights is separate work requiring
+appropriate physical/animation travel and renewed collision/cleanup tests;
+raising the admission number alone is not sufficient evidence of safe traversal.
+
+Frozen evidence:
+`artifacts/mantle-acceptance/1056f1e42a9b478ab5034e9b68bcc776/client.log`, SHA256
+`6B041D1122FFB61E5297E67C83995C7A172604DF4274DFBEC1AFD53FBA87336F`.
+Local client remains
+`4018D0A24643C187B6DA713C2C20C9CCE452AAE4C62650FA72E56B42B957F7E8`.
+This acceptance update changes documentation only; no build or deployment.
 
 ### Actual approach distance after the 20:13 retest
 
