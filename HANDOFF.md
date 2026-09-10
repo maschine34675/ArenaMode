@@ -7,6 +7,37 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Actual mantle approach correction (2026-09-10, 20:13 retest):** user reports
+  unchanged drops despite `b0a8664`. Nine native entries have valid remaining
+  heights. Seven apply their requested motion in full; several start 0.83-1.47m
+  from the selected surface while the clip travels only ~0.55m forward. The
+  native velocity-shifted grid accounts for the difference. Near 0.4m attempts
+  3/7 remain above entry; attempt 4 is also above after further movement, so
+  distance is a supported mechanism, not a guaranteed outcome classifier.
+  Snapshot has no Error-level lines. Frozen log/table/hash and limitations are
+  in AIR-MOVEMENT-REVIEW.md.
+
+  Implementation `9a550a5` on `feature/arena-mantle-reload` additionally requires
+  actual planar body-to-selected-surface distance <=0.5m before extra airborne
+  Climb. Held input retries, including final dispatch refresh; height remains
+  separate. Native Vault preference, standing reach, physics/global grid and
+  reload handling stay untouched. The selected sample need not be the nearest
+  edge: fast approaches may wait for wall contact and a slower refreshed scan.
+  No forced positioning or physical success claim.
+
+  Full **374 assertions / 51 source faults**, independent review without P0-P2.
+  Evidence: `artifacts/air-vault-checks/d0e7fd88bda647e78e6cf04ae4148f81/`.
+  Clean build from `9a550a5`: zero errors/four existing nullable warnings;
+  manifest `artifacts/double-jump-build/048d51fd92ca47f786239a08e5c33693/manifest.json`.
+  Verified local client SHA256:
+  `4018D0A24643C187B6DA713C2C20C9CCE452AAE4C62650FA72E56B42B957F7E8`.
+  Receipt/verified old-client backup:
+  `artifacts/mantle-distance/delivery-9a550a5-7299471308264575bc06d8ae5c60b59c/`.
+  Same ten protected files as below stayed unchanged. **Restart game only** after
+  existing mirroring; GPU mirror/result unverified, no push/merge or GPU launch.
+  Test the same ledges with held vault during jump, slow/fast approach and a
+  normal standing climb; inspect motion plus physical-approach rejection logs.
+
 - **Mantle physical follow-up / reload accepted (2026-09-10, 19:40 retest):**
   implementation commit `b0a8664` on `feature/arena-mantle-reload`. User confirms
   reload speed is now correct and understands the UIFixes in-place swap pause;
