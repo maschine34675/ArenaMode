@@ -5,6 +5,7 @@ using EFT;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace ArenaMode.Bots;
@@ -128,8 +129,11 @@ internal sealed class ArenaProfilePreloadPatch : ModulePatch
 
             // Otherwise the backup loader re-orders assault and marksman within
             // seconds of the countdown; see the note above.
+            // Counted as PAIRS: TwoDimensionalDictionary.Count is the number of
+            // outer keys (two roles), which the first version printed as "2
+            // standing orders" for a table that held six.
             var standingOrders = __instance._backupLoader?._targetCount;
-            var cleared = standingOrders?.Count ?? 0;
+            var cleared = standingOrders == null ? 0 : standingOrders.GetAllVals().Count();
             standingOrders?.Clear();
 
             Plugin.ModLogger.LogInfo(
