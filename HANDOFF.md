@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **APBS adapter delivery (2026-09-10):** built and delivered only the server
+  DLL from clean implementation commit `503540e`. Receipt, build log and verified
+  previous-server backup:
+  `artifacts/apbs-compat/delivery-503540e-31dd0bbe0d1746ba94a2bd48d02eeae3/`.
+  Server SHA256 `F573C6123444C2764FDEEA0908DF1C0FD7F51EB2EC57228CF25728163777E01A`;
+  previous server `2258ADF8BC342ACDC435588D04ED5870C094CF43BF17EFE0912526544F9F1FA4`.
+  Clean rebuild: zero errors, one existing MudTabs `PanelClass` analyzer warning.
+  Current client retained unchanged:
+  `D57398D64766E34FF76673CBCC7B4A22019CA427824F5D45642FBDC220CF341B`.
+  BigBrain companion, both Redeploy DLLs and APBS DLL/config also stayed
+  byte-identical; complete before/after hashes are in `delivery.json`.
+  All three runnable compatibility checks were re-executed successfully before
+  commit; independent final review has no open P0-P2. **Restart SPT server.**
+  GPU mirror completion and native raid acceptance remain unverified. No push
+  or merge; work remains on `feature/apbs-2.4.1-compat`.
+
 - **APBS 2.4.1 compatibility (2026-09-10):** user installed the complete update.
   Work is on `feature/apbs-2.4.1-compat` from `ff18eab`, preserving the newer
   client load-boost work. Only the Arena server changes. The optional exact
@@ -24,7 +40,7 @@ current. User-facing communication is normally German.
   and armband checks passed. Final independent review: no open P0-P2 after two
   exception-path fixes. No GPU raid, mirror verification, push or merge.
   APBS root config was still pre-migration and is left for APBS's next startup.
-  Delivery source/hash evidence follows in a separate entry. **Restart SPT
+  Delivery source/hash evidence is recorded above. **Restart SPT
   server after delivery; client DLL is unchanged.** Pending user acceptance:
   short finite TDM, one solo legacy mode, saved-companion PFT round transition,
   ordinary PMC raid after Arena, and APBS startup/config migration log check.
