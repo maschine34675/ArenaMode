@@ -43,6 +43,10 @@ installed animator-asset hash.
 - Airborne Climb waits above the native 1.31m remaining-height limit, retries
   held input after rising into reach and revalidates before dispatch. Standing
   Arena climb and the native Vault preference are not narrowed.
+- Actual XZ body-to-selected-surface distance must be at most 0.5m regardless of
+  the velocity-shifted grid's local distance. Checks cover far-to-near held retry,
+  translation/X/Z orientation, diagonal separation, nonfinite points, body drift
+  before dispatch, height exclusion and native standing/Vault preservation.
 - A read-only physical observer logs accepted geometry, incoming motion versus
   actual controller displacement, exit and post-exit position. Tests control
   the controller's accepted fraction; they do not certify real collisions.

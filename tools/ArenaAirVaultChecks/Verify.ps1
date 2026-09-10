@@ -128,6 +128,10 @@ try {
     Test-Fault 'motion-budget-removed' 'if (_motionCount >= 12) return;' '' 'physical diagnostics have a separate finite per-world attempt budget' -Observation
     Test-Fault 'motion-timeout-removed' 'Time.unscaledTime - observation.StartedAt >= 8f' 'false' 'motion observation timeout never cancels native mantle' -Observation
     Test-Fault 'motion-shutdown-retention' "        _animatorFrame = null;`n        _motionObservation = null;" '        _animatorFrame = null;' 'shutdown releases physical observer without changing native mantle'
+    Test-Fault 'actual-distance-removed' 'if (!(planarDistanceSquared <= 0.25f))' 'if (false)' 'velocity-shifted grid cannot approve an unreachable body-to-ledge gap'
+    Test-Fault 'actual-distance-uses-grid' 'Vector3 gap = component.MaxWeightPointPosition - context.TransformPosition;' 'Vector3 gap = new Vector3(0f, 0f, model.ObstacleCalculatorModel.DistanceToMainObstacle);' 'velocity-shifted grid cannot approve an unreachable body-to-ledge gap'
+    Test-Fault 'actual-distance-forgets-lateral' 'float planarDistanceSquared = gap.x * gap.x + gap.z * gap.z;' 'float planarDistanceSquared = gap.z * gap.z;' 'unreachable or nonfinite planar geometry cannot commit'
+    Test-Fault 'actual-distance-includes-height' 'float planarDistanceSquared = gap.x * gap.x + gap.z * gap.z;' 'float planarDistanceSquared = gap.sqrMagnitude;' 'valid airborne geometry queues native climb'
 }
 finally { Assert-Production }
 Write-Output "Air vault evidence: $arenaWork"

@@ -234,7 +234,7 @@ internal static partial class ArenaAirVault
 
     /// <summary>
     /// Mirrors the native explicit strategy policy except its two ground-jump
-    /// exclusions, with a further native-clip height bound for airborne climbs.
+    /// exclusions, with native-clip height and actual planar reach bounds for airborne climbs.
     /// CanMove retains roof/wall/distance geometry; later inventory/meds/weapon/grenade checks remain in
     /// MovementContext.TryVaulting -> VaultingGameplayRestrictions.CanVaulting.
     /// </summary>
@@ -264,6 +264,19 @@ internal static partial class ArenaAirVault
             {
                 Trace(request, "climb beyond native animation reach; waiting for closer height",
                     detail: () => $"height={component.VaultingHeight:0.###}, max=1.31");
+                return EVaultingStrategy.None;
+            }
+            // Native distance starts at the velocity-shifted scan grid. At 9m/s
+            // this can approve a ledge ~1.4m from the body, but these Climb clips
+            // move only ~0.55m forward through our Jump blend. Require the real
+            // selected surface point within vanilla's 0.5m standing reach.
+            // Keep Y separate (above); a 3D distance would reject tall ledges.
+            Vector3 gap = component.MaxWeightPointPosition - context.TransformPosition;
+            float planarDistanceSquared = gap.x * gap.x + gap.z * gap.z;
+            if (!(planarDistanceSquared <= 0.25f))
+            {
+                Trace(request, "climb beyond physical approach reach; waiting to approach",
+                    detail: () => $"bodyDistance={Math.Sqrt(planarDistanceSquared):0.###}, max=0.5, gridDistance={model.ObstacleCalculatorModel.DistanceToMainObstacle:0.###}");
                 return EVaultingStrategy.None;
             }
             return EVaultingStrategy.Climb;

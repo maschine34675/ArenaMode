@@ -13,6 +13,63 @@ AI, area barriers, loadouts and Redeploy are unchanged.
 
 ## Unity airborne mantle implementation (2026-09-10)
 
+### Actual approach distance after the 20:13 retest
+
+The user reports unchanged dropping. Frozen log:
+`artifacts/mantle-distance-retest/8447329ebc284794a4f45218a38e5d61/client.log`,
+SHA256 `EFC25B50D60803587376505E8932D1E849C91324D2D1D5FC36F9DB2D7C9A38E0`.
+All nine accepted Climb heights are within 1.31m; the previous bound is running
+but does not address the observed approach gap. Seven attempts apply all of the
+requested motion, so controller speed limiting/collision is not taking that
+movement away. Their clips advance approximately 0.54-0.56m horizontally.
+
+| Attempt | Actual planar body-to-point gap | Planar grid offset | Vertical displacement after exit |
+| --- | ---: | ---: | ---: |
+| 1 | 1.399m | 0.899m | -1.098m |
+| 2 | 1.469m | 0.969m | -0.867m |
+| 3 | 0.400m | 0m | +1.687m |
+| 4 | 1.056m | 0.459m | +0.816m |
+| 5 | 1.196m | 0.896m | -1.040m |
+| 6 | 0.851m | 0.851m | -1.171m |
+| 7 | 0.399m | 0m | +1.372m |
+| 8 | 1.076m | 0.475m | -1.417m |
+| 9 | 0.831m | 0.431m | +0.089m (still airborne) |
+
+Attempts 3/7 show some horizontal collision reduction but remain above entry.
+Attempt 4 also remains above entry after further player movement. Therefore
+distance is a supported mechanism, not a deterministic success classification;
+the post-exit samples include subsequent native/player movement. All nine motion
+records report nativeError=false; this snapshot has no Error-level log lines.
+
+Native `GridRootMoverModel.RecalculateGridOffset` adds velocity * OffsetFactor
+(installed default 0.1) to the scan's Z offset. `ObstacleCalculatorModel` reports
+the selected sample's **grid-local** Z as distance. At ~9m/s a nominal 0.4-0.5m
+scan distance can therefore mean ~1.3-1.4m from the body. `ClimbMoveModel` only
+checks that local distance, while our Jump-to-Climb transfer stops jump travel.
+The native clip then ends before the selected surface is reached.
+
+Extra airborne Climb requests now require the selected world surface point
+within **0.5m planar distance of the actual body**, the native zero-velocity
+standing reference. Squared XZ distance also bounds lateral separation and fails
+closed on NaN/infinity/overflow. Height remains a separate 1.31m test; full 3D
+distance would wrongly reject tall reachable surfaces. Fresh native geometry,
+hands/stamina checks and final dispatch revalidation remain. Held input retries
+as the body approaches; no early hands/animation commitment. Standing reach,
+native Vault preference, physics and global grid configuration remain untouched.
+
+This is conservative: WeightCalculatorModel's MaxWeightPoint is a selected top
+surface ray sample, not a guaranteed nearest edge. At speed it may remain beyond
+0.5m until wall contact lowers velocity and the refreshed grid moves back. The
+gate does not force physical traversal and still needs a GPU test. Preserve the
+existing motion observer for that test; no further reload or unrelated changes.
+
+Full offline run passed **374 assertions / 51 source-fault controls**, including
+removing the distance check, substituting grid-local distance, ignoring lateral
+separation and wrongly including height. Evidence:
+`artifacts/air-vault-checks/d0e7fd88bda647e78e6cf04ae4148f81/`.
+Independent source/production review found no P0-P2. Build passes against the
+installed game assemblies; no live physical acceptance is inferred from it.
+
 ### Physical follow-up after the 19:40 retest
 
 The user confirms the animation now starts but the body usually drops back down.

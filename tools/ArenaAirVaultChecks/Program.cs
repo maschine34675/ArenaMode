@@ -116,7 +116,7 @@ var pendingComponent=Setup(); pendingComponent.p.ToggleVaulting(); pendingCompon
 Check(pendingComponent.c.PlayerAnimator.Climb && !ArenaAirVault.HasPendingRequest(pendingComponent.p),"replacement vault component cannot inherit old pending request");
 foreach (var changeGeometry in new Action<VaultingComponent>[] {
     v=>v.VaultingHeight+=.05f, v=>v.VaultingLength+=.2f, v=>v.BehindObstacleRatio+=.2f,
-    v=>v.AbsoluteForwardVelocity+=.2f, v=>v.MaxWeightPointPosition=new(4.2f,2,1) })
+    v=>v.AbsoluteForwardVelocity+=.2f, v=>v.MaxWeightPointPosition=new(.05f,1.2f,.4f) })
 {
     var drift=Setup(); drift.p.ToggleVaulting(); changeGeometry(drift.v); ArenaAirVault.Tick();
     Check(drift.c.PlayerAnimator.Climb && drift.v.WrittenHeight==drift.v.VaultingHeight

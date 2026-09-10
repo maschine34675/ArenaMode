@@ -210,7 +210,7 @@ namespace EFT.Vaulting
         public float BehindObstacleRatio=-1;
         public float VaultingHeight { get; set; }=1.2f;
         public float VaultingLength=.5f, AbsoluteForwardVelocity=2;
-        public UnityEngine.Vector3 MaxWeightPointPosition=new(4,2,1);
+        public UnityEngine.Vector3 MaxWeightPointPosition=new(0,1.2f,.4f);
         public int Ticks, AnimatorParameters;
         public Action OnTick, OnParameters;
         public float WrittenHeight, WrittenLength;

@@ -8,6 +8,37 @@ internal static class ObservationChecks
 {
     internal static void Run(Action<bool,string> check,Func<(Player p,MovementContext c,VaultingComponent v)> setup)
     {
+        var distant=setup(); distant.v.MaxWeightPointPosition=new(0,1.2f,1.4f);
+        distant.v._vaultingModelDebug.ObstacleCalculatorModel.DistanceToMainObstacle=.4f;
+        distant.v.AbsoluteForwardVelocity=10; distant.p.ToggleVaulting();
+        check(!ArenaAirVault.HasPendingRequest(distant.p) && distant.p.VaultNotifications==0 && !distant.c.PlayerAnimator.Climb,
+            "velocity-shifted grid cannot approve an unreachable body-to-ledge gap");
+        distant.c.TransformPosition=new(0,0,1); distant.p.ToggleVaulting();
+        check(ArenaAirVault.HasPendingRequest(distant.p),"held input retries when body reaches the same ledge");
+        foreach(bool acrossX in new[]{false,true})
+        {
+            var edge=setup(); edge.c.TransformPosition=new(40,100,-50);
+            edge.v.MaxWeightPointPosition=edge.c.TransformPosition+(acrossX?new Vector3(.5f,1.2f,0):new Vector3(0,1.2f,.5f));
+            edge.p.ToggleVaulting();
+            check(ArenaAirVault.HasPendingRequest(edge.p),"actual reach is translation and axis independent and excludes vertical height");
+        }
+        foreach(float gap in new[]{.501f,float.NaN,float.PositiveInfinity})
+        {
+            var far=setup(); far.v.MaxWeightPointPosition=new(gap,1.2f,0); far.p.ToggleVaulting();
+            check(!ArenaAirVault.HasPendingRequest(far.p) && far.p.VaultNotifications==0,"unreachable or nonfinite planar geometry cannot commit");
+        }
+        var diagonal=setup(); diagonal.v.MaxWeightPointPosition=new(.4f,1.2f,.4f); diagonal.p.ToggleVaulting();
+        check(!ArenaAirVault.HasPendingRequest(diagonal.p),"planar reach includes lateral gap rather than only forward depth");
+        var driftAway=setup(); var driftAnimator=UnityFixture.Create(driftAway.c); driftAway.p.ToggleVaulting();
+        driftAway.c.TransformPosition=new(0,0,-1); driftAway.p.BodyUpdate(.02f);
+        check(driftAnimator.CrossFades==0 && !driftAway.c.PlayerAnimator.Climb,"body moving away before dispatch revokes earlier distance approval");
+        foreach(bool nativeVault in new[]{false,true})
+        {
+            var untouched=setup(); untouched.v.MaxWeightPointPosition=new(0,1.2f,1.4f);
+            if(nativeVault) {untouched.v._vaultingModelDebug.VaultingStatesModel.VaultState.Allowed=true; untouched.p.ToggleVaulting();}
+            else {untouched.c.IsGrounded=true; untouched.c.JumpSet=false; untouched.v.TryVaulting();}
+            check(nativeVault?untouched.c.PlayerAnimator.Vault:untouched.c.PlayerAnimator.Climb,"airborne actual-reach bound leaves native vault and standing climb unchanged");
+        }
         var high=setup(); high.v.VaultingHeight=1.7f; high.p.ToggleVaulting();
         check(!ArenaAirVault.HasPendingRequest(high.p) && !high.c.PlayerAnimator.Climb && high.p.VaultNotifications==0,
             "airborne climb above native clip reach waits without committing hands or flags");
