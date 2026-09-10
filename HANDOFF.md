@@ -7,6 +7,54 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **19:09 retest fixes: in-place reload and stale falling flag (2026-09-10):**
+  still on `feature/arena-mantle-reload`, with separate implementation commits
+  `d968bda` (mantle) and `d71fa13` (native magazine swap handling).
+  The new log contains 78 reload diagnostic lines for 13 regular reloads with
+  verified Unity multipliers, below the 96-line budget. User confirmed normal R.
+  Installed UIFixes routes R through native PullOutMag/InsertMag operations if
+  there is no free magazine slot in the rig. Those two exact operation types were
+  excluded from both speed and diagnostics; they are now included. Native swap
+  inventory/callback behavior remains, with owned speed restored before all five
+  completion/reset boundaries. No UIFixes dependency or setting change. This also
+  accelerates the same explicit inventory magazine actions inside Arena. Direct
+  chamber/cartridge work, unknown types, malfunctions, AI and normal raids remain
+  excluded. Additional native swap transitions can still make it slower overall.
+
+  All 47 detailed mantle dispatch refusals showed a valid Jump_Move/Sprint owner,
+  no transition, IsJumping=true and Landing=false, but FallingDown=true. The native
+  MovePlayerState can leave this bool set during a genuine jump; only FallDown.Exit
+  clears it. Removed only that unreliable bool guard; exact managed Jump/animator
+  ownership, landing, geometry, stamina and hands guards remain. Real FallDown
+  stays excluded and the bool is not modified. Alternating queue/refusal reasons
+  now have separate log throttles instead of consuming all 100 lines immediately.
+  See both movement/reload review documents for native sources and evidence.
+
+  Frozen client log:
+  `artifacts/reload-mantle-retest/58b6d72db3324285838ec897c2104dfe/client.log`,
+  SHA256 `17D6D61FC0BE42CB95C1ACF509ABCBE84C41AAD41B82323A76E0C56DB1E1355C`.
+  The remaining SAIN OnDisable NRE was during world unloading at 19:09:32.723;
+  a link to these features is not established. Server snapshot restore/persistence
+  had already completed at 19:09:32.503/.541 local, resolving the earlier deferred
+  client warning. No additional error-driven match stop was observed.
+
+  Full offline checks: mantle **339 assertions / 41 source faults**, reload
+  **779 / 11**, handling **161 / 12**, plus installed native IL contracts. Both
+  independent source reviews found no P0-P2. Clean final build from `d71fa13`
+  passed with zero errors and four existing shared nullable warnings. Verified
+  client-only local delivery SHA256:
+  `A15D2BDE379153D5C6C35A92D69EAE641AA0F1C733A444AAB998D223F99714ED`.
+  Receipt and verified old-client backup:
+  `artifacts/reload-inplace-mantle-falling/delivery-d71fa13-6430d21d42f146e5b6761efd546076cd/`.
+  The old client was `97A8F509EB2D574406B669CBA8C753AD0131ACC5ADA5397798D1A05ECAF53B71`.
+  Ten protected files stayed byte-identical: Arena server/BigBrain, three Redeploy
+  DLLs, APBS DLL/config, both UIFixes DLLs and its config. **Restart the game only**
+  after existing mirroring. GPU mirror completion and live acceptance are not
+  verified here; no GPU launch, push or merge. Pending user test: R reload with
+  a full rig (e.g. an affected kit), factor changes, empty/tactical reload,
+  interruption/death and native inventory integrity; mantle at valid airborne
+  ledges, real falling/landing refusal, respawn and ordinary-raid isolation.
+
 - **Mantle retest correction and weapon reload diagnostics (2026-09-10, 18:08):**
   on `feature/arena-mantle-reload`. Implementation commits `0244048` and `5f35bc8`
   retain the concurrently added preload correction `ea1a979`. Unity mantle now
