@@ -1,5 +1,54 @@
 # APBS 2.4.1 compatibility — 2026-09-10
 
+## User TDM acceptance, 10:53–11:06 local (UTC+02:00)
+
+User reports the test looked good. The archived client log
+`D:/SPT41/BepInEx/logs/LogOutput-2026-09-10_11-06-50.log` comes from MASCHINE11
+(13900KF/RTX 4090), with SHA256
+`2571BE7F8C0F4E9760C0C9AD981246C4F173DAAD3939F90395F163E6FA4EEE03`.
+Frozen client/server/APBS generation logs are under
+`artifacts/apbs-compat/playtest-20260910-110650/`.
+Frozen server SHA256:
+`AA9235CFF67A51DA798ED57CF7CECC1C99B5B9C2405BB565C9E7BC94B523F5D0`;
+frozen APBS generation JSON SHA256:
+`95963E9A26929631A70B232AB42FCC01ED06F8570589D8B93A34D228C25718ED`.
+
+- APBS config migration succeeded at 08:53:08 UTC; the exact-version Arena
+  adapter enabled at 08:53:09. No server error appeared during this test window.
+- Customs independent TDM reached ready 5v5 at 10:55:58.754 local and ended
+  normally at 11:06:03.013: 600.0 playing seconds, USEC 35:22 BEAR. Player:
+  17 kills, six deaths, score 3900, best streak five.
+- Applied Arena ranges progressed from 1–6 to 61–71 (anchor 66), with the
+  600-second match clock. The first logged full-range replacement is at
+  11:04:12.441 local. APBS's own records include Level 65/Tier 7 at 11:03:16,
+  Level 69/Tier 7 at 11:04:12 and Level 71/Tier 7 at 11:05:49. This verifies
+  actual generated levels/tiers, not only the adapter's requested range.
+- One initial BEAR activation failed at 10:55:38.690 and recovered at
+  10:55:45.098. No subsequent activation failure or match abort. There are
+  61 preparation records, median `BotCreationData.Create` 1.906s, maximum
+  8.635s. These are preparation durations, not total raid-loading times.
+- The early `/arenamode/raid-end` warning at 11:06:11.846 was transient: native
+  end followed at 11:06:11.907, snapshot restore at .928 and protected end with
+  persisted snapshot at .960. Ordinary post-raid processing was skipped.
+
+One client NRE remains, **after** successful protected end: at 11:06:12.097,
+`SAIN.Components.BotComponent.OnDisable` throws during native pool/GameWorld
+unloading. No client error was logged during live play. The stack identifies
+SAIN cleanup; it does not prove whether Arena's body lifecycle contributed.
+Do not suppress the error or claim an APBS cause without further evidence.
+
+Movement endpoint samples have nine displacements below 2m among 146 samples
+spaced at least 25s apart; eight are `SeekCover`, one `DogFight`. Bot 50 has three
+such samples, with one detail report showing no active path. This does not prove
+continuous immobility or a navigation fault. Separately, five airborne-mantle
+attempts still reject `UnityAnimatorWrapper`; this run does not accept mantle.
+
+This log predates the preload change `5cae5e7` (committed 12:43 local); it cannot
+validate that change. The successful acceptance here covers finite independent
+TDM and APBS startup migration, not solo legacy modes, protected PFT transitions
+or a subsequent ordinary raid. No code/build/deployment change followed this
+read-only diagnosis; only these acceptance notes were committed.
+
 ## Cause and supported boundary
 
 APBS 2.4.1 computes its bot level range from `RaidInformation.CurrentRaidLevel`
@@ -92,9 +141,9 @@ paths needing hardening; both were corrected and the latter has a forced-error
 regression. Final counts, source commit and delivery hashes are in HANDOFF.md and
 the ignored `artifacts/apbs-compat` verification/delivery receipts.
 
-## Configuration and pending user acceptance
+## Configuration and remaining user acceptance
 
-The installed root config was still pre-migration when inspected: new keys were
+Before the update's first startup, the installed root config was pre-migration: new keys were
 absent, while 2.4.1's installed defaults and tier data were present. APBS applies
 its new model defaults and migrates this file on server startup. Arena leaves it
 untouched. Existing health/skill normalization remains off; PMC generation on,
@@ -106,13 +155,12 @@ balance observations for playtesting, not demonstrated compatibility failures.
 The separate upstream PFT menu-hiring level behavior remains outside Arena's
 ownership boundary; stored companions are not rerated here.
 
-After the new **server DLL** is delivered, restart SPT server. The client does
-not change. User GPU acceptance remains:
+The server-only delivery and the finite TDM/startup acceptance are recorded
+above. Remaining or additional user checks:
 
-- Short finite TDM: compare applied range logs at start/midpoint/late replacements,
-  visible equipment and both armband colors; check available magazines/meds.
+- Optional longer TDM inventory checks: available magazines/meds and equipment
+  appearance. Logged levels/tiers already passed the finite TDM test.
 - One solo legacy mode and one protected PFT round transition with saved companions.
 - A normal PMC raid after Arena: no `APBS Arena range applied` lines for it.
-- Confirm successful APBS config migration on its first 2.4.1 startup.
 
-No automated live raid, GPU mirror verification, push or branch merge is implied.
+No automated live raid, full mirror/hash verification, push or branch merge is implied.

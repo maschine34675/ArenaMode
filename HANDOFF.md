@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **APBS user TDM acceptance (2026-09-10, 10:53–11:06 local):** user reports
+  good behavior; archived `LogOutput-2026-09-10_11-06-50.log` and associated
+  server/APBS records confirm successful 2.4.1 migration and adapter activation.
+  Customs 5v5 ended normally after 600 playing seconds, USEC 35:22 BEAR;
+  player 17 kills/six deaths. Applied range reaches 61–71; APBS's own generated
+  bots reach Tier 7 (levels 65/69/71). One initial BEAR ActiveFail recovered
+  automatically; no live-play error. Early raid-end deferred warning resolved:
+  snapshot restored 11:06:11.928 and protected end persisted at .960 local.
+  A single SAIN `BotComponent.OnDisable` NRE follows during pool unloading at
+  11:06:12.097; possible indirect Arena involvement is not established.
+  Five airborne-mantle attempts still reject UnityAnimatorWrapper. The current
+  FastAnimator-only guard agrees with that log; earlier handoff claims about
+  Unity mantle support are not current runtime acceptance. Nine of 146 movement
+  endpoint samples are below 2m, mostly SeekCover; no proof of widespread stalls.
+  See `APBS-COMPATIBILITY-REVIEW.md`, including frozen evidence hashes/location.
+  This test predates `5cae5e7` and does not validate its preload optimization.
+  Solo legacy modes, protected PFT transitions and ordinary-raid isolation remain
+  pending live checks. Diagnosis changed documentation only; no DLL deployed.
+
 - **APBS adapter delivery (2026-09-10):** built and delivered only the server
   DLL from clean implementation commit `503540e`. Receipt, build log and verified
   previous-server backup:
