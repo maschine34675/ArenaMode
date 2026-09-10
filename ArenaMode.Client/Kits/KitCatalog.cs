@@ -19,6 +19,20 @@ public static class KitCatalog
     private static string _lastKitId;
 
     /// <summary>
+    /// The base kit the loading screen drew for the coming raid, handed back by
+    /// the NEXT GetBaseKit call and then forgotten.
+    ///
+    /// The loading-screen preload has to warm the kit the raid will actually
+    /// start in, and with the random draw on there is no such kit until
+    /// something draws it. So the preload draws it, through the same path the
+    /// raid-start swap uses, and parks it here for that swap to collect. One
+    /// shot, because a reservation that outlived its raid would hand the next
+    /// raid's first life a kit drawn for a different one; the preloader clears
+    /// it whenever the raid it was drawn for is discarded or ends.
+    /// </summary>
+    private static KitDefinition _reservedBaseKit;
+
+    /// <summary>
     /// Lets a mode decide what the next life gets. Gun Game owns this while it
     /// runs, so a respawn hands back the tier the player had reached instead of
     /// starting them over on a random loadout. Cleared at raid end.
@@ -89,6 +103,13 @@ public static class KitCatalog
     /// </summary>
     public static KitDefinition GetBaseKit()
     {
+        var reserved = _reservedBaseKit;
+        if (reserved != null)
+        {
+            _reservedBaseKit = null;
+            return reserved;
+        }
+
         EnsureLoaded();
         if (_kits == null || _kits.Count == 0)
             return null;
@@ -118,6 +139,22 @@ public static class KitCatalog
         Plugin.ModLogger.LogError("No buildable kit in the catalog — arena respawns will be naked.");
         return null;
     }
+
+    /// <summary>
+    /// Draws the raid's base kit now and keeps it for the raid-start swap. See
+    /// the field. Returns what was drawn so the caller can warm it; null when
+    /// the catalogue has nothing buildable, in which case nothing is kept.
+    /// </summary>
+    public static KitDefinition ReserveBaseKit()
+    {
+        _reservedBaseKit = null;
+        var kit = GetBaseKit();
+        _reservedBaseKit = kit;
+        return kit;
+    }
+
+    /// <summary>Forgets a reservation the raid it was drawn for never collected.</summary>
+    public static void ClearReservedBaseKit() => _reservedBaseKit = null;
 
     /// <summary>
     /// A random buildable kit, avoiding an immediate repeat while more than one

@@ -1,4 +1,5 @@
 using ArenaMode.Effects;
+using ArenaMode.Kits;
 using ArenaMode.Modes;
 using ArenaMode.Shared;
 using BepInEx.Configuration;
@@ -63,6 +64,7 @@ public static class Settings
     public static ConfigEntry<float> BotLoadBoostBudget { get; private set; }
     public static ConfigEntry<float> BotLoadBoostDelaySeconds { get; private set; }
     public static ConfigEntry<AsyncLoadPriority> BotLoadBoostAsyncPriority { get; private set; }
+    public static ConfigEntry<KitPreloadScope> KitPreloadInLoadingScreen { get; private set; }
     public static ConfigEntry<bool> AutoSearchCorpses { get; private set; }
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
@@ -561,6 +563,22 @@ public static class Settings
             "the cost is certain: main-thread time ON TOP of the step budget, paid during live " +
             "combat. Low = 2 ms, BelowNormal = 4, Normal = 10, High = 50 (about 15 fps on a 60 fps " +
             "machine while loading - diagnostic only). Game = leave it alone. Handed back on release.");
+
+        KitPreloadInLoadingScreen = config.Bind(
+            "Performance",
+            "KitPreloadInLoadingScreen",
+            KitPreloadScope.InitialKit,
+            "Load the arena kit's item bundles while the raid is still loading, instead of on " +
+            "the first second of the raid. In the loading screen the game's own loading mode " +
+            "multiplies the in-raid step budget (by 3 unless the app config says otherwise) and " +
+            "nothing else is asking for the loader yet; measured on Customs, the start kit took " +
+            "22 s to load on a 60 fps " +
+            "machine (10 s on a fast one) once the raid had begun, sharing the loader with " +
+            "the first bots. InitialKit = the kit the raid starts you in (the random draw is " +
+            "made at raid start and kept). WholeCatalogue = every kit afterwards as well, so " +
+            "no later respawn meets a cold kit; that second batch may still be running when " +
+            "the raid begins and then competes with the first bots - untested on a slow " +
+            "machine, try it and read the log line. Off = today's behaviour. Arena only.");
 
         AutoQuickSlots = config.Bind(
             "Kits",

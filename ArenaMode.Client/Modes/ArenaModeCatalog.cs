@@ -30,7 +30,11 @@ internal static class ArenaModeCatalog
 {
     public const string EndlessId = "endless";
     public const string RoundsId = "rounds";
-    public const string GunGameId = "gungame";
+    // From the preload plan, for the same reason the two below come from the
+    // population policy: the loading-screen preload warms the first ladder
+    // rung for this id, and a rename that did not reach the plan would warm
+    // the wrong kit without any error.
+    public const string GunGameId = Kits.KitPreloadPlan.GunGameModeId;
     // Taken from the shared policy rather than repeated: these two ids decide
     // whether the server silences the map's own population and whether the
     // client skips the profile preload, and a rename here that did not reach

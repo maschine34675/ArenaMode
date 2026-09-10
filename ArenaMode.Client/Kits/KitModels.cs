@@ -1,3 +1,8 @@
+// Linked into the test project, which compiles with nullable enabled; these
+// are JSON shapes with no constructor, so the annotations are switched off
+// here rather than pretending every field is always set.
+#nullable disable
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;

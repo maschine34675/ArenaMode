@@ -108,8 +108,14 @@ test above was verified that way — reintroduce the comma and three tests go re
    cannot yet be latched, so it gates on ARMED + the map being loaded instead.
    If the server then refuses the arm token, that raid runs ordinary with an
    emptied bot-profile pool — not broken (a pool miss fetches three more) but
-   not vanilla either. It is the only patch in the mod that can act on a raid
-   which does not become an arena raid.
+   not vanilla either. It is one of two things in the mod that can act on a
+   raid which does not become an arena raid. The other is the loading-screen
+   kit preload (`KitBundlePreloader.BeginRaidStart`, started from the armed
+   `LocalRaidStarted` continuation) together with the optic guard it engages
+   (`KitOpticPreloadGuard`, gated on IsActive OR armed for loading-screen
+   requests only): both build prefab pools for the coming kit inside the raid's
+   own pools, and the guard touches nothing but the role models of those pools.
+   A raid that then runs ordinary carries a few unused pools that die with it.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with
@@ -186,6 +192,25 @@ How much the integration step gets is `Application.backgroundLoadingPriority`, w
 on Customs on both machines, so no arena map streams and that lever ships off. And `MovingAverage` exists twice in
 Assembly-CSharp: the bare name is the global one, `Diz.Jobs.MovingAverage` must be
 spelled out.
+
+**The loading screen has a seam, and it is not where it looks.** The obvious place to
+warm a kit early, the player-prefab preload in `TarkovApplication.LocalGameMatching`,
+runs BEFORE `LocalRaidStarted` and so before the arena is armed; a hook there fires
+for nothing. The first moment that is armed AND has the raid's `GameWorld` with its
+raid pools registered (`GameWorld.InitLevel` inside `LoadMapAndData`) is the
+continuation of the `LocalRaidStarted` task in `LocalRaidStartedPatch.ObserveLocalStart`,
+which resumes on the main thread (the HTTP layer completes on it, and nothing in the
+game uses `ConfigureAwait`). From there until `OnGameStarted` the game's force mode is
+on and the bundle lock unlimited. Bookkeeping traps around it: `ResetSession` runs at
+the start of the raid the preload was made for, so anything keyed on the preloader's
+epoch or warm set is wiped — adopt after it, explicitly; `ObjectsFactory.DefaultCancellationToken`
+is a static that raid teardown cancels and REPLACES, so read it at call time and read it
+again at the end, because a load cancelled while filling pools completes as if it had
+succeeded; the Raid `Pools` object is never unregistered and is no identity for a raid,
+the `GameWorld` (fresh per raid, `Singleton<GameWorld>.Instance` already the raid's at
+that seam) is; and two concurrent `LoadBundlesAndCreatePools` for the same key both
+retain the bundle and only one token is ever released — vanilla does this to itself,
+but do not add to it: wait for a load in flight instead of asking again.
 
 **The client caches server answers per game process.** Bot difficulties are fetched once
 and never again. Anything that must vary per raid cannot live there.

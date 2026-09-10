@@ -159,8 +159,13 @@ public sealed class GunGameMode : IArenaMode
     /// The generated weapon ladder, or the kit catalog when there is none. Only
     /// entries that actually build are allowed in: a rung that throws halfway
     /// through the equipment swap would strand the player mid-ladder.
+    ///
+    /// Internal, and with a quiet mode, because the loading-screen preload asks
+    /// it too: the first rung it returns is the weapon the raid opens on, and
+    /// warming that rung before the raid means resolving it the same way. The
+    /// second, quiet call must not print the mode's own log lines twice.
     /// </summary>
-    private static List<KitDefinition> BuildLadder(out bool weaponsOnly)
+    internal static List<KitDefinition> BuildLadder(out bool weaponsOnly, bool quiet = false)
     {
         var catalog = LadderCatalog.Rungs;
         weaponsOnly = catalog != null && catalog.Count > 0;
@@ -168,7 +173,8 @@ public sealed class GunGameMode : IArenaMode
         if (!weaponsOnly)
         {
             catalog = KitCatalog.Kits;
-            Plugin.ModLogger.LogInfo("Gun Game: no weapon ladder — laddering through the kit catalog instead.");
+            if (!quiet)
+                Plugin.ModLogger.LogInfo("Gun Game: no weapon ladder — laddering through the kit catalog instead.");
         }
 
         if (catalog == null || catalog.Count == 0)
@@ -189,7 +195,7 @@ public sealed class GunGameMode : IArenaMode
                 var kit = catalog.FirstOrDefault(k => string.Equals(k.Id, id, StringComparison.OrdinalIgnoreCase));
                 if (kit != null)
                     picked.Add(kit);
-                else
+                else if (!quiet)
                     Plugin.ModLogger.LogWarning($"Gun Game ladder: no rung '{id}' — skipped.");
             }
 
@@ -203,7 +209,7 @@ public sealed class GunGameMode : IArenaMode
             var invalid = KitBuilder.ValidateKit(kit);
             if (invalid.Count == 0)
                 ladder.Add(kit);
-            else
+            else if (!quiet)
                 Plugin.ModLogger.LogWarning($"Gun Game ladder: rung '{kit.Id}' left out — unknown templates.");
         }
 

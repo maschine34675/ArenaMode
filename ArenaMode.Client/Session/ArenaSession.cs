@@ -26,6 +26,14 @@ public static class ArenaSession
     public static string ArmedMap { get; private set; }
     public static string ArmedMode { get; private set; }
 
+    /// <summary>
+    /// Counts armings. Work started for one arming (the loading-screen kit
+    /// preload) carries this number and is only ever adopted by the raid that
+    /// starts under the same one; a re-arm in between makes it stale by itself,
+    /// whatever else forgot to discard it.
+    /// </summary>
+    internal static int ArmEpoch { get; private set; }
+
     public static bool IsActive { get; private set; }
     public static string ActiveMode { get; private set; }
 
@@ -78,6 +86,7 @@ public static class ArenaSession
 
     public static void MarkArmed(string map, string mode)
     {
+        unchecked { ArmEpoch++; }
         ArmedForNextRaid = true;
         ArmedMap = map;
         ArmedMode = mode;
@@ -93,6 +102,7 @@ public static class ArenaSession
         ArmedForNextRaid = false;
         ArmedMode = null;
         Areas.ArenaAreaRuntime.Reset();
+        Kits.KitBundlePreloader.DiscardRaidStart(reason);
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
         PitFireTeamCompat.Clear(reason);
         ArenaServerClient.PostRaidCancel(startFailed: true);
@@ -148,6 +158,7 @@ public static class ArenaSession
             // self-noops in the normal path.
             Modes.ArenaMatchService.RecoverAtNewRaidStart();
             Respawn.ArenaRespawnDriver.ResetSession();
+            Kits.KitBundlePreloader.DiscardRaidStart("ordinary raid started");
             Combat.ArenaSkills.Restore();
             Movement.FastDeployPatches.Restore();
 
@@ -181,6 +192,7 @@ public static class ArenaSession
 
         if (FikaCompatCheck.IsFikaLoaded)
         {
+            Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             PitFireTeamCompat.Clear("Fika raid rejected");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -190,6 +202,7 @@ public static class ArenaSession
         {
             Plugin.ModLogger.LogWarning(
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
+            Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             PitFireTeamCompat.Clear("armed map did not match started raid");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -203,6 +216,7 @@ public static class ArenaSession
         // snapshot and retain PFT protection during that abort.
         if (!ArenaServerClient.ConfirmRaidStarted())
         {
+            Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             _rejectedServerRaidPendingEnd = true;
             LastRaidWasArena = true;
             Plugin.ModLogger.LogError(
@@ -216,6 +230,9 @@ public static class ArenaSession
         ActiveMode = armedMode;
         LastRaidWasArena = true;
         Respawn.ArenaRespawnDriver.ResetSession();
+        // After ResetSession, which clears the warm set, and before anything
+        // asks for a kit: the loading-screen preload becomes this raid's.
+        Kits.KitBundlePreloader.AdoptRaidStart(world);
         if (!Areas.ArenaAreaRuntime.Begin(world, currentGame as LocalGame))
         {
             Modes.ArenaMatchService.ScheduleFailedStartAbort("bounded Arena area initialization failed");
@@ -325,6 +342,10 @@ public static class ArenaSession
         // the whole session, so boosted skills must come back even if the latch
         // was cleared abnormally. Self-noops when nothing was boosted.
         Combat.ArenaSkills.Restore();
+
+        // Also outside the guard, and a no-op when there is none: whatever the
+        // loading screen warmed for this raid dies with the raid's pools.
+        Kits.KitBundlePreloader.DiscardRaidStart("raid ended");
 
         if (!IsActive && !ArmedForNextRaid && !_rejectedServerRaidPendingEnd)
             return;

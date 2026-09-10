@@ -48,6 +48,10 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // Clearing here (before any gate) keeps a stale factory arming from
             // arena-izing an unrelated raid (wrong map, or a scav run).
             ArenaSession.ClearArmed("new raid negotiation started");
+            // ClearArmed returns early when nothing is armed; a preload whose
+            // raid never reached OnGameStarted may still be parked, so the
+            // discard is asked for outright.
+            Kits.KitBundlePreloader.DiscardRaidStart("new raid negotiation started");
 
             if (ArenaServerClient.HasPendingEnd
                 && !ArenaServerClient.PostRaidEnd(recoverWithoutNativeEnd: true))
@@ -211,6 +215,23 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (!ArenaServerClient.BindNativeEndIdentity(result))
                 throw new InvalidOperationException(
                     "Arena could not bind the native local-end request to its exact arm token.");
+
+            // The raid's kit bundles, while the loading screen still has the
+            // loader to itself. This is the earliest point where the arena is
+            // armed AND the map's GameWorld exists with its raid pools: the
+            // player-prefab preload before LocalRaidStarted runs before arming,
+            // and OnGameStarted is the first second of the raid. Never allowed
+            // to fail the start — a preload that could not begin is a slower
+            // first second, not a lost raid, and the catch below would cancel
+            // the raid on the server.
+            try
+            {
+                Kits.KitBundlePreloader.BeginRaidStart();
+            }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogWarning($"Arena: the loading-screen kit preload could not start: {ex.Message}");
+            }
 
             return result;
         }

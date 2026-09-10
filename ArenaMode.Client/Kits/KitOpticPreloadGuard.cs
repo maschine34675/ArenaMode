@@ -16,6 +16,14 @@ namespace ArenaMode.Kits;
 /// itself during that first Instantiate: CameraManager.method_10 expects a weapon
 /// parent. Suppress only that role model's paired callbacks, before publication.
 /// Neither the camera manager nor normal/mounted sight callbacks are patched out.
+///
+/// Engaged for the loading-screen kit preload as well, which runs while
+/// IsActive is still false: the raid camera comes alive partway through the
+/// level load, and a batch still building pools at that moment is exposed
+/// exactly like an in-raid load. That is a deliberate bend of the IsActive
+/// rule, recorded in AGENTS.md; what makes it safe is that every gate below
+/// still asks whether the pool being built is one of OUR request's resources,
+/// so a vanilla object never sees anything but vanilla.
 /// </summary>
 internal static class KitOpticPreloadGuard
 {
@@ -36,19 +44,26 @@ internal static class KitOpticPreloadGuard
         internal readonly HashSet<ResourceKey> Resources;
         private readonly Request _previous;
         private readonly int _generation;
+        private readonly bool _loadingScreen;
         private volatile bool _disposed;
 
-        internal Request(ObjectsFactory factory, IEnumerable<ResourceKey> resources)
+        internal Request(ObjectsFactory factory, IEnumerable<ResourceKey> resources, bool loadingScreen)
         {
             Factory = factory;
             Pools = factory.GetPools(ObjectsFactory.PoolsCategory.Raid);
             Resources = new HashSet<ResourceKey>(resources);
             _previous = Current.Value;
             _generation = _epoch;
+            _loadingScreen = loadingScreen;
             Current.Value = this;
         }
 
-        internal bool IsCurrent => Session.ArenaSession.IsActive && !_disposed && _generation == _epoch && Pools != null
+        // A loading-screen request outlives the per-raid generation on purpose:
+        // Reset runs at the start of the very raid it was made for, and the
+        // request must stay current across that boundary. It is bound to the
+        // arming instead (the gate) and to its own resources (every caller).
+        internal bool IsCurrent => Gate(_loadingScreen) && !_disposed && (_loadingScreen || _generation == _epoch)
+            && Pools != null
             && ReferenceEquals(Factory.GetPools(ObjectsFactory.PoolsCategory.Raid), Pools);
 
         public void Dispose()
@@ -71,11 +86,20 @@ internal static class KitOpticPreloadGuard
         }
     }
 
-    internal static IDisposable Begin(ObjectsFactory factory, IEnumerable<ResourceKey> resources)
+    internal static IDisposable Begin(ObjectsFactory factory, IEnumerable<ResourceKey> resources, bool loadingScreen = false)
     {
-        if (!Session.ArenaSession.IsActive || factory == null || !EnsureInstalled()) return null;
-        return new Request(factory, resources);
+        if (!Gate(loadingScreen) || factory == null || !EnsureInstalled()) return null;
+        return new Request(factory, resources, loadingScreen);
     }
+
+    /// <summary>
+    /// When the guard may act at all: in an arena raid, or — for the
+    /// loading-screen preload only — while one is armed. An armed raid that
+    /// never becomes an arena raid still had its kit pools built by us, and
+    /// their role models are the only objects this ever touches.
+    /// </summary>
+    private static bool Gate(bool loadingScreen)
+        => Session.ArenaSession.IsActive || (loadingScreen && Session.ArenaSession.ArmedForNextRaid);
 
     internal static void Reset()
     {
@@ -150,7 +174,7 @@ internal static class KitOpticPreloadGuard
 
     private static bool BeforeEnable(OpticSight __instance)
     {
-        if (!Session.ArenaSession.IsActive || __instance == null) return true;
+        if (!Gate(loadingScreen: true) || __instance == null) return true;
         // A later genuine activation must not inherit a role-model disable marker.
         Suppressed.Remove(__instance);
         Frame frame = _frame;
@@ -169,7 +193,7 @@ internal static class KitOpticPreloadGuard
 
     private static bool BeforeDisable(OpticSight __instance)
     {
-        if (!Session.ArenaSession.IsActive || __instance == null) return true;
+        if (!Gate(loadingScreen: true) || __instance == null) return true;
         if (!Suppressed.TryGetValue(__instance, out var request)) return true;
         Suppressed.Remove(__instance);
         // RunInitialStageBody deactivates immediately after GetOriginalGameObject
