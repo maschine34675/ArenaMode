@@ -79,6 +79,17 @@ pause, mute and teardown. The native Harmony eligibility boundary has source
 review and actual-game-API compile coverage; controlled audio fixtures are not
 an in-raid event or rendering test.
 
+Verified delivery (2026-09-11): 54 hitmarker assertions, 142 announcer assertions,
+17 existing announcer source faults rejected; actual-API Release build 0 errors
+and four pre-existing CS8632 warnings. Feature commit `d9e7598` includes the
+parallel Solo Tactical fix `b7678ef` as its parent. Local client SHA256
+`0E7AD442F924314B47565AA5755C6766C74FD900ABAAC8AC0FD50ACFF08EDAD6`;
+seven audio/provenance files match the committed source and staged output.
+Delivery receipt and prior client/license backups:
+`artifacts/hitmarker-delivery/992cd14563c8416e9404be81c958707d/`.
+Ten protected dependencies and existing audio/draft files stayed unchanged.
+No server restart, GPU listening or mirror completion is implied by these checks.
+
 On the gaming PC after game restart (server restart unnecessary): compare body
 hit, head hit, kill and a shotgun burst; lower Interface to zero with Master
 audible; vary HitmarkerVolume and disable HitmarkerSounds mid-match. Confirm

@@ -19,7 +19,19 @@ current. User-facing communication is normally German.
   adapter has separate announcer/impact instances; existing announcer tests
   and fault controls pass. See HITMARKER-AUDIO-REVIEW.md and
   tools/HitmarkerAudioChecks for tests and pending user listening/GPU checks.
-  Game restart only. Final local delivery evidence is recorded below.
+  **Delivered:** clean source commit `d9e7598`, client SHA256
+  `0E7AD442F924314B47565AA5755C6766C74FD900ABAAC8AC0FD50ACFF08EDAD6`.
+  Build manifest: `artifacts/double-jump-build/f63c503ccbe546b295e6e4c412c858e5/manifest.json`.
+  Receipt/backups: `artifacts/hitmarker-delivery/992cd14563c8416e9404be81c958707d/`.
+  Seven audio/license/source-record files plus client verified at destination;
+  ten protected dependencies and all pre-existing audio/draft files unchanged.
+  Offline: 54 hitmarker assertions, 142 existing announcer assertions and its
+  17 controlled source faults; three WAVs and original notice hashes also
+  verified from committed Git blobs. Client build: 0 errors, 4 existing CS8632
+  warnings. Independent reviews complete. **Restart game only**; GPU listening
+  and mirror completion unverified. Original checkout remains on the separate
+  `feature/arena-mantle-reload` branch; do not rebuild that older checkout over
+  this client until the hitmarker feature is integrated or deliberately removed.
 
 - **Solo Tactical: the buy phase waits for a body swap in flight (2026-09-11, 09:58):**
   this commit on `feature/arena-mantle-reload`, on top of the entry below.
