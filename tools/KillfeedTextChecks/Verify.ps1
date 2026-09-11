@@ -20,5 +20,21 @@ if ($arenaExit -eq 0 -or ($arenaOutput -join "`n").Contains('error CS') -or
     throw 'The missing attacker regression was not rejected at its intended assertion'
 }
 Write-Output 'REJECTED_SOURCE_FAULT: missing-local-attacker'
+foreach ($arenaControl in @(
+    @('local-only-distance', 'kill.DistanceKnown &&', 'kill.KilledByLocal && kill.DistanceKnown &&', 'local-death includes measured distance'),
+    @('unknown-distance-as-measured', 'kill.DistanceKnown && ', '', 'local-kill labels unconfirmed distance as unknown')
+)) {
+    if (($arenaSource.Split(@($arenaControl[1]), [StringSplitOptions]::None).Count - 1) -ne 1) { throw 'Fault anchor is ambiguous' }
+    $arenaControlSource = Join-Path $arenaEvidence ($arenaControl[0] + '.cs')
+    [IO.File]::WriteAllText($arenaControlSource, $arenaSource.Replace($arenaControl[1], $arenaControl[2]))
+    $arenaControlOutput = @(& dotnet run --project $arenaProject -c Release "-p:KillfeedTextSource=$arenaControlSource" 2>&1)
+    $arenaControlExit = $LASTEXITCODE
+    $arenaControlOutput | Set-Content -LiteralPath (Join-Path $arenaEvidence ($arenaControl[0] + '.log'))
+    if ($arenaControlExit -eq 0 -or ($arenaControlOutput -join "`n").Contains('error CS') -or
+        !($arenaControlOutput -join "`n").Contains('CHECK FAILED: ' + $arenaControl[3])) {
+        throw ('Regression control was not rejected: ' + $arenaControl[0])
+    }
+    Write-Output ('REJECTED_SOURCE_FAULT: ' + $arenaControl[0])
+}
 & dotnet run --project $arenaProject -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Production formatting failed after fault control' }

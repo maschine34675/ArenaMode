@@ -154,9 +154,11 @@ internal static class CombatPatches
                 // destroyed MonoBehaviour — Position would throw; vanilla guards the
                 // same read behind GetAlivePlayerByProfileID.
                 var distance = 0f;
+                var distanceKnown = false;
                 try
                 {
                     distance = Vector3.Distance(aggressor.Position, __instance.Position);
+                    distanceKnown = distance >= 0f && !float.IsInfinity(distance);
                 }
                 catch (Exception)
                 {
@@ -183,6 +185,7 @@ internal static class CombatPatches
                         __instance, aggressor, lethalDamageType == EDamageType.Bullet,
                         bodyPart == EBodyPart.Head),
                     Distance = distance,
+                    DistanceKnown = distanceKnown,
                     WeaponName = weaponName,
                     Time = Time.time,
                 };

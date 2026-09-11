@@ -32,6 +32,9 @@ public sealed class ArenaKill
 
     public float Distance;
 
+    /// <summary>True only when both positions yielded a finite distance at kill capture.</summary>
+    public bool DistanceKnown;
+
     public bool Headshot;
 
     // Presentation metadata captured while the physical bodies still exist.

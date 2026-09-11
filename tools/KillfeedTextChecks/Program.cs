@@ -16,7 +16,7 @@ foreach (var scenario in new[] { "local-kill", "local-death", "other-kill" })
         VictimName = "Victim_LongNickname_0987654321",
         KillerRoleLabel = "USEC", VictimRoleLabel = "BEAR", VictimRole = ArenaRole.Pmc,
         KilledByLocal = scenario == "local-kill", LocalIsVictim = scenario == "local-death",
-        WeaponName = "HK 416A5", Headshot = true, Distance = 42f,
+        WeaponName = "HK 416A5", Headshot = true, Distance = 42f, DistanceKnown = true,
     };
     var formatted = KillfeedText.Format(kill);
     var split = formatted.IndexOf('\n');
@@ -30,8 +30,29 @@ foreach (var scenario in new[] { "local-kill", "local-death", "other-kill" })
     Check(!headline.Contains("HK 416A5"), scenario + " leaves weapon metadata below identities");
     Check(details.Contains("USEC") && details.Contains("BEAR"), scenario + " retains both roles");
     Check(details.Contains("HK 416A5") && details.Contains("HS"), scenario + " retains weapon and headshot");
-    Check(details.Contains("42m") == kill.KilledByLocal, scenario + " preserves local-kill distance scope");
+    Check(details.Contains("42 m"), scenario + " includes measured distance");
     Check(!formatted.Contains("…") && !formatted.Contains("..."), scenario + " does not shorten names");
+}
+
+foreach (var scenario in new[] { "local-kill", "local-death", "other-kill" })
+{
+    var kill = new ArenaKill
+    {
+        KilledByLocal = scenario == "local-kill", LocalIsVictim = scenario == "local-death",
+        Distance = 42f, DistanceKnown = false,
+    };
+    var unknown = KillfeedText.Format(kill);
+    Check(unknown.Contains("? m") && !unknown.Contains("42 m"), scenario + " labels unconfirmed distance as unknown");
+    kill.DistanceKnown = true;
+    kill.Distance = 0f;
+    Check(KillfeedText.Format(kill).Contains("0 m"), scenario + " retains a genuine zero distance");
+    kill.Distance = 42.6f;
+    Check(KillfeedText.Format(kill).Contains("43 m"), scenario + " rounds measured meters");
+    foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, -1f })
+    {
+        kill.Distance = invalid;
+        Check(KillfeedText.Format(kill).Contains("? m"), scenario + " rejects invalid distance " + invalid);
+    }
 }
 
 var escaped = KillfeedText.Format(new ArenaKill

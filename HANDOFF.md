@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r5 bounded acceptance and killfeed distance (2026-09-11):** report `487f38b`
+  confirms complete names/metadata on the observed other-kill entries, two
+  non-overlapping rows, common fade, menu hiding/return, and the optional
+  uninterrupted two-to-one grenade comparison. It had zero local kills/deaths;
+  local identities/distance, real wrapping/resizing, verified pool reuse and
+  active-feed-at-menu-entry remain open. Independent screenshot/raw-client
+  review corroborated these limits: three Error lines belong to SAIN, no
+  Arena kill-capture/HUD failure. Use r5 `logs/final/server-current.log`, not its
+  older sync-conflict server snapshots. Profile checks remain limited to the
+  reported fields; no full-profile or normal-PMC proof is implied.
+  Distance was still deliberately formatted only for local kills, explaining
+  its absence from the observed bot-kill entries. Now all kill directions show
+  measured meters, placed before weapon details. Capture keeps the original
+  aggressor/victim body positions and existing Distance value; a separate
+  DistanceKnown flag distinguishes a successful finite measurement from missing
+  positions. Unknown/invalid distance displays `? m`, a real zero displays `0 m`.
+  This is separation at death, not shot-origin distance or projectile path length.
+  No scoring, bot or profile changes; wrapping/layout remain as tested in r5.
+  Build, review and delivery evidence follows after verification.
+
 - **r4 accepted core UI; killfeed follow-up delivered (2026-09-11):** report
   `6ac779e` confirms observed menu hiding/panel return, ammo refresh, respawn
   values, two Arena starts without native list/header, normal PMC restoration
