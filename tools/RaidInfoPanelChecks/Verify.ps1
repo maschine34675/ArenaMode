@@ -89,9 +89,40 @@ if (!$ProductionOnly) {
         'CollectGrenades(equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem as CompoundItem, _carriedScratch);' `
         'CollectGrenades(equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem as CompoundItem, _carriedScratch); CollectGrenades(equipment.GetSlot(EquipmentSlot.SecuredContainer).ContainedItem as CompoundItem, _carriedScratch);' `
         'ArmorVest and secure container grenades are excluded expected'
+    Invoke-PanelFault 'reserve-row-gap-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        '|| magazineRight + GroupGap + grenadeWidth <= ContentWidth;' `
+        '|| magazineRight + grenadeWidth <= ContentWidth;' `
+        'The group gap is part of the fit: 240 px of slots wrap'
+    Invoke-PanelFault 'reserve-row-magazines-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        '|| magazineRight + GroupGap + grenadeWidth <= ContentWidth;' `
+        '|| grenadeWidth <= ContentWidth;' `
+        'Three magazine kinds and three grenade kinds wrap'
+    Invoke-PanelFault 'reserve-row-hidden-slot-reserves' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'lefts[i] = 0f;' 'lefts[i] = 0f; if (!visible[i]) { cursor += widths[i] + MagazineSpacing; }' `
+        'A hidden full-magazine slot takes no room: partial starts at the left edge'
+    Invoke-PanelFault 'reserve-row-grenade-spacing-omitted' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'cursor = width + GrenadeSpacing;' 'cursor = width;' `
+        'Flash packs one spacing inside the frag slot'
+    Invoke-PanelFault 'reserve-row-estimate-removed' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'float text = usable ? measuredText : glyphs * fontSize * 0.65f;' 'float text = measuredText;' `
+        'An unmeasured count falls back to a per-glyph estimate'
+    Invoke-PanelFault 'reserve-row-wrap-not-kept' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        '=> wrappedBefore || !GrenadesFitBeside(magazineRight, grenadeWidth);' `
+        '=> !GrenadesFitBeside(magazineRight, grenadeWidth);' `
+        'Drawing a grenade keeps a body''s wrap'
+    Invoke-PanelFault 'reserve-row-empty-magazines-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        '=> grenadeWidth <= 0f || magazineRight <= 0f' '=> grenadeWidth <= 0f' `
+        'One empty group always fits'
+    Invoke-PanelFault 'reserve-row-grenade-order-reversed' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'for (int i = 0; i < visible.Length; i++)' 'for (int i = visible.Length - 1; i >= 0; i--)' `
+        'Frag stays outermost when flashes are carried too'
+    Invoke-PanelFault 'reserve-row-implausible-measurement-kept' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'bool usable = !float.IsInfinity(measuredText) && measuredText >= glyphs * fontSize * MinGlyphEm;' `
+        'bool usable = !float.IsInfinity(measuredText) && measuredText > 0f;' `
+        'A measurement far below any real glyph width falls back to the estimate'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 18 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 27 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

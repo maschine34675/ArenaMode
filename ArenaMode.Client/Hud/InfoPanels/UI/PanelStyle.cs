@@ -119,6 +119,12 @@ namespace ArenaMode.Hud.InfoPanels.UI
             return text;
         }
 
+        // Width the current text needs, from TMP's font metrics. Valid because
+        // every panel text is created on the active canvas, so TMP's Awake has
+        // run (see ArenaInfoPanels); ReserveRowLayout.SlotWidth covers a zero
+        // result.
+        public static float MeasureTextWidth(TextMeshProUGUI text) => text.GetPreferredValues().x;
+
         public static void ApplyTextColor(TextMeshProUGUI text, Color color)
         {
             text.color = color;

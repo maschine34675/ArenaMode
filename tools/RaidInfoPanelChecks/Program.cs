@@ -511,6 +511,123 @@ internal static class Program
         Check(!GrenadeInventoryCounter.TryGetSummary(f.Player, out _), "Grenades: missing equipment safe");
     }
 
+    // Widths model production: a hidden slot keeps the stale width of its last
+    // shown count, so packing must skip it by visibility, not by width.
+    private static void Slots(float[] widths, bool[] visible, float a, bool showA, float b, bool showB, float c, bool showC)
+    {
+        widths[0] = a; widths[1] = b; widths[2] = c;
+        visible[0] = showA; visible[1] = showB; visible[2] = showC;
+    }
+
+    private static void ReserveRow()
+    {
+        float[] w = new float[3], at = new float[3];
+        bool[] v = new bool[3];
+
+        // A typical rifle kit: full and partial magazines, one frag kind.
+        Slots(w, v, 40f, true, 40f, true, 45f, false);
+        float magRight = ReserveRowLayout.PackFromLeft(w, v, at);
+        Check(at[0] == 0f && at[1] == 52f && magRight == 92f, "Magazine slots pack from the left edge one spacing apart");
+        Slots(w, v, 37f, true, 37f, false, 37f, false);
+        float grenades = ReserveRowLayout.PackFromRight(w, v, at);
+        Check(at[0] == 0f && grenades == 37f, "Frag is the outermost grenade slot at the right edge");
+        Check(ReserveRowLayout.GrenadesFitBeside(magRight, grenades), "Two magazine kinds and frags share one row");
+
+        Slots(w, v, 40f, false, 40f, true, 40f, true);
+        magRight = ReserveRowLayout.PackFromLeft(w, v, at);
+        Check(at[1] == 0f && at[2] == 52f && magRight == 92f,
+            "A hidden full-magazine slot takes no room: partial starts at the left edge");
+        Slots(w, v, 37f, false, 37f, true, 37f, false);
+        Check(ReserveRowLayout.PackFromRight(w, v, at) == 37f && at[1] == 0f, "Without frags the flash slot moves to the right edge");
+        Slots(w, v, 40f, false, 40f, false, 40f, false);
+        Check(ReserveRowLayout.PackFromLeft(w, v, at) == 0f && ReserveRowLayout.PackFromRight(w, v, at) == 0f,
+            "No visible slot reports no content");
+
+        // The spacings are sized so every magazine kind plus frags and flashes
+        // still fits at single-digit counts; here only the third grenade kind
+        // forces the wrap (wide loose-round or "+N" counts can too).
+        Slots(w, v, 40f, true, 40f, true, 40f, true);
+        magRight = ReserveRowLayout.PackFromLeft(w, v, at);
+        Slots(w, v, 37f, true, 37f, true, 37f, false);
+        grenades = ReserveRowLayout.PackFromRight(w, v, at);
+        Check(at[0] == 0f, "Frag stays outermost when flashes are carried too");
+        Check(at[1] == 47f && grenades == 84f, "Flash packs one spacing inside the frag slot");
+        Check(magRight == 144f && ReserveRowLayout.GrenadesFitBeside(magRight, grenades),
+            "Three magazine kinds with frags and flashes share one row");
+        Slots(w, v, 37f, true, 37f, true, 37f, true);
+        grenades = ReserveRowLayout.PackFromRight(w, v, at);
+        Check(grenades == 131f && !ReserveRowLayout.GrenadesFitBeside(magRight, grenades),
+            "Three magazine kinds and three grenade kinds wrap");
+
+        Check(!ReserveRowLayout.GrenadesFitBeside(150f, 90f), "The group gap is part of the fit: 240 px of slots wrap");
+        Check(ReserveRowLayout.GrenadesFitBeside(100f, 134f) && !ReserveRowLayout.GrenadesFitBeside(100f, 134.5f),
+            "Fit boundary is the exact content width including the group gap");
+        // 240 px of grenades would not fit beside even a zero-width group.
+        Check(ReserveRowLayout.GrenadesFitBeside(0f, 240f) && ReserveRowLayout.GrenadesFitBeside(240f, 0f),
+            "One empty group always fits");
+
+        // The panel is bottom-anchored, so a wrap lifts every line; it must
+        // not flip back while a grenade is drawn (magazines hidden) or when a
+        // count shrinks below a digit boundary, only for a new body.
+        Check(!ReserveRowLayout.GrenadesWrapped(false, 92f, 37f), "A fresh body with room keeps the grenades beside the magazines");
+        Check(ReserveRowLayout.GrenadesWrapped(false, 144f, 131f), "A crowded fresh body wraps the grenades");
+        Check(ReserveRowLayout.GrenadesWrapped(true, 0f, 131f), "Drawing a grenade keeps a body's wrap");
+        Check(ReserveRowLayout.GrenadesWrapped(true, 92f, 37f), "Counts that fit again keep a body's wrap");
+
+        Near(ReserveRowLayout.SlotWidth(30f, 10f, 1, 18f), 40f, "Measured count width follows the icon column");
+        // Not below the HUD font's real digits (10 px at 18 pt), or estimated
+        // slots would overlap.
+        Check(ReserveRowLayout.SlotWidth(30f, 0f, 2, 18f) >= 30f + 2 * 18f * 0.6f,
+            "An unmeasured count falls back to a per-glyph estimate");
+        Check(ReserveRowLayout.SlotWidth(30f, 1f, 1, 18f) == ReserveRowLayout.SlotWidth(30f, 0f, 1, 18f),
+            "A measurement far below any real glyph width falls back to the estimate");
+        float estimate = ReserveRowLayout.SlotWidth(27f, 0f, 1, 17f);
+        Check(ReserveRowLayout.SlotWidth(27f, float.NaN, 1, 17f) == estimate
+            && ReserveRowLayout.SlotWidth(27f, float.PositiveInfinity, 1, 17f) == estimate,
+            "NaN or infinite measurements fall back to the estimate");
+        Near(ReserveRowLayout.SlotWidth(30f, 1e6f, 3, 18f), 30f + ReserveRowLayout.ContentWidth,
+            "An absurd measurement is capped at the content width");
+
+        // Every visibility combination and width order: packed slots keep
+        // their spacing and the reported extent covers exactly the visible ones.
+        bool packed = true;
+        float[] sizes = { 30f, 44f, 61f };
+        for (int mask = 0; mask < 8; mask++)
+        {
+            for (int shift = 0; shift < 3; shift++)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    w[i] = sizes[(i + shift) % 3];
+                    v[i] = (mask & (1 << i)) != 0;
+                }
+
+                float right = ReserveRowLayout.PackFromLeft(w, v, at);
+                float[] lefts = (float[])at.Clone();
+                float width = ReserveRowLayout.PackFromRight(w, v, at);
+                float leftExtent = 0f, rightExtent = 0f;
+                int last = -1;
+                for (int i = 0; i < 3; i++)
+                {
+                    if (!v[i]) continue;
+                    if (last >= 0)
+                    {
+                        packed &= lefts[i] >= lefts[last] + w[last] + ReserveRowLayout.MagazineSpacing - 0.001f
+                            && at[i] >= at[last] + w[last] + ReserveRowLayout.GrenadeSpacing - 0.001f;
+                    }
+
+                    leftExtent = Math.Max(leftExtent, lefts[i] + w[i]);
+                    rightExtent = Math.Max(rightExtent, at[i] + w[i]);
+                    last = i;
+                }
+
+                packed &= right == leftExtent && width == rightExtent;
+            }
+        }
+
+        Check(packed, "Packed slots never overlap in any visibility combination and the extents cover them");
+    }
+
     private static void CanvasVisibility()
     {
         var canvas = new Canvas();
@@ -540,7 +657,7 @@ internal static class Program
         Directory.CreateDirectory(_scratch);
         try
         {
-            Migration(); CanvasVisibility(); Context(); RefreshAndLifecycle(); ErrorIsolation(); Disposal(); MagazineCounting(); GrenadeCounting();
+            Migration(); CanvasVisibility(); Context(); RefreshAndLifecycle(); ErrorIsolation(); Disposal(); MagazineCounting(); GrenadeCounting(); ReserveRow();
             Console.WriteLine($"ARENA_INFO_PANEL_PRODUCTION_PASSED ({_checks} assertions)");
             return 0;
         }

@@ -198,10 +198,10 @@ drawable backpack pick still takes precedence, so this exception stands.
 
 The row is inventory state, so it keeps updating while a grenade, knife or meds
 is in hand, exactly when the remaining count matters; only the firearm lines
-clear. It is hidden when no grenade is carried, and like the spare-magazine row
-its space stays reserved (panel 280x160, row at y=-126) so the panel never
-changes height. Scratch lists are cleared after every read, including failures,
-and on match teardown.
+clear. It is hidden when no grenade is carried. As first delivered it had its
+own permanently reserved row (panel 280x160, row at y=-126); the follow-up below
+moved it into the magazine row. Scratch lists are cleared after every read,
+including failures, and on match teardown.
 
 Icons: three new generated glyphs (`grenade_frag/flash/smoke.png`) from
 `tools/RaidInfoPanelIcons/gen_grenades.ps1`, which writes only those files and
@@ -227,3 +227,62 @@ UseItemsAnywhere, dimmed `+N` only in a nested pouch), flash/smoke if a kit
 carries them, correct counts after death and respawn, no row without grenades,
 and no overlap with the killfeed or other bottom-right HUD elements at the real
 resolution.
+
+## Grenades in the magazine row (2026-09-11, user follow-up)
+
+After seeing the separate row in game (r4/r5 captures: one or two magazine
+slots and a single frag count, most of the width empty), the user asked to put
+the grenade counts into the magazine row. The weapon panel is back to 280x132.
+
+- One reserve row at y=-94. Magazine or loose-round slots pack from the left;
+  grenade kinds pack from the right with frag outermost, then flash, then smoke.
+  Hidden slots take no room, which replaces the fixed 88 px magazine pitch
+  (a missing full-magazine count now lets the partial icon start at the left
+  edge); each icon still says what it counts. Counting is unchanged.
+- A slot is its icon column plus the count's width as TMP measures it
+  (`GetPreferredValues()`), recomputed only when a count changes. That
+  measurement is valid because every panel text is created on the active
+  canvas. Checked in the game's own `Unity.TextMeshPro.dll` (decompiled with
+  ilspycmd 11; TMP is not part of `../_decompiled`): `TextMeshProUGUI.Awake`
+  sets `m_isOrthographic`, without which `CalculatePreferredValues` scales by
+  0.1; the width pass re-parses the current text, skips rich-text tags and does
+  not disturb the next mesh rebuild. A zero, non-finite or implausibly small
+  result (below 0.25 em per glyph) falls back to a per-glyph estimate, so
+  slots can sit too far apart but never overlap. Count texts now overflow
+  instead of ellipsizing.
+- Within 248 px of content: 12 px between magazine slots, 10 px between grenade
+  slots and at least 14 px between the groups; both groups share the 30 px
+  row's midline. The HUD font's digits measure 10 px at 18 pt in the r4
+  capture's ammo line, so every magazine kind with frags and flashes at
+  single-digit counts needs about 241 of 248 px (about 245 at the 10.8 px one
+  reviewer read from a "77"). A third grenade kind, stored `+N` grenades or
+  multi-digit loose-round counts can tip it: the grenades then wrap onto a
+  second row at y=-124 and the panel grows to 160. It is bottom-anchored, so
+  every line above moves up one row; to keep that from flickering, a body
+  keeps the wrap until it is replaced (drawing a grenade or knife hides the
+  magazines, and counts cross digit boundaries). 160 is the size r4/r5 tested
+  with the permanent row, and this is the only height change.
+- The geometry lives in `ReserveRowLayout.cs` without Unity types, so the
+  offline checks link it; the views only measure and place. The panel was
+  280x132 before the grenade row, too.
+
+Verification: independent adversarial review in three lenses (view geometry
+and state, TMP/Unity runtime contract, tests/docs). No P0/P1. Fixed before
+commit: the wrap flipping with the hands state or a digit boundary (now kept
+per body), the grenade slots' slack growing left (content 4 px inboard, gap
+10 instead of 14 px), the 1 px midline offset between 30 and 28 px rows, a
+half-vacuous empty-group check, an order check that only saw frags, a
+fallback bound below the real digit width, and overstated wrap comments.
+Offline suite: 292 assertions and 27 rejected source faults (the eighteen
+existing controls unchanged, nine for the reserve row). Staged real client
+build: zero errors, the four existing CS8632 warnings. None of this certifies
+rendering or in-raid behavior.
+
+GPU acceptance for the merged row: the default kit (full/partial magazines plus
+RGD-5s) on one row with frag at the right edge and clear space between the last
+magazine count and the first grenade icon; grenade counts staying at the right
+while a grenade, knife or meds is in hand; a shell-by-shell weapon with loose
+rounds plus grenades; counts after a throw, reload and respawn; if a kit allows
+it, full, partial and backpack magazines with frags and flashes (the tightest
+one-row case) and a third grenade kind to see the wrap, which must then stay
+until the next respawn; unchanged or larger distance to the killfeed.

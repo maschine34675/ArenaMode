@@ -4,9 +4,9 @@ using UnityEngine.UI;
 
 namespace ArenaMode.Hud.InfoPanels.UI
 {
-    // One row with a fixed slot per grenade kind (frag, flash, smoke), mirroring
-    // the spare-magazine bar: each kind always sits in the same place, so the
-    // eye learns where to look, and an empty kind leaves its slot hidden.
+    // Right half of the weapon panel's reserve row (see ReserveRowLayout): one
+    // slot per grenade kind, packed from the right edge with frag outermost,
+    // then flash, then smoke. An empty kind takes no room.
     //
     // The number is what the native quick throw can take (see
     // GrenadeInventoryCounter: vanilla rig/pockets top level; the installed
@@ -17,15 +17,23 @@ namespace ArenaMode.Hud.InfoPanels.UI
     // documents the one TopPriorityGrenade exception to that reading.
     internal sealed class GrenadeBarView
     {
-        private const float SlotWidth = 88f;
-        private const float RowHeight = 28f;
+        // Same height as the magazine row, so both groups share its midline.
+        private const float RowHeight = 30f;
+        private const float ContentInset = 8f;
+        private const float SlotSlack = 4f;
         private const float IconSize = 22f;
         private const float CountTextLeft = 27f;
+        private const float CountFontSize = 17f;
 
         private readonly RectTransform _root;
-        private readonly GameObject[] _slots = new GameObject[3];
+        private readonly RectTransform[] _slots = new RectTransform[3];
         private readonly Image[] _icons = new Image[3];
         private readonly TextMeshProUGUI[] _counts = new TextMeshProUGUI[3];
+        private readonly int[] _shownReady = { -1, -1, -1 };
+        private readonly int[] _shownStored = { -1, -1, -1 };
+        private readonly float[] _widths = new float[3];
+        private readonly bool[] _visible = new bool[3];
+        private readonly float[] _rightInsets = new float[3];
 
         private static readonly string[] IconFiles =
         {
@@ -52,19 +60,33 @@ namespace ArenaMode.Hud.InfoPanels.UI
                 slot.transform.SetParent(_root, false);
 
                 var slotRect = slot.AddComponent<RectTransform>();
-                slotRect.anchorMin = new Vector2(0f, 0f);
-                slotRect.anchorMax = new Vector2(0f, 1f);
-                slotRect.pivot = new Vector2(0f, 0.5f);
-                slotRect.anchoredPosition = new Vector2(8f + i * SlotWidth, 0f);
-                slotRect.sizeDelta = new Vector2(SlotWidth - 8f, 0f);
+                slotRect.anchorMin = new Vector2(1f, 0f);
+                slotRect.anchorMax = new Vector2(1f, 1f);
+                slotRect.pivot = new Vector2(1f, 0.5f);
+                slotRect.anchoredPosition = new Vector2(-ContentInset, 0f);
+                slotRect.sizeDelta = new Vector2(80f, 0f);
 
-                _slots[i] = slot;
+                _slots[i] = slotRect;
                 _icons[i] = CreateIcon(slotRect);
                 _counts[i] = CreateCount(slotRect);
                 slot.SetActive(false);
             }
 
             rowObject.SetActive(false);
+        }
+
+        // Total width of the visible slots including their spacing; 0 while
+        // nothing is shown.
+        public float GroupWidth { get; private set; }
+
+        // The reserve row, or the row below it when the magazines leave too
+        // little room (WeaponInfoPanel decides).
+        public void PlaceOnRow(float topOffset)
+        {
+            if (_root.anchoredPosition.y != topOffset)
+            {
+                _root.anchoredPosition = new Vector2(0f, topOffset);
+            }
         }
 
         public void SetSummary(GrenadeInventoryCounter.GrenadeSummary summary, Color color)
@@ -74,10 +96,11 @@ namespace ArenaMode.Hud.InfoPanels.UI
                 var kind = (GrenadeKind)i;
                 int ready = summary.Ready(kind);
                 int stored = summary.Stored(kind);
-                bool visible = ready > 0 || stored > 0;
-                _slots[i].SetActive(visible);
-                if (!visible)
+                _visible[i] = ready > 0 || stored > 0;
+                _slots[i].gameObject.SetActive(_visible[i]);
+                if (!_visible[i])
                 {
+                    ForgetShown(i);
                     continue;
                 }
 
@@ -87,10 +110,32 @@ namespace ArenaMode.Hud.InfoPanels.UI
                 // Dimmed when G's candidate list holds none of this kind.
                 _icons[i].color = ready > 0 ? Color.white : new Color(1f, 1f, 1f, 0.45f);
 
-                _counts[i].text = stored > 0
-                    ? $"{ready}<alpha=#80> +{stored}"
-                    : ready.ToString();
+                if (ready != _shownReady[i] || stored != _shownStored[i])
+                {
+                    _counts[i].text = stored > 0
+                        ? $"{ready}<alpha=#80> +{stored}"
+                        : ready.ToString();
+                    _shownReady[i] = ready;
+                    _shownStored[i] = stored;
+                    int glyphs = Digits(ready) + (stored > 0 ? 2 + Digits(stored) : 0);
+                    _widths[i] = ReserveRowLayout.SlotWidth(
+                        CountTextLeft, PanelStyle.MeasureTextWidth(_counts[i]), glyphs, CountFontSize);
+                }
+
                 PanelStyle.ApplyTextColor(_counts[i], color);
+            }
+
+            GroupWidth = ReserveRowLayout.PackFromRight(_widths, _visible, _rightInsets);
+            for (int i = 0; i < 3; i++)
+            {
+                if (_visible[i])
+                {
+                    // The pivot is the slot's right edge, and the slack belongs
+                    // beyond the count as on the magazine slots, so shift by
+                    // it: icon and count then span exactly the packed width.
+                    _slots[i].anchoredPosition = new Vector2(SlotSlack - (ContentInset + _rightInsets[i]), 0f);
+                    _slots[i].sizeDelta = new Vector2(_widths[i] + SlotSlack, 0f);
+                }
             }
 
             _root.gameObject.SetActive(!summary.IsEmpty);
@@ -100,12 +145,23 @@ namespace ArenaMode.Hud.InfoPanels.UI
         {
             for (int i = 0; i < 3; i++)
             {
-                _slots[i].SetActive(false);
-                _counts[i].text = string.Empty;
+                _visible[i] = false;
+                _slots[i].gameObject.SetActive(false);
+                ForgetShown(i);
             }
 
             _root.gameObject.SetActive(false);
+            GroupWidth = 0f;
         }
+
+        private void ForgetShown(int i)
+        {
+            _counts[i].text = string.Empty;
+            _shownReady[i] = -1;
+            _shownStored[i] = -1;
+        }
+
+        private static int Digits(int value) => value.ToString().Length;
 
         private static Image CreateIcon(RectTransform parent)
         {
@@ -140,9 +196,9 @@ namespace ArenaMode.Hud.InfoPanels.UI
             text.font = PanelStyle.LoadHudFont();
             text.raycastTarget = false;
             text.alignment = TextAlignmentOptions.MidlineLeft;
-            text.fontSize = 17f;
+            text.fontSize = CountFontSize;
             text.enableWordWrapping = false;
-            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.overflowMode = TextOverflowModes.Overflow;
             text.margin = Vector4.zero;
             return text;
         }

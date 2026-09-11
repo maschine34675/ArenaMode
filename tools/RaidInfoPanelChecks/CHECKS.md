@@ -33,19 +33,38 @@ The net10 executable links these production files unchanged:
   with both scratch lists filled, an examine fault after one append, the
   summary accessors the UI reads, and native-faithful missing-controller
   handling (`Player.Inventory` reads through the controller, as natively).
+- `ArenaHudVisibility.cs`: BattleUI draws the Arena canvas; native screens and a
+  missing screen manager stop drawing without deactivating the canvas object.
+- `ReserveRowLayout.cs` (added 2026-09-11): geometry of the shared
+  magazine/grenade row. Left and right packing skip hidden slots even with stale
+  widths, frag stays outermost beside flashes, every magazine kind plus frags
+  and flashes fits, a third grenade kind wraps, the fit boundary includes the
+  group gap, an empty group always fits, a body keeps its wrap while magazines
+  are hidden or counts shrink, and a zero, non-finite, implausibly small or
+  absurd text measurement falls back to the estimate or is capped. A sweep over
+  all visibility combinations checks spacing and reported extents. The views'
+  TMP measurement and RectTransform placement are not linked here.
 
 The suite includes fast repeated ticks, immediate hide/recovery before the next
 refresh deadline, replacement physical bodies, independent weapon/status faults,
 invalid intervals, bounded warnings, partial construction and cleanup after a
 hide failure. Disposal also exercises the real magazine scratch reset.
 
-Fourteen controlled source faults must compile and fail at their intended behavioral
-assertion: omitted early inactive-session guard, removed exact-world check, stale weapon content,
-leaked theme handler, legacy config writes, omitted TacticalVest counting,
-magazine scratch retention, and for grenades: scratch retention, a leak on the
-exception path only, stored grenades counted as ready, ready grenades dropped
-when outside the carried walk, the native reach list replaced by a hand-written
-walk, stun no longer grouped with flash, and secure-container grenades counted. Each run saves copied mutants and output under this
+Twenty-seven controlled source faults must compile and fail at their intended
+behavioral assertion: omitted inventory-open flag, omitted native-screen check,
+a canvas kept drawing on native screens, panels built under an already hidden
+root (before TMP's Awake), omitted early inactive-session guard, removed
+exact-world check, stale weapon content, leaked theme handler, legacy config
+writes, omitted TacticalVest counting, magazine scratch retention; for
+grenades: scratch retention, a leak on the exception path only, stored grenades
+counted as ready, ready grenades dropped when outside the carried walk, the
+native reach list replaced by a hand-written walk, stun no longer grouped with
+flash, and secure-container grenades counted; for the reserve row: the group gap
+left out of the fit, the magazine group ignored by the fit, hidden slots
+reserving room, grenade spacing omitted, the measurement fallback removed, the
+per-body wrap not kept, the empty-magazine clause dropped, the grenade order
+reversed, and implausibly small measurements trusted.
+Each run saves copied mutants and output under this
 project's ignored `obj/negative/<unique-id>` directory; production source is never
 modified. The verifier reruns the unmodified production sources afterward.
 

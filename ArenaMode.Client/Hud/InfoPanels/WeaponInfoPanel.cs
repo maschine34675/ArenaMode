@@ -9,12 +9,22 @@ namespace ArenaMode.Hud.InfoPanels
 {
     internal sealed class WeaponInfoPanel
     {
+        private const float PanelWidth = 280f;
+        private const float PanelHeight = 132f;
+        private const float ReserveRowTop = -94f;
+        // Only when magazines and grenades do not fit side by side; this is
+        // the height the panel had with a permanent grenade row.
+        private const float WrappedGrenadeRowTop = -124f;
+        private const float WrappedPanelHeight = 160f;
+
         private readonly RectTransform _panelRect;
         private readonly TextMeshProUGUI _titleLine;
         private readonly TextMeshProUGUI _ammoLine;
         private readonly TextMeshProUGUI _metaLine;
         private readonly SpareMagazineBarView _spareMagBar;
         private readonly GrenadeBarView _grenadeBar;
+        private Player _layoutBody;
+        private bool _grenadesWrapped;
 
         public WeaponInfoPanel(Transform parent)
         {
@@ -25,13 +35,13 @@ namespace ArenaMode.Hud.InfoPanels
                 new Vector2(1f, 0f),
                 new Vector2(1f, 0f),
                 InfoPanelSettings.WeaponPanelOffset.Value,
-                new Vector2(280f, 160f));
+                new Vector2(PanelWidth, PanelHeight));
 
             _titleLine = PanelStyle.CreateLine(_panelRect, "WeaponTitle", -10f, 24f);
             _ammoLine = PanelStyle.CreateLine(_panelRect, "WeaponAmmo", -38f, 24f);
             _metaLine = PanelStyle.CreateLine(_panelRect, "WeaponMeta", -66f, 24f);
-            _spareMagBar = new SpareMagazineBarView(_panelRect, -94f);
-            _grenadeBar = new GrenadeBarView(_panelRect, -126f);
+            _spareMagBar = new SpareMagazineBarView(_panelRect, ReserveRowTop);
+            _grenadeBar = new GrenadeBarView(_panelRect, ReserveRowTop);
 
             PanelStyle.ApplyTextColor(_titleLine, InfoPanelSettings.WeaponTextColor.Value);
             PanelStyle.ApplyTextColor(_ammoLine, InfoPanelSettings.WeaponTextColor.Value);
@@ -60,9 +70,9 @@ namespace ArenaMode.Hud.InfoPanels
             _grenadeBar.Hide();
         }
 
-        // Everything that describes the firearm in hand. The grenade row is
-        // carried inventory and stays: holding a grenade (or a knife or meds)
-        // is exactly when the remaining grenade count matters.
+        // Everything that describes the firearm in hand. The grenade counts
+        // are carried inventory and stay: holding a grenade (or a knife or
+        // meds) is exactly when the remaining grenade count matters.
         private void ClearWeaponLines()
         {
             _titleLine.text = string.Empty;
@@ -73,8 +83,38 @@ namespace ArenaMode.Hud.InfoPanels
 
         public void UpdateFromPlayer(Player player)
         {
-            UpdateGrenadeLine(player);
+            if (!ReferenceEquals(player, _layoutBody))
+            {
+                _layoutBody = player;
+                _grenadesWrapped = false;
+            }
 
+            UpdateGrenadeLine(player);
+            UpdateWeaponLines(player);
+            ArrangeReserveRow();
+        }
+
+        // Magazines keep the reserve row's left side; the grenades take its
+        // right side when they fit beside them, otherwise the row below.
+        // The panel is bottom-anchored, so wrapping lifts every line by one
+        // row. Once a body needed the wrap it keeps it until the next body:
+        // drawing a grenade or knife hides the magazines, and a count crossing
+        // a digit boundary changes their width, and neither may make the
+        // whole panel jump back and forth.
+        private void ArrangeReserveRow()
+        {
+            _grenadesWrapped = ReserveRowLayout.GrenadesWrapped(
+                _grenadesWrapped, _spareMagBar.ContentRight, _grenadeBar.GroupWidth);
+            _grenadeBar.PlaceOnRow(_grenadesWrapped ? WrappedGrenadeRowTop : ReserveRowTop);
+            float height = _grenadesWrapped ? WrappedPanelHeight : PanelHeight;
+            if (_panelRect.sizeDelta.y != height)
+            {
+                _panelRect.sizeDelta = new Vector2(PanelWidth, height);
+            }
+        }
+
+        private void UpdateWeaponLines(Player player)
+        {
             if (player.HandsController is not Player.FirearmController firearmController)
             {
                 ClearWeaponLines();
@@ -226,8 +266,7 @@ namespace ArenaMode.Hud.InfoPanels
 
         // Independent of the hands state on purpose (see ClearWeaponLines).
         // Hidden while no grenade is carried (all thrown, a kit without
-        // grenades, no rig space for the supplied RGD-5s); like the spare-mag
-        // row, its space stays reserved so the panel never jumps in height.
+        // grenades, no rig space for the supplied RGD-5s).
         private void UpdateGrenadeLine(Player player)
         {
             if (GrenadeInventoryCounter.TryGetSummary(player, out var summary) && !summary.IsEmpty)
