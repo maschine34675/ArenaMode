@@ -7,6 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r4 accepted core UI; killfeed follow-up delivered (2026-09-11):** report
+  `6ac779e` confirms observed menu hiding/panel return, ammo refresh, respawn
+  values, two Arena starts without native list/header, normal PMC restoration
+  with single-O, and quickslot/assembly spacing at 1920x1080. Independently
+  inspected screenshots and final raw log: two each of panel/header/list markers,
+  no Arena HUD/panel/extraction failure or duplicate-CanvasGroup spam. Keep r4's
+  limits: grenade comparison interrupted by death, incomplete transition/time
+  coverage, no reliable double-O or actual extract, no wider PFT/resolution proof.
+  Reported partial-name killfeed remains rejected; the wrapped identity fix is
+  now delivered, but is not yet GPU-tested. World-space green exit waymarkers
+  temporarily overlapping the status panel are a separate unresolved UI issue.
+  QuestTracker/startup RenderTexture, SAIN teardown and BotWeaponSelector errors
+  do not establish UI causation; no speculative fix to them is included.
+  The parallel audio task finished as `3ea1977` during delivery preparation.
+  Built that clean combined commit to preserve its neutral config description;
+  reviewed killfeed/HUD/Combat sources are unchanged from `4e49537`. Build: zero
+  errors, four existing CS8632 warnings, all 29 embedded icons verified; formatter
+  recheck: 31 assertions and one rejected missing-attacker source fault.
+  Delivered client SHA256:
+  `A9D9A0E5D60E2BC56D9E419F5284745857D910C16B8E51496B5CAFBE995028F9`.
+  Manifest `artifacts/double-jump-build/8cb73ba9b89f46dba256fee636d43cfa/manifest.json`;
+  receipt `artifacts/killfeed-identity-delivery/8cc7fedc98514757bb6478070cf7a3bb/receipt.json`.
+  Previous r4 client backed up; all 40 protected server/dependency/config/asset
+  files unchanged, including the separately delivered new hitmarker assets.
+  Client-only delivery; game restart required, server unchanged. New GPU mirror
+  and rendering unverified. `GPU-PANELS-TEST-INSTRUCTIONS.md` now binds source
+  `3ea1977` and this hash for r5: one focused Arena raid, a separate r5 report.
+  All four prior GPU reports remain unchanged. Older `0DA0F70F...`/`BC93977A...`
+  staged clients are superseded; do not deploy them over this combined delivery.
+
 - **User-selected hitmarker replacement (2026-09-11):** all three cues now use
   Freesound 570335 by User391915396 (CC0), supplied and auditioned by the user.
   Identical 187.506 ms mono PCM16/44.1 kHz WAVs; source gain preserved, no trimming
@@ -24,12 +54,12 @@ current. User-facing communication is normally German.
   `857206A4BF295607130B6F54A2A9CDECDB3F5A92B53784F9C644F7FC5199F1BB`.
   Old Kenney notices are absent from source but harmless copies remain installed;
   current AUDIO-LICENSES.md and SOURCES.json identify the replacement correctly.
-  Settings description is neutral in source and takes effect with the next DLL
-  delivery; no playback or settings behavior changed. WAVs reload at the next
+  Settings description is neutral and included in the combined DLL delivery
+  above; no playback or settings behavior changed. WAVs reload at the next
   Arena match; no game/server restart needed for this asset-only replacement.
   GPU mirror and in-game audibility remain unverified here.
 
-- **Killfeed identity/overflow follow-up, staged only (2026-09-11):** user reports
+- **Killfeed identity/overflow follow-up, initially staged (2026-09-11):** user reports
   clipping during the ongoing r4 job: other kills show attacker plus ellipsis;
   local kills omit the local name. The latter was the old format itself, while
   the recent fixed-height Ellipsis setting can truncate horizontally or vertically.
@@ -49,9 +79,9 @@ current. User-facing communication is normally German.
   Staged client SHA256:
   `0DA0F70F165F6E3EB1ED000CAF7AB3DDB1A8F00ADA180AD6CECCC6BDEF9829D4`.
   Client/server/Redeploy.Core installed hashes verified unchanged after build.
-  **Do not deploy or rebind the r4 job while its tests run:** installed client
-  stays `857206A4BF295607130B6F54A2A9CDECDB3F5A92B53784F9C644F7FC5199F1BB`.
-  `GPU-PANELS-TEST-INSTRUCTIONS.md` and existing reports stay unchanged.
+  Delivery was held while r4 ran, preserving its installed client and instruction.
+  r4 is now complete; the combined delivery and r5 instruction above supersede
+  this staged artifact. Previous reports remain unchanged.
 
 - **Killfeed readability and quickslot clearance (2026-09-11):** each pooled
   killfeed row now has a dark 88%-opacity background, padded 18px bold text and
