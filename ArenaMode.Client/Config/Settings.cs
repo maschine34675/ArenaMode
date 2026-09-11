@@ -81,6 +81,8 @@ public static class Settings
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
+    public static ConfigEntry<bool> HitmarkerSounds { get; private set; }
+    public static ConfigEntry<float> HitmarkerVolume { get; private set; }
     public static ConfigEntry<bool> MuteLabyrinthAlarm { get; private set; }
     public static ConfigEntry<float> RagdollImpulseScale { get; private set; }
     public static ConfigEntry<bool> ArenaLightingEnabled { get; private set; }
@@ -1036,6 +1038,17 @@ public static class Settings
             "DamageNumbers",
             true,
             "Floating damage numbers at the hit position.");
+
+        HitmarkerSounds = config.Bind(
+            "Audio", "HitmarkerSounds", true,
+            "Short Arena hit, headshot and kill sounds, independent of the visual HUD and announcer. " +
+            "Example Kenney CC0 sounds in BepInEx/plugins/ArenaMode/hitmarkers/.");
+
+        HitmarkerVolume = config.Bind(
+            "Audio", "HitmarkerVolume", 0.5f,
+            new ConfigDescription("Hitmarker sound volume, independent of Interface and announcer volume. " +
+                "Still respects overall game volume and mute; changes apply immediately.",
+                new AcceptableValueRange<float>(0f, 1f)));
 
         AnnouncerEnabled = config.Bind(
             "Audio",

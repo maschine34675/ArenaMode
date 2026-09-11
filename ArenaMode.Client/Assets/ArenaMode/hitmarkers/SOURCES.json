@@ -1,0 +1,68 @@
+{
+  "author": "Kenney",
+  "license": "CC0-1.0",
+  "checked": "2026-09-11",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "encoder": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+  "conversion": "Decode to 44100 Hz mono float PCM; trim leading/trailing samples below 0.001 with 2 ms padding; limit to 300 ms with 5 ms end fade; peak-normalize to 0.5 (-6.02 dBFS); round to signed PCM16 WAV. No pitch changes, splicing or added effects.",
+  "packs": {
+    "interface": {
+      "source": "https://kenney.nl/assets/interface-sounds",
+      "archive": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "archiveSha256": "F2193D072726D6758A5F7871B2DCC54DCCE0D5C35C6F0A62F92549B327C81232",
+      "licenseFile": "KENNEY-INTERFACE-LICENSE.txt",
+      "licenseSha256": "F7966C773BBED0ECA6A9C75081C44A178B38EAE112724DBB5FDFBD4192D118A9"
+    },
+    "impact": {
+      "source": "https://kenney.nl/assets/impact-sounds",
+      "archive": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "archiveSha256": "029D734AF1582474EDF3A694D1B0CEBC97C1C152F2F39FA34D4C2BAFC5DE77F8",
+      "licenseFile": "KENNEY-IMPACT-LICENSE.txt",
+      "licenseSha256": "B49AA9C56B04528B95913DE13E506A0F7C5E807B9925DB9BFEF86AF1F91120DB"
+    }
+  },
+  "files": [
+    {
+      "cue": "hit",
+      "pack": "interface",
+      "original": "Audio/click_003.ogg",
+      "sourceSha256": "2FA929138BC3A0F432696588F66EAC94B8F6D463905EC8808C6461CE4B054292",
+      "file": "hit.wav",
+      "sha256": "4F43A222D957EE27158AEBCF2342242BFEC16E59FD156F8F9F374E1382A2394C",
+      "sourceDecodedFrames": 314,
+      "trimStartFrame": 0,
+      "frames": 314,
+      "sampleRate": 44100,
+      "channels": 1,
+      "durationMs": 7.12
+    },
+    {
+      "cue": "headshot",
+      "pack": "impact",
+      "original": "Audio/impactMetal_light_000.ogg",
+      "sourceSha256": "33B5E6E37C6E9D54E07BF5A89B12C76E879F40C1EA83CDD82714DF1D6F9FEC6D",
+      "file": "headshot.wav",
+      "sha256": "5B870AFB2AA0BB611E05EC4E8D3AC3B4FF2D42663DA448977DC35118D6235C47",
+      "sourceDecodedFrames": 16448,
+      "trimStartFrame": 0,
+      "frames": 13230,
+      "sampleRate": 44100,
+      "channels": 1,
+      "durationMs": 300.0
+    },
+    {
+      "cue": "kill",
+      "pack": "impact",
+      "original": "Audio/impactGeneric_light_003.ogg",
+      "sourceSha256": "0E8896706130F6BC88CDF1F0157AAACDBE88DCE86CF0330F9136E44EB1209E81",
+      "file": "kill.wav",
+      "sha256": "C18DD4FD658B74BFF70C45097A7198F7B381E78A0D83D81779969EEFE308C759",
+      "sourceDecodedFrames": 5957,
+      "trimStartFrame": 0,
+      "frames": 5957,
+      "sampleRate": 44100,
+      "channels": 1,
+      "durationMs": 135.079
+    }
+  ]
+}

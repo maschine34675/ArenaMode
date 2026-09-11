@@ -30,6 +30,7 @@ internal static class CombatPatches
 {
     /// <summary>Victims already scored this raid (the game can re-enter the handler).</summary>
     private static readonly HashSet<string> SeenVictims = new HashSet<string>();
+    private static bool _reportedAudioObservationFailure;
 
     public static void Enable()
     {
@@ -46,6 +47,7 @@ internal static class CombatPatches
     public static void ResetRaidState()
     {
         SeenVictims.Clear();
+        _reportedAudioObservationFailure = false;
         ArenaHitHistory.Reset();
         ArenaAdministrativeDeathGate.Reset();
     }
@@ -387,11 +389,41 @@ internal static class CombatPatches
             => AccessTools.Method(typeof(ActiveHealthController), nameof(ActiveHealthController.ApplyDamage),
                 new[] { typeof(EBodyPart), typeof(float), typeof(DamageInfo) });
 
+        [PatchPrefix]
+        private static void Prefix(ActiveHealthController __instance, DamageInfo damageInfo, out bool __state)
+        {
+            __state = false;
+            if (!ArenaSession.IsActive || !Settings.HitmarkerSounds.Value) return;
+            try
+            {
+                var match = ArenaMatchService.Current;
+                var victim = __instance?.Player;
+                var attacker = damageInfo.Player?.iPlayer;
+                var local = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;
+                if (match == null || victim == null || local == null || __instance.IsAlive != true
+                    || !ReferenceEquals(attacker, local) || ReferenceEquals(victim, local)
+                    || ArenaMatchService.TeamStartAbortPending || Areas.ArenaAreaRuntime.IsPending
+                    || ArenaAdministrativeDeathGate.IsActive(victim.ProfileId)) return;
+                if (match.Mode is TeamDeathmatchMode teams && teams.ShouldBlockMatchDamage(victim)) return;
+                // The native lethal callback can finish the mode before our
+                // postfix. Snapshot combat/hostility eligibility while alive.
+                __state = IsAwardEligible(match, victim, attacker, damageInfo.DamageType);
+            }
+            catch (Exception ex)
+            {
+                if (!_reportedAudioObservationFailure)
+                {
+                    _reportedAudioObservationFailure = true;
+                    Plugin.ModLogger.LogWarning($"Arena hitmarker audio observation skipped: {ex.Message}");
+                }
+            }
+        }
+
         [PatchPostfix]
-        private static void Postfix(ActiveHealthController __instance, EBodyPart bodyPart, DamageInfo damageInfo, float __result)
+        private static void Postfix(ActiveHealthController __instance, EBodyPart bodyPart, DamageInfo damageInfo, float __result, bool __state)
         {
             if (!ArenaSession.IsActive
-                || (!Settings.ShowHitmarker.Value && !Settings.ShowDamageNumbers.Value))
+                || (!Settings.ShowHitmarker.Value && !Settings.ShowDamageNumbers.Value && !Settings.HitmarkerSounds.Value))
             {
                 return;
             }
@@ -420,6 +452,7 @@ internal static class CombatPatches
                     ArmorDamage = damageInfo.DidArmorDamage,
                     Headshot = bodyPart == EBodyPart.Head,
                     Kill = victim.HealthController != null && !victim.HealthController.IsAlive,
+                    AudioEligible = __state && (PositiveFinite(__result) || PositiveFinite(damageInfo.DidArmorDamage)),
                     ArmorOnly = (damageInfo.DidArmorDamage > 0.01f && __result <= 0.01f)
                         || damageInfo.BlockedBy.HasValue
                         || damageInfo.DeflectedBy.HasValue,
@@ -434,6 +467,9 @@ internal static class CombatPatches
                 Plugin.ModLogger.LogWarning($"Arena damage feed failed: {ex}");
             }
         }
+
+        private static bool PositiveFinite(float damage)
+            => damage > 0.01f && !float.IsNaN(damage) && !float.IsInfinity(damage);
     }
 
     /// <summary>

@@ -95,6 +95,7 @@ public class Plugin : BaseUnityPlugin
         gameObject.AddComponent<Spectator.ArenaSpectatorOverlay>();
 
         Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
+        Audio.HitmarkerAudioService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version})");
     }
@@ -124,6 +125,7 @@ public class Plugin : BaseUnityPlugin
         Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLaserBrightness.Reset();
         Audio.AnnouncerService.Shutdown();
+        Audio.HitmarkerAudioService.Detach();
         Audio.LabyrinthAlarmPatches.Shutdown();
         LabyrinthSpawnTraps.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();

@@ -26,7 +26,7 @@ namespace ArenaMode.Config
 {
     internal sealed class Entry<T> { public T Value; }
 
-    internal static class Settings
+    internal static partial class Settings
     {
         public static Entry<bool> AnnouncerEnabled { get; } = new() { Value = true };
         public static Entry<float> AnnouncerVolume { get; } = new() { Value = 0.37f };

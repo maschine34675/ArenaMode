@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Example hitmarker audio (2026-09-11):** implemented in isolated worktree
+  `D:\SPT41\Development\ArenaMode-HitmarkerAudio`, branch
+  `feature/hitmarker-audio`, now based on `b7678ef` so the completed parallel
+  Solo Tactical fix below is preserved. The original worktree is untouched.
+  Three adapted Kenney CC0 hit/headshot/kill WAVs, unchanged original pack
+  notices and source/hash/conversion manifest are bundled. F12 Audio:
+  `HitmarkerSounds=true`, `HitmarkerVolume=0.5`, independent of Interface,
+  announcer and visual HUD. Exact local hostile direct damage only, 40 ms
+  coalescing, kill priority, no queued stale audio or paused tails. Shared Master
+  adapter has separate announcer/impact instances; existing announcer tests
+  and fault controls pass. See HITMARKER-AUDIO-REVIEW.md and
+  tools/HitmarkerAudioChecks for tests and pending user listening/GPU checks.
+  Game restart only. Final local delivery evidence is recorded below.
+
 - **Solo Tactical: the buy phase waits for a body swap in flight (2026-09-11, 09:58):**
   this commit on `feature/arena-mantle-reload`, on top of the entry below.
   The round-1 buy phase (5 s minimum, or Ready) could end before the

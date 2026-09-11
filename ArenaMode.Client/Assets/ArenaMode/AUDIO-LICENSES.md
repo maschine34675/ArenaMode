@@ -1,4 +1,39 @@
-# ArenaMode announcer audio
+# ArenaMode audio
+
+## Kenney example hitmarker sounds (2026-09-11)
+
+The three effects in `hitmarkers/` are adapted from Kenney's **Interface Sounds
+1.0** and **Impact Sounds 1.0**. Creator: **Kenney**.
+
+- Original creator pages: <https://kenney.nl/assets/interface-sounds> and
+  <https://kenney.nl/assets/impact-sounds>.
+- License: **CC0 1.0 Universal**. Redistribution, including adapted files, is
+  permitted; credit is optional. No endorsement or warranty is implied.
+- Unchanged original pack notices:
+  [Interface license](hitmarkers/KENNEY-INTERFACE-LICENSE.txt) and
+  [Impact license](hitmarkers/KENNEY-IMPACT-LICENSE.txt).
+- Full legal text: <https://creativecommons.org/publicdomain/zero/1.0/legalcode.en>.
+- [SOURCES.json](hitmarkers/SOURCES.json) records original download URLs,
+  archive/source/output/license hashes, encoder version and exact modifications.
+
+| Cue | Original OGG | Bundled WAV | Duration |
+| --- | --- | --- | --- |
+| Hit | Interface: `Audio/click_003.ogg` | `hitmarkers/hit.wav` | 7.12 ms |
+| Headshot | Impact: `Audio/impactMetal_light_000.ogg` | `hitmarkers/headshot.wav` | 300 ms |
+| Kill | Impact: `Audio/impactGeneric_light_003.ogg` | `hitmarkers/kill.wav` | 135.08 ms |
+
+Conversion: decode to 44.1 kHz mono, trim silence below 0.001 with 2 ms padding,
+limit to 300 ms, fade the last 5 ms, normalize peak to 0.5 (-6.02 dBFS), encode
+signed PCM16 WAV. No pitch changes, splicing or added effects. The original
+metal effect is shortened. The hit click is deliberately very short. These are
+provisional examples selected from the pack contents, not a listening-approved
+final sound design. Change their balance/selection after the user's audition.
+
+Reproduce with `python tools/HitmarkerAudioChecks/import_assets.py` (explicit
+network download plus FFmpeg, never run by builds). Validate bundled assets
+offline with `python tools/HitmarkerAudioChecks/verify_assets.py`. Keep the WAVs,
+notices and source record together; they are independent of the announcer packs
+and mod code licenses. Only replace files with appropriately licensed audio.
 
 ## TripleSnail kill callouts
 

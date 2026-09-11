@@ -134,6 +134,7 @@ internal static class ArenaMatchService
             // raise its first synchronous cue from OnMatchStart; attaching
             // afterwards loses it.
             Audio.AnnouncerService.Attach(match);
+            Audio.HitmarkerAudioService.Attach(match);
             Effects.ArenaLightingDirector.Attach(match, world);
             mode.OnMatchStart(match);
             SynchronizeScoreboard(match);
@@ -147,6 +148,7 @@ internal static class ArenaMatchService
             // A partially attached HUD would tick into the menu forever.
             Try(Hud.ArenaHud.Detach, "hud detach");
             Try(Audio.AnnouncerService.Detach, "announcer detach");
+            Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio detach");
             Try(Effects.ArenaLightingDirector.Reset, "lighting detach");
             Try(Effects.ArenaTeamLaserColors.Reset, "team laser detach");
             Effects.ArenaTracerTeams.Reset();
@@ -171,6 +173,7 @@ internal static class ArenaMatchService
         Bots.TeamDeathmatchRelations.Reset();
         var match = Current;
         Current = null;
+        Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio detach");
         _teamStartAbortPending = false;
         _teamStartAbortCommitted = false;
         _teamStartAbortReason = null;
@@ -199,6 +202,7 @@ internal static class ArenaMatchService
     {
         // This boundary also runs for an ordinary raid after a missed GameEnd.
         // Clear cosmetic state even when no match latch survived.
+        Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio recovery");
         Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();

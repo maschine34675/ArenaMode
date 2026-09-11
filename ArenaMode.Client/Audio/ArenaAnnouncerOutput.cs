@@ -13,12 +13,22 @@ namespace ArenaMode.Audio;
 /// </summary>
 internal static class ArenaAnnouncerOutput
 {
-    private static GUISounds _host;
-    private static AudioMixer _mixer;
-    private static AudioMixerGroup _group;
-    private static AudioSource _source;
-
+    private static readonly ArenaMasterAudioOutput Output = new();
     internal static bool TryPlay(AudioClip clip, float volume, out string problem)
+        => Output.TryPlay(clip, volume, out problem);
+    internal static void Tick(bool enabled, float volume) => Output.Tick(enabled, volume);
+    internal static void Reset() => Output.Reset();
+}
+
+/// <summary>Each instance owns its source; short impacts cannot stop announcer speech.</summary>
+internal sealed class ArenaMasterAudioOutput
+{
+    private GUISounds _host;
+    private AudioMixer _mixer;
+    private AudioMixerGroup _group;
+    private AudioSource _source;
+
+    internal bool TryPlay(AudioClip clip, float volume, out string problem)
     {
         problem = null;
         try
@@ -85,7 +95,7 @@ internal static class ArenaAnnouncerOutput
         }
     }
 
-    internal static void Tick(bool enabled, float volume)
+    internal void Tick(bool enabled, float volume)
     {
         try
         {
@@ -106,7 +116,7 @@ internal static class ArenaAnnouncerOutput
         }
     }
 
-    private static bool ValidBinding()
+    private bool ValidBinding()
         => _host != null && _host.isActiveAndEnabled && _host.gameObject.activeInHierarchy
             && _source != null && _source.enabled && _group != null && _mixer != null
             && string.Equals(_group.name, "Master", StringComparison.Ordinal)
@@ -117,7 +127,7 @@ internal static class ArenaAnnouncerOutput
     private static float Volume(float value)
         => float.IsNaN(value) || float.IsInfinity(value) ? 0f : Math.Max(0f, Math.Min(1f, value));
 
-    internal static void Reset()
+    internal void Reset()
     {
         var source = _source;
         _source = null;
