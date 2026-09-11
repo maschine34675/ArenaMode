@@ -30,6 +30,8 @@ public class Plugin : BaseUnityPlugin
         ModLogger = base.Logger;
         RedeployCore.Init(ModLogger);
         Settings.Init(Config);
+        Hud.InfoPanels.InfoPanelSettings.Init(Config,
+            System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));
         PitFireTeamCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);

@@ -1,0 +1,267 @@
+{
+  "sourceCommit": "55ee6009592431167fefbbacca9faae3ccf8f51a",
+  "author": "maschine",
+  "files": [
+    {
+      "source": "ArmorDurabilityCounter.cs",
+      "sourceSha256": "2B9066102133808D4D18B514020234C2FFCB87743B303E985D7D3FD477293A2B",
+      "target": "ArenaMode.Client/Hud/InfoPanels/ArmorDurabilityCounter.cs"
+    },
+    {
+      "source": "ArmorZoneReference.cs",
+      "sourceSha256": "CEF582215C93180FA0EA4818A8618390200D7588634ABC7C8DB075483B9853A3",
+      "target": "ArenaMode.Client/Hud/InfoPanels/ArmorZoneReference.cs"
+    },
+    {
+      "source": "BodyStatusCounter.cs",
+      "sourceSha256": "2FD1D7FE2E42B0EA7868BDB0BDDA75D51E007C35F13FD7DDDD35E5FA84D3ED71",
+      "target": "ArenaMode.Client/Hud/InfoPanels/BodyStatusCounter.cs"
+    },
+    {
+      "source": "LooseAmmoCounter.cs",
+      "sourceSha256": "E451BBC64A870A26B1447344ACA741FC278E4B34704ED0AB67AF2CDD3B7108D3",
+      "target": "ArenaMode.Client/Hud/InfoPanels/LooseAmmoCounter.cs"
+    },
+    {
+      "source": "MagazineInventoryCounter.cs",
+      "sourceSha256": "C8BEA6DB292942C7BB2F5663CA202A81625629CA4AD20DAC1798536F218137FF",
+      "target": "ArenaMode.Client/Hud/InfoPanels/MagazineInventoryCounter.cs"
+    },
+    {
+      "source": "PlayerStatusPanel.cs",
+      "sourceSha256": "8E7B7051290EE5FDFA5873C2C19D1C5744B7C9CBD6EEE6581179AB40B9048FF7",
+      "target": "ArenaMode.Client/Hud/InfoPanels/PlayerStatusPanel.cs"
+    },
+    {
+      "source": "PlayerWeightUtil.cs",
+      "sourceSha256": "5815E397A3E4374D9F94F1D22F1C864F11650F19E52AF7020E16ACE4F47CB88A",
+      "target": "ArenaMode.Client/Hud/InfoPanels/PlayerWeightUtil.cs"
+    },
+    {
+      "source": "RaidPlayerContext.cs",
+      "sourceSha256": "F72ADCC38EEEF42EE0D4C4D6EC68957FC7B7B40361E861783228EDFB301ED029",
+      "target": "ArenaMode.Client/Hud/InfoPanels/RaidPlayerContext.cs"
+    },
+    {
+      "source": "UI/ArmorPuppetView.cs",
+      "sourceSha256": "50CCC54C1D30F4FF8CA170752099007D6B0BB95C8E0E866B982F8AB29D2E1343",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/ArmorPuppetView.cs"
+    },
+    {
+      "source": "UI/EmbeddedIcons.cs",
+      "sourceSha256": "5E4CBC7F998D0136804C44B5CD258E6B1BE7956017E04CBB1A7FCFF0DD368912",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/EmbeddedIcons.cs"
+    },
+    {
+      "source": "UI/GameIconLoader.cs",
+      "sourceSha256": "29CF9593857034CBEC2A5B96F10066E2F59E5ECC0C001E9307BACA183E65F669",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/GameIconLoader.cs"
+    },
+    {
+      "source": "UI/MagazineIconWidget.cs",
+      "sourceSha256": "DC872FFEACC92C17678FEBE15FA98117F22B2164EF8F1F2A4FFA2E8A0259D8A6",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/MagazineIconWidget.cs"
+    },
+    {
+      "source": "UI/PanelStyle.cs",
+      "sourceSha256": "11F42ABB7842DC0042DB18E858DEB9627F8A2A206290F72031D9B462C687AB66",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/PanelStyle.cs"
+    },
+    {
+      "source": "UI/SpareMagazineBarView.cs",
+      "sourceSha256": "BB99A789EE4E41EB1EA62DD02C74DFA8D1AEEB78AFC9DB72C809641373B2A52B",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/SpareMagazineBarView.cs"
+    },
+    {
+      "source": "UI/StatRowView.cs",
+      "sourceSha256": "9BA3B8AA4C7901991D9633388542BC0A53EA24FB70A59712C06BF892C8E331C1",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/StatRowView.cs"
+    },
+    {
+      "source": "UI/StatusStripView.cs",
+      "sourceSha256": "3679F68B2104043D7537FA33C6E9B8F32DCD170FAC451E530C25739799AAFD96",
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/StatusStripView.cs"
+    },
+    {
+      "source": "WeaponInfoPanel.cs",
+      "sourceSha256": "457A82970786C40F0B133AB2ABE88B0667BC4B29DE31CC9A548971B493FF8502",
+      "target": "ArenaMode.Client/Hud/InfoPanels/WeaponInfoPanel.cs"
+    },
+    {
+      "source": "Icons/armor_base.png",
+      "sourceSha256": "45FCF5A55C5BE536B423A42DCA8760CEFE881F2C21EECF65654323FA9975D744",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_base.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_arm_fore_left.png",
+      "sourceSha256": "A018C7191144F09E6BE08F3F266CD9351E710B0E375D4B27C7F73FBEF7198C9E",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_fore_left.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_arm_fore_right.png",
+      "sourceSha256": "2D9BB9A469268DBF48FCCDBAE588766A6254DBCA5533C8013DE35AB427DA3184",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_fore_right.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_arm_upper_left.png",
+      "sourceSha256": "9E1F5D4890D89E9ED3AE076AB0BF23299A7C7BB8FAC6BFE40B8580868BDF449F",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_upper_left.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_arm_upper_right.png",
+      "sourceSha256": "AE62482D5594D3D8E27A8748CBEC9AAA8DB2B15B10A8B862A04A176E60A67D64",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_upper_right.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_calf_left.png",
+      "sourceSha256": "D2473798922BB6D3D75694F3429A565403571BBFC033C5BA2DADB255B3DDD678",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_calf_left.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_calf_right.png",
+      "sourceSha256": "5120B66482CFECE74D6B1C11A0091D9D9F0E76BD801BB3D954A1F16567932C00",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_calf_right.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_head.png",
+      "sourceSha256": "6438B09AB2949DF262815689373794066734F8FA9E919FCE2B5AD0D5EF64B1DE",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_head.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_pelvis.png",
+      "sourceSha256": "DA7656889D83643FED033D31F51902CA6E943C02E11EA9286FFBFE1691E7B70B",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_pelvis.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_side_left.png",
+      "sourceSha256": "0F104FFFCC49AF219E44009EC0C66A71D14BD6D0C1F0DD1739C0276F30849531",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_side_left.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_side_right.png",
+      "sourceSha256": "E9A70B79ED37F0A7072618F368D25396205C4DCF1FF7508E15123A1E7439CC53",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_side_right.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_stomach.png",
+      "sourceSha256": "58AFB1F37D3D2477DE11E8E1764DDA55BC66A2F86ED6D19235ABB374A5F01B2F",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_stomach.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_thigh_left.png",
+      "sourceSha256": "FF3CF298CF308F9465A87B8618EEA669F46B6C3FF869548D286E4CA5BF1E5D30",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_thigh_left.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_thigh_right.png",
+      "sourceSha256": "CF20B421FFC686453138682770587BA85A67BCBE6E10C952068A70649785D298",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_thigh_right.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_thorax.png",
+      "sourceSha256": "37DDDE0476AD802DB984D1FE7C6514E0AEEC47139CD6FD75E19EB89EB70D4BAF",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_thorax.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/armor_zone_throat.png",
+      "sourceSha256": "CF9166C90DCD0A52BD10848AB2B80A30D32360C784E709FE16261B803B638881",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_throat.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/mag_backpack.png",
+      "sourceSha256": "7D2285648FF1AB5114327DE58A6A226DA2C506CA8002232B45659CF34EE15AB4",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/mag_backpack.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/mag_full.png",
+      "sourceSha256": "41324E1CA0A7AA1647969AE1B5F17D94DD736EE09451443D86B4A6986EDAFAD3",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/mag_full.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/mag_partial.png",
+      "sourceSha256": "FCA64DF975A869C679991DCCC1E1CB68F91094416018DF0BD6FAA99EB6615EB7",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/mag_partial.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/panel_bg.png",
+      "sourceSha256": "B0EBE3B8A9F4D99CF861E7BC027F4FB6C3D2F953F54316D1B58747E4DD1271CF",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/panel_bg.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/panel_stroke.png",
+      "sourceSha256": "39018C06D416437C38993A501A6E42C1DB6A17768FE325F6F547F0FAD2B2B65E",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/panel_stroke.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/rounds_backpack.png",
+      "sourceSha256": "921D4D77C81892B5C875E3DB07918711C762DC152B232FCCE430F3C70A124134",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/rounds_backpack.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/rounds_ready.png",
+      "sourceSha256": "74C30BE4145C1AE4BBE4ABC98F3A86CC6674E56B1101B33ED8BCACB111CAD281",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/rounds_ready.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/status_bleed_heavy.png",
+      "sourceSha256": "03313EAFEA5F6A4261B77BC6F8C8C897128B8B1C9A799296CBEBC3F896A66497",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/status_bleed_heavy.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/status_bleed_light.png",
+      "sourceSha256": "B5EABD666A563648D0E87CDCF01B1ACB5B41357A7C0E697E1C943DE40F2AFB8D",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/status_bleed_light.png",
+      "unchanged": true
+    },
+    {
+      "source": "Icons/status_fracture.png",
+      "sourceSha256": "BD12EA1FED80E69FDDEFA7BC5E4A43CC21F8C80FCE11DEB712F464C40FBBD1C2",
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/status_fracture.png",
+      "unchanged": true
+    },
+    {
+      "source": "tools/gen_icons.ps1",
+      "sourceSha256": "201D081C500C20013DE805F1B5D3D6C1F22BE0427B111736B71930C887C24906",
+      "target": "tools/RaidInfoPanelIcons/gen_icons.ps1"
+    },
+    {
+      "source": "tools/gen_panel.ps1",
+      "sourceSha256": "E0BC5CB0BF670F7714DA0E8F57FC7895C4AD1DBB695636910A431DE88AD13048",
+      "target": "tools/RaidInfoPanelIcons/gen_panel.ps1"
+    },
+    {
+      "source": "tools/gen_puppet.ps1",
+      "sourceSha256": "525AB25AE251B640EA4276145F45FBDBE5D315E743213F6123E3F992141C8CF5",
+      "target": "tools/RaidInfoPanelIcons/gen_puppet.ps1"
+    },
+    {
+      "source": "tools/gen_status.ps1",
+      "sourceSha256": "C6B17FE9A39D5090B0ECC64124A2F2B3E807C020BB5A9154F1CB8956AA5926EB",
+      "target": "tools/RaidInfoPanelIcons/gen_status.ps1"
+    }
+  ]
+}

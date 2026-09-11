@@ -10,8 +10,8 @@ namespace ArenaMode.Hud;
 
 /// <summary>
 /// The arena overlay: score panel, killfeed, callouts, hitmarker and damage
-/// numbers on one ScreenSpaceOverlay canvas (proven RaidInfoPanels pattern,
-/// sorting order above it). Built per match, destroyed at raid end — no state
+/// numbers and absorbed weapon/status panels on one ScreenSpaceOverlay canvas.
+/// Built per match, destroyed at raid end — no player state
 /// survives between raids by construction.
 /// </summary>
 internal static class ArenaHud
@@ -25,6 +25,7 @@ internal static class ArenaHud
     private static DamageNumbersElement _numbers;
     private static ArenaAssemblyBanner _assembly;
     private static ArenaFriendlyMarkers _friendlyMarkers;
+    private static InfoPanels.ArenaInfoPanels _infoPanels;
 
     public static void Attach(ArenaMatch match)
     {
@@ -34,7 +35,7 @@ internal static class ArenaHud
 
         try
         {
-            Build();
+            Build(match);
             _match = match;
             match.OnKill += OnKill;
             match.OnCallout += OnCallout;
@@ -49,6 +50,8 @@ internal static class ArenaHud
 
     public static void Detach()
     {
+        _infoPanels?.Dispose();
+        _infoPanels = null;
         _friendlyMarkers?.Dispose();
         _friendlyMarkers = null;
         if (_match != null)
@@ -87,6 +90,7 @@ internal static class ArenaHud
             _numbers.Tick();
             _assembly.Tick(_match);
             _friendlyMarkers.Tick(_match);
+            _infoPanels?.Tick();
         }
         catch (Exception ex)
         {
@@ -95,7 +99,7 @@ internal static class ArenaHud
         }
     }
 
-    private static void Build()
+    private static void Build(ArenaMatch match)
     {
         _canvasGo = new GameObject("ArenaHudCanvas");
         _canvasGo.transform.SetParent(Plugin.Instance.transform, false);
@@ -126,6 +130,7 @@ internal static class ArenaHud
         _assembly.Create(root);
         _friendlyMarkers = new ArenaFriendlyMarkers();
         _friendlyMarkers.Create(root);
+        _infoPanels = new InfoPanels.ArenaInfoPanels(root, match);
     }
 
     private static void OnKill(ArenaKill kill)

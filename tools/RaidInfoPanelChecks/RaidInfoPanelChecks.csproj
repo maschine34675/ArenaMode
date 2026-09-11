@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PanelSource Condition="'$(PanelSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\ArenaInfoPanels.cs</PanelSource>
+    <ContextSource Condition="'$(ContextSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\RaidPlayerContext.cs</ContextSource>
+    <SettingsSource Condition="'$(SettingsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\InfoPanelSettings.cs</SettingsSource>
+    <MagazineSource Condition="'$(MagazineSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\MagazineInventoryCounter.cs</MagazineSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PanelSource)" Link="Production/ArenaInfoPanels.cs" />
+    <Compile Include="$(ContextSource)" Link="Production/RaidPlayerContext.cs" />
+    <Compile Include="$(SettingsSource)" Link="Production/InfoPanelSettings.cs" />
+    <Compile Include="$(MagazineSource)" Link="Production/MagazineInventoryCounter.cs" />
+  </ItemGroup>
+</Project>

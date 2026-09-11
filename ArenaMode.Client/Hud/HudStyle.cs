@@ -17,7 +17,7 @@ internal static class HudStyle
     {
         get
         {
-            if (_fontLoaded)
+            if (_fontLoaded && _font != null)
                 return _font;
 
             _fontLoaded = true;
@@ -65,8 +65,13 @@ internal static class HudStyle
         text.raycastTarget = false;
         text.enableWordWrapping = false;
         text.overflowMode = TextOverflowModes.Overflow;
+        ApplyOutline(text);
+        return text;
+    }
+
+    internal static void ApplyOutline(TextMeshProUGUI text)
+    {
         text.outlineWidth = 0.045f;
         text.outlineColor = new Color(0f, 0f, 0f, 0.7f);
-        return text;
     }
 }

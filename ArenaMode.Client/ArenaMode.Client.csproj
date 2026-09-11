@@ -35,6 +35,14 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Absorbed, author-generated RaidInfoPanels sprites; no standalone DLL. -->
+    <EmbeddedResource Include="Hud\InfoPanels\Icons\*.png" Exclude="Hud\InfoPanels\Icons\*preview*.png">
+      <LogicalName>ArenaMode.Hud.InfoPanels.Icons.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <Reference Include="UnityEngine.ImageConversionModule" Private="false" />
+  </ItemGroup>
+
   <Target Name="DeployArenaAudioAssets" AfterTargets="SPTClientDeploy">
     <Copy SourceFiles="@(ArenaAudioAsset)"
           DestinationFiles="@(ArenaAudioAsset->'$(SPTPath)\BepInEx\plugins\ArenaMode\%(RecursiveDir)%(Filename)%(Extension)')"

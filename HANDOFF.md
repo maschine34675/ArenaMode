@@ -7,10 +7,37 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **RaidInfoPanels absorbed (2026-09-11):** the main checkout now uses
+  `feature/arena-raid-info-panels`, based on `0f9f1e9` and therefore includes
+  the hitmarker implementation and completed parallel Solo Tactical changes.
+  Both weapon/reserve and health/armor/status panels are now match-owned
+  modules on Arena's canvas, using its font and outline style. Their complete
+  source, 26 unchanged generated icons and four generators were imported from
+  the user's RaidInfoPanels source `55ee600`. No standalone plugin/reference
+  or additional gameplay patch. F12 settings live under `HUD Panels - ...`;
+  all 17 current values migrate as defaults from the old CFG, with existing
+  Arena settings taking precedence. **Keep the legacy CFG in place until at
+  least the first new game start.** Exact local-body gates hide these panels
+  in ordinary raids, on death/respawn and during spectating; match teardown
+  releases their caches. Weight warnings use the body's actual Arena limits.
+  Armored rigs already count through `TacticalVest`; the old "Armor-Vest-Grids"
+  note referred only to the separate `ArmorVest` slot. Clarified and covered
+  by the production-counter regression. Parent verification: 180 assertions,
+  seven controlled source faults; real client build/resource checks pass.
+  See RAID-INFO-PANELS-REVIEW.md and tools/RaidInfoPanelChecks.
+  Verified complete source/Git/installed-artifact backup:
+  `D:\SPT41\Development\_archive\RaidInfoPanels-2026-09-11-f8c969a4dffa4335987a02ade57e66fe`.
+  Only the user-named local project and installed standalone DLL are retired;
+  GitHub remote stays unchanged. Delivery identity is recorded below after
+  the clean build. **Game restart only.** GPU layout/migration/playtest and
+  mirror completion are not claimed; test both panels over kit changes,
+  death/respawn, a second raid and an ordinary raid.
+
 - **Example hitmarker audio (2026-09-11):** implemented in isolated worktree
   `D:\SPT41\Development\ArenaMode-HitmarkerAudio`, branch
   `feature/hitmarker-audio`, now based on `b7678ef` so the completed parallel
-  Solo Tactical fix below is preserved. The original worktree is untouched.
+  Solo Tactical fix below is preserved. This feature is also included in the
+  current main checkout through the RaidInfoPanels branch described above.
   Three adapted Kenney CC0 hit/headshot/kill WAVs, unchanged original pack
   notices and source/hash/conversion manifest are bundled. F12 Audio:
   `HitmarkerSounds=true`, `HitmarkerVolume=0.5`, independent of Interface,
@@ -29,9 +56,8 @@ current. User-facing communication is normally German.
   17 controlled source faults; three WAVs and original notice hashes also
   verified from committed Git blobs. Client build: 0 errors, 4 existing CS8632
   warnings. Independent reviews complete. **Restart game only**; GPU listening
-  and mirror completion unverified. Original checkout remains on the separate
-  `feature/arena-mantle-reload` branch; do not rebuild that older checkout over
-  this client until the hitmarker feature is integrated or deliberately removed.
+  and mirror completion unverified. Do not rebuild an older checkout lacking
+  these changes over the current integrated client.
 
 - **Solo Tactical: the buy phase waits for a body swap in flight (2026-09-11, 09:58):**
   this commit on `feature/arena-mantle-reload`, on top of the entry below.
