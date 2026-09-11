@@ -21,7 +21,7 @@ internal sealed class ArenaAssemblyBanner
         var rect = (RectTransform)_root.transform;
         rect.SetParent(parent, false);
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, 1f);
-        rect.anchoredPosition = new Vector2(0f, -110f);
+        rect.anchoredPosition = new Vector2(0f, -(ScorePanel.TopOffset + ScorePanel.PanelHeight + 20f));
         rect.sizeDelta = new Vector2(900f, 90f);
         var backdrop = _root.AddComponent<Image>();
         backdrop.color = new Color(.03f, .04f, .05f, .8f);

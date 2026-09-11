@@ -8,6 +8,9 @@ namespace ArenaMode.Hud;
 internal sealed class ScorePanel
 {
     private const float RefreshInterval = 0.25f;
+    // Reserve the top strip for the quick-access bar (1920x1080 HUD units).
+    internal const float TopOffset = 110f;
+    internal const float PanelHeight = 60f;
 
     private RectTransform _root;
     private TextMeshProUGUI _mainLine;
@@ -20,8 +23,8 @@ internal sealed class ScorePanel
         _root = (RectTransform)go.transform;
         _root.SetParent(hudRoot, false);
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0.5f, 1f);
-        _root.anchoredPosition = new Vector2(0f, -18f);
-        _root.sizeDelta = new Vector2(900f, 60f);
+        _root.anchoredPosition = new Vector2(0f, -TopOffset);
+        _root.sizeDelta = new Vector2(900f, PanelHeight);
 
         _mainLine = HudStyle.CreateText(_root, "Main", 24f, TextAlignmentOptions.Top);
         var mainRect = _mainLine.rectTransform;

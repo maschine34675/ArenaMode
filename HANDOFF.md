@@ -7,6 +7,23 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Killfeed readability and quickslot clearance (2026-09-11):** each pooled
+  killfeed row now has a dark 88%-opacity background, padded 18px bold text and
+  brighter death/other-kill colors. Entries stay fully visible for 4.5 seconds,
+  then fade over 1.5 seconds; the six-row pool and six-second lifetime remain.
+  Alpha is reset before reuse, and TMP is still constructed while active. Text
+  stays within the existing 460px feed width (ellipsis for unusually long lines)
+  so it cannot extend over the centered score. No input targets added. ScorePanel
+  moves from 18 to 110px below the top at the 1920x1080 reference resolution;
+  the assembly notice follows below it at 190px. The r2 gameplay screenshot has
+  quickslots ending around 96px, but other resolutions/modded positions still
+  need visual confirmation. Native-menu hiding and extraction suppression from
+  `d35d878` remain unchanged. Next GPU check: bright/dark scenery, full and reused
+  killfeed, long names, quickslots plus assembly notice, and inventory return.
+  Client-only build/delivery evidence follows after verification. The existing
+  r3 panel instruction stays pinned to its original build; do not silently use
+  a newer DLL as evidence for that exact-hash test job.
+
 - **r2 GPU acceptance and remaining UI polish (2026-09-11):** report `2a57e7d`
   confirms visible panels, direct-rig grenade counts/two successive G throws,
   armored-rig magazine reserves, F12 adjustments and fresh post-respawn data.
