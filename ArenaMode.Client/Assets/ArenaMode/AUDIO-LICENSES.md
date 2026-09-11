@@ -1,39 +1,40 @@
 # ArenaMode audio
 
-## Kenney example hitmarker sounds (2026-09-11)
+## Shared hitmarker sound (2026-09-11)
 
-The three effects in `hitmarkers/` are adapted from Kenney's **Interface Sounds
-1.0** and **Impact Sounds 1.0**. Creator: **Kenney**.
+All three effects in `hitmarkers/` use **Hitmarker Sound Effect** by
+**User391915396**, published on Freesound on 2021-05-04.
 
-- Original creator pages: <https://kenney.nl/assets/interface-sounds> and
-  <https://kenney.nl/assets/impact-sounds>.
-- License: **CC0 1.0 Universal**. Redistribution, including adapted files, is
-  permitted; credit is optional. No endorsement or warranty is implied.
-- Unchanged original pack notices:
-  [Interface license](hitmarkers/KENNEY-INTERFACE-LICENSE.txt) and
-  [Impact license](hitmarkers/KENNEY-IMPACT-LICENSE.txt).
-- Full legal text: <https://creativecommons.org/publicdomain/zero/1.0/legalcode.en>.
-- [SOURCES.json](hitmarkers/SOURCES.json) records original download URLs,
-  archive/source/output/license hashes, encoder version and exact modifications.
+- Source: <https://freesound.org/people/User391915396/sounds/570335/>.
+- License on the source page: **CC0 1.0 Universal**, checked 2026-09-11.
+  Redistribution and adaptation are permitted under CC0; credit is optional.
+  No endorsement or warranty is implied. The uploader describes processing
+  recording noise into this effect; this is not an attribution to Call of Duty.
+- License: <https://creativecommons.org/publicdomain/zero/1.0/>.
+- Unchanged legal text: [CC0-1.0.txt](hitmarkers/CC0-1.0.txt), downloaded from
+  <https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt>.
+- User-supplied original: `570335__user391915396__hitmarker-sound-effect.wav`,
+  48 kHz stereo PCM24, 9,000 frames (187.5 ms).
+- [SOURCES.json](hitmarkers/SOURCES.json) records the source, source/output/license
+  hashes, original format, encoder version and exact modifications.
 
-| Cue | Original OGG | Bundled WAV | Duration |
-| --- | --- | --- | --- |
-| Hit | Interface: `Audio/click_003.ogg` | `hitmarkers/hit.wav` | 7.12 ms |
-| Headshot | Impact: `Audio/impactMetal_light_000.ogg` | `hitmarkers/headshot.wav` | 300 ms |
-| Kill | Impact: `Audio/impactGeneric_light_003.ogg` | `hitmarkers/kill.wav` | 135.08 ms |
+| Cue | Bundled WAV | Duration |
+| --- | --- | --- |
+| Hit | `hitmarkers/hit.wav` | 187.506 ms |
+| Headshot | `hitmarkers/headshot.wav` | 187.506 ms |
+| Kill | `hitmarkers/kill.wav` | 187.506 ms |
 
-Conversion: decode to 44.1 kHz mono, trim silence below 0.001 with 2 ms padding,
-limit to 300 ms, fade the last 5 ms, normalize peak to 0.5 (-6.02 dBFS), encode
-signed PCM16 WAV. No pitch changes, splicing or added effects. The original
-metal effect is shortened. The hit click is deliberately very short. These are
-provisional examples selected from the pack contents, not a listening-approved
-final sound design. Change their balance/selection after the user's audition.
+The three files are byte-identical, as requested after the user's audition.
+Conversion averages the stereo channels (0.5 L + 0.5 R), resamples to 44.1 kHz
+and encodes signed PCM16 WAV for the existing loader. No trimming, normalization,
+fades, pitch changes, splicing or added effects. Duration differs only by rounding
+to a whole output frame. Cue priorities and the independent volume control remain.
 
-Reproduce with `python tools/HitmarkerAudioChecks/import_assets.py` (explicit
-network download plus FFmpeg, never run by builds). Validate bundled assets
-offline with `python tools/HitmarkerAudioChecks/verify_assets.py`. Keep the WAVs,
-notices and source record together; they are independent of the announcer packs
-and mod code licenses. Only replace files with appropriately licensed audio.
+Reproduce with `python tools/HitmarkerAudioChecks/import_assets.py <original.wav>`
+(explicit local intake plus FFmpeg, never run by builds). Validate offline with
+`python tools/HitmarkerAudioChecks/verify_assets.py`. Keep the WAVs, legal text and
+source record together; these assets are independent of the announcer and code
+licenses. The previous Kenney examples have been replaced; Git retains history.
 
 ## TripleSnail kill callouts
 

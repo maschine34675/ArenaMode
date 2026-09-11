@@ -18,6 +18,9 @@ The parser's negative cases corrupt actual bundled WAV copies, paired with
 successful parsing/rebuild of all three unmodified WAVs. Native damage/health
 and GPU output remain outside this harness. See HITMARKER-AUDIO-REVIEW.md.
 
-`import_assets.py` is explicit asset intake only: it downloads two creator
-archives, preserves their complete original license notices and converts just
-the three selected originals via FFmpeg. It is not part of verification/builds.
+`import_assets.py` is explicit asset intake only. Pass the downloaded Freesound
+570335 original WAV as its positional argument. It verifies the reviewed source
+hash, averages stereo channels, converts to 44.1 kHz mono PCM16 via FFmpeg and
+writes identical hit/headshot/kill WAVs plus their source and license hashes.
+No normalization, trimming, fades or pitch changes. The unchanged bundled CC0
+legal text is retained. No network access; not part of verification/builds.

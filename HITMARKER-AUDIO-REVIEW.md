@@ -1,11 +1,14 @@
-# Example hitmarker sounds
+# Hitmarker sounds
 
-User request: provisionally integrate redistributable example sounds before a
-later listening test. Kenney Interface/Impact CC0 assets provide normal hit,
-headshot and kill variants. See the packaged AUDIO-LICENSES.md and
-hitmarkers/SOURCES.json for the unchanged creator notices, CC0 legal-text link,
-original archive/source hashes and conversion details. No subjective listening
-approval or in-game audibility is claimed on this GPU-less host.
+Current assets (2026-09-11): after auditioning Freesound 570335, the user asked
+to use it for all three cues. Hit, headshot and kill now use byte-identical
+187.506 ms mono PCM16 WAVs, converted from the supplied User391915396 CC0 effect.
+Only stereo averaging, resampling and bit-depth conversion; no gain, trimming,
+pitch or playback-logic changes. See packaged AUDIO-LICENSES.md and
+hitmarkers/SOURCES.json for the source, original/output hashes and full CC0 text.
+The original Kenney example selection below is historical. GPU audibility of the
+replacement is not claimed on this host. Existing clients reload WAVs when the
+next Arena match attaches, so asset-only delivery needs no DLL replacement.
 
 ## Behavior
 
@@ -41,12 +44,13 @@ approval or in-game audibility is claimed on this GPU-less host.
 
 ## Asset/runtime boundary
 
-Three PCM16 mono WAVs load once at match attach (roughly 40 KB combined). The
+Three PCM16 mono WAVs load once at match attach (49,746 bytes combined). The
 parser bounds files to 200 KB, rates to 8-48 kHz and duration to one second,
 rejects malformed/duplicate chunks and silence. Missing/bad files produce one
 diagnostic per cue/reason per match, never fail or block match startup. Fixes
-or replacements are read at the next match. Bundled outputs are 7.12/300/135.08
-ms and peak-normalized to 0.5; no live decoding/file reads on damage events.
+or replacements are read at the next match. All bundled outputs are 187.506 ms;
+channel averaging preserves source gain without normalization (peak 0.85306).
+No live decoding/file reads on damage events.
 
 Managed float PCM survives the native audio-device resets observed with the
 announcer. Runtime AudioClip frame/channel/rate/length/load metadata is checked

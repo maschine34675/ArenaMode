@@ -1042,7 +1042,7 @@ public static class Settings
         HitmarkerSounds = config.Bind(
             "Audio", "HitmarkerSounds", true,
             "Short Arena hit, headshot and kill sounds, independent of the visual HUD and announcer. " +
-            "Example Kenney CC0 sounds in BepInEx/plugins/ArenaMode/hitmarkers/.");
+            "Replaceable PCM16 mono WAVs in BepInEx/plugins/ArenaMode/hitmarkers/; see AUDIO-LICENSES.md.");
 
         HitmarkerVolume = config.Bind(
             "Audio", "HitmarkerVolume", 0.5f,

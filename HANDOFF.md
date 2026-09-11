@@ -7,6 +7,28 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **User-selected hitmarker replacement (2026-09-11):** all three cues now use
+  Freesound 570335 by User391915396 (CC0), supplied and auditioned by the user.
+  Identical 187.506 ms mono PCM16/44.1 kHz WAVs; source gain preserved, no trimming
+  or pitch change. WAV SHA256 for hit/headshot/kill:
+  `DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54`.
+  Source/license/conversion hashes and full CC0 text are packaged alongside.
+  Offline asset checks and production parser/service tests passed (54 assertions);
+  existing announcer checks passed (142 assertions plus rejected fault cases).
+  Independent review found no remaining correctness issues. Staged client build
+  passed with zero errors and the four existing CS8632 warnings, manifest:
+  `artifacts/double-jump-build/66e0bf0ee4214d4883d80117e418fe29/manifest.json`.
+  **Delivered assets only**, receipt/backups `artifacts/hitmarker-replacement/570335/`.
+  Six installed asset/document hashes matched; 25 other files, including client,
+  server and Redeploy.Core DLLs, remained unchanged. The r4 client remains
+  `857206A4BF295607130B6F54A2A9CDECDB3F5A92B53784F9C644F7FC5199F1BB`.
+  Old Kenney notices are absent from source but harmless copies remain installed;
+  current AUDIO-LICENSES.md and SOURCES.json identify the replacement correctly.
+  Settings description is neutral in source and takes effect with the next DLL
+  delivery; no playback or settings behavior changed. WAVs reload at the next
+  Arena match; no game/server restart needed for this asset-only replacement.
+  GPU mirror and in-game audibility remain unverified here.
+
 - **Killfeed identity/overflow follow-up, staged only (2026-09-11):** user reports
   clipping during the ongoing r4 job: other kills show attacker plus ellipsis;
   local kills omit the local name. The latter was the old format itself, while
