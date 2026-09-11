@@ -24,8 +24,22 @@ current. User-facing communication is normally German.
   DistanceKnown flag distinguishes a successful finite measurement from missing
   positions. Unknown/invalid distance displays `? m`, a real zero displays `0 m`.
   This is separation at death, not shot-origin distance or projectile path length.
-  No scoring, bot or profile changes; wrapping/layout remain as tested in r5.
-  Build, review and delivery evidence follows after verification.
+  No scoring, bot or profile changes; wrapping/layout code is unchanged from
+  the r5 build, whose actual wrapping cases remain untested.
+  Source `a53a350` passed independent capture/formatter review (no P0-P2).
+  Formatter checks: 52 assertions, three rejected source faults; the harness
+  does not execute the Harmony hook or native renderer. Actual clean client
+  build: zero errors, four existing CS8632 warnings, all 29 icons verified.
+  Client SHA256 `41F26B5DA68D781BA533BB169B035BB78E8BFB881C920D909C4D7C9FD9FA1EFB`;
+  manifest `artifacts/double-jump-build/56955a470f3c422e8ebf812ca12e4fe7/manifest.json`.
+  Delivered client-only, prior r5 client backed up; all 40 protected server,
+  dependency, config and asset files unchanged. Receipt:
+  `artifacts/killfeed-distance-delivery/2041fdb4530a49d98d1ab575beebc454/receipt.json`.
+  Game restart required, server unchanged; GPU mirror/new distance rendering not
+  verified here. `GPU-PANELS-TEST-INSTRUCTIONS.md` now binds this source/hash for
+  r6: one short Arena raid, primarily numeric distance on other-kill entries.
+  Earlier reports stay unchanged; r5 missing local/wrap/transition cases remain
+  open unless separately observed. New report: `GPU-PANELS-R6-RESULTS-2026-09-11.md`.
 
 - **r4 accepted core UI; killfeed follow-up delivered (2026-09-11):** report
   `6ac779e` confirms observed menu hiding/panel return, ammo refresh, respawn
