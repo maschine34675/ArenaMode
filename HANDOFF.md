@@ -29,9 +29,13 @@ current. User-facing communication is normally German.
   `artifacts/hud-readability-delivery/69ce41e9c20d427fb0dfa6245e44a1c3/receipt.json`.
   Game restart required, server unchanged. GPU rendering and mirror not verified.
   Other aspect ratios may narrow the gap to the centered score; check those
-  separately. No new synthetic tests for these cosmetic changes. The existing
-  r3 panel instruction stays pinned to its original build; do not silently use
-  a newer DLL as evidence for that exact-hash test job.
+  separately. No new synthetic tests for these cosmetic changes. Report `2d03da3`
+  records the r3 preflight blocked by the old instruction hash, without a game
+  start; that report remains unchanged. User requested rebinding the instruction
+  to this delivery: `GPU-PANELS-TEST-INSTRUCTIONS.md` now specifies job
+  `arena-panels-native-ui-20260911-r4`, source `e37c3b6` and the SHA256 above.
+  It retains the pending panel/header checks and adds killfeed/quickslot coverage,
+  with a new `GPU-PANELS-R4-RESULTS-2026-09-11.md` report. No new build or DLL swap.
 
 - **r2 GPU acceptance and remaining UI polish (2026-09-11):** report `2a57e7d`
   confirms visible panels, direct-rig grenade counts/two successive G throws,
