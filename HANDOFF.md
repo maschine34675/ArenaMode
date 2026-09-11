@@ -7,6 +7,38 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Killfeed team colors and extended r6 (2026-09-11):** source `41bb6e3`
+  replaces role/local-death name colors with the existing match-owned tracer
+  registry for both attacker and victim. Solo: local friendly, other verified
+  actors opposing; TDM: admitted relative teams; PFT: exact frozen rosters and
+  retained same-side historical IDs. Missing/invalid/unbound teams stay gray.
+  The synchronous HUD event formats each row once, before mode.OnKill; no body
+  lookup, scoring-field writes, roster changes or normal-raid hooks were added.
+  FriendlyTracerColor/OpponentTracerColor also tint the names, normalized from
+  the shared HDR palette like friendly markers. Effects switches do not gate
+  the name colors. Settings changes apply to new entries, not existing rows.
+  Default names are cyan/red; roles, distance, layout and lifetime are unchanged.
+  Independent review: no P0-P2 findings. Actual formatter/registry checks passed
+  104 assertions and rejected five compiled source faults; they do not execute
+  Unity/TMP, F12 or the Harmony hook. Clean client build: zero errors, four
+  existing CS8632 warnings, all 29 embedded panel icons verified.
+  Client SHA256
+  `D9BB7FA07D05FF4BB6909E9C3ED885D0D41C96F8BD385FBB33B7C7281461626C`;
+  manifest `artifacts/double-jump-build/355b96dcc0624dc1b7ee95d05ab42f22/manifest.json`.
+  Delivered client-only; receipt/previous DLL:
+  `artifacts/killfeed-team-colors-delivery/a7e0de238de1406db8a5b04621ea51da/receipt.json`.
+  All 67 protected files unchanged, including server/Redeploy.Core, configs,
+  release audio and installed local ElevenLabs trial clips. Preserves the merged
+  grenade magazine row. Supersedes the `DD25D2AE...` client below. Restart the
+  game; server unchanged. GPU mirror and live rendering not verified here.
+  `GPU-PANELS-TEST-INSTRUCTIONS.md` binds r6 to this exact source/hash: retain the
+  short Endless distance/solo check and add one short independent TDM team-color
+  check (up to five active minutes each). Distances and team colors are separate
+  main goals; palette changes/old-row retention and other unobserved cases remain
+  bounded optional checks. Do not blend earlier r6 hashes/results into this run.
+  PFT runtime, rare gray actors and other previously open cases are not accepted
+  by the offline checks or by the independent TDM test alone.
+
 - **Grenade counts in the magazine row (2026-09-11):** user follow-up to the
   separate grenade row. Magazines/loose rounds pack from the left of the weapon
   panel's reserve row, grenade kinds from the right (frag outermost); the panel
