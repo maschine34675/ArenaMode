@@ -21,10 +21,15 @@ current. User-facing communication is normally German.
   raid. Ordinary raids untouched. New `tools/ArenaGrenadePickChecks`: 123
   assertions, 14 rejected source faults, installed contracts plus 8 rejected
   contract faults. Three-lens adversarial review: no P0/P1; both P2s and the
-  P3s fixed or documented. Staged build clean. **Not delivered:** the installed
-  client `D927D5B9…` is pinned by the prepared GPU panel job below; deliver after
-  it, or with it by updating its hash. Chain, residuals and exact GPU steps:
-  GRENADE-PICK-REVIEW.md. Client-only; game restart.
+  P3s fixed or documented. Implementation commit `3f34f86`; staged from it,
+  clean (zero errors, the four existing CS8632 warnings), client SHA256
+  `FF07FE124952C9D81A958284C8DEA8E83AB303B4243A0D6BCCA336E88A171EA0`, manifest
+  `artifacts/double-jump-build/2307d55300984d3886b2406aecd9c2d3/manifest.json`
+  (it also contains `18267c8`'s native UI work). **Not delivered:** the installed
+  client `D927D5B9…` is pinned by the prepared GPU panel job below and stayed
+  byte-identical; deliver after that job, or with it by updating its hash.
+  Chain, residuals and exact GPU steps: GRENADE-PICK-REVIEW.md. Client-only;
+  game restart.
 
 - **Native Arena UI polish (2026-09-11):** builds on the completed grenade-row
   commits `2b86e3a` / `f178906`, which remain intact. The character-selection

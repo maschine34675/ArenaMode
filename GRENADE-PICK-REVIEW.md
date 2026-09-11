@@ -175,7 +175,10 @@ grenade in a container nested in the rig/backpack.
 
 Not delivered with the implementation: the installed client (`D927D5B9…`, from
 `18267c8`) is pinned by the prepared GPU panel job (GPU-PANELS-TEST-INSTRUCTIONS.md),
-which forbids a DLL swap during its run. The staged build from the clean
-implementation commit is recorded in HANDOFF.md; deliver it after that job, or
+which forbids a DLL swap during its run. Staged instead from the clean
+implementation commit `3f34f86` (zero errors, the four existing CS8632 warnings):
+client SHA256 `FF07FE124952C9D81A958284C8DEA8E83AB303B4243A0D6BCCA336E88A171EA0`,
+manifest `artifacts/double-jump-build/2307d55300984d3886b2406aecd9c2d3/manifest.json`;
+installed client, server and Redeploy.Core unchanged. Deliver it after that job, or
 together with it by updating its pinned hash. Client only: game restart, no server
 change.
