@@ -7,6 +7,27 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Grenade counts in the magazine row (2026-09-11):** user follow-up to the
+  separate grenade row. Magazines/loose rounds pack from the left of the weapon
+  panel's reserve row, grenade kinds from the right (frag outermost); the panel
+  is back to 280x132 and grows to the r4/r5-tested 160 only for a crowded row,
+  keeping that wrap until the next body. Counting is unchanged. See
+  `RAID-INFO-PANELS-REVIEW.md` "Grenades in the magazine row". Source `6450e2d`
+  on `feature/grenade-mag-row` (based on `5b58e64`, fast-forwarded into
+  `fix/arena-panel-native-ui`). Offline: 292 assertions, 27 rejected source
+  faults; three-lens review, no P0/P1, its findings fixed before commit. Clean
+  staged build: zero errors, four existing CS8632 warnings, all 29 icons
+  verified. Client SHA256
+  `DD25D2AEDF65854818CCDC7D2E37D20E31168412A10E48BF797137E6D7E0E13F`; manifest
+  `artifacts/double-jump-build/0cba72db0a4c45858233aa9aad27238e/manifest.json`;
+  receipt `artifacts/reserve-row-delivery/204162f01df148b0ba1d75f40e6e3466/receipt.json`.
+  Previous r6 client `41F26B5D...` backed up there; 67 protected files
+  unchanged, including server/Redeploy.Core DLLs, config, release audio and
+  the local announcer trial clips. Client-only: game restart required, server
+  unchanged. Killfeed sources are identical to r6's `a53a350`;
+  `GPU-PANELS-TEST-INSTRUCTIONS.md` now binds r6 to this source/hash with one
+  added visual check. GPU mirror and rendering are not verified here.
+
 - **Local ElevenLabs announcer audition (2026-09-11):** user supplied
   `D:\SPT41\Development\ansagen2.wav`, generated with the free ElevenLabs plan.
   Split into five Ogg Vorbis clips in the user-provided order, with cuts in
