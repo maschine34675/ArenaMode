@@ -15,7 +15,12 @@ namespace UnityEngine
         public override bool Equals(object value) => ReferenceEquals(this, value);
         public override int GetHashCode() => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
     }
-    public class Component : Object { public GameObject gameObject; }
+    public class Component : Object
+    {
+        public GameObject gameObject;
+        public T GetComponent<T>() where T : Component => gameObject.GetComponent<T>();
+    }
+    public class MissingComponentException : Exception { public MissingComponentException(string message) : base(message) { } }
     public class RectTransform : Component { }
     public sealed class CanvasGroup : Component
     {
@@ -25,10 +30,21 @@ namespace UnityEngine
     public class GameObject : Object
     {
         public readonly List<Component> Components = new();
-        public bool ThrowOnAdd;
+        public bool ThrowOnGet;
+        public int AddCalls, GetCalls, DuplicateCanvasErrors;
+        public T GetComponent<T>() where T : Component
+        {
+            GetCalls++;
+            if (ThrowOnGet) throw new InvalidOperationException("injected native lookup failure");
+            return Components.OfType<T>().FirstOrDefault(c => c != null);
+        }
         public T AddComponent<T>() where T : Component, new()
         {
-            if (ThrowOnAdd) throw new InvalidOperationException("injected add failure");
+            AddCalls++;
+            // Observed engine contract: logs and returns null, not a managed
+            // exception or a second CanvasGroup as the old fake allowed.
+            if (typeof(T) == typeof(CanvasGroup) && Components.OfType<CanvasGroup>().Any(c => c != null))
+            { DuplicateCanvasErrors++; return null; }
             var value = new T { gameObject = this }; Components.Add(value); return value;
         }
     }
@@ -44,6 +60,7 @@ namespace EFT.UI
     public class ExtractionTimersPanel : UnityEngine.Object
     {
         public UnityEngine.RectTransform _timersPanel = new UnityEngine.GameObject().AddComponent<UnityEngine.RectTransform>();
+        public ExtractionTimersPanel() { _timersPanel.gameObject.AddComponent<UnityEngine.CanvasGroup>(); }
         public void ShowTimer(bool showExits, bool updateExits = false) { }
     }
 }
@@ -65,7 +82,12 @@ namespace ArenaMode.Session
 namespace ArenaMode
 {
     public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public static readonly Logger ModLogger = new(); }
-    public sealed class Logger { public readonly List<string> Warnings = new(); public void LogWarning(string text) => Warnings.Add(text); }
+    public sealed class Logger
+    {
+        public readonly List<string> Warnings = new(), Infos = new();
+        public void LogWarning(string text) => Warnings.Add(text);
+        public void LogInfo(string text) => Infos.Add(text);
+    }
 }
 namespace Redeploy.Core.Engine
 {

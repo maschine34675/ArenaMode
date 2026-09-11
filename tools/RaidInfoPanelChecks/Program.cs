@@ -176,6 +176,8 @@ internal static class Program
     private static void RefreshAndLifecycle()
     {
         using var f = new Fixture();
+        Check(!f.Root.Destroyed && ArenaMode.Plugin.ModLogger.Warnings.Count == 0,
+            "Active-hierarchy panel construction completes before the root is hidden");
         Check(!f.Root.activeSelf, "Constructed panel root initially hidden");
         f.Tick();
         Check(f.Root.activeSelf && f.Weapon.Visible && f.Status.Visible, "Live body shows both valid panels");

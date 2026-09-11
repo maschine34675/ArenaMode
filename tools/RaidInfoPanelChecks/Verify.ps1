@@ -37,6 +37,9 @@ function Invoke-PanelFault([string]$Name, [string]$Property, [string]$Filename, 
 
 Invoke-PanelCheck 'production-before' '' '' ''
 if (!$ProductionOnly) {
+    Invoke-PanelFault 'inactive-parent-before-tmp-awake' 'PanelSource' 'ArenaInfoPanels.cs' `
+        '_weapon = new WeaponInfoPanel(rect);' '_root.SetActive(false); _weapon = new WeaponInfoPanel(rect);' `
+        'Active-hierarchy panel construction completes before the root is hidden'
     Invoke-PanelFault 'inactive-session-guard-omitted' 'ContextSource' 'RaidPlayerContext.cs' `
         '!Session.ArenaSession.IsActive || ' '' 'Inactive Arena guard avoids accessing exact-raid state'
     Invoke-PanelFault 'foreign-world-leak' 'ContextSource' 'RaidPlayerContext.cs' `
@@ -81,7 +84,7 @@ if (!$ProductionOnly) {
         'ArmorVest and secure container grenades are excluded expected'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 14 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 15 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

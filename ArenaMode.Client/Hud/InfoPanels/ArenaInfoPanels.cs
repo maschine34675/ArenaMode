@@ -34,16 +34,21 @@ internal sealed class ArenaInfoPanels : IDisposable
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            _root.SetActive(false);
+            // TMP's Awake must run while these children are constructed:
+            // its outline setters need the CanvasRenderer initialized there.
+            // Build synchronously on the active Arena canvas, then hide before
+            // returning (no render frame occurs between these operations).
             _weapon = new WeaponInfoPanel(rect);
             _status = new PlayerStatusPanel(rect);
+            _root.SetActive(false);
             InfoPanelSettings.PanelOpacity.SettingChanged += OnThemeChanged;
             _subscribed = true;
             _legacy = new LegacyPanelSuppression();
+            Plugin.ModLogger.LogInfo("Arena info panels: status and weapon UI constructed; awaiting live local body.");
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Arena info panels unavailable this match: {ex.Message}");
+            Plugin.ModLogger.LogWarning($"Arena info panels unavailable this match: {ex}");
             Dispose(); // A cosmetic failure must not tear down the other Arena HUD.
         }
     }
@@ -120,7 +125,7 @@ internal sealed class ArenaInfoPanels : IDisposable
     {
         if (logged) return;
         logged = true;
-        Plugin.ModLogger.LogWarning($"Arena {panel} panel update failed; hidden until a valid update: {ex.Message}");
+        Plugin.ModLogger.LogWarning($"Arena {panel} panel update failed; hidden until a valid update: {ex}");
     }
 
     private void Hide()

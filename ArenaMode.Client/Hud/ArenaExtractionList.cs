@@ -14,7 +14,10 @@ internal static class ArenaExtractionList
 {
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".ExtractionList");
     private static CanvasGroup _mask;
-    private static bool _enabled, _reported;
+    private static RectTransform _failedList;
+    private static float _restoreAlpha;
+    private static bool _restoreEnabled;
+    private static bool _enabled, _reported, _maskedLogged;
 
     internal static void Enable()
     {
@@ -42,7 +45,8 @@ internal static class ArenaExtractionList
     private static void OnRaidStarted(GameWorld world)
     {
         Release();
-        _reported = false;
+        _failedList = null;
+        _reported = _maskedLogged = false;
         Tick();
     }
 
@@ -65,6 +69,7 @@ internal static class ArenaExtractionList
             // A failed/late mask must also leave the native show path available.
             return __instance == null || !ReferenceEquals(__instance, panel)
                 || _mask == null || !_mask.enabled || panel._timersPanel == null
+                || _mask.alpha != 0f
                 || !ReferenceEquals(_mask.gameObject, panel._timersPanel.gameObject);
         }
         catch (Exception ex) { Report(ex); return true; }
@@ -73,34 +78,56 @@ internal static class ArenaExtractionList
     internal static void Tick()
     {
         if (!_enabled) return;
+        RectTransform list = null;
         try
         {
             var panel = ActivePanel();
-            var list = panel != null ? panel._timersPanel : null;
+            list = panel != null ? panel._timersPanel : null;
             if (list == null) { Release(); return; }
             if (_mask != null && !ReferenceEquals(_mask.gameObject, list.gameObject)) Release();
+            if (ReferenceEquals(list, _failedList)) return;
             if (_mask == null)
             {
-                // CanvasGroup allows multiple components. Always add our own;
-                // never overwrite native/other-mod alpha or reparent the list.
-                _mask = list.gameObject.AddComponent<CanvasGroup>();
-                _mask.interactable = false;
-                _mask.blocksRaycasts = false;
-                _mask.ignoreParentGroups = false;
+                // The installed native PointsPanel already has a CanvasGroup.
+                // Unity rejects a second one and returns null (not an exception
+                // from AddComponent). Never add components in this polling path.
+                var native = list.GetComponent<CanvasGroup>();
+                if (native == null)
+                    throw new MissingComponentException("Native extraction list has no CanvasGroup; leaving it unchanged.");
+                _restoreAlpha = native.alpha;
+                _restoreEnabled = native.enabled;
+                _mask = native;
             }
             _mask.alpha = 0f;
+            _mask.enabled = true;
+            if (!_maskedLogged)
+            {
+                _maskedLogged = true;
+                Plugin.ModLogger.LogInfo("Arena extraction-list: existing native list CanvasGroup hidden.");
+            }
         }
-        catch (Exception ex) { Release(); Report(ex); }
+        catch (Exception ex)
+        {
+            Release();
+            _failedList = list; // Retry a new list/raid, never a broken object every frame.
+            Report(ex);
+        }
     }
 
     internal static void Release()
     {
         var mask = _mask;
         _mask = null;
+        _failedList = null;
         if (mask == null) return;
-        // Destroy is deferred by Unity. Disable first so a reused normal-raid
-        // panel is restored in this frame, without touching any borrowed group.
-        try { mask.enabled = false; UnityEngine.Object.Destroy(mask); }
+        // Borrow only alpha/enabled. Native startup animates pivot/position and
+        // activeSelf, which we never touch. Restore synchronously; never destroy
+        // a native component or overwrite an external value we no longer own.
+        try
+        {
+            if (mask.alpha == 0f) mask.alpha = _restoreAlpha;
+            if (mask.enabled) mask.enabled = _restoreEnabled;
+        }
         catch (Exception ex) { Report(ex); }
     }
 
@@ -108,7 +135,7 @@ internal static class ArenaExtractionList
     {
         if (_reported) return;
         _reported = true;
-        Plugin.ModLogger.LogWarning("Arena extraction-list presentation failed; native UI remains available: " + ex.Message);
+        Plugin.ModLogger.LogWarning("Arena extraction-list presentation failed; native UI remains available: " + ex);
     }
 
     internal static void Shutdown()
@@ -117,6 +144,7 @@ internal static class ArenaExtractionList
         RaidLifecycle.OnRaidEnded -= Release;
         _enabled = false;
         Release();
+        _failedList = null;
         try { Patches.UnpatchSelf(); }
         catch (Exception ex)
         {

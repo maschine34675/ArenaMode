@@ -12,76 +12,103 @@ void Check(bool condition, string message)
     if (!condition) throw new InvalidOperationException("CHECK FAILED: " + message);
     checks++;
 }
-CanvasGroup[] LiveGroups(ExtractionTimersPanel panel) => panel._timersPanel.gameObject.Components
-    .OfType<CanvasGroup>().Where(c => c != null && c.enabled).ToArray();
+CanvasGroup Group(ExtractionTimersPanel panel) => panel._timersPanel.GetComponent<CanvasGroup>();
+var probe = new ExtractionTimersPanel();
+Check(probe._timersPanel.gameObject.AddComponent<CanvasGroup>() == null
+    && probe._timersPanel.gameObject.DuplicateCanvasErrors == 1,
+    "Stand-in enforces observed duplicate CanvasGroup rejection");
 
 var game = new AbstractGame(); var world = new GameWorld();
 Singleton<AbstractGame>.Instance = game; Singleton<GameWorld>.Instance = world;
 ArenaSession.Game = game; ArenaSession.World = world;
 var panel = game.GameUi.TimerPanel;
-var borrowed = panel._timersPanel.gameObject.AddComponent<CanvasGroup>();
-borrowed.alpha = .6f; borrowed.ignoreParentGroups = true;
+var native = Group(panel);
+native.alpha = .6f; native.ignoreParentGroups = true; native.interactable = false;
+int initialAdds = panel._timersPanel.gameObject.AddCalls;
 ArenaExtractionList.Enable(); ArenaExtractionList.Enable();
 Check(RaidLifecycle.Starts == 1 && RaidLifecycle.Ends == 1 && HarmonyLib.Harmony.Patches == 1, "Enable is idempotent");
 ArenaExtractionList.Tick(); RaidLifecycle.Start(world);
-Check(LiveGroups(panel).Length == 1, "Ordinary startup adds no mask");
+Check(native.alpha == .6f && native.enabled, "Ordinary startup leaves native state unchanged");
 Check(ArenaExtractionList.BeforeShowTimer(panel, true) && ArenaExtractionList.BeforeShowTimer(panel, false), "Ordinary show requests remain native");
 
-// Vanilla has already started its ShowTimer(true) coroutine before confirmation.
-// The lifecycle event must catch it without another ShowTimer invocation.
+// Native SetTime already started its list coroutine before confirmation.
 ArenaSession.IsActive = true; RaidLifecycle.Start(world);
-var mask = LiveGroups(panel).Single(c => !ReferenceEquals(c, borrowed));
-Check(mask.alpha == 0 && !mask.interactable && !mask.blocksRaycasts && !mask.ignoreParentGroups, "Confirmed startup hides list through an owned mask");
-Check(borrowed.alpha == .6f && borrowed.ignoreParentGroups && borrowed.enabled, "Borrowed group remains unchanged");
+Check(native.alpha == 0 && native.enabled, "Confirmed startup hides existing native list");
+Check(!native.interactable && native.blocksRaycasts && native.ignoreParentGroups, "Unowned input and hierarchy properties remain untouched");
 Check(!ArenaExtractionList.BeforeShowTimer(panel, true), "Arena double-O exit list is suppressed");
 Check(ArenaExtractionList.BeforeShowTimer(panel, false), "Single-O clock remains native");
 Check(ArenaExtractionList.BeforeShowTimer(new ExtractionTimersPanel(), true), "Foreign UI instance remains native");
 Check(ArenaExtractionList.BeforeShowTimer(null, true), "Null UI instance remains native");
-for (int i = 0; i < 5; i++) ArenaExtractionList.Tick();
-Check(LiveGroups(panel).Length == 2, "Repeated frames never accumulate masks");
-mask.alpha = 1; ArenaExtractionList.Tick();
-Check(mask.alpha == 0, "Owned mask remains hidden if another presentation update alters it");
+for (int i = 0; i < 100; i++) ArenaExtractionList.Tick();
+Check(panel._timersPanel.gameObject.AddCalls == initialAdds && panel._timersPanel.gameObject.DuplicateCanvasErrors == 0,
+    "Repeated frames never add a CanvasGroup or generate engine spam");
+Check(ArenaMode.Plugin.ModLogger.Infos.Count == 1, "Successful hiding is logged once per raid");
+native.alpha = 1;
+Check(ArenaExtractionList.BeforeShowTimer(panel, true), "A no-longer-hidden mask fails open until refreshed");
+ArenaExtractionList.Tick();
+Check(native.alpha == 0, "Native list remains hidden after a presentation update");
 
-Singleton<GameWorld>.Instance = new GameWorld(); // Simulate missed end with stale IsActive.
+Singleton<GameWorld>.Instance = new GameWorld();
 Check(ArenaExtractionList.BeforeShowTimer(panel, true), "Foreign world with stale latch stays native");
 ArenaExtractionList.Tick();
-Check(!mask.enabled && mask.Destroyed && LiveGroups(panel).Length == 1, "Foreign world releases old mask immediately");
+Check(native.alpha == .6f && native.enabled && !native.Destroyed, "Foreign world restores native group synchronously without destruction");
 Singleton<GameWorld>.Instance = world; Singleton<AbstractGame>.Instance = new AbstractGame();
 ArenaExtractionList.Tick();
-Check(ArenaExtractionList.BeforeShowTimer(panel, true) && LiveGroups(panel).Length == 1, "Foreign game stays native");
+Check(ArenaExtractionList.BeforeShowTimer(panel, true) && native.alpha == .6f, "Foreign game stays native");
 Singleton<AbstractGame>.Instance = game; ArenaExtractionList.Tick();
-mask = LiveGroups(panel).Single(c => !ReferenceEquals(c, borrowed));
-var replacement = new ExtractionTimersPanel(); game.GameUi.TimerPanel = replacement; ArenaExtractionList.Tick();
-Check(mask.Destroyed && LiveGroups(panel).Length == 1 && LiveGroups(replacement).Length == 1, "Replacement UI releases old ownership and masks only new list");
+var replacement = new ExtractionTimersPanel(); game.GameUi.TimerPanel = replacement;
+var replacementGroup = Group(replacement); replacementGroup.alpha = .3f; replacementGroup.enabled = false;
+ArenaExtractionList.Tick();
+Check(native.alpha == .6f && !native.Destroyed && replacementGroup.alpha == 0 && replacementGroup.enabled,
+    "Replacement UI restores old group and temporarily enables only new mask");
 Check(ArenaExtractionList.BeforeShowTimer(panel, true) && !ArenaExtractionList.BeforeShowTimer(replacement, true), "Only replacement panel owns the prefix");
-mask = LiveGroups(replacement).Single();
 ArenaSession.IsActive = false; RaidLifecycle.End();
-Check(mask.Destroyed && !mask.enabled && LiveGroups(replacement).Length == 0, "End restores native visibility before deferred Destroy");
-Check(borrowed.alpha == .6f && borrowed.enabled && !borrowed.Destroyed, "End never destroys borrowed canvas state");
+Check(replacementGroup.alpha == .3f && !replacementGroup.enabled && !replacementGroup.Destroyed, "End restores initially disabled native group");
+Check(native.alpha == .6f && native.ignoreParentGroups && !native.interactable, "End leaves native group settings intact");
 
 ArenaSession.IsActive = true; replacement._timersPanel = null; RaidLifecycle.Start(world); ArenaExtractionList.Tick();
 Check(ArenaMode.Plugin.ModLogger.Warnings.Count == 0, "Late UI availability is a normal state");
-replacement._timersPanel = new GameObject().AddComponent<RectTransform>(); ArenaExtractionList.Tick();
-Check(LiveGroups(replacement).Length == 1, "Late native list is caught without HUD visibility dependency");
-mask = LiveGroups(replacement).Single();
+replacement._timersPanel = new ExtractionTimersPanel()._timersPanel; ArenaExtractionList.Tick();
+Check(Group(replacement).alpha == 0, "Late native list is caught without HUD visibility dependency");
+var lateGroup = Group(replacement);
 Singleton<GameWorld>.Instance = null; ArenaExtractionList.Tick();
-Check(mask.Destroyed, "Missing world cleans previous mask");
+Check(lateGroup.alpha == 1 && !lateGroup.Destroyed, "Missing world restores previous group");
 Singleton<GameWorld>.Instance = world;
-replacement._timersPanel.gameObject.ThrowOnAdd = true; RaidLifecycle.Start(world); ArenaExtractionList.Tick(); ArenaExtractionList.Tick();
-Check(ArenaMode.Plugin.ModLogger.Warnings.Count == 1, "Cosmetic construction failure is bounded, not a frame-log loop");
+
+var broken = replacement._timersPanel.gameObject; broken.ThrowOnGet = true;
+int reads = broken.GetCalls, adds = broken.AddCalls;
+RaidLifecycle.Start(world);
+for (int i = 0; i < 100; i++) ArenaExtractionList.Tick();
+Check(ArenaMode.Plugin.ModLogger.Warnings.Count == 1 && broken.GetCalls == reads + 1 && broken.AddCalls == adds,
+    "Native lookup failure is attempted once per list, not retried every frame");
+Check(ArenaMode.Plugin.ModLogger.Warnings.Single().Contains("InvalidOperationException")
+    && ArenaMode.Plugin.ModLogger.Warnings.Single().Contains("GetComponent"), "Bounded diagnostic includes exception type and stack");
 Check(ArenaExtractionList.BeforeShowTimer(replacement, true), "Mask failure leaves native show path open");
-replacement._timersPanel.gameObject.ThrowOnAdd = false; ArenaExtractionList.Tick();
-Check(LiveGroups(replacement).Length == 1, "Cosmetic failure can recover when native list is ready");
-mask = LiveGroups(replacement).Single();
+broken.ThrowOnGet = false; ArenaExtractionList.Tick();
+Check(lateGroup.alpha == 1, "Failed list stays quarantined for this raid");
+replacement._timersPanel = new GameObject().AddComponent<RectTransform>();
+var missing = replacement._timersPanel.gameObject;
+ArenaExtractionList.Tick();
+for (int i = 0; i < 100; i++) ArenaExtractionList.Tick();
+Check(missing.AddCalls == 1 && missing.GetCalls == 1 && ArenaExtractionList.BeforeShowTimer(replacement, true),
+    "Missing prefab group is left untouched, not created in polling");
+replacement._timersPanel = new ExtractionTimersPanel()._timersPanel; ArenaExtractionList.Tick();
+var finalGroup = Group(replacement);
+Check(finalGroup.alpha == 0, "A fresh native list recovers after failed old list");
+finalGroup.alpha = .8f; finalGroup.enabled = false;
+ArenaExtractionList.Release();
+Check(finalGroup.alpha == .8f && !finalGroup.enabled, "Release preserves externally replaced values");
+ArenaExtractionList.Tick();
 HarmonyLib.Harmony.ThrowOnUnpatch = true;
 ArenaExtractionList.Shutdown(); ArenaExtractionList.Shutdown();
-Check(mask.Destroyed && RaidLifecycle.Starts == 0 && RaidLifecycle.Ends == 0, "Shutdown removes mask and lifecycle subscribers");
+Check(finalGroup.alpha == .8f && !finalGroup.enabled && RaidLifecycle.Starts == 0 && RaidLifecycle.Ends == 0,
+    "Shutdown restores native group and removes lifecycle subscribers");
 Check(ArenaExtractionList.BeforeShowTimer(replacement, true), "Hook surviving failed unpatch remains disabled");
 ArenaExtractionList.Tick(); RaidLifecycle.Start(world);
-Check(LiveGroups(replacement).Length == 0, "Shutdown cannot create another mask");
+Check(finalGroup.alpha == .8f, "Shutdown cannot hide native UI again");
 HarmonyLib.Harmony.ThrowOnPatch = true;
 ArenaExtractionList.Enable(); RaidLifecycle.Start(world); ArenaExtractionList.Tick();
-Check(RaidLifecycle.Starts == 0 && RaidLifecycle.Ends == 0 && LiveGroups(replacement).Length == 0
+Check(RaidLifecycle.Starts == 0 && RaidLifecycle.Ends == 0 && finalGroup.alpha == .8f
     && ArenaExtractionList.BeforeShowTimer(replacement, true), "Patch and rollback failure leaves service disabled and unsubscribed");
 HarmonyLib.Harmony.ThrowOnPatch = HarmonyLib.Harmony.ThrowOnUnpatch = false;
 Console.WriteLine($"NATIVE_ARENA_HUD_PRODUCTION_PASSED ({checks} assertions)");

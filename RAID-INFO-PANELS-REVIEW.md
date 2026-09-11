@@ -9,6 +9,33 @@ purpose-built generated artwork. No external mod code or DLL was added.
 all 26 runtime PNGs are preserved byte for byte. The four source generators
 are retained under `tools/RaidInfoPanelIcons` with their output paths updated.
 
+## GPU failure and construction correction (2026-09-11)
+
+`GPU-PANELS-TEST-RESULTS-2026-09-11.md` rejected the initial delivery: both panels
+were absent despite enabled settings. The user's follow-up log repeats the
+construction NRE at 14:24:46.740, before the independent extraction-list failure.
+The absorption had moved `_root.SetActive(false)` before the two constructors.
+In the installed Unity.TextMeshPro.dll, `TextMeshProUGUI.Awake` initializes
+`m_canvasRenderer`; `SetOutlineThickness` uses it directly. Constructing the
+text under an inactive parent delays Awake, then the outline setter dereferences
+the missing renderer. The archived original constructed both panels before
+`HideAll`. Restore that sequence: active synchronous construction, hide before
+return, no frame/yield in between. Normal-raid/body/spectator gates are unchanged.
+One construction success and bounded full exception diagnostics aid the retest.
+
+The panel harness now models the active-hierarchy prerequisite and rejects a
+source fault restoring the early deactivation. It still substitutes the actual
+view constructors: this tests the evidenced lifecycle boundary, not native TMP
+or rendered output. The old suite missed this boundary. Client build and icon
+verification also cannot replace the pending GPU retest.
+
+The separate extraction service had assumed Unity permitted another CanvasGroup
+on PointsPanel. The live log proves otherwise (1,826 rejected additions in the
+captured user run). That service now borrows the existing group's alpha/enabled
+state, restores it on release, adds no components and quarantines failed lists.
+Its fake now enforces the observed single-component contract. Neither error was
+caused by the grenade row or the later grenade-picker fix.
+
 ## Preserved functionality
 
 - Weapon name, magazine/chamber count, cartridge, caliber, fire mode and

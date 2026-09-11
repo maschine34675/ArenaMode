@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **GPU panel/native UI failures corrected (2026-09-11):** test report
+  `734af45` and the user's follow-up log reject the original UI delivery.
+  Independent native diagnosis found two separate regressions: inactive-parent
+  TMP construction in ArenaInfoPanels, and rejected duplicate CanvasGroup
+  additions on PointsPanel (1,826 lines in the captured user log). Build the
+  panels synchronously while active, hide before returning; borrow and restore
+  the existing list group's alpha/enabled values instead of adding a component.
+  Missing/failing native groups now fail open and are quarantined per list/raid;
+  once-only full exceptions and construction/masking markers aid diagnosis.
+  Both regression harnesses now model the previously missed Unity contracts.
+  Panel tests still substitute TMP views and do not certify rendering.
+  Current source includes the completed `3f34f86` grenade-picker fix unchanged.
+  Independent reviews found no P0-P2. Clean delivery and revised GPU job follow.
+
 - **Grenade pick after widened reach (2026-09-11):** fixes the pre-existing
   defect handed over by the grenade-row review. A grenade bound and drawn from
   outside the tracked rig/pocket top level (the backpack without the installed
@@ -31,7 +45,8 @@ current. User-facing communication is normally German.
   Chain, residuals and exact GPU steps: GRENADE-PICK-REVIEW.md. Client-only;
   game restart.
 
-- **Native Arena UI polish (2026-09-11):** builds on the completed grenade-row
+- **Native Arena UI polish (initial delivery, 2026-09-11):** **GPU rejected this
+  implementation; superseded by the correction above.** It built on grenade-row
   commits `2b86e3a` / `f178906`, which remain intact. The character-selection
   description now uses two short, non-wrapping lines for solo and PFT choices;
   PMC/Scav still replace the text natively. ArenaExtractionList blocks only

@@ -41,7 +41,13 @@ namespace UnityEngine
         public float r, g, b, a;
         public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; }
     }
-    internal class Transform : Object { public Transform Parent; public void SetParent(Transform parent, bool world) => Parent = parent; }
+    internal class Transform : Object
+    {
+        public GameObject gameObject;
+        public Transform Parent;
+        public bool ActiveInHierarchy => (gameObject == null || gameObject.activeSelf) && (Parent == null || Parent.ActiveInHierarchy);
+        public void SetParent(Transform parent, bool world) => Parent = parent;
+    }
     internal class RectTransform : Transform { public Vector2 anchorMin, anchorMax, offsetMin, offsetMax; }
     internal class GameObject : Object
     {
@@ -50,7 +56,7 @@ namespace UnityEngine
         public Transform transform = new RectTransform();
         public bool activeSelf = true;
         public bool ThrowOnSetActive;
-        public GameObject(string name, params Type[] types) { this.name = name; Created.Add(this); }
+        public GameObject(string name, params Type[] types) { this.name = name; transform.gameObject = this; Created.Add(this); }
         public void SetActive(bool active)
         { if (ThrowOnSetActive) throw new InvalidOperationException("injected activation failure"); activeSelf = active; }
     }
@@ -216,7 +222,9 @@ namespace ArenaMode
     internal sealed class Logger
     {
         public readonly List<string> Warnings = new();
+        public readonly List<string> Infos = new();
         public void LogWarning(string message) => Warnings.Add(message);
+        public void LogInfo(string message) => Infos.Add(message);
     }
 }
 namespace ArenaMode.Config
@@ -323,14 +331,22 @@ namespace ArenaMode.Hud.InfoPanels.UI
         public static WeaponInfoPanel Latest;
         public static bool ThrowConstructor;
         public WeaponInfoPanel(UnityEngine.RectTransform rect)
-        { if (ThrowConstructor) throw new InvalidOperationException("weapon construction failed"); Latest = this; }
+        {
+            // Actual TMP Awake initializes CanvasRenderer only in an active
+            // hierarchy; constructor-time outline setters require that field.
+            if (!rect.ActiveInHierarchy) throw new NullReferenceException("TMP outline before active-hierarchy Awake");
+            if (ThrowConstructor) throw new InvalidOperationException("weapon construction failed"); Latest = this;
+        }
     }
     internal sealed class PlayerStatusPanel : PanelProbe
     {
         public static PlayerStatusPanel Latest;
         public static bool ThrowConstructor;
         public PlayerStatusPanel(UnityEngine.RectTransform rect)
-        { if (ThrowConstructor) throw new InvalidOperationException("status construction failed"); Latest = this; }
+        {
+            if (!rect.ActiveInHierarchy) throw new NullReferenceException("TMP outline before active-hierarchy Awake");
+            if (ThrowConstructor) throw new InvalidOperationException("status construction failed"); Latest = this;
+        }
     }
     internal static class PanelStyle
     { public static int ThemeCalls, ResetCalls; public static void ApplyTheme() => ThemeCalls++; public static void Reset() => ResetCalls++; }
