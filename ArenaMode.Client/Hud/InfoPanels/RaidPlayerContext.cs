@@ -37,7 +37,8 @@ namespace ArenaMode.Hud.InfoPanels
             }
 
             player = gameWorld.MainPlayer;
-            if (!IsPlayerUsable(player, gameWorld))
+            if (!IsPlayerUsable(player, gameWorld) || player.IsInventoryOpened
+                || !ArenaHudVisibility.IsBattleUiActive)
             {
                 player = null;
                 return false;

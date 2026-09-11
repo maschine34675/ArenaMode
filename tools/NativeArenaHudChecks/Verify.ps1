@@ -18,6 +18,8 @@ if ($arenaFaultExit -eq 0 -or ($arenaFaultOutput -join "`n") -notmatch 'CHECK FA
     throw 'Removed native-prefix suppression was not rejected by its behavioral assertion.'
 }
 foreach ($arenaControl in @(
+    @('banner-left-visible', 'UpdateHeader(panel);', '// deliberately omitted header suppression', 'Confirmed startup hides the entire banner while retaining the clock'),
+    @('clock-hidden-with-banner', '|| clock.transform.IsChildOf(header)', '', 'A banner containing the clock is never deactivated and list masking survives'),
     @('duplicate-canvas', 'var native = list.GetComponent<CanvasGroup>();', 'var native = list.gameObject.AddComponent<CanvasGroup>();', 'Confirmed startup hides existing native list'),
     @('missing-restore', 'if (mask.alpha == 0f) mask.alpha = _restoreAlpha;', '// deliberately omitted native alpha restoration', 'Foreign world restores native group synchronously without destruction')
 )) {

@@ -17,6 +17,7 @@ namespace ArenaMode.Hud;
 internal static class ArenaHud
 {
     private static GameObject _canvasGo;
+    private static Canvas _canvas;
     private static ArenaMatch _match;
     private static ScorePanel _score;
     private static KillfeedView _killfeed;
@@ -67,6 +68,7 @@ internal static class ArenaHud
             UnityEngine.Object.Destroy(_canvasGo);
             _canvasGo = null;
         }
+        _canvas = null;
 
         _score = null;
         _killfeed = null;
@@ -83,6 +85,7 @@ internal static class ArenaHud
 
         try
         {
+            ArenaHudVisibility.Apply(_canvas);
             _score.Tick(_match);
             _killfeed.Tick();
             _callout.Tick();
@@ -104,6 +107,7 @@ internal static class ArenaHud
         _canvasGo = new GameObject("ArenaHudCanvas");
         _canvasGo.transform.SetParent(Plugin.Instance.transform, false);
         var canvas = _canvasGo.AddComponent<Canvas>();
+        _canvas = canvas;
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 130;
         canvas.overrideSorting = true;

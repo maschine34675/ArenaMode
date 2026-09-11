@@ -15,6 +15,8 @@ internal static class ArenaExtractionList
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".ExtractionList");
     private static CanvasGroup _mask;
     private static RectTransform _failedList;
+    private static RectTransform _header, _failedHeader;
+    private static bool _restoreHeaderActive, _headerReported, _headerLogged;
     private static float _restoreAlpha;
     private static bool _restoreEnabled;
     private static bool _enabled, _reported, _maskedLogged;
@@ -47,6 +49,7 @@ internal static class ArenaExtractionList
         Release();
         _failedList = null;
         _reported = _maskedLogged = false;
+        _headerReported = _headerLogged = false;
         Tick();
     }
 
@@ -100,6 +103,7 @@ internal static class ArenaExtractionList
             }
             _mask.alpha = 0f;
             _mask.enabled = true;
+            UpdateHeader(panel);
             if (!_maskedLogged)
             {
                 _maskedLogged = true;
@@ -114,15 +118,67 @@ internal static class ArenaExtractionList
         }
     }
 
+    private static void UpdateHeader(ExtractionTimersPanel panel)
+    {
+        var header = panel._mainDescription;
+        if (_header != null && !ReferenceEquals(_header, header)) ReleaseHeader();
+        if (header == null || ReferenceEquals(header, _failedHeader)) return;
+        try
+        {
+            // Verified in installed GameUIScene: Description holds the green
+            // Image/Icon/State; Clock/TimeLeft is a separate sibling branch.
+            // Recheck that contract so an altered prefab never hides the clock.
+            var main = panel._mainTimerPanel;
+            var state = main != null ? main._currentState : null;
+            var clock = main != null ? main.TimerText : null;
+            if (state == null || clock == null || !state.transform.IsChildOf(header)
+                || clock.transform.IsChildOf(header))
+                throw new InvalidOperationException("Extraction header is not separate from the native clock; leaving the header visible.");
+            if (_header == null)
+            {
+                _restoreHeaderActive = header.gameObject.activeSelf;
+                _header = header;
+            }
+            if (header.gameObject.activeSelf) header.gameObject.SetActive(false);
+            if (!_headerLogged)
+            {
+                _headerLogged = true;
+                Plugin.ModLogger.LogInfo("Arena extraction header hidden; numeric timer retained.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ReleaseHeader();
+            _failedHeader = header;
+            if (_headerReported) return;
+            _headerReported = true;
+            Plugin.ModLogger.LogWarning("Arena extraction header suppression unavailable; exit-list masking retained: " + ex);
+        }
+    }
+
+    private static void ReleaseHeader()
+    {
+        var header = _header;
+        _header = _failedHeader = null;
+        if (header == null) return;
+        try
+        {
+            if (!header.gameObject.activeSelf) header.gameObject.SetActive(_restoreHeaderActive);
+        }
+        catch (Exception ex) { Report(ex); }
+    }
+
     internal static void Release()
     {
+        ReleaseHeader();
         var mask = _mask;
         _mask = null;
         _failedList = null;
         if (mask == null) return;
-        // Borrow only alpha/enabled. Native startup animates pivot/position and
-        // activeSelf, which we never touch. Restore synchronously; never destroy
-        // a native component or overwrite an external value we no longer own.
+        // For the list, borrow only alpha/enabled. Native startup animates its
+        // pivot/position and activeSelf, which we never touch. Restore
+        // synchronously; never destroy a native component or overwrite an
+        // external value we no longer own.
         try
         {
             if (mask.alpha == 0f) mask.alpha = _restoreAlpha;

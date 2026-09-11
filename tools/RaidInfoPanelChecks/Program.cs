@@ -10,6 +10,8 @@ using Comfort.Common;
 using EFT;
 using EFT.InventoryLogic;
 using UnityEngine;
+using ArenaMode.Hud;
+using EFT.UI.Screens;
 
 internal static class Program
 {
@@ -115,6 +117,7 @@ internal static class Program
             Time.unscaledTime = 0;
             ArenaMode.Plugin.ModLogger.Warnings.Clear();
             ArenaMode.Config.Settings.HudEnabled.Value = true;
+            EftScreenManager.Instance = new EftScreenManager();
             ArenaSession.IsActive = true;
             ArenaRespawnDriver.IsRespawnInProgress = false;
             ArenaSpectatorService.IsPending = ArenaSpectatorService.IsActive = false;
@@ -150,6 +153,9 @@ internal static class Program
         }
         Check(RaidPlayerContext.TryGetLocalPlayer(out var first) && ReferenceEquals(first, f.Player), "Fully initialized live local context accepted");
         Denies(() => ArenaSession.IsActive = false, () => ArenaSession.IsActive = true, "Ordinary raid");
+        Denies(() => f.Player.IsInventoryOpened = true, () => f.Player.IsInventoryOpened = false, "Inventory opening before screen switch");
+        Denies(() => EftScreenManager.Instance.CurrentScreen = EEftScreenType.Inventory,
+            () => EftScreenManager.Instance.CurrentScreen = EEftScreenType.BattleUI, "Inventory screen after flag reset");
         Denies(() => ArenaRespawnDriver.IsRespawnInProgress = true, () => ArenaRespawnDriver.IsRespawnInProgress = false, "Respawn in flight");
         Denies(() => ArenaSpectatorService.IsPending = true, () => ArenaSpectatorService.IsPending = false, "Spectator pending");
         Denies(() => ArenaSpectatorService.IsActive = true, () => ArenaSpectatorService.IsActive = false, "Spectator active");
@@ -208,6 +214,10 @@ internal static class Program
         }
         HideAndRecover(() => ArenaMode.Config.Settings.HudEnabled.Value = false, () => ArenaMode.Config.Settings.HudEnabled.Value = true, "Arena HUD master off");
         HideAndRecover(() => InfoPanelSettings.Enabled.Value = false, () => InfoPanelSettings.Enabled.Value = true, "Info panels master off");
+        HideAndRecover(() => f.Player.IsInventoryOpened = true, () => f.Player.IsInventoryOpened = false, "Inventory or loot opened");
+        foreach (EEftScreenType? screen in new EEftScreenType?[] { EEftScreenType.Inventory, EEftScreenType.Menu, EEftScreenType.Settings, null })
+            HideAndRecover(() => EftScreenManager.Instance.CurrentScreen = screen,
+                () => EftScreenManager.Instance.CurrentScreen = EEftScreenType.BattleUI, "Native screen " + screen);
         HideAndRecover(() => ArenaSession.IsActive = false, () => ArenaSession.IsActive = true, "Ordinary session");
         HideAndRecover(() => ArenaMatchService.Current = new ArenaMatch(), () => ArenaMatchService.Current = f.Match, "Replaced match");
         HideAndRecover(() => f.Player.HealthController.IsAlive = false, () => f.Player.HealthController.IsAlive = true, "Death");
@@ -501,13 +511,36 @@ internal static class Program
         Check(!GrenadeInventoryCounter.TryGetSummary(f.Player, out _), "Grenades: missing equipment safe");
     }
 
+    private static void CanvasVisibility()
+    {
+        var canvas = new Canvas();
+        var screens = new EftScreenManager();
+        EftScreenManager.Instance = screens;
+        ArenaHudVisibility.Apply(canvas);
+        Check(canvas.enabled && canvas.gameObject.activeSelf, "BattleUI draws the existing canvas");
+        int objects = GameObject.Created.Count;
+        foreach (EEftScreenType? screen in new EEftScreenType?[] { EEftScreenType.Inventory, EEftScreenType.Menu, EEftScreenType.Settings, null })
+        {
+            screens.CurrentScreen = screen;
+            ArenaHudVisibility.Apply(canvas);
+            Check(!canvas.enabled && canvas.gameObject.activeSelf, "Native screens stop canvas drawing without disabling its object");
+        }
+        EftScreenManager.Instance = null;
+        ArenaHudVisibility.Apply(canvas);
+        Check(!canvas.enabled, "Missing screen manager leaves canvas hidden");
+        EftScreenManager.Instance = screens; screens.CurrentScreen = EEftScreenType.BattleUI;
+        ArenaHudVisibility.Apply(canvas); ArenaHudVisibility.Apply(null);
+        Check(canvas.enabled && canvas.gameObject.activeSelf && GameObject.Created.Count == objects,
+            "BattleUI return reuses the same active canvas without new objects");
+    }
+
     private static int Main()
     {
         _scratch = Path.Combine(Path.GetTempPath(), "ArenaInfoPanels-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_scratch);
         try
         {
-            Migration(); Context(); RefreshAndLifecycle(); ErrorIsolation(); Disposal(); MagazineCounting(); GrenadeCounting();
+            Migration(); CanvasVisibility(); Context(); RefreshAndLifecycle(); ErrorIsolation(); Disposal(); MagazineCounting(); GrenadeCounting();
             Console.WriteLine($"ARENA_INFO_PANEL_PRODUCTION_PASSED ({_checks} assertions)");
             return 0;
         }

@@ -61,6 +61,22 @@ namespace UnityEngine
         { if (ThrowOnSetActive) throw new InvalidOperationException("injected activation failure"); activeSelf = active; }
     }
     internal static class Time { public static float unscaledTime; }
+    internal class Canvas : Object
+    {
+        public readonly GameObject gameObject = new("Canvas");
+        public bool enabled = true;
+    }
+}
+
+namespace EFT.UI.Screens
+{
+    internal enum EEftScreenType { BattleUI, Inventory, Menu, Settings }
+    internal sealed class EftScreenManager
+    {
+        public static EftScreenManager Instance = new();
+        public EEftScreenType? CurrentScreen = EEftScreenType.BattleUI;
+        public bool CheckCurrentScreen(EEftScreenType screen) => CurrentScreen == screen;
+    }
 }
 
 namespace Comfort.Common
@@ -85,6 +101,7 @@ namespace EFT
     {
         public string Name;
         public bool IsYourPlayer = true;
+        public bool IsInventoryOpened;
         public object PlayerBody = new();
         public bool ThrowOnHands;
         private object _hands = new();

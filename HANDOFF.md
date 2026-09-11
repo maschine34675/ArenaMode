@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r2 GPU acceptance and remaining UI polish (2026-09-11):** report `2a57e7d`
+  confirms visible panels, direct-rig grenade counts/two successive G throws,
+  armored-rig magazine reserves, F12 adjustments and fresh post-respawn data.
+  Named exit lists stay hidden in two Arena starts and return in normal PMC.
+  Independently read synchronized final r2 log: 2 panel markers, 2 list markers,
+  0 CanvasGroup spam and 0 panel/extraction exceptions. Overall report remains
+  bounded: 5 passed, 1 failed, 6 blocked, 2 not run. Screenshots confirm status
+  and top-score overlap in inventory and the separate residual green header.
+  New source hides Arena canvas drawing on non-BattleUI screens, without
+  deactivating its GameObject or stopping ticks. Panels also hide on the early
+  native inventory flag and refresh immediately on return. Existing positions
+  remain unchanged. Header target independently resolved from installed level46:
+  `_mainDescription` contains Image/Icon/State, numeric Clock is a sibling;
+  runtime hierarchy guards preserve that separation. Only header activeSelf is
+  borrowed/restored, existing successful list masking retained. The original
+  two GPU reports stay unchanged. Separate BotWeaponSelector/SAIN/async-upload
+  errors are recorded in r2; the available stacks do not establish UI causation,
+  and no speculative gameplay fix is part of this UI change. Final delivery and
+  focused r3 instructions follow after verification.
+
 - **GPU panel/native UI failures corrected (2026-09-11):** test report
   `734af45` and the user's follow-up log reject the original UI delivery.
   Independent native diagnosis found two separate regressions: inactive-parent

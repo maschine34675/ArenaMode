@@ -9,6 +9,7 @@
     <SettingsSource Condition="'$(SettingsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\InfoPanelSettings.cs</SettingsSource>
     <MagazineSource Condition="'$(MagazineSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\MagazineInventoryCounter.cs</MagazineSource>
     <GrenadeSource Condition="'$(GrenadeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\GrenadeInventoryCounter.cs</GrenadeSource>
+    <VisibilitySource Condition="'$(VisibilitySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\ArenaHudVisibility.cs</VisibilitySource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(PanelSource)" Link="Production/ArenaInfoPanels.cs" />
@@ -16,5 +17,6 @@
     <Compile Include="$(SettingsSource)" Link="Production/InfoPanelSettings.cs" />
     <Compile Include="$(MagazineSource)" Link="Production/MagazineInventoryCounter.cs" />
     <Compile Include="$(GrenadeSource)" Link="Production/GrenadeInventoryCounter.cs" />
+    <Compile Include="$(VisibilitySource)" Link="Production/ArenaHudVisibility.cs" />
   </ItemGroup>
 </Project>

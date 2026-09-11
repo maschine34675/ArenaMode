@@ -11,6 +11,27 @@ are retained under `tools/RaidInfoPanelIcons` with their output paths updated.
 
 ## GPU failure and construction correction (2026-09-11)
 
+**r2 outcome (`2a57e7d`):** both panels, direct-rig RGD-5 counts/throws, armored-rig
+reserve counts, F12 layout controls and fresh post-respawn values are observed
+working at 1920x1080. Two exact success markers per module and zero duplicate
+CanvasGroup errors or panel/extraction exceptions were independently counted
+in the synchronized final r2 log. The native named list is hidden in two Arena
+starts and restored in normal PMC. This is bounded acceptance, not a general
+pass: inventory overlap failed, and input-dependent/PFT/transition cases remain
+open as recorded in `GPU-PANELS-RETEST-RESULTS-2026-09-11.md`.
+
+**r2 follow-up:** panels now additionally require native BattleUI and a closed
+local inventory. The whole match-owned Arena canvas stops drawing over native
+inventory/pause/settings pages; its GameObject and all expiration ticks remain
+active. Panel Hide resets refresh validity, so returning to BattleUI refreshes
+data immediately, regardless of the configured interval. No stored position or
+opacity changes. Native readers verified in ScreenManager.CheckCurrentScreen,
+InventoryScreenController.ScreenType and Player.IsInventoryOpened; context and
+canvas-helper regression tests exercise both guards. Actual ArenaHud tick
+continuation/wiring is independently reviewed, not simulated event-expiry proof.
+The separate remaining green extraction banner is hidden through its verified
+Description child, preserving the numeric Clock sibling. New GPU checks needed.
+
 `GPU-PANELS-TEST-RESULTS-2026-09-11.md` rejected the initial delivery: both panels
 were absent despite enabled settings. The user's follow-up log repeats the
 construction NRE at 14:24:46.740, before the independent extraction-list failure.

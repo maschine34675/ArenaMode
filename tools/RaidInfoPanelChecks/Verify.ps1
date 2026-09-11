@@ -37,6 +37,13 @@ function Invoke-PanelFault([string]$Name, [string]$Property, [string]$Filename, 
 
 Invoke-PanelCheck 'production-before' '' '' ''
 if (!$ProductionOnly) {
+    Invoke-PanelFault 'inventory-flag-omitted' 'ContextSource' 'RaidPlayerContext.cs' `
+        '|| player.IsInventoryOpened' '' 'Inventory opening before screen switch clears out player'
+    Invoke-PanelFault 'native-screen-omitted' 'ContextSource' 'RaidPlayerContext.cs' `
+        '|| !ArenaHudVisibility.IsBattleUiActive' '' 'Inventory screen after flag reset clears out player'
+    Invoke-PanelFault 'native-canvas-kept-visible' 'VisibilitySource' '..\ArenaHudVisibility.cs' `
+        'canvas.enabled = IsBattleUiActive;' 'canvas.enabled = true;' `
+        'Native screens stop canvas drawing without disabling its object'
     Invoke-PanelFault 'inactive-parent-before-tmp-awake' 'PanelSource' 'ArenaInfoPanels.cs' `
         '_weapon = new WeaponInfoPanel(rect);' '_root.SetActive(false); _weapon = new WeaponInfoPanel(rect);' `
         'Active-hierarchy panel construction completes before the root is hidden'
@@ -84,7 +91,7 @@ if (!$ProductionOnly) {
         'ArmorVest and secure container grenades are excluded expected'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 15 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 18 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

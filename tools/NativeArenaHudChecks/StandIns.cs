@@ -18,10 +18,17 @@ namespace UnityEngine
     public class Component : Object
     {
         public GameObject gameObject;
+        public Transform transform => this as Transform ?? gameObject.Components.OfType<Transform>().First();
         public T GetComponent<T>() where T : Component => gameObject.GetComponent<T>();
     }
     public class MissingComponentException : Exception { public MissingComponentException(string message) : base(message) { } }
-    public class RectTransform : Component { }
+    public class Transform : Component
+    {
+        public Transform Parent;
+        public bool IsChildOf(Transform parent)
+        { for (Transform node = this; node != null; node = node.Parent) if (ReferenceEquals(node, parent)) return true; return false; }
+    }
+    public class RectTransform : Transform { }
     public sealed class CanvasGroup : Component
     {
         public float alpha = 1;
@@ -30,6 +37,8 @@ namespace UnityEngine
     public class GameObject : Object
     {
         public readonly List<Component> Components = new();
+        public bool activeSelf = true;
+        public void SetActive(bool active) => activeSelf = active;
         public bool ThrowOnGet;
         public int AddCalls, GetCalls, DuplicateCanvasErrors;
         public T GetComponent<T>() where T : Component
@@ -49,6 +58,14 @@ namespace UnityEngine
         }
     }
 }
+namespace TMPro { public class TextMeshProUGUI : UnityEngine.Component { } }
+namespace EFT.UI.BattleTimer
+{
+    public class MainTimerPanel : UnityEngine.Object
+    {
+        public TMPro.TextMeshProUGUI _currentState, TimerText;
+    }
+}
 namespace EFT
 {
     public class GameWorld : UnityEngine.Object { }
@@ -60,7 +77,18 @@ namespace EFT.UI
     public class ExtractionTimersPanel : UnityEngine.Object
     {
         public UnityEngine.RectTransform _timersPanel = new UnityEngine.GameObject().AddComponent<UnityEngine.RectTransform>();
-        public ExtractionTimersPanel() { _timersPanel.gameObject.AddComponent<UnityEngine.CanvasGroup>(); }
+        public UnityEngine.RectTransform _mainDescription = new UnityEngine.GameObject().AddComponent<UnityEngine.RectTransform>();
+        public BattleTimer.MainTimerPanel _mainTimerPanel = new();
+        public ExtractionTimersPanel()
+        {
+            _timersPanel.gameObject.AddComponent<UnityEngine.CanvasGroup>();
+            var state = new UnityEngine.GameObject();
+            state.AddComponent<UnityEngine.RectTransform>().Parent = _mainDescription;
+            _mainTimerPanel._currentState = state.AddComponent<TMPro.TextMeshProUGUI>();
+            var clock = new UnityEngine.GameObject();
+            clock.AddComponent<UnityEngine.RectTransform>();
+            _mainTimerPanel.TimerText = clock.AddComponent<TMPro.TextMeshProUGUI>();
+        }
         public void ShowTimer(bool showExits, bool updateExits = false) { }
     }
 }
