@@ -1,4 +1,4 @@
-# Auftrag: Arena-Panels und native UI auf dem Spiel-PC prüfen
+# Nachtest: Arena-Panels und native UI auf dem Spiel-PC prüfen
 
 Führe diesen begrenzten Test selbstständig auf dem GPU-PC durch. Installation:
 `C:\SPT41`, Repository: `C:\SPT41\Development\ArenaMode`. Lies zuerst `AGENTS.md`,
@@ -8,13 +8,17 @@ Implementierung und kein Auftrag, andere Tasks zu starten oder zu benachrichtige
 
 ## Verbindlicher Teststand
 
-Job-ID: `arena-panels-native-ui-20260911`.
+Job-ID: `arena-panels-native-ui-20260911-r2`.
+Der erste Auftrag ist abgeschlossen und fehlgeschlagen, siehe unveränderten
+Bericht `GPU-PANELS-TEST-RESULTS-2026-09-11.md`. Das hier ist ein neuer Nachtest;
+frühere offene oder bestandene Fälle nicht ungeprüft übernehmen.
 
-- Quellcommit: `18267c86f85061d0603a70c6aecfe42fc6615000`.
-- Client-SHA256: `D927D5B98D654BE63DDB25BD41727408FC86C1B488165C7666D283898F512ABE`.
+- Quellcommit: `998cef50ae79b1c3b14209d41448ec1cba252c99`.
+- Client-SHA256: `ED74F678CB303D775035FA6A4192387C167214C32B3A6FE6DD4CEE251D5CBEE1`.
 - Enthält die absorbierten Panels, die Granatenanzeige aus `2b86e3a`, die
-  Arena-Extract-Sperre und beide gekürzten Beschreibungen. Die parallel noch
-  uncommittete Änderung am Granaten-Picker gehört nicht zu diesem Build.
+  Arena-Extract-Sperre und beide gekürzten Beschreibungen. Enthält außerdem den
+  abgeschlossenen Granaten-Picker-Fix `3f34f86` und die Korrekturen für die
+  fehlenden Panels und den CanvasGroup-Spam. Andere Mods unverändert lassen.
 - Clientänderung: neuer Spielprozess nötig; kein Serverupdate erforderlich.
   Die lokale Lieferung unter `D:\SPT41` beweist nicht den Spiegelstand auf
   dem GPU-PC. Dort unbedingt den folgenden Hashvergleich durchführen.
@@ -57,7 +61,7 @@ konkret als blockiert ausweisen. Keine Hintergrund-Automation anlegen.
   Ein Serverneustart ist für diese Änderung nicht nötig, außer für eine
   konsistente Profilsicherung oder wenn der Server noch nicht läuft.
 
-Belege unter `artifacts/gpu-panels/arena-panels-native-ui-20260911/<Zeitstempel>/`
+Belege unter `artifacts/gpu-panels/arena-panels-native-ui-20260911-r2/<Zeitstempel>/`
 ablegen: `test-stand.json`, `screenshots/`, `logs/`, gesicherte Einstellungen und
 private Profilkopien. Diese Rohdaten bleiben Git-ignoriert. Screenshots mit
 Prüffall und Zeitpunkt benennen. Tatsächliche Auflösung protokollieren; eine nur
@@ -65,6 +69,15 @@ aus Auflösung abgeleitete Skalierung nicht als gemessenen Canvas-Wert ausgeben.
 Clientlog-Zeiten sind lokal, Serverlogs UTC.
 
 ## Prüffälle in dieser Reihenfolge
+
+P03 und P05 sind die vorrangigen Nachweise: Beide Panels müssen sichtbar sein
+und die Startliste muss ausbleiben. Im frischen Clientlog sind nach Arena-Start
+die einmaligen Diagnosemarker `Arena info panels: status and weapon UI constructed`
+und `Arena extraction-list: existing native list CanvasGroup hidden` zu erwarten.
+Kein `Can't add component 'CanvasGroup' to PointsPanel` und keine Panel-/Extract-
+Ausnahme. Marker allein sind keine Sichtprüfung. Bleibt etwas unsichtbar, sofort
+Screenshots und die jetzt vollständigen Exception-Stacks sichern; keine Änderung
+am Code und keine Wiederholungen über die unten erlaubte eine hinaus.
 
 | ID | Aktion | Erwartetes Ergebnis / erforderlicher Beleg |
 |---|---|---|
@@ -111,7 +124,7 @@ Abschließend Testeinstellungen zurückstellen und eigene Prozesse regulär been
 Clienthash erneut prüfen. Eine Änderung während des Tests macht die Zuordnung
 der betroffenen Beobachtungen unklar und muss im Ergebnis stehen.
 
-Schreibe `GPU-PANELS-TEST-RESULTS-2026-09-11.md` mit tatsächlichem Teststand,
+Schreibe `GPU-PANELS-RETEST-RESULTS-2026-09-11.md` mit tatsächlichem Teststand,
 einer Zeile pro Prüffall (**bestanden / fehlgeschlagen / nicht ausgeführt /
 blockiert**), Beobachtung, Screenshot-/Logpfad und den offenen Grenzen.
 Code-/Offlinechecks sind kein visueller Beleg. Keine Profil-IDs, Zugangsdaten,

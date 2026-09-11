@@ -19,7 +19,19 @@ current. User-facing communication is normally German.
   Both regression harnesses now model the previously missed Unity contracts.
   Panel tests still substitute TMP views and do not certify rendering.
   Current source includes the completed `3f34f86` grenade-picker fix unchanged.
-  Independent reviews found no P0-P2. Clean delivery and revised GPU job follow.
+  Independent reviews found no P0-P2. Source commit `998cef5` on
+  `fix/arena-panel-native-ui`; final checks 35 extraction assertions / 3 rejected
+  source faults, 248 panel assertions / 15 rejected source faults. Actual client
+  build: zero errors, four existing CS8632 warnings, all 29 icons verified.
+  Delivered from that clean commit, client SHA256
+  `ED74F678CB303D775035FA6A4192387C167214C32B3A6FE6DD4CEE251D5CBEE1`.
+  Old `D927D5B9…` client backed up; all 39 protected server/dependency/config/asset
+  files unchanged. Receipt:
+  `artifacts/panel-native-ui-fix-delivery/07f8e2b9a54f4fe0a308780659959878/receipt.json`.
+  Revised `GPU-PANELS-TEST-INSTRUCTIONS.md` pins that build as job
+  `arena-panels-native-ui-20260911-r2` and requests a separate retest report.
+  Previous GPU failure report unchanged. No new GPU execution or mirror
+  verification here; client only, game restart required, server unchanged.
 
 - **Grenade pick after widened reach (2026-09-11):** fixes the pre-existing
   defect handed over by the grenade-row review. A grenade bound and drawn from
@@ -39,9 +51,10 @@ current. User-facing communication is normally German.
   clean (zero errors, the four existing CS8632 warnings), client SHA256
   `FF07FE124952C9D81A958284C8DEA8E83AB303B4243A0D6BCCA336E88A171EA0`, manifest
   `artifacts/double-jump-build/2307d55300984d3886b2406aecd9c2d3/manifest.json`
-  (it also contains `18267c8`'s native UI work). **Not delivered:** the installed
-  client `D927D5B9…` is pinned by the prepared GPU panel job below and stayed
-  byte-identical; deliver after that job, or with it by updating its hash.
+  (it also contains `18267c8`'s native UI work). **Initially staged only:** the
+  installed `D927D5B9…` remained pinned during the first GPU panel job. That job
+  has finished; the picker fix is now delivered in the combined `998cef5` client
+  documented above. Do not deploy the older staged `FF07FE12…` build over it.
   Chain, residuals and exact GPU steps: GRENADE-PICK-REVIEW.md. Client-only;
   game restart.
 

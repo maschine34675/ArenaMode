@@ -173,12 +173,20 @@ grenade in a container nested in the rig/backpack.
 
 ## Delivery
 
-Not delivered with the implementation: the installed client (`D927D5B9…`, from
+**Current combined delivery (2026-09-11):** the first GPU panel job completed.
+Source `998cef5` includes the unchanged grenade-picker implementation plus both
+panel/native-UI repairs. Client delivered with SHA256
+`ED74F678CB303D775035FA6A4192387C167214C32B3A6FE6DD4CEE251D5CBEE1`, receipt
+`artifacts/panel-native-ui-fix-delivery/07f8e2b9a54f4fe0a308780659959878/receipt.json`.
+The r2 panel job pins that combined build. Native grenade gameplay still needs
+GPU acceptance. Do not replace it with the older initially staged DLL below.
+
+Historical staging: not delivered with the implementation, as the client (`D927D5B9…`, from
 `18267c8`) is pinned by the prepared GPU panel job (GPU-PANELS-TEST-INSTRUCTIONS.md),
 which forbids a DLL swap during its run. Staged instead from the clean
 implementation commit `3f34f86` (zero errors, the four existing CS8632 warnings):
 client SHA256 `FF07FE124952C9D81A958284C8DEA8E83AB303B4243A0D6BCCA336E88A171EA0`,
 manifest `artifacts/double-jump-build/2307d55300984d3886b2406aecd9c2d3/manifest.json`;
-installed client, server and Redeploy.Core unchanged. Deliver it after that job, or
-together with it by updating its pinned hash. Client only: game restart, no server
-change.
+installed client, server and Redeploy.Core stayed unchanged at that stage.
+Now superseded by the combined delivery above. Client only: game restart, no
+server change.
