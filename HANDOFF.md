@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Killfeed identity/overflow follow-up, staged only (2026-09-11):** user reports
+  clipping during the ongoing r4 job: other kills show attacker plus ellipsis;
+  local kills omit the local name. The latter was the old format itself, while
+  the recent fixed-height Ellipsis setting can truncate horizontally or vertically.
+  New format always puts full attacker and victim names above roles/weapon/HS
+  metadata; local-kill distance retained. No capture/scoring change. Killfeed rows
+  wrap and use installed TMP preferred-height measurement at their fixed width;
+  backgrounds and following rows resize accordingly, including shrink on reuse.
+  No ellipsis, no smaller headline font, same six-row pool and 4.5s hold/1.5s fade.
+  `tools/KillfeedTextChecks`: 31 formatter assertions and one rejected compiled
+  missing-attacker fault. Independent source/native TMP review: no P0-P2. Native
+  rendering still needs a GPU test: long names, six varying-height entries,
+  tall-to-short reuse and pushes while the canvas is hidden by a menu. The stack
+  grows with wrapped content; check clearance from other panels. Build identity
+  follows after verification.
+  **Do not deploy or rebind the r4 job while its tests run:** installed client
+  stays `857206A4BF295607130B6F54A2A9CDECDB3F5A92B53784F9C644F7FC5199F1BB`.
+  `GPU-PANELS-TEST-INSTRUCTIONS.md` and existing reports stay unchanged.
+
 - **Killfeed readability and quickslot clearance (2026-09-11):** each pooled
   killfeed row now has a dark 88%-opacity background, padded 18px bold text and
   brighter death/other-kill colors. Entries stay fully visible for 4.5 seconds,

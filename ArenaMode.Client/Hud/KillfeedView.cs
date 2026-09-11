@@ -16,7 +16,10 @@ internal sealed class KillfeedView
     private const int MaxLines = 6;
     private const float LineSeconds = 6f;
     private const float FadeSeconds = 1.5f;
-    private const float LineHeight = 32f;
+    private const float FeedWidth = 460f;
+    private const float HorizontalPadding = 12f;
+    private const float VerticalPadding = 6f;
+    private const float MinLineHeight = 32f;
     private const float LineGap = 4f;
 
     private sealed class Line
@@ -38,7 +41,7 @@ internal sealed class KillfeedView
         _root.SetParent(hudRoot, false);
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(1f, 1f);
         _root.anchoredPosition = new Vector2(-24f, -96f);
-        _root.sizeDelta = new Vector2(460f, MaxLines * (LineHeight + LineGap));
+        _root.sizeDelta = new Vector2(FeedWidth, 0f);
 
         for (var i = 0; i < MaxLines; i++)
         {
@@ -46,7 +49,7 @@ internal sealed class KillfeedView
             var rect = (RectTransform)lineGo.transform;
             rect.SetParent(_root, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
-            rect.sizeDelta = new Vector2(460f, LineHeight);
+            rect.sizeDelta = new Vector2(FeedWidth, MinLineHeight);
 
             // Background and text share the pooled line's fade and lifetime.
             // Create TMP while the hierarchy is active, then hide the finished row.
@@ -57,15 +60,16 @@ internal sealed class KillfeedView
             group.interactable = false;
             group.blocksRaycasts = false;
 
-            var text = HudStyle.CreateText(rect, "Text", 18f, TextAlignmentOptions.MidlineRight);
+            var text = HudStyle.CreateText(rect, "Text", 18f, TextAlignmentOptions.TopRight);
             text.color = Color.white;
             text.fontStyle = FontStyles.Bold;
-            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.enableWordWrapping = true;
+            text.overflowMode = TextOverflowModes.Overflow;
             var textRect = text.rectTransform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(12f, 3f);
-            textRect.offsetMax = new Vector2(-12f, -3f);
+            textRect.offsetMin = new Vector2(HorizontalPadding, VerticalPadding);
+            textRect.offsetMax = new Vector2(-HorizontalPadding, -VerticalPadding);
 
             lineGo.SetActive(false);
             _pool[i] = new Line
@@ -90,7 +94,13 @@ internal sealed class KillfeedView
             _live.RemoveAt(0);
         }
 
-        line.Text.text = Format(kill);
+        line.Text.text = KillfeedText.Format(kill);
+        // Measure actual font metrics and wrapped lines, not a fixed character
+        // count or row height. The explicit width also works for an inactive
+        // pooled row; its TMP component was initialized while active in Create.
+        var preferred = line.Text.GetPreferredValues(FeedWidth - 2f * HorizontalPadding, Mathf.Infinity);
+        line.Root.sizeDelta = new Vector2(FeedWidth,
+            Mathf.Max(MinLineHeight, Mathf.Ceil(preferred.y) + 2f * VerticalPadding));
         line.ShownAt = Time.unscaledTime;
         line.Group.alpha = 1f;
         line.Root.gameObject.SetActive(true);
@@ -134,34 +144,12 @@ internal sealed class KillfeedView
 
     private void Relayout()
     {
+        var top = 0f;
         for (var i = 0; i < _live.Count; i++)
-            _live[i].Root.anchoredPosition = new Vector2(0f, -i * (LineHeight + LineGap));
-    }
-
-    private static string Format(ArenaKill kill)
-    {
-        if (kill.LocalIsVictim)
-            return $"<color=#FF8585>{kill.KillerName} [{kill.KillerRoleLabel}] killed YOU</color>";
-
-        var weapon = string.IsNullOrEmpty(kill.WeaponName) ? string.Empty : $"{kill.WeaponName} · ";
-        var headshot = kill.Headshot ? "<color=#FF8585>HS</color> · " : string.Empty;
-        var victim = $"{kill.VictimName} <color={RoleColor(kill.VictimRole)}>[{kill.VictimRoleLabel}]</color>";
-
-        if (kill.KilledByLocal)
-            return $"{headshot}{weapon}{victim} · {Mathf.RoundToInt(kill.Distance)}m";
-
-        return $"<color=#D5DAE0>{kill.KillerName} ➔ {victim}</color>";
-    }
-
-    private static string RoleColor(ArenaRole role)
-    {
-        switch (role)
         {
-            case ArenaRole.Pmc: return "#7FDBFF";
-            case ArenaRole.Boss: return "#FF851B";
-            case ArenaRole.Raider: return "#FFDC00";
-            case ArenaRole.Follower: return "#FFDC00";
-            default: return "#DDDDDD";
+            _live[i].Root.anchoredPosition = new Vector2(0f, -top);
+            top += _live[i].Root.sizeDelta.y + LineGap;
         }
+        _root.sizeDelta = new Vector2(FeedWidth, Mathf.Max(0f, top - LineGap));
     }
 }
