@@ -7,6 +7,31 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Local ElevenLabs announcer audition (2026-09-11):** user supplied
+  `D:\SPT41\Development\ansagen2.wav`, generated with the free ElevenLabs plan.
+  Split into five Ogg Vorbis clips in the user-provided order, with cuts in
+  measured inter-phrase pauses. DOUBLE KILL, MONSTER KILL, UNSTOPPABLE and GODLIKE
+  use their existing keys; ULTRA KILL uses `multi_kill.ogg` for the four-kill
+  event (HUD remains MULTI KILL). No scoring or DLL changes. See
+  `LOCAL-ANNOUNCER-TRIAL.md` for the exact scope, mappings and licensing notes.
+  Input and generated audio are NOT committed or packaged: only the intake
+  script/docs are tracked; outputs live in ignored
+  `artifacts/local-announcer-trial/ansagen2/`. Release assets are unchanged.
+  Delivered exactly five trial OGGs plus two identifying notes to the installed
+  ArenaMode asset directory; all seven hashes verified. Three originals backed
+  up; multi_kill and monster_kill did not exist before. Receipt/backups:
+  `artifacts/local-announcer-trial/ansagen2/delivery/ec18d7e6c8fc48bea8dc79db4a194099/`.
+  All 54 protected files, including release assets, other installed audio and
+  client/server/Redeploy.Core DLLs, remained unchanged. Original rate/stereo/gain
+  retained; five clips decode with expected durations and non-clipping signal.
+  Independent review found no blocking issue. No build needed for this asset
+  trial, and no speech-recognition or GPU listening claim. **Restart the game**
+  to clear announcer PCM caches; server restart unnecessary. Deploying a later
+  build can overwrite three trial clips but leaves the two added clips behind;
+  reapply or fully roll back the trial as documented. Do not import these
+  free-plan trial recordings into release assets without a separate decision.
+  GPU mirror and in-game audibility remain unverified here.
+
 - **r5 bounded acceptance and killfeed distance (2026-09-11):** report `487f38b`
   confirms complete names/metadata on the observed other-kill entries, two
   non-overlapping rows, common fade, menu hiding/return, and the optional
