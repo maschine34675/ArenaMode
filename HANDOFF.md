@@ -19,7 +19,21 @@ current. User-facing communication is normally German.
   clock. Mask removed at end, changed world/UI and shutdown; disabled or failed
   masking leaves native requests available. Independent review findings on
   failed unpatch cleanup and fail-open hooks were fixed and covered by the
-  production-linked NativeArenaHudChecks. Final delivery/test job follow below.
+  production-linked NativeArenaHudChecks (28 assertions and one rejected
+  compiled fault). Existing panel/grenade checks: 247 assertions and 14
+  rejected faults; actual client build and all 29 icon resources verified.
+  Delivered client-only from clean commit `18267c8`, built in the separate
+  `ArenaMode-NativeHud` worktree to exclude the concurrent uncommitted
+  ArenaReachPatches/grenade-picker work in the main checkout. Installed SHA256:
+  `D927D5B98D654BE63DDB25BD41727408FC86C1B488165C7666D283898F512ABE`.
+  Previous client `ACE467B4…` backed up; all 39 protected server/dependency,
+  configuration and asset files unchanged. Receipt:
+  `artifacts/native-hud-delivery/df831be51ae4485893f69851ef384d2a/receipt.json`.
+  **GPU job:** [GPU-PANELS-TEST-INSTRUCTIONS.md](GPU-PANELS-TEST-INSTRUCTIONS.md)
+  specifies this exact build, a separate test profile, P01–P14 with screenshot/
+  log evidence, and ordinary-raid restoration. Job prepared, not dispatched;
+  GPU mirror and native visual/input acceptance remain unverified. Game restart
+  required, no server update. Recheck installed hash if parallel delivery occurs.
 
 - **Grenade row in the weapon panel (2026-09-11):** frag/flash/smoke counts
   split into "ready" (the native tap-G candidate list, which the installed
