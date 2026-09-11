@@ -104,6 +104,10 @@ source against that manifest before deleting only the explicitly named local
 `D:\SPT41\Development\RaidInfoPanels` checkout and standalone installed DLL.
 The remote GitHub repository is unchanged. Keep the legacy CFG for migration.
 The final delivery receipt and client build identity are recorded in HANDOFF.md.
+Delivery from clean commit `1e6d350` completed on 2026-09-11: installed client
+SHA256 `6C660F3B3F8B39ED6B54F3E9960605D4A437FA63CE277A29DC0D7DC7FB190B72`,
+standalone local checkout/DLL absent, legacy CFG retained, protected files
+unchanged. Receipt: `artifacts/raid-panel-delivery/9b26d7afe2414856bc9d2e5c62b24440/receipt.json`.
 
 GPU acceptance still belongs to a later user test: verify both panels after game
 restart, custom positions and live F12 changes, kit swaps/reload/reserve counts,

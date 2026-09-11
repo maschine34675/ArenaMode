@@ -28,8 +28,15 @@ current. User-facing communication is normally German.
   Verified complete source/Git/installed-artifact backup:
   `D:\SPT41\Development\_archive\RaidInfoPanels-2026-09-11-f8c969a4dffa4335987a02ade57e66fe`.
   Only the user-named local project and installed standalone DLL are retired;
-  GitHub remote stays unchanged. Delivery identity is recorded below after
-  the clean build. **Game restart only.** GPU layout/migration/playtest and
+  GitHub remote stays unchanged. **Delivered and retired:** clean source
+  `1e6d350`, client SHA256
+  `6C660F3B3F8B39ED6B54F3E9960605D4A437FA63CE277A29DC0D7DC7FB190B72`.
+  Build: `artifacts/double-jump-build/b7ea9d9beaaa47ee9c22873495191521/manifest.json`.
+  Delivery/previous-client backup:
+  `artifacts/raid-panel-delivery/9b26d7afe2414856bc9d2e5c62b24440/receipt.json`.
+  The local RaidInfoPanels checkout and old installed DLL are gone; retained
+  legacy/Arena CFGs, server/dependencies and existing audio/drafts are unchanged.
+  **Game restart only.** GPU layout/migration/playtest and
   mirror completion are not claimed; test both panels over kit changes,
   death/respawn, a second raid and an ordinary raid.
 
