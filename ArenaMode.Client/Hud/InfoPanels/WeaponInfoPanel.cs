@@ -14,6 +14,7 @@ namespace ArenaMode.Hud.InfoPanels
         private readonly TextMeshProUGUI _ammoLine;
         private readonly TextMeshProUGUI _metaLine;
         private readonly SpareMagazineBarView _spareMagBar;
+        private readonly GrenadeBarView _grenadeBar;
 
         public WeaponInfoPanel(Transform parent)
         {
@@ -24,12 +25,13 @@ namespace ArenaMode.Hud.InfoPanels
                 new Vector2(1f, 0f),
                 new Vector2(1f, 0f),
                 InfoPanelSettings.WeaponPanelOffset.Value,
-                new Vector2(280f, 132f));
+                new Vector2(280f, 160f));
 
             _titleLine = PanelStyle.CreateLine(_panelRect, "WeaponTitle", -10f, 24f);
             _ammoLine = PanelStyle.CreateLine(_panelRect, "WeaponAmmo", -38f, 24f);
             _metaLine = PanelStyle.CreateLine(_panelRect, "WeaponMeta", -66f, 24f);
             _spareMagBar = new SpareMagazineBarView(_panelRect, -94f);
+            _grenadeBar = new GrenadeBarView(_panelRect, -126f);
 
             PanelStyle.ApplyTextColor(_titleLine, InfoPanelSettings.WeaponTextColor.Value);
             PanelStyle.ApplyTextColor(_ammoLine, InfoPanelSettings.WeaponTextColor.Value);
@@ -54,6 +56,15 @@ namespace ArenaMode.Hud.InfoPanels
 
         public void Clear()
         {
+            ClearWeaponLines();
+            _grenadeBar.Hide();
+        }
+
+        // Everything that describes the firearm in hand. The grenade row is
+        // carried inventory and stays: holding a grenade (or a knife or meds)
+        // is exactly when the remaining grenade count matters.
+        private void ClearWeaponLines()
+        {
             _titleLine.text = string.Empty;
             _ammoLine.text = string.Empty;
             _metaLine.text = string.Empty;
@@ -62,9 +73,11 @@ namespace ArenaMode.Hud.InfoPanels
 
         public void UpdateFromPlayer(Player player)
         {
+            UpdateGrenadeLine(player);
+
             if (player.HandsController is not Player.FirearmController firearmController)
             {
-                Clear();
+                ClearWeaponLines();
                 return;
             }
 
@@ -76,7 +89,7 @@ namespace ArenaMode.Hud.InfoPanels
 
             if (firearmController.Item is not Weapon weapon)
             {
-                Clear();
+                ClearWeaponLines();
                 return;
             }
 
@@ -90,14 +103,14 @@ namespace ArenaMode.Hud.InfoPanels
         {
             if (firearmController.Item is not Weapon weapon)
             {
-                Clear();
+                ClearWeaponLines();
                 return;
             }
 
             Launcher launcher = weapon.GetUnderbarrelWeapon();
             if (launcher == null)
             {
-                Clear();
+                ClearWeaponLines();
                 return;
             }
 
@@ -209,6 +222,21 @@ namespace ArenaMode.Hud.InfoPanels
             }
 
             _spareMagBar.Hide();
+        }
+
+        // Independent of the hands state on purpose (see ClearWeaponLines).
+        // Hidden while no grenade is carried (all thrown, a kit without
+        // grenades, no rig space for the supplied RGD-5s); like the spare-mag
+        // row, its space stays reserved so the panel never jumps in height.
+        private void UpdateGrenadeLine(Player player)
+        {
+            if (GrenadeInventoryCounter.TryGetSummary(player, out var summary) && !summary.IsEmpty)
+            {
+                _grenadeBar.SetSummary(summary, InfoPanelSettings.WeaponTextColor.Value);
+                return;
+            }
+
+            _grenadeBar.Hide();
         }
     }
 }

@@ -114,3 +114,67 @@ restart, custom positions and live F12 changes, kit swaps/reload/reserve counts,
 armor damage/effects, death/killcam/spectating/respawn, a second raid, and no panel
 in an ordinary raid. Check at the actual screen resolution for collisions with
 native or Arena HUD elements. Only a game restart is needed; no server change.
+
+## Grenade row (added 2026-09-11, after the absorption)
+
+The weapon panel gained a row counting the local body's hand grenades as
+**frag / flash / smoke**, requested by the user for ArenaMode. Hand grenades are
+`EFT.InventoryLogic.ThrowWeap`; 40/30 mm launcher rounds and rockets are
+`Ammo`/`Rocket` and never match. Classification uses `ThrowWeapType`: stock
+items only use frag, flash and smoke; `stun_grenade` joins flash as the bots
+group them; unlisted/modded types fall back to the template fields the
+explosion code reads (fragments or blast radius, blindness, emission).
+
+**Ready** is the exact candidate list of the native tap-G, taken from the same
+virtual call (`GetReachableItemsOfTypeNonAlloc` with `Examined`, which appends
+and never clears). In vanilla that is the top level of rig and pockets; the
+local controller also skips an unsearched rig/pockets. The installed
+**UseItemsAnywhere 1.4.0** rewrites `Inventory.FastAccessSlots` at startup to
+add Backpack, SecuredContainer and ArmBand (see KIT-POLISH-REVIEW.md), so loose
+backpack grenades are genuinely ready there and are shown as such. **Stored**
+is the carried rest (nested pouches, backpack) not in that list, shown dimmed as
+`+N`; a kind that is only stored shows `0 +N` with a dimmed icon.
+SecuredContainer and ArmorVest are not walked for "stored": no stock secure
+container accepts ThrowWeap (its ExcludedFilter lists the ThrowWeap node) and
+stock armbands have no grid. Ready is counted from the native list itself, so
+a ready grenade outside the walked subtrees is still counted.
+
+Known exception, documented at the code: tap-G prefers
+`Equipment.TopPriorityGrenade`. A grenade drawn earlier through a bound number
+key (Arena's reach patches allow binding one outside rig/pockets) stays that
+pick, so tap-G can draw a grenade this row shows as stored. The same review found
+a pre-existing, separate defect in that path (a thrown backpack grenade leaves a
+stale pick that blocks tap-G until hold-G); it is out of this change's scope and
+was handed to a separate task.
+
+The row is inventory state, so it keeps updating while a grenade, knife or meds
+is in hand, exactly when the remaining count matters; only the firearm lines
+clear. It is hidden when no grenade is carried, and like the spare-magazine row
+its space stays reserved (panel 280x160, row at y=-126) so the panel never
+changes height. Scratch lists are cleared after every read, including failures,
+and on match teardown.
+
+Icons: three new generated glyphs (`grenade_frag/flash/smoke.png`) from
+`tools/RaidInfoPanelIcons/gen_grenades.ps1`, which writes only those files and
+puts its preview in ignored `artifacts/`. Their hashes live in
+`tools/RaidInfoPanelChecks/ARENA-ICONS.json`; `SOURCE-IMPORT.json` is unchanged.
+
+Verification: an adversarial review (three lenses, each finding independently
+refuted) found no P0-P2 issue. Its P3 findings were fixed before commit: ready
+is now counted from the native list (UseItemsAnywhere secure-container grenades
+were previously uncounted), the equipment is read through the controller as
+natively, the comments describe the real install, the stand-in models the
+mutable slot list and the unsearched gate, and the exception-path check is no
+longer vacuous. Offline suite: 247 assertions and 14 rejected source faults
+(the seven original controls unchanged, seven new grenade controls). Staged real
+client build: zero errors, the four existing CS8632 warnings; Build-Verify:
+26 imported plus 3 authored icons byte-exact in the DLL. None of this
+certifies rendering or in-raid behavior.
+
+GPU acceptance for the row: counts with the default kit's RGD-5s, the ready
+count dropping after a tap-G throw, counts while the grenade is in hand, a
+grenade in a nested pouch and in the backpack (bright on this install because of
+UseItemsAnywhere, dimmed `+N` only in a nested pouch), flash/smoke if a kit
+carries them, correct counts after death and respawn, no row without grenades,
+and no overlap with the killfeed or other bottom-right HUD elements at the real
+resolution.

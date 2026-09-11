@@ -8,11 +8,13 @@
     <ContextSource Condition="'$(ContextSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\RaidPlayerContext.cs</ContextSource>
     <SettingsSource Condition="'$(SettingsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\InfoPanelSettings.cs</SettingsSource>
     <MagazineSource Condition="'$(MagazineSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\MagazineInventoryCounter.cs</MagazineSource>
+    <GrenadeSource Condition="'$(GrenadeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\InfoPanels\GrenadeInventoryCounter.cs</GrenadeSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(PanelSource)" Link="Production/ArenaInfoPanels.cs" />
     <Compile Include="$(ContextSource)" Link="Production/RaidPlayerContext.cs" />
     <Compile Include="$(SettingsSource)" Link="Production/InfoPanelSettings.cs" />
     <Compile Include="$(MagazineSource)" Link="Production/MagazineInventoryCounter.cs" />
+    <Compile Include="$(GrenadeSource)" Link="Production/GrenadeInventoryCounter.cs" />
   </ItemGroup>
 </Project>

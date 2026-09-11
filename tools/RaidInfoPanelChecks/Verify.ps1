@@ -54,9 +54,34 @@ if (!$ProductionOnly) {
     Invoke-PanelFault 'magazine-exception-retains-items' 'MagazineSource' 'MagazineInventoryCounter.cs' `
         'finally { Reset(); }' 'finally { /* deliberate scratch leak */ }' `
         'Armored CompoundItem in TacticalVest counts full and partial ready mags releases scratch references'
+    Invoke-PanelFault 'grenade-exception-retains-items' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'finally { Reset(); }' 'finally { /* deliberate scratch leak */ }' `
+        'Direct rig and pocket grenades are ready for the native quick throw releases scratch references'
+    Invoke-PanelFault 'grenade-exception-path-leak' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'try { return CollectSummary(player, out summary); } finally { Reset(); }' `
+        'bool collected = CollectSummary(player, out summary); Reset(); return collected;' `
+        'Classification exception propagates to UI but finally clears grenade scratch'
+    Invoke-PanelFault 'grenade-nested-counted-ready' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'summary.Add(kind, ready: false);' 'summary.Add(kind, ready: true);' `
+        'Backpack and nested-pouch grenades are carried but not quick-throwable expected'
+    Invoke-PanelFault 'grenade-ready-from-carried-only' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'if (TryClassify(_readyScratch[i], out GrenadeKind kind))' `
+        'if (ContainsReference(_carriedScratch, _readyScratch[i]) && TryClassify(_readyScratch[i], out GrenadeKind kind))' `
+        "With UseItemsAnywhere's slots, loose backpack and secure-container grenades are ready expected"
+    Invoke-PanelFault 'grenade-native-reach-replaced' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'controller.GetReachableItemsOfTypeNonAlloc(_readyScratch, grenade => controller.Examined(grenade));' `
+        'foreach (EquipmentSlot s in new[] { EquipmentSlot.Pockets, EquipmentSlot.TacticalVest }) if (equipment.GetSlot(s).ContainedItem is CompoundItem c) foreach (Grid g in c.Grids) foreach (Item it in g.Items) if (it is ThrowWeap t) _readyScratch.Add(t);' `
+        'An unexamined grenade is not a native quick-throw candidate expected'
+    Invoke-PanelFault 'grenade-stun-not-flash' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'case ThrowWeapType.stun_grenade:' '// stun case deliberately omitted' `
+        'Stun grenades count as flash by type alone expected'
+    Invoke-PanelFault 'grenade-secure-counted' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'CollectGrenades(equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem as CompoundItem, _carriedScratch);' `
+        'CollectGrenades(equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem as CompoundItem, _carriedScratch); CollectGrenades(equipment.GetSlot(EquipmentSlot.SecuredContainer).ContainedItem as CompoundItem, _carriedScratch);' `
+        'ArmorVest and secure container grenades are excluded expected'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 7 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 14 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

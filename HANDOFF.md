@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Grenade row in the weapon panel (2026-09-11):** frag/flash/smoke counts
+  split into "ready" (the native tap-G candidate list, which the installed
+  UseItemsAnywhere widens to the backpack top level) and dimmed "+N" stored
+  (nested pouches etc.). Stays visible with a grenade in hand; hidden without
+  grenades. Three new icons with their own hash record `ARENA-ICONS.json`;
+  `SOURCE-IMPORT.json` untouched, never rerun the imported generators. Offline
+  suite 247 assertions / 14 rejected faults; staged build clean; adversarial
+  review found no P0-P2, its P3s fixed. A pre-existing stale-TopPriorityGrenade
+  defect in the reach patches (tap-G blocked after throwing a backpack grenade
+  via a number key) was handed to a separate task. GPU acceptance pending, see
+  the grenade section of RAID-INFO-PANELS-REVIEW.md. Client-only; game restart.
 - **RaidInfoPanels absorbed (2026-09-11):** the main checkout now uses
   `feature/arena-raid-info-panels`, based on `0f9f1e9` and therefore includes
   the hitmarker implementation and completed parallel Solo Tactical changes.

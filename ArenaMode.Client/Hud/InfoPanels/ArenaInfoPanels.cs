@@ -152,6 +152,7 @@ internal sealed class ArenaInfoPanels : IDisposable
         GameIconLoader.Reset();
         MagazineInventoryCounter.Reset();
         LooseAmmoCounter.Reset();
+        GrenadeInventoryCounter.Reset();
         ArmorDurabilityCounter.Reset();
     }
 

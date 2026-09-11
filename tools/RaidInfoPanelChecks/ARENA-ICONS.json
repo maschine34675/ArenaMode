@@ -1,0 +1,20 @@
+{
+  "description": "Panel icons authored inside ArenaMode (not imported from RaidInfoPanels). Imported icons stay recorded in SOURCE-IMPORT.json and are never regenerated. Rerun the named generator, then update the sha256 here, then rebuild.",
+  "files": [
+    {
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/grenade_frag.png",
+      "generator": "tools/RaidInfoPanelIcons/gen_grenades.ps1",
+      "sha256": "A576174019CE95599C25B359683B5BBA13B33857CA99C9C85DD57245B76ED9B1"
+    },
+    {
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/grenade_flash.png",
+      "generator": "tools/RaidInfoPanelIcons/gen_grenades.ps1",
+      "sha256": "0B856DE3F01A0B24A0A7372D779D346FC3CD188BB5DD38BD5521A0F5F9C5E185"
+    },
+    {
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/grenade_smoke.png",
+      "generator": "tools/RaidInfoPanelIcons/gen_grenades.ps1",
+      "sha256": "5DEF1E33EC88B85897473461302DFAF5007C5E6F006BD557B64A94962DA3AC46"
+    }
+  ]
+}

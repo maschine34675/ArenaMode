@@ -274,11 +274,14 @@ internal static class Program
         Check(PanelStyle.ThemeCalls == themes + 1, "Live theme change reaches panel style");
         int[] before = CleanupCounts();
         MagazineScratch().Add(new Magazine { Count = 30 });
+        GrenadeScratch("_readyScratch").Add(new ThrowWeap());
+        GrenadeScratch("_carriedScratch").Add(new ThrowWeap());
         f.Dispose();
         Check(opacity.Subscribers == 0, "Dispose unsubscribes theme handler");
         Check(f.Root == null, "Dispose destroys owned root");
         Check(CleanupCounts().Zip(before).All(p => p.First == p.Second + 1), "Every owned cache and legacy suppression disposed once");
         Check(MagazineScratch().Count == 0, "Dispose clears real magazine scratch buffer");
+        Check(GrenadeScratchEmpty(), "Dispose clears real grenade scratch buffers");
         int[] disposed = CleanupCounts();
         opacity.Value += 0.01f; f.Panels.Tick(); f.Dispose();
         Check(PanelStyle.ThemeCalls == themes + 1, "Disposed owner cannot receive theme changes");
@@ -375,13 +378,134 @@ internal static class Program
         Check(!MagazineInventoryCounter.TryGetSpareMagSummary(f.Player, weapon, out _), "Missing equipment safe");
     }
 
+    private static List<ThrowWeap> GrenadeScratch(string field)
+        => (List<ThrowWeap>)typeof(GrenadeInventoryCounter).GetField(field, BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+
+    private static bool GrenadeScratchEmpty()
+        => GrenadeScratch("_readyScratch").Count == 0 && GrenadeScratch("_carriedScratch").Count == 0;
+
+    private static void GrenadeCounting()
+    {
+        using var f = new Fixture(false);
+        var equipment = f.Player.Inventory.Equipment;
+        var rig = equipment.Put(EquipmentSlot.TacticalVest, new ArmoredRig { Grids = new[] { new Grid() } });
+        var pockets = equipment.Put(EquipmentSlot.Pockets, new CompoundItem { Grids = new[] { new Grid() } });
+        var backpack = equipment.Put(EquipmentSlot.Backpack, new CompoundItem { Grids = new[] { new Grid() } });
+        var armor = equipment.Put(EquipmentSlot.ArmorVest, new CompoundItem { Grids = new[] { new Grid() } });
+        var secure = equipment.Put(EquipmentSlot.SecuredContainer, new CompoundItem { Grids = new[] { new Grid() } });
+        ThrowWeap Put(CompoundItem container, ThrowWeap grenade)
+        {
+            grenade.Parent = container;
+            container.Grids[0].Items.Add(grenade); return grenade;
+        }
+        ThrowWeap Typed(ThrowWeapType type, bool examined = true) => new ThrowWeap { ThrowType = type, IsExamined = examined };
+        void Counts(int rf, int rl, int rs, int sf, int sl, int ss, string why)
+        {
+            Check(GrenadeInventoryCounter.TryGetSummary(f.Player, out var r), why + " produces summary");
+            Check(r.ReadyFrag == rf && r.ReadyFlash == rl && r.ReadySmoke == rs
+                  && r.StoredFrag == sf && r.StoredFlash == sl && r.StoredSmoke == ss,
+                why + $" expected {rf}/{rl}/{rs} ready {sf}/{sl}/{ss} stored, got "
+                    + $"{r.ReadyFrag}/{r.ReadyFlash}/{r.ReadySmoke} ready {r.StoredFrag}/{r.StoredFlash}/{r.StoredSmoke} stored");
+            // The UI reads only these accessors, so they must agree with the fields.
+            Check(r.Ready(GrenadeKind.Frag) == rf && r.Ready(GrenadeKind.Flash) == rl && r.Ready(GrenadeKind.Smoke) == rs
+                  && r.Stored(GrenadeKind.Frag) == sf && r.Stored(GrenadeKind.Flash) == sl && r.Stored(GrenadeKind.Smoke) == ss
+                  && r.IsEmpty == (rf + rl + rs + sf + sl + ss == 0),
+                why + " accessors agree with the counts");
+            Check(GrenadeScratchEmpty(), why + " releases scratch references");
+        }
+
+        Counts(0, 0, 0, 0, 0, 0, "No grenades carried gives an empty summary");
+        var rigFrag = Put(rig, Typed(ThrowWeapType.frag_grenade));
+        Put(pockets, Typed(ThrowWeapType.flash_grenade));
+        Counts(1, 1, 0, 0, 0, 0, "Direct rig and pocket grenades are ready for the native quick throw");
+        // No blinding, fragments or emission: only the type can place it.
+        Put(rig, Typed(ThrowWeapType.stun_grenade));
+        Counts(1, 2, 0, 0, 0, 0, "Stun grenades count as flash by type alone");
+        Put(backpack, Typed(ThrowWeapType.smoke_grenade));
+        var pouch = new CompoundItem { Parent = rig, Grids = new[] { new Grid() } }; rig.Grids[0].Items.Add(pouch);
+        Put(pouch, Typed(ThrowWeapType.frag_grenade));
+        Counts(1, 2, 0, 1, 0, 1, "Backpack and nested-pouch grenades are carried but not quick-throwable");
+        Put(armor, Typed(ThrowWeapType.frag_grenade)); Put(secure, Typed(ThrowWeapType.smoke_grenade));
+        Counts(1, 2, 0, 1, 0, 1, "ArmorVest and secure container grenades are excluded");
+        Put(pockets, Typed(ThrowWeapType.frag_grenade, examined: false));
+        Counts(1, 2, 0, 2, 0, 1, "An unexamined grenade is not a native quick-throw candidate");
+        rig.Slots = new[] { new Slot { ContainedItem = new ThrowWeap { Parent = rig, ThrowType = ThrowWeapType.smoke_grenade } } };
+        Counts(1, 2, 1, 2, 0, 1, "A grenade in a direct rig slot is ready");
+        Counts(1, 2, 1, 2, 0, 1, "Repeated refreshes do not accumulate the native appending list");
+
+        // Player.cs:22345-22360: the local controller does not go into a rig
+        // that has not been searched, so everything in it is carried, not ready.
+        rig.Unsearched = true;
+        Counts(0, 1, 0, 3, 1, 2, "An unsearched rig is skipped by the local controller, so its grenades are stored");
+        rig.Unsearched = false;
+
+        // UseItemsAnywhere 1.4.0 (installed) rewrites the static slot list.
+        // Loose backpack grenades become ready; a secure-container grenade is
+        // ready although the carried walk never visits that container.
+        try
+        {
+            EFT.Inventory.FastAccessSlots = new[]
+            {
+                EquipmentSlot.Pockets, EquipmentSlot.TacticalVest, EquipmentSlot.Backpack,
+                EquipmentSlot.SecuredContainer, EquipmentSlot.ArmBand
+            };
+            Counts(1, 2, 3, 2, 0, 0, "With UseItemsAnywhere's slots, loose backpack and secure-container grenades are ready");
+        }
+        finally { EFT.Inventory.FastAccessSlots = EFT.Inventory.Vanilla; }
+        Counts(1, 2, 1, 2, 0, 1, "Vanilla slots restore the original split");
+
+        Put(backpack, new ThrowWeap { ThrowType = ThrowWeapType.gas_grenade, EmitTime = 30f });
+        Put(backpack, new ThrowWeap { ThrowType = ThrowWeapType.incendiary_grenade, MaxExplosionDistance = 4f });
+        Put(backpack, new ThrowWeap { ThrowType = ThrowWeapType.sonar, Blindness = new Vector3(0f, 12f, 0f) });
+        Put(backpack, new ThrowWeap { ThrowType = (ThrowWeapType)99 });
+        Counts(1, 2, 1, 3, 1, 2, "Unlisted types classify by effect; an effectless unknown type is skipped");
+        // The other half of the explosive rule: fragments without a blast radius.
+        Put(backpack, new ThrowWeap { ThrowType = (ThrowWeapType)42, FragmentsCount = 50 });
+        Counts(1, 2, 1, 4, 1, 2, "An unknown type that throws fragments counts as frag");
+
+        // A fault AFTER both scratch lists are filled, so a leak is observable:
+        // the hook records their sizes at the moment of the throw.
+        int readyAtThrow = -1, carriedAtThrow = -1;
+        ThrowWeap.BeforeClassifyThrow = () =>
+        {
+            readyAtThrow = GrenadeScratch("_readyScratch").Count;
+            carriedAtThrow = GrenadeScratch("_carriedScratch").Count;
+        };
+        rigFrag.ThrowOnClassify = true;
+        bool threw = false;
+        try { GrenadeInventoryCounter.TryGetSummary(f.Player, out _); }
+        catch (InvalidOperationException) { threw = true; }
+        finally { rigFrag.ThrowOnClassify = false; ThrowWeap.BeforeClassifyThrow = null; }
+        Check(threw && readyAtThrow > 0 && carriedAtThrow > 0, "Classification fault fires with both grenade scratch lists filled");
+        Check(GrenadeScratchEmpty(), "Classification exception propagates to UI but finally clears grenade scratch");
+        Counts(1, 2, 1, 4, 1, 2, "Grenade counter recovers after a classification fault");
+
+        // The native helper's own fault, after one grenade was already appended.
+        f.Player.InventoryController.ExaminesBeforeThrow = 1;
+        threw = false;
+        try { GrenadeInventoryCounter.TryGetSummary(f.Player, out _); }
+        catch (InvalidOperationException) { threw = true; }
+        finally { f.Player.InventoryController.ResetExamineFault(); }
+        Check(threw && GrenadeScratchEmpty(), "Examine exception propagates to UI but finally clears grenade scratch");
+        Counts(1, 2, 1, 4, 1, 2, "Grenade counter recovers after an examine fault");
+
+        Check(!GrenadeInventoryCounter.TryGetSummary(null, out _), "Grenades: missing player safe");
+        // Natively Player.Inventory throws without a controller; the counter must
+        // decide before touching it.
+        f.Player.WithoutController = true;
+        Check(!GrenadeInventoryCounter.TryGetSummary(f.Player, out _), "Grenades: missing inventory controller safe");
+        f.Player.WithoutController = false;
+        f.Player.Inventory.Equipment = null;
+        Check(!GrenadeInventoryCounter.TryGetSummary(f.Player, out _), "Grenades: missing equipment safe");
+    }
+
     private static int Main()
     {
         _scratch = Path.Combine(Path.GetTempPath(), "ArenaInfoPanels-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_scratch);
         try
         {
-            Migration(); Context(); RefreshAndLifecycle(); ErrorIsolation(); Disposal(); MagazineCounting();
+            Migration(); Context(); RefreshAndLifecycle(); ErrorIsolation(); Disposal(); MagazineCounting(); GrenadeCounting();
             Console.WriteLine($"ARENA_INFO_PANEL_PRODUCTION_PASSED ({_checks} assertions)");
             return 0;
         }

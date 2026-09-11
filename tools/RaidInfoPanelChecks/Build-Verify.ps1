@@ -25,6 +25,21 @@ foreach ($arenaEntry in $arenaImport.files | Where-Object { $_.unchanged -eq $tr
 }
 if ($arenaExpected.Count -ne 26) { throw 'The original 26 runtime icons must all be accounted for.' }
 
+# Icons authored inside ArenaMode after the import have their own record, so the
+# import provenance above stays exactly as strict. A name may appear in only one
+# of the two records, and every authored file must match its recorded hash.
+$arenaAuthored = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'ARENA-ICONS.json') -Raw | ConvertFrom-Json
+$arenaAuthoredCount = 0
+foreach ($arenaEntry in $arenaAuthored.files) {
+    $arenaName = 'ArenaMode.Hud.InfoPanels.Icons.' + [IO.Path]::GetFileName($arenaEntry.target)
+    if ($arenaExpected.ContainsKey($arenaName)) { throw "Authored icon collides with an imported or authored one: $arenaName" }
+    if ((Get-FileHash -LiteralPath (Join-Path $arenaRepo $arenaEntry.target) -Algorithm SHA256).Hash -ne $arenaEntry.sha256) {
+        throw "Authored sprite changed without updating ARENA-ICONS.json: $arenaName"
+    }
+    $arenaExpected[$arenaName] = $arenaEntry.sha256
+    $arenaAuthoredCount++
+}
+
 # Read PE metadata without loading Unity or executing any game/plugin code.
 $arenaStream = [IO.File]::OpenRead($arenaManifest.ClientPath)
 $arenaPe = [System.Reflection.PortableExecutable.PEReader]::new($arenaStream)
@@ -71,5 +86,5 @@ try {
     }
 }
 finally { $arenaPe.Dispose(); $arenaStream.Dispose() }
-Write-Output "Verified 26 embedded source-identical icons, one Arena plugin and no standalone dependency. Manifest: $ManifestPath"
+Write-Output "Verified 26 embedded source-identical icons, $arenaAuthoredCount Arena-authored icons, one Arena plugin and no standalone dependency. Manifest: $ManifestPath"
 Write-Output 'ARENA_INFO_PANEL_BUILD_VERIFIED'

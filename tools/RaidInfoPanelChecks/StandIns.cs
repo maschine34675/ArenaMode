@@ -31,6 +31,11 @@ namespace UnityEngine
         public static Vector2 zero => new(0, 0);
         public static Vector2 one => new(1, 1);
     }
+    internal struct Vector3
+    {
+        public float x, y, z;
+        public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
+    }
     internal struct Color
     {
         public float r, g, b, a;
@@ -80,15 +85,29 @@ namespace EFT
         public object HandsController
         { get => ThrowOnHands ? throw new InvalidOperationException("injected body read failure") : _hands; set => _hands = value; }
         public Health HealthController = new();
-        public Inventory Inventory = new();
         public EPointOfView PointOfView = EPointOfView.FirstPerson;
+        public bool WithoutController;
+        private readonly EFT.InventoryLogic.InventoryController _controller = new();
+        public EFT.InventoryLogic.InventoryController InventoryController => WithoutController ? null : _controller;
+        // Native Player.Inventory is `InventoryController.Inventory` (Player.cs:24511):
+        // it throws when the controller is missing. The setter only lets the
+        // context checks simulate an uninitialized inventory.
+        public Inventory Inventory { get => InventoryController.Inventory; set => InventoryController.Inventory = value; }
     }
     internal class Health { public bool IsAlive = true; }
-    internal class Inventory { public EFT.InventoryLogic.InventoryEquipment Equipment = new(); }
+    internal class Inventory
+    {
+        public EFT.InventoryLogic.InventoryEquipment Equipment = new();
+        // Static and mutable like the native field (Inventory.cs:193-197), which
+        // the installed UseItemsAnywhere 1.4.0 rewrites at startup.
+        public static EFT.InventoryLogic.EquipmentSlot[] FastAccessSlots = Vanilla;
+        public static EFT.InventoryLogic.EquipmentSlot[] Vanilla
+            => new[] { EFT.InventoryLogic.EquipmentSlot.Pockets, EFT.InventoryLogic.EquipmentSlot.TacticalVest };
+    }
 }
 namespace EFT.InventoryLogic
 {
-    internal enum EquipmentSlot { TacticalVest, Pockets, Backpack, ArmorVest, SecuredContainer, FirstPrimaryWeapon, SecondPrimaryWeapon }
+    internal enum EquipmentSlot { TacticalVest, Pockets, Backpack, ArmorVest, SecuredContainer, FirstPrimaryWeapon, SecondPrimaryWeapon, ArmBand }
     internal class Item
     {
         public Item Parent;
@@ -100,7 +119,13 @@ namespace EFT.InventoryLogic
         public Item GetRootItem()
         { Item p = this; while (p.MergedWithParent && p.Parent != null) p = p.Parent; return p; }
     }
-    internal class CompoundItem : Item { public Grid[] Grids = Array.Empty<Grid>(); public Slot[] Slots = Array.Empty<Slot>(); }
+    internal class CompoundItem : Item
+    {
+        public Grid[] Grids = Array.Empty<Grid>(); public Slot[] Slots = Array.Empty<Slot>();
+        // Models a SearchableItem (Vest/Pockets) that the local body's search
+        // controller has not marked searched (PlayerSearchController.IsSearched).
+        public bool Unsearched;
+    }
     internal sealed class ArmoredRig : CompoundItem { } // Type must not change TacticalVest eligibility.
     internal sealed class Grid { public List<Item> Items = new(); }
     internal class Magazine : Item { public int Count, MaxCount = 30; public bool Compatible = true; }
@@ -117,6 +142,64 @@ namespace EFT.InventoryLogic
         public EReloadMode ReloadMode;
         public Slot MagazineSlot = new();
         public Slot GetMagazineSlot() => MagazineSlot;
+    }
+    internal enum ThrowWeapType
+    { frag_grenade = 0, flash_grenade = 1, stun_grenade = 2, smoke_grenade = 3, gas_grenade = 4, incendiary_grenade = 5, sonar = 6 }
+    // Native values live on ThrowWeapTemplate (ThrowWeapTemplate.cs:5-42); only
+    // the fields the classifier reads are modeled.
+    internal class ThrowWeap : Item
+    {
+        private ThrowWeapType _throwType;
+        public ThrowWeapType ThrowType
+        {
+            get
+            {
+                if (!ThrowOnClassify) return _throwType;
+                BeforeClassifyThrow?.Invoke();
+                throw new InvalidOperationException("injected classification failure");
+            }
+            set => _throwType = value;
+        }
+        public int FragmentsCount;
+        public float MaxExplosionDistance, EmitTime;
+        public UnityEngine.Vector3 Blindness;
+        public bool IsExamined = true;
+        public bool ThrowOnClassify;
+        public static Action BeforeClassifyThrow;
+    }
+    internal sealed class InventoryController
+    {
+        // Auto-property natively (InventoryController.cs:168).
+        public EFT.Inventory Inventory = new();
+        public int ExaminesBeforeThrow = -1;
+        private int _examines;
+        // Mirrors the local body's controller: the base helper
+        // (InventoryController.cs:882-907) over the static, mutable
+        // Inventory.FastAccessSlots, each container's slots before its grids
+        // (CompoundItem.cs:144-157), DIRECT children only, appending to the
+        // caller's list without clearing it; plus the PlayerOwnerInventoryController
+        // override that skips an unsearched SearchableItem container
+        // (Player.cs:22345-22360). UnknownItem is not modeled: an `is ThrowWeap`
+        // match already excludes it.
+        public void GetReachableItemsOfTypeNonAlloc<TItem>(IList<TItem> list, Predicate<TItem> predicate = null) where TItem : Item
+        {
+            foreach (var slotName in EFT.Inventory.FastAccessSlots)
+            {
+                if (Inventory.Equipment.GetSlot(slotName).ContainedItem is not CompoundItem container || container.Unsearched) continue;
+                foreach (Slot slot in container.Slots)
+                    if (slot.ContainedItem is TItem a && (predicate == null || predicate(a))) list.Add(a);
+                foreach (Grid grid in container.Grids)
+                    foreach (Item item in grid.Items)
+                        if (item is TItem b && (predicate == null || predicate(b))) list.Add(b);
+            }
+        }
+        public bool Examined(Item item)
+        {
+            if (ExaminesBeforeThrow >= 0 && _examines++ >= ExaminesBeforeThrow)
+                throw new InvalidOperationException("injected examine failure");
+            return item is not ThrowWeap grenade || grenade.IsExamined;
+        }
+        public void ResetExamineFault() { ExaminesBeforeThrow = -1; _examines = 0; }
     }
     internal sealed class InventoryEquipment : CompoundItem
     {
