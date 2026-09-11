@@ -68,6 +68,23 @@ internal static class Program
             "SoloTacticalSpawnDecision.Retry",
             "RequestSoloSquad(retry: true)");
 
+        string buyTick = Slice(source, "public void Tick(float deltaTime)", "private bool HoldRoundStartForKitSwap()");
+        Assert(buyTick.Contains("if (Time.time >= _phaseEndsAt && !HoldRoundStartForKitSwap())", StringComparison.Ordinal),
+            "the buy phase ends only when the raid-start kit swap is no longer pending, or the wait has given up");
+        string hold = Slice(source, "private bool HoldRoundStartForKitSwap()", "internal bool TrySynchronizeScoreboardRoster(");
+        RequireAll(hold,
+            "SoloTacticalRoundStartPolicy.Evaluate(",
+            "Respawn.LiveKitRespawn.IsInitialSwapPending",
+            "(!_playerDown && Respawn.ArenaRespawnDriver.IsRespawnInProgress)",
+            "SoloTacticalRoundStartDecision.StartAfterGivingUp");
+        // The first "return" after each hold label must be "return true;" — a
+        // wait the policy asked for that the switch then ignores is no wait.
+        Assert(System.Text.RegularExpressions.Regex.IsMatch(hold,
+                   @"case SoloTacticalRoundStartDecision\.HoldBegun:(?:(?!return )[\s\S])*return true;")
+               && System.Text.RegularExpressions.Regex.IsMatch(hold,
+                   @"case SoloTacticalRoundStartDecision\.Hold:(?:(?!return )[\s\S])*return true;"),
+            "a wait in progress keeps the buy phase open");
+
         string start = Slice(source, "private void StartRound()", "private void RequestSoloSquad(");
         Assert(Count(start, "Money -= price") == 1
                && Count(start, "LiveKitRespawn.AtRoundBreak(") == 1

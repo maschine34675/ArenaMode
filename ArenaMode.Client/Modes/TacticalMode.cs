@@ -132,6 +132,7 @@ public sealed partial class TacticalMode : IArenaMode
     private KitDefinition _worn;
     private bool _playerDown;
     private bool _roundStartPending;
+    private SoloTacticalRoundStartPolicy.State _roundStartHold;
     private bool _teamArena;
     private bool _teamEnemiesRequested;
     private bool _teamStopRequested;
@@ -175,6 +176,13 @@ public sealed partial class TacticalMode : IArenaMode
     public Phase CurrentPhase => _phase;
 
     public bool InBuyPhase => !_teamArena && _phase == Phase.Buy;
+
+    /// <summary>
+    /// The buy phase is over but the round waits for a body swap to land (the
+    /// raid-start kit swap, or a respawn after a death in the buy phase); the
+    /// HUD and the buy menu say so instead of counting to zero.
+    /// </summary>
+    public bool WaitingForKitSwap => !_teamArena && _phase == Phase.Buy && _roundStartHold.Holding;
 
     public bool IsTeamArena => _teamArena;
 
@@ -325,7 +333,9 @@ public sealed partial class TacticalMode : IArenaMode
                     break;
 
                 case Phase.Buy:
-                    line += $"   BUY  {PhaseRemaining:0}s";
+                    line += WaitingForKitSwap
+                        ? "   BUY  waiting for your kit"
+                        : $"   BUY  {PhaseRemaining:0}s";
 
                     // Says what you will actually walk out with, which is not the
                     // same question as what you bought: buying nothing means
@@ -503,7 +513,7 @@ public sealed partial class TacticalMode : IArenaMode
                 break;
 
             case Phase.Buy:
-                if (Time.time >= _phaseEndsAt)
+                if (Time.time >= _phaseEndsAt && !HoldRoundStartForKitSwap())
                     StartRound();
                 break;
 
@@ -529,6 +539,54 @@ public sealed partial class TacticalMode : IArenaMode
             case Phase.Rebinding:
                 TickTeamRebinding();
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Whether the round start waits for a body swap that is still in flight:
+    /// the raid-start kit swap, or the driver's respawn after a death in the
+    /// buy phase (which Tactical does not count as being down, so nothing
+    /// parks it). Not a death the round DID count: that respawn is parked on
+    /// HoldRespawn until StartRound releases it, and waiting for it here
+    /// would be waiting for ourselves — hence the _playerDown guard.
+    /// SoloTacticalRoundStartPolicy says why and for how long; this is the
+    /// Unity-facing half that reads the flags, tells the player and writes
+    /// the log. Asked only once the buy phase's own clock has run out, so a
+    /// wait never shortens the shopping and only ever extends it.
+    /// </summary>
+    private bool HoldRoundStartForKitSwap()
+    {
+        bool swapPending = Respawn.LiveKitRespawn.IsInitialSwapPending
+                           || (!_playerDown && Respawn.ArenaRespawnDriver.IsRespawnInProgress);
+        var decision = SoloTacticalRoundStartPolicy.Evaluate(ref _roundStartHold, swapPending, Time.time);
+
+        switch (decision)
+        {
+            case SoloTacticalRoundStartDecision.HoldBegun:
+                Plugin.ModLogger.LogInfo(
+                    $"Tactical round {RoundNumber}: buy phase over, waiting for the body swap in flight to land "
+                    + $"(up to {SoloTacticalRoundStartPolicy.InitialSwapHoldSeconds:0}s).");
+                ArenaToasts.Show($"Round {RoundNumber} — waiting for your kit");
+                return true;
+
+            case SoloTacticalRoundStartDecision.Hold:
+                return true;
+
+            case SoloTacticalRoundStartDecision.StartAfterHold:
+                Plugin.ModLogger.LogInfo(
+                    $"Tactical round {RoundNumber}: the body swap settled after "
+                    + $"{_roundStartHold.LastHoldSeconds:0.0}s; starting the round.");
+                return false;
+
+            case SoloTacticalRoundStartDecision.StartAfterGivingUp:
+                Plugin.ModLogger.LogWarning(
+                    $"Tactical round {RoundNumber}: a body swap is still pending after "
+                    + $"{_roundStartHold.LastHoldSeconds:0}s; starting the round anyway. A kit bought this round "
+                    + "may be overridden if that swap ever lands, and the mode will not wait for it again.");
+                return false;
+
+            default:
+                return false;
         }
     }
 

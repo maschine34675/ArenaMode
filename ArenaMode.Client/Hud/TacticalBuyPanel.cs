@@ -166,7 +166,10 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         GUILayout.Label(
             $"Round {mode.RoundNumber}   {mode.RoundsWon}-{mode.RoundsLost}", _titleStyle);
         GUILayout.Label(
-            $"{mode.Money:N0} ₽    starting in {mode.PhaseRemaining:0}s", _bodyStyle);
+            $"{mode.Money:N0} ₽    " + (mode.WaitingForKitSwap
+                ? "starting when your kit has landed"
+                : $"starting in {mode.PhaseRemaining:0}s"),
+            _bodyStyle);
 
         // What happens if you buy nothing, said plainly. Surviving a round keeps
         // your gear, and a menu that only ever showed things to buy made that

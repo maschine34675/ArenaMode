@@ -43,6 +43,7 @@
     <Compile Include="..\ArenaMode.Client\Bots\BotLoadBoostPolicy.cs" Link="ClientRules\BotLoadBoostPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Kits\KitModels.cs" Link="ClientRules\KitModels.cs" />
     <Compile Include="..\ArenaMode.Client\Kits\KitPreloadPlan.cs" Link="ClientRules\KitPreloadPlan.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\SoloTacticalRoundStartPolicy.cs" Link="ClientRules\SoloTacticalRoundStartPolicy.cs" />
   </ItemGroup>
 
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets

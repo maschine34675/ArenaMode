@@ -100,6 +100,37 @@ Invoke-ExpectedFailure `
     -ApplicationArguments @('--tactical-source', $replay) `
     -Expected 'a failed opponent request retries inside the same round without another buy, charge, body swap or cue'
 
+$holdGate = 'if (Time.time >= _phaseEndsAt && !HoldRoundStartForKitSwap())'
+if ([regex]::Matches($tactical, [regex]::Escape($holdGate)).Count -ne 1) {
+    throw 'Expected exactly one raid-start swap gate on the buy phase end.'
+}
+$unguarded = Join-Path $scratch 'TacticalMode-unguarded-buy-end.cs'
+[System.IO.File]::WriteAllText($unguarded, $tactical.Replace($holdGate, 'if (Time.time >= _phaseEndsAt)'))
+Invoke-ExpectedFailure `
+    -Label 'unguarded-buy-end' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'unguarded-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'unguarded-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $unguarded) `
+    -Expected 'the buy phase ends only when the raid-start kit swap is no longer pending, or the wait has given up'
+
+$holdCase = 'case SoloTacticalRoundStartDecision\.Hold:(\s*)return true;'
+if ([regex]::Matches($tactical, $holdCase).Count -ne 1) {
+    throw 'Expected exactly one Hold case that keeps the buy phase open.'
+}
+$ignoredHold = Join-Path $scratch 'TacticalMode-ignored-hold.cs'
+[System.IO.File]::WriteAllText($ignoredHold, [regex]::Replace(
+    $tactical, $holdCase, 'case SoloTacticalRoundStartDecision.Hold:$1return false;'))
+Invoke-ExpectedFailure `
+    -Label 'ignored-hold' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'ignored-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'ignored-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $ignoredHold) `
+    -Expected 'a wait in progress keeps the buy phase open'
+
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) {
     throw 'The unmodified production checks failed after mutation verification.'
@@ -112,4 +143,4 @@ foreach ($path in $productionPaths) {
     }
 }
 
-Write-Output "SOLO_TACTICAL_SPAWN_REGRESSION_VERIFIED (three mutants rejected; evidence: $scratch)"
+Write-Output "SOLO_TACTICAL_SPAWN_REGRESSION_VERIFIED (five mutants rejected; evidence: $scratch)"

@@ -7,6 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Solo Tactical: the buy phase waits for a body swap in flight (2026-09-11, 09:58):**
+  this commit on `feature/arena-mantle-reload`, on top of the entry below.
+  The round-1 buy phase (5 s minimum, or Ready) could end before the
+  raid-start kit swap had landed; StartRound then charged the purchase and
+  started a second swap on the same body, the base-kit swap landed first and
+  the purchase stood down silently — paid, not received, one round late.
+  `Tick` now asks the pure `SoloTacticalRoundStartPolicy` once the buy clock
+  has run out: it holds while `LiveKitRespawn.IsInitialSwapPending` or (for a
+  death in the buy phase, which Tactical never counts as down) while
+  `ArenaRespawnDriver.IsRespawnInProgress` with `_playerDown` false, then
+  starts; after 60 s it gives up with a warning and never waits again that
+  match, so a swap that never exits cannot deadlock the mode. Toast "Round 1
+  — waiting for your kit", HUD "BUY  waiting for your kit", buy panel
+  "starting when your kit has landed". Five xunit tests on the policy (four
+  go red against a policy that never holds, checked by mutation), a
+  source-text gate assertion plus a fourth and fifth mutant in
+  `tools/SoloTacticalSpawnChecks` (53 assertions, five mutants rejected),
+  PitFireTeam / TeamArenaExpansion / RoundLifecycle / Tracer checkers green,
+  two independent reviews without a new fault. Installed client SHA256:
+  `A79D4F6F7B4E7FA747BF55EA71E8F521EB08498F74F1126CC00D75166B6A8638`.
+  **Restart game only.** Playtest: solo Tactical, BuySeconds 5 and
+  KitPreloadInLoadingScreen Off (cold kit), press Ready right after the raid
+  starts: expect the waiting toast/HUD, then the base kit landing, then the
+  round; the log shows "waiting for the body swap in flight" and "settled
+  after N s". Then the same with a kit bought before Ready: it must land at
+  round start and be charged once. Known and left alone: a non-buying
+  round-1 survivor gets the in-place base-kit swap and, a tick later, the
+  usual round-break re-issue at a spawn point with protection — the same
+  sequence every warm-kit round 1 already had.
+
 - **Solo Tactical: the raid-start kit now counts as worn (2026-09-11, 07:28):**
   this commit on `feature/arena-mantle-reload`. Pre-existing defect found by
   the adversarial review of `af3647d`, not caused by it: the solo kit provider
@@ -25,13 +55,7 @@ current. User-facing communication is normally German.
   **Restart game only.** Playtest: solo Tactical, RandomKit on, survive round
   1 without buying; round 2 must re-issue the same kit, and the client log
   must show one `Arena kit drawn:` line per match, not one per round.
-  Pre-existing and NOT fixed here (both reviews): the round-1 buy phase
-  (minimum 5 s) can end before the raid-start swap has landed. Tactical never
-  consults `LiveKitRespawn.IsInitialSwapPending` (Team Deathmatch does), so a
-  kit bought and readied in that window is charged, the base-kit swap lands
-  first, the purchase's swap stands down silently and arrives a round late.
-  Fix direction: hold the end of the buy phase on `IsInitialSwapPending`, with
-  a deadline so a swap that never exits cannot deadlock the mode.
+  The round-1 buy-phase race both reviews named is fixed by the entry above.
 
 - **Airborne mantle user acceptance (2026-09-10, 20:37 retest):** user confirms
   the tested lower climbs now work; higher places no longer trigger. Five logged
