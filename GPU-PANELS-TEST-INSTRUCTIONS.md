@@ -1,137 +1,89 @@
-# Nachtest: Arena-Panels und native UI auf dem Spiel-PC prüfen
+# Fokussierter GPU-Nachtest r3: Inventarüberlagerung und Extract-Balken
 
-Führe diesen begrenzten Test selbstständig auf dem GPU-PC durch. Installation:
-`C:\SPT41`, Repository: `C:\SPT41\Development\ArenaMode`. Lies zuerst `AGENTS.md`,
-den aktuellen Lieferabschnitt in `HANDOFF.md` und `RAID-INFO-PANELS-REVIEW.md`
-einschließlich der Granaten-Ergänzung. Das ist ein **Testauftrag**, keine
-Implementierung und kein Auftrag, andere Tasks zu starten oder zu benachrichtigen.
+Führe diesen begrenzten Test auf dem Spiel-PC selbstständig durch. Installation
+`C:\SPT41`, Repository `C:\SPT41\Development\ArenaMode`. Zuerst `AGENTS.md`,
+den aktuellen Lieferabschnitt in `HANDOFF.md` und
+`GPU-PANELS-RETEST-RESULTS-2026-09-11.md` lesen. Die beiden bisherigen Berichte
+bleiben unverändert. Dieser Auftrag startet keine anderen Tasks/Automationen.
 
 ## Verbindlicher Teststand
 
-Job-ID: `arena-panels-native-ui-20260911-r2`.
-Der erste Auftrag ist abgeschlossen und fehlgeschlagen, siehe unveränderten
-Bericht `GPU-PANELS-TEST-RESULTS-2026-09-11.md`. Das hier ist ein neuer Nachtest;
-frühere offene oder bestandene Fälle nicht ungeprüft übernehmen.
+- Job-ID: `arena-panels-native-ui-20260911-r3`.
+- Quellcommit: `d35d8785be236cf447a98b99e49f65d13e5e48dd`.
+- Client-SHA256: `218F176B15D007DB451893368EC754DDA5669F45C8E96B4F0EE1E67E9BA58C7C`.
+- Clientdatei: `C:\SPT41\BepInEx\plugins\maschine-ArenaMode.Client.dll`.
+- Enthält alle bisherigen Panel-/Granatenkorrekturen. Neu: Arena-HUD wird auf
+  nativen Inventar-, Pausen- und Einstellungsseiten nicht gezeichnet; die Panels
+  lesen nach der Rückkehr sofort frische Werte. Auch der grüne Extract-Balken
+  wird verborgen, der numerische Raidtimer bleibt erhalten.
 
-- Quellcommit: `998cef50ae79b1c3b14209d41448ec1cba252c99`.
-- Client-SHA256: `ED74F678CB303D775035FA6A4192387C167214C32B3A6FE6DD4CEE251D5CBEE1`.
-- Enthält die absorbierten Panels, die Granatenanzeige aus `2b86e3a`, die
-  Arena-Extract-Sperre und beide gekürzten Beschreibungen. Enthält außerdem den
-  abgeschlossenen Granaten-Picker-Fix `3f34f86` und die Korrekturen für die
-  fehlenden Panels und den CanvasGroup-Spam. Andere Mods unverändert lassen.
-- Clientänderung: neuer Spielprozess nötig; kein Serverupdate erforderlich.
-  Die lokale Lieferung unter `D:\SPT41` beweist nicht den Spiegelstand auf
-  dem GPU-PC. Dort unbedingt den folgenden Hashvergleich durchführen.
+Vor dem ersten Spielstart und nach Abschluss den DLL-Hash vergleichen; zusätzlich
+Repository-HEAD und Server-DLL-Hash protokollieren. Die Lieferung unter D:\SPT41
+beweist keine erfolgte Spiegelung auf diesem PC. Bei abweichendem Hash oder
+unklarem geladenem Build die betroffenen Tests blockiert lassen, nichts ersetzen.
 
-Prüfe vor dem ersten Spielstart den Hash von
-`C:\SPT41\BepInEx\plugins\maschine-ArenaMode.Client.dll` und protokolliere zusätzlich
-den tatsächlichen Repository-HEAD und Server-DLL-Hash. Ein Repository-Commit
-allein beweist keinen installierten oder vom laufenden Prozess geladenen Build.
-Bei abweichender DLL oder einem bereits laufenden Prozess mit unklarem Build
-keine Ergebnisse diesem Job zuschreiben und nichts selbst überschreiben.
+## Grenzen und Vorbereitung
 
-Nutze die vorhandene lokale Computer-Use-Schnittstelle für echte Launcher- und
-Spieloberflächen. Prüfe ihre aktuellen Möglichkeiten und einen tatsächlichen
-Screenshot, bevor du eine Bedienbeschränkung annimmst. Kein Browser-Nachbau als
-UI-Nachweis, keine Remote-Desktop-Fähigkeit voraussetzen, keine undokumentierte
-Eingabeschnittstelle ergänzen. Wenn native Darstellung oder nötige Eingaben
-fehlen, alle noch möglichen Vorprüfungen erledigen und den betroffenen Test
-konkret als blockiert ausweisen. Keine Hintergrund-Automation anlegen.
+- Ausschließlich das vorhandene separate Testprofil verwenden und im nativen
+  Launcher prüfen; niemals mit dem Hauptprofil testen. Falls keines verfügbar
+  ist, nur über die normale Oberfläche ein separates Testprofil anlegen.
+- Fremde Tests/Prozesse nicht beenden. Vor eigenen Änderungen konsistente
+  Profil- und Einstellungssicherungen bei beendetem Spiel/Server erstellen.
+  Für diesen Clienttest ist ein frischer Spielprozess nötig, kein Serverupdate.
+- Kein Build, DLL-Tausch, Mod-Update, Pull/Merge/Reset/Push, Profil-JSON-Edit oder
+  Recovery-Eingriff. Keine anderen Mods entfernen; keine Items per Code erzeugen.
+- Die vorhandene native Computer-Use-Schnittstelle und echte Screenshots prüfen.
+  Nur dokumentierte Eingaben verwenden. Nicht verfügbare Eingaben/Unterfälle
+  offen ausweisen, keinen Browser-Nachbau oder erfundenen Sichtbeleg liefern.
+- Vorhandene Panelpositionen, insbesondere Status (24,245), zunächst beibehalten.
+  Absichtlich geänderte Einstellungen anschließend nativ zurückstellen, ohne
+  fremde Änderungen zu überschreiben. Alte RaidInfoPanels-CFG nicht entfernen.
 
-## Sicherheit und Vorbereitung
+Rohbelege, private Sicherungen, Screenshots, Logs und `test-stand.json` unter
+`artifacts/gpu-panels/arena-panels-native-ui-20260911-r3/<Zeitstempel>/` ablegen,
+nicht committen. Tatsächliche Auflösung und Aufnahmezeiten angeben; Clientzeiten
+sind lokal, Serverlogs UTC. Für jeden Arena-Raid eine eigene Profilbaseline vor
+und nach dem regulären Ende vergleichen; normalen PMC separat behandeln.
 
-- Ausschließlich ein separates vorhandenes Testprofil benutzen, etwa das bei
-  früheren GPU-Tests angelegte Profil; dessen Namen/Existenz im Launcher prüfen.
-  Falls keines vorhanden ist, ein separates Standard-Testprofil über die native
-  Oberfläche anlegen. Niemals mit dem Hauptprofil ins Spiel oder in einen Raid.
-- Einen fremden laufenden Test nicht beenden. Spiel und Server nur regulär
-  starten/beenden, soweit sie zu deinem Test gehören. Vor Veränderungen am
-  Testprofil eine konsistente Sicherung bei beendetem Spiel und Server erstellen.
-- Kein Build, DLL-Tausch, Mod-Update, Pull, Merge, Reset, Push, Profil-JSON-Edit
-  oder Recovery-Manipulation. Die bestehende Spiegelung nicht umkonfigurieren.
-  Den früheren eigenständigen RaidInfoPanels-Checkout nicht wiederherstellen.
-- Aktuelle Arena-/Grafik-/Eingabeeinstellungen lokal sichern und später die
-  absichtlich geänderten Testeinstellungen über die normale Oberfläche
-  zurückstellen. Keine fremden Konfigurationsänderungen zurückrollen.
-- Die alte `com.maschine.RaidInfoPanels.cfg` belassen: sie dient als Quelle für
-  die erste Migration. Existiert die neue Arena-Konfiguration bereits, haben
-  deren gespeicherte Werte Vorrang. Keinen vorhandenen Wert löschen, um eine
-  künstliche Erstinstallation herzustellen.
-- Für den Test einen frischen Spielprozess mit dem geprüften Client verwenden.
-  Ein Serverneustart ist für diese Änderung nicht nötig, außer für eine
-  konsistente Profilsicherung oder wenn der Server noch nicht läuft.
+## Prüffälle
 
-Belege unter `artifacts/gpu-panels/arena-panels-native-ui-20260911-r2/<Zeitstempel>/`
-ablegen: `test-stand.json`, `screenshots/`, `logs/`, gesicherte Einstellungen und
-private Profilkopien. Diese Rohdaten bleiben Git-ignoriert. Screenshots mit
-Prüffall und Zeitpunkt benennen. Tatsächliche Auflösung protokollieren; eine nur
-aus Auflösung abgeleitete Skalierung nicht als gemessenen Canvas-Wert ausgeben.
-Clientlog-Zeiten sind lokal, Serverlogs UTC.
-
-## Prüffälle in dieser Reihenfolge
-
-P03 und P05 sind die vorrangigen Nachweise: Beide Panels müssen sichtbar sein
-und die Startliste muss ausbleiben. Im frischen Clientlog sind nach Arena-Start
-die einmaligen Diagnosemarker `Arena info panels: status and weapon UI constructed`
-und `Arena extraction-list: existing native list CanvasGroup hidden` zu erwarten.
-Kein `Can't add component 'CanvasGroup' to PointsPanel` und keine Panel-/Extract-
-Ausnahme. Marker allein sind keine Sichtprüfung. Bleibt etwas unsichtbar, sofort
-Screenshots und die jetzt vollständigen Exception-Stacks sichern; keine Änderung
-am Code und keine Wiederholungen über die unten erlaubte eine hinaus.
-
-| ID | Aktion | Erwartetes Ergebnis / erforderlicher Beleg |
+| ID | Vorgehen | Erwartung / erforderlicher Beleg |
 |---|---|---|
-| P01 | Im nativen Startbildschirm ARENA wählen; dann PMC, Scav und wieder ARENA. Einmal zurück/vorwärts navigieren. | ARENA-Beschreibung höchstens zwei sichtbare Zeilen, vollständig lesbar, keine sichtbaren `<nobr>`-Tags, kein Abschneiden/Überlappen. PMC/Scav zeigen wieder ihren normalen Text. Screenshots von ARENA und PMC. |
-| P02 | Optional: vorhandene gültige PitFireTeam-Auswahl mit vier Begleitern aufrufen. | Eigener Tactical-5v5-Text ebenfalls höchstens zwei sichtbare Zeilen. Keine fehlende PFT-Gruppe künstlich erzeugen; ohne vorhandene Voraussetzungen separat „nicht ausgeführt“. |
-| P03 | Arena → Endless Deathmatch → Factory tagsüber, volle Karte, ohne PFT starten. Ein verfügbares Standardkit verwenden; keine Datenbank-/Kitdateien editieren. | Vom Übergang in die spielbare Szene an erscheint keine große native Extract-Liste. Kleine Raidzeit darf nativ sichtbar bleiben. Frühe Bilder/kurze Aufnahme bei Start und nach etwa 2 und 8 Sekunden sichern. Match-/Kitbereitschaft vor Inventarvergleichen abwarten. |
-| P04 | Im lebenden Zustand die tatsächlich belegte Aktion „Timer und Exits“ auslösen (standardmäßig zweimal O). Anschließend die reine Timer-Aktion (einmal O) prüfen. | Exit-Liste bleibt weg; reine Raidzeit bleibt bedienbar. Pause/Esc und Inventar funktionieren. Eine zu langsame Tastensequenz nicht als erfolgreichen Doppel-O-Test werten: Belegung und tatsächliche Eingabemöglichkeit prüfen. |
-| P05 | Beide Arena-Panels bei geladenem Kit und geöffnet/geschlossenem Inventar ansehen. | Links HP/Gewicht/Rüstung/Status, rechts Waffe/Munition/Magazinreserve/Granaten. Texte und Icons lesbar, keine doppelten Altpanels; keine Kollision mit Killfeed, Schnellzugriff, Stamina oder anderen nativen Anzeigen. Übersicht und lesbare Detailbilder. |
-| P06 | Einige Schüsse abgeben und mit normaler Nachladetaste nachladen. Inventar vor/nachher vergleichen; wenn vorhanden ein gepanzertes Rig benutzen. | Magazinzähler, Kammer/Patronentyp und volle/angebrochene Reserve passen zum wirklichen Inhalt. AVS/TV-110 und andere TacticalVest-Rigs zählen auch mit Panzerung. Im Rucksack liegende Magazine getrennt ausgewiesen. Falls kein gepanzertes Rig verfügbar, diesen Teil ausdrücklich offenlassen. |
-| P07 | Mit dem Standardkit die RGD-5-Anzahl vergleichen, per G ziehen und kontrolliert in freien Bereich werfen; anschließend ggf. zweites Exemplar werfen. | Frag-Zahl passt, sinkt nach Verbrauch, bleibt mit Granate in der Hand sichtbar und verschwindet bei null vorhandenen Granaten. Keine Waffenzeile mit veralteten Werten. Fehler beim Ziehen getrennt von falscher Anzeige protokollieren. |
-| P08 | Soweit das Testinventar es nativ erlaubt: eine Granate ins Rucksack-Hauptraster, dann in eine geeignete verschachtelte Tasche legen; passende Flash/Smoke-Granaten ergänzend testen, wenn vorhanden. | „Ready“ folgt der nativen G-Kandidatenliste. Mit installiertem UseItemsAnywhere zählt eine lose Rucksackgranate als bereit; verschachtelte, nicht direkt erreichbare Reserve erscheint gedimmt als `+N`. Keine Launcherpatrone als Handgranate zählen. Nicht verfügbare Behälter/Granatentypen als nicht ausgeführt dokumentieren, keine Items per Code erzeugen. |
-| P09 | Über F12 → ArenaMode → `HUD Panels - ...` Position/Skalierung/Deckkraft sowie Waffen- und Statuspanel einzeln ändern und zurückstellen. | Änderungen greifen, kein neues Duplikat, jedes Panel separat abschaltbar. Vorherige Werte wiederherstellen. Statusoffset `(24,245)` nur erwarten, wenn die tatsächliche alte CFG ihn enthielt und kein neuer Arena-Wert Vorrang hat. |
-| P10 | Arena-HUD-Hauptschalter und Panel-Hauptschalter kurz abschalten; Doppel-O erneut prüfen. | Panels folgen ihren Schaltern, die native Exit-Liste bleibt unabhängig davon unterdrückt. Danach beide Schalter wieder auf die vorherigen Werte stellen. |
-| P11 | In der laufenden Arena einen normalen Tod/Respawn zulassen; falls die sichere native Aufgeben-Funktion verwendet wird, dies gesondert nennen. Danach erneut Inventar und Panels prüfen. | Während Tod, Killcam und Ersatzkörper-Aufbau keine eingefrorenen eigenen HP-/Waffendaten. Nach Respawn frische HP-/Kit-/Magazin-/Granatenwerte; weiterhin nur ein Panelsatz und keine Exit-Liste. Natürliche Blutung/Fraktur/Rüstungsschäden auf passende Icons/Farben prüfen, falls beobachtet. Nicht beobachtete Zustände nicht als bestanden markieren. |
-| P12 | Optional bei bestehendem funktionsfähigem PFT-Setup nach Tod zuschauen. | Eigene Panels im Zuschauerzustand verborgen; vorhandene Bot-HP-Anzeige bleibt separat funktionsfähig. Ohne Setup ist dies kein Pflicht-Blocker für die übrigen Paneltests. |
-| P13 | Arena regulär verlassen, ins Menü/Hideout und einen zweiten kurzen Arena-Raid starten. | Keine übrig gebliebenen Panels im Menü, keine Verdoppelung beim zweiten Start; richtige neue Werte und erneut keine automatische Exit-Liste. |
-| P14 | Mit demselben separaten Testprofil einen normalen PMC-Raid starten, keine Arena-Auswahl. Startliste und Doppel-O prüfen. Falls sicher erreichbar, kurz einen normalen Extract betreten und dessen Countdown beobachten. | Keine Arena-Panels. Native Start-/Doppel-O-Liste wieder sichtbar; Countdown bleibt normal. Native Extraktionsmechanik nicht durch Abkürzungen oder direkte Zustandsänderungen ersetzen. Countdown-Teil als nicht ausgeführt ausweisen, wenn nicht erreichbar. |
+| R01 | Endless Deathmatch, Factory tagsüber, volle Karte, ohne PFT, vorhandenes Standardkit starten. Erste spielbare Bilder bis etwa 10 Sekunden aufnehmen. | Panels sichtbar, sobald eigener Körper und Kit bereit sind. Keine benannten Exit-Zeilen und kein grüner Balken mit „Find an extraction point“, Icon oder leerem Hintergrund. Kleine numerische Uhr erlaubt. Diskrete Screenshots nicht als lückenlose Aufnahme ausgeben. |
+| R02 | Inventar per Tab öffnen, kurz ansehen und wieder schließen; mindestens zweimal. Ebenso Esc/Pause und eine native Einstellungsseite öffnen/zurückkehren. Vorhandenen Lootscreen nur zusätzlich prüfen, wenn zugänglich. | Im Inventar keine Status-/Waffenpanels und keine obere Arena-Punkteanzeige über nativen Slots/Tabs. Auch Pause/Settings frei von diesem Arena-Canvas. Im Spiel alle vorgesehenen Anzeigen wieder da, genau einmal und an unveränderten Positionen. Inventar- und Rückkehrbilder sichern. F12 ist ein separates Modfenster und darf die laufenden HUD-Einstellungen weiterhin sichtbar ändern. |
+| R03 | Im Spiel einige Schüsse abgeben, nativ nachladen und den Bestand im Inventar ansehen. Danach sofort schließen und HUD aufnehmen. Bei vorhandener Granate G ziehen/werfen und erneut vergleichen. | Inventarvergleich erfolgt jetzt mit aufeinanderfolgenden Bildern, weil HUD dort absichtlich verborgen ist. Nach Schließen sofort richtige Patronen-/Reserve-/Granatenwerte, kein eingefrorener vorheriger Stand. Bereits in r2 geprüfte gepanzerte Rigs nicht als neue Vollabnahme aller Kits ausgeben. |
+| R04 | Über native Arena-Aufgeben-Funktion einen Respawn auslösen, sofern sicher bedienbar. Danach Inventar öffnen/schließen. | Frische Körper-/Kitwerte und korrektes Wiedererscheinen der Panels. Fehlende Bilder der kurzen Tod-/Killcam-Phase ausdrücklich offenlassen. Kein PFT-Setup künstlich erzeugen. |
+| R05 | Arena regulär verlassen, ins Menü und eine zweite kurze Arena mit gleicher Auswahl starten. | Menü ohne HUD-Reste. Zweiter Start ebenfalls ohne Liste und grünen Balken; frische Panels ohne Duplikate. R02 kurz wiederholen. |
+| R06 | Danach normalen PMC-Raid mit demselben Testprofil starten. Einfaches O prüfen; tatsächlichen Extract nur bei sicher erreichbarem Zugang zusätzlich betreten. | Normale Startliste MIT grünem Balken wieder vorhanden; keine Arena-Panels/Punkteanzeige. Numerischer Timer bleibt bedienbar. Tatsächlichen Countdown nicht als getestet markieren, falls kein Extract erreicht wird. Normale PMC-Profiländerungen sind getrennt von Arena und erwartet. |
+| R07 | Nur falls die dokumentierte Schnittstelle einen zuverlässigen Doppel-O-Druck erlaubt: in Arena und normalem PMC auslösen, in Arena zusätzlich mit abgeschaltetem HUD-Schalter. | Arena: weder Liste noch Balken; PMC: native Anzeige. Bei derselben bekannten Eingabegrenze wie r2 ausdrücklich nicht ausgeführt. Keine langsamen Einzeldrücke als Doppel-O werten und keine weiteren vergeblichen Umbelegungsserien. |
 
-P01/P03–P07/P09–P11/P13/P14 sind Kernprüfungen; nicht verfügbare Unterfälle bleiben
-sichtbar offen. Die genannten Tests geben keine allgemeine Freigabe für alle
-Kits, Karten, Auflösungen oder PFT-Zustände. Bei normalem PMC-Raid dürfen
-Testprofiländerungen entstehen; Arena-Tests müssen getrennt gegen ihre
-gesicherte Ausgangslage geprüft werden.
+R01/R02/R03/R05 sowie Startliste/Timer-Teil von R06 sind die Kernnachweise.
+R04 und optionale Unterfälle ergänzen sie. Der r3-Bericht ersetzt keine noch
+offenen PFT-, Rucksack-/verschachtelten Granaten-, Auflösungs- oder Übergangstests
+aus r2. Die bereits separat vorhandene Überschneidung zwischen oberer Punktzahl
+und anderswo positionierter Schnellzugriffsleiste im Spiel ist ebenfalls kein
+behobener Positionierungsfall: hier wird nur deren Inventar-/Menüüberlagerung
+verhindert.
 
-Falls das Spiel eine weitere Auflösung ohne Eingriff in die Desktop-/RDP-Sitzung
-anbietet, P01 und P05 dort zusätzlich wiederholen und anschließend zurückstellen.
-Keine frei erfundene Auflösungsabdeckung behaupten.
+## Logs, Fehler und Abschluss
 
-## Fehlerbehandlung und Ergebnis
+Pro Arena-Start werden je ein Panel-Aufbau- und Listenmaskierungsmarker sowie
+`Arena extraction header hidden; numeric timer retained.` erwartet. Keine neuen
+Panel-/Header-Ausnahmen oder CanvasGroup-Spam. Marker ergänzen Sichtbelege,
+ersetzen sie aber nicht. Andere Bot-/SAIN-/AsyncUpload-Fehler separat mit Stack
+und Zeitpunkt protokollieren; daraus keine UI-Ursache ableiten.
 
-Bei Fehlern Beleg und zugehörigen Logausschnitt sofort sichern. Höchstens eine
-gezielte Wiederholung mit unverändertem Build, um einen Bedienfehler abzugrenzen;
-keine endlosen Raidstarts, keine Fehlerbehebung während dieser Abnahme. Wenn
-ein vorgeschalteter Fehler einen Test verhindert, andere unabhängige Fälle
-fortsetzen. Vor einem Neustart das aktuelle Log sichern.
+Bei einem reproduzierbaren Fehler sofort Bild und vollständigen relevanten
+Exception-Stack sichern. Höchstens eine gezielte Wiederholung, keine Fixes oder
+endlosen Raidstarts. Unabhängig mögliche Tests fortsetzen. Nach den geplanten
+zwei Arena- und einem PMC-Raid keine zusätzlichen Versuche ohne konkreten Bedarf.
+Eigene Prozesse regulär beenden, eigene Testeinstellungen zurückstellen und
+abschließend DLL-/Einstellungsvergleiche durchführen.
 
-Besonders unterscheiden: Ein bereits separat bearbeiteter Fehler mit einer
-veralteten bevorzugten Granate kann G nach einem Wurf blockieren. Das ist nicht
-automatisch ein Fehler des Zählers. Tatsächliches Ziehen, Inventarbestand und
-Panelwert getrennt dokumentieren; mit dem installierten Build prüfen, ob der
-Fehler überhaupt noch vorliegt. Keine andere Mod ohne Auftrag entfernen.
-
-Abschließend Testeinstellungen zurückstellen und eigene Prozesse regulär beenden.
-Clienthash erneut prüfen. Eine Änderung während des Tests macht die Zuordnung
-der betroffenen Beobachtungen unklar und muss im Ergebnis stehen.
-
-Schreibe `GPU-PANELS-RETEST-RESULTS-2026-09-11.md` mit tatsächlichem Teststand,
-einer Zeile pro Prüffall (**bestanden / fehlgeschlagen / nicht ausgeführt /
-blockiert**), Beobachtung, Screenshot-/Logpfad und den offenen Grenzen.
-Code-/Offlinechecks sind kein visueller Beleg. Keine Profil-IDs, Zugangsdaten,
-vollen Profile oder komplette private Logs in den Bericht übernehmen.
-
-Wenn das Test-Repository keine fremden Änderungen enthält, nur diesen Bericht
-als Dokumentationscommit festhalten, mit
-`Co-authored-by: Codex <codex@openai.com>`. Keine Binärdateien/Rohbelege committen,
-keinen Push ausführen. Vorhandene fremde Änderungen nicht anfassen; in diesem
-Fall Bericht schreiben und die Commit-Situation klar nennen.
+Schreibe `GPU-PANELS-R3-RESULTS-2026-09-11.md`: tatsächlicher Teststand, je Fall
+bestanden/fehlgeschlagen/blockiert/nicht ausgeführt, Beobachtung, Belegpfade und
+verbleibende Grenzen. Keine Profilkennungen, Geheimnisse, kompletten Profile
+oder privaten Rohlogs in den Bericht übernehmen. Ist das Repository frei von
+fremden Änderungen, nur diesen neuen Bericht committen, mit
+`Co-authored-by: Codex <codex@openai.com>`. Sonst Bericht belassen und die fremden
+Änderungen unangetastet lassen. Kein Push, keine früheren Berichte überschreiben.

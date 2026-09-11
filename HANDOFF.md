@@ -24,8 +24,22 @@ current. User-facing communication is normally German.
   borrowed/restored, existing successful list masking retained. The original
   two GPU reports stay unchanged. Separate BotWeaponSelector/SAIN/async-upload
   errors are recorded in r2; the available stacks do not establish UI causation,
-  and no speculative gameplay fix is part of this UI change. Final delivery and
-  focused r3 instructions follow after verification.
+  and no speculative gameplay fix is part of this UI change. Source `d35d878`
+  passed independent native/context reviews without P0-P2 findings. Final checks:
+  269 panel assertions / 18 rejected source faults; 44 extraction assertions /
+  5 rejected source faults. Actual client build: zero errors, four existing
+  CS8632 warnings, all 29 icons verified. Client-only delivery from that clean
+  commit, SHA256
+  `218F176B15D007DB451893368EC754DDA5669F45C8E96B4F0EE1E67E9BA58C7C`.
+  Previous `ED74F678...` client backed up; all 39 protected server/dependency/
+  config/asset files unchanged. Receipt:
+  `artifacts/panel-r2-followup-delivery/cf79028df6284c57b4e199856d17a666/receipt.json`.
+  `GPU-PANELS-TEST-INSTRUCTIONS.md` now pins this build for the focused
+  `arena-panels-native-ui-20260911-r3` job and a separate r3 report. Neither
+  GPU mirror nor native visual/input behavior of this follow-up is verified here.
+  Game restart required; no server update/restart. The new screen-visibility
+  harness covers the helper/context, not actual ArenaHud.Tick execution or native
+  rendering; continued event ticks were source-reviewed separately.
 
 - **GPU panel/native UI failures corrected (2026-09-11):** test report
   `734af45` and the user's follow-up log reject the original UI delivery.
