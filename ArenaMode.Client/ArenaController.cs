@@ -15,6 +15,7 @@ internal sealed class ArenaController : MonoBehaviour
 
     private void Update()
     {
+        Hud.ArenaExtractionList.Tick();
         TickKitWarmup();
 
         // Outside a raid only; the service enforces that itself.

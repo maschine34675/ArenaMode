@@ -37,6 +37,7 @@ public class Plugin : BaseUnityPlugin
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
 
         ArenaSession.Initialize();
+        Hud.ArenaExtractionList.Enable();
         // After ArenaSession: RaidLifecycle handlers run in subscription order and
         // the match service needs IsActive already latched when its handler fires.
         Modes.ArenaMatchService.Initialize();
@@ -104,6 +105,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Hud.ArenaExtractionList.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();
         Movement.ArenaHandlingPatches.Shutdown();

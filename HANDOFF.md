@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Native Arena UI polish (2026-09-11):** builds on the completed grenade-row
+  commits `2b86e3a` / `f178906`, which remain intact. The character-selection
+  description now uses two short, non-wrapping lines for solo and PFT choices;
+  PMC/Scav still replace the text natively. ArenaExtractionList blocks only
+  exit-list requests in the exact active game/world/UI and adds its own
+  transparent list-only CanvasGroup after synchronous Arena confirmation.
+  This catches the startup animation which native SetTime starts before
+  OnGameStarted. It does not depend on HudEnabled, touch Armed state, cancel
+  native coroutines or suppress the separate extraction countdown/single-O
+  clock. Mask removed at end, changed world/UI and shutdown; disabled or failed
+  masking leaves native requests available. Independent review findings on
+  failed unpatch cleanup and fail-open hooks were fixed and covered by the
+  production-linked NativeArenaHudChecks. Final delivery/test job follow below.
+
 - **Grenade row in the weapon panel (2026-09-11):** frag/flash/smoke counts
   split into "ready" (the native tap-G candidate list, which the installed
   UseItemsAnywhere widens to the backpack top level) and dimmed "+N" stored
