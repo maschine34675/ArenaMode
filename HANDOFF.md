@@ -18,6 +18,11 @@ current. User-facing communication is normally German.
   defect in the reach patches (tap-G blocked after throwing a backpack grenade
   via a number key) was handed to a separate task. GPU acceptance pending, see
   the grenade section of RAID-INFO-PANELS-REVIEW.md. Client-only; game restart.
+  Delivered from clean commit `2b86e3a`: installed client SHA256
+  `ACE467B448B942420A6A4AF00E95B0055FAE050D7E17DBB5FCBA86E5793CD6A5`
+  (previous `6C660F3B…` backed up), server and 38 other protected files
+  unchanged. Receipt:
+  `artifacts/raid-panel-delivery/c97b2993a80b4e86a87d664bb94d4a9a/receipt.json`.
 - **RaidInfoPanels absorbed (2026-09-11):** the main checkout now uses
   `feature/arena-raid-info-panels`, based on `0f9f1e9` and therefore includes
   the hitmarker implementation and completed parallel Solo Tactical changes.
