@@ -1,4 +1,6 @@
 using ArenaMode.Combat;
+using ArenaMode.Config;
+using ArenaMode.Effects;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -9,7 +11,7 @@ namespace ArenaMode.Hud;
 /// <summary>
 /// Top-right pooled killfeed: newest at the bottom, opaque hold then per-line fade.
 /// Behavior adapted from DragonDen.Killfeed (MIT, (c) Drexira); rendering is
-/// our own uGUI line pool, role colors instead of faction icon sprites.
+/// our own uGUI line pool, player-relative team colors instead of faction icons.
 /// </summary>
 internal sealed class KillfeedView
 {
@@ -94,7 +96,9 @@ internal sealed class KillfeedView
             _live.RemoveAt(0);
         }
 
-        line.Text.text = KillfeedText.Format(kill);
+        line.Text.text = KillfeedText.Format(kill,
+            TeamHtmlColor(Settings.FriendlyTracerColor.Value),
+            TeamHtmlColor(Settings.OpponentTracerColor.Value));
         // Measure actual font metrics and wrapped lines, not a fixed character
         // count or row height. The explicit width also works for an inactive
         // pooled row; its TMP component was initialized while active in Create.
@@ -107,6 +111,12 @@ internal sealed class KillfeedView
         _live.Add(line);
         Relayout();
     }
+
+    // Tracers use HDR RGB values; normalize their hue like the friendly marker
+    // before writing opaque UI text. Read settings for each new entry only.
+    private static string TeamHtmlColor(ArenaTracerColor color)
+        => "#" + ColorUtility.ToHtmlStringRGB(
+            ArenaFriendlyMarkerPolicy.Color(ArenaTracerPalette.Resolve(color)));
 
     public void Tick()
     {

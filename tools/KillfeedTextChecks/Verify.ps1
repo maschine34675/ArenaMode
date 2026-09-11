@@ -22,7 +22,9 @@ if ($arenaExit -eq 0 -or ($arenaOutput -join "`n").Contains('error CS') -or
 Write-Output 'REJECTED_SOURCE_FAULT: missing-local-attacker'
 foreach ($arenaControl in @(
     @('local-only-distance', 'kill.DistanceKnown &&', 'kill.KilledByLocal && kill.DistanceKnown &&', 'local-death includes measured distance'),
-    @('unknown-distance-as-measured', 'kill.DistanceKnown && ', '', 'local-kill labels unconfirmed distance as unknown')
+    @('unknown-distance-as-measured', 'kill.DistanceKnown && ', '', 'local-kill labels unconfirmed distance as unknown'),
+    @('opponent-painted-friendly', 'ArenaTracerSide.Opponent => opponentColor', 'ArenaTracerSide.Opponent => friendlyColor', 'solo-local-kill colors both identities by team'),
+    @('unknown-painted-opponent', '_ => "#D5DAE0"', '_ => opponentColor', 'unbound colors both identities by team')
 )) {
     if (($arenaSource.Split(@($arenaControl[1]), [StringSplitOptions]::None).Count - 1) -ne 1) { throw 'Fault anchor is ambiguous' }
     $arenaControlSource = Join-Path $arenaEvidence ($arenaControl[0] + '.cs')

@@ -1152,13 +1152,13 @@ public static class Settings
             "Effects",
             "FriendlyTracerColor",
             ArenaTracerColor.Cyan,
-            "Tracer color for the local PMC and friendly teammates; also used by team-mode lasers when TeamLasers is enabled.");
+            "Color for friendly tracers, killfeed names and friendly markers. Team-mode lasers also use it when TeamLasers is enabled; killfeed colors do not depend on effects being enabled.");
 
         OpponentTracerColor = config.Bind(
             "Effects",
             "OpponentTracerColor",
             ArenaTracerColor.Red,
-            "Tracer color for Arena opponents; also used by team-mode lasers when TeamLasers is enabled.");
+            "Color for opposing tracers and killfeed names. Team-mode lasers also use it when TeamLasers is enabled; killfeed colors do not depend on effects being enabled.");
 
         RagdollImpulseScale = config.Bind(
             "Effects",

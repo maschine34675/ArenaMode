@@ -1,4 +1,5 @@
 using ArenaMode.Combat;
+using ArenaMode.Effects;
 using System;
 
 namespace ArenaMode.Hud;
@@ -6,10 +7,10 @@ namespace ArenaMode.Hud;
 /// <summary>Uniform attacker/victim headline, with metadata on a separate line.</summary>
 internal static class KillfeedText
 {
-    internal static string Format(ArenaKill kill)
+    internal static string Format(ArenaKill kill, string friendlyColor, string opponentColor)
     {
-        var killerColor = kill.KilledByLocal ? "#7FDBFF" : "#D5DAE0";
-        var victimColor = kill.LocalIsVictim ? "#FF8585" : RoleColor(kill.VictimRole);
+        var killerColor = TeamColor(kill.KillerProfileId, friendlyColor, opponentColor);
+        var victimColor = TeamColor(kill.VictimProfileId, friendlyColor, opponentColor);
         var names = $"<color={killerColor}>{Literal(kill.KillerName)}</color> ➔ "
             + $"<color={victimColor}>{Literal(kill.VictimName)}</color>";
         var roles = $"{Literal(kill.KillerRoleLabel)} ➔ {Literal(kill.VictimRoleLabel)}";
@@ -25,15 +26,14 @@ internal static class KillfeedText
     private static string Literal(string value)
         => string.IsNullOrWhiteSpace(value) ? "?" : value.Replace('<', '‹').Replace('>', '›');
 
-    private static string RoleColor(ArenaRole role)
-    {
-        switch (role)
+    // Push formats once during the synchronous captured-kill event. These IDs
+    // come from the original Player/IPlayer, not role or faction guesses. Keep
+    // unresolved team rosters neutral and never change scoring classification.
+    private static string TeamColor(string profileId, string friendlyColor, string opponentColor)
+        => ArenaTracerTeams.Classify(profileId, verifiedPlayerIdentity: true) switch
         {
-            case ArenaRole.Pmc: return "#7FDBFF";
-            case ArenaRole.Boss: return "#FF851B";
-            case ArenaRole.Raider: return "#FFDC00";
-            case ArenaRole.Follower: return "#FFDC00";
-            default: return "#DDDDDD";
-        }
-    }
+            ArenaTracerSide.Friendly => friendlyColor,
+            ArenaTracerSide.Opponent => opponentColor,
+            _ => "#D5DAE0",
+        };
 }
