@@ -125,7 +125,9 @@ public sealed partial class TacticalMode : IArenaMode
     /// <summary>
     /// The kit the player is actually wearing, as opposed to one they just paid
     /// for. Keeping it is what lets a survivor be re-issued exactly what they
-    /// have rather than the catalogue's default.
+    /// have rather than the catalogue's default. Recorded when a kit is handed
+    /// out, not when the body swap lands: the raid-start draw by the provider,
+    /// a purchase by StartRound.
     /// </summary>
     private KitDefinition _worn;
     private bool _playerDown;
@@ -451,8 +453,13 @@ public sealed partial class TacticalMode : IArenaMode
             return;
         }
 
-        _bought = Affordable();
-
+        // Nothing is pre-selected for the opening round either: EnterBuy below
+        // clears _bought, so the raid-start swap falls through to the base kit.
+        // The loading-screen preload counts on exactly that (KitPreloadPlan
+        // warms the base kit for Tactical). A purchase pre-filled here was a
+        // dead store — EnterBuy overwrote it before anything read it — and all
+        // it ever did was mislead that plan into warming the wrong kit once.
+        //
         // Every respawn and every round-start swap asks this, so the player is
         // always handed what they bought rather than the config's selected kit.
         // GetBaseKit, not GetSelectedKit: the latter asks the provider, so this
@@ -460,9 +467,25 @@ public sealed partial class TacticalMode : IArenaMode
         // unbounded recursion, and a StackOverflowException is not catchable.
         // _worn before the base kit: a survivor who bought nothing must be
         // re-issued the kit they are standing in, not the catalogue's first
-        // entry. GetBaseKit remains the floor for the opening round, when
-        // nothing has been worn yet.
-        KitCatalog.KitProvider = () => _bought ?? _worn ?? KitCatalog.GetBaseKit();
+        // entry. The base kit is drawn once, for the raid-start swap, and it
+        // is what the player stands in from the moment that swap lands — so
+        // it is recorded as worn right here, where it is handed out, the same
+        // way StartRound records a purchase before its swap lands. Left
+        // unrecorded, a round-one survivor who bought nothing had no worn kit
+        // on record, and the round break asked GetBaseKit again: with the
+        // random draw on, a different kit (PickRandomKit never repeats the
+        // last draw), under a toast promising they keep their gear.
+        KitCatalog.KitProvider = () =>
+        {
+            var kit = _bought ?? _worn;
+            if (kit == null)
+            {
+                kit = KitCatalog.GetBaseKit();
+                _worn = kit;
+            }
+
+            return kit;
+        };
 
         EnterBuy();
         Plugin.ModLogger.LogInfo($"Tactical: match started with {Money:N0} roubles.");

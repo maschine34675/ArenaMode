@@ -44,9 +44,10 @@ public sealed class KitPreloadPlanTests
         Assert.Same(rung, KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, false, Never("base"), () => rung));
         Assert.Same(rung, KitPreloadPlan.OpeningKit("GUNGAME", false, Never("base"), () => rung));
 
-        // Tactical too: its buy phase clears the pre-selected purchase before
-        // the swap asks, so the first life is the base kit, never the dearest
-        // affordable one. The plan once said otherwise and warmed the wrong kit.
+        // Tactical too: nothing is bought before its opening buy phase, so the
+        // first life is the base kit, never the dearest affordable one. The plan
+        // once said otherwise and warmed the wrong kit, misled by a match-start
+        // pre-selection that the buy phase cleared again before the swap asked.
         Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, () => baseKit, Never("gun game")));
         Assert.NotSame(bought, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, () => baseKit, Never("gun game")));
 

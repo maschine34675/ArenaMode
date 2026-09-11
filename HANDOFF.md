@@ -1,11 +1,37 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-10. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-11. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Solo Tactical: the raid-start kit now counts as worn (2026-09-11, 07:28):**
+  this commit on `feature/arena-mantle-reload`. Pre-existing defect found by
+  the adversarial review of `af3647d`, not caused by it: the solo kit provider
+  fell through to `GetBaseKit` for the raid-start swap, but nothing recorded
+  that kit in `_worn`, so a round-one survivor who bought nothing was handed a
+  NEW random draw at every round break (RandomKit on; `PickRandomKit` never
+  repeats the last draw, so a different kit was certain) under the "you keep
+  your gear" toast. A configured kit hid it, which is why the first rounds
+  played never showed it. The provider now records the base-kit draw as worn
+  at hand-out time; the dead `_bought = Affordable()` store at match start is
+  gone (EnterBuy cleared it before anything read it), so Tactical still opens
+  on the base kit as `KitPreloadPlan.OpeningKit` and its test require.
+  Clean Release build, tests 531 green / 2 skipped, two independent reviews
+  without a new fault. Installed client SHA256:
+  `DD27FDC4F58C4A8788A03811B93321CC8F8C8489C97E2D4E843E8CC03D66BA26`.
+  **Restart game only.** Playtest: solo Tactical, RandomKit on, survive round
+  1 without buying; round 2 must re-issue the same kit, and the client log
+  must show one `Arena kit drawn:` line per match, not one per round.
+  Pre-existing and NOT fixed here (both reviews): the round-1 buy phase
+  (minimum 5 s) can end before the raid-start swap has landed. Tactical never
+  consults `LiveKitRespawn.IsInitialSwapPending` (Team Deathmatch does), so a
+  kit bought and readied in that window is charged, the base-kit swap lands
+  first, the purchase's swap stands down silently and arrives a round late.
+  Fix direction: hold the end of the buy phase on `IsInitialSwapPending`, with
+  a deadline so a swap that never exits cannot deadlock the mode.
 
 - **Airborne mantle user acceptance (2026-09-10, 20:37 retest):** user confirms
   the tested lower climbs now work; higher places no longer trigger. Five logged
