@@ -20,8 +20,13 @@ current. User-facing communication is normally German.
   missing-attacker fault. Independent source/native TMP review: no P0-P2. Native
   rendering still needs a GPU test: long names, six varying-height entries,
   tall-to-short reuse and pushes while the canvas is hidden by a menu. The stack
-  grows with wrapped content; check clearance from other panels. Build identity
-  follows after verification.
+  grows with wrapped content; check clearance from other panels. Clean source
+  `4e49537` built with zero errors and the four existing CS8632 warnings; all 29
+  icons verified. Staged manifest:
+  `artifacts/double-jump-build/71399aeeda8c44f9abac6875757236f3/manifest.json`.
+  Staged client SHA256:
+  `0DA0F70F165F6E3EB1ED000CAF7AB3DDB1A8F00ADA180AD6CECCC6BDEF9829D4`.
+  Client/server/Redeploy.Core installed hashes verified unchanged after build.
   **Do not deploy or rebind the r4 job while its tests run:** installed client
   stays `857206A4BF295607130B6F54A2A9CDECDB3F5A92B53784F9C644F7FC5199F1BB`.
   `GPU-PANELS-TEST-INSTRUCTIONS.md` and existing reports stay unchanged.
