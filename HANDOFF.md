@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Grenade pick after widened reach (2026-09-11):** fixes the pre-existing
+  defect handed over by the grenade-row review. A grenade bound and drawn from
+  outside the tracked rig/pocket top level (the backpack without the installed
+  UseItemsAnywhere mod; nested pouches with it) stayed
+  `Equipment.TopPriorityGrenade` after it was thrown, so every tap of G fell back
+  to the weapon until hold-G. `ArenaReachPatches.cs` adds a postfix on
+  `FastAccessGrenadeItemView.OnItemRemoved` (the pick, or a container holding it,
+  left and is no longer reachable: run the view's own `SetNewTopPriorityGrenade`)
+  and a void prefix on `PlayerInputTranslator.vmethod_1` (clear an undrawable pick
+  so the native no-pick branch runs). Both gate on `ArenaSession.IsActive` alone
+  (argued at the code), are enabled through a contained helper, and log once per
+  raid. Ordinary raids untouched. New `tools/ArenaGrenadePickChecks`: 123
+  assertions, 14 rejected source faults, installed contracts plus 8 rejected
+  contract faults. Three-lens adversarial review: no P0/P1; both P2s and the
+  P3s fixed or documented. Staged build clean. **Not delivered:** the installed
+  client `D927D5B9…` is pinned by the prepared GPU panel job below; deliver after
+  it, or with it by updating its hash. Chain, residuals and exact GPU steps:
+  GRENADE-PICK-REVIEW.md. Client-only; game restart.
+
 - **Native Arena UI polish (2026-09-11):** builds on the completed grenade-row
   commits `2b86e3a` / `f178906`, which remain intact. The character-selection
   description now uses two short, non-wrapping lines for solo and PFT choices;
@@ -44,7 +63,8 @@ current. User-facing communication is normally German.
   suite 247 assertions / 14 rejected faults; staged build clean; adversarial
   review found no P0-P2, its P3s fixed. A pre-existing stale-TopPriorityGrenade
   defect in the reach patches (tap-G blocked after throwing a backpack grenade
-  via a number key) was handed to a separate task. GPU acceptance pending, see
+  via a number key) was handed to a separate task (since fixed, see the
+  grenade-pick entry above). GPU acceptance pending, see
   the grenade section of RAID-INFO-PANELS-REVIEW.md. Client-only; game restart.
   Delivered from clean commit `2b86e3a`: installed client SHA256
   `ACE467B448B942420A6A4AF00E95B0055FAE050D7E17DBB5FCBA86E5793CD6A5`

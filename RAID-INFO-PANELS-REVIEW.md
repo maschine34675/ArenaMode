@@ -144,8 +144,9 @@ Known exception, documented at the code: tap-G prefers
 key (Arena's reach patches allow binding one outside rig/pockets) stays that
 pick, so tap-G can draw a grenade this row shows as stored. The same review found
 a pre-existing, separate defect in that path (a thrown backpack grenade leaves a
-stale pick that blocks tap-G until hold-G); it is out of this change's scope and
-was handed to a separate task.
+stale pick that blocks tap-G until hold-G); it was fixed separately in the reach
+feature, see GRENADE-PICK-REVIEW.md. That fix only moves an undrawable pick on; a
+drawable backpack pick still takes precedence, so this exception stands.
 
 The row is inventory state, so it keeps updating while a grenade, knife or meds
 is in hand, exactly when the remaining count matters; only the firearm lines
