@@ -13,14 +13,23 @@ current. User-facing communication is normally German.
   then fade over 1.5 seconds; the six-row pool and six-second lifetime remain.
   Alpha is reset before reuse, and TMP is still constructed while active. Text
   stays within the existing 460px feed width (ellipsis for unusually long lines)
-  so it cannot extend over the centered score. No input targets added. ScorePanel
+  to contain long lines at the 1920x1080 reference layout. No input targets added. ScorePanel
   moves from 18 to 110px below the top at the 1920x1080 reference resolution;
   the assembly notice follows below it at 190px. The r2 gameplay screenshot has
   quickslots ending around 96px, but other resolutions/modded positions still
   need visual confirmation. Native-menu hiding and extraction suppression from
   `d35d878` remain unchanged. Next GPU check: bright/dark scenery, full and reused
   killfeed, long names, quickslots plus assembly notice, and inventory return.
-  Client-only build/delivery evidence follows after verification. The existing
+  Independent review of source `e37c3b6`: no P0-P2. Actual client build passed
+  with zero errors and the four existing CS8632 warnings; all 29 embedded icons
+  verified. Delivered client SHA256
+  `857206A4BF295607130B6F54A2A9CDECDB3F5A92B53784F9C644F7FC5199F1BB`;
+  previous client backed up and all 39 protected server/dependency/config/asset
+  files unchanged. Receipt:
+  `artifacts/hud-readability-delivery/69ce41e9c20d427fb0dfa6245e44a1c3/receipt.json`.
+  Game restart required, server unchanged. GPU rendering and mirror not verified.
+  Other aspect ratios may narrow the gap to the centered score; check those
+  separately. No new synthetic tests for these cosmetic changes. The existing
   r3 panel instruction stays pinned to its original build; do not silently use
   a newer DLL as evidence for that exact-hash test job.
 
