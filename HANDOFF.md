@@ -7,6 +7,60 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r5/refinements r3 triaged; safety follow-up and air control delivered (2026-09-12):**
+  `0a49898` confirms four isolated F9 Close clicks without firing, subsequent
+  normal controls, three-round autoexit and FFA autoexit. Terminal toggles/score
+  freeze, timely result-button exit and remaining budget cases stayed open.
+  `bd95b72` stopped the separate first Customs TDM raid after a new
+  BotWeaponSelector.OnWeaponTaken NRE and an ambiguous one-round ammunition loss
+  across six native graphics/resume clicks. None of the four refinements gained
+  acceptance. Historical reports and evidence remain unchanged.
+  Native source/IL identifies two actionable gaps, without proving the historical
+  null receiver or which click fired. `12df136` extends the released-pointer
+  drain to exact native menu return, preserving native navigation; `6694a84`
+  prevents only already-retired exact Arena bot selectors from reviving disposed
+  weapon services, preserving IsChanging completion and ordinary/temporary
+  NonActive behavior. No blanket error suppression. Reviews:
+  `NATIVE-MENU-INPUT-REVIEW.md`, `BOT-WEAPON-CALLBACK-REVIEW.md`.
+  `0b7f38d` adds local Arena WASD air control: default 60 degrees/second,
+  live F12 Movement `AirControlEnabled` and `AirControlDegreesPerSecond` (0–180).
+  Preserves native XZ magnitude/Y and collision, heading without input, exact
+  body/raid scope, double-jump and conservative mantle limits. Menu ownership
+  denies a new turn. Review and limits: `AIR-CONTROL-REVIEW.md`.
+  Independent production and harness reviews passed. Root verification:
+  input **78 assertions/18 compiled faults**; combined exit **118 assertions**,
+  existing pickup/SAIN **9 faults**, new weapon guard **8 faults**; air control
+  **155 assertions/21 faults**, plus installed native contracts. These checks
+  are not native Unity/Harmony/physics or GPU acceptance.
+  Source/build commit `0b7f38d594b09644803f263a510543293b11ed63`, branch
+  `feature/arena-air-control`, clean tree at build. Full native client:
+  **0 errors, 4 existing nullable warnings**.
+  **Installed client SHA256:**
+  `2042C558340877C85DAF0687A8AEBB4E7D54FD720AD467E770F5AEE7F0914ECD`.
+  ProductVersion `0.1.0+0b7f38d594b09644803f263a510543293b11ed63`.
+  Build/manifest: `artifacts/double-jump-build/f4f38f3505ba4d9ca1976ebccf2a4a5a/`.
+  Backup/receipt: `artifacts/air-control-delivery/2d2989b50ded4bcd93571978283a7754/`.
+  Fresh inventory verified all **43 non-client files unchanged**, including
+  server, Redeploy, SAIN, DynamicMaps, audio and current post-test settings.
+  No old cfg/settings files or profiles restored; no server build ran. Server
+  remains `294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7`.
+  Next bounded job: **`GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r6.md`**, first
+  isolated native Resume/settings clicks and natural TDM replacement, then
+  remaining result/continuous cases. After safe A and no later stop, separate
+  **`GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r4.md`** prioritizes air control,
+  then the still-open four features. Both bind the client above and preserve
+  prior evidence. Every new unsafe state stops the entire test again.
+  **Restart the game after GPU synchronization; no server restart needed.**
+  Only D:\SPT41 delivery is verified here; GPU mirror/runtime remain unverified.
+  User deployment authorization persists; the mirror skips files in use, so
+  do not ask repeatedly whether the game/server is stopped before delivery.
+
+## Historical snapshots
+
+The entries below preserve earlier states. Their current-build and pending-test
+claims are superseded by the entry above; old accepted evidence remains valid
+for its recorded client only.
+
 - **r4 triaged; panel-close correction r5 delivered locally (2026-09-12):**
   `228d892` confirms the second F9 Close click fired one MP-153 round. Its test
   correctly stopped; the later manual disconnect triggered the SAIN guard once
@@ -46,12 +100,6 @@ current. User-facing communication is normally German.
   this client change.** Delivery under D:\SPT41 is verified; GPU mirror and
   native gameplay remain unverified here. Do not request repeated permission
   to deploy: the user authorized it and the mirror skips files in use.
-
-## Historical snapshots
-
-The entries below preserve earlier states. Their current-build and pending-test
-claims are superseded by the r5 entry above. In particular, the historical r4
-entry's unconfirmed Close-click observation is now confirmed by `228d892`.
 
 - **r3 triage completed; combined client r4 delivered locally (2026-09-12):**
   branch `fix/deathmatch-r3-exit`; source/build commit
