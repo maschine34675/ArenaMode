@@ -51,9 +51,9 @@ public static class LadderPicker
     /// this point gets the one the player is actually climbing.
     /// </summary>
     public static string Redraw(string poolJson, int rungs, Action<string>? log = null,
-        ArenaWeaponVariants? variants = null)
+        ArenaWeaponVariants? variants = null, IEnumerable<string?>? excludedTemplates = null)
     {
-        var drawn = Draw(poolJson, rungs, log);
+        var drawn = Draw(poolJson, rungs, log, ArenaTemplateEligibility.ExclusionSet(excludedTemplates));
         if (variants != null)
         {
             try
@@ -85,18 +85,25 @@ public static class LadderPicker
     /// chambered round, and a revolver's individual chambers — because a
     /// cylinder loaded with one round and chambered with another is not a
     /// weapon anyone wants to be handed.
+    ///
+    /// Choices the configuration excludes are never drawn. The pool is
+    /// generated at server start and the exclusions are meant to work without
+    /// one — a round found to misbehave mid-evening goes into the list and is
+    /// gone from the next raid — and the shipped fallback pool predates the
+    /// list altogether.
     /// </summary>
-    private static void LoadWithOneOf(JsonNode entry)
+    private static void LoadWithOneOf(JsonNode entry, HashSet<string> excluded)
     {
-        if (entry["ammoChoices"] is not JsonArray choices || choices.Count == 0)
+        var usable = UsableChoices(entry, excluded);
+        if (usable.Count == 0)
             return;
 
         int pick;
         lock (Rng)
-            pick = Rng.Next(0, choices.Count);
+            pick = Rng.Next(0, usable.Count);
 
-        var ammo = choices[pick]?.GetValue<string>();
-        if (string.IsNullOrEmpty(ammo) || entry["items"] is not JsonArray nodes)
+        var ammo = usable[pick];
+        if (entry["items"] is not JsonArray nodes)
             return;
 
         foreach (var node in nodes)
@@ -110,7 +117,32 @@ public static class LadderPicker
         }
     }
 
-    private static string Draw(string poolJson, int rungs, Action<string>? log)
+    /// <summary>
+    /// The entry's cartridge choices minus the excluded ones, in pool order.
+    /// An entry without choices (a hand-written ladder) is judged by what it
+    /// is loaded with: the same list, so the band draw below can pass it over
+    /// when that load is excluded too.
+    /// </summary>
+    private static List<string> UsableChoices(JsonNode entry, HashSet<string> excluded)
+    {
+        IEnumerable<JsonNode?> source = entry["ammoChoices"] is JsonArray choices && choices.Count > 0
+            ? choices
+            : (entry["items"] as JsonArray ?? [])
+                .Where(node => IsAmmunitionSite(node?["slotId"]?.GetValue<string>()))
+                .Select(node => node?["_tpl"]);
+
+        return source
+            .Select(node => node?.GetValue<string>())
+            .Where(tpl => !string.IsNullOrEmpty(tpl) && !excluded.Contains(tpl!))
+            .Select(tpl => tpl!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static bool IsAmmunitionSite(string? slot)
+        => slot == "cartridges" || slot == "patron_in_weapon" || slot?.StartsWith("camora_", StringComparison.Ordinal) == true;
+
+    private static string Draw(string poolJson, int rungs, Action<string>? log, HashSet<string> excluded)
     {
         try
         {
@@ -121,6 +153,7 @@ public static class LadderPicker
                 return poolJson;
 
             var ladder = new JsonArray();
+            var passedOver = 0;
             for (var i = 0; i < rungs; i++)
             {
                 // Equal slices of the sorted pool, so rung one is always drawn
@@ -128,18 +161,29 @@ public static class LadderPicker
                 var low = i * pool.Count / rungs;
                 var high = Math.Max(low + 1, (i + 1) * pool.Count / rungs);
 
+                // Within the band, only weapons that can still be loaded with
+                // something the configuration allows. A band with none left
+                // draws as before rather than leaving a hole in the ladder.
+                var loadable = Enumerable.Range(low, high - low)
+                    .Where(j => UsableChoices(pool[j]!, excluded).Count > 0)
+                    .ToList();
+                passedOver += high - low - loadable.Count;
+
                 int index;
                 lock (Rng)
-                    index = Rng.Next(low, high);
+                    index = loadable.Count > 0 ? loadable[Rng.Next(0, loadable.Count)] : Rng.Next(low, high);
 
                 // Detached before re-parenting: a node still owned by the pool
                 // array cannot be added to another one.
                 var picked = pool[index]!.DeepClone();
                 picked["order"] = i;
                 picked["id"] = $"rung{i + 1:00}";
-                LoadWithOneOf(picked);
+                LoadWithOneOf(picked, excluded);
                 ladder.Add(picked);
             }
+
+            if (passedOver > 0)
+                log?.Invoke($"[ArenaMode] Gun Game ladder: {passedOver} pool weapon(s) passed over, every cartridge of theirs is excluded.");
 
             log?.Invoke($"[ArenaMode] Gun Game ladder drawn: {rungs} rungs from {pool.Count} weapons.");
             return ladder.ToJsonString(new JsonSerializerOptions { WriteIndented = false });

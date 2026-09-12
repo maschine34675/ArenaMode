@@ -63,6 +63,7 @@ public sealed class ArenaWeaponVariants
     private readonly Dictionary<string, HashSet<string>> _ancestors = new(StringComparer.Ordinal);
     private readonly Dictionary<Slot, Definition[]> _candidates = new();
     private readonly Dictionary<Slot, bool> _primaryScopeSockets = new();
+    private readonly HashSet<string> _excluded = new(StringComparer.Ordinal);
     private readonly object _gate = new();
 
     private sealed record Filter(string[] Include, string[] Exclude);
@@ -109,6 +110,26 @@ public sealed class ArenaWeaponVariants
                 id = parent.Parent;
             }
             _ancestors[item.Id] = ancestors;
+        }
+    }
+
+    /// <summary>
+    /// Templates the draw must never bolt on: the configured exclusions and the
+    /// game's placeholders, handed over by the pool generator, which has the
+    /// locale this index deliberately does not carry. The candidate cache is
+    /// dropped so a slot indexed before the call cannot keep serving them.
+    /// </summary>
+    public void Exclude(IEnumerable<string> templates)
+    {
+        lock (_gate)
+        {
+            foreach (var tpl in templates)
+            {
+                if (!string.IsNullOrWhiteSpace(tpl))
+                    _excluded.Add(tpl.Trim());
+            }
+
+            _candidates.Clear();
         }
     }
 
@@ -381,7 +402,7 @@ public sealed class ArenaWeaponVariants
         IEnumerable<Definition> pool = _definitions.Values;
         if (slot.Filters.Length > 0 && slot.Filters[0].Include.All(x => !_definitions.TryGetValue(x, out var d) || d.Kind == "Item"))
             pool = slot.Filters[0].Include.Distinct(StringComparer.Ordinal).Where(_definitions.ContainsKey).Select(x => _definitions[x]);
-        return _candidates[slot] = pool.Where(x => Allowed(slot, x.Id))
+        return _candidates[slot] = pool.Where(x => Allowed(slot, x.Id) && !_excluded.Contains(x.Id))
             .OrderBy(x => x.Id, StringComparer.Ordinal).ToArray();
     }
 

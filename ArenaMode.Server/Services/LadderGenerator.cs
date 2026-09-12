@@ -28,6 +28,14 @@ namespace ArenaMode.Server.Services;
 /// What it produces is the pool, not the ladder: every weapon the game can build
 /// a working example of, ordered weakest to strongest. LadderPicker cuts the
 /// raid's twenty-four rungs out of it.
+///
+/// "Can build a working example of" has a second half the database does not
+/// state in numbers: BSG ships unfinished duplicates, marked only in their
+/// display name (ArenaTemplateEligibility). Every template this walks — the
+/// weapon, its preset parts, the cartridges ranked for it, the sight and rail
+/// fitted onto it, and the attachments the variant draw adds later — is asked
+/// there first, and a cartridge additionally needs a handbook entry: a round
+/// nobody can buy or find is not a round to load a rung with.
 /// </summary>
 [Injectable(TypePriority = OnLoadOrder.PostLoad + 99000)]
 public class LadderGenerator(
@@ -50,12 +58,19 @@ public class LadderGenerator(
     private const double MinimumUsefulDamage = 20d;
 
     private Dictionary<MongoId, TemplateItem> _items = null!;
+    private HashSet<string> _excluded = new(StringComparer.Ordinal);
+    private HashSet<MongoId> _handbook = [];
 
     public Task OnLoadAsync(CancellationToken cancellationToken = default)
     {
+        _items = templateTable.Items;
+        var exclusions = IndexExclusions();
+
         try
         {
-            ArenaContext.WeaponVariants = CreateVariantIndex(templateTable);
+            var variants = CreateVariantIndex(templateTable);
+            variants.Exclude(exclusions);
+            ArenaContext.WeaponVariants = variants;
             logger.Info($"[ArenaMode] Weapon variant index ready: {templateTable.Items.Count} live templates; no bot generator/config changes.");
         }
         catch (Exception ex)
@@ -65,7 +80,6 @@ public class LadderGenerator(
         }
         try
         {
-            _items = templateTable.Items;
             var pool = Build();
 
             if (pool.Count == 0)
@@ -107,6 +121,37 @@ public class LadderGenerator(
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /// <summary>
+    /// Every template the pool and the variant draw may not hand out: the
+    /// configured ids, plus everything whose display name carries the game's
+    /// placeholder marker. Computed once over the whole database, so the
+    /// variant index can refuse the same items without a locale of its own.
+    /// The handbook is indexed here too, for the cartridge rule.
+    /// </summary>
+    private HashSet<string> IndexExclusions()
+    {
+        var configured = ArenaTemplateEligibility.ExclusionSet(ArenaContext.Config.ExcludedTemplates);
+        var excluded = new HashSet<string>(configured, StringComparer.Ordinal);
+        var byName = 0;
+
+        foreach (var tpl in _items.Keys)
+        {
+            if (ArenaTemplateEligibility.IsPlaceholderName(NameOf(tpl)) && excluded.Add(tpl.ToString()))
+                byName++;
+        }
+
+        _handbook = new HashSet<MongoId>(templateTable.Handbook?.Items?.Select(i => i.Id) ?? []);
+        _excluded = excluded;
+
+        logger.Info($"[ArenaMode] Templates kept out of the weapon pool and the attachment draw: {excluded.Count} "
+                    + $"({configured.Count} from config, {byName} more by their placeholder name).");
+        return excluded;
+    }
+
+    private bool Excluded(MongoId tpl) => _excluded.Contains(tpl.ToString());
+
+    private bool Excluded(MongoId? tpl) => tpl != null && Excluded(tpl.Value);
 
     private bool DescendsFrom(MongoId tpl, MongoId ancestor)
     {
@@ -169,6 +214,15 @@ public class LadderGenerator(
             if (p?.Caliber == null || !DescendsFrom(tpl, AmmoBase))
                 continue;
 
+            // Neither a placeholder nor a round nobody can buy or find. The
+            // Cheremukha-7M has a full set of ballistic numbers, no handbook
+            // entry, and did not fire; the handbook rule also keeps grenade
+            // shrapnel out of a calibre whose magazine carries no filter. The
+            // rule is skipped only if the handbook itself is empty — then it
+            // would say nothing about anything.
+            if (Excluded(tpl) || (_handbook.Count > 0 && !_handbook.Contains(tpl)))
+                continue;
+
             var pen = p.PenetrationPower ?? 0;
             var dmg = p.Damage ?? 0;
             var shots = Math.Max(1d, p.ProjectileCount ?? 1);
@@ -229,6 +283,11 @@ public class LadderGenerator(
             if (root == null || !DescendsFrom(root.Value, WeaponBase))
                 continue;
 
+            // A preset carrying a placeholder part is not a build the game
+            // finished, whatever its root looks like.
+            if (preset.Items?.Any(i => Excluded(i.Template)) == true)
+                continue;
+
             if (!presetsByWeapon.TryGetValue(root.Value, out var existing) || Plainer(preset, existing))
                 presetsByWeapon[root.Value] = preset;
         }
@@ -273,6 +332,9 @@ public class LadderGenerator(
 
     private Candidate? Consider(MongoId weapon, Preset preset, Dictionary<string, List<Round>> ammoByCalibre)
     {
+        if (Excluded(weapon))
+            return null;
+
         var weaponProps = Props(weapon);
         var calibre = weaponProps?.AmmoCaliber;
         if (calibre == null || ExcludedCalibres.Contains(calibre))
@@ -499,6 +561,7 @@ public class LadderGenerator(
             // which is the entire reason this generator moved here.
             var candidates = slot.Properties?.Filters?.FirstOrDefault()?.Filter?
                 .Where(IsSight)
+                .Where(f => !Excluded(f))
                 .Where(f => Props(f)?.Slots?.Any(s => s.Required == true) != true)
                 // Reflex sights first, then price: this is a close-quarters
                 // arena, where magnification is a handicap.
@@ -534,6 +597,7 @@ public class LadderGenerator(
 
                 // Same struct trap as above.
                 var rails = slot.Properties?.Filters?.FirstOrDefault()?.Filter?
+                    .Where(f => !Excluded(f))
                     .Where(f => Props(f)?.Slots?.Any(s => s.Name == "mod_scope") == true)
                     .Where(f => Props(f)?.Slots?.Any(s => s.Required == true) != true)
                     .OrderBy(Price)

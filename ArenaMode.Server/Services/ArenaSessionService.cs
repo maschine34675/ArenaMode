@@ -1546,7 +1546,8 @@ public class ArenaSessionService
             EnsureWeaponCatalogsLocked(entry);
             if (redraw && entry.State == ArenaSessionState.InRaid)
                 entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson ?? ArenaContext.LadderJson,
-                    entry.LadderRungs, message => logger.Info(message), ArenaContext.WeaponVariants);
+                    entry.LadderRungs, message => logger.Info(message), ArenaContext.WeaponVariants,
+                    ArenaContext.Config.ExcludedTemplates);
             return entry.LadderJson ?? ArenaContext.LadderJson;
         }
     }
@@ -1588,6 +1589,6 @@ public class ArenaSessionService
             { logger.Warning($"[ArenaMode] Optional kit supplies unavailable ({ex.Message}); existing kit contents retained."); }
         }
         entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson, entry.LadderRungs,
-            message => logger.Info(message), ArenaContext.WeaponVariants);
+            message => logger.Info(message), ArenaContext.WeaponVariants, ArenaContext.Config.ExcludedTemplates);
     }
 }

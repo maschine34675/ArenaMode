@@ -33,6 +33,23 @@ hb = json.load(io.open(D + r'\templates\handbook.json', encoding='utf-8-sig'))
 price = {r['Id']: r['Price'] for r in hb['Items']}
 loc = json.load(io.open(D + r'\locales\global\en.json', encoding='utf-8-sig'))
 
+# BSG ships unfinished duplicates and marks them only in the DISPLAY name, e.g.
+# '!!!DO_NOT_USE!!!23x75mm "Cheremukha-7M"': real-looking numbers, no handbook
+# entry, and it does not fire. Mirror of ArenaTemplateEligibility on the C# side
+# (marker matched exactly as the game spells it; the ids are the same seed list).
+PLACEHOLDER_MARKERS = ('DO_NOT_USE', 'DO NOT USE')
+EXCLUDED_TEMPLATES = {
+    '5e85aac65505fa48730d8af2', '5ede47641cf3836a88318df1', '62811d61578c54356d6d67ea',
+    '628120415631d45211793c99', '628120f210e26c1f344e6558', '6281214c1d5df4475f46a33a',
+    '6281215b4fa03b6b6c35dc6c', '628121651d5df4475f46a33c',
+}
+
+def excluded(tpl):
+    if tpl in EXCLUDED_TEMPLATES:
+        return True
+    name = loc.get(tpl + ' Name') or ''
+    return any(m in name for m in PLACEHOLDER_MARKERS)
+
 WEAPON = '5422acb9af1c889c16000029'
 AMMO = '5485a8684bdc2da71d8b4567'
 EQUIP_ROOT = '55d7217a4bdc2d86028b456d'
@@ -54,7 +71,10 @@ def name_of(tpl):
 ammo_by_cal = collections.defaultdict(list)
 for tpl, t in items.items():
     p = t.get('_props', {})
-    if p.get('Caliber') and is_kind(tpl, AMMO):
+    # A cartridge also needs a handbook entry: a round nobody can buy or find is
+    # not a round to load a rung with, and it keeps grenade shrapnel out of a
+    # calibre whose magazine carries no filter.
+    if p.get('Caliber') and is_kind(tpl, AMMO) and not excluded(tpl) and tpl in price:
         pen = p.get('PenetrationPower', 0)
         dmg = p.get('Damage', 0)
         shots = max(1, p.get('ProjectileCount', 1))
@@ -128,7 +148,11 @@ candidates = []
 for weap, ps in presets_by_weapon.items():
     props = items[weap].get('_props', {})
     cal = props.get('ammoCaliber')
-    if not cal or cal in EXCLUDE_CAL:
+    if not cal or cal in EXCLUDE_CAL or excluded(weap):
+        continue
+    # A preset carrying a placeholder part is not a build the game finished.
+    ps = [p for p in ps if not any(excluded(i['_tpl']) for i in p['_items'])]
+    if not ps:
         continue
     preset = plainest(ps)
     mag = next((i for i in preset['_items'] if i.get('slotId') == 'mod_magazine'), None)
@@ -225,6 +249,8 @@ def fit_mount(out):
 
             cands = []
             for f in s['_props']['filters'][0]['Filter']:
+                if excluded(f):
+                    continue
                 slots = items.get(f, {}).get('_props', {}).get('Slots', [])
                 if not any(x['_name'] == 'mod_scope' for x in slots):
                     continue
@@ -258,7 +284,7 @@ def fit_sight(out):
                                if 'Collimator' in items[t].get('_name', '')}
                 cands = []
                 for f in s['_props']['filters'][0]['Filter']:
-                    if not is_sight(f):
+                    if not is_sight(f) or excluded(f):
                         continue
                     # A mount that needs its own optic just moves the hole down.
                     if [x for x in items.get(f, {}).get('_props', {}).get('Slots', []) if x.get('_required')]:

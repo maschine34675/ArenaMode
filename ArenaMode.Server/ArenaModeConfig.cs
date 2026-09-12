@@ -35,6 +35,17 @@ public class ArenaModeConfig
     [JsonPropertyName("gunGameRungs")]
     public int GunGameRungs { get; set; } = 24;
 
+    /// <summary>
+    /// Template ids the Gun Game weapon pool and the attachment draw must never
+    /// hand out. Seeded with the game's own placeholders — the eight templates
+    /// whose display name says !!!DO_NOT_USE!!! — which are refused by that
+    /// name as well (ArenaTemplateEligibility); the list is for the next one,
+    /// or for a round that misbehaves for a reason no name reveals. The pool
+    /// reads it at server start, the per-raid cartridge draw at every raid.
+    /// </summary>
+    [JsonPropertyName("excludedTemplates")]
+    public List<string> ExcludedTemplates { get; set; } = new(Services.ArenaTemplateEligibility.KnownPlaceholders);
+
 
     [JsonPropertyName("maps")]
     public Dictionary<string, ArenaMapConfig> Maps { get; set; } = new()

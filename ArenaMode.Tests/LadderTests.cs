@@ -57,6 +57,86 @@ public class LadderTests
     }
 
     [Fact]
+    public void NoRungReferencesAKnownPlaceholder()
+    {
+        // The Cheremukha-7M sat in the KS-23's cartridge choices of the shipped
+        // pool; one raid in three loaded a round that does not fire. The pool
+        // generator refuses the game's placeholders now, and this keeps the
+        // shipped fallback honest with it.
+        foreach (var rung in Pool)
+        {
+            var id = rung?["id"]?.GetValue<string>();
+            var referenced = (rung?["items"] as JsonArray ?? [])
+                .Select(node => node?["_tpl"]?.GetValue<string>())
+                .Concat((rung?["ammoChoices"] as JsonArray ?? []).Select(node => node?.GetValue<string>()))
+                .Where(tpl => tpl != null && ArenaTemplateEligibility.KnownPlaceholders.Contains(tpl))
+                .Distinct()
+                .ToList();
+
+            Assert.True(referenced.Count == 0,
+                $"rung '{id}' references placeholder template(s) {string.Join(", ", referenced)}");
+        }
+    }
+
+    [Fact]
+    public void ADrawNeverLoadsAnExcludedCartridge()
+    {
+        // Two identical weapons, both offering a bad round and a good one, drawn
+        // into a one-rung ladder forty times: the bad round must never be
+        // loaded into any ammunition site, whatever the dice say.
+        var pool = new JsonArray(Weapon("first", "bad", "bad", "good"), Weapon("second", "bad", "bad", "good"));
+        for (var i = 0; i < 40; i++)
+        {
+            var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1, null, null, new[] { "bad" }))!.AsArray();
+            var rung = Assert.Single(drawn);
+            foreach (var site in AmmunitionSites(rung))
+                Assert.Equal("good", site);
+        }
+    }
+
+    [Fact]
+    public void AWeaponWithNoAllowedCartridgeIsPassedOverForOneThatHasOne()
+    {
+        var pool = new JsonArray(Weapon("only-bad", "bad", "bad"), Weapon("fine", "good", "good"));
+        for (var i = 0; i < 40; i++)
+        {
+            var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1, null, null, new[] { "bad" }))!.AsArray();
+            Assert.Equal("fine", Assert.Single(drawn)?["name"]?.GetValue<string>());
+        }
+    }
+
+    [Fact]
+    public void WithoutExclusionsTheDrawIsWhatItAlwaysWas()
+    {
+        var pool = new JsonArray(Weapon("first", "a", "a", "b"), Weapon("second", "a", "a", "b"));
+        var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1))!.AsArray();
+        var loaded = AmmunitionSites(Assert.Single(drawn)).Distinct().ToList();
+        Assert.Single(loaded);
+        Assert.Contains(loaded[0], new[] { "a", "b" });
+    }
+
+    /// <summary>A minimal pool entry: a weapon loaded with one round, offering the given choices.</summary>
+    private static JsonObject Weapon(string name, string loaded, params string[] choices)
+        => new()
+        {
+            ["id"] = name,
+            ["name"] = name,
+            ["order"] = 0,
+            ["items"] = new JsonArray(
+                new JsonObject { ["_id"] = name + "-root", ["_tpl"] = "55d7217a4bdc2d86028b456d" },
+                new JsonObject { ["_id"] = name + "-gun", ["_tpl"] = "gun", ["parentId"] = name + "-root", ["slotId"] = "FirstPrimaryWeapon" },
+                new JsonObject { ["_id"] = name + "-mag", ["_tpl"] = "mag", ["parentId"] = name + "-gun", ["slotId"] = "mod_magazine" },
+                new JsonObject { ["_id"] = name + "-stack", ["_tpl"] = loaded, ["parentId"] = name + "-mag", ["slotId"] = "cartridges" },
+                new JsonObject { ["_id"] = name + "-chamber", ["_tpl"] = loaded, ["parentId"] = name + "-gun", ["slotId"] = "patron_in_weapon" }),
+            ["ammoChoices"] = new JsonArray(choices.Select(c => (JsonNode)c).ToArray()),
+        };
+
+    private static IEnumerable<string> AmmunitionSites(JsonNode? rung)
+        => (rung?["items"] as JsonArray ?? [])
+            .Where(node => IsAmmunitionSite(node?["slotId"]?.GetValue<string>()))
+            .Select(node => node?["_tpl"]?.GetValue<string>() ?? "");
+
+    [Fact]
     public void DrawnLadderHasTheRequestedNumberOfRungs()
     {
         var drawn = JsonNode.Parse(LadderPicker.Redraw(Pool.ToJsonString(), 24))!.AsArray();

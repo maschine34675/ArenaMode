@@ -46,6 +46,11 @@
                                      Min="4" Max="60" Variant="Variant.Outlined"
                                      HelperText="The weapon pool is split into this many equal power bands, one weapon drawn per band. More rungs is a finer climb." />
                 </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Excluded templates" @bind-Value="ExcludedTemplatesText"
+                                  Lines="3" Variant="Variant.Outlined"
+                                  HelperText="Template ids the Gun Game ladder and the attachment draw must never hand out, one per line. Seeded with the game's own !!!DO_NOT_USE!!! placeholders, which are refused by name as well. The per-raid cartridge draw reads it at the next raid; the weapon pool at the next server start." />
+                </MudItem>
                 <MudItem xs="12" md="6">
                     <MudSelect T="string" Label="Hostility" @bind-Value="_config.HostilityMode" Variant="Variant.Outlined"
                                HelperText="Free-for-all: everyone fights everyone. Otherwise the bots only want you.">
@@ -178,6 +183,16 @@
     private Severity _messageSeverity = Severity.Normal;
 
     protected override void OnInitialized() => _config = ConfigStore.Copy();
+
+    /// <summary>The list as text, one id per line; separators the user might reach for are accepted too.</summary>
+    private string ExcludedTemplatesText
+    {
+        get => string.Join("\n", _config.ExcludedTemplates);
+        set => _config.ExcludedTemplates = (value ?? string.Empty)
+            .Split(new[] { '\n', '\r', ',', ';', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
 
     private void Save()
     {
