@@ -7,6 +7,35 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **GPU Deathmatch r1 triaged; client r2 delivered (2026-09-12):** report
+  `05e88d0` stopped solely at the stale "Five modes" description under the too-broad
+  stop-on-any-error rule. Four original screenshot hashes were independently
+  verified; Arena selection/model visibility is observed, but no map menu or raid
+  ran. This is not a match crash or failure of the new Deathmatch lifecycle.
+  Commit `02a35ca` replaces the count with "Solo and team arena combat.", retaining
+  two explicit lines and the unchanged PFT branch. The user separately confirmed
+  that mannequin jitter is gone; accept that observation without claiming r1
+  video/frame evidence or downstream model continuity. Preview code is unchanged.
+  A bounded legacy-id audit also found and fixed the missed canonical Deathmatch
+  admission for point/beam laser brightness (`2066950`). Exact raid/body ownership,
+  unknown-mode refusal and absence of solo team tint remain. New production-linked
+  test failed before the fix, then 1293 assertions and 14 compiled fault controls
+  passed. Independent implementation/test/instruction review found no remaining
+  established defect. Actual client build succeeded with 0 errors and 4 existing
+  nullable warnings. No server build or audio/dependency delivery was needed.
+  Test build **deathmatch-menu-preview-r2**, implementation `20669505459d90c212dc90806f24c12b3082870b`.
+  **Client SHA256:** `60C2685951C4ECD17E29C80192EE26AA7CF7735C723091C89E8162BFAF4C6551`.
+  **Unchanged server SHA256:** `8F9A56F574835FEAB73AB78C2EF4D5CF5734F12ABE63F384E2148CF319890B73`.
+  Local client delivery hash matches. All 40 inventoried protected files, including
+  server and Redeploy DLLs, remained unchanged across delivery. Receipt:
+  `artifacts/deathmatch-r2-delivery/314aa230db0f46128a262474d7f3d3f4/receipt.json`.
+  **Game restart required.** GPU mirror/new native acceptance still pending.
+  Use `GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r2.md`; keep r1 files immutable.
+  Cosmetics are recorded as failures but do not stop independent tests. Safety,
+  exceptions, uncertain mode/rules and hash drift still require stopping. Missing
+  recording tools leave that optional subcase open. Prioritize untouched menu,
+  downstream-preview and bounded raid cases; jitter video only if it recurs.
+
 - **Unified Deathmatch and continuous Arena preview ready for GPU r1 (2026-09-12):**
   branch `feature/deathmatch-menu-preview`; implementation commits `6e6d469`
   (Deathmatch) and `c8acf08` (preview). Native mode picker now has Deathmatch,

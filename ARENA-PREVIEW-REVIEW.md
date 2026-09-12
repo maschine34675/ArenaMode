@@ -4,6 +4,13 @@ Reviewed source: 2026-09-12, `feature/deathmatch-menu-preview`. This document
 describes the preview change; the root HANDOFF records the final delivered
 commit and DLL hashes. No gameplay video or GPU result was produced here.
 
+User follow-up after GPU report `05e88d0` (2026-09-12): the visible character
+jitter is gone. This is user-observed acceptance, separate from the report's
+static side-selection screenshots. The report stopped at a cosmetic text error
+before downstream screens or raids and contains no video/frame analysis. Keep
+the current preview implementation; its continuity/navigation checks remain
+pending, while another jitter video is only useful if the symptom recurs.
+
 ## Native owners verified in the local SPT 4.1 decompilation
 
 Paths below are relative to `../_decompiled/`.

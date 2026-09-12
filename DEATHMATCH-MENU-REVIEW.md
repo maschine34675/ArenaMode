@@ -79,8 +79,8 @@ installed references with isolated output/deployment paths. Installed client,
 server, Redeploy, Arena assets and configs must remain unchanged until explicit
 DLL delivery. No audio or dependency copy is part of delivery.
 
-Native visual/AI acceptance, ordinary PMC return, repeated navigation and the
-reported jitter still require the focused GPU test instruction delivered with
+Native AI acceptance, ordinary PMC return, repeated navigation and downstream
+model continuity still require the focused GPU test instruction delivered with
 exact client/server SHA256 identities. Never transfer r6 acceptance to this DLL.
 
 ## GPU r1 follow-up (2026-09-12)
@@ -99,8 +99,9 @@ this as user-observed acceptance of the visible improvement. r1 itself has no
 video or consecutive-frame evidence and does not certify model continuity on
 subsequent screens, nor the exact numerical cause. No further preview changes
 are justified by this report. r2 prioritizes the untested menu and raid cases;
-cosmetic findings are recorded without aborting independent cases, and recording
-is optional unless jitter recurs. Safety, exceptions and build drift still stop
+cosmetic findings are recorded without aborting independent cases. Recording is
+attempted only if jitter recurs and tooling is available; otherwise that subcase
+stays open. Safety, exceptions and build drift still stop
 the relevant run. Original r1 instructions/results remain historical evidence.
 
 ### Canonical Deathmatch laser brightness follow-up
@@ -116,7 +117,7 @@ The production-linked replay now covers canonical Deathmatch and four retained
 solo ids for both local and active AI bodies, point and beam-only brightness,
 unchanged native dot/intensity/tint, stale bodies and unknown-mode refusal. It
 failed the exact new Deathmatch assertion before the fix and passes 1293
-assertions afterward. The existing regression runner now rejects14 compiled
+assertions afterward. The existing regression runner now rejects 14 compiled
 faults including removal of canonical admission, then reruns the passing actual
 source. Independent review found no remaining established defect. This is an
 offline rendering-contract check, not measured native laser visibility; r2 may
