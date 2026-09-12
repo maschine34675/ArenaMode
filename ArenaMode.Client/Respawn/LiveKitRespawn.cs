@@ -73,7 +73,7 @@ internal static class LiveKitRespawn
             null,
             null,
             "raid-start kit swap",
-            null,
+            () => !Modes.ArenaMatchResult.HasResult(Modes.ArenaMatchService.Current?.Mode),
             null,
             raidEpoch));
         }

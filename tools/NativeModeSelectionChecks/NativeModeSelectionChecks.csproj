@@ -7,6 +7,9 @@
     <ProductionStateSource Condition="'$(ProductionStateSource)' == ''">../../ArenaMode.Client/Session/ArenaModeSelectionState.cs</ProductionStateSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
     <Compile Include="$(ProductionCatalogSource)" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="$(ProductionStateSource)" Link="Production/ArenaModeSelectionState.cs" />
   </ItemGroup>

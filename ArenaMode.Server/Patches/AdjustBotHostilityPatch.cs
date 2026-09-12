@@ -2,6 +2,7 @@ using SPTarkov.Reflection.Patching;
 using SPTarkov.Server.Core.Models.Eft.Common;
 using SPTarkov.Server.Core.Services.InRaid;
 using System.Reflection;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Server.Patches;
 
@@ -25,8 +26,19 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
     {
         var sessions = ArenaContext.Sessions;
         if (sessions == null || location == null
-            || !sessions.TryGetStashedCloneMode(location, out var mode))
+            || !sessions.TryGetStashedCloneMode(location, out var mode, out var deathmatchHostility))
             return;
+
+        if (DeathmatchSelection.IsDeathmatch(mode))
+        {
+            // The arm constructor rejects missing/unknown values. Do not fall
+            // back to a mutable server default if that invariant ever drifts.
+            if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out _, out var reason))
+                throw new InvalidOperationException(reason);
+            ApplyDeathmatch(location, deathmatchHostility == DeathmatchSelection.FreeForAll);
+            ArenaContext.Logger?.Info($"[ArenaMode] Arena hostility applied ({deathmatchHostility}, frozen Deathmatch selection).");
+            return;
+        }
 
         if (string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
         {
@@ -72,6 +84,55 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
 
         ArenaContext.Logger?.Info(
             $"[ArenaMode] Arena hostility applied ({(freeForAll ? "ffa" : "all_vs_player")}).");
+    }
+
+    private static void ApplyDeathmatch(LocationBase location, bool freeForAll)
+    {
+        var modifier = location.BotLocationModifier;
+        if (modifier == null)
+            return;
+
+        // The four ordinary Arena spawn roles must have a record even when a
+        // map omits it. Preserve the remaining map roles and use their complete
+        // relation vocabulary, including bosses when enabled in Arena config.
+        var entries = (modifier.AdditionalHostilitySettings ?? []).ToList();
+        var roles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "pmcUSEC", "pmcBEAR", "assault", "marksman" };
+        foreach (var entry in entries)
+        {
+            if (!string.IsNullOrEmpty(entry.BotRole)) roles.Add(entry.BotRole);
+            roles.UnionWith(entry.AlwaysFriends ?? []);
+            roles.UnionWith(entry.AlwaysEnemies ?? []);
+            roles.UnionWith(entry.Neutral ?? []);
+            roles.UnionWith(entry.Warn ?? []);
+            roles.UnionWith((entry.ChancedEnemies ?? []).Select(enemy => enemy.Role));
+        }
+        roles.RemoveWhere(string.IsNullOrWhiteSpace);
+
+        foreach (string role in new[] { "pmcUSEC", "pmcBEAR", "assault", "marksman" })
+            if (!entries.Any(entry => string.Equals(entry.BotRole, role, StringComparison.OrdinalIgnoreCase)))
+                entries.Add(new AdditionalHostilitySettings { BotRole = role });
+
+        // BotSettings.GetEnemyBotTypes removes friends/neutral/warn/chanced
+        // roles after adding enemies. Clear the conflicting lists instead of
+        // merely changing chance percentages. Human PMC behavior is separate,
+        // so an all-vs-player bot can befriend PMC bots while attacking the PMC.
+        // Replace records AND collections: native SPT can insert pmcConfig
+        // singleton records here by reference; ordinary raids must stay intact.
+        modifier.AdditionalHostilitySettings = entries.Select(source => source with
+        {
+            AlwaysFriends = freeForAll ? [] : new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase),
+            AlwaysEnemies = freeForAll ? new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase) : [],
+            Neutral = [],
+            Warn = [],
+            ChancedEnemies = [],
+            UsecPlayerBehaviour = "AlwaysEnemies",
+            BearPlayerBehaviour = "AlwaysEnemies",
+            SavagePlayerBehaviour = "AlwaysEnemies",
+            UsecEnemyChance = 100,
+            BearEnemyChance = 100,
+            SavageEnemyChance = 100,
+        }).ToList();
     }
 
     private static void ApplyTeamDeathmatch(LocationBase location)

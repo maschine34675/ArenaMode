@@ -50,6 +50,7 @@ internal sealed class ArenaAssemblyBanner
         string heading = null, detail = null;
         bool notice = match?.Mode is TacticalMode tactical
             ? tactical.TryGetAssemblyNotice(out heading, out detail)
+            : match?.Mode is RoundsMode dm ? dm.TryGetMatchNotice(out heading, out detail)
             : match?.Mode is TeamDeathmatchMode teams && teams.TryGetMatchNotice(out heading, out detail);
         if (!ArenaSession.IsActive || !ReferenceEquals(match, ArenaMatchService.Current)
             || !Singleton<GameWorld>.Instantiated || !Singleton<AbstractGame>.Instantiated

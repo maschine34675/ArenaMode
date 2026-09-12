@@ -1,0 +1,84 @@
+# Unified Deathmatch menu and lifecycle integration (2026-09-12)
+
+Implementation review; GPU acceptance remains pending. Related evidence and
+boundaries: DEATHMATCH-MODE-REVIEW.md, DEATHMATCH-HOSTILITY-REVIEW.md,
+DEATHMATCH-GROUPS-REVIEW.md and ARENA-PREVIEW-REVIEW.md.
+
+## User-confirmed rules
+
+The native menu has four entries: Deathmatch, Gun Game, Tactical and Team DM.
+Deathmatch replaces the separate Endless/Rounds entries. Round count is 1, 3, 5,
+10 or Endless in the menu; custom 1-100 values remain possible through F12.
+Per-round kills are Off/10/20/50/100, time Off/2/5/10/20 minutes, opponents FFA or
+All vs player. Custom F12 limits are displayed exactly without guessed markers.
+Both limits off means continuous play and requires endless rounds. Finite round
+buttons stay unavailable until a kill/time limit is selected. Invalid F12
+combinations are rejected before a server snapshot, with an actionable error.
+
+FFA counts each original profile ID independently, including bot-vs-bot kills.
+At a time limit the highest individual kill count wins; ties draw. A finite
+series compares individual round wins. Newly generated bots are new contestants.
+All vs player uses the local kill target; missing it by the deadline loses that
+round. A time-only all-vs-player series completes neutrally. Intermissions remain
+scoring brackets in the same raid, with the proven kit/protection path, rather
+than map reloads or population resets.
+
+Legacy mode ids still parse, but are saved as deathmatch. One-time migration
+copies selected Rounds' kill/time limits; selected Endless stays continuous.
+The new opponent selector defaults to FFA and overrides the server default only
+for canonical Deathmatch. Legacy aliases sent by older clients, Gun Game,
+Tactical and Team DM retain their prior server policies.
+
+## Scope and invariants
+
+All options are frozen after settings sync, before /raid-start; the server must
+acknowledge exactly the same hostility string and arm token. Missing/mismatched
+acknowledgements retain uncertain-arm cancellation rather than allowing a
+misconfigured raid. Per-arm session storage and exact cloned-location identity
+keep global bot settings and ordinary raids unchanged. The first round waits
+for the initial kit swap and exact local body before its clock starts.
+
+Scoring admission runs before scoreboard/awards mutate; the final local casualty
+is counted once before the winner freezes. Terminal roster updates and respawns
+remain held, native damage blocked for the exact result body, and native exit
+waits for a valid owner and settled replacement pipeline. A shared terminal
+facade preserves the existing independent Team DM path. Profile snapshots and
+the exact native end bypass are unchanged.
+
+Tactical shows actual solo 1vN (default 1v5), or 5v5 (PFT) with four accepted
+companions; a visible note names PitFireTeam's requirement. No new simulated
+PFT roster or team-size switch was introduced.
+
+Menu panels share their footprint with the play-area panel: Deathmatch ends at
+reference Y=722 and area starts at734, all other modes area starts at668.
+Changing modes with unchanged area rows still updates placement. Mode and rule
+buttons reject callbacks from previous or hidden views and active/armed raids.
+
+## Independent findings corrected
+
+- Initial kit preload could outlive a short result: round one now waits for
+  actual readiness; initial swap has a terminal cancellation predicate.
+- Native FFA role grouping and stale groups: exact-spawner independent group
+  lifetime and reciprocal active opponent admission are separately reviewed
+  and tested in DEATHMATCH-GROUPS-REVIEW.md.
+- Area panel overlapped the fourth Deathmatch rule row: one shared height policy
+  plus mode-sensitive area layout resolves it.
+- A retained old mode-row delegate could change a new panel: exact root/button
+  ownership guard, with a failing defect control, resolves it.
+
+## Verification
+
+Run tools/DeathmatchMenuChecks/Verify.ps1. It executes the actual selection,
+config/view, transport/native-start, give-up/scoreboard, area view and native
+result-exit sources against scoped external I/O doubles, plus compiled deliberate
+fault controls. It does not emulate EFT rendering or AI. The runtime, preview,
+server hostility and group test scripts are independent checks.
+
+Run tools/DeathmatchMenuChecks/Verify-Build.ps1 for both actual projects using
+installed references with isolated output/deployment paths. Installed client,
+server, Redeploy, Arena assets and configs must remain unchanged until explicit
+DLL delivery. No audio or dependency copy is part of delivery.
+
+Native visual/AI acceptance, ordinary PMC return, repeated navigation and the
+reported jitter still require the focused GPU test instruction delivered with
+exact client/server SHA256 identities. Never transfer r6 acceptance to this DLL.

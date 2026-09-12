@@ -98,7 +98,7 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-Need(Buttons().Length == 14 && RuleRoot().activeInHierarchy, "five modes and nine TDM rule buttons exist");
+Need(Buttons().Length == 30 && RuleRoot().activeInHierarchy, "four modes, nine TDM and seventeen Deathmatch rule buttons exist");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
 Need(!Label("RULES label").gameObject.activeSelf && !Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM rules replace ordinary fact rows rather than overlapping them");
@@ -106,7 +106,7 @@ var panel = (RectTransform)view.Root.transform;
 Need(panel.sizeDelta == new Vector2(360, 488) && panel.anchoredPosition == new Vector2(56, -168),
     "mode panel footprint does not grow toward area or native bottom buttons");
 var ruleRect = (RectTransform)RuleRoot().transform;
-Need(-ruleRect.anchoredPosition.y >= 345 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 488,
+Need(-ruleRect.anchoredPosition.y >= 303 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 488,
     "rules remain below heading and inside original mode panel");
 foreach (var button in Buttons().Where(x => x.name.StartsWith("Arena TDM")))
 {
@@ -132,21 +132,58 @@ view.Synchronize("teamdeathmatch", false);
 KillButton(50).onClick.Invoke();
 Need(!KillButton(50).interactable && Settings.TeamDeathmatchKillLimit.Value == 25, "armed native view rejects direct event dispatch");
 ArenaSession.ArmedForNextRaid = false;
-view.Synchronize("rounds", false);
+view.Synchronize("gungame", false);
 KillButton(50).onClick.Invoke();
 Need(!RuleRoot().activeSelf && Label("RULES label").gameObject.activeSelf
     && Settings.TeamDeathmatchKillLimit.Value == 25, "other mode restores facts and rejects hidden rule events");
 view.Synchronize("tactical", true);
-Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 524
+Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 488
     && Label("EQUIPMENT value").text == "PMC entry gear", "PFT layout and entry equipment preserved");
+view.Synchronize("deathmatch", false);
+var dmRoot = view.Root.transform.Children.Single(x => x.name == "Arena Deathmatch Match Rules").gameObject;
+Button Dm(int row, int value) => Buttons().Single(x => x.name == "Arena Deathmatch " + row + " " + value);
+Need(dmRoot.activeSelf && !RuleRoot().activeSelf && !Label("RULES label").gameObject.activeSelf,
+    "Deathmatch rules replace facts and TDM controls");
+Need(((RectTransform)view.Root.transform).sizeDelta.y == 554, "Deathmatch panel contains all four rule rows");
+Dm(1,20).onClick.Invoke(); Dm(0,3).onClick.Invoke(); Dm(3,1).onClick.Invoke();
+Need(Settings.DeathmatchRounds.Value == 3 && Settings.DeathmatchKills.Value == 20
+    && !Settings.DeathmatchFreeForAll.Value && Marked(Dm(0,3)) && Marked(Dm(3,1)), "actual Deathmatch controls persist rules and markers");
+var frozen = Settings.FreezeDeathmatchRules();
+Settings.DeathmatchKills.Value = 50;
+Need(frozen.Kills == 20 && !frozen.FreeForAll, "frozen match cannot drift with later settings");
+ArenaSession.ArmedForNextRaid = true;
+view.Synchronize("deathmatch", false); Dm(1,100).onClick.Invoke();
+Need(Settings.DeathmatchKills.Value == 50 && !Dm(1,100).interactable, "actual Deathmatch view blocks armed click");
+ArenaSession.ArmedForNextRaid = false;
+view.Synchronize("tactical", false);
+Need(Label("RULES value").text == "1v5 / Solo" && Label("Team restriction").gameObject.activeSelf,
+    "solo Tactical displays actual squad and PFT requirement");
+var dmRetired = Dm(0,5).onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);
+foreach (var callback in dmRetired) callback();
+Need(Settings.DeathmatchRounds.Value == 3, "hidden Deathmatch callbacks cannot change other mode");
+var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 var retiredButton = KillButton(100);
 var retired = retiredButton.onClick.Snapshot();
 view.Close();
 Need(retiredButton.onClick.Snapshot().Length == 0, "close removes child listeners");
+Settings.GameMode.Value = "teamdeathmatch";
 Show();
 foreach (var callback in retired) callback();
+foreach (var callback in staleMode) callback();
+Need(Settings.GameMode.Value == "teamdeathmatch", "retired mode row cannot modify reopened panel");
 Need(Settings.TeamDeathmatchKillLimit.Value == 25, "retired row cannot modify reopened panel");
 view.Close();
 Need(view.Root == null && screen.transform.Children.Count == 0, "close destroys all owned view roots");
+foreach (string legacy in new[] { "endless", "rounds" })
+{
+    var oldConfig = new ConfigFile();
+    oldConfig.Stored["Match/GameMode"] = legacy;
+    oldConfig.Stored["Match/RoundKillTarget"] = 37;
+    oldConfig.Stored["Match/RoundTimeLimitSeconds"] = 240;
+    Settings.Init(oldConfig);
+    Need(Settings.GameMode.Value == "deathmatch" && Settings.DeathmatchRounds.Value == 0, "legacy mode normalized without new finite limit");
+    Need(Settings.DeathmatchKills.Value == (legacy == "rounds" ? 37 : 0)
+        && Settings.DeathmatchSeconds.Value == (legacy == "rounds" ? 240 : 0), "legacy Rounds preserves limits; Endless remains continuous");
+}
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

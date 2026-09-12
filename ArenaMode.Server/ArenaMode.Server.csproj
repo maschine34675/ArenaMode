@@ -25,6 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\ArenaMode.Shared\DeathmatchSelection.cs" Link="Shared\DeathmatchSelection.cs" />
     <Compile Include="..\ArenaMode.Shared\Protocol.cs" Link="Shared\Protocol.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaDifficultyClock.cs" Link="Shared\ArenaDifficultyClock.cs" />
     <Compile Include="..\ArenaMode.Shared\ClientSettingsModels.cs" Link="Shared\ClientSettingsModels.cs" />

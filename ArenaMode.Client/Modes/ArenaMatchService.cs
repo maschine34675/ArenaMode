@@ -361,6 +361,7 @@ internal static class ArenaMatchService
     /// </summary>
     private static void SynchronizeScoreboard(ArenaMatch match)
     {
+        if (ArenaMatchResult.HasResult(match?.Mode)) return;
         try
         {
             if (match?.Mode is TeamDeathmatchMode teams)

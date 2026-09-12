@@ -59,9 +59,9 @@ internal static class ArenaGiveUp
         if (!ArenaSession.IsActive || _requestInProgress || Time.time < _nextAllowedAt)
             return;
 
-        if (ArenaMatchService.Current?.Mode is TeamDeathmatchMode terminal && terminal.HasResult)
+        if (ArenaMatchResult.HasResult(ArenaMatchService.Current?.Mode))
         {
-            terminal.RequestResultExit();
+            ArenaMatchResult.RequestExit(ArenaMatchService.Current?.Mode);
             return;
         }
 
@@ -83,6 +83,11 @@ internal static class ArenaGiveUp
             if (health == null || !health.IsAlive)
                 return;
 
+            if (ArenaMatchService.Current?.Mode is RoundsMode dm && !dm.TryBeginScoredEvent())
+            {
+                if (dm.HasResult) dm.RequestResultExit();
+                return;
+            }
             var teams = ArenaMatchService.Current?.Mode as TeamDeathmatchMode;
             bool scoreReserved = teams?.TryBeginLocalGiveUp(player) == true;
             // The reservation checks the clock and can itself discover the

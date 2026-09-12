@@ -44,6 +44,8 @@ public static class ArenaSession
     /// </summary>
     internal static string GunGameLadderSelection { get; private set; }
 
+    internal static Modes.DeathmatchOptions DeathmatchSelection { get; private set; }
+
     public static bool IsActive { get; private set; }
     public static string ActiveMode { get; private set; }
 
@@ -94,8 +96,11 @@ public static class ArenaSession
         RaidLifecycle.OnRaidEnded += OnRaidEnded;
     }
 
-    public static void MarkArmed(string map, string mode)
+    public static void MarkArmed(string map, string mode, Modes.DeathmatchOptions deathmatch = null)
     {
+        if (Modes.ArenaModeCatalog.NormalizeId(mode) == Modes.ArenaModeCatalog.DeathmatchId && deathmatch == null)
+            throw new InvalidOperationException("Deathmatch rules are missing before arming.");
+        DeathmatchSelection = deathmatch;
         unchecked { ArmEpoch++; }
         ArmedForNextRaid = true;
         ArmedMap = map;
@@ -113,6 +118,7 @@ public static class ArenaSession
         ArmedForNextRaid = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
+        DeathmatchSelection = null;
         Areas.ArenaAreaRuntime.Reset();
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
@@ -180,6 +186,7 @@ public static class ArenaSession
             ArmedMap = null;
             ArmedMode = null;
             GunGameLadderSelection = null;
+            DeathmatchSelection = null;
             ActiveMode = null;
             LastRaidWasArena = false;
             PitFireTeamCompat.Clear("ordinary raid started");
@@ -207,6 +214,7 @@ public static class ArenaSession
         {
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
+            DeathmatchSelection = null;
             PitFireTeamCompat.Clear("Fika raid rejected");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -218,6 +226,7 @@ public static class ArenaSession
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
+            DeathmatchSelection = null;
             PitFireTeamCompat.Clear("armed map did not match started raid");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -233,6 +242,7 @@ public static class ArenaSession
         {
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
+            DeathmatchSelection = null;
             _rejectedServerRaidPendingEnd = true;
             LastRaidWasArena = true;
             Plugin.ModLogger.LogError(
@@ -372,6 +382,7 @@ public static class ArenaSession
         _rejectedServerRaidPendingEnd = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
+        DeathmatchSelection = null;
         ActiveMode = null;
 
         // Defensive: an aborted load between the countdown patch and its restore

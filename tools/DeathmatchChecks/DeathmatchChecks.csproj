@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);evidence/**</DefaultItemExcludes>
+    <RulesSource Condition="'$(RulesSource)' == ''">../../ArenaMode.Client/Modes/DeathmatchRules.cs</RulesSource>
+    <ModeSource Condition="'$(ModeSource)' == ''">../../ArenaMode.Client/Modes/RoundsMode.cs</ModeSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RulesSource)" Link="Production/DeathmatchRules.cs" />
+    <Compile Include="$(ModeSource)" Link="Production/RoundsMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
+  </ItemGroup>
+</Project>

@@ -1,14 +1,16 @@
-using ArenaMode.Session;
+﻿using ArenaMode.Session;
 using EFT;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System.Reflection;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Client-side bot behavior for arena sessions. All patches lead with the
-/// IsActive gate — normal raids are bit-identical.
+/// Client-side bot behavior for arena sessions. Loading-time group hooks also
+/// require a confirmed Arena arm on its matching map (see AGENTS.md).
 /// </summary>
 internal static class ArenaBotPatches
 {
@@ -16,14 +18,105 @@ internal static class ArenaBotPatches
     {
         TeamDeathmatchRelations.Enable();
         new ArenaIsPlayerEnemyPatch().Enable();
+        new DeathmatchBotFriendshipPatch().Enable();
+        new DeathmatchIndividualGroupPatch().Enable();
+        new DeathmatchAfterCreationPatch().Enable();
         new ArenaBossAttackPatch().Enable();
         new ArenaBotCapPatch().Enable();
         new NoAccidentalBossPatch().Enable();
         ArenaBotSpawnPatches.Enable();
     }
 
+    private sealed class IndividualGroup
+    {
+        internal BotSpawner Spawner;
+        internal BotZone Zone;
+        internal BotOwner Bot;
+        internal bool CreationReturned, ObservedMembers;
+        internal float NextEnemyRetry;
+    }
+    private static readonly Dictionary<BotsGroup, IndividualGroup> IndividualGroups = new();
+    private static float _nextGroupCleanup;
+    private static bool _reconciling, _admissionFailureLogged;
+
+    public static void TickIndividualGroups()
+    {
+        if (!DeathmatchRulesActive() || !ArenaSession.IsActive || UnityEngine.Time.time < _nextGroupCleanup) return;
+        _nextGroupCleanup = UnityEngine.Time.time + 1f;
+        foreach (var pair in IndividualGroups.ToArray())
+        {
+            var group = pair.Key;
+            var owner = pair.Value;
+            if (!OwnsDeathmatchSpawner(owner.Spawner)) { IndividualGroups.Remove(group); continue; }
+            // Never dispose a constructor's empty group before BotMemory.Activate
+            // adds its first member (AfterCreation still runs PreActive!).
+            // After observed membership or native BotDied, only native removal can
+            // empty a locked one-member group. Dispose on a later frame, outside
+            // death/removal subscriber stacks and only with zero native members.
+            if (group.MembersCount > 0) owner.ObservedMembers = true;
+            if (group.MembersCount != 0 || (!owner.ObservedMembers && owner.Bot?.IsDead != true)) continue;
+            IndividualGroups.Remove(group);
+            if (!owner.Spawner.Groups.TryGetValue(owner.Zone, out var registry)) continue;
+            registry._bossGroup.Remove(group);
+            registry._noConnectionGroups.RemoveAll(candidate => ReferenceEquals(candidate, group));
+            foreach (var role in registry.data.Keys.ToArray())
+                if (ReferenceEquals(registry.data[role], group)) registry.data[role] = null;
+            try { group.Dispose(); }
+            catch (System.Exception ex) { Plugin.ModLogger.LogWarning("Arena retired FFA group cleanup: " + ex.Message); }
+        }
+        ReconcileIndividualEnemies();
+    }
+
+    private static void ReconcileIndividualEnemies()
+    {
+        if (_reconciling) return;
+        _reconciling = true;
+        try
+        {
+            var snapshot = IndividualGroups.ToArray();
+            foreach (var source in snapshot)
+            {
+                if (!source.Value.CreationReturned || !OwnsDeathmatchSpawner(source.Value.Spawner)
+                    || source.Value.Bot?.BotState != EBotState.Active
+                    || source.Value.Bot.HealthController?.IsAlive != true || source.Key.MembersCount == 0
+                    || UnityEngine.Time.time < source.Value.NextEnemyRetry) continue;
+                foreach (var target in snapshot)
+                {
+                    if (!OwnsDeathmatchSpawner(source.Value.Spawner)) return;
+                    if (ReferenceEquals(source.Key, target.Key) || !target.Value.CreationReturned
+                        || !ReferenceEquals(source.Value.Spawner, target.Value.Spawner)
+                        || target.Value.Bot?.BotState != EBotState.Active || target.Value.Bot.HealthController?.IsAlive != true) continue;
+                    var player = target.Value.Bot.GetPlayer;
+                    if (player == null || source.Key.Enemies == null || source.Key.Enemies.ContainsKey(player)) continue;
+                    try
+                    {
+                        // Construction may precede both bots entering the roster.
+                        // Native AddEnemy updates every actual member's memory.
+                        source.Key.AddEnemy(player, EBotEnemyCause.initial);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        source.Value.NextEnemyRetry = UnityEngine.Time.time + 5f;
+                        if (!_admissionFailureLogged)
+                        {
+                            _admissionFailureLogged = true;
+                            Plugin.ModLogger.LogWarning("Arena FFA opponent admission failed; retrying with backoff: " + ex.Message);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        finally { _reconciling = false; }
+    }
+
     public static void ResetRaidState()
     {
+        _nextGroupCleanup = 0f;
+        _admissionFailureLogged = false;
+        if (!DeathmatchRulesActive()) IndividualGroups.Clear();
+        else foreach (var pair in IndividualGroups.ToArray())
+            if (!OwnsDeathmatchSpawner(pair.Value.Spawner)) IndividualGroups.Remove(pair.Key);
         NoAccidentalBossPatch.ResetRaidState();
         ArenaBotSpawnPatches.ResetRaidState();
     }
@@ -102,12 +195,22 @@ internal static class ArenaBotPatches
             => AccessTools.Method(typeof(BotsGroup), nameof(BotsGroup.IsPlayerEnemy));
 
         [PatchPostfix]
+        [HarmonyPriority(Priority.Last)]
         private static void Postfix(BotsGroup __instance, IPlayer player, ref bool __result)
         {
             if (TeamDeathmatchRelations.Enabled)
             {
                 if (TeamDeathmatchRelations.TryGroupRelationship(__instance, player, out bool enemies))
                     __result = enemies;
+                return;
+            }
+            if (player?.IsAI == true && OwnsDeathmatchGroup(__instance))
+            {
+                // Native IsSuitable short-circuits same-role enemies before
+                // reading the server hostility lists. Freeze the selected rule
+                // here as well; never change the human/PFT/TDM admission paths.
+                __result = ArenaSession.DeathmatchSelection.FreeForAll
+                    && player.AIData?.BotOwner?.BotsGroup != __instance;
                 return;
             }
             if (!ArenaSession.IsActive || player == null || player.IsAI)
@@ -120,6 +223,99 @@ internal static class ArenaBotPatches
                 return;
 
             __result = true;
+        }
+    }
+
+    internal static bool DeathmatchRulesActive()
+    {
+        if (ArenaSession.DeathmatchSelection == null || !Comfort.Common.Singleton<GameWorld>.Instantiated) return false;
+        var world = Comfort.Common.Singleton<GameWorld>.Instance;
+        if (ArenaSession.IsActive && Comfort.Common.Singleton<AbstractGame>.Instantiated
+            && ArenaSession.IsExactActiveRaid(Comfort.Common.Singleton<AbstractGame>.Instance, world))
+            return ArenaSession.ActiveMode == Modes.ArenaModeCatalog.DeathmatchId;
+        // Groups are built during loading. A confirmed Arena arm owns only its
+        // matching map; otherwise initial members could remain allied in FFA.
+        return ArenaSession.ArmedForNextRaid && ArenaSession.ArmedMode == Modes.ArenaModeCatalog.DeathmatchId
+            && string.Equals(world?.LocationId, ArenaSession.ArmedMap, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool OwnsDeathmatchGroup(BotsGroup group)
+        => DeathmatchRulesActive() && group != null && Comfort.Common.Singleton<IBotGame>.Instantiated
+            && ReferenceEquals(group.BotGame, Comfort.Common.Singleton<IBotGame>.Instance);
+
+    private static bool OwnsDeathmatchSpawner(BotSpawner spawner)
+        => DeathmatchRulesActive() && ArenaSession.DeathmatchSelection.FreeForAll
+            && Comfort.Common.Singleton<IBotGame>.Instantiated
+            && ReferenceEquals(Comfort.Common.Singleton<IBotGame>.Instance.BotsController?.BotSpawner, spawner);
+
+    private static void EnterIndividualGroups(BotSpawner spawner, out bool? previous)
+    {
+        previous = null;
+        if (!OwnsDeathmatchSpawner(spawner)) return;
+        previous = spawner._freeForAll;
+        // Native AddBot otherwise appends the same group again for every zone
+        // and bypasses GetGroups/AddPlayer enumeration for unkeyed groups.
+        spawner._freeForAll = false;
+    }
+
+    private sealed class DeathmatchIndividualGroupPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotSpawner), nameof(BotSpawner.GetGroupAndSetEnemies));
+        [PatchPrefix]
+        private static void Prefix(BotSpawner __instance, out bool? __state)
+            => EnterIndividualGroups(__instance, out __state);
+        [PatchPostfix]
+        [HarmonyPriority(Priority.Last)]
+        private static void Postfix(BotSpawner __instance, BotZone zone, BotOwner bot, BotsGroup __result, bool? __state)
+        {
+            if (!__state.HasValue || __result == null || !__instance.Groups.TryGetValue(zone, out var groups)) return;
+            // The native role dictionary has one slot per role. The native
+            // multi-group registry retains every individual for enemy updates,
+            // GetGroups and Dispose. This does NOT give a bot boss behavior.
+            groups._bossGroup.Add(__result);
+            if (groups.data.TryGetValue(__result.InitialBotType, out var keyed) && ReferenceEquals(keyed, __result))
+                groups.data[__result.InitialBotType] = null;
+            groups._noConnectionGroups.RemoveAll(group => ReferenceEquals(group, __result));
+            __result.Lock();
+            IndividualGroups[__result] = new IndividualGroup { Spawner = __instance, Zone = zone, Bot = bot };
+        }
+        [PatchFinalizer]
+        private static void Finalizer(BotSpawner __instance, bool? __state)
+        { if (__state.HasValue) __instance._freeForAll = __state.Value; }
+    }
+
+    private sealed class DeathmatchAfterCreationPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotSpawner), nameof(BotSpawner.AfterCreation));
+        [PatchPrefix]
+        private static void Prefix(BotSpawner __instance, out bool? __state)
+            => EnterIndividualGroups(__instance, out __state);
+        [PatchPostfix]
+        private static void Postfix(BotOwner bot)
+        {
+            if (bot?.BotsGroup != null && IndividualGroups.TryGetValue(bot.BotsGroup, out var owner))
+                owner.CreationReturned = true;
+            if (DeathmatchRulesActive()) ReconcileIndividualEnemies();
+        }
+        [PatchFinalizer]
+        private static void Finalizer(BotSpawner __instance, bool? __state)
+        { if (__state.HasValue) __instance._freeForAll = __state.Value; }
+    }
+
+    private sealed class DeathmatchBotFriendshipPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotsGroup), nameof(BotsGroup.AddEnemy), new[] { typeof(IPlayer), typeof(EBotEnemyCause) });
+        [PatchPrefix]
+        [HarmonyPriority(Priority.Last)]
+        private static bool Prefix(BotsGroup __instance, IPlayer person, ref bool __result)
+        {
+            if (person?.IsAI != true || !OwnsDeathmatchGroup(__instance) || ArenaSession.DeathmatchSelection.FreeForAll) return true;
+            // A revenge/forced-aggression call may bypass IsPlayerEnemy.
+            __result = false;
+            return false;
         }
     }
 

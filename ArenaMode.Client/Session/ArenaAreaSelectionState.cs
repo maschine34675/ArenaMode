@@ -34,6 +34,7 @@ internal sealed class ArenaAreaSelectionState
 
     private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string mode, bool pitFireTeam, int teamSize, int areaTeamSize)
     {
+        ModeId = mode;
         Options = Array.AsReadOnly(options);
         var selected = options.FirstOrDefault(option => option.Id == ArenaAreaCatalog.NormalizeId(requestedArea))
             ?? options.FirstOrDefault();
@@ -55,6 +56,7 @@ internal sealed class ArenaAreaSelectionState
     }
 
     public IReadOnlyList<ArenaAreaOption> Options { get; }
+    public string ModeId { get; }
     public string SelectedId { get; }
     public string Summary { get; }
     public string ModeHint { get; }

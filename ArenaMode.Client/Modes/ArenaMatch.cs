@@ -69,6 +69,11 @@ public sealed class ArenaMatch
             // Team DM deduplicates the later driver's event for the same life.
             if (kill.LocalIsVictim) ReportLocalDeath();
         }
+        if (Mode is RoundsMode deathmatch)
+        {
+            if (!deathmatch.TryBeginScoredEvent()) return;
+            if (kill.LocalIsVictim) ReportLocalDeath();
+        }
         Scoreboard.ReportKill(kill);
 
         string existingLabel = null;
@@ -97,6 +102,7 @@ public sealed class ArenaMatch
             RaiseSafe(teams.OnLocalDeath, "mode.OnLocalDeath");
             return;
         }
+        if (Mode is RoundsMode deathmatch && !deathmatch.TryRecordLocalDeath()) return;
         Scoreboard.ReportLocalDeath();
         _awards.LocalDeath();
         _multiKillChain = 0;
@@ -107,7 +113,7 @@ public sealed class ArenaMatch
 
     public void ReportLocalRespawn(Player player)
     {
-        if (Mode is TeamDeathmatchMode teams && teams.HasResult) return;
+        if (ArenaMatchResult.HasResult(Mode)) return;
         Scoreboard.ReportLocalRespawn(
             player?.ProfileId,
             RoleClassifier.DisplayName(player),

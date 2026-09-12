@@ -234,9 +234,10 @@ public static class ArenaServerClient
     internal static string ActiveArmToken => _activeArmToken;
 
     public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
-        string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null)
+        string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null)
     {
-        if (!ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam, out var area, out _)
+        if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
+            || !ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam, out var area, out _)
             || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
             return false;
         HasPendingArm = true;
@@ -259,11 +260,14 @@ public static class ArenaServerClient
                 requestId = _pendingArmToken,
             });
             if (selectedSize != 0) payload["areaTeamSize"] = selectedSize;
+            if (frozenHostility != null) payload["deathmatchHostility"] = frozenHostility;
             var body = payload.ToString(Formatting.None);
             var response = RequestHandler.PostJson(Protocol.RaidStartRoute, body);
             var parsed = string.IsNullOrEmpty(response) ? null : JObject.Parse(response);
             string returnedArmToken = parsed?["armToken"]?.Value<string>();
             var ok = parsed?["armed"]?.Value<bool>() == true
+                && (frozenHostility == null || parsed?["deathmatchHostility"]?.Type == JTokenType.String
+                    && string.Equals(parsed["deathmatchHostility"].Value<string>(), frozenHostility, StringComparison.Ordinal))
                 && (selectedSize == 0
                     ? parsed?["areaTeamSize"] == null || parsed["areaTeamSize"].Type == JTokenType.Null
                         || parsed["areaTeamSize"].Type == JTokenType.Integer && parsed["areaTeamSize"].Value<int>() == 0

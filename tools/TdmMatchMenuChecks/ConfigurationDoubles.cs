@@ -44,10 +44,11 @@ namespace BepInEx.Configuration
     {
         public bool SaveOnConfigSet = true, ThrowSave;
         public int Saves;
+        public readonly System.Collections.Generic.Dictionary<string, object> Stored = new();
         public ConfigEntry<T> Bind<T>(string section, string key, T value, string description)
             => Bind(section, key, value, new ConfigDescription(description));
         public ConfigEntry<T> Bind<T>(string section, string key, T value, ConfigDescription description)
-            => new(value, description, this);
+            => new(Stored.TryGetValue(section + "/" + key, out var stored) ? (T)stored : value, description, this);
         public void Save() { Saves++; if (ThrowSave) throw new InvalidOperationException("fixture disk failure"); }
     }
 }

@@ -47,6 +47,12 @@ namespace ArenaMode.Modes
     public class RoundsMode : IArenaMode
     {
         public bool InIntermission;
+        public bool HasResult, ResultOwnsCurrentRaid;
+        public string ResultHeading, ResultDetail, ResultExitStatus;
+        public void RequestResultExit() { }
+        public void ReportResultExitProblem(string value) { }
+        public bool TryBeginScoredEvent() => !InIntermission;
+        public bool TryRecordLocalDeath() => !InIntermission;
         public string Id => "rounds";
         public string DisplayName => "Rounds";
         public bool IsComplete => false;

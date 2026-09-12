@@ -25,6 +25,7 @@ internal sealed class ArenaController : MonoBehaviour
         Areas.ArenaAreaRuntime.Tick();
         BurstSpawnService.Tick();
         BotLoadBoost.Tick();
+        ArenaBotPatches.TickIndividualGroups();
         ArenaHostility.Tick();
         Movement.MovementRuntime.Tick();
         CorpseLightService.Tick();

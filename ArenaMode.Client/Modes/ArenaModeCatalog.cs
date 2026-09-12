@@ -28,6 +28,7 @@ internal sealed class ArenaModeDefinition
 /// <summary>Stable mode ids and the copy shown by the native map-screen picker.</summary>
 internal static class ArenaModeCatalog
 {
+    public const string DeathmatchId = DeathmatchSelection.ModeId;
     public const string EndlessId = "endless";
     public const string RoundsId = "rounds";
     // From the preload plan, for the same reason the two below come from the
@@ -45,22 +46,22 @@ internal static class ArenaModeCatalog
     private static readonly IReadOnlyList<ArenaModeDefinition> Definitions =
         Array.AsReadOnly(new[]
         {
-            new ArenaModeDefinition(EndlessId, "ENDLESS",
-                "Continuous deathmatch with instant respawns.",
-                "Deathmatch", "Instant", "Arena kits"),
-            new ArenaModeDefinition(RoundsId, "ROUNDS",
-                "Rounds with a kill target or time limit, and a break between them.",
-                "Kill target / time limit", "Instant", "Arena kits"),
+            new ArenaModeDefinition(DeathmatchId, "DEATHMATCH",
+                "Free-for-all or all against you, with optional rounds and kill/time limits.",
+                "Individual kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(GunGameId, "GUN GAME",
                 "Advance through the weapon ladder with every kill.",
                 "Weapon progression", "Instant", "Weapon ladder"),
             new ArenaModeDefinition(TacticalId, "TACTICAL",
-                "Single-life rounds with bought or retained Arena kits.",
+                "Solo 1v5, or 5v5 with four PitFireTeam companions.",
                 "Elimination rounds", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
                 "USEC versus BEAR teams with instant respawns. No companions required.",
                 "USEC vs BEAR", "Instant", "Arena kits"),
         });
+
+    internal const float ModePanelTop = 168f;
+    internal static float ModePanelHeight(string mode) => NormalizeId(mode) == DeathmatchId ? 554f : 488f;
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;
 
@@ -69,6 +70,8 @@ internal static class ArenaModeCatalog
         if (!string.IsNullOrWhiteSpace(id))
         {
             var candidate = id.Trim();
+            if (string.Equals(candidate, EndlessId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(candidate, RoundsId, StringComparison.OrdinalIgnoreCase)) return DeathmatchId;
             foreach (var definition in Definitions)
             {
                 if (string.Equals(definition.Id, candidate, StringComparison.OrdinalIgnoreCase))
@@ -76,7 +79,7 @@ internal static class ArenaModeCatalog
             }
         }
 
-        return EndlessId;
+        return DeathmatchId;
     }
 
     public static string ResolveSelection(string id, bool tacticalOnly)

@@ -36,7 +36,7 @@ $mutants = @(
     @{Name='LostExactRaid';Path=$exit;Property='ExitSource';From='|| !ArenaSession.IsExactActiveRaid(game, world)';To='';Failure='unsafe exit excluded 4'},
     @{Name='StandDownEarly';Path=$exit;Property='ExitSource';From='if (!committed) ArenaRespawnDriver.StandDown = false;';To='';Failure='precommit error restores death interception'},
     @{Name='PausedStop';Path=$exit;Property='ExitSource';From='|| UnityEngine.Time.timeScale <= 0f';To='';Failure='unsafe exit excluded 14'},
-    @{Name='TerminalFailureFallback';Path=$driver;Property='DriverSource';From='if (IsTerminalTdmHold && Modes.ArenaMatchService.Current?.Mode is Modes.TeamDeathmatchMode terminal)';To='if (false && Modes.ArenaMatchService.Current?.Mode is Modes.TeamDeathmatchMode terminal)';Failure='terminal factory failure cannot bypass safe-owner exit'},
+    @{Name='TerminalFailureFallback';Path=$driver;Property='DriverSource';From='if (IsTerminalTdmHold)';To='if (false)';Failure='terminal factory failure cannot bypass safe-owner exit'},
     @{Name='TerminalDeathBypass';Path=$driver;Property='DriverSource';From='(IsRespawnInProgress || IsTerminalTdmHold)';To='IsRespawnInProgress';Failure='terminal death interception survives driver lease completion'},
     @{Name='HeldBlackScreen';Path=$driver;Property='DriverSource';From='&& (!IsTerminalTdmHold || RespawnEngineState.IsPipelineRunning)';To='';Failure='result display must not retain black screen for held death'},
     @{Name='TerminalPreloadRelease';Path=$driver;Property='DriverSource';From='while (IsTerminalTdmHold && IsSameActiveRaid(game, raidEpoch) && !StandDown)';To='while (false)';Failure='terminal preload continuation waits without entering engine'}

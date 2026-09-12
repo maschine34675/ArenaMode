@@ -265,6 +265,7 @@ internal static partial class Program
                && ArenaMode.Plugin.ModLogger.LastWarning.Contains("empty response", StringComparison.Ordinal),
             "A malformed empty success response remains visible without the wrapper");
         CheckAreaNegotiation();
+        CheckDeathmatchNegotiation();
         CheckCustomsNegotiation();
         CheckLivePftModeRepair();
         CheckNativeAreas();

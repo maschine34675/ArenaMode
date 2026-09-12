@@ -11,7 +11,7 @@ namespace ArenaMode.Shared;
 /// reserves equal faction slots, Tactical counts one round's squad. For those
 /// the server empties the location clone's waves, silences its boss spawns and
 /// closes ABPS's spawn window, so no bot can arrive that the mode did not ask
-/// for. The other three — Endless Deathmatch, Rounds, Gun Game — genuinely
+/// for. Deathmatch (including legacy Endless/Rounds ids) and Gun Game spawn
 /// spawn scavs, from ABPS's pump or from the generated wave plan, and must keep
 /// every role they might draw.
 ///

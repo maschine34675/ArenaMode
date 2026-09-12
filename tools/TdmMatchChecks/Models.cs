@@ -71,12 +71,24 @@ namespace ArenaMode
 }
 namespace ArenaMode.Modes
 {
-    public class TeamDeathmatchMode
+    public interface IArenaMode { }
+    public class OtherMode : IArenaMode { }
+    public class RoundsMode : IArenaMode
     {
+        public bool HasResult, ResultOwnsCurrentRaid;
+        public string ResultHeading, ResultDetail, ResultExitStatus;
+        public void RequestResultExit() { }
+        public void ReportResultExitProblem(string value) { }
+    }
+    public class TeamDeathmatchMode : IArenaMode
+    {
+        public bool HasResult;
+        public string ResultHeading, ResultDetail, ResultExitStatus;
+        public void RequestResultExit() { }
         public bool ResultOwnsCurrentRaid;
         public string ExitProblem;
         public void ReportResultExitProblem(string problem) => ExitProblem = problem;
     }
-    public class ArenaMatch { public object Mode; }
+    public class ArenaMatch { public IArenaMode Mode; }
     public static class ArenaMatchService { public static ArenaMatch Current; }
 }

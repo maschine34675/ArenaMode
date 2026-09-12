@@ -73,8 +73,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         // black screen would freeze input around a body that is still being
         // built. The check is edge-triggered on the whole condition, so the
         // scoreboard still shows itself once the player is standing.
-        var result = ArenaMatchService.Current?.Mode is TeamDeathmatchMode resultTeams
-            && resultTeams.ResultOwnsCurrentRaid && !TdmMatchExit.PipelineRunning;
+        var result = ArenaMatchResult.OwnsRaid(ArenaMatchService.Current?.Mode) && !TdmMatchExit.PipelineRunning;
         var intermission = result && IsBattleUiActive() || ArenaMatchService.Current?.Mode is RoundsMode rounds
             && rounds.InIntermission
             && rounds.IntermissionProtected
@@ -229,10 +228,10 @@ internal sealed class ArenaPanel : MonoBehaviour
 
         GUILayout.Space(6);
         var resultTeams = match.Mode as TeamDeathmatchMode;
-        bool terminalResult = resultTeams?.HasResult == true;
-        GUILayout.Label(terminalResult ? resultTeams.ResultHeading : match.Mode?.DisplayName ?? "Arena", _titleStyle);
+        bool terminalResult = ArenaMatchResult.HasResult(match.Mode);
+        GUILayout.Label(terminalResult ? ArenaMatchResult.Heading(match.Mode) : match.Mode?.DisplayName ?? "Arena", _titleStyle);
         if (terminalResult)
-            GUILayout.Label(resultTeams.ResultDetail + "\n" + resultTeams.ResultExitStatus, _statStyle);
+            GUILayout.Label(ArenaMatchResult.Detail(match.Mode) + "\n" + ArenaMatchResult.ExitStatus(match.Mode), _statStyle);
 
         _scrollPosition = GUILayout.BeginScrollView(
             _scrollPosition,
@@ -294,7 +293,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         {
             _autoOpened = false;
             SetOpen(false);
-            if (terminalResult) resultTeams.RequestResultExit();
+            if (terminalResult) ArenaMatchResult.RequestExit(match.Mode);
             else Combat.ArenaGiveUp.Request();
         }
 
@@ -467,24 +466,9 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.Space(4);
         var round = rounds.Round;
 
-        if (rounds.InIntermission)
-        {
-            GUILayout.Label(
-                $"Round {round.Number} complete — next round in {Mathf.CeilToInt(rounds.IntermissionRemaining)}s",
-                _bodyStyle);
-        }
-        else
-        {
-            var target = rounds.KillTarget;
-            var remaining = rounds.TimeRemaining;
-            var line = $"Round {round.Number}";
-            if (target > 0)
-                line += $" — {round.Kills}/{target} kills";
-            if (remaining >= 0f)
-                line += $" — {Mathf.FloorToInt(remaining / 60f):0}:{Mathf.FloorToInt(remaining % 60f):00} left";
-
-            GUILayout.Label(line, _bodyStyle);
-        }
+        GUILayout.Label(rounds.HudStatusLine, _bodyStyle);
+        if (!rounds.Continuous)
+            DrawStat("Rounds won", rounds.RoundsWon.ToString());
 
         GUILayout.Space(4);
         DrawStat("This round", $"{round.Kills} kills / {round.Deaths} deaths / {round.Score:n0} pts");

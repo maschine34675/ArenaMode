@@ -74,7 +74,7 @@ internal static class ArenaHostility
         // ended, which is exactly where the player no longer is. Deliberately
         // without touching _nextSweepAt: the sweep resumes the moment the next
         // round starts.
-        if (Modes.ArenaMatchService.Current?.Mode is Modes.RoundsMode rounds && rounds.InIntermission)
+        if (Modes.ArenaMatchService.Current?.Mode is Modes.RoundsMode rounds && (rounds.InIntermission || rounds.HasResult))
             return;
 
         var map = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.LocationId : null;
@@ -195,7 +195,8 @@ internal static class ArenaHostility
 
             if (!group.Enemies.ContainsKey(player))
             {
-                group.SetAggressiveToAllNewPlayers(true);
+                if (!ArenaBotPatches.DeathmatchRulesActive() || ArenaSession.DeathmatchSelection.FreeForAll)
+                    group.SetAggressiveToAllNewPlayers(true);
                 group.AddEnemy(player, EBotEnemyCause.addPlayer);
             }
 

@@ -73,6 +73,8 @@ internal static class CombatPatches
 
             if (ArenaMatchService.Current?.Mode is TeamDeathmatchMode teams
                 && teams.ShouldBlockMatchDamage(victim)) return true;
+            if (ArenaMatchService.Current?.Mode is RoundsMode deathmatch
+                && deathmatch.ShouldBlockMatchDamage(victim)) return true;
 
             if (Areas.ArenaAreaRuntime.IsPending
                 && Areas.ArenaAreaRuntime.TryGetForPlayer(victim, out _)) return true;
@@ -408,6 +410,7 @@ internal static class CombatPatches
                     || ArenaMatchService.TeamStartAbortPending || Areas.ArenaAreaRuntime.IsPending
                     || ArenaAdministrativeDeathGate.IsActive(victim.ProfileId)) return;
                 if (match.Mode is TeamDeathmatchMode teams && teams.ShouldBlockMatchDamage(victim)) return;
+                if (match.Mode is RoundsMode deathmatch && deathmatch.ShouldBlockMatchDamage(victim)) return;
                 // The native lethal callback can finish the mode before our
                 // postfix. Snapshot combat/hostility eligibility while alive.
                 __state = IsAwardEligible(match, victim, attacker, damageInfo.DamageType);

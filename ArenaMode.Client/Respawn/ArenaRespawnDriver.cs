@@ -29,8 +29,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
     public static bool StandDown { get; internal set; }
     public static int DeathsThisSession { get; private set; }
 
-    private static bool IsTerminalTdmHold => Modes.ArenaMatchService.Current?.Mode
-        is Modes.TeamDeathmatchMode teams && teams.ResultOwnsCurrentRaid;
+    private static bool IsTerminalTdmHold => Modes.ArenaMatchResult.OwnsRaid(Modes.ArenaMatchService.Current?.Mode);
 
     public string Name => "ArenaMode";
 
@@ -222,14 +221,14 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         if (failure != null)
         {
-            if (IsTerminalTdmHold && Modes.ArenaMatchService.Current?.Mode is Modes.TeamDeathmatchMode terminal)
+            if (IsTerminalTdmHold)
             {
                 // The engine may have failed after destroying the old owner.
                 // Neither the generic death screen nor area abort verifies that
                 // owner before Stop. Keep interception; the result coordinator
                 // alone may exit after verifying the actual native owner.
                 EndPipelineUse(raidEpoch);
-                terminal.ReportResultExitProblem("Player replacement failed; safe exit pending: " + failure.GetBaseException().Message);
+                Modes.ArenaMatchResult.ReportProblem(Modes.ArenaMatchService.Current?.Mode, "Player replacement failed; safe exit pending: " + failure.GetBaseException().Message);
                 yield break;
             }
             Plugin.ModLogger.LogError($"Arena respawn failed: {failure}");

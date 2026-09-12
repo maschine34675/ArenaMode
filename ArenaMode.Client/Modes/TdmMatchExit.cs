@@ -19,8 +19,7 @@ internal static class TdmMatchExit
             || !Singleton<AbstractGame>.Instantiated || !ReferenceEquals(Singleton<AbstractGame>.Instance, game)
             || !Singleton<GameWorld>.Instantiated || !ReferenceEquals(Singleton<GameWorld>.Instance, world)
             || !ArenaSession.IsExactActiveRaid(game, world)
-            || ArenaMatchService.Current?.Mode is not TeamDeathmatchMode teams
-            || !teams.ResultOwnsCurrentRaid || string.IsNullOrEmpty(profileId) || game.ProfileId != profileId) return;
+            || !ArenaMatchResult.OwnsRaid(ArenaMatchService.Current?.Mode) || string.IsNullOrEmpty(profileId) || game.ProfileId != profileId) return;
         try
         {
             // BaseLocalGame.Stop dereferences this owner before it schedules
@@ -42,13 +41,13 @@ internal static class TdmMatchExit
                 ArenaRespawnDriver.StandDown = false;
                 reportProblem?.Invoke("Native exit was not committed; retaining the terminal hold.");
             }
-            else Plugin.ModLogger.LogInfo($"Team Deathmatch result exit committed ({status}); protected native end follows.");
+            else Plugin.ModLogger.LogInfo($"Arena match result exit committed ({status}); protected native end follows.");
         }
         catch (Exception ex)
         {
             bool committed = game.Status != GameStatus.Started;
             if (!committed) ArenaRespawnDriver.StandDown = false;
-            Plugin.ModLogger.LogError("Team Deathmatch result exit failed "
+            Plugin.ModLogger.LogError("Arena match result exit failed "
                 + (committed ? "after native teardown committed; no retry: " : "before commit; will retry: ") + ex);
         }
     }

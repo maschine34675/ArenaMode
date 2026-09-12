@@ -62,5 +62,13 @@ foreach(var callback in retired)callback();
 Need(calls==2&&replacementCalls==0,"same-view Close/Show replacement cannot inherit old row ownership");
 view.Refresh(State(ArenaAreaCatalog.FullMapId,map:ArenaMapCatalog.FactoryDayId),false);
 Need(Buttons().Length==2,"whole map Factory retains only its existing two area choices");
+view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "deathmatch", false,
+    ArenaAreaCatalog.FullMapId, 5), false);
+Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 734,
+    "Deathmatch area panel clears four rules rows with twelve pixel gap");
+view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "gungame", false,
+    ArenaAreaCatalog.FullMapId, 5), false);
+Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 668,
+    "same-area mode change updates layout cache and restores compact position");
 view.Close();
 Console.WriteLine($"ARENA_TEAM_AREA_VIEW_CHECKS_PASSED ({checks} assertions)");

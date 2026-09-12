@@ -20,6 +20,8 @@ internal sealed class ArenaModeSelectionView
     private readonly List<GameObject> _factObjects = new();
     private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
     private ArenaTdmMatchRulesState _tdmRules;
+    private readonly ArenaDeathmatchRulesView _dmRulesView = new();
+    private ArenaDeathmatchRulesState _dmRules;
     private GameObject _root;
     private TextMeshProUGUI _rules;
     private TextMeshProUGUI _respawn;
@@ -37,11 +39,11 @@ internal sealed class ArenaModeSelectionView
         if (!_selection.Synchronize(selectedMode, tacticalOnly))
         {
             // F12 can change a limit without changing the selected mode.
-            RefreshTdmRules();
+            Refresh();
             return;
         }
         _subtitle.text = tacticalOnly ? "GAME MODE / PITFIRETEAM 5v5" : "GAME MODE";
-        ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, tacticalOnly ? 524f : 488f);
+        ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         _restrictionNote.SetActive(tacticalOnly);
         for (var index = 0; index < _buttons.Count; index++)
         {
@@ -72,6 +74,10 @@ internal sealed class ArenaModeSelectionView
             Settings.TrySelectTeamDeathmatchKillLimit,
             Settings.TrySelectTeamDeathmatchTimeLimit,
             () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
+        _dmRules = new ArenaDeathmatchRulesState(row => row switch {
+            0 => Settings.DeathmatchRounds.Value, 1 => Settings.DeathmatchKills.Value,
+            2 => Settings.DeathmatchSeconds.Value, _ => Settings.DeathmatchFreeForAll.Value ? 0 : 1 },
+            Settings.TrySelectDeathmatchRule, () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
         try
         {
             Create(screen, template._elementTemplate, template._currentValueText ?? nativeText);
@@ -91,6 +97,8 @@ internal sealed class ArenaModeSelectionView
         // Each clone has a fresh event; no callback or popup belongs to another screen.
         _selection = null;
         _tdmRules = null;
+        _dmRules = null;
+        Safe(_dmRulesView.Close);
         Safe(_tdmRulesView.Close);
         _factObjects.Clear();
         foreach (var button in _buttons)
@@ -116,8 +124,8 @@ internal sealed class ArenaModeSelectionView
         rect.pivot = new Vector2(0f, 1f);
         // The native map and all its click targets remain in place. At the
         // 1080-unit reference height this also leaves room below for future rows.
-        rect.anchoredPosition = new Vector2(56f, -168f);
-        rect.sizeDelta = new Vector2(PanelWidth, _selection.TacticalOnly ? 524f : 488f);
+        rect.anchoredPosition = new Vector2(56f, -ArenaModeCatalog.ModePanelTop);
+        rect.sizeDelta = new Vector2(PanelWidth, PanelHeight);
         var background = _root.GetComponent<Image>();
         background.color = new Color(0f, 0f, 0f, .68f);
         background.raycastTarget = false;
@@ -131,19 +139,20 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
             CreateRow(template, typography, index, 84f + index * 42f);
 
-        CreateRule(308f, typography);
-        var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 323f, 22f);
+        CreateRule(266f, typography);
+        var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 281f, 22f);
         heading.color = Dim(typography, .65f);
-        _rules = CreateFact("RULES", typography, 354f);
-        _respawn = CreateFact("RESPAWN", typography, 394f);
-        _equipment = CreateFact("EQUIPMENT", typography, 434f);
+        _rules = CreateFact("RULES", typography, 312f);
+        _respawn = CreateFact("RESPAWN", typography, 352f);
+        _equipment = CreateFact("EQUIPMENT", typography, 392f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
+        _dmRulesView.Show(_root.transform, template, typography, _dmRules);
 
         var note = CreateText("Team restriction", typography,
-            "Companions require Tactical.", 15f, 484f, 24f);
+            "5v5 requires PitFireTeam + 4 teammates.", 14f, 440f, 44f);
         note.color = Dim(typography, .75f);
         _restrictionNote = note.gameObject;
-        _restrictionNote.SetActive(_selection.TacticalOnly);
+        _restrictionNote.SetActive(_selection.SelectedMode == ArenaModeCatalog.TacticalId);
     }
 
     private void CreateRow(Button template, TMP_Text typography, int index, float top)
@@ -188,7 +197,13 @@ internal sealed class ArenaModeSelectionView
         markerImage.color = typography != null ? typography.color : Color.white;
         markerImage.raycastTarget = false;
         _markers.Add(marker);
-        button.onClick.AddListener(() => Select(index));
+        var owner = _root;
+        button.onClick.AddListener(() =>
+        {
+            if (!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy
+                || !_buttons.Contains(button) || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) return;
+            Select(index);
+        });
         button.gameObject.SetActive(true);
     }
 
@@ -214,7 +229,14 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < _markers.Count; index++)
             _markers[index].SetActive(index == _selection.SelectedIndex);
         var mode = _selection.SelectedDefinition;
-        _rules.text = mode.Rules;
+        _rules.text = mode.Id == ArenaModeCatalog.TacticalId
+            ? (_selection.TacticalOnly ? "5v5 / PitFireTeam" : "1v" + Settings.TacticalSquadSize.Value + " / Solo") : mode.Rules;
+        _restrictionNote.SetActive(mode.Id == ArenaModeCatalog.TacticalId);
+        ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
+        for (int i = 0; i < _buttons.Count; i++)
+            if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
+                _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
+                    ? "TACTICAL / 5v5 (PFT)" : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value;
         _respawn.text = mode.Respawn;
         _equipment.text = _selection.TacticalOnly ? "PMC entry gear" : mode.Equipment;
         RefreshTdmRules();
@@ -224,9 +246,13 @@ internal sealed class ArenaModeSelectionView
     {
         if (_selection == null || _tdmRules == null) return;
         _tdmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
-        foreach (var fact in _factObjects) fact.SetActive(!_tdmRules.Visible);
+        _dmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
+        foreach (var fact in _factObjects) fact.SetActive(!_tdmRules.Visible && !_dmRules.Visible);
+        _dmRulesView.Refresh();
         _tdmRulesView.Refresh();
     }
+
+    private float PanelHeight => ArenaModeCatalog.ModePanelHeight(_selection?.SelectedMode);
 
     private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top)
     {

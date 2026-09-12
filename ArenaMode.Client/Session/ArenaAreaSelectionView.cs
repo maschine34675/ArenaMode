@@ -1,4 +1,5 @@
 using Comfort.Common;
+using ArenaMode.Modes;
 using EFT.UI;
 using System;
 using System.Collections.Generic;
@@ -44,6 +45,7 @@ internal sealed class ArenaAreaSelectionView
     private Func<string, int, bool> _onTeamSizeSelected;
     private bool _dispatching, _layoutTactical;
     private int _layoutRows = -1, _layoutSizes = -1;
+    private float _layoutTop = -1f;
 
     internal GameObject Root => _root;
 
@@ -285,15 +287,18 @@ internal sealed class ArenaAreaSelectionView
 
     private void UpdateLayout(bool tacticalOnly)
     {
-        if (_layoutRows == _rows.Count && _layoutSizes == _sizeRows.Count && _layoutTactical == tacticalOnly) return;
+        float top = ArenaModeCatalog.ModePanelTop + ArenaModeCatalog.ModePanelHeight(
+            tacticalOnly ? ArenaModeCatalog.TacticalId : _state?.ModeId) + 12f;
+        if (_layoutRows == _rows.Count && _layoutSizes == _sizeRows.Count && _layoutTactical == tacticalOnly && _layoutTop == top) return;
+        _layoutTop = top;
         _layoutRows = _rows.Count;
         _layoutTactical = tacticalOnly;
         _layoutSizes = _sizeRows.Count;
         float summaryTop = _rows.Count == 0 ? RowTop : RowTop + _rows.Count * RowStride + 6f + (_sizeRows.Count == 0 ? 0f : 34f);
         float height = _rows.Count == 0 ? 100f : summaryTop + 48f;
-        // Mode panel ends at 656/692; keep its 12px gap. Three Customs rows
-        // plus size buttons end at Y=882, above the native bottom controls.
-        SetRect((RectTransform)_root.transform, 56f, tacticalOnly ? 704f : 668f, PanelWidth, height);
+        // Share the actual selected mode's footprint. Deathmatch has four
+        // rules rows; a same-area mode change must invalidate this position.
+        SetRect((RectTransform)_root.transform, 56f, top, PanelWidth, height);
         SetRect(_summary.rectTransform, Inset, summaryTop, PanelWidth - 2f * Inset,
             _rows.Count == 0 ? 40f : 22f);
         _summary.enableWordWrapping = _rows.Count == 0;

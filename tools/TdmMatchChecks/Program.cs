@@ -89,7 +89,7 @@ Action<LocalGame, GameWorld, TeamDeathmatchMode>[] exclusions = [
     (g,w,m) => Singleton<AbstractGame>.Instance = new LocalGame(),
     (g,w,m) => Singleton<GameWorld>.Instance = new GameWorld(),
     (g,w,m) => ArenaSession.Exact = false,
-    (g,w,m) => ArenaMatchService.Current.Mode = new object(),
+    (g,w,m) => ArenaMatchService.Current.Mode = new OtherMode(),
     (g,w,m) => m.ResultOwnsCurrentRaid = false,
     (g,w,m) => g.ProfileId = "other",
     (g,w,m) => g.Owner = null,

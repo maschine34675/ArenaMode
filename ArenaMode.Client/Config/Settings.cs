@@ -104,6 +104,10 @@ public static class Settings
     public static ConfigEntry<float> MedicalUseSpeed { get; private set; }
     public static ConfigEntry<float> BleedingDamageMultiplier { get; private set; }
     public static ConfigEntry<float> MagazineHandlingSpeed { get; private set; }
+    public static ConfigEntry<int> DeathmatchRounds { get; private set; }
+    public static ConfigEntry<int> DeathmatchKills { get; private set; }
+    public static ConfigEntry<int> DeathmatchSeconds { get; private set; }
+    public static ConfigEntry<bool> DeathmatchFreeForAll { get; private set; }
     public static ConfigEntry<int> RoundKillTarget { get; private set; }
     public static ConfigEntry<int> RoundTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> RoundIntermissionSeconds { get; private set; }
@@ -196,6 +200,28 @@ public static class Settings
 
         SettingsSync.Report();
         Plugin.ModLogger?.LogInfo($"Arena mode selected in map screen: {normalized}.");
+        return true;
+    }
+
+    internal static DeathmatchOptions FreezeDeathmatchRules()
+        => new DeathmatchOptions(DeathmatchRounds.Value, DeathmatchKills.Value, DeathmatchSeconds.Value,
+            DeathmatchFreeForAll.Value, RoundIntermissionSeconds.Value, RoundRespawn.Value);
+
+    internal static bool TrySelectDeathmatchRule(int row, int value)
+    {
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
+        var rounds = row == 0 ? value : DeathmatchRounds.Value;
+        var kills = row == 1 ? value : DeathmatchKills.Value;
+        var seconds = row == 2 ? value : DeathmatchSeconds.Value;
+        if (rounds < 0 || rounds > 100 || kills < 0 || kills > 1000 || seconds < 0 || seconds > 7200
+            || (rounds > 0 && kills == 0 && seconds == 0) || row < 0 || row > 3
+            || (row == 3 && value != 0 && value != 1)) return false;
+        if (row == 0) DeathmatchRounds.Value = value;
+        else if (row == 1) DeathmatchKills.Value = value;
+        else if (row == 2) DeathmatchSeconds.Value = value;
+        else DeathmatchFreeForAll.Value = value == 0;
+        if (File?.SaveOnConfigSet == false) File.Save();
+        SettingsSync.Report();
         return true;
     }
 
@@ -733,15 +759,15 @@ public static class Settings
         GameMode = config.Bind(
             "Match",
             "GameMode",
-            ArenaModeCatalog.EndlessId,
+            ArenaModeCatalog.DeathmatchId,
             new ConfigDescription(
                 "Arena game mode selected on the native map screen or in F12. " +
-                "endless: a pure counter. " +
-                "rounds: kill target or time limit with a scoreboard between rounds. " +
+                "deathmatch: individual kills with optional finite or endless rounds. " +
                 "gungame: climb a ladder of weapons, one rung per kill. " +
                 "tactical: buy a loadout, fight one squad, and sit the round out if you fall. " +
                 "teamdeathmatch: equal USEC and BEAR teams with instant respawns and Arena kits.",
                 new AcceptableValueList<string>(
+                    ArenaModeCatalog.DeathmatchId,
                     ArenaModeCatalog.EndlessId,
                     ArenaModeCatalog.RoundsId,
                     ArenaModeCatalog.GunGameId,
@@ -794,7 +820,7 @@ public static class Settings
             "RoundKillTarget",
             20,
             new ConfigDescription(
-                "Rounds mode: kills that end a round (0 = time limit only).",
+                "Legacy migration only. Current rules use Deathmatch / KillLimit.",
                 new AcceptableValueRange<int>(0, 200)));
 
         RoundTimeLimitSeconds = config.Bind(
@@ -802,7 +828,7 @@ public static class Settings
             "RoundTimeLimitSeconds",
             300,
             new ConfigDescription(
-                "Rounds mode: seconds that end a round (0 = kill target only).",
+                "Legacy migration only. Current rules use Deathmatch / TimeLimitSeconds.",
                 new AcceptableValueRange<int>(0, 1800)));
 
         RoundIntermissionSeconds = config.Bind(
@@ -810,7 +836,7 @@ public static class Settings
             "RoundIntermissionSeconds",
             15,
             new ConfigDescription(
-                "Rounds mode: scoreboard time between rounds.",
+                "Deathmatch: scoreboard time between rounds (frozen before loading).",
                 new AcceptableValueRange<int>(3, 60)));
 
         RoundRespawn = config.Bind(
@@ -819,6 +845,30 @@ public static class Settings
             true,
             "Respawn with a fresh kit when a round ends, at a spawn point away " +
             "from the fight. Off: keep standing where the round ended, healed up.");
+
+        DeathmatchRounds = config.Bind("Deathmatch", "Rounds", 0,
+            new ConfigDescription("Rounds per match (0 = endless). Finite rounds require a kill or time limit. Frozen before loading.",
+                new AcceptableValueRange<int>(0, 100)));
+        DeathmatchKills = config.Bind("Deathmatch", "KillLimit", 0,
+            new ConfigDescription("Kills per round (0 = off). FFA: first individual at the limit. All vs player: your kills. Frozen before loading.",
+                new AcceptableValueRange<int>(0, 1000)));
+        DeathmatchSeconds = config.Bind("Deathmatch", "TimeLimitSeconds", 0,
+            new ConfigDescription("Seconds per round (0 = off). Both limits off means continuous play. Frozen before loading.",
+                new AcceptableValueRange<int>(0, 7200)));
+        DeathmatchFreeForAll = config.Bind("Deathmatch", "FreeForAll", true,
+            "True: every individual fights everyone. False: all bots fight only the player. Frozen with server acknowledgement before loading.");
+        var migrated = config.Bind("Deathmatch", "LegacyRulesMigrated", false,
+            "Internal one-time migration from Endless/Rounds; leave enabled.");
+        if (!migrated.Value)
+        {
+            if (string.Equals(GameMode.Value, ArenaModeCatalog.RoundsId, StringComparison.OrdinalIgnoreCase))
+            {
+                DeathmatchKills.Value = RoundKillTarget.Value;
+                DeathmatchSeconds.Value = RoundTimeLimitSeconds.Value;
+            }
+            GameMode.Value = ArenaModeCatalog.NormalizeId(GameMode.Value);
+            migrated.Value = true;
+        }
 
         GunGameLadder = config.Bind(
             "Gun Game",

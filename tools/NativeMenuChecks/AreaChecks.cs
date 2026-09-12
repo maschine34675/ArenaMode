@@ -34,7 +34,7 @@ internal static partial class Program
         {
             if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
             var sent = JObject.Parse(body);
-            return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["areaId"] = sent["areaId"] }.ToString();
+            return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["areaId"] = sent["areaId"], ["deathmatchHostility"] = sent["deathmatchHostility"] }.ToString();
         };
     }
 

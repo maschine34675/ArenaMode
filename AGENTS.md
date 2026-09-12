@@ -4,7 +4,16 @@ A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-s
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version
 PitFireTeam 0.10.0 compatibility path supports protected Tactical 5v5 matches.
-Five modes: Endless Deathmatch, Rounds, Gun Game, Tactical, Team Deathmatch.
+Four modes: Deathmatch, Gun Game, Tactical, Team Deathmatch. Deathmatch merges
+legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
+optional finite/unlimited scoring rounds. See DEATHMATCH-MENU-REVIEW.md and
+DEATHMATCH-MODE-REVIEW.md before changing score admission or terminal death holds.
+Deathmatch FFA group/relationship hooks also operate during a confirmed arm on
+its matching loading map, since native preactivation fixes group membership.
+They never apply to an ordinary/unarmed map; server rejection after that seam
+shares the documented preload exception's limits. Individual native groups must
+remain registered and must be retired only after membership ended (not merely
+AfterCreation, which is still PreActive). See DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
 Independent TDM also has a ready/countdown/live/result lifecycle and client-owned
@@ -103,13 +112,12 @@ test above was verified that way — reintroduce the comma and three tests go re
 2. **Normal raids must be bit-identical.** Every patch starts with an
    `ArenaSession.IsActive` gate and fails open to vanilla. A setting that leaks into a
    non-arena raid is a bug even if it is harmless.
-   One patch bends this, argued here rather than only at the code:
+   Loading-time exceptions are documented here and at their call sites:
    `ArenaProfilePreloadPatch` runs inside the loading screen, where `IsActive`
    cannot yet be latched, so it gates on ARMED + the map being loaded instead.
    If the server then refuses the arm token, that raid runs ordinary with an
    emptied bot-profile pool — not broken (a pool miss fetches three more) but
-   not vanilla either. It is one of two things in the mod that can act on a
-   raid which does not become an arena raid. The other is the loading-screen
+   not vanilla either. The loading-screen
    kit preload (`KitBundlePreloader.BeginRaidStart`, started from the armed
    `LocalRaidStarted` continuation) together with the optic guard it engages
    (`KitOpticPreloadGuard`, whose loading-screen requests stay current from
@@ -117,7 +125,9 @@ test above was verified that way — reintroduce the comma and three tests go re
    between): both build prefab pools for the coming kit inside the raid's own
    pools, and the guard touches nothing but the role models of those pools. A
    raid that then runs ordinary carries a few unused pools that die with it,
-   and the guard covers their building to the end.
+   and the guard covers their building to the end. The Deathmatch group and
+   relationship hooks described above likewise require a confirmed matching-map
+   arm before activation; they must settle initial membership during loading.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with

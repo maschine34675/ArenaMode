@@ -13,6 +13,7 @@
     <ScoreboardSource Condition="'$(ScoreboardSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\ArenaScoreboard.cs</ScoreboardSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaMatchResult.cs" Link="Production/ArenaMatchResult.cs" />
     <Compile Include="$(GiveUpSource)" Link="Production/ArenaGiveUp.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
     <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />

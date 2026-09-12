@@ -109,6 +109,8 @@ namespace ArenaMode.Config
             if (area != TeamDeathmatchArea.Value) { AreaChanges++; TeamDeathmatchArea.Value = area; }
             return true;
         }
+        public static bool FreeForAll = true;
+        public static ArenaMode.Modes.DeathmatchOptions FreezeDeathmatchRules() => new(0, 0, 0, FreeForAll, 15, true);
         public static string SelectedGameModeId
             => ArenaMode.Modes.ArenaModeCatalog.NormalizeId(GameMode.Value);
         public static string Allowlist = ArenaMode.Shared.ArenaMapCatalog.DefaultClientAllowlist;
@@ -125,7 +127,7 @@ namespace ArenaMode.Audio
     }
 }
 namespace ArenaMode.Shared { public class ClientSettingsSchema { } }
-namespace ArenaMode.Kits { public static class KitCatalog { public static void Preload() { } } }
+namespace ArenaMode.Kits { public static class KitBundlePreloader { public static void DiscardRaidStart(string reason) { } public static void BeginRaidStart() { } } public static class KitCatalog { public static void Preload() { } } }
 namespace ArenaMode.Session
 {
     public static class ArenaClientConfig
@@ -138,10 +140,12 @@ namespace ArenaMode.Session
     {
         public static bool ArmedForNextRaid;
         public static string ArmedMode;
-        public static void MarkArmed(string map, string mode)
+        public static ArenaMode.Modes.DeathmatchOptions FrozenDeathmatch;
+        public static void MarkArmed(string map, string mode, ArenaMode.Modes.DeathmatchOptions deathmatch = null)
         {
             ArmedForNextRaid = true;
             ArmedMode = mode;
+            FrozenDeathmatch = deathmatch;
         }
         public static void ClearArmed(string reason)
         {

@@ -39,9 +39,9 @@ internal static class Program
 
     private static void CatalogContract()
     {
-        var expected = new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch" };
+        var expected = new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" };
         Assert(ArenaModeCatalog.All.Select(mode => mode.Id).SequenceEqual(expected),
-            "the picker exposes the five stable registry ids in the intended order");
+            "the picker exposes the four stable registry ids in the intended order");
         Assert(ArenaModeCatalog.All.All(mode => !string.IsNullOrWhiteSpace(mode.Label)
                                                && !string.IsNullOrWhiteSpace(mode.Description)),
             "every selectable mode has a label and description");
@@ -57,7 +57,7 @@ internal static class Program
         }
 
         foreach (var invalid in new[] { null, "", " ", "unknown" })
-            Assert(ArenaModeCatalog.NormalizeId(invalid) == ArenaModeCatalog.EndlessId,
+            Assert(ArenaModeCatalog.NormalizeId(invalid) == ArenaModeCatalog.DeathmatchId,
                 "invalid stored modes fall back to Endless");
 
         Assert(ArenaModeCatalog.ResolveSelection("gungame", tacticalOnly: true)
@@ -71,7 +71,7 @@ internal static class Program
     private static void ProtectedTeamSelection()
     {
         var writes = new List<string>();
-        var state = new ArenaModeSelectionState("endless", tacticalOnly: true,
+        var state = new ArenaModeSelectionState("deathmatch", tacticalOnly: true,
             mode => { writes.Add(mode); return true; });
         Assert(state.TacticalOnly && writes.Count == 0,
             "constructing a protected-team state does not write settings");
@@ -118,10 +118,10 @@ internal static class Program
             var state = new ArenaModeSelectionState(invalid, false,
                 mode => { writes.Add(mode); return true; });
             Assert(writes.Count == 0, "constructing an invalid selection does not perform its repair");
-            AssertSelection(state, "endless");
+            AssertSelection(state, "deathmatch");
             state.CommitInitialSelection();
             state.CommitInitialSelection();
-            Assert(writes.SequenceEqual(new[] { "endless" }),
+            Assert(writes.SequenceEqual(new[] { "deathmatch" }),
                 "invalid solo selection is repaired once by an explicit initial commit");
         }
 
@@ -134,19 +134,19 @@ internal static class Program
         var replacedWrites = new List<string>();
         var replaced = new ArenaModeSelectionState("unknown", false,
             mode => { replacedWrites.Add(mode); return true; });
-        Assert(replaced.TrySelectIndex(IndexOf("rounds")),
+        Assert(replaced.TrySelectIndex(IndexOf("gungame")),
             "a user may replace a pending fallback before initial commit");
         replaced.CommitInitialSelection();
-        Assert(replacedWrites.SequenceEqual(new[] { "rounds" }),
+        Assert(replacedWrites.SequenceEqual(new[] { "gungame" }),
             "initial commit cannot overwrite a newer accepted choice with the stale fallback");
-        AssertSelection(replaced, "rounds");
+        AssertSelection(replaced, "gungame");
     }
 
     private static void SoloSelectionAndBounds()
     {
         var writes = new List<string>();
         ArenaModeSelectionState state = null;
-        var previouslySelected = "rounds";
+        var previouslySelected = "deathmatch";
         state = new ArenaModeSelectionState(previouslySelected, false, mode =>
         {
             AssertSelection(state, previouslySelected);
@@ -184,24 +184,24 @@ internal static class Program
     {
         var writes = 0;
         var allowWrite = false;
-        var state = new ArenaModeSelectionState("rounds", false,
+        var state = new ArenaModeSelectionState("deathmatch", false,
             mode => { writes++; return allowWrite; });
         Assert(!state.TrySelectIndex(IndexOf("gungame")) && writes == 1,
             "a rejected selection is reported as unsuccessful");
-        AssertSelection(state, "rounds");
+        AssertSelection(state, "deathmatch");
         allowWrite = true;
         Assert(state.TrySelectIndex(IndexOf("gungame")) && writes == 2,
             "a previously rejected selection can be retried successfully");
         AssertSelection(state, "gungame");
 
         var failure = new ApplicationException("intentional settings write failure");
-        var throwing = new ArenaModeSelectionState("rounds", false, mode => throw failure);
+        var throwing = new ArenaModeSelectionState("deathmatch", false, mode => throw failure);
         Assert(ReferenceEquals(Throws<ApplicationException>(
                 () => throwing.TrySelectIndex(IndexOf("teamdeathmatch")),
                 "a throwing writer must propagate its exception"), failure),
             "selection propagates the original writer exception");
-        AssertSelection(throwing, "rounds");
-        Assert(throwing.TrySelectIndex(IndexOf("rounds")),
+        AssertSelection(throwing, "deathmatch");
+        Assert(throwing.TrySelectIndex(IndexOf("deathmatch")),
             "retaining the selected mode does not call even a throwing writer");
 
         var repairWrites = 0;
@@ -218,7 +218,7 @@ internal static class Program
 
         var throwRepair = true;
         var exceptionWrites = 0;
-        var throwingRepair = new ArenaModeSelectionState("endless", true, mode =>
+        var throwingRepair = new ArenaModeSelectionState("deathmatch", true, mode =>
         {
             exceptionWrites++;
             if (throwRepair) throw failure;

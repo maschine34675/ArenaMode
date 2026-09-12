@@ -111,6 +111,9 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // not make the client create a different mode than the protected
             // location clone the server just armed.
             var requestedMode = Settings.SelectedGameModeId;
+            var deathmatch = requestedMode == ArenaModeCatalog.DeathmatchId ? Settings.FreezeDeathmatchRules() : null;
+            var hostility = deathmatch == null ? null : (deathmatch.FreeForAll
+                ? Shared.DeathmatchSelection.FreeForAll : Shared.DeathmatchSelection.AllVsPlayer);
             var areaId = string.Equals(requestedMode, ArenaModeCatalog.TeamDeathmatchId, StringComparison.Ordinal)
                 ? Shared.ArenaAreaCatalog.NormalizeId(Settings.TeamDeathmatchArea.Value)
                 : Shared.ArenaAreaCatalog.FullMapId;
@@ -140,14 +143,14 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // CompatibilityTeamArenaActive queries PitFireTeamCompat.TeamArenaActive;
             // at this point it reflects the roster frozen just above.
             if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode,
-                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize))
+                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize, hostility))
                 throw new InvalidOperationException("The server did not arm Arena profile protection.");
 
             if (!ArenaServerClient.BindNativeStartIdentity(settings))
                 throw new InvalidOperationException(
                     "Arena could not bind the native local-start request to its exact arm token.");
 
-            ArenaSession.MarkArmed(settings.location, requestedMode);
+            ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch);
             Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);
 
             // Fetch catalog now (loading screen) instead of inside a gameplay frame.
