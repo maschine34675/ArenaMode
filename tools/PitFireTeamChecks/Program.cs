@@ -27,6 +27,7 @@ internal static class Program
             CheckServerNegotiationPolicy();
             CheckRespawnEpochRacePolicy();
             CheckTeamOpponentActivationPolicy();
+            CheckFrozenArmContract();
             CheckSourceContract();
             CheckInstalledRuntimeContract();
             Console.WriteLine($"PITFIRETEAM_COMPAT_CHECKS_PASSED ({_assertions} assertions)");
@@ -129,7 +130,7 @@ internal static class Program
                && incompatibleTeam.Reason.Contains("layout", StringComparison.OrdinalIgnoreCase),
             "unsupported contract rejection explains both pinned version and runtime layout");
 
-        foreach (var mode in new[] { "endless", "rounds", "gungame", "tactical" })
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical" })
         {
             AssertSolo(Evaluate(PitFireTeamContractState.Compatible, mode: mode),
                 $"solo Arena mode '{mode}' remains eligible");
@@ -309,7 +310,7 @@ internal static class Program
 
     private static void CheckTacticalOnlyPolicy()
     {
-        foreach (var mode in new[] { "endless", "rounds", "gungame", "", null })
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "", null })
         {
             AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
                     native: Native(Four), selected: Four, mode: mode),
@@ -319,7 +320,7 @@ internal static class Program
 
     private static void CheckPendingModeSelectionPolicy()
     {
-        foreach (var mode in new[] { "endless", "rounds", "gungame", "", null })
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "", null })
         {
             var decision = Evaluate(PitFireTeamContractState.Compatible,
                 native: Native(Four), selected: Four, mode: mode,
@@ -367,14 +368,17 @@ internal static class Program
                 incompatibilityReason: null) == null,
             "team Tactical mode comparison is case-insensitive");
 
-        var wrongMode = PitFireTeamRaidStartPolicy.GetRejectionReason(
-            pitFireTeamTeamRequested: true,
-            arenaMode: "endless",
-            persistenceProtectionReady: true,
-            incompatibilityReason: null);
-        Assert(!string.IsNullOrWhiteSpace(wrongMode)
-               && wrongMode.Contains("Tactical", StringComparison.Ordinal),
-            "server rejects a protected team flag outside Tactical mode");
+        foreach (var nonTacticalMode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame" })
+        {
+            var wrongMode = PitFireTeamRaidStartPolicy.GetRejectionReason(
+                pitFireTeamTeamRequested: true,
+                arenaMode: nonTacticalMode,
+                persistenceProtectionReady: true,
+                incompatibilityReason: null);
+            Assert(!string.IsNullOrWhiteSpace(wrongMode)
+                   && wrongMode.Contains("Tactical", StringComparison.Ordinal),
+                $"server rejects a protected team flag outside Tactical mode: {nonTacticalMode}");
+        }
 
         const string contractFailure = "simulated incomplete Pit persistence contract";
         Assert(PitFireTeamRaidStartPolicy.GetRejectionReason(
@@ -389,6 +393,27 @@ internal static class Program
                 persistenceProtectionReady: false,
                 incompatibilityReason: " ")),
             "server fails closed with a fallback reason when readiness is false");
+    }
+
+    private static bool HasFrozenArmCall(string source)
+        => Regex.Matches(source, @"ArenaSession\.MarkArmed\s*\(").Count == 1
+           && Regex.Matches(source,
+            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*\)").Count == 1;
+
+    private static void CheckFrozenArmContract()
+    {
+        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch );"),
+            "frozen mode and Deathmatch rules are required independent of formatting");
+        foreach (string call in new[]
+                 {
+                     "ArenaSession.MarkArmed(settings.location, requestedMode)",
+                     "ArenaSession.MarkArmed(settings.location, Settings.SelectedGameModeId, deathmatch)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, null)",
+                     "ArenaSession.MarkArmed(otherLocation, requestedMode, deathmatch)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch); ArenaSession.MarkArmed(settings.location, requestedMode, null)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch); ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch)"
+                 })
+            Assert(!HasFrozenArmCall(call), "missing, mutable, foreign or duplicate arm contract is rejected: " + call);
     }
 
     private static void CheckSourceContract()
@@ -569,7 +594,7 @@ internal static class Program
                 @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)\s*\{[\s\S]{0,600}\}\s*else\s+if\s*\([^\)]*LocalGame\s+game\s*\)\s*\{[\s\S]{0,300}LiveKitRespawn\.AtRaidStart\s*\(\s*game\s*\)"),
             "team Arena bypasses initial player-body replacement while solo keeps it");
         Assert(localStart.Contains("var requestedMode = Settings.SelectedGameModeId", StringComparison.Ordinal)
-               && localStart.Contains("ArenaSession.MarkArmed(settings.location, requestedMode)", StringComparison.Ordinal)
+               && HasFrozenArmCall(localStart)
                && session.Contains("ActiveMode = armedMode", StringComparison.Ordinal)
                && matchService.Contains("PitFireTeamCompat.TeamArenaActive", StringComparison.Ordinal)
                && matchService.Contains("modeId = \"tactical\"", StringComparison.Ordinal)

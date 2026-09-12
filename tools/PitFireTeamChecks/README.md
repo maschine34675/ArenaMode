@@ -25,3 +25,19 @@ Success prints `PITFIRETEAM_COMPAT_CHECKS_PASSED`. These checks do not start EFT
 PitFireTeam/Unity code and cannot prove Unity screen layout, AI command handling, spawn
 completion, hostility, audible output, or profile neutrality in a live raid. Those remain
 manual checks.
+
+## Current mode-freeze contract (2026-09-12)
+
+The old two-argument MarkArmed source expectation stopped this harness after
+98 assertions. Unified Deathmatch also freezes its selected rules, so the
+contract now requires exactly one call passing location, requestedMode and
+deathmatch. Whitespace does not matter; omitted rules, mutable mode, foreign
+location and duplicate/mixed calls are rejected by direct predicate controls.
+This is a lexical integration check, not execution of Unity's loading pipeline.
+
+The unchanged production policies now also run canonical `deathmatch` and
+`teamdeathmatch` through solo, Tactical-only, pending selection and server gates;
+legacy `endless`/`rounds` cases remain. Authenticated teams are allowed before
+mode selection, but final non-Tactical team arming must still be rejected.
+Final root run: **248 assertions**, including installed optional PFT metadata
+checks. No production or installed file changes are required for this correction.
