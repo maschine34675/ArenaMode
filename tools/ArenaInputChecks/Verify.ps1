@@ -20,7 +20,11 @@ $arenaMutants = @(
  @{Name='ReopenOldSample'; Anchor='Owners.Add(owner) && _drain'; Change='Owners.Add(owner) && false'; Failure='reopen invalidates a previously ready batch even without UI close flag'},
  @{Name='UnknownClose'; Anchor='Owners.Remove(owner) && drainOnRelease'; Change='(Owners.Remove(owner) || true) && drainOnRelease'; Failure='unknown repeated and null releases cannot latch input'},
  @{Name='LostCleanup'; Anchor='finally { ResetScope(); }'; Change='finally { }'; Failure="reinstall cannot inherit a failed cleanup's old close"},
- @{Name='LiveDisabledHook'; Anchor='if (!_ready || !SyncScope() || (Owners.Count == 0 && !_drain))'; Change='if (!SyncScope() || (Owners.Count == 0 && !_drain))'; Failure='remaining detour after failed unpatch is harmless'}
+ @{Name='LiveDisabledHook'; Anchor='if (!_ready || !SyncScope() || (Owners.Count == 0 && !_drain))'; Change='if (!SyncScope() || (Owners.Count == 0 && !_drain))'; Failure='remaining detour after failed unpatch is harmless'},
+ @{Name='NoNativeDrain'; Anchor='|| __0 || !NativeMenuIgnored()'; Change='|| true'; Failure='native resume starts drain before clearing native gate'},
+ @{Name='RepeatedNativeRelease'; Anchor='|| !NativeMenuIgnored()'; Change=''; Failure='repeated native false cannot relatch input'},
+ @{Name='ForeignNativeBody'; Anchor='ReferenceEquals(player, _world?.MainPlayer)'; Change='true'; Failure="old native player cannot latch replacement body's input"},
+ @{Name='BlockNativeNavigation'; Anchor='(Owners.Count == 0 && !_drain)) return;'; Change='(Owners.Count == 0 && !_drain && !NativeMenuIgnored())) return;'; Failure='native menu retains its own command navigation'}
 )
 foreach ($arenaMutant in $arenaMutants) {
  if ([regex]::Matches($arenaText,[regex]::Escape($arenaMutant.Anchor)).Count -ne 1) { throw ('Fault anchor ambiguous: '+$arenaMutant.Name) }

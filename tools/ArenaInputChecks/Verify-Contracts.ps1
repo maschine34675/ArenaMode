@@ -22,6 +22,10 @@ try {
  RequireField $arenaManager '_axesList' 'System.Single[]' $false
  RequireField $arenaManager '_currentPreset' 'EFT.InputSystem.InputPreset' $true
  RequireField $arenaPreset '_workingKeyCombinations' 'EFT.InputSystem.InputCombination[]' $false
+ $arenaOwner=$arenaAssembly.MainModule.GetType('EFT.GamePlayerOwner')
+ RequireField $arenaOwner 'bool_0' 'System.Boolean' $true
+ $arenaIgnore=@($arenaOwner.Methods | Where-Object { $_.Name -eq 'SetIgnoreInput' -and $_.IsStatic -and $_.ReturnType.FullName -eq 'System.Void' -and ($_.Parameters.ParameterType.FullName -join '|') -eq 'System.Boolean' })
+ if($arenaIgnore.Count -ne 1 -or (($arenaIgnore[0].Body.Instructions.OpCode.Name) -join ',') -ne 'ldarg.0,stsfld,ret' -or $arenaIgnore[0].Body.Instructions[1].Operand.Name -ne 'bool_0') { throw 'Native UI ignore gate changed' }
  $arenaUpdate=RequireMethod $arenaManager 'Update' ''
  $null=RequireMethod $arenaManager 'OnDestroy' ''
  $null=RequireMethod $arenaManager 'FixedUpdate' ''

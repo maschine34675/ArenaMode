@@ -13,6 +13,12 @@ var update=typeof(InputManager).GetMethod("Update");
 var collect=typeof(InputPreset).GetMethod("UpdateInput");
 var dispatch=typeof(InputManager).GetMethod("DispatchInput");
 var destroy=typeof(InputManager).GetMethod("OnDestroy");
+var nativeIgnore=typeof(GamePlayerOwner).GetMethod("SetIgnoreInput");
+void NativeIgnore(bool ignore)
+{
+    Harmony.Hooks[nativeIgnore].Prefix.Method.Invoke(null,[ignore]);
+    GamePlayerOwner.SetIgnoreInput(ignore);
+}
 void BeforeUpdate(InputManager m)=>Harmony.Hooks[update].Prefix.Method.Invoke(null,[m]);
 void AfterCollect(InputPreset p,List<ECommand> commands,float[] axes)
     =>Harmony.Hooks[collect].Postfix.Method.Invoke(null,[p,commands,axes]);
@@ -22,6 +28,8 @@ InputManager Setup(bool active=true)
     ArenaSession.Active=active;
     ArenaSession.Game=Singleton<AbstractGame>.Instance=new();
     ArenaSession.World=Singleton<GameWorld>.Instance=new();
+    ArenaSession.World.MainPlayer=GamePlayerOwner.MyPlayer=new();
+    GamePlayerOwner.bool_0=false;
     InputManager._currentPreset=new(); Input.Held=new bool[3]; Input.Down=new bool[3];
     ArenaInputBlocker.Apply();
     var m=new InputManager(); BeforeUpdate(m); return m;
@@ -153,7 +161,7 @@ foreach(string change in new[]{"inactive","world","game"})
 m=Setup(); ArenaInputBlocker.Shutdown(); ArenaInputBlocker.Apply();
 ArenaInputBlocker.Request(a,true); UiClose(a); Collect(m); Deliver(m);
 Check(!ArenaInputBlocker.Blocked,"first manager observation resolves pending close");
-for(int fail=1;fail<=4;fail++)
+for(int fail=1;fail<=5;fail++)
 {
     ArenaInputBlocker.Shutdown(); Harmony.FailAt=fail; ArenaInputBlocker.Apply();
     Check(Harmony.Hooks.Count==0,"partial hook installation rolls back");
@@ -179,4 +187,35 @@ Harmony.FailAt=2; Harmony.FailUnpatch=true;
 ArenaInputBlocker.Apply();
 Check(!ArenaInputBlocker.Blocked,"partial installation with failed rollback does not throw or block");
 Harmony.FailUnpatch=false; ArenaInputBlocker.Shutdown();
+
+m=Setup(); NativeIgnore(true); Collect(m,ECommand.ReloadWeapon,ECommand.Escape);
+Check(ArenaInputBlocker.Blocked,"native menu also blocks optional movement actions");
+Check(Deliver(m).Commands.SequenceEqual(new[]{ECommand.ReloadWeapon,ECommand.Escape}),"native menu retains its own command navigation");
+NativeIgnore(true); Collect(m,ECommand.ReloadWeapon); result=Deliver(m);
+Check(result.Commands.Contains(ECommand.ReloadWeapon),"menu to settings to menu never drains true to true");
+Collect(m,ECommand.ToggleShooting); NativeIgnore(false);
+Check(ArenaInputBlocker.Blocked,"native resume starts drain before clearing native gate");
+result=Deliver(m);
+Check(!result.Commands.Contains(ECommand.ToggleShooting)&&ArenaInputBlocker.Blocked,"native resume filters pre-close batch");
+Input.Held[0]=true; Collect(m,ECommand.ToggleShooting); Deliver(m);
+Check(ArenaInputBlocker.Blocked,"held native Resume click stays protected");
+Input.Held[0]=false; Collect(m,ECommand.EndShooting); Deliver(m);
+Check(!ArenaInputBlocker.Blocked,"native resume quiet delivery releases");
+NativeIgnore(false); Check(!ArenaInputBlocker.Blocked,"repeated native false cannot relatch input");
+m=Setup(false); NativeIgnore(true); NativeIgnore(false);
+Check(!ArenaInputBlocker.Blocked,"ordinary menu resume untouched");
+m=Setup(); NativeIgnore(true); Singleton<GameWorld>.Instance.MainPlayer=new(); NativeIgnore(false);
+Check(!ArenaInputBlocker.Blocked,"old native player cannot latch replacement body's input");
+m=Setup(); NativeIgnore(true); ArenaInputBlocker.Request(a,true); NativeIgnore(false); Collect(m); Deliver(m);
+Check(ArenaInputBlocker.Blocked,"native resume preserves an Arena panel owner's vote");
+UiClose(a); Collect(m); Deliver(m); Check(!ArenaInputBlocker.Blocked,"overlapping native and Arena UI eventually release");
+m=Setup(); ArenaInputBlocker.Request(a,true); UiClose(a); Collect(m);
+NativeIgnore(true); Deliver(m,false,()=>NativeIgnore(false));
+Check(ArenaInputBlocker.Blocked,"native resume during delivery invalidates prior release generation");
+Deliver(m); Check(ArenaInputBlocker.Blocked,"reentrant native resume needs its own collection");
+Collect(m); Deliver(m); Check(!ArenaInputBlocker.Blocked,"reentrant native resume recovers");
+NativeIgnore(true); Harmony.FailUnpatch=true; ArenaInputBlocker.Shutdown(); NativeIgnore(false);
+Check(!ArenaInputBlocker.Blocked,"leftover native hook after failed cleanup is harmless");
+Harmony.FailUnpatch=false;
+ArenaInputBlocker.Shutdown();
 Console.WriteLine($"ARENA_INPUT_CHECKS_PASSED ({checks} assertions)");

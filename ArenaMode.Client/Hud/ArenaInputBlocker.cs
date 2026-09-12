@@ -25,7 +25,8 @@ namespace ArenaMode.Hud;
 internal static class ArenaInputBlocker
 {
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".inputblock");
-    private static FieldInfo _main, _commands, _axes, _currentPreset, _workingKeys;
+    private static FieldInfo _main, _commands, _axes, _currentPreset, _workingKeys, _nativeIgnore;
+    private static readonly object NativeMenuRelease = new();
     private static object _manager, _preset;
     private static IList _commandList;
     private static float[] _axisList;
@@ -37,7 +38,7 @@ internal static class ArenaInputBlocker
 
     internal static bool Blocked
     {
-        get { lock (Owners) return _ready && SyncScope() && (Owners.Count > 0 || _drain); }
+        get { lock (Owners) return _ready && SyncScope() && (Owners.Count > 0 || _drain || NativeMenuIgnored()); }
     }
 
     /// <summary>
@@ -115,6 +116,10 @@ internal static class ArenaInputBlocker
             var update = RequireVoid(type, "Update", Type.EmptyTypes);
             var destroy = RequireVoid(type, "OnDestroy", Type.EmptyTypes);
             var collect = RequireVoid(presetType, "UpdateInput", new[] { _commands.FieldType, typeof(float[]), typeof(float) });
+            _nativeIgnore = RequireField(typeof(GamePlayerOwner), "bool_0", typeof(bool), true);
+            var nativeIgnore = typeof(GamePlayerOwner).GetMethod("SetIgnoreInput", BindingFlags.Static | BindingFlags.Public,
+                null, new[] { typeof(bool) }, null);
+            if (nativeIgnore == null || nativeIgnore.ReturnType != typeof(void)) throw new MissingMethodException("GamePlayerOwner.SetIgnoreInput");
             BuildPassThrough(target);
             Patches.Patch(update, prefix: Hook(nameof(BeforeUpdate)));
             Patches.Patch(collect, postfix: Hook(nameof(AfterCollect)));
@@ -123,9 +128,11 @@ internal static class ArenaInputBlocker
                 target,
                 prefix: Hook(nameof(Prefix), Priority.Last),
                 postfix: Hook(nameof(AfterDispatch), Priority.Last));
+            Patches.Patch(nativeIgnore, prefix: Hook(nameof(BeforeNativeIgnore)));
             _ready = true;
 
             Plugin.ModLogger.LogInfo("Arena input blocker ready: panel close waits for released-pointer input delivery.");
+            Plugin.ModLogger.LogInfo("Arena input blocker: native menu resume release safeguard ready.");
         }
         catch (Exception ex)
         {
@@ -220,6 +227,31 @@ internal static class ArenaInputBlocker
         for (int i = 0; i < 3; i++)
             if (Input.GetMouseButton(i) || Input.GetMouseButtonDown(i)) return false;
         return true;
+    }
+
+    private static bool IsCurrentNativeOwner()
+    {
+        var player = GamePlayerOwner.MyPlayer;
+        return player != null && player.IsYourPlayer && !player.IsAI
+            && ReferenceEquals(player, _world?.MainPlayer);
+    }
+
+    private static bool NativeMenuIgnored()
+        => IsCurrentNativeOwner() && Equals(_nativeIgnore.GetValue(null), true);
+
+    private static void BeforeNativeIgnore(bool __0)
+    {
+        lock (Owners)
+        {
+            if (!_ready || !SyncScope() || __0 || !NativeMenuIgnored()) return;
+            // EFT screen environments and the native orphan-UI recovery both
+            // release this gate BEFORE gameplay consumes the next command.
+            // Do not intercept menu commands while it is open: native screens
+            // still own inventory, Escape, settings and keyboard navigation.
+            Request(NativeMenuRelease, true);
+            Request(NativeMenuRelease, false, drainOnRelease: true);
+            Trace("native menu released gameplay input; pointer drain pending");
+        }
     }
 
     private static void AfterCollect(object __instance, IList __0, float[] __1)

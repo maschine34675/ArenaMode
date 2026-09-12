@@ -1,6 +1,17 @@
 // Native objects and detour I/O only. Production owns every filtering/release decision.
 using System.Reflection;
-namespace EFT { public class AbstractGame { } public class GameWorld { } }
+namespace EFT
+{
+    public class AbstractGame { }
+    public class Player { public bool IsYourPlayer=true, IsAI; }
+    public class GameWorld { public Player MainPlayer; }
+    public class GamePlayerOwner
+    {
+        public static Player MyPlayer;
+        public static bool bool_0;
+        public static void SetIgnoreInput(bool ignore) { bool_0=ignore; }
+    }
+}
 namespace Comfort.Common { public static class Singleton<T> { public static T Instance; } }
 namespace ArenaMode.Session
 {
