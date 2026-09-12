@@ -1,0 +1,74 @@
+{
+  "title": "ArenaMode announcer trial - elevenlabs.io",
+  "source": "ansagen2.wav",
+  "sourceSha256": "B41440907BA52AFAAE4FA3D5434182FDCB8C9D1226987922A93629327225849A",
+  "generator": "ElevenLabs free plan (user supplied)",
+  "scope": "Non-commercial development/test recordings tracked at user request from 2026-09-12. No open license asserted; public distribution requires ElevenLabs attribution and compliance with applicable voice rights and terms.",
+  "licenseChecked": "2026-09-12",
+  "licenseSource": "https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform",
+  "encoder": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+  "processing": "Split in pauses; 5 ms fade-in and 10 ms fade-out at cut edges; Vorbis quality 5; original stereo/sample rate/gain retained; no normalization or pitch changes.",
+  "files": [
+    {
+      "spoken": "DOUBLE KILL",
+      "eventKey": "double_kill",
+      "file": "double_kill.ogg",
+      "startFrame": 0,
+      "endFrameExclusive": 64386,
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSeconds": 1.46,
+      "decodedPeak": 0.8009219169616699,
+      "sha256": "733354DE342C7C8780647A3E62C97A5577989EC58CA08C89CB85540AFCA1EAEE"
+    },
+    {
+      "spoken": "ULTRA KILL",
+      "eventKey": "multi_kill",
+      "file": "multi_kill.ogg",
+      "startFrame": 69237,
+      "endFrameExclusive": 138915,
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSeconds": 1.58,
+      "decodedPeak": 0.8998209834098816,
+      "sha256": "C5937DE3CED16BE41B13D9BECC2A6D00B400D911133264898D66CAE84584F870"
+    },
+    {
+      "spoken": "MONSTER KILL",
+      "eventKey": "monster_kill",
+      "file": "monster_kill.ogg",
+      "startFrame": 145971,
+      "endFrameExclusive": 223146,
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSeconds": 1.75,
+      "decodedPeak": 0.8731514811515808,
+      "sha256": "9B33F0C201BAC52C1B1911530D2EDA8F512BA694A07231C3AB6802C6BAFA0FFA"
+    },
+    {
+      "spoken": "UNSTOPPABLE",
+      "eventKey": "unstoppable",
+      "file": "unstoppable.ogg",
+      "startFrame": 229320,
+      "endFrameExclusive": 305172,
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSeconds": 1.72,
+      "decodedPeak": 0.8808018565177917,
+      "sha256": "4C9A52FD0EA97D4D78A433194E57C2F24E25BB2E92F340802BD5C6BEECF6DAD9"
+    },
+    {
+      "spoken": "GODLIKE",
+      "eventKey": "godlike",
+      "file": "godlike.ogg",
+      "startFrame": 309582,
+      "endFrameExclusive": 374648,
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSeconds": 1.475419501133787,
+      "decodedPeak": 0.9453261494636536,
+      "sha256": "8B991B170B26AA1B577509263CF83ECE6674489B403B176A21C5B8DD63F5DFDD"
+    }
+  ],
+  "attribution": "elevenlabs.io"
+}

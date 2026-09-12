@@ -1,9 +1,12 @@
-# Local announcer trial - elevenlabs.io
+# Development announcer recordings - elevenlabs.io
 
 2026-09-11: the user supplied `D:\SPT41\Development\ansagen2.wav`, generated
 with the free ElevenLabs plan, to audition five announcements in game.
-This is a local non-commercial trial, not a replacement for release assets.
-No open-content license is asserted for these recordings.
+On 2026-09-12 the user explicitly requested tracking all five OGGs in the repo
+after a normal build restored the old sounds. The five recordings now live in
+`ArenaMode.Client/Assets/ArenaMode/sounds/` and are copied by normal build/publish
+and deployment. Their scope remains non-commercial development/testing; no
+open-content license or commercial rights are asserted for these recordings.
 
 ## Cue mapping
 
@@ -44,37 +47,39 @@ Regenerate locally (Python 3 plus FFmpeg; verifies the original hash):
 python tools/AnnouncerChecks/split_local_trial.py 'D:\SPT41\Development\ansagen2.wav'
 ```
 
-Outputs and source/output hashes: `artifacts/local-announcer-trial/ansagen2/`.
-This directory is Git-ignored and is outside the project's packaged assets glob.
-Neither the original WAV nor generated OGGs are committed or shipped in releases.
-The intake script never installs files or modifies release assets.
+The splitter still writes its intermediate outputs and hashes to the ignored
+`artifacts/local-announcer-trial/ansagen2/` directory and never installs files.
+The five reviewed OGGs have now been copied unchanged into the tracked asset
+directory. `LOCAL-ANNOUNCER-SOURCES.json` beside `sounds/` records their source,
+output hashes and attribution. The original combined WAV remains outside Git.
+Future regeneration requires explicit review/copy of the new outputs and record.
 
 ## Installation and rollback
 
-Local delivery copies only these five OGGs into the installed `ArenaMode/sounds/`
-directory. `LOCAL-ANNOUNCER-TRIAL.md` and `LOCAL-ANNOUNCER-SOURCES.json` beside
-that directory identify these overrides; the standard `AUDIO-LICENSES.md` still
-documents the release set and does not license the five local overrides.
-Receipt and backups: `artifacts/local-announcer-trial/ansagen2/delivery/`.
+Normal builds now deploy all five recordings from the repo. The packaged
+`AUDIO-LICENSES.md`, `LOCAL-ANNOUNCER-TRIAL.md` and `LOCAL-ANNOUNCER-SOURCES.json`
+identify their origin and restrictions independently of TripleSnail/WARLORD.
+Initial local-only receipt/backups (2026-09-11):
+`artifacts/local-announcer-trial/ansagen2/delivery/`.
+Repo promotion/delivery evidence (2026-09-12): `artifacts/announcer-repo-promotion/`.
 
 **Restart the game** after installing or reverting. Unlike hitmarker WAVs, healthy
 announcer PCM stays cached across matches. No server restart or DLL swap needed.
 
-A normal client build copies the release assets and can restore the original
-double_kill, unstoppable and godlike files. It does not remove the extra
-multi_kill and monster_kill files. Reapply all five trial OGGs after a deploying
-build if continuing this audition. To return fully to the release set, restore
-the backed-up original files, remove trial-only files listed as absent-before in
-the receipt, and remove the two local-trial notices. Do not delete unrelated
-audio files or copy all files from a backup indiscriminately.
+The old need to reapply recordings after each build is resolved. To restore the
+earlier pack, restore the original double_kill, unstoppable and godlike OGGs
+from Git history/backups in both repo and installation, remove only the added
+multi_kill/monster_kill files in both locations, and update the attribution/source
+documents. A normal copy-based build does not delete files removed from source.
 
 ## Licensing boundary
 
 ElevenLabs' [official publishing guidance](https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform),
-checked 2026-09-11, limits free-plan generations to non-commercial use and
+checked 2026-09-12, limits free-plan generations to non-commercial use and
 requires attribution when publishing; its current guidance asks for
 `elevenlabs.io` or `11.ai` in the title. A later paid subscription does not
 retroactively grant commercial rights to these free-plan generations.
-Any later release needs a separate licensing/voice-rights decision. These
-local overrides must not be silently imported into the redistributable packs
-or described as covered by TripleSnail's/Warlord's Creative Commons licenses.
+Any later public release needs a separate licensing/voice-rights decision.
+These recordings are now included in build/publish output at the user's request;
+that does not grant commercial use or make them covered by TripleSnail's/Warlord's
+Creative Commons licenses. This change does not publish the mod or audio.

@@ -1,5 +1,10 @@
 # Announcer silence: diagnosis and recovery
 
+Current asset note (2026-09-12): this is the historical 2026-08-31 diagnosis.
+MULTI KILL (spoken ULTRA KILL), MONSTER KILL and UNSTOPPABLE now have recordings;
+five user-selected ElevenLabs effects are tracked with the current audio assets.
+See LOCAL-ANNOUNCER-TRIAL.md and packaged AUDIO-LICENSES.md for their scope.
+
 ## Observed behavior
 
 The user heard the supplied voice pack earlier, then reported silence while the

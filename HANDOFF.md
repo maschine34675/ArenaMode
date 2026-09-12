@@ -7,6 +7,28 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **ElevenLabs clips now persist across builds (2026-09-12):** the user explicitly
+  requested moving the five audition clips into the repo after deployment
+  restored three original voices. Copied the five reviewed OGGs unchanged into
+  `ArenaMode.Client/Assets/ArenaMode/sounds/`; DOUBLE KILL, MULTI KILL (spoken
+  ULTRA KILL), MONSTER KILL, UNSTOPPABLE and GODLIKE now come from that source.
+  Normal build/publish/deploy includes all five. Packaged attribution/source
+  hashes and the root/packaged LOCAL-ANNOUNCER-TRIAL.md now reflect repo inclusion;
+  previous local-only/exclusion/reapply notes below are historical. These are
+  ElevenLabs free-plan, non-commercial development recordings, not CC assets;
+  review voice rights/terms/attribution before public release. No publication
+  authorized. Existing hitmarker and other voices are unchanged.
+  Verified five source hashes, Vorbis/stereo/44.1 kHz metadata, attribution,
+  decoded signal and durations. Executed only the existing audio-copy MSBuild
+  target, first in isolation then live; all 30 packaged source assets matched
+  both destinations. No gameplay compilation or DLL delivery by this task.
+  Evidence/backups: `artifacts/announcer-repo-promotion/receipt.json`.
+  Twenty-five other installed files stayed unchanged. Client and server DLLs
+  changed during the window of concurrent work; receipt records both hashes and
+  write times rather than claiming unchanged binaries. They were not reverted.
+  Independent audio/source/deploy review passed. **Restart the game** to clear
+  announcer PCM caches. GPU mirror and in-game audibility remain unverified.
+
 - **Quick-slot ledger survives the protected 5v5 rebuild (2026-09-12):**
   pre-existing defect from an adversarial review. `AutoQuickSlots` remembered
   its own bindings as `Item` references and counted a key as player-cleared

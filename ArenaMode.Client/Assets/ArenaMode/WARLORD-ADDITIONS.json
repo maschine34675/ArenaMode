@@ -30,6 +30,7 @@
     },
     {
       "original": "06._unstoppable.wav",
+      "status": "Historical conversion, replaced on 2026-09-12; current sounds/unstoppable.ogg is documented in LOCAL-ANNOUNCER-SOURCES.json and is not CC BY-SA.",
       "sourceSha256": "F17096ECEABC41D429D1F3D879872CB87619F776E8585AC60834B0407D11D00C",
       "bundled": "sounds/unstoppable.ogg",
       "sha256": "59AA8B685B2726C606B4F3FEA5431E566AB3A1E54EC2E88FF242CEBDBC2523C8",
