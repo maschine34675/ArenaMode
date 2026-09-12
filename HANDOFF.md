@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Prepared refinements delivered locally (2026-09-12):** user authorized
+  deployment and r3 triage. The exact staged client below is now installed at
+  `D:\SPT41\BepInEx\plugins\maschine-ArenaMode.Client.dll`, SHA256
+  `3FFF60D7EA67B7CF40046421362F93BED3A87C984449F0C62B518026344F3FF6`.
+  Backup and receipt: `artifacts/refinements-delivery/31fea656258a464698bbc56bd350376d/`.
+  All 41 inventoried non-client files stayed byte-identical during delivery,
+  including the installed server, Redeploy, audio and current settings. Only
+  the game needs restarting; GPU mirror and live behavior are not verified here.
+  This supersedes the staged-only delivery status below, not its test limits.
+  Work continues on `fix/deathmatch-r3-exit`; r3 exceptions remain under triage.
+
 - **Four client refinements staged, not delivered (2026-09-12):** source branch
   `feature/arena-visibility-movement`; source/build commit
   `c151aa683a7bcb83eec8d0183f36fc19ab8ce18a`, clean tree at build. Feature commits:
