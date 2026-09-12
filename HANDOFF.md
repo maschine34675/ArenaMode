@@ -20,8 +20,12 @@ current. User-facing communication is normally German.
   2 skipped, 0 failed**; enabling existing database/APBS fixtures yielded
   **619/619 passed, no skips**. Full details and safe command:
   `OFFLINE-HARNESS-REPAIR-2026-09-12.md`. Installed files were not rebuilt or
-  deployed: **73 inventoried files unchanged**, including client/server,
-  Redeploy, settings and audio. Unit builds redirected SPTUserPath to a scratch
+  deployed: **73 files unchanged at the first receipt**; later the Arena cfg
+  differed, with a recorded modification time before the final unit run
+  (likely parallel GPU synchronization; local write time/author not captured),
+  while all other **72 original hashes still match**.
+  Current settings were preserved and this drift recorded, not rolled back.
+  Unit builds redirected SPTUserPath to a scratch
   destination; use this instead of bare dotnet test during bound GPU tests.
   No restart required. The r6/r4 preflight blockers below are still in force;
   these harness fixes do not rebind or pass those native acceptance jobs.

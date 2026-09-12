@@ -61,9 +61,20 @@ Evidence under ignored artifacts:
   `artifacts/apbs-compat/tests/4eea724a122248588dcbc86e43c9bb9f/`.
 - Give-up scratch copies remain under `tools/TeamGiveUpChecks/obj/giveup-regression-*`.
 
-All 73 inventoried installed files stayed identical, including Arena client/server,
-Redeploy Core/Client, current settings and packaged audio. The APBS verifier also
-checks its installed DLL/config and companion inventory. No DLL was deployed and
+All 73 inventoried installed files stayed identical through the first completed
+receipt at 21:24:42. During final re-verification, the installed Arena config had
+a recorded modification time of 21:26:42, earlier than the 21:28:48 unit run. All other 72 original
+hashes still match. Active Syncthing and advancing game logs are consistent with
+the parallel GPU session; the writing process itself was not captured. A sync
+tool can preserve remote timestamps, so this does not establish local write time. The test
+scripts do not write this config. It was left intact, not restored or silently
+excluded: the final check retains the original inventory, records this drift,
+and compares a fresh 73-file snapshot around the repeated test run. This is not
+a claim that settings stayed unchanged throughout the entire work session.
+The second full unit run also passed 619/619; its evidence is
+`artifacts/apbs-compat/tests/1c332cb97b384f39ba88bcfd0848064d/`.
+The APBS verifier additionally checks its installed DLL/config and companion
+inventory. No DLL was deployed and
 no restart is needed for these corrections. Existing r6/refinements r4 GPU
 preflight blockers remain unresolved: this test repair does not rebind those
 instructions or certify the newer Redeploy/client build in a raid.
