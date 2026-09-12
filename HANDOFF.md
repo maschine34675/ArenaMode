@@ -33,13 +33,20 @@ current. User-facing communication is normally German.
   mutant `kill-first-local-death` (`if (kill.LocalIsVictim) ReportLocalDeath();`
   now occurs twice in `ArenaMatch.cs`). Not GPU-verified: a refused live swap,
   the cooldown race, the fail-closed patch set and re-entrancy (design doc,
-  section 10, scenarios 8–11). Source/build commit `3a5123c70980a8074cf3c18d6c57dbac5385cc97`.
-  **Installed client SHA256 `546EB7656D702C9B63A96C3408F34E871E5445108B9D9F69804C337DE4D0999C`**, Core
+  section 10, scenarios 8–11). Source/build commit `f257a78` (follow-ups below).
+  **Installed client SHA256 `007382C6BB802C8A0D4288013D763E6BE508004E06C3430151FB51AD90B17C6B`**, Core
   `520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48`, Redeploy.Client `7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46`,
-  server `04533957CB2618F2AEE3241CEB1157BC0CCD81FF5278C7DC39CC72E05434799A` (rebuilt by `dotnet test` from the
-  same sources; only the ProductVersion commit changed). The r6/r4 GPU
+  server `5A9201177DC3E4404995EA314FE48A231712435D5E5EB9E1A081C67734D6C04E`
+  (rebuilt by the harnesses' `dotnet test` from unchanged sources; the server
+  hash drifts with every commit because ProductVersion embeds the commit). The r6/r4 GPU
   instructions were bound to client `2042C558…`; rebind them to this build (or
-  restore that client) before their evidence is comparable.
+  restore that client) before their evidence is comparable; `bc7f541` (Codex,
+  20:39) already records the r6/r4 preflight blockers. Adversarial review of
+  the three commits (3 reviewers, 2 refuters per finding): one medium and three
+  low findings, all addressed in `f59f367` (a mid-wire replacement is wired
+  before a bounded area aborts; `IsStillWired` requires a Started owner) and
+  `f257a78` (allocation-free damage feed; dead KitPolish stand-in removed).
+  BleedingCleanup and KitPolish Supplies re-run green on `f257a78`.
 
 - **Creator announcer pack delivered (2026-09-12):** User supplied the newly
   Creator-generated `alle_ansagen.ogg`; all **46 phrases** were split in the
