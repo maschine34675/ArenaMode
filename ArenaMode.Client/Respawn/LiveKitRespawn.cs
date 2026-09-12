@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Events;
 using ArenaMode.Kits;
 using EFT;
 using Redeploy.Core.Engine;
@@ -286,6 +287,7 @@ internal static class LiveKitRespawn
         }
 
         Plugin.ModLogger.LogInfo($"Arena {what} complete: {kit.Name}.");
+        ArenaEvents.RaiseKitApplied(kit);
         Report(onComplete, true);
     }
 

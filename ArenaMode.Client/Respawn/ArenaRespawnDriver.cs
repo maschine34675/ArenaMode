@@ -251,7 +251,19 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             + $"bundles {preloadedAt - kitPickedAt:0.00}s, "
             + $"pipeline {now - preloadedAt:0.00}s, total {now - startedAt:0.00}s.");
 
-        ArenaEvents.RaisePlayerRespawned(RespawnEngineState.LastRespawnedPlayer);
+        // Publish only the body the engine produced for THIS request, checked the way
+        // the protected path checks it: LastRespawnedPlayer is engine-global, and the
+        // mode framework must never see it stale or as a body the game no longer holds.
+        LocalPlayer respawned = RespawnEngineState.LastRespawnedPlayer;
+        if (respawned == null || !respawned.IsYourPlayer || !ReferenceEquals(game.LocalPlayer, respawned))
+        {
+            Plugin.ModLogger.LogWarning("Arena respawn finished without the exact new local-player body — no respawn event published.");
+            yield break;
+        }
+
+        if (kit != null)
+            ArenaEvents.RaiseKitApplied(kit);
+        ArenaEvents.RaisePlayerRespawned(respawned);
     }
 
     /// <summary>

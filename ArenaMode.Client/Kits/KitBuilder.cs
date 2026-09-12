@@ -1,4 +1,3 @@
-using ArenaMode.Events;
 using EFT;
 using EFT.InventoryLogic;
 using Newtonsoft.Json.Linq;
@@ -39,7 +38,6 @@ public static class KitBuilder
             requireCorpse);
 
         RegisterMagazinesAsChecked(profile);
-        ArenaEvents.RaiseKitApplied(kit);
     }
 
     /// <summary>All template ids in the kit that the item DB does not know (empty = kit is safe to build).</summary>

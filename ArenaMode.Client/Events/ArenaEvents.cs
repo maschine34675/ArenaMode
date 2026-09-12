@@ -17,7 +17,11 @@ public static class ArenaEvents
     /// <summary>Replacement player is fully wired up.</summary>
     public static event Action<Player> OnPlayerRespawned;
 
-    /// <summary>A kit was applied (raid start, respawn, or swap).</summary>
+    /// <summary>
+    /// A kit is worn by the new body: raised after a successful death respawn or live
+    /// swap (raid start, round break), once that body is the game's local player. Not
+    /// raised for the protected 5v5 loadout restore, which is not a kit.
+    /// </summary>
     public static event Action<KitDefinition> OnKitApplied;
 
     /// <summary>The local player dealt damage (hitmarker/damage-number feed).</summary>
