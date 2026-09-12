@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Offline harness contracts repaired (2026-09-12):** test-only branch
+  `fix/offline-harness-contracts` from `b5ff258`. Reproduced all three reported
+  early failures; no production regression found. `14d7d56`: PFT now checks the
+  frozen three-argument arm and canonical Deathmatch/TDM policies (**248**).
+  `f82f980`: team expansion checks current announcer provenance records, cue
+  scope and hashes instead of superseded WARLORD CC wording (**774**, including
+  13 in-memory negative controls and later installed PFT/SAIN checks).
+  `42d2400`: Give-up fault binds only to the TDM branch, updates both shared
+  terminal guards and preflights all targets (**618 / 16 behavior faults / 618**).
+  Independent adversarial reviews passed. Default unit suite **617 passed,
+  2 skipped, 0 failed**; enabling existing database/APBS fixtures yielded
+  **619/619 passed, no skips**. Full details and safe command:
+  `OFFLINE-HARNESS-REPAIR-2026-09-12.md`. Installed files were not rebuilt or
+  deployed: **73 inventoried files unchanged**, including client/server,
+  Redeploy, settings and audio. Unit builds redirected SPTUserPath to a scratch
+  destination; use this instead of bare dotnet test during bound GPU tests.
+  No restart required. The r6/r4 preflight blockers below are still in force;
+  these harness fixes do not rebind or pass those native acceptance jobs.
+
 - **Redeploy.Core stage 0 integrated (2026-09-12):** Redeploy `c938f5c43cb311a8a9ba1f81b2eb10573b99b936`
   (main, deployed) hardens the shared engine: `RunRespawn` refuses before any
   teardown (null request/game/selector; `DeathInterception.IsAvailable == false`
