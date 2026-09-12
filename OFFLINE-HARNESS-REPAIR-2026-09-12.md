@@ -7,6 +7,12 @@ The three harness directories were unchanged between `67d27ca` and `b5ff258`.
 Failures were freshly reproduced on the current starting checkout; this task did
 not repeat Claude's earlier temporary-worktree execution at `67d27ca`.
 
+While the repair was underway, Claude added the stage-0 GPU instructions in
+`8101339` and corrected their formatting in `984d8fb`, on the shared branch and
+before our first repair commit. Those commits and their exact instruction file
+are preserved. The final scope check distinguishes this parallel addition from
+our test changes; production and stored GPU results still match `b5ff258`.
+
 | Check | Cause | Verified result | Commit |
 |---|---|---|---|
 | PitFireTeamChecks | Source assertion still required two MarkArmed arguments; the current third argument freezes Deathmatch rules | 248 assertions, including canonical modes and arm-contract counterexamples | `14d7d56` |
