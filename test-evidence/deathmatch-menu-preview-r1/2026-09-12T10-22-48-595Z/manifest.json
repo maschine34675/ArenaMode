@@ -1,0 +1,72 @@
+{
+  "buildId": "deathmatch-menu-preview-r1",
+  "implementation": "c8acf084b3eaf4e98455a70eacaa90ba56349207",
+  "headBeforeTest": "578e8022c8f1ba8f6f73493fab3750cb82cd6821",
+  "clientSha256": "FBBF82C6993E16D3299B3081B8A53BD7770F3712CA3AB3E0A4B5F2D052A92D90",
+  "serverSha256": "8F9A56F574835FEAB73AB78C2EF4D5CF5734F12ABE63F384E2148CF319890B73",
+  "processes": [
+    {
+      "name": "EscapeFromTarkov",
+      "pid": 7244,
+      "startUtc": "2026-09-12T10:24:21.1439098Z"
+    },
+    {
+      "name": "SPT.Launcher",
+      "pid": 10740,
+      "startUtc": "2026-09-12T10:23:25.4840416Z"
+    },
+    {
+      "name": "SPT.Server",
+      "pid": 2260,
+      "startUtc": "2026-09-12T10:23:05.1552885Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "01-pmc-initial.jpg",
+      "source": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r1/2026-09-12T10-22-48-595Z/screenshots/character-selection-open-2026-09-12T10-26-27-255Z-0.jpg",
+      "at": "2026-09-12T10:26:27.255Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "5716B489056DF3A8BDDA88391A75E9138833D295CCA5E80360D845CB8808F1C9",
+      "uneditedOriginal": true
+    },
+    {
+      "file": "02-scav-selected.jpg",
+      "source": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r1/2026-09-12T10-22-48-595Z/screenshots/A1-scav-selected-2026-09-12T10-26-37-969Z-0.jpg",
+      "at": "2026-09-12T10:26:37.969Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "0CE58EAA7E22FB4155F4097536143F157874BF97C8CF3B34339F0FB903258636",
+      "uneditedOriginal": true
+    },
+    {
+      "file": "03-arena-stale-five-modes.jpg",
+      "source": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r1/2026-09-12T10-22-48-595Z/screenshots/A1-arena-selected-2026-09-12T10-26-49-065Z-0.jpg",
+      "at": "2026-09-12T10:26:49.065Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "2BA81D53668C0F1C49481F3119F4FC14960F21B292E647F6761ADD54EB0519F3",
+      "uneditedOriginal": true
+    },
+    {
+      "file": "04-arena-failure-confirmed.jpg",
+      "source": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r1/2026-09-12T10-22-48-595Z/screenshots/failure-stale-five-modes-2026-09-12T10-27-34-887Z-0.jpg",
+      "at": "2026-09-12T10:27:34.887Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "4F6A8653416B2525CB92A9F05089893FDEA1B14D29F8A3DE0A1370E513265DA6",
+      "uneditedOriginal": true
+    }
+  ],
+  "stopReason": {
+    "case": "A1 Arena description",
+    "kind": "visible text defect",
+    "observed": "Five modes. Solo and team combat. Your profile and gear stay untouched.",
+    "expected": "Current menu has four modes: Deathmatch, Gun Game, Tactical, Team DM.",
+    "screenshot": "A1-arena-selected",
+    "raidCount": 0,
+    "stopReason": "New error: stop required by test instructions"
+  },
+  "raidCount": 0
+}
