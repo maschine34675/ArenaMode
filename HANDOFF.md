@@ -1,11 +1,47 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-11. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-12. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **r6 bounded GPU evidence reviewed (2026-09-12):** report `98211b9`,
+  `GPU-PANELS-R6-RESULTS-2026-09-11.md`, records one short Endless Factory raid
+  and one independent BEAR TDM 5v5 raid at 1920x1080. The pre-start client hash
+  matched `D9BB7FA0...1461626C` / source `41bb6e3`. Screenshot/roster/config
+  review confirms numeric other-kill distances, five complete separate rows,
+  solo opposing/opposing names, both TDM kill directions using the correct
+  relative teams, and new Green/Magenta entries after a native palette change.
+  TDM names remained colored with both TeamTracers and TeamLasers disabled.
+  Standard magazine/grenade row and menu hide/return checks are accepted only
+  within the report's observed scope. Each raid's recorded protected-field
+  comparison has 16 equal and zero unequal results, not whole-profile equality.
+  Independent raw-log audit: no client/server Error/Fatal/Critical entries or
+  thrown HUD/TMP exceptions. The two deferred raid-end warnings are followed
+  by server snapshot restoration and protected-end success, not failed exits.
+  Local kill/natural-death identity, extra text wrapping/verified pool reuse,
+  six concurrent rows, bright-scene coverage, precise timing, unknown distance,
+  old-entry palette retention, grenade overflow and PFT remain open. Accidental
+  solo Give up/respawn is not evidence for a natural killfeed death.
+  No killfeed correction is indicated by these observations; do not rebuild or
+  overwrite parallel gameplay changes just to repeat already observed cases.
+  The final unchanged-delivery check FAILED: client `7965FEB2...` and server
+  `4F8453B4...` replaced the initial files. Their recorded 07:10:49/07:10:58 UTC
+  write times are after both raid ends and the 07:06:06 main-menu image. This
+  supports attribution to the process started on the verified baseline but is
+  not a measurement of loaded assemblies; the later DLLs receive no GPU
+  acceptance here. `cbfc582` concerns protected-container handling and leaves
+  the killfeed/HUD/team-registry source unchanged. Preserve the report's drift
+  caveat and separate any later test rather than retroactively changing its hash.
+  The three changed audio files (double_kill, godlike, unstoppable) match the
+  committed release clips, including their current local installed hashes;
+  the pre-test hashes match the local ElevenLabs overrides. A normal deploying
+  build's DeployArenaAudioAssets is consistent with this replacement, but its
+  exact actor/time is not established. The audition is therefore mixed until
+  explicitly reapplied or fully rolled back; no audio files were changed here.
+  Raw evidence: `artifacts/gpu-panels/arena-panels-native-ui-20260911-r6/2026-09-12T06-43-02-230Z/`.
 
 - **Killfeed team colors and extended r6 (2026-09-11):** source `41bb6e3`
   replaces role/local-death name colors with the existing match-owned tracer
