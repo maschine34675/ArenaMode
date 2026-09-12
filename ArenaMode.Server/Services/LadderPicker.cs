@@ -100,6 +100,13 @@ public static class LadderPicker
     /// </summary>
     private static void LoadWithOneOf(JsonNode entry, HashSet<string> excluded)
     {
+        // Nothing to choose from means nothing to roll for: an entry without
+        // choices keeps its load untouched, and the dice are not moved for it,
+        // so a pool authored without choices draws the same ladder it did
+        // before there was a list.
+        if (entry["ammoChoices"] is not JsonArray choices || choices.Count == 0)
+            return;
+
         var usable = UsableChoices(entry, excluded);
         if (usable.Count == 0)
             return;
@@ -133,7 +140,8 @@ public static class LadderPicker
     /// Every cartridge the entry could be loaded with, excluded or not. An
     /// entry without choices — a hand-written POOL, one larger than the rung
     /// count; a ladder-sized file is served verbatim and never reaches the
-    /// draw — is judged by what it is loaded with instead.
+    /// draw — is judged by what it is loaded with instead, for the band draw
+    /// only: its load itself is never rewritten.
     /// </summary>
     private static List<string> Choices(JsonNode entry)
     {
@@ -163,11 +171,13 @@ public static class LadderPicker
     }
 
     /// <summary>
-    /// The pool index nearest to the band that is not barred, searching
-    /// outward on both sides; -1 when the whole pool is. The pool is sorted,
-    /// so the nearest neighbour bends the climb by a rung rather than breaking it.
+    /// The pool index nearest to the band that is not barred and not already
+    /// on the ladder, searching outward on both sides; -1 when there is none.
+    /// The pool is sorted, so the nearest neighbour bends the climb by a rung
+    /// rather than breaking it. Asked a second time without the taken set when
+    /// nothing untaken is left: a gun that repeats beats a gun that cannot fire.
     /// </summary>
-    private static int NearestUnbarred(JsonArray pool, int low, int high, HashSet<string> excluded)
+    private static int NearestUnbarred(JsonArray pool, int low, int high, HashSet<string> excluded, HashSet<int>? taken)
     {
         for (var distance = 1; ; distance++)
         {
@@ -176,10 +186,10 @@ public static class LadderPicker
             if (below < 0 && above >= pool.Count)
                 return -1;
 
-            if (above < pool.Count && !IsBarred(pool[above]!, excluded))
+            if (above < pool.Count && !IsBarred(pool[above]!, excluded) && taken?.Contains(above) != true)
                 return above;
 
-            if (below >= 0 && !IsBarred(pool[below]!, excluded))
+            if (below >= 0 && !IsBarred(pool[below]!, excluded) && taken?.Contains(below) != true)
                 return below;
         }
     }
@@ -202,6 +212,7 @@ public static class LadderPicker
 
             var ladder = new JsonArray();
             var passedOver = 0;
+            var taken = new HashSet<int>();
             for (var i = 0; i < rungs; i++)
             {
                 // Equal slices of the sorted pool, so rung one is always drawn
@@ -219,40 +230,66 @@ public static class LadderPicker
                 else
                 {
                     // Within the band, only weapons the configuration has not
-                    // barred. A band with nothing left borrows the nearest
-                    // unbarred weapon from the pool around it, and only when
-                    // the whole pool is barred does a rung go out with the
-                    // pool's own load — said out loud, because that load is
-                    // the excluded round itself.
+                    // barred and no earlier rung has taken. A band with nothing
+                    // left borrows the nearest such weapon from the pool around
+                    // it; with none left anywhere it repeats one that is
+                    // already on the ladder — a gun twice beats a gun that
+                    // cannot fire — and only when the whole pool is barred does
+                    // a rung go out with the pool's own load, said out loud,
+                    // because that load is the excluded round itself.
                     var unbarred = Enumerable.Range(low, high - low)
                         .Where(j => !IsBarred(pool[j]!, excluded))
                         .ToList();
                     passedOver += high - low - unbarred.Count;
+                    var open = unbarred.Where(j => !taken.Contains(j)).ToList();
 
-                    if (unbarred.Count > 0)
+                    if (open.Count > 0)
                     {
                         lock (Rng)
-                            index = unbarred[Rng.Next(0, unbarred.Count)];
+                            index = open[Rng.Next(0, open.Count)];
                     }
                     else
                     {
-                        index = NearestUnbarred(pool, low, high, excluded);
+                        index = NearestUnbarred(pool, low, high, excluded, taken);
                         if (index >= 0)
                         {
-                            log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: every weapon of its band has only excluded "
-                                        + $"cartridges; borrowed '{NameOf(pool[index])}' from the pool next to it.");
+                            log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: every weapon of its band is excluded or "
+                                        + $"already on the ladder; borrowed '{NameOf(pool[index])}' from the pool next to it.");
                         }
                         else
                         {
-                            lock (Rng)
-                                index = Rng.Next(low, high);
-                            passedOver--;
-                            log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: nothing in the pool can be loaded with an "
-                                        + $"allowed cartridge; '{NameOf(pool[index])}' goes out with the pool's own load, "
-                                        + "which the configuration excludes.");
+                            // Nothing untaken anywhere. The band's own unbarred
+                            // weapons first, then the nearest outside it.
+                            if (unbarred.Count > 0)
+                            {
+                                lock (Rng)
+                                    index = unbarred[Rng.Next(0, unbarred.Count)];
+                            }
+                            else
+                            {
+                                index = NearestUnbarred(pool, low, high, excluded, null);
+                            }
+
+                            if (index >= 0)
+                            {
+                                log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: no unbarred weapon is left that the ladder "
+                                            + $"does not already carry; '{NameOf(pool[index])}' is repeated rather than a "
+                                            + "round that does not fire.");
+                            }
+                            else
+                            {
+                                lock (Rng)
+                                    index = Rng.Next(low, high);
+                                passedOver--;
+                                log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: nothing in the pool can be loaded with an "
+                                            + $"allowed cartridge; '{NameOf(pool[index])}' goes out with the pool's own load, "
+                                            + "which the configuration excludes.");
+                            }
                         }
                     }
                 }
+
+                taken.Add(index);
 
                 // Detached before re-parenting: a node still owned by the pool
                 // array cannot be added to another one.

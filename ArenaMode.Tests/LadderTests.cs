@@ -147,6 +147,57 @@ public class LadderTests
     }
 
     [Fact]
+    public void NoTwoRungsShareAWeaponWhileAnotherIsAvailable()
+    {
+        // The lower band is barred entirely and borrows from the upper one;
+        // the upper band must then take the weapon the borrowing left, not the
+        // same one again.
+        var pool = new JsonArray(
+            Weapon("a", "bad", "bad"), Weapon("b", "bad", "bad"),
+            Weapon("c", "good", "good"), Weapon("d", "good", "good"));
+        for (var i = 0; i < 40; i++)
+        {
+            var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 2, null, null, new[] { "bad" }))!.AsArray();
+            Assert.Equal(new[] { "c", "d" }, drawn.Select(rung => rung?["name"]?.GetValue<string>()));
+        }
+    }
+
+    [Fact]
+    public void ARepeatedWeaponBeatsARoundThatDoesNotFire()
+    {
+        // Only one weapon in the whole pool can be loaded. Two rungs both get
+        // it, and the log says so; neither is served the excluded round.
+        var pool = new JsonArray(Weapon("a", "bad", "bad"), Weapon("b", "bad", "bad"), Weapon("c", "good", "good"));
+        var lines = new List<string>();
+        var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 2, lines.Add, null, new[] { "bad" }))!.AsArray();
+
+        Assert.Equal(new[] { "c", "c" }, drawn.Select(rung => rung?["name"]?.GetValue<string>()));
+        foreach (var rung in drawn)
+            Assert.All(AmmunitionSites(rung), site => Assert.Equal("good", site));
+        Assert.Contains(lines, line => line.Contains("is repeated rather than a round that does not fire", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void APoolEntryWithoutChoicesKeepsItsLoadUntouched()
+    {
+        // A hand-written pool entry that offers no choices is loaded with what
+        // its author put there; the draw neither rewrites it nor rolls for it.
+        var authored = Weapon("x", "authored", "authored");
+        authored.Remove("ammoChoices");
+        var pool = new JsonArray(authored, Weapon("y", "stale", "good"));
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < 40; i++)
+        {
+            var rung = Assert.Single(JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1))!.AsArray());
+            var name = rung?["name"]?.GetValue<string>() ?? "";
+            seen.Add(name);
+            Assert.All(AmmunitionSites(rung), site => Assert.Equal(name == "x" ? "authored" : "good", site));
+        }
+
+        Assert.Equal(new[] { "x", "y" }, seen.OrderBy(name => name, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void WhenNothingInThePoolIsLoadableTheRungIsServedAndSaidOutLoud()
     {
         var pool = new JsonArray(Weapon("a", "bad", "bad"), Weapon("b", "bad", "bad"), Weapon("c", "bad", "bad"));
