@@ -22,7 +22,6 @@ namespace ArenaMode
         public void LogInfo(string s) => Infos.Add(s);
     }
 }
-namespace ArenaMode.Events { public static class ArenaEvents { public static void RaiseKitApplied(ArenaMode.Kits.KitDefinition kit) { } } }
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive = true; } }
 namespace ArenaMode.Modes
 {

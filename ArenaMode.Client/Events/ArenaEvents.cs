@@ -37,7 +37,38 @@ public static class ArenaEvents
     internal static void RaisePlayerDied(Player player) => Raise(OnPlayerDied, h => h(player), nameof(OnPlayerDied));
     internal static void RaisePlayerRespawned(Player player) => Raise(OnPlayerRespawned, h => h(player), nameof(OnPlayerRespawned));
     internal static void RaiseKitApplied(KitDefinition kit) => Raise(OnKitApplied, h => h(kit), nameof(OnKitApplied));
-    internal static void RaiseLocalDamageDealt(ArenaDamage damage) => Raise(OnLocalDamageDealt, h => h(damage), nameof(OnLocalDamageDealt));
+
+    // The damage feed fires per hit, so it neither closes over its argument nor snapshots
+    // the invocation list on every raise: a multicast delegate is immutable, and the
+    // snapshot is refreshed only when the subscription changed. The other three events
+    // are rare enough for the generic path.
+    private static Action<ArenaDamage> _damageSnapshotFor;
+    private static Delegate[] _damageSnapshot;
+
+    internal static void RaiseLocalDamageDealt(ArenaDamage damage)
+    {
+        var multicast = OnLocalDamageDealt;
+        if (multicast == null)
+            return;
+
+        if (!ReferenceEquals(multicast, _damageSnapshotFor))
+        {
+            _damageSnapshotFor = multicast;
+            _damageSnapshot = multicast.GetInvocationList();
+        }
+
+        foreach (var handler in _damageSnapshot)
+        {
+            try
+            {
+                ((Action<ArenaDamage>)handler)(damage);
+            }
+            catch (Exception ex)
+            {
+                LogFailure(nameof(OnLocalDamageDealt), handler, ex);
+            }
+        }
+    }
 
     // One subscriber at a time, the pattern Redeploy.Core uses for its raid lifecycle:
     // the match service subscribes before the spectator, and a throwing scoreboard
@@ -56,9 +87,14 @@ public static class ArenaEvents
             }
             catch (Exception ex)
             {
-                var method = handler.Method;
-                Plugin.ModLogger.LogWarning($"Arena event {name} subscriber {method.DeclaringType?.FullName}.{method.Name} failed: {ex}");
+                LogFailure(name, handler, ex);
             }
         }
+    }
+
+    private static void LogFailure(string name, Delegate handler, Exception ex)
+    {
+        var method = handler.Method;
+        Plugin.ModLogger.LogWarning($"Arena event {name} subscriber {method.DeclaringType?.FullName}.{method.Name} failed: {ex}");
     }
 }
