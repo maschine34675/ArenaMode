@@ -1,0 +1,368 @@
+{
+  "note": "Sequential delta checks, client line numbers refer to the fresh r3 client log; error strings retained. Not an inference of unobserved UI behavior.",
+  "checks": [
+    {
+      "at": "2026-09-12T12:28:48.917Z",
+      "label": "startup-menu",
+      "fromLine": 1,
+      "toLine": 12953,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:29:38.545Z",
+      "label": "character-entry",
+      "fromLine": 12953,
+      "toLine": 12954,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:29:45.399Z",
+      "label": "arena-selected",
+      "fromLine": 12954,
+      "toLine": 12955,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:29:54.271Z",
+      "label": "map-initial",
+      "fromLine": 12955,
+      "toLine": 12982,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:30:31.152Z",
+      "label": "cycle1-offline",
+      "fromLine": 12982,
+      "toLine": 12989,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:30:40.954Z",
+      "label": "cycle1-insurance",
+      "fromLine": 12989,
+      "toLine": 12991,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:30:48.275Z",
+      "label": "cycle1-confirmation",
+      "fromLine": 12991,
+      "toLine": 12993,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:30:59.734Z",
+      "label": "cycle1-back-insurance",
+      "fromLine": 12993,
+      "toLine": 12993,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:07.492Z",
+      "label": "cycle1-back-offline",
+      "fromLine": 12993,
+      "toLine": 12993,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:13.777Z",
+      "label": "cycle1-back-map",
+      "fromLine": 12993,
+      "toLine": 12995,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:21.305Z",
+      "label": "cycle2-offline",
+      "fromLine": 12995,
+      "toLine": 12996,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:28.054Z",
+      "label": "cycle2-insurance",
+      "fromLine": 12996,
+      "toLine": 12998,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:35.083Z",
+      "label": "cycle2-confirmation",
+      "fromLine": 12998,
+      "toLine": 12998,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:41.892Z",
+      "label": "cycle2-back-insurance",
+      "fromLine": 12998,
+      "toLine": 13000,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:48.839Z",
+      "label": "cycle2-back-offline",
+      "fromLine": 13000,
+      "toLine": 13000,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:31:55.462Z",
+      "label": "cycle2-back-map",
+      "fromLine": 13000,
+      "toLine": 13002,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:32:04.624Z",
+      "label": "back-character-after-cycles",
+      "fromLine": 13002,
+      "toLine": 13004,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:32:14.304Z",
+      "label": "after-cycles-pmc",
+      "fromLine": 13004,
+      "toLine": 13005,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:32:22.770Z",
+      "label": "after-cycles-scav",
+      "fromLine": 13005,
+      "toLine": 13005,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:32:31.336Z",
+      "label": "c1-arena-reselected",
+      "fromLine": 13005,
+      "toLine": 13005,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:32:42.251Z",
+      "label": "c1-map",
+      "fromLine": 13005,
+      "toLine": 13012,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:33:00.673Z",
+      "label": "c1-offline",
+      "fromLine": 13012,
+      "toLine": 13012,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:33:09.903Z",
+      "label": "c1-insurance",
+      "fromLine": 13012,
+      "toLine": 13014,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:33:17.735Z",
+      "label": "c1-confirmation",
+      "fromLine": 13014,
+      "toLine": 13014,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:33:31.233Z",
+      "label": "c1-ready",
+      "fromLine": 13014,
+      "toLine": 13016,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:33:41.058Z",
+      "label": "c1-loading-rotation",
+      "fromLine": 13016,
+      "toLine": 13016,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:34:19.232Z",
+      "label": "c1-loading-progress",
+      "fromLine": 13016,
+      "toLine": 13073,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:34:45.442Z",
+      "label": "c1-loading-kit",
+      "fromLine": 13073,
+      "toLine": 13181,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:34:56.618Z",
+      "label": "c1-live",
+      "fromLine": 13181,
+      "toLine": 13189,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:35:09.834Z",
+      "label": "c1-scoreboard",
+      "fromLine": 13189,
+      "toLine": 13192,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:35:35.332Z",
+      "label": "c1-midround",
+      "fromLine": 13192,
+      "toLine": 13226,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:36:01.240Z",
+      "label": "c1-late-scoreboard",
+      "fromLine": 13226,
+      "toLine": 13237,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:36:40.035Z",
+      "label": "c1-terminal-result",
+      "fromLine": 13237,
+      "toLine": 13252,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:36:48.734Z",
+      "label": "c1-auto-return-transition",
+      "fromLine": 13252,
+      "toLine": 13278,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:37:49.135Z",
+      "label": "c1-return-main",
+      "fromLine": 13278,
+      "toLine": 13278,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:38:00.624Z",
+      "label": "c1-postraid-main-menu",
+      "fromLine": 13278,
+      "toLine": 13280,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:38:07.402Z",
+      "label": "c1-main-menu-clean",
+      "fromLine": 13280,
+      "toLine": 13280,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:38:38.113Z",
+      "label": "c1-main-menu-settled",
+      "fromLine": 13280,
+      "toLine": 13284,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:39:04.118Z",
+      "label": "c2-character-entry",
+      "fromLine": 13284,
+      "toLine": 13284,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:39:14.688Z",
+      "label": "c2-arena",
+      "fromLine": 13284,
+      "toLine": 13286,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:39:23.392Z",
+      "label": "c2-map",
+      "fromLine": 13286,
+      "toLine": 13293,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:40:04.842Z",
+      "label": "c2-offline",
+      "fromLine": 13293,
+      "toLine": 13299,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:40:14.432Z",
+      "label": "c2-insurance",
+      "fromLine": 13299,
+      "toLine": 13301,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:40:25.973Z",
+      "label": "c2-confirmation",
+      "fromLine": 13301,
+      "toLine": 13301,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:41:06.906Z",
+      "label": "c2-ready",
+      "fromLine": 13301,
+      "toLine": 13303,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:42:20.813Z",
+      "label": "c2-f12-reopen-prep",
+      "fromLine": 13303,
+      "toLine": 13429,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:47:53.690Z",
+      "label": "c2-frozen-limit-changed",
+      "fromLine": 13429,
+      "toLine": 13581,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:48:50.386Z",
+      "label": "c2-terminal",
+      "fromLine": 13581,
+      "toLine": 13657,
+      "errors": [
+        {
+          "line": 13592,
+          "text": "[14:48:36.673] [Error  : Unity Log] ArgumentException: Value does not fall within the expected range."
+        },
+        {
+          "line": 13617,
+          "text": "[14:48:37.769] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object"
+        },
+        {
+          "line": 13637,
+          "text": "[14:48:37.781] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object"
+        }
+      ]
+    },
+    {
+      "at": "2026-09-12T12:52:38.338Z",
+      "label": "restoration-complete",
+      "fromLine": 13657,
+      "toLine": 13685,
+      "errors": []
+    },
+    {
+      "at": "2026-09-12T12:54:28.377Z",
+      "label": "final-shutdown",
+      "fromLine": 13685,
+      "toLine": 13934,
+      "errors": []
+    }
+  ]
+}

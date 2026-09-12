@@ -1,0 +1,78 @@
+{
+  "method": "Observation/log-marked intervals. All native live time, tool/control/context gaps outside marked loading intervals included conservatively; not exact input-only stopwatch time. Read-only preflight, final audit/report/commit excluded.",
+  "activeSeconds": 978.869,
+  "cleanupSeconds": 182.232,
+  "loadingSeconds": 259.033,
+  "activeIntervals": [
+    [
+      "Menüs A / C1-Vorbereitung",
+      "12:29:12.466",
+      "12:33:29.593"
+    ],
+    [
+      "C1 live und Ergebniswartezeit",
+      "12:34:26.199",
+      "12:36:42.421"
+    ],
+    [
+      "C1 native Raid-Ende-Bedienung",
+      "12:37:49.115",
+      "12:37:57.160"
+    ],
+    [
+      "C2-Vorbereitung",
+      "12:38:38.087",
+      "12:41:05.397"
+    ],
+    [
+      "C2 live inklusive passiver Werkzeug-/Kontextpausen",
+      "12:41:46.472",
+      "12:48:36.259"
+    ],
+    [
+      "C2 native Raid-Ende-Bedienung und Stopp",
+      "12:48:50.363",
+      "12:49:10.741"
+    ]
+  ],
+  "cleanupIntervals": [
+    [
+      "Eigene Werte zurückstellen und reguläres Spielende",
+      "12:49:50.368",
+      "12:52:52.600"
+    ]
+  ],
+  "loadingIntervals": [
+    [
+      "C1 Ready bis Rundentimer",
+      "12:33:29.593",
+      "12:34:26.199"
+    ],
+    [
+      "C1 Autoexit bis native Raid-Ende-Seite",
+      "12:36:42.421",
+      "12:37:49.115"
+    ],
+    [
+      "C1 Hauptmenü-Rückladen",
+      "12:37:57.160",
+      "12:38:38.087"
+    ],
+    [
+      "C2 Ready bis Rundentimer",
+      "12:41:05.397",
+      "12:41:46.472"
+    ],
+    [
+      "C2 Autoexit bis native Raid-Ende-Seite",
+      "12:48:36.259",
+      "12:48:50.363"
+    ],
+    [
+      "C2 Hauptmenü-Rückladen",
+      "12:49:10.741",
+      "12:49:50.368"
+    ]
+  ],
+  "limitVerification": "OPEN: loading boundaries partly first-observed-ready states; pure loading versus waiting on an already ready screen was not independently measured. 19:21.101 is an interval classification, not a proven upper bound below 20 minutes."
+}

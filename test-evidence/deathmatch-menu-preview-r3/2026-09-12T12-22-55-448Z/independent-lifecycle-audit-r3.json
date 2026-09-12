@@ -1,0 +1,229 @@
+{
+  "readAtUtc": "2026-09-12T12:52:19.4732223+00:00",
+  "scope": "r3 C1/C2 recorded lifecycle and thrown exception stacks; separate from visual acceptance",
+  "redaction": "Only standalone 24-hex-character private identifiers in selected server lines are replaced with [private-id]. Original line text and timestamps otherwise retained; assembly module hashes in stacks retained.",
+  "client": {
+    "path": "C:\\SPT41\\BepInEx\\LogOutput.log",
+    "sha256": "C6DC54022BB00415C9998D64F934C9CFF7375EC8D6E964C8E81B7B7EB96669A1",
+    "lineCount": 13683,
+    "timeZone": "Europe/Berlin UTC+02:00",
+    "markers": [
+      {
+        "line": 13156,
+        "text": "[14:34:26.145] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Loyalist."
+      },
+      {
+        "line": 13158,
+        "text": "[14:34:26.199] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started."
+      },
+      {
+        "line": 13242,
+        "text": "[14:36:27.222] [Info   :maschine-ArenaMode] Arena Round 1: crustyselenium_ wins — Time limit; 0 kills / 0 deaths / 0 points."
+      },
+      {
+        "line": 13258,
+        "text": "[14:36:42.421] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows."
+      },
+      {
+        "line": 13273,
+        "text": "[14:36:43.691] [Info   :maschine-ArenaMode] Arena session ended."
+      },
+      {
+        "line": 13276,
+        "text": "[14:36:43.702] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 0 deaths, score 0, best streak 0, 2.3 min."
+      },
+      {
+        "line": 13398,
+        "text": "[14:41:46.428] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Overwatch."
+      },
+      {
+        "line": 13400,
+        "text": "[14:41:46.472] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started."
+      },
+      {
+        "line": 13447,
+        "text": "[14:43:47.190] [Info   :maschine-ArenaMode] Arena Round 1: target missed — Time limit; 0 kills / 0 deaths / 0 points."
+      },
+      {
+        "line": 13471,
+        "text": "[14:44:03.296] [Info   :maschine-ArenaMode] Arena Deathmatch round 2 started."
+      },
+      {
+        "line": 13501,
+        "text": "[14:46:04.050] [Info   :maschine-ArenaMode] Arena Round 2: target missed — Time limit; 0 kills / 1 deaths / 0 points."
+      },
+      {
+        "line": 13525,
+        "text": "[14:46:19.926] [Info   :maschine-ArenaMode] Arena Deathmatch round 3 started."
+      },
+      {
+        "line": 13582,
+        "text": "[14:48:21.156] [Info   :maschine-ArenaMode] Arena Round 3: target missed — Time limit; 0 kills / 2 deaths / 0 points."
+      },
+      {
+        "line": 13589,
+        "text": "[14:48:36.259] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows."
+      },
+      {
+        "line": 13612,
+        "text": "[14:48:37.453] [Info   :maschine-ArenaMode] Arena session ended."
+      },
+      {
+        "line": 13615,
+        "text": "[14:48:37.454] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 3 deaths, score 0, best streak 0, 6.8 min."
+      }
+    ],
+    "errorBlocks": [
+      {
+        "firstLine": 13592,
+        "lastLine": 13600,
+        "lines": [
+          "[14:48:36.673] [Error  : Unity Log] ArgumentException: Value does not fall within the expected range.",
+          "[14:48:36.673] Stack trace:",
+          "[14:48:36.673] BotItemTaker+CG_PickupAction.method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+          "[14:48:36.673] EFT.PickUpState.ManualAnimatorMoveUpdate (System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+          "[14:48:36.673] EFT.MovementState.OnStateMove (System.Single normalizedTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+          "[14:48:36.673] PlayerStateContainer.OnStateMove (UnityEngine.Animator animator, UnityEngine.AnimatorStateInfo stateInfo, System.Int32 layerIndex) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+          "[14:48:36.673] UnityEngine.DebugLogHandler:LogException(Exception, Object)",
+          "[14:48:36.673] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)",
+          "[14:48:36.673] UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)"
+        ]
+      },
+      {
+        "firstLine": 13617,
+        "lastLine": 13635,
+        "lines": [
+          "[14:48:37.769] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object",
+          "[14:48:37.769] Stack trace:",
+          "[14:48:37.769] SAIN.Components.BotComponent.OnDisable () (at <fa495b69dd2a4d3ea7473d47d3c53a22>:0)",
+          "[14:48:37.769] UnityEngine.DebugLogHandler:LogException(Exception, Object)",
+          "[14:48:37.769] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)",
+          "[14:48:37.769] UnityEngine.Object:DestroyImmediate(Object)",
+          "[14:48:37.769] EFT.Pools:UnloadPools()",
+          "[14:48:37.769] EFT.ObjectsFactory:UnloadTemporaryPools(Boolean)",
+          "[14:48:37.769] EFT.GameWorld:DMD<EFT.GameWorld::Dispose>(GameWorld)",
+          "[14:48:37.769] EFT.ClientGameWorld:Dispose()",
+          "[14:48:37.769] CompositeDisposable:Dispose()",
+          "[14:48:37.769] EFT.TarkovApplication:TryUnloadGame()",
+          "[14:48:37.769] EFT.CG_OnGameEnd:MoveNext()",
+          "[14:48:37.769] System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(CG_OnGameEnd&)",
+          "[14:48:37.769] EFT.TarkovApplication:DMD<EFT.TarkovApplication::OnGameEnd>(TarkovApplication, String, Profile, Location, Result`3)",
+          "[14:48:37.769] EFT.CG_Class1492:method_0(Result`3)",
+          "[14:48:37.769] EFT.CG_Class1637:method_0()",
+          "[14:48:37.769] CG_Co_Wait:MoveNext()",
+          "[14:48:37.769] UnityEngine.SetupCoroutine:InvokeMoveNext(IEnumerator, IntPtr)"
+        ]
+      },
+      {
+        "firstLine": 13637,
+        "lastLine": 13655,
+        "lines": [
+          "[14:48:37.781] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object",
+          "[14:48:37.781] Stack trace:",
+          "[14:48:37.781] SAIN.Components.BotComponent.OnDisable () (at <fa495b69dd2a4d3ea7473d47d3c53a22>:0)",
+          "[14:48:37.781] UnityEngine.DebugLogHandler:LogException(Exception, Object)",
+          "[14:48:37.781] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)",
+          "[14:48:37.781] UnityEngine.Object:DestroyImmediate(Object)",
+          "[14:48:37.781] EFT.Pools:UnloadPools()",
+          "[14:48:37.781] EFT.ObjectsFactory:UnloadTemporaryPools(Boolean)",
+          "[14:48:37.781] EFT.GameWorld:DMD<EFT.GameWorld::Dispose>(GameWorld)",
+          "[14:48:37.781] EFT.ClientGameWorld:Dispose()",
+          "[14:48:37.781] CompositeDisposable:Dispose()",
+          "[14:48:37.781] EFT.TarkovApplication:TryUnloadGame()",
+          "[14:48:37.781] EFT.CG_OnGameEnd:MoveNext()",
+          "[14:48:37.781] System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(CG_OnGameEnd&)",
+          "[14:48:37.781] EFT.TarkovApplication:DMD<EFT.TarkovApplication::OnGameEnd>(TarkovApplication, String, Profile, Location, Result`3)",
+          "[14:48:37.781] EFT.CG_Class1492:method_0(Result`3)",
+          "[14:48:37.781] EFT.CG_Class1637:method_0()",
+          "[14:48:37.781] CG_Co_Wait:MoveNext()",
+          "[14:48:37.781] UnityEngine.SetupCoroutine:InvokeMoveNext(IEnumerator, IntPtr)"
+        ]
+      }
+    ]
+  },
+  "server": {
+    "path": "C:\\SPT41\\SPT_Runtime\\user\\logs\\spt\\spt20260912.log",
+    "sha256": "D7B57C925D27B0E4FB82E8C03F4AB0AA2EE63460DD6A65BD8B4654E830143249",
+    "lineCount": 5707,
+    "timeZone": "UTC",
+    "markers": [
+      {
+        "line": 5165,
+        "text": "[2026-09-12 12:36:43.684][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+      },
+      {
+        "line": 5167,
+        "text": "[2026-09-12 12:36:44.039][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end"
+      },
+      {
+        "line": 5168,
+        "text": "[2026-09-12 12:36:44.476][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id]."
+      },
+      {
+        "line": 5171,
+        "text": "[2026-09-12 12:36:44.792][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+      },
+      {
+        "line": 5601,
+        "text": "[2026-09-12 12:48:37.451][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+      },
+      {
+        "line": 5603,
+        "text": "[2026-09-12 12:48:37.508][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end"
+      },
+      {
+        "line": 5604,
+        "text": "[2026-09-12 12:48:37.560][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id]."
+      },
+      {
+        "line": 5607,
+        "text": "[2026-09-12 12:48:37.699][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+      }
+    ]
+  },
+  "timing": {
+    "c1KitCompleteToRoundStartMs": 54,
+    "c1RoundWallSeconds": 121.023,
+    "c1ResultToExitSeconds": 15.199,
+    "c2KitCompleteToRoundStartMs": 44,
+    "c2RoundWallSeconds": [
+      120.718,
+      120.754,
+      121.23
+    ],
+    "c2BreakWallSeconds": [
+      16.106,
+      15.876
+    ],
+    "c2ResultToExitSeconds": 15.103,
+    "c2ExitToFirstExceptionMs": 414
+  },
+  "profileAudit": {
+    "method": "Read-only recursive JSON value comparison, arrays by ordered index, object keys matched by name",
+    "C1": {
+      "changedPaths": [
+        "characters.pmc.Hideout.sptUpdateLastRunTimestamp"
+      ],
+      "before": 1789216379,
+      "after": 1789216679,
+      "beforeUtc": "2026-09-12T12:32:59Z",
+      "afterUtc": "2026-09-12T12:37:59Z",
+      "allOtherValuesEqual": true,
+      "pmcExperienceBefore": 0,
+      "pmcExperienceAfter": 0
+    },
+    "C2": {
+      "changedPaths": [
+        "characters.pmc.Hideout.sptUpdateLastRunTimestamp"
+      ],
+      "before": 1789216799,
+      "after": 1789217399,
+      "beforeUtc": "2026-09-12T12:39:59Z",
+      "afterUtc": "2026-09-12T12:49:59Z",
+      "allOtherValuesEqual": true,
+      "pmcExperienceBefore": 0,
+      "pmcExperienceAfter": 0
+    }
+  },
+  "interpretation": "C2 automatic native result exit committed before three new thrown client exceptions. First stack is native bot pickup animation; two subsequent stacks originate at SAIN BotComponent.OnDisable during pool teardown. These stack sites do not establish ultimate cause. Server snapshot restore/protected-end completion logged, profile audit found only specified Hideout timestamps. Whole-run stop required by r3 instruction."
+}

@@ -1,0 +1,96 @@
+{
+  "auditedAtUtc": "2026-09-12T12:57:09.9188012+00:00",
+  "initial": {
+    "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-preview-r3\\2026-09-12T12-22-55-448Z\\settings-initial\\config.json",
+    "sha256": "5A6965111C80861D3F888205E62C1E07137E9365F48733D969B4C0B058F1B90F",
+    "excludedTemplatesPresent": false
+  },
+  "final": {
+    "path": "C:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\config\\config.json",
+    "sha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+    "lastWriteTimeUtc": "2026-09-12T12:23:58.4507200Z"
+  },
+  "semanticDifference": {
+    "count": 1,
+    "path": "excludedTemplates",
+    "change": "key added",
+    "beforePresent": false,
+    "afterPresent": true,
+    "after": [
+      "5e85aac65505fa48730d8af2",
+      "5ede47641cf3836a88318df1",
+      "62811d61578c54356d6d67ea",
+      "628120415631d45211793c99",
+      "628120f210e26c1f344e6558",
+      "6281214c1d5df4475f46a33a",
+      "6281215b4fa03b6b6c35dc6c",
+      "628121651d5df4475f46a33c"
+    ],
+    "allExistingConfigValuesUnchanged": true
+  },
+  "boundSource": {
+    "revision": "939d56454e7479a7d49f2ac9a03f475c02d59a29",
+    "pathsAndMethods": [
+      {
+        "path": "ArenaMode.Server/ConfigLoader.cs",
+        "method": "ConfigLoader.OnLoadAsync",
+        "behavior": "Calls ConfigStore.Reload during startup, then logs Config loaded"
+      },
+      {
+        "path": "ArenaMode.Server/Services/ConfigStore.cs",
+        "method": "ConfigStore.Reload -> Deserialize -> FillMissingKeys",
+        "behavior": "Merges missing keys from a new ArenaModeConfig and writes updated JSON if keys were added"
+      },
+      {
+        "path": "ArenaMode.Server/ArenaModeConfig.cs",
+        "method": "ArenaModeConfig.ExcludedTemplates initializer",
+        "behavior": "Copies ArenaTemplateEligibility.KnownPlaceholders"
+      },
+      {
+        "path": "ArenaMode.Server/Services/ArenaTemplateEligibility.cs",
+        "method": "ArenaTemplateEligibility.KnownPlaceholders",
+        "behavior": "Defines the eight excluded default template IDs"
+      }
+    ],
+    "knownPlaceholders": [
+      "5e85aac65505fa48730d8af2",
+      "5ede47641cf3836a88318df1",
+      "62811d61578c54356d6d67ea",
+      "628120415631d45211793c99",
+      "628120f210e26c1f344e6558",
+      "6281214c1d5df4475f46a33a",
+      "6281215b4fa03b6b6c35dc6c",
+      "628121651d5df4475f46a33c"
+    ],
+    "sameValuesAndOrder": true
+  },
+  "originalServerLog": {
+    "path": "C:\\SPT41\\SPT_Runtime\\user\\logs\\spt\\spt20260912.log",
+    "timeZone": "UTC",
+    "markers": [
+      {
+        "line": 4670,
+        "text": "[2026-09-12 12:23:58.458][Information][ArenaMode.Server.ConfigLoader] [ArenaMode] Config loaded — maps: factory4_day, labyrinth, laboratory, factory4_night, bigmap"
+      },
+      {
+        "line": 4674,
+        "text": "[2026-09-12 12:23:58.562][Information][ArenaMode.Server.Services.LadderGenerator] [ArenaMode] Templates kept out of the weapon pool and the attachment draw: 8 (8 from config, 0 more by their placeholder name)."
+      },
+      {
+        "line": 4675,
+        "text": "[2026-09-12 12:23:59.087][Information][ArenaMode.Server.Services.LadderGenerator] [ArenaMode] Weapon variant index ready: 5375 live templates; no bot generator/config changes."
+      }
+    ],
+    "linesUnaltered": true,
+    "privateIdentifiersPresent": false
+  },
+  "inference": "The sole added key exactly matches defaults in the bound server source. Its file timestamp is immediately before startup Config loaded and the runtime report of eight configured exclusions. This strongly supports automatic startup default migration before client startup and both raids.",
+  "limits": [
+    "The process that wrote the file was not observed by a filesystem audit trace; writer attribution is an inference from code, timestamps and logs.",
+    "Do not claim byte-identical server config relative to the stopped preflight baseline.",
+    "Both tested raids occurred after startup loaded the eight-entry exclusion list.",
+    "No mid-raid configuration replacement or different DLL build is established by this config difference.",
+    "No config restore or edit was performed by this audit."
+  ],
+  "serverConfigByteEquality": false
+}

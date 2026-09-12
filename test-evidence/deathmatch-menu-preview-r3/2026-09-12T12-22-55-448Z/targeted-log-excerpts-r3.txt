@@ -1,0 +1,90 @@
+r3 targeted original log excerpts
+Read at UTC: 2026-09-12T12:52:19.4732223+00:00
+Client timestamps local UTC+02:00; server timestamps UTC.
+Only standalone 24-hex-character private identifiers in selected server lines are replaced with [private-id]. Original line text and timestamps otherwise retained; assembly module hashes in stacks retained.
+
+CLIENT LIFECYCLE MARKERS — original source line numbers in independent-lifecycle-audit-r3.json
+[14:34:26.145] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Loyalist.
+[14:34:26.199] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started.
+[14:36:27.222] [Info   :maschine-ArenaMode] Arena Round 1: crustyselenium_ wins — Time limit; 0 kills / 0 deaths / 0 points.
+[14:36:42.421] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows.
+[14:36:43.691] [Info   :maschine-ArenaMode] Arena session ended.
+[14:36:43.702] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 0 deaths, score 0, best streak 0, 2.3 min.
+[14:41:46.428] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Overwatch.
+[14:41:46.472] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started.
+[14:43:47.190] [Info   :maschine-ArenaMode] Arena Round 1: target missed — Time limit; 0 kills / 0 deaths / 0 points.
+[14:44:03.296] [Info   :maschine-ArenaMode] Arena Deathmatch round 2 started.
+[14:46:04.050] [Info   :maschine-ArenaMode] Arena Round 2: target missed — Time limit; 0 kills / 1 deaths / 0 points.
+[14:46:19.926] [Info   :maschine-ArenaMode] Arena Deathmatch round 3 started.
+[14:48:21.156] [Info   :maschine-ArenaMode] Arena Round 3: target missed — Time limit; 0 kills / 2 deaths / 0 points.
+[14:48:36.259] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows.
+[14:48:37.453] [Info   :maschine-ArenaMode] Arena session ended.
+[14:48:37.454] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 3 deaths, score 0, best streak 0, 6.8 min.
+
+CLIENT ORIGINAL ERROR BLOCK lines 13592-13600
+[14:48:36.673] [Error  : Unity Log] ArgumentException: Value does not fall within the expected range.
+[14:48:36.673] Stack trace:
+[14:48:36.673] BotItemTaker+CG_PickupAction.method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+[14:48:36.673] EFT.PickUpState.ManualAnimatorMoveUpdate (System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+[14:48:36.673] EFT.MovementState.OnStateMove (System.Single normalizedTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+[14:48:36.673] PlayerStateContainer.OnStateMove (UnityEngine.Animator animator, UnityEngine.AnimatorStateInfo stateInfo, System.Int32 layerIndex) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+[14:48:36.673] UnityEngine.DebugLogHandler:LogException(Exception, Object)
+[14:48:36.673] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)
+[14:48:36.673] UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)
+
+CLIENT ORIGINAL ERROR BLOCK lines 13617-13635
+[14:48:37.769] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
+[14:48:37.769] Stack trace:
+[14:48:37.769] SAIN.Components.BotComponent.OnDisable () (at <fa495b69dd2a4d3ea7473d47d3c53a22>:0)
+[14:48:37.769] UnityEngine.DebugLogHandler:LogException(Exception, Object)
+[14:48:37.769] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)
+[14:48:37.769] UnityEngine.Object:DestroyImmediate(Object)
+[14:48:37.769] EFT.Pools:UnloadPools()
+[14:48:37.769] EFT.ObjectsFactory:UnloadTemporaryPools(Boolean)
+[14:48:37.769] EFT.GameWorld:DMD<EFT.GameWorld::Dispose>(GameWorld)
+[14:48:37.769] EFT.ClientGameWorld:Dispose()
+[14:48:37.769] CompositeDisposable:Dispose()
+[14:48:37.769] EFT.TarkovApplication:TryUnloadGame()
+[14:48:37.769] EFT.CG_OnGameEnd:MoveNext()
+[14:48:37.769] System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(CG_OnGameEnd&)
+[14:48:37.769] EFT.TarkovApplication:DMD<EFT.TarkovApplication::OnGameEnd>(TarkovApplication, String, Profile, Location, Result`3)
+[14:48:37.769] EFT.CG_Class1492:method_0(Result`3)
+[14:48:37.769] EFT.CG_Class1637:method_0()
+[14:48:37.769] CG_Co_Wait:MoveNext()
+[14:48:37.769] UnityEngine.SetupCoroutine:InvokeMoveNext(IEnumerator, IntPtr)
+
+CLIENT ORIGINAL ERROR BLOCK lines 13637-13655
+[14:48:37.781] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
+[14:48:37.781] Stack trace:
+[14:48:37.781] SAIN.Components.BotComponent.OnDisable () (at <fa495b69dd2a4d3ea7473d47d3c53a22>:0)
+[14:48:37.781] UnityEngine.DebugLogHandler:LogException(Exception, Object)
+[14:48:37.781] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)
+[14:48:37.781] UnityEngine.Object:DestroyImmediate(Object)
+[14:48:37.781] EFT.Pools:UnloadPools()
+[14:48:37.781] EFT.ObjectsFactory:UnloadTemporaryPools(Boolean)
+[14:48:37.781] EFT.GameWorld:DMD<EFT.GameWorld::Dispose>(GameWorld)
+[14:48:37.781] EFT.ClientGameWorld:Dispose()
+[14:48:37.781] CompositeDisposable:Dispose()
+[14:48:37.781] EFT.TarkovApplication:TryUnloadGame()
+[14:48:37.781] EFT.CG_OnGameEnd:MoveNext()
+[14:48:37.781] System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(CG_OnGameEnd&)
+[14:48:37.781] EFT.TarkovApplication:DMD<EFT.TarkovApplication::OnGameEnd>(TarkovApplication, String, Profile, Location, Result`3)
+[14:48:37.781] EFT.CG_Class1492:method_0(Result`3)
+[14:48:37.781] EFT.CG_Class1637:method_0()
+[14:48:37.781] CG_Co_Wait:MoveNext()
+[14:48:37.781] UnityEngine.SetupCoroutine:InvokeMoveNext(IEnumerator, IntPtr)
+
+SERVER RESTORATION MARKERS — private identifiers explicitly redacted
+[2026-09-12 12:36:43.684][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+[2026-09-12 12:36:44.039][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+[2026-09-12 12:36:44.476][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id].
+[2026-09-12 12:36:44.792][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted.
+[2026-09-12 12:48:37.451][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+[2026-09-12 12:48:37.508][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+[2026-09-12 12:48:37.560][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id].
+[2026-09-12 12:48:37.699][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted.
+
+SERVER STARTUP CONFIGURATION — original unaltered log lines; audit details in server-config-audit.json
+[2026-09-12 12:23:58.458][Information][ArenaMode.Server.ConfigLoader] [ArenaMode] Config loaded — maps: factory4_day, labyrinth, laboratory, factory4_night, bigmap
+[2026-09-12 12:23:58.562][Information][ArenaMode.Server.Services.LadderGenerator] [ArenaMode] Templates kept out of the weapon pool and the attachment draw: 8 (8 from config, 0 more by their placeholder name).
+[2026-09-12 12:23:59.087][Information][ArenaMode.Server.Services.LadderGenerator] [ArenaMode] Weapon variant index ready: 5375 live templates; no bot generator/config changes.

@@ -1,0 +1,366 @@
+{
+  "buildId": "deathmatch-menu-preview-r3",
+  "note": "Unmodified Computer Use originals. Archive timestamp may follow capture; especially c1-usec-vs-usec-killfeed archives a previously returned state. No video evidence.",
+  "images": [
+    {
+      "name": "cycle1-map-rules-day",
+      "file": "cycle1-map-rules-day-2026-09-12T12-30-30-233Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:30:30.233Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "A70A325B975315C4EC82BC0403F47306DFF4F36194AB63061A444B3478B62B82",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle1-offline",
+      "file": "cycle1-offline-2026-09-12T12-30-31-127Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:30:31.127Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "02AA33C0C997B2EF19663E66F13E6773D5CF305255E038E14B3B631CE046C086",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle1-insurance",
+      "file": "cycle1-insurance-2026-09-12T12-30-40-945Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:30:40.945Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "DDF80DF6CA1C69B840A575A65097F83922903F960774EB5AFB7EDC4694A18342",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle1-confirmation",
+      "file": "cycle1-confirmation-2026-09-12T12-30-48-251Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:30:48.251Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "EA67988ED7F15D03DDD2EF0C4C0A2A441AE8B6F917CED81A3B11FDA123347441",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle1-back-insurance",
+      "file": "cycle1-back-insurance-2026-09-12T12-30-59-727Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:30:59.727Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "BBE63FF6C4890AC06C5C852556D0ABF1E1EBD74CEDFAADD954D26659C825CA7A",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle1-back-offline",
+      "file": "cycle1-back-offline-2026-09-12T12-31-07-474Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:07.474Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "9F2490BDEA2AF68F6C341B57E6C546EEC3DB5D0F96200567984A31A10CCA071B",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle1-back-map",
+      "file": "cycle1-back-map-2026-09-12T12-31-13-760Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:13.760Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "8107DED5485D87D55E2A6CBF65F7C5A815040EF5EB47070116CDDE00A3D61188",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle2-offline",
+      "file": "cycle2-offline-2026-09-12T12-31-21-289Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:21.289Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "B8B33D0535D6322E401091A3D0268150EAB80D88EE16EDD516C0E5407AF072F0",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle2-insurance",
+      "file": "cycle2-insurance-2026-09-12T12-31-28-034Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:28.034Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "699D065D1739875C27B030C8EDC143912446A9B9FC390E51CF3E536359F6CEF4",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle2-confirmation",
+      "file": "cycle2-confirmation-2026-09-12T12-31-35-071Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:35.071Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "1D20A78D6DAD5A2040103F6DC96D994166A5157755A5924F0D15DF7F8C5F4366",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle2-back-insurance",
+      "file": "cycle2-back-insurance-2026-09-12T12-31-41-883Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:41.883Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "79AC0B9615501F5EC6DA30B19263BF786F54228D15589102C49C2DADCF2F866A",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle2-back-offline",
+      "file": "cycle2-back-offline-2026-09-12T12-31-48-825Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:48.825Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "5F7A6BA166FBD70B3EF2662CE4F5202A506694B8254848648B19D65EA476C5D0",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "cycle2-back-map",
+      "file": "cycle2-back-map-2026-09-12T12-31-55-447Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:31:55.447Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "FF8DBF24A32352CFD9831BE5B93EDB1DC9B7018EA0AAC8AA748A8405428C1218",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "after-cycles-pmc",
+      "file": "after-cycles-pmc-2026-09-12T12-32-14-284Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:32:14.284Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "0D362AED43E5258DB96D79061407631D2240A173947A5BF701591A683579399B",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "after-cycles-scav",
+      "file": "after-cycles-scav-2026-09-12T12-32-22-752Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:32:22.752Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "4090B7850BC506BDBA9CE624DD42A7B7D4AF8825101059E0F8A8940C97488728",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-arena-reselected",
+      "file": "c1-arena-reselected-2026-09-12T12-32-31-322Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:32:31.322Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "D4CD7FB7FA82683F2414FE59703D13088AA229F17C8ABF3874C0ECF53AE6E53B",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-factory-day-rules",
+      "file": "c1-factory-day-rules-2026-09-12T12-32-49-978Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:32:49.978Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "AD58AF64C06D19A8410C8424A592367BCD2185A6608E12732A1D3556135EA4E9",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-ready",
+      "file": "c1-ready-2026-09-12T12-33-31-207Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:33:31.207Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "E2022C0FA1E672DEF10534A14081ED0B104E71AFA5BAE193A578367A52E75A3A",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-loading-deliberate-rotation",
+      "file": "c1-loading-deliberate-rotation-2026-09-12T12-33-41-040Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:33:41.040Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "FF5F16BFA24D45357C753BDD5AA91B58DBB77677BEFCF444FD02FF5E2D7DB1AD",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-loading-progress",
+      "file": "c1-loading-progress-2026-09-12T12-34-19-112Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:34:19.112Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "078AFFCD69B676A7234620682789A8F29B4D0458121A71569FE03CB642CEDE02",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-loading-kit",
+      "file": "c1-loading-kit-2026-09-12T12-34-45-351Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:34:45.351Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "7BDE92412F795660DF85FFBFB3B3305729C728DE4324EDB55A7B6F5645B0987F",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-usec-vs-usec-killfeed",
+      "file": "c1-usec-vs-usec-killfeed-2026-09-12T12-35-31-931Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:35:31.931Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "3DCCA058DA47B96314216B5859EFE2867AFBC80ADE0DB004DFE5C6CBB709BC7F",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-scoreboard",
+      "file": "c1-scoreboard-2026-09-12T12-35-09-761Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:35:09.761Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "DDDD910F84A57B17CAF3CAE9AC2A0A152A9E2A3476B3C802920D49AEA2360608",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-late-scoreboard",
+      "file": "c1-late-scoreboard-2026-09-12T12-36-01-211Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:36:01.211Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "CF03D5CF009EC00069504D6D3F071887F88FB8D3E9D9F70AE6EDF087B5FF0FF9",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-terminal-result",
+      "file": "c1-terminal-result-2026-09-12T12-36-39-961Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:36:39.961Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "AF11760DCBD71CE7AF35A992F5E2ECAC4E121B3BCB2F4D11395CD9DB6C696741",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-terminal-result",
+      "file": "c1-terminal-result-2026-09-12T12-36-39-961Z-1.jpg",
+      "archiveAtUtc": "2026-09-12T12:36:39.961Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "D87CC7EEBAFBA08B19523F9DD9963063FB42182DB79DEB7FBA7730B7407F3649",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c1-main-menu-settled",
+      "file": "c1-main-menu-settled-2026-09-12T12-38-38-087Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:38:38.087Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "A9F3EC49F038403F4047C7E1337D7EBE420D877F98B89828D4356482435944D9",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-factory-day-rules",
+      "file": "c2-factory-day-rules-2026-09-12T12-39-57-617Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:39:57.617Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "0C930E7B29A01E3D008F1E2E1307CAFA69AC585DF766223DD7C3C2B6744473C5",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-ready",
+      "file": "c2-ready-2026-09-12T12-41-06-880Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:41:06.880Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "E0C0987ECEAFD0157D95C1BD81B45181BBA36FDB3EF7D08DBC9D1DA00D196792",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-resume-round-status",
+      "file": "c2-resume-round-status-2026-09-12T12-46-30-047Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:46:30.047Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "40B5F6628375688D215C1990F7CACB77E1BB210AB9EBB1A42D29975E2F5C4432",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-f12-right-edge-recovery",
+      "file": "c2-f12-right-edge-recovery-2026-09-12T12-47-08-992Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:47:08.992Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "63E38507E615E3A68E70BC6C5BE3539A90DD313935B3909B3CCCACFA3620C77B",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-frozen-limit-60",
+      "file": "c2-frozen-limit-60-2026-09-12T12-47-35-375Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:47:35.375Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "75040B916F77FA35DE848EB2ED7A82A7E531B315291EF5DD7D04923DB4AE78C5",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-frozen-live-proof",
+      "file": "c2-frozen-live-proof-2026-09-12T12-47-53-626Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:47:53.626Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "C12C88540C9E4FBBF694D1DE206B6B26DFA50A03B5FDB330788EAFE9D021581C",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-final-countdown",
+      "file": "c2-final-countdown-2026-09-12T12-48-13-136Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:48:13.136Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "BB59742044A8937F9BA8740F46568F8C1404501225884EFE6A7D4FBAA9F8CD92",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-terminal-early",
+      "file": "c2-terminal-early-2026-09-12T12-48-50-363Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:48:50.363Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "D9572442B88D62CE29A2E65E3B83C601F5849FEC4F79A72A6D1BCBA1FCE53440",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "c2-safe-return-progress",
+      "file": "c2-safe-return-progress-2026-09-12T12-49-50-368Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:49:50.368Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "0111B85B4A34A177A297E78935008C80C7CC2ED8F6E60ABE6DE65BE7E212AA25",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "restore-f12-open",
+      "file": "restore-f12-open-2026-09-12T12-50-01-020Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:50:01.020Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "28CE91467D4224A6B267D92C717445D986B7651F988BDB178DF575000B81CBB7",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "restore-skip-true",
+      "file": "restore-skip-true-2026-09-12T12-50-26-944Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:50:26.944Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "49A80FF0C9B1077AA16444F4502620606C7C5B640DAFD92725A5CC3C0847FFB5",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "restore-deathmatch-ffa",
+      "file": "restore-deathmatch-ffa-2026-09-12T12-52-09-964Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:52:09.964Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "F612C52481FF4CD2F1CA0AB8BF23DC72EC5FD898FDF3FEADB735937390A2CA57",
+      "unmodifiedOriginal": true
+    },
+    {
+      "name": "restore-gungame",
+      "file": "restore-gungame-2026-09-12T12-52-18-333Z-0.jpg",
+      "archiveAtUtc": "2026-09-12T12:52:18.333Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "C336A460BF555A64B7CBF028233C797DA3E79B6F910FF4A8B183A3D2815CBFA7",
+      "unmodifiedOriginal": true
+    }
+  ]
+}
