@@ -41,6 +41,12 @@ current. User-facing communication is normally German.
   after r4 case A passes. The old r1 feature checklist binds a superseded DLL.
   Immutable r3 report/evidence preserved; no new GPU test or profile edit here.
 
+## Historical snapshots
+
+The entries below record earlier states. Their present-tense delivery, pending
+triage and test-stop statements are superseded by the r4 entry above; they do
+not identify the currently installed client or authorize a different test build.
+
 - **Prepared refinements delivered locally (2026-09-12):** user authorized
   deployment and r3 triage. The exact staged client below is now installed at
   `D:\SPT41\BepInEx\plugins\maschine-ArenaMode.Client.dll`, SHA256
