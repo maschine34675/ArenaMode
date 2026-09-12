@@ -1,8 +1,12 @@
+using ArenaMode.Session;
+using Comfort.Common;
+using EFT;
 using HarmonyLib;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace ArenaMode.Hud;
 
@@ -11,15 +15,30 @@ namespace ArenaMode.Hud;
 /// toggle does not fire the weapon and dragging the window does not turn the
 /// character. The game funnels every bound input through a single
 /// InputManager method with the signature (List&lt;ECommand&gt;, float[]);
-/// emptying the list and zeroing the axes blocks exactly one delivery, so
-/// nothing piles up for later.
+/// filtering the list and zeroing the axes blocks exactly one delivery. A UI
+/// close stays protected until a freshly collected, released-pointer batch has
+/// passed through that filter; input sampled around the click cannot escape.
 ///
 /// Lifted from the same author's ModProfiler, which has been running this in
 /// raids for a while.
 /// </summary>
 internal static class ArenaInputBlocker
 {
-    internal static volatile bool Blocked;
+    private static readonly Harmony Patches = new(Plugin.PluginGuid + ".inputblock");
+    private static FieldInfo _main, _commands, _axes, _currentPreset, _workingKeys;
+    private static object _manager, _preset;
+    private static IList _commandList;
+    private static float[] _axisList;
+    private static AbstractGame _game;
+    private static GameWorld _world;
+    private static bool _ready, _drain, _releaseCollected;
+    private static long _generation, _sample;
+    private static int _shotCommands, _diagnostics;
+
+    internal static bool Blocked
+    {
+        get { lock (Owners) return _ready && SyncScope() && (Owners.Count > 0 || _drain); }
+    }
 
     /// <summary>
     /// Who currently wants input blocked. Two panels can be up at once — the
@@ -28,32 +47,44 @@ internal static class ArenaInputBlocker
     /// condition these panels exist to prevent: a click on a kit fires the
     /// weapon and a drag on the window turns the character.
     ///
-    /// The bool stays the thing the patch reads; this only decides its value.
+    /// An explicitly requested UI release also drains one fresh input delivery
+    /// after the pointer is released. Non-UI owners keep their old behavior.
     /// </summary>
     private static readonly HashSet<object> Owners = new HashSet<object>();
 
-    /// <summary>Blocked while ANY owner still wants it.</summary>
-    internal static void Request(object owner, bool wanted)
+    /// <summary>Blocked while ANY owner wants it, plus an opted-in UI release.</summary>
+    internal static void Request(object owner, bool wanted, bool drainOnRelease = false)
     {
         if (owner == null)
             return;
 
         lock (Owners)
         {
+            if (!SyncScope()) return;
             if (wanted)
-                Owners.Add(owner);
-            else
-                Owners.Remove(owner);
-
-            Blocked = Owners.Count > 0;
+            {
+                if (Owners.Add(owner) && _drain)
+                {
+                    _generation++;
+                    _releaseCollected = false;
+                }
+            }
+            else if (Owners.Remove(owner) && drainOnRelease && _ready)
+            {
+                _drain = true;
+                _releaseCollected = false; // Older, buffered input is not a release sample.
+                _generation++;
+                _shotCommands = 0;
+                Trace($"close {_generation} pending; sample={_sample}, owners={Owners.Count}");
+            }
         }
     }
 
     private static bool _attempted;
 
     /// <summary>
-    /// Commands that must ALWAYS pass: they are the release half of a
-    /// press/release pair. Swallowing "EndShooting" while the trigger is down
+    /// Retain the existing release-command whitelist. Swallowing
+    /// "EndShooting" while the trigger is down
     /// latches the weapon into permanent fire; the same goes for sprint, lean,
     /// breath-hold and interaction. Escape passes too, so the game's own menu
     /// still works while the panel is open.
@@ -72,19 +103,147 @@ internal static class ArenaInputBlocker
                 ?? throw new TypeLoadException("EFT.InputSystem.InputManager not found");
 
             var target = FindDeliverMethod(type);
+            var presetType = AccessTools.TypeByName("EFT.InputSystem.InputPreset")
+                ?? throw new TypeLoadException("EFT.InputSystem.InputPreset not found");
+            _main = RequireField(type, "_isMain", typeof(bool), false);
+            _commands = RequireField(type, "_commandsList", target.GetParameters()[0].ParameterType, false);
+            _axes = RequireField(type, "_axesList", typeof(float[]), false);
+            _currentPreset = RequireField(type, "_currentPreset", presetType, true);
+            _workingKeys = presetType.GetField("_workingKeyCombinations", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (_workingKeys?.FieldType.IsArray != true || _workingKeys.IsStatic)
+                throw new MissingFieldException("InputPreset working keys changed");
+            var update = RequireVoid(type, "Update", Type.EmptyTypes);
+            var destroy = RequireVoid(type, "OnDestroy", Type.EmptyTypes);
+            var collect = RequireVoid(presetType, "UpdateInput", new[] { _commands.FieldType, typeof(float[]), typeof(float) });
             BuildPassThrough(target);
-            new Harmony(Plugin.PluginGuid + ".inputblock").Patch(
+            Patches.Patch(update, prefix: Hook(nameof(BeforeUpdate)));
+            Patches.Patch(collect, postfix: Hook(nameof(AfterCollect)));
+            Patches.Patch(destroy, prefix: Hook(nameof(BeforeDestroy)));
+            Patches.Patch(
                 target,
-                prefix: new HarmonyMethod(AccessTools.Method(typeof(ArenaInputBlocker), nameof(Prefix))));
+                prefix: Hook(nameof(Prefix), Priority.Last),
+                postfix: Hook(nameof(AfterDispatch), Priority.Last));
+            _ready = true;
 
-            Plugin.ModLogger.LogDebug($"Arena input blocker installed on InputManager.{target.Name}.");
+            Plugin.ModLogger.LogInfo("Arena input blocker ready: panel close waits for released-pointer input delivery.");
         }
         catch (Exception ex)
         {
+            Shutdown();
             Plugin.ModLogger.LogWarning(
                 "Arena input blocker unavailable — the panel will free the cursor but not "
                 + $"suppress game input: {ex.Message}");
         }
+    }
+
+    private static HarmonyMethod Hook(string name, int priority = Priority.Normal)
+        => new(AccessTools.Method(typeof(ArenaInputBlocker), name)) { priority = priority };
+
+    private static FieldInfo RequireField(Type type, string name, Type fieldType, bool isStatic)
+    {
+        var field = type.GetField(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        if (field?.FieldType != fieldType || field.IsStatic != isStatic) throw new MissingFieldException(type.Name, name);
+        return field;
+    }
+
+    private static MethodInfo RequireVoid(Type type, string name, Type[] parameters)
+    {
+        var method = type.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+            null, parameters, null);
+        if (method == null || method.ReturnType != typeof(void)) throw new MissingMethodException(type.Name, name);
+        return method;
+    }
+
+    private static bool SyncScope()
+    {
+        var game = Singleton<AbstractGame>.Instance;
+        var world = Singleton<GameWorld>.Instance;
+        if (!ArenaSession.IsExactActiveRaid(game, world)) { ResetScope(); return false; }
+        if (!ReferenceEquals(game, _game) || !ReferenceEquals(world, _world))
+        {
+            ResetScope();
+            _game = game;
+            _world = world;
+        }
+        return true;
+    }
+
+    private static void ResetScope()
+    {
+        Owners.Clear();
+        ResetInput();
+        _game = null;
+        _world = null;
+    }
+
+    private static void ResetInput()
+    {
+        _manager = _preset = null;
+        _commandList = null;
+        _axisList = null;
+        _drain = _releaseCollected = false;
+        _generation++;
+    }
+
+    internal static void Shutdown()
+    {
+        lock (Owners)
+        {
+            _ready = _attempted = false;
+            try { Patches.UnpatchSelf(); }
+            catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena input blocker cleanup: {ex.Message}"); }
+            finally { ResetScope(); }
+        }
+    }
+
+    private static void BeforeUpdate(object __instance)
+    {
+        lock (Owners)
+        {
+            if (!_ready || !SyncScope() || !Equals(_main.GetValue(__instance), true)) return;
+            var preset = _currentPreset.GetValue(null);
+            var commands = _commands.GetValue(__instance) as IList;
+            var axes = _axes.GetValue(__instance) as float[];
+            // Preserve active UI owners when input is replaced, but never carry
+            // a pending old-manager release into a new input tree/preset.
+            if (_manager != null && (!ReferenceEquals(_manager, __instance) || !ReferenceEquals(_preset, preset)
+                || !ReferenceEquals(_commandList, commands) || !ReferenceEquals(_axisList, axes))) ResetInput();
+            _manager = __instance;
+            _preset = preset;
+            _commandList = commands;
+            _axisList = axes;
+        }
+    }
+
+    private static bool PointerReleased()
+    {
+        for (int i = 0; i < 3; i++)
+            if (Input.GetMouseButton(i) || Input.GetMouseButtonDown(i)) return false;
+        return true;
+    }
+
+    private static void AfterCollect(object __instance, IList __0, float[] __1)
+    {
+        lock (Owners)
+        {
+            if (!_ready || !SyncScope() || !ReferenceEquals(__instance, _preset)
+                || !ReferenceEquals(__0, _commandList) || !ReferenceEquals(__1, _axisList)) return;
+            _sample++;
+            // Normal native collection clears/rebuilds commands only when its
+            // working key array exists. A returned, uninitialized preset is not
+            // proof of a fresh batch. No artificial timer or frame count here.
+            if (_drain) _releaseCollected = _workingKeys.GetValue(__instance) != null && PointerReleased();
+        }
+    }
+
+    private static void BeforeDestroy(object __instance)
+    {
+        lock (Owners) if (ReferenceEquals(__instance, _manager)) ResetInput();
+    }
+
+    private static void Trace(string text)
+    {
+        if (_diagnostics++ < 24) Plugin.ModLogger.LogInfo("Arena panel input: " + text);
     }
 
     /// <summary>Matched by SIGNATURE so an SPT rename cannot break it silently.</summary>
@@ -137,29 +296,52 @@ internal static class ArenaInputBlocker
 
     // Positional injection (__0/__1): binding by parameter NAME would break
     // silently if an update renames them while the signature stays.
-    private static void Prefix(IList __0, float[] __1)
+    private static void Prefix(object __instance, IList __0, float[] __1, out long __state)
     {
-        if (!Blocked)
-            return;
-
-        if (__0 != null)
+        __state = -1;
+        lock (Owners)
         {
-            if (_passThrough == null)
+            if (!_ready || !SyncScope() || (Owners.Count == 0 && !_drain)) return;
+
+            if (__0 != null)
             {
-                __0.Clear();
-            }
-            else
-            {
-                // Keep the release half of every press/release pair; drop the rest.
-                for (var i = __0.Count - 1; i >= 0; i--)
+                if (_passThrough == null)
                 {
-                    if (!_passThrough.Contains(Convert.ToInt32(__0[i])))
-                        __0.RemoveAt(i);
+                    __0.Clear();
+                }
+                else
+                {
+                    // Preserve the established release-command whitelist.
+                    for (var i = __0.Count - 1; i >= 0; i--)
+                    {
+                        if (!_passThrough.Contains(Convert.ToInt32(__0[i])))
+                        {
+                            if (_drain && string.Equals(__0[i].ToString(), "ToggleShooting", StringComparison.Ordinal)) _shotCommands++;
+                            __0.RemoveAt(i);
+                        }
+                    }
                 }
             }
-        }
 
-        if (__1 != null)
-            Array.Clear(__1, 0, __1.Length);
+            if (__1 != null)
+                Array.Clear(__1, 0, __1.Length);
+            // SuperSmooth dispatches a DIFFERENT empty list first. Only the real
+            // freshly collected batch can complete this release, even if it is empty.
+            if (_drain && _releaseCollected && Owners.Count == 0 && PointerReleased()
+                && ReferenceEquals(__instance, _manager) && ReferenceEquals(__0, _commandList)
+                && ReferenceEquals(__1, _axisList)) __state = _generation;
+        }
+    }
+
+    private static void AfterDispatch(long __state)
+    {
+        lock (Owners)
+        {
+            // The original delivery has consumed the filtered batch. Reopening
+            // or a new close during delivery cannot release another owner's vote.
+            if (__state < 0 || !SyncScope() || !_drain || __state != _generation || Owners.Count > 0) return;
+            _drain = _releaseCollected = false;
+            Trace($"close {_generation} released; sample={_sample}, blockedShotCommands={_shotCommands}");
+        }
     }
 }

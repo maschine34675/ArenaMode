@@ -44,7 +44,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
     private void OnDestroy()
     {
         SetCursor(false);
-        ArenaInputBlocker.Request(this, false);
+        ArenaInputBlocker.Request(this, false, drainOnRelease: true);
     }
 
     private void SetCursor(bool show) => CursorVote.Set(this, show);
@@ -116,7 +116,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         // Set first and unconditionally, driven off the state rather than the
         // transition: a stranded block would leave the player unable to move or
         // shoot for the rest of the raid, and this way any desync self-heals.
-        ArenaInputBlocker.Request(this, open);
+        ArenaInputBlocker.Request(this, open, drainOnRelease: true);
 
         if (open)
             _nextCursorRetry = Time.unscaledTime + 0.5f;

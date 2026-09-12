@@ -141,5 +141,6 @@ public class Plugin : BaseUnityPlugin
         Audio.LabyrinthAlarmPatches.Shutdown();
         LabyrinthSpawnTraps.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();
+        Hud.ArenaInputBlocker.Shutdown();
     }
 }

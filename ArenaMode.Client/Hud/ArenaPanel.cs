@@ -149,7 +149,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         // The cursor vote frees the pointer; it does not stop the game from
         // consuming clicks and mouse axes — without this, clicking a toggle
         // fires the weapon and dragging the window turns the character.
-        ArenaInputBlocker.Request(this, open);
+        ArenaInputBlocker.Request(this, open, drainOnRelease: true);
         // IMGUI and the HUD canvas have independent draw orders. Remove the
         // duplicate result now, even if the HUD already ticked this frame.
         // This optional refresh must never prevent input/cursor cleanup.

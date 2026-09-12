@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <BlockerSource Condition="'$(BlockerSource)' == ''">../../ArenaMode.Client/Hud/ArenaInputBlocker.cs</BlockerSource>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="$(BlockerSource)" Link="Production/ArenaInputBlocker.cs" /></ItemGroup>
+</Project>
