@@ -55,6 +55,9 @@ internal sealed class ArenaAssemblyBanner
         if (!ArenaSession.IsActive || !ReferenceEquals(match, ArenaMatchService.Current)
             || !Singleton<GameWorld>.Instantiated || !Singleton<AbstractGame>.Instantiated
             || !ArenaSession.IsExactActiveRaid(Singleton<AbstractGame>.Instance, Singleton<GameWorld>.Instance)
+            // The open scoreboard already owns heading, detail and exit timer.
+            // Keep preparation notices; they are not duplicated result panels.
+            || (ArenaPanel.IsVisible && ArenaMatchResult.HasResult(match?.Mode))
             || !notice)
         {
             // Never wait for the refresh timer to remove an obsolete notice.

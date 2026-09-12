@@ -102,6 +102,8 @@ internal static class ArenaHud
         }
     }
 
+    internal static void RefreshMatchNotice() => _assembly?.Tick(_match);
+
     private static void Build(ArenaMatch match)
     {
         _canvasGo = new GameObject("ArenaHudCanvas");

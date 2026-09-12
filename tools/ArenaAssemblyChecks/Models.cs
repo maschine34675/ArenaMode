@@ -37,6 +37,8 @@ namespace TMPro
 }
 namespace ArenaMode.Hud
 {
+    internal static class ArenaPanel { internal static bool IsVisible; }
+    internal static class ScorePanel { internal const float TopOffset = 114f, PanelHeight = 56f; }
     internal static class HudStyle
     {
         public static readonly Dictionary<string, TMPro.TextMeshProUGUI> Texts = new();
@@ -60,6 +62,14 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Modes
 {
+    public sealed class RoundsMode
+    {
+        public bool Visible;
+        public string Heading, Detail;
+        public bool TryGetMatchNotice(out string heading, out string detail)
+        { heading = Heading; detail = Detail; return Visible; }
+    }
+    public static class ArenaMatchResult { public static bool HasResult(object mode) => HasTerminalResult; public static bool HasTerminalResult; }
     public sealed class TeamDeathmatchMode
     {
         public bool Visible;

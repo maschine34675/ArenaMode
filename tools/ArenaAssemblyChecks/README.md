@@ -28,3 +28,7 @@ timing review; rejected wrong-phase/normal-raid/premature-ready variants; final
 layout and input review. Both text lines fit the 900 by 90 HUD-scaled backdrop,
 below the score and above the crosshair/callout region. GPU confirmation remains
 required, including different display aspect ratios and protected round rebind.
+
+2026-09-12 r3: current helper passes 44 assertions and rejects five faults.
+Terminal banner yields to visible F9 and returns on close; preparation remains.
+The helper models panel visibility, so actual IMGUI transitions remain GPU work.

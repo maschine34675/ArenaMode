@@ -64,4 +64,20 @@ Time.unscaledTime++; banner.Tick(match);
 Check(root.activeSelf && HudStyle.Texts["AssemblyHeading"].text == "VICTORY", "TDM terminal result is rendered by shared banner");
 ArenaSession.Exact = false; banner.Tick(match);
 Check(!root.activeSelf, "TDM stale raid result cannot show banner");
+ArenaSession.Exact = true;
+foreach (var mode in new object[] { tdm, new RoundsMode { Visible = true, Heading = "DEFEAT", Detail = "Round limit" } })
+{
+    match.Mode = mode;
+    ArenaMatchResult.HasTerminalResult = true;
+    ArenaPanel.IsVisible = false;
+    Time.unscaledTime++; banner.Tick(match);
+    Check(root.activeSelf, "closed F9 retains terminal banner");
+    ArenaPanel.IsVisible = true; banner.Tick(match);
+    Check(!root.activeSelf, "open F9 hides duplicate result immediately before refresh");
+    ArenaPanel.IsVisible = false; banner.Tick(match);
+    Check(root.activeSelf, "closing F9 restores terminal banner in same frame");
+    ArenaPanel.IsVisible = true; ArenaMatchResult.HasTerminalResult = false; banner.Tick(match);
+    Check(root.activeSelf, "F9 does not suppress preparation notices");
+}
+ArenaPanel.IsVisible = false;
 Console.WriteLine($"ARENA_ASSEMBLY_CHECKS_PASSED ({checks} assertions)");

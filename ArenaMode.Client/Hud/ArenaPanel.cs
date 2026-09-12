@@ -21,6 +21,10 @@ internal sealed class ArenaPanel : MonoBehaviour
 {
     private const int WindowId = 0x4A5E01;
 
+    private static ArenaPanel _visiblePanel;
+    internal static bool IsVisible => _visiblePanel != null && _visiblePanel.isActiveAndEnabled
+        && _visiblePanel._open && ArenaSession.IsActive && IsBattleUiActive();
+
     private bool _open;
     private bool _autoOpened;
     private bool _autoOpenHandled;
@@ -45,12 +49,14 @@ internal sealed class ArenaPanel : MonoBehaviour
     private GUIStyle _mutedStyle;
     private GUIStyle _buttonStyle;
 
-    private void OnDestroy()
+    private void OnDisable()
     {
-        SetCursor(false);
-        ArenaInputBlocker.Request(this, false);
-        ClearScoreboardCache();
+        _autoOpened = false;
+        _autoOpenHandled = false;
+        SetOpen(false);
     }
+
+    private void OnDestroy() => OnDisable();
 
     private void SetCursor(bool show) => CursorVote.Set(this, show);
 
@@ -131,6 +137,8 @@ internal sealed class ArenaPanel : MonoBehaviour
     private void SetOpen(bool open)
     {
         _open = open;
+        if (open) _visiblePanel = this;
+        else if (ReferenceEquals(_visiblePanel, this)) _visiblePanel = null;
         if (!open)
             ClearScoreboardCache();
 
@@ -142,6 +150,11 @@ internal sealed class ArenaPanel : MonoBehaviour
         // consuming clicks and mouse axes — without this, clicking a toggle
         // fires the weapon and dragging the window turns the character.
         ArenaInputBlocker.Request(this, open);
+        // IMGUI and the HUD canvas have independent draw orders. Remove the
+        // duplicate result now, even if the HUD already ticked this frame.
+        // This optional refresh must never prevent input/cursor cleanup.
+        try { ArenaHud.RefreshMatchNotice(); }
+        catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena result notice refresh failed: " + ex.Message); }
         if (open)
             _nextCursorRetry = Time.unscaledTime + 0.5f;
 

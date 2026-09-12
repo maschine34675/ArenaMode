@@ -5,6 +5,12 @@ $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $scratch = Join-Path ([IO.Path]::GetTempPath()) ('arena-assembly-' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($scratch)
 $mutants = @(
+    @{ Name='DuplicateResult'; Path='ArenaMode.Client/Hud/ArenaAssemblyBanner.cs'; Property='BannerSource';
+       From='|| (ArenaPanel.IsVisible && ArenaMatchResult.HasResult(match?.Mode))'; To='';
+       Failure='open F9 hides duplicate result immediately before refresh' },
+    @{ Name='LostPreparation'; Path='ArenaMode.Client/Hud/ArenaAssemblyBanner.cs'; Property='BannerSource';
+       From='ArenaPanel.IsVisible && ArenaMatchResult.HasResult(match?.Mode)'; To='ArenaPanel.IsVisible';
+       Failure='F9 does not suppress preparation notices' },
     @{ Name='LiveNotice'; Path='ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs'; Property='NoticeSource';
        From='_teamArena && _phase == Phase.Staging'; To='_teamArena && (_phase == Phase.Staging || _phase == Phase.Live)';
        Failure='combat/end hides immediately before refresh timer' },
