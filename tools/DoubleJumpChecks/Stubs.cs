@@ -8,15 +8,20 @@ namespace UnityEngine
     public struct Vector3(float x, float y, float z)
     {
         public float x = x, y = y, z = z;
+        public static Vector3 zero => new(0, 0, 0);
+        public static Vector3 up => new(0, 1, 0);
         public static Vector3 operator *(Vector3 value, float multiplier)
             => new(value.x * multiplier, value.y * multiplier, value.z * multiplier);
+        public static Vector3 operator *(float multiplier, Vector3 value) => value * multiplier;
     }
     public struct Vector2(float x, float y) { public float x = x, y = y; }
     public static class Physics { public static Vector3 gravity = new(0, -9.81f, 0); }
+    public static class Time { public static float realtimeSinceStartup = 10; }
     public static class Mathf
     {
         public static float Sqrt(float value) => MathF.Sqrt(value);
         public static float Clamp(float value, float min, float max) => Math.Clamp(value, min, max);
+        public static float Lerp(float a, float b, float t) => a + (b - a) * Clamp(t, 0, 1);
     }
 }
 namespace Comfort.Common
@@ -61,6 +66,7 @@ namespace ArenaMode.Config
         public static readonly Setting<bool> MovementEnabled = new(true);
         public static readonly Setting<bool> DoubleJumpEnabled = new(true);
         public static readonly Setting<float> DoubleJumpHeightMult = new(0.8f);
+        public static readonly Setting<float> JumpHeightMult = new(1f);
     }
 }
 namespace ArenaMode.Hud { public static class ArenaInputBlocker { public static bool Blocked; } }
@@ -105,6 +111,12 @@ namespace EFT
     }
     public class VaultingConfiguration { public float VaultingInputTime = 0.2f; }
     public sealed class HealthController { public bool IsAlive = true; }
+    public sealed class CharacterController { public bool isGrounded; }
+    public sealed class PlayerAnimator
+    {
+        public bool Jump;
+        public bool IsJumpSetted() => Jump;
+    }
     public sealed class Physical
     {
         public bool CanJump = true;
@@ -126,6 +138,7 @@ namespace EFT
         public bool IsInventoryOpened;
         public HealthController HealthController = new();
         public Physical Physical = new();
+        public CharacterController CharacterController = new();
         public MovementContext MovementContext;
         public MovementState CurrentManagedState;
         public float _vaultingTiming;
@@ -137,6 +150,13 @@ namespace EFT
         public bool IsInMountedState;
         public bool CanJump = true;
         public bool Vaulting;
+        public float PoseLevel = 1;
+        public float Overweight;
+        public EPhysicalCondition Conditions;
+        public int NativeRequests;
+        public Action OnNativeRequest;
+        public Action OnNoise;
+        public PlayerAnimator PlayerAnimator = new();
         public UnityEngine.Vector3 TransformPosition = new(12, 19, 24);
         public float FreefallTime = 1.2f;
         public float _startFallingHeight = 23;
@@ -144,9 +164,22 @@ namespace EFT
         public int Noises;
         public bool ThrowOnNoise;
         public bool PlayerAnimatorGetIsVaulting() => Vaulting;
+        public bool PhysicalConditionContainsAny(EPhysicalCondition flags) => (Conditions & flags) != 0;
+        public bool PhysicalConditionIs(EPhysicalCondition flag) => (Conditions & flag) == flag;
+        public void CheckFlying(float deltaTime) { }
+        public void PlayerAnimatorEnableJump(bool enabled) => PlayerAnimator.Jump = enabled;
+        public void TryJump()
+        {
+            if (!Comfort.Common.Singleton<GameWorld>.Instance.MainPlayer.Physical.CanJump || !CanJump) return;
+            NativeRequests++;
+            EmitJumpNoise();
+            PlayerAnimatorEnableJump(true);
+            OnNativeRequest?.Invoke();
+        }
         public void EmitJumpNoise()
         {
             Noises++;
+            OnNoise?.Invoke();
             if (ThrowOnNoise) throw new InvalidOperationException("noise callback failed");
         }
     }
@@ -166,10 +199,19 @@ namespace EFT
         public int _framesWithoutMotion = 2;
         public bool _hasLastHeight = true;
         public float _lastPlayerHeight = 20;
-        public void Enter(bool isFromSameState) { }
+        public virtual void Enter(bool isFromSameState) { }
         public void Exit(bool toSameState) { }
     }
-    public sealed class FallDownPlayerState(MovementContext context) : JumpPlayerState(context) { }
+    public sealed class FallDown(MovementContext context) : JumpPlayerState(context)
+    {
+        public override void Enter(bool isFromSameState) { }
+    }
+    public class IdlePlayerState(MovementContext context) : MovementState(context) { }
+    public class MovePlayerState(MovementContext context) : MovementState(context) { }
+    public class SprintPlayerState(MovementContext context) : MovePlayerState(context) { }
+    public class JumpLandingState(MovementContext context) : MovementState(context) { }
+    public class OtherJumpState(MovementContext context) : JumpPlayerState(context) { }
+    [Flags] public enum EPhysicalCondition { LeftLegDamaged = 1, RightLegDamaged = 2, OnPainkillers = 4 }
     public class MoveInputTranslator(Player controller)
     {
         public Player _controller = controller;
@@ -187,6 +229,8 @@ namespace EFT.InputSystem
 }
 namespace HarmonyLib
 {
+    [AttributeUsage(AttributeTargets.Method)] public sealed class HarmonyPriority(int priority) : Attribute { public int Priority = priority; }
+    public static class Priority { public const int Last = 0; }
     public static class AccessTools
     {
         public delegate ref F FieldRef<T, F>(T instance);
@@ -199,6 +243,17 @@ namespace HarmonyLib
         public static MethodInfo DeclaredMethod(Type type, string name)
             => type.GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly);
     }
+}
+public sealed class TestLiftCurve
+{
+    public float Value = 8;
+    public float LastSpeed;
+    public float Evaluate(float speed) { LastSpeed = speed; return Value; }
+}
+public sealed class EFTHardSettings
+{
+    public static EFTHardSettings Instance = new();
+    public readonly TestLiftCurve LIFT_VELOCITY_BY_SPEED = new();
 }
 namespace SPT.Reflection.Patching
 {

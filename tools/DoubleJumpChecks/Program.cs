@@ -8,6 +8,7 @@ using ArenaMode.Spectator;
 using Comfort.Common;
 using EFT;
 using EFT.InputSystem;
+using HarmonyLib;
 using Redeploy.Core.Engine;
 using SPT.Reflection.Patching;
 using UnityEngine;
@@ -24,10 +25,9 @@ internal static class Program
     private static bool Same(Vector3 a, Vector3 b) => a.x == b.x && a.y == b.y && a.z == b.z;
     private static readonly BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
     private static object Invoke(string patch, string method, params object[] arguments)
-    {
-        var type = typeof(ArenaDoubleJump).GetNestedType(patch, BindingFlags.NonPublic);
-        return type.GetMethod(method, PrivateStatic).Invoke(null, arguments);
-    }
+        => typeof(ArenaDoubleJump).GetNestedType(patch, BindingFlags.NonPublic)
+            .GetMethod(method, PrivateStatic).Invoke(null, arguments);
+
     private sealed class Fixture
     {
         internal readonly MovementContext Context = new();
@@ -35,32 +35,50 @@ internal static class Program
         internal JumpPlayerState Jump;
         internal readonly MoveInputTranslator Translator;
         internal readonly GameWorld World;
-        internal Fixture(bool enter = true, bool falling = false)
+        internal Fixture(bool falling = false, bool observe = true)
         {
             ArenaDoubleJump.Shutdown();
-            ModulePatch.Registrations.Clear();
-            ModulePatch.FailAfter = int.MaxValue;
-            ArenaMode.Plugin.ModLogger.Debug.Clear();
-            Settings.MovementEnabled.Value = true;
-            Settings.DoubleJumpEnabled.Value = true;
-            Settings.DoubleJumpHeightMult.Value = 0.8f;
+            ModulePatch.Registrations.Clear(); ModulePatch.FailAfter = int.MaxValue;
+            Settings.MovementEnabled.Value = Settings.DoubleJumpEnabled.Value = true;
+            Settings.DoubleJumpHeightMult.Value = 0.8f; Settings.JumpHeightMult.Value = 1;
             ArenaAirVault.Pending = false;
             ArenaInputBlocker.Blocked = ArenaRespawnDriver.IsRespawnInProgress = ArenaSpectatorService.IsActive = false;
             ArenaSession.IsActive = true;
-            Jump = falling ? new FallDownPlayerState(Context) : new JumpPlayerState(Context);
+            Jump = falling ? new FallDown(Context) { _liftForce = Vector3.zero } : new JumpPlayerState(Context);
             Player = new Player { MovementContext = Context, CurrentManagedState = Jump };
             Translator = new MoveInputTranslator(Player);
             World = new GameWorld { MainPlayer = Player };
             Singleton<GameWorld>.Instance = ArenaSession.ActiveWorld = World;
             Singleton<AbstractGame>.Instance = ArenaSession.ActiveGame = new AbstractGame();
             Singleton<GlobalConfiguration>.Instance = new GlobalConfiguration();
+            EFTHardSettings.Instance = new(); Time.realtimeSinceStartup = 10;
             Physics.gravity = new Vector3(0, -9.81f, 0);
             ArenaDoubleJump.Enable();
-            if (enter) Enter();
+            if (observe) Tick();
         }
-        internal void Enter(bool same = false) => Invoke("JumpEnterPatch", "Postfix", Jump, same);
-        internal void Exit() => Invoke("JumpExitPatch", "Prefix", Jump);
-        internal void Airborne() => Context.IsGrounded = false;
+        internal void Tick() => Invoke("LandingPatch", "Postfix", Context);
+        internal void Airborne() { Context.IsGrounded = false; Player.CharacterController.isGrounded = false; }
+        internal void Land()
+        {
+            Context.IsGrounded = Player.CharacterController.isGrounded = true;
+            Jump._currentLiftforce.y = -1; Jump._jumpState = JumpPlayerState.EJumpState.Jump;
+            Tick();
+        }
+        internal void Entry(JumpPlayerState state, bool nativeDebit = false, Action duringNative = null)
+        {
+            Jump = state; Player.CurrentManagedState = state;
+            string patch = state is FallDown ? "FallEnterPatch" : "JumpEnterPatch";
+            object[] args = { state, null };
+            Invoke(patch, "Prefix", args);
+            if (nativeDebit) Player.Physical.OnJump(true);
+            duringNative?.Invoke();
+            Invoke(patch, "Postfix", state, args[1]);
+        }
+        internal void EarlyEdge(int kind = 0)
+        {
+            Player.CurrentManagedState = kind switch { 1 => new MovePlayerState(Context), 2 => new SprintPlayerState(Context), _ => new IdlePlayerState(Context) };
+            Airborne(); Context.TransformPosition.y -= 0.01f;
+        }
         internal void Press(Action native = null, ECommand command = ECommand.Jump)
         {
             object[] args = { Translator, command, null };
@@ -72,39 +90,49 @@ internal static class Program
     private static void Denied(Fixture f, string name)
     {
         float clock = f.Jump._stateTime;
-        Vector3 velocity = f.Jump._currentLiftforce;
-        Vector3 lift = f.Jump._liftForce;
-        int debits = f.Player.Physical?.Debits ?? 0, noises = f.Context.Noises;
+        Vector3 velocity = f.Jump._currentLiftforce, lift = f.Jump._liftForce;
+        int debits = f.Player.Physical?.Debits ?? 0, noises = f.Context.Noises, requests = f.Context.NativeRequests;
         f.Press();
-        Check((f.Player.Physical?.Debits ?? 0) == debits && f.Context.Noises == noises
+        Check((f.Player.Physical?.Debits ?? 0) == debits && f.Context.Noises == noises && f.Context.NativeRequests == requests
             && f.Jump._stateTime.Equals(clock) && Same(f.Jump._currentLiftforce, velocity)
             && f.Jump._liftForce.x.Equals(lift.x) && f.Jump._liftForce.y.Equals(lift.y) && f.Jump._liftForce.z.Equals(lift.z), name);
     }
     private static void SuccessfulImpulse()
     {
+        foreach (bool falling in new[] { false, true })
         foreach (float beforeY in new[] { 4f, -5f })
         {
-            var f = new Fixture(); f.Airborne();
-            f.Jump._currentLiftforce = new Vector3(0, beforeY, 0);
-            var horizontal = f.Jump._initialNormalizedDirection;
-            var gravity = Physics.gravity;
+            var f = new Fixture(falling); f.Airborne();
+            f.Jump._currentLiftforce.y = beforeY;
+            var horizontal = f.Jump._initialNormalizedDirection; var gravity = Physics.gravity;
             f.Press();
-            Check(f.Player.Physical.Debits == 1 && f.Context.Noises == 1, "ascending and descending jumps debit once and emit one noise");
-            Check(Near(f.Jump._currentLiftforce.y, 8 * 1.25f * MathF.Sqrt(0.8f)), "height ratio uses square root once after existing lift and skill");
-            Check(Near(f.Jump._liftForce.y, 8 * MathF.Sqrt(0.8f)), "native lift retained at configured second-jump strength");
+            Check(f.Player.Physical.Debits == 1 && f.Context.Noises == 1, falling
+                ? "walking off edge receives one deliberate impulse and debit" : "ascending and descending jumps debit once and emit one noise");
+            Check(Near(f.Jump._currentLiftforce.y, 10 * MathF.Sqrt(0.8f)), "height ratio applies once to native lift and skill");
             Check(f.Jump._stateTime == f.Jump._liftDelay, "extra impulse restarts native vertical clock");
-            Check(f.Jump._potentialH == f.Context.TransformPosition.y, "extra impulse resets potential height to actual body height");
-            Check(f.Jump._timeDescending == 0 && f.Jump._framesWithoutMotion == 0 && !f.Jump._hasLastHeight,
-                "extra impulse clears descending and stale height history");
+            Check(f.Jump._potentialH == f.Context.TransformPosition.y && f.Jump._timeDescending == 0
+                && f.Jump._framesWithoutMotion == 0 && !f.Jump._hasLastHeight, "impulse clears stale native height and descending history");
             Check(Same(horizontal, f.Jump._initialNormalizedDirection) && f.Jump._initialMagnitude == 4.5f
                 && f.Jump._currentMagnitude == 3.5f && f.Jump._moveDirection.x == 0.5f && f.Jump._moveDirection.y == 0.9f,
                 "extra impulse preserves horizontal motion");
             Check(Same(gravity, Physics.gravity) && f.Context.FreefallTime == 1.2f && f.Context._startFallingHeight == 23
                 && f.Context.FallHeight == 4 && f.Jump._lastPlayerHeight == 20 && f.Jump._peakTime == 0.6f,
                 "extra impulse preserves gravity and native fall damage fields");
-            Check(f.Jump._skilledBoost == 1.25f && f.Jump._jumpState == JumpPlayerState.EJumpState.Jump,
-                "extra impulse preserves skilled boost and native managed state");
             for (int i = 0; i < 4; i++) Denied(f, "spent credit denies repeated input");
+        }
+        var fresh = new Fixture(falling: true, observe: false); fresh.Airborne(); fresh.Press();
+        Check(fresh.Player.Physical.Debits == 1 && fresh.Jump._currentLiftforce.y > 0,
+            "fresh falling body needs no preceding observed ground jump");
+        foreach (float multiplier in new[] { 0.8f, 1.5f })
+        {
+            var retained = new Fixture(); retained.Airborne(); Settings.DoubleJumpHeightMult.Value = multiplier;
+            retained.Press(); float first = retained.Jump._currentLiftforce.y;
+            for (int episode = 0; episode < 3; episode++)
+            {
+                retained.Land(); retained.Airborne(); retained.Press();
+                Check(retained.Player.Physical.Debits == episode + 2, "genuine landing restores the reused jump credit");
+                Check(Near(retained.Jump._currentLiftforce.y, first), "reused native jump state cannot compound height across landings");
+            }
         }
     }
     private static void IdentityAndFeatureGuards()
@@ -126,7 +154,6 @@ internal static class Program
             ("foreign movement context denies", f => f.Player.MovementContext = new MovementContext()),
             ("foreign translator body denies", f => f.Translator._controller = new Player { MovementContext = f.Context, CurrentManagedState = f.Jump }),
             ("missing translator body denies", f => f.Translator._controller = null),
-            ("foreign managed state denies", f => f.Player.CurrentManagedState = new JumpPlayerState(f.Context)),
             ("missing game world denies", f => Singleton<GameWorld>.Instance = null),
             ("missing active game denies", f => Singleton<AbstractGame>.Instance = null),
             ("stale active game denies", f => Singleton<AbstractGame>.Instance = new AbstractGame()),
@@ -144,182 +171,246 @@ internal static class Program
             ("vault animation denies", f => f.Context.Vaulting = true),
             ("pending native mantle takes precedence", f => ArenaAirVault.Pending = true),
         };
+        foreach (bool falling in new[] { false, true })
         foreach (var test in cases)
         {
-            var f = new Fixture(); f.Airborne(); test.Change(f); Denied(f, test.Name);
+            var f = new Fixture(falling); f.Airborne(); test.Change(f); Denied(f, test.Name);
         }
-        var changedBody = new Fixture(); changedBody.Airborne();
-        var replacement = new Player { MovementContext = changedBody.Context, CurrentManagedState = changedBody.Jump };
-        changedBody.World.MainPlayer = replacement;
-        changedBody.Translator._controller = replacement;
-        changedBody.Press();
-        Check(replacement.Physical.Debits == 0 && changedBody.Context.Noises == 0, "credit cannot transfer to replacement body sharing state");
-        var changedWorld = new Fixture(); changedWorld.Airborne();
-        Singleton<GameWorld>.Instance = ArenaSession.ActiveWorld = new GameWorld { MainPlayer = changedWorld.Player };
-        Denied(changedWorld, "credit cannot transfer into newly active world");
-        var fall = new Fixture(falling: true); fall.Airborne(); Denied(fall, "FallDown subclass never grants rescue credit");
+        var derived = new Fixture(); derived.Jump = new OtherJumpState(derived.Context);
+        derived.Player.CurrentManagedState = derived.Jump; derived.Airborne(); Denied(derived, "unknown jump subclasses remain excluded");
+        var grounded = new Fixture(); grounded.Press(() => grounded.Airborne());
+        Check(grounded.Player.Physical.Debits == 0, "native grounded press cannot become an extra press");
+        var other = new Fixture(); other.Airborne(); other.Press(command: ECommand.ReloadWeapon);
+        Check(other.Player.Physical.Debits == 0, "unrelated command leaves credit untouched");
+        other.Press(); Check(other.Player.Physical.Debits == 1, "configured jump after unrelated input still works");
     }
-    private static void NativeCommandAndCreditLifecycle()
+    private static void EpisodeLifecycle()
     {
-        var f = new Fixture(enter: false);
-        f.Player.CurrentManagedState = new MovementState(f.Context);
-        f.Press(() => { f.Player.CurrentManagedState = f.Jump; f.Enter(); f.Airborne(); });
-        Check(f.Player.Physical.Debits == 0, "native ground press cannot become second press after state transition");
-        f.Press(); Check(f.Player.Physical.Debits == 1, "following airborne press consumes fresh ground jump credit");
-        f.Exit(); Denied(f, "exit removes credit");
-        f.Enter(); Denied(f, "airborne fresh entry cannot create credit");
-        f.Context.IsGrounded = true; f.Enter(same: true); f.Airborne();
-        Denied(f, "same-state grounded reentry cannot create credit");
-        f.Exit(); f.Context.IsGrounded = true; f.Enter(); f.Airborne();
-        f.Press(); Check(f.Player.Physical.Debits == 2, "exit and fresh landed entry restore one credit");
-        f.Enter(); Denied(f, "airborne reentry cannot refill spent credit");
-        var command = new Fixture(); command.Airborne();
-        command.Press(command: ECommand.ReloadWeapon);
-        Check(command.Player.Physical.Debits == 0, "non-jump command leaves credit untouched");
-        command.Press(); Check(command.Player.Physical.Debits == 1, "jump after other command still works");
-        var grounded = new Fixture();
-        grounded.Press(() => grounded.Airborne());
-        Check(grounded.Player.Physical.Debits == 0, "grounded jump press is never captured even when original clears grounded");
-        var changed = new Fixture(); changed.Airborne();
-        changed.Press(() => changed.Player.CurrentManagedState = new MovementState(changed.Context));
-        Check(changed.Player.Physical.Debits == 0, "original translator state change invalidates captured jump");
-        var changedController = new Fixture(); changedController.Airborne();
-        changedController.Press(() => changedController.Translator._controller = new Player());
-        Check(changedController.Player.Physical.Debits == 0, "original translator controller change invalidates captured jump");
-        var landed = new Fixture(); landed.Airborne(); landed.Press(() => landed.Context.IsGrounded = true);
-        Check(landed.Player.Physical.Debits == 0, "landing between prefix and postfix denies impulse");
-        var blocked = new Fixture(); blocked.Airborne(); blocked.Press(() => ArenaInputBlocker.Blocked = true);
-        Check(blocked.Player.Physical.Debits == 0, "UI activation between prefix and postfix denies impulse");
-        var reused = new Fixture(); reused.Airborne();
-        reused.Press(() => { reused.Exit(); reused.Context.IsGrounded = true; reused.Enter(); reused.Airborne(); });
-        Check(reused.Player.Physical.Debits == 0, "same-object exit and entry cannot replace captured credit");
-        reused.Press(); Check(reused.Player.Physical.Debits == 1, "new input may consume legitimate replacement credit");
-        foreach (var feature in new[] { Settings.DoubleJumpEnabled, Settings.MovementEnabled })
+        var f = new Fixture(); f.Airborne(); f.Press();
+        for (int i = 0; i < 8; i++)
         {
-            var toggled = new Fixture(); toggled.Airborne(); feature.Value = false; feature.Value = true;
-            Denied(toggled, "toggle cycle cannot resurrect airborne credit");
+            f.Entry(i % 2 == 0 ? new FallDown(f.Context) { _liftForce = Vector3.zero } : new JumpPlayerState(f.Context));
+            Denied(f, "Jump FallDown transitions cannot replenish airborne credit");
+            f.Entry(f.Jump); Denied(f, "same state reentry cannot replenish airborne credit");
         }
-        var ended = new Fixture(); ended.Airborne(); RaidLifecycle.End();
-        Denied(ended, "raid end clears credit even before singleton release");
+        f.Context.IsGrounded = true; f.Jump._currentLiftforce.y = -1; f.Tick(); f.Airborne();
+        Denied(f, "ground proximity ray alone cannot replenish credit");
+        f.Context.IsGrounded = f.Player.CharacterController.isGrounded = true; f.Jump._currentLiftforce.y = 3; f.Tick(); f.Airborne();
+        Denied(f, "upward native controller contact cannot replenish credit");
+        f.Context.IsGrounded = f.Player.CharacterController.isGrounded = true;
+        f.Jump._currentLiftforce.y = 0; f.Jump._jumpState = JumpPlayerState.EJumpState.PushingFromTheGround;
+        f.Tick(); f.Airborne(); f.Jump._jumpState = JumpPlayerState.EJumpState.Jump;
+        Denied(f, "native push phase contact cannot replenish credit");
+        f.Land(); f.Airborne(); f.Press();
+        Check(f.Player.Physical.Debits == 2, "genuine landing restores exactly one airborne credit");
+        Denied(f, "next episode also remains one use");
+        foreach (var setting in new[] { Settings.DoubleJumpEnabled, Settings.MovementEnabled })
+        {
+            var toggled = new Fixture(falling: true); toggled.Airborne(); toggled.Press();
+            ArenaInputBlocker.Blocked = true; setting.Value = false; setting.Value = true; ArenaInputBlocker.Blocked = false;
+            Denied(toggled, "settings toggle cannot restore spent credit while UI blocked");
+            toggled.Land(); toggled.Airborne(); toggled.Press();
+            Check(toggled.Player.Physical.Debits == 2, "landing restores feature after airborne toggle");
+            var unspent = new Fixture(falling: true); unspent.Airborne(); setting.Value = false; setting.Value = true;
+            Denied(unspent, "settings toggle invalidates outstanding unspent credit");
+            var grounded = new Fixture(); grounded.Player.CharacterController.isGrounded = true;
+            setting.Value = false; setting.Value = true; grounded.Airborne(); grounded.Press();
+            Check(grounded.Player.Physical.Debits == 1, "grounded setting toggle preserves next airborne credit");
+        }
+        var body = new Fixture(); body.Airborne(); body.Press();
+        var replacement = new Player { MovementContext = body.Context, CurrentManagedState = new FallDown(body.Context) { _liftForce = Vector3.zero } };
+        body.World.MainPlayer = body.Translator._controller = replacement; body.Press();
+        Check(replacement.Physical.Debits == 1, "fresh replacement falling body receives independent credit");
+        var world = new Fixture(falling: true); world.Airborne(); world.Press();
+        Singleton<GameWorld>.Instance = ArenaSession.ActiveWorld = new GameWorld { MainPlayer = world.Player };
+        world.Press(); Check(world.Player.Physical.Debits == 2, "new exact session world receives independent credit");
+        RaidLifecycle.End(); Denied(world, "raid end denies even before singleton teardown");
+    }
+    private static void EarlyLedgeNativeTransition()
+    {
+        foreach (int kind in new[] { 0, 1, 2 })
+        foreach (bool falling in new[] { false, true })
+        {
+            var f = new Fixture(); f.EarlyEdge(kind); f.Press();
+            Check(f.Context.NativeRequests == 1 && f.Player.Physical.Debits == 0 && f.Context.Noises == 1,
+                "centimetre edge press requests native transition without premature debit");
+            Denied(f, "pending native request cannot be repeated");
+            var entered = falling ? new FallDown(f.Context) { _liftForce = Vector3.zero }
+                : new JumpPlayerState(f.Context) { _jumpState = JumpPlayerState.EJumpState.PushingFromTheGround };
+            entered._currentLiftforce = Vector3.zero;
+            f.Entry(entered, nativeDebit: true);
+            Check(f.Player.Physical.Debits == 1 && f.Context.Noises == 1 && f.Jump._currentLiftforce.y > 0,
+                "successful native ledge entry owns one debit and one noise");
+            Check(f.Context.PlayerAnimator.Jump == !falling,
+                falling ? "FallDown completion releases only the owned native jump signal" : "native Jump completion retains its native jump signal");
+            Check(Near(f.Jump._currentLiftforce.y, 10 * MathF.Sqrt(0.8f)), "native ledge entry applies configured impulse once");
+            Denied(f, "native ledge completion cannot grant another extra jump");
+            f.Entry(new FallDown(f.Context) { _liftForce = Vector3.zero });
+            Denied(f, "native ledge credit survives later FallDown entry");
+        }
+        var failed = new Fixture(); failed.EarlyEdge(); failed.Press();
+        Time.realtimeSinceStartup += 1; failed.Tick();
+        Denied(failed, "failed native transition cannot retry indefinitely");
+        Check(!failed.Context.PlayerAnimator.Jump, "failed native transition expiry releases owned jump signal");
+        Check(failed.Player.Physical.Debits == 0, "failed native transition incurs no mod debit");
+        var expiredFall = new FallDown(failed.Context) { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero };
+        failed.Entry(expiredFall, nativeDebit: true);
+        Check(expiredFall._liftForce.y == 0 && failed.Player.Physical.Debits == 1, "expired request cannot lift later native fall");
+        var expired = new Fixture(); expired.EarlyEdge(); expired.Press(); Time.realtimeSinceStartup += 1;
+        var lateFall = new FallDown(expired.Context) { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero };
+        expired.Entry(lateFall, nativeDebit: true);
+        Check(lateFall._liftForce.y == 0, "expired request denied even before landing observer ticks");
+        var blocked = new Fixture(); blocked.EarlyEdge(); ArenaAirVault.Pending = true; Denied(blocked, "early edge preserves mantle precedence");
+        ArenaAirVault.Pending = false; blocked.Context.PoseLevel = 0.6f; Denied(blocked, "early edge preserves native low pose restriction");
+        var ordinary = new Fixture(); ordinary.EarlyEdge(); ArenaSession.IsActive = false; Denied(ordinary, "ordinary early edge never requests animator jump");
+        var cancelled = new Fixture(); cancelled.EarlyEdge(); cancelled.Press(); Settings.DoubleJumpEnabled.Value = false; Settings.DoubleJumpEnabled.Value = true;
+        var cancelledFall = new FallDown(cancelled.Context) { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero };
+        cancelled.Entry(cancelledFall, nativeDebit: true);
+        Check(cancelledFall._liftForce.y == 0, "settings cancellation cannot revive pending native lift");
+        Check(!cancelled.Context.PlayerAnimator.Jump, "settings cancellation releases owned native jump signal");
+        Denied(cancelled, "cancelled request retains spent episode credit");
+        var landed = new Fixture(); landed.EarlyEdge(); landed.Press(); landed.Land(); landed.Airborne();
+        var laterFall = new FallDown(landed.Context) { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero };
+        landed.Entry(laterFall, nativeDebit: true);
+        Check(laterFall._liftForce.y == 0, "landing cancels pending native lift");
+        landed.Press(); Check(landed.Player.Physical.Debits == 2, "fresh input works after pending request landing");
+        var preexisting = new Fixture(); preexisting.EarlyEdge(); preexisting.Context.PlayerAnimator.Jump = true;
+        Denied(preexisting, "preexisting native jump signal is never borrowed");
+        preexisting.Tick(); Settings.DoubleJumpEnabled.Value = false;
+        Check(preexisting.Context.PlayerAnimator.Jump, "unowned native jump signal survives cancellation");
+        var noiseCancel = new Fixture(); noiseCancel.EarlyEdge();
+        noiseCancel.Context.OnNoise = () => Settings.DoubleJumpEnabled.Value = false; noiseCancel.Press();
+        Check(!noiseCancel.Context.PlayerAnimator.Jump && noiseCancel.Player.Physical.Debits == 0,
+            "noise callback cancellation releases signal raised later by TryJump");
+        var synchronous = new Fixture(); synchronous.EarlyEdge();
+        synchronous.Context.OnNoise = () => synchronous.Entry(new FallDown(synchronous.Context)
+            { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero }, nativeDebit: true);
+        synchronous.Press();
+        Check(!synchronous.Context.PlayerAnimator.Jump && synchronous.Player.Physical.Debits == 1 && synchronous.Jump._liftForce.y > 0,
+            "synchronous FallDown completion cannot leave later native jump signal");
+        var foreign = new Fixture(); foreign.EarlyEdge(); foreign.Press();
+        foreign.World.MainPlayer = new Player(); Settings.DoubleJumpEnabled.Value = false;
+        Check(foreign.Context.PlayerAnimator.Jump, "owned signal cleanup never writes a replaced body");
+        foreach (int kind in new[] { 1, 2 })
+        {
+            var moving = new Fixture(); moving.EarlyEdge(); moving.Press(); moving.EarlyEdge(kind);
+            Time.realtimeSinceStartup += 1; moving.Tick();
+            Check(!moving.Context.PlayerAnimator.Jump, "owned pending signal expires after Idle to Move Sprint transition");
+        }
+        var handoff = new Fixture(); handoff.EarlyEdge(); handoff.Press();
+        ArenaInputBlocker.Blocked = true;
+        handoff.Context.IsGrounded = handoff.Player.CharacterController.isGrounded = true; handoff.Tick();
+        ArenaInputBlocker.Blocked = false; handoff.Press(() => handoff.Context.TryJump()); handoff.Tick();
+        Check(handoff.Context.PlayerAnimator.Jump, "grounded native command takes signal ownership before delayed landing cleanup");
+    }
+    private static void CaptureAndDebitOwnership()
+    {
+        var callbacks = new (string Name, Action<Fixture> Change)[]
+        {
+            ("body swap during debit rejects impulse", f => f.World.MainPlayer = new Player { MovementContext = f.Context, CurrentManagedState = f.Jump }),
+            ("session replacement during debit rejects impulse", f => Singleton<GameWorld>.Instance = ArenaSession.ActiveWorld = new GameWorld { MainPlayer = f.Player }),
+            ("state change during debit rejects impulse", f => f.Player.CurrentManagedState = new MovementState(f.Context)),
+            ("same object reentry during debit rejects impulse", f => f.Entry(f.Jump)),
+            ("feature change during debit rejects impulse", f => Settings.DoubleJumpEnabled.Value = false),
+            ("raid end during debit rejects impulse", f => RaidLifecycle.End()),
+            ("landing during debit rejects impulse", f => f.Context.IsGrounded = true),
+            ("inventory during debit rejects impulse", f => f.Player.IsInventoryOpened = true),
+            ("shutdown during debit rejects impulse", f => ArenaDoubleJump.Shutdown()),
+        };
+        foreach (var callback in callbacks)
+        {
+            var f = new Fixture(); f.Airborne(); float before = f.Jump._stateTime;
+            f.Player.Physical.OnDebit = () => callback.Change(f); f.Press();
+            Check(f.Player.Physical.Debits == 1 && f.Context.Noises == 0 && f.Jump._stateTime == before, callback.Name);
+        }
+        var exhaust = new Fixture(); exhaust.Airborne(); exhaust.Player.Physical.OnDebit = () => exhaust.Player.Physical.CanJump = false;
+        exhaust.Press(); Check(exhaust.Player.Physical.Debits == 1 && exhaust.Context.Noises == 1,
+            "paying final stamina still completes accepted jump");
+        var failure = new Fixture(); failure.Airborne(); failure.Player.Physical.ThrowOnJump = true; failure.Press();
+        Check(failure.Player.Physical.Debits == 1 && failure.Context.Noises == 0, "failed debit grants no impulse");
+        failure.Player.Physical.ThrowOnJump = false; Denied(failure, "failed debit cannot repeat consumption");
+        var captured = new Fixture(); captured.Airborne();
+        captured.Press(() => { captured.Land(); captured.Airborne(); });
+        Check(captured.Player.Physical.Debits == 0, "landing replacement invalidates captured credit");
+        captured.Press(); Check(captured.Player.Physical.Debits == 1, "fresh command may use legitimate landed replacement");
+        var reentered = new Fixture(); reentered.Airborne(); reentered.Press(() => reentered.Entry(reentered.Jump));
+        Check(reentered.Player.Physical.Debits == 0, "same object reentry invalidates captured command");
+        var pendingSwap = new Fixture(); pendingSwap.EarlyEdge(); pendingSwap.Press();
+        pendingSwap.Player.Physical.OnDebit = () => pendingSwap.World.MainPlayer = new Player { MovementContext = pendingSwap.Context, CurrentManagedState = pendingSwap.Jump };
+        var pendingFall = new FallDown(pendingSwap.Context) { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero };
+        pendingSwap.Entry(pendingFall, nativeDebit: true);
+        Check(pendingFall._liftForce.y == 0 && pendingSwap.Player.Physical.Debits == 1,
+            "native entry debit body swap rejects pending lift");
+        var pendingReentry = new Fixture(); pendingReentry.EarlyEdge(); pendingReentry.Press();
+        var reenteredFall = new FallDown(pendingReentry.Context) { _liftForce = Vector3.zero, _currentLiftforce = Vector3.zero };
+        pendingReentry.Entry(reenteredFall, nativeDebit: true, duringNative: () =>
+        {
+            pendingReentry.Entry(reenteredFall);
+            // Model the outer FallDown.Enter's final write after the nested entry.
+            reenteredFall._liftForce = Vector3.zero; reenteredFall._currentLiftforce = Vector3.zero;
+        });
+        Check(reenteredFall._liftForce.y == 0, "outer native entry cannot reuse nested completion capture");
     }
     private static void StrengthAndFiniteInputs()
     {
         foreach (float ratio in new[] { -3f, 0.25f, 1f, 1.5f, 9f })
         {
-            var f = new Fixture(); f.Airborne(); Settings.DoubleJumpHeightMult.Value = ratio;
-            f.Press();
-            Check(Near(f.Jump._currentLiftforce.y, 10f * MathF.Sqrt(Math.Clamp(ratio, 0.25f, 1.5f))),
-                "finite height ratio clamps to supported range");
+            var f = new Fixture(); f.Airborne(); Settings.DoubleJumpHeightMult.Value = ratio; f.Press();
+            Check(Near(f.Jump._currentLiftforce.y, 10f * MathF.Sqrt(Math.Clamp(ratio, 0.25f, 1.5f))), "height ratio clamps to supported range");
         }
         foreach (float invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity })
         {
-            var f = new Fixture(); f.Airborne(); Settings.DoubleJumpHeightMult.Value = invalid;
-            Denied(f, "nonfinite height ratio denies");
-            Settings.DoubleJumpHeightMult.Value = 1f; f.Press();
-            Check(f.Player.Physical.Debits == 1, "invalid setting does not consume unspent valid credit");
+            var f = new Fixture(); f.Airborne(); Settings.DoubleJumpHeightMult.Value = invalid; Denied(f, "nonfinite height ratio denies");
+            Settings.DoubleJumpHeightMult.Value = 1; f.Press(); Check(f.Player.Physical.Debits == 1, "invalid setting does not spend credit");
             f = new Fixture(); f.Airborne(); f.Context.TransformPosition.y = invalid; Denied(f, "nonfinite body height denies");
             f = new Fixture(); f.Airborne(); f.Jump._liftDelay = invalid; Denied(f, "nonfinite lift delay denies");
             f = new Fixture(); f.Airborne(); f.Jump._skilledBoost = invalid; Denied(f, "nonfinite skill velocity denies");
             f = new Fixture(); f.Airborne(); f.Jump._liftForce.y = invalid; Denied(f, "nonfinite native lift denies");
-            f = new Fixture(); f.Airborne(); f.Jump._liftForce.x = invalid; Denied(f, "nonfinite native horizontal lift denies");
-            f = new Fixture(); f.Airborne(); f.Jump._liftForce.z = invalid; Denied(f, "nonfinite native depth lift denies");
+            f = new Fixture(falling: true); f.Airborne(); f.Context.Overweight = invalid; Denied(f, "nonfinite falling weight denies");
+            f = new Fixture(falling: true); f.Airborne(); Settings.JumpHeightMult.Value = invalid; Denied(f, "nonfinite first height denies fall rescue");
         }
-        foreach (float invalid in new[] { 0f, -1f })
+        foreach (bool painkillers in new[] { false, true })
         {
-            var f = new Fixture(); f.Airborne(); f.Jump._liftForce.y = invalid; Denied(f, "nonpositive native lift denies");
-            f = new Fixture(); f.Airborne(); f.Jump._skilledBoost = invalid; Denied(f, "nonpositive skill velocity denies");
+            var f = new Fixture(falling: true); f.Airborne(); f.Context.Overweight = 0.5f;
+            f.Context.Conditions = EPhysicalCondition.LeftLegDamaged | (painkillers ? EPhysicalCondition.OnPainkillers : 0);
+            Settings.JumpHeightMult.Value = 2.25f; f.Press();
+            float weight = painkillers ? 0.83f : 0.66f;
+            Check(Near(f.Jump._currentLiftforce.y, 10 * weight * 1.5f * MathF.Sqrt(0.8f)), "falling lift retains native injured weight skill and Arena height factors");
+            Check(EFTHardSettings.Instance.LIFT_VELOCITY_BY_SPEED.LastSpeed == f.Jump._initialMagnitude,
+                "falling lift evaluates native speed curve using actual entry speed");
         }
-        var overflow = new Fixture(); overflow.Airborne(); overflow.Jump._liftForce.y = float.MaxValue;
-        overflow.Jump._skilledBoost = float.MaxValue; Denied(overflow, "overflowing impulse denies");
     }
-    private static void CallbackFailuresAndShutdown()
+    private static void MetadataAndShutdown()
     {
-        var f = new Fixture(); f.Airborne(); f.Player.Physical.ThrowOnJump = true;
-        float clock = f.Jump._stateTime; f.Press();
-        Check(f.Player.Physical.Debits == 1 && f.Context.Noises == 0 && f.Jump._stateTime == clock,
-            "physical callback failure does not apply partial extra impulse");
-        f.Player.Physical.ThrowOnJump = false; Denied(f, "physical callback exception denies retry debit");
-        var noise = new Fixture(); noise.Airborne(); noise.Context.ThrowOnNoise = true; noise.Press();
-        Check(noise.Player.Physical.Debits == 1 && noise.Context.Noises == 1, "noise failure follows one successful debit");
-        noise.Context.ThrowOnNoise = false; Denied(noise, "noise callback exception denies retry debit");
-        var reentrant = new Fixture(); reentrant.Airborne(); reentrant.Player.Physical.OnDebit = () => reentrant.Press();
-        reentrant.Press(); Check(reentrant.Player.Physical.Debits == 1 && reentrant.Context.Noises == 1,
-            "reentrant native callback cannot spend a second credit");
-        var exhausted = new Fixture(); exhausted.Airborne();
-        exhausted.Player.Physical.OnDebit = () => exhausted.Player.Physical.CanJump = false;
-        exhausted.Press(); Check(exhausted.Player.Physical.Debits == 1 && exhausted.Context.Noises == 1
-            && exhausted.Jump._stateTime == exhausted.Jump._liftDelay,
-            "paying last available stamina still applies purchased impulse");
-        var callbacks = new (string Name, Action<Fixture> Change)[]
-        {
-            ("body swap during debit rejects impulse", x => x.World.MainPlayer = new Player { MovementContext = x.Context, CurrentManagedState = x.Jump }),
-            ("same-object reentry during debit rejects impulse", x => { x.Exit(); x.Context.IsGrounded = true; x.Enter(); x.Airborne(); }),
-            ("feature change during debit rejects impulse", x => Settings.DoubleJumpEnabled.Value = false),
-            ("raid end during debit rejects impulse", x => RaidLifecycle.End()),
-            ("landing during debit rejects impulse", x => x.Context.IsGrounded = true),
-            ("inventory during debit rejects impulse", x => x.Player.IsInventoryOpened = true),
-            ("shutdown during debit rejects impulse", x => ArenaDoubleJump.Shutdown()),
-        };
-        foreach (var callback in callbacks)
-        {
-            var interrupted = new Fixture(); interrupted.Airborne();
-            float before = interrupted.Jump._stateTime;
-            interrupted.Player.Physical.OnDebit = () => callback.Change(interrupted);
-            interrupted.Press();
-            Check(interrupted.Player.Physical.Debits == 1 && interrupted.Context.Noises == 0
-                && interrupted.Jump._stateTime == before, callback.Name);
-        }
-        var shutdown = new Fixture(); shutdown.Airborne(); ArenaDoubleJump.Shutdown(); Denied(shutdown, "shutdown immediately denies existing credit");
-        Check(Settings.DoubleJumpEnabled.Subscribers == 0 && Settings.MovementEnabled.Subscribers == 0 && RaidLifecycle.Subscribers == 0,
-            "shutdown unsubscribes setting and raid callbacks");
-        ArenaDoubleJump.Enable(); Denied(shutdown, "re-enable does not restore stale credit");
-        shutdown.Context.IsGrounded = true; shutdown.Enter(); shutdown.Airborne(); shutdown.Press();
-        Check(shutdown.Player.Physical.Debits == 1, "new grounded entry after re-enable works");
-        var failure = new Fixture(enter: false); ArenaDoubleJump.Shutdown();
-        ModulePatch.Registrations.Clear(); ModulePatch.FailAfter = 1; ArenaDoubleJump.Enable();
-        failure.Enter(); failure.Airborne(); Denied(failure, "partial patch installation remains disabled");
-    }
-    private static void Metadata()
-    {
-        _ = new Fixture();
-        Check(ModulePatch.Registrations.Count == 3, "installs exactly three movement patches");
-        ArenaDoubleJump.Enable();
-        Check(ModulePatch.Registrations.Count == 3 && Settings.DoubleJumpEnabled.Subscribers == 1
+        var f = new Fixture();
+        Check(ModulePatch.Registrations.Count == 4, "installs four native movement patches"); ArenaDoubleJump.Enable();
+        Check(ModulePatch.Registrations.Count == 4 && Settings.DoubleJumpEnabled.Subscribers == 1
             && Settings.MovementEnabled.Subscribers == 1 && RaidLifecycle.Subscribers == 1,
-            "repeated enable does not duplicate patch or event registration");
-        Check(ModulePatch.Registrations.Any(p => p.Target.DeclaringType == typeof(JumpPlayerState) && p.Target.Name == "Enter"), "hooks actual Jump Enter target");
-        Check(ModulePatch.Registrations.Any(p => p.Target.DeclaringType == typeof(JumpPlayerState) && p.Target.Name == "Exit"), "hooks actual Jump Exit target");
-        Check(ModulePatch.Registrations.Any(p => p.Target.DeclaringType == typeof(MoveInputTranslator) && p.Target.Name == "TranslateCommand"), "hooks native command translator target");
+            "repeated enable does not duplicate registration");
+        foreach (var target in new[] { (typeof(JumpPlayerState), "Enter"), (typeof(FallDown), "Enter"),
+            (typeof(MovementContext), "CheckFlying"), (typeof(MoveInputTranslator), "TranslateCommand") })
+            Check(ModulePatch.Registrations.Any(p => p.Target.DeclaringType == target.Item1 && p.Target.Name == target.Item2), "hooks actual declared native method");
         var translate = (MethodInfo)ModulePatch.Registrations.Single(p => p.Target.Name == "TranslateCommand").Target;
-        Check(translate.DeclaringType.FullName == "EFT.MoveInputTranslator"
-            && translate.ReturnType == typeof(InputNode.ETranslateResult)
-            && translate.GetParameters().Select(p => p.ParameterType).SequenceEqual(new[] { typeof(ECommand) }),
-            "translator target matches native namespace return and parameter shape");
-        var exit = (MethodInfo)ModulePatch.Registrations.Single(p => p.Target.Name == "Exit").Target;
-        Check(exit.ReturnType == typeof(void) && exit.GetParameters().Length == 1
-            && exit.GetParameters()[0].ParameterType == typeof(bool) && exit.GetParameters()[0].Name == "toSameState",
-            "exit target matches native bool transition parameter");
-        var enter = (MethodInfo)ModulePatch.Registrations.Single(p => p.Target.Name == "Enter").Target;
-        Check(enter.ReturnType == typeof(void) && enter.GetParameters().Length == 1
-            && enter.GetParameters()[0].ParameterType == typeof(bool) && enter.GetParameters()[0].Name == "isFromSameState",
-            "enter target matches native bool transition parameter");
-        var command = typeof(ArenaDoubleJump).GetNestedType("JumpCommandPatch", BindingFlags.NonPublic);
-        Check(command.GetMethod("Prefix", PrivateStatic).ReturnType == typeof(void), "prefix cannot suppress original native command");
-        Check(command.GetMethod("Prefix", PrivateStatic).GetCustomAttribute<PatchPrefixAttribute>() != null
-            && command.GetMethod("Postfix", PrivateStatic).GetCustomAttribute<PatchPostfixAttribute>() != null,
-            "command callbacks retain Harmony prefix and postfix metadata");
-        ArenaSession.IsActive = false;
-        Check(!ArenaSession.IsExactActiveRaid(ArenaSession.ActiveGame, ArenaSession.ActiveWorld),
-            "session contract double includes actual redundant active gate");
-        ArenaSession.IsActive = true; ArenaSession.ActiveGame = null; ArenaSession.ActiveWorld = null;
-        Check(!ArenaSession.IsExactActiveRaid(null, null), "session contract double rejects null identity pair");
+        Check(translate.ReturnType == typeof(InputNode.ETranslateResult) && translate.GetParameters().Single().ParameterType == typeof(ECommand),
+            "translator target retains native method signature");
+        Check(typeof(ArenaDoubleJump).GetNestedType("JumpCommandPatch", BindingFlags.NonPublic).GetMethod("Prefix", PrivateStatic).ReturnType == typeof(void),
+            "command prefix never suppresses native input");
+        Check(typeof(ArenaDoubleJump).GetNestedType("JumpEnterPatch", BindingFlags.NonPublic).GetMethod("Postfix", PrivateStatic)
+            .GetCustomAttribute<HarmonyPriority>().Priority == Priority.Last, "native first height patch precedes reserved air height scaling");
+        f.Airborne(); ArenaDoubleJump.Shutdown(); Denied(f, "shutdown denies action");
+        Check(Settings.DoubleJumpEnabled.Subscribers == 0 && Settings.MovementEnabled.Subscribers == 0 && RaidLifecycle.Subscribers == 0,
+            "shutdown unsubscribes setting and raid events");
+        ArenaDoubleJump.Enable(); Denied(f, "shutdown and reenable cannot restore in flight credit");
+        f.Land(); f.Airborne(); f.Press(); Check(f.Player.Physical.Debits == 1, "landing restores credit after reenable");
+        ArenaDoubleJump.Shutdown(); ModulePatch.Registrations.Clear(); ModulePatch.FailAfter = 1; ArenaDoubleJump.Enable();
+        Denied(f, "partial patch installation remains disabled");
     }
     public static int Main()
     {
         try
         {
-            Metadata(); SuccessfulImpulse(); IdentityAndFeatureGuards(); NativeCommandAndCreditLifecycle();
-            StrengthAndFiniteInputs(); CallbackFailuresAndShutdown();
+            SuccessfulImpulse(); IdentityAndFeatureGuards(); EpisodeLifecycle();
+            EarlyLedgeNativeTransition(); CaptureAndDebitOwnership(); StrengthAndFiniteInputs(); MetadataAndShutdown();
             Console.WriteLine($"ARENA_DOUBLE_JUMP_CONTRACTS_PASSED ({_assertions} assertions; production source with contract doubles, no live Unity/Harmony claim)");
             return 0;
         }
