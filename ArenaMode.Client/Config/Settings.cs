@@ -34,6 +34,8 @@ public static class Settings
     public static ConfigEntry<float> WeaponHolsterSpeedMultiplier { get; private set; }
     public static ConfigEntry<float> WeaponReloadSpeedMultiplier { get; private set; }
     public static ConfigEntry<bool> AirVaultEnabled { get; private set; }
+    public static ConfigEntry<bool> AirControlEnabled { get; private set; }
+    public static ConfigEntry<float> AirControlDegreesPerSecond { get; private set; }
     public static ConfigEntry<bool> AirHipFireEnabled { get; private set; }
     public static ConfigEntry<float> WalkSpeedMult { get; private set; }
     public static ConfigEntry<float> SprintSpeedMult { get; private set; }
@@ -375,6 +377,11 @@ public static class Settings
                 new AcceptableValueRange<float>(1f, 3f)));
         AirVaultEnabled = config.Bind("Movement", "AirVaultEnabled", true,
             "Allow a deliberate native vault/climb input during an Arena jump when the obstacle and hands checks permit it.");
+        AirControlEnabled = config.Bind("Movement", "AirControlEnabled", true,
+            "Allow gentle WASD steering during local Arena jumps and falls. Preserves native horizontal speed, gravity and collision; no extra impulse from a stationary jump.");
+        AirControlDegreesPerSecond = config.Bind("Movement", "AirControlDegreesPerSecond", 60f,
+            new ConfigDescription("Maximum horizontal turn rate in degrees per second while airborne; 0 keeps native direction. Changes apply live. Long frame steps are capped for safety.",
+                new AcceptableValueRange<float>(0f, 180f)));
         AirHipFireEnabled = config.Bind("Movement", "AirHipFireEnabled", true,
             "Allow firearm hip fire during an Arena jump. Native aiming, ammo, reload, malfunction and vault restrictions remain.");
 
