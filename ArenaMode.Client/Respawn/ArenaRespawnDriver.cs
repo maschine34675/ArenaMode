@@ -279,6 +279,12 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
                 Settings.RespawnMinDistance.Value),
             EquipmentStrategy = (profile, dead) =>
             {
+                // The dead body's keys and items are still exact here. What
+                // the last second before the death did to them — a key
+                // cleared by hand, a medkit used up — is judged now, before
+                // the rebuild renames every ordinary item. Never throws.
+                Kits.AutoQuickSlots.SettleBeforeReissue(profile);
+
                 if (!prepared.TryCommit(profile, out TeamArenaLoadoutRestoreResult result))
                 {
                     string diagnostic = result?.Failure ?? "the prepared restore returned no diagnostic";
@@ -289,6 +295,15 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
                         $"protected team loadout commit failed for round epoch {teamEpoch} "
                         + $"(rollback complete: {rollback}): {diagnostic}");
                 }
+
+                // The ordinary items now carry fresh ids and the bindings point
+                // at them. The settled ledger follows the same map, so every
+                // owned key whose occupant the map knows is owned under its new
+                // id from the first poll on the new body; an occupant the map
+                // does not know (picked up mid-round, so not in the entry
+                // loadout) loses its binding in the rebuild and reads as gone
+                // on that poll, which refills the key. Never throws.
+                Kits.AutoQuickSlots.NoteItemsReissued(prepared.NextRuntimeByPreviousRuntimeId);
             },
             HealthPercent = 100f,
             Protection = new SpawnProtectionOptions

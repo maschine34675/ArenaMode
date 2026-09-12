@@ -7,6 +7,39 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Quick-slot ledger survives the protected 5v5 rebuild (2026-09-12):**
+  pre-existing defect from an adversarial review. `AutoQuickSlots` remembered
+  its own bindings as `Item` references and counted a key as player-cleared
+  only while that object was still on the body. `TeamArenaLoadoutSnapshot`
+  reissues rig/pocket/backpack items under fresh ids between rounds and
+  carries the FastAccess bindings over to the new instances, so a key the
+  player cleared after a round rebuild read as "item gone" and refilled
+  within a second; a key the player had filled themselves from a protected
+  special pocket slot was never the service's and stayed cleared, hence the
+  visible asymmetry. New pure `Kits/AutoQuickSlotLedger<TSlot>` (linked into
+  the tests like `BotLoadBoostPolicy`): ids instead of objects, an occupied
+  key adopts its current occupant, a key that empties is a clear iff the
+  remembered id is still on the body. `ArenaRespawnDriver.RespawnProtectedTeamPlayer`
+  settles the ledger against the dead body before `TryCommit` (the poll stops
+  at the death, so its last second is unjudged) and remaps ids with
+  `NextRuntimeByPreviousRuntimeId` only after a settled commit. The first
+  review found that remapping an unsettled ledger turned a medkit used up in
+  the last second before the death into a permanent player clear, because
+  the map names every entry-loadout item; the settle closes that. Solo modes
+  unchanged except one edge: an item the player bound over an owned key and
+  later used up no longer counts as a clear. 17 ledger tests; mutants verified
+  (adoption off: 2 red; emptied keys kept owned: 8 red). Two independent
+  adversarial reviews, the second with no P0-P2 and its P3 comment/test
+  findings applied. Unit suite 553 passed / 2 skipped; Team Arena loadout
+  checks 142 assertions; Release build zero errors, pre-existing warnings
+  only. Client-only, game restart required; server source unchanged.
+  Build and installed SHA256 match: client
+  `68C1952411D592DF520ECB406427205D4B13EBA9B064DB3356F61FFE122B833E`, server
+  `77C2719B9E7A12746EDCFC1449D96768FF74369A580EF48585656C536C62334E`. No GPU
+  result: in a protected 5v5 raid, clear a bound medical key after a round
+  rebuild and confirm it stays empty; use a medkit up right before dying and
+  confirm its key refills next round.
+
 - **r6 bounded GPU evidence reviewed (2026-09-12):** report `98211b9`,
   `GPU-PANELS-R6-RESULTS-2026-09-11.md`, records one short Endless Factory raid
   and one independent BEAR TDM 5v5 raid at 1920x1080. The pre-start client hash

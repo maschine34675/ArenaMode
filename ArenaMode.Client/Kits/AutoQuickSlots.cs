@@ -90,27 +90,106 @@ internal static class AutoQuickSlots
     private static bool _loggedFailure;
 
     /// <summary>
-    /// What this service put where, so it can tell its own work from the
-    /// player's. Without it there is no way to notice a deliberate unbind.
+    /// SettleBeforeReissue ran for the reissue that NoteItemsReissued is about
+    /// to announce. The remap is only exact on top of a settled ledger; see
+    /// NoteItemsReissued for what goes wrong without it.
     /// </summary>
-    private static readonly Dictionary<EBoundItem, Item> Ours = new Dictionary<EBoundItem, Item>();
+    private static bool _settledForReissue;
 
     /// <summary>
-    /// Keys the player emptied by hand. Left alone for the rest of the raid.
-    ///
-    /// Raid-scoped rather than per-life on purpose: the items are new instances
-    /// every life, but "I want this key clear" is about the KEY, and re-asking
-    /// the player to say so after every death is the chore this service exists
-    /// to remove.
+    /// What this service put where, and which keys the player emptied by
+    /// hand, so it can tell its own work from the player's. Without it there
+    /// is no way to notice a deliberate unbind. Pure and tested on its own;
+    /// the rules — ids rather than objects, the current occupant of a key
+    /// rather than the item first bound there — are argued at the ledger.
     /// </summary>
-    private static readonly HashSet<EBoundItem> ClearedByPlayer = new HashSet<EBoundItem>();
+    private static readonly AutoQuickSlotLedger<EBoundItem> Ledger = new AutoQuickSlotLedger<EBoundItem>();
 
     public static void Reset()
     {
         _nextCheckAt = 0f;
         _loggedFailure = false;
-        Ours.Clear();
-        ClearedByPlayer.Clear();
+        _settledForReissue = false;
+        Ledger.Reset();
+    }
+
+    /// <summary>
+    /// The dead body's last second, which the poll never saw.
+    ///
+    /// Tick stops at the death — IsAlive latches false at the kill — so
+    /// whatever happened to the keys in the second before it is still
+    /// unjudged: a key the player cleared by hand, a medkit used up, an item
+    /// dropped. The protected 5v5 rebuild is about to rename every ordinary
+    /// item, after which none of that can be judged any more. So it is judged
+    /// here, against the dead body's own bindings and items while both are
+    /// still exact, with the same rules as any poll. Afterwards every key the
+    /// ledger owns is still bound, which is what makes the remap that follows
+    /// a pure rename.
+    ///
+    /// Called from the respawn engine's equipment callback before the
+    /// transaction commits, so it must not throw: a failure here is a key
+    /// that may refill once, not a failed respawn.
+    /// </summary>
+    internal static void SettleBeforeReissue(Profile profile)
+    {
+        _settledForReissue = false;
+
+        try
+        {
+            var inventory = profile?.Inventory;
+            var bound = inventory?.FastAccess?.BoundItems;
+            var carried = inventory?.GetPlayerItems(EPlayerItems.Equipment);
+            if (bound == null || carried == null)
+                return;
+
+            if (Ledger.OwnedKeyCount > 0)
+                Ledger.Observe(IdsOf(bound), IdsOf(carried));
+
+            _settledForReissue = true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena quick slots: could not settle the keys before the reissue: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// The protected 5v5 rebuild reissued the ordinary items under fresh ids
+    /// and carried the quick-slot bindings over to them. The ledger follows,
+    /// so a key still owned reads as owned under its new id at once. The map
+    /// is previous runtime id to next; protected items are not in it and
+    /// keep their ids.
+    ///
+    /// Only on top of a settled ledger. The map covers every ordinary item
+    /// the match STARTED with, not what the body died with: a medkit used up
+    /// in the last second before the death is recreated by the rebuild and
+    /// is in the map. Renaming an unsettled ledger would then point the
+    /// emptied key at the recreated medkit, the next poll would find that on
+    /// the body, and the key would be recorded as cleared by a player who
+    /// only used their medkit — the original bug, inverted. Settled, the
+    /// emptied key was already judged against the dead body and is no longer
+    /// owned; the remap has nothing to rename.
+    ///
+    /// Called from the respawn engine's equipment callback after the
+    /// transaction has committed, so it must not throw: a failure here is a
+    /// key that may refill once, not a failed respawn.
+    /// </summary>
+    internal static void NoteItemsReissued(IReadOnlyDictionary<string, string> nextIdByPreviousId)
+    {
+        var settled = _settledForReissue;
+        _settledForReissue = false;
+
+        if (!settled || nextIdByPreviousId == null)
+            return;
+
+        try
+        {
+            Ledger.RemapItems(nextIdByPreviousId);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena quick slots: could not follow the reissued items: {ex}");
+        }
     }
 
     /// <summary>
@@ -166,10 +245,11 @@ internal static class AutoQuickSlots
             return;
 
         var onBody = new HashSet<Item>(carried);
-        NoteWhatThePlayerCleared(bound, onBody);
+        if (Ledger.OwnedKeyCount > 0)
+            Ledger.Observe(IdsOf(bound), IdsOf(onBody));
 
         var free = FreeSlots
-            .Where(slot => !bound.ContainsKey(slot) && !ClearedByPlayer.Contains(slot))
+            .Where(slot => !bound.ContainsKey(slot) && !Ledger.IsClearedByPlayer(slot))
             .ToList();
 
         if (free.Count == 0)
@@ -243,50 +323,6 @@ internal static class AutoQuickSlots
         }
     }
 
-    /// <summary>
-    /// Spots the keys the player emptied on purpose.
-    ///
-    /// A binding this service made can only leave BoundItems through
-    /// UnbindResult.Run, which is the player dragging the item out of the quick
-    /// slot. Without noticing that, the next poll put it straight back inside a
-    /// second and the key could never be cleared at all: the service would be
-    /// arguing with the person it is meant to be helping.
-    ///
-    /// A key emptied because the ITEM is gone -- used up, or replaced along with
-    /// the kit -- is not a clear, and says nothing about what the player wants
-    /// on that key.
-    /// </summary>
-    private static void NoteWhatThePlayerCleared(Dictionary<EBoundItem, Item> bound, HashSet<Item> onBody)
-    {
-        if (Ours.Count == 0)
-            return;
-
-        List<EBoundItem> gone = null;
-
-        foreach (var pair in Ours)
-        {
-            if (bound.ContainsKey(pair.Key))
-                continue;
-
-            if (gone == null)
-                gone = new List<EBoundItem>();
-
-            gone.Add(pair.Key);
-
-            // Still on the body means the player took it off the key. Gone means
-            // the item was used up or swapped out with the kit, which is not a
-            // statement about the key at all.
-            if (pair.Value != null && onBody.Contains(pair.Value))
-                ClearedByPlayer.Add(pair.Key);
-        }
-
-        if (gone == null)
-            return;
-
-        foreach (var slot in gone)
-            Ours.Remove(slot);
-    }
-
     private static bool Bind(InventoryController inventory, Item item, EBoundItem index)
     {
         var result = BindResult.Run(inventory, item, index, simulate: false);
@@ -298,12 +334,38 @@ internal static class AutoQuickSlots
         // empty slot on screen — the same trap as a removal whose events are
         // never raised.
         result.Value.RaiseEvents(inventory, CommandStatus.Succeed);
-        Ours[index] = item;
+        Ledger.NoteBound(index, item.Id);
 
         Plugin.ModLogger.LogInfo(
             $"Arena quick slots: bound {item.ShortName?.Localized() ?? item.TemplateId.ToString()} to {index}.");
 
         return true;
+    }
+
+    /// <summary>
+    /// The ledger speaks in ids. Item.Id is already the string the item was
+    /// made with — the same text TeamArenaLoadoutSnapshot's id map carries —
+    /// so this is a walk, not a formatting pass.
+    /// </summary>
+    private static Dictionary<EBoundItem, string> IdsOf(Dictionary<EBoundItem, Item> bound)
+    {
+        var ids = new Dictionary<EBoundItem, string>(bound.Count);
+        foreach (var pair in bound)
+            ids[pair.Key] = pair.Value?.Id;
+
+        return ids;
+    }
+
+    private static HashSet<string> IdsOf(IEnumerable<Item> items)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in items)
+        {
+            if (item?.Id != null)
+                ids.Add(item.Id);
+        }
+
+        return ids;
     }
 
     /// <summary>
