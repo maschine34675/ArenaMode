@@ -41,7 +41,7 @@ try {
     Reject-Mutant 'suppress-failed-trim' 'CleanupSource' 'new TrimState { Body = new Renderer[0] };' 'new TrimState { Body = new Renderer[0], Completed = true, World = Singleton<GameWorld>.Instance };' 'excluded or failed trim keeps existing marker failed'
     Reject-Mutant 'leak-world-evidence' 'CleanupSource' '&& ReferenceEquals(state.World, Singleton<GameWorld>.Instance)' '&& true' 'lifetime boundary stops both suppression paths world'
     Reject-Mutant 'retain-reset-evidence' 'CleanupSource' 'Trimmed.Clear();' '// regression: retain previous trim evidence' 'lifetime boundary stops both suppression paths reset'
-    Reject-Mutant 'unreviewed-version' 'AdapterSource' 'info.Metadata.Version != new Version(1, 2, 1)' 'false' 'optional bind failure leaves no hook version'
+    Reject-Mutant 'unreviewed-version' 'AdapterSource' 'info.Metadata.Version != new System.Version(1, 2, 1)' 'false' 'optional bind failure leaves no hook version'
     Reject-Mutant 'suppress-all-bodies' 'AdapterSource' 'return !IsTrimmed(__0);' 'return false;' 'untrimmed bodies retain markers'
 }
 finally {

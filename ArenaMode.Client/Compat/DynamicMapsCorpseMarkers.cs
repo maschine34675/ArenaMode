@@ -33,7 +33,7 @@ internal static class DynamicMapsCorpseMarkers
         if (!Chainloader.PluginInfos.TryGetValue(PluginGuid, out var info)) return;
         try
         {
-            if (info.Metadata.Version != new Version(1, 2, 1))
+            if (info.Metadata.Version != new System.Version(1, 2, 1))
                 throw new NotSupportedException("reviewed DynamicMaps version is 1.2.1");
             var assembly = info.Instance.GetType().Assembly;
             var provider = assembly.GetType("DynamicMaps.DynamicMarkers.CorpseMarkerProvider", true);

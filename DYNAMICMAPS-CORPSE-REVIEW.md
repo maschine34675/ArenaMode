@@ -122,6 +122,10 @@ exact identity, optional failure boundaries, reset paths, provider recreation,
 Plugin wiring and existing cleanup semantics; no established defect remains.
 The parent reran the complete installed-contract/behavior/mutation/regression
 helper successfully. The integrated staged build is recorded in the handoff.
+The first full native build caught the `EFT.Version`/`System.Version` namespace
+collision omitted by the narrow doubles. Explicit `System.Version` and its
+matching compiled mutation anchor resolve it; independent review confirmed
+the comparison semantics and the 57-assertion baseline passed again.
 No live GPU raid was run for this leaf and no runtime success is claimed.
 
 Future native acceptance should exceed the visible corpse budget in Arena with
