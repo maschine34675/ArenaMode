@@ -60,6 +60,8 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
         Bots.ArenaBotLifecycleSafety.Enable();
+        Bots.ArenaPickupTeardownSafety.Enable();
+        Bots.ArenaSainDisableSafety.Enable();
         Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
         Bots.TdmSearchTempo.Enable();
@@ -121,6 +123,8 @@ public class Plugin : BaseUnityPlugin
         Areas.ArenaAreaSpawnPointsPatch.Shutdown();
         Areas.ArenaAreaLoadPatch.Shutdown();
         Bots.ArenaSainActionSafety.Shutdown();
+        Bots.ArenaSainDisableSafety.Shutdown();
+        Bots.ArenaPickupTeardownSafety.Shutdown();
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
         Bots.TdmSearchTempo.Shutdown();

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><Optimize>true</Optimize>
+    <!-- Reflection fixture only, never a deployed dependency replacement. -->
+    <AssemblyName>SAIN</AssemblyName><AssemblyVersion>4.5.1.0</AssemblyVersion>
+    <PickupSource Condition="'$(PickupSource)' == ''">../../ArenaMode.Client/Bots/ArenaPickupTeardownSafety.cs</PickupSource>
+    <DisableSource Condition="'$(DisableSource)' == ''">../../ArenaMode.Client/Bots/ArenaSainDisableSafety.cs</DisableSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PickupSource)" Link="Production/Pickup.cs" />
+    <Compile Include="$(DisableSource)" Link="Production/Disable.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/ArenaBotLifecycleScope.cs" Link="Production/Scope.cs" />
+  </ItemGroup>
+</Project>
