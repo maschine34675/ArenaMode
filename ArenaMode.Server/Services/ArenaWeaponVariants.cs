@@ -114,10 +114,13 @@ public sealed class ArenaWeaponVariants
     }
 
     /// <summary>
-    /// Templates the draw must never bolt on: the configured exclusions and the
-    /// game's placeholders, handed over by the pool generator, which has the
-    /// locale this index deliberately does not carry. The candidate cache is
-    /// dropped so a slot indexed before the call cannot keep serving them.
+    /// Templates the draw must never bolt on. Additive: the pool generator
+    /// hands over the game's placeholders at load (it has the locale this
+    /// index deliberately does not carry), and every raid's draw hands over
+    /// the configured ids again, so an id added on the config page reaches
+    /// the next raid without a restart. Both caches derived from the
+    /// candidates are dropped, so a slot indexed before the call cannot keep
+    /// serving them or a verdict computed from them.
     /// </summary>
     public void Exclude(IEnumerable<string> templates)
     {
@@ -130,6 +133,7 @@ public sealed class ArenaWeaponVariants
             }
 
             _candidates.Clear();
+            _primaryScopeSockets.Clear();
         }
     }
 

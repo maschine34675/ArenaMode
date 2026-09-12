@@ -60,9 +60,9 @@ public class LadderTests
     public void NoRungReferencesAKnownPlaceholder()
     {
         // The Cheremukha-7M sat in the KS-23's cartridge choices of the shipped
-        // pool; one raid in three loaded a round that does not fire. The pool
-        // generator refuses the game's placeholders now, and this keeps the
-        // shipped fallback honest with it.
+        // pool; one raid in three of those that handed out the KS-23 loaded a
+        // round that does not fire. The pool generator refuses the game's
+        // placeholders now, and this keeps the shipped fallback honest with it.
         foreach (var rung in Pool)
         {
             var id = rung?["id"]?.GetValue<string>();
@@ -108,11 +108,76 @@ public class LadderTests
     [Fact]
     public void WithoutExclusionsTheDrawIsWhatItAlwaysWas()
     {
-        var pool = new JsonArray(Weapon("first", "a", "a", "b"), Weapon("second", "a", "a", "b"));
-        var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1))!.AsArray();
-        var loaded = AmmunitionSites(Assert.Single(drawn)).Distinct().ToList();
-        Assert.Single(loaded);
-        Assert.Contains(loaded[0], new[] { "a", "b" });
+        // Loaded with a round that is NOT among the choices, so a draw that
+        // stopped rewriting the load would be caught; two distinct weapons in
+        // one band, so a draw that started passing one of them over would be
+        // caught as well.
+        var pool = new JsonArray(Weapon("first", "stale", "a", "b"), Weapon("second", "stale", "a", "b"));
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < 40; i++)
+        {
+            var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1))!.AsArray();
+            var rung = Assert.Single(drawn);
+            names.Add(rung?["name"]?.GetValue<string>() ?? "");
+            var loaded = AmmunitionSites(rung).Distinct().ToList();
+            Assert.Single(loaded);
+            Assert.Contains(loaded[0], new[] { "a", "b" });
+        }
+
+        Assert.Equal(new[] { "first", "second" }, names.OrderBy(name => name, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ABandWithOnlyExcludedCartridgesBorrowsTheNearestUnbarredWeapon()
+    {
+        // Two bands of two. The lower band is barred entirely; the draw must
+        // reach into the upper band for the nearest weapon rather than serve a
+        // round the configuration excludes.
+        var pool = new JsonArray(
+            Weapon("a", "bad", "bad"), Weapon("b", "bad", "bad"),
+            Weapon("c", "good", "good"), Weapon("d", "good", "good"));
+        for (var i = 0; i < 40; i++)
+        {
+            var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 2, null, null, new[] { "bad" }))!.AsArray();
+            Assert.Equal(2, drawn.Count);
+            Assert.Equal("c", drawn[0]?["name"]?.GetValue<string>());
+            foreach (var rung in drawn)
+                Assert.All(AmmunitionSites(rung), site => Assert.Equal("good", site));
+        }
+    }
+
+    [Fact]
+    public void WhenNothingInThePoolIsLoadableTheRungIsServedAndSaidOutLoud()
+    {
+        var pool = new JsonArray(Weapon("a", "bad", "bad"), Weapon("b", "bad", "bad"), Weapon("c", "bad", "bad"));
+        var lines = new List<string>();
+        var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 2, lines.Add, null, new[] { "bad" }))!.AsArray();
+
+        Assert.Equal(2, drawn.Count);
+        Assert.Contains(lines, line => line.Contains("nothing in the pool can be loaded", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AWeaponWithoutAnyCartridgeStaysInTheDrawWhileOthersAreBarred()
+    {
+        // Barred means "had cartridges and every one is excluded". A weapon
+        // that never had any is not barred, and an unrelated exclusion must
+        // not start passing it over.
+        var unarmed = Weapon("x", "stale", "stale");
+        unarmed.Remove("ammoChoices");
+        var items = unarmed["items"]!.AsArray();
+        foreach (var node in items.Where(node => IsAmmunitionSite(node?["slotId"]?.GetValue<string>())).ToList())
+            items.Remove(node!);
+
+        var pool = new JsonArray(unarmed, Weapon("y", "good", "good"));
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < 60; i++)
+        {
+            var drawn = JsonNode.Parse(LadderPicker.Redraw(pool.ToJsonString(), 1, null, null, new[] { "bad" }))!.AsArray();
+            names.Add(Assert.Single(drawn)?["name"]?.GetValue<string>() ?? "");
+        }
+
+        Assert.Equal(new[] { "x", "y" }, names.OrderBy(name => name, StringComparer.Ordinal));
     }
 
     /// <summary>A minimal pool entry: a weapon loaded with one round, offering the given choices.</summary>

@@ -225,14 +225,15 @@ retain the bundle and only one token is ever released — vanilla does this to i
 but do not add to it: wait for a load in flight instead of asking again.
 
 **BSG ships placeholders, marked only in the display name.** Eight templates in the
-4.1 database are unfinished duplicates whose English name says `!!!DO_NOT_USE!!!`: a
-23x75 round with a full set of ballistic numbers and no handbook entry, a smoke
-grenade, six AXMC parts. Their internal names look ordinary and their properties rank
-like anything else — the Cheremukha round was drawn as Gun Game ammunition and did not
-fire. `ArenaTemplateEligibility` is the one answer to "may this template be handed
-out"; everything that walks the item database (the pool generator, the attachment
-draw, the per-raid cartridge draw, the offline script) asks it, and `excludedTemplates`
-in the config is where the next one goes.
+4.1 database are unfinished duplicates whose English name says `!!!DO_NOT_USE!!!` (one
+of them `!!!DO NOT USE!!!`): a 23x75 round with a full set of ballistic numbers and no
+handbook entry, a 40 mm smoke round, six AXMC parts. Their internal names look ordinary
+and their properties rank like anything else — the Cheremukha round was drawn as Gun
+Game ammunition and did not fire. `ArenaTemplateEligibility` is the one answer to "may
+this template be handed out": the pool generator and the offline script apply its name
+rule and the configured list, the attachment draw and the per-raid cartridge draw
+refuse the ids they are handed at every raid, and `excludedTemplates` in the config is
+where the next one goes.
 
 **The client caches server answers per game process.** Bot difficulties are fetched once
 and never again. Anything that must vary per raid cannot live there.

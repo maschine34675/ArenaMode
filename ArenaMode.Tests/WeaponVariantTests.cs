@@ -67,6 +67,37 @@ public class WeaponVariantTests
     }
 
     [SkippableFact]
+    public void ExcludedTemplatesAreNeverBoltedOn()
+    {
+        Skip.If(RepoFiles.ItemDatabase == null, "real item database required");
+        var db = JsonNode.Parse(File.ReadAllText(RepoFiles.ItemDatabase!))!.AsObject();
+        var generator = new ArenaWeaponVariants(db);
+        string input = File.ReadAllText(RepoFiles.Kits);
+
+        static HashSet<string> Templates(string catalog) => new(
+            JsonNode.Parse(catalog)!.AsArray()
+                .SelectMany(entry => entry!["items"]!.AsArray())
+                .Select(node => node!["_tpl"]!.GetValue<string>()),
+            StringComparer.Ordinal);
+
+        // Whatever the draw bolted on at this seed is what gets excluded; the
+        // same seed must then produce none of it, and neither must any other.
+        var authored = Templates(input);
+        var added = Templates(generator.CreateCatalog(input, 481, out _)).Except(authored).ToList();
+        Assert.NotEmpty(added);
+
+        generator.Exclude(added);
+        foreach (var seed in new[] { 481, 7, 99, 1234 })
+        {
+            var output = generator.CreateCatalog(input, seed, out _);
+            Assert.Empty(Templates(output).Intersect(added));
+            var result = JsonNode.Parse(output)!.AsArray();
+            foreach (var entry in result)
+                Assert.True(generator.TryValidate(entry!["items"]!.AsArray(), out _));
+        }
+    }
+
+    [SkippableFact]
     public void RealKitDrawIsStableAndPreservesEveryAuthoredNodeAndMetadata()
     {
         Skip.If(RepoFiles.ItemDatabase == null, "real item database required");

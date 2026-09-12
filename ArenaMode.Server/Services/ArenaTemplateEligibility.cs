@@ -11,9 +11,9 @@ namespace ArenaMode.Server.Services;
 /// full set of ballistic numbers (damage 115, penetration 28), sits in the
 /// 23x75 calibre like any other, has no handbook entry and no price, and does
 /// not fire. The pool generator ranked it by its numbers, put it in the
-/// KS-23's cartridge choices, and one raid in three loaded it. Eight such
-/// templates exist in the shipped database; their internal names look
-/// ordinary.
+/// KS-23's cartridge choices, and one raid in three of those that handed out
+/// the KS-23 loaded it. Eight such templates exist in the shipped database;
+/// their internal names look ordinary.
 ///
 /// Two rules, both here so that every caller refuses the same things. The
 /// game's own marker, matched exactly as the game spells it (upper case, with

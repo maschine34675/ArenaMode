@@ -60,16 +60,33 @@ public class LadderGenerator(
     private Dictionary<MongoId, TemplateItem> _items = null!;
     private HashSet<string> _excluded = new(StringComparer.Ordinal);
     private HashSet<MongoId> _handbook = [];
+    private int _cartridgesLeftOut;
 
     public Task OnLoadAsync(CancellationToken cancellationToken = default)
     {
         _items = templateTable.Items;
-        var exclusions = IndexExclusions();
+
+        // Guarded like everything else in here. This is the first thing at
+        // load that forces the English locale — a lazy load that runs every
+        // mod's transformer — and walks the handbook, and a fault in either
+        // must not take the server down. Without the index there is no pool
+        // worth generating, it would be built without the name rule, so the
+        // shipped file stays; the draw still refuses the configured ids.
+        HashSet<string>? exclusions = null;
+        try
+        {
+            exclusions = IndexExclusions();
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"[ArenaMode] Exclusion index failed ({ex.Message}) — keeping config/ladder.json; "
+                         + "the attachment draw refuses the configured ids only.");
+        }
 
         try
         {
             var variants = CreateVariantIndex(templateTable);
-            variants.Exclude(exclusions);
+            variants.Exclude(exclusions ?? ArenaTemplateEligibility.ExclusionSet(ArenaContext.Config.ExcludedTemplates));
             ArenaContext.WeaponVariants = variants;
             logger.Info($"[ArenaMode] Weapon variant index ready: {templateTable.Items.Count} live templates; no bot generator/config changes.");
         }
@@ -78,6 +95,9 @@ public class LadderGenerator(
             ArenaContext.WeaponVariants = null;
             logger.Warning($"[ArenaMode] Weapon variants unavailable ({ex.Message}); existing builds remain unchanged.");
         }
+        if (exclusions == null)
+            return Task.CompletedTask;
+
         try
         {
             var pool = Build();
@@ -89,7 +109,8 @@ public class LadderGenerator(
             }
 
             ArenaContext.LadderJson = pool.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
-            logger.Info($"[ArenaMode] Weapon pool generated: {pool.Count} weapons from the live item database.");
+            logger.Info($"[ArenaMode] Weapon pool generated: {pool.Count} weapons from the live item database; "
+                        + $"{_cartridgesLeftOut} cartridge(s) left out as placeholders or without a handbook entry.");
         }
         catch (Exception ex)
         {
@@ -151,8 +172,6 @@ public class LadderGenerator(
 
     private bool Excluded(MongoId tpl) => _excluded.Contains(tpl.ToString());
 
-    private bool Excluded(MongoId? tpl) => tpl != null && Excluded(tpl.Value);
-
     private bool DescendsFrom(MongoId tpl, MongoId ancestor)
     {
         var node = tpl;
@@ -207,6 +226,7 @@ public class LadderGenerator(
     private Dictionary<string, List<Round>> IndexAmmo()
     {
         var byCalibre = new Dictionary<string, List<Round>>();
+        _cartridgesLeftOut = 0;
 
         foreach (var (tpl, item) in _items)
         {
@@ -221,7 +241,10 @@ public class LadderGenerator(
             // rule is skipped only if the handbook itself is empty — then it
             // would say nothing about anything.
             if (Excluded(tpl) || (_handbook.Count > 0 && !_handbook.Contains(tpl)))
+            {
+                _cartridgesLeftOut++;
                 continue;
+            }
 
             var pen = p.PenetrationPower ?? 0;
             var dmg = p.Damage ?? 0;
@@ -383,8 +406,16 @@ public class LadderGenerator(
         if (accepted != null)
         {
             var narrowed = all.Where(r => accepted.Contains(r.Tpl)).ToList();
-            if (narrowed.Count > 0)
-                pool = narrowed;
+
+            // Nothing the magazine takes survived the rules above: no weapon,
+            // rather than a round the magazine refuses. The old fallback to the
+            // whole calibre was written when this list could only be empty for
+            // a filter naming nothing of the calibre; with excluded and
+            // handbook-less rounds it can be empty for a perfectly real one.
+            if (narrowed.Count == 0)
+                return null;
+
+            pool = narrowed;
         }
 
         var top = Math.Min(pool.Count - 1, (int)(pool.Count * 0.75));

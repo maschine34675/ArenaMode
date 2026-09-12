@@ -53,11 +53,16 @@ public static class LadderPicker
     public static string Redraw(string poolJson, int rungs, Action<string>? log = null,
         ArenaWeaponVariants? variants = null, IEnumerable<string?>? excludedTemplates = null)
     {
-        var drawn = Draw(poolJson, rungs, log, ArenaTemplateEligibility.ExclusionSet(excludedTemplates));
+        var excluded = ArenaTemplateEligibility.ExclusionSet(excludedTemplates);
+        var drawn = Draw(poolJson, rungs, log, excluded);
         if (variants != null)
         {
             try
             {
+                // The configured ids reach the attachment draw here, at every
+                // raid, so an id added on the config page mid-evening is gone
+                // from the next ladder's attachments as well as its cartridges.
+                variants.Exclude(excluded);
                 int seed;
                 lock (Rng) seed = Rng.Next();
                 drawn = variants.CreateCatalog(drawn, seed, out var report);
@@ -89,8 +94,9 @@ public static class LadderPicker
     /// Choices the configuration excludes are never drawn. The pool is
     /// generated at server start and the exclusions are meant to work without
     /// one — a round found to misbehave mid-evening goes into the list and is
-    /// gone from the next raid — and the shipped fallback pool predates the
-    /// list altogether.
+    /// gone from the next raid — and an installed config/ladder.json may
+    /// predate the list (the build copies the default only when the file is
+    /// missing), as does any hand-written pool.
     /// </summary>
     private static void LoadWithOneOf(JsonNode entry, HashSet<string> excluded)
     {
@@ -119,11 +125,17 @@ public static class LadderPicker
 
     /// <summary>
     /// The entry's cartridge choices minus the excluded ones, in pool order.
-    /// An entry without choices (a hand-written ladder) is judged by what it
-    /// is loaded with: the same list, so the band draw below can pass it over
-    /// when that load is excluded too.
     /// </summary>
     private static List<string> UsableChoices(JsonNode entry, HashSet<string> excluded)
+        => Choices(entry).Where(tpl => !excluded.Contains(tpl)).ToList();
+
+    /// <summary>
+    /// Every cartridge the entry could be loaded with, excluded or not. An
+    /// entry without choices — a hand-written POOL, one larger than the rung
+    /// count; a ladder-sized file is served verbatim and never reaches the
+    /// draw — is judged by what it is loaded with instead.
+    /// </summary>
+    private static List<string> Choices(JsonNode entry)
     {
         IEnumerable<JsonNode?> source = entry["ammoChoices"] is JsonArray choices && choices.Count > 0
             ? choices
@@ -133,11 +145,47 @@ public static class LadderPicker
 
         return source
             .Select(node => node?.GetValue<string>())
-            .Where(tpl => !string.IsNullOrEmpty(tpl) && !excluded.Contains(tpl!))
+            .Where(tpl => !string.IsNullOrEmpty(tpl))
             .Select(tpl => tpl!)
             .Distinct(StringComparer.Ordinal)
             .ToList();
     }
+
+    /// <summary>
+    /// Had cartridges, and the configuration excludes every one of them. A
+    /// weapon that never had any is not barred: it stays in the draw exactly
+    /// as it did before there was a list.
+    /// </summary>
+    private static bool IsBarred(JsonNode entry, HashSet<string> excluded)
+    {
+        var all = Choices(entry);
+        return all.Count > 0 && all.All(excluded.Contains);
+    }
+
+    /// <summary>
+    /// The pool index nearest to the band that is not barred, searching
+    /// outward on both sides; -1 when the whole pool is. The pool is sorted,
+    /// so the nearest neighbour bends the climb by a rung rather than breaking it.
+    /// </summary>
+    private static int NearestUnbarred(JsonArray pool, int low, int high, HashSet<string> excluded)
+    {
+        for (var distance = 1; ; distance++)
+        {
+            var below = low - distance;
+            var above = high - 1 + distance;
+            if (below < 0 && above >= pool.Count)
+                return -1;
+
+            if (above < pool.Count && !IsBarred(pool[above]!, excluded))
+                return above;
+
+            if (below >= 0 && !IsBarred(pool[below]!, excluded))
+                return below;
+        }
+    }
+
+    private static string NameOf(JsonNode? entry)
+        => entry?["name"]?.GetValue<string>() ?? entry?["id"]?.GetValue<string>() ?? "?";
 
     private static bool IsAmmunitionSite(string? slot)
         => slot == "cartridges" || slot == "patron_in_weapon" || slot?.StartsWith("camora_", StringComparison.Ordinal) == true;
@@ -161,17 +209,50 @@ public static class LadderPicker
                 var low = i * pool.Count / rungs;
                 var high = Math.Max(low + 1, (i + 1) * pool.Count / rungs);
 
-                // Within the band, only weapons that can still be loaded with
-                // something the configuration allows. A band with none left
-                // draws as before rather than leaving a hole in the ladder.
-                var loadable = Enumerable.Range(low, high - low)
-                    .Where(j => UsableChoices(pool[j]!, excluded).Count > 0)
-                    .ToList();
-                passedOver += high - low - loadable.Count;
-
                 int index;
-                lock (Rng)
-                    index = loadable.Count > 0 ? loadable[Rng.Next(0, loadable.Count)] : Rng.Next(low, high);
+                if (excluded.Count == 0)
+                {
+                    // Nothing excluded: the draw exactly as it always was.
+                    lock (Rng)
+                        index = Rng.Next(low, high);
+                }
+                else
+                {
+                    // Within the band, only weapons the configuration has not
+                    // barred. A band with nothing left borrows the nearest
+                    // unbarred weapon from the pool around it, and only when
+                    // the whole pool is barred does a rung go out with the
+                    // pool's own load — said out loud, because that load is
+                    // the excluded round itself.
+                    var unbarred = Enumerable.Range(low, high - low)
+                        .Where(j => !IsBarred(pool[j]!, excluded))
+                        .ToList();
+                    passedOver += high - low - unbarred.Count;
+
+                    if (unbarred.Count > 0)
+                    {
+                        lock (Rng)
+                            index = unbarred[Rng.Next(0, unbarred.Count)];
+                    }
+                    else
+                    {
+                        index = NearestUnbarred(pool, low, high, excluded);
+                        if (index >= 0)
+                        {
+                            log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: every weapon of its band has only excluded "
+                                        + $"cartridges; borrowed '{NameOf(pool[index])}' from the pool next to it.");
+                        }
+                        else
+                        {
+                            lock (Rng)
+                                index = Rng.Next(low, high);
+                            passedOver--;
+                            log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: nothing in the pool can be loaded with an "
+                                        + $"allowed cartridge; '{NameOf(pool[index])}' goes out with the pool's own load, "
+                                        + "which the configuration excludes.");
+                        }
+                    }
+                }
 
                 // Detached before re-parenting: a node still owned by the pool
                 // array cannot be added to another one.

@@ -124,8 +124,11 @@ def pick_ammo(cal, accepted=None):
 
     if accepted:
         narrowed = [c for c in pool if c[0] in accepted]
-        if narrowed:
-            pool = narrowed
+        # Nothing the magazine takes survived the rules above: no weapon,
+        # rather than a round the magazine refuses (mirrors the C# side).
+        if not narrowed:
+            return None
+        pool = narrowed
 
     top = min(len(pool) - 1, int(len(pool) * 0.75))
     low = max(0, top - 2)

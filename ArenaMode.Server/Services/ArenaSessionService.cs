@@ -1569,6 +1569,7 @@ public class ArenaSessionService
         {
             try
             {
+                variants.Exclude(ArenaTemplateEligibility.ExclusionSet(ArenaContext.Config.ExcludedTemplates));
                 entry.KitsJson = variants.CreateCatalog(entry.KitsJson, Random.Shared.Next(), out var report);
                 logger.Info(ArenaWeaponVariants.Summarize("kit", report));
             }

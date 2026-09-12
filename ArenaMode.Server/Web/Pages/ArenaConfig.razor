@@ -49,7 +49,7 @@
                 <MudItem xs="12">
                     <MudTextField T="string" Label="Excluded templates" @bind-Value="ExcludedTemplatesText"
                                   Lines="3" Variant="Variant.Outlined"
-                                  HelperText="Template ids the Gun Game ladder and the attachment draw must never hand out, one per line. Seeded with the game's own !!!DO_NOT_USE!!! placeholders, which are refused by name as well. The per-raid cartridge draw reads it at the next raid; the weapon pool at the next server start." />
+                                  HelperText="Template ids the Gun Game ladder and the attachment draw must never hand out, one per line. Seeded with the game's own !!!DO_NOT_USE!!! placeholders, which are refused by name as well. The cartridge draw and the attachment draw read it at the next raid; the weapon pool at the next server start." />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudSelect T="string" Label="Hostility" @bind-Value="_config.HostilityMode" Variant="Variant.Outlined"
@@ -187,7 +187,7 @@
     /// <summary>The list as text, one id per line; separators the user might reach for are accepted too.</summary>
     private string ExcludedTemplatesText
     {
-        get => string.Join("\n", _config.ExcludedTemplates);
+        get => string.Join("\n", _config.ExcludedTemplates ?? new List<string>());
         set => _config.ExcludedTemplates = (value ?? string.Empty)
             .Split(new[] { '\n', '\r', ',', ';', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Distinct(StringComparer.Ordinal)
@@ -201,6 +201,12 @@
         {
             var result = ConfigStore.Save(_config, out var message);
             Report(result, message);
+
+            // Save installs the page's own instance as the live config. Detach
+            // again, the way Reload does, so the next edit in the form is not
+            // an edit of what the server is reading until it is saved too.
+            if (result == ConfigResult.Success)
+                _config = ConfigStore.Copy();
         }
         finally
         {
