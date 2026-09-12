@@ -1,0 +1,4 @@
+[13:08:05.625] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Location Selection'.
+[13:08:13.928] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Offline Raid Screen'.
+[13:10:46.477] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Offline Raid Screen'.
+[13:11:17.023] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Location Selection'.

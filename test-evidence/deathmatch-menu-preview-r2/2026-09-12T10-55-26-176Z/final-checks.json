@@ -1,0 +1,342 @@
+{
+  "at": "2026-09-12T11:13:17.155Z",
+  "menuOnly": true,
+  "raidsStarted": 0,
+  "profileComparison": {
+    "pmc": {
+      "Inventory": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Experience": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Level": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Quests": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "TaskConditionCounters": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "RepeatableQuests": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Skills": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Health": {
+        "equal": false,
+        "beforePresent": true,
+        "afterPresent": true
+      }
+    },
+    "scav": {
+      "Inventory": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Experience": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Level": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Quests": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "TaskConditionCounters": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "RepeatableQuests": {
+        "equal": true,
+        "beforePresent": false,
+        "afterPresent": false
+      },
+      "Skills": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      },
+      "Health": {
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true
+      }
+    }
+  },
+  "settings": [
+    {
+      "name": "com.maschine.ArenaMode.cfg",
+      "path": "C:/SPT41/BepInEx/config/com.maschine.ArenaMode.cfg",
+      "before": "62214602326C3FDCAC8385139E38DB7587AEC1429EAD942D157DF852DE99ABFD",
+      "after": "EF2A27F7ADD6F44AE5D139226C9B6AC6AA2D348D828D15E7A2AB345E6521D094"
+    },
+    {
+      "name": "com.maschine.RaidInfoPanels.cfg",
+      "path": "C:/SPT41/BepInEx/config/com.maschine.RaidInfoPanels.cfg",
+      "before": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "after": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C"
+    },
+    {
+      "name": "Control.ini",
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Control.ini",
+      "before": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "after": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79"
+    },
+    {
+      "name": "Graphics.ini",
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Graphics.ini",
+      "before": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "after": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F"
+    },
+    {
+      "name": "config.json",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/config/config.json",
+      "before": "5A6965111C80861D3F888205E62C1E07137E9365F48733D969B4C0B058F1B90F",
+      "after": "5A6965111C80861D3F888205E62C1E07137E9365F48733D969B4C0B058F1B90F"
+    }
+  ],
+  "settingValueDifferences": [],
+  "assets": [
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/AreaDrafts/area-draft-20260907-192946-b6389e40c0884bcea6e1486a6033caaa.json",
+      "before": "5B948914B515C1AD8871EA4E2E792905F635E63679C5D7035AD721983F689557",
+      "after": "5B948914B515C1AD8871EA4E2E792905F635E63679C5D7035AD721983F689557"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/AUDIO-LICENSES.md",
+      "before": "1E6E58EDBFF28E1A0C14F4961DB2A1211C32AC630CC756840B948AFFDED23BE3",
+      "after": "1E6E58EDBFF28E1A0C14F4961DB2A1211C32AC630CC756840B948AFFDED23BE3"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/CC-BY-3.0.txt",
+      "before": "E6BC9E9C474700B708F568BAC9E5A8A9BCB2B1DAD53442F5BA449FCB848B8E76",
+      "after": "E6BC9E9C474700B708F568BAC9E5A8A9BCB2B1DAD53442F5BA449FCB848B8E76"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/CC-BY-SA-4.0.txt",
+      "before": "23EE78C8BAE49CF08EA2F0C84945C66B987EBE4520881FB51B3DAD4FB43D07C2",
+      "after": "23EE78C8BAE49CF08EA2F0C84945C66B987EBE4520881FB51B3DAD4FB43D07C2"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/.gitattributes",
+      "before": "FF83F9FC3D5903631EBD159A2618B7AA9E7FDE654CAA85DF1DCB67E35F46B023",
+      "after": "FF83F9FC3D5903631EBD159A2618B7AA9E7FDE654CAA85DF1DCB67E35F46B023"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/CC0-1.0.txt",
+      "before": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499",
+      "after": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/headshot.wav",
+      "before": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+      "after": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/hit.wav",
+      "before": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+      "after": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-IMPACT-LICENSE.txt",
+      "before": "B49AA9C56B04528B95913DE13E506A0F7C5E807B9925DB9BFEF86AF1F91120DB",
+      "after": "B49AA9C56B04528B95913DE13E506A0F7C5E807B9925DB9BFEF86AF1F91120DB"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-INTERFACE-LICENSE.txt",
+      "before": "F7966C773BBED0ECA6A9C75081C44A178B38EAE112724DBB5FDFBD4192D118A9",
+      "after": "F7966C773BBED0ECA6A9C75081C44A178B38EAE112724DBB5FDFBD4192D118A9"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/kill.wav",
+      "before": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+      "after": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/SOURCES.json",
+      "before": "47C9818AACF5AEEF8C8E7AF58FEB0C9F93689470F5ABAC1E914DA686D09DD0E6",
+      "after": "47C9818AACF5AEEF8C8E7AF58FEB0C9F93689470F5ABAC1E914DA686D09DD0E6"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/LOCAL-ANNOUNCER-SOURCES.json",
+      "before": "CB967942D67B1B3A07B002183479B8EF2B79EA35456ED53AA2324F98D2B69302",
+      "after": "CB967942D67B1B3A07B002183479B8EF2B79EA35456ED53AA2324F98D2B69302"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/LOCAL-ANNOUNCER-TRIAL.md",
+      "before": "09788A71396AD7C4A6240A8E4ADAE26277F4AEBC074BC196B22040B375CB1E22",
+      "after": "09788A71396AD7C4A6240A8E4ADAE26277F4AEBC074BC196B22040B375CB1E22"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/dominating.ogg",
+      "before": "2D6768AA25761F917A61403DBE53B5049DEB47BAA9B6615CB897B64B37E72170",
+      "after": "2D6768AA25761F917A61403DBE53B5049DEB47BAA9B6615CB897B64B37E72170"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/double_kill.ogg",
+      "before": "733354DE342C7C8780647A3E62C97A5577989EC58CA08C89CB85540AFCA1EAEE",
+      "after": "733354DE342C7C8780647A3E62C97A5577989EC58CA08C89CB85540AFCA1EAEE"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/first_blood.ogg",
+      "before": "3F05B0E557E7F588FA9FF1DD165C185A06A2BF5E294DE7DF01F69313A770DDC7",
+      "after": "3F05B0E557E7F588FA9FF1DD165C185A06A2BF5E294DE7DF01F69313A770DDC7"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/godlike.ogg",
+      "before": "8B991B170B26AA1B577509263CF83ECE6674489B403B176A21C5B8DD63F5DFDD",
+      "after": "8B991B170B26AA1B577509263CF83ECE6674489B403B176A21C5B8DD63F5DFDD"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/headshot.ogg",
+      "before": "58114533C0A5546A92B71E1AECDB07D2DB0EBD0DAA18CEA1E8DC52C1227E5DCA",
+      "after": "58114533C0A5546A92B71E1AECDB07D2DB0EBD0DAA18CEA1E8DC52C1227E5DCA"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/killing_spree.ogg",
+      "before": "6DF15D154C72F216D0794EEA6E8FAC205A4F7BD81FF82B5B65456107BB16E150",
+      "after": "6DF15D154C72F216D0794EEA6E8FAC205A4F7BD81FF82B5B65456107BB16E150"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/last_man_standing.ogg",
+      "before": "01F2059380DD6671F7A717167EBE021A521E438353218E586FC870DB4C630CD5",
+      "after": "01F2059380DD6671F7A717167EBE021A521E438353218E586FC870DB4C630CD5"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/match_lost.ogg",
+      "before": "133FE0D9F21257FCE97CB6A956A91C6E5B48AEB4F7EFAAEA95C4204D43501D02",
+      "after": "133FE0D9F21257FCE97CB6A956A91C6E5B48AEB4F7EFAAEA95C4204D43501D02"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/match_won.ogg",
+      "before": "0109511E68A97484C4C497C401151CBA786B00F8D87CBFAF3A98BB1E16FE1A90",
+      "after": "0109511E68A97484C4C497C401151CBA786B00F8D87CBFAF3A98BB1E16FE1A90"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/monster_kill.ogg",
+      "before": "9B33F0C201BAC52C1B1911530D2EDA8F512BA694A07231C3AB6802C6BAFA0FFA",
+      "after": "9B33F0C201BAC52C1B1911530D2EDA8F512BA694A07231C3AB6802C6BAFA0FFA"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/multi_kill.ogg",
+      "before": "C5937DE3CED16BE41B13D9BECC2A6D00B400D911133264898D66CAE84584F870",
+      "after": "C5937DE3CED16BE41B13D9BECC2A6D00B400D911133264898D66CAE84584F870"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/payback.ogg",
+      "before": "E4A91CA5D1036645EFDEFC3E9DE1A2113B87DA42BFA89511A5AD730128BB4583",
+      "after": "E4A91CA5D1036645EFDEFC3E9DE1A2113B87DA42BFA89511A5AD730128BB4583"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/rampage.ogg",
+      "before": "A8C8C7E38FB0C03CBE3117D08C1B94A344B83CF06D502DE21CC1CF9AE23921BE",
+      "after": "A8C8C7E38FB0C03CBE3117D08C1B94A344B83CF06D502DE21CC1CF9AE23921BE"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/round_lost.ogg",
+      "before": "306B4E2464C202FBC85CBCBF325571EDA36BBF296514B31B6A46795DDA43D273",
+      "after": "306B4E2464C202FBC85CBCBF325571EDA36BBF296514B31B6A46795DDA43D273"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/round_start.ogg",
+      "before": "60AC110B2994616ECF88435732CEC32EFFE6D7B2E54F302205FE61C7AEDE0D8E",
+      "after": "60AC110B2994616ECF88435732CEC32EFFE6D7B2E54F302205FE61C7AEDE0D8E"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/round_won.ogg",
+      "before": "F2A81554D9ACB6D9485BCD0984FAEE25915375651082662EBB35BFF9FF91DDFD",
+      "after": "F2A81554D9ACB6D9485BCD0984FAEE25915375651082662EBB35BFF9FF91DDFD"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/triple_kill.ogg",
+      "before": "3F66C1D201233226D6765493428FA497574FCE6925777379AFB1A5079E8C90C9",
+      "after": "3F66C1D201233226D6765493428FA497574FCE6925777379AFB1A5079E8C90C9"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/unstoppable.ogg",
+      "before": "4C9A52FD0EA97D4D78A433194E57C2F24E25BB2E92F340802BD5C6BEECF6DAD9",
+      "after": "4C9A52FD0EA97D4D78A433194E57C2F24E25BB2E92F340802BD5C6BEECF6DAD9"
+    },
+    {
+      "path": "C:/SPT41/BepInEx/plugins/ArenaMode/WARLORD-ADDITIONS.json",
+      "before": "434B291B2E36A3A6AE6AD7D1258A8F777238078D974AE6024948E2C538C4E5A8",
+      "after": "434B291B2E36A3A6AE6AD7D1258A8F777238078D974AE6024948E2C538C4E5A8"
+    }
+  ],
+  "hash": {
+    "at": "2026-09-12T11:13:17.187Z",
+    "client": "60C2685951C4ECD17E29C80192EE26AA7CF7735C723091C89E8162BFAF4C6551",
+    "server": "8F9A56F574835FEAB73AB78C2EF4D5CF5734F12ABE63F384E2148CF319890B73",
+    "match": true
+  },
+  "errors": [
+    {
+      "line": 13013,
+      "text": "[13:08:05.625] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Location Selection'."
+    },
+    {
+      "line": 13016,
+      "text": "[13:08:13.928] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Offline Raid Screen'."
+    },
+    {
+      "line": 13021,
+      "text": "[13:10:46.477] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Offline Raid Screen'."
+    },
+    {
+      "line": 13030,
+      "text": "[13:11:17.023] [Error  : Unity Log] Cannot set the parent of the GameObject 'ArenaCharacterPreview' while activating or deactivating the parent GameObject 'Matchmaker Location Selection'."
+    }
+  ],
+  "healthDetail": {
+    "scope": "menu only, no raid",
+    "pmcChangedFields": [
+      {
+        "path": "Health.UpdateTime",
+        "before": 1789208714,
+        "after": 1789210691
+      }
+    ],
+    "allOtherHealthFieldsEqual": true
+  },
+  "configDetail": {
+    "settingCount": 147,
+    "allValuesEqual": true,
+    "rawDifferences": "Eight comment lines: decimal comma to decimal point in acceptable value ranges; no setting values changed."
+  },
+  "cleanup": {
+    "allOwnedProcessesAbsent": true,
+    "checkedAt": "2026-09-12T11:17:18.862Z",
+    "method": "Game Exit/Yes; launcher close button; own server execution session Ctrl+C"
+  },
+  "serverAudit": {
+    "fromUtc": "2026-09-12T10:55:43.753Z",
+    "timestampedLines": 744,
+    "armOrNativeStartMarkers": 0,
+    "errorFatalCriticalExceptionMatches": 0
+  }
+}

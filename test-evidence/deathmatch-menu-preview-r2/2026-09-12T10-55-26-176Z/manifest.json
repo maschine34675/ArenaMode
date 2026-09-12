@@ -1,0 +1,246 @@
+{
+  "buildId": "deathmatch-menu-preview-r2",
+  "implementation": "20669505459d90c212dc90806f24c12b3082870b",
+  "head": "60966bfc3e854a7667888acfa4d6cef7c25d50cd",
+  "branch": "feature/deathmatch-menu-preview",
+  "clientHash": "60C2685951C4ECD17E29C80192EE26AA7CF7735C723091C89E8162BFAF4C6551",
+  "serverHash": "8F9A56F574835FEAB73AB78C2EF4D5CF5734F12ABE63F384E2148CF319890B73",
+  "processes": [
+    {
+      "name": "EscapeFromTarkov",
+      "pid": 12280,
+      "startUtc": "2026-09-12T10:57:18.7972363Z"
+    },
+    {
+      "name": "SPT.Launcher",
+      "pid": 10428,
+      "startUtc": "2026-09-12T10:56:02.5390821Z"
+    },
+    {
+      "name": "SPT.Server",
+      "pid": 12540,
+      "startUtc": "2026-09-12T10:55:43.7530641Z"
+    }
+  ],
+  "times": {
+    "preflight": "2026-09-12T10:55:26.176Z",
+    "menuStart": "2026-09-12T10:59:08.779Z",
+    "stop": "2026-09-12T11:10:28.766Z",
+    "gameExitRequested": "2026-09-12T11:12:28.724Z",
+    "launcherExitRequested": "2026-09-12T11:12:53.162Z",
+    "finalChecks": "2026-09-12T11:13:17.155Z"
+  },
+  "raidsStarted": 0,
+  "images": [
+    {
+      "name": "a1-scav",
+      "file": "a1-scav.jpg",
+      "capturedAt": "2026-09-12T11:04:28.517Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a1-scav-2026-09-12T11-04-28-517Z-0.jpg",
+      "sha256": "B5AA394CB7234431AF75692249E629235686AA127A7D9416F45D8D66B31C38E0",
+      "bytes": 124652,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a1-arena-description",
+      "file": "a1-arena-description.jpg",
+      "capturedAt": "2026-09-12T11:04:36.703Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a1-arena-description-2026-09-12T11-04-36-703Z-0.jpg",
+      "sha256": "BB89E75211C3A69EC9289604316A317DDC59EB537973531351284649B662FB94",
+      "bytes": 122185,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a1-return-pmc",
+      "file": "a1-return-pmc.jpg",
+      "capturedAt": "2026-09-12T11:04:43.113Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a1-return-pmc-2026-09-12T11-04-43-113Z-0.jpg",
+      "sha256": "AFB6B754D7047E1198AD1B659EA9015E3C02E203BDCC6C4F40830F72C46C9683",
+      "bytes": 125879,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a2-map-menu",
+      "file": "a2-map-menu.jpg",
+      "capturedAt": "2026-09-12T11:04:58.205Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a2-map-menu-2026-09-12T11-04-58-205Z-0.jpg",
+      "sha256": "1C10A64F7C51DCB51F9AE90A6373BE73EB764E7C00E689E5DED624F13CE1A3F1",
+      "bytes": 138954,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a3-finite-blocked-both-off",
+      "file": "a3-finite-blocked-both-off.jpg",
+      "capturedAt": "2026-09-12T11:05:10.639Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a3-finite-blocked-both-off-2026-09-12T11-05-10-639Z-0.jpg",
+      "sha256": "E2B44EB3D6B1822E0F4312B8FBBD066EE99A4514E88CB30EA65564F4042E1C7F",
+      "bytes": 143931,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a3-three-rounds",
+      "file": "a3-three-rounds.jpg",
+      "capturedAt": "2026-09-12T11:05:23.390Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a3-three-rounds-2026-09-12T11-05-23-390Z-0.jpg",
+      "sha256": "7D8CF31EF176FF4B8F59239D5EFE532FE0FB4696BF0F87E9ECF576FB51834F2D",
+      "bytes": 143503,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a3-all-vs-player",
+      "file": "a3-all-vs-player.jpg",
+      "capturedAt": "2026-09-12T11:05:34.236Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a3-all-vs-player-2026-09-12T11-05-34-236Z-0.jpg",
+      "sha256": "08D991C9C653C8E59C87E4CF5C0CF3EF4E35D2DDF52B8075D87023C947327623",
+      "bytes": 143946,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a4-tactical-solo",
+      "file": "a4-tactical-solo.jpg",
+      "capturedAt": "2026-09-12T11:05:42.047Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a4-tactical-solo-2026-09-12T11-05-42-047Z-0.jpg",
+      "sha256": "53E82874A7BE5C89F03D46B7942A7DB98A0A31ABAE3D41E16AA5651D46534A17",
+      "bytes": 140476,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a4-team-dm",
+      "file": "a4-team-dm.jpg",
+      "capturedAt": "2026-09-12T11:05:50.419Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a4-team-dm-2026-09-12T11-05-50-419Z-0.jpg",
+      "sha256": "06ED4BA7AD0CF9833258C672F22744C6A87772F9940A98BFB63B1AA0CA13947D",
+      "bytes": 141475,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a4-customs-area",
+      "file": "a4-customs-area.jpg",
+      "capturedAt": "2026-09-12T11:05:56.174Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a4-customs-area-2026-09-12T11-05-56-174Z-0.jpg",
+      "sha256": "E287B8CF8C031A5A531AB05706CE26A4866671EAE0312705447CA9ADD7878B91",
+      "bytes": 181344,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a4-customs-contour",
+      "file": "a4-customs-contour.jpg",
+      "capturedAt": "2026-09-12T11:06:04.013Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a4-customs-contour-2026-09-12T11-06-04-013Z-0.jpg",
+      "sha256": "5E4402EDAF1EB4428193539996BEAB786D539DA5F9885657B807559B806116B0",
+      "bytes": 184434,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a3-f12-deathmatch",
+      "file": "a3-f12-deathmatch.jpg",
+      "capturedAt": "2026-09-12T11:06:28.143Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a3-f12-deathmatch-2026-09-12T11-06-28-143Z-0.jpg",
+      "sha256": "999ECF53ECA615D923B7B3F4D6F80EE85085EBC6D4617C6351C3C009AE1BAC3F",
+      "bytes": 151759,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a3-custom-f12",
+      "file": "a3-custom-f12.jpg",
+      "capturedAt": "2026-09-12T11:07:15.760Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a3-custom-f12-2026-09-12T11-07-15-760Z-0.jpg",
+      "sha256": "A5EA6DA5381F7958274F0625AB895DDBFB55359518A1C27952C2A51A77F3D980",
+      "bytes": 150395,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a3-custom-menu",
+      "file": "a3-custom-menu.jpg",
+      "capturedAt": "2026-09-12T11:07:22.570Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a3-custom-menu-2026-09-12T11-07-22-570Z-0.jpg",
+      "sha256": "E842DB58591CC1689D56DE59A03EC0E05D9BF1B5CE2AF6C1F93F804DBD5CB971",
+      "bytes": 143408,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "c1-prestart-rules",
+      "file": "c1-prestart-rules.jpg",
+      "capturedAt": "2026-09-12T11:07:57.984Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/c1-prestart-rules-2026-09-12T11-07-57-984Z-0.jpg",
+      "sha256": "10DF1B7CD17CE5E41A1E65F74CA1F157825604CAFA02383E3EA93AF20FB14528",
+      "bytes": 194838,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a5-offline",
+      "file": "a5-offline.jpg",
+      "capturedAt": "2026-09-12T11:08:06.557Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a5-offline-2026-09-12T11-08-06-557Z-0.jpg",
+      "sha256": "A4A72E36B910DBE2BC669535D560D2EE22C83E76122350FD8131F175F10F7E82",
+      "bytes": 98575,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "a5-confirmation-lobby",
+      "file": "a5-confirmation-lobby.jpg",
+      "capturedAt": "2026-09-12T11:08:22.077Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/a5-confirmation-lobby-2026-09-12T11-08-22-077Z-0.jpg",
+      "sha256": "8F9D35C449D5D6313DA3B6FE0BC3F810BFA7A1C9A52FADA832848363F0EC5772",
+      "bytes": 107949,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    },
+    {
+      "name": "cleanup-pmc",
+      "file": "cleanup-pmc.jpg",
+      "capturedAt": "2026-09-12T11:11:28.575Z",
+      "original": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/screenshots/cleanup-pmc-2026-09-12T11-11-28-575Z-0.jpg",
+      "sha256": "4CEF1F8622304E7D732C06DBA1D8DCB86B8CD3C2002BB840ED9AFB1AD2E44AE4",
+      "bytes": 126251,
+      "width": 1920,
+      "height": 1080,
+      "unaltered": true
+    }
+  ],
+  "originalLogs": [
+    {
+      "path": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/logs/final/client.log",
+      "bytes": 1520673,
+      "sha256": "687D2D3698FBE1F8A3BEA4067C9E78D54B6D14E477EAF41615E33ED4BAF1E969"
+    },
+    {
+      "path": "C:/SPT41/Development/ArenaMode/artifacts/gpu-deathmatch-menu/deathmatch-menu-preview-r2/2026-09-12T10-55-26-176Z/logs/final/server-current.log",
+      "bytes": 595058,
+      "sha256": "7E88124020423D8089750D2A71DE995B8D2522776525A479139FCC0238B1180A"
+    }
+  ]
+}
