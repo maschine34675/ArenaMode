@@ -27,7 +27,7 @@ Abschnitt 10 (Szenarien), sofern das Redeploy-Repo gespiegelt ist.
 | `SPT_Runtime\user\mods\Redeploy\maschine-Redeploy.Server.dll` | `53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B` | unverändert seit 09.09. |
 | `BepInEx\plugins\SAIN\SAIN.dll` (4.5.1.0) | `C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489` | unverändert |
 | `BepInEx\plugins\maschine-KillcamReplay.dll` (0.9.5) | `B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5` | unverändert, relevant für A |
-| `BepInEx\plugins\mpstark-dynamicmaps\DynamicMaps.dll` (1.2.1.0)` | `C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8` | unverändert |
+| `BepInEx\plugins\mpstark-dynamicmaps\DynamicMaps.dll` (1.2.1.0) | `C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8` | unverändert |
 
 GPU-Synchronisierung und tatsächliche Hashes vor Start, vor jedem Raid und am Ende
 prüfen. **Spiel neu starten** (Client, Core und Redeploy.Client sind neu). Der Server
