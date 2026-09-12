@@ -7,6 +7,48 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Four client refinements staged, not delivered (2026-09-12):** source branch
+  `feature/arena-visibility-movement`; source/build commit
+  `c151aa683a7bcb83eec8d0183f36fc19ab8ce18a`, clean tree at build. Feature commits:
+  `5ec04f9` (optional DynamicMaps 1.2.1 trimmed-corpse skull removal), `ef53c2f`
+  (per-side contour grid fade, original opacity within 6 m and invisible beyond
+  20 m, physical/navigation blockers unchanged), `0be7f7a` (friendly diamonds
+  projected through applied native SSAA state into final DLSS output), and
+  `b1148a6` (one deliberate air jump after a ledge fall, including early tiny
+  departures before FallDown). No mantle-limit, server, audio or default change.
+  DynamicMaps removal uses only its own marker UI methods and exact successful
+  trim evidence; native corpses/Players/loot registries remain intact. Ground
+  contact, native jump signal ownership, one action debit, reset/body lifetime
+  and stable lift across rapid landings are preserved by the movement revision.
+  Independent adversarial reviews passed all four implementations. Parent
+  rechecks passed: corpse 57 assertions + 7 compiled faults and existing 44/4
+  cleanup regression; marker 148 assertions + 3 projection faults (leaf also ran
+  the complete 14-fault regression); movement 278 assertions + 22 faults; area
+  77 assertions + 4 faults and existing 69,023/13 enclosure checks. These helpers
+  do not run native rendering, Unity contact or the EFT animator graph.
+  First integrated build caught an EFT/System Version name collision; explicit
+  `System.Version` correction `c151aa6` passed independent review and compilation.
+  Final full client: **0 errors, 4 existing nullable warnings**.
+  **Staged client SHA256:**
+  `3FFF60D7EA67B7CF40046421362F93BED3A87C984449F0C62B518026344F3FF6`.
+  ProductVersion `0.1.0+c151aa683a7bcb83eec8d0183f36fc19ab8ce18a`.
+  Output/manifest/receipt:
+  `artifacts/double-jump-build/146ebfa928204a548a5c314c528e431c/`.
+  **Not installed or GPU-tested.** Installed r3 client/server/Redeploy, audio,
+  other assets and r3 instructions still match all 40 non-setting baseline files.
+  ArenaMode.cfg and server client-settings.json changed concurrently during r3
+  tests without writes by this task and were left intact. No server build ran.
+  New separate test job: `GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r1.md`, ID
+  `arena-refinements-r1`; deliver its exact staged client only for a later test
+  stand and restart the game. No old r3 report is acceptance of these changes.
+  Concurrent GPU report `ee0a421` arrived as a sibling of movement `b1148a6`;
+  normal merge `3f9052b` preserves both histories. The report's C2 exit failures
+  still need separate triage before any further acceptance raid; this staged
+  checklist does not release the r3 stop. This feature task preserves the report
+  without claiming to diagnose those old-client errors.
+  Reviews: `DYNAMICMAPS-CORPSE-REVIEW.md`, `AREA-GRID-VISIBILITY-REVIEW.md`,
+  `FRIENDLY-MARKERS-REVIEW.md`, `DOUBLE-JUMP-REVIEW.md`.
+
 - **r3 build identities refreshed after parallel work finished (2026-09-12):**
   the user confirmed completion; a fresh installed-file check supersedes the
   original r3 delivery hashes in the historical entry below. No build or DLL

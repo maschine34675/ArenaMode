@@ -18,9 +18,13 @@ body/context airborne episode, exact Arena/native ownership and genuine landing.
   Jump/FallDown/TryJump/CheckFlying/debit contracts, and tests. Ground-toggle,
   shutdown retention, native signal cleanup/handoff and retained lift-basis
   findings were corrected and re-reviewed; no remaining established defect.
-- [ ] G3: Root-owned isolated full-client build and final repository acceptance.
-  EVIDENCE: pending root work. This leaf ran only the isolated contract helper;
-  Build-Staged.ps1, deployment targets and the running r3 files were untouched.
+- [x] G3: Root-owned isolated full-client build and final repository acceptance.
+  EVIDENCE: Parent reran the 278/22 helper successfully and built clean source
+  c151aa683a7bcb83eec8d0183f36fc19ab8ce18a with 0 errors and 4 existing warnings.
+  Manifest: artifacts/double-jump-build/146ebfa928204a548a5c314c528e431c/manifest.json.
+  Client SHA256: 3FFF60D7EA67B7CF40046421362F93BED3A87C984449F0C62B518026344F3FF6.
+  Installed r3 DLLs were unchanged; HANDOFF.md and the separate r1 test job
+  record staged-only delivery, preserved concurrent test evidence and GPU limits.
 - [ ] G4: Native GPU acceptance of early-edge transitions, contact and animation.
   EVIDENCE: pending. Contract doubles do not execute EFT's animator graph,
   native Harmony detours or physical controller contacts.
