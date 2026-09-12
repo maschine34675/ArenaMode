@@ -21,7 +21,6 @@ function Invoke-Baseline {
     }
     $output | Write-Output
 }
-Invoke-Baseline
 $mutants = @(
     @{ Name = 'missing-forfeit'; Source = $modePath; Property = 'ModeSource';
        From = '_match.Scoreboard.ReportOpponentForfeitKill();'; To = '/* missing original give-up team score */';
@@ -53,16 +52,17 @@ $mutants = @(
        From = '_localDeathCounted || !TryBeginScoredEvent()'; To = '!TryBeginScoredEvent()';
        Failure = 'final local kill and driver death count exactly once in either native event order' },
     @{ Name = 'kill-first-local-death'; Source = $matchPath; Property = 'MatchSource';
+       Within = '(?s)if\s*\(Mode is TeamDeathmatchMode teams\)\s*\{(?<body>[^{}]*)\}';
        From = 'if (kill.LocalIsVictim) ReportLocalDeath();'; To = '';
        Failure = 'final local kill and driver death count exactly once in either native event order' },
     @{ Name = 'terminal-respawn-board'; Source = $matchPath; Property = 'MatchSource';
-       From = 'if (Mode is TeamDeathmatchMode teams && teams.HasResult) return;'; To = '';
+       From = 'if (ArenaMatchResult.HasResult(Mode)) return;'; To = '';
        Failure = 'post-result kill, death and replacement callbacks cannot mutate the final board or events' },
     @{ Name = 'event-before-deadline-check'; Source = $flowPath; Property = 'FlowSource';
        From = 'CheckMatchLimits();'; To = '';
        Failure = 'an event at the exact time limit cannot score into an expired match' },
     @{ Name = 'terminal-giveup-exit'; Source = $giveUpPath; Property = 'GiveUpSource';
-       From = 'terminal && terminal.HasResult)'; To = 'terminal && terminal.HasResult && false)';
+       From = 'if (ArenaMatchResult.HasResult(ArenaMatchService.Current?.Mode))'; To = 'if (false)';
        Failure = 'result exit works while the dead-player respawn hold remains set' },
     @{ Name = 'staging-death-countdown'; Source = $matchPath; Property = 'MatchSource';
        From = 'RaiseSafe(teams.OnLocalDeath, "mode.OnLocalDeath");'; To = '';
@@ -76,15 +76,38 @@ $mutants = @(
 )
 foreach ($mutant in $mutants) {
     $source = Get-Content -LiteralPath $mutant.Source -Raw
-    if (($source.Split($mutant.From)).Count -ne 2) { throw "Mutation target must occur exactly once: $($mutant.Name)" }
-    $source = $source.Replace($mutant.From, $mutant.To)
+    $segment = $source
+    $body = $null
+    if ($mutant.ContainsKey('Within')) {
+        # The same death notification also exists in unified solo Deathmatch.
+        # Bound this fault to the named TDM branch, never to the first occurrence.
+        # A changed/nested or ambiguous branch fails closed for manual review.
+        $scopes = [regex]::Matches($source, $mutant.Within)
+        if ($scopes.Count -ne 1 -or !$scopes[0].Groups['body'].Success) {
+            throw "Mutation scope must occur exactly once: $($mutant.Name)"
+        }
+        $body = $scopes[0].Groups['body']
+        $segment = $body.Value
+    }
+    if (($segment.Split($mutant.From)).Count -ne 2) { throw "Mutation target must occur exactly once: $($mutant.Name)" }
+    $changed = $segment.Replace($mutant.From, $mutant.To)
+    $source = if ($null -eq $body) { $changed } else {
+        $source.Substring(0, $body.Index) + $changed + $source.Substring($body.Index + $body.Length)
+    }
     if ($mutant.ContainsKey('AlsoFrom')) {
         if (($source.Split($mutant.AlsoFrom)).Count -ne 2) { throw "Second mutation target missing: $($mutant.Name)" }
         $source = $source.Replace($mutant.AlsoFrom, $mutant.AlsoTo)
     }
     $copy = Join-Path $scratch ($mutant.Name + '.cs')
     [IO.File]::WriteAllText($copy, $source)
-    $argument = '-p:' + $mutant.Property + '=' + $copy
+    $mutant['Copy'] = $copy
+}
+# Resolve every target before compiling any fault, so contract drift near the
+# end of the list does not waste a full partial run or hide other stale anchors.
+Write-Output ('PREPARED ' + $mutants.Count + ' uniquely bound production mutations.')
+Invoke-Baseline
+foreach ($mutant in $mutants) {
+    $argument = '-p:' + $mutant.Property + '=' + $mutant.Copy
     $output = & dotnet run --project $project -c ('GiveUpMutant-' + $mutant.Name) $argument 2>&1
     $exitCode = $LASTEXITCODE
     $combined = $output -join "`n"

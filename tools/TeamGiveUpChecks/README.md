@@ -90,3 +90,21 @@ changed production source and reruns the original after the controls. The shared
 exit adapter only records mode intent; native Stop and real respawn are outside
 this fixture. The four passes rechecked full delivery, native-event semantics,
 adversarial races/source controls, and final portability/evidence limitations.
+
+## Unified Deathmatch mutation anchors (2026-09-12)
+
+The production baseline remained green, but `kill-first-local-death` matched
+both independent TDM and unified solo Deathmatch, stopping the fault runner.
+It now uniquely selects the explicit TeamDeathmatchMode branch before removing
+that branch's local-death call. It never chooses an arbitrary first occurrence
+or removes both calls. A missing, ambiguous or newly nested branch fails closed
+and needs review. Nonselected source text is preserved byte for byte.
+
+The subsequent `terminal-respawn-board` and `terminal-giveup-exit` controls also
+had obsolete TDM-only spellings: both now target their current shared
+ArenaMatchResult.HasResult guard, with the same intended behavior assertions.
+All 16 scratch copies are prepared and their targets validated before any
+compiled fault runs, so later anchor drift is reported immediately.
+Final root run: **618 baseline assertions, all 16 behavior faults rejected,
+then a fresh 618**. No compile failure counts as a detected behavior fault;
+source hashes still must remain unchanged. These are harness repairs only.
