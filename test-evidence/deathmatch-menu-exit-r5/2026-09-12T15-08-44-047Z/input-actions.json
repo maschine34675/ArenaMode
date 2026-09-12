@@ -1,0 +1,244 @@
+[
+  {
+    "at": "2026-09-12T15:10:35.398Z",
+    "action": "click",
+    "x": 963,
+    "y": 63,
+    "name": "game-launch-private"
+  },
+  {
+    "at": "2026-09-12T15:12:20.487Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "a-character-selection",
+    "returnAt": "2026-09-12T15:12:21.529Z"
+  },
+  {
+    "at": "2026-09-12T15:12:27.063Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "name": "a-arena-preview",
+    "returnAt": "2026-09-12T15:12:28.249Z"
+  },
+  {
+    "at": "2026-09-12T15:12:35.007Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "a-map-menu",
+    "returnAt": "2026-09-12T15:12:36.084Z"
+  },
+  {
+    "at": "2026-09-12T15:12:40.991Z",
+    "action": "click",
+    "x": 234,
+    "y": 270,
+    "name": "a-deathmatch",
+    "returnAt": "2026-09-12T15:12:41.833Z"
+  },
+  {
+    "at": "2026-09-12T15:12:47.764Z",
+    "action": "click",
+    "x": 172,
+    "y": 559,
+    "name": "a-kills-10",
+    "returnAt": "2026-09-12T15:12:48.593Z"
+  },
+  {
+    "at": "2026-09-12T15:12:53.392Z",
+    "action": "click",
+    "x": 172,
+    "y": 611,
+    "name": "a-time-120",
+    "returnAt": "2026-09-12T15:12:54.212Z"
+  },
+  {
+    "at": "2026-09-12T15:12:58.977Z",
+    "action": "click",
+    "x": 237,
+    "y": 509,
+    "name": "a-rounds-3",
+    "returnAt": "2026-09-12T15:12:59.781Z"
+  },
+  {
+    "at": "2026-09-12T15:13:07.199Z",
+    "action": "click",
+    "x": 315,
+    "y": 662,
+    "name": "a-all-vs-player",
+    "returnAt": "2026-09-12T15:13:08.024Z"
+  },
+  {
+    "at": "2026-09-12T15:13:12.478Z",
+    "action": "click",
+    "x": 709,
+    "y": 392,
+    "name": "a-factory",
+    "returnAt": "2026-09-12T15:13:13.311Z"
+  },
+  {
+    "at": "2026-09-12T15:13:23.716Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "a-native-confirmation",
+    "returnAt": "2026-09-12T15:13:24.645Z"
+  },
+  {
+    "at": "2026-09-12T15:13:32.206Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "a-ready-loading",
+    "returnAt": "2026-09-12T15:13:33.781Z"
+  },
+  {
+    "at": "2026-09-12T15:14:45.832Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-close-1-before",
+    "returnAt": "2026-09-12T15:14:48.538Z"
+  },
+  {
+    "at": "2026-09-12T15:14:56.733Z",
+    "action": "click",
+    "x": 1042,
+    "y": 906,
+    "name": "a-close-1-after",
+    "returnAt": "2026-09-12T15:14:59.507Z"
+  },
+  {
+    "at": "2026-09-12T15:15:07.921Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-close-2-before",
+    "returnAt": "2026-09-12T15:15:10.612Z"
+  },
+  {
+    "at": "2026-09-12T15:15:18.421Z",
+    "action": "click",
+    "x": 1042,
+    "y": 906,
+    "name": "a-close-2-after",
+    "returnAt": "2026-09-12T15:15:21.076Z"
+  },
+  {
+    "at": "2026-09-12T15:15:34.331Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-close-3-before",
+    "returnAt": "2026-09-12T15:15:37.387Z"
+  },
+  {
+    "at": "2026-09-12T15:15:46.825Z",
+    "action": "click",
+    "x": 1042,
+    "y": 906,
+    "name": "a-close-3-after",
+    "returnAt": "2026-09-12T15:15:49.443Z"
+  },
+  {
+    "at": "2026-09-12T15:15:59.989Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-hotkey-open",
+    "returnAt": "2026-09-12T15:16:02.761Z"
+  },
+  {
+    "at": "2026-09-12T15:16:09.755Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-hotkey-closed",
+    "returnAt": "2026-09-12T15:16:12.613Z"
+  },
+  {
+    "at": "2026-09-12T15:16:20.122Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-escape-open",
+    "returnAt": "2026-09-12T15:16:22.824Z"
+  },
+  {
+    "at": "2026-09-12T15:16:32.716Z",
+    "action": "key",
+    "key": "Escape",
+    "name": "a-escape-closed",
+    "returnAt": "2026-09-12T15:16:34.945Z"
+  },
+  {
+    "at": "2026-09-12T15:16:46.144Z",
+    "action": "key",
+    "key": "Escape",
+    "name": "a-resume-after-escape",
+    "returnAt": "2026-09-12T15:16:48.186Z"
+  },
+  {
+    "at": "2026-09-12T15:17:00.341Z",
+    "action": "click",
+    "x": 960,
+    "y": 540,
+    "name": "a-intentional-wall-shot",
+    "returnAt": "2026-09-12T15:17:02.476Z"
+  },
+  {
+    "at": "2026-09-12T15:17:10.950Z",
+    "action": "key",
+    "key": "r",
+    "name": "a-deliberate-reload",
+    "returnAt": "2026-09-12T15:17:13.085Z"
+  },
+  {
+    "at": "2026-09-12T15:17:21.990Z",
+    "action": "key",
+    "key": "a",
+    "name": "a-deliberate-move-left",
+    "returnAt": "2026-09-12T15:17:23.928Z"
+  },
+  {
+    "at": "2026-09-12T15:19:34.919Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-close-4-after-respawns-before",
+    "returnAt": "2026-09-12T15:19:37.623Z"
+  },
+  {
+    "at": "2026-09-12T15:19:56.374Z",
+    "action": "click",
+    "x": 1042,
+    "y": 906,
+    "name": "a-close-4-after",
+    "returnAt": "2026-09-12T15:19:58.760Z"
+  },
+  {
+    "at": "2026-09-12T15:20:09.416Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-round3-result-watch",
+    "returnAt": "2026-09-12T15:20:11.992Z"
+  },
+  {
+    "at": "2026-09-12T15:21:54.792Z",
+    "action": "click",
+    "x": 960,
+    "y": 1030,
+    "name": "a-main-menu-request",
+    "returnAt": "2026-09-12T15:21:57.958Z"
+  },
+  {
+    "at": "2026-09-12T15:23:39.191Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "b-character-selection",
+    "returnAt": "2026-09-12T15:23:40.063Z"
+  },
+  {
+    "at": "2026-09-12T15:27:34.500Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "name": "b-arena-selected"
+  }
+]

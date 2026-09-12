@@ -1,0 +1,31 @@
+[
+  {
+    "trial": 1,
+    "weapon": "VSS Vintorez",
+    "before": "10/10 +1",
+    "after": "10/10 +1",
+    "result": "PASS"
+  },
+  {
+    "trial": 2,
+    "weapon": "VSS Vintorez",
+    "before": "10/10 +1",
+    "after": "10/10 +1",
+    "result": "PASS"
+  },
+  {
+    "trial": 3,
+    "weapon": "VSS Vintorez",
+    "before": "10/10 +1",
+    "after": "10/10 +1",
+    "result": "PASS"
+  },
+  {
+    "trial": 4,
+    "weapon": "MP-153",
+    "before": "4/4 +1",
+    "after": "4/4 +1",
+    "result": "PASS",
+    "afterNaturalRespawn": true
+  }
+]

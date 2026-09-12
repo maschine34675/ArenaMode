@@ -1,0 +1,605 @@
+{
+  "schema": "arenamode-independent-r5-A-log-audit-v1",
+  "createdUtc": "2026-09-12T15:25:49.8911009+00:00",
+  "testId": "deathmatch-menu-exit-r5",
+  "raid": "A",
+  "scope": "Fresh client/server startup through A-mainmenu archived copies; main menu visually confirmed by root at 2026-09-12T15:22:49.140Z. Later raids and application shutdown excluded.",
+  "sourceFiles": [
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\A-mainmenu\\client.log",
+      "sha256": "1E3D84DA9C777B98E2E6E39802D39F4892B6E54027E372DC559FA4B7AFBA6C92",
+      "firstLine": 1,
+      "lastLine": 13545,
+      "processStartUtc": "2026-09-12T15:10:36.9001737Z",
+      "firstLoggedLocal": "17:10:46.266",
+      "lastLoggedLocal": "17:22:17.482",
+      "timestampBasis": "UTC+02:00"
+    },
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\A-mainmenu\\server.log",
+      "sha256": "D51A163D370F1212909278F9D1414365C5025954AE59FE802FB98021EF64D0EB",
+      "firstLine": 6832,
+      "lastLine": 8090,
+      "processStartUtc": "2026-09-12T15:09:24.4621841Z",
+      "firstLoggedUtc": "15:09:24.630",
+      "lastLoggedUtc": "15:22:56.331",
+      "timestampBasis": "UTC",
+      "earlierRunsExcluded": true
+    }
+  ],
+  "errors": {
+    "clientErrorFatalCritical": 0,
+    "serverErrorFatalCritical": 0,
+    "clientThrownExceptionCandidates": 0,
+    "serverThrownExceptionCandidates": 0,
+    "exceptionStacks": [],
+    "clientWarnings": 36,
+    "serverWarnings": 1,
+    "exceptionWordExclusions": "Harmony finalizer method declarations and Assert.raiseExceptions configuration.",
+    "limit": "No error/exception in this bounded snapshot is not a blanket gameplay acceptance."
+  },
+  "guards": {
+    "inputReady": {
+      "count": 1,
+      "line": 6107,
+      "utc": "2026-09-12T15:11:00.733Z"
+    },
+    "inputUnavailable": 0,
+    "sainReady": {
+      "count": 1,
+      "line": 4968,
+      "utc": "2026-09-12T15:10:59.021Z",
+      "limit": "Startup registration only"
+    },
+    "sainTeardownActive": {
+      "count": 0,
+      "status": "NOT OBSERVED",
+      "times": []
+    },
+    "pickupCancellation": {
+      "count": 0,
+      "status": "NOT OBSERVED",
+      "times": []
+    },
+    "limitation": "Absent guard markers do not prove a pending pickup or uninitialized SAIN component was handled during this exit."
+  },
+  "input": {
+    "stateLineCount": 18,
+    "cap": 24,
+    "capReached": false,
+    "pendingCount": 9,
+    "releasedCount": 9,
+    "completePairCount": 9,
+    "releasedBlockedShotCommandsOne": 4,
+    "releasedBlockedShotCommandsZero": 5,
+    "pairs": [
+      {
+        "generation": 20934,
+        "pendingLine": 13245,
+        "releasedLine": 13246,
+        "pendingUtc": "2026-09-12T15:14:56.9640000+00:00",
+        "releasedUtc": "2026-09-12T15:14:57.0320000+00:00",
+        "pendingSample": 869,
+        "releasedSample": 871,
+        "blockedShotCommands": 1
+      },
+      {
+        "generation": 20935,
+        "pendingLine": 13251,
+        "releasedLine": 13252,
+        "pendingUtc": "2026-09-12T15:15:18.6540000+00:00",
+        "releasedUtc": "2026-09-12T15:15:18.7000000+00:00",
+        "pendingSample": 1452,
+        "releasedSample": 1454,
+        "blockedShotCommands": 1
+      },
+      {
+        "generation": 20936,
+        "pendingLine": 13258,
+        "releasedLine": 13259,
+        "pendingUtc": "2026-09-12T15:15:47.0040000+00:00",
+        "releasedUtc": "2026-09-12T15:15:47.0460000+00:00",
+        "pendingSample": 2194,
+        "releasedSample": 2196,
+        "blockedShotCommands": 1
+      },
+      {
+        "generation": 20937,
+        "pendingLine": 13271,
+        "releasedLine": 13272,
+        "pendingUtc": "2026-09-12T15:16:09.9420000+00:00",
+        "releasedUtc": "2026-09-12T15:16:10.0180000+00:00",
+        "pendingSample": 2861,
+        "releasedSample": 2862,
+        "blockedShotCommands": 0
+      },
+      {
+        "generation": 20938,
+        "pendingLine": 13296,
+        "releasedLine": 13298,
+        "pendingUtc": "2026-09-12T15:16:33.0000000+00:00",
+        "releasedUtc": "2026-09-12T15:16:33.0390000+00:00",
+        "pendingSample": 3489,
+        "releasedSample": 3490,
+        "blockedShotCommands": 0
+      },
+      {
+        "generation": 20939,
+        "pendingLine": 13318,
+        "releasedLine": 13319,
+        "pendingUtc": "2026-09-12T15:16:46.8880000+00:00",
+        "releasedUtc": "2026-09-12T15:16:46.9160000+00:00",
+        "pendingSample": 4009,
+        "releasedSample": 4010,
+        "blockedShotCommands": 0
+      },
+      {
+        "generation": 20940,
+        "pendingLine": 13428,
+        "releasedLine": 13429,
+        "pendingUtc": "2026-09-12T15:19:05.8110000+00:00",
+        "releasedUtc": "2026-09-12T15:19:05.8520000+00:00",
+        "pendingSample": 8604,
+        "releasedSample": 8605,
+        "blockedShotCommands": 0
+      },
+      {
+        "generation": 20941,
+        "pendingLine": 13457,
+        "releasedLine": 13458,
+        "pendingUtc": "2026-09-12T15:19:56.6090000+00:00",
+        "releasedUtc": "2026-09-12T15:19:56.6580000+00:00",
+        "pendingSample": 10045,
+        "releasedSample": 10047,
+        "blockedShotCommands": 1
+      },
+      {
+        "generation": 20942,
+        "pendingLine": 13521,
+        "releasedLine": 13523,
+        "pendingUtc": "2026-09-12T15:21:23.0020000+00:00",
+        "releasedUtc": "2026-09-12T15:21:23.0870000+00:00",
+        "pendingSample": 12692,
+        "releasedSample": 12693,
+        "blockedShotCommands": 0
+      }
+    ],
+    "originalLines": [
+      {
+        "sourceLine": 13245,
+        "utc": "2026-09-12T15:14:56.9640000+00:00",
+        "generation": 20934,
+        "state": "pending",
+        "sample": 869,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:14:56.964] [Info   :maschine-ArenaMode] Arena panel input: close 20934 pending; sample=869, owners=0"
+      },
+      {
+        "sourceLine": 13246,
+        "utc": "2026-09-12T15:14:57.0320000+00:00",
+        "generation": 20934,
+        "state": "released",
+        "sample": 871,
+        "metric": "blockedShotCommands",
+        "value": 1,
+        "original": "[17:14:57.032] [Info   :maschine-ArenaMode] Arena panel input: close 20934 released; sample=871, blockedShotCommands=1"
+      },
+      {
+        "sourceLine": 13251,
+        "utc": "2026-09-12T15:15:18.6540000+00:00",
+        "generation": 20935,
+        "state": "pending",
+        "sample": 1452,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:15:18.654] [Info   :maschine-ArenaMode] Arena panel input: close 20935 pending; sample=1452, owners=0"
+      },
+      {
+        "sourceLine": 13252,
+        "utc": "2026-09-12T15:15:18.7000000+00:00",
+        "generation": 20935,
+        "state": "released",
+        "sample": 1454,
+        "metric": "blockedShotCommands",
+        "value": 1,
+        "original": "[17:15:18.700] [Info   :maschine-ArenaMode] Arena panel input: close 20935 released; sample=1454, blockedShotCommands=1"
+      },
+      {
+        "sourceLine": 13258,
+        "utc": "2026-09-12T15:15:47.0040000+00:00",
+        "generation": 20936,
+        "state": "pending",
+        "sample": 2194,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:15:47.004] [Info   :maschine-ArenaMode] Arena panel input: close 20936 pending; sample=2194, owners=0"
+      },
+      {
+        "sourceLine": 13259,
+        "utc": "2026-09-12T15:15:47.0460000+00:00",
+        "generation": 20936,
+        "state": "released",
+        "sample": 2196,
+        "metric": "blockedShotCommands",
+        "value": 1,
+        "original": "[17:15:47.046] [Info   :maschine-ArenaMode] Arena panel input: close 20936 released; sample=2196, blockedShotCommands=1"
+      },
+      {
+        "sourceLine": 13271,
+        "utc": "2026-09-12T15:16:09.9420000+00:00",
+        "generation": 20937,
+        "state": "pending",
+        "sample": 2861,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:16:09.942] [Info   :maschine-ArenaMode] Arena panel input: close 20937 pending; sample=2861, owners=0"
+      },
+      {
+        "sourceLine": 13272,
+        "utc": "2026-09-12T15:16:10.0180000+00:00",
+        "generation": 20937,
+        "state": "released",
+        "sample": 2862,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:16:10.018] [Info   :maschine-ArenaMode] Arena panel input: close 20937 released; sample=2862, blockedShotCommands=0"
+      },
+      {
+        "sourceLine": 13296,
+        "utc": "2026-09-12T15:16:33.0000000+00:00",
+        "generation": 20938,
+        "state": "pending",
+        "sample": 3489,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:16:33.000] [Info   :maschine-ArenaMode] Arena panel input: close 20938 pending; sample=3489, owners=0"
+      },
+      {
+        "sourceLine": 13298,
+        "utc": "2026-09-12T15:16:33.0390000+00:00",
+        "generation": 20938,
+        "state": "released",
+        "sample": 3490,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:16:33.039] [Info   :maschine-ArenaMode] Arena panel input: close 20938 released; sample=3490, blockedShotCommands=0"
+      },
+      {
+        "sourceLine": 13318,
+        "utc": "2026-09-12T15:16:46.8880000+00:00",
+        "generation": 20939,
+        "state": "pending",
+        "sample": 4009,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:16:46.888] [Info   :maschine-ArenaMode] Arena panel input: close 20939 pending; sample=4009, owners=0"
+      },
+      {
+        "sourceLine": 13319,
+        "utc": "2026-09-12T15:16:46.9160000+00:00",
+        "generation": 20939,
+        "state": "released",
+        "sample": 4010,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:16:46.916] [Info   :maschine-ArenaMode] Arena panel input: close 20939 released; sample=4010, blockedShotCommands=0"
+      },
+      {
+        "sourceLine": 13428,
+        "utc": "2026-09-12T15:19:05.8110000+00:00",
+        "generation": 20940,
+        "state": "pending",
+        "sample": 8604,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:19:05.811] [Info   :maschine-ArenaMode] Arena panel input: close 20940 pending; sample=8604, owners=0"
+      },
+      {
+        "sourceLine": 13429,
+        "utc": "2026-09-12T15:19:05.8520000+00:00",
+        "generation": 20940,
+        "state": "released",
+        "sample": 8605,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:19:05.852] [Info   :maschine-ArenaMode] Arena panel input: close 20940 released; sample=8605, blockedShotCommands=0"
+      },
+      {
+        "sourceLine": 13457,
+        "utc": "2026-09-12T15:19:56.6090000+00:00",
+        "generation": 20941,
+        "state": "pending",
+        "sample": 10045,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:19:56.609] [Info   :maschine-ArenaMode] Arena panel input: close 20941 pending; sample=10045, owners=0"
+      },
+      {
+        "sourceLine": 13458,
+        "utc": "2026-09-12T15:19:56.6580000+00:00",
+        "generation": 20941,
+        "state": "released",
+        "sample": 10047,
+        "metric": "blockedShotCommands",
+        "value": 1,
+        "original": "[17:19:56.658] [Info   :maschine-ArenaMode] Arena panel input: close 20941 released; sample=10047, blockedShotCommands=1"
+      },
+      {
+        "sourceLine": 13521,
+        "utc": "2026-09-12T15:21:23.0020000+00:00",
+        "generation": 20942,
+        "state": "pending",
+        "sample": 12692,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:21:23.002] [Info   :maschine-ArenaMode] Arena panel input: close 20942 pending; sample=12692, owners=0"
+      },
+      {
+        "sourceLine": 13523,
+        "utc": "2026-09-12T15:21:23.0870000+00:00",
+        "generation": 20942,
+        "state": "released",
+        "sample": 12693,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:21:23.087] [Info   :maschine-ArenaMode] Arena panel input: close 20942 released; sample=12693, blockedShotCommands=0"
+      }
+    ],
+    "limits": [
+      "Logs establish filtering/release, while paired original images and root input records establish ammunition and deliberate action attribution.",
+      "Generation20941 follows death4/respawn but whether its close comparison was visually valid is assessed by root.",
+      "Result exit itself closes a panel; not every close marker is a deliberate Close-button test."
+    ]
+  },
+  "lifecycle": [
+    {
+      "source": "client",
+      "line": 13135,
+      "utc": "2026-09-12T15:14:26.2860000+00:00",
+      "original": "[17:14:26.286] [Info   :maschine-ArenaMode] Arena session active on factory4_day."
+    },
+    {
+      "source": "client",
+      "line": 13474,
+      "utc": "2026-09-12T15:20:19.5120000+00:00",
+      "original": "[17:20:19.512] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.05s, pipeline 0.71s, total 0.76s."
+    },
+    {
+      "source": "client",
+      "line": 13483,
+      "utc": "2026-09-12T15:20:32.9760000+00:00",
+      "original": "[17:20:32.976] [Info   :maschine-ArenaMode] Arena death #6 — instant respawn."
+    },
+    {
+      "source": "client",
+      "line": 13498,
+      "utc": "2026-09-12T15:20:33.7490000+00:00",
+      "original": "[17:20:33.749] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.06s, pipeline 0.71s, total 0.77s."
+    },
+    {
+      "source": "client",
+      "line": 13512,
+      "utc": "2026-09-12T15:21:07.7790000+00:00",
+      "original": "[17:21:07.779] [Info   :maschine-ArenaMode] Arena Round 3: target missed — Time limit; 0 kills / 3 deaths / 0 points."
+    },
+    {
+      "source": "client",
+      "line": 13520,
+      "utc": "2026-09-12T15:21:23.0000000+00:00",
+      "original": "[17:21:23.000] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows."
+    },
+    {
+      "source": "client",
+      "line": 13535,
+      "utc": "2026-09-12T15:21:24.3040000+00:00",
+      "original": "[17:21:24.304] [Info   :maschine-ArenaMode] Arena session ended."
+    },
+    {
+      "source": "client",
+      "line": 13459,
+      "utc": "2026-09-12T15:20:18.7430000+00:00",
+      "original": "[17:20:18.743] [Info   :maschine-ArenaMode] Arena death #5 — instant respawn."
+    },
+    {
+      "source": "client",
+      "line": 13538,
+      "utc": "2026-09-12T15:21:24.3130000+00:00",
+      "original": "[17:21:24.313] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 6 deaths, score 0, best streak 0, 6.8 min."
+    },
+    {
+      "source": "server",
+      "line": 7497,
+      "utc": "2026-09-12T15:13:52.9750000+00:00",
+      "original": "[2026-09-12 15:13:52.975][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot taken for session [redacted-id]."
+    },
+    {
+      "source": "server",
+      "line": 7498,
+      "utc": "2026-09-12T15:13:52.9760000+00:00",
+      "original": "[2026-09-12 15:13:52.976][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Completed protected PitFireTeam arm for session [redacted-id]: map=factory4_day, mode=deathmatch."
+    },
+    {
+      "source": "server",
+      "line": 7517,
+      "utc": "2026-09-12T15:13:53.7020000+00:00",
+      "original": "[2026-09-12 15:13:53.702][Information][ArenaMode.Server.PatchManager] [ArenaMode] Arena hostility applied (all_vs_player, frozen Deathmatch selection)."
+    },
+    {
+      "source": "server",
+      "line": 7519,
+      "utc": "2026-09-12T15:13:53.9710000+00:00",
+      "original": "[2026-09-12 15:13:53.971][Information][ArenaMode.Server.Services.ArenaProtectedRaidStartService] [ArenaMode] Protected native Arena start completed for session [redacted-id]; the exact SPT server id is bound for retry-safe end processing."
+    },
+    {
+      "source": "server",
+      "line": 8010,
+      "utc": "2026-09-12T15:21:24.2970000+00:00",
+      "original": "[2026-09-12 15:21:24.297][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+    },
+    {
+      "source": "server",
+      "line": 8012,
+      "utc": "2026-09-12T15:21:24.3850000+00:00",
+      "original": "[2026-09-12 15:21:24.385][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end"
+    },
+    {
+      "source": "server",
+      "line": 7496,
+      "utc": "2026-09-12T15:13:52.9730000+00:00",
+      "original": "[2026-09-12 15:13:52.973][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Reserved profile boundary for session [redacted-id] before snapshot."
+    },
+    {
+      "source": "server",
+      "line": 8013,
+      "utc": "2026-09-12T15:21:24.5030000+00:00",
+      "original": "[2026-09-12 15:21:24.503][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [redacted-id]."
+    },
+    {
+      "source": "client",
+      "line": 13447,
+      "utc": "2026-09-12T15:19:35.1670000+00:00",
+      "original": "[17:19:35.167] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 0.72s, total 0.80s."
+    },
+    {
+      "source": "client",
+      "line": 13430,
+      "utc": "2026-09-12T15:19:05.8860000+00:00",
+      "original": "[17:19:05.886] [Info   :maschine-ArenaMode] Arena Deathmatch round 3 started."
+    },
+    {
+      "source": "client",
+      "line": 13144,
+      "utc": "2026-09-12T15:14:26.4880000+00:00",
+      "original": "[17:14:26.488] [Info   :maschine-ArenaMode] Arena match started (Deathmatch)."
+    },
+    {
+      "source": "client",
+      "line": 13205,
+      "utc": "2026-09-12T15:14:29.5260000+00:00",
+      "original": "[17:14:29.526] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Shadow."
+    },
+    {
+      "source": "client",
+      "line": 13207,
+      "utc": "2026-09-12T15:14:29.6240000+00:00",
+      "original": "[17:14:29.624] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started."
+    },
+    {
+      "source": "client",
+      "line": 13275,
+      "utc": "2026-09-12T15:16:30.7180000+00:00",
+      "original": "[17:16:30.718] [Info   :maschine-ArenaMode] Arena Round 1: target missed — Time limit; 0 kills / 0 deaths / 0 points."
+    },
+    {
+      "source": "client",
+      "line": 13289,
+      "utc": "2026-09-12T15:16:31.9500000+00:00",
+      "original": "[17:16:31.950] [Info   :maschine-ArenaMode] Arena round respawn complete: Crusader."
+    },
+    {
+      "source": "client",
+      "line": 13320,
+      "utc": "2026-09-12T15:16:46.9510000+00:00",
+      "original": "[17:16:46.951] [Info   :maschine-ArenaMode] Arena Deathmatch round 2 started."
+    },
+    {
+      "source": "client",
+      "line": 13432,
+      "utc": "2026-09-12T15:19:34.3610000+00:00",
+      "original": "[17:19:34.361] [Info   :maschine-ArenaMode] Arena death #4 — instant respawn."
+    },
+    {
+      "source": "client",
+      "line": 13329,
+      "utc": "2026-09-12T15:17:39.8200000+00:00",
+      "original": "[17:17:39.820] [Info   :maschine-ArenaMode] Arena death #1 — instant respawn."
+    },
+    {
+      "source": "client",
+      "line": 13353,
+      "utc": "2026-09-12T15:18:15.5720000+00:00",
+      "original": "[17:18:15.572] [Info   :maschine-ArenaMode] Arena death #2 — instant respawn."
+    },
+    {
+      "source": "client",
+      "line": 13368,
+      "utc": "2026-09-12T15:18:16.5540000+00:00",
+      "original": "[17:18:16.554] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 0.88s, total 0.96s."
+    },
+    {
+      "source": "client",
+      "line": 13379,
+      "utc": "2026-09-12T15:18:38.2150000+00:00",
+      "original": "[17:18:38.215] [Info   :maschine-ArenaMode] Arena death #3 — instant respawn."
+    },
+    {
+      "source": "client",
+      "line": 13394,
+      "utc": "2026-09-12T15:18:38.9460000+00:00",
+      "original": "[17:18:38.946] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.05s, pipeline 0.67s, total 0.72s."
+    },
+    {
+      "source": "client",
+      "line": 13404,
+      "utc": "2026-09-12T15:18:50.0740000+00:00",
+      "original": "[17:18:50.074] [Info   :maschine-ArenaMode] Arena Round 2: target missed — Time limit; 0 kills / 3 deaths / 0 points."
+    },
+    {
+      "source": "client",
+      "line": 13418,
+      "utc": "2026-09-12T15:18:50.8870000+00:00",
+      "original": "[17:18:50.887] [Info   :maschine-ArenaMode] Arena round respawn complete: Phantom."
+    },
+    {
+      "source": "client",
+      "line": 13344,
+      "utc": "2026-09-12T15:17:40.5970000+00:00",
+      "original": "[17:17:40.597] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.06s, pipeline 0.71s, total 0.77s."
+    },
+    {
+      "source": "server",
+      "line": 8016,
+      "utc": "2026-09-12T15:21:24.7120000+00:00",
+      "original": "[2026-09-12 15:21:24.712][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [redacted-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+    }
+  ],
+  "derived": {
+    "kitCompleteToRound1StartMilliseconds": 98,
+    "roundStarts": 3,
+    "roundEnds": 3,
+    "roundStartToEndWallSeconds": [
+      121.094,
+      123.123,
+      121.893
+    ],
+    "round1To2IntermissionWallSeconds": 16.233,
+    "round2To3IntermissionWallSeconds": 15.812,
+    "lastRoundEndToExitCommittedWallSeconds": 15.221,
+    "deathMarkerCount": 6,
+    "respawnTimingMarkerCount": 6,
+    "loggedRespawnTotalSeconds": [
+      0.77,
+      0.96,
+      0.72,
+      0.8,
+      0.76,
+      0.77
+    ],
+    "matchFinalKills": 0,
+    "matchFinalDeaths": 6,
+    "matchFinalScore": 0,
+    "limit": "Wall-clock marker deltas; death cause and automatic-versus-button exit attribution require root native observations. No death was injected by this audit."
+  },
+  "exitAssessment": {
+    "resultExitCommittedUtc": "2026-09-12T15:21:23.000Z",
+    "sessionEndedUtc": "2026-09-12T15:21:24.304Z",
+    "snapshotRestoredUtc": "2026-09-12T15:21:24.503Z",
+    "protectedEndCompletedUtc": "2026-09-12T15:21:24.712Z",
+    "restoreDeferredThenResolved": true,
+    "rootReportedNativeRoute": "Three-round automatic result exit",
+    "logStopFinding": false,
+    "profileComparison": "Separate independent complete JSON audit and root protected-field comparison; no full profile copied here."
+  },
+  "privacy": "Selected original log text unchanged except 24-hex identifiers replaced by [redacted-id]. Line labels added separately. No raw full log or private profile content included."
+}

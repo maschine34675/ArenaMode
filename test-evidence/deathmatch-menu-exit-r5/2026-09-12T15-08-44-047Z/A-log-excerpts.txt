@@ -1,0 +1,241 @@
+Independent r5 Raid A — selected original log excerpts
+Client times LOCAL UTC+02:00; server times UTC. Separate source-line labels are added; original line text is unchanged except 24-hex identifiers explicitly replaced by [redacted-id].
+Full bounded windows scanned: 0 Error/Fatal/Critical and 0 thrown exception candidates; no exception stack exists to excerpt. Warning rows are included. Main-menu screenshot attribution and full profile comparison are separate root evidence.
+CLIENT C:\SPT41\Development\ArenaMode\artifacts\gpu-deathmatch-menu\deathmatch-menu-exit-r5\2026-09-12T15-08-44-047Z\logs\A-mainmenu\client.log | SHA256 1E3D84DA9C777B98E2E6E39802D39F4892B6E54027E372DC559FA4B7AFBA6C92 | source lines 1-13545
+SOURCE LINE 1
+[17:10:46.266] [Info   :  LogTools] Log file timestamps active — every line below is LOCAL time (UTC+02:00). Session start: 2026-09-12 17:10:46 local = 2026-09-12 15:10:46 UTC (SPT's server and launcher logs and EFT's own logs are UTC).
+SOURCE LINE 14
+[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+SOURCE LINE 15
+[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+SOURCE LINE 16
+[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+SOURCE LINE 17
+[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+SOURCE LINE 18
+[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+SOURCE LINE 3841
+[17:10:56.509] [Warning:  HarmonyX] BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner).
+SOURCE LINE 4968
+[17:10:59.021] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready.
+SOURCE LINE 6107
+[17:11:00.733] [Info   :maschine-ArenaMode] Arena input blocker ready: panel close waits for released-pointer input delivery.
+SOURCE LINE 7803
+[17:11:05.660] [Warning:  HarmonyX] DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update().
+SOURCE LINE 9019
+[17:11:07.695] [Warning:  HarmonyX] WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor().
+SOURCE LINE 12290
+[17:11:12.341] [Warning:  HarmonyX] com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition).
+SOURCE LINE 13135
+[17:14:26.286] [Info   :maschine-ArenaMode] Arena session active on factory4_day.
+SOURCE LINE 13144
+[17:14:26.488] [Info   :maschine-ArenaMode] Arena match started (Deathmatch).
+SOURCE LINE 13199
+[17:14:29.143] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13205
+[17:14:29.526] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Shadow.
+SOURCE LINE 13207
+[17:14:29.624] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started.
+SOURCE LINE 13221
+[17:14:41.658] [Warning: Unity Log] BoxCollider does not support negative scale or size.
+SOURCE LINE 13237
+[17:14:53.503] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+SOURCE LINE 13238
+[17:14:53.505] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+SOURCE LINE 13243
+[17:14:54.563] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+SOURCE LINE 13245
+[17:14:56.964] [Info   :maschine-ArenaMode] Arena panel input: close 20934 pending; sample=869, owners=0
+SOURCE LINE 13246
+[17:14:57.032] [Info   :maschine-ArenaMode] Arena panel input: close 20934 released; sample=871, blockedShotCommands=1
+SOURCE LINE 13251
+[17:15:18.654] [Info   :maschine-ArenaMode] Arena panel input: close 20935 pending; sample=1452, owners=0
+SOURCE LINE 13252
+[17:15:18.700] [Info   :maschine-ArenaMode] Arena panel input: close 20935 released; sample=1454, blockedShotCommands=1
+SOURCE LINE 13258
+[17:15:47.004] [Info   :maschine-ArenaMode] Arena panel input: close 20936 pending; sample=2194, owners=0
+SOURCE LINE 13259
+[17:15:47.046] [Info   :maschine-ArenaMode] Arena panel input: close 20936 released; sample=2196, blockedShotCommands=1
+SOURCE LINE 13271
+[17:16:09.942] [Info   :maschine-ArenaMode] Arena panel input: close 20937 pending; sample=2861, owners=0
+SOURCE LINE 13272
+[17:16:10.018] [Info   :maschine-ArenaMode] Arena panel input: close 20937 released; sample=2862, blockedShotCommands=0
+SOURCE LINE 13275
+[17:16:30.718] [Info   :maschine-ArenaMode] Arena Round 1: target missed — Time limit; 0 kills / 0 deaths / 0 points.
+SOURCE LINE 13283
+[17:16:31.588] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13289
+[17:16:31.950] [Info   :maschine-ArenaMode] Arena round respawn complete: Crusader.
+SOURCE LINE 13296
+[17:16:33.000] [Info   :maschine-ArenaMode] Arena panel input: close 20938 pending; sample=3489, owners=0
+SOURCE LINE 13298
+[17:16:33.039] [Info   :maschine-ArenaMode] Arena panel input: close 20938 released; sample=3490, blockedShotCommands=0
+SOURCE LINE 13300
+[17:16:34.505] [Warning: Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+SOURCE LINE 13301
+[17:16:34.507] [Warning: Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+SOURCE LINE 13302
+[17:16:34.507] [Warning: Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+SOURCE LINE 13303
+[17:16:34.535] [Warning: Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+SOURCE LINE 13304
+[17:16:34.537] [Warning: Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+SOURCE LINE 13305
+[17:16:34.538] [Warning: Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+SOURCE LINE 13307
+[17:16:34.661] [Warning: Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+SOURCE LINE 13308
+[17:16:34.662] [Warning: Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+SOURCE LINE 13309
+[17:16:34.663] [Warning: Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+SOURCE LINE 13310
+[17:16:34.683] [Warning: Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+SOURCE LINE 13311
+[17:16:34.684] [Warning: Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+SOURCE LINE 13312
+[17:16:34.684] [Warning: Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+SOURCE LINE 13318
+[17:16:46.888] [Info   :maschine-ArenaMode] Arena panel input: close 20939 pending; sample=4009, owners=0
+SOURCE LINE 13319
+[17:16:46.916] [Info   :maschine-ArenaMode] Arena panel input: close 20939 released; sample=4010, blockedShotCommands=0
+SOURCE LINE 13320
+[17:16:46.951] [Info   :maschine-ArenaMode] Arena Deathmatch round 2 started.
+SOURCE LINE 13329
+[17:17:39.820] [Info   :maschine-ArenaMode] Arena death #1 — instant respawn.
+SOURCE LINE 13338
+[17:17:40.322] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13344
+[17:17:40.597] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.06s, pipeline 0.71s, total 0.77s.
+SOURCE LINE 13353
+[17:18:15.572] [Info   :maschine-ArenaMode] Arena death #2 — instant respawn.
+SOURCE LINE 13362
+[17:18:16.161] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13368
+[17:18:16.554] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 0.88s, total 0.96s.
+SOURCE LINE 13379
+[17:18:38.215] [Info   :maschine-ArenaMode] Arena death #3 — instant respawn.
+SOURCE LINE 13388
+[17:18:38.679] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13394
+[17:18:38.946] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.05s, pipeline 0.67s, total 0.72s.
+SOURCE LINE 13404
+[17:18:50.074] [Info   :maschine-ArenaMode] Arena Round 2: target missed — Time limit; 0 kills / 3 deaths / 0 points.
+SOURCE LINE 13412
+[17:18:50.590] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13418
+[17:18:50.887] [Info   :maschine-ArenaMode] Arena round respawn complete: Phantom.
+SOURCE LINE 13428
+[17:19:05.811] [Info   :maschine-ArenaMode] Arena panel input: close 20940 pending; sample=8604, owners=0
+SOURCE LINE 13429
+[17:19:05.852] [Info   :maschine-ArenaMode] Arena panel input: close 20940 released; sample=8605, blockedShotCommands=0
+SOURCE LINE 13430
+[17:19:05.886] [Info   :maschine-ArenaMode] Arena Deathmatch round 3 started.
+SOURCE LINE 13432
+[17:19:34.361] [Info   :maschine-ArenaMode] Arena death #4 — instant respawn.
+SOURCE LINE 13441
+[17:19:34.862] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13447
+[17:19:35.167] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 0.72s, total 0.80s.
+SOURCE LINE 13457
+[17:19:56.609] [Info   :maschine-ArenaMode] Arena panel input: close 20941 pending; sample=10045, owners=0
+SOURCE LINE 13458
+[17:19:56.658] [Info   :maschine-ArenaMode] Arena panel input: close 20941 released; sample=10047, blockedShotCommands=1
+SOURCE LINE 13459
+[17:20:18.743] [Info   :maschine-ArenaMode] Arena death #5 — instant respawn.
+SOURCE LINE 13468
+[17:20:19.224] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13474
+[17:20:19.512] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.05s, pipeline 0.71s, total 0.76s.
+SOURCE LINE 13483
+[17:20:32.976] [Info   :maschine-ArenaMode] Arena death #6 — instant respawn.
+SOURCE LINE 13492
+[17:20:33.473] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+SOURCE LINE 13498
+[17:20:33.749] [Info   :maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.06s, pipeline 0.71s, total 0.77s.
+SOURCE LINE 13512
+[17:21:07.779] [Info   :maschine-ArenaMode] Arena Round 3: target missed — Time limit; 0 kills / 3 deaths / 0 points.
+SOURCE LINE 13520
+[17:21:23.000] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows.
+SOURCE LINE 13521
+[17:21:23.002] [Info   :maschine-ArenaMode] Arena panel input: close 20942 pending; sample=12692, owners=0
+SOURCE LINE 13522
+[17:21:23.059] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /botplacementsystem/save
+SOURCE LINE 13523
+[17:21:23.087] [Info   :maschine-ArenaMode] Arena panel input: close 20942 released; sample=12693, blockedShotCommands=0
+SOURCE LINE 13524
+[17:21:24.080] [Info   :maschine-AutoIFF] [AutoIFF] Raid ended, IdentifierManager removal requested.
+SOURCE LINE 13525
+[17:21:24.171] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+SOURCE LINE 13526
+[17:21:24.288] [Info   :maschine-ArenaMode] Arena: skills restored to their profile values.
+SOURCE LINE 13527
+[17:21:24.289] [Info   :maschine-ArenaMode] Arena: loading-screen kit preload discarded (raid ended); no batch was loading.
+SOURCE LINE 13528
+[17:21:24.292] [Info   :RequestHandler] [REQUEST]: /arenamode/raid-end
+SOURCE LINE 13529
+[17:21:24.303] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /arenamode/raid-end
+SOURCE LINE 13530
+[17:21:24.304] [Warning:maschine-ArenaMode] Arena raid-end remains pending: {
+SOURCE LINE 13531
+[17:21:24.304]   "restored": false,
+SOURCE LINE 13532
+[17:21:24.304]   "deferred": true,
+SOURCE LINE 13533
+[17:21:24.304]   "state": "InRaid"
+SOURCE LINE 13534
+[17:21:24.304] }
+SOURCE LINE 13535
+[17:21:24.304] [Info   :maschine-ArenaMode] Arena session ended.
+SOURCE LINE 13536
+[17:21:24.307] [Info   :maschine-ArenaMode] Arena hitmarker audio detached: events=0, playRequests=0, skipped=0.
+SOURCE LINE 13537
+[17:21:24.311] [Info   :maschine-ArenaMode] Arena announcer detached: callouts=0, cues=1, playRequests=1, skipped=0.
+SOURCE LINE 13538
+[17:21:24.313] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 6 deaths, score 0, best streak 0, 6.8 min.
+SOURCE LINE 13539
+[17:21:24.319] [Info   :maschine-AutoIFF] [AutoIFF] IdentifierManager destroyed.
+SOURCE LINE 13540
+[17:21:54.919] [Info   :RequestHandler] [REQUEST]: /singleplayer/pitfireteam/teammates
+SOURCE LINE 13541
+[17:21:54.937] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /singleplayer/pitfireteam/teammates
+SOURCE LINE 13542
+[17:22:10.922] [Info   :RequestHandler] [REQUEST]: /botplacementsystem/load
+SOURCE LINE 13543
+[17:22:10.947] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /botplacementsystem/load
+SOURCE LINE 13544
+[17:22:17.479] [Info   :RequestHandler] [REQUEST]: /singleplayer/pitfireteam/teammates
+SOURCE LINE 13545
+[17:22:17.482] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /singleplayer/pitfireteam/teammates
+SERVER C:\SPT41\Development\ArenaMode\artifacts\gpu-deathmatch-menu\deathmatch-menu-exit-r5\2026-09-12T15-08-44-047Z\logs\A-mainmenu\server.log | SHA256 D51A163D370F1212909278F9D1414365C5025954AE59FE802FB98021EF64D0EB | audited lines6832-8090, from true server start15:09:24.4621841UTC; earlier runs excluded
+SOURCE LINE 6832
+[2026-09-12 15:09:24.630][Debug][SPTarkov.Server.Core] Importing configs...
+SOURCE LINE 7315
+[2026-09-12 15:09:30.371][Warning][SPTarkov.Server.Core.Helpers.Traders.TraderHelper] Händler: [redacted-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert
+SOURCE LINE 7496
+[2026-09-12 15:13:52.973][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Reserved profile boundary for session [redacted-id] before snapshot.
+SOURCE LINE 7497
+[2026-09-12 15:13:52.975][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot taken for session [redacted-id].
+SOURCE LINE 7498
+[2026-09-12 15:13:52.976][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Completed protected PitFireTeam arm for session [redacted-id]: map=factory4_day, mode=deathmatch.
+SOURCE LINE 7517
+[2026-09-12 15:13:53.702][Information][ArenaMode.Server.PatchManager] [ArenaMode] Arena hostility applied (all_vs_player, frozen Deathmatch selection).
+SOURCE LINE 7519
+[2026-09-12 15:13:53.971][Information][ArenaMode.Server.Services.ArenaProtectedRaidStartService] [ArenaMode] Protected native Arena start completed for session [redacted-id]; the exact SPT server id is bound for retry-safe end processing.
+SOURCE LINE 8009
+[2026-09-12 15:21:24.293][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/raid-end
+SOURCE LINE 8010
+[2026-09-12 15:21:24.297][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+SOURCE LINE 8011
+[2026-09-12 15:21:24.329][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/client-settings
+SOURCE LINE 8012
+[2026-09-12 15:21:24.385][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+SOURCE LINE 8013
+[2026-09-12 15:21:24.503][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [redacted-id].
+SOURCE LINE 8014
+[2026-09-12 15:21:24.701][Debug][SPTarkov.Server.Core.Services.Profile.BackupService] Profile backup created in: C:\SPT41\SPT_Runtime\user\profiles\backups\2026-09-12_15-21-24
+SOURCE LINE 8015
+[2026-09-12 15:21:24.702][Debug][SPTarkov.Server.Core.Services.Profile.BackupService] Deleted old backup: ./user/profiles/backups\2026-09-12_10-27-58
+SOURCE LINE 8016
+[2026-09-12 15:21:24.712][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [redacted-id]; ordinary post-raid processing was skipped and the snapshot was persisted.
+SOURCE LINE 8090
+[2026-09-12 15:22:56.331][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/client-settings

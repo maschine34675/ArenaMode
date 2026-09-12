@@ -1,0 +1,12 @@
+{
+  "firstFailedInputUtc": "2026-09-12T15:27:34.500Z",
+  "lastSuccessfulScreenshotArchiveUtc": "2026-09-12T15:27:20.498Z",
+  "firstFailure": "failed to activate captured window",
+  "recoveryFailure": "GetCursorPos failed: Zugriff verweigert (0x80070005)",
+  "recovery": "Fresh list_windows; unique EscapeFromTarkov window; get_window and activate_window failed.",
+  "result": "No B Ready attempted. UI input stopped; user asked to reopen/unlock RDP.",
+  "ACompleted": true,
+  "BStarted": false,
+  "CStarted": false,
+  "refinementsStarted": false
+}

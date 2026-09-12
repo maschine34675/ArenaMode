@@ -1,0 +1,185 @@
+{
+  "schema": "arenamode-independent-r5-startup-audit-v1",
+  "createdUtc": "2026-09-12T17:13:40.320612+02:00",
+  "testId": "deathmatch-menu-exit-r5",
+  "installed": [
+    {
+      "name": "client",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+      "sha256": "7DCAA94CFDF5F0C7E6736796901BE4C3DCBADCEC6F74C76E1668C22B81201F11",
+      "matchesR5": true,
+      "productVersion": "0.1.0+f64df5be499d06d29cc4e6b717dd52ea0931725a",
+      "fileVersion": "0.1.0.0",
+      "assemblyVersion": "0.1.0.0",
+      "bytes": 1241600,
+      "mtimeUtc": "2026-09-12T14:54:13.1904244Z"
+    },
+    {
+      "name": "server",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+      "sha256": "294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7",
+      "matchesR5": true,
+      "productVersion": "0.1.0+f887090f5b04569a6f35fd19bf8a3ac63c25e0e2",
+      "fileVersion": "0.1.0.0",
+      "assemblyVersion": "0.1.0.0",
+      "bytes": 377856,
+      "mtimeUtc": "2026-09-12T12:09:49.4365921Z"
+    },
+    {
+      "name": "redeploy",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+      "sha256": "FDA836C30247B01E1B3E2B19A9749DCA23FAF68C7B3A03CA5D5C35537BB8C7A8",
+      "matchesR5": true,
+      "productVersion": "0.9.0+bc95a284c115d6b9feffeaa765924a383f6f35a6",
+      "fileVersion": "0.9.0.0",
+      "assemblyVersion": "0.9.0.0",
+      "bytes": 60928,
+      "mtimeUtc": "2026-09-12T11:30:20.5006401Z"
+    },
+    {
+      "name": "sain",
+      "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+      "sha256": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "matchesR5": true,
+      "productVersion": "4.5.1+2d1d9257dbb3af535e9189e6181311f6355aec27",
+      "fileVersion": "4.5.1",
+      "assemblyVersion": "4.5.1.0",
+      "bytes": 781312,
+      "mtimeUtc": "2026-09-04T18:35:15Z"
+    }
+  ],
+  "processes": [
+    {
+      "ProcessId": 13660,
+      "Name": "SPT.Server.exe",
+      "ExecutablePath": "C:\\SPT41\\SPT_Runtime\\SPT.Server.exe",
+      "StartUtc": "2026-09-12T15:09:24.462184Z"
+    },
+    {
+      "ProcessId": 4288,
+      "Name": "SPT.Launcher.exe",
+      "ExecutablePath": "C:\\SPT41\\SPT_Runtime\\SPT.Launcher.exe",
+      "StartUtc": "2026-09-12T15:09:58.817811Z"
+    },
+    {
+      "ProcessId": 11900,
+      "Name": "EscapeFromTarkov.exe",
+      "ExecutablePath": "C:\\SPT41\\EscapeFromTarkov.exe",
+      "StartUtc": "2026-09-12T15:10:36.900173Z"
+    }
+  ],
+  "git": {
+    "head": "1e64bc573cd5db0a2366908cf381596dfa078552",
+    "branch": "fix/arena-panel-close-input",
+    "status": [
+      "?? ArenaMode.Server/defaults/~syncthing~ladder.json.tmp"
+    ],
+    "buildCommit": "f64df5be499d06d29cc4e6b717dd52ea0931725a",
+    "buildCommitAncestorOfHead": true,
+    "scope": "Read-only verification. Known foreign Syncthing temporary file preserved."
+  },
+  "liveSingleRead": {
+    "readUtc": "2026-09-12T15:12:00.4617448Z",
+    "clientLastLine": 13021,
+    "clientLastLocal": "17:11:51.730",
+    "serverReadUtc": "2026-09-12T15:12:00.9185452Z",
+    "serverFirstLine": 6832,
+    "serverLastLine": 7441,
+    "serverLastUtc": "15:11:57.400",
+    "errors": 0,
+    "thrownExceptions": 0,
+    "limit": "Single startup observation only; later native gameplay is outside this audit."
+  },
+  "archivedSourceFiles": [
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\startup-ready\\client.log",
+      "sha256": "8032A8350C6DBF13084238D02922ACE87F896A2099724F7CFAD01D2324786229",
+      "firstLine": 1,
+      "lastLine": 13025,
+      "first": "[17:10:46.266] [Info   :  LogTools] Log file timestamps active — every line below is LOCAL time (UTC+02:00). Session start: 2026-09-12 17:10:46 local = 2026-09-12 15:10:46 UTC (SPT's server and launcher logs and EFT's own logs are UTC).",
+      "last": "[17:12:03.378] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /singleplayer/pitfireteam/teammates",
+      "timestampBasis": "UTC+02:00"
+    },
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\startup-ready\\server.log",
+      "sha256": "9EA94D14DC986BCAAA3BA8CCCA00D69B5B32BF75E595137CA20554C7B10349C6",
+      "firstLine": 6832,
+      "lastLine": 7455,
+      "processStartUtc": "2026-09-12T15:09:24.4621841Z",
+      "first": "[2026-09-12 15:09:24.630][Debug][SPTarkov.Server.Core] Importing configs...",
+      "last": "[2026-09-12 15:12:03.377][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /singleplayer/pitfireteam/teammates",
+      "timestampBasis": "UTC",
+      "earlierRunsExcluded": true
+    }
+  ],
+  "archiveChecks": {
+    "clientErrorFatalCritical": 0,
+    "serverErrorFatalCritical": 0,
+    "clientThrownExceptionCandidates": 0,
+    "serverThrownExceptionCandidates": 0,
+    "clientWarnings": 9,
+    "serverWarnings": 1,
+    "inputReadyCount": 1,
+    "inputUnavailableCount": 0,
+    "sainTeardownSafeguardReadyCount": 1,
+    "thrownExceptionExclusions": "Harmony finalizer method declarations and Assert.raiseExceptions configuration are not thrown exceptions."
+  },
+  "selectedClientOriginalLines": [
+    {
+      "line": 14,
+      "text": "[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 15,
+      "text": "[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 16,
+      "text": "[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 17,
+      "text": "[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 18,
+      "text": "[17:10:46.266] [Warning:FixPluginTypesSerialization] Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 3841,
+      "text": "[17:10:56.509] [Warning:  HarmonyX] BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner)."
+    },
+    {
+      "line": 4968,
+      "text": "[17:10:59.021] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready."
+    },
+    {
+      "line": 6107,
+      "text": "[17:11:00.733] [Info   :maschine-ArenaMode] Arena input blocker ready: panel close waits for released-pointer input delivery."
+    },
+    {
+      "line": 7803,
+      "text": "[17:11:05.660] [Warning:  HarmonyX] DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update()."
+    },
+    {
+      "line": 9019,
+      "text": "[17:11:07.695] [Warning:  HarmonyX] WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor()."
+    },
+    {
+      "line": 12290,
+      "text": "[17:11:12.341] [Warning:  HarmonyX] com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition)."
+    }
+  ],
+  "selectedServerOriginalLines": [
+    {
+      "line": 7315,
+      "text": "[2026-09-12 15:09:30.371][Warning][SPTarkov.Server.Core.Helpers.Traders.TraderHelper] Händler: [redacted-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+    }
+  ],
+  "runtimeLimits": [
+    "Ready markers prove registration only, not the subsequent input/teardown path.",
+    "Pending/released diagnostics are capped at 24 state lines per process. blockedShotCommands=0 can be correct.",
+    "Reopening may replace an older pending generation without its release line."
+  ],
+  "privacy": "All 24-hex identifiers in selected log text explicitly redacted as [redacted-id]; no profiles or private identifiers copied."
+}

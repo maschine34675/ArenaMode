@@ -1,0 +1,207 @@
+{
+  "schema": "arenamode-r5-close-timing-audit-v1",
+  "auditedAtUtc": "2026-09-12T15:30:10.0884177Z",
+  "scope": "Four recorded single Close comparisons in Raid A; metadata and original file membership/hash checks only, no UI actions and no production changes.",
+  "evidenceSourceSha256": {
+    "input-actions.json": "90A46ABD2FF379080527CBA523AA4CB2B6011BB31BF38D96153657B354676DDB",
+    "screenshots/index.ndjson": "FACF8A5DD2D2E0A27649DA7F70F431A5B8683E3458B46FBCD441220F502D8B6C"
+  },
+  "timeSemantics": {
+    "stateReturnedAt": "Root records completion/return of the action plus immediate state query; includes automation and screenshot overhead.",
+    "inputRecordedAt": "Root action-log timestamp, not an independent measurement of physical OS injection time.",
+    "beforeArchiveToCloseInput": "Observed/archive-to-request gap; excludes time elapsed between actual capture and archiving.",
+    "archiveToArchive": "Difference between two archive markers; useful observation span, not an exact capture interval.",
+    "closeInputToAfterReturn": "Action/state-return latency; not the actual screenshot-to-screenshot interval.",
+    "archivedAt": "Root records when the returned state images were saved; not a source-provided pixel-capture timestamp."
+  },
+  "comparisons": [
+    {
+      "comparison": 1,
+      "beforeName": "a-close-1-before",
+      "afterName": "a-close-1-after",
+      "beforeStateReturnedAtUtc": "2026-09-12T15:14:48.538Z",
+      "beforeArchivedAtUtc": "2026-09-12T15:14:48.541Z",
+      "closeInputRecordedAtUtc": "2026-09-12T15:14:56.733Z",
+      "closeAction": "single click record",
+      "closeCoordinates": {
+        "y": 906,
+        "x": 1042
+      },
+      "afterStateReturnedAtUtc": "2026-09-12T15:14:59.507Z",
+      "afterArchivedAtUtc": "2026-09-12T15:14:59.518Z",
+      "beforeArchiveToCloseInputMs": 8192.0,
+      "closeInputToAfterReturnMs": 2774.0,
+      "archiveToArchiveMs": 10977.0,
+      "afterReturnToArchiveMs": 11.0,
+      "interveningRecordedInputCount": 0,
+      "additionalInputUntilAfterArchiveCount": 0,
+      "beforeOriginal": {
+        "basename": "a-close-1-before-2026-09-12T15-14-48-541Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "5E8307666F7049F95E897BF22E96B57C84414507C36DDDE92644C13A5E66D326",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "afterOriginal": {
+        "basename": "a-close-1-after-2026-09-12T15-14-59-518Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "9FBFD9D3D78ACD65F18C53921D5CE1647CF7F286AA36A99958B3E5FD018C83FB",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "exactCaptureIntervalMs": null,
+      "interpretation": "Timing and recorded-input sequence only; this audit does not independently establish visible ammunition, weapon identity, health, death, respawn, or PASS status.",
+      "beforeReturnToArchiveMs": 3.0,
+      "beforeReturnToCloseInputMs": 8195.0
+    },
+    {
+      "comparison": 2,
+      "beforeName": "a-close-2-before",
+      "afterName": "a-close-2-after",
+      "beforeStateReturnedAtUtc": "2026-09-12T15:15:10.612Z",
+      "beforeArchivedAtUtc": "2026-09-12T15:15:10.616Z",
+      "closeInputRecordedAtUtc": "2026-09-12T15:15:18.421Z",
+      "closeAction": "single click record",
+      "closeCoordinates": {
+        "y": 906,
+        "x": 1042
+      },
+      "afterStateReturnedAtUtc": "2026-09-12T15:15:21.076Z",
+      "afterArchivedAtUtc": "2026-09-12T15:15:21.077Z",
+      "beforeArchiveToCloseInputMs": 7805.0,
+      "closeInputToAfterReturnMs": 2655.0,
+      "archiveToArchiveMs": 10461.0,
+      "afterReturnToArchiveMs": 1.0,
+      "interveningRecordedInputCount": 0,
+      "additionalInputUntilAfterArchiveCount": 0,
+      "beforeOriginal": {
+        "basename": "a-close-2-before-2026-09-12T15-15-10-616Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "451C89B72CC86DA2DF798731C997F3D3ACBACD771964B0484BD107CD5A07DBED",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "afterOriginal": {
+        "basename": "a-close-2-after-2026-09-12T15-15-21-077Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "45FD497B5A80E5B21FF562101A9ECCDAEAFCFD11A880E1520C117A6CDF0A6E80",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "exactCaptureIntervalMs": null,
+      "interpretation": "Timing and recorded-input sequence only; this audit does not independently establish visible ammunition, weapon identity, health, death, respawn, or PASS status.",
+      "beforeReturnToArchiveMs": 4.0,
+      "beforeReturnToCloseInputMs": 7809.0
+    },
+    {
+      "comparison": 3,
+      "beforeName": "a-close-3-before",
+      "afterName": "a-close-3-after",
+      "beforeStateReturnedAtUtc": "2026-09-12T15:15:37.387Z",
+      "beforeArchivedAtUtc": "2026-09-12T15:15:37.408Z",
+      "closeInputRecordedAtUtc": "2026-09-12T15:15:46.825Z",
+      "closeAction": "single click record",
+      "closeCoordinates": {
+        "y": 906,
+        "x": 1042
+      },
+      "afterStateReturnedAtUtc": "2026-09-12T15:15:49.443Z",
+      "afterArchivedAtUtc": "2026-09-12T15:15:49.443Z",
+      "beforeArchiveToCloseInputMs": 9417.0,
+      "closeInputToAfterReturnMs": 2618.0,
+      "archiveToArchiveMs": 12035.0,
+      "afterReturnToArchiveMs": 0.0,
+      "interveningRecordedInputCount": 0,
+      "additionalInputUntilAfterArchiveCount": 0,
+      "beforeOriginal": {
+        "basename": "a-close-3-before-2026-09-12T15-15-37-408Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "3EC4E235D1555A5618310824E9120CEBE2B80E5B267B98284710B0E576A031AD",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "afterOriginal": {
+        "basename": "a-close-3-after-2026-09-12T15-15-49-443Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "2F5E24A55D116E895B5D588D6348A54281F077FE1BFD0F4B51DBDCF0CAD9F5F4",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "exactCaptureIntervalMs": null,
+      "interpretation": "Timing and recorded-input sequence only; this audit does not independently establish visible ammunition, weapon identity, health, death, respawn, or PASS status.",
+      "beforeReturnToArchiveMs": 21.0,
+      "beforeReturnToCloseInputMs": 9438.0
+    },
+    {
+      "comparison": 4,
+      "beforeName": "a-close-4-stable-before",
+      "afterName": "a-close-4-after",
+      "beforeStateReturnedAtUtc": null,
+      "beforeArchivedAtUtc": "2026-09-12T15:19:49.123Z",
+      "closeInputRecordedAtUtc": "2026-09-12T15:19:56.374Z",
+      "closeAction": "single click record",
+      "closeCoordinates": {
+        "y": 906,
+        "x": 1042
+      },
+      "afterStateReturnedAtUtc": "2026-09-12T15:19:58.760Z",
+      "afterArchivedAtUtc": "2026-09-12T15:19:58.760Z",
+      "beforeArchiveToCloseInputMs": 7251.0,
+      "closeInputToAfterReturnMs": 2386.0,
+      "archiveToArchiveMs": 9637.0,
+      "afterReturnToArchiveMs": 0.0,
+      "interveningRecordedInputCount": 0,
+      "additionalInputUntilAfterArchiveCount": 0,
+      "beforeOriginal": {
+        "basename": "a-close-4-stable-before-2026-09-12T15-19-49-123Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "85EB50CFD17BE23CCEFEAFD9ECF334CFD3B9D52F2B8F4594273C576779D347AB",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "afterOriginal": {
+        "basename": "a-close-4-after-2026-09-12T15-19-58-760Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "85871382525CFF8ECA16D5FF259640B93442B4B3975A28B410F2F0BEFE70466F",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "exactCaptureIntervalMs": null,
+      "interpretation": "Timing and recorded-input sequence only; this audit does not independently establish visible ammunition, weapon identity, health, death, respawn, or PASS status.",
+      "beforeReturnLimitation": "Stable-before is a read-only snapshot, not a named input action; input-actions.json contains no distinct return time for it. Use archive time as the known metadata bound, not as an exact capture time.",
+      "earlierContextOriginal": {
+        "basename": "a-close-4-after-respawns-before-2026-09-12T15-19-37-626Z-0.jpg",
+        "surfaceIndex": 0,
+        "width": 1920,
+        "height": 1080,
+        "sha256": "3B37EC89E0C345B90EBF7955F88462D9B1F4F81D78443CAD4AE9621059957B6D",
+        "nativeOriginalsInSameRecord": 2,
+        "choice": "First unchanged original in indexed state. The second original has no separately recorded capture timestamp and is not an independent timed observation."
+      },
+      "earlierContextArchivedAtUtc": "2026-09-12T15:19:37.626Z",
+      "earlierContextLimitation": "Not the selected direct comparison baseline. Stable-before provides the later, closer observation before the single Close click; timing metadata alone cannot confirm whether the earlier context was interrupted by gameplay."
+    }
+  ],
+  "recordedState": "Root reports Raid A ended and main menu confirmed; B/C not started. Later RDP lock does not alter earlier indexed evidence.",
+  "limits": [
+    "No continuous video or pixel-capture timestamps present.",
+    "Zero intervening recorded inputs does not by itself exclude autonomous game events; visual/raid-log evidence must independently confirm a valid ammunition comparison.",
+    "No full profiles or private identifiers included."
+  ]
+}

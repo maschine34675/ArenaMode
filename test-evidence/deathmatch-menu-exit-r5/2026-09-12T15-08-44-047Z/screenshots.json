@@ -1,0 +1,263 @@
+[
+  {
+    "name": "a-character-selection",
+    "archivedAtUtc": "2026-09-12T15:12:21.529Z",
+    "file": "a-character-selection.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "871D66669EA99D275E12829918371508C2B1ECA2BF7A0A12178ADB8A40BB3926",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-arena-preview",
+    "archivedAtUtc": "2026-09-12T15:12:28.249Z",
+    "file": "a-arena-preview.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "23BC3E918DA2065A57A19F976368F2D6170182737A5CB7EDCC91294E59F91293",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-factory",
+    "archivedAtUtc": "2026-09-12T15:13:13.311Z",
+    "file": "a-factory.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "B20CD842AE380B2D7D98BE8436E7555C877E78678223EBB9A2436CE775171F80",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-native-confirmation",
+    "archivedAtUtc": "2026-09-12T15:13:24.645Z",
+    "file": "a-native-confirmation.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "4F0BC5D055B8A3483E52DB5BE8C8ED85C66F4D6779CE0D36290BB1C7BD5A6A2B",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-deploy-check",
+    "archivedAtUtc": "2026-09-12T15:14:37.937Z",
+    "file": "a-deploy-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "9A790D32A9AF829744869A07A942061D5DB2B1485DFFB1BA262336EDA61DE957",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-1-before",
+    "archivedAtUtc": "2026-09-12T15:14:48.541Z",
+    "file": "a-close-1-before.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5E8307666F7049F95E897BF22E96B57C84414507C36DDDE92644C13A5E66D326",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-1-after",
+    "archivedAtUtc": "2026-09-12T15:14:59.518Z",
+    "file": "a-close-1-after.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "9FBFD9D3D78ACD65F18C53921D5CE1647CF7F286AA36A99958B3E5FD018C83FB",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-2-before",
+    "archivedAtUtc": "2026-09-12T15:15:10.616Z",
+    "file": "a-close-2-before.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "451C89B72CC86DA2DF798731C997F3D3ACBACD771964B0484BD107CD5A07DBED",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-2-after",
+    "archivedAtUtc": "2026-09-12T15:15:21.077Z",
+    "file": "a-close-2-after.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "45FD497B5A80E5B21FF562101A9ECCDAEAFCFD11A880E1520C117A6CDF0A6E80",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-3-before",
+    "archivedAtUtc": "2026-09-12T15:15:37.408Z",
+    "file": "a-close-3-before.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "3EC4E235D1555A5618310824E9120CEBE2B80E5B267B98284710B0E576A031AD",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-3-after",
+    "archivedAtUtc": "2026-09-12T15:15:49.443Z",
+    "file": "a-close-3-after.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "2F5E24A55D116E895B5D588D6348A54281F077FE1BFD0F4B51DBDCF0CAD9F5F4",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-hotkey-open",
+    "archivedAtUtc": "2026-09-12T15:16:02.762Z",
+    "file": "a-hotkey-open.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "EA1D3B3C64359E9F8ED4584ABC0AECA94BF2BDF1B6CEE5210488261F853ECE1A",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-hotkey-closed",
+    "archivedAtUtc": "2026-09-12T15:16:12.613Z",
+    "file": "a-hotkey-closed.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "2CDAA335CE2906EE668DA53543940A1BB16C34D618BB3EAD273B44A1DE39F6EF",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-escape-open",
+    "archivedAtUtc": "2026-09-12T15:16:22.833Z",
+    "file": "a-escape-open.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "D037E4ECF3BA28926F6157CBFB35F7C4C10A4465114131C6DDD4234DE7C603B0",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-escape-closed",
+    "archivedAtUtc": "2026-09-12T15:16:34.946Z",
+    "file": "a-escape-closed.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "DED09EF9AEDB012DAAC8663B030F4245657A61E5A5D81B09AE866F9953DA950E",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-resume-after-escape",
+    "archivedAtUtc": "2026-09-12T15:16:48.190Z",
+    "file": "a-resume-after-escape.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "E8F010EF5B19DA3273851D3F276D05E7B8712717AB28B2C18B406969D2113A6A",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-intentional-wall-shot",
+    "archivedAtUtc": "2026-09-12T15:17:02.476Z",
+    "file": "a-intentional-wall-shot.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "6EF529A7E1AD30943ED50567237564A105E85F23BA1201EB8807BB165FAE2992",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-deliberate-reload",
+    "archivedAtUtc": "2026-09-12T15:17:13.106Z",
+    "file": "a-deliberate-reload.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "8AE05A168D2A5EFA5AC593A94E4191A5E335917B6A566BBA6A7E8E775608E04C",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-deliberate-move-left",
+    "archivedAtUtc": "2026-09-12T15:17:23.928Z",
+    "file": "a-deliberate-move-left.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "6591BDF106731E648D039FEFE782D4554F981EC9189304B78591C08E28A5BF85",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-natural-respawn-check",
+    "archivedAtUtc": "2026-09-12T15:19:24.102Z",
+    "file": "a-natural-respawn-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "85B22CFCBD8D2698F5A3BB80B5D0D5FFEAAC4A0A57C05B0069119F2F9E8B6031",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-4-after-respawns-before",
+    "archivedAtUtc": "2026-09-12T15:19:37.626Z",
+    "file": "a-close-4-after-respawns-before.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "3B37EC89E0C345B90EBF7955F88462D9B1F4F81D78443CAD4AE9621059957B6D",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-4-stable-before",
+    "archivedAtUtc": "2026-09-12T15:19:49.123Z",
+    "file": "a-close-4-stable-before.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "85EB50CFD17BE23CCEFEAFD9ECF334CFD3B9D52F2B8F4594273C576779D347AB",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-close-4-after",
+    "archivedAtUtc": "2026-09-12T15:19:58.760Z",
+    "file": "a-close-4-after.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "85871382525CFF8ECA16D5FF259640B93442B4B3975A28B410F2F0BEFE70466F",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-round3-result-watch",
+    "archivedAtUtc": "2026-09-12T15:20:11.992Z",
+    "file": "a-round3-result-watch.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "3FF76D4E1C2FCEE1ACCDBD3386BE7774BFCC1C6C216AE1FA99BD95B1E045E476",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-round3-near-end",
+    "archivedAtUtc": "2026-09-12T15:20:56.348Z",
+    "file": "a-round3-near-end.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5D1E6D22C494C871DC976193665ECF8E9FD38AFCB713531A85E78FC741C4E1DF",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-terminal-f9-first",
+    "archivedAtUtc": "2026-09-12T15:21:22.573Z",
+    "file": "a-terminal-f9-first.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "752B583C10983878841C77355DB3D98B65D7F705AE2C52E80362A0AE513E784F",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-native-end-check",
+    "archivedAtUtc": "2026-09-12T15:21:43.778Z",
+    "file": "a-native-end-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "B6D7F2A49DA26C02B0CED0D9F035BECE58F8A6FDC4B9CD629048C21DD8474B0A",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "a-mainmenu-confirm",
+    "archivedAtUtc": "2026-09-12T15:22:49.140Z",
+    "file": "a-mainmenu-confirm.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7C911756B9F7E8CF9BF919A77952A43B2AFDEDB826FD1EC89FA2BBDE4B4FB588",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "b-menu-resume",
+    "archivedAtUtc": "2026-09-12T15:27:20.498Z",
+    "file": "b-menu-resume.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "F571F5F9BE80389E7C5EF307A5F28F1A4EEFE499886929884FAA146B139506FD",
+    "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  }
+]

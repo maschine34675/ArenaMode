@@ -1,0 +1,21 @@
+{
+  "testId": "deathmatch-menu-exit-r5",
+  "head": "1e64bc573cd5db0a2366908cf381596dfa078552",
+  "branch": "fix/arena-panel-close-input",
+  "build": "f64df5be499d06d29cc4e6b717dd52ea0931725a",
+  "processes": {
+    "game": {
+      "pid": 11900,
+      "startUtc": "2026-09-12T15:10:36.9001737Z"
+    },
+    "server": {
+      "pid": 13660,
+      "startUtc": "2026-09-12T15:09:24.4621841Z"
+    },
+    "launcher": {
+      "pid": 4288,
+      "startUtc": "2026-09-12T15:09:58.8178116Z"
+    }
+  },
+  "startedAt": "2026-09-12T15:08:44.047Z"
+}
