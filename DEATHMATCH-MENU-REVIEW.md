@@ -102,3 +102,22 @@ are justified by this report. r2 prioritizes the untested menu and raid cases;
 cosmetic findings are recorded without aborting independent cases, and recording
 is optional unless jitter recurs. Safety, exceptions and build drift still stop
 the relevant run. Original r1 instructions/results remain historical evidence.
+
+### Canonical Deathmatch laser brightness follow-up
+
+The bounded audit of old mode-id consumers found one functional omission:
+ArenaTeamLaserColors.TryOwner admitted only the old solo ids, so canonical
+Deathmatch silently skipped both point/intensity and beam-only boosts. Add the
+exact shared DeathmatchSelection.ModeId; do not use NormalizeId here because it
+also maps unknown ids to Deathmatch. All native raid/body/weapon/AI ownership
+checks and the intentional absence of solo team tint remain unchanged.
+
+The production-linked replay now covers canonical Deathmatch and four retained
+solo ids for both local and active AI bodies, point and beam-only brightness,
+unchanged native dot/intensity/tint, stale bodies and unknown-mode refusal. It
+failed the exact new Deathmatch assertion before the fix and passes 1293
+assertions afterward. The existing regression runner now rejects14 compiled
+faults including removal of canonical admission, then reruns the passing actual
+source. Independent review found no remaining established defect. This is an
+offline rendering-contract check, not measured native laser visibility; r2 may
+check it opportunistically without requiring a kit modification or extra raid.

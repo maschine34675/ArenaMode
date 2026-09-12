@@ -10,6 +10,7 @@
     <TacticalSource Condition="'$(TacticalSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TacticalMode.Lasers.cs</TacticalSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
     <Compile Include="$(LaserSource)" Link="Production/ArenaTeamLaserColors.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaTeamLaserPolicy.cs" />
     <Compile Include="$(BrightnessSource)" Link="Production/ArenaLaserBrightness.cs" />

@@ -258,15 +258,32 @@ foreach (string invalid in new[] { "normal", "wrongraid", "stopped", "complete",
 
 // The new effect also applies brightness without tint in solo Arena. Team tint
 // itself remains restricted to TDM and exact protected Tactical bodies.
-foreach (string solo in new[] { "endless", "rounds", "gungame", "tactical" })
+foreach (string solo in new[] { "deathmatch", "endless", "rounds", "gungame", "tactical" })
+foreach (bool ai in new[] { false, true })
 {
-    Setup(); var f = Fixture(); Singleton<GameWorld>.Instance.MainPlayer = f.owner;
+    Setup(); var f = Fixture();
+    if (ai)
+    {
+        f.owner.IsAI = true;
+        f.owner.AIData.BotOwner = new BotOwner { GetPlayer = f.owner, ProfileId = f.owner.ProfileId, BotState = EBotState.Active };
+    }
+    else Singleton<GameWorld>.Instance.MainPlayer = f.owner;
     ArenaMatchService.Current.Mode = solo == "tactical" ? new TacticalMode { _teamArena = false } : new ModeModel { Id = solo };
     ArenaSession.ActiveMode = solo; Settings.VisibleLaserBrightness.Value = 2f;
     Draw(f.laser);
     Check(Near(f.laser.DrawnIntensity, 8f) && ColorNear(f.laser.DrawnBeam, f.laser.BeamMaterial.GetColor(1)), "solo Arena brightness without invented teams: " + solo);
     Settings.TeamLasers.Value = false; Draw(f.laser);
     Check(Near(f.laser.DrawnIntensity, 8f), "brightness works with team colors disabled: " + solo);
+    Settings.VisibleLaserBrightness.Value = 1f; Settings.VisibleLaserBeamBrightness.Value = 3f;
+    Draw(f.laser);
+    Check(Near(f.laser.DrawnBeamFactor, 7.5f) && Near(f.laser.DrawnPointFactor, 2.5f) && Near(f.laser.DrawnIntensity, 4f),
+        "solo beam-only boost preserves native dot/intensity: " + solo + "/ai=" + ai);
+    Check(ColorNear(f.laser.DrawnBeam, f.laser.BeamMaterial.GetColor(1)), "solo beam boost does not invent team tint: " + solo);
+    Singleton<GameWorld>.Instance.Alive[f.owner.ProfileId] = new Player { ProfileId = f.owner.ProfileId };
+    Check(ArenaTeamLaserColors.Begin(f.laser) == null, "solo stale body remains native: " + solo);
+    Singleton<GameWorld>.Instance.Alive[f.owner.ProfileId] = f.owner;
+    ArenaMatchService.Current.Mode = new ModeModel { Id = "unknown-mode" }; ArenaSession.ActiveMode = "unknown-mode";
+    Check(ArenaTeamLaserColors.Begin(f.laser) == null, "unknown mode must not normalize to Deathmatch effects");
 }
 
 (TacticalMode mode, (LaserBeam laser, Player owner, WeaponPrefab weapon, TacticalComboVisualController tactical)[] bodies) TacticalFixture()

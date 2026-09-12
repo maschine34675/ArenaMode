@@ -17,6 +17,7 @@ foreach ($key in $sources.Keys) {
     [IO.File]::WriteAllText($snapshots[$key], $texts[$key])
 }
 $mutants = @(
+    @{ Name='DeathmatchAdmission'; Key='LaserSource'; From='mode.Id != ArenaMode.Shared.DeathmatchSelection.ModeId && '; To=''; Failure='solo Arena brightness without invented teams: deathmatch' },
     @{ Name='NormalGate'; Key='LaserSource'; From='ArenaSession.IsActive && (Settings.TeamLasers?.Value'; To='(Settings.TeamLasers?.Value'; Failure='invalid scope remains native: normal' },
     @{ Name='IRVisibility'; Key='PolicySource'; From='Finite(factor) && factor > 0f'; To='Finite(factor)'; Failure='invalid scope remains native: irbeam' },
     @{ Name='PooledOwner'; Key='LaserSource'; From='!ReferenceEquals(hands.ControllerGameObject.GetComponent<WeaponPrefab>(), weapon)'; To='false'; Failure='invalid scope remains native: pooled' },

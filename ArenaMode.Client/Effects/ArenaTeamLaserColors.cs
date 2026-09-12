@@ -135,7 +135,8 @@ internal static class ArenaTeamLaserColors
         {
             // Solo modes have no cosmetic team recoloring. Their brightness still
             // requires the current local body or a live native AI body in this raid.
-            if (mode.Id != "endless" && mode.Id != "rounds" && mode.Id != "gungame" && mode.Id != "tactical") return false;
+            if (mode.Id != ArenaMode.Shared.DeathmatchSelection.ModeId && mode.Id != "endless"
+                && mode.Id != "rounds" && mode.Id != "gungame" && mode.Id != "tactical") return false;
             if (!ReferenceEquals(owner, world.MainPlayer))
             {
                 var bot = owner.AIData?.BotOwner;
