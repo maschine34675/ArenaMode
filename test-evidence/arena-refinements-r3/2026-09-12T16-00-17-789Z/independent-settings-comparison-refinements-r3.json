@@ -1,0 +1,94 @@
+{
+  "auditAtUtc": "2026-09-12T16:16:21.719Z",
+  "method": "Independent byte hashes and semantic comparison of complete saved settings snapshots. JSON key order ignored; arrays and scalar types retained. INI sections and exact string values compared; comments and whitespace excluded only from semantic comparison.",
+  "sourceFolders": [
+    "settings",
+    "settings-final"
+  ],
+  "files": [
+    {
+      "file": "Control.ini",
+      "beforeSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "afterSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "bytesEqual": true,
+      "format": "JSON",
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": []
+    },
+    {
+      "file": "Graphics.ini",
+      "beforeSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "afterSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "bytesEqual": true,
+      "format": "JSON",
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": []
+    },
+    {
+      "file": "client-settings.json",
+      "beforeSha256": "C4767CB3330430BE7A9AC530484C45BFF7EC4B9CE77839CF189CCBA2FF9B0D5F",
+      "afterSha256": "1D37F5F5AAA814F352CB04D01CBC3219DF412BA0305625E8485B336810EB3AE0",
+      "bytesEqual": false,
+      "format": "JSON",
+      "semanticEqual": false,
+      "differenceCount": 1,
+      "differences": [
+        {
+          "path": "UpdatedAt",
+          "beforePresent": true,
+          "afterPresent": true,
+          "before": "17:55:56",
+          "after": "18:15:53"
+        }
+      ]
+    },
+    {
+      "file": "com.maschine.ArenaMode.cfg",
+      "beforeSha256": "AEBAD2BDA72228A3970C8A43FBE26719ACA28FCE3FF7ACB8B18246852C8FDACD",
+      "afterSha256": "AEBAD2BDA72228A3970C8A43FBE26719ACA28FCE3FF7ACB8B18246852C8FDACD",
+      "bytesEqual": true,
+      "format": "INI settings excluding comment and whitespace differences",
+      "semanticEqual": true,
+      "parsedSettingCount": 147,
+      "differenceCount": 0,
+      "differences": []
+    },
+    {
+      "file": "com.maschine.RaidInfoPanels.cfg",
+      "beforeSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "afterSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "bytesEqual": true,
+      "format": "INI settings excluding comment and whitespace differences",
+      "semanticEqual": true,
+      "parsedSettingCount": 32,
+      "differenceCount": 0,
+      "differences": []
+    },
+    {
+      "file": "com.mpstark.dynamicmaps.cfg",
+      "beforeSha256": "EF3216E829DF767B93E0EC09BBF0CCC6E5A32A463B38D962DB30FCF8EFF1BBB6",
+      "afterSha256": "EF3216E829DF767B93E0EC09BBF0CCC6E5A32A463B38D962DB30FCF8EFF1BBB6",
+      "bytesEqual": true,
+      "format": "INI settings excluding comment and whitespace differences",
+      "semanticEqual": true,
+      "parsedSettingCount": 83,
+      "differenceCount": 0,
+      "differences": []
+    },
+    {
+      "file": "config.json",
+      "beforeSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "afterSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "bytesEqual": true,
+      "format": "JSON",
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": []
+    }
+  ],
+  "allSevenByteEqual": false,
+  "allValuesRestoredAllowingClientSettingsUpdatedAtOnly": true,
+  "clientSettingsUpdatedAtNote": "UpdatedAt is reported exactly as stored. No timezone inferred. All other semantic fields must be unchanged for the restoration result to pass."
+}

@@ -1,0 +1,151 @@
+{
+  "auditAtUtc": "2026-09-12T16:14:43.333Z",
+  "method": "Independent recursive comparison of complete parsed JSON documents, case-sensitive dictionary keys and scalar values, preserving arrays, scalar types and missing versus present fields. Source profiles only read; no copyback.",
+  "sourceCopies": [
+    "private/TDM-before.json",
+    "private/TDM-after.json"
+  ],
+  "sourceSha256": {
+    "TDM-before.json": "087794EC246949275426D8E21885BD911FB291B70DC7536D24C2FF888D41DB72",
+    "TDM-after.json": "27040DF4053A95D00FD209DF5B067FF67A8D3143A04C35D300646D1A8FD3BB3B"
+  },
+  "mainMenuConfirmation": "Parent agent confirmed complete native main menu before copying TDM-after.json at approximately 2026-09-12T16:13:19Z; UI not independently inspected by this audit.",
+  "wholeDocumentEqual": false,
+  "differenceCount": 1,
+  "differences": [
+    {
+      "path": "characters.pmc.Hideout.sptUpdateLastRunTimestamp",
+      "beforePresent": true,
+      "afterPresent": true,
+      "beforeType": "number",
+      "afterType": "number",
+      "before": 1789229188,
+      "after": 1789229548,
+      "beforeUtc": "2026-09-12T16:06:28.000Z",
+      "afterUtc": "2026-09-12T16:12:28.000Z",
+      "deltaSeconds": 360,
+      "classification": "Update timestamp. The comparison does not independently identify the writer or cause."
+    }
+  ],
+  "entireScavEqual": true,
+  "protectedFields": {
+    "pmc": {
+      "Inventory": {
+        "path": "characters.pmc.Inventory",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Quests": {
+        "path": "characters.pmc.Quests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Skills": {
+        "path": "characters.pmc.Skills",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Health": {
+        "path": "characters.pmc.Health",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Experience": {
+        "path": "characters.pmc.Info.Experience",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Level": {
+        "path": "characters.pmc.Info.Level",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "TaskConditionCounters": {
+        "path": "characters.pmc.TaskConditionCounters",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "RepeatableQuests": {
+        "path": "characters.pmc.RepeatableQuests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      }
+    },
+    "scav": {
+      "Inventory": {
+        "path": "characters.scav.Inventory",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Quests": {
+        "path": "characters.scav.Quests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Skills": {
+        "path": "characters.scav.Skills",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Health": {
+        "path": "characters.scav.Health",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Experience": {
+        "path": "characters.scav.Info.Experience",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "Level": {
+        "path": "characters.scav.Info.Level",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "TaskConditionCounters": {
+        "path": "characters.scav.TaskConditionCounters",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "differenceCount": 0
+      },
+      "RepeatableQuests": {
+        "path": "characters.scav.RepeatableQuests",
+        "equal": true,
+        "beforePresent": false,
+        "afterPresent": false,
+        "differenceCount": 0
+      }
+    }
+  },
+  "allSixteenProtectedFieldsEqual": true,
+  "privacy": "No profile contents, inventory contents, quest contents, account IDs, character IDs or profile filename included. Only approved timestamp values are reported."
+}

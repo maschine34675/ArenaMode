@@ -1,0 +1,305 @@
+[
+  {
+    "at": "2026-09-12T16:00:39.307Z",
+    "action": "click",
+    "x": 234,
+    "y": 395,
+    "name": "f3-tdm-selected",
+    "returnAt": "2026-09-12T16:00:39.612Z"
+  },
+  {
+    "at": "2026-09-12T16:05:57.743Z",
+    "action": "click",
+    "x": 774,
+    "y": 432,
+    "name": "f3-customs-selected",
+    "returnAt": "2026-09-12T16:05:58.305Z"
+  },
+  {
+    "at": "2026-09-12T16:06:08.631Z",
+    "action": "click",
+    "x": 244,
+    "y": 777,
+    "name": "f3-customs-team-contour",
+    "returnAt": "2026-09-12T16:06:09.487Z"
+  },
+  {
+    "at": "2026-09-12T16:06:25.217Z",
+    "action": "click",
+    "x": 895,
+    "y": 866,
+    "name": "f3-customs-morning",
+    "returnAt": "2026-09-12T16:06:25.547Z"
+  },
+  {
+    "at": "2026-09-12T16:06:33.173Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "f3-customs-next",
+    "returnAt": "2026-09-12T16:06:33.579Z"
+  },
+  {
+    "at": "2026-09-12T16:06:54.311Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "f3-tdm-ready",
+    "returnAt": "2026-09-12T16:06:54.732Z"
+  },
+  {
+    "at": "2026-09-12T16:08:10.302Z",
+    "action": "key",
+    "key": "Tab",
+    "name": "f3-tdm-inventory",
+    "returnAt": "2026-09-12T16:08:12.468Z"
+  },
+  {
+    "at": "2026-09-12T16:08:18.181Z",
+    "action": "click",
+    "x": 783,
+    "y": 22,
+    "name": "f3-dynamicmaps-initial",
+    "returnAt": "2026-09-12T16:08:20.490Z"
+  },
+  {
+    "at": "2026-09-12T16:08:30.146Z",
+    "action": "key",
+    "key": "Tab",
+    "name": "f3-tdm-map-close",
+    "returnAt": "2026-09-12T16:08:30.963Z"
+  },
+  {
+    "at": "2026-09-12T16:08:37.960Z",
+    "action": "key",
+    "key": "End",
+    "name": "f3-minimap-enabled",
+    "returnAt": "2026-09-12T16:08:39.243Z"
+  },
+  {
+    "at": "2026-09-12T16:08:47.792Z",
+    "action": "key",
+    "key": "w",
+    "name": "f3-step-forward",
+    "returnAt": "2026-09-12T16:08:48.803Z"
+  },
+  {
+    "at": "2026-09-12T16:09:06.455Z",
+    "action": "key",
+    "key": "a",
+    "name": "f3-step-left",
+    "returnAt": "2026-09-12T16:09:08.495Z"
+  },
+  {
+    "at": "2026-09-12T16:09:16.905Z",
+    "action": "key",
+    "key": "space",
+    "name": "f3-ground-jump-attempt",
+    "returnAt": "2026-09-12T16:09:18.208Z"
+  },
+  {
+    "at": "2026-09-12T16:09:37.448Z",
+    "action": "key",
+    "key": "Escape",
+    "name": "f3-graphics-pause",
+    "returnAt": "2026-09-12T16:09:39.088Z"
+  },
+  {
+    "at": "2026-09-12T16:09:45.849Z",
+    "action": "click",
+    "x": 1886,
+    "y": 1064,
+    "name": "f3-graphics-settings",
+    "returnAt": "2026-09-12T16:09:47.716Z"
+  },
+  {
+    "at": "2026-09-12T16:09:55.161Z",
+    "action": "click",
+    "x": 749,
+    "y": 116,
+    "name": "f3-graphics-dlss-baseline",
+    "returnAt": "2026-09-12T16:09:55.765Z"
+  },
+  {
+    "at": "2026-09-12T16:10:04.466Z",
+    "action": "click",
+    "x": 1207,
+    "y": 646,
+    "name": "f3-dlss-options",
+    "returnAt": "2026-09-12T16:10:05.085Z"
+  },
+  {
+    "at": "2026-09-12T16:10:12.192Z",
+    "action": "click",
+    "x": 1095,
+    "y": 674,
+    "name": "f3-dlss-off-selected",
+    "returnAt": "2026-09-12T16:10:14.258Z"
+  },
+  {
+    "at": "2026-09-12T16:10:22.601Z",
+    "action": "click",
+    "x": 1802,
+    "y": 965,
+    "name": "f3-dlss-off-saved",
+    "returnAt": "2026-09-12T16:10:25.083Z"
+  },
+  {
+    "at": "2026-09-12T16:10:32.251Z",
+    "action": "click",
+    "x": 966,
+    "y": 748,
+    "name": "f3-dlss-off-resume",
+    "returnAt": "2026-09-12T16:10:33.643Z"
+  },
+  {
+    "at": "2026-09-12T16:10:57.267Z",
+    "action": "key",
+    "key": "Escape",
+    "name": "f3-safety-exit-pause",
+    "returnAt": "2026-09-12T16:10:58.274Z"
+  },
+  {
+    "at": "2026-09-12T16:11:08.000Z",
+    "action": "click",
+    "x": 960,
+    "y": 640,
+    "name": "f3-safety-disconnect",
+    "returnAt": "2026-09-12T16:11:10.442Z"
+  },
+  {
+    "at": "2026-09-12T16:11:27.094Z",
+    "action": "click",
+    "x": 960,
+    "y": 970,
+    "name": "f3-safety-confirm-leave",
+    "returnAt": "2026-09-12T16:11:28.073Z"
+  },
+  {
+    "at": "2026-09-12T16:12:01.965Z",
+    "action": "click",
+    "x": 960,
+    "y": 1031,
+    "name": "f3-safety-mainmenu-request",
+    "returnAt": "2026-09-12T16:12:05.136Z"
+  },
+  {
+    "at": "2026-09-12T16:13:39.518Z",
+    "action": "click",
+    "x": 1887,
+    "y": 1065,
+    "name": "f3-restore-graphics-open",
+    "returnAt": "2026-09-12T16:13:40.401Z"
+  },
+  {
+    "at": "2026-09-12T16:13:49.337Z",
+    "action": "click",
+    "x": 746,
+    "y": 117,
+    "name": "f3-restore-graphics-tab",
+    "returnAt": "2026-09-12T16:13:49.992Z"
+  },
+  {
+    "at": "2026-09-12T16:13:57.056Z",
+    "action": "click",
+    "x": 1206,
+    "y": 646,
+    "name": "f3-restore-dlss-dropdown",
+    "returnAt": "2026-09-12T16:13:57.856Z"
+  },
+  {
+    "at": "2026-09-12T16:14:04.925Z",
+    "action": "click",
+    "x": 1100,
+    "y": 735,
+    "name": "f3-restore-dlss-balanced",
+    "returnAt": "2026-09-12T16:14:05.731Z"
+  },
+  {
+    "at": "2026-09-12T16:14:11.863Z",
+    "action": "click",
+    "x": 1804,
+    "y": 965,
+    "name": "f3-restore-dlss-saved",
+    "returnAt": "2026-09-12T16:14:12.120Z"
+  },
+  {
+    "at": "2026-09-12T16:14:29.029Z",
+    "action": "click",
+    "x": 968,
+    "y": 640,
+    "name": "f3-restore-arena-route",
+    "returnAt": "2026-09-12T16:14:29.860Z"
+  },
+  {
+    "at": "2026-09-12T16:15:10.551Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "name": "f3-restore-arena-select",
+    "returnAt": "2026-09-12T16:15:11.360Z"
+  },
+  {
+    "at": "2026-09-12T16:15:18.409Z",
+    "action": "click",
+    "x": 960,
+    "y": 941,
+    "name": "f3-restore-map-menu",
+    "returnAt": "2026-09-12T16:15:19.332Z"
+  },
+  {
+    "at": "2026-09-12T16:15:30.712Z",
+    "action": "click",
+    "x": 714,
+    "y": 391,
+    "name": "f3-restore-factory",
+    "returnAt": "2026-09-12T16:15:31.552Z"
+  },
+  {
+    "at": "2026-09-12T16:15:40.458Z",
+    "action": "click",
+    "x": 235,
+    "y": 715,
+    "name": "f3-restore-whole-map",
+    "returnAt": "2026-09-12T16:15:41.304Z"
+  },
+  {
+    "at": "2026-09-12T16:15:53.226Z",
+    "action": "click",
+    "x": 232,
+    "y": 311,
+    "name": "f3-restore-gungame",
+    "returnAt": "2026-09-12T16:15:54.059Z"
+  },
+  {
+    "at": "2026-09-12T16:16:25.190Z",
+    "action": "click",
+    "x": 960,
+    "y": 1011,
+    "name": "f3-final-back-character",
+    "returnAt": "2026-09-12T16:16:26.055Z"
+  },
+  {
+    "at": "2026-09-12T16:16:36.746Z",
+    "action": "click",
+    "x": 960,
+    "y": 1011,
+    "name": "f3-final-mainmenu",
+    "returnAt": "2026-09-12T16:16:37.677Z"
+  },
+  {
+    "at": "2026-09-12T16:17:14.090Z",
+    "action": "click",
+    "x": 960,
+    "y": 1006,
+    "name": "f3-game-exit-request",
+    "returnAt": "2026-09-12T16:17:14.921Z"
+  },
+  {
+    "at": "2026-09-12T16:17:22.748Z",
+    "action": "key",
+    "key": "y",
+    "name": "f3-game-exit-confirm",
+    "returnAt": "2026-09-12T16:17:25.861Z"
+  }
+]

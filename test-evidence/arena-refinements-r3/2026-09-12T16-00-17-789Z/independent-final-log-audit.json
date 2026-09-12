@@ -1,0 +1,582 @@
+{
+  "schema": "arena-refinements-r3-independent-final-log-audit-v1",
+  "auditedAtUtc": "2026-09-12T16:26:00.6711614Z",
+  "source": {
+    "client": "logs/final-all-stopped/client.log",
+    "server": "logs/final-all-stopped/server.log",
+    "clientSha256": "6DE2CD82F30C7A0AB149CD744724EFEC7D7E2B022FA96F752DB07C715198816D",
+    "serverSha256": "54C7BB4CCC43258DE66C8BB92AD4178A39E563D8133C503C42A5197017959A95",
+    "byteIdenticalToFinalCanonicalClient": true,
+    "byteIdenticalToFinalCanonicalServer": true,
+    "numbering": "One-based LF-delimited source lines, excluding the terminal split-empty element. Seven older standalone CR characters before the F3 server window are not new lines, matching rg and the stop audit.",
+    "rawLogsArePrivate": true
+  },
+  "client": {
+    "baselineLine": 13371,
+    "firstAuditedLine": 13372,
+    "lastAuditedLine": 14228,
+    "lineCount": 857,
+    "timestampBasis": "MESZ UTC+02:00",
+    "lastLine": "[18:17:25.014] [Info   :FixPluginTypesSerialization] Restored original AssemblyNames list",
+    "errorCount": 1,
+    "errors": [
+      {
+        "line": 13754,
+        "text": "[18:09:25.212] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object"
+      }
+    ],
+    "exceptionHeaderCount": 1,
+    "warningCount": 39,
+    "warnings": [
+      {
+        "line": 13383,
+        "text": "[18:07:18.649] [Warning: Unity Log] WheelCollider requires an attached Rigidbody to function."
+      },
+      {
+        "line": 13384,
+        "text": "[18:07:18.651] [Warning: Unity Log] WheelCollider requires an attached Rigidbody to function."
+      },
+      {
+        "line": 13385,
+        "text": "[18:07:18.651] [Warning: Unity Log] WheelCollider requires an attached Rigidbody to function."
+      },
+      {
+        "line": 13386,
+        "text": "[18:07:18.651] [Warning: Unity Log] WheelCollider requires an attached Rigidbody to function."
+      },
+      {
+        "line": 13387,
+        "text": "[18:07:18.897] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13390,
+        "text": "[18:07:18.899] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13393,
+        "text": "[18:07:18.899] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13396,
+        "text": "[18:07:18.899] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13399,
+        "text": "[18:07:18.899] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13402,
+        "text": "[18:07:18.900] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13405,
+        "text": "[18:07:18.900] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13408,
+        "text": "[18:07:18.900] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13411,
+        "text": "[18:07:18.900] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13414,
+        "text": "[18:07:18.901] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13417,
+        "text": "[18:07:18.901] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13420,
+        "text": "[18:07:18.901] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13423,
+        "text": "[18:07:18.903] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13426,
+        "text": "[18:07:18.903] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13429,
+        "text": "[18:07:18.903] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13432,
+        "text": "[18:07:18.904] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13435,
+        "text": "[18:07:18.904] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13438,
+        "text": "[18:07:18.904] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13441,
+        "text": "[18:07:18.905] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13444,
+        "text": "[18:07:18.905] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13447,
+        "text": "[18:07:18.905] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13450,
+        "text": "[18:07:18.905] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13453,
+        "text": "[18:07:18.905] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13456,
+        "text": "[18:07:18.906] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13459,
+        "text": "[18:07:18.906] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13462,
+        "text": "[18:07:18.906] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13465,
+        "text": "[18:07:18.907] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13468,
+        "text": "[18:07:18.914] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13471,
+        "text": "[18:07:18.914] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13474,
+        "text": "[18:07:18.915] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13477,
+        "text": "[18:07:18.915] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13480,
+        "text": "[18:07:18.915] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13483,
+        "text": "[18:07:18.916] [Warning: Unity Log] BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13565,
+        "text": "[18:08:00.045] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'."
+      },
+      {
+        "line": 13920,
+        "text": "[18:11:28.571] [Warning:maschine-ArenaMode] Arena raid-end remains pending: {"
+      }
+    ]
+  },
+  "server": {
+    "windowStartUtc": "2026-09-12T16:00:17.789Z",
+    "firstAuditedLine": 8849,
+    "lastAuditedLine": 9207,
+    "lineCount": 359,
+    "timestampBasis": "UTC",
+    "lastLine": "[2026-09-12 16:18:33.276][Debug][SPTarkov.Server.Core.Servers.SaveServer] Saved 3 profiles, took: 23ms",
+    "errorCount": 0,
+    "errors": [],
+    "warningCount": 0,
+    "warnings": []
+  },
+  "sinceStopAudit": {
+    "previousAuditUtc": "2026-09-12T16:13:41.4011674Z",
+    "clientFirstLine": 13936,
+    "clientLastLine": 14228,
+    "clientErrorCount": 0,
+    "clientWarningCount": 0,
+    "serverFirstLine": 9156,
+    "serverLastLine": 9207,
+    "serverErrorCount": 0,
+    "serverWarningCount": 0
+  },
+  "startupMarkers": {
+    "scope": "Earlier startup of the same PID 10268, before F3 baseline; initialization evidence only.",
+    "events": [
+      {
+        "line": 4089,
+        "text": "[17:45:56.014] [Info   :maschine-ArenaMode] Arena DynamicMaps: trimmed-corpse marker cleanup ready (1.2.1)."
+      },
+      {
+        "line": 4951,
+        "text": "[17:45:57.207] ### Started from static void ArenaMode.Bots.ArenaPickupTeardownSafety::.cctor(), location C:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+      },
+      {
+        "line": 4968,
+        "text": "[17:45:57.268] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready."
+      },
+      {
+        "line": 4984,
+        "text": "[17:45:57.293] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 retired-action safeguard ready."
+      },
+      {
+        "line": 5000,
+        "text": "[17:45:57.310] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 personality filter ready (Rat, Timmy, Coward -> Normal)."
+      },
+      {
+        "line": 6107,
+        "text": "[17:45:58.830] [Info   :maschine-ArenaMode] Arena input blocker ready: panel close waits for released-pointer input delivery."
+      }
+    ]
+  },
+  "f3ActualInvocationCounts": {
+    "corpseTrim": 0,
+    "sainTeardown": 0,
+    "pendingPickupCancellation": 0
+  },
+  "f3ActualInvocations": {
+    "corpseTrimEvents": [],
+    "sainTeardownEvents": [],
+    "pendingPickupCancellationEvents": []
+  },
+  "excludedEarlierProcessInvocations": {
+    "corpseTrimEvents": [
+      {
+        "line": 13288,
+        "text": "[17:51:08.278] [Info   :maschine-ArenaMode] Arena corpse cleanup: trimmed 1 old corpse(s), 10 kept visible, 1 trimmed in total."
+      },
+      {
+        "line": 13304,
+        "text": "[17:51:18.350] [Info   :maschine-ArenaMode] Arena corpse cleanup: trimmed 2 old corpse(s), 10 kept visible, 3 trimmed in total."
+      },
+      {
+        "line": 13305,
+        "text": "[17:51:24.155] [Info   :maschine-ArenaMode] Arena corpse cleanup: trimmed 1 old corpse(s), 10 kept visible, 4 trimmed in total."
+      },
+      {
+        "line": 13313,
+        "text": "[17:51:29.223] [Info   :maschine-ArenaMode] Arena corpse cleanup: trimmed 2 old corpse(s), 10 kept visible, 6 trimmed in total."
+      }
+    ],
+    "sainTeardownEvents": [
+      {
+        "line": 13349,
+        "text": "[17:51:56.358] [Info   :maschine-ArenaMode] Arena SAIN teardown: uninitialized Arena component; coroutine cleanup retained."
+      }
+    ],
+    "pendingPickupCancellationEvents": [],
+    "scope": "Earlier r5 B in this process; excluded from every F3 acceptance count."
+  },
+  "warningCategories": {
+    "wheelColliderWithoutRigidbody": 4,
+    "boxColliderNegativeScale": 33,
+    "perfectCulling": 1,
+    "raidEndTemporarilyPending": 1
+  },
+  "errorBlocks": [
+    {
+      "startLine": 13754,
+      "endLine": 13780,
+      "originalNumberedLines": [
+        "13754: [18:09:25.212] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object",
+        "13755: [18:09:25.212] Stack trace:",
+        "13756: [18:09:25.212] (wrapper dynamic-method) BotWeaponSelector.DMD<BotWeaponSelector::OnWeaponTaken>(BotWeaponSelector,Comfort.Common.Result`1<EFT.IHandsController>)",
+        "13757: [18:09:25.212] BotWeaponSelector+CG_TryChangeToSlot.method_0 (Comfort.Common.Result`1[T] x) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13758: [18:09:25.212] EFT.Player.Call[T] (Comfort.Common.Result`1[T] result, Comfort.Common.Callback`1[T] callback) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13759: [18:09:25.212] EFT.Player+CG_TryProceed.method_0 (Comfort.Common.Result`1[T] result) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13760: [18:09:25.212] EFT.Player+Process`2[TController,TResult].Complete () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13761: [18:09:25.212] EFT.Player+Process`2+CG_CreateController[T,U].method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13762: [18:09:25.212] EFT.Player+CG_SpawnController.method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13763: [18:09:25.212] EFT.Player+FirearmController+CG_Spawn.method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13764: [18:09:25.212] (wrapper dynamic-method) EFT.Player+FirearmController+SpawnOperation.DMD<EFT.Player+FirearmController+SpawnOperation::WeaponAppeared>(EFT.Player/FirearmController/SpawnOperation)",
+        "13765: [18:09:25.212] EFT.Player+FirearmController.method_32 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13766: [18:09:25.212] (wrapper dynamic-method) EFT.Player+FirearmController.DMD<EFT.Player+FirearmController::IEventsConsumerOnWeapIn>(EFT.Player/FirearmController)",
+        "13767: [18:09:25.212] EFT.Player+AbstractHandsController.IEventsConsumer.OnWeapIn () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13768: [18:09:25.212] AnimationControllerEventsTable.FireWeapIn (System.Collections.Generic.List`1[T] eventsConsumers, AnimationEventSystem.AnimationEventParameter parameter) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13769: [18:09:25.212] AnimationControllerEventsTable.AnimatorEventHandler (System.Collections.Generic.List`1[T] eventsConsumers, System.Int32 functionNameHash, AnimationEventSystem.AnimationEventParameter parameter) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13770: [18:09:25.212] ObjectInHandsAnimator.AnimatorEventHandler (System.Int32 functionNameHash, AnimationEventSystem.AnimationEventParameter parameter) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13771: [18:09:25.212] AnimationEventSystem.AnimationEventsEmitter.SendEvent (System.String functionName, System.Int32 functionNameHash, AnimationEventSystem.AnimationEventParameter parameter, System.Int32 stateShortNameHash) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13772: [18:09:25.212] AnimationEventSystem.AnimationEventsEmitter.FireEventIfConditionsPassed (AnimationEventSystem.AnimationEvent event, IAnimator animator, AnimatorStateInfoWrapper& stateInfo, System.Single normalizedTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13773: [18:09:25.212] AnimationEventSystem.AnimationEventsEmitter.EmitEvents () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13774: [18:09:25.212] EFT.Player+ItemHandsController.EmitEvents () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13775: [18:09:25.212] EFT.Player.ArmsLateUpdate (System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13776: [18:09:25.212] EFT.Player.ComplexLateUpdate (EFT.EUpdateQueue queue, System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13777: [18:09:25.212] EFT.Player.LateUpdate () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "13778: [18:09:25.212] UnityEngine.DebugLogHandler:LogException(Exception, Object)",
+        "13779: [18:09:25.212] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)",
+        "13780: [18:09:25.212] UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)"
+      ]
+    }
+  ],
+  "exceptionChronology": {
+    "lastCompletedErrorFreeCheckUtc": "2026-09-12T16:09:08.557Z",
+    "lastErrorFreeCheckExclusiveBaseline": 13581,
+    "lastErrorFreeCheckToLine": 13719,
+    "exceptionUtc": "2026-09-12T16:09:25.212Z",
+    "firstDiscoveryCheckUtc": "2026-09-12T16:10:57.259Z",
+    "graphicsPauseInputUtc": "2026-09-12T16:09:37.448Z",
+    "dlssOffSelectionInputUtc": "2026-09-12T16:10:12.192Z",
+    "dlssOffSaveInputUtc": "2026-09-12T16:10:22.601Z",
+    "resumeInputUtc": "2026-09-12T16:10:32.251Z",
+    "resumeToolReturnUtc": "2026-09-12T16:10:33.643Z",
+    "confirmLeaveInputUtc": "2026-09-12T16:11:27.094Z",
+    "mainMenuIndexUtc": "2026-09-12T16:13:11.028Z",
+    "profileAfterCopyUtc": "2026-09-12T16:13:19.748Z"
+  },
+  "inputSequence": [
+    {
+      "at": "2026-09-12T16:09:06.455Z",
+      "action": "key",
+      "key": "a",
+      "name": "f3-step-left",
+      "returnAt": "2026-09-12T16:09:08.495Z"
+    },
+    {
+      "at": "2026-09-12T16:09:16.905Z",
+      "action": "key",
+      "key": "space",
+      "name": "f3-ground-jump-attempt",
+      "returnAt": "2026-09-12T16:09:18.208Z"
+    },
+    {
+      "at": "2026-09-12T16:09:37.448Z",
+      "action": "key",
+      "key": "Escape",
+      "name": "f3-graphics-pause",
+      "returnAt": "2026-09-12T16:09:39.088Z"
+    },
+    {
+      "at": "2026-09-12T16:09:45.849Z",
+      "action": "click",
+      "x": 1886,
+      "y": 1064,
+      "name": "f3-graphics-settings",
+      "returnAt": "2026-09-12T16:09:47.716Z"
+    },
+    {
+      "at": "2026-09-12T16:09:55.161Z",
+      "action": "click",
+      "x": 749,
+      "y": 116,
+      "name": "f3-graphics-dlss-baseline",
+      "returnAt": "2026-09-12T16:09:55.765Z"
+    },
+    {
+      "at": "2026-09-12T16:10:04.466Z",
+      "action": "click",
+      "x": 1207,
+      "y": 646,
+      "name": "f3-dlss-options",
+      "returnAt": "2026-09-12T16:10:05.085Z"
+    },
+    {
+      "at": "2026-09-12T16:10:12.192Z",
+      "action": "click",
+      "x": 1095,
+      "y": 674,
+      "name": "f3-dlss-off-selected",
+      "returnAt": "2026-09-12T16:10:14.258Z"
+    },
+    {
+      "at": "2026-09-12T16:10:22.601Z",
+      "action": "click",
+      "x": 1802,
+      "y": 965,
+      "name": "f3-dlss-off-saved",
+      "returnAt": "2026-09-12T16:10:25.083Z"
+    },
+    {
+      "at": "2026-09-12T16:10:32.251Z",
+      "action": "click",
+      "x": 966,
+      "y": 748,
+      "name": "f3-dlss-off-resume",
+      "returnAt": "2026-09-12T16:10:33.643Z"
+    },
+    {
+      "at": "2026-09-12T16:10:57.267Z",
+      "action": "key",
+      "key": "Escape",
+      "name": "f3-safety-exit-pause",
+      "returnAt": "2026-09-12T16:10:58.274Z"
+    },
+    {
+      "at": "2026-09-12T16:11:08Z",
+      "action": "click",
+      "x": 960,
+      "y": 640,
+      "name": "f3-safety-disconnect",
+      "returnAt": "2026-09-12T16:11:10.442Z"
+    },
+    {
+      "at": "2026-09-12T16:11:27.094Z",
+      "action": "click",
+      "x": 960,
+      "y": 970,
+      "name": "f3-safety-confirm-leave",
+      "returnAt": "2026-09-12T16:11:28.073Z"
+    }
+  ],
+  "clientLifecycle": [
+    {
+      "line": 13377,
+      "text": "[18:05:57.864] [Info   :maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-v1."
+    },
+    {
+      "line": 13380,
+      "text": "[18:06:08.778] [Info   :maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-teams-v1."
+    },
+    {
+      "line": 13526,
+      "text": "[18:07:58.060] [Info   :maschine-ArenaMode] Arena area preparing: physical enclosure created; waiting for verified navigation."
+    },
+    {
+      "line": 13527,
+      "text": "[18:07:58.063] [Info   :maschine-ArenaMode] Arena session active on bigmap."
+    },
+    {
+      "line": 13544,
+      "text": "[18:07:58.108] [Info   :maschine-ArenaMode] Arena match started (Team Deathmatch)."
+    },
+    {
+      "line": 13556,
+      "text": "[18:07:59.282] [Info   :maschine-ArenaMode] Arena area READY: customs-factory-center-teams-v1; connected player=17, bot=11; boundaries and paths verified, frozen 5v5."
+    },
+    {
+      "line": 13572,
+      "text": "[18:08:00.924] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Sovereign."
+    },
+    {
+      "line": 13925,
+      "text": "[18:11:28.575] [Info   :maschine-ArenaMode] Arena session ended."
+    },
+    {
+      "line": 13928,
+      "text": "[18:11:28.577] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 0 deaths, score 0, best streak 0, 3.4 min."
+    },
+    {
+      "line": 13947,
+      "text": "[18:15:30.840] [Info   :maschine-ArenaMode] Arena play area selected in map screen: full-map."
+    }
+  ],
+  "serverLifecycle": [
+    {
+      "line": 8935,
+      "text": "[2026-09-12 16:07:33.879][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Reserved profile boundary for session [private-id] before snapshot."
+    },
+    {
+      "line": 8936,
+      "text": "[2026-09-12 16:07:33.880][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot taken for session [private-id]."
+    },
+    {
+      "line": 8937,
+      "text": "[2026-09-12 16:07:33.881][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Completed protected PitFireTeam arm for session [private-id]: map=bigmap, mode=teamdeathmatch."
+    },
+    {
+      "line": 8974,
+      "text": "[2026-09-12 16:07:35.648][Information][ArenaMode.Server.PatchManager] [ArenaMode] Location clone mutated for arena (bigmap, mode=teamdeathmatch): botMax=24, spawn strategy=silent (the mode spawns its own squads), area=customs-factory-center-teams-v1, areaTeamSize=5, raid=60min, stripLoot=True."
+    },
+    {
+      "line": 8975,
+      "text": "[2026-09-12 16:07:35.650][Information][ArenaMode.Server.PatchManager] [ArenaMode] Arena hostility applied (USEC vs BEAR teams)."
+    },
+    {
+      "line": 8977,
+      "text": "[2026-09-12 16:07:35.994][Information][ArenaMode.Server.Services.ArenaProtectedRaidStartService] [ArenaMode] Protected native Arena start completed for session [private-id]; the exact SPT server id is bound for retry-safe end processing."
+    },
+    {
+      "line": 9071,
+      "text": "[2026-09-12 16:11:28.569][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+    },
+    {
+      "line": 9074,
+      "text": "[2026-09-12 16:11:28.869][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id]."
+    },
+    {
+      "line": 9077,
+      "text": "[2026-09-12 16:11:29.068][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+    }
+  ],
+  "screenshotMetadata": [
+    {
+      "name": "f3-dlss-balanced-teammate",
+      "indexAtUtc": "2026-09-12T16:09:29.272Z",
+      "files": [
+        {
+          "basename": "f3-dlss-balanced-teammate-2026-09-12T16-09-29-272Z-0.jpg",
+          "sha256": "7E13BCD67FA49132303C5D1C96D4D9075401C9111DEBEDDA5CD551D2DEF25737",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "basename": "f3-dlss-balanced-teammate-2026-09-12T16-09-29-272Z-1.jpg",
+          "sha256": "CAEBE791C1B0EDE06141E7812B5B3CB2D605B2FDC4D784FE845DBA11CCB252D2",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "name": "f3-dlss-off-resume",
+      "indexAtUtc": "2026-09-12T16:10:33.643Z",
+      "files": [
+        {
+          "basename": "f3-dlss-off-resume-2026-09-12T16-10-33-643Z-0.jpg",
+          "sha256": "1F0CFEC264240F95106480261EF1327D553A8B8A1D3B0761EFBF791F86892F1D",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "basename": "f3-dlss-off-resume-2026-09-12T16-10-33-643Z-1.jpg",
+          "sha256": "16F627FE4CE4B210677AEAC44361FF50EDAD9481BD8CB0623A29F564D32F7EBD",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "name": "f3-mainmenu-confirmed",
+      "indexAtUtc": "2026-09-12T16:13:11.028Z",
+      "files": [
+        {
+          "basename": "f3-mainmenu-confirmed-2026-09-12T16-13-11-028Z-0.jpg",
+          "sha256": "5B328B11780905D069C28ACC46D5BFE304B2344CF5F8F0581FCD6516D17564B6",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "name": "f3-final-mainmenu",
+      "indexAtUtc": "2026-09-12T16:16:37.677Z",
+      "files": [
+        {
+          "basename": "f3-final-mainmenu-2026-09-12T16-16-37-677Z-0.jpg",
+          "sha256": "F62C8D09E163D8608A2B225FE9A4E69C787CE743252D69615C491ECF4D4AE7B2",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    }
+  ],
+  "interpretation": [
+    "Exactly one new NullReferenceException in the complete F3 client scope, no subsequent client exception through normal shutdown, and no server error/exception in the F3 time window.",
+    "The first later log check discovered an exception that occurred earlier. No exception was reported by the completed 16:09:08.557 UTC check; discovery was 16:10:57.259 UTC.",
+    "The NRE is in BotWeaponSelector.OnWeaponTaken through native weapon/hands/animation callbacks while live. It is not a teardown stack. The responsible null object or patched mod is not proven by DMD wrapper names.",
+    "This NRE precedes opening the graphics menu by 12.236 seconds and the Resume input by 67.039 seconds. It cannot be caused by those later recorded inputs or that DLSS-Off change.",
+    "The later observed ammunition decrease after Resume is a separate whole-run stop. The logs do not prove its firing source or causality.",
+    "Startup markers prove initialization only. Four trims totaling six corpses and one actual SAIN teardown in earlier r5 B do not count toward F3. F3 has zero trim, zero actual SAIN teardown and zero pending-pickup cancellation messages.",
+    "No new errors or warnings after the initial stop audit through final process cleanup. Final server logfile ends at 16:18:33.276 UTC; its contents alone do not prove the separately recorded Ctrl+C time.",
+    "Screenshot index times are archived tool observations, not continuously observed state transition times. No screenshots were reinterpreted by this audit."
+  ],
+  "redaction": "Standalone 24-hex identifiers replaced with [private-id]. No profile content or credentials are included. Original assembly hashes in stack lines are retained."
+}

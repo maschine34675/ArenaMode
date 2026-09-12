@@ -1,0 +1,16 @@
+{
+  "observedAtUtc": "2026-09-12T16:25:34.277Z",
+  "purpose": "Read-only final confirmation of optional DynamicMaps compatibility; no additional gameplay",
+  "file": "BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+  "sha256": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+  "assemblyVersion": "1.2.1.0",
+  "productVersion": "1.2.1+99200c60f084d1f64491dee93ceb09351bb8a2cd",
+  "versionSource": "PowerShell Reflection.AssemblyName and FileVersionInfo read-only query",
+  "dlss": {
+    "nativeAvailable": true,
+    "initial": "Balanced",
+    "selectedDuringRaid": "Off",
+    "restored": "Balanced",
+    "quality": "not tested"
+  }
+}

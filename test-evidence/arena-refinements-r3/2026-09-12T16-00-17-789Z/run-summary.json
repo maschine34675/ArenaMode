@@ -1,0 +1,79 @@
+{
+  "testId": "arena-refinements-r3",
+  "at": "2026-09-12T16:20:03.409Z",
+  "sourceBuild": "f64df5be499d06d29cc4e6b717dd52ea0931725a",
+  "productVersion": "0.1.0+f64df5be499d06d29cc4e6b717dd52ea0931725a",
+  "branch": "fix/arena-panel-close-input",
+  "preflightHead": "cc75f002650277dcf5d2045dbcc9e366a9f76999",
+  "processes": {
+    "game": {
+      "pid": 10268,
+      "startUtc": "2026-09-12T15:45:36.5518531Z"
+    },
+    "server": {
+      "pid": 13660,
+      "startUtc": "2026-09-12T15:09:24.4621841Z"
+    },
+    "launcher": {
+      "pid": 4288,
+      "startUtc": "2026-09-12T15:09:58.8178116Z"
+    }
+  },
+  "budgetStart": "2026-09-12T16:00:32.639Z",
+  "deadline": "2026-09-12T16:20:32.639Z",
+  "stop": {
+    "at": "2026-09-12T16:10:56.968Z",
+    "reason": "Unexpected ammunition decrease after native Resume UI click following DLSS Off save",
+    "weapon": "AK-12",
+    "before": "30/30 +1",
+    "after": "29/30 +1",
+    "beforeEvidence": "f3-dlss-balanced-teammate",
+    "afterEvidence": "f3-dlss-off-resume",
+    "scope": "whole feature run; exact firing source not instrumented; native Resume last input; no deliberate firing input in F3"
+  },
+  "raids": [
+    {
+      "name": "TDM",
+      "beforeAt": "2026-09-12T16:06:41.618Z",
+      "readyAt": "2026-09-12T16:06:54.305Z",
+      "rules": {
+        "mode": "teamdeathmatch",
+        "map": "bigmap",
+        "timePhase": "morning",
+        "area": "customs-factory-center-teams-v1",
+        "playersPerTeam": 5,
+        "killLimit": 50,
+        "timeLimitSeconds": 600
+      },
+      "afterAt": "2026-09-12T16:13:19.748Z"
+    }
+  ],
+  "mainmenuConfirmed": "2026-09-12T16:13:11.028Z",
+  "graphicsRestored": true,
+  "arenaValuesRestored": 147,
+  "assetsUnchanged": 33,
+  "normalPmcRaid": "OPEN - safety stop",
+  "costCases": "SKIP - InfiniteStamina and NoFallDamage remained true",
+  "processCleanup": {
+    "allThreeAbsent": true,
+    "observedAt": "2026-09-12T16:20:29.5052041Z",
+    "game": "native Exit then Y",
+    "launcher": "native Alt+F4 after titlebar click failed without mutation",
+    "server": "own exec session Ctrl+C"
+  },
+  "wholeRunStatus": "FAIL - new exception and unexpected ammunition decrease; remaining features OPEN",
+  "r5ReportCompletionCommit": "0a49898ca7ba669b705f2a3d68e31412a782ae71",
+  "exceptionStop": {
+    "occurredAtUtc": "2026-09-12T16:09:25.212Z",
+    "discoveredAtUtcApprox": "2026-09-12T16:10:57Z",
+    "type": "NullReferenceException",
+    "entry": "BotWeaponSelector.OnWeaponTaken",
+    "clientLines": {
+      "first": 13754,
+      "last": 13780
+    },
+    "independentWholeRunStopReason": true,
+    "causalRelationToDlssOrAmmunition": "not established; exception precedes all DLSS menu actions"
+  },
+  "updatedAt": "2026-09-12T16:25:34.272Z"
+}

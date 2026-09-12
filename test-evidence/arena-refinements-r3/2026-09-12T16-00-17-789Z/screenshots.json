@@ -1,0 +1,418 @@
+[
+  {
+    "name": "f3-initial-arena-menu",
+    "at": "2026-09-12T16:00:32.637Z",
+    "file": "f3-initial-arena-menu.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "49C0E2572751A6306C564E0FFA55B1C6B0F54D8BC2B793D0A67A86AAF667A39B"
+  },
+  {
+    "name": "f3-tdm-selected",
+    "at": "2026-09-12T16:00:39.612Z",
+    "file": "f3-tdm-selected.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "C1234CA4A2615AF722240D3B98F90BFC57C4ECB115D75D66C4CDE4EA55FA48FB"
+  },
+  {
+    "name": "f3-tdm-map-availability",
+    "at": "2026-09-12T16:01:49.706Z",
+    "file": "f3-tdm-map-availability.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7BAABAE4F05DA2DD2CE0AD856E98E6826D8281FCC2CC26C3145618AD5F9FAC67"
+  },
+  {
+    "name": "f3-customs-selected",
+    "at": "2026-09-12T16:05:58.305Z",
+    "file": "f3-customs-selected.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "A767C32FB1BA7CBE04254F7D7B6377837100C65CB3521F4247612417A5BA0988"
+  },
+  {
+    "name": "f3-customs-team-contour",
+    "at": "2026-09-12T16:06:09.487Z",
+    "file": "f3-customs-team-contour.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5FAC3755C5C4748B17A8A8378AD6F4AE34A13E8A6DC428C38230105F657E82C3"
+  },
+  {
+    "name": "f3-customs-morning",
+    "at": "2026-09-12T16:06:25.547Z",
+    "file": "f3-customs-morning.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "0F54DBD36DB0A1534D006571416DB648F835384266AB8D645DE0F5791FB4BC7D"
+  },
+  {
+    "name": "f3-customs-next",
+    "at": "2026-09-12T16:06:33.579Z",
+    "file": "f3-customs-next.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "12C187F433450C0E77BC418CECF264D2F0999573D2D76E01171FAED1926EF602"
+  },
+  {
+    "name": "f3-tdm-ready",
+    "at": "2026-09-12T16:06:54.732Z",
+    "file": "f3-tdm-ready.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "891B5BC4A03CA9903B66E1B0379D80924792D2FC8C28442262FAE6FA2201F42E"
+  },
+  {
+    "name": "f3-tdm-loading-1",
+    "at": "2026-09-12T16:07:14.082Z",
+    "file": "f3-tdm-loading-1.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7A395F8D1A62AAE5ECD82ED3A88E5D4D88CAF2C6AE95426EAA7EEA2A38982941"
+  },
+  {
+    "name": "f3-tdm-loading-2",
+    "at": "2026-09-12T16:07:38.775Z",
+    "file": "f3-tdm-loading-2.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "1ECBCD114DCAAA415E76B7CD77359F47977FE381C16640CE3367B63541F13A77"
+  },
+  {
+    "name": "f3-tdm-first-live",
+    "at": "2026-09-12T16:08:03.269Z",
+    "file": "f3-tdm-first-live.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "26669C737EE10A50E60CBA5D59380CBFBAC2A394415020A4EBEAC3F51565E78C"
+  },
+  {
+    "name": "f3-tdm-inventory",
+    "at": "2026-09-12T16:08:12.468Z",
+    "file": "f3-tdm-inventory.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "F52D442326AC9E2B8FE9B44318976E3B26AFD9601760A1815C0D0EF4803E49DA"
+  },
+  {
+    "name": "f3-dynamicmaps-initial",
+    "at": "2026-09-12T16:08:20.490Z",
+    "file": "f3-dynamicmaps-initial.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "6C380480A11FFC4A40AAC0DDC4CB00BD3D8CB009A17BBC034E0D582995E62F18"
+  },
+  {
+    "name": "f3-tdm-map-close",
+    "at": "2026-09-12T16:08:30.963Z",
+    "file": "f3-tdm-map-close.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "811AB64815C894C7A7F0229AE4D04129DDF615128C9A53F48F15E425C7C40ACF"
+  },
+  {
+    "name": "f3-minimap-enabled",
+    "at": "2026-09-12T16:08:39.243Z",
+    "file": "f3-minimap-enabled.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "61A7D6648D8010A17C0B525FCC26D2728D3E5E616156B7A8575088E10145B004"
+  },
+  {
+    "name": "f3-step-forward",
+    "at": "2026-09-12T16:08:48.804Z",
+    "file": "f3-step-forward.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "481ABBF7314FE5D5D2BAD671327B9CD4EB172B9FB99F8587508D386DB0A8B9EB"
+  },
+  {
+    "name": "f3-step-left",
+    "at": "2026-09-12T16:09:08.495Z",
+    "file": "f3-step-left.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "67A7361D5099C1C911772F5B8BEF3C053F490EE7E05061012785B47F72208F1D"
+  },
+  {
+    "name": "f3-ground-jump-attempt",
+    "at": "2026-09-12T16:09:18.208Z",
+    "file": "f3-ground-jump-attempt.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "4FCF0E41458C8371F97D5D7CEA56AE9FE143D8589C860100DEC77DC36348663D"
+  },
+  {
+    "name": "f3-ground-jump-attempt-2",
+    "at": "2026-09-12T16:09:18.208Z",
+    "file": "f3-ground-jump-attempt-2.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "81D61E0D09CC5D760F67850B6447A0B2AD29D1C213EAB54E95A7087802CAEA03"
+  },
+  {
+    "name": "f3-dlss-balanced-teammate",
+    "at": "2026-09-12T16:09:29.272Z",
+    "file": "f3-dlss-balanced-teammate.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7E13BCD67FA49132303C5D1C96D4D9075401C9111DEBEDDA5CD551D2DEF25737"
+  },
+  {
+    "name": "f3-dlss-balanced-teammate-2",
+    "at": "2026-09-12T16:09:29.272Z",
+    "file": "f3-dlss-balanced-teammate-2.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "CAEBE791C1B0EDE06141E7812B5B3CB2D605B2FDC4D784FE845DBA11CCB252D2"
+  },
+  {
+    "name": "f3-graphics-pause",
+    "at": "2026-09-12T16:09:39.088Z",
+    "file": "f3-graphics-pause.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5524D3084E08B26124DC8D43CD88ED2934414BAE6960404496859B40CF7C87C3"
+  },
+  {
+    "name": "f3-graphics-settings",
+    "at": "2026-09-12T16:09:47.716Z",
+    "file": "f3-graphics-settings.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "FA08B997B27C73B7365A1832911204C7F24E7914D902BADB1826FE1F82E8371A"
+  },
+  {
+    "name": "f3-graphics-dlss-baseline",
+    "at": "2026-09-12T16:09:55.765Z",
+    "file": "f3-graphics-dlss-baseline.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "702A9690BD4824BEEA0E58DC98303BFE46ED5A100B61FB472585C2B7CEE9C2AE"
+  },
+  {
+    "name": "f3-dlss-options",
+    "at": "2026-09-12T16:10:05.085Z",
+    "file": "f3-dlss-options.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "6AE5E784F2E84B7C03A5087190DC07281BAD8C1A1A818A7036CB1DB9D7B2585C"
+  },
+  {
+    "name": "f3-dlss-off-selected",
+    "at": "2026-09-12T16:10:14.258Z",
+    "file": "f3-dlss-off-selected.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "F4D5F56353226F88855860CCB843136DBB8091E649854DC82464C22AA8802846"
+  },
+  {
+    "name": "f3-dlss-off-saved",
+    "at": "2026-09-12T16:10:25.083Z",
+    "file": "f3-dlss-off-saved.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "BE112EE17079D18028FEB1358858F1349D5B27D30697005FFB5D8E38E922AD9F"
+  },
+  {
+    "name": "f3-dlss-off-resume",
+    "at": "2026-09-12T16:10:33.643Z",
+    "file": "f3-dlss-off-resume.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "1F0CFEC264240F95106480261EF1327D553A8B8A1D3B0761EFBF791F86892F1D"
+  },
+  {
+    "name": "f3-dlss-off-resume-2",
+    "at": "2026-09-12T16:10:33.643Z",
+    "file": "f3-dlss-off-resume-2.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "16F627FE4CE4B210677AEAC44361FF50EDAD9481BD8CB0623A29F564D32F7EBD"
+  },
+  {
+    "name": "f3-safety-exit-pause",
+    "at": "2026-09-12T16:10:58.274Z",
+    "file": "f3-safety-exit-pause.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "BE9FED926BD22BFA2049366A5843CDE60EAAD2DA85F45581C8D624C01D09B5C3"
+  },
+  {
+    "name": "f3-safety-disconnect",
+    "at": "2026-09-12T16:11:10.443Z",
+    "file": "f3-safety-disconnect.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "2DAE2CC517D116D7A64146D58AD541FDC2713024097688A8C60055432F96F04A"
+  },
+  {
+    "name": "f3-safety-confirm-leave",
+    "at": "2026-09-12T16:11:28.073Z",
+    "file": "f3-safety-confirm-leave.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "EB594E9905A3D9BD4D9571981519D8B52F9CA7EF119697FA7305E9C7462C0A1C"
+  },
+  {
+    "name": "f3-safety-return-loading",
+    "at": "2026-09-12T16:11:52.807Z",
+    "file": "f3-safety-return-loading.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5E90DE79E403AFEFBF304B2F69394442A8CFE7B4AEBF8CC5B1373118EB62CF38"
+  },
+  {
+    "name": "f3-safety-mainmenu-request",
+    "at": "2026-09-12T16:12:05.136Z",
+    "file": "f3-safety-mainmenu-request.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "C6F7554A2D901A7EB8B915A219088DC4E3B7CC87625AF358F9A5851057BF5392"
+  },
+  {
+    "name": "f3-mainmenu-check",
+    "at": "2026-09-12T16:12:32.088Z",
+    "file": "f3-mainmenu-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "6ED0E378DB224AD1FEB053F32C67DAA047AB3AE4504B78372C532DBB2041788C"
+  },
+  {
+    "name": "f3-mainmenu-confirmed",
+    "at": "2026-09-12T16:13:11.028Z",
+    "file": "f3-mainmenu-confirmed.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5B328B11780905D069C28ACC46D5BFE304B2344CF5F8F0581FCD6516D17564B6"
+  },
+  {
+    "name": "f3-restore-graphics-open",
+    "at": "2026-09-12T16:13:40.401Z",
+    "file": "f3-restore-graphics-open.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "70D8C2E93933BE3FFFB7D58421DEE93105AF36F578011763F8B125A372635532"
+  },
+  {
+    "name": "f3-restore-graphics-tab",
+    "at": "2026-09-12T16:13:49.992Z",
+    "file": "f3-restore-graphics-tab.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "C065C319D537F7A6D0ABCF7C631E4A06E652A0B43722D339E7AB96C000B44476"
+  },
+  {
+    "name": "f3-restore-dlss-dropdown",
+    "at": "2026-09-12T16:13:57.856Z",
+    "file": "f3-restore-dlss-dropdown.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "689A12E49300BC9F495DEE99639EC5E41C0DAA3798D90DCC944B4529B4FABC5F"
+  },
+  {
+    "name": "f3-restore-dlss-balanced",
+    "at": "2026-09-12T16:14:05.731Z",
+    "file": "f3-restore-dlss-balanced.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "4EABD897ABB899A4860D133ED7BB6F35870FC4D32102D80BF567740F0CE8315F"
+  },
+  {
+    "name": "f3-restore-dlss-saved",
+    "at": "2026-09-12T16:14:12.120Z",
+    "file": "f3-restore-dlss-saved.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "6996F822CA4C9F8B618E059C5B64C3F616F174CDAED61D0B2CA63343EEE0FE0E"
+  },
+  {
+    "name": "f3-restore-graphics-complete",
+    "at": "2026-09-12T16:14:21.400Z",
+    "file": "f3-restore-graphics-complete.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "9B30E418C50E0B9DFB02A54F6ADC3BDBB8F6DC57205CA99CA8F59D59E61EF519"
+  },
+  {
+    "name": "f3-restore-arena-route",
+    "at": "2026-09-12T16:14:29.860Z",
+    "file": "f3-restore-arena-route.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "842640981F0D583BC153808CB23EA5DFA389C812DB8514A9B4C36A06AECFE54B"
+  },
+  {
+    "name": "f3-restore-arena-select",
+    "at": "2026-09-12T16:15:11.360Z",
+    "file": "f3-restore-arena-select.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "075456365B9CE88BC3BE9FED4893B0ECD4D11185F5929A4D5DF580842F664A4A"
+  },
+  {
+    "name": "f3-restore-map-menu",
+    "at": "2026-09-12T16:15:19.332Z",
+    "file": "f3-restore-map-menu.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "B3826233F10E1C698247DA8D61DACE7E0ED20337392344A1B7502FDAEF7AAFFC"
+  },
+  {
+    "name": "f3-restore-factory",
+    "at": "2026-09-12T16:15:31.552Z",
+    "file": "f3-restore-factory.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "B67519D227F3732B96AF70DC89F14DBD3CAA0EA2BACCCB56D6BC04A2F3440F4F"
+  },
+  {
+    "name": "f3-restore-whole-map",
+    "at": "2026-09-12T16:15:41.304Z",
+    "file": "f3-restore-whole-map.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "B03434FB2BD15111B8A31246B4A25368CF91508D766F516185CB2A768B9EDEEB"
+  },
+  {
+    "name": "f3-restore-gungame",
+    "at": "2026-09-12T16:15:54.059Z",
+    "file": "f3-restore-gungame.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "E3C11707C7D06C165F29BA977B0A6AF7A4BEF4A96946C9DAB0AAF17854271B10"
+  },
+  {
+    "name": "f3-final-back-character",
+    "at": "2026-09-12T16:16:26.055Z",
+    "file": "f3-final-back-character.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "41158A719EB5A4A4EB5D47C12624F53B56E9D66927DBDEAC5738E50F1D5C5085"
+  },
+  {
+    "name": "f3-final-mainmenu",
+    "at": "2026-09-12T16:16:37.677Z",
+    "file": "f3-final-mainmenu.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "F62C8D09E163D8608A2B225FE9A4E69C787CE743252D69615C491ECF4D4AE7B2"
+  },
+  {
+    "name": "f3-game-exit-request",
+    "at": "2026-09-12T16:17:14.921Z",
+    "file": "f3-game-exit-request.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7698CC2D7020D5EA8310FCC6A74EA10326F99E99F3C072BF80CE74A0E286576C"
+  },
+  {
+    "name": "f3-game-exit-confirm",
+    "at": "2026-09-12T16:17:25.861Z",
+    "file": "f3-game-exit-confirm.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "2FB5E4B21E0918CF9797D011677ABCE217F53519601AD186FA0416F89918A859"
+  }
+]

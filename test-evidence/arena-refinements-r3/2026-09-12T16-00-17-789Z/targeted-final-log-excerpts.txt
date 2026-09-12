@@ -1,0 +1,67 @@
+Arena refinements r3: final targeted log excerpts, original LF source line numbers.
+Client MESZ (UTC+02:00), server UTC. F3 scope client L13372-14228, server L8849-9207.
+Private 24-hex identifiers redacted. Raw logs are private. Initialization markers below precede F3 and do not prove an actual safeguard invocation.
+
+SAME-PROCESS STARTUP INITIALIZATION, BEFORE F3
+client L4089: [17:45:56.014] [Info   :maschine-ArenaMode] Arena DynamicMaps: trimmed-corpse marker cleanup ready (1.2.1).
+client L4951: [17:45:57.207] ### Started from static void ArenaMode.Bots.ArenaPickupTeardownSafety::.cctor(), location C:\SPT41\BepInEx\plugins\maschine-ArenaMode.Client.dll
+client L4968: [17:45:57.268] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready.
+client L4984: [17:45:57.293] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 retired-action safeguard ready.
+client L5000: [17:45:57.310] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 personality filter ready (Rat, Timmy, Coward -> Normal).
+client L6107: [17:45:58.830] [Info   :maschine-ArenaMode] Arena input blocker ready: panel close waits for released-pointer input delivery.
+
+COMPLETE F3 ERROR STACK
+13754: [18:09:25.212] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
+13755: [18:09:25.212] Stack trace:
+13756: [18:09:25.212] (wrapper dynamic-method) BotWeaponSelector.DMD<BotWeaponSelector::OnWeaponTaken>(BotWeaponSelector,Comfort.Common.Result`1<EFT.IHandsController>)
+13757: [18:09:25.212] BotWeaponSelector+CG_TryChangeToSlot.method_0 (Comfort.Common.Result`1[T] x) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13758: [18:09:25.212] EFT.Player.Call[T] (Comfort.Common.Result`1[T] result, Comfort.Common.Callback`1[T] callback) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13759: [18:09:25.212] EFT.Player+CG_TryProceed.method_0 (Comfort.Common.Result`1[T] result) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13760: [18:09:25.212] EFT.Player+Process`2[TController,TResult].Complete () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13761: [18:09:25.212] EFT.Player+Process`2+CG_CreateController[T,U].method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13762: [18:09:25.212] EFT.Player+CG_SpawnController.method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13763: [18:09:25.212] EFT.Player+FirearmController+CG_Spawn.method_0 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13764: [18:09:25.212] (wrapper dynamic-method) EFT.Player+FirearmController+SpawnOperation.DMD<EFT.Player+FirearmController+SpawnOperation::WeaponAppeared>(EFT.Player/FirearmController/SpawnOperation)
+13765: [18:09:25.212] EFT.Player+FirearmController.method_32 () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13766: [18:09:25.212] (wrapper dynamic-method) EFT.Player+FirearmController.DMD<EFT.Player+FirearmController::IEventsConsumerOnWeapIn>(EFT.Player/FirearmController)
+13767: [18:09:25.212] EFT.Player+AbstractHandsController.IEventsConsumer.OnWeapIn () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13768: [18:09:25.212] AnimationControllerEventsTable.FireWeapIn (System.Collections.Generic.List`1[T] eventsConsumers, AnimationEventSystem.AnimationEventParameter parameter) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13769: [18:09:25.212] AnimationControllerEventsTable.AnimatorEventHandler (System.Collections.Generic.List`1[T] eventsConsumers, System.Int32 functionNameHash, AnimationEventSystem.AnimationEventParameter parameter) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13770: [18:09:25.212] ObjectInHandsAnimator.AnimatorEventHandler (System.Int32 functionNameHash, AnimationEventSystem.AnimationEventParameter parameter) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13771: [18:09:25.212] AnimationEventSystem.AnimationEventsEmitter.SendEvent (System.String functionName, System.Int32 functionNameHash, AnimationEventSystem.AnimationEventParameter parameter, System.Int32 stateShortNameHash) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13772: [18:09:25.212] AnimationEventSystem.AnimationEventsEmitter.FireEventIfConditionsPassed (AnimationEventSystem.AnimationEvent event, IAnimator animator, AnimatorStateInfoWrapper& stateInfo, System.Single normalizedTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13773: [18:09:25.212] AnimationEventSystem.AnimationEventsEmitter.EmitEvents () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13774: [18:09:25.212] EFT.Player+ItemHandsController.EmitEvents () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13775: [18:09:25.212] EFT.Player.ArmsLateUpdate (System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13776: [18:09:25.212] EFT.Player.ComplexLateUpdate (EFT.EUpdateQueue queue, System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13777: [18:09:25.212] EFT.Player.LateUpdate () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+13778: [18:09:25.212] UnityEngine.DebugLogHandler:LogException(Exception, Object)
+13779: [18:09:25.212] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)
+13780: [18:09:25.212] UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)
+
+F3 LIFECYCLE
+client L13377: [18:05:57.864] [Info   :maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-v1.
+client L13380: [18:06:08.778] [Info   :maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-teams-v1.
+client L13526: [18:07:58.060] [Info   :maschine-ArenaMode] Arena area preparing: physical enclosure created; waiting for verified navigation.
+client L13527: [18:07:58.063] [Info   :maschine-ArenaMode] Arena session active on bigmap.
+client L13544: [18:07:58.108] [Info   :maschine-ArenaMode] Arena match started (Team Deathmatch).
+client L13556: [18:07:59.282] [Info   :maschine-ArenaMode] Arena area READY: customs-factory-center-teams-v1; connected player=17, bot=11; boundaries and paths verified, frozen 5v5.
+client L13572: [18:08:00.924] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Sovereign.
+client L13925: [18:11:28.575] [Info   :maschine-ArenaMode] Arena session ended.
+client L13928: [18:11:28.577] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 0 deaths, score 0, best streak 0, 3.4 min.
+client L13947: [18:15:30.840] [Info   :maschine-ArenaMode] Arena play area selected in map screen: full-map.
+server L8935: [2026-09-12 16:07:33.879][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Reserved profile boundary for session [private-id] before snapshot.
+server L8936: [2026-09-12 16:07:33.880][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot taken for session [private-id].
+server L8937: [2026-09-12 16:07:33.881][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Completed protected PitFireTeam arm for session [private-id]: map=bigmap, mode=teamdeathmatch.
+server L8974: [2026-09-12 16:07:35.648][Information][ArenaMode.Server.PatchManager] [ArenaMode] Location clone mutated for arena (bigmap, mode=teamdeathmatch): botMax=24, spawn strategy=silent (the mode spawns its own squads), area=customs-factory-center-teams-v1, areaTeamSize=5, raid=60min, stripLoot=True.
+server L8975: [2026-09-12 16:07:35.650][Information][ArenaMode.Server.PatchManager] [ArenaMode] Arena hostility applied (USEC vs BEAR teams).
+server L8977: [2026-09-12 16:07:35.994][Information][ArenaMode.Server.Services.ArenaProtectedRaidStartService] [ArenaMode] Protected native Arena start completed for session [private-id]; the exact SPT server id is bound for retry-safe end processing.
+server L9071: [2026-09-12 16:11:28.569][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+server L9074: [2026-09-12 16:11:28.869][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id].
+server L9077: [2026-09-12 16:11:29.068][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted.
+
+FINAL LOG LINES
+client L14228: [18:17:25.014] [Info   :FixPluginTypesSerialization] Restored original AssemblyNames list
+server L9207: [2026-09-12 16:18:33.276][Debug][SPTarkov.Server.Core.Servers.SaveServer] Saved 3 profiles, took: 23ms
+
+Counts: F3 NRE=1; client warnings=39; server errors=0; server warnings=0; corpse trim=0; actual SAIN teardown=0; actual pending pickup cancellation=0.

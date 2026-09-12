@@ -1,0 +1,86 @@
+{
+  "pmc": {
+    "Inventory": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Experience": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Level": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Quests": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "TaskConditionCounters": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "RepeatableQuests": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Skills": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Health": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    }
+  },
+  "scav": {
+    "Inventory": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Experience": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Level": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Quests": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "TaskConditionCounters": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "RepeatableQuests": {
+      "equal": true,
+      "beforePresent": false,
+      "afterPresent": false
+    },
+    "Skills": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    },
+    "Health": {
+      "equal": true,
+      "beforePresent": true,
+      "afterPresent": true
+    }
+  }
+}
