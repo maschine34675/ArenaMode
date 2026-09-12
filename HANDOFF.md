@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r3 build identities refreshed after parallel work finished (2026-09-12):**
+  the user confirmed completion; a fresh installed-file check supersedes the
+  original r3 delivery hashes in the historical entry below. No build or DLL
+  delivery was performed for this refresh. Client SHA256:
+  `4F33B337108987C5471E42FDD706F57D61421CB05D9AAD25186A592366130473`.
+  Server SHA256: `294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7`.
+  Both DLLs embed `f887090f5b04569a6f35fd19bf8a3ac63c25e0e2`; checkout at the
+  comparison was `939d56454e7479a7d49f2ac9a03f475c02d59a29`. Client/Shared sources
+  remain unchanged since preview implementation `3010346`. The installed server
+  matches the current Debug artifact, not the separate Release artifact; do not
+  substitute a Release hash for the actual installed file. The later server
+  commit changes the weapon ladder draw, with builds predating that commit.
+  Independent read-only review matched the installed server's CodeView identity
+  to its portable PDB and its LadderPicker document hash to current `939d564`
+  source: the last production change is included despite the older embedded id.
+  `GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r3.md` now binds these actual identities;
+  test ID and scope remain unchanged. Restart both processes and verify GPU-side
+  hashes before testing. This is a local file check, not GPU/runtime acceptance.
+
 - **GPU Deathmatch r2 triaged; preview lifecycle client r3 delivered (2026-09-12):**
   report `c5c8945` confirms bounded native menu behavior and the same visible
   Arena equipment on map/offline/confirmation. All 18 original screenshot hashes

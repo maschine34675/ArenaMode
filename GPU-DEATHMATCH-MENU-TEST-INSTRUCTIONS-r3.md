@@ -8,15 +8,25 @@ Installation: C:\SPT41. Keine Produktionsänderungen während des Tests.
 
 - Build-ID: **deathmatch-menu-preview-r3**
 - Branch: `feature/deathmatch-menu-preview`
-- Implementierungscommit: `3010346e23f802ae40d58669d12b4327fa86b1fe`
-- Client SHA256: `804EB3ED5362F5D269E5C5B8080CDD3941BCA8C6E6F66435EECAB49294454C2B`
-- Server-Implementierungscommit: `6f40314bd70f861c1cd1ffd3d2db5bddc1354ccc`
-- Server SHA256: `47C21F048E097FA0DDBFA7A142BB8DD3C1259F835D10B1C2BB13B387AEDA463F`
+- Client-Implementierungscommit: `3010346e23f802ae40d58669d12b4327fa86b1fe`
+- Client SHA256: `4F33B337108987C5471E42FDD706F57D61421CB05D9AAD25186A592366130473`
+- Server-Implementierungscommit / Quellstand beim Abgleich: `939d56454e7479a7d49f2ac9a03f475c02d59a29`
+- Eingebettete Buildrevision beider DLLs: `f887090f5b04569a6f35fd19bf8a3ac63c25e0e2`
+- Server SHA256: `294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7`
 
-Diese Vorschaukorrektur erneuert nur die Client-DLL. Parallel wurde der Server
-für den Waffenfilter aus `5c08a55` samt Reviewkorrektur `6f40314` aktualisiert;
-r3 bindet deshalb dessen neuen Release-Hash. Für diesen kombinierten Teststand Spiel und Server nach
-der Synchronisierung neu starten; tatsächliche PIDs/Startzeiten festhalten. Vor Start,
+Nach Abschluss der parallelen Arbeiten wurden beide installierten DLLs erneut
+abgeglichen. Client und Shared-Quellen sind seit der Vorschaukorrektur unverändert;
+der Server wurde für den Waffenfilter weiterbearbeitet. Installiert ist aktuell
+der Debug-Serverbuild, nicht die anders gehashte Release-Datei. Die DLLs wurden
+vor dem letzten Quellcommit gebaut, daher unterscheiden sich eingebettete
+Buildrevision und Repository-HEAD. Die zur Server-DLL passenden Debugsymbole
+bestätigen den aktuellen LadderPicker-Quellstand aus `939d564` im Build.
+Für diesen Test gelten die obigen tatsächlichen
+DLL-Hashes; keine Umstellung auf einen anderen Build und kein Neubau nur wegen
+dieses Unterschieds. Build-ID r3 und Testumfang bleiben unverändert.
+
+Für diesen kombinierten Teststand Spiel und Server nach der Synchronisierung
+neu starten; tatsächliche PIDs/Startzeiten festhalten. Vor Start,
 vor jedem Raid und am Ende beide DLLs hashen. Bei Abweichung nicht testen und
 keine alten Ergebnisse auf diese DLL übertragen. Git-HEAD, Prozessstartzeit/PID,
 Auflösung und tatsächliche Hashes gehören in den Bericht. Keine DLLs, Profile,
