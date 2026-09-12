@@ -1,0 +1,224 @@
+{
+  "testId": "respawn-stage0-r1",
+  "phase": "fresh startup",
+  "capturedAtUtc": "2026-09-12T19:28:45.1997988Z",
+  "gamePid": 8508,
+  "gameStartUtc": "2026-09-12T19:26:10.139Z",
+  "serverPid": 12364,
+  "serverStartUtc": "2026-09-12T19:22:16.11Z",
+  "client": {
+    "lastLine": "[21:27:48.658] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /singleplayer/pitfireteam/teammates",
+    "fromLine": 1,
+    "warningCount": 9,
+    "errorCount": 0,
+    "warnings": [
+      {
+        "line": 14,
+        "localTime": "21:26:31.078",
+        "severity": "Warning",
+        "module": "FixPluginTypesSerialization",
+        "text": "Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+      },
+      {
+        "line": 15,
+        "localTime": "21:26:31.078",
+        "severity": "Warning",
+        "module": "FixPluginTypesSerialization",
+        "text": "Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+      },
+      {
+        "line": 16,
+        "localTime": "21:26:31.078",
+        "severity": "Warning",
+        "module": "FixPluginTypesSerialization",
+        "text": "Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+      },
+      {
+        "line": 17,
+        "localTime": "21:26:31.078",
+        "severity": "Warning",
+        "module": "FixPluginTypesSerialization",
+        "text": "Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+      },
+      {
+        "line": 18,
+        "localTime": "21:26:31.078",
+        "severity": "Warning",
+        "module": "FixPluginTypesSerialization",
+        "text": "Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+      },
+      {
+        "line": 3841,
+        "localTime": "21:26:41.093",
+        "severity": "Warning",
+        "module": "HarmonyX",
+        "text": "BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner)."
+      },
+      {
+        "line": 7851,
+        "localTime": "21:26:51.462",
+        "severity": "Warning",
+        "module": "HarmonyX",
+        "text": "DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update()."
+      },
+      {
+        "line": 9067,
+        "localTime": "21:26:53.955",
+        "severity": "Warning",
+        "module": "HarmonyX",
+        "text": "WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor()."
+      },
+      {
+        "line": 12338,
+        "localTime": "21:26:58.429",
+        "severity": "Warning",
+        "module": "HarmonyX",
+        "text": "com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition)."
+      }
+    ],
+    "rawSha256": "E449EB009D4E4FB8D7BFA85EF2BDD92A0D288F545277316CF04D7D0E26309318",
+    "moduleCounts": [
+      {
+        "module": "Redeploy.Core",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "module": "maschine-Redeploy",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "module": "maschine-ArenaMode",
+        "errors": 0,
+        "warnings": 0
+      }
+    ],
+    "firstLine": "[21:26:31.078] [Info   :  LogTools] Log file timestamps active — every line below is LOCAL time (UTC+02:00). Session start: 2026-09-12 21:26:31 local = 2026-09-12 19:26:31 UTC (SPT's server and launcher logs and EFT's own logs are UTC).",
+    "errors": [],
+    "throughLine": 13073
+  },
+  "server": {
+    "fromLine": 20786,
+    "warningCount": 1,
+    "warnings": [
+      {
+        "line": 21269,
+        "utcTime": "2026-09-12 19:22:28.123",
+        "severity": "Warning",
+        "module": "SPTarkov.Server.Core.Helpers.Traders.TraderHelper",
+        "text": "Händler: [PRIVATE_ID] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+      }
+    ],
+    "errorCount": 0,
+    "errors": [],
+    "throughLine": 21421,
+    "rawSha256": "5B104F7061214CD265AC6FC8627B746E6A6CCFD4CBE5483D6B8C3BAF5B9B5535"
+  },
+  "requiredMarkers": [
+    {
+      "marker": "Redeploy.Core 0.9.0.0 initialized",
+      "count": 1,
+      "occurrences": [
+        {
+          "line": 3991,
+          "localTime": "21:26:41.454",
+          "severity": "Info",
+          "module": "Redeploy.Core",
+          "text": "Redeploy.Core 0.9.0.0 initialized"
+        }
+      ]
+    },
+    {
+      "marker": "Death-interception driver registered: ArenaMode (priority 100)",
+      "count": 1,
+      "occurrences": [
+        {
+          "line": 4545,
+          "localTime": "21:26:42.759",
+          "severity": "Info",
+          "module": "Redeploy.Core",
+          "text": "Death-interception driver registered: ArenaMode (priority 100)"
+        }
+      ]
+    },
+    {
+      "marker": "Death-interception driver registered: Redeploy (priority 0)",
+      "count": 1,
+      "occurrences": [
+        {
+          "line": 7110,
+          "localTime": "21:26:48.170",
+          "severity": "Info",
+          "module": "Redeploy.Core",
+          "text": "Death-interception driver registered: Redeploy (priority 0)"
+        }
+      ]
+    }
+  ],
+  "forbiddenMarkers": [
+    {
+      "marker": "Death interception is incomplete",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "could not be installed",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "Raid-start patch could not be installed",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "Raid-end patch could not be installed",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "Respawn refused before any teardown",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "subscriber .* failed",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "GameEnd faulted before its first await",
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "marker": "Freecam compatibility patches could not be enabled",
+      "count": 0,
+      "occurrences": []
+    }
+  ],
+  "exceptionCandidates": [
+    {
+      "line": 5232,
+      "text": "[21:26:43.842] * static Exception ArenaMode.Areas.ArenaAreaLoadPatch::FinalizeLoad(Exception __exception, ArenaMode.Areas.ArenaAreaRuntime+LoadingLease __state)"
+    },
+    {
+      "line": 12884,
+      "text": "[21:27:00.926] [Debug  :ModulePatch] output Nlog: Info : Assert.raiseExceptions:'True'"
+    }
+  ],
+  "note": "This startup-only snapshot does not certify raid behavior. Harmony printed finalizer signatures containing Exception are not runtime exceptions. Two earlier launcher working-directory failures are separate Windows startup preparation events, outside this fresh game runtime log.",
+  "exceptionMentionReview": [
+    {
+      "line": 5232,
+      "runtimeException": false,
+      "reason": "Printed Harmony method return type/signature for FinalizeLoad, not an executed exception."
+    },
+    {
+      "line": 12884,
+      "runtimeException": false,
+      "reason": "Debug configuration output Assert.raiseExceptions True, not an executed exception."
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "testId": "respawn-stage0-r1",
+  "note": "Unchanged original SKY screenshots; archive timestamps are not exact render-frame timestamps. First returned surface selected when capture returned two game surfaces. Launcher/profile identifiers and incidental desktop capture are excluded.",
+  "images": [
+    {
+      "name": "s0-redeploy-default-respawn-count",
+      "archivedAtUtc": "2026-09-12T19:28:44.598Z",
+      "file": "originals/s0-redeploy-default-respawn-count-2026-09-12T19-28-44-598Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "3A5E52E2709FF9629C715E8B80128E7DE6225D61FCFA9EDCB76D87FC8660CCCC"
+    },
+    {
+      "name": "s0-A-pistol-equipped",
+      "archivedAtUtc": "2026-09-12T19:30:50.670Z",
+      "file": "originals/s0-A-pistol-equipped-2026-09-12T19-30-50-670Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "7B3B83121EA496CCB0E2F6123864CF67765144638BDD746A112D778BB5F356E5"
+    },
+    {
+      "name": "s0-A-insurance-next",
+      "archivedAtUtc": "2026-09-12T19:34:57.631Z",
+      "file": "originals/s0-A-insurance-next-2026-09-12T19-34-57-631Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "3BD7503047D45D53367C4D3C1886CDFCABAB780E1191DA6AE6B855E62312063E"
+    },
+    {
+      "name": "s0-A-loading-2",
+      "archivedAtUtc": "2026-09-12T19:36:22.518Z",
+      "file": "originals/s0-A-loading-2-2026-09-12T19-36-22-518Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "F3893F2401132830C7601CE827FFD0D23E64103E11C5C302F23C1A581BAC4FEF"
+    },
+    {
+      "name": "s0-A-alert-shot-1",
+      "archivedAtUtc": "2026-09-12T19:36:36.909Z",
+      "file": "originals/s0-A-alert-shot-1-2026-09-12T19-36-36-909Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "398105FD9CCB8712D198B4ABECFA28A3D636E38D6AD2D46CACD99370C3E520D7"
+    },
+    {
+      "name": "s0-A-alert-shot-toward-door",
+      "archivedAtUtc": "2026-09-12T19:37:01.017Z",
+      "file": "originals/s0-A-alert-shot-toward-door-2026-09-12T19-37-01-017Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "08281CF209A960444E3F8457A93CDD404F928FDF6FA3B8E5F5DE59836F993242"
+    },
+    {
+      "name": "s0-A-step-right-2",
+      "archivedAtUtc": "2026-09-12T19:37:11.225Z",
+      "file": "originals/s0-A-step-right-2-2026-09-12T19-37-11-225Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "DB880AE059B43806E97955AE36CDAFD0976F7A74880142FBD7F80796C3493664"
+    },
+    {
+      "name": "s0-A-respawn-near-corpse",
+      "archivedAtUtc": "2026-09-12T19:37:20.781Z",
+      "file": "originals/s0-A-respawn-near-corpse-2026-09-12T19-37-20-781Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "031ECEBA6D0A876089C3AD78D3B323418D679B42F2B8B1D45DABA8E557586F2C"
+    },
+    {
+      "name": "s0-A-respawn-observe",
+      "archivedAtUtc": "2026-09-12T19:37:28.682Z",
+      "file": "originals/s0-A-respawn-observe-2026-09-12T19-37-28-682Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "23D9868F04683BE693F092638248EBEDE83BFCFCDBD300CF70B0C252851E59F5"
+    },
+    {
+      "name": "s0-A-replacement-jump",
+      "archivedAtUtc": "2026-09-12T19:37:39.969Z",
+      "file": "originals/s0-A-replacement-jump-2026-09-12T19-37-39-969Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "3ED05D03EA8DBBDA2574A4599907A39852424F278981E48A7E4F808C627DD138"
+    },
+    {
+      "name": "s0-A-post-death-transition",
+      "archivedAtUtc": "2026-09-12T19:38:11.801Z",
+      "file": "originals/s0-A-post-death-transition-2026-09-12T19-38-11-801Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "F2F53BB7AD79A23E4B945B1AC8D440D7EA1558E211638A62CFAA9FD6088C5FF4"
+    },
+    {
+      "name": "s0-A-cleanup-menu-arrival",
+      "archivedAtUtc": "2026-09-12T19:39:30.929Z",
+      "file": "originals/s0-A-cleanup-menu-arrival-2026-09-12T19-39-30-929Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "153735B13DF646875DBFCF472B2A7F070673BDDAB4AE6369369DACCBE0CB236E"
+    },
+    {
+      "name": "s0-A-cleanup-stash-open",
+      "archivedAtUtc": "2026-09-12T19:39:44.995Z",
+      "file": "originals/s0-A-cleanup-stash-open-2026-09-12T19-39-44-995Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "80CAF8AB48ABD799F9EA1F4EF16B90339875B43A3C2F00387DD852C136F824AA"
+    },
+    {
+      "name": "s0-cleanup-settings-restored",
+      "archivedAtUtc": "2026-09-12T19:40:39.014Z",
+      "file": "originals/s0-cleanup-settings-restored-2026-09-12T19-40-39-014Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "E555AF31396AB4E9E2589CB9F2E7A7919326E291297859A91C3A65E6052D56B3"
+    },
+    {
+      "name": "s0-cleanup-final-main-menu",
+      "archivedAtUtc": "2026-09-12T19:41:32.334Z",
+      "file": "originals/s0-cleanup-final-main-menu-2026-09-12T19-41-32-334Z-0.jpg",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "D1A47BFFC8F18C9292E5D3BFE9FE2E07B60FFA63604381FB50E9E321655DDD22"
+    }
+  ]
+}

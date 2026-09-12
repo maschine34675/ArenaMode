@@ -1,0 +1,26 @@
+{
+  "game": {
+    "pid": 8508,
+    "startUtc": "2026-09-12T19:26:10.1387498Z"
+  },
+  "launcher": {
+    "pid": 14260,
+    "startUtc": "2026-09-12T19:23:30.7547633Z"
+  },
+  "server": {
+    "pid": 12364,
+    "startUtc": "2026-09-12T19:22:16.1102827Z",
+    "ownedExecSession": 65293
+  },
+  "finalObservation": {
+    "atUtc": "2026-09-12T19:44:20.870Z",
+    "gameResponding": true,
+    "serverResponding": true,
+    "launcherResponding": true,
+    "gameUi": "Main menu after normal KIA return; stash opened successfully",
+    "gitHead": "508abbb622de3a0c8d04060ef8ba35c37d8ecb1d",
+    "gitBranch": "fix/offline-harness-contracts",
+    "gitHeadAtPreflight": "984d8fbb6d6ff44dc40b1a9d4d7c16a7a54f984f",
+    "note": "Other development commits advanced checkout during the run; all bound deployed DLL hashes remained unchanged."
+  }
+}

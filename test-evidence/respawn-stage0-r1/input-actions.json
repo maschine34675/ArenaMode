@@ -1,0 +1,268 @@
+[
+  {
+    "at": "2026-09-12T19:28:10.189Z",
+    "action": "key",
+    "name": "s0-f12-redeploy-settings",
+    "key": "F12",
+    "inputResolvedAt": "2026-09-12T19:28:10.240Z"
+  },
+  {
+    "at": "2026-09-12T19:28:25.937Z",
+    "action": "click",
+    "name": "s0-redeploy-search-focus",
+    "x": 884,
+    "y": 118,
+    "inputResolvedAt": "2026-09-12T19:28:26.019Z"
+  },
+  {
+    "at": "2026-09-12T19:28:35.582Z",
+    "action": "type",
+    "name": "s0-redeploy-search",
+    "text": "Redeploy",
+    "inputResolvedAt": "2026-09-12T19:28:35.640Z"
+  },
+  {
+    "at": "2026-09-12T19:28:43.775Z",
+    "action": "click",
+    "name": "s0-redeploy-default-respawn-count",
+    "x": 1227,
+    "y": 234,
+    "inputResolvedAt": "2026-09-12T19:28:43.863Z"
+  },
+  {
+    "at": "2026-09-12T19:28:51.463Z",
+    "action": "key",
+    "name": "s0-f12-close-before-A",
+    "key": "F12",
+    "inputResolvedAt": "2026-09-12T19:28:51.506Z"
+  },
+  {
+    "at": "2026-09-12T19:29:00.399Z",
+    "action": "click",
+    "name": "s0-mod-settings-close",
+    "x": 1243,
+    "y": 84,
+    "inputResolvedAt": "2026-09-12T19:29:00.486Z"
+  },
+  {
+    "at": "2026-09-12T19:29:22.806Z",
+    "action": "click",
+    "name": "s0-A-open-raid-menu",
+    "x": 966,
+    "y": 643,
+    "inputResolvedAt": "2026-09-12T19:29:22.895Z"
+  },
+  {
+    "at": "2026-09-12T19:29:39.637Z",
+    "action": "click",
+    "name": "s0-A-character-equipment",
+    "x": 1000,
+    "y": 1065,
+    "inputResolvedAt": "2026-09-12T19:29:39.706Z"
+  },
+  {
+    "at": "2026-09-12T19:30:18.796Z",
+    "action": "drag",
+    "name": "s0-A-equip-existing-pistol",
+    "from_x": 1518,
+    "from_y": 235,
+    "to_x": 493,
+    "to_y": 549,
+    "inputResolvedAt": "2026-09-12T19:30:18.894Z"
+  },
+  {
+    "at": "2026-09-12T19:30:41.198Z",
+    "action": "click",
+    "mouse_button": "right",
+    "name": "s0-pistol-context",
+    "x": 1518,
+    "y": 235,
+    "inputResolvedAt": "2026-09-12T19:30:41.300Z"
+  },
+  {
+    "at": "2026-09-12T19:30:49.770Z",
+    "action": "click",
+    "name": "s0-A-pistol-equipped",
+    "x": 1584,
+    "y": 308,
+    "inputResolvedAt": "2026-09-12T19:30:49.862Z"
+  },
+  {
+    "at": "2026-09-12T19:30:58.083Z",
+    "action": "click",
+    "name": "s0-A-equipment-done",
+    "x": 1796,
+    "y": 23,
+    "inputResolvedAt": "2026-09-12T19:30:58.176Z"
+  },
+  {
+    "at": "2026-09-12T19:31:05.398Z",
+    "action": "click",
+    "name": "s0-A-pmc-next",
+    "x": 964,
+    "y": 943,
+    "inputResolvedAt": "2026-09-12T19:31:05.487Z"
+  },
+  {
+    "at": "2026-09-12T19:31:17.127Z",
+    "action": "click",
+    "name": "s0-A-factory-selected",
+    "x": 708,
+    "y": 392,
+    "inputResolvedAt": "2026-09-12T19:31:17.208Z"
+  },
+  {
+    "at": "2026-09-12T19:31:24.937Z",
+    "action": "click",
+    "name": "s0-A-factory-day-next",
+    "x": 960,
+    "y": 941,
+    "inputResolvedAt": "2026-09-12T19:31:25.018Z"
+  },
+  {
+    "at": "2026-09-12T19:34:50.924Z",
+    "action": "click",
+    "name": "s0-A-game-settings-next",
+    "x": 960,
+    "y": 941,
+    "inputResolvedAt": "2026-09-12T19:34:51.021Z"
+  },
+  {
+    "at": "2026-09-12T19:34:56.686Z",
+    "action": "click",
+    "name": "s0-A-insurance-next",
+    "x": 960,
+    "y": 941,
+    "inputResolvedAt": "2026-09-12T19:34:56.770Z"
+  },
+  {
+    "at": "2026-09-12T19:35:05.172Z",
+    "action": "click",
+    "name": "s0-A-ready",
+    "x": 960,
+    "y": 941,
+    "inputResolvedAt": "2026-09-12T19:35:05.271Z"
+  },
+  {
+    "at": "2026-09-12T19:36:34.870Z",
+    "action": "click",
+    "name": "s0-A-alert-shot-1",
+    "x": 960,
+    "y": 540,
+    "inputResolvedAt": "2026-09-12T19:36:34.995Z"
+  },
+  {
+    "at": "2026-09-12T19:36:46.463Z",
+    "action": "key",
+    "name": "s0-A-step-right",
+    "key": "d",
+    "inputResolvedAt": "2026-09-12T19:36:46.561Z"
+  },
+  {
+    "at": "2026-09-12T19:36:58.923Z",
+    "action": "click",
+    "name": "s0-A-alert-shot-toward-door",
+    "x": 1420,
+    "y": 650,
+    "inputResolvedAt": "2026-09-12T19:36:59.149Z"
+  },
+  {
+    "at": "2026-09-12T19:37:09.565Z",
+    "action": "key",
+    "name": "s0-A-step-right-2",
+    "key": "d",
+    "inputResolvedAt": "2026-09-12T19:37:09.703Z"
+  },
+  {
+    "at": "2026-09-12T19:37:18.936Z",
+    "action": "click",
+    "name": "s0-A-respawn-near-corpse",
+    "x": 849,
+    "y": 528,
+    "inputResolvedAt": "2026-09-12T19:37:19.080Z"
+  },
+  {
+    "at": "2026-09-12T19:37:38.078Z",
+    "action": "key",
+    "name": "s0-A-replacement-jump",
+    "key": "space",
+    "inputResolvedAt": "2026-09-12T19:37:38.238Z"
+  },
+  {
+    "at": "2026-09-12T19:38:48.777Z",
+    "action": "click",
+    "name": "s0-A-cleanup-main-menu",
+    "x": 960,
+    "y": 1032,
+    "inputResolvedAt": "2026-09-12T19:38:48.866Z"
+  },
+  {
+    "at": "2026-09-12T19:39:00.742Z",
+    "action": "click",
+    "name": "s0-A-cleanup-confirm-menu",
+    "x": 864,
+    "y": 592,
+    "inputResolvedAt": "2026-09-12T19:39:00.834Z"
+  },
+  {
+    "at": "2026-09-12T19:39:37.532Z",
+    "action": "click",
+    "name": "s0-A-cleanup-stash",
+    "x": 960,
+    "y": 730,
+    "inputResolvedAt": "2026-09-12T19:39:37.617Z"
+  },
+  {
+    "at": "2026-09-12T19:39:52.379Z",
+    "action": "key",
+    "name": "s0-cleanup-redeploy-settings",
+    "key": "F12",
+    "inputResolvedAt": "2026-09-12T19:39:52.420Z"
+  },
+  {
+    "at": "2026-09-12T19:40:10.520Z",
+    "action": "click",
+    "name": "s0-cleanup-max-respawns-focus",
+    "x": 1038,
+    "y": 234,
+    "inputResolvedAt": "2026-09-12T19:40:10.617Z"
+  },
+  {
+    "at": "2026-09-12T19:40:24.254Z",
+    "action": "key",
+    "name": "s0-cleanup-max-respawns-select",
+    "key": "Control_L+a",
+    "inputResolvedAt": "2026-09-12T19:40:24.294Z"
+  },
+  {
+    "at": "2026-09-12T19:40:31.965Z",
+    "action": "type",
+    "name": "s0-cleanup-max-respawns-restore",
+    "text": "2",
+    "inputResolvedAt": "2026-09-12T19:40:32.018Z"
+  },
+  {
+    "at": "2026-09-12T19:40:38.579Z",
+    "action": "click",
+    "name": "s0-cleanup-settings-restored",
+    "x": 832,
+    "y": 447,
+    "inputResolvedAt": "2026-09-12T19:40:38.652Z"
+  },
+  {
+    "at": "2026-09-12T19:41:23.371Z",
+    "action": "click",
+    "name": "s0-cleanup-close-settings",
+    "x": 1245,
+    "y": 84,
+    "inputResolvedAt": "2026-09-12T19:41:23.460Z"
+  },
+  {
+    "at": "2026-09-12T19:41:31.487Z",
+    "action": "click",
+    "name": "s0-cleanup-final-main-menu",
+    "x": 1795,
+    "y": 22,
+    "inputResolvedAt": "2026-09-12T19:41:31.584Z"
+  }
+]

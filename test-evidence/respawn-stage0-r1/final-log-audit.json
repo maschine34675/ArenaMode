@@ -1,0 +1,622 @@
+{
+  "testId": "respawn-stage0-r1",
+  "phase": "Final fixed snapshot after main menu and settings restoration",
+  "scope": {
+    "clientRawSha256": "3E8A62E8AF42DF2D3B9AA6CA386F88469D138225FBD7544F61B54589CABA62C5",
+    "clientThroughLine": 13244,
+    "serverFromLine": 21422,
+    "serverThroughLine": 21811,
+    "clientFromLine": 13074,
+    "serverRawSha256": "DF4E87E6E6B7C3714D5A804113B15541A1DD580D9E5ADE915AF30E6895C2D3EC"
+  },
+  "safety": {
+    "attribution": "Observed native bot surgical-kit completion callback, followed by MedsInHandsOperation and item-removal event frames. No Core/Redeploy/Arena frame in this exception stack. The actual null object and causal ownership are not established by these logs.",
+    "exceptionType": "NullReferenceException",
+    "furtherRaids": "B/C/D OPEN; must not start after new exception",
+    "reportedSource": "Unity Log",
+    "firstThrowingFrame": "BotSurgicalKit+CG_ApplyToCurrentPart.method_1",
+    "status": "FAIL - whole run stopped",
+    "occurredAtUtc": "2026-09-12T19:37:54.612Z"
+  },
+  "clientA": {
+    "sourceCounts": [
+      {
+        "module": "Redeploy.Core",
+        "errors": 0,
+        "warnings": 1
+      },
+      {
+        "module": "maschine-Redeploy",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "module": "maschine-ArenaMode",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "module": "Unity Log",
+        "errors": 1,
+        "warnings": 1
+      },
+      {
+        "module": "maschine-KillcamReplay",
+        "errors": 0,
+        "warnings": 1
+      }
+    ],
+    "warnings": [
+      {
+        "line": 13093,
+        "localTime": "21:35:35.918",
+        "severity": "Warning",
+        "module": "Unity Log",
+        "text": "BoxCollider does not support negative scale or size."
+      },
+      {
+        "line": 13176,
+        "localTime": "21:37:24.611",
+        "severity": "Warning",
+        "module": "Redeploy.Core",
+        "text": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+      },
+      {
+        "line": 13194,
+        "localTime": "21:37:36.216",
+        "severity": "Warning",
+        "module": "maschine-KillcamReplay",
+        "text": "Puppet weapon: no meshes found to copy"
+      }
+    ],
+    "errorCount": 1,
+    "warningCount": 3,
+    "errors": [
+      {
+        "line": 13200,
+        "localTime": "21:37:54.612",
+        "severity": "Error",
+        "module": "Unity Log",
+        "text": "NullReferenceException: Object reference not set to an instance of an object"
+      }
+    ]
+  },
+  "clientWholeGame": {
+    "sourceCounts": [
+      {
+        "module": "Redeploy.Core",
+        "errors": 0,
+        "warnings": 1
+      },
+      {
+        "module": "maschine-Redeploy",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "module": "maschine-ArenaMode",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "module": "Unity Log",
+        "errors": 1,
+        "warnings": 1
+      },
+      {
+        "module": "maschine-KillcamReplay",
+        "errors": 0,
+        "warnings": 1
+      }
+    ],
+    "errorCount": 1,
+    "warningCount": 12
+  },
+  "serverA": {
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "serverWholeNewProcess": {
+    "fromLine": 20786,
+    "errorCount": 0,
+    "warningCount": 1
+  },
+  "markers": [
+    {
+      "pattern": "Death intercepted\\. Respawns used: 0/1",
+      "countInA": 1,
+      "countWholeGame": 1,
+      "occurrencesInA": [
+        {
+          "line": 13162,
+          "localTime": "21:37:05.886",
+          "severity": "Info",
+          "module": "maschine-Redeploy",
+          "text": "Death intercepted. Respawns used: 0/1"
+        }
+      ]
+    },
+    {
+      "pattern": "Blocked raid-end black screen while respawn is pending\\.",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Spawn protection active for",
+      "countInA": 1,
+      "countWholeGame": 1,
+      "occurrencesInA": [
+        {
+          "line": 13175,
+          "localTime": "21:37:24.483",
+          "severity": "Info",
+          "module": "Redeploy.Core",
+          "text": "Spawn protection active for 10s."
+        }
+      ]
+    },
+    {
+      "pattern": "Respawn complete\\.",
+      "countInA": 1,
+      "countWholeGame": 1,
+      "occurrencesInA": [
+        {
+          "line": 13180,
+          "localTime": "21:37:24.892",
+          "severity": "Info",
+          "module": "maschine-Redeploy",
+          "text": "Respawn complete."
+        }
+      ]
+    },
+    {
+      "pattern": "Spawn protection ended",
+      "countInA": 1,
+      "countWholeGame": 1,
+      "occurrencesInA": [
+        {
+          "line": 13186,
+          "localTime": "21:37:34.811",
+          "severity": "Info",
+          "module": "Redeploy.Core",
+          "text": "Spawn protection ended."
+        }
+      ]
+    },
+    {
+      "pattern": "KeyNotFoundException",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Respawn failed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Player gave up",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Death interception is incomplete",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "could not be installed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Raid-start patch could not be installed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Raid-end patch could not be installed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Respawn refused before any teardown",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "subscriber .* failed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "GameEnd faulted before its first await",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Freecam compatibility patches could not be enabled",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "External raid end while respawn pending",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Respawn cancelled: the raid ended during the cooldown",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Arena respawn finished without the exact new local-player body",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "stood down .* another body replacement is still in flight",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "live respawn was refused before takeover",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Arena event .* subscriber .* failed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "Arena .* failed:",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "old-body recovery failed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    },
+    {
+      "pattern": "replacement-body recovery failed",
+      "countInA": 0,
+      "countWholeGame": 0,
+      "occurrencesInA": []
+    }
+  ],
+  "clientLifecycle": [
+    {
+      "line": 13130,
+      "localTime": "21:36:14.604",
+      "severity": "Info",
+      "module": "Redeploy.Core",
+      "text": "Freecam detected — camera operation patches enabled."
+    },
+    {
+      "line": 13134,
+      "localTime": "21:36:14.616",
+      "severity": "Info",
+      "module": "RequestHandler",
+      "text": "[REQUEST]: /arenamode/ordinary-confirm"
+    },
+    {
+      "line": 13135,
+      "localTime": "21:36:14.622",
+      "severity": "Info",
+      "module": "RequestHandler",
+      "text": "[REQUEST SUCCESSFUL] /arenamode/ordinary-confirm"
+    },
+    {
+      "line": 13138,
+      "localTime": "21:36:14.735",
+      "severity": "Info",
+      "module": "maschine-AutoIFF",
+      "text": "[AutoIFF] Active as PMC (raid started). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 13159,
+      "localTime": "21:37:05.559",
+      "severity": "Info",
+      "module": "maschine-KillcamReplay",
+      "text": "Death replay: killer=[AI_NAME], 160 snapshots, window [530.81 .. 540.77], death at 540.77"
+    },
+    {
+      "line": 13162,
+      "localTime": "21:37:05.886",
+      "severity": "Info",
+      "module": "maschine-Redeploy",
+      "text": "Death intercepted. Respawns used: 0/1"
+    },
+    {
+      "line": 13163,
+      "localTime": "21:37:05.887",
+      "severity": "Info",
+      "module": "maschine-Redeploy",
+      "text": "Respawn prompt shown."
+    },
+    {
+      "line": 13171,
+      "localTime": "21:37:24.125",
+      "severity": "Info",
+      "module": "Redeploy.Core",
+      "text": "Profile equipment swapped; corpse retains raid loadout."
+    },
+    {
+      "line": 13175,
+      "localTime": "21:37:24.483",
+      "severity": "Info",
+      "module": "Redeploy.Core",
+      "text": "Spawn protection active for 10s."
+    },
+    {
+      "line": 13180,
+      "localTime": "21:37:24.892",
+      "severity": "Info",
+      "module": "maschine-Redeploy",
+      "text": "Respawn complete."
+    },
+    {
+      "line": 13182,
+      "localTime": "21:37:24.906",
+      "severity": "Info",
+      "module": "maschine-KillcamReplay",
+      "text": "Playback end after 9.96s: camera destroyed"
+    },
+    {
+      "line": 13186,
+      "localTime": "21:37:34.811",
+      "severity": "Info",
+      "module": "Redeploy.Core",
+      "text": "Spawn protection ended."
+    },
+    {
+      "line": 13187,
+      "localTime": "21:37:35.279",
+      "severity": "Info",
+      "module": "maschine-KillcamReplay",
+      "text": "Death replay: killer=[AI_NAME], 160 snapshots, window [559.37 .. 569.35], death at 569.35"
+    },
+    {
+      "line": 13188,
+      "localTime": "21:37:35.295",
+      "severity": "Info",
+      "module": "maschine-KillcamReplay",
+      "text": "Deferring LocalGame.Stop until replay hand-off"
+    },
+    {
+      "line": 13197,
+      "localTime": "21:37:54.482",
+      "severity": "Info",
+      "module": "maschine-KillcamReplay",
+      "text": "Re-invoking deferred LocalGame.Stop"
+    },
+    {
+      "line": 13236,
+      "localTime": "21:37:56.416",
+      "severity": "Info",
+      "module": "maschine-KillcamReplay",
+      "text": "Playback end after 9.98s: handed off under black screen"
+    }
+  ],
+  "serverLifecycle": [
+    {
+      "line": 21459,
+      "utcTime": "2026-09-12 19:35:28.592",
+      "severity": "Debug",
+      "module": "SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService",
+      "text": "Starting: factory4_day"
+    },
+    {
+      "line": 21715,
+      "utcTime": "2026-09-12 19:37:56.295",
+      "severity": "Debug",
+      "module": "SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService",
+      "text": "Raid: factory4_day.Pmc 1789241729 outcome: KILLED"
+    }
+  ],
+  "fullRelevantException": [
+    {
+      "line": 13200,
+      "text": "[21:37:54.612] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object"
+    },
+    {
+      "line": 13201,
+      "text": "[21:37:54.612] Stack trace:"
+    },
+    {
+      "line": 13202,
+      "text": "[21:37:54.612] BotSurgicalKit+CG_ApplyToCurrentPart.method_1 (Comfort.Common.Result`1[T] applyResult) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)"
+    },
+    {
+      "line": 13203,
+      "text": "[21:37:54.612] EFT.Player+MedsController+MedsInHandsOperation.Finish () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)"
+    },
+    {
+      "line": 13204,
+      "text": "[21:37:54.612] EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem (EFT.InventoryLogic.RemoveItemEventArgs args) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)"
+    },
+    {
+      "line": 13205,
+      "text": "[21:37:54.612] EFT.InventoryLogic.ItemController.SafeRemoveItemEvent (EFT.InventoryLogic.RemoveItemEventArgs obj) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)"
+    },
+    {
+      "line": 13206,
+      "text": "[21:37:54.612] UnityEngine.DebugLogHandler:LogException(Exception, Object)"
+    },
+    {
+      "line": 13207,
+      "text": "[21:37:54.612] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)"
+    },
+    {
+      "line": 13208,
+      "text": "[21:37:54.612] UnityEngine.Debug:LogException(Exception)"
+    },
+    {
+      "line": 13209,
+      "text": "[21:37:54.612] EFT.InventoryLogic.ItemController:SafeRemoveItemEvent(RemoveItemEventArgs)"
+    },
+    {
+      "line": 13210,
+      "text": "[21:37:54.612] EFT.InventoryLogic.ItemController:RaiseRemoveEvent(RemoveItemEventArgs)"
+    },
+    {
+      "line": 13211,
+      "text": "[21:37:54.612] EFT.InventoryLogic.ItemAddress:RaiseRemoveEvent(Item, CommandStatus, IItemOwner)"
+    },
+    {
+      "line": 13212,
+      "text": "[21:37:54.612] EFT.InventoryLogic.ContainerRemoveResult:RaiseEventsInternal(IItemOwner, CommandStatus)"
+    },
+    {
+      "line": 13213,
+      "text": "[21:37:54.612] EFT.InventoryLogic.ItemInContainerOperationResult:RaiseEvents(IItemOwner, CommandStatus)"
+    },
+    {
+      "line": 13214,
+      "text": "[21:37:54.612] EFT.InventoryLogic.RemoveResult:RaiseEvents(IItemOwner, CommandStatus)"
+    },
+    {
+      "line": 13215,
+      "text": "[21:37:54.612] EFT.InventoryLogic.DiscardResult:RaiseEvents(IItemOwner, CommandStatus)"
+    },
+    {
+      "line": 13216,
+      "text": "[21:37:54.612] EFT.HealthSystem.MedEffectHelper:RemoveItem(Item)"
+    },
+    {
+      "line": 13217,
+      "text": "[21:37:54.612] EFT.HealthSystem.MedEffect:Residue()"
+    },
+    {
+      "line": 13218,
+      "text": "[21:37:54.612] EFT.HealthSystem.Effect:NextState()"
+    },
+    {
+      "line": 13219,
+      "text": "[21:37:54.612] EFT.HealthSystem.Effect:ManualUpdate(Single)"
+    },
+    {
+      "line": 13220,
+      "text": "[21:37:54.612] EFT.HealthSystem.ActiveHealthController:ManualEffectUpdate(Effect, Single)"
+    },
+    {
+      "line": 13221,
+      "text": "[21:37:54.612] EFT.HealthSystem.PlayerHealthController:ManualEffectUpdate(Effect, Single)"
+    },
+    {
+      "line": 13222,
+      "text": "[21:37:54.612] EFT.HealthSystem.BaseHealthController`1:ManualUpdate(Single)"
+    },
+    {
+      "line": 13223,
+      "text": "[21:37:54.612] EFT.HealthSystem.ActiveHealthController:ManualUpdate(Single)"
+    },
+    {
+      "line": 13224,
+      "text": "[21:37:54.612] EFT.Player:HealthControllerUpdate(Single)"
+    },
+    {
+      "line": 13225,
+      "text": "[21:37:54.612] EFT.Player:ManualUpdate(Single, Nullable`1, Int32)"
+    },
+    {
+      "line": 13226,
+      "text": "[21:37:54.612] EFT.LocalPlayer:ManualUpdate(Single, Nullable`1, Int32)"
+    },
+    {
+      "line": 13227,
+      "text": "[21:37:54.612] EFT.Player:ComplexUpdate(EUpdateQueue, Single)"
+    },
+    {
+      "line": 13228,
+      "text": "[21:37:54.612] EFT.Player:UpdateTick()"
+    },
+    {
+      "line": 13229,
+      "text": "[21:37:54.612] EFT.GameWorld:CG_PlayerTick(Player)"
+    },
+    {
+      "line": 13230,
+      "text": "[21:37:54.612] EFT.GameWorld:SafePlayerOperation(Action`1)"
+    },
+    {
+      "line": 13231,
+      "text": "[21:37:54.612] EFT.GameWorld:PlayerTick(Single)"
+    },
+    {
+      "line": 13232,
+      "text": "[21:37:54.612] ClientLocalGameWorld:PlayerTick(Single)"
+    },
+    {
+      "line": 13233,
+      "text": "[21:37:54.612] EFT.GameWorld:DMD<EFT.GameWorld::DoWorldTick>(GameWorld, Single)"
+    },
+    {
+      "line": 13234,
+      "text": "[21:37:54.612] EFT.GameWorldUnityTickListener:Update()"
+    }
+  ],
+  "timingNotes": [
+    "Client timestamps are local UTC+02:00; server timestamps are UTC.",
+    "Server Starting is load/lifecycle setup, not proof of the exact player spawn frame.",
+    "Killcam death-replay log times are observations of the death handling; exact health-zero frames were not instrumented.",
+    "The required Blocked raid-end black screen marker is absent. Other success markers cannot substitute for it.",
+    "A functional checks interrupted by the second natural death remain OPEN. The new exception independently blocks B.",
+    "The second deferred Stop was logged at 19:37:54.482 UTC; the exception followed 130 ms later. Temporal proximity is not proof of causality."
+  ],
+  "auditedAtUtc": "2026-09-12T19:43:25.4720459Z",
+  "fixedSnapshot": {
+    "serverStandaloneCrCharacters": 10,
+    "serverLfLines": 21811,
+    "serverLastWriteUtc": "2026-09-12T19:41:40.0597213Z",
+    "lineNumberDefinition": "Physical LF-delimited lines; terminal trailing empty segment excluded.",
+    "directory": "logs/final-after-main-menu-and-settings-restore",
+    "warning": "PowerShell Get-Content also splits the 10 standalone CR characters; do not mix that item count with LF line references.",
+    "serverGetContentItems": 21821
+  },
+  "startupMarkers": [
+    {
+      "marker": "Redeploy.Core 0.9.0.0 initialized",
+      "count": 1
+    },
+    {
+      "marker": "Death-interception driver registered: ArenaMode (priority 100)",
+      "count": 1
+    },
+    {
+      "marker": "Death-interception driver registered: Redeploy (priority 0)",
+      "count": 1
+    }
+  ],
+  "raidDurationEvidence": {
+    "serverKilledOutcomeUtc": "2026-09-12T19:37:56.295Z",
+    "ordinaryConfirmToDeferredStopSeconds": 99.866,
+    "nativeRaidResultSeconds": 101,
+    "ordinaryConfirmRequestUtc": "2026-09-12T19:36:14.616Z",
+    "ordinaryConfirmToServerOutcomeSeconds": 101.679,
+    "firstSpawnScreenshotUtc": "2026-09-12T19:36:22.518Z",
+    "deferredStopUtc": "2026-09-12T19:37:54.482Z",
+    "note": "Result duration supplied from root native observation. Log intervals corroborate approximately 100-102 seconds; they do not establish the exact spawn frame."
+  }
+}

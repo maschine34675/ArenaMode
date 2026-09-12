@@ -1,0 +1,36 @@
+{
+  "maxRaids": 4,
+  "maxActiveMinutes": 30,
+  "preparationStartedAt": "2026-09-12T19:20:26.848Z",
+  "raidIntervals": [
+    {
+      "case": "A",
+      "start": "2026-09-12T19:36:14.616Z",
+      "end": "2026-09-12T19:37:54.482Z",
+      "observedSpanMs": 99866,
+      "method": "ordinary-confirm request to deferred LocalGame.Stop; for budget charge conservative native result screen 101 seconds instead"
+    }
+  ],
+  "activeGameplayMs": 101000,
+  "method": "Elapsed live-raid intervals include tool delays while the raid continues; pre-raid and post-raid loading/menu/tool timestamps are recorded separately.",
+  "nativeRaidResultSeconds": 101,
+  "loading": {
+    "readyAt": "2026-09-12T19:35:05.121Z",
+    "ordinaryRaidConfirmedAt": "2026-09-12T19:36:14.622Z",
+    "firstSpawnScreenshotAt": "2026-09-12T19:36:22.518Z",
+    "readyToConfirmationMs": 69501,
+    "confirmationIsExactSpawnFrame": false
+  },
+  "preparationBeforeReadyMs": 878273,
+  "postRaidAndCleanup": {
+    "deferredStopAt": "2026-09-12T19:37:54.482Z",
+    "firstMainMenuScreenshotAt": "2026-09-12T19:39:30.929Z",
+    "stashScreenshotAt": "2026-09-12T19:39:44.995Z",
+    "finalMainMenuScreenshotAt": "2026-09-12T19:41:32.334Z"
+  },
+  "toolTiming": {
+    "recordedInputCalls": 37,
+    "inputResolutionMs": 3584,
+    "note": "Input request/resolution and screenshot archive timestamps are in input-actions/originals-index. Captures, reads, analysis and waiting are interleaved. An exact independent total for all tool execution is unavailable. In-raid tool and waiting time is INCLUDED in the conservative 101-second charge; pre/post loading and menus are separate."
+  }
+}

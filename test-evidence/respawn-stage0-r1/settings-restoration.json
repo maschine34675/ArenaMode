@@ -1,0 +1,65 @@
+[
+  {
+    "name": "com.maschine.ArenaMode.cfg",
+    "path": "C:/SPT41/BepInEx/config/com.maschine.ArenaMode.cfg",
+    "sha256": "997786DEC516FE1604704F5D08ED62D9FEF7468A68A5E02FB1FC27C6DFD062A8",
+    "finalSha256": "F0108A1750A79043A8A16203844BCC512A955AA492DD5BFC5958B2463E9C906C",
+    "byteEqual": false
+  },
+  {
+    "name": "com.maschine.RaidInfoPanels.cfg",
+    "path": "C:/SPT41/BepInEx/config/com.maschine.RaidInfoPanels.cfg",
+    "sha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+    "finalSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+    "byteEqual": true
+  },
+  {
+    "name": "Control.ini",
+    "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Control.ini",
+    "sha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+    "finalSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+    "byteEqual": true
+  },
+  {
+    "name": "Graphics.ini",
+    "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Graphics.ini",
+    "sha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+    "finalSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+    "byteEqual": true
+  },
+  {
+    "name": "config.json",
+    "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/config/config.json",
+    "sha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+    "finalSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+    "byteEqual": true
+  },
+  {
+    "name": "client-settings.json",
+    "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/config/client-settings.json",
+    "sha256": "A740612664465624EB76B61B07B7C00C5EB32B45AC6B39FEFEDF01B38DEB4F59",
+    "finalSha256": "9E24AC9885E28243FFC9BA06AE0FC270707B8475F1E32855414D3DF7E4758086",
+    "byteEqual": false
+  },
+  {
+    "name": "com.mpstark.dynamicmaps.cfg",
+    "path": "C:/SPT41/BepInEx/config/com.mpstark.dynamicmaps.cfg",
+    "sha256": "78F086A243E05CBDE76FF21B0C5B6AC231754B9838BEB830C2D249591BF81398",
+    "finalSha256": "EF3216E829DF767B93E0EC09BBF0CCC6E5A32A463B38D962DB30FCF8EFF1BBB6",
+    "byteEqual": false
+  },
+  {
+    "name": "com.maschine.Redeploy.cfg",
+    "path": "C:/SPT41/BepInEx/config/com.maschine.Redeploy.cfg",
+    "sha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+    "finalSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+    "byteEqual": true
+  },
+  {
+    "name": "com.maschine.KillcamReplay.cfg",
+    "path": "C:/SPT41/BepInEx/config/com.maschine.KillcamReplay.cfg",
+    "sha256": "35DF7396A73936A5BADE9289A45FD8B79A50AE6EC3EA4834939EE07D58002539",
+    "finalSha256": "35DF7396A73936A5BADE9289A45FD8B79A50AE6EC3EA4834939EE07D58002539",
+    "byteEqual": true
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "at": "2026-09-12T19:26:08.341Z",
+  "label": "before-launch",
+  "files": [
+    {
+      "name": "ArenaMode.Client",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+      "hash": "A92164BC306762ABD954CF3F2A5AA012FA49E8471626966C5A459A1FEE02843D",
+      "expected": "A92164BC306762ABD954CF3F2A5AA012FA49E8471626966C5A459A1FEE02843D",
+      "match": true
+    },
+    {
+      "name": "Redeploy.Core",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+      "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "match": true
+    },
+    {
+      "name": "Redeploy.Client",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+      "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "match": true
+    },
+    {
+      "name": "ArenaMode.Server",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+      "hash": "5A9201177DC3E4404995EA314FE48A231712435D5E5EB9E1A081C67734D6C04E",
+      "expected": "5A9201177DC3E4404995EA314FE48A231712435D5E5EB9E1A081C67734D6C04E",
+      "match": true
+    },
+    {
+      "name": "Redeploy.Server",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+      "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+      "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+      "match": true
+    },
+    {
+      "name": "SAIN",
+      "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+      "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "match": true
+    },
+    {
+      "name": "KillcamReplay",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+      "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+      "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+      "match": true
+    },
+    {
+      "name": "DynamicMaps",
+      "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+      "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "match": true
+    }
+  ]
+}

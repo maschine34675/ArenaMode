@@ -1,0 +1,164 @@
+{
+  "testId": "respawn-stage0-r1",
+  "auditedAtUtc": "2026-09-12T19:44:52.9116422Z",
+  "source": "Private settings/ versus settings-final/ snapshots; read-only comparison.",
+  "files": [
+    {
+      "name": "client-settings.json",
+      "beforeSha256": "A740612664465624EB76B61B07B7C00C5EB32B45AC6B39FEFEDF01B38DEB4F59",
+      "afterSha256": "9E24AC9885E28243FFC9BA06AE0FC270707B8475F1E32855414D3DF7E4758086",
+      "byteEqual": false
+    },
+    {
+      "name": "com.maschine.ArenaMode.cfg",
+      "beforeSha256": "997786DEC516FE1604704F5D08ED62D9FEF7468A68A5E02FB1FC27C6DFD062A8",
+      "afterSha256": "F0108A1750A79043A8A16203844BCC512A955AA492DD5BFC5958B2463E9C906C",
+      "byteEqual": false
+    },
+    {
+      "name": "com.maschine.KillcamReplay.cfg",
+      "beforeSha256": "35DF7396A73936A5BADE9289A45FD8B79A50AE6EC3EA4834939EE07D58002539",
+      "afterSha256": "35DF7396A73936A5BADE9289A45FD8B79A50AE6EC3EA4834939EE07D58002539",
+      "byteEqual": true
+    },
+    {
+      "name": "com.maschine.RaidInfoPanels.cfg",
+      "beforeSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "afterSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "byteEqual": true
+    },
+    {
+      "name": "com.maschine.Redeploy.cfg",
+      "beforeSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "afterSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "byteEqual": true
+    },
+    {
+      "name": "com.mpstark.dynamicmaps.cfg",
+      "beforeSha256": "78F086A243E05CBDE76FF21B0C5B6AC231754B9838BEB830C2D249591BF81398",
+      "afterSha256": "EF3216E829DF767B93E0EC09BBF0CCC6E5A32A463B38D962DB30FCF8EFF1BBB6",
+      "byteEqual": false
+    },
+    {
+      "name": "config.json",
+      "beforeSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "afterSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "byteEqual": true
+    },
+    {
+      "name": "Control.ini",
+      "beforeSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "afterSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "byteEqual": true
+    },
+    {
+      "name": "Graphics.ini",
+      "beforeSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "afterSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "byteEqual": true
+    }
+  ],
+  "byteEqualCount": 6,
+  "byteDifferentCount": 3,
+  "cfgComparisons": [
+    {
+      "name": "com.maschine.ArenaMode.cfg",
+      "beforeValueCount": 149,
+      "afterValueCount": 149,
+      "valueChanges": [],
+      "textChanges": [
+        {
+          "line": 231,
+          "before": "# Acceptable value range: From 0.25 to 8",
+          "after": "# Acceptable value range: From 0,25 to 8",
+          "commentOnly": true
+        },
+        {
+          "line": 542,
+          "before": "# Acceptable value range: From 0.1 to 1",
+          "after": "# Acceptable value range: From 0,1 to 1",
+          "commentOnly": true
+        },
+        {
+          "line": 587,
+          "before": "# Acceptable value range: From 1 to 1.5",
+          "after": "# Acceptable value range: From 1 to 1,5",
+          "commentOnly": true
+        },
+        {
+          "line": 599,
+          "before": "# Acceptable value range: From 1 to 1.6",
+          "after": "# Acceptable value range: From 1 to 1,6",
+          "commentOnly": true
+        },
+        {
+          "line": 665,
+          "before": "# Acceptable value range: From 0.25 to 1.5",
+          "after": "# Acceptable value range: From 0,25 to 1,5",
+          "commentOnly": true
+        },
+        {
+          "line": 676,
+          "before": "# Acceptable value range: From 1 to 2.5",
+          "after": "# Acceptable value range: From 1 to 2,5",
+          "commentOnly": true
+        },
+        {
+          "line": 682,
+          "before": "# Acceptable value range: From 1 to 1.6",
+          "after": "# Acceptable value range: From 1 to 1,6",
+          "commentOnly": true
+        },
+        {
+          "line": 700,
+          "before": "# Acceptable value range: From 0.25 to 3",
+          "after": "# Acceptable value range: From 0,25 to 3",
+          "commentOnly": true
+        }
+      ]
+    },
+    {
+      "name": "com.mpstark.dynamicmaps.cfg",
+      "beforeValueCount": 83,
+      "afterValueCount": 83,
+      "valueChanges": [],
+      "textChanges": [
+        {
+          "line": 317,
+          "before": "# Acceptable value range: From -640 to 2560",
+          "after": "# Acceptable value range: From -480 to 1920",
+          "commentOnly": true
+        },
+        {
+          "line": 323,
+          "before": "# Acceptable value range: From -360 to 1440",
+          "after": "# Acceptable value range: From -270 to 1080",
+          "commentOnly": true
+        }
+      ]
+    },
+    {
+      "name": "com.maschine.Redeploy.cfg",
+      "beforeValueCount": 7,
+      "afterValueCount": 7,
+      "valueChanges": [],
+      "textChanges": []
+    }
+  ],
+  "clientSettingsJson": {
+    "allOtherJsonContentEqual": true,
+    "updatedAtHasTimezone": false,
+    "beforeUpdatedAt": "21:02:31",
+    "afterUpdatedAt": "21:35:32",
+    "afterEntryCount": 147,
+    "beforeEntryCount": 147
+  },
+  "findings": [
+    "All parsed ArenaMode, DynamicMaps and Redeploy section/key values are unchanged between baseline and final snapshot.",
+    "ArenaMode differs only in eight generated acceptable-range comment lines: decimal dot became comma. This is consistent with locale-specific comment formatting; no setting value changed.",
+    "DynamicMaps differs only in two generated acceptable-range comments: horizontal -640..2560 became -480..1920; vertical -360..1440 became -270..1080. These match the observed 1920x1080 display dimensions. Both actual offset settings remain zero.",
+    "client-settings.json differs only at UpdatedAt (21:02:31 to 21:35:32); all other JSON content, including entries and metadata, is identical. The serialized value contains no timezone.",
+    "Redeploy config is byte-identical after the native MaxRespawns restoration. RespawnCooldownSeconds remained 5.",
+    "No files were copied back to production or edited by this audit."
+  ]
+}

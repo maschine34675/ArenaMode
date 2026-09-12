@@ -1,0 +1,82 @@
+Stage0 A targeted original log lines. Client UTC+02:00; server UTC. Private identifiers and AI killer names redacted.
+Client lifecycle, warnings and complete exception:
+L13092 [21:35:32.184] [Info   :maschine-KillcamReplay] BoneRecorder: tracking 139 transforms, buffer 1.1 MB
+L13093 [21:35:35.918] [Warning: Unity Log] BoxCollider does not support negative scale or size.
+L13130 [21:36:14.604] [Info   :Redeploy.Core] Freecam detected — camera operation patches enabled.
+L13134 [21:36:14.616] [Info   :RequestHandler] [REQUEST]: /arenamode/ordinary-confirm
+L13135 [21:36:14.622] [Info   :RequestHandler] [REQUEST SUCCESSFUL] /arenamode/ordinary-confirm
+L13138 [21:36:14.735] [Info   :maschine-AutoIFF] [AutoIFF] Active as PMC (raid started). Attention 0, Perception 0, Search 0.
+L13157 [21:37:01.145] [Info   :maschine-KillcamReplay] Retired 1 stale player track(s), 9 live
+L13158 [21:37:05.554] [Info   :maschine-KillcamReplay] ArenaMode detected — death replay follows whatever the running arena mode asks for
+L13159 [21:37:05.559] [Info   :maschine-KillcamReplay] Death replay: killer=[AI_NAME], 160 snapshots, window [530.81 .. 540.77], death at 540.77
+L13160 [21:37:05.561] [Info   :maschine-KillcamReplay] Suppressing death fade during replay
+L13161 [21:37:05.884] [Info   :maschine-Redeploy] Corpse renders switched to third person.
+L13162 [21:37:05.886] [Info   :maschine-Redeploy] Death intercepted. Respawns used: 0/1
+L13163 [21:37:05.887] [Info   :maschine-Redeploy] Respawn prompt shown.
+L13165 [21:37:06.667] [Info   :maschine-KillcamReplay] Playback start: 160 snapshots, span 9.96s, bones=160, camera=ok
+L13166 [21:37:06.813] [Info   :maschine-KillcamReplay] Puppet: stripped 200 components
+L13167 [21:37:06.815] [Info   :maschine-KillcamReplay] Puppet: mapped 139/139 bones
+L13168 [21:37:06.824] [Info   :maschine-KillcamReplay] Puppet weapon: copied 23 meshes; track spread root=0.03m anim=0.06m -> using anim
+L13169 [21:37:06.830] [Info   :maschine-KillcamReplay] Killer weapon ghost: 18 meshes but no usable barrel frame (fireport 89° off the long mesh axis) — not showing the weapon
+L13170 [21:37:06.836] [Info   :maschine-KillcamReplay] Hid 215 renderers, 0 lights of 8 live players
+L13171 [21:37:24.125] [Info   :Redeploy.Core] Profile equipment swapped; corpse retains raid loadout.
+L13173 [21:37:24.280] [Info   :Redeploy.Core] Freecam compat: rebound cached GamePlayerOwner and reset freecam state.
+L13174 [21:37:24.428] [Info   :Redeploy.Core] Culling: evicted 1 replaced camera(s), 0 still registered.
+L13175 [21:37:24.483] [Info   :Redeploy.Core] Spawn protection active for 10s.
+L13176 [21:37:24.611] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+L13180 [21:37:24.892] [Info   :maschine-Redeploy] Respawn complete.
+L13182 [21:37:24.906] [Info   :maschine-KillcamReplay] Playback end after 9.96s: camera destroyed
+L13183 [21:37:24.934] [Info   :maschine-KillcamReplay] BoneRecorder: main player changed — reinitializing for respawn
+L13184 [21:37:24.938] [Info   :maschine-KillcamReplay] BoneRecorder: tracking 139 transforms, buffer 1.1 MB
+L13185 [21:37:25.037] [Info   :Redeploy.Core] Stowing auto-drawn weapon during spawn protection.
+L13186 [21:37:34.811] [Info   :Redeploy.Core] Spawn protection ended.
+L13187 [21:37:35.279] [Info   :maschine-KillcamReplay] Death replay: killer=[AI_NAME], 160 snapshots, window [559.37 .. 569.35], death at 569.35
+L13188 [21:37:35.295] [Info   :maschine-KillcamReplay] Deferring LocalGame.Stop until replay hand-off
+L13189 [21:37:35.371] [Info   :maschine-KillcamReplay] Suppressing death fade during replay
+L13191 [21:37:36.200] [Info   :maschine-KillcamReplay] Playback start: 160 snapshots, span 9.98s, bones=160, camera=ok
+L13192 [21:37:36.216] [Info   :maschine-KillcamReplay] Puppet: stripped 200 components
+L13193 [21:37:36.216] [Info   :maschine-KillcamReplay] Puppet: mapped 139/139 bones
+L13194 [21:37:36.216] [Warning:maschine-KillcamReplay] Puppet weapon: no meshes found to copy
+L13195 [21:37:36.218] [Info   :maschine-KillcamReplay] Killer weapon ghost: 36 meshes but no usable barrel frame (fireport 87° off the long mesh axis) — not showing the weapon
+L13196 [21:37:36.219] [Info   :maschine-KillcamReplay] Hid 439 renderers, 2 lights of 7 live players
+L13197 [21:37:54.482] [Info   :maschine-KillcamReplay] Re-invoking deferred LocalGame.Stop
+L13200 [21:37:54.612] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
+L13201 [21:37:54.612] Stack trace:
+L13202 [21:37:54.612] BotSurgicalKit+CG_ApplyToCurrentPart.method_1 (Comfort.Common.Result`1[T] applyResult) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+L13203 [21:37:54.612] EFT.Player+MedsController+MedsInHandsOperation.Finish () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+L13204 [21:37:54.612] EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem (EFT.InventoryLogic.RemoveItemEventArgs args) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+L13205 [21:37:54.612] EFT.InventoryLogic.ItemController.SafeRemoveItemEvent (EFT.InventoryLogic.RemoveItemEventArgs obj) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)
+L13206 [21:37:54.612] UnityEngine.DebugLogHandler:LogException(Exception, Object)
+L13207 [21:37:54.612] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)
+L13208 [21:37:54.612] UnityEngine.Debug:LogException(Exception)
+L13209 [21:37:54.612] EFT.InventoryLogic.ItemController:SafeRemoveItemEvent(RemoveItemEventArgs)
+L13210 [21:37:54.612] EFT.InventoryLogic.ItemController:RaiseRemoveEvent(RemoveItemEventArgs)
+L13211 [21:37:54.612] EFT.InventoryLogic.ItemAddress:RaiseRemoveEvent(Item, CommandStatus, IItemOwner)
+L13212 [21:37:54.612] EFT.InventoryLogic.ContainerRemoveResult:RaiseEventsInternal(IItemOwner, CommandStatus)
+L13213 [21:37:54.612] EFT.InventoryLogic.ItemInContainerOperationResult:RaiseEvents(IItemOwner, CommandStatus)
+L13214 [21:37:54.612] EFT.InventoryLogic.RemoveResult:RaiseEvents(IItemOwner, CommandStatus)
+L13215 [21:37:54.612] EFT.InventoryLogic.DiscardResult:RaiseEvents(IItemOwner, CommandStatus)
+L13216 [21:37:54.612] EFT.HealthSystem.MedEffectHelper:RemoveItem(Item)
+L13217 [21:37:54.612] EFT.HealthSystem.MedEffect:Residue()
+L13218 [21:37:54.612] EFT.HealthSystem.Effect:NextState()
+L13219 [21:37:54.612] EFT.HealthSystem.Effect:ManualUpdate(Single)
+L13220 [21:37:54.612] EFT.HealthSystem.ActiveHealthController:ManualEffectUpdate(Effect, Single)
+L13221 [21:37:54.612] EFT.HealthSystem.PlayerHealthController:ManualEffectUpdate(Effect, Single)
+L13222 [21:37:54.612] EFT.HealthSystem.BaseHealthController`1:ManualUpdate(Single)
+L13223 [21:37:54.612] EFT.HealthSystem.ActiveHealthController:ManualUpdate(Single)
+L13224 [21:37:54.612] EFT.Player:HealthControllerUpdate(Single)
+L13225 [21:37:54.612] EFT.Player:ManualUpdate(Single, Nullable`1, Int32)
+L13226 [21:37:54.612] EFT.LocalPlayer:ManualUpdate(Single, Nullable`1, Int32)
+L13227 [21:37:54.612] EFT.Player:ComplexUpdate(EUpdateQueue, Single)
+L13228 [21:37:54.612] EFT.Player:UpdateTick()
+L13229 [21:37:54.612] EFT.GameWorld:CG_PlayerTick(Player)
+L13230 [21:37:54.612] EFT.GameWorld:SafePlayerOperation(Action`1)
+L13231 [21:37:54.612] EFT.GameWorld:PlayerTick(Single)
+L13232 [21:37:54.612] ClientLocalGameWorld:PlayerTick(Single)
+L13233 [21:37:54.612] EFT.GameWorld:DMD<EFT.GameWorld::DoWorldTick>(GameWorld, Single)
+L13234 [21:37:54.612] EFT.GameWorldUnityTickListener:Update()
+L13236 [21:37:56.416] [Info   :maschine-KillcamReplay] Playback end after 9.98s: handed off under black screen
+L13237 [21:37:56.458] [Info   :maschine-KillcamReplay] Retired 8 stale player track(s), 0 live
+Server lifecycle and warning/error lines:
+L21459 [2026-09-12 19:35:28.592][Debug][SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService] Starting: factory4_day
+L21715 [2026-09-12 19:37:56.295][Debug][SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService] Raid: factory4_day.Pmc 1789241729 outcome: KILLED

@@ -1,0 +1,16 @@
+[
+  {
+    "case": "A",
+    "ordinal": 1,
+    "readyAt": "2026-09-12T19:35:05.121Z",
+    "map": "Factory day",
+    "type": "ordinary PMC",
+    "spawnObservedAt": "2026-09-12T19:36:22.518Z",
+    "endedAt": "2026-09-12T19:37:54.482Z",
+    "spawnEstimateAt": "2026-09-12T19:36:14.616Z",
+    "endStatus": "Killed in Action after second natural bot death",
+    "result": "FAIL: new runtime Unity NullReferenceException during raid-end transition",
+    "nativeSummaryRaidTimeSeconds": 101,
+    "endTimeMethod": "Deferred LocalGame.Stop log; exact engine end frame not instrumented."
+  }
+]
