@@ -210,6 +210,16 @@ internal static class LiveKitRespawn
             yield break;
         }
 
+        // The engine refuses a request while another pipeline is still running, and it
+        // does so before any teardown — a refusal the recovery below must never mistake
+        // for a failed takeover. Stand down here instead.
+        if (RespawnEngineState.IsPipelineRunning)
+        {
+            Plugin.ModLogger.LogInfo($"Arena {what} stood down — another body replacement is still in flight.");
+            Report(onComplete, false);
+            yield break;
+        }
+
         if (!ArenaRespawnDriver.BeginPipelineUse(game, raidEpoch))
         {
             Plugin.ModLogger.LogInfo($"Arena {what} stood down — its raid lease expired before takeover.");
@@ -328,6 +338,17 @@ internal static class LiveKitRespawn
     /// </summary>
     private static void RecoverOldBody(LocalGame game, LocalPlayer oldBody)
     {
+        // Redeploy.Core refuses a request before touching anything when the engine is
+        // unavailable, the raid is ending, a pipeline is running or the call is
+        // re-entrant. The body is then still registered, owned and the game's local
+        // player; re-registering it would throw on GameWorld.ItemOwners, and the catch
+        // below would end the raid for a player who lost nothing.
+        if (IsStillWired(game, oldBody))
+        {
+            Plugin.ModLogger.LogWarning("Arena: live respawn was refused before takeover — the current body stays as it is.");
+            return;
+        }
+
         if (Areas.ArenaAreaRuntime.CurrentArea != null)
         {
             Areas.ArenaAreaRuntime.Abort("live body replacement failed; unsafe rewiring was refused");
@@ -345,16 +366,30 @@ internal static class LiveKitRespawn
             LocalGameAccessor.UnsubscribeDeathHandler(game, oldBody);
             LocalGameAccessor.SubscribeDeathHandler(game, oldBody);
 
+            // Every step below is skipped when the engine never undid it: the failure
+            // can hit anywhere between the first teardown step and the takeover, and
+            // GameWorld.RegisterPlayer has no duplicate guard of its own.
             if (Comfort.Common.Singleton<GameWorld>.Instantiated)
-                Comfort.Common.Singleton<GameWorld>.Instance.RegisterPlayer(oldBody);
+            {
+                var world = Comfort.Common.Singleton<GameWorld>.Instance;
+                if (!world.RegisteredPlayers.Contains(oldBody))
+                    world.RegisterPlayer(oldBody);
+            }
 
             var bots = LocalGameAccessor.GetBotsController(game);
             bots.AddActivePLayer(oldBody);
 
-            var owner = LocalGameAccessor.CreatePlayerOwner(game, oldBody);
-            LocalGameAccessor.SetPlayerOwner(game, owner);
+            // Unity null on purpose: the engine's teardown destroys the old owner.
+            var owner = LocalGameAccessor.GetPlayerOwner(game);
+            if (owner == null || !ReferenceEquals(owner.Player, oldBody))
+            {
+                owner = LocalGameAccessor.CreatePlayerOwner(game, oldBody);
+                LocalGameAccessor.SetPlayerOwner(game, owner);
+            }
+
             Redeploy.Core.GameAccess.GamePlayerOwnerHelper.SetMyPlayer(oldBody);
-            owner.vmethod_0();
+            if (owner.State != PlayerOwner.EState.Started)
+                owner.vmethod_0();
 
             Plugin.ModLogger.LogWarning("Arena: live respawn failed — old body rewired, raid continues with real gear.");
         }
@@ -363,6 +398,23 @@ internal static class LiveKitRespawn
             Plugin.ModLogger.LogError($"Arena: old-body recovery failed ({ex.Message}) — ending raid.");
             EndRaidAsLastResort(game);
         }
+    }
+
+    /// <summary>
+    /// Exactly what a refused (never started) request leaves behind: the body is
+    /// registered, it is the game's local player, and a live owner belongs to it.
+    /// </summary>
+    private static bool IsStillWired(LocalGame game, LocalPlayer body)
+    {
+        if (body == null || !ReferenceEquals(game.LocalPlayer, body))
+            return false;
+
+        if (!Comfort.Common.Singleton<GameWorld>.Instantiated
+            || !Comfort.Common.Singleton<GameWorld>.Instance.RegisteredPlayers.Contains(body))
+            return false;
+
+        var owner = LocalGameAccessor.GetPlayerOwner(game);
+        return owner != null && ReferenceEquals(owner.Player, body);
     }
 
     /// <summary>The engine failed mid-rewire: complete the replacement's wiring instead.</summary>
