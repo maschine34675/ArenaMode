@@ -1,0 +1,165 @@
+{
+  "note": "Original returned screenshot bytes, first capture surface per observation. Archive times follow capture; action return times separate. Other originals and private launcher screens retained only in ignored artifacts.",
+  "images": [
+    {
+      "name": "a-arena-selected",
+      "file": "a-arena-selected-2026-09-12T14-10-31-032Z-0.jpg",
+      "archivedAt": "2026-09-12T14:10:31.032Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "F6790FA911CA7118846CA86443DF95C747D5615660A1B8A52A731BB0A72FB339"
+    },
+    {
+      "name": "a-factory-day-final-rules",
+      "file": "a-factory-day-final-rules-2026-09-12T14-11-36-202Z-0.jpg",
+      "archivedAt": "2026-09-12T14:11:36.202Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "D590B77C988696179EF856956F949859DA09748CB64BC184310AC220BD7D1BFE"
+    },
+    {
+      "name": "a-next-predeploy",
+      "file": "a-next-predeploy-2026-09-12T14-11-44-261Z-0.jpg",
+      "archivedAt": "2026-09-12T14:11:44.261Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "E806CAB2AC5B305542798E20B902909640E773707C202F0043B418CD48C27672"
+    },
+    {
+      "name": "a-ready-loading",
+      "file": "a-ready-loading-2026-09-12T14-11-55-854Z-0.jpg",
+      "archivedAt": "2026-09-12T14:11:55.854Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "20F86C78441F95A03C38D92BA6BEFF6A2559633BA1C663A265F070CD591D788E"
+    },
+    {
+      "name": "a-loading-progress",
+      "file": "a-loading-progress-2026-09-12T14-12-26-651Z-0.jpg",
+      "archivedAt": "2026-09-12T14:12:26.651Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "68F8D60625269AC69DAFF2E941A0DDCCBD163AF944CCF238D877FB0A0F4D9B7B"
+    },
+    {
+      "name": "a-loading-2",
+      "file": "a-loading-2-2026-09-12T14-13-06-612Z-0.jpg",
+      "archivedAt": "2026-09-12T14:13:06.612Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "E7D6574A269E82CC4F76117006AD7FE73999F2DF45EA8252F8BE79D509D50FA0"
+    },
+    {
+      "name": "a-f9-before-close-1",
+      "file": "a-f9-before-close-1-2026-09-12T14-13-17-059Z-0.jpg",
+      "archivedAt": "2026-09-12T14:13:17.059Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "8B6D6DF5C059AEAD4AFF9E64AFA1123AD3C22125C28FDEF53BBEB4AC38FE2B5D"
+    },
+    {
+      "name": "a-respawn-observed",
+      "file": "a-respawn-observed-2026-09-12T14-13-46-568Z-0.jpg",
+      "archivedAt": "2026-09-12T14:13:46.568Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "B58A63F650049B10BE25EE84B99E9953553DD627BAEA67CEBBBDDE3CEAAE7515"
+    },
+    {
+      "name": "a-close-1-immediate-after",
+      "file": "a-close-1-immediate-after-2026-09-12T14-14-01-803Z-0.jpg",
+      "archivedAt": "2026-09-12T14:14:01.803Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "1AE80EBA499B698761536F8F1783E59320962B42B7FB219AFD44B0EA357D2987"
+    },
+    {
+      "name": "a-f9-before-close-2",
+      "file": "a-f9-before-close-2-2026-09-12T14-14-15-462Z-0.jpg",
+      "archivedAt": "2026-09-12T14:14:15.462Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "B000CB6A85C0B7047BEFABC347B8128D86882C5FC28CFA2C0ACA88E311048D69"
+    },
+    {
+      "name": "a-close-2-immediate-after",
+      "file": "a-close-2-immediate-after-2026-09-12T14-14-25-740Z-0.jpg",
+      "archivedAt": "2026-09-12T14:14:25.740Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "DFBA8F161949368CDCA9D98B8D91D91F89326ED6BA117A6E204AE7AC3005C97C"
+    },
+    {
+      "name": "a-stop-native-pause",
+      "file": "a-stop-native-pause-2026-09-12T14-14-45-316Z-0.jpg",
+      "archivedAt": "2026-09-12T14:14:45.316Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "76A85BF73E78809568F42BE748EF6E31CC6BF0DB6CBA3FBCEE5D6BE80F54822C"
+    },
+    {
+      "name": "a-stop-disconnect-dialog",
+      "file": "a-stop-disconnect-dialog-2026-09-12T14-14-56-359Z-0.jpg",
+      "archivedAt": "2026-09-12T14:14:56.359Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "556F1E4399BAB5FF65DBCE44FFDA4D25629AA4D994A84F19BA41C573410E9FD5"
+    },
+    {
+      "name": "a-cleanup-disconnect-reobserve",
+      "file": "a-cleanup-disconnect-reobserve-2026-09-12T14-15-38-458Z-0.jpg",
+      "archivedAt": "2026-09-12T14:15:38.458Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "25F056EB706EFC1B7C1FF2C6D49D6CEFDBFA307C702CDF3FB58843D9D8D4C974"
+    },
+    {
+      "name": "a-cleanup-confirm-leave",
+      "file": "a-cleanup-confirm-leave-2026-09-12T14-15-48-838Z-0.jpg",
+      "archivedAt": "2026-09-12T14:15:48.838Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "2524F341A0BF1C59000CED5D782CA6C18F1D77EF398A160DBF46952D93AD7874"
+    },
+    {
+      "name": "a-cleanup-return-progress",
+      "file": "a-cleanup-return-progress-2026-09-12T14-16-12-470Z-0.jpg",
+      "archivedAt": "2026-09-12T14:16:12.470Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "9155B03C439BE7DCFA90783010D72EAA94488B6C9104BDC3157F3161A8F4FA00"
+    },
+    {
+      "name": "a-mainmenu-confirmation",
+      "file": "a-mainmenu-confirmation-2026-09-12T14-17-47-237Z-0.jpg",
+      "archivedAt": "2026-09-12T14:17:47.237Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "D205699E7EEBF3AB56C4AFA4F064210F2C0CD8B26F9A51CDC9B4F7A0D429B2C8"
+    },
+    {
+      "name": "restored-deathmatch-rules",
+      "file": "restored-deathmatch-rules-2026-09-12T14-19-26-946Z-0.jpg",
+      "archivedAt": "2026-09-12T14:19:26.946Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "501473000641B78999A7093D67B1D018B6815E442F22650A1656823B73281A52"
+    },
+    {
+      "name": "restored-gungame",
+      "file": "restored-gungame-2026-09-12T14-19-36-855Z-0.jpg",
+      "archivedAt": "2026-09-12T14:19:36.855Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "2F909A53E4E1D6710A28861587639EF3D79FD79107D6461765266506C09C16C2"
+    },
+    {
+      "name": "cleanup-restored-mainmenu",
+      "file": "cleanup-restored-mainmenu-2026-09-12T14-19-55-453Z-0.jpg",
+      "archivedAt": "2026-09-12T14:19:55.453Z",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "C40EA813EA452491D5C9E4DD9DDD48C691773A76544A1FA54A6700EA86A56879"
+    }
+  ]
+}

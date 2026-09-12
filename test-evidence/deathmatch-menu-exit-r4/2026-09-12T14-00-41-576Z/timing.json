@@ -1,0 +1,33 @@
+{
+  "testId": "deathmatch-menu-exit-r4",
+  "processes": {
+    "server": {
+      "pid": 13720,
+      "startUtc": "2026-09-12T14:03:14.2736787Z"
+    },
+    "launcher": {
+      "pid": 5680,
+      "startUtc": "2026-09-12T14:04:34.8307125Z"
+    },
+    "game": {
+      "pid": 13944,
+      "startUtc": "2026-09-12T14:06:02.8961331Z"
+    }
+  },
+  "budgetStart": "2026-09-12T14:10:22.932Z",
+  "deadline": "2026-09-12T14:30:22.932Z",
+  "stopRecordedAt": "2026-09-12T14:14:42.474Z",
+  "settingsRestoredAt": "2026-09-12T14:20:12.330Z",
+  "gameExitClickedAt": "2026-09-12T14:20:21.125Z",
+  "gameClosedObservedAt": "2026-09-12T14:21:19.004Z",
+  "cleanupFinishedAt": "2026-09-12T14:22:31.260Z",
+  "elapsedUpperBoundSeconds": 728.328,
+  "raidA": {
+    "beforeAt": "2026-09-12T14:11:43.217Z",
+    "readyAt": "2026-09-12T14:11:54.203Z",
+    "firstLiveImageArchivedAt": "2026-09-12T14:13:06.612Z",
+    "mainMenuImageArchivedAt": "2026-09-12T14:17:47.237Z",
+    "afterAt": "2026-09-12T14:17:57.841Z"
+  },
+  "note": "Conservative wall-clock upper bound includes tools/loading and cleanup. Screenshot times are archive bounds; no precise loading durations claimed."
+}

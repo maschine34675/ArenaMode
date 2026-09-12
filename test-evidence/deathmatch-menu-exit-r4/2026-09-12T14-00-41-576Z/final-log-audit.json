@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-12T14:27:36.644Z",
+  "client": {
+    "rawSha256": "689B4220B76A21BA84603BAEF265798466D44BECC06E12ECC67D43D6624A60EE",
+    "physicalLines": 13610,
+    "errors": 0
+  },
+  "server": {
+    "rawSha256": "0BBB69553D79570F7ADEE6E80E293BECFD7CC32F627DC3A8125970A3BF3488CC",
+    "auditedStartLine": 5727,
+    "physicalLines": 6825,
+    "errors": 0
+  },
+  "guardReadyCount": 1,
+  "sainGuardCount": 1,
+  "pickupGuardCount": 0
+}

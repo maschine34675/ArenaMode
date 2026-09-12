@@ -1,0 +1,50 @@
+{
+  "at": "2026-09-12T14:20:12.330Z",
+  "valuesBeforeCount": 147,
+  "valuesAfterCount": 147,
+  "valuesEqual": true,
+  "files": [
+    {
+      "name": "com.maschine.ArenaMode.cfg",
+      "path": "C:/SPT41/BepInEx/config/com.maschine.ArenaMode.cfg",
+      "hash": "EF2A27F7ADD6F44AE5D139226C9B6AC6AA2D348D828D15E7A2AB345E6521D094",
+      "finalHash": "AEBAD2BDA72228A3970C8A43FBE26719ACA28FCE3FF7ACB8B18246852C8FDACD",
+      "equal": false
+    },
+    {
+      "name": "com.maschine.RaidInfoPanels.cfg",
+      "path": "C:/SPT41/BepInEx/config/com.maschine.RaidInfoPanels.cfg",
+      "hash": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "finalHash": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "equal": true
+    },
+    {
+      "name": "Control.ini",
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Control.ini",
+      "hash": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "finalHash": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "equal": true
+    },
+    {
+      "name": "Graphics.ini",
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Graphics.ini",
+      "hash": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "finalHash": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "equal": true
+    },
+    {
+      "name": "config.json",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/config/config.json",
+      "hash": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "finalHash": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "equal": true
+    },
+    {
+      "name": "client-settings.json",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/config/client-settings.json",
+      "hash": "B7EB7D59113770BB5391DACC9AC0E900B10EF96D9CF17F99655837A591A53EDE",
+      "finalHash": "E6B709DF09C26223C0C7A54DE1FD1066B87A1A3BEA2F4329933025C6E9A03DC1",
+      "equal": false
+    }
+  ]
+}

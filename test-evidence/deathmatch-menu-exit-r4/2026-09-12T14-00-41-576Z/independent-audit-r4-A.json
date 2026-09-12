@@ -1,0 +1,226 @@
+{
+  "schema": "arenamode-independent-bounded-log-audit-r4-A-v1",
+  "createdUtc": "2026-09-12T14:25:34.7847483+00:00",
+  "scope": "A fresh startup through archived main-menu snapshot only; no later shutdown audit",
+  "sourceFiles": [
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r4\\2026-09-12T14-00-41-576Z\\logs\\a-mainmenu\\client.log",
+      "sha256": "207DC86B4595FAD6A2B3E01DC94A1EC52DDF7830FDA34ABA260AA129BC252E51",
+      "physicalLines": 13337,
+      "auditedFirstLine": 1,
+      "auditedLastLine": 13337,
+      "processStartUtc": "2026-09-12T14:06:02.8961331Z",
+      "firstLoggedUtc": "2026-09-12T14:06:12.085Z",
+      "lastLoggedUtc": "2026-09-12T14:16:44.890Z",
+      "timestampBasis": "UTC+02:00"
+    },
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r4\\2026-09-12T14-00-41-576Z\\logs\\a-mainmenu\\server.log",
+      "sha256": "70BAD9D255D86A12261BFAA2EAD3225889305D128C2339E9FACC67B6FBCC4FDC",
+      "physicalLines": 6788,
+      "auditedFirstLine": 5732,
+      "auditedLastLine": 6788,
+      "auditedPhysicalLineCount": 1057,
+      "processStartUtc": "2026-09-12T14:03:14.2736787Z",
+      "firstLoggedUtc": "2026-09-12T14:03:14.443Z",
+      "lastLoggedUtc": "2026-09-12T14:17:49.652Z",
+      "timestampBasis": "UTC",
+      "earlierRunsExcluded": true
+    }
+  ],
+  "errors": {
+    "clientErrorFatalCriticalCount": 0,
+    "serverErrorFatalCriticalCount": 0,
+    "clientThrownExceptionCandidates": 0,
+    "serverThrownExceptionCandidates": 0,
+    "clientRawExceptionWordRows": 25,
+    "excludedExceptionWordMeaning": "Harmony finalizer method declarations and Assert.raiseExceptions configuration, not thrown exceptions",
+    "exceptionStacks": [],
+    "clientWarnings": 27,
+    "serverWarnings": 1,
+    "clientWarningCategories": {
+      "optionalFikaReferencesMissing": 5,
+      "harmonyImplementedMethodWarnings": 4,
+      "missingFactoryObjectScripts": 12,
+      "stalePerfectCullingSampler": 3,
+      "negativeScaleBoxCollider": 1,
+      "animatorSynchronizedLayer": 1,
+      "arenaRestoreTemporarilyDeferred": 1
+    },
+    "serverWarningDescription": "One missing trader temporary-default entry at L6215; identifier redacted in excerpt.",
+    "otherNonErrorDiagnostics": [
+      "Client L99 Debug: native WebView2Loader.dll skipped by managed assembly loader (invalid .NET assembly).",
+      "Server L6450 Debug: bot loot wallet placement NO_SPACE, skipped; item id redacted in excerpt."
+    ],
+    "limitation": "Zero logged errors or thrown exceptions is not an acceptance PASS and does not negate the observed F9 Close-click shot."
+  },
+  "guards": {
+    "sainUninitializedSafeguardReady": {
+      "count": 1,
+      "clientLine": 4968,
+      "utc": "2026-09-12T14:06:24.791Z",
+      "meaning": "Startup registration marker only"
+    },
+    "sainUninitializedTeardown": {
+      "count": 1,
+      "clientLine": 13331,
+      "utc": "2026-09-12T14:15:49.847Z",
+      "meaning": "Guard path observed once during native early-exit cleanup"
+    },
+    "nativePickupCancellation": {
+      "count": 0,
+      "marker": "Arena bot teardown: cancelled pending native pickup before disposal.",
+      "status": "NOT OBSERVED",
+      "limitation": "Absence of marker and errors does not demonstrate that a pending native pickup was cancelled."
+    }
+  },
+  "lifecycle": [
+    {
+      "event": "server protected arm",
+      "source": "server",
+      "line": 6407,
+      "utc": "2026-09-12T14:12:15.211Z"
+    },
+    {
+      "event": "server all_vs_player frozen hostility",
+      "source": "server",
+      "line": 6428,
+      "utc": "2026-09-12T14:12:15.880Z"
+    },
+    {
+      "event": "server protected native start",
+      "source": "server",
+      "line": 6430,
+      "utc": "2026-09-12T14:12:16.109Z"
+    },
+    {
+      "event": "session active factory4_day",
+      "source": "client",
+      "line": 13128,
+      "utc": "2026-09-12T14:12:48.733Z"
+    },
+    {
+      "event": "match started Deathmatch",
+      "source": "client",
+      "line": 13137,
+      "utc": "2026-09-12T14:12:48.832Z"
+    },
+    {
+      "event": "raid-start kit swap complete Crusader",
+      "source": "client",
+      "line": 13198,
+      "utc": "2026-09-12T14:12:51.455Z"
+    },
+    {
+      "event": "round 1 started",
+      "source": "client",
+      "line": 13200,
+      "utc": "2026-09-12T14:12:51.539Z"
+    },
+    {
+      "event": "death #1 instant-respawn requested",
+      "source": "client",
+      "line": 13223,
+      "utc": "2026-09-12T14:13:14.125Z",
+      "limitation": "Marker proves a death event, not its attacker/cause; natural death classification comes from root UI observations."
+    },
+    {
+      "event": "respawn pipeline timing completed",
+      "source": "client",
+      "line": 13247,
+      "utc": "2026-09-12T14:13:33.532Z",
+      "loggedTotalSeconds": 19.4,
+      "loggedBundlesSeconds": 18.44
+    },
+    {
+      "event": "round 1 time limit target missed 0 kills 1 death 0 points",
+      "source": "client",
+      "line": 13281,
+      "utc": "2026-09-12T14:14:53.528Z"
+    },
+    {
+      "event": "round respawn complete Loyalist",
+      "source": "client",
+      "line": 13295,
+      "utc": "2026-09-12T14:14:54.375Z"
+    },
+    {
+      "event": "round 2 started",
+      "source": "client",
+      "line": 13308,
+      "utc": "2026-09-12T14:15:09.366Z"
+    },
+    {
+      "event": "restore deferred pending native end",
+      "source": "server",
+      "line": 6704,
+      "utc": "2026-09-12T14:15:49.522Z"
+    },
+    {
+      "event": "session ended",
+      "source": "client",
+      "line": 13326,
+      "utc": "2026-09-12T14:15:49.529Z"
+    },
+    {
+      "event": "match ended 0 kills 1 death score 0",
+      "source": "client",
+      "line": 13329,
+      "utc": "2026-09-12T14:15:49.537Z"
+    },
+    {
+      "event": "native local-end request",
+      "source": "server",
+      "line": 6706,
+      "utc": "2026-09-12T14:15:49.618Z"
+    },
+    {
+      "event": "profile snapshot restored",
+      "source": "server",
+      "line": 6707,
+      "utc": "2026-09-12T14:15:49.687Z"
+    },
+    {
+      "event": "protected end completed snapshot persisted",
+      "source": "server",
+      "line": 6710,
+      "utc": "2026-09-12T14:15:49.770Z"
+    }
+  ],
+  "derivedTiming": {
+    "kitCompleteToRound1StartMilliseconds": 84,
+    "round1StartToTimeLimitWallSeconds": 121.989,
+    "round1ResultToRound2StartWallSeconds": 15.838,
+    "limit": "Wall-clock log deltas, not direct countdown measurement."
+  },
+  "incompleteCases": [
+    "A terminal round-three banner and automatic exit not reached after whole STOP.",
+    "B FFA not run.",
+    "C Continuous/Giveup not run.",
+    "No terminal automatic-exit marker observed; native early manual exit only.",
+    "The first Disconnect coinciding with round boundary is not independently diagnosed from these logs."
+  ],
+  "profileAuditAlreadyCompleted": {
+    "method": "Independent complete recursive JSON comparison of A-before.json vs A-after.json, including property presence and ordered arrays; not raw hash equality.",
+    "beforeAt": "2026-09-12T14:11:43.217Z",
+    "afterAt": "2026-09-12T14:17:57.841Z",
+    "fullJsonDifferenceCount": 1,
+    "differences": [
+      {
+        "path": "characters.pmc.Hideout.sptUpdateLastRunTimestamp",
+        "before": 1789222283,
+        "after": 1789222643,
+        "beforeUtc": "2026-09-12T14:11:23Z",
+        "afterUtc": "2026-09-12T14:17:23Z",
+        "deltaSeconds": 360
+      }
+    ],
+    "otherValuesEqual": true,
+    "completeScavEqual": true,
+    "pmcExperienceBefore": 0,
+    "pmcExperienceAfter": 0,
+    "protectedFieldsAllEqual": true,
+    "limit": "Full PMC object is not identical because the Hideout timestamp advances."
+  },
+  "privacy": "No full profile contents or private identifiers included. All 24-hex identifiers in selected original log lines replaced explicitly by [redacted-id]."
+}

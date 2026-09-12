@@ -1,0 +1,15 @@
+{
+  "valuesEqual": true,
+  "valuesCount": 147,
+  "assetFilesEqual": true,
+  "assetFilesCount": 33,
+  "configByteDifference": "Only generated DoubleJumpEnabled description comment changed.",
+  "mirrorDifferences": {
+    "UpdatedAt": {
+      "before": "14:52:17",
+      "after": "16:19:36"
+    },
+    "entryDescription": "Movement/DoubleJumpEnabled description only; all Values equal"
+  },
+  "noOtherOwnSettingsChanged": true
+}

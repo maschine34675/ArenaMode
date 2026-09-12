@@ -1,0 +1,274 @@
+[
+  {
+    "at": "2026-09-12T14:10:22.944Z",
+    "action": "click",
+    "x": 959,
+    "y": 643,
+    "name": "a-native-entry",
+    "returnAt": "2026-09-12T14:10:24.098Z"
+  },
+  {
+    "at": "2026-09-12T14:10:30.135Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "name": "a-arena-selected",
+    "returnAt": "2026-09-12T14:10:31.031Z"
+  },
+  {
+    "at": "2026-09-12T14:10:35.918Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "a-map-open",
+    "returnAt": "2026-09-12T14:10:36.907Z"
+  },
+  {
+    "at": "2026-09-12T14:10:44.045Z",
+    "action": "click",
+    "x": 234,
+    "y": 270,
+    "name": "a-deathmatch-rules",
+    "returnAt": "2026-09-12T14:10:44.878Z"
+  },
+  {
+    "at": "2026-09-12T14:10:51.329Z",
+    "action": "click",
+    "x": 237,
+    "y": 509,
+    "returnAt": "2026-09-12T14:10:52.132Z"
+  },
+  {
+    "at": "2026-09-12T14:10:58.376Z",
+    "action": "click",
+    "x": 172,
+    "y": 559,
+    "returnAt": "2026-09-12T14:10:59.201Z"
+  },
+  {
+    "at": "2026-09-12T14:11:07.095Z",
+    "action": "click",
+    "x": 172,
+    "y": 611,
+    "returnAt": "2026-09-12T14:11:07.905Z"
+  },
+  {
+    "at": "2026-09-12T14:11:13.806Z",
+    "action": "click",
+    "x": 237,
+    "y": 509,
+    "returnAt": "2026-09-12T14:11:14.626Z"
+  },
+  {
+    "at": "2026-09-12T14:11:21.905Z",
+    "action": "click",
+    "x": 315,
+    "y": 662,
+    "returnAt": "2026-09-12T14:11:22.699Z"
+  },
+  {
+    "at": "2026-09-12T14:11:28.964Z",
+    "action": "click",
+    "x": 709,
+    "y": 392,
+    "name": "a-factory-rules",
+    "returnAt": "2026-09-12T14:11:29.795Z"
+  },
+  {
+    "at": "2026-09-12T14:11:35.384Z",
+    "action": "click",
+    "x": 699,
+    "y": 867,
+    "name": "a-factory-day-final-rules",
+    "returnAt": "2026-09-12T14:11:36.201Z"
+  },
+  {
+    "at": "2026-09-12T14:11:43.236Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "a-next-predeploy",
+    "returnAt": "2026-09-12T14:11:44.261Z"
+  },
+  {
+    "at": "2026-09-12T14:11:54.203Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "a-ready-loading",
+    "returnAt": "2026-09-12T14:11:55.853Z"
+  },
+  {
+    "at": "2026-09-12T14:13:14.897Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-f9-before-close-1",
+    "returnAt": "2026-09-12T14:13:17.058Z"
+  },
+  {
+    "at": "2026-09-12T14:13:59.807Z",
+    "action": "click",
+    "x": 1042,
+    "y": 906,
+    "name": "a-close-1-immediate-after",
+    "returnAt": "2026-09-12T14:14:01.803Z"
+  },
+  {
+    "at": "2026-09-12T14:14:12.940Z",
+    "action": "key",
+    "key": "F9",
+    "name": "a-f9-before-close-2",
+    "returnAt": "2026-09-12T14:14:15.450Z"
+  },
+  {
+    "at": "2026-09-12T14:14:23.376Z",
+    "action": "click",
+    "x": 1042,
+    "y": 906,
+    "name": "a-close-2-immediate-after",
+    "returnAt": "2026-09-12T14:14:25.727Z"
+  },
+  {
+    "at": "2026-09-12T14:14:42.631Z",
+    "action": "key",
+    "key": "Escape",
+    "name": "a-stop-native-pause",
+    "returnAt": "2026-09-12T14:14:45.315Z"
+  },
+  {
+    "at": "2026-09-12T14:14:54.252Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "a-stop-disconnect-dialog",
+    "returnAt": "2026-09-12T14:14:56.359Z"
+  },
+  {
+    "at": "2026-09-12T14:15:23.782Z",
+    "action": "key",
+    "key": "Escape",
+    "name": "a-cleanup-escape-from-panel",
+    "returnAt": "2026-09-12T14:15:25.804Z"
+  },
+  {
+    "at": "2026-09-12T14:15:36.282Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "a-cleanup-disconnect-reobserve",
+    "returnAt": "2026-09-12T14:15:38.458Z"
+  },
+  {
+    "at": "2026-09-12T14:15:46.165Z",
+    "action": "click",
+    "x": 960,
+    "y": 970,
+    "name": "a-cleanup-confirm-leave",
+    "returnAt": "2026-09-12T14:15:48.793Z"
+  },
+  {
+    "at": "2026-09-12T14:16:21.828Z",
+    "action": "click",
+    "x": 960,
+    "y": 1030,
+    "name": "a-cleanup-endscreen-mainmenu",
+    "returnAt": "2026-09-12T14:16:25.082Z"
+  },
+  {
+    "at": "2026-09-12T14:18:32.303Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "restore-arena-entry",
+    "returnAt": "2026-09-12T14:18:33.181Z"
+  },
+  {
+    "at": "2026-09-12T14:18:39.859Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "returnAt": "2026-09-12T14:18:40.643Z"
+  },
+  {
+    "at": "2026-09-12T14:18:49.899Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "returnAt": "2026-09-12T14:18:50.790Z"
+  },
+  {
+    "at": "2026-09-12T14:18:57.832Z",
+    "action": "click",
+    "x": 106,
+    "y": 509,
+    "returnAt": "2026-09-12T14:18:58.639Z"
+  },
+  {
+    "at": "2026-09-12T14:19:08.145Z",
+    "action": "click",
+    "x": 106,
+    "y": 559,
+    "returnAt": "2026-09-12T14:19:08.950Z"
+  },
+  {
+    "at": "2026-09-12T14:19:15.640Z",
+    "action": "click",
+    "x": 106,
+    "y": 611,
+    "returnAt": "2026-09-12T14:19:16.454Z"
+  },
+  {
+    "at": "2026-09-12T14:19:26.182Z",
+    "action": "click",
+    "x": 154,
+    "y": 662,
+    "name": "restored-deathmatch-rules",
+    "returnAt": "2026-09-12T14:19:26.946Z"
+  },
+  {
+    "at": "2026-09-12T14:19:36.019Z",
+    "action": "click",
+    "x": 234,
+    "y": 312,
+    "name": "restored-gungame",
+    "returnAt": "2026-09-12T14:19:36.855Z"
+  },
+  {
+    "at": "2026-09-12T14:19:45.128Z",
+    "action": "click",
+    "x": 960,
+    "y": 1013,
+    "returnAt": "2026-09-12T14:19:45.957Z"
+  },
+  {
+    "at": "2026-09-12T14:19:54.550Z",
+    "action": "click",
+    "x": 960,
+    "y": 1013,
+    "name": "cleanup-restored-mainmenu",
+    "returnAt": "2026-09-12T14:19:55.451Z"
+  },
+  {
+    "at": "2026-09-12T14:20:12.337Z",
+    "action": "click",
+    "x": 960,
+    "y": 1009,
+    "name": "cleanup-game-exit-confirmation",
+    "returnAt": "2026-09-12T14:20:13.130Z"
+  },
+  {
+    "at": "2026-09-12T14:20:21.125Z",
+    "action": "click",
+    "x": 865,
+    "y": 573,
+    "name": "cleanup-game-exit",
+    "returnAt": "2026-09-12T14:20:24.298Z"
+  },
+  {
+    "at": "2026-09-12T14:21:27.081Z",
+    "action": "click",
+    "x": 1032,
+    "y": 15,
+    "name": "cleanup-launcher-close"
+  }
+]
