@@ -351,6 +351,19 @@ internal static class LiveKitRespawn
             return;
         }
 
+        // The engine got as far as installing the replacement: finish wiring THAT body
+        // before anything else — a half-installed local player NRE-spams every LateUpdate
+        // until the raid is gone (first playtest bug). A bounded area still ends the round
+        // afterwards, unless the recovery already ended the raid itself.
+        var current = game.LocalPlayer;
+        if (current != null && !ReferenceEquals(current, oldBody))
+        {
+            RecoverReplacementBody(game, current, oldBody);
+            if (!ArenaRespawnDriver.StandDown && Areas.ArenaAreaRuntime.CurrentArea != null)
+                Areas.ArenaAreaRuntime.Abort("live body replacement failed mid-wire; the round cannot continue");
+            return;
+        }
+
         if (Areas.ArenaAreaRuntime.CurrentArea != null)
         {
             Areas.ArenaAreaRuntime.Abort("live body replacement failed; unsafe rewiring was refused");
@@ -358,13 +371,6 @@ internal static class LiveKitRespawn
         }
         try
         {
-            var current = game.LocalPlayer;
-            if (current != null && !ReferenceEquals(current, oldBody))
-            {
-                RecoverReplacementBody(game, current, oldBody);
-                return;
-            }
-
             LocalGameAccessor.UnsubscribeDeathHandler(game, oldBody);
             LocalGameAccessor.SubscribeDeathHandler(game, oldBody);
 
@@ -415,8 +421,13 @@ internal static class LiveKitRespawn
             || !Comfort.Common.Singleton<GameWorld>.Instance.RegisteredPlayers.Contains(body))
             return false;
 
+        // A Started owner: vanilla starts it in Spawn, before OnGameStarted, so every swap
+        // sees one; an owner the engine stopped but could not destroy must fall through to
+        // the rewire, which restarts it.
         var owner = LocalGameAccessor.GetPlayerOwner(game);
-        return owner != null && ReferenceEquals(owner.Player, body);
+        return owner != null
+            && ReferenceEquals(owner.Player, body)
+            && owner.State == PlayerOwner.EState.Started;
     }
 
     /// <summary>The engine failed mid-rewire: complete the replacement's wiring instead.</summary>
