@@ -1,3 +1,4 @@
+using ArenaMode.Compat;
 using ArenaMode.Config;
 using ArenaMode.Session;
 using Comfort.Common;
@@ -28,6 +29,20 @@ namespace ArenaMode.Kits;
 /// raid start and restores it at raid end: this is the same mechanism that lets
 /// an arena raid cost nothing at all. The items are back in the stash the moment
 /// the raid is over, whatever happens in between.
+///
+/// Not in a protected 5v5 raid. That mode issues no kit: the PMC keeps their
+/// own loadout, and the secure container is one of the slots the round rebuild
+/// carries over from the dead body as the same object (TeamArenaLoadoutSnapshot
+/// leaves it out of the snapshot for exactly that reason; nothing ever puts
+/// consumed contents back). There is no medical ladder for a pouch of
+/// Grizzlies to outclass, so the argument above has nothing to stand on, and
+/// what the emptying did there was worse than nothing. It ran one frame after
+/// the latch, destroying the player's own supplies, and any non-consumable it
+/// destroyed would have failed the protected-loadout boundary at the first
+/// death and ended the match as no contest; and when it did not get that far,
+/// the slot was hidden over contents that were still there and still bound to
+/// the quick slots — usable by key, invisible on screen, which is how it was
+/// reported.
 /// </summary>
 internal static class ArenaSecureContainer
 {
@@ -35,12 +50,24 @@ internal static class ArenaSecureContainer
 
     private static float _nextCheckAt;
     private static bool _loggedFailure;
+    private static bool _loggedRefusal;
     private static int _emptied;
+
+    /// <summary>
+    /// Whether this raid leaves the container's contents at home at all. Asked
+    /// by the emptying below and by the slot-hiding patch alike, so the two
+    /// can never disagree again: a hidden slot is only ever an emptied one.
+    /// </summary>
+    internal static bool LeavesContentsAtHome
+        => ArenaSession.IsActive
+           && Settings.EmptySecureContainer.Value
+           && !PitFireTeamCompat.HasFrozenTeamRoster;
 
     public static void Reset()
     {
         _nextCheckAt = 0f;
         _loggedFailure = false;
+        _loggedRefusal = false;
         _emptied = 0;
     }
 
@@ -52,7 +79,7 @@ internal static class ArenaSecureContainer
     /// </summary>
     public static void Tick()
     {
-        if (!ArenaSession.IsActive || !Settings.EmptySecureContainer.Value || Time.time < _nextCheckAt)
+        if (!LeavesContentsAtHome || Time.time < _nextCheckAt)
             return;
 
         _nextCheckAt = Time.time + CheckIntervalSeconds;
@@ -118,7 +145,23 @@ internal static class ArenaSecureContainer
 
         var result = ItemManipulator.RemoveWithoutRestrictions(item, controller);
         if (!result.Succeeded)
+        {
+            // A refusal (a locked address, an item the game is busy with) is
+            // the one path that leaves the slot hidden over contents that are
+            // still there, so it is said out loud rather than swallowed. Once:
+            // the poll would otherwise repeat it every two seconds. There is
+            // no dry run to ask first — the native Remove with restrictions
+            // ignored performs the removal even when told to simulate.
+            if (!_loggedRefusal)
+            {
+                _loggedRefusal = true;
+                Plugin.ModLogger.LogWarning(
+                    $"Arena secure container: could not leave {item.TemplateId} out ({result.Error}); "
+                    + "it stays where it is, unbound (further refusals this raid are not logged).");
+            }
+
             return false;
+        }
 
         // The container changes immediately; only RaiseEvents tells the views.
         // Skipping it is the trap this project has hit twice — the item leaves

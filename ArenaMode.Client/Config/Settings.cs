@@ -610,7 +610,8 @@ public static class Settings
             "your own supplies come with you, which outclasses every kit's medicine and " +
             "makes the medical tiers decorative. The special slots are a separate matter " +
             "and this switch does not reach them: arena kits wear pockets that have none, " +
-            "so there is nothing there to empty either way.");
+            "so there is nothing there to empty either way. A protected 5v5 raid keeps " +
+            "your own loadout and is exempt: the container stays as it is, shown and usable.");
 
         AutoSearchCorpses = config.Bind(
             "Loot",

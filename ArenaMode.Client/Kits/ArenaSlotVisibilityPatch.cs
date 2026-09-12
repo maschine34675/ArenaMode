@@ -1,5 +1,3 @@
-using ArenaMode.Config;
-using ArenaMode.Session;
 using EFT.InventoryLogic;
 using HarmonyLib;
 using SPT.Reflection.Patching;
@@ -18,7 +16,13 @@ namespace ArenaMode.Kits;
 ///
 /// Cosmetic, and downstream of the real change: the container is emptied anyway,
 /// so this only stops the player opening a slot that has nothing in it and
-/// wondering whether that is a bug.
+/// wondering whether that is a bug. Downstream literally: it asks the emptying
+/// service whether this raid empties the container, and hides the slot only
+/// then. A protected 5v5 raid keeps the PMC's own loadout, container and all
+/// (the container is carried over between rounds as the same object), and
+/// shows it — the first version hid it there over contents that were still
+/// present and still bound to the quick slots, usable by key and invisible on
+/// screen.
 ///
 /// Through the game's own question rather than through its answer.
 /// InventoryController keeps the hidden-slot lists in STATIC arrays —
@@ -40,7 +44,7 @@ internal static class ArenaSlotVisibilityPatches
         if (!visible || slotName != EquipmentSlot.SecuredContainer)
             return;
 
-        if (!ArenaSession.IsActive || !Settings.EmptySecureContainer.Value)
+        if (!ArenaSecureContainer.LeavesContentsAtHome)
             return;
 
         visible = false;
