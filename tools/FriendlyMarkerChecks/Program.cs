@@ -15,6 +15,7 @@ int Visible(RectTransform root) => root.Children.Count(v => v.gameObject != null
 int Drawn(RectTransform root) => root.Children.Count(v => v.gameObject != null && v.gameObject.activeInHierarchy && v.gameObject.GetComponent<Image>().HasGeometry);
 void Reset()
 {
+    Screen.width = 1920; Screen.height = 1080;
     Canvas.Reset(); Camera.Reset(); Time.unscaledTime = 0; ArenaMode.Plugin.ModLogger.Info.Clear(); ArenaSession.IsActive = ArenaSession.Exact = true; ArenaSession.ActiveMode = "teamdeathmatch";
     Settings.HudEnabled.Value = Settings.ShowFriendlyMarkers.Value = true; PitFireTeamCompat.TeamArenaActive = true;
     Settings.FriendlyTracerColor.Value = ArenaMode.Effects.ArenaTracerColor.Cyan;
@@ -220,4 +221,74 @@ Check(ArenaMode.Plugin.ModLogger.Info[2].Contains("blocked=1") && ArenaMode.Plug
 for (int i = 0; i < 100; i++) { Time.unscaledTime += 10; ui.markers.Tick(ArenaMatchService.Current); }
 Check(ArenaMode.Plugin.ModLogger.Info.Count == 3, "render diagnostics remain capped over long matches");
 ui.markers.Dispose();
+// Projection exercises the actual marker callback, field reader and policy.
+// The camera collaborator supplies normalized geometry and native input pixels;
+// literal expected HUD positions independently specify the display contract.
+void CheckPosition(RectTransform root, float x, float y, string message)
+{
+    var actual = ((RectTransform)root.Children[0]).anchoredPosition;
+    Check(Drawn(root) == 1 && MathF.Abs(actual.x - x) < .001f && MathF.Abs(actual.y - y) < .001f,
+        message + $" (actual {actual.x}, {actual.y})");
+}
+Reset(); friend = TeamBot("scaled friend");
+friend.PlayerBones.Head.Original.position = new Vector3(.75f, .6f, 10f);
+ui = Markers(); var outputCamera = CameraManager.Instance.Camera;
+var scaler = outputCamera.gameObject.AddComponent<SSAAImpl>();
+Render(); CheckPosition(ui.root, 480, 138, "native output projection preserves unscaled alignment");
+scaler.ApplyState(1); outputCamera.rect = new Rect(0, 0, .5f, .5f);
+Render(); CheckPosition(ui.root, 480, 138, "DLSS input pixels must expand to full output HUD coordinates");
+Check(Physics.LastEnd.Equals(friend.PlayerBones.Head.position), "DLSS correction preserves actual-head occlusion endpoint");
+Check(outputCamera.WorldToScreenPoint(friend.PlayerBones.Head.position).Equals(new Vector3(720, 324, 10)),
+    "native input-pixel collaborator reproduces the reported half-resolution displacement");
+foreach (float ratio in new[] { .333333f, .58f, .666667f, .77f, .91f })
+{
+    outputCamera.rect = new Rect(0, 0, ratio, ratio); Render();
+    CheckPosition(ui.root, 480, 138, "quality changes cannot scale marker placement: " + ratio);
+}
+// Requested changes are deliberately contradictory to the actual native state.
+scaler.RequestedRatio = 1; outputCamera.rect = new Rect(0, 0, .5f, .5f); Render();
+CheckPosition(ui.root, 480, 138, "pending DLSS disable retains applied upscale output mapping");
+scaler.ApplyState(0); scaler.RequestedRatio = .5f;
+outputCamera.rect = new Rect(.1f, .2f, .6f, .5f); Render();
+CheckPosition(ui.root, 96, 30, "pending DLSS enable retains unscaled viewport offsets");
+scaler.ApplyState(1); scaler.isActiveAndEnabled = false; Render();
+CheckPosition(ui.root, 96, 30, "disabled scaler retains ordinary viewport mapping");
+scaler.isActiveAndEnabled = true; scaler.ApplyState(2);
+outputCamera.rect = new Rect(0, 0, 1, 1); outputCamera.RenderTargetWidth = 3840; outputCamera.RenderTargetHeight = 2160;
+Render(); CheckPosition(ui.root, 480, 138, "supersampled render target maps to output without input-size multiplication");
+outputCamera.RenderTargetWidth = outputCamera.RenderTargetHeight = 0;
+Render(); CheckPosition(ui.root, 480, 138, "post-render RT detachment cannot change supersampled marker alignment");
+Screen.width = 2560; Screen.height = 1440; Render();
+CheckPosition(ui.root, 640, 174, "display resolution changes are sampled in the same canvas pass");
+RectTransformUtility.Scale = 4f / 3f; Render();
+CheckPosition(ui.root, 480, 138, "canvas scaling retains the thirty-HUD-pixel raised head anchor");
+scaler.ApplyState(0); outputCamera.rect = new Rect(.25f, .125f, .5f, .75f); Render();
+CheckPosition(ui.root, 240, 111, "changed viewport and resolution use output pixels before canvas conversion");
+outputCamera.rect = new Rect(-.25f, 0, .75f, 1); Render();
+CheckPosition(ui.root, -360, 138, "partially clipped viewport retains its real display offset");
+outputCamera.rect = new Rect(-.9f, 0, .5f, 1); Render();
+Check(Drawn(ui.root) == 0, "on-camera point outside the output screen stays hidden");
+// A previous camera's scaler must not steer the newly selected camera.
+scaler.ApplyState(1); CameraManager.Instance.Camera = new GameObject().AddComponent<Camera>();
+CameraManager.Instance.Camera.rect = new Rect(.1f, .2f, .6f, .5f); Render();
+CheckPosition(ui.root, 96, 30, "camera replacement cannot borrow the old scaler's full-screen mapping");
+ui.markers.Dispose();
+foreach (string invalid in new[] { "zero-output", "negative-output", "zero-width", "negative-height", "nan-offset", "infinite-size", "unknown-scale-state" })
+{
+    Reset(); TeamBot("friend"); ui = Markers(); Render();
+    Check(Drawn(ui.root) == 1, "projection failure test has a previously visible marker: " + invalid);
+    outputCamera = CameraManager.Instance.Camera;
+    switch (invalid)
+    {
+        case "zero-output": Screen.width = 0; break;
+        case "negative-output": Screen.height = -1; break;
+        case "zero-width": outputCamera.rect = new Rect(0, 0, 0, 1); break;
+        case "negative-height": outputCamera.rect = new Rect(0, 0, 1, -1); break;
+        case "nan-offset": outputCamera.rect = new Rect(float.NaN, 0, 1, 1); break;
+        case "infinite-size": outputCamera.rect = new Rect(0, 0, 1, float.PositiveInfinity); break;
+        case "unknown-scale-state": outputCamera.gameObject.AddComponent<SSAAImpl>().ApplyState(73); break;
+    }
+    Render(); Check(Drawn(ui.root) == 0, "invalid output projection clears previous geometry: " + invalid);
+    ui.markers.Dispose();
+}
 Console.WriteLine($"ARENA_FRIENDLY_MARKER_CHECKS_PASSED ({checks} assertions)");

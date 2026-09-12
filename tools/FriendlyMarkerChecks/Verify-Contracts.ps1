@@ -8,6 +8,7 @@ $unity = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'Unit
 $physics = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.PhysicsModule.dll'))
 $uiModule = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.UIModule.dll'))
 $ui = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'UnityEngine.UI.dll'))
+$post = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $managed 'Unity.Postprocessing.Runtime.dll'))
 try {
     foreach ($spec in @(
         @('PlayerBones', 'Head', 'EFT.BifacialTransform'),
@@ -47,6 +48,23 @@ try {
     foreach ($method in @('WorldToViewportPoint', 'WorldToScreenPoint')) {
         if (@($camera.Methods | Where-Object { $_.Name -eq $method -and $_.Parameters.Count -eq 1 -and $_.Parameters[0].ParameterType.FullName -eq 'UnityEngine.Vector3' }).Count -ne 1) { throw "Camera.$method(Vector3) unavailable" }
     }
+    if (@($camera.Properties | Where-Object { $_.Name -eq 'rect' -and $_.PropertyType.FullName -eq 'UnityEngine.Rect' -and $_.GetMethod.IsPublic }).Count -ne 1) { throw 'Native camera viewport getter changed.' }
+    $screen = $unity.MainModule.GetType('UnityEngine.Screen')
+    foreach ($name in @('width', 'height')) {
+        if (@($screen.Properties | Where-Object { $_.Name -eq $name -and $_.PropertyType.FullName -eq 'System.Int32' -and $_.GetMethod.IsStatic }).Count -ne 1) { throw "Native output size getter changed: $name" }
+    }
+    $ssaa = $post.MainModule.GetType('SSAAImpl')
+    $stateField = @($ssaa.Fields | Where-Object { $_.Name -eq 'CurrentState' -and $_.IsPrivate -and !$_.IsStatic })
+    if ($stateField.Count -ne 1 -or $stateField[0].FieldType.FullName -ne 'SSAAImpl/SSState') { throw 'Native applied SSAA state field drifted.' }
+    $states = @($ssaa.NestedTypes | Where-Object Name -eq 'SSState')[0]
+    $names = @($states.Fields | Where-Object HasConstant | ForEach-Object Name)
+    if (($names -join ',') -ne 'NOSCALE,UPSCALE,DOWNSCALE') { throw 'Native SSAA state names drifted.' }
+    $switchCalls = ($ssaa.Methods | Where-Object Name -eq 'ApplySwitch').Body.Instructions.Operand | Out-String
+    if (!$switchCalls.Contains('set_rect') -or !$switchCalls.Contains('CurrentState') -or !$switchCalls.Contains('set_targetTexture')) { throw 'Native SSAA applied viewport ownership changed.' }
+    foreach ($spec in @(@('GetOutputWidth', 'get_width'), @('GetOutputHeight', 'get_height'))) {
+        $reads = ($ssaa.Methods | Where-Object Name -eq $spec[0]).Body.Instructions.Operand | Out-String
+        if (!$reads.Contains("UnityEngine.Screen::$($spec[1])")) { throw "Native SSAA output is no longer display pixels: $($spec[0])" }
+    }
     $linecast = @($physics.MainModule.GetType('UnityEngine.Physics').Methods | Where-Object {
         $_.Name -eq 'Linecast' -and (($_.Parameters | ForEach-Object { $_.ParameterType.FullName }) -join ',') -eq 'UnityEngine.Vector3,UnityEngine.Vector3,System.Int32,UnityEngine.QueryTriggerInteraction'
     })
@@ -61,6 +79,10 @@ try {
         $found = @($world.Methods | Where-Object { $_.Name -eq $method -and $_.Parameters.Count -eq 1 -and $_.Parameters[0].ParameterType.FullName -eq 'System.String' })
         if ($found.Count -ne 1 -or $found[0].ReturnType.FullName -ne 'EFT.Player') { throw "Native current body lookup differs: $method" }
     }
-    Write-Output 'ARENA_FRIENDLY_MARKER_CONTRACTS_PASSED'
 }
-finally { $game.Dispose(); $unity.Dispose(); $physics.Dispose(); $uiModule.Dispose(); $ui.Dispose() }
+finally { $game.Dispose(); $unity.Dispose(); $physics.Dispose(); $uiModule.Dispose(); $ui.Dispose(); $post.Dispose() }
+# Isolated helper only: no project reference or deployment target. Actual marker
+# source plus native-I/O collaborators must pass and reject compiled projection bugs.
+& (Join-Path $PSScriptRoot 'Verify-Regression.ps1') -ProjectionOnly
+if (!$?) { throw 'Production-linked marker projection checks failed.' }
+Write-Output 'ARENA_FRIENDLY_MARKER_CONTRACTS_PASSED'

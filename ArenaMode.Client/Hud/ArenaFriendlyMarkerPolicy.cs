@@ -19,6 +19,27 @@ internal static class ArenaFriendlyMarkerPolicy
 
     internal static bool Finite(Vector3 value) => Finite(value.x) && Finite(value.y) && Finite(value.z);
 
+    internal static bool TryScreenPoint(Vector3 viewport, Rect cameraRect, bool scalesToFullScreen,
+        int outputWidth, int outputHeight, out Vector2 screen)
+    {
+        screen = default;
+        // Front/distance/edge admission stays in Projectable, before this mapping.
+        if (!Finite(viewport) || outputWidth <= 0 || outputHeight <= 0
+            || !Finite(cameraRect.x) || !Finite(cameraRect.y)
+            || !Finite(cameraRect.width) || !Finite(cameraRect.height)
+            || cameraRect.width <= 0f || cameraRect.height <= 0f) return false;
+
+        // SSAAImpl expands its input viewport across the full output, including
+        // DLSS's reduced Camera.rect. Without native scaling, retain the real
+        // viewport offset/size. Input pixel dimensions must never enter HUD space.
+        Rect outputRect = scalesToFullScreen ? new Rect(0f, 0f, 1f, 1f) : cameraRect;
+        float x = (outputRect.x + viewport.x * outputRect.width) * outputWidth;
+        float y = (outputRect.y + viewport.y * outputRect.height) * outputHeight;
+        if (!Finite(x) || !Finite(y) || x < 0f || x >= outputWidth || y < 0f || y >= outputHeight) return false;
+        screen = new Vector2(x, y);
+        return true;
+    }
+
     internal static Color Color(Color tracer)
     {
         float peak = Math.Max(tracer.r, Math.Max(tracer.g, tracer.b));

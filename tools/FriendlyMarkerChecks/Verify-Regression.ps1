@@ -1,3 +1,4 @@
+param([switch]$ProjectionOnly)
 $ErrorActionPreference = 'Stop'
 $project = Join-Path $PSScriptRoot 'FriendlyMarkerChecks.csproj'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -26,15 +27,19 @@ $mutants = @(
     @{ Name='StaleOriginalHead'; Key='MarkerSource'; From='Vector3 headPosition = head.position;'; To='Vector3 headPosition = head.Original.position;'; Failure='virtualized head pose must override the stale Original transform' },
     @{ Name='TacticalRebind'; Key='TacticalMarkerSource'; From='_phase != Phase.Live'; To='false'; Failure='invalid Tactical identity is rejected: staging' },
     @{ Name='HistoricalFollower'; Key='TacticalMarkerSource'; From='!ReferenceEquals(owner.GetPlayer, player)'; To='false'; Failure='invalid Tactical identity is rejected: aliasbody' },
-    @{ Name='TacticalWorldAlias'; Key='TacticalMarkerSource'; From='!ReferenceEquals(world.GetAlivePlayerByProfileID(player.ProfileId), player)'; To='false'; Failure='invalid Tactical identity is rejected: alivealias' }
+    @{ Name='TacticalWorldAlias'; Key='TacticalMarkerSource'; From='!ReferenceEquals(world.GetAlivePlayerByProfileID(player.ProfileId), player)'; To='false'; Failure='invalid Tactical identity is rejected: alivealias' },
+    @{ Name='InputPixels'; Projection=$true; Key='MarkerSource'; From='outputWidth, outputHeight, out Vector2 screen)) continue;'; To="outputWidth, outputHeight, out Vector2 screen)) continue;`n            screen = camera.WorldToScreenPoint(headPosition);"; Failure='DLSS input pixels must expand to full output HUD coordinates' },
+    @{ Name='ViewportLost'; Projection=$true; Key='PolicySource'; From='Rect outputRect = scalesToFullScreen ? new Rect(0f, 0f, 1f, 1f) : cameraRect;'; To='Rect outputRect = new Rect(0f, 0f, 1f, 1f);'; Failure='pending DLSS enable retains unscaled viewport offsets' },
+    @{ Name='ScaleIgnored'; Projection=$true; Key='MarkerSource'; From='case "DOWNSCALE": scalesToFullScreen = true; return true;'; To='case "DOWNSCALE": scalesToFullScreen = false; return true;'; Failure='DLSS input pixels must expand to full output HUD coordinates' }
 )
+if ($ProjectionOnly) { $mutants = @($mutants | Where-Object Projection -eq $true) }
 foreach ($m in $mutants) {
     if (!$texts[$m.Key].Contains($m.From)) { throw "Missing mutation anchor: $($m.Name)" }
     $path = Join-Path $temp ($m.Name + '.cs'); [IO.File]::WriteAllText($path, $texts[$m.Key].Replace($m.From, $m.To))
     $runArgs = @('run', '--project', $project, '-c', ('MarkerMutant' + $m.Name))
     foreach ($key in $sources.Keys) { $source = if ($key -eq $m.Key) { $path } else { $snapshots[$key] }; $runArgs += "-p:${key}=$source" }
     $output = & dotnet @runArgs 2>&1 | Out-String
-    if ($LASTEXITCODE -eq 0 -or !$output.Contains($m.Failure)) { throw "Mutant did not fail the intended assertion: $($m.Name)`n$output" }
+    if ($LASTEXITCODE -eq 0 -or $output -match 'error (CS|MSB|NETSDK)\d+' -or !$output.Contains($m.Failure)) { throw "Mutant did not fail the intended assertion: $($m.Name)`n$output" }
     Write-Output "Rejected mutant: $($m.Name)"
 }
 foreach ($key in $sources.Keys) { if ((Get-FileHash -LiteralPath $sources[$key] -Algorithm SHA256).Hash -ne $hashes[$key]) { throw "Production source changed during checks: $key" } }

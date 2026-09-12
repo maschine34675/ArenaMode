@@ -36,7 +36,7 @@ namespace UnityEngine
                 foreach (var image in UI.Image.All.Where(i => !i.gameObject.activeInHierarchy)) image.HasGeometry = false;
         }
     }
-    public class Component : Object { public GameObject gameObject; public Transform transform => gameObject.transform; }
+    public class Component : Object { public GameObject gameObject; public Transform transform => gameObject.transform; public T GetComponent<T>() where T : Component => gameObject.GetComponent<T>(); }
     public class Transform : Component
     {
         public Transform parent;
@@ -53,14 +53,27 @@ namespace UnityEngine
         public static implicit operator Vector2(Vector3 p) => new(p.x, p.y);
     }
     public readonly record struct Color(float r, float g, float b, float a = 1f);
+    public readonly record struct Rect(float x, float y, float width, float height);
+    public static class Screen { public static int width = 1920, height = 1080; }
     public class Camera : Component
     {
         public static event Action<Camera> onPreCull;
         public static int Subscribers => onPreCull?.GetInvocationList().Length ?? 0;
         public bool isActiveAndEnabled = true;
+        public Rect rect = new(0, 0, 1, 1);
+        public int RenderTargetWidth, RenderTargetHeight;
         public Func<Vector3, Vector3> Project = p => p;
         public Vector3 WorldToViewportPoint(Vector3 p) => Project(p);
-        public Vector3 WorldToScreenPoint(Vector3 p) { var v = Project(p); return new Vector3(v.x * 1920, v.y * 1080, v.z); }
+        // Native camera projection collaborator: input/target pixels, not the
+        // postprocessed display. This deliberately reproduces the old DLSS bug.
+        public Vector3 WorldToScreenPoint(Vector3 p)
+        {
+            var v = Project(p);
+            return RenderTargetWidth > 0 && RenderTargetHeight > 0
+                ? new Vector3(v.x * RenderTargetWidth, v.y * RenderTargetHeight, v.z)
+                : new Vector3((rect.x + v.x * rect.width) * Screen.width,
+                    (rect.y + v.y * rect.height) * Screen.height, v.z);
+        }
         public static void Cull(Camera camera) => onPreCull?.Invoke(camera);
         public static void Reset() => onPreCull = null;
     }
@@ -83,7 +96,7 @@ namespace UnityEngine
         public static bool ConversionWorks = true;
         public static float Scale = 1f;
         public static bool ScreenPointToLocalPointInRectangle(RectTransform root, Vector2 screen, Camera camera, out Vector2 local)
-        { local = new((screen.x - 960) / Scale, (screen.y - 540) / Scale); return ConversionWorks; }
+        { local = new((screen.x - Screen.width / 2f) / Scale, (screen.y - Screen.height / 2f) / Scale); return ConversionWorks; }
     }
     public enum QueryTriggerInteraction { UseGlobal, Ignore, Collide }
     public static class Physics
@@ -96,6 +109,16 @@ namespace UnityEngine
         public static bool Linecast(Vector3 origin, Vector3 end, int mask, QueryTriggerInteraction query)
         { Rays++; LastOrigin = origin; LastEnd = end; LastMask = mask; LastTrigger = query; return IsBlocked(); }
     }
+}
+// Only native input/output state is modeled; the production field reader and
+// projection policy run unchanged. RequestedRatio does not imply applied state.
+public class SSAAImpl : UnityEngine.Component
+{
+    private enum SSState { NOSCALE, UPSCALE, DOWNSCALE }
+    private SSState CurrentState;
+    public bool isActiveAndEnabled = true;
+    public float RequestedRatio = 1f;
+    public void ApplyState(int state) => CurrentState = (SSState)state;
 }
 namespace UnityEngine.UI
 {

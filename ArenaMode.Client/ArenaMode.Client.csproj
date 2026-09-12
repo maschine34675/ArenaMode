@@ -70,6 +70,7 @@
     <Reference Include="Newtonsoft.Json" />
     <Reference Include="Sirenix.Serialization" />
     <Reference Include="Unity.TextMeshPro" />
+    <Reference Include="Unity.Postprocessing.Runtime" Private="false" />
     <Reference Include="UnityEngine.AIModule" />
     <Reference Include="UnityEngine.AnimationModule" Private="false" />
     <Reference Include="UnityEngine.AudioModule" />

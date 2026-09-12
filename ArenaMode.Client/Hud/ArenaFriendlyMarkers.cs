@@ -7,6 +7,7 @@ using EFT;
 using EFT.CameraControl;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,6 +22,11 @@ namespace ArenaMode.Hud;
 /// </summary>
 internal sealed class ArenaFriendlyMarkers : IDisposable
 {
+    // Read the applied native state, not SSAA.GetCurrentSSRatio: that wrapper
+    // changes the requested ratio before SSAAImpl applies it after rendering.
+    private static readonly FieldInfo SsaaStateField = typeof(SSAAImpl).GetField(
+        "CurrentState", BindingFlags.Instance | BindingFlags.NonPublic);
+
     private sealed class View
     {
         internal RectTransform Rect;
@@ -145,6 +151,11 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
         HideAll();
         _seen.Clear();
         _scanned = _friendly = _heads = _projected = _blocked = _shown = 0;
+        if (!TryReadOutputMapping(camera, out bool scalesToFullScreen)) return;
+        // Sample the current output and viewport on every canvas pass. SSAA may
+        // replace its input RT/rect when resolution or the quality setting changes.
+        Rect cameraRect = camera.rect;
+        int outputWidth = Screen.width, outputHeight = Screen.height;
         var world = Singleton<GameWorld>.Instance;
         var players = world.AllAlivePlayersList;
         if (players == null) return;
@@ -181,7 +192,8 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
             _projected++;
             rays++;
             if (Physics.Linecast(origin, headPosition, mask, QueryTriggerInteraction.Ignore)) { _blocked++; continue; }
-            Vector3 screen = camera.WorldToScreenPoint(headPosition);
+            if (!ArenaFriendlyMarkerPolicy.TryScreenPoint(viewport, cameraRect, scalesToFullScreen,
+                outputWidth, outputHeight, out Vector2 screen)) continue;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, screen, null, out Vector2 local)) continue;
             View view = _views[displayed++];
             view.Rect.anchoredPosition = local + new Vector2(0f, 30f);
@@ -192,6 +204,22 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
         // Only native bodies encountered during this render stay temporarily in
         // the dedupe set. No corpse or old-round object is retained between frames.
         _seen.Clear();
+    }
+
+    private static bool TryReadOutputMapping(Camera camera, out bool scalesToFullScreen)
+    {
+        scalesToFullScreen = false;
+        // The component must belong to this exact gameplay camera. A manager's
+        // cached SSAA reference can still belong to the camera just replaced.
+        var scaler = camera.GetComponent<SSAAImpl>();
+        if (scaler == null || !scaler.isActiveAndEnabled) return true;
+        switch (SsaaStateField?.GetValue(scaler)?.ToString())
+        {
+            case "NOSCALE": return true;
+            case "UPSCALE":
+            case "DOWNSCALE": scalesToFullScreen = true; return true;
+            default: return false; // Unknown native layout: no guessed marker position.
+        }
     }
 
     private bool IsFriendly(Player player)

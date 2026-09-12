@@ -7,12 +7,13 @@ pwsh -NoProfile -File tools/FriendlyMarkerChecks/Verify-Contracts.ps1
 pwsh -NoProfile -File tools/FriendlyMarkerChecks/Verify-Regression.ps1
 ```
 
-The first command reads installed EFT/Unity metadata with Mono.Cecil (PowerShell 7).
-The second runs a .NET 10 harness linking the actual marker lifecycle, projection
+The first command reads installed EFT/Unity metadata with Mono.Cecil (PowerShell 7),
+then runs the production-linked baseline and three compiled projection faults.
+The second runs all fourteen compiled faults and the .NET 10 harness linking the actual marker lifecycle, projection
 policy, palette and `TacticalMode.FriendlyMarkers.cs` partial. Other Unity/EFT state
 is modeled, not a working renderer. Existing TDM `TryClassifyCurrentBody` is a
 collaborator here; its actual implementation is covered by `TeamGiveUpChecks`.
-No plugin/server project is built or deployed. Eleven deliberate changes in scratch
+No plugin/server project is built or deployed. Fourteen deliberate changes in scratch
 source copies must fail their intended assertions; production sources stay intact.
 
 ## Behavior and integration
@@ -38,6 +39,15 @@ source copies must fail their intended assertions; production sources stay intac
 - Limits: 128 scanned players, eleven rays/views per canvas callback, 100m range,
   0.65m minimum distance, and 2% screen-edge padding. Duplicate physical entries are
   deduplicated without retaining the bodies across frames. No positive LOS cache.
+- Projection uses normalized camera coordinates and current display pixels. The
+  exact camera's applied `SSAAImpl.CurrentState` identifies the render viewport
+  that native DLSS/SSAA expands to full output; an absent/disabled scaler or NOSCALE
+  retains normal camera viewport offsets. An unknown active state hides markers.
+  Output and viewport changes are read every callback; input RT dimensions and
+  requested quality ratios are not used to place HUD graphics. See
+  [FRIENDLY-MARKERS-REVIEW.md](../../FRIENDLY-MARKERS-REVIEW.md).
+  A disabled scaler is a defensive fallback; third-party mods that disable only
+  SSAAImpl while keeping direct postprocessing propagation alive are not simulated.
 
 ## Native evidence
 
@@ -74,18 +84,29 @@ Read against `../_decompiled/` and installed assemblies:
    activation, not rebuilt geometry. Native inspection identified late activation
    and direct Original-head reads as concrete implementation defects; their exact
    contribution in that raid is not observable in the old log.
-2. The 114 production-linked assertions now model active state separately from
+2. The initial 114 production-linked assertions model active state separately from
    rebuilt geometry. An independent positive control reproduces active-but-empty
    graphics over repeated old-order frames; the new callback must have geometry
    ready in the same UI rebuild even without camera-cull callbacks. Virtual head
    poses override stale Original coordinates. Existing ownership/LOS/lifecycle,
    pooling and normal-raid checks remain, plus capped/no-callback diagnostics.
-3. Eleven temporary mutants include old late camera activation, stale Original
+3. The initial eleven temporary mutants include old late camera activation, stale Original
    head reads and uncapped logging, alongside the eight prior ownership/visibility
    failures. Each must fail its intended assertion, never merely compilation.
 4. Independent native/render audit reviewed implementation, harness fidelity and
    root lifecycle hooks. Parent reruns installed contracts and regressions before
-   Release deployment. This remains model/native-contract proof, not GPU output.
+  Release deployment. This remains model/native-contract proof, not GPU output.
+
+On 2026-09-12 the DLSS correction adds 34 assertions (148 total) and three compiled
+faults (14 total). It covers native reduced input rects, varying render ratios,
+supersampling with an attached/detached RT, requested versus applied scale state,
+disabled/unknown states, changing resolution, camera viewport offsets and partial
+clipping, canvas scaling, the unchanged 30 HUD pixel offset, exact camera replacement,
+and clearing already-visible geometry when projection inputs become invalid.
+The three new faults reintroduce input-pixel placement, discard ordinary viewport
+offsets or ignore applied scaling. Each must compile and fail the intended assertion.
+Native GPU DLSS/FSR output and animation remain pending; these checks use modeled
+camera projection and canvas conversion, not a running Unity renderer.
 
 Technique comparison: `../_reference/enemymarkers-master` uses world `TextMesh`,
 coroutine updates and native `MainParts[head].Position`, rather than toggling UI
