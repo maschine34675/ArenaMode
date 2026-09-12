@@ -1,8 +1,8 @@
 # GPU Deathmatch – F9-Close und Ausstieg r5
 
-**Unterbrochener Testlauf vom 12.09.2026: Close und dreirundiger Autoexit bestanden; keine vollständige r5-Abnahme.** Vier einzelne Close-Klicks verursachten keinen Munitionsverlust. Danach funktionierten absichtliches Schießen, Nachladen und Bewegung. A endete nach drei Runden automatisch und ohne neue Exception. Alle 16 geschützten Profilfeldvergleiche sind gleich.
+**Am 12.09.2026 nach einer externen Desktopunterbrechung fortgesetzt und im begrenzten Testumfang abgeschlossen: zwei Raids, vier Runden; keine vollständige r5-Abnahme.** Vier einzelne Close-Klicks in A verursachten keinen Munitionsverlust. Danach funktionierten absichtliches Schießen, Nachladen und Bewegung. A endete nach drei Runden automatisch; B bestätigte FFA, einen plausiblen Sieger und einen weiteren fehlerfreien nativen Ausstieg. Für jeden Raid sind alle 16 geschützten Profilfeldvergleiche gleich; vollständige JSON-Nebenfeldänderungen stehen separat im Bericht.
 
-Vor B scheiterte die externe Windows-Bedienung. B/C, weitere Menüprüfungen und die getrennten Refinements wurden nicht gestartet. Die fünf eigenen Testwerte sind wegen dieses Zugriffsproblems **noch nicht zurückgestellt**. Spiel, Launcher und Server laufen weiter; letzter bestätigter Spielzustand ist die Charakterauswahl außerhalb eines Raids.
+Der bewusste Ergebnisbutton in B bleibt **OFFEN**: Autoexit war bereits 0,996 s vor Klickbeginn committed. C, die übrigen Dauer-/Bannerprüfungen und die ergänzenden normalen Menüprüfungen bleiben wegen fehlender Belege bzw. Zeitgrenze offen. Alle fünf eigenen Testwerte wurden anschließend regulär über das Spiel zurückgestellt; 147/147 Arena-Werte stimmen wieder. Spielprozess 10268, Launcher und Server bleiben für den getrennten, bereits autorisierten Refinementsauftrag geöffnet. Dessen Ergebnisse gehören nicht zu diesem r5-Bericht.
 
 ## Teststand
 
@@ -11,7 +11,7 @@ Auftrag: [r5-Anweisung](GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r5.md), Test-ID `d
 - Source/Build: `f64df5be499d06d29cc4e6b717dd52ea0931725a`.
 - Git-HEAD beim Start: `1e64bc573cd5db0a2366908cf381596dfa078552`, Branch `fix/arena-panel-close-input`; Build ist dessen Vorfahr.
 - Aufnahmen: 1920 × 1080; keine Behauptung über eine davon abweichende interne Renderauflösung.
-- Spiel PID 11900, Start 15:10:36.900 UTC; Server PID 13660, Start 15:09:24.462 UTC; Launcher PID 4288, Start 15:09:58.818 UTC. Für diesen Lauf frisch gestartet.
+- A: Spiel PID 11900, Start 15:10:36.900 UTC. Nach der Pause B: neuer Spielprozess PID 10268, Start 15:45:36.5518531 UTC. Server PID 13660 (Start 15:09:24.462 UTC) und Launcher PID 4288 (Start 15:09:58.818 UTC) liefen durch; Prozess-/Inputzählungen bleiben getrennt.
 - Fremde Datei `ArenaMode.Server/defaults/~syncthing~ladder.json.tmp` unberührt. Historische r1–r4-Berichte, Anweisungen und Belege unverändert.
 
 | Installierte Datei, relativ zu C:\SPT41 | Tatsächliche SHA256 |
@@ -21,28 +21,32 @@ Auftrag: [r5-Anweisung](GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r5.md), Test-ID `d
 | BepInEx/plugins/maschine-Redeploy.Core.dll | `FDA836C30247B01E1B3E2B19A9749DCA23FAF68C7B3A03CA5D5C35537BB8C7A8` |
 | BepInEx/plugins/SAIN/SAIN.dll | `C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489` |
 
-Client ProductVersion `0.1.0+f64df5be499d06d29cc4e6b717dd52ea0931725a`; SAIN AssemblyVersion `4.5.1.0`. Alle vier Hashes stimmen beim Preflight 15:08:44 UTC, vor A 15:13:23 UTC und nach der Desktopblockade 15:28:18 UTC. Auch die abschließende Hashprüfung dieses unterbrochenen Laufs am 2026-09-12T15:36:05.769Z bestätigt alle vier Dateien. Eine spätere Prüfung nach regulärer Rückstellung/Programmende steht noch aus.
+Client ProductVersion `0.1.0+f64df5be499d06d29cc4e6b717dd52ea0931725a`; SAIN AssemblyVersion `4.5.1.0`. Alle vier Hashes stimmen beim Preflight 15:08:44 UTC, vor A 15:13:23, während der Unterbrechung 15:28:18/15:36:05, vor der Fortsetzung 15:44:36.061, vor B 15:48:25.319 und nach der nativen Rückstellung 15:56:34.015 UTC. [Abschließende r5-Dateibindung](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/hash-restored-r5-end.json). Es wurde kein Programmende des zweiten Spielprozesses behauptet oder für r5 erzwungen.
 
-Startup, je einmal:
+Startup des A-Prozesses, je einmal:
+
 - Client L6107: **17:11:00.733 MESZ = 15:11:00.733 UTC**, `Arena input blocker ready: panel close waits for released-pointer input delivery.`
 - Client L4968: **17:10:59.021 MESZ = 15:10:59.021 UTC**, `Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready.`
 - Kein `Arena input blocker unavailable`. Die Startmarker belegen Registrierung; seltene Laufzeitpfade werden unten getrennt bewertet.
 
 ## Zeit und Umfang
 
-**Ein Raid, drei Runden, vier Close-Versuche; keine weiteren Raids.** Die Anweisung erlaubt maximal drei Raids und 20 Minuten aktive Testzeit. Als konservative Planungsgrenze wurde 15:12:20.487 bis 15:32:20.487 UTC einschließlich Menü-, Prüf- und Werkzeugzeit angesetzt. Bis zum ersten extern gescheiterten Input um 15:27:34.500 vergingen 15 min 14,013 s Wanduhrzeit. Der Desktopblock und spätere reine Berichtserstellung sind keine weitere aktive Spielprüfung.
+**Zwei Raids, vier Runden; vier kontrollierte Close-Versuche ausschließlich in A.** Die Anweisung erlaubt höchstens drei Raids und 20 Minuten aktive Testzeit. Zunächst wurde eine konservative Planungsgrenze 15:12:20.487–15:32:20.487 UTC einschließlich Menü-/Werkzeugzeit angesetzt. Bis zum ersten extern gescheiterten Input 15:27:34.500 vergingen 15 min 14,013 s Wanduhrzeit. Dieses verbrauchte Fenster wurde bei der Fortsetzung beibehalten; dokumentierte Desktoppause und erforderlicher Neustart wurden gesondert behandelt.
+
+Die Fortsetzung begann 15:47:21.993 UTC mit konservativ verbleibenden 4 min 45,987 s; daraus folgt die r5-Deadline **15:52:07.980 UTC**. B erreichte den Autoexit-Commit 15:51:54.413 und den nativen Endscreen im Archivbild 15:52:07.431. Sichere Hauptmenürückkehr, Profil-/Logkontrolle und Rückstellung liefen anschließend weiter. **C und weitere r5-Abnahmefälle wurden nach der Zeitgrenze nicht gestartet.** Die Deadline wird nicht als bereits vollständig beendete Bereinigung ausgegeben. [Fortsetzungsbudget](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/resume-budget.json).
 
 | Phase | UTC-Beobachtungsgrenzen | Einordnung |
 |---|---|---|
-| Startvorbereitung | Preflight 15:08:44; Hauptmenübild 15:12:13.691 | Programmstart/Laden und Werkzeuge |
-| Arena-Menüs | Planungsstart 15:12:20.487; Ready-Eingabe 15:13:32.206 | Einstellungen/Navigation mit Werkzeugpausen |
-| Laden bis erste Runde | Ready 15:13:32.206; Round 1 15:14:29.624 | Gemischtes Lade-/Werkzeugfenster, keine exakt gemessene Ladezeit |
-| A laufend bis Autoexit-Commit | 15:14:29.624–15:21:23.000 | 6 min 53,376 s Wanduhr, inklusive Zwischenphasen und Respawns |
-| Native Rückkehr | Commit 15:21:23.000; Hauptmenübild 15:22:49.140 | Endscreen, Eingabe und Lade-/Werkzeugfenster |
-| Audit / Vorbereitung B | Hauptmenü 15:22:49.140; fehlgeschlagener Klick 15:27:34.500 | Profil-/Logprüfung, Charakterauswahl, längere Werkzeug-/Kontextpause; kein zweiter Raid |
-| Externer Desktopblock | ab 15:27:34.500 | Keine weiteren UI-Eingaben nach gescheiterter Wiederherstellung |
+| Erster Start / Arena-Menüs | Preflight 15:08:44; Hauptmenübild 15:12:13.691; Planung ab 15:12:20.487 | Programmstart/Laden, dann Navigation mit Werkzeugpausen |
+| Laden A | Ready-Eingabe 15:13:32.206; Runde 1 ab 15:14:29.624 | Gemischtes Lade-/Werkzeugfenster, keine exakt gemessene Ladezeit |
+| A bis Autoexit-Commit | 15:14:29.624–15:21:23.000 | 6 min 53,376 s Wanduhr einschließlich Zwischenphasen/Respawns |
+| A native Rückkehr / Audit | Commit 15:21:23.000; Hauptmenübild 15:22:49.140; gescheiterter Input 15:27:34.500 | Endscreen, sichere Rückkehr, Profil-/Logkontrolle, Vorbereitung B; noch kein B-Raid |
+| Desktoppause / erforderlicher Neustart | ab 15:27:34.500; alter Client endet mit Cleanup 15:43:49.415; neuer PID ab 15:45:36.552 | Externe Unterbrechung und Neustart; getrennt von aktiver r5-Prüfung |
+| B-Menüs / Laden | Budgetfortsetzung 15:47:21.993; Ready-Archiv 15:48:42.200; Runde 1 ab 15:49:37.869 | Konservativ einschließlich Werkzeug-/Ladezeit gezählt |
+| B bis Autoexit | Runde 1 15:49:37.869–15:51:39.158; Result-Exit 15:51:54.413 | 121,289 s Runden-Wanduhr; anschließender Ergebniscountdown |
+| Deadline / sichere Bereinigung | Deadline 15:52:07.980; Hauptmenüarchiv 15:53:10.433; Rückstellung bestätigt 15:56:33.994 | Nach Deadline nur sichere Rückkehr, Kontrollen und Rückstellung; kein C-Raid |
 
-Diese Grenzen sind keine lückenlose Stoppuhr aktiver Testzeit. Archivzeiten sind keine exakten Pixelaufnahmezeiten; aus ungenauen Fenstern wird keine sekundengenaue aktive Unter-20-Minuten-Abnahme abgeleitet.
+Diese Grenzen sind keine lückenlose Stoppuhr aktiver Testzeit. Archivzeiten sind keine separaten exakten Pixelaufnahmezeiten. Aus den Fenstern wird keine sekundengenaue aktive Unter-20-Minuten-Abnahme abgeleitet; insbesondere werden sichere Rückkehr und Bereinigung nach der Planungsdeadline ausdrücklich ausgewiesen. Das Budget eines nachfolgenden separaten Refinementsauftrags ist kein Bestandteil dieses r5-Laufs.
 
 ## A – Factory Tag, All vs player
 
@@ -129,37 +133,96 @@ Der gesamte Scav-Teil ist gleich. **Genau eine vollständige JSON-Differenz**: `
 
 Vorlauf vor der Raidbaseline separat: PMC.Health.UpdateTime 14:06:54→15:11:30 UTC sowie Hideout-Zeitstempel 14:21:23→15:12:33. Diese zwei Änderungen entstanden vor der A-Baseline; sie werden nicht A zugerechnet. [Vollständiger sanitiserter Profilaudit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/A-profile-audit.json).
 
-## Unterbrechung, B/C und Rückstellung
+## Desktopunterbrechung und frischer Start für B
 
-Letztes erfolgreiches Original: [Charakterauswahl](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-menu-resume.jpg), Archivzeit 15:27:20.498 UTC. Der Arena-Auswahlklick um 15:27:34.500 scheiterte mit `failed to activate captured window`. Frische Fensterliste und eindeutige Neuauswahl des Spielfensters, anschließend Aktivierungsfehler: `GetCursorPos failed: Zugriff verweigert (0x80070005)`. Darauf keine weiteren UI-Eingaben; Nutzer um Öffnen/Entsperren von RDP gebeten. Die Fehlermeldung belegt das externe Zugriffsproblem, nicht dessen genaue Windows-/RDP-Ursache und keinen Spiel-Softlock. B-Ready wurde nicht aufgerufen.
+Das letzte erfolgreiche Bild vor dem Zugriffsverlust war die [Charakterauswahl](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-menu-resume.jpg), Archiv 15:27:20.498 UTC. Der Arena-Auswahlklick 15:27:34.500 scheiterte mit `failed to activate captured window`; erneute Fenstererfassung/Aktivierung anschließend mit `GetCursorPos failed: Zugriff verweigert (0x80070005)`. Bis zur Nutzerbestätigung „ist wieder offen“ wurden keine weiteren Spieltests durchgeführt. Die Meldungen beweisen den externen Zugriffsausfall, nicht dessen genaue Windows-/RDP-Ursache oder einen Spiel-Softlock. Vor der Pause gab es keinen B-Ready und keinen B-Raid.
 
-| Verbleibender Fall | Status / Grund |
-|---|---|
-| B: FFA / 1 Runde / Kills Off / 120 s, Regeln/Killfeed/Standings | OFFEN – kein Start wegen Desktopzugriff |
-| B: plausibler Sieger und bewusster Return-to-menu-Ergebnisbutton | OFFEN – kein B-Raid |
-| B: Exitlogs und geschützte/full-JSON Profile | OFFEN – kein B-Raid |
-| C: FFA / Endless / beide Limits Off, ca. 90 s ohne Rundenpause | OFFEN – nicht gestartet |
-| C: Give up, Respawn und normaler Disconnect | OFFEN – nicht gestartet |
-| C: Exitlogs und geschützte/full-JSON Profile | OFFEN – kein C-Raid |
-| Normaler PMC-Menüweg bis vor Ready und zurück | OFFEN – Charakterauswahl allein genügt nicht |
-| Hideout / Weapon Builder, fremde Körperteile/Modelle | OFFEN – nicht geöffnet |
-| Getrennter Refinements-r3-Lauf: Leichenmarker, Air Jump, Kontur, DLSS-Diamanten, normaler PMC-Raid | OFFEN – externer Desktopzugriff verhindert Start; keine Features aus A pauschal abgenommen |
-| Rückstellung eigener Einstellungen / reguläres Programmende | OFFEN – UI nicht bedienbar |
+Bei Wiederaufnahme war Spielprozess 11900 beendet, Server 13660 und Launcher 4288 liefen weiter. Die archivierte Fortsetzung des ersten Clientlogs stimmt bis A-Hauptmenü exakt mit der alten Quelle überein. Clientdelta L13546–13823 und Serverdelta L8091–8277 enthalten 0 Error/Fatal/Critical, 0 Warnings und 0 neue ausgelöste Exceptions; drei `Exception`-Texttreffer sind Harmony-Finalizer-Signaturen beim Unpatching. Letzte Clientzeile 15:43:49.415 UTC meldet die wiederhergestellte ursprüngliche AssemblyNames-Liste. Es gibt keine neue Arena-Arm-/Raidfolge im Pausenfenster. Die Cleanup-Zeilen identifizieren weder Verursacher noch genaue Art des Programmendes. [Pausen-/Shutdown-Audit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/resume-game-absent-audit-r5.json).
 
-Von 147 gesicherten Arena-Einstellungswerten sind **genau fünf eigene Testwerte noch geändert**:
+Der gleiche gebundene Client wurde neu gestartet: **PID 10268, Start 15:45:36.5518531 UTC**. Sein frisches Startup-Archiv reicht bis Client L13019; das fortlaufende Serverdelta L8278–8344 ist ebenfalls geprüft. Keine neue Exception/Error; neun bekannte Client-Startupwarnungen, keine Warnung im Serverdelta. Neue Ready-Marker je einmal:
 
-| Wert | Aktuell | Wiederherzustellen |
+- L4968,17:45:57.268 MESZ = 15:45:57.268 UTC: SAIN-Uninitialized-Teardown-Safeguard ready.
+- L6107,17:45:58.830 MESZ = 15:45:58.830 UTC: Input blocker ready; kein unavailable.
+
+Die Prozessgrenzen und die Diagnosekappe von 24 Input-State-Zeilen werden getrennt behandelt; A-Zählungen werden nicht zu B addiert. [Prozesse](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/resume-processes.json), [neuer Startupaudit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/resume-startup-audit-r5.json).
+
+## B – Factory Tag, FFA, eine Runde
+
+Native Auswahl: **Deathmatch / FFA /1 Runde / Kills Off /120 Sekunden**, Factory Tag. Die vorherigen A-Regeln wurden regulär umgestellt und vor Ready dokumentiert. Server L8437 bestätigt 15:49:01.750 UTC `ffa, frozen Deathmatch selection`. [Factory/Regeln](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-factory-rules.jpg), [F9-Regeln](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-f9-rules.jpg).
+
+| Unterfall | Status | Befund / Grenze |
 |---|---|---|
-| Match/GameMode | deathmatch | gungame |
-| Deathmatch/Rounds | 3 | 0 / Endless |
-| Deathmatch/KillLimit | 10 | 0 / Off |
-| Deathmatch/TimeLimitSeconds | 120 | 0 / Off |
-| Deathmatch/FreeForAll | false | true |
+| FFA-Regeln, eine Runde, Kills Off /120 s | PASS | Native Auswahl/F9 und bestätigte gefrorene Serverregel. |
+| Individueller Killfeed-/Standings-Smoke-Test | PASS im beobachteten Umfang | Killfeed und getrennte Spielerzeilen sichtbar; kein vollständiger neuer Gegnerkatalogtest. |
+| Plausibler Sieger / Grund | PASS | Quik gewinnt bei Time limit; terminale Standings zeigen Quik 650 vor CWX 450. |
+| Ergebnis im offenen F9 | PASS im Einzelbild | DEFEAT, Quik wins, eine Runde abgeschlossen, Rückkehr in10 s sichtbar. Kein Dauernachweis für Score-Freeze. |
+| Bewusster Ergebnisbutton Return to menu | **OFFEN** | Autoexit-Commit 15:51:54.413 liegt 0,996 s vor dem erst 15:51:55.409 begonnenen Klick. Der Klick kann diesen bereits laufenden Ausstieg nicht als Buttonroute belegen. |
+| Native Rückkehr / keine neue Exit-Exception | PASS für B | Autoexit und bestätigtes Hauptmenü, vollständiges abgegrenztes Logfenster ohne neue Exception. |
+| Tatsächlicher SAIN-Uninitialized-Teardown | BEOBACHTET, einmal ohne neue Exception | L13349 um15:51:56.358 UTC; keine pauschale Garantie für alle Teardownvarianten. |
+| Tatsächlicher Pickup-Cancel | OFFEN / nicht beobachtet | 0 Laufzeitmarker. |
+| PMC-/Scav-Schutzfelder | PASS | 16/16 Vergleiche gleich, ganze Scav-Hälfte gleich; alleinige vollständige JSON-Nebenfeldänderung unten. |
 
-Rückstellung ausschließlich über native Arena-Menüs; beide Limits Off erzwingen korrekt Endless. Keine alten cfg-/client-settings-Dateien, Beschreibungstexte oder Profile zurückkopieren. Prüfung 15:29:31 UTC: andere 142 Arena-Werte gleich; RaidInfoPanels.cfg, Control.ini, Graphics.ini und Server-config.json bytegleich. client-settings.json und Arena.cfg spiegeln die eigenen Teständerungen; deren vollständige Bytegleichheit wird nicht behauptet. Alle **33 gesicherten Arena-Assetdateien einschließlich Audio unverändert**. [Rückstellungs- und Dateiaudit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/settings-restoration-r5.json). Prozessprüfung 15:31 UTC: alle drei genannten Prozesse vorhanden und Responding; keine Zwangsbeendigung.
+[Killfeed](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-live-killfeed-view.jpg), [Standings während der Runde](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-ffa-scoreboard-mid.jpg), [terminales Ergebnis](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-terminal-result.jpg). Das terminale Original vom Archivmarker 15:51:44.869 UTC wurde unabhängig gelesen: Quik 3 Kills/0 Tode/1 Headshot/650 Punkte; CWX 2/1/1/450. Das passt zum geloggten Sieger. Die lokale Zeile endet mit 0 Kills/0 Toden/0 Punkten. Die nahezu gleichzeitige zweite Fläche derselben Zustandsabfrage beweist keinen Score-Freeze über die Ergebnisdauer.
+
+### B – Ereignisse, Button-Grenze und Logs
+
+| Ereignis | UTC | Quelle |
+|---|---|---|
+| Geschützter Arm / FFA eingefroren / nativer Start | 15:49:01.049 /15:49:01.750 /15:49:01.984 | Server L8418 / L8437 / L8439 |
+| Session aktiv / Match gestartet | 15:49:35.370 /15:49:35.464 | Client L13130 / L13139 |
+| Kit fertig / Runde 1 gestartet | 15:49:37.798 /15:49:37.869 | Client L13197 / L13199; 71 ms nach Kit |
+| Runde 1: Quik wins — Time limit | 15:51:39.158 | Client L13315; 121,289 s Runden-Wanduhr |
+| Terminalbild, Rückkehr in10 s | 15:51:44.869 Archivmarker | Originalb-terminal-result |
+| Autoexit committed | 15:51:54.413 | Client L13328; 15,255 s nach Rundenergebnis |
+| Verspäteter Return-to-menu-Klick → Rückgabe | 15:51:55.409 →15:51:56.381 | Native Eingabeaufzeichnung; erst nach Commit |
+| Session beendet / Matchsumme | 15:51:55.898 /15:51:55.909 | Client L13344 / L13347; 0/0/0 |
+| Native local-end / Snapshot restored / protected end persisted | 15:51:56.192 /15:51:56.202 /15:51:56.302 | Server L8714 / L8715 / L8718 |
+| SAIN-Uninitialized-Teardown-Guard | 15:51:56.358 | Client L13349, einmal |
+| Nativer Endscreen / Hauptmenü | 15:52:07.431 /15:53:10.433 Archivmarker | Originalbilder |
+
+Der Versuch des [Return-to-menu-Klicks](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-return-to-menu-button.jpg) traf bereits die Ausstiegsphase. Der [native Endscreen](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-native-end-check.jpg) zeigte 2:20 und 389 EXP; anschließend wurde regulär zum [Hauptmenü](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/b-mainmenu-check.jpg) weitergeschaltet. Weder dieses Weiterklicken noch die native EXP-Anzeige beweist den noch offenen Ergebnisbutton oder gespeicherte Erfahrung.
+
+Der komplette zweite Clientprozess ist bisL 13355 des B-Hauptmenüarchivs geprüft, einschließlich seines Startups. Der fortlaufende ServerabschnittL 8345–8791 schließt unmittelbar an den separat geprüften Resume-Startupabschnitt an. **0 Error/Fatal/Critical,0 neue ausgelöste Exceptions; keine neuen vollständigen Exception-Stacks auszulassen.** Client: 28 Warning-Zeilen, Serverdelta 0. Insbesondere kein BotItemTaker/CG_PickupAction-ArgumentException und kein SAIN-OnDisable-NRE. Der zunächst deferred raid-end ist durch den nativen local-end und das persistierte Protected-End aufgelöst. SAIN-Guard einmal; Pickup-Abbruch nicht beobachtet. [B-Logaudit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/B-log-audit.json), [82 geprüfte redigierte Originalzeilen](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/B-log-excerpts.txt).
+
+Im **zweiten** Spielprozess stehen vier Input-State-Zeilen = zwei vollständige Paare; beide Released-Zeilen haben `blockedShotCommands=0`. Generation 22509: Pending 15:50:58.277, sample 2262 → Released 15:50:58.373, sample 2263. Generation 22510: Pending 15:51:54.429, sample 3358 → Released 15:51:54.526, sample 3359. Die Kappe 24 wurde nicht erreicht. Diese Marker sind keine zusätzlichen kontrollierten Munitionspaare. In B gibt es keinen natürlichen Tod und keinen Respawn-Timing-Marker.
+
+### B – vollständiger Profilvergleich und Vorlauf
+
+Private Baseline 15:48:25.338 UTC, Nachkopie 15:53:18.246 nach bestätigtem Hauptmenü. Inventory, Quests, Skills, Health einschließlich UpdateTime, Info.Experience, Info.Level, TaskConditionCounters und RepeatableQuests stimmen für PMC und Scav überein; Scav RepeatableQuests bleibt beidseits abwesend. Die ganze Scav-Hälfte ist identisch. Genau eine vollständige JSON-Differenz: `characters.pmc.Hideout.sptUpdateLastRunTimestamp`, **1789228048 →1789228348**, also **15:47:28 →15:52:28 UTC (+300 s)**. Der konkrete Schreiber ist durch Dateivergleich nicht identifiziert. Die 389 EXP des nativen Endscreens änderten Info.Experience nicht. [B-Profil-Gesamtaudit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/B-profile-audit.json).
+
+Pausen-/Neustartänderungen bleiben getrennt von beiden Raidvergleichen: A-after → Resume-prestartup ändert allein den Hideout-Zeitstempel 15:22:28→15:45:28 UTC (+1380 s), alle Schutzfelder und die ganze Scav-Hälfte gleich. Resume-prestartup → B-before ändert PMC.Health.UpdateTime 15:11:30→15:46:30 sowie Hideout 15:45:28→15:47:28; sonstige Health-Werte bleiben gleich. Diese Änderungen liegen vor der B-Baseline und werden B nicht zugerechnet. [Pausengrenzen-Audit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/resume-boundary-profile-audit-r5.json).
+
+## Offene r5-Unterfälle und native Rückstellung
+
+| Verbleibender Fall | Abschlussstatus / Grund |
+|---|---|
+| A/B Score-Freeze über vollständige Ergebnisdauer, terminaler F9/Banner-Wechsel, Countdown bei Wechsel, Prep-Erhalt | OFFEN – die jeweils erforderlichen zeitlich getrennten/wechselnden Belege fehlen |
+| B bewusster Return-to-menu-Ergebnisbutton | OFFEN – Autoexit 0,996 s vor Klickbeginn committed |
+| C FFA/Endless/beide Limits Off, ca. 90 s ohne Rundenpause | OFFEN – wegen konservativer r5-Zeitgrenze nicht gestartet |
+| C Give up, Respawn, normaler Disconnect, Exit-/Profilkontrolle | OFFEN – kein C-Raid |
+| Normaler PMC-Menüweg bis vor Ready und zurück | OFFEN – Zeitgrenze; Charakterauswahl und Rückstellungsnavigation reichen nicht |
+| Hideout/Weapon Builder, fremde Körperteile/Modelle | OFFEN – im r5-Auftrag nicht geöffnet |
+| Tactical-Kaufmenü Close | OFFEN – in Deathmatch nicht erreichbar, kein Zusatzraid |
+| Pickup-Cancel bei tatsächlich laufendem Pickup | OFFEN / nicht beobachtet – A und B je 0 Marker |
+
+Die zwischenzeitlich offenen fünf eigenen Testwerte wurden **vollständig durch native Menübedienung zurückgestellt**. Der erste Versuch, Time Off bei noch endlicher Rundenzahl zu setzen, wurde nicht als Erfolg gewertet; erst nach Endless wurde Time Off wirksam übernommen und anschließend Gun Game wieder gewählt. Das ist die dokumentierte Rückstellungsreihenfolge, kein nachträglich behaupteter PASS für Continuous/Give up.
+
+| Eigener Testwert | Abschließend wiederhergestellt |
+|---|---|
+| Match/GameMode | gungame |
+| Deathmatch/Rounds | 0 / Endless |
+| Deathmatch/KillLimit | 0 / Off |
+| Deathmatch/TimeLimitSeconds | 0 / Off |
+| Deathmatch/FreeForAll |true |
+
+Abschlusskontrolle **15:56:33.994 UTC**: 147/147 geparste Arena-Werte stimmen mit der Baseline, keine verbleibende Wertänderung. Arena.cfg, RaidInfoPanels.cfg, Control.ini, Graphics.ini und Server-config.json sind bytegleich zur gesicherten Ausgangslage. Alle 33 gesicherten Arena-Assetdateien einschließlich Audio blieben unverändert. [Abgeschlossene native Rückstellung](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/settings-restored-final-r5.json), [Endless vor Time Off](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/restore-endless-first.jpg), [übernommenes Time Off](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/restore-time-off-after-endless.jpg), [Gun Game wiederhergestellt](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/restore-gungame.jpg).
+
+`client-settings.json` ist im Rohhash verschieden: `E6B709DF09C26223C0C7A54DE1FD1066B87A1A3BEA2F4329933025C6E9A03DC1` → `C4767CB3330430BE7A9AC530484C45BFF7EC4B9CE77839CF189CCBA2FF9B0D5F`. Der unabhängige vollständige JSON-Vergleich findet jedoch **exakt eine Differenz: UpdatedAt, 16:19:36 → 17:55:56**. Das Feld enthält keine Zeitzone. Alle Entrywerte, Beschreibungen und sonstigen Metadaten stimmen; keine Behauptung einer vollständigen Bytegleichheit oder eines aus dem Vergleich identifizierten Schreibers. [Semantischer client-settings-Abschlussaudit](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/client-settings-final-audit-r5.json).
+
+Die r5-Abschlussdatei von 15:57:02.931 UTC erfasst zwei Raids/vier Runden und abgeschlossene Rückstellung. **Spielprozess 10268, Launcher 4288 und Server 13660 bleiben für den getrennten autorisierten Refinementsauftrag geöffnet; es wird kein reguläres Programmende des B-Prozesses bescheinigt.** Nachfolgende Featureprüfungen und deren Profile/Settings gehören in einen eigenen Bericht und überschreiben diese r5-Abschlussbelege nicht. [r5-Abschlusszustand](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/r5-completed-state.json).
 
 ## Belege
 
-[SHA256-Manifest](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/SHA256SUMS.txt) und [Bildindex mit UTC-Archivmarkern](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/screenshots.json). 29 ausgewählte, unverändert kopierte Original-JPGs; pro Zustandsabfrage die erste Fläche. Zweite nahezu gleichzeitige Flächen dienen nicht als zeitlicher Dauerbeweis. Abgeleitete JSON-/Textauszüge sind mit LF gespeichert; Bildbytes unverändert.
+[SHA256-Manifest](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/SHA256SUMS.txt) und [Bildindex mit UTC-Archivmarkern](test-evidence/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/screenshots.json) benennen die 46 ausgewählten, unverändert kopierten Original-JPGs aus A, Fortsetzung/B und Rückstellung. Alle 46 Bildhashes wurden unabhängig gegen Index und private Originaldatei geprüft. Pro Zustandsabfrage ist die erste Fläche als Beleg ausgewählt; zweite nahezu gleichzeitige Flächen dienen nicht als zeitlicher Dauerbeweis. Abgeleitete JSON-/Textauszüge sind mit LF gespeichert; Bildbytes unverändert.
 
-Rohlogs, vollständige Profile, Launcherbilder und private Fortsetzungsdaten liegen ausschließlich im ignorierten Lauf `artifacts/gpu-deathmatch-menu/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/`. Veröffentlichte gezielte Logauszüge haben private Kennungen redigiert. Dieser Bericht dokumentiert den unterbrochenen Stand; er bescheinigt weder B/C noch ausstehende Rückstellung oder eine vollständige Freigabe.
+Rohlogs, vollständige Profile, Launcherbilder und private Fortsetzungsdaten liegen ausschließlich im ignorierten Lauf `artifacts/gpu-deathmatch-menu/deathmatch-menu-exit-r5/2026-09-12T15-08-44-047Z/`. Veröffentlichte gezielte Logauszüge haben private Kennungen redigiert. Der Bericht schließt den r5-Lauf nach zwei Raids und nativer Rückstellung ab; die ausdrücklich offenen Unterfälle und die getrennten Refinements erhalten daraus keine Freigabe.

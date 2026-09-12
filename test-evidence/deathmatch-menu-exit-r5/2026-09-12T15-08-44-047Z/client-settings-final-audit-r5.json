@@ -1,0 +1,26 @@
+{
+  "schema": "arenamode-r5-client-settings-final-diff-v1",
+  "auditedAtUtc": "2026-09-12T15:57:50.3036017Z",
+  "scope": "Full JSON diff of private initial/final client-settings copies only; no live configuration write.",
+  "method": "Recursive dictionary comparison, array order and scalar types retained; date-like strings preserved.",
+  "before": {
+    "copy": "settings/client-settings.json",
+    "sha256": "E6B709DF09C26223C0C7A54DE1FD1066B87A1A3BEA2F4329933025C6E9A03DC1"
+  },
+  "after": {
+    "copy": "settings-final/client-settings.json",
+    "sha256": "C4767CB3330430BE7A9AC530484C45BFF7EC4B9CE77839CF189CCBA2FF9B0D5F"
+  },
+  "differenceCount": 1,
+  "differences": [
+    {
+      "path": "UpdatedAt",
+      "beforePresent": true,
+      "afterPresent": true,
+      "before": "16:19:36",
+      "after": "17:55:56"
+    }
+  ],
+  "onlyUpdatedAtChanged": true,
+  "limitation": "The comparison proves which serialized values differ, not the writing process or cause."
+}

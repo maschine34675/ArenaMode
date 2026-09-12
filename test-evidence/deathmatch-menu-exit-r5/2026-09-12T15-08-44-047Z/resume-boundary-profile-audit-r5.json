@@ -1,0 +1,158 @@
+{
+  "schema": "arenamode-r5-pause-resume-profile-audit-v1",
+  "auditedAtUtc": "2026-09-12T15:47:10.4680319Z",
+  "scope": "A-after private copy compared with resume-prestartup private copy; neither copy nor live profile modified.",
+  "method": "Independent complete recursive JSON comparison; case-sensitive keys/scalars, original scalar types and array order retained.",
+  "beforeCopy": {
+    "file": "private/A-after.json",
+    "rootRecordedAtUtc": "2026-09-12T15:23:02.329Z",
+    "sha256": "A9A6FFA9E837C5840741D076F8A2097D21460327B85146FB7D9FAA0B6B92F5B4"
+  },
+  "afterCopy": {
+    "copyFileLastWriteUtc": "2026-09-12T15:45:33.2458010Z",
+    "file": "private/resume-prestartup-profile.json",
+    "sha256": "0DB2279B73C2CECC0931857C2C15D12BE28ADE5EECA88DDAD98FAE5A00CC8F4D"
+  },
+  "comparison": {
+    "wholeDocumentEqual": false,
+    "differenceCount": 1,
+    "differences": [
+      {
+        "path": "characters.pmc.Hideout.sptUpdateLastRunTimestamp",
+        "beforePresent": true,
+        "afterPresent": true,
+        "before": 1789226548,
+        "after": 1789227928,
+        "classification": "Hideout update timestamp; not an inventory, quest, skill, experience, or health mutation. Writer/cause not independently identified.",
+        "beforeUtc": "2026-09-12T15:22:28.000Z",
+        "afterUtc": "2026-09-12T15:45:28.000Z",
+        "deltaSeconds": 1380
+      }
+    ],
+    "entireScavEqual": true,
+    "protectedFields": {
+      "pmc": {
+        "Inventory": {
+          "path": "characters.pmc.Inventory",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Experience": {
+          "path": "characters.pmc.Info.Experience",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Level": {
+          "path": "characters.pmc.Info.Level",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Quests": {
+          "path": "characters.pmc.Quests",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "TaskConditionCounters": {
+          "path": "characters.pmc.TaskConditionCounters",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "RepeatableQuests": {
+          "path": "characters.pmc.RepeatableQuests",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Skills": {
+          "path": "characters.pmc.Skills",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Health": {
+          "path": "characters.pmc.Health",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        }
+      },
+      "scav": {
+        "Inventory": {
+          "path": "characters.scav.Inventory",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Experience": {
+          "path": "characters.scav.Info.Experience",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Level": {
+          "path": "characters.scav.Info.Level",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Quests": {
+          "path": "characters.scav.Quests",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "TaskConditionCounters": {
+          "path": "characters.scav.TaskConditionCounters",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "RepeatableQuests": {
+          "path": "characters.scav.RepeatableQuests",
+          "equal": true,
+          "beforePresent": false,
+          "afterPresent": false,
+          "differenceCount": 0
+        },
+        "Skills": {
+          "path": "characters.scav.Skills",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        },
+        "Health": {
+          "path": "characters.scav.Health",
+          "equal": true,
+          "beforePresent": true,
+          "afterPresent": true,
+          "differenceCount": 0
+        }
+      }
+    }
+  },
+  "limitations": [
+    "This is the pause/resume boundary, not a Raid B profile comparison.",
+    "File comparison alone does not identify the writing process or establish absence of a raid during the pause; use the independent lifecycle log audit for that claim.",
+    "The only changed field is a Hideout update timestamp. All requested protected fields and the entire Scav document are unchanged."
+  ],
+  "privateIdentifiersIncluded": false
+}

@@ -1,0 +1,67 @@
+{
+  "schema": "arenamode-r5-resume-game-absent-delta-audit-v1",
+  "createdUtc": "2026-09-12T15:46:57.0470651+00:00",
+  "testId": "deathmatch-menu-exit-r5",
+  "scope": "Delta from archived A-mainmenu through resume-game-absent; first client process only, before the planned same-build client restart. No UI or state mutation.",
+  "sourceFiles": [
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\resume-game-absent\\client.log",
+      "sha256": "3013D2843E03890337A8A2687BB40E54697F39334A799DAF64B65537DB266649",
+      "originalGamePid": 11900,
+      "originalProcessStartUtc": "2026-09-12T15:10:36.9001737Z",
+      "firstAuditedLine": 13546,
+      "lastAuditedLine": 13823,
+      "auditedLineCount": 278,
+      "firstAuditedUtc": "2026-09-12T15:23:39.313Z",
+      "lastAuditedUtc": "2026-09-12T15:43:49.415Z",
+      "priorAMainmenuPrefixMatchesExactly": true,
+      "timestampBasis": "UTC+02:00"
+    },
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\resume-game-absent\\server.log",
+      "sha256": "FE8458EA56D1B65F82907B8829E0A8FA437B08D7D1C4B7A2F4E7E5ACAB4BC6C7",
+      "continuingServerPid": 13660,
+      "originalProcessStartUtc": "2026-09-12T15:09:24.4621841Z",
+      "firstAuditedLine": 8091,
+      "lastAuditedLine": 8277,
+      "auditedLineCount": 187,
+      "firstAuditedUtc": "2026-09-12T15:23:06.340Z",
+      "lastAuditedUtc": "2026-09-12T15:44:33.258Z",
+      "priorAMainmenuPrefixMatchesExactly": true,
+      "timestampBasis": "UTC"
+    }
+  ],
+  "counts": {
+    "clientErrorFatalCritical": 0,
+    "serverErrorFatalCritical": 0,
+    "clientWarnings": 0,
+    "serverWarnings": 0,
+    "clientRawExceptionTextRows": 3,
+    "clientThrownExceptionCandidates": 0,
+    "serverThrownExceptionCandidates": 0,
+    "excludedExceptionRows": [
+      13594,
+      13703,
+      13710
+    ],
+    "exceptionExclusionReason": "Harmony finalizer method declarations while patches are being removed, not thrown exceptions.",
+    "newClientArenaLifecycle": 0,
+    "newServerArenaArmStartEnd": 0,
+    "inputStateLines": 0,
+    "pickupCancellation": 0,
+    "sainTeardownActive": 0
+  },
+  "exceptionStacks": [],
+  "assessment": {
+    "newLogSafetyStopFinding": false,
+    "lastClientLine": "[17:43:49.415] [Info   :FixPluginTypesSerialization] Restored original AssemblyNames list",
+    "normalUnpatchCleanupObserved": true,
+    "limits": [
+      "No new logged exception or Arena raid event in this pause window.",
+      "Cleanup/unpatch logging does not prove the precise shutdown cause, user action, or OS mechanism.",
+      "File logs cannot independently prove a process is absent or that the desktop is usable; root process and UI observations supply those facts.",
+      "A restarted client needs fresh startup/PID/ready-marker verification; old-process readiness and input state counts cannot be carried over.",
+      "No additional Raid B gameplay or profile acceptance is inferred here."
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "resumeStartUtc": "2026-09-12T15:47:21.993Z",
+  "conservativeRemainingMs": 285987,
+  "deadlineUtc": "2026-09-12T15:52:07.980Z",
+  "pauseFirstFailedInputUtc": "2026-09-12T15:27:34.500Z",
+  "note": "Retain original conservative spend. Exclude documented desktop-access pause and required fresh program startup. Count all subsequent wall-clock time including tool and loading overhead."
+}

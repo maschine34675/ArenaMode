@@ -1,0 +1,85 @@
+r5 continuation: pause after A main menu through original game process exit — bounded sanitized original excerpts
+Client local time UTC+02:00, server time UTC. Source line labels are separate. Original text unchanged except 24-hex identifiers explicitly redacted as [redacted-id].
+No Error/Fatal/Critical, Warning, or thrown exception found in these delta windows; no exception stack to excerpt. Unpatch/cleanup messages do not identify who closed the game or prove the exact exit mechanism.
+CLIENT C:\SPT41\Development\ArenaMode\artifacts\gpu-deathmatch-menu\deathmatch-menu-exit-r5\2026-09-12T15-08-44-047Z\logs\resume-game-absent\client.log | SHA256 3013D2843E03890337A8A2687BB40E54697F39334A799DAF64B65537DB266649 | audited lines13546-13823, original gamePID11900
+SOURCE LINE 13546
+[17:23:39.313] [Info   :maschine-ArenaMode] Arena side button: active=True, interactable=True, wrapper=AlphaBlocker
+SOURCE LINE 13547
+[17:23:39.486] [Info   :maschine-ArenaMode] Arena character preview ready: side=Bear; separate equipment/camera; camera=(128.62, -128.60, 128.96); body=(128.00, -129.00, 133.00); visibleBounds=47/47.
+SOURCE LINE 13548
+[17:43:48.788] [Info   :  HarmonyX] Patching void DynamicMaps.DynamicMarkers.CorpseMarkerProvider::TryAddMarker(EFT.Player player) with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13549
+
+SOURCE LINE 13550
+[17:43:48.790] [Info   :  HarmonyX] Running ILHook manipulator on void DynamicMaps.DynamicMarkers.CorpseMarkerProvider::TryAddMarker(EFT.Player player)
+SOURCE LINE 13551
+[17:43:48.804] [Info   :  HarmonyX] Patching void EFT.UI.ExtractionTimersPanel::ShowTimer(bool showExits, bool updateExits) with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13552
+
+SOURCE LINE 13553
+[17:43:48.805] [Info   :  HarmonyX] Running ILHook manipulator on void EFT.UI.ExtractionTimersPanel::ShowTimer(bool showExits, bool updateExits)
+SOURCE LINE 13554
+[17:43:48.816] [Info   :  HarmonyX] Patching virtual void GPUInstancer.GPUInstancerManager::Update() with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13555
+
+SOURCE LINE 13556
+[17:43:48.817] [Info   :  HarmonyX] Running ILHook manipulator on virtual void GPUInstancer.GPUInstancerManager::Update()
+SOURCE LINE 13594
+[17:43:48.896] * static Exception ArenaMode.Kits.KitOpticPreloadGuard::FinishOriginal(Exception __exception, ArenaMode.Kits.KitOpticPreloadGuard+Frame __state)
+SOURCE LINE 13613
+[17:43:48.924] [Info   :ModulePatch] Disabled patch ArenaAreaInitialSpawnPatch
+SOURCE LINE 13698
+[17:43:49.023] [Info   :ModulePatch] Disabled patch ArenaAreaSpawnPointsPatch
+SOURCE LINE 13703
+[17:43:49.028] * static Exception ArenaMode.Areas.ArenaAreaLoadPatch::FinalizeLoad(Exception __exception, ArenaMode.Areas.ArenaAreaRuntime+LoadingLease __state)
+SOURCE LINE 13710
+[17:43:49.034] * static Exception ArenaMode.Areas.ArenaAreaLoadPatch::FinalizeLoad(Exception __exception, ArenaMode.Areas.ArenaAreaRuntime+LoadingLease __state)
+SOURCE LINE 13802
+[17:43:49.206] [Info   :  HarmonyX] Patching void EFT.InputSystem.InputPreset::UpdateInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commands, float[] axis, float deltaTime) with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13803
+
+SOURCE LINE 13804
+[17:43:49.206] [Info   :  HarmonyX] Running ILHook manipulator on void EFT.InputSystem.InputPreset::UpdateInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commands, float[] axis, float deltaTime)
+SOURCE LINE 13805
+[17:43:49.211] [Info   :  HarmonyX] Patching void EFT.InputSystem.InputManager::OnDestroy() with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13806
+
+SOURCE LINE 13807
+[17:43:49.211] [Info   :  HarmonyX] Running ILHook manipulator on void EFT.InputSystem.InputManager::OnDestroy()
+SOURCE LINE 13808
+[17:43:49.216] [Info   :  HarmonyX] Patching void EFT.InputSystem.InputManager::DispatchInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commandsList, float[] axesList) with 1 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13809
+[17:43:49.216] 1 prefixes:
+SOURCE LINE 13810
+[17:43:49.216] * static void ArenaMode.Hud.ArenaInputBlocker::Prefix(object __instance, System.Collections.IList __0, float[] __1, Int64& __state)
+SOURCE LINE 13811
+
+SOURCE LINE 13812
+[17:43:49.216] [Info   :  HarmonyX] Running ILHook manipulator on void EFT.InputSystem.InputManager::DispatchInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commandsList, float[] axesList)
+SOURCE LINE 13813
+[17:43:49.216] [Info   :  HarmonyX] Writing prefixes
+SOURCE LINE 13814
+[17:43:49.219] [Info   :  HarmonyX] Patching void EFT.InputSystem.InputManager::DispatchInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commandsList, float[] axesList) with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13815
+
+SOURCE LINE 13816
+[17:43:49.219] [Info   :  HarmonyX] Running ILHook manipulator on void EFT.InputSystem.InputManager::DispatchInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commandsList, float[] axesList)
+SOURCE LINE 13817
+[17:43:49.237] [Info   :  HarmonyX] Patching virtual void EFT.InputSystem.InputNode::TranslateInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commands, Single[]& axes, EFT.InputSystem.ECursorResult& shouldLockCursor) with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13818
+
+SOURCE LINE 13819
+[17:43:49.239] [Info   :  HarmonyX] Running ILHook manipulator on virtual void EFT.InputSystem.InputNode::TranslateInput(System.Collections.Generic.List<EFT.InputSystem.ECommand> commands, Single[]& axes, EFT.InputSystem.ECursorResult& shouldLockCursor)
+SOURCE LINE 13820
+[17:43:49.243] [Info   :  HarmonyX] Patching void EFT.Player::ShowAmmoCountZeroingPanel(string message) with 0 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+SOURCE LINE 13821
+
+SOURCE LINE 13822
+[17:43:49.243] [Info   :  HarmonyX] Running ILHook manipulator on void EFT.Player::ShowAmmoCountZeroingPanel(string message)
+SOURCE LINE 13823
+[17:43:49.415] [Info   :FixPluginTypesSerialization] Restored original AssemblyNames list
+SERVER C:\SPT41\Development\ArenaMode\artifacts\gpu-deathmatch-menu\deathmatch-menu-exit-r5\2026-09-12T15-08-44-047Z\logs\resume-game-absent\server.log | SHA256 FE8458EA56D1B65F82907B8829E0A8FA437B08D7D1C4B7A2F4E7E5ACAB4BC6C7 | audited lines8091-8277, continuing serverPID13660; original process start2026-09-12T15:09:24.4621841Z
+SOURCE LINE 8091
+[2026-09-12 15:23:06.340][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/client-settings
+SOURCE LINE 8277
+[2026-09-12 15:44:33.258][Debug][SPTarkov.Server.Core.Servers.SaveServer] Saved 3 profiles, took: 28ms

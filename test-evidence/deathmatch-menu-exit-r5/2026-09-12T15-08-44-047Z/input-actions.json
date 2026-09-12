@@ -1,12 +1,5 @@
 [
   {
-    "at": "2026-09-12T15:10:35.398Z",
-    "action": "click",
-    "x": 963,
-    "y": 63,
-    "name": "game-launch-private"
-  },
-  {
     "at": "2026-09-12T15:12:20.487Z",
     "action": "click",
     "x": 960,
@@ -240,5 +233,170 @@
     "x": 960,
     "y": 685,
     "name": "b-arena-selected"
+  },
+  {
+    "at": "2026-09-12T15:47:22.004Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "b-resume-character-selection",
+    "returnAt": "2026-09-12T15:47:23.262Z"
+  },
+  {
+    "at": "2026-09-12T15:47:30.523Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "name": "b-resume-arena",
+    "returnAt": "2026-09-12T15:47:31.402Z"
+  },
+  {
+    "at": "2026-09-12T15:47:36.998Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "b-resume-map",
+    "returnAt": "2026-09-12T15:47:38.122Z"
+  },
+  {
+    "at": "2026-09-12T15:47:45.867Z",
+    "action": "click",
+    "x": 107,
+    "y": 560,
+    "name": "b-kills-off",
+    "returnAt": "2026-09-12T15:47:46.693Z"
+  },
+  {
+    "at": "2026-09-12T15:47:51.955Z",
+    "action": "click",
+    "x": 171,
+    "y": 509,
+    "name": "b-one-round",
+    "returnAt": "2026-09-12T15:47:52.785Z"
+  },
+  {
+    "at": "2026-09-12T15:48:01.602Z",
+    "action": "click",
+    "x": 155,
+    "y": 662,
+    "name": "b-ffa",
+    "returnAt": "2026-09-12T15:48:02.373Z"
+  },
+  {
+    "at": "2026-09-12T15:48:15.602Z",
+    "action": "click",
+    "x": 709,
+    "y": 392,
+    "name": "b-factory-rules",
+    "returnAt": "2026-09-12T15:48:16.441Z"
+  },
+  {
+    "at": "2026-09-12T15:48:25.339Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "b-native-confirmation",
+    "returnAt": "2026-09-12T15:48:26.289Z"
+  },
+  {
+    "at": "2026-09-12T15:48:40.562Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "b-ready-loading",
+    "returnAt": "2026-09-12T15:48:42.194Z"
+  },
+  {
+    "at": "2026-09-12T15:49:53.406Z",
+    "action": "key",
+    "key": "F9",
+    "name": "b-f9-rules",
+    "returnAt": "2026-09-12T15:49:53.908Z"
+  },
+  {
+    "at": "2026-09-12T15:50:58.072Z",
+    "action": "key",
+    "key": "F9",
+    "name": "b-live-killfeed-view",
+    "returnAt": "2026-09-12T15:51:00.530Z"
+  },
+  {
+    "at": "2026-09-12T15:51:29.847Z",
+    "action": "key",
+    "key": "F9",
+    "name": "b-scoreboard-near-result",
+    "returnAt": "2026-09-12T15:51:33.378Z"
+  },
+  {
+    "at": "2026-09-12T15:51:55.409Z",
+    "action": "click",
+    "x": 890,
+    "y": 906,
+    "name": "b-return-to-menu-button",
+    "returnAt": "2026-09-12T15:51:56.381Z"
+  },
+  {
+    "at": "2026-09-12T15:52:20.821Z",
+    "action": "click",
+    "x": 960,
+    "y": 1031,
+    "name": "b-native-main-menu",
+    "returnAt": "2026-09-12T15:52:24.208Z"
+  },
+  {
+    "at": "2026-09-12T15:54:14.043Z",
+    "action": "click",
+    "x": 960,
+    "y": 643,
+    "name": "restore-character-selection",
+    "returnAt": "2026-09-12T15:54:14.950Z"
+  },
+  {
+    "at": "2026-09-12T15:54:21.550Z",
+    "action": "click",
+    "x": 960,
+    "y": 685,
+    "name": "restore-arena",
+    "returnAt": "2026-09-12T15:54:22.357Z"
+  },
+  {
+    "at": "2026-09-12T15:54:30.015Z",
+    "action": "click",
+    "x": 960,
+    "y": 942,
+    "name": "restore-map",
+    "returnAt": "2026-09-12T15:54:31.007Z"
+  },
+  {
+    "at": "2026-09-12T15:54:46.308Z",
+    "action": "click",
+    "x": 106,
+    "y": 611,
+    "name": "restore-deathmatch-time-off",
+    "returnAt": "2026-09-12T15:54:47.135Z"
+  },
+  {
+    "at": "2026-09-12T15:55:34.357Z",
+    "action": "click",
+    "x": 106,
+    "y": 509,
+    "name": "restore-endless-first",
+    "returnAt": "2026-09-12T15:55:35.169Z"
+  },
+  {
+    "at": "2026-09-12T15:55:44.246Z",
+    "action": "click",
+    "x": 106,
+    "y": 611,
+    "name": "restore-time-off-after-endless",
+    "returnAt": "2026-09-12T15:55:45.105Z"
+  },
+  {
+    "at": "2026-09-12T15:55:56.299Z",
+    "action": "click",
+    "x": 234,
+    "y": 312,
+    "name": "restore-gungame",
+    "returnAt": "2026-09-12T15:55:57.184Z"
   }
 ]

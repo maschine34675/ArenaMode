@@ -1,0 +1,312 @@
+{
+  "schema": "arenamode-independent-r5-B-log-audit-v1",
+  "createdUtc": "2026-09-12T15:56:48.0346669+00:00",
+  "testId": "deathmatch-menu-exit-r5",
+  "raid": "B",
+  "scope": "Complete fresh second-client log through B-mainmenu; continuing-server delta after resume-startup. Prior PID11900/A counter values remain separate.",
+  "clientPid": 10268,
+  "clientStartUtc": "2026-09-12T15:45:36.5518531Z",
+  "serverPid": 13660,
+  "serverStartUtc": "2026-09-12T15:09:24.4621841Z",
+  "sourceFiles": [
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\B-mainmenu\\client.log",
+      "sha256": "5D03E4603CB44F2F4858C0E483EB0283DFF3249931EF34D4E97A55150CE97965",
+      "firstAuditedLine": 1,
+      "lastAuditedLine": 13355,
+      "firstLoggedLocal": "17:45:45.700",
+      "lastLoggedLocal": "17:52:43.784",
+      "timestampBasis": "UTC+02:00"
+    },
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\B-mainmenu\\server.log",
+      "sha256": "46E02C777C95780D2A29C60C555F39E0EFED39C9D1E7D4550F1480E6C0AD690E",
+      "firstAuditedLine": 8345,
+      "lastAuditedLine": 8791,
+      "first": "[2026-09-12 15:46:52.062][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/builds/list",
+      "last": "[2026-09-12 15:53:17.665][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/client-settings",
+      "timestampBasis": "UTC",
+      "previousAudit": "resume-startup-audit-r5.json covers continuing server through8344; earlier same-day runs excluded."
+    }
+  ],
+  "errors": {
+    "clientErrorFatalCritical": 0,
+    "serverDeltaErrorFatalCritical": 0,
+    "clientThrownExceptionCandidates": 0,
+    "serverDeltaThrownExceptionCandidates": 0,
+    "exceptionStacks": [],
+    "clientWarnings": 28,
+    "serverDeltaWarnings": 0,
+    "exceptionExclusions": "Harmony finalizer signatures and Assert.raiseExceptions are not thrown exceptions."
+  },
+  "guards": {
+    "inputReady": {
+      "count": 1,
+      "line": 6107,
+      "utc": "2026-09-12T15:45:58.830Z"
+    },
+    "inputUnavailable": 0,
+    "sainReady": {
+      "count": 1,
+      "line": 4968,
+      "utc": "2026-09-12T15:45:57.268Z"
+    },
+    "sainTeardownActive": {
+      "count": 1,
+      "line": 13349,
+      "utc": "2026-09-12T15:51:56.358Z",
+      "status": "OBSERVED ONCE"
+    },
+    "pickupCancellation": {
+      "count": 0,
+      "times": [],
+      "status": "NOT OBSERVED",
+      "limit": "No pickup cancellation marker does not demonstrate that a pending pickup was cancelled."
+    }
+  },
+  "input": {
+    "stateLineCount": 4,
+    "pendingCount": 2,
+    "releasedCount": 2,
+    "completePairCount": 2,
+    "cap": 24,
+    "capReached": false,
+    "pairs": [
+      {
+        "generation": 22509,
+        "pendingLine": 13285,
+        "releasedLine": 13286,
+        "pendingUtc": "2026-09-12T15:50:58.2770000+00:00",
+        "releasedUtc": "2026-09-12T15:50:58.3730000+00:00",
+        "pendingSample": 2262,
+        "releasedSample": 2263,
+        "blockedShotCommands": 0
+      },
+      {
+        "generation": 22510,
+        "pendingLine": 13329,
+        "releasedLine": 13331,
+        "pendingUtc": "2026-09-12T15:51:54.4290000+00:00",
+        "releasedUtc": "2026-09-12T15:51:54.5260000+00:00",
+        "pendingSample": 3358,
+        "releasedSample": 3359,
+        "blockedShotCommands": 0
+      }
+    ],
+    "originalLines": [
+      {
+        "line": 13285,
+        "utc": "2026-09-12T15:50:58.2770000+00:00",
+        "generation": 22509,
+        "state": "pending",
+        "sample": 2262,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:50:58.277] [Info   :maschine-ArenaMode] Arena panel input: close 22509 pending; sample=2262, owners=0"
+      },
+      {
+        "line": 13286,
+        "utc": "2026-09-12T15:50:58.3730000+00:00",
+        "generation": 22509,
+        "state": "released",
+        "sample": 2263,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:50:58.373] [Info   :maschine-ArenaMode] Arena panel input: close 22509 released; sample=2263, blockedShotCommands=0"
+      },
+      {
+        "line": 13329,
+        "utc": "2026-09-12T15:51:54.4290000+00:00",
+        "generation": 22510,
+        "state": "pending",
+        "sample": 3358,
+        "metric": "owners",
+        "value": 0,
+        "original": "[17:51:54.429] [Info   :maschine-ArenaMode] Arena panel input: close 22510 pending; sample=3358, owners=0"
+      },
+      {
+        "line": 13331,
+        "utc": "2026-09-12T15:51:54.5260000+00:00",
+        "generation": 22510,
+        "state": "released",
+        "sample": 3359,
+        "metric": "blockedShotCommands",
+        "value": 0,
+        "original": "[17:51:54.526] [Info   :maschine-ArenaMode] Arena panel input: close 22510 released; sample=3359, blockedShotCommands=0"
+      }
+    ],
+    "limit": "These are second-process counts only. No controlled Close ammunition acceptance inferred from these two zero-count pairs."
+  },
+  "lifecycle": [
+    {
+      "source": "client",
+      "line": 13130,
+      "utc": "2026-09-12T15:49:35.3700000+00:00",
+      "original": "[17:49:35.370] [Info   :maschine-ArenaMode] Arena session active on factory4_day."
+    },
+    {
+      "source": "server",
+      "line": 8714,
+      "utc": "2026-09-12T15:51:56.1920000+00:00",
+      "original": "[2026-09-12 15:51:56.192][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end"
+    },
+    {
+      "source": "server",
+      "line": 8712,
+      "utc": "2026-09-12T15:51:55.8950000+00:00",
+      "original": "[2026-09-12 15:51:55.895][Information][ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+    },
+    {
+      "source": "server",
+      "line": 8439,
+      "utc": "2026-09-12T15:49:01.9840000+00:00",
+      "original": "[2026-09-12 15:49:01.984][Information][ArenaMode.Server.Services.ArenaProtectedRaidStartService] [ArenaMode] Protected native Arena start completed for session [redacted-id]; the exact SPT server id is bound for retry-safe end processing."
+    },
+    {
+      "source": "server",
+      "line": 8437,
+      "utc": "2026-09-12T15:49:01.7500000+00:00",
+      "original": "[2026-09-12 15:49:01.750][Information][ArenaMode.Server.PatchManager] [ArenaMode] Arena hostility applied (ffa, frozen Deathmatch selection)."
+    },
+    {
+      "source": "server",
+      "line": 8418,
+      "utc": "2026-09-12T15:49:01.0490000+00:00",
+      "original": "[2026-09-12 15:49:01.049][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Completed protected PitFireTeam arm for session [redacted-id]: map=factory4_day, mode=deathmatch."
+    },
+    {
+      "source": "server",
+      "line": 8417,
+      "utc": "2026-09-12T15:49:01.0490000+00:00",
+      "original": "[2026-09-12 15:49:01.049][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot taken for session [redacted-id]."
+    },
+    {
+      "source": "server",
+      "line": 8416,
+      "utc": "2026-09-12T15:49:01.0480000+00:00",
+      "original": "[2026-09-12 15:49:01.048][Information][ArenaMode.Server.Services.ArenaSessionService] [ArenaMode] Reserved profile boundary for session [redacted-id] before snapshot."
+    },
+    {
+      "source": "client",
+      "line": 13349,
+      "utc": "2026-09-12T15:51:56.3580000+00:00",
+      "original": "[17:51:56.358] [Info   :maschine-ArenaMode] Arena SAIN teardown: uninitialized Arena component; coroutine cleanup retained."
+    },
+    {
+      "source": "client",
+      "line": 13347,
+      "utc": "2026-09-12T15:51:55.9090000+00:00",
+      "original": "[17:51:55.909] [Info   :maschine-ArenaMode] Arena match ended: 0 kills / 0 deaths, score 0, best streak 0, 2.3 min."
+    },
+    {
+      "source": "client",
+      "line": 13344,
+      "utc": "2026-09-12T15:51:55.8980000+00:00",
+      "original": "[17:51:55.898] [Info   :maschine-ArenaMode] Arena session ended."
+    },
+    {
+      "source": "client",
+      "line": 13328,
+      "utc": "2026-09-12T15:51:54.4130000+00:00",
+      "original": "[17:51:54.413] [Info   :maschine-ArenaMode] Arena match result exit committed (Survived); protected native end follows."
+    },
+    {
+      "source": "client",
+      "line": 13315,
+      "utc": "2026-09-12T15:51:39.1580000+00:00",
+      "original": "[17:51:39.158] [Info   :maschine-ArenaMode] Arena Round 1: Quik wins — Time limit; 0 kills / 0 deaths / 0 points."
+    },
+    {
+      "source": "client",
+      "line": 13199,
+      "utc": "2026-09-12T15:49:37.8690000+00:00",
+      "original": "[17:49:37.869] [Info   :maschine-ArenaMode] Arena Deathmatch round 1 started."
+    },
+    {
+      "source": "client",
+      "line": 13197,
+      "utc": "2026-09-12T15:49:37.7980000+00:00",
+      "original": "[17:49:37.798] [Info   :maschine-ArenaMode] Arena raid-start kit swap complete: Wraith."
+    },
+    {
+      "source": "client",
+      "line": 13139,
+      "utc": "2026-09-12T15:49:35.4640000+00:00",
+      "original": "[17:49:35.464] [Info   :maschine-ArenaMode] Arena match started (Deathmatch)."
+    },
+    {
+      "source": "server",
+      "line": 8715,
+      "utc": "2026-09-12T15:51:56.2020000+00:00",
+      "original": "[2026-09-12 15:51:56.202][Information][ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [redacted-id]."
+    },
+    {
+      "source": "server",
+      "line": 8718,
+      "utc": "2026-09-12T15:51:56.3020000+00:00",
+      "original": "[2026-09-12 15:51:56.302][Information][ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [redacted-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+    }
+  ],
+  "derived": {
+    "kitCompleteToRound1StartMilliseconds": 71,
+    "roundStarts": 1,
+    "roundEnds": 1,
+    "roundStartToEndWallSeconds": 121.289,
+    "roundEndToExitCommittedWallSeconds": 15.255,
+    "deathMarkers": 0,
+    "respawnTimingMarkers": 0,
+    "resultWinner": "Quik",
+    "resultReason": "Time limit",
+    "localMatchFinalKills": 0,
+    "localMatchFinalDeaths": 0,
+    "localMatchFinalScore": 0,
+    "limit": "Wall-clock log deltas, not stopwatch measurement of active play."
+  },
+  "winnerImage": {
+    "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\screenshots\\b-terminal-result-2026-09-12T15-51-44-869Z-0.jpg",
+    "sha256": "92C5EDA3AFDD29258D4312A897076415A5BED1E78C7A11669D033C7EB0E4A119",
+    "archiveMarkerUtc": "2026-09-12T15:51:44.869Z",
+    "independentlyViewed": true,
+    "visibleResult": "DEFEAT — Quik wins — 0 rounds won / 1 lost — 1 round completed",
+    "visibleCountdownSeconds": 10,
+    "firstVisibleStanding": {
+      "name": "Quik",
+      "score": 650,
+      "kills": 3,
+      "deaths": 0,
+      "headshots": 1
+    },
+    "secondVisibleStanding": {
+      "name": "CWX",
+      "score": 450,
+      "kills": 2,
+      "deaths": 1,
+      "headshots": 1
+    },
+    "assessment": "Visible top score650 vs450 is consistent with Quik wins. A single terminal image does not prove score freeze over the result duration."
+  },
+  "exitAssessment": {
+    "resultExitCommittedUtc": "2026-09-12T15:51:54.413Z",
+    "attemptedReturnButtonClickBeginUtc": "2026-09-12T15:51:55.409Z",
+    "attemptedReturnButtonClickReturnUtc": "2026-09-12T15:51:56.381Z",
+    "clickTimesSource": "Root native input record as supplied to audit",
+    "commitPrecedesClickSeconds": 0.996,
+    "returnButtonStatus": "OPEN — automatic exit committed before attempted click; button route not demonstrated",
+    "sessionEndedUtc": "2026-09-12T15:51:55.898Z",
+    "nativeLocalEndUtc": "2026-09-12T15:51:56.192Z",
+    "snapshotRestoredUtc": "2026-09-12T15:51:56.202Z",
+    "protectedEndPersistedUtc": "2026-09-12T15:51:56.302Z",
+    "deferredRestoreResolved": true,
+    "mainMenuImageArchiveUtc": "2026-09-12T15:53:10.433Z",
+    "mainMenuImage": "screenshots/b-mainmenu-check-2026-09-12T15-53-10-433Z-0.jpg",
+    "rootConfirmedMainMenu": true,
+    "newLogSafetyStopFinding": false,
+    "profileComparison": "Root reports all16 protected comparisons equal; separate full-JSON audit required, no private profiles copied here."
+  },
+  "limits": [
+    "C not run; no C acceptance inferred.",
+    "Restoration, later menu checks/refinements and shutdown are outside this B-mainmenu snapshot.",
+    "New SAIN safeguard intervention is confined to this observed cleanup; no blanket guarantee for every uninitialized teardown."
+  ],
+  "privacy": "All 24-hex identifiers in selected log text replaced by [redacted-id]; original timestamps/content otherwise preserved, line labels separate. No full profile contents."
+}

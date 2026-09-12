@@ -1,0 +1,59 @@
+{
+  "schema": "arenamode-r5-resume-startup-audit-v1",
+  "createdUtc": "2026-09-12T15:49:47.4431102+00:00",
+  "scope": "Fresh second client startup only, before Raid B. Same continuing server; prior client process and its counters remain separate.",
+  "clientPid": 10268,
+  "clientProcessStartUtc": "2026-09-12T15:45:36.5518531Z",
+  "serverPid": 13660,
+  "serverProcessStartUtc": "2026-09-12T15:09:24.4621841Z",
+  "sourceFiles": [
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\resume-startup\\client.log",
+      "sha256": "BC9BC0E067D23DD1F2EB9ECA7220A46ED663EAD46AE55EED36C7EFBB68CF35F0",
+      "firstLine": 1,
+      "lastLine": 13019,
+      "first": "[17:45:45.700] [Info   :  LogTools] Log file timestamps active — every line below is LOCAL time (UTC+02:00). Session start: 2026-09-12 17:45:45 local = 2026-09-12 15:45:45 UTC (SPT's server and launcher logs and EFT's own logs are UTC).",
+      "last": "[17:46:43.633] [Info   :DynamicMaps] Precaching sprite: Maps/Woods_TarkovData/Layers/Woods-Second_Floor.svg",
+      "timestampBasis": "UTC+02:00"
+    },
+    {
+      "path": "C:\\SPT41\\Development\\ArenaMode\\artifacts\\gpu-deathmatch-menu\\deathmatch-menu-exit-r5\\2026-09-12T15-08-44-047Z\\logs\\resume-startup\\server.log",
+      "sha256": "60EDE10953EB7E1F49C65C2593C8972DCCA9E352F56563CC77C800D6EBDE70FC",
+      "firstAuditedDeltaLine": 8278,
+      "lastAuditedDeltaLine": 8344,
+      "first": "[2026-09-12 15:44:38.240][Debug][SPTarkov.Server.Core.Generators.Ragfair.RagfairOfferGenerator] Took 5ms to CreateOffersFromAssort",
+      "last": "[2026-09-12 15:46:48.893][Information][SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/handbook/templates",
+      "timestampBasis": "UTC",
+      "priorServerAudit": "resume-game-absent-audit-r5.json"
+    }
+  ],
+  "counts": {
+    "clientErrorFatalCritical": 0,
+    "serverDeltaErrorFatalCritical": 0,
+    "clientThrownExceptionCandidates": 0,
+    "serverDeltaThrownExceptionCandidates": 0,
+    "clientWarnings": 9,
+    "serverDeltaWarnings": 0,
+    "inputReady": 1,
+    "inputUnavailable": 0,
+    "sainSafeguardReady": 1,
+    "inputStateLines": 0
+  },
+  "markers": [
+    {
+      "line": 4968,
+      "original": "[17:45:57.268] [Info   :maschine-ArenaMode] Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready."
+    },
+    {
+      "line": 6107,
+      "original": "[17:45:58.830] [Info   :maschine-ArenaMode] Arena input blocker ready: panel close waits for released-pointer input delivery."
+    }
+  ],
+  "exceptionStacks": [],
+  "limits": [
+    "Harmony finalizer signatures and Assert.raiseExceptions configuration are not thrown exceptions.",
+    "Ready markers establish fresh registration, not later live input or teardown performance.",
+    "Input diagnostic cap24 belongs to this new client process; prior processA counts are not added.",
+    "B/C gameplay, profiles and budget acceptance are outside this startup-only audit."
+  ]
+}

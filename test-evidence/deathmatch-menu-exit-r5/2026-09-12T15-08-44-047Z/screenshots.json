@@ -259,5 +259,158 @@
     "height": 1080,
     "sha256": "F571F5F9BE80389E7C5EF307A5F28F1A4EEFE499886929884FAA146B139506FD",
     "note": "Original screenshot bytes; first surface selected. Timestamp is archive time, not a proven exact exposure time."
+  },
+  {
+    "name": "resume-mainmenu-check",
+    "archivedAtUtc": "2026-09-12T15:47:09.758Z",
+    "file": "resume-mainmenu-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "68B30D4811D9886BB8E76633EB3883DF8810BBB61659AE703F617DE80B4E2823",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-resume-arena",
+    "archivedAtUtc": "2026-09-12T15:47:31.403Z",
+    "file": "b-resume-arena.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "25E47F668F3155A34AA106FCF7D91B10E7FDE024994CDD768562A2067C947AF1",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-factory-rules",
+    "archivedAtUtc": "2026-09-12T15:48:16.441Z",
+    "file": "b-factory-rules.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "2A70FDC3DA084D21E967A195F2F5F016B611174CA68FFF81BB605867C3D55D09",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-native-confirmation",
+    "archivedAtUtc": "2026-09-12T15:48:26.290Z",
+    "file": "b-native-confirmation.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "2640202D4C08393FDD9A019EDEE6EA86035E9EF1391A7EF0C9736A8611D3DEA9",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-first-live-check",
+    "archivedAtUtc": "2026-09-12T15:49:41.654Z",
+    "file": "b-first-live-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "3CD46F3A795A6F0AFA6E5BEEFD5156D31E2694C5D799A1EF650852826618E83A",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-f9-rules",
+    "archivedAtUtc": "2026-09-12T15:49:53.922Z",
+    "file": "b-f9-rules.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "92AC3B877F6357A8BE5572E7427392C58EF1DF8F8443C88BEF0F84E14F2348A0",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-ffa-scoreboard-mid",
+    "archivedAtUtc": "2026-09-12T15:50:42.503Z",
+    "file": "b-ffa-scoreboard-mid.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "1187570A78608709810DA69BBA5046FB8EC03F9530517CFB68ED35CD9B639DC5",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-live-killfeed-view",
+    "archivedAtUtc": "2026-09-12T15:51:00.531Z",
+    "file": "b-live-killfeed-view.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "D5EFEB4D5CED76ECEE3228648054A72ECA112D2DDBA0F4E2950A9DB6C66F5686",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-scoreboard-near-result",
+    "archivedAtUtc": "2026-09-12T15:51:33.393Z",
+    "file": "b-scoreboard-near-result.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "B56351B31A610C772EE1E9BB87B00F0B00AF2A63DFF6DF3236278CF95A06C0A8",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-terminal-result",
+    "archivedAtUtc": "2026-09-12T15:51:44.869Z",
+    "file": "b-terminal-result.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "92C5EDA3AFDD29258D4312A897076415A5BED1E78C7A11669D033C7EB0E4A119",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-return-to-menu-button",
+    "archivedAtUtc": "2026-09-12T15:51:56.392Z",
+    "file": "b-return-to-menu-button.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "3416854CD115D9989848C5B3AEA29978D9F744DE2BDD650566A8D200C695D29D",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-native-end-check",
+    "archivedAtUtc": "2026-09-12T15:52:07.431Z",
+    "file": "b-native-end-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "872A3D9B5CE88FBBDA13D3422AF789305AB728533B0EF1B7A81FBA1E6E57E597",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "b-mainmenu-check",
+    "archivedAtUtc": "2026-09-12T15:53:10.433Z",
+    "file": "b-mainmenu-check.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7A3A2B50421CBE95223EED1DF1B6959380FF5D5FBA25386C3551E62E14E889AD",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "restore-time-state",
+    "archivedAtUtc": "2026-09-12T15:55:21.772Z",
+    "file": "restore-time-state.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "86910594FDE2D142B9D08C8FDC115AB380AA52BDE0747EF8D41A005C3B8D1EF1",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "restore-endless-first",
+    "archivedAtUtc": "2026-09-12T15:55:35.169Z",
+    "file": "restore-endless-first.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "E31A99F6ABBE4E71050551F8F0D52C7A6976F453BDA62D5E1D8A12AB8A9B37E4",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "restore-time-off-after-endless",
+    "archivedAtUtc": "2026-09-12T15:55:45.106Z",
+    "file": "restore-time-off-after-endless.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "61745D94AAD8668CDD2FC322CA8DC706DCF02451F50D0312D279CD77682E9B31",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
+  },
+  {
+    "name": "restore-gungame",
+    "archivedAtUtc": "2026-09-12T15:55:57.184Z",
+    "file": "restore-gungame.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "C8184CAC4C9C30FC832627EE667CD8A4C18123846213D41453B152D3B1711122",
+    "note": "Original screenshot bytes; first surface selected. Archive time is not a source-provided exact pixel capture timestamp."
   }
 ]
