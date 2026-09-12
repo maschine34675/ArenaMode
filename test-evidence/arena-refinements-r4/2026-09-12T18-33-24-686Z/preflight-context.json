@@ -1,0 +1,101 @@
+{
+  "schema": "r6-refinements-r4-preflight-context-v1",
+  "createdAtUtc": "2026-09-12T18:36:56.981Z",
+  "testIds": [
+    "deathmatch-menu-exit-r6",
+    "arena-refinements-r4"
+  ],
+  "independentClientObservations": [
+    {
+      "observedAtUtc": null,
+      "timePrecision": "First independent read; exact acquisition time not recorded",
+      "sha256": "B40FD17FFC89229D7273A26D7194FD0C0FBF19A8FC850E99AA3419C1DF84629E",
+      "productVersion": "0.1.0+67d27cad87e9004c22e33df8e97a551b648d0fe0",
+      "fileLastWriteUtc": "2026-09-12T18:29:57.8161729Z"
+    },
+    {
+      "observedAtUtc": "2026-09-12T18:31:42.168Z",
+      "sha256": "52A45F8E001F33AF2880B42EABE01CB0E56EA9CA1251AD1488E29BD6C7B3A5E4",
+      "metadataObservedAtUtc": "2026-09-12T18:32:01.0217267Z",
+      "productVersion": "0.1.0+668619f161dd9322ba17a79f257c9c0e52e33a22",
+      "fileLastWriteUtc": "2026-09-12T18:30:52.4792193Z"
+    }
+  ],
+  "rootObservation": "preflight.json",
+  "observationLimits": "Read-only point-in-time reads, not an atomic installation snapshot. No responsible process or change author established.",
+  "gitObservations": [
+    {
+      "phase": "initial preflight",
+      "branch": "feature/arena-air-control",
+      "head": "67d27cad87e9004c22e33df8e97a551b648d0fe0",
+      "foreignModified": [
+        "ArenaMode.Client/Respawn/LiveKitRespawn.cs"
+      ],
+      "foreignUntracked": [
+        "ArenaMode.Server/defaults/~syncthing~ladder.json.tmp"
+      ]
+    },
+    {
+      "phase": "later preflight",
+      "branch": "feature/arena-air-control",
+      "head": "3a5123c70980a8074cf3c18d6c57dbac5385cc97",
+      "foreignModified": [],
+      "foreignUntracked": [
+        "ArenaMode.Server/defaults/~syncthing~ladder.json.tmp"
+      ]
+    }
+  ],
+  "referencedBuildManifest": {
+    "SourceCommit": "0b7f38d594b09644803f263a510543293b11ed63",
+    "SourceChanges": [],
+    "ClientPath": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\f4f38f3505ba4d9ca1976ebccf2a4a5a\\out\\maschine-ArenaMode.Client.dll",
+    "ClientSha256": "2042C558340877C85DAF0687A8AEBB4E7D54FD720AD467E770F5AEE7F0914ECD",
+    "InstalledUnchanged": {
+      "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7",
+      "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "FDA836C30247B01E1B3E2B19A9749DCA23FAF68C7B3A03CA5D5C35537BB8C7A8",
+      "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll": "7DCAA94CFDF5F0C7E6736796901BE4C3DCBADCEC6F74C76E1668C22B81201F11"
+    },
+    "Deployed": false,
+    "LiveGpuTested": false
+  },
+  "referencedReceipt": {
+    "SourceCommit": "0b7f38d594b09644803f263a510543293b11ed63",
+    "ClientSha256": "2042C558340877C85DAF0687A8AEBB4E7D54FD720AD467E770F5AEE7F0914ECD",
+    "ProductVersion": "0.1.0+0b7f38d594b09644803f263a510543293b11ed63",
+    "StagedManifest": "artifacts/double-jump-build/f4f38f3505ba4d9ca1976ebccf2a4a5a/manifest.json",
+    "BeforeClientSha256": "7DCAA94CFDF5F0C7E6736796901BE4C3DCBADCEC6F74C76E1668C22B81201F11",
+    "NonClientUnchanged": 43,
+    "DeliveredLocal": true,
+    "GpuMirrorVerified": false,
+    "LiveGpuTested": false,
+    "AtUtc": "2026-09-12T17:05:19.2001837Z"
+  },
+  "stagedClientSha256": "2042C558340877C85DAF0687A8AEBB4E7D54FD720AD467E770F5AEE7F0914ECD",
+  "instructions": [
+    {
+      "name": "GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r6.md",
+      "sha256": "DECE23922BCF63A7475EF868C07A43A23DD6FCA655A736A965EA82EACE33748C",
+      "observedAtUtc": "2026-09-12T18:33:24.689Z"
+    },
+    {
+      "name": "GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r4.md",
+      "sha256": "F56050215F4D40F9798B4FB7AD3265EA1C1C237267BE4AD32BE033042157379D",
+      "observedAtUtc": "2026-09-12T18:33:24.699Z"
+    }
+  ],
+  "budget": {
+    "r6": {
+      "started": false,
+      "raids": 0,
+      "rounds": 0,
+      "activeGameplayMinutes": 0
+    },
+    "refinementsR4": {
+      "started": false,
+      "raids": 0,
+      "rounds": 0,
+      "activeGameplayMinutes": 0
+    }
+  },
+  "status": "Both native test jobs blocked before launch; no feature acceptance"
+}

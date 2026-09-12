@@ -1,0 +1,72 @@
+{
+  "AtUtc": "2026-09-12T18:32:07.3934818Z",
+  "Files": [
+    {
+      "Name": "Client",
+      "Path": "C:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "SHA256": "50DAECC65F0EBE4FC43159063D83E7DEF829AF9ED83F74DB1FD47EA7463831AA",
+      "Expected": "2042C558340877C85DAF0687A8AEBB4E7D54FD720AD467E770F5AEE7F0914ECD",
+      "Match": false,
+      "ProductVersion": "0.1.0+bb82ce8c81960f501fcf1b8312e9b267fad0480a",
+      "AssemblyVersion": "0.1.0.0",
+      "LastWriteUtc": "2026-09-12T18:31:48.3099819Z"
+    },
+    {
+      "Name": "Server",
+      "Path": "C:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll",
+      "SHA256": "294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7",
+      "Expected": "294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7",
+      "Match": true,
+      "ProductVersion": "0.1.0+f887090f5b04569a6f35fd19bf8a3ac63c25e0e2",
+      "AssemblyVersion": "0.1.0.0",
+      "LastWriteUtc": "2026-09-12T12:09:49.4365921Z"
+    },
+    {
+      "Name": "Redeploy.Core",
+      "Path": "C:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll",
+      "SHA256": "520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48",
+      "Expected": "FDA836C30247B01E1B3E2B19A9749DCA23FAF68C7B3A03CA5D5C35537BB8C7A8",
+      "Match": false,
+      "ProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+      "AssemblyVersion": "0.9.0.0",
+      "LastWriteUtc": "2026-09-12T18:27:14.9352113Z"
+    },
+    {
+      "Name": "SAIN",
+      "Path": "C:\\SPT41\\BepInEx\\plugins\\SAIN\\SAIN.dll",
+      "SHA256": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "Expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "Match": true,
+      "ProductVersion": "4.5.1+2d1d9257dbb3af535e9189e6181311f6355aec27",
+      "AssemblyVersion": "4.5.1.0",
+      "LastWriteUtc": "2026-09-04T18:35:15.0000000Z"
+    },
+    {
+      "Name": "DynamicMaps",
+      "Path": "C:\\SPT41\\BepInEx\\plugins\\mpstark-dynamicmaps\\DynamicMaps.dll",
+      "SHA256": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "Expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "Match": true,
+      "ProductVersion": "1.2.1+99200c60f084d1f64491dee93ceb09351bb8a2cd",
+      "AssemblyVersion": "1.2.1.0",
+      "LastWriteUtc": "2026-08-10T15:50:59.3953343Z"
+    }
+  ],
+  "Processes": [],
+  "Instructions": [
+    {
+      "name": "GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r6.md",
+      "sha256": "DECE23922BCF63A7475EF868C07A43A23DD6FCA655A736A965EA82EACE33748C",
+      "observedAtUtc": "2026-09-12T18:33:24.689Z"
+    },
+    {
+      "name": "GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r4.md",
+      "sha256": "F56050215F4D40F9798B4FB7AD3265EA1C1C237267BE4AD32BE033042157379D",
+      "observedAtUtc": "2026-09-12T18:33:24.699Z"
+    }
+  ],
+  "Status": "BLOCKED before launch; required client and Redeploy hashes do not match",
+  "Raids": 0,
+  "GameplayInputActions": 0,
+  "Scope": "Read-only preflight. No game/server/launcher launch, profile reads, settings changes, DLL replacement or build."
+}

@@ -1,0 +1,54 @@
+{
+  "atUtc": "2026-09-12T18:37:28.417Z",
+  "files": [
+    {
+      "name": "Client",
+      "sha256": "546EB7656D702C9B63A96C3408F34E871E5445108B9D9F69804C337DE4D0999C",
+      "expected": "2042C558340877C85DAF0687A8AEBB4E7D54FD720AD467E770F5AEE7F0914ECD",
+      "match": false
+    },
+    {
+      "name": "Server",
+      "sha256": "04533957CB2618F2AEE3241CEB1157BC0CCD81FF5278C7DC39CC72E05434799A",
+      "expected": "294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7",
+      "match": false
+    },
+    {
+      "name": "Redeploy.Core",
+      "sha256": "520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48",
+      "expected": "FDA836C30247B01E1B3E2B19A9749DCA23FAF68C7B3A03CA5D5C35537BB8C7A8",
+      "match": false
+    },
+    {
+      "name": "SAIN",
+      "sha256": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "match": true
+    },
+    {
+      "name": "DynamicMaps",
+      "sha256": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "match": true
+    }
+  ],
+  "instructions": [
+    {
+      "name": "GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r6.md",
+      "sha256": "DECE23922BCF63A7475EF868C07A43A23DD6FCA655A736A965EA82EACE33748C",
+      "unchangedSinceBoundRead": true
+    },
+    {
+      "name": "GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r4.md",
+      "sha256": "F56050215F4D40F9798B4FB7AD3265EA1C1C237267BE4AD32BE033042157379D",
+      "unchangedSinceBoundRead": true
+    }
+  ],
+  "handoff": {
+    "readAtUtc": "2026-09-12T18:39:08.059Z",
+    "sha256": "BD0AB3CAFE6A64BF4F67BDE9186356FCA95FD3B188BE0E5C29C54C82BF095E6F",
+    "sourceBuild": "3a5123c70980a8074cf3c18d6c57dbac5385cc97",
+    "relevantText": "The r6/r4 GPU instructions were bound to client 2042C558…; rebind them to this build (or restore that client) before their evidence is comparable.",
+    "interpretation": "The updated handoff documents a newer deployment. The requested instruction files still bind the prior client/server/Redeploy, so no silent rebinding or DLL restore is performed."
+  }
+}
