@@ -1,9 +1,9 @@
 # Announcer silence: diagnosis and recovery
 
 Current asset note (2026-09-12): this is the historical 2026-08-31 diagnosis.
-MULTI KILL (spoken ULTRA KILL), MONSTER KILL and UNSTOPPABLE now have recordings;
-five user-selected ElevenLabs effects are tracked with the current audio assets.
-See LOCAL-ANNOUNCER-TRIAL.md and packaged AUDIO-LICENSES.md for their scope.
+All 18 active cue recordings now come from the user's ElevenLabs Creator pack;
+28 additional phrases are packaged under sounds/reserve without new triggers.
+See ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md and AUDIO-LICENSES.md.
 
 ## Observed behavior
 

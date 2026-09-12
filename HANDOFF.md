@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Creator announcer pack delivered (2026-09-12):** User supplied the newly
+  Creator-generated `alle_ansagen.ogg`; all **46 phrases** were split in the
+  supplied order. Replaced all **18 active** announcer OGGs directly in tracked
+  assets; **28 reserved** phrases/alternatives are under `sounds/reserve/`,
+  packaged but not loaded and without new gameplay triggers. ULTRA stays mapped
+  to `multi_kill`; current ROUND WINNER/MISSION FAILED/MISSION ACCOMPLISHED/GAME
+  OVER results retain their keys. Original stereo/44.1 kHz, Vorbis q7, uniform
+  -1 dB headroom and 5/10 ms edge fades. Source hash, cuts, output hashes and
+  user-stated Creator provenance: `ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-SOURCES.json`;
+  full list/reproduction: adjacent `ANNOUNCER-PACK.md`. Former free-plan and CC
+  announcer records are explicitly historical; these new files are not CC.
+  Offline decoder verification and independent waveform/transcript/cut/metadata/
+  license review passed; wrong-source, corrupt-OGG and wrong-hash controls fail
+  as intended. All **61 asset files** match both isolated staging and the local
+  install through the normal `DeployArenaAudioAssets` target. The three Arena
+  DLL hashes and existing CC0 hitmarkers are unchanged. No full build, public
+  release or push. Backups/evidence: `artifacts/creator-announcer/` (ignored).
+  **Restart the game**, since healthy announcer PCM remains cached between
+  matches; no server restart is needed. Native listening remains for the user.
+
 - **r5/refinements r3 triaged; safety follow-up and air control delivered (2026-09-12):**
   `0a49898` confirms four isolated F9 Close clicks without firing, subsequent
   normal controls, three-round autoexit and FFA autoexit. Terminal toggles/score

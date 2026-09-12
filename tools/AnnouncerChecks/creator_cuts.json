@@ -1,0 +1,278 @@
+[
+  [
+    "DOUBLE KILL",
+    "sounds/double_kill.ogg",
+    0,
+    53630
+  ],
+  [
+    "TRIPLE KILL",
+    "sounds/triple_kill.ogg",
+    53630,
+    112482
+  ],
+  [
+    "ULTRA KILL",
+    "sounds/multi_kill.ogg",
+    112482,
+    177396
+  ],
+  [
+    "MONSTER KILL",
+    "sounds/monster_kill.ogg",
+    177396,
+    247328
+  ],
+  [
+    "KILLING SPREE",
+    "sounds/killing_spree.ogg",
+    247328,
+    313271
+  ],
+  [
+    "RAMPAGE",
+    "sounds/rampage.ogg",
+    313271,
+    368142
+  ],
+  [
+    "DOMINATING",
+    "sounds/dominating.ogg",
+    368142,
+    423056
+  ],
+  [
+    "UNSTOPPABLE",
+    "sounds/unstoppable.ogg",
+    423056,
+    483511
+  ],
+  [
+    "GODLIKE",
+    "sounds/godlike.ogg",
+    483511,
+    535721
+  ],
+  [
+    "FIRST BLOOD",
+    "sounds/first_blood.ogg",
+    535721,
+    596299
+  ],
+  [
+    "HEADSHOT",
+    "sounds/headshot.ogg",
+    596299,
+    643741
+  ],
+  [
+    "PAYBACK",
+    "sounds/payback.ogg",
+    643741,
+    688332
+  ],
+  [
+    "LAST MAN STANDING",
+    "sounds/last_man_standing.ogg",
+    688332,
+    769085
+  ],
+  [
+    "ROUND START",
+    "sounds/round_start.ogg",
+    769085,
+    831324
+  ],
+  [
+    "ROUND WINNER",
+    "sounds/round_won.ogg",
+    831324,
+    891459
+  ],
+  [
+    "MISSION FAILED",
+    "sounds/round_lost.ogg",
+    891459,
+    948215
+  ],
+  [
+    "MISSION ACCOMPLISHED",
+    "sounds/match_won.ogg",
+    948215,
+    1009806
+  ],
+  [
+    "GAME OVER",
+    "sounds/match_lost.ogg",
+    1009806,
+    1064798
+  ],
+  [
+    "PREPARE TO FIGHT",
+    "sounds/reserve/prepare_to_fight.ogg",
+    1064798,
+    1129540
+  ],
+  [
+    "THREE",
+    "sounds/reserve/three.ogg",
+    1129540,
+    1171323
+  ],
+  [
+    "TWO",
+    "sounds/reserve/two.ogg",
+    1171323,
+    1207768
+  ],
+  [
+    "ONE",
+    "sounds/reserve/one.ogg",
+    1207768,
+    1245535
+  ],
+  [
+    "TAKEN THE LEAD",
+    "sounds/reserve/taken_the_lead.ogg",
+    1245535,
+    1303083
+  ],
+  [
+    "LOST THE LEAD",
+    "sounds/reserve/lost_the_lead.ogg",
+    1303083,
+    1365135
+  ],
+  [
+    "TIED FOR THE LEAD",
+    "sounds/reserve/tied_for_the_lead.ogg",
+    1365135,
+    1432214
+  ],
+  [
+    "ONE MINUTE REMAINING",
+    "sounds/reserve/one_minute_remaining.ogg",
+    1432214,
+    1506639
+  ],
+  [
+    "THIRTY SECONDS REMAINING",
+    "sounds/reserve/thirty_seconds_remaining.ogg",
+    1506639,
+    1586559
+  ],
+  [
+    "TEN SECONDS REMAINING",
+    "sounds/reserve/ten_seconds_remaining.ogg",
+    1586559,
+    1666247
+  ],
+  [
+    "FIVE KILLS REMAINING",
+    "sounds/reserve/five_kills_remaining.ogg",
+    1666247,
+    1744630
+  ],
+  [
+    "ONE KILL REMAINING",
+    "sounds/reserve/one_kill_remaining.ogg",
+    1744630,
+    1822506
+  ],
+  [
+    "MATCH POINT",
+    "sounds/reserve/match_point.ogg",
+    1822506,
+    1878498
+  ],
+  [
+    "FINAL ROUND",
+    "sounds/reserve/final_round.ogg",
+    1878498,
+    1937681
+  ],
+  [
+    "FINAL WEAPON",
+    "sounds/reserve/final_weapon.ogg",
+    1937681,
+    1990274
+  ],
+  [
+    "LADDER COMPLETE",
+    "sounds/reserve/ladder_complete.ogg",
+    1990274,
+    2052417
+  ],
+  [
+    "DRAW",
+    "sounds/reserve/draw.ogg",
+    2052417,
+    2087628
+  ],
+  [
+    "SHUTDOWN",
+    "sounds/reserve/shutdown.ogg",
+    2087628,
+    2137994
+  ],
+  [
+    "CLUTCH",
+    "sounds/reserve/clutch.ogg",
+    2137994,
+    2183194
+  ],
+  [
+    "ROUND WON",
+    "sounds/reserve/round_won.ogg",
+    2183194,
+    2254505
+  ],
+  [
+    "ROUND LOST",
+    "sounds/reserve/round_lost.ogg",
+    2254505,
+    2311866
+  ],
+  [
+    "VICTORY",
+    "sounds/reserve/victory.ogg",
+    2311866,
+    2357728
+  ],
+  [
+    "DEFEAT",
+    "sounds/reserve/defeat.ogg",
+    2357728,
+    2398513
+  ],
+  [
+    "YOUR FLAG HAS BEEN TAKEN",
+    "sounds/reserve/your_flag_has_been_taken.ogg",
+    2398513,
+    2485756
+  ],
+  [
+    "ENEMY FLAG TAKEN",
+    "sounds/reserve/enemy_flag_taken.ogg",
+    2485756,
+    2562333
+  ],
+  [
+    "FLAG DROPPED",
+    "sounds/reserve/flag_dropped.ogg",
+    2562333,
+    2618292
+  ],
+  [
+    "FLAG RETURNED",
+    "sounds/reserve/flag_returned.ogg",
+    2618292,
+    2684108
+  ],
+  [
+    "FLAG CAPTURED",
+    "sounds/reserve/flag_captured.ogg",
+    2684108,
+    2758982
+  ]
+]

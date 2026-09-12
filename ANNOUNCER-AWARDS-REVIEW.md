@@ -1,5 +1,10 @@
 # WARLORD awards and playback
 
+Current asset note (2026-09-12): the rules and test evidence below describe the
+original WARLORD integration. Its audio, including FIRST BLOOD, has now been
+replaced by the user-supplied ElevenLabs Creator pack; rules and priorities are
+unchanged. See ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md.
+
 ## Rules
 
 - First Blood uses WARLORD. The first eligible combat kill consumes it, including

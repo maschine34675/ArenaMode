@@ -1,4 +1,6 @@
 {
+  "status": "Historical: all listed announcer outputs superseded by the Creator pack on 2026-09-12",
+  "currentManifest": "ANNOUNCER-SOURCES.json",
   "title": "ArenaMode announcer trial - elevenlabs.io",
   "source": "ansagen2.wav",
   "sourceSha256": "B41440907BA52AFAAE4FA3D5434182FDCB8C9D1226987922A93629327225849A",

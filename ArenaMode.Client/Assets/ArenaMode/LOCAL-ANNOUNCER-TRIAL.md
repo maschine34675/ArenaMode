@@ -1,3 +1,10 @@
+> **Historical record — superseded 2026-09-12.** All five free-plan OGGs
+> described below were replaced by new recordings generated under Creator.
+> This document records the former selection and is not the current deployment
+> or license manifest. See `ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md`
+> in the repo, or `ANNOUNCER-PACK.md` beside this file in the installed asset pack.
+> Old output hashes and licensing restrictions apply only to the old recordings.
+
 # Development announcer recordings - elevenlabs.io
 
 2026-09-11: the user supplied `D:\SPT41\Development\ansagen2.wav`, generated
