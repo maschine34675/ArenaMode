@@ -7,6 +7,33 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Respawn stage 0 GPU r1 stopped on a vanilla race; r2 issued (2026-09-12):**
+  `c42fdec` (Codex) confirms on the bound build: startup markers present, no
+  fail-closed marker, an ordinary Redeploy respawn with the expected order
+  (`Death intercepted` → `Spawn protection active` → `Respawn complete` →
+  `Spawn protection ended`), KillcamReplay/AutoIFF/Freecam rebinding without
+  exception; 8/8 bound hashes matched at four reads. The remaining A checks,
+  B, C and D stay OPEN: the naked replacement died 0.5 s after the 10-s
+  protection with `MaxRespawnsPerRaid = 1`, and the run then stopped on a
+  `NullReferenceException` in `BotSurgicalKit+CG_ApplyToCurrentPart.method_1`
+  130 ms after KillcamReplay re-invoked the deferred `LocalGame.Stop`.
+  Classified from the decompiled game as a **vanilla race, not a regression**:
+  `LocalGame.Stop` → `BotsController.StopGettingInfo` → `BotsList.Stop` →
+  `BotOwner.Dispose` (`Medecine = null`, `WeaponManager` disposed); a bot still
+  mid-surgery finishes its `MedsInHandsOperation` on the next tick
+  (`MedEffect.Residue`) and its completion callback dereferences the disposed
+  owner; `ItemController.SafeRemoveItemEvent` catches it. No Redeploy, Core or
+  Arena frame; stage 0 touches neither Stop nor bot disposal; KillcamReplay's
+  19-s deferral only widens the window. Also corrected: `Blocked raid-end black
+  screen while respawn is pending.` cannot appear on the normal Redeploy path
+  (CG_Spawn is intercepted before any Stop, and only `BaseLocalGame.Stop` and
+  `TarkovApplication` start that fade) — r1 expected it wrongly.
+  **Next GPU job: `GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r2.md`** (same bound
+  files, no rebuild; test values `MaxRespawnsPerRaid = 3`,
+  `SpawnProtectionSeconds = 30`; that exact vanilla signature is pre-declared
+  as counted, not stopping). Committed on `fix/offline-harness-contracts`,
+  where `c42fdec` landed.
+
 - **Offline harness contracts repaired (2026-09-12):** test-only branch
   `fix/offline-harness-contracts` from `b5ff258`. Reproduced all three reported
   early failures; no production regression found. `14d7d56`: PFT now checks the
