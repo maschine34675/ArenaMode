@@ -7,6 +7,44 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **GPU Deathmatch r2 triaged; preview lifecycle client r3 delivered (2026-09-12):**
+  report `c5c8945` confirms bounded native menu behavior and the same visible
+  Arena equipment on map/offline/confirmation. All 18 original screenshot hashes
+  were independently verified. Its four Unity errors are rejected SetParent calls
+  from inline host OnDisable cleanup, not a proven crash or profile corruption.
+  No raid started: loading, repeated navigation, actual match/round rules and
+  raidwise protection remain open. The user's jitter acceptance remains intact.
+  Implementation `3010346e23f802ae40d58669d12b4327fa86b1fe` detaches from known
+  active screens before native Close; fallback hide/destroy callbacks defer
+  structural work to the independent guard. New attachments drain old cleanup
+  before snapshotting native flags and preserve their already-admitted widget
+  request. Destroyed Unity hosts fail open. Camera/posing/gameplay/audio unchanged.
+  Adversarial review caught and fixed a fast-reopen owner-loss case; final review
+  found no further established defect. Parent reran 51 state assertions plus
+  121 production-flow lifecycle assertions, ten compiled fault controls, native
+  hook compilation and the synthetic frame-helper check. These do not execute
+  native rendering. Actual staged client: zero errors, four existing warnings.
+  **Client SHA256:** `804EB3ED5362F5D269E5C5B8080CDD3941BCA8C6E6F66435EECAB49294454C2B`.
+  Build manifest: `artifacts/double-jump-build/280c414cc795412aac925496526fb300/manifest.json`.
+  Source tree was clean for that build. Local installed client matches; all 40
+  freshly inventoried other files stayed unchanged during this client delivery.
+  Receipt: `artifacts/preview-r3-delivery/6921ac83f4fb4bffa82b334e91a2f8d0/receipt.json`.
+  Parallel work committed `5c08a55` (weapon placeholder filtering) before the
+  preview commit and subsequently exchanged server DLLs during tests. Its final
+  review correction is `6f40314bd70f861c1cd1ffd3d2db5bddc1354ccc`.
+  **Server SHA256:** `47C21F048E097FA0DDBFA7A142BB8DD3C1259F835D10B1C2BB13B387AEDA463F`.
+  Installed server matches that work's Release artifact and embedded source id;
+  this preview correction did not revert or deploy it. The receipt's intermediate
+  server snapshot predates the parallel final delivery; use the final build-pair
+  record `final-build-pair.json` alongside the receipt and these r3 hashes.
+  The other 39 inventoried files also remained unchanged through that final check.
+  **Restart game and server**
+  for the combined test stand; do not reuse r2's server hash or native acceptance.
+  GPU mirror/native tests are not verified here. New test job:
+  `GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r3.md`, build ID `deathmatch-menu-preview-r3`.
+  Start with two native forward/back cycles, then the still-open bounded FFA and
+  all-vs-player raids. Keep r1/r2 reports immutable. No mandatory jitter recording.
+
 - **GPU Deathmatch r1 triaged; client r2 delivered (2026-09-12):** report
   `05e88d0` stopped solely at the stale "Five modes" description under the too-broad
   stop-on-any-error rule. Four original screenshot hashes were independently
