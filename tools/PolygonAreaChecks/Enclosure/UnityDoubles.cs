@@ -90,7 +90,7 @@ namespace UnityEngine
     public sealed class Shader : Object
     { public static bool Missing; public static Shader Find(string name) => Missing ? null : new Shader { name = name }; }
     public readonly struct Color { public Color(float r, float g, float b, float a) { } }
-    public readonly struct Color32 { public Color32(byte r, byte g, byte b, byte a) { } }
+    public readonly struct Color32 { public readonly byte a; public Color32(byte r, byte g, byte b, byte a) { this.a = a; } }
     public sealed class Material : Object { public Color color; public Material(Shader shader) { } }
     public sealed class Mesh : Object
     {
@@ -107,7 +107,8 @@ namespace UnityEngine
         }
         public int vertexCount => _vertices.Length;
         public int[] Indices = Array.Empty<int>();
-        public Color32[] colors32;
+        private Color32[] _colors = Array.Empty<Color32>();
+        public Color32[] colors32 { get => (Color32[])_colors.Clone(); set => _colors = (Color32[])value.Clone(); }
         public Bounds bounds;
         public void SetTriangles(int[] values, int submesh)
         {

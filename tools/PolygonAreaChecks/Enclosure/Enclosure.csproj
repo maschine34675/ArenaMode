@@ -12,6 +12,7 @@
     <Compile Remove=".work/**" />
     <Compile Include="$(PlanSource)" Link="Production/ArenaAreaEnclosurePlan.cs" />
     <Compile Include="$(BuilderSource)" Link="Production/ArenaAreaEnclosure.cs" />
+    <Compile Include="../../../ArenaMode.Client/Areas/ArenaAreaGridVisibility.cs" Link="Production/ArenaAreaGridVisibility.cs" />
     <Compile Include="../../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
   </ItemGroup>

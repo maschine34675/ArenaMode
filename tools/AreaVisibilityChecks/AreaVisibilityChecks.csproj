@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <VisibilitySource Condition="'$(VisibilitySource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaGridVisibility.cs</VisibilitySource>
+    <BuilderSource Condition="'$(BuilderSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaEnclosure.cs</BuilderSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../PolygonAreaChecks/Enclosure/UnityDoubles.cs" Link="UnityDoubles.cs" />
+    <Compile Include="$(VisibilitySource)" Link="Production/ArenaAreaGridVisibility.cs" />
+    <Compile Include="$(BuilderSource)" Link="Production/ArenaAreaEnclosure.cs" />
+    <Compile Include="../../ArenaMode.Client/Areas/ArenaAreaEnclosurePlan.cs" Link="Production/ArenaAreaEnclosurePlan.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+  </ItemGroup>
+</Project>

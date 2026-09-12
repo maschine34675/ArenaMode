@@ -231,6 +231,10 @@ internal static partial class ArenaAreaRuntime
         if (!IsCurrentActive() || _phase == Phase.Failed) return;
         try
         {
+            // This exact-world gate is shared with physical containment; a stale
+            // raid or ordinary PMC scene cannot drive an Arena visual update.
+            _enclosure?.UpdateVisibility(_world.MainPlayer != null ? _world.MainPlayer.Position : (Vector3?)null,
+                Time.realtimeSinceStartup);
             if (_phase == Phase.Preparing)
             {
                 if (Time.frameCount <= _createdFrame + 2 || Time.realtimeSinceStartup < _nextValidation) return;

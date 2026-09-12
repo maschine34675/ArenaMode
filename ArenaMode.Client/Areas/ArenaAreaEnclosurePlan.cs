@@ -55,20 +55,35 @@ internal sealed class ArenaAreaEnclosurePlan
         { Vertices = vertices.AsReadOnly(); Triangles = triangles.AsReadOnly(); }
     }
 
+    // Each side owns a contiguous range of the unchanged grid mesh. Fade a
+    // complete side by segment distance: its long horizontal strips can have
+    // both endpoints far away while the player stands beside their middle.
+    internal readonly struct GridSide
+    {
+        internal readonly ArenaAreaVertex Start, End;
+        internal readonly int FirstVertex, VertexCount;
+        internal GridSide(ArenaAreaVertex start, ArenaAreaVertex end, int firstVertex, int vertexCount)
+        { Start = start; End = end; FirstVertex = firstVertex; VertexCount = vertexCount; }
+    }
+
     internal readonly IReadOnlyList<Box> Walls, CapCarvers;
     internal readonly IReadOnlyList<Corner> Corners;
     internal readonly IReadOnlyList<Probe> Probes;
     internal readonly MeshData Floor, Ceiling, Grid;
+    internal readonly IReadOnlyList<GridSide> GridSides;
+    internal readonly int SideGridVertexCount;
     internal readonly bool LegacyRectangle;
     internal readonly float SideMinY, SideMaxY;
     internal int ColliderCount => Walls.Count + Corners.Count + (Floor == null ? 0 : 2);
     internal int ObstacleCount => Walls.Count + Corners.Count + CapCarvers.Count;
 
     private ArenaAreaEnclosurePlan(List<Box> walls, List<Box> caps, List<Corner> corners,
-        List<Probe> probes, MeshData floor, MeshData ceiling, MeshData grid, bool rectangle, float sideMinY, float sideMaxY)
+        List<Probe> probes, MeshData floor, MeshData ceiling, MeshData grid, List<GridSide> gridSides,
+        int sideGridVertexCount, bool rectangle, float sideMinY, float sideMaxY)
     {
         Walls = walls.AsReadOnly(); CapCarvers = caps.AsReadOnly(); Corners = corners.AsReadOnly();
         Probes = probes.AsReadOnly(); Floor = floor; Ceiling = ceiling; Grid = grid; LegacyRectangle = rectangle;
+        GridSides = gridSides.AsReadOnly(); SideGridVertexCount = sideGridVertexCount;
         SideMinY = sideMinY; SideMaxY = sideMaxY;
     }
 
@@ -150,6 +165,7 @@ internal sealed class ArenaAreaEnclosurePlan
         var probes = new List<Probe>();
         var gridVertices = new List<Point>();
         var gridTriangles = new List<int>();
+        var gridSides = new List<GridSide>();
         float middleY = (sideMinY + sideMaxY) / 2f;
         double perimeter = 0;
         for (int edge = 0; edge < bounds.Outline.Count; edge++)
@@ -183,8 +199,12 @@ internal sealed class ArenaAreaEnclosurePlan
             double bx = nx - pz / plen, bz = nz + px / plen;
             double blen = Math.Sqrt(bx * bx + bz * bz);
             if (blen > 0.000001) AddProbe(probes, a.X, a.Z, (float)(bx / blen), (float)(bz / blen), edge, -1f);
+            int firstGridVertex = gridVertices.Count;
             AddSideGrid(gridVertices, gridTriangles, a, b, sideMinY, sideMaxY);
+            gridSides.Add(new GridSide(a, b, firstGridVertex, gridVertices.Count - firstGridVertex));
         }
+
+        int sideGridVertexCount = gridVertices.Count;
 
         // These two carvers preserve the previous vertical rejection of
         // basement/roof shortcuts. Their bounding footprints can include a
@@ -202,7 +222,7 @@ internal sealed class ArenaAreaEnclosurePlan
         return new ArenaAreaEnclosurePlan(walls, capCarvers, corners, probes,
             bounds.LimitsHeight ? CreateCap(bounds, bounds.MinY - Thickness, bounds.MinY) : null,
             bounds.LimitsHeight ? CreateCap(bounds, bounds.MaxY, bounds.MaxY + Thickness) : null,
-            new MeshData(gridVertices, gridTriangles), rectangle, sideMinY, sideMaxY);
+            new MeshData(gridVertices, gridTriangles), gridSides, sideGridVertexCount, rectangle, sideMinY, sideMaxY);
     }
 
     private static bool IsAxisRectangle(IReadOnlyList<ArenaAreaVertex> outline)

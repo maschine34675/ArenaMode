@@ -63,6 +63,8 @@ internal sealed class ArenaAreaEnclosure : IDisposable
     private MeshRenderer _renderer;
     private MeshFilter _filter;
     private Mesh _grid;
+    private Color32[] _gridColors;
+    private float _nextVisibilityAt;
     private int _layer;
     private bool _built;
 
@@ -90,7 +92,8 @@ internal sealed class ArenaAreaEnclosure : IDisposable
         if (shader == null) throw new InvalidOperationException("Sprites/Default boundary shader is unavailable");
         _material = new Material(shader) { name = "ArenaMode.AreaGrid", color = new Color(.15f, .85f, 1f, .42f) };
         _grid = CreateMesh("ArenaMode.AreaGrid", _plan.Grid);
-        _grid.colors32 = Enumerable.Repeat(new Color32(255, 255, 255, 255), _plan.Grid.Vertices.Count).ToArray();
+        _gridColors = Enumerable.Repeat(new Color32(255, 255, 255, 255), _plan.Grid.Vertices.Count).ToArray();
+        _grid.colors32 = _gridColors;
         var visual = Child("Visible boundary", Vector3.zero, Quaternion.identity);
         visual.layer = 0; // Preserve the original visible grid's Default camera layer.
         _filter = visual.AddComponent<MeshFilter>();
@@ -104,6 +107,33 @@ internal sealed class ArenaAreaEnclosure : IDisposable
     }
 
     internal bool Intact() => Intact(out _);
+
+    internal void UpdateVisibility(Vector3? observer, float now)
+    {
+        if (!_built || _grid == null || _gridColors == null) return;
+        if (ArenaAreaGridVisibility.Finite(now) && now < _nextVisibilityAt) return;
+        _nextVisibilityAt = now + ArenaAreaGridVisibility.RefreshSeconds;
+        bool observed = observer.HasValue && ArenaAreaGridVisibility.Finite(observer.Value.x)
+            && ArenaAreaGridVisibility.Finite(observer.Value.y) && ArenaAreaGridVisibility.Finite(observer.Value.z);
+        bool changed = false;
+        void SetAlpha(int index, byte alpha)
+        {
+            if (_gridColors[index].a == alpha) return;
+            _gridColors[index] = new Color32(255, 255, 255, alpha);
+            changed = true;
+        }
+        foreach (var side in _plan.GridSides)
+        {
+            byte alpha = observed ? ArenaAreaGridVisibility.SideAlpha(side, observer.Value.x, observer.Value.z) : (byte)255;
+            for (int i = side.FirstVertex; i < side.FirstVertex + side.VertexCount; i++) SetAlpha(i, alpha);
+        }
+        // Legacy height-limited enclosures also warn on approach to floor/roof.
+        // Height-unlimited contours have no such grid vertices or physical caps.
+        for (int i = _plan.SideGridVertexCount; i < _gridColors.Length; i++)
+            SetAlpha(i, observed ? ArenaAreaGridVisibility.CapAlpha(_plan.Grid.Vertices[i].Y, observer.Value.y) : (byte)255);
+        if (changed) _grid.colors32 = _gridColors;
+        // Renderer, object hierarchy and all physical/navigation components stay enabled.
+    }
 
     // Keep the first failed component/property so readiness and mid-match
     // failures cannot mislabel native dimension roundoff as a missing object.
@@ -264,6 +294,7 @@ internal sealed class ArenaAreaEnclosure : IDisposable
         if (_material != null) UnityEngine.Object.Destroy(_material);
         foreach (var mesh in _meshes) if (mesh != null) UnityEngine.Object.Destroy(mesh);
         _material = null; _grid = null; _renderer = null; _filter = null;
+        _gridColors = null;
         _meshes.Clear(); _colliders.Clear(); _obstacles.Clear(); _objects.Clear();
     }
 }
