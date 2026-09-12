@@ -114,10 +114,12 @@ public sealed class ArenaMatch
     public void ReportLocalRespawn(Player player)
     {
         if (ArenaMatchResult.HasResult(Mode)) return;
-        Scoreboard.ReportLocalRespawn(
+        // Isolated like the mode callback: a scoreboard fault must not keep the mode
+        // from learning about the new body.
+        RaiseSafe(() => Scoreboard.ReportLocalRespawn(
             player?.ProfileId,
             RoleClassifier.DisplayName(player),
-            RoleClassifier.Label(player));
+            RoleClassifier.Label(player)), "scoreboard.ReportLocalRespawn");
         RaiseSafe(() => Mode.OnLocalRespawn(player), "mode.OnLocalRespawn");
     }
 

@@ -6,15 +6,22 @@ using System;
 namespace ArenaMode.Events;
 
 /// <summary>
-/// Public event surface for the mode framework (M5+). Raises are exception-isolated
-/// so a subscriber can never break the respawn pipeline.
+/// Event surface of ArenaMode's own mode framework (HUD, announcer, spectator, modes).
+/// Raises are isolated per subscriber, so one throwing handler can neither break the
+/// respawn pipeline nor silence the handlers after it. Other mods should not bind
+/// these: they cover only what the mode framework needs — a live kit swap, for one,
+/// never raises OnPlayerRespawned — while Redeploy.Core's events see every replacement.
 /// </summary>
 public static class ArenaEvents
 {
     /// <summary>Local player died in an arena session (before the instant respawn starts).</summary>
     public static event Action<Player> OnPlayerDied;
 
-    /// <summary>Replacement player is fully wired up.</summary>
+    /// <summary>
+    /// The death respawn's replacement body, published by the driver at least one frame
+    /// after the engine finished wiring it (the driver's own checks and lease release
+    /// come first). Never raised for live kit swaps (raid start, round break).
+    /// </summary>
     public static event Action<Player> OnPlayerRespawned;
 
     /// <summary>
@@ -27,20 +34,31 @@ public static class ArenaEvents
     /// <summary>The local player dealt damage (hitmarker/damage-number feed).</summary>
     public static event Action<ArenaDamage> OnLocalDamageDealt;
 
-    internal static void RaisePlayerDied(Player player) => Raise(() => OnPlayerDied?.Invoke(player), nameof(OnPlayerDied));
-    internal static void RaisePlayerRespawned(Player player) => Raise(() => OnPlayerRespawned?.Invoke(player), nameof(OnPlayerRespawned));
-    internal static void RaiseKitApplied(KitDefinition kit) => Raise(() => OnKitApplied?.Invoke(kit), nameof(OnKitApplied));
-    internal static void RaiseLocalDamageDealt(ArenaDamage damage) => Raise(() => OnLocalDamageDealt?.Invoke(damage), nameof(OnLocalDamageDealt));
+    internal static void RaisePlayerDied(Player player) => Raise(OnPlayerDied, h => h(player), nameof(OnPlayerDied));
+    internal static void RaisePlayerRespawned(Player player) => Raise(OnPlayerRespawned, h => h(player), nameof(OnPlayerRespawned));
+    internal static void RaiseKitApplied(KitDefinition kit) => Raise(OnKitApplied, h => h(kit), nameof(OnKitApplied));
+    internal static void RaiseLocalDamageDealt(ArenaDamage damage) => Raise(OnLocalDamageDealt, h => h(damage), nameof(OnLocalDamageDealt));
 
-    private static void Raise(Action action, string name)
+    // One subscriber at a time, the pattern Redeploy.Core uses for its raid lifecycle:
+    // the match service subscribes before the spectator, and a throwing scoreboard
+    // handler used to skip the spectator's Stop + RestoreFirstPerson.
+    private static void Raise<TDelegate>(TDelegate multicast, Action<TDelegate> invoke, string name)
+        where TDelegate : Delegate
     {
-        try
+        if (multicast == null)
+            return;
+
+        foreach (var handler in multicast.GetInvocationList())
         {
-            action();
-        }
-        catch (Exception ex)
-        {
-            Plugin.ModLogger.LogWarning($"Arena event {name} subscriber failed: {ex}");
+            try
+            {
+                invoke((TDelegate)handler);
+            }
+            catch (Exception ex)
+            {
+                var method = handler.Method;
+                Plugin.ModLogger.LogWarning($"Arena event {name} subscriber {method.DeclaringType?.FullName}.{method.Name} failed: {ex}");
+            }
         }
     }
 }
