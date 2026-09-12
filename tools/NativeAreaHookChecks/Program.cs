@@ -174,8 +174,8 @@ internal static class Program
             "F12 mode away from TDM hides Customs and clears native selection");
         Assert(!CustomsButton(f)._spawnableToggle.Toggle.IsToggled && !f.Screen._readyButton.gameObject.activeSelf,
             "mode invalidation clears native toggle and Ready");
-        Assert(ArenaModeSelectionView.Last.State.SelectedMode == ArenaModeCatalog.EndlessId,
-            "mode view synchronizes a direct F12 change");
+        Assert(ArenaModeSelectionView.Last.State.SelectedMode == ArenaModeCatalog.DeathmatchId,
+            "mode view normalizes a legacy Endless F12 change to Deathmatch");
         Settings.GameMode.Value = ArenaModeCatalog.TeamDeathmatchId;
         Settings.TeamDeathmatchArea.Value = Full;
         Updater(f).Tick();

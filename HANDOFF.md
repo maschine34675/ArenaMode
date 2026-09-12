@@ -7,6 +7,52 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Unified Deathmatch and continuous Arena preview ready for GPU r1 (2026-09-12):**
+  branch `feature/deathmatch-menu-preview`; implementation commits `6e6d469`
+  (Deathmatch) and `c8acf08` (preview). Native mode picker now has Deathmatch,
+  Gun Game, Tactical and Team DM. Deathmatch merges old Endless/Rounds with
+  finite/unlimited round count, per-round kill/time limits and FFA/all-vs-player.
+  User confirmed individual FFA winners and local-player targets in all-vs-player.
+  Both limits off means continuous play; finite rounds require an end condition.
+  Legacy settings migrate once. Rules freeze before the exact protected arm,
+  including server-acknowledged hostility. Result ownership preserves native
+  death/respawn/exit and profile boundaries. Tactical labels show actual solo
+  1vN (default 1v5) or 5v5 with four accepted PitFireTeam companions.
+  FFA needs individual native groups as well as server role hostility: confirmed
+  same-map loading admission, exact spawner ownership, delayed PreActive-safe
+  cleanup and missing reciprocal enemy repair are documented and tested. Do not
+  simplify these to an IsActive-only hook or dispose an empty newly created group.
+  The detached Arena character is transferred to subsequent native pre-raid
+  screens with exact widget/generation ownership. Its smaller render-origin
+  offset is a jitter hypothesis, not a proven visual fix; no animation speed
+  changes were made. Menu area placement and stale row callbacks were corrected
+  after independent reviews. See DEATHMATCH-MENU-REVIEW.md, DEATHMATCH-MODE-REVIEW.md,
+  DEATHMATCH-HOSTILITY-REVIEW.md, DEATHMATCH-GROUPS-REVIEW.md and ARENA-PREVIEW-REVIEW.md.
+  Offline verification: full server suite 593 passed / 2 environment-dependent
+  skipped; runtime163 assertions +9 compiled defect controls; preview51 +5;
+  server-hostility55 tests +2 defect controls; group83 +2. Native menu/integration
+  suite passed including existing result-exit and menu fault controls. Additional
+  native-area71 and Labyrinth-access50 assertions passed after fixing their
+  missing test dependency and legacy-mode expectation. Peer reviews found no
+  remaining established defect. These checks do not execute native AI or rendering.
+  Final staged build used implementation `c8acf084b3eaf4e98455a70eacaa90ba56349207`,
+  with zero compilation errors. Only later test/handoff documentation changes
+  differ from that implementation; do not rebuild merely to make its recorded
+  source commit equal the documentation HEAD.
+  **Client SHA256:** `FBBF82C6993E16D3299B3081B8A53BD7770F3712CA3AB3E0A4B5F2D052A92D90`.
+  **Server SHA256:** `8F9A56F574835FEAB73AB78C2EF4D5CF5734F12ABE63F384E2148CF319890B73`.
+  Both DLLs delivered locally with matching hashes. All39 protected Arena audio,
+  config and other asset files plus Redeploy stayed unchanged. Delivery receipt:
+  `artifacts/deathmatch-delivery/2314cb145a9540cdb1d69bdbbf875f1f/receipt.json`;
+  build: `artifacts/duration-balance/build/4dd14e613d4f4982b1f994996484510e/manifest.json`;
+  parent gate run: `artifacts/deathmatch-final-gates.log`.
+  **Restart both game and SPT server.** GPU mirror and live acceptance are pending.
+  Next job: `GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r1.md`, build ID
+  `deathmatch-menu-preview-r1`. Bounded menu/navigation checks, original short
+  clips/consecutive-frame inspection and at most three limited Deathmatch raids;
+  capture actual process/build identities and stop on errors. No r6 result carries
+  over to these DLLs. Existing audio rights and protected-5v5 follow-ups below remain.
+
 - **ElevenLabs clips now persist across builds (2026-09-12):** the user explicitly
   requested moving the five audition clips into the repo after deployment
   restored three original voices. Copied the five reviewed OGGs unchanged into
