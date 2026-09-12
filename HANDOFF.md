@@ -33,9 +33,10 @@ current. User-facing communication is normally German.
   mutant `kill-first-local-death` (`if (kill.LocalIsVictim) ReportLocalDeath();`
   now occurs twice in `ArenaMatch.cs`). Not GPU-verified: a refused live swap,
   the cooldown race, the fail-closed patch set and re-entrancy (design doc,
-  section 10, scenarios 8–11). Source/build commit `f257a78` (follow-ups below).
-  **Installed client SHA256 `007382C6BB802C8A0D4288013D763E6BE508004E06C3430151FB51AD90B17C6B`**, Core
-  `520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48`, Redeploy.Client `7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46`,
+  section 10, scenarios 8–11). Source/build commit `b5ff258` (clean; code stand `f257a78`, follow-ups below).
+  **Installed client SHA256 `A92164BC306762ABD954CF3F2A5AA012FA49E8471626966C5A459A1FEE02843D`**, Core
+  `FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C` (rebuilt with
+  Redeploy `287c2d9`, a docs-only commit; code stand `c938f5c`), Redeploy.Client `7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46`,
   server `5A9201177DC3E4404995EA314FE48A231712435D5E5EB9E1A081C67734D6C04E`
   (rebuilt by the harnesses' `dotnet test` from unchanged sources; the server
   hash drifts with every commit because ProductVersion embeds the commit). The r6/r4 GPU
@@ -47,6 +48,10 @@ current. User-facing communication is normally German.
   before a bounded area aborts; `IsStillWired` requires a Started owner) and
   `f257a78` (allocation-free damage feed; dead KitPolish stand-in removed).
   BleedingCleanup and KitPolish Supplies re-run green on `f257a78`.
+  **GPU test order for this build: `GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r1.md`**
+  (ordinary Redeploy respawn, cooldown race, Arena kit swap/death/give-up,
+  optional round break; binds every hash above plus SAIN, KillcamReplay and
+  DynamicMaps). Run it before re-binding r6/r4 to this client.
 
 - **Creator announcer pack delivered (2026-09-12):** User supplied the newly
   Creator-generated `alle_ansagen.ogg`; all **46 phrases** were split in the
