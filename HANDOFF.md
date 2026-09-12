@@ -7,6 +7,40 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r3 triage completed; combined client r4 delivered locally (2026-09-12):**
+  branch `fix/deathmatch-r3-exit`; source/build commit
+  `39bd7882713da14afcc2432cad092a6c9e1919f6`, clean tree at build. Contains all
+  four refinements below plus `40b859b` (F9 owns terminal result display) and
+  `39bd788` (exact-owner pending pickup cancellation and optional null-only SAIN
+  teardown guard). Native Stop disposes bot services before the animator fade
+  finishes; SAIN can disable an attached but uninitialized component. The guards
+  preserve native disposal/registries, viable activation cleanup and profiles.
+  No blanket exception suppression. Full diagnosis and limits:
+  `DEATHMATCH-R3-REVIEW.md`. Same-GameObject BotOwner lookup during pool destruction
+  is not guaranteed; if unavailable, SAIN's original still runs. Thus no claim
+  that the two historical NREs are already runtime-fixed. The separate possible
+  F9 close-click shot remains unconfirmed and is explicitly in the retest.
+  Independent implementation/test review passed. Parent checks: exit 69
+  assertions/9 compiled faults, banner 44/5, installed native/SAIN contracts.
+  Final native client build: **0 errors, 4 existing nullable warnings**.
+  **Installed client SHA256:**
+  `9D27F9A0EA9F76805E33F3F9FF5CBA2AF8821A4C210CFB6822EDA8EDD6090BD9`.
+  ProductVersion `0.1.0+39bd7882713da14afcc2432cad092a6c9e1919f6`.
+  Build/manifest: `artifacts/double-jump-build/f51871e16b864fdeb72337aab1d0c367/`.
+  Backup/receipt: `artifacts/deathmatch-r4-delivery/529c55a9d656423692b4cdf1e1131d74/`.
+  All 41 inventoried non-client files stayed byte-identical during both client
+  deliveries, including server, Redeploy, audio and current settings. No server
+  build ran. Server remains `294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7`.
+  **Restart the game after GPU synchronization; server restart not required by
+  this client change.** GPU mirror and native behavior remain unverified here.
+  New test job `GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r4.md`, ID
+  `deathmatch-menu-exit-r4`: first repeat C2 exit, then remaining bounded cases.
+  This supersedes the r3 stop only for the focused corrected-build retest;
+  any new exception/unsafe state stops it again. Four-feature acceptance remains
+  separate in `GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r2.md`, same build, only
+  after r4 case A passes. The old r1 feature checklist binds a superseded DLL.
+  Immutable r3 report/evidence preserved; no new GPU test or profile edit here.
+
 - **Prepared refinements delivered locally (2026-09-12):** user authorized
   deployment and r3 triage. The exact staged client below is now installed at
   `D:\SPT41\BepInEx\plugins\maschine-ArenaMode.Client.dll`, SHA256
