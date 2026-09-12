@@ -7,6 +7,40 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Redeploy.Core stage 0 integrated (2026-09-12):** Redeploy `c938f5c43cb311a8a9ba1f81b2eb10573b99b936`
+  (main, deployed) hardens the shared engine: `RunRespawn` refuses before any
+  teardown (null request/game/selector; `DeathInterception.IsAvailable == false`
+  = keep-alive patch set incomplete, no driver, or Fika; raid already ending;
+  re-entrant call from a death/respawn raise; pipeline still running); every
+  Core event is raised per subscriber; `DeathInterception.EnsurePatched`
+  installs each patch on its own and fails closed; raid start/end postfixes are
+  paired in `RaidLifecycle` (NarrateGameWorld start and HideoutGame end
+  filtered, engine state reset at both, drivers' `OnRaidEnded` still before
+  `ArenaSession`'s handler); the owner-cleanup guard is bound to the retired
+  owner instance; Core enables the Freecam patches at raid start for every
+  consumer. Design, evidence and GPU scenarios: `../Redeploy/docs/RESPAWN-API.md`.
+  Arena side: `668619f` (LiveKitRespawn tolerates a refusal — `IsStillWired`
+  leaves an untouched body alone, the rewire steps are idempotent, and the swap
+  stands down while a pipeline runs), `bb82ce8` (death path publishes only the
+  verified body; `OnKitApplied` after success instead of inside the engine's
+  equipment strategy), `3a5123c` (`ArenaEvents` per-subscriber isolation).
+  Regression: unit suite **617/619 (2 skipped)**, BleedingCleanup, KitPolish
+  Supplies **1605**, TdmMatch **227** pass. **Pre-existing failures, verified
+  identical at `67d27ca` in a temporary worktree:** PitFireTeamChecks stops
+  after 98 assertions ("client freezes the server-armed mode…"),
+  TeamArenaExpansionChecks after 277 ("VoiceBosch WARLORD cues" — the announcer
+  replacement removed the CC fragment the harness requires), TeamGiveUpChecks
+  mutant `kill-first-local-death` (`if (kill.LocalIsVictim) ReportLocalDeath();`
+  now occurs twice in `ArenaMatch.cs`). Not GPU-verified: a refused live swap,
+  the cooldown race, the fail-closed patch set and re-entrancy (design doc,
+  section 10, scenarios 8–11). Source/build commit `3a5123c70980a8074cf3c18d6c57dbac5385cc97`.
+  **Installed client SHA256 `546EB7656D702C9B63A96C3408F34E871E5445108B9D9F69804C337DE4D0999C`**, Core
+  `520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48`, Redeploy.Client `7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46`,
+  server `04533957CB2618F2AEE3241CEB1157BC0CCD81FF5278C7DC39CC72E05434799A` (rebuilt by `dotnet test` from the
+  same sources; only the ProductVersion commit changed). The r6/r4 GPU
+  instructions were bound to client `2042C558…`; rebind them to this build (or
+  restore that client) before their evidence is comparable.
+
 - **Creator announcer pack delivered (2026-09-12):** User supplied the newly
   Creator-generated `alle_ansagen.ogg`; all **46 phrases** were split in the
   supplied order. Replaced all **18 active** announcer OGGs directly in tracked
@@ -1970,8 +2004,8 @@ always record that build's hashes and compare them with its installed copies.
   `Redeploy`, `_decompiled`, and the needed private `_reference` sources.
   ArenaMode does not contain those other repositories or game DLLs.
 - The client references `../Redeploy/Redeploy.Core` relative to the Arena repo.
-  Verified Redeploy checkout at handoff: `58abf5876629bb51be808d78ee2cd7a5d34af77a`,
-  clean. Transfer compatible source separately if building; do not assume a DLL
+  Verified Redeploy checkout at handoff: `c938f5c43cb311a8a9ba1f81b2eb10573b99b936`,
+  clean (stage 0 of the respawn hardening; older Core builds refuse nothing). Transfer compatible source separately if building; do not assume a DLL
   alone satisfies the project reference.
 - `Shared.props` resolves the game root two directories above the repo and the
   server root under `SPT_Runtime`. In a different layout, verify/override both
