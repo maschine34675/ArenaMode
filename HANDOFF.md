@@ -7,6 +7,52 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **r4 triaged; panel-close correction r5 delivered locally (2026-09-12):**
+  `228d892` confirms the second F9 Close click fired one MP-153 round. Its test
+  correctly stopped; the later manual disconnect triggered the SAIN guard once
+  without a new exception. Pickup cancellation was unobserved. Three-round
+  autoexit, terminal F9/banner/score freeze and B/C remain open. Original reports
+  and evidence are unchanged. See `ARENA-PANEL-INPUT-REVIEW.md`.
+  Branch `fix/arena-panel-close-input`, source/build commit
+  `f64df5be499d06d29cc4e6b717dd52ea0931725a`, clean tree at build. F9 and Tactical
+  buy-panel close now keep command/axis filtering until one fresh actual input
+  batch with released mouse buttons finishes delivery. Existing owner votes,
+  Escape/release whitelist, exact Arena game/world, and normal-raid behavior
+  are preserved; stale/reentrant/smooth dispatch cannot release a newer close.
+  Input-manager replacement and failed patch cleanup cannot strand the latch.
+  Independent adversarial implementation/test review passed. Parent checks:
+  **60 assertions and 14 compiled faults**, native installed contracts, existing
+  banner baseline **44 assertions**. Full real client: **0 errors, 4 existing
+  nullable warnings**. No native GPU proof from these offline checks.
+  **Installed client SHA256:**
+  `7DCAA94CFDF5F0C7E6736796901BE4C3DCBADCEC6F74C76E1668C22B81201F11`.
+  ProductVersion `0.1.0+f64df5be499d06d29cc4e6b717dd52ea0931725a`.
+  Build/manifest: `artifacts/double-jump-build/54da549e8e144e76beabdac7d9b6b080/`.
+  Backup/receipt: `artifacts/deathmatch-r5-delivery/1c5a3a84724f483c8aa3a79f1402eb10/`.
+  Fresh before/after hashes verified all **42 inventoried non-client files**
+  unchanged, including server, Redeploy, SAIN, audio and current settings. The
+  two settings files were hashed in their current post-r4 state; no older files
+  or metadata were restored. No server build or profile edit ran.
+  Server remains `294635440FD1E788B06B708DFFC4912222AD7539E79EEB6524C1E2E8F56BF7E7`.
+  New job **`GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r5.md`**, test ID
+  `deathmatch-menu-exit-r5`: first controlled Close/ammunition comparisons,
+  then the three-round autoexit and remaining bounded cases. Ready and capped
+  pending/released input diagnostics must be captured. This corrected-build
+  retest releases the r4 test stop only for its stated scope; any new unsafe
+  state stops the entire run again. Four refinements remain separate in
+  **`GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r3.md`**, same client, only after
+  r5 A passes. Earlier instructions bind superseded builds and stay historical.
+  **Restart the game after GPU synchronization; no server restart needed for
+  this client change.** Delivery under D:\SPT41 is verified; GPU mirror and
+  native gameplay remain unverified here. Do not request repeated permission
+  to deploy: the user authorized it and the mirror skips files in use.
+
+## Historical snapshots
+
+The entries below preserve earlier states. Their current-build and pending-test
+claims are superseded by the r5 entry above. In particular, the historical r4
+entry's unconfirmed Close-click observation is now confirmed by `228d892`.
+
 - **r3 triage completed; combined client r4 delivered locally (2026-09-12):**
   branch `fix/deathmatch-r3-exit`; source/build commit
   `39bd7882713da14afcc2432cad092a6c9e1919f6`, clean tree at build. Contains all
@@ -40,12 +86,6 @@ current. User-facing communication is normally German.
   separate in `GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r2.md`, same build, only
   after r4 case A passes. The old r1 feature checklist binds a superseded DLL.
   Immutable r3 report/evidence preserved; no new GPU test or profile edit here.
-
-## Historical snapshots
-
-The entries below record earlier states. Their present-tense delivery, pending
-triage and test-stop statements are superseded by the r4 entry above; they do
-not identify the currently installed client or authorize a different test build.
 
 - **Prepared refinements delivered locally (2026-09-12):** user authorized
   deployment and r3 triage. The exact staged client below is now installed at
