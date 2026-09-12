@@ -22,6 +22,12 @@ Arbeitsverzeichnis `C:\SPT41\SPT_Runtime` starten (r1-Vorbereitungsfehler).
 Hashes vor Start, vor jedem Raid und am Ende prüfen; PID/Startzeit beider
 Prozesse, Git-HEAD, Auflösung und DLSS-Modus festhalten.
 
+Zusätzlich darf `BepInEx\plugins\maschine-BotDropDiag.dll` (0.1.0, SHA256
+`5B37C035BD860E9EED5A9520EE62BF8D607591A77996142BB80CA18BF48E0985`) installiert sein:
+ein reines Log-Plugin (Quelle `maschine-BotDropDiag`) für die separate Surv12-Frage,
+ohne Spielwirkung. Seine Zeilen zählen nicht als Warnungen/Fehler dieses Auftrags; sie
+werden nur mitgesichert.
+
 ## Was r1 ergab und was daraus folgt
 
 Der gewöhnliche Redeploy-Respawn ist in r1 gelungen: Fenster statt Death-Screen,

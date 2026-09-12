@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bot Surv12 drop diagnosis (2026-09-12):** the user sees PMC bots start a
+  Surv12, stop, and leave it on the ground (Arena). Two verified mechanisms,
+  neither in Arena/Redeploy code: (1) ContinuousHealing 1.6.3
+  (`com.lacyway.ch`, installed 5./6.9.) keeps a static `CancelRequested` set
+  by the LOCAL player's heal cancel and applies it in its
+  `MedsInHandsOperation.OnEffectRemoved` prefix to every player before its
+  `IsYourPlayer` check, so bot surgeries end at their next effect removal
+  until the player starts a new heal; (2) SPT `pmc.json
+  forceHealingItemsIntoSecure = true` (honoured by APBS) puts PMC healing
+  items into the secure container, and EFT's `BotRandomPlanItemDropper`
+  (bear/usec `DO_RANDOM_DROP_ITEM`) throws a random secure-container item on
+  every peaceful-move start — i.e. PMC bots throw their own meds to each
+  other. Log-only plugin `maschine-BotDropDiag` 0.1.0 (repo
+  `../BotDropDiag`, SHA256 `5B37C035…`) is deployed to attribute the next
+  occurrence; r2 lists it as permitted. No Arena change.
+
 - **Respawn stage 0 GPU r1 stopped on a vanilla race; r2 issued (2026-09-12):**
   `c42fdec` (Codex) confirms on the bound build: startup markers present, no
   fail-closed marker, an ordinary Redeploy respawn with the expected order
