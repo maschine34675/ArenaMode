@@ -8,8 +8,59 @@ User follow-up after GPU report `05e88d0` (2026-09-12): the visible character
 jitter is gone. This is user-observed acceptance, separate from the report's
 static side-selection screenshots. The report stopped at a cosmetic text error
 before downstream screens or raids and contains no video/frame analysis. Keep
-the current preview implementation; its continuity/navigation checks remain
-pending, while another jitter video is only useful if the symptom recurs.
+the current camera origin and posing behavior; another jitter video is only
+useful if the symptom recurs. The following r2 findings supersede the earlier
+downstream acceptance status.
+
+## GPU r2 findings and lifecycle correction
+
+Report `c5c8945` observed the same outfit, helmet and weapon on map selection,
+offline settings and confirmation. The four-mode menu, finite-round gate,
+custom 37-kill/75-second labels and tested panel placement passed within that
+report's scope. All 18 original screenshot hashes were independently checked.
+No raid started; loading, repeated navigation, match rules and raidwise profile
+protection remain untested. Static images do not establish motion continuity.
+
+The saved client log contains four isolated Unity errors at map/offline exits:
+`Cannot set the parent ... while activating or deactivating the parent`.
+The host's OnDisable previously called Suspend inline, which reparents the
+Arena image while its ancestor is still deactivating. Unity can reject this
+without throwing, so catching exceptions cannot repair the hierarchy operation.
+
+The correction detaches before the known native screen's Close reaches
+UI.Dispose/HideGameObject. The prefix on `EFT.UI.Screens/UIScreen.Close` is
+restricted to map, offline, confirmation and loading screens and additionally
+requires the exact current host or its containing screen. This covers the
+confirmation's nested player widget and loading's inherited Close. An inactive
+screen cannot use this early path during a reentrant deactivation callback.
+
+Fallback OnDisable/OnDestroy callbacks only queue a generation-bound request.
+The independent world guard drains it on Update; a new attachment drains it
+before even the same-host shortcut, restoring the old native image flags before
+capturing the next snapshot. An already-authorized new native model request is
+preserved during this attachment drain; ordinary guard/Close drains still revoke
+the old widget/account owner. This distinction was added after adversarial review
+and a failing executable fast-reopen check. No owner is restored after Reset.
+
+Destroyed Unity view/world objects now invalidate availability, so unexpected
+host destruction cannot suppress native rendering with a dead Arena image.
+Pending PlayerBody.Init release remains deferred until its existing finally
+settles. There are no changes to geometry, camera position, animator behavior,
+profile data, selection rules, gameplay, server or audio.
+
+The new `tools/PreviewHostLifecycleChecks/Verify.ps1`, included in the existing
+preview verifier, executes the production flow and lifetime state plus verbatim
+availability/suspend/guard setup members against controlled native boundaries.
+It counts forbidden hierarchy attempts even when production Safe catches them.
+Coverage includes deferred and early cleanup, reentrant Close, repeated Accept
+and Loading requests, native teammate switching, drag cleanup, stale generations,
+selection loss and destruction during a pending load. Its 121 assertions and five
+compiled negative controls passed. The controls reintroduce inline mutation,
+missing pre-attach cleanup, request-owner loss, reentrant Close and missing
+Unity-object availability checks. This is a lifecycle simulation and API
+compilation, not execution of Unity rendering or native AI. Independent final
+review found no further established defect. Native acceptance must resume using
+`GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r3.md` and its exact hashes.
 
 ## Native owners verified in the local SPT 4.1 decompilation
 
@@ -131,7 +182,10 @@ generation checks, saved native flags and thrown partial transfer; polish of
 placement, drag cleanup, frame provenance and test-output isolation. The parent
 must independently review and re-run the leaf gate before integration acceptance.
 
-## Bounded next GPU capture and actual frame comparison
+## Optional GPU capture if jitter recurs
+
+The user's jitter acceptance remains valid; this diagnostic protocol is optional
+and must not delay the outstanding r3 navigation/loading and bounded raid tests.
 
 1. Record the actual delivered client hash, source commit, game restart time,
    resolution, display scaling, VSync/frame cap and capture frame rate. The
@@ -178,6 +232,6 @@ must independently review and re-run the leaf gate before integration acceptance
    material or mannequin remains after returning to ordinary UI/starting the
    raid. A clean build or a script's source-state tests do not certify this.
 
-Acceptance requires the recorded continuity/navigation observations plus a
-visibly stable stationary sample. If jitter persists, keep the original clip
+Navigation/loading acceptance requires native observations from the delivered
+build. If jitter recurs, keep the original clip
 and precise frame evidence; do not tune animator speeds from a description.

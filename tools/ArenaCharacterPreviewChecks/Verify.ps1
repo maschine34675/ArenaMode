@@ -8,4 +8,6 @@ if ($LASTEXITCODE -ne 0) { throw 'Native preview hook compilation failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Preview mutation controls failed.' }
 & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Test-ReviewFrames.ps1')
 if ($LASTEXITCODE -ne 0) { throw 'Preview frame evidence helper failed.' }
+& pwsh -NoProfile -File (Join-Path $PSScriptRoot '..\PreviewHostLifecycleChecks\Verify.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Preview host lifecycle checks failed.' }
 Write-Output 'ARENA_CHARACTER_PREVIEW_CHECKS_PASSED'

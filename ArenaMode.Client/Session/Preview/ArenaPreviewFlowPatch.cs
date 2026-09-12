@@ -1,5 +1,6 @@
 using EFT;
 using EFT.UI.Matchmaker;
+using EFT.UI.Screens;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System.Reflection;
@@ -20,9 +21,25 @@ internal static class ArenaPreviewFlowPatch
         new LoadingModelPatch().Enable();
         new LoadingPlayerClickPatch().Enable();
         new ClearSelectionPatch().Enable();
+        new ScreenClosePatch().Enable();
     }
 
     public static void Reset() => ArenaPreviewFlow.Reset();
+
+    private sealed class ScreenClosePatch : ModulePatch
+    {
+        // Loading inherits its Close implementation. Hook the non-generic base,
+        // restricted to these known setup screens and the exact owned subtree.
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(UIScreen), nameof(UIScreen.Close));
+        [PatchPrefix]
+        private static void Prefix(UIScreen __instance)
+        {
+            if (__instance is MatchMakerSelectionLocationScreen || __instance is MatchmakerOfflineRaidScreen
+                || __instance is MatchMakerAcceptScreen || __instance is MatchmakerTimeHasCome)
+                ArenaPreviewFlow.BeforeScreenClose(__instance.transform);
+        }
+    }
 
     private sealed class MapShowPatch : ModulePatch
     {

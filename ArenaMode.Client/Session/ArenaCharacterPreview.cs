@@ -32,7 +32,7 @@ internal sealed class ArenaCharacterPreview : IDisposable
     private ArenaPreviewLifetime _viewLifetime;
     private EFT.Utilities.XCoordRotation _rotator;
 
-    public bool IsAvailable => !_lifetime.IsDisposed;
+    public bool IsAvailable => !_lifetime.IsDisposed && _view != null && _world != null;
     public MenuPlayerPoser Poser => _ready && IsAvailable ? _loader.ModelPlayerPoser : null;
 
     public ArenaCharacterPreview(MatchMakerSideSelectionScreen screen, Profile profile, Action onUnavailable)
@@ -247,11 +247,12 @@ internal sealed class ArenaCharacterPreview : IDisposable
         _rotator.Rotate(delta);
     }
 
-    public void SetFlowGuard(Func<bool> isCurrent, Action onInvalid)
+    public void SetFlowGuard(Func<bool> isCurrent, Action onInvalid, Action onTick)
     {
         var guard = _world.AddComponent<ArenaPreviewFlowGuard>();
         guard.IsCurrent = isCurrent;
         guard.OnInvalid = onInvalid;
+        guard.OnTick = onTick;
     }
 
     public void Dispose()

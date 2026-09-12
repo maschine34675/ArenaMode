@@ -19,6 +19,7 @@ internal static class ArenaPreviewFlow
     private static MatchMakerPlayerPreview _acceptPreview;
     private static MatchmakerTimeHasCome _loadingScreen;
     private static string _localAccountId;
+    private static Action<bool> _pendingHostHide;
 
     public static void KeepFromSide(MatchMakerSideSelectionScreen screen, RaidSettings settings)
     {
@@ -35,7 +36,8 @@ internal static class ArenaPreviewFlow
         // between Close(old) and Show(new). A monitor catches Clear, raid start
         // and application teardown even when no UI host is currently visible.
         preview.SetFlowGuard(() => ReferenceEquals(_preview, preview) && IsSelected,
-            () => { if (ReferenceEquals(_preview, preview)) Reset(); });
+            () => { if (ReferenceEquals(_preview, preview)) Reset(); },
+            () => { if (ReferenceEquals(_preview, preview)) FlushPendingHide(); });
     }
 
     private static bool IsSelected => _preview?.IsAvailable == true
@@ -108,17 +110,24 @@ internal static class ArenaPreviewFlow
         Action restoreNative, MatchmakerTimeHasCome loading = null)
     {
         if (host == null || !host.gameObject.activeInHierarchy) return false;
+        // A host can hide and show again before the next Update. Restore its
+        // original flags BEFORE taking the next surface snapshot, including the
+        // same-host fast path. A stale queued callback must never undo a new view.
+        // This call already passed the exact native request-owner check. An old
+        // hide from the same widget must not revoke that new request while its
+        // previous surface is being restored. Guard/Close drains still revoke it.
+        FlushPendingHide(preserveNativeRequest: true);
         if (_surface != null && ReferenceEquals(_surface.Host, host)) return true;
         try
         {
             Suspend();
             long generation = State.Attach(_settings, host, IsSelected);
             if (generation == 0) return false;
-            var surface = new Surface(host, nativeRaw, noVisual, restoreNative);
+            var surface = new Surface(host, nativeRaw, noVisual, restoreNative, generation);
             _surface = surface; // Cleanup owns all mutations, including a partial attach.
             surface.HideNative();
             _preview.ShowAt(host, nativeRaw?.rectTransform);
-            surface.Watch(() => SuspendHost(host, generation));
+            surface.Watch(() => QueueHostHide(host, generation));
             if (loading != null)
             {
                 surface.BindDrag(loading, data =>
@@ -138,11 +147,41 @@ internal static class ArenaPreviewFlow
         }
     }
 
-    private static void SuspendHost(Transform host, long generation)
+    /// <summary>Fallback callbacks only record intent while Unity locks the hierarchy.</summary>
+    private static void QueueHostHide(Transform host, long generation)
     {
         if (!State.IsCurrent(host, generation)) return;
-        if (_acceptPreview != null && ReferenceEquals(host, _acceptPreview.transform)) _acceptPreview = null;
-        if (_loadingScreen != null && ReferenceEquals(host, _loadingScreen.transform))
+        _pendingHostHide = preserveNativeRequest => SuspendHost(host, generation, preserveNativeRequest);
+    }
+
+    internal static void FlushPendingHide() => FlushPendingHide(preserveNativeRequest: false);
+
+    private static void FlushPendingHide(bool preserveNativeRequest)
+    {
+        var pending = _pendingHostHide;
+        _pendingHostHide = null;
+        Safe(() => pending?.Invoke(preserveNativeRequest));
+    }
+
+    /// <summary>Called before native Close disposes widgets or deactivates their ancestors.</summary>
+    internal static void BeforeScreenClose(Transform screen)
+    {
+        // Close can also be called by a subscriber during an ancestor's hide.
+        // Its OnDisable notification will be drained later by the guard.
+        if (screen == null || !screen.gameObject.activeInHierarchy) return;
+        bool OwnsScreen() => screen != null && _surface?.Host != null
+            && (_surface.Host == screen || _surface.Host.IsChildOf(screen));
+        if (!OwnsScreen()) return;
+        FlushPendingHide();
+        if (OwnsScreen()) Safe(() => SuspendHost(_surface.Host, _surface.Generation));
+    }
+
+    private static void SuspendHost(Transform host, long generation, bool preserveNativeRequest = false)
+    {
+        if (!State.IsCurrent(host, generation)) return;
+        if (!preserveNativeRequest && _acceptPreview != null
+            && ReferenceEquals(host, _acceptPreview.transform)) _acceptPreview = null;
+        if (!preserveNativeRequest && _loadingScreen != null && ReferenceEquals(host, _loadingScreen.transform))
         {
             _loadingScreen = null;
             _localAccountId = null;
@@ -152,6 +191,7 @@ internal static class ArenaPreviewFlow
 
     private static void Suspend()
     {
+        _pendingHostHide = null;
         State.Invalidate();
         var surface = _surface;
         _surface = null;
@@ -163,6 +203,7 @@ internal static class ArenaPreviewFlow
 
     private static void Reset(bool reloadNative)
     {
+        _pendingHostHide = null;
         var surface = _surface;
         var preview = _preview;
         _preview = null;
@@ -188,6 +229,7 @@ internal static class ArenaPreviewFlow
     private sealed class Surface : IDisposable
     {
         public readonly Transform Host;
+        public readonly long Generation;
         private readonly RawImage _raw;
         private readonly CameraImage _cameraImage;
         private readonly Image _noVisual;
@@ -202,9 +244,10 @@ internal static class ArenaPreviewFlow
         private Action<PointerEventData> _onDrag;
         private bool _disposed;
 
-        public Surface(Transform host, RawImage raw, Image noVisual, Action restoreNative)
+        public Surface(Transform host, RawImage raw, Image noVisual, Action restoreNative, long generation)
         {
             Host = host;
+            Generation = generation;
             _raw = raw;
             _noVisual = noVisual;
             _restoreNative = restoreNative;
@@ -276,9 +319,11 @@ internal sealed class ArenaPreviewFlowGuard : MonoBehaviour
 {
     public Func<bool> IsCurrent;
     public Action OnInvalid;
+    public Action OnTick;
     private void Update()
     {
         if (IsCurrent?.Invoke() == false) OnInvalid?.Invoke();
+        else OnTick?.Invoke();
     }
     private void OnDestroy() => OnInvalid?.Invoke();
 }
