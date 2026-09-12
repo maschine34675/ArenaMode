@@ -1,4 +1,34 @@
-# Double jump preparation
+# Double jump verification
+
+## Ledge-jump revision — 2026-09-12
+
+Scope: deliberate air jump after walking/falling off an edge; one allowance per
+body/context airborne episode, exact Arena/native ownership and genuine landing.
+
+- [x] G1: Production-linked behavior checks and compiled negative controls pass.
+  CHECK: pwsh -NoProfile -File tools/DoubleJumpChecks/Verify.ps1
+  EXPECT: ARENA_DOUBLE_JUMP_CHECKS_PASSED
+  EVIDENCE: exit=0; 278 assertions; all 22 compiled source faults rejected by
+  their named behavioral assertions; production helper rebuilt and rerun after
+  faults. Evidence: `artifacts/double-jump-checks/0a7474de55034562a9a4aaa313679ea1/`.
+  Production source SHA256:
+  `21F4F97E6EE79A765C19CDA8742E40B05FF4A2C20DC60E6A6E818A345327452D`.
+- [x] G2: Independent current-source and native-contract review completed.
+  EVIDENCE: `deathmatch_server` reviewed the same source SHA256, native
+  Jump/FallDown/TryJump/CheckFlying/debit contracts, and tests. Ground-toggle,
+  shutdown retention, native signal cleanup/handoff and retained lift-basis
+  findings were corrected and re-reviewed; no remaining established defect.
+- [ ] G3: Root-owned isolated full-client build and final repository acceptance.
+  EVIDENCE: pending root work. This leaf ran only the isolated contract helper;
+  Build-Staged.ps1, deployment targets and the running r3 files were untouched.
+- [ ] G4: Native GPU acceptance of early-edge transitions, contact and animation.
+  EVIDENCE: pending. Contract doubles do not execute EFT's animator graph,
+  native Harmony detours or physical controller contacts.
+
+## Historical version 1 preparation — 2026-09-08
+
+The following gates record the original grounded-takeoff-only version. They are
+historical evidence, not build or runtime acceptance of the 2026-09-12 revision.
 
 Scope: Implement one optional additional jump after a normal local Arena takeoff,
 verify native integration and safeguards offline, and stage without changing the

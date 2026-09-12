@@ -476,8 +476,8 @@ public static class Settings
             "Movement",
             "DoubleJumpEnabled",
             true,
-            "Press the normal jump binding again in the air for one extra jump after a ground takeoff. " +
-            "Local Arena player only; landing restores the extra jump. Falling from a ledge does not grant one.");
+            "Press the normal jump binding in the air for one extra jump, including after falling from a ledge. " +
+            "Local Arena player only; landing restores the extra jump.");
 
         DoubleJumpHeightMult = config.Bind(
             "Movement",

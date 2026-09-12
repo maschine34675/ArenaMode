@@ -1,119 +1,146 @@
-# Arena double jump
+# Arena double jump and deliberate ledge jump
 
-Prepared 2026-09-08 on `feature/double-jump`, based on `62c7b70`.
-The user authorized integration into `master` after GPU report `2327f63` and
-before the Customs team-start navigation fix. Merge `227fb10` integrated it;
-the combined client was delivered locally from clean `master` code commit
-`e2859e8`. **GPU acceptance remains pending.** Original isolated preparation
-and its unchanged-DLL checks are recorded below; current delivery is in HANDOFF.md.
+Updated 2026-09-12 on `feature/arena-visibility-movement`. The user explicitly
+reversed version 1's exclusion of walking/falling off a ledge. This source change
+is staged for later GPU acceptance; it has not replaced the running r3 client.
+Original integration/delivery history appears at the end.
 
 ## Player behavior
 
-- The normal jump binding still performs the normal ground jump. Once airborne,
-  press it again for one additional upward impulse. Holding the default click
-  binding does not generate a second command; release and press again.
+- The normal binding still performs the normal ground jump. A deliberate further
+  press provides one additional vertical impulse during ascent or descent. A
+  deliberate press after walking off a ledge is now allowed too, including the
+  small drop before EFT switches from Idle/Move/Sprint to FallDown.
+- The allowance belongs to one uninterrupted airborne episode of the exact living
+  local Arena body/context/game/world. Changing between native Jump and FallDown,
+  entering the same state again, repeated presses, a nearby-ground ray, upward
+  contact or changing settings cannot replenish a spent allowance. Actual native
+  controller contact during landing restores one allowance. A newly replaced
+  body/session, including a body first observed already falling, starts fresh.
 - Only the living current local Arena PMC receives the feature. Bots, ordinary
-  PMC/Scav raids, Hideout, spectators and bodies in respawn handover do not.
-- A fresh ground takeoff grants one credit; repeated presses, ground-ray flicker,
-  same-state airborne re-entry and settings toggles cannot replenish it in flight.
-  Landing and the next normal takeoff make the additional jump available again.
-- Version 1 deliberately excludes `FallDown` (walking off a ledge), vaulting,
-  climbing and a jump already halted by a ceiling collision. It adds no new
-  animation, air steering, horizontal boost or fall-damage exemption.
-- F12 / Movement / `DoubleJumpEnabled` defaults to true. The existing
-  `MovementEnabled` master switch also gates it. Turning either switch on or off
-  clears outstanding credits; take off again after changing it midair.
-- `DoubleJumpHeightMult` defaults to 1 and accepts 0.25 through 1.5. It scales the
-  second jump's ballistic height relative to the initial Arena jump, using the
-  square root for impulse. The first jump's `JumpHeightMult`, skill and weight
-  factors are already present and are not applied a second time.
-- Native stamina eligibility and one normal jump debit still apply. Existing
-  infinite stamina and no-fall-damage settings retain their separate behavior.
+  PMC/Scav raids, Hideout, inventory/UI-blocked input, spectators and respawn
+  handover remain excluded. Native stamina, medicine, prone, mounted, ceiling-
+  halt and vault guards remain. Pending Arena mantle input retains precedence;
+  this change does not alter any mantle distance, height or geometry limit.
+- `MovementEnabled` and `DoubleJumpEnabled` retain their existing defaults and
+  gates. A toggle while airborne invalidates the outstanding allowance; toggling
+  while standing on confirmed ground permits the next airborne action normally.
+- `DoubleJumpHeightMult` remains 0.25–1.5, default 1. It scales ballistic height
+  using the square root for lift. Existing first-jump height, weight/injury and
+  strength factors apply once. Brief landings with a reused native Jump object
+  reuse its original lift basis, so repeated episodes do not compound strength.
+- Existing FallDown and Jump states receive a direct renewed vertical clock and
+  exactly one normal jump debit. Input in early Idle/Move/Sprint requests the
+  native jump animation once and reserves the allowance for 0.5 seconds. A real
+  Jump or FallDown entry confirms that request and owns the native debit. An
+  absent/expired/cancelled transition grants no mod impulse or mod debit; its
+  reservation stays spent until landing. This native transition needs GPU testing.
+- Holding a click binding does not synthesize repeat presses. No air steering,
+  horizontal boost, new collision movement, teleport or fall-damage exemption is
+  added. Native fall-height and freefall accounting remain untouched.
 
-## Native evidence and implementation
+## Native evidence and ownership
 
-The source of truth is the installed 4.1 game under `Development/_decompiled`:
+Installed SPT 4.1 source under `Development/_decompiled` is the reference:
 
-- `EFT/MoveInputTranslator.cs:53,138`: configured `ECommand.Jump` dispatches to
-  `Player.Jump`. Native owner/inventory/exit input restrictions run upstream.
-- `EFT/Player.cs:25534`: jump dispatch respects vault-input timing and the
-  vaulting animator flag. The extra action reads the same guard; it never edits
-  `GlobalConfiguration` or forces `IsGrounded`/`CanJump`.
-- `EFT/MovementState.cs:276`: the inherited airborne `Jump()` is empty. The mod
-  hooks the non-empty command translator rather than assuming Mono will leave
-  this empty method uninlined. Original command dispatch always runs.
-- `EFT/JumpPlayerState.cs:82,127,219`: native Enter establishes the vertical
-  impulse; animator updates handle ceiling/landing; ProcessJumpMovement computes
-  gravity from `_stateTime - _liftDelay` and retains all collision/motion work.
-- `EFT/FallDown.cs:5`: derives from JumpPlayerState and zeroes lift. Exact type
-  matching deliberately rejects this and other derived movement states.
-- `EFT/MovementContext.cs:2805` and `Physical.cs:471,1139`: physical and contextual
-  jump restrictions, then one native stamina consumption per accepted action.
-- `Stamina.cs:211`: consumption invokes synchronous callbacks, so the mod binds
-  a pending command to its exact credit/body/state and rechecks ownership after
-  consumption before changing any movement fields.
+- `EFT/MoveInputTranslator.cs:53,138` dispatches configured `ECommand.Jump` to
+  `Player.Jump`; native UI/input ownership runs upstream. `MovementState.Jump`
+  is empty, so the patch stays on the non-empty translator and always runs the
+  original command. Capturing before it prevents a ground press from becoming
+  an extra press after an animator transition.
+- `EFT/Player.cs:25534` guards vault timing and the vaulting animator flag.
+  `EFT/IdlePlayerState.cs:120` and `MovePlayerState.cs:396` additionally require
+  pose above 0.6 and `IsGrounded`; Sprint inherits Move. These grounded checks
+  explain why a centimetre-scale ledge departure could swallow the input.
+- `EFT/MovementContext.cs:2805` (`TryJump`) checks contextual/physical CanJump,
+  emits noise, then sets the jump animator bool. `PlayerAnimator.cs:406,822`
+  confirms this bool persists until cleared; it is not a one-frame trigger.
+  The early-edge path only borrows a previously-false bool. Successful FallDown
+  completion, expiry and cancellation release that owned bool on the same exact
+  current body/context/game/world. Native Jump entry takes ownership itself.
+  A preexisting native bool and a replaced body are never cleared. Cleanup also
+  handles an Idle-to-Move/Sprint transition and synchronous noise subscribers
+  that cancel/complete the request before native TryJump finally sets its bool.
+  A new grounded command settles the old air reservation before vanilla input,
+  so delayed landing observation cannot clear that new native command's bool.
+- `EFT/JumpPlayerState.cs:82` computes skill, speed/weight/injury lift and calls
+  `MovementContext.OnJump` (`MovementContext.cs:1627`), which owns native stamina
+  consumption (`Physical.cs:1139`). `FallDown.cs:12` calls that whole entry and
+  then zeroes lift. The extra FallDown action reconstructs just the documented
+  lift formula; it never calls Enter again or duplicates its physical/animator
+  side effects. `ArenaMovementPatches.JumpHeightPatch` applies existing Arena
+  height; the Jump entry postfix runs last to retain that native lift basis.
+- `EFT/JumpPlayerState.cs:127,219` keeps all HeadBump, Halt, LimitMotion,
+  ApplyMotion and gravity work. Only vertical lift/clock, potential-height
+  prediction, descending timer and stale blocked-motion history are renewed.
+- `EFT/MovementContext.cs:2574,2644,2681` observes flying after ground collision.
+  Its IsGrounded combines controller contact with a proximity ray. The allowance
+  reset additionally requires actual `CharacterController.isGrounded`, a
+  supported landing/locomotion state and no upward/push phase or pending vault.
+  No IsGrounded, CanJump, global physics or GlobalConfiguration value is forced.
+- `Stamina.cs:211` invokes synchronous subscribers. Direct requests are marked
+  spent before debit, bind the exact credit/body/state revision, and revalidate
+  after payment without demanding remaining stamina again. Native entry captures
+  are immutable, so nested entry of the same object cannot reuse an outer capture.
 
-Credits live in a weak table keyed by the native jump state. Each also owns its
-exact player and world. Active game/world identity, current body/context/state,
-life, inventory, Arena input blocker, spectator and respawn checks constrain
-every request. A prefix captures the eligible credit before native dispatch;
-the postfix cannot turn the initial ground press into an extra jump or spend an
-old command on a replacement credit. The credit is spent before stamina callbacks,
-including failure/re-entry. The post-debit check deliberately does not require
-remaining stamina: paying the correct cost may exhaust it.
+The live owner is one current credit plus a conditional weak table keyed by
+MovementContext. Shutdown drops the strong owner while retaining the spent value
+only as long as its live context exists. Raid end clears credits and leaves weak
+world/game tombstones, denying stale requests before singleton teardown without
+retaining the departed raid. Actual landing replaces the credit, invalidating
+any previously captured command. World/body replacement never transfers an old
+pending command or its cleanup to the replacement body.
 
-The accepted action resets the native vertical clock, potential-height prediction,
-descending timer and blocked-motion history. It preserves horizontal direction
-and magnitude, ground state, gravity, freefall time and fall-height tracking. No
-teleport, extra CharacterController.Move, Animator re-entry or native jump
-Enter/Exit invocation is added. Native jump noise is requested once; a successful
-action has a debug diagnostic, while unexpected exceptions warn once per process.
+## Offline verification and pending delivery
 
-## Verification and delivery
+Run `pwsh -NoProfile -File tools/DoubleJumpChecks/Verify.ps1`. It compiles the
+production file with narrow EFT/Unity contract doubles, runs behavior assertions,
+then compiles deliberately faulty source variants and requires each to fail its
+named behavioral assertion. It restores the production-linked helper afterward.
+`tools/DoubleJumpChecks/GATES.md` records the completed count and evidence path.
+The final leaf run passed 278 assertions and rejected all 22 compiled faults:
+`artifacts/double-jump-checks/0a7474de55034562a9a4aaa313679ea1/`.
+Independent native/source re-review passed on production source SHA256
+`21F4F97E6EE79A765C19CDA8742E40B05FF4A2C20DC60E6A6E818A345327452D`.
 
-The complete client builds against installed EFT/Redeploy APIs using
-`tools/DoubleJumpChecks/Build-Staged.ps1`. It imports the real project but removes
-the external Redeploy project build, references its installed DLL read-only,
-overrides client/audio deployment targets and redirects SPT paths to unique
-ignored staging. It checks installed client/server/Redeploy hashes before and
-after, including failure paths. Use `-SptRoot C:\SPT41` on the GPU host if staging
-there is deliberately needed.
+The checks cover ordinary-raid and exact-body exclusion, normal/falling/early-edge
+input, actual/failed/cancelled native transitions, native flag ownership, one
+stamina debit, repeated state changes, ray/upward contact, real landing, replacement,
+settings/shutdown, nested callbacks and lift stability across reused states.
+They do not execute native Harmony/Mono, the animator graph, actual contact or
+visual motion. Root performs the isolated full client build and separate review;
+this leaf does not invoke Build-Staged, main builds or any deployment target.
+The installed r3 client/server/dependencies/audio and r3 GPU instructions are
+outside this change's delivery scope.
 
-Full staged build: zero errors, four existing nullable-annotation warnings.
-Independent adversarial review found and resolved the reused-credit/stamina-
-callback lifetime issue; re-review found no unresolved P0-P2 issue in the feature
-or deployment isolation. The production-linked suite passes 143 assertions and
-rejects seven named source faults (scope/ownership, spent credit, body identity,
-grounded entry, vertical clock, captured-credit identity and post-debit ownership).
-The parent re-runs verification; evidence is recorded in
-`tools/DoubleJumpChecks/GATES.md`. The gates use PowerShell 7 (`pwsh`) and .NET 10.
-These checks substitute EFT/Unity objects and do not prove native Mono detouring,
-animation transitions, collision behavior or gameplay acceptance.
+## Pending GPU acceptance for this revision
 
-The original feature preparation preserved the old test client
-`49762EB638B244F3E2D45ADB3BC040CA6A42FBAF895B7A2A3C80B1CC006839E9`.
-After the tests and authorized merge, the combined client was installed locally:
+1. In a fresh Arena, use the configured jump binding during ascent, apex and
+   descent. Walk off a very small step and a taller ledge, both standing and
+   moving/sprinting, and press once. Confirm a single visible air impulse with
+   preserved horizontal momentum; extra presses must not keep gaining height.
+2. Exercise the early ledge case before the fall animation, including Idle-to-
+   Move/Sprint. Confirm one native debit and no delayed second jump after a
+   FallDown completion. Test a blocked/failed native transition without repeated
+   debit or an animator jump stuck on after landing.
+3. Land briefly and step off again while the previous animation settles. Each
+   new episode must have the same configured strength. Test slopes, low ceilings,
+   walls and the area barrier without bypassing collision or trapping the body.
+4. Exercise pending vault/climb, inventory/buy menu, death/respawn, spectator and
+   Tactical round transitions. Test setting/master toggles on ground and in air;
+   neither a toggle nor a native state change may refill a spent airborne action.
+5. With infinite stamina/fall protection disabled, check the accepted jump cost
+   and unchanged falling consequences. Check ordinary PMC/Scav/Hideout and bots
+   remain unchanged, then complete Arena with successful profile restoration.
+
+No GPU acceptance is claimed for this revision or the earlier double jump.
+
+## Historical version 1 delivery
+
+Version 1 was prepared 2026-09-08 on `feature/double-jump` based on `62c7b70` and
+integrated by merge `227fb10`. The combined local client from `e2859e8` had SHA256
 `DEFC7DA21EA311A5078F83037FEA56972C24C36CAE499F5D9FEF7FCC06CE973E`.
-Server and Redeploy remain unchanged. The clean-build and delivery manifests,
-previous-client backup and GPU mirror limitations are recorded in `HANDOFF.md`.
-The merged double-jump checks passed again; no GPU success is inferred.
-
-## Pending GPU acceptance for the merged double jump
-
-1. Start a fresh Arena raid; jump from standing and sprinting, then press again
-   during ascent, near the apex and during descent. Confirm one visible second
-   impulse and preserved lateral momentum. Holding the default binding and a
-   third press must not add jumps. Check a rebound/custom jump binding as well.
-2. Land and repeat; test low ceilings, slopes, walls and the area barrier without
-   crossing geometry or trapping the player. Walking off a ledge must not grant
-   a jump. Test crouch/vault/climb transitions and returning to normal movement.
-3. Repeat after death/respawn and Tactical round changes. Buy menu, inventory,
-   pause menu and spectator input must not move the player unexpectedly.
-4. Toggle the feature/master switch and vary second-jump height. Disabling while
-   airborne must not interrupt the native current arc or restore a spent credit.
-   With infinite stamina off, check eligibility and the second jump's cost;
-   with fall protection off, confirm ordinary falling consequences remain.
-5. Check ordinary PMC/Scav and Hideout movement remain unchanged, bots do not
-   double-jump, and finish the Arena raid cleanly with successful profile restore.
-
-No GPU double-jump test has been performed on this development host.
+Its prior preserved client was
+`49762EB638B244F3E2D45ADB3BC040CA6A42FBAF895B7A2A3C80B1CC006839E9`.
+Those historical hashes are not the current running r3 artifact. Version 1's
+original restriction to a native grounded takeoff is superseded by this revision.

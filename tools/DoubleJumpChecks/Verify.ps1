@@ -44,16 +44,35 @@ function Test-Mutant([string]$Name, [string]$Before, [string]$After, [string]$As
 }
 try {
     Assert-Production
-    # The native session helper also checks IsActive. Removing only the redundant
-    # first gate is therefore not a behavioral mutant; bypass the ownership gate.
-    Test-Mutant 'scope-ownership-gate-removed' '|| !OwnsCredit(jump, player, credit)' '' 'ordinary raid never receives extra impulse'
-    Test-Mutant 'spent-credit-gate-removed' '|| credit.Spent' '' 'spent credit denies repeated input'
-    Test-Mutant 'credit-body-identity-removed' '|| !ReferenceEquals(credit.Player, player)' '' 'credit cannot transfer to replacement body sharing state'
-    Test-Mutant 'grounded-entry-gate-removed' '&& __instance.MovementContext.IsGrounded' '' 'airborne fresh entry cannot create credit'
+    # Both observation and ownership use the exact admission helper. Remove that
+    # whole admission condition so the mutant is behavioral despite redundant IsActive.
+    $arenaScopeStart = $arenaSource.IndexOf('        if (!ArenaSession.IsActive || !_enabled || context == null')
+    $arenaScopeEnd = $arenaSource.IndexOf('            return false;', $arenaScopeStart)
+    $arenaScopeGate = $arenaSource.Substring($arenaScopeStart, $arenaScopeEnd - $arenaScopeStart)
+    $arenaNoAdmission = $arenaScopeGate.Replace('!ArenaSession.IsActive || ', '').Replace('!ArenaSession.IsExactActiveRaid(Singleton<AbstractGame>.Instance, Singleton<GameWorld>.Instance)', 'false')
+    Test-Mutant 'exact-arena-admission-removed' $arenaScopeGate $arenaNoAdmission 'ordinary raid never receives extra impulse'
+    Test-Mutant 'spent-credit-gate-removed' 'credit.Spent || ' '' 'spent credit denies repeated input'
+    Test-Mutant 'falling-state-excluded' ' || state.GetType() == typeof(FallDown)' '' 'walking off edge receives one deliberate impulse and debit'
+    Test-Mutant 'fresh-falling-body-denied' 'SetCredit(new Credit { Player = player, Context = context, World = world, Game = game });' 'SetCredit(new Credit { Player = player, Context = context, World = world, Game = game, Spent = !context.IsGrounded });' 'fresh falling body needs no preceding observed ground jump'
+    Test-Mutant 'state-transition-refills-credit' 'credit.StateRevision++;' 'credit.StateRevision++; credit.Spent = false;' 'Jump FallDown transitions cannot replenish airborne credit'
+    Test-Mutant 'physical-ground-contact-removed' '&& credit.Player.CharacterController.isGrounded && landedState' '&& landedState' 'ground proximity ray alone cannot replenish credit'
+    Test-Mutant 'upward-contact-refills-credit' '&& jump._currentLiftforce.y <= 0f' '' 'upward native controller contact cannot replenish credit'
+    Test-Mutant 'genuine-landing-reset-removed' 'if (credit.Airborne && __instance.IsGrounded' 'if (false && credit.Airborne && __instance.IsGrounded' 'genuine landing restores the reused jump credit'
+    Test-Mutant 'ground-toggle-always-spent' 'credit.Spent = credit.Airborne || !credit.Context.IsGrounded' 'credit.Spent = true || credit.Airborne || !credit.Context.IsGrounded' 'grounded setting toggle preserves next airborne credit'
     Test-Mutant 'vertical-clock-reset-removed' 'jump._stateTime = jump._liftDelay;' '// missing vertical clock reset' 'extra impulse restarts native vertical clock'
-    Test-Mutant 'captured-credit-identity-removed' '|| !ReferenceEquals(credit, expectedCredit)' '' 'same-object exit and entry cannot replace captured credit'
-    Test-Mutant 'post-debit-ownership-revalidation-removed' 'if (!OwnsCredit(jump, __state.Player, __state.Credit)' 'if (false' 'body swap during debit rejects impulse'
-    Test-Mutant 'pending-mantle-guard-removed' '&& !ArenaAirVault.HasPendingRequest(player)' '' 'pending native mantle takes precedence'
+    Test-Mutant 'captured-credit-identity-removed' '|| !ReferenceEquals(_credit, expectedCredit)' '' 'landing replacement invalidates captured credit'
+    Test-Mutant 'post-debit-ownership-revalidation-removed' 'if (!OwnsCredit(jump, player, __state.Credit)' 'if (false' 'body swap during debit rejects impulse'
+    Test-Mutant 'pending-mantle-guard-removed' ' && !ArenaAirVault.HasPendingRequest(player)' '' 'pending native mantle takes precedence'
+    Test-Mutant 'native-edge-request-removed' 'state.MovementContext.TryJump();' ';' 'centimetre edge press requests native transition without premature debit'
+    Test-Mutant 'native-edge-double-debit' 'request.Credit.NativeRequest = null;' 'request.Credit.NativeRequest = null; request.Player.Physical.OnJump(true);' 'successful native ledge entry owns one debit and one noise'
+    Test-Mutant 'native-transition-expiry-removed' '&& Time.realtimeSinceStartup <= request.ExpiresAt' '' 'expired request denied even before landing observer ticks'
+    Test-Mutant 'setting-invalidation-removed' 'private static void ClearCredits(object sender, EventArgs args) => InvalidateCredit();' 'private static void ClearCredits(object sender, EventArgs args) { }' 'settings toggle invalidates outstanding unspent credit'
+    Test-Mutant 'falling-arena-height-removed' 'if (firstHeight > 1f) lift *= Mathf.Sqrt(firstHeight);' '// missing existing Arena height' 'falling lift retains native injured weight skill and Arena height factors'
+    Test-Mutant 'falling-owned-signal-release-removed' 'if (jump.GetType() == typeof(FallDown)) ReleaseNativeSignal(request.NativeReservation);' ';' 'FallDown completion releases only the owned native jump signal'
+    Test-Mutant 'reused-jump-lift-compounds' 'lift = credit.NativeLift;' 'lift = jump._liftForce;' 'reused native jump state cannot compound height across landings'
+    Test-Mutant 'signal-cleanup-loses-locomotion-owner' '(IsGroundLocomotion(player.CurrentManagedState)' '(ReferenceEquals(player.CurrentManagedState, request.State)' 'owned pending signal expires after Idle to Move Sprint transition'
+    $arenaGroundHandoff = "if (state?.MovementContext.IsGrounded == true && _credit != null"
+    Test-Mutant 'ground-command-signal-handoff-removed' $arenaGroundHandoff "if (false && state?.MovementContext.IsGrounded == true && _credit != null" 'grounded native command takes signal ownership before delayed landing cleanup'
 }
 finally { Assert-Production }
 Write-Output "Double jump check evidence: $arenaWork"
