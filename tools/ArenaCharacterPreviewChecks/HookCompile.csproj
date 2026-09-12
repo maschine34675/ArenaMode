@@ -1,0 +1,38 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj/hooks/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>obj/hooks/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>bin/hooks/</OutputPath>
+    <AssemblySearchPaths>../../../../EscapeFromTarkov_Data/Managed;../../../../BepInEx/plugins/spt;../../../../BepInEx/core;$(AssemblySearchPaths)</AssemblySearchPaths>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="HookCompileStubs.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaCharacterPreview.cs" Link="Production/ArenaCharacterPreview.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaPreviewEquipment.cs" Link="Production/ArenaPreviewEquipment.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/Preview/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Reference Include="Assembly-CSharp" Private="false" />
+    <Reference Include="Assembly-CSharp-firstpass" Private="false" />
+    <Reference Include="AnimationSystem.Types" Private="false" />
+    <Reference Include="Comfort" Private="false" />
+    <Reference Include="Comfort.Unity" Private="false" />
+    <Reference Include="ItemComponent.Types" Private="false" />
+    <Reference Include="ItemTemplate.Types" Private="false" />
+    <Reference Include="spt-common" Private="false" />
+    <Reference Include="spt-reflection" Private="false" />
+    <Reference Include="0Harmony" Private="false" />
+    <Reference Include="BepInEx" Private="false" />
+    <Reference Include="Sirenix.Serialization" Private="false" />
+    <Reference Include="UnityEngine" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" Private="false" />
+    <Reference Include="UnityEngine.AnimationModule" Private="false" />
+    <Reference Include="UnityEngine.UI" Private="false" />
+    <Reference Include="UnityEngine.UIModule" Private="false" />
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+</Project>

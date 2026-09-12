@@ -23,6 +23,14 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
     private ArenaCharacterPreview _preview;
     private bool _disposed;
 
+    public static ArenaCharacterPreview DetachPreview(MatchMakerSideSelectionScreen screen)
+    {
+        if (screen == null || !Active.TryGetValue(screen, out var layout)) return null;
+        var preview = layout._preview;
+        layout._preview = null;
+        return preview;
+    }
+
     public static void Restore(MatchMakerSideSelectionScreen screen)
     {
         if (screen != null && Active.TryGetValue(screen, out var layout))
