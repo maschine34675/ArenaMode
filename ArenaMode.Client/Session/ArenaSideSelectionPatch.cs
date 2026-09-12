@@ -206,7 +206,7 @@ internal static class ArenaSideSelectionPatch
         var eligibility = ArenaMenuSelection.CurrentEligibility;
         screen._sideDescriptionText.text = eligibility.IsTeam
             ? "<nobr>Tactical 5v5 with PitFireTeam.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>"
-            : "<nobr>Five modes. Solo and team combat.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>";
+            : "<nobr>Solo and team arena combat.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>";
         screen.SetHealthPanelVisibility(false, true);
     }
 

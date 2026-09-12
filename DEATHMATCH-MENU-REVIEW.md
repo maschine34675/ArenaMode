@@ -82,3 +82,23 @@ DLL delivery. No audio or dependency copy is part of delivery.
 Native visual/AI acceptance, ordinary PMC return, repeated navigation and the
 reported jitter still require the focused GPU test instruction delivered with
 exact client/server SHA256 identities. Never transfer r6 acceptance to this DLL.
+
+## GPU r1 follow-up (2026-09-12)
+
+Report `05e88d0` stopped at the stale side-selection description "Five modes".
+The native screenshot and all four committed image hashes agree with the report.
+This was a cosmetic failure under the overly broad test stop rule, not a match
+crash: no map-selection tests or raids ran. The replacement copy is count-free,
+"Solo and team arena combat.", with the existing second profile-safety line;
+PitFireTeam's two-line description is unchanged. No new literal-only test was
+added for this low-impact text correction; independent source/image review and
+the actual client build cover it, with native text confirmation in GPU r2.
+
+The user separately confirmed that the character no longer jitters. Preserve
+this as user-observed acceptance of the visible improvement. r1 itself has no
+video or consecutive-frame evidence and does not certify model continuity on
+subsequent screens, nor the exact numerical cause. No further preview changes
+are justified by this report. r2 prioritizes the untested menu and raid cases;
+cosmetic findings are recorded without aborting independent cases, and recording
+is optional unless jitter recurs. Safety, exceptions and build drift still stop
+the relevant run. Original r1 instructions/results remain historical evidence.
