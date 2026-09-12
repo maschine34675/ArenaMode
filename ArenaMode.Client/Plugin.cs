@@ -61,6 +61,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotPatches.Enable();
         Bots.ArenaBotLifecycleSafety.Enable();
         Bots.ArenaPickupTeardownSafety.Enable();
+        Bots.ArenaWeaponCallbackSafety.Enable();
         Bots.ArenaSainDisableSafety.Enable();
         Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
@@ -125,6 +126,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaSainActionSafety.Shutdown();
         Bots.ArenaSainDisableSafety.Shutdown();
         Bots.ArenaPickupTeardownSafety.Shutdown();
+        Bots.ArenaWeaponCallbackSafety.Shutdown();
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
         Bots.TdmSearchTempo.Shutdown();

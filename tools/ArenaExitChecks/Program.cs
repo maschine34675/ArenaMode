@@ -98,4 +98,33 @@ foreach(string scenario in new[]{"uninitialized","initialized","ordinary","assig
 }
 ArenaSainDisableSafety.Shutdown(); ArenaPickupTeardownSafety.Shutdown();
 Check(Harmony.Hooks.Count==0,"shutdown removes only own detours");
+var taken=typeof(BotWeaponSelector).GetMethod("OnWeaponTaken");
+ArenaWeaponCallbackSafety.Enable();
+foreach(string scenario in new[]{"active","preactive","nonactive","dead","disposed","manager-disposed","missing-manager","foreign-manager","ordinary","new-world","new-body"})
+foreach(bool ready in new[]{false,true})
+{
+    var owner=Setup(scenario!="ordinary");
+    owner.WeaponManager=new() {_owner=owner};
+    var selector=new BotWeaponSelector {_owner=owner,IsWeaponReady=ready};
+    if(scenario=="preactive") owner.BotState=EBotState.PreActive;
+    if(scenario=="nonactive") owner.BotState=EBotState.NonActive;
+    if(scenario=="dead") owner.IsDead=true;
+    if(scenario=="disposed") owner.BotState=EBotState.Disposed;
+    if(scenario=="manager-disposed") owner.WeaponManager._disposed=true;
+    if(scenario=="missing-manager") owner.WeaponManager=null;
+    if(scenario=="foreign-manager") {owner.WeaponManager._owner=new(); owner.WeaponManager._disposed=true;}
+    if(scenario is "ordinary" or "new-world" or "new-body")
+    {
+        if(scenario!="ordinary") Check(ArenaBotLifecycleScope.Owns(owner),"stamp weapon callback lifetime");
+        owner.IsDead=true;
+        if(scenario=="new-world") Singleton<GameWorld>.Instance=new();
+        if(scenario=="new-body") owner.GetPlayer=new() {ProfileId=owner.GetPlayer.ProfileId};
+    }
+    bool skip=scenario is "dead" or "disposed" or "manager-disposed";
+    bool run=Prefix(taken,selector);
+    Check(run!=skip,"weapon callback admission: "+scenario);
+    Check(selector.IsChanging==!skip && selector.IsWeaponReady==ready,"weapon callback flags: "+scenario);
+}
+ArenaWeaponCallbackSafety.Shutdown();
+Check(Harmony.Hooks.Count==0,"weapon shutdown removes hook");
 Console.WriteLine($"ARENA_EXIT_CHECKS_PASSED ({checks} assertions)");

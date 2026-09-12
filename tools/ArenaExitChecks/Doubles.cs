@@ -22,6 +22,7 @@ namespace UnityEngine
 }
 namespace EFT
 {
+    public interface IHandsController { }
     public enum EBotState { PreActive, Active, NonActive, Disposed }
     public class AbstractGame : UnityEngine.Object { }
     public class Player : UnityEngine.Component
@@ -32,6 +33,7 @@ namespace EFT
     public class MovementContext { public Action PickupAction; }
     public class BotOwner : UnityEngine.Component
     {
+        public bool IsDead; public BotWeaponManager WeaponManager;
         public Player GetPlayer; public EBotState BotState = EBotState.Active;
         public BotItemTaker ItemTaker; public bool MedecinePresent = true; public int Disposals;
         public void Dispose() { if (BotState == EBotState.PreActive) return; Disposals++; MedecinePresent = false; ItemTaker = null; BotState = EBotState.NonActive; }
@@ -54,7 +56,17 @@ public class BotItemTaker
         public void OtherAction() => Calls++;
     }
 }
-namespace Comfort.Common { public static class Singleton<T> { public static T Instance; } }
+namespace Comfort.Common
+{
+    public readonly struct Result<T>(T value) { public T Value => value; }
+    public static class Singleton<T> { public static T Instance; }
+}
+public class BotWeaponManager { public EFT.BotOwner _owner; public bool _disposed; }
+public class BotWeaponSelector
+{
+    public EFT.BotOwner _owner; public bool IsChanging=true, IsWeaponReady=true;
+    public void OnWeaponTaken(Comfort.Common.Result<EFT.IHandsController> result) { }
+}
 namespace ArenaMode.Session
 {
     public static class ArenaSession
