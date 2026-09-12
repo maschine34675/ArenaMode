@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AdapterSource Condition="'$(AdapterSource)' == ''">../../ArenaMode.Client/Compat/DynamicMapsCorpseMarkers.cs</AdapterSource>
+    <CleanupSource Condition="'$(CleanupSource)' == ''">../../ArenaMode.Client/Bots/CorpseCleanupService.cs</CleanupSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AdapterSource)" Link="Production/DynamicMapsCorpseMarkers.cs" />
+    <Compile Include="$(CleanupSource)" Link="Production/CorpseCleanupService.cs" />
+    <Compile Include="../CorpseCleanupChecks/Stubs.cs" Link="NativeStubs.cs" />
+  </ItemGroup>
+</Project>

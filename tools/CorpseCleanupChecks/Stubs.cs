@@ -3,6 +3,15 @@
 // and reactive slot/model release are deliberately separate observable steps.
 namespace UnityEngine
 {
+    public class Object
+    {
+        public bool Destroyed;
+        public static bool operator ==(Object a, Object b)
+            => ReferenceEquals(a, b) || (ReferenceEquals(a, null) && b.Destroyed) || (ReferenceEquals(b, null) && a.Destroyed);
+        public static bool operator !=(Object a, Object b) => !(a == b);
+        public override bool Equals(object other) => ReferenceEquals(this, other);
+        public override int GetHashCode() => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
+    }
     public record struct Vector3(float x, float y = 0, float z = 0)
     {
         public static float Distance(Vector3 a, Vector3 b)
@@ -12,9 +21,11 @@ namespace UnityEngine
     public class GameObject
     {
         public readonly List<object> Components = new();
-        public T[] GetComponentsInChildren<T>(bool includeInactive) => Components.OfType<T>().ToArray();
+        public bool FailComponentRead;
+        public T[] GetComponentsInChildren<T>(bool includeInactive)
+            => FailComponentRead ? throw new Exception("component read failed") : Components.OfType<T>().ToArray();
     }
-    public class Component
+    public class Component : Object
     {
         public GameObject gameObject = new();
         public Transform transform = new();
@@ -131,6 +142,8 @@ namespace EFT
 {
     public class Player : UnityEngine.Component
     {
+        protected Interactive.Corpse Corpse;
+        public void SetCorpse(Interactive.Corpse corpse) => Corpse = corpse;
         public bool enabled = true;
         public string ProfileId = "local-player";
         public UnityEngine.Vector3 Position;
@@ -175,7 +188,7 @@ namespace EFT.Interactive
 }
 namespace ArenaMode
 {
-    public static class Plugin { public static Logger ModLogger = new(); }
+    public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public static Logger ModLogger = new(); }
     public class Logger
     {
         public readonly List<string> Warnings = new();

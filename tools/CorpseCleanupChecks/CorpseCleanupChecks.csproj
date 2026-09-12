@@ -6,5 +6,9 @@
     <Nullable>disable</Nullable>
     <CleanupSource Condition="'$(CleanupSource)' == ''">../../ArenaMode.Client/Bots/CorpseCleanupService.cs</CleanupSource>
   </PropertyGroup>
-  <ItemGroup><Compile Include="$(CleanupSource)" Link="Production/CorpseCleanupService.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(CleanupSource)" Link="Production/CorpseCleanupService.cs" />
+    <Compile Include="../../ArenaMode.Client/Compat/DynamicMapsCorpseMarkers.cs" Link="Production/DynamicMapsCorpseMarkers.cs" />
+    <Compile Include="../DynamicMapCorpseChecks/CompatStubs.cs" Link="CompatStubs.cs" />
+  </ItemGroup>
 </Project>

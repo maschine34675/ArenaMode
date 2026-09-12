@@ -14,6 +14,7 @@ namespace ArenaMode;
 [BepInDependency("com.SPT.core", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(PitFireTeamCompat.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("me.sol.sain", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(DynamicMapsCorpseMarkers.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -37,6 +38,7 @@ public class Plugin : BaseUnityPlugin
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
 
         ArenaSession.Initialize();
+        DynamicMapsCorpseMarkers.Enable();
         Hud.ArenaExtractionList.Enable();
         // After ArenaSession: RaidLifecycle handlers run in subscription order and
         // the match service needs IsActive already latched when its handler fires.
@@ -106,6 +108,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();

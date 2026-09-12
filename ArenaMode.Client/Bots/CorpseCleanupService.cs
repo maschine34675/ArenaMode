@@ -39,6 +39,11 @@ internal static class CorpseCleanupService
     {
         public Renderer[] Body;
 
+        // A failed trim is also remembered to avoid repeated failures. Only a
+        // completed trim may suppress an optional map marker, in this world.
+        public bool Completed;
+        public GameWorld World;
+
         /// <summary>Tracked apart from the body: a weapon can change hands.</summary>
         public Renderer[] Weapon;
 
@@ -59,7 +64,14 @@ internal static class CorpseCleanupService
     {
         _nextSweepAt = 0f;
         Trimmed.Clear();
+        Compat.DynamicMapsCorpseMarkers.Reset();
     }
+
+    internal static bool IsSuccessfullyTrimmed(Corpse corpse)
+        => ArenaSession.IsActive && corpse != null
+            && Singleton<GameWorld>.Instantiated
+            && Trimmed.TryGetValue(corpse, out var state) && state.Completed
+            && ReferenceEquals(state.World, Singleton<GameWorld>.Instance);
 
     public static void Tick()
     {
@@ -80,6 +92,7 @@ internal static class CorpseCleanupService
                 return;
 
             ReassertTrimmed();
+            Compat.DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();
 
             // LootList is append-ordered (RegisterLoot) => already oldest-first.
             var corpses = world.LootList.OfType<Corpse>()
@@ -251,12 +264,15 @@ internal static class CorpseCleanupService
             // weapon registry exists for. What is left belongs to the corpse.
             Trimmed[corpse] = new TrimState
             {
+                Completed = true,
+                World = Singleton<GameWorld>.Instance,
                 Body = Settings.StripCorpseGear.Value
                     ? corpse.GetComponentsInChildren<Renderer>(true)
                     : renderers,
                 Weapon = weaponRenderers,
                 WeaponObject = weapon,
             };
+            Compat.DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();
             return true;
         }
         catch (Exception ex)
