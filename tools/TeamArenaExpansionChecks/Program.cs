@@ -3,6 +3,7 @@ using ArenaMode.Spectator;
 using ArenaMode.Bots;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using System.Text.Json.Nodes;
 
 internal static class Program
 {
@@ -1049,6 +1050,44 @@ internal static class Program
             "a loaded SAIN assembly takes precedence over plugin metadata timing");
     }
 
+    private static void CheckAnnouncerAssets(string assets)
+    {
+        var manifest = AnnouncerAssetContract.Read(assets);
+        AnnouncerAssetContract.Validate(assets, manifest);
+        Assert(true, "current announcer hashes and cue manifest match; provenance fields are present");
+
+        JsonObject Cue(JsonObject pack, string key) => pack["files"]!.AsArray()
+            .Select(row => row!.AsObject()).Single(row => row["eventKey"]?.GetValue<string>() == key);
+        var faults = new (string Name, Action<JsonObject> Change, string Failure)[]
+        {
+            ("missing generator", pack => pack.Remove("generator"), "missing provenance"),
+            ("missing rights record", pack => pack["rights"] = "", "missing provenance"),
+            ("invalid source fingerprint", pack => pack["sourceSha256"] = "unknown", "invalid source fingerprint"),
+            ("invalid terms reference", pack => pack["termsSource"] = "local.txt", "invalid provenance URL"),
+            ("wrong cue hash", pack => Cue(pack, "round_start")["sha256"] = new string('0', 64), "cue checksum differs"),
+            ("unsafe cue path", pack => Cue(pack, "round_start")["file"] = "../round_start.ogg", "unsafe asset path"),
+            ("duplicate cue path", pack => pack["files"]!.AsArray().Add(Cue(pack, "round_start").DeepClone()), "duplicate asset path"),
+            ("missing cue", pack => { var cue = Cue(pack, "round_start"); cue["file"] = "sounds/nonexistent_test_cue.ogg"; cue["eventKey"] = "nonexistent_test_cue"; }, "missing or empty cue"),
+            ("wrong event mapping", pack => Cue(pack, "round_start")["eventKey"] = "round_lost", "event/file mapping differs"),
+            ("unreviewed round-won alternative", pack => Cue(pack, "round_won")["spoken"] = "ROUND WON", "reviewed lifecycle mapping differs"),
+            ("reserve file loaded as active", pack => Cue(pack, "round_start")["file"] = "sounds/reserve/round_start.ogg", "wrong loading scope"),
+            ("reserve event", pack => pack["files"]!.AsArray().Select(row => row!.AsObject()).First(row => row["usage"]!.GetValue<string>() == "reserve")["eventKey"] = "reserved", "reserve cue has an event"),
+            ("missing lifecycle cue", pack => pack["files"]!.AsArray().Remove(Cue(pack, "round_won")), "active/reserve cue set differs")
+        };
+        foreach (var fault in faults)
+        {
+            var copy = (JsonObject)manifest.DeepClone();
+            fault.Change(copy);
+            bool rejected = false;
+            try { AnnouncerAssetContract.Validate(assets, copy); }
+            catch (InvalidDataException ex) { rejected = ex.Message.Contains(fault.Failure, StringComparison.Ordinal); }
+            Assert(rejected, "current announcer contract rejects " + fault.Name);
+        }
+        // Fixture controls never edit packaged files or the original record.
+        AnnouncerAssetContract.Validate(assets, manifest);
+        Assert(true, "unmodified announcer manifest still passes after negative controls");
+    }
+
     private static void CheckSourceContract()
     {
         string root = FindRepositoryRoot();
@@ -1375,27 +1414,8 @@ internal static class Program
         Assert(menuSelection.IndexOf("IsSelected = true", StringComparison.Ordinal)
                < menuSelection.IndexOf("Audio.AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "selecting Arena starts announcer preload before map and raid loading");
-        RequireAll(audioLicenses,
-            "VoiceBosch WARLORD cues",
-            "Creative Commons Attribution-ShareAlike 4.0",
-            "CC-BY-SA-4.0.txt",
-            "sounds/round_start.ogg",
-            "sounds/round_won.ogg",
-            "sounds/round_lost.ogg");
-        foreach (string asset in new[]
-                 {
-                     "round_start.ogg",
-                     "round_won.ogg",
-                     "round_lost.ogg",
-                 })
-        {
-            Assert(File.Exists(Path.Combine(
-                    root, "ArenaMode.Client", "Assets", "ArenaMode", "sounds", asset)),
-                $"the licensed Tactical lifecycle asset is present: {asset}");
-        }
-        Assert(File.Exists(Path.Combine(
-                root, "ArenaMode.Client", "Assets", "ArenaMode", "CC-BY-SA-4.0.txt")),
-            "the WARLORD assets retain their full CC BY-SA 4.0 license text");
+        RequireAll(audioLicenses, "ANNOUNCER-SOURCES.json", "ANNOUNCER-PACK.md");
+        CheckAnnouncerAssets(Path.Combine(root, "ArenaMode.Client", "Assets", "ArenaMode"));
 
         RequireAll(pursuit,
             "private const float SweepSeconds = 1f",
