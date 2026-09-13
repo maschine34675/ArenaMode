@@ -1,0 +1,18 @@
+L3991 10:19:46.418 [Info:Redeploy.Core] Redeploy.Core 0.9.0.0 initialized
+L4545 10:19:47.876 [Info:Redeploy.Core] Death-interception driver registered: ArenaMode (priority 100)
+L4929 10:19:48.559 [Info:HarmonyX] Patching void BotPeacefulActions::SetActiveAction(BotsPairData pairData, EInteraction gestus, float delay) with 1 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+L4939 10:19:48.569 [Info:HarmonyX] Patching void BotDeadBodyWork::UpdateCheck() with 1 prefixes, 0 postfixes, 0 transpilers, 0 finalizers
+L7173 10:19:52.457 [Info:Redeploy.Core] Death-interception driver registered: Redeploy (priority 0)
+L14 10:19:36.516 [Warning:FixPluginTypesSerialization] Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L15 10:19:36.516 [Warning:FixPluginTypesSerialization] Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L16 10:19:36.516 [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L17 10:19:36.516 [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L18 10:19:36.516 [Warning:FixPluginTypesSerialization] Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L3841 10:19:46.198 [Warning:HarmonyX] BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner).
+L7914 10:19:55.511 [Warning:HarmonyX] DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update().
+L9130 10:19:57.575 [Warning:HarmonyX] WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor().
+L12401 10:20:02.273 [Warning:HarmonyX] com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition).
+L4931 [10:19:48.559] * static bool ArenaMode.Bots.NoBotGesturesPatch::Prefix()
+L4941 [10:19:48.569] * static bool ArenaMode.Bots.NoCorpseLootingPatch::Prefix(BotDeadBodyWork __instance)
+Server fresh process scope:
+L3909 2026-09-13 08:16:30.758 [Warning:SPTarkov.Server.Core.Helpers.Traders.TraderHelper] Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert

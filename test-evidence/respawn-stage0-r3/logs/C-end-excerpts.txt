@@ -1,0 +1,59 @@
+L14903 [10:55:15.928] [Info:maschine-ArenaMode] Arena armed for next raid on factory4_day (deathmatch).
+L14907 [10:55:16.689] [Info:maschine-ArenaMode] Arena kit drawn: Conscript.
+L14919 [10:55:30.810] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L14920 [10:55:30.812] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L14921 [10:55:30.812] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L14922 [10:55:30.814] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L14923 [10:55:30.815] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L14924 [10:55:30.815] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L14926 [10:55:30.856] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L14927 [10:55:30.856] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L14928 [10:55:30.857] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L14929 [10:55:30.863] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L14930 [10:55:30.864] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L14931 [10:55:30.865] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L14941 [10:55:36.040] [Info:maschine-ArenaMode] Arena session active on factory4_day.
+L14948 [10:55:36.052] [Info:maschine-ArenaMode] Arena lighting director armed for 'factory4_day'.
+L14950 [10:55:36.081] [Info:maschine-ArenaMode] Arena match started (Deathmatch).
+L14955 [10:55:36.595] [Info:maschine-AutoIFF] [AutoIFF] Active as PMC (raid started). Attention 0, Perception 0, Search 0.
+L14974 [10:55:36.943] [Info:Redeploy.Core] Freecam compat: rebound cached GamePlayerOwner and reset freecam state.
+L14976 [10:55:37.248] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+L14978 [10:55:37.553] [Info:maschine-KillcamReplay] BoneRecorder: main player changed — reinitializing for respawn
+L14982 [10:55:37.563] [Info:maschine-AutoIFF] [AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0.
+L14983 [10:55:37.566] [Info:maschine-ArenaMode] Arena raid-start kit swap complete: Conscript.
+L14985 [10:55:37.605] [Info:maschine-ArenaMode] Arena Deathmatch round 1 started.
+L15014 [10:56:02.303] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L15061 [10:56:56.196] [Info:maschine-BotDropDiag] MEDS-FINISH bot=alexkarpen(pmcBEAR, Bear) alive=True item=Пропитал{[private-id]} id=[private-id] type=Stimulator from=Стандартный инвентарь/Pockets > Pockets/pocket2 queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ForceResidue <- EFT.HealthSystem.ActiveHealthController+MedEffect.ForceResidue <- EFT.HealthSystem.ActiveHealthController.ResidueEffectsWhere <- EFT.HealthSystem.ActiveHealthController.RemoveMedEffect <- EFT.Player+MedsController+MedsInHandsOperation.HideWeapon <- EFT.Player+MedsController+CG_DropWithDelay.MoveNext <- System.Runtime.CompilerServices.AsyncMethodBuilderCore+MoveNextRunner.InvokeMoveNext <- System.Threading.ExecutionContext.RunInternal
+L15073 [10:57:06.238] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L15074 [10:57:06.244] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L15075 [10:57:06.244] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L15088 [10:57:17.877] [Info:maschine-BotDropDiag] MEDS-FINISH bot=J0nathan550(pmcBEAR, Bear) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=171/400 from=Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L15121 [10:58:07.102] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L15122 [10:58:07.105] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L15123 [10:58:07.107] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L15164 [10:58:50.215] [Info:maschine-BotDropDiag] MEDS-FINISH bot=Вася Мерс(assault, Savage) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=55/400 from=Стандартный инвентарь/Pockets > Pockets/pocket1 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L15211 [10:59:53.766] [Info:maschine-ArenaMode] Arena: player gave up — respawning.
+L15212 [10:59:53.779] [Info:maschine-ArenaMode] Arena death #1 — instant respawn.
+L15213 [10:59:53.781] [Info:maschine-ArenaMode] Arena kit drawn: Wraith.
+L15218 [10:59:54.368] [Info:Redeploy.Core] Freecam compat: rebound cached GamePlayerOwner and reset freecam state.
+L15220 [10:59:54.524] [Info:Redeploy.Core] Spawn protection active for 4s.
+L15221 [10:59:54.671] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+L15222 [10:59:54.945] [Info:maschine-KillcamReplay] BoneRecorder: main player changed — reinitializing for respawn
+L15226 [10:59:54.971] [Info:maschine-AutoIFF] [AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0.
+L15227 [10:59:54.973] [Info:maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.04s, pipeline 1.15s, total 1.19s.
+L15243 [10:59:58.987] [Info:Redeploy.Core] Spawn protection ended.
+L15246 [10:59:59.216] [Error:SAIN] [SAIN.Components.BotComponent] : [[FinishInit().VerifyBrain().IsAssignedBrainAllowed()]:] : [Bot79 is a PlayerScav but does not have any of these BaseBrains: $PmcBear, PmcUsec, PMC, CursAssault, Assault! Current Brain Assignment: [Killa] : Destroying SAIN for this bot...]
+L15247 [10:59:59.216] [Error:SAIN] [SAIN.Components.BotComponent] : [[Activate().InitializeBot().FinishInit()]:] : [Init SAIN ERROR, Disposing...]
+L15268 [11:00:25.269] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L15269 [11:00:25.273] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L15270 [11:00:25.274] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L15280 [11:00:38.398] [Info:maschine-BotDropDiag] MEDS-FINISH bot=mirrox1337(pmcUSEC, Usec) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=130/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig 6h112/5 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L15294 [11:00:41.229] [Warning:maschine-ArenaMode] Arena raid-end remains pending: {
+L15294 [11:00:41.229] [Warning:maschine-ArenaMode] Arena raid-end remains pending: {
+L15299 [11:00:41.230] [Info:maschine-ArenaMode] Arena session ended.
+L15302 [11:00:41.231] [Info:maschine-ArenaMode] Arena match ended: 0 kills / 1 deaths, score 0, best streak 0, 5.0 min.
+SERVER UTC:
+L5253 [2026-09-13 09:00:41.226] [Client-Anfrage] /arenamode/raid-end
+L5254 [2026-09-13 09:00:41.226] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+L5257 [2026-09-13 09:00:41.300] [ArenaMode] Profile snapshot restored for session [private-id].
+L5260 [2026-09-13 09:00:41.347] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted.

@@ -1,0 +1,216 @@
+{
+  "schema": "respawn-stage0-r3-final-settings-independent-v1",
+  "auditedAtUtc": "2026-09-13T09:04:49.552Z",
+  "baselineAtUtc": "2026-09-13T08:17:04.464Z",
+  "method": "Independent read-only comparison of all nine saved settings baselines against current settings. Current files are reread to check observation stability. INI compares case-sensitive section/key values. Client setting entries are matched by their unique Id to avoid positional shifts after insertion of the new r3 entry.",
+  "files": [
+    {
+      "file": "com.maschine.ArenaMode.cfg",
+      "beforeSha256": "1C70EAEB36D4732F1B55FF39BB2E29245319657E47864BC934F3233A2B8C1B14",
+      "afterSha256": "52E3C7D13A298FE4B945B3C56D7263E855CD9BFD402942F0A9218B72599F93F6",
+      "bytesEqual": false,
+      "format": "INI section/key values",
+      "beforeSettingOrEntryCount": 149,
+      "afterSettingOrEntryCount": 150,
+      "semanticEqual": false,
+      "differenceCount": 1,
+      "differences": [
+        {
+          "path": "Bots/NoBotGestures",
+          "beforePresent": false,
+          "afterPresent": true,
+          "classification": "New r3 NoBotGestures setting, true as required by test instructions",
+          "currentValue": "true",
+          "priorSettingAbsent": true
+        }
+      ],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "com.maschine.RaidInfoPanels.cfg",
+      "beforeSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "afterSha256": "4F5C762376FA4641AB2597A1FD4E09F0E22D0A3189F39ED43B6AB5C80D1C6E7C",
+      "bytesEqual": true,
+      "format": "INI section/key values",
+      "beforeSettingOrEntryCount": 32,
+      "afterSettingOrEntryCount": 32,
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "Control.ini",
+      "beforeSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "afterSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "bytesEqual": true,
+      "format": "JSON",
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "Graphics.ini",
+      "beforeSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "afterSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "bytesEqual": true,
+      "format": "JSON",
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "config.json",
+      "beforeSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "afterSha256": "E5D22ABA7DECE559F6E1100E6D64D5FCD4D8D57C1875A9AFC6794D1ED1CFB58B",
+      "bytesEqual": true,
+      "format": "JSON",
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "client-settings.json",
+      "beforeSha256": "8C58652303D3E2F9590869F5A72A3422A69D9EFC06F047EB401C1258592A7EC3",
+      "afterSha256": "7CE4636C2AB4E9DE5106258A8A05C67CCB4B18BE143923C8EE0BB3EAB728D5B5",
+      "bytesEqual": false,
+      "format": "JSON with Entries matched by unique Id",
+      "beforeSettingOrEntryCount": 147,
+      "afterSettingOrEntryCount": 148,
+      "semanticEqual": false,
+      "differenceCount": 2,
+      "differences": [
+        {
+          "path": "Entries.Bots/NoBotGestures",
+          "beforePresent": false,
+          "afterPresent": true,
+          "classification": "New r3 NoBotGestures setting, true as required by test instructions",
+          "currentValue": "true",
+          "priorSettingAbsent": true
+        },
+        {
+          "path": "UpdatedAt",
+          "beforePresent": true,
+          "afterPresent": true,
+          "classification": "UpdatedAt metadata only; no stored timezone",
+          "before": "08:16:53",
+          "after": "10:54:28"
+        }
+      ],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "com.mpstark.dynamicmaps.cfg",
+      "beforeSha256": "EF3216E829DF767B93E0EC09BBF0CCC6E5A32A463B38D962DB30FCF8EFF1BBB6",
+      "afterSha256": "EF3216E829DF767B93E0EC09BBF0CCC6E5A32A463B38D962DB30FCF8EFF1BBB6",
+      "bytesEqual": true,
+      "format": "INI section/key values",
+      "beforeSettingOrEntryCount": 83,
+      "afterSettingOrEntryCount": 83,
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "com.maschine.Redeploy.cfg",
+      "beforeSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "afterSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "bytesEqual": true,
+      "format": "INI section/key values",
+      "beforeSettingOrEntryCount": 7,
+      "afterSettingOrEntryCount": 7,
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    },
+    {
+      "file": "com.maschine.KillcamReplay.cfg",
+      "beforeSha256": "35DF7396A73936A5BADE9289A45FD8B79A50AE6EC3EA4834939EE07D58002539",
+      "afterSha256": "35DF7396A73936A5BADE9289A45FD8B79A50AE6EC3EA4834939EE07D58002539",
+      "bytesEqual": true,
+      "format": "INI section/key values",
+      "beforeSettingOrEntryCount": 16,
+      "afterSettingOrEntryCount": 16,
+      "semanticEqual": true,
+      "differenceCount": 0,
+      "differences": [],
+      "allDifferencesExpected": true,
+      "sourceReadStable": true
+    }
+  ],
+  "totalFiles": 9,
+  "byteEqualFiles": 7,
+  "allSavedValuesRestored": true,
+  "arenaExistingSettingCount": 149,
+  "arenaCurrentSettingCount": 150,
+  "arenaExistingValuesEqual": true,
+  "arenaSelectedValues": {
+    "Match/GameMode": {
+      "before": "deathmatch",
+      "after": "deathmatch",
+      "equal": true
+    },
+    "Team Deathmatch/ExperimentalArea": {
+      "before": "full-map",
+      "after": "full-map",
+      "equal": true
+    },
+    "Team Deathmatch/KillLimit": {
+      "before": "50",
+      "after": "50",
+      "equal": true
+    },
+    "Team Deathmatch/TimeLimitSeconds": {
+      "before": "600",
+      "after": "600",
+      "equal": true
+    },
+    "Deathmatch/KillLimit": {
+      "before": "0",
+      "after": "0",
+      "equal": true
+    },
+    "Deathmatch/TimeLimitSeconds": {
+      "before": "0",
+      "after": "0",
+      "equal": true
+    }
+  },
+  "redeployRestoreValues": {
+    "General/MaxRespawnsPerRaid": {
+      "before": "2",
+      "after": "2",
+      "equal": true
+    },
+    "Respawn/RespawnCooldownSeconds": {
+      "before": "5",
+      "after": "5",
+      "equal": true
+    },
+    "Respawn/SpawnProtectionSeconds": {
+      "before": "10",
+      "after": "10",
+      "equal": true
+    }
+  },
+  "graphicsByteEqual": true,
+  "graphicsSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+  "notes": [
+    "No setting was changed by this audit. No live profile was read or modified.",
+    "All existing user setting values must match; the new r3 NoBotGestures=true registration and client UpdatedAt metadata are reported explicitly.",
+    "A semantic restoration conclusion does not claim byte equality of Arena.cfg or client-settings.json. This observation does not identify the writer of comments or metadata."
+  ]
+}

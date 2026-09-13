@@ -1,0 +1,198 @@
+{
+  "schema": "arena-r3-private-snapshot-comparison-v1",
+  "testId": "respawn-stage0-r3",
+  "auditAtUtc": "2026-09-13T08:31:42.813Z",
+  "case": "E",
+  "method": "Read-only complete JSON recursion. Case-sensitive keys and strings; dictionary order ignored; array order and JSON types preserved; missing differs from null. Exact integers and decimals, without float rounding. Duplicate keys rejected.",
+  "sourceSha256": {
+    "before": "C45D556E45D7CDAB1BF6DD6CA6F135A2CC18F2BDD01BC313C582575BCBD48F5F",
+    "after": "F6360EE57DC4070C131A439024AB880D059474F4FEDFC83E310E424AA05D6227"
+  },
+  "sourceFilesByteEqual": false,
+  "operatorProvidedTiming": {
+    "beforeAtUtc": "2026-09-13T08:23:12.564Z",
+    "afterAtUtc": "2026-09-13T08:31:25.500Z",
+    "mainMenuAtUtc": "2026-09-13T08:31:25.497Z"
+  },
+  "timingLimitation": "The caller supplies observation markers. This script does not inspect the UI, prove a completed menu transition or independently establish the server restore.",
+  "wholeDocumentEqual": false,
+  "differenceCount": 1,
+  "differences": [
+    {
+      "path": "/characters/pmc/Hideout/sptUpdateLastRunTimestamp",
+      "beforePresent": true,
+      "afterPresent": true,
+      "beforeType": "number",
+      "afterType": "number",
+      "pathContainsRedaction": false,
+      "valuesRedacted": true,
+      "allowedByR3": true
+    }
+  ],
+  "entirePmcEqual": false,
+  "entireScavEqual": true,
+  "allowedDeltaOnly": true,
+  "allowedDifferenceCount": 1,
+  "unexpectedDifferenceCount": 0,
+  "protectedEqual": true,
+  "profilePolicyPassed": true,
+  "protectedFields": {
+    "pmc": {
+      "Inventory": {
+        "path": "/characters/pmc/Inventory",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Quests": {
+        "path": "/characters/pmc/Quests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "array",
+        "afterType": "array",
+        "differenceCount": 0
+      },
+      "Skills": {
+        "path": "/characters/pmc/Skills",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Health": {
+        "path": "/characters/pmc/Health",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Experience": {
+        "path": "/characters/pmc/Info/Experience",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "Level": {
+        "path": "/characters/pmc/Info/Level",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "TaskConditionCounters": {
+        "path": "/characters/pmc/TaskConditionCounters",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "RepeatableQuests": {
+        "path": "/characters/pmc/RepeatableQuests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "array",
+        "afterType": "array",
+        "differenceCount": 0
+      }
+    },
+    "scav": {
+      "Inventory": {
+        "path": "/characters/scav/Inventory",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Quests": {
+        "path": "/characters/scav/Quests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "array",
+        "afterType": "array",
+        "differenceCount": 0
+      },
+      "Skills": {
+        "path": "/characters/scav/Skills",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Health": {
+        "path": "/characters/scav/Health",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Experience": {
+        "path": "/characters/scav/Info/Experience",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "Level": {
+        "path": "/characters/scav/Info/Level",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "TaskConditionCounters": {
+        "path": "/characters/scav/TaskConditionCounters",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "RepeatableQuests": {
+        "path": "/characters/scav/RepeatableQuests",
+        "equal": true,
+        "beforePresent": false,
+        "afterPresent": false,
+        "beforeType": "missing",
+        "afterType": "missing",
+        "differenceCount": 0
+      }
+    }
+  },
+  "requiredStructureValid": true,
+  "structureProblems": [],
+  "allSixteenProtectedFieldsEqual": true,
+  "bothAbsentFields": [
+    "/characters/scav/RepeatableQuests"
+  ],
+  "result": "ALLOWED_HIDEOUT_TIMESTAMP_ONLY",
+  "timestampPolicy": "GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r3.md explicitly allows only a numeric update of /characters/pmc/Hideout/sptUpdateLastRunTimestamp. No difference is hidden. All sixteen protected comparisons must remain equal; Health.UpdateTime is protected. allowedDeltaOnly is true only when nonempty differences consist exclusively of that allowed path. This profile policy does not certify raid safety or any gameplay test.",
+  "privacy": "No source paths, raw profile values, arbitrary dictionary keys or full profiles are included. Review this candidate before copying to public evidence."
+}

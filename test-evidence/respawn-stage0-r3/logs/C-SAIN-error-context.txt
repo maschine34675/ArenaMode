@@ -1,0 +1,25 @@
+C SAIN error context: exact error lines plus ten preceding/following lines per error; overlapping context collapsed. Local MESZ.
+L15236 [10:59:55.682] [Info   :maschine-ArenaMode] Arena corpse cleanup: trimmed 2 old corpse(s), 10 kept visible, 26 trimmed in total.
+L15237 [10:59:58.115] [Info   :maschine-ArenaMode] Arena burst spawn plan: zone BotZone, requested 2, profiles 2, points 5 preferred + 13 distant, selected 2.
+L15238 [10:59:58.132] [Info   :maschine-ArenaMode] Arena burst spawn: assault arrived.
+L15239 [10:59:58.145] [Info   :ModulePatch] Making Bot79 (Ромчик Разрядник) hostile to player
+L15240 [10:59:58.153] [Info   :maschine-ArenaMode] Arena burst spawn: assault arrived.
+L15241 [10:59:58.154] [Info   :maschine-ArenaMode] Arena burst spawn: dispatched 2x assault.
+L15242 [10:59:58.680] [Info   :maschine-ArenaMode] Arena load boost: off after 3.1s (idle).
+L15243 [10:59:58.987] [Info   :Redeploy.Core] Spawn protection ended.
+L15244 [10:59:59.023] [Info   :ModulePatch] Updated assault bot Джек Директор to use: assault brain
+L15245 [10:59:59.204] [Info   :ModulePatch] Updated player scav bot to use: bossKilla brain
+L15246 [10:59:59.216] [Error  :      SAIN] [SAIN.Components.BotComponent] : [[FinishInit().VerifyBrain().IsAssignedBrainAllowed()]:] : [Bot79 is a PlayerScav but does not have any of these BaseBrains: $PmcBear, PmcUsec, PMC, CursAssault, Assault! Current Brain Assignment: [Killa] : Destroying SAIN for this bot...]
+L15247 [10:59:59.216] [Error  :      SAIN] [SAIN.Components.BotComponent] : [[Activate().InitializeBot().FinishInit()]:] : [Init SAIN ERROR, Disposing...]
+L15248 [11:00:07.941] [Info   :maschine-ArenaMode] Arena burst spawn: 12 alive (8 PMC) / target 12 (PMC floor 9), in flight 0 PMC + 0 scav (spawner counter 21) — requesting pmcUSEC (hard, pressure 37%  (PMC hard, scav normal)). Others alive: assault x4
+L15249 [11:00:08.218] [Info   :maschine-ArenaMode] Arena load boost: on after 0.3s of loading (frame window 25.2 ms vs 8.0 ms budget, over; step budget x1.00 per frame; async slice BelowNormal, left alone).
+L15250 [11:00:08.981] [Info   :maschine-ArenaMode] Arena burst spawn plan: zone BotZone, requested 2, profiles 2, points 5 preferred + 13 distant, selected 2.
+L15251 [11:00:09.001] [Info   :maschine-ArenaMode] Arena burst spawn: pmcUSEC arrived.
+L15252 [11:00:09.020] [Info   :maschine-ArenaMode] Arena burst spawn: pmcUSEC arrived.
+L15253 [11:00:09.022] [Info   :maschine-ArenaMode] Arena burst spawn: dispatched 2x pmcUSEC.
+L15254 [11:00:09.559] [Info   :maschine-ArenaMode] Arena load boost: off after 1.3s (idle).
+L15255 [11:00:09.819] [Info   :ModulePatch] Updated spt bot mirrox1337: pmcUSEC to use: pmcUSEC brain
+L15256 [11:00:09.888] [Info   :ModulePatch] Updated spt bot Spring: pmcUSEC to use: pmcUSEC brain
+L15257 [11:00:10.740] [Info   :maschine-ArenaMode] Arena corpse cleanup: trimmed 1 old corpse(s), 10 kept visible, 27 trimmed in total.
+
+No runtime exception header or separate exception stack follows these two SAIN Error records. Bracketed method chains are the logger context, not a thrown-exception stack. No permitted meds-exception exemption was applied.

@@ -1,0 +1,56 @@
+[
+  {
+    "file": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+    "fileVersion": "0.1.0.0",
+    "productVersion": "0.1.0+a2fcced88e7f9ca9cf7fdd1eacb7c81525008755",
+    "sha256": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5"
+  },
+  {
+    "file": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+    "fileVersion": "0.9.0.0",
+    "productVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+    "sha256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C"
+  },
+  {
+    "file": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+    "fileVersion": "0.9.0.0",
+    "productVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+    "sha256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46"
+  },
+  {
+    "file": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+    "fileVersion": "0.1.0.0",
+    "productVersion": "0.1.0+a2fcced88e7f9ca9cf7fdd1eacb7c81525008755",
+    "sha256": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F"
+  },
+  {
+    "file": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+    "fileVersion": "0.9.0.0",
+    "productVersion": "0.9.0+58abf5876629bb51be808d78ee2cd7a5d34af77a",
+    "sha256": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B"
+  },
+  {
+    "file": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+    "fileVersion": "4.5.1",
+    "productVersion": "4.5.1+2d1d9257dbb3af535e9189e6181311f6355aec27",
+    "sha256": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489"
+  },
+  {
+    "file": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+    "fileVersion": "0.9.5.0",
+    "productVersion": "0.9.5+d38aecfdc11298b0d9468befb456663ffebd8ba7",
+    "sha256": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5"
+  },
+  {
+    "file": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+    "fileVersion": "1.2.1.0",
+    "productVersion": "1.2.1+99200c60f084d1f64491dee93ceb09351bb8a2cd",
+    "sha256": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8"
+  },
+  {
+    "file": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+    "fileVersion": "0.1.0",
+    "productVersion": "0.1.0+04d579413cbfbadb7e4184341084ab956c577cb5",
+    "sha256": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0"
+  }
+]

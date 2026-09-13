@@ -1,0 +1,253 @@
+{
+  "testId": "respawn-stage0-r3",
+  "sourceSnapshot": "logs/final",
+  "auditedAtUtc": "2026-09-13T09:08:35.4685029Z",
+  "scope": {
+    "clientStartLocal": "10:19:36.516",
+    "clientThroughLocal": "11:01:33.369",
+    "clientLineCount": 15309,
+    "serverFromUtc": "2026-09-13 08:16:21.000",
+    "serverThroughUtc": "2026-09-13 09:04:08.008",
+    "markers": "allRunMarkerCounts refer to all fresh client lines, E+A+C and cleanup. cMarkerCounts are C only."
+  },
+  "wholeFreshClient": {
+    "warnings": 87,
+    "errors": 2,
+    "runtimeExceptions": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 4,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 2,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 72,
+        "errors": 0
+      },
+      "SAIN": {
+        "warnings": 0,
+        "errors": 2
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 5,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 4,
+        "errors": 0
+      },
+      "maschine-BotDropDiag": {
+        "warnings": 0,
+        "errors": 0
+      }
+    }
+  },
+  "cClient": {
+    "warnings": 25,
+    "errors": 2,
+    "runtimeExceptions": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 2,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 1,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 22,
+        "errors": 0
+      },
+      "SAIN": {
+        "warnings": 0,
+        "errors": 2
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-BotDropDiag": {
+        "warnings": 0,
+        "errors": 0
+      }
+    }
+  },
+  "server": {
+    "freshWarnings": 3,
+    "freshErrors": 0,
+    "cWarnings": 0,
+    "cErrors": 0,
+    "warningEvidence": [
+      {
+        "line": 3909,
+        "timeUtc": "2026-09-13 08:16:30.758",
+        "level": "Warning",
+        "source": "SPTarkov.Server.Core.Helpers.Traders.TraderHelper",
+        "message": "Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+      },
+      {
+        "line": 4003,
+        "timeUtc": "2026-09-13 08:20:20.080",
+        "level": "Warning",
+        "source": "SPTarkov.Server.Core.Services.Profile.ProfileFixerService",
+        "message": "Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+      },
+      {
+        "line": 4004,
+        "timeUtc": "2026-09-13 08:20:20.087",
+        "level": "Warning",
+        "source": "SPTarkov.Server.Core.Services.Profile.ProfileFixerService",
+        "message": "Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+      }
+    ]
+  },
+  "allRunMarkerCounts": {
+    "respawnRefusedBeforeAnyTeardown": 0,
+    "coreSubscriberFailed": 0,
+    "arenaSubscriberFailed": 0,
+    "gameEndFaulted": 0,
+    "freecamCouldNotBeEnabled": 0,
+    "arenaFailed": 0,
+    "arenaGiveUp": 1,
+    "ordinaryGiveUp": 0,
+    "arenaDeath": 2,
+    "arenaRespawnTiming": 2,
+    "ordinaryDeathIntercepted": 0,
+    "ordinaryRespawnComplete": 0,
+    "protectionActive": 2,
+    "protectionEnded": 2,
+    "raidStartKitComplete": 2,
+    "roundRespawnComplete": 0,
+    "infoCancelledWithRaid": 0,
+    "menuScreen": 0,
+    "coreInitialized": 1,
+    "arenaDriverRegistered": 1,
+    "redeployDriverRegistered": 1,
+    "failClosedIncomplete": 0,
+    "couldNotBeInstalled": 0
+  },
+  "cMarkerCounts": {
+    "respawnRefusedBeforeAnyTeardown": 0,
+    "coreSubscriberFailed": 0,
+    "arenaSubscriberFailed": 0,
+    "gameEndFaulted": 0,
+    "freecamCouldNotBeEnabled": 0,
+    "arenaFailed": 0,
+    "arenaGiveUp": 1,
+    "ordinaryGiveUp": 0,
+    "arenaDeath": 1,
+    "arenaRespawnTiming": 1,
+    "ordinaryDeathIntercepted": 0,
+    "ordinaryRespawnComplete": 0,
+    "protectionActive": 1,
+    "protectionEnded": 1,
+    "raidStartKitComplete": 1,
+    "roundRespawnComplete": 0,
+    "infoCancelledWithRaid": 0,
+    "menuScreen": 0
+  },
+  "allRunBotDropDiag": {
+    "info": 891,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWpeaceful": 0,
+    "DROPPERpeaceful": 0,
+    "SURGERY_START": 861,
+    "MEDS_FINISH": 29
+  },
+  "cBotDropDiag": {
+    "info": 4,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWpeaceful": 0,
+    "DROPPERpeaceful": 0,
+    "SURGERY_START": 0,
+    "MEDS_FINISH": 4
+  },
+  "diagnosticBreakdown": {
+    "startupInfo": 1,
+    "EInfo": 8,
+    "ESurgery": 0,
+    "EMeds": 8,
+    "AInfo": 878,
+    "ASurgery": 861,
+    "AMeds": 17,
+    "CInfo": 4,
+    "CSurgery": 0,
+    "CMeds": 4,
+    "allThrow": 0,
+    "allDropper": 0,
+    "ordinaryACounterexample": "not triggered",
+    "first3EMatchMinutes": "0 THROW/0 DROPPER/0 attributed OnStartPeacefulMove, also0MEDS/SURGERY"
+  },
+  "runtimeExceptions": 0,
+  "allowedStopMedsExceptions": 0,
+  "errorHeaders": [
+    {
+      "line": 15246,
+      "timeLocal": "10:59:59.216",
+      "level": "Error",
+      "source": "SAIN",
+      "message": "[SAIN.Components.BotComponent] : [[FinishInit().VerifyBrain().IsAssignedBrainAllowed()]:] : [Bot79 is a PlayerScav but does not have any of these BaseBrains: $PmcBear, PmcUsec, PMC, CursAssault, Assault! Current Brain Assignment: [Killa] : Destroying SAIN for this bot...]"
+    },
+    {
+      "line": 15247,
+      "timeLocal": "10:59:59.216",
+      "level": "Error",
+      "source": "SAIN",
+      "message": "[SAIN.Components.BotComponent] : [[Activate().InitializeBot().FinishInit()]:] : [Init SAIN ERROR, Disposing...]"
+    }
+  ],
+  "stopClassification": "Preventive operator stop after new SAIN initialization failure for one PlayerScav; two Error headers, no thrown exception header or separate full exception stack. No causal attribution to Arena/Redeploy. D skipped after stop.",
+  "cServerRestorePersist": [
+    {
+      "line": 5253,
+      "timeUtc": "2026-09-13 09:00:41.226",
+      "level": "Information",
+      "source": "SPTarkov.Server.Middleware.SptLoggerMiddleware",
+      "message": "[Client-Anfrage] /arenamode/raid-end"
+    },
+    {
+      "line": 5254,
+      "timeUtc": "2026-09-13 09:00:41.226",
+      "level": "Information",
+      "source": "ArenaMode.Server.Routers.ArenaModeRouter",
+      "message": "[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+    },
+    {
+      "line": 5257,
+      "timeUtc": "2026-09-13 09:00:41.300",
+      "level": "Information",
+      "source": "ArenaMode.Server.Services.ProfileSnapshotService",
+      "message": "[ArenaMode] Profile snapshot restored for session [private-id]."
+    },
+    {
+      "line": 5260,
+      "timeUtc": "2026-09-13 09:00:41.347",
+      "level": "Information",
+      "source": "ArenaMode.Server.Services.ArenaProtectedRaidEndService",
+      "message": "[ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+    }
+  ],
+  "sourceSha256": {
+    "client": "E72FF31D2F6B8310E7456BD4CE21A724CD120F8ED8D76F669830261ABB3BECEE",
+    "server": "F8C45BF4DEA3FD371298DEAB2E6A7B19153148ADFE53854C90ED52726314F287"
+  },
+  "timingFile": "timing.json"
+}

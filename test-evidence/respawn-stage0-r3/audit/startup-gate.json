@@ -1,0 +1,237 @@
+{
+  "testId": "respawn-stage0-r3",
+  "auditAtUtc": "2026-09-13T08:21:53.247154Z",
+  "fixedSnapshotCapturedAtUtc": "2026-09-13T08:20:20.155804Z",
+  "status": "PASS startup prerequisites only",
+  "scope": {
+    "clientFreshStartLocal": "2026-09-13 10:19:36.516",
+    "clientThroughLocal": "10:20:16.137",
+    "clientLineCount": 13063,
+    "serverFromUtc": "2026-09-13 08:16:21.000",
+    "serverThroughUtc": "2026-09-13 08:20:19.904",
+    "serverScopedRecordCount": 573
+  },
+  "processes": [
+    {
+      "name": "EscapeFromTarkov",
+      "pid": 10008,
+      "startTimeUtc": "2026-09-13T08:19:27.3617985Z",
+      "responding": true
+    },
+    {
+      "name": "SPT.Launcher",
+      "pid": 9912,
+      "startTimeUtc": "2026-09-13T08:16:21.5499602Z",
+      "responding": true
+    },
+    {
+      "name": "SPT.Server",
+      "pid": 3000,
+      "startTimeUtc": "2026-09-13T08:16:21.5390305Z",
+      "responding": true
+    }
+  ],
+  "registrationMarkers": {
+    "Redeploy.Core 0.9.0.0 initialized": [
+      {
+        "line": 3991,
+        "timeLocal": "10:19:46.418",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Redeploy.Core 0.9.0.0 initialized"
+      }
+    ],
+    "Death-interception driver registered: ArenaMode (priority 100)": [
+      {
+        "line": 4545,
+        "timeLocal": "10:19:47.876",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: ArenaMode (priority 100)"
+      }
+    ],
+    "Death-interception driver registered: Redeploy (priority 0)": [
+      {
+        "line": 7173,
+        "timeLocal": "10:19:52.457",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: Redeploy (priority 0)"
+      }
+    ]
+  },
+  "harmonyPatches": [
+    {
+      "target": "BotPeacefulActions::SetActiveAction",
+      "patchBlocks": [
+        {
+          "line": 4929,
+          "timeLocal": "10:19:48.559",
+          "level": "Info",
+          "source": "HarmonyX",
+          "message": "Patching void BotPeacefulActions::SetActiveAction(BotsPairData pairData, EInteraction gestus, float delay) with 1 prefixes, 0 postfixes, 0 transpilers, 0 finalizers"
+        }
+      ],
+      "prefixLines": [
+        {
+          "line": 4931,
+          "text": "[10:19:48.559] * static bool ArenaMode.Bots.NoBotGesturesPatch::Prefix()"
+        }
+      ]
+    },
+    {
+      "target": "BotDeadBodyWork::UpdateCheck",
+      "patchBlocks": [
+        {
+          "line": 4939,
+          "timeLocal": "10:19:48.569",
+          "level": "Info",
+          "source": "HarmonyX",
+          "message": "Patching void BotDeadBodyWork::UpdateCheck() with 1 prefixes, 0 postfixes, 0 transpilers, 0 finalizers"
+        }
+      ],
+      "prefixLines": [
+        {
+          "line": 4941,
+          "text": "[10:19:48.569] * static bool ArenaMode.Bots.NoCorpseLootingPatch::Prefix(BotDeadBodyWork __instance)"
+        }
+      ]
+    }
+  ],
+  "sourceCounts": {
+    "Redeploy.Core": {
+      "warnings": 0,
+      "errors": 0,
+      "info": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0,
+      "info": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 0,
+      "errors": 0,
+      "info": 0
+    },
+    "Unity Log": {
+      "warnings": 0,
+      "errors": 0,
+      "info": 0
+    },
+    "HarmonyX": {
+      "warnings": 4,
+      "errors": 0,
+      "info": 0
+    },
+    "maschine-BotDropDiag": {
+      "warnings": 0,
+      "errors": 0,
+      "info": 1
+    },
+    "FixPluginTypesSerialization": {
+      "errors": 0,
+      "info": 0,
+      "warnings": 5
+    }
+  },
+  "clientWarningCount": 9,
+  "clientErrorCount": 0,
+  "runtimeExceptionCount": 0,
+  "warnings": [
+    {
+      "line": 14,
+      "timeLocal": "10:19:36.516",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 15,
+      "timeLocal": "10:19:36.516",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 16,
+      "timeLocal": "10:19:36.516",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 17,
+      "timeLocal": "10:19:36.516",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 18,
+      "timeLocal": "10:19:36.516",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 3841,
+      "timeLocal": "10:19:46.198",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner)."
+    },
+    {
+      "line": 7914,
+      "timeLocal": "10:19:55.511",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update()."
+    },
+    {
+      "line": 9130,
+      "timeLocal": "10:19:57.575",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor()."
+    },
+    {
+      "line": 12401,
+      "timeLocal": "10:20:02.273",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition)."
+    }
+  ],
+  "errors": [],
+  "forbiddenCount": 0,
+  "forbidden": [],
+  "serverWarningCount": 1,
+  "serverErrorCount": 0,
+  "serverWarnings": [
+    {
+      "line": 3909,
+      "timeUtc": "2026-09-13 08:16:30.758",
+      "level": "Warning",
+      "source": "SPTarkov.Server.Core.Helpers.Traders.TraderHelper",
+      "message": "Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+    }
+  ],
+  "serverErrors": [],
+  "botDropDiagInfoCount": 1,
+  "installedCfgAfterGameStart": [
+    {
+      "line": 66,
+      "text": "NoBotGestures = true"
+    },
+    {
+      "line": 740,
+      "text": "NoCorpseLooting = true"
+    }
+  ],
+  "sourceHashes": {
+    "client": "56606C7F143B6BDB62C0EC802F8297E2CB0D7647AA121224B7339DD837218357",
+    "serverFullPrivate": "95AAB25B72E2AA34A0351786E7A7C23F3ECEEE400577C0E746B429EC1E470D12"
+  },
+  "limits": "One fixed startup snapshot; no raid/native gameplay pass. Header/source severity used for counts; Harmony IL/stack text is not an exception. New settings values read from saved cfg, no memory inspection."
+}

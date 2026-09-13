@@ -1,0 +1,31 @@
+L13933 [10:35:36.352] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13941 [10:35:59.625] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L13942 [10:35:59.626] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L13943 [10:35:59.627] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L13944 [10:35:59.630] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L13945 [10:35:59.630] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L13946 [10:35:59.631] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L13947 [10:35:59.731] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L13948 [10:35:59.733] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L13949 [10:35:59.734] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L13950 [10:35:59.745] [Warning:Unity Log] The referenced script on this Behaviour (Game Object '<null>') is missing!
+L13951 [10:35:59.746] [Warning:Unity Log] The referenced script (Unknown) on this Behaviour is missing!
+L13952 [10:35:59.746] [Warning:Unity Log] The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!
+L13956 [10:36:03.551] [Info:RequestHandler] [REQUEST]: /arenamode/ordinary-confirm
+L13957 [10:36:03.558] [Info:RequestHandler] [REQUEST SUCCESSFUL] /arenamode/ordinary-confirm
+L13960 [10:36:03.677] [Info:maschine-AutoIFF] [AutoIFF] Active as PMC (raid started). Attention 0, Perception 0, Search 0.
+L13971 [10:37:26.831] [Info:maschine-KillcamReplay] Retired 1 stale player track(s), 7 live
+L13972 [10:37:43.756] [Info:maschine-BotDropDiag] MEDS-FINISH bot=RedBeard(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=83/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig 6h112/5 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L13981 [10:38:23.322] [Info:maschine-BotDropDiag] SURGERY-START bot=openingspark860(pmcUSEC, Usec) alive=True part=Chest using=False item=survival_first_aid_rollup_kit{[private-id]} id=[private-id] type=Medical res=6.624256/9 from=Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main CH.CancelRequested=False
+L14530 [10:38:37.918] [Info:maschine-KillcamReplay] Retired 1 stale player track(s), 7 live
+L14842 [10:38:45.287] [Info:maschine-BotDropDiag] SURGERY-START bot=openingspark860(pmcUSEC, Usec) alive=True part=Chest using=False item=survival_first_aid_rollup_kit{[private-id]} id=[private-id] type=Medical res=6.624256/9 from=Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main CH.CancelRequested=False
+L14846 [10:39:48.461] [Info:maschine-KillcamReplay] Retired 1 stale player track(s), 8 live
+L14856 [10:42:24.405] [Info:maschine-KillcamReplay] Retired 1 stale player track(s), 9 live
+L14860 [10:43:02.034] [Info:maschine-BotDropDiag] MEDS-FINISH bot=Kronzky(pmcUSEC, Usec) alive=True item=? queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState
+L14861 [10:44:50.166] [Info:maschine-KillcamReplay] Retired 1 stale player track(s), 7 live
+L14864 [10:45:55.923] [Info:maschine-KillcamReplay] Retired 1 stale player track(s), 6 live
+L14867 [10:46:37.249] [Info:maschine-AutoIFF] [AutoIFF] Raid ended, IdentifierManager removal requested.
+SERVER UTC:
+L4558 [2026-09-13 08:36:03.554] [Information:SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/ordinary-confirm
+L4757 [2026-09-13 08:46:37.622] [Information:SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+L4758 [2026-09-13 08:46:37.631] [Debug:SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService] Raid: factory4_day.Pmc 1789288532 outcome: LEFT

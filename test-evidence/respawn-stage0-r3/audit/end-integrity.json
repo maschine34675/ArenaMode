@@ -1,0 +1,799 @@
+{
+  "testId": "respawn-stage0-r3",
+  "capturedAt": "2026-09-13T09:06:32.007Z",
+  "dllChecks": [
+    {
+      "file": "hash-before-C.json",
+      "data": {
+        "at": "2026-09-13T08:54:46.480Z",
+        "label": "before-C",
+        "files": [
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+            "expected": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "hash": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+            "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+            "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+            "expected": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "hash": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+            "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+            "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+            "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+            "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+            "expected": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "hash": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "match": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "hash-before-game-start.json",
+      "data": {
+        "at": "2026-09-13T08:19:25.522Z",
+        "label": "before-game-start",
+        "files": [
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+            "expected": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "hash": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+            "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+            "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+            "expected": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "hash": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+            "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+            "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+            "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+            "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+            "expected": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "hash": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "match": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "hash-before-raid-A.json",
+      "data": {
+        "at": "2026-09-13T08:34:53.423Z",
+        "label": "before-raid-A",
+        "files": [
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+            "expected": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "hash": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+            "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+            "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+            "expected": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "hash": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+            "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+            "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+            "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+            "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+            "expected": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "hash": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "match": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "hash-before-raid-E.json",
+      "data": {
+        "at": "2026-09-13T08:23:12.561Z",
+        "label": "before-raid-E",
+        "files": [
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+            "expected": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "hash": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+            "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+            "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+            "expected": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "hash": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+            "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+            "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+            "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+            "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+            "expected": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "hash": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "match": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "hash-end.json",
+      "data": {
+        "at": "2026-09-13T09:04:10.569Z",
+        "label": "end",
+        "files": [
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+            "expected": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "hash": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+            "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+            "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+            "expected": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "hash": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+            "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+            "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+            "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+            "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+            "expected": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "hash": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "match": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "hash-preflight.json",
+      "data": {
+        "at": "2026-09-13T08:15:06.109Z",
+        "label": "preflight",
+        "files": [
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+            "expected": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "hash": "E4CD2ACB1B2230CFE5C78E71815E4EDAB5034056FC2198B099BDF48527EA1BF5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+            "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "hash": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+            "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "hash": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+            "expected": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "hash": "71C0AEC170CDBE3DFF19D718B73F1790639728DA618F388CABF4000D960ED19F",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+            "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "hash": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+            "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "hash": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+            "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "hash": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+            "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "hash": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+            "match": true
+          },
+          {
+            "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+            "expected": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "hash": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0",
+            "match": true
+          }
+        ]
+      }
+    }
+  ],
+  "assets": {
+    "at": "2026-09-13T09:04:10.687Z",
+    "results": [
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/ANNOUNCER-PACK.md",
+        "sha256": "90F47C812C144DE4265F2A85390AEDF9EF968DBAD51EDAE5199381FA4FF91835",
+        "endSha256": "90F47C812C144DE4265F2A85390AEDF9EF968DBAD51EDAE5199381FA4FF91835",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/ANNOUNCER-SOURCES.json",
+        "sha256": "8307CF36CA2AAE9EBCAE720A38DBAA2893908B92FD35C33EE82DD71C5C6CFF17",
+        "endSha256": "8307CF36CA2AAE9EBCAE720A38DBAA2893908B92FD35C33EE82DD71C5C6CFF17",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/AreaDrafts/area-draft-20260907-192946-b6389e40c0884bcea6e1486a6033caaa.json",
+        "sha256": "5B948914B515C1AD8871EA4E2E792905F635E63679C5D7035AD721983F689557",
+        "endSha256": "5B948914B515C1AD8871EA4E2E792905F635E63679C5D7035AD721983F689557",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/AUDIO-LICENSES.md",
+        "sha256": "A0BF53DD0D9F3B59DC4D33BB9E2C75BF9FBAAE41136701B0360833F639D94FA8",
+        "endSha256": "A0BF53DD0D9F3B59DC4D33BB9E2C75BF9FBAAE41136701B0360833F639D94FA8",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/CC-BY-3.0.txt",
+        "sha256": "E6BC9E9C474700B708F568BAC9E5A8A9BCB2B1DAD53442F5BA449FCB848B8E76",
+        "endSha256": "E6BC9E9C474700B708F568BAC9E5A8A9BCB2B1DAD53442F5BA449FCB848B8E76",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/CC-BY-SA-4.0.txt",
+        "sha256": "23EE78C8BAE49CF08EA2F0C84945C66B987EBE4520881FB51B3DAD4FB43D07C2",
+        "endSha256": "23EE78C8BAE49CF08EA2F0C84945C66B987EBE4520881FB51B3DAD4FB43D07C2",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/HISTORICAL-AUDIO-LICENSES.md",
+        "sha256": "BFC1DF11D8EF87299A5D1C63D9B63D0D4CBDAFAE7897481E9BDF034A9B636B37",
+        "endSha256": "BFC1DF11D8EF87299A5D1C63D9B63D0D4CBDAFAE7897481E9BDF034A9B636B37",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/.gitattributes",
+        "sha256": "FF83F9FC3D5903631EBD159A2618B7AA9E7FDE654CAA85DF1DCB67E35F46B023",
+        "endSha256": "FF83F9FC3D5903631EBD159A2618B7AA9E7FDE654CAA85DF1DCB67E35F46B023",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/CC0-1.0.txt",
+        "sha256": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499",
+        "endSha256": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/headshot.wav",
+        "sha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+        "endSha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/hit.wav",
+        "sha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+        "endSha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-IMPACT-LICENSE.txt",
+        "sha256": "B49AA9C56B04528B95913DE13E506A0F7C5E807B9925DB9BFEF86AF1F91120DB",
+        "endSha256": "B49AA9C56B04528B95913DE13E506A0F7C5E807B9925DB9BFEF86AF1F91120DB",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-INTERFACE-LICENSE.txt",
+        "sha256": "F7966C773BBED0ECA6A9C75081C44A178B38EAE112724DBB5FDFBD4192D118A9",
+        "endSha256": "F7966C773BBED0ECA6A9C75081C44A178B38EAE112724DBB5FDFBD4192D118A9",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/kill.wav",
+        "sha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+        "endSha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/hitmarkers/SOURCES.json",
+        "sha256": "47C9818AACF5AEEF8C8E7AF58FEB0C9F93689470F5ABAC1E914DA686D09DD0E6",
+        "endSha256": "47C9818AACF5AEEF8C8E7AF58FEB0C9F93689470F5ABAC1E914DA686D09DD0E6",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/LOCAL-ANNOUNCER-SOURCES.json",
+        "sha256": "F529E6D6CBE979F0DA9EA8ED20E31139CF23BE9750572439DED3974AAD55F243",
+        "endSha256": "F529E6D6CBE979F0DA9EA8ED20E31139CF23BE9750572439DED3974AAD55F243",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/LOCAL-ANNOUNCER-TRIAL.md",
+        "sha256": "A16A747F9255E8C32B3F5DF7E89E2DF6503F0B4210A81ACFA3A115A06DF3F668",
+        "endSha256": "A16A747F9255E8C32B3F5DF7E89E2DF6503F0B4210A81ACFA3A115A06DF3F668",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/dominating.ogg",
+        "sha256": "47E8E7FDF7D31E8EED8F200534BDD3B0772D9A98EB346C7D185AAE99FC8B250B",
+        "endSha256": "47E8E7FDF7D31E8EED8F200534BDD3B0772D9A98EB346C7D185AAE99FC8B250B",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/double_kill.ogg",
+        "sha256": "1D356B030EA2F6C616C72506A5F13C6ACF29B3CD39B5D9E86E8B07E818539841",
+        "endSha256": "1D356B030EA2F6C616C72506A5F13C6ACF29B3CD39B5D9E86E8B07E818539841",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/first_blood.ogg",
+        "sha256": "C4768EA3C2103DBFCC35961BBE1A1F23BE905E802B8B772ADA8697786A751482",
+        "endSha256": "C4768EA3C2103DBFCC35961BBE1A1F23BE905E802B8B772ADA8697786A751482",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/godlike.ogg",
+        "sha256": "235449C406733FFF56AD7D4E04D8F659807DE9BBE47BD23BE60112C0A943324D",
+        "endSha256": "235449C406733FFF56AD7D4E04D8F659807DE9BBE47BD23BE60112C0A943324D",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/headshot.ogg",
+        "sha256": "8C499EC52CB0FEBB71424E6F9E155216F9784C7EF73B121B5331558AD0B246C8",
+        "endSha256": "8C499EC52CB0FEBB71424E6F9E155216F9784C7EF73B121B5331558AD0B246C8",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/killing_spree.ogg",
+        "sha256": "EC5F138FAC7CD21125C1623292DBC297E7BC4A58EAF3416AF9B19DE7C2829E99",
+        "endSha256": "EC5F138FAC7CD21125C1623292DBC297E7BC4A58EAF3416AF9B19DE7C2829E99",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/last_man_standing.ogg",
+        "sha256": "9678F061B0ED38C1F4DCB58B64A66F543082BC726EC70D9384ACC7DC5E6D7E6E",
+        "endSha256": "9678F061B0ED38C1F4DCB58B64A66F543082BC726EC70D9384ACC7DC5E6D7E6E",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/match_lost.ogg",
+        "sha256": "F5F68422EDB5E813E7AE04ABDCA173F69D9D7AF3076114F4A0E59DAB09E5F2CE",
+        "endSha256": "F5F68422EDB5E813E7AE04ABDCA173F69D9D7AF3076114F4A0E59DAB09E5F2CE",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/match_won.ogg",
+        "sha256": "AB7E3EE12FDEB5FB9423CA7DEB8C970344DEA7FADAC9AE083B69910206AFC5BD",
+        "endSha256": "AB7E3EE12FDEB5FB9423CA7DEB8C970344DEA7FADAC9AE083B69910206AFC5BD",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/monster_kill.ogg",
+        "sha256": "CEAC3B2ECBACECAB8B720116C31DAF6D337398986C27B0088F99ECE5AE62247D",
+        "endSha256": "CEAC3B2ECBACECAB8B720116C31DAF6D337398986C27B0088F99ECE5AE62247D",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/multi_kill.ogg",
+        "sha256": "ED5E0013B333CDDA171800C01C458909858B079698A9C136525DD2D5C2CF6A2A",
+        "endSha256": "ED5E0013B333CDDA171800C01C458909858B079698A9C136525DD2D5C2CF6A2A",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/payback.ogg",
+        "sha256": "1758BB63A1C69B357114E3BCBB56EB78EDFBC4EA625DF04EF2694359462B9837",
+        "endSha256": "1758BB63A1C69B357114E3BCBB56EB78EDFBC4EA625DF04EF2694359462B9837",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/rampage.ogg",
+        "sha256": "53932F5B49CCF40F3E27013F432458DA4B2EC119818F8D25D67B8B47DC2EB24B",
+        "endSha256": "53932F5B49CCF40F3E27013F432458DA4B2EC119818F8D25D67B8B47DC2EB24B",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/clutch.ogg",
+        "sha256": "B13805C76789EE16C1B65084C13C3AB60D38C7FDCCA54F6B848645474A53084D",
+        "endSha256": "B13805C76789EE16C1B65084C13C3AB60D38C7FDCCA54F6B848645474A53084D",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/defeat.ogg",
+        "sha256": "34EBA13FB628DA19E318C4074C8BC24074845C0E8ADF6284E8274B6E70BF52AA",
+        "endSha256": "34EBA13FB628DA19E318C4074C8BC24074845C0E8ADF6284E8274B6E70BF52AA",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/draw.ogg",
+        "sha256": "98102DDA113CA5F6FD163E9081E817192AF30A6C60A3F8A02E2BDA97174BF80E",
+        "endSha256": "98102DDA113CA5F6FD163E9081E817192AF30A6C60A3F8A02E2BDA97174BF80E",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/enemy_flag_taken.ogg",
+        "sha256": "B49517F46D3142F0161A2B46E33FD0C969A976B42D9AE9E70F5B00F759958853",
+        "endSha256": "B49517F46D3142F0161A2B46E33FD0C969A976B42D9AE9E70F5B00F759958853",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/final_round.ogg",
+        "sha256": "00E75F2D7BCF36B372989DA5E07DA1C62D000AE6B7EFFB3D78F1B744D0374A4A",
+        "endSha256": "00E75F2D7BCF36B372989DA5E07DA1C62D000AE6B7EFFB3D78F1B744D0374A4A",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/final_weapon.ogg",
+        "sha256": "4BD5D919B3858436DE003A301E377D810DF82A1E5594D9D14942EB2E52777E91",
+        "endSha256": "4BD5D919B3858436DE003A301E377D810DF82A1E5594D9D14942EB2E52777E91",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/five_kills_remaining.ogg",
+        "sha256": "F67C09929083654E8FC6527F67C565D4AA80BF7841E47FB04F5C097E68290452",
+        "endSha256": "F67C09929083654E8FC6527F67C565D4AA80BF7841E47FB04F5C097E68290452",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/flag_captured.ogg",
+        "sha256": "6A9C8017891E3C9001AD9A82A916ED089F56F006630D17385E610564418FE358",
+        "endSha256": "6A9C8017891E3C9001AD9A82A916ED089F56F006630D17385E610564418FE358",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/flag_dropped.ogg",
+        "sha256": "35A0B3B81DA3F86E4CD55A7F84A4A8617FFF2D3C4C86D9B7F2894DE3866DB14E",
+        "endSha256": "35A0B3B81DA3F86E4CD55A7F84A4A8617FFF2D3C4C86D9B7F2894DE3866DB14E",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/flag_returned.ogg",
+        "sha256": "83C22E5251B3D77F834A2ED02A93268DD2DFE19C8152A8959E8E3338927986FD",
+        "endSha256": "83C22E5251B3D77F834A2ED02A93268DD2DFE19C8152A8959E8E3338927986FD",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/ladder_complete.ogg",
+        "sha256": "C4FA2BDD436A58EB008FC1ABF9DC15CBD4FFDF19E3BB2C412C82DAB78C22B230",
+        "endSha256": "C4FA2BDD436A58EB008FC1ABF9DC15CBD4FFDF19E3BB2C412C82DAB78C22B230",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/lost_the_lead.ogg",
+        "sha256": "F559D8518CF2D0E1023081216CFF34BA0A7D31D77B8E9B9E17CF75C4F6926349",
+        "endSha256": "F559D8518CF2D0E1023081216CFF34BA0A7D31D77B8E9B9E17CF75C4F6926349",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/match_point.ogg",
+        "sha256": "9BAD98CB7B6E2F8A4A8A043785EC1485FD0DA00E3A15DC4565BCF185864AD9DE",
+        "endSha256": "9BAD98CB7B6E2F8A4A8A043785EC1485FD0DA00E3A15DC4565BCF185864AD9DE",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/one.ogg",
+        "sha256": "2A1715656914EFEAFAD2648214BDE9FAEC341099FC1F43195AAEAD25CEE4DE50",
+        "endSha256": "2A1715656914EFEAFAD2648214BDE9FAEC341099FC1F43195AAEAD25CEE4DE50",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/one_kill_remaining.ogg",
+        "sha256": "119759789C18BFAF47141629AA649C4A8DE973D69D651BFB87D719F153AC4DF7",
+        "endSha256": "119759789C18BFAF47141629AA649C4A8DE973D69D651BFB87D719F153AC4DF7",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/one_minute_remaining.ogg",
+        "sha256": "CCC42497513DC794061FFABFCAABF110DC2E06286EEF823F27299AE3544FB314",
+        "endSha256": "CCC42497513DC794061FFABFCAABF110DC2E06286EEF823F27299AE3544FB314",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/prepare_to_fight.ogg",
+        "sha256": "D71F7D74D43AC569895C40B049DDC9B6911C211DB0864410577279B97A9D0C1E",
+        "endSha256": "D71F7D74D43AC569895C40B049DDC9B6911C211DB0864410577279B97A9D0C1E",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/round_lost.ogg",
+        "sha256": "50E80DAAF686D422B243762D6961D3BB124310540837BD2B95C03E2E8C177853",
+        "endSha256": "50E80DAAF686D422B243762D6961D3BB124310540837BD2B95C03E2E8C177853",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/round_won.ogg",
+        "sha256": "B7F58793E83B0B2C3BF9394C0D6481CCCDBBC661129677B03EB594464F73BBBC",
+        "endSha256": "B7F58793E83B0B2C3BF9394C0D6481CCCDBBC661129677B03EB594464F73BBBC",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/shutdown.ogg",
+        "sha256": "3E42BFA92AA4369AB218A9765395A81DCED3D533581643CB07E05114EB3D7543",
+        "endSha256": "3E42BFA92AA4369AB218A9765395A81DCED3D533581643CB07E05114EB3D7543",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/taken_the_lead.ogg",
+        "sha256": "C961EE936448E4A779C44B64150BE5C438F6EFDE66EF3AA13AD811A89EB3B402",
+        "endSha256": "C961EE936448E4A779C44B64150BE5C438F6EFDE66EF3AA13AD811A89EB3B402",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/ten_seconds_remaining.ogg",
+        "sha256": "CD4FD53B44B789CAE5FA178A19255F6EEB71FDBBA63585A3D773AE28F87BA789",
+        "endSha256": "CD4FD53B44B789CAE5FA178A19255F6EEB71FDBBA63585A3D773AE28F87BA789",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/thirty_seconds_remaining.ogg",
+        "sha256": "3D5256225A0F8A5453C09CCF2AC4FB41851701EC93D1DC1AFDA3A435935441DB",
+        "endSha256": "3D5256225A0F8A5453C09CCF2AC4FB41851701EC93D1DC1AFDA3A435935441DB",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/three.ogg",
+        "sha256": "D3AB4C9BCC9BD0CF7DEB3F6AF1330739A5CA09FF7EC431CA8EEB1B07D748C3C1",
+        "endSha256": "D3AB4C9BCC9BD0CF7DEB3F6AF1330739A5CA09FF7EC431CA8EEB1B07D748C3C1",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/tied_for_the_lead.ogg",
+        "sha256": "B948FEF4F1FFD78A81AB63CECA945DA0DC67D410AD5BE73F5B0450DA3831666C",
+        "endSha256": "B948FEF4F1FFD78A81AB63CECA945DA0DC67D410AD5BE73F5B0450DA3831666C",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/two.ogg",
+        "sha256": "041F8A305226A0573857AE7FB4578D4F6E03FA576238356110CACB139A85AAA4",
+        "endSha256": "041F8A305226A0573857AE7FB4578D4F6E03FA576238356110CACB139A85AAA4",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/victory.ogg",
+        "sha256": "FFD7FEBCEFA56BFE7C240FB3F0E8A1527954A09E0CF68DE15FBB5A583EE388D8",
+        "endSha256": "FFD7FEBCEFA56BFE7C240FB3F0E8A1527954A09E0CF68DE15FBB5A583EE388D8",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/reserve/your_flag_has_been_taken.ogg",
+        "sha256": "B0C1AEF1701304FD576921A5804FAE6304AD554AC5F20E5452C452A887CFB5EE",
+        "endSha256": "B0C1AEF1701304FD576921A5804FAE6304AD554AC5F20E5452C452A887CFB5EE",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/round_lost.ogg",
+        "sha256": "6142869DE77CB4A43F4F04B95EF2B36D99328AF6C90921DDB7727B3C44BB85C4",
+        "endSha256": "6142869DE77CB4A43F4F04B95EF2B36D99328AF6C90921DDB7727B3C44BB85C4",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/round_start.ogg",
+        "sha256": "092A796669F926DFFD573145B8698A111B9AF52E23232D8AEABDF67757C9A508",
+        "endSha256": "092A796669F926DFFD573145B8698A111B9AF52E23232D8AEABDF67757C9A508",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/round_won.ogg",
+        "sha256": "F37A8EC869254BB7586916D7E692840767D4507A7FCE9769ECD46CE13AE4E205",
+        "endSha256": "F37A8EC869254BB7586916D7E692840767D4507A7FCE9769ECD46CE13AE4E205",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/triple_kill.ogg",
+        "sha256": "D5E3D24E91027418C6C31C166B7D627B1D28EB5C793A9AD0B8ECCDC4B7661CF8",
+        "endSha256": "D5E3D24E91027418C6C31C166B7D627B1D28EB5C793A9AD0B8ECCDC4B7661CF8",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/sounds/unstoppable.ogg",
+        "sha256": "9A6CB66FE01D4B31983CF8A2AF4F9E7643DB14DDD077C6EC86CFCED560B9D25B",
+        "endSha256": "9A6CB66FE01D4B31983CF8A2AF4F9E7643DB14DDD077C6EC86CFCED560B9D25B",
+        "equal": true
+      },
+      {
+        "path": "C:/SPT41/BepInEx/plugins/ArenaMode/WARLORD-ADDITIONS.json",
+        "sha256": "20A35BDB1677C90CEE0A657DE016586A2A0DFAF653849947A5CFED9D2CDA5B74",
+        "endSha256": "20A35BDB1677C90CEE0A657DE016586A2A0DFAF653849947A5CFED9D2CDA5B74",
+        "equal": true
+      }
+    ]
+  },
+  "processes": [
+    {
+      "Id": 10008,
+      "ProcessName": "EscapeFromTarkov",
+      "Responding": true,
+      "StartTimeUtc": "2026-09-13T08:19:27.3617985Z"
+    },
+    {
+      "Id": 9912,
+      "ProcessName": "SPT.Launcher",
+      "Responding": true,
+      "StartTimeUtc": "2026-09-13T08:16:21.5499602Z"
+    },
+    {
+      "Id": 3000,
+      "ProcessName": "SPT.Server",
+      "Responding": true,
+      "StartTimeUtc": "2026-09-13T08:16:21.5390305Z"
+    }
+  ],
+  "display": {
+    "resolution": "1920x1080",
+    "mode": "Borderless",
+    "dlss": "balanced",
+    "image": "screenshots/cleanup-graphics-proof-0.jpg"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "testId": "respawn-stage0-r3",
+  "method": "Actual input-actions READY and Confirm Leave; exact client match starts/ends for E/C and server ordinary-confirm/LEFT for A; operator-confirmed menu timestamps from budget.json. No HUD-reset or pause cause inferred. Native end screens remain separate.",
+  "cases": [
+    {
+      "case": "E",
+      "readyInputUtc": "2026-09-13T08:23:12.618Z",
+      "readyInputResolvedUtc": "2026-09-13T08:23:12.735Z",
+      "readyBudgetMarkerUtc": "2026-09-13T08:23:12.585Z",
+      "activeStartUtc": "2026-09-13T08:24:28.578Z",
+      "activeStartSource": "client Arena match started",
+      "confirmInputUtc": "2026-09-13T08:30:18.493Z",
+      "confirmInputResolvedUtc": "2026-09-13T08:30:18.623Z",
+      "confirmBudgetMarkerUtc": "2026-09-13T08:30:18.493Z",
+      "activeUntilLoggedEndUtc": "2026-09-13T08:30:20.029Z",
+      "activeEndSource": "client Arena match ended",
+      "mainMenuConfirmedUtc": "2026-09-13T08:31:25.497Z",
+      "readyToActiveSeconds": 75.96,
+      "activeToConfirmSeconds": 349.915,
+      "activeUntilLoggedEndSeconds": 351.451,
+      "loggedEndToMenuSeconds": 65.468,
+      "nativeEndScreenSeconds": 352
+    },
+    {
+      "case": "A",
+      "readyInputUtc": "2026-09-13T08:35:12.71Z",
+      "readyInputResolvedUtc": "2026-09-13T08:35:12.8Z",
+      "readyBudgetMarkerUtc": "2026-09-13T08:35:12.688Z",
+      "activeStartUtc": "2026-09-13T08:36:03.554Z",
+      "activeStartSource": "server ordinary-confirm",
+      "confirmInputUtc": "2026-09-13T08:46:36.062Z",
+      "confirmInputResolvedUtc": "2026-09-13T08:46:36.183Z",
+      "confirmBudgetMarkerUtc": "2026-09-13T08:46:36.062Z",
+      "activeUntilLoggedEndUtc": "2026-09-13T08:46:37.631Z",
+      "activeEndSource": "server outcome LEFT",
+      "mainMenuConfirmedUtc": "2026-09-13T08:53:13.43Z",
+      "readyToActiveSeconds": 50.844,
+      "activeToConfirmSeconds": 632.508,
+      "activeUntilLoggedEndSeconds": 634.077,
+      "loggedEndToMenuSeconds": 395.799,
+      "nativeEndScreenSeconds": 634
+    },
+    {
+      "case": "C",
+      "readyInputUtc": "2026-09-13T08:54:56.398Z",
+      "readyInputResolvedUtc": "2026-09-13T08:54:56.494Z",
+      "readyBudgetMarkerUtc": "2026-09-13T08:54:56.369Z",
+      "activeStartUtc": "2026-09-13T08:55:36.081Z",
+      "activeStartSource": "client Arena match started",
+      "confirmInputUtc": "2026-09-13T09:00:39.771Z",
+      "confirmInputResolvedUtc": "2026-09-13T09:00:39.904Z",
+      "confirmBudgetMarkerUtc": "2026-09-13T09:00:39.574Z",
+      "activeUntilLoggedEndUtc": "2026-09-13T09:00:41.231Z",
+      "activeEndSource": "client Arena match ended",
+      "mainMenuConfirmedUtc": "2026-09-13T09:02:01.346Z",
+      "readyToActiveSeconds": 39.683,
+      "activeToConfirmSeconds": 303.69,
+      "activeUntilLoggedEndSeconds": 305.15,
+      "loggedEndToMenuSeconds": 80.115,
+      "nativeEndScreenSeconds": 305
+    }
+  ],
+  "totals": {
+    "raids": 3,
+    "maxRaids": 5,
+    "activeUntilLoggedEndSeconds": 1290.678,
+    "readyLoadContextSeconds": 166.487,
+    "loggedEndToMenuSeconds": 541.382,
+    "maxActiveSeconds": 2400,
+    "nativeEndScreenSeconds": 1291
+  },
+  "limits": "Native end durations E352/A634/C305 seconds visually confirmed by operator and originals, separate from exact log durations. Main-menu timestamps are operator confirmations.",
+  "nativeEndProof": "screenshots/cleanup-C-results-watch-0.jpg",
+  "measuredNativeToolIntervals": {
+    "inputCalls": 121,
+    "inputSeconds": 11.811,
+    "captureCalls": 148,
+    "captureSeconds": 105.69799999999995,
+    "inputSecondsDuringRaid": 6.737,
+    "captureSecondsDuringRaid": 48.24,
+    "limits": "Subset of tool wall time only: native input invocation-to-resolution and capture request-to-save. Other log/file calls, orchestration and analysis not separately timed. All in-raid elapsed time, including tools and observation gaps, is included in active budget; these overlapping subset totals are not added again."
+  },
+  "testEnvelope": {
+    "start": "2026-09-13T08:15:06.087Z",
+    "finalNativeMenuSavedAt": "2026-09-13T09:03:54.648Z",
+    "elapsedSeconds": 2928.561,
+    "outsideActiveSeconds": 1637.883
+  }
+}

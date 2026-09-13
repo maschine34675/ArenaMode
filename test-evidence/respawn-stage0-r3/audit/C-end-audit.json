@@ -1,0 +1,699 @@
+{
+  "testId": "respawn-stage0-r3",
+  "case": "C",
+  "scope": {
+    "fromReadyLocal": "10:54:56.398",
+    "lastClientLocal": "11:01:33.369",
+    "lastClientLine": 15309,
+    "serverThroughUtc": "2026-09-13 09:04:08.008",
+    "markerScopes": "cMarkers are C only; allRunMarkers and wholeFresh explicitly include startup+E+A+C."
+  },
+  "cClient": {
+    "warnings": 25,
+    "errors": 2,
+    "runtimeExceptions": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 2,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 1,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 22,
+        "errors": 0
+      },
+      "SAIN": {
+        "warnings": 0,
+        "errors": 2
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-BotDropDiag": {
+        "warnings": 0,
+        "errors": 0
+      }
+    }
+  },
+  "wholeFreshClient": {
+    "warnings": 87,
+    "errors": 2,
+    "runtimeExceptions": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 4,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 2,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 72,
+        "errors": 0
+      },
+      "SAIN": {
+        "warnings": 0,
+        "errors": 2
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 5,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 4,
+        "errors": 0
+      },
+      "maschine-BotDropDiag": {
+        "warnings": 0,
+        "errors": 0
+      }
+    }
+  },
+  "cForbiddenCount": 0,
+  "allRunForbiddenCount": 0,
+  "cWarnings": [
+    {
+      "line": 14919,
+      "timeLocal": "10:55:30.810",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 14920,
+      "timeLocal": "10:55:30.812",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 14921,
+      "timeLocal": "10:55:30.812",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 14922,
+      "timeLocal": "10:55:30.814",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 14923,
+      "timeLocal": "10:55:30.815",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 14924,
+      "timeLocal": "10:55:30.815",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 14926,
+      "timeLocal": "10:55:30.856",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 14927,
+      "timeLocal": "10:55:30.856",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 14928,
+      "timeLocal": "10:55:30.857",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 14929,
+      "timeLocal": "10:55:30.863",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 14930,
+      "timeLocal": "10:55:30.864",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 14931,
+      "timeLocal": "10:55:30.865",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 14976,
+      "timeLocal": "10:55:37.248",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 15014,
+      "timeLocal": "10:56:02.303",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 15073,
+      "timeLocal": "10:57:06.238",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 15074,
+      "timeLocal": "10:57:06.244",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 15075,
+      "timeLocal": "10:57:06.244",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 15121,
+      "timeLocal": "10:58:07.102",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 15122,
+      "timeLocal": "10:58:07.105",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 15123,
+      "timeLocal": "10:58:07.107",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 15221,
+      "timeLocal": "10:59:54.671",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 15268,
+      "timeLocal": "11:00:25.269",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object '<null>') is missing!"
+    },
+    {
+      "line": 15269,
+      "timeLocal": "11:00:25.273",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script (Unknown) on this Behaviour is missing!"
+    },
+    {
+      "line": 15270,
+      "timeLocal": "11:00:25.274",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "The referenced script on this Behaviour (Game Object 'extractor_smoke') is missing!"
+    },
+    {
+      "line": 15294,
+      "timeLocal": "11:00:41.229",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena raid-end remains pending: {"
+    }
+  ],
+  "cErrors": [
+    {
+      "line": 15246,
+      "timeLocal": "10:59:59.216",
+      "level": "Error",
+      "source": "SAIN",
+      "message": "[SAIN.Components.BotComponent] : [[FinishInit().VerifyBrain().IsAssignedBrainAllowed()]:] : [Bot79 is a PlayerScav but does not have any of these BaseBrains: $PmcBear, PmcUsec, PMC, CursAssault, Assault! Current Brain Assignment: [Killa] : Destroying SAIN for this bot...]"
+    },
+    {
+      "line": 15247,
+      "timeLocal": "10:59:59.216",
+      "level": "Error",
+      "source": "SAIN",
+      "message": "[SAIN.Components.BotComponent] : [[Activate().InitializeBot().FinishInit()]:] : [Init SAIN ERROR, Disposing...]"
+    }
+  ],
+  "exceptionClassification": {
+    "runtimeExceptions": 0,
+    "allowedMedsFamily": 0,
+    "fullExceptionStacks": [],
+    "sainErrorHeaders": 2,
+    "classification": "Two SAIN initialization Error records, no thrown exception header/full exception stack. Method chains are logger context. Native operator stopped preventively; do not label an exception-triggered stop or infer causal ownership.",
+    "contextFile": "C-stop-error-context.txt"
+  },
+  "server": {
+    "cWarnings": 0,
+    "cErrors": 0,
+    "wholeFreshWarnings": 3,
+    "wholeFreshErrors": 0,
+    "endMarkers": [
+      {
+        "line": 5253,
+        "timeUtc": "2026-09-13 09:00:41.226",
+        "level": "Information",
+        "source": "SPTarkov.Server.Middleware.SptLoggerMiddleware",
+        "message": "[Client-Anfrage] /arenamode/raid-end"
+      },
+      {
+        "line": 5254,
+        "timeUtc": "2026-09-13 09:00:41.226",
+        "level": "Information",
+        "source": "ArenaMode.Server.Routers.ArenaModeRouter",
+        "message": "[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+      },
+      {
+        "line": 5257,
+        "timeUtc": "2026-09-13 09:00:41.300",
+        "level": "Information",
+        "source": "ArenaMode.Server.Services.ProfileSnapshotService",
+        "message": "[ArenaMode] Profile snapshot restored for session [private-id]."
+      },
+      {
+        "line": 5260,
+        "timeUtc": "2026-09-13 09:00:41.347",
+        "level": "Information",
+        "source": "ArenaMode.Server.Services.ArenaProtectedRaidEndService",
+        "message": "[ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+      }
+    ]
+  },
+  "cBotDropDiag": {
+    "info": 4,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWpeaceful": 0,
+    "DROPPERpeaceful": 0,
+    "SURGERY_START": 0,
+    "MEDS_FINISH": 4
+  },
+  "wholeFreshBotDropDiag": {
+    "info": 891,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWpeaceful": 0,
+    "DROPPERpeaceful": 0,
+    "SURGERY_START": 861,
+    "MEDS_FINISH": 29
+  },
+  "cDiagnosticRecords": [
+    {
+      "line": 15061,
+      "timeLocal": "10:56:56.196",
+      "level": "Info",
+      "source": "maschine-BotDropDiag",
+      "message": "MEDS-FINISH bot=alexkarpen(pmcBEAR, Bear) alive=True item=Пропитал{[private-id]} id=[private-id] type=Stimulator from=Стандартный инвентарь/Pockets > Pockets/pocket2 queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ForceResidue <- EFT.HealthSystem.ActiveHealthController+MedEffect.ForceResidue <- EFT.HealthSystem.ActiveHealthController.ResidueEffectsWhere <- EFT.HealthSystem.ActiveHealthController.RemoveMedEffect <- EFT.Player+MedsController+MedsInHandsOperation.HideWeapon <- EFT.Player+MedsController+CG_DropWithDelay.MoveNext <- System.Runtime.CompilerServices.AsyncMethodBuilderCore+MoveNextRunner.InvokeMoveNext <- System.Threading.ExecutionContext.RunInternal"
+    },
+    {
+      "line": 15088,
+      "timeLocal": "10:57:17.877",
+      "level": "Info",
+      "source": "maschine-BotDropDiag",
+      "message": "MEDS-FINISH bot=J0nathan550(pmcBEAR, Bear) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=171/400 from=Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+    },
+    {
+      "line": 15164,
+      "timeLocal": "10:58:50.215",
+      "level": "Info",
+      "source": "maschine-BotDropDiag",
+      "message": "MEDS-FINISH bot=Вася Мерс(assault, Savage) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=55/400 from=Стандартный инвентарь/Pockets > Pockets/pocket1 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+    },
+    {
+      "line": 15280,
+      "timeLocal": "11:00:38.398",
+      "level": "Info",
+      "source": "maschine-BotDropDiag",
+      "message": "MEDS-FINISH bot=mirrox1337(pmcUSEC, Usec) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=130/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig 6h112/5 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+    }
+  ],
+  "cMarkers": {
+    "respawnRefusedBeforeAnyTeardown": 0,
+    "coreSubscriberFailed": 0,
+    "arenaSubscriberFailed": 0,
+    "gameEndFaulted": 0,
+    "freecamCouldNotBeEnabled": 0,
+    "arenaFailed": 0,
+    "arenaGiveUp": 1,
+    "ordinaryGiveUp": 0,
+    "arenaDeath": 1,
+    "arenaRespawnTiming": 1,
+    "ordinaryDeathIntercepted": 0,
+    "ordinaryRespawnComplete": 0,
+    "protectionActive": 1,
+    "protectionEnded": 1,
+    "raidStartKitComplete": 1,
+    "roundRespawnComplete": 0,
+    "infoCancelledWithRaid": 0,
+    "menuScreen": 0
+  },
+  "allRunMarkers": {
+    "respawnRefusedBeforeAnyTeardown": 0,
+    "coreSubscriberFailed": 0,
+    "arenaSubscriberFailed": 0,
+    "gameEndFaulted": 0,
+    "freecamCouldNotBeEnabled": 0,
+    "arenaFailed": 0,
+    "arenaGiveUp": 1,
+    "ordinaryGiveUp": 0,
+    "arenaDeath": 2,
+    "arenaRespawnTiming": 2,
+    "ordinaryDeathIntercepted": 0,
+    "ordinaryRespawnComplete": 0,
+    "protectionActive": 2,
+    "protectionEnded": 2,
+    "raidStartKitComplete": 2,
+    "roundRespawnComplete": 0,
+    "infoCancelledWithRaid": 0,
+    "menuScreen": 0
+  },
+  "cMarkerOccurrences": {
+    "respawnRefusedBeforeAnyTeardown": [],
+    "coreSubscriberFailed": [],
+    "arenaSubscriberFailed": [],
+    "gameEndFaulted": [],
+    "freecamCouldNotBeEnabled": [],
+    "arenaFailed": [],
+    "arenaGiveUp": [
+      {
+        "line": 15211,
+        "timeLocal": "10:59:53.766",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena: player gave up — respawning."
+      }
+    ],
+    "ordinaryGiveUp": [],
+    "arenaDeath": [
+      {
+        "line": 15212,
+        "timeLocal": "10:59:53.779",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena death #1 — instant respawn."
+      }
+    ],
+    "arenaRespawnTiming": [
+      {
+        "line": 15227,
+        "timeLocal": "10:59:54.973",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena respawn timing: kit 0.00s, bundles 0.04s, pipeline 1.15s, total 1.19s."
+      }
+    ],
+    "ordinaryDeathIntercepted": [],
+    "ordinaryRespawnComplete": [],
+    "protectionActive": [
+      {
+        "line": 15220,
+        "timeLocal": "10:59:54.524",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection active for 4s."
+      }
+    ],
+    "protectionEnded": [
+      {
+        "line": 15243,
+        "timeLocal": "10:59:58.987",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection ended."
+      }
+    ],
+    "raidStartKitComplete": [
+      {
+        "line": 14983,
+        "timeLocal": "10:55:37.566",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena raid-start kit swap complete: Conscript."
+      }
+    ],
+    "roundRespawnComplete": [],
+    "infoCancelledWithRaid": [],
+    "menuScreen": []
+  },
+  "timeline": [
+    {
+      "line": 14903,
+      "timeLocal": "10:55:15.928",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena armed for next raid on factory4_day (deathmatch)."
+    },
+    {
+      "line": 14907,
+      "timeLocal": "10:55:16.689",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena kit drawn: Conscript."
+    },
+    {
+      "line": 14941,
+      "timeLocal": "10:55:36.040",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena session active on factory4_day."
+    },
+    {
+      "line": 14948,
+      "timeLocal": "10:55:36.052",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena lighting director armed for 'factory4_day'."
+    },
+    {
+      "line": 14950,
+      "timeLocal": "10:55:36.081",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena match started (Deathmatch)."
+    },
+    {
+      "line": 14955,
+      "timeLocal": "10:55:36.595",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (raid started). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 14974,
+      "timeLocal": "10:55:36.943",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam compat: rebound cached GamePlayerOwner and reset freecam state."
+    },
+    {
+      "line": 14978,
+      "timeLocal": "10:55:37.553",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: main player changed — reinitializing for respawn"
+    },
+    {
+      "line": 14982,
+      "timeLocal": "10:55:37.563",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 14983,
+      "timeLocal": "10:55:37.566",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena raid-start kit swap complete: Conscript."
+    },
+    {
+      "line": 14985,
+      "timeLocal": "10:55:37.605",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena Deathmatch round 1 started."
+    },
+    {
+      "line": 15211,
+      "timeLocal": "10:59:53.766",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: player gave up — respawning."
+    },
+    {
+      "line": 15212,
+      "timeLocal": "10:59:53.779",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena death #1 — instant respawn."
+    },
+    {
+      "line": 15213,
+      "timeLocal": "10:59:53.781",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena kit drawn: Wraith."
+    },
+    {
+      "line": 15218,
+      "timeLocal": "10:59:54.368",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam compat: rebound cached GamePlayerOwner and reset freecam state."
+    },
+    {
+      "line": 15220,
+      "timeLocal": "10:59:54.524",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection active for 4s."
+    },
+    {
+      "line": 15222,
+      "timeLocal": "10:59:54.945",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: main player changed — reinitializing for respawn"
+    },
+    {
+      "line": 15226,
+      "timeLocal": "10:59:54.971",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 15227,
+      "timeLocal": "10:59:54.973",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena respawn timing: kit 0.00s, bundles 0.04s, pipeline 1.15s, total 1.19s."
+    },
+    {
+      "line": 15243,
+      "timeLocal": "10:59:58.987",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection ended."
+    },
+    {
+      "line": 15294,
+      "timeLocal": "11:00:41.229",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena raid-end remains pending: {"
+    },
+    {
+      "line": 15299,
+      "timeLocal": "11:00:41.230",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena session ended."
+    },
+    {
+      "line": 15302,
+      "timeLocal": "11:00:41.231",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena match ended: 0 kills / 1 deaths, score 0, best streak 0, 5.0 min."
+    }
+  ],
+  "nativeActions": {
+    "ready": {
+      "at": "2026-09-13T08:54:56.398Z",
+      "name": "C-ready",
+      "kind": "click",
+      "x": 960,
+      "y": 943,
+      "inputResolvedAt": "2026-09-13T08:54:56.494Z"
+    },
+    "giveup": {
+      "at": "2026-09-13T08:59:53.691Z",
+      "name": "C-once-give-up-fallback",
+      "kind": "key",
+      "key": "BackSpace",
+      "inputResolvedAt": "2026-09-13T08:59:53.736Z"
+    },
+    "confirmLeave": {
+      "at": "2026-09-13T09:00:39.771Z",
+      "name": "cleanup-C-confirm-leave",
+      "kind": "click",
+      "x": 960,
+      "y": 971,
+      "inputResolvedAt": "2026-09-13T09:00:39.904Z"
+    }
+  },
+  "timing": {
+    "matchStartedLocal": "10:55:36.081",
+    "rootBudgetGiveupUtc": "2026-09-13T08:59:53.491Z",
+    "actualGiveupInputUtc": "2026-09-13T08:59:53.691Z",
+    "rootBudgetConfirmLeaveUtc": "2026-09-13T09:00:39.574Z",
+    "actualConfirmLeaveInputUtc": "2026-09-13T09:00:39.771Z",
+    "sainErrorLocal": "10:59:59.216",
+    "sainErrorAfterGiveupInputSeconds": 5.525,
+    "sainErrorBeforeConfirmLeaveInputSeconds": 40.555,
+    "matchToGiveupInputSeconds": 257.61,
+    "matchToConfirmInputSeconds": 303.69,
+    "limits": "Budget pre-action markers and actual input invocation/resolution differ and remain separately reported. No claim that respawn caused SAIN error.",
+    "matchToLoggedEndSeconds": 305.15
+  },
+  "nativeFindings": {
+    "naturalDeath": "OFFEN: root reports no natural death; single prescribed Giveup fallback instead",
+    "replacement": "Root original image: MCX replacement440HP,Deaths1; independent single Arena death/timing markers",
+    "stop": "Root S3.stop=true after new SAIN initialization failure; no new raid, D skipped",
+    "profile": "Separate protected profile comparison owned by root; this log audit does not read it",
+    "endMenu": "Root budget records main menu confirmed2026-09-13T09:02:01.346Z; final fixed logs after cleanup. No independent UI claim."
+  },
+  "sourceSha256": {
+    "client": "E72FF31D2F6B8310E7456BD4CE21A724CD120F8ED8D76F669830261ABB3BECEE",
+    "server": "F8C45BF4DEA3FD371298DEAB2E6A7B19153148ADFE53854C90ED52726314F287"
+  },
+  "snapshotSource": "logs/final/client.log + logs/final/server.log",
+  "auditAtUtc": "2026-09-13T09:08:32.7997646Z"
+}

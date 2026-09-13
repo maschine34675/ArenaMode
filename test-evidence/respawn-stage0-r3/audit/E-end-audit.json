@@ -1,0 +1,965 @@
+{
+  "testId": "respawn-stage0-r3",
+  "case": "E",
+  "snapshot": "logs/E-after-menu",
+  "snapshotOperatorCapturedUtc": "2026-09-13T08:31:25.5Z",
+  "auditAtUtc": "2026-09-13T08:34:30.7853138Z",
+  "scope": {
+    "clientFullFreshFrom": "10:19:36.516 MESZ",
+    "clientEFromNativeReady": "10:23:12.618 MESZ",
+    "clientThrough": "10:31:02.609",
+    "clientLines": 13919,
+    "serverFreshFrom": "08:16:21.000 UTC",
+    "serverThrough": "2026-09-13 08:31:21.507",
+    "first3MatchMinutes": "[10:24:28.578,10:27:28.578) MESZ",
+    "markerScope": "AllRunMarkers: entire fresh client through this E-after-menu snapshot; E is the first raid."
+  },
+  "wholeFreshClient": {
+    "warningTotal": 49,
+    "errorTotal": 0,
+    "runtimeExceptionTotal": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 2,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 1,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 37,
+        "errors": 0
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 5,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 4,
+        "errors": 0
+      },
+      "maschine-BotDropDiag": {
+        "warnings": 0,
+        "errors": 0
+      }
+    }
+  },
+  "eClient": {
+    "warningTotal": 40,
+    "errorTotal": 0,
+    "runtimeExceptionTotal": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 2,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 1,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 37,
+        "errors": 0
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-BotDropDiag": {
+        "warnings": 0,
+        "errors": 0
+      }
+    }
+  },
+  "server": {
+    "freshWarnings": 3,
+    "freshErrors": 0,
+    "eWarnings": 0,
+    "eErrors": 0,
+    "endMarkers": [
+      {
+        "line": 4358,
+        "timeUtc": "2026-09-13 08:30:20.016",
+        "level": "Information",
+        "source": "ArenaMode.Server.Routers.ArenaModeRouter",
+        "message": "[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+      },
+      {
+        "line": 4361,
+        "timeUtc": "2026-09-13 08:30:20.179",
+        "level": "Information",
+        "source": "ArenaMode.Server.Services.ProfileSnapshotService",
+        "message": "[ArenaMode] Profile snapshot restored for session [private-id]."
+      },
+      {
+        "line": 4364,
+        "timeUtc": "2026-09-13 08:30:20.263",
+        "level": "Information",
+        "source": "ArenaMode.Server.Services.ArenaProtectedRaidEndService",
+        "message": "[ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+      }
+    ],
+    "freshWarningEvidence": [
+      {
+        "line": 3909,
+        "text": "[2026-09-13 08:16:30.758][Warning][SPTarkov.Server.Core.Helpers.Traders.TraderHelper] Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+      },
+      {
+        "line": 4003,
+        "text": "[2026-09-13 08:20:20.080][Warning][SPTarkov.Server.Core.Services.Profile.ProfileFixerService] Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+      },
+      {
+        "line": 4004,
+        "text": "[2026-09-13 08:20:20.087][Warning][SPTarkov.Server.Core.Services.Profile.ProfileFixerService] Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+      }
+    ]
+  },
+  "botDropDiagAllFresh": {
+    "info": 9,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWwithOnStartPeacefulMove": 0,
+    "DROPPERwithOnStartPeacefulMove": 0,
+    "SURGERY_START": 0,
+    "MEDS_FINISH": 8,
+    "records": [
+      {
+        "line": 6330,
+        "timeLocal": "10:19:50.581",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "maschine-BotDropDiag v0.1.0 loaded (ContinuousHealing flag readable)."
+      },
+      {
+        "line": 13723,
+        "timeLocal": "10:27:50.152",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=166/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13733,
+        "timeLocal": "10:28:00.274",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=114/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13739,
+        "timeLocal": "10:28:15.066",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=vargrasen(pmcBEAR, Bear) alive=True item=? queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+      },
+      {
+        "line": 13795,
+        "timeLocal": "10:28:45.407",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=75/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13802,
+        "timeLocal": "10:28:54.948",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=58/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13807,
+        "timeLocal": "10:29:03.019",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=36/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13821,
+        "timeLocal": "10:29:24.737",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH player=<null> item=? queue=1 state=Finished CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+      },
+      {
+        "line": 13822,
+        "timeLocal": "10:29:24.741",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH player=<null> item=? queue=1 state=Finished CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+      }
+    ]
+  },
+  "botDropDiagAllE": {
+    "info": 8,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWwithOnStartPeacefulMove": 0,
+    "DROPPERwithOnStartPeacefulMove": 0,
+    "SURGERY_START": 0,
+    "MEDS_FINISH": 8,
+    "records": [
+      {
+        "line": 13723,
+        "timeLocal": "10:27:50.152",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=166/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13733,
+        "timeLocal": "10:28:00.274",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=114/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13739,
+        "timeLocal": "10:28:15.066",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=vargrasen(pmcBEAR, Bear) alive=True item=? queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+      },
+      {
+        "line": 13795,
+        "timeLocal": "10:28:45.407",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=75/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13802,
+        "timeLocal": "10:28:54.948",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=58/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13807,
+        "timeLocal": "10:29:03.019",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=36/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+      },
+      {
+        "line": 13821,
+        "timeLocal": "10:29:24.737",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH player=<null> item=? queue=1 state=Finished CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+      },
+      {
+        "line": 13822,
+        "timeLocal": "10:29:24.741",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "MEDS-FINISH player=<null> item=? queue=1 state=Finished CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+      }
+    ]
+  },
+  "botDropDiagFirst3MatchMinutes": {
+    "info": 0,
+    "THROW": 0,
+    "DROPPER": 0,
+    "THROWwithOnStartPeacefulMove": 0,
+    "DROPPERwithOnStartPeacefulMove": 0,
+    "SURGERY_START": 0,
+    "MEDS_FINISH": 0,
+    "records": []
+  },
+  "allRunMarkerCounts": {
+    "respawnRefusedBeforeAnyTeardown": 0,
+    "coreSubscriberFailed": 0,
+    "arenaSubscriberFailed": 0,
+    "gameEndFaultedBeforeFirstAwait": 0,
+    "freecamCompatibilityPatchesCouldNotBeEnabled": 0,
+    "arenaFailedColon": 0,
+    "arenaGiveUp": 0,
+    "ordinaryGiveUpEndingKilled": 0,
+    "arenaDeath": 1,
+    "arenaRespawnTiming": 1,
+    "coreProtectionActive": 1,
+    "coreProtectionEnded": 1,
+    "raidEndInfoCancel": 0,
+    "coreInitialized": 1,
+    "arenaDriverRegistered": 1,
+    "redeployDriverRegistered": 1,
+    "failClosedIncomplete": 0,
+    "couldNotBeInstalled": 0
+  },
+  "allRunMarkerOccurrences": {
+    "respawnRefusedBeforeAnyTeardown": [],
+    "coreSubscriberFailed": [],
+    "arenaSubscriberFailed": [],
+    "gameEndFaultedBeforeFirstAwait": [],
+    "freecamCompatibilityPatchesCouldNotBeEnabled": [],
+    "arenaFailedColon": [],
+    "arenaGiveUp": [],
+    "ordinaryGiveUpEndingKilled": [],
+    "arenaDeath": [
+      {
+        "line": 13659,
+        "timeLocal": "10:27:05.020",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena death #1 — instant respawn."
+      }
+    ],
+    "arenaRespawnTiming": [
+      {
+        "line": 13681,
+        "timeLocal": "10:27:06.715",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena respawn timing: kit 0.00s, bundles 0.04s, pipeline 1.65s, total 1.69s."
+      }
+    ],
+    "coreProtectionActive": [
+      {
+        "line": 13668,
+        "timeLocal": "10:27:05.567",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection active for 4s."
+      }
+    ],
+    "coreProtectionEnded": [
+      {
+        "line": 13684,
+        "timeLocal": "10:27:10.784",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection ended."
+      }
+    ],
+    "raidEndInfoCancel": [],
+    "coreInitialized": [
+      {
+        "line": 3991,
+        "timeLocal": "10:19:46.418",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Redeploy.Core 0.9.0.0 initialized"
+      }
+    ],
+    "arenaDriverRegistered": [
+      {
+        "line": 4545,
+        "timeLocal": "10:19:47.876",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: ArenaMode (priority 100)"
+      }
+    ],
+    "redeployDriverRegistered": [
+      {
+        "line": 7173,
+        "timeLocal": "10:19:52.457",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: Redeploy (priority 0)"
+      }
+    ],
+    "failClosedIncomplete": [],
+    "couldNotBeInstalled": []
+  },
+  "exceptions": {
+    "runtimeTotal": 0,
+    "allowedMedsFamily": 0,
+    "outsideAllowlist": 0,
+    "fullStacks": [],
+    "assessment": "No runtime exception header in fixed full fresh snapshot. No allowlist exemption applied."
+  },
+  "timeline": [
+    {
+      "line": 13293,
+      "timeLocal": "10:23:52.601",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena armed for next raid on bigmap (teamdeathmatch)."
+    },
+    {
+      "line": 13294,
+      "timeLocal": "10:23:52.603",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena area armed: customs-factory-center-teams-v1; frozen 5v5."
+    },
+    {
+      "line": 13298,
+      "timeLocal": "10:23:55.286",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena kit drawn: Drifter."
+    },
+    {
+      "line": 13325,
+      "timeLocal": "10:23:57.928",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena team initial PMC: Usec, 2051eb7b-3ae8-49b8-adcb-c13f0ddc7972, position (317.34, 1.13, -78.76)."
+    },
+    {
+      "line": 13388,
+      "timeLocal": "10:24:28.517",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch: 5v5, local USEC, 4 friendly / 5 opposing bot slots; no PFT followers."
+    },
+    {
+      "line": 13390,
+      "timeLocal": "10:24:28.578",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena match started (Team Deathmatch)."
+    },
+    {
+      "line": 13403,
+      "timeLocal": "10:24:29.640",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena area READY: customs-factory-center-teams-v1; connected player=17, bot=11; boundaries and paths verified, frozen 5v5."
+    },
+    {
+      "line": 13438,
+      "timeLocal": "10:24:52.300",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 1: 1/4 bots; state=PreActive, prepared=22.5s, native arrival=0.2s."
+    },
+    {
+      "line": 13447,
+      "timeLocal": "10:24:52.517",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 2: 1/5 bots; state=PreActive, prepared=22.8s, native arrival=0.0s."
+    },
+    {
+      "line": 13465,
+      "timeLocal": "10:24:55.604",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 3: 2/4 bots; state=PreActive, prepared=3.3s, native arrival=0.0s."
+    },
+    {
+      "line": 13476,
+      "timeLocal": "10:24:58.722",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 5: 3/4 bots; state=PreActive, prepared=3.1s, native arrival=0.0s."
+    },
+    {
+      "line": 13485,
+      "timeLocal": "10:24:58.989",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 4: 2/5 bots; state=PreActive, prepared=6.4s, native arrival=0.0s."
+    },
+    {
+      "line": 13498,
+      "timeLocal": "10:25:00.808",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 6: 4/4 bots; state=PreActive, prepared=2.0s, native arrival=0.0s."
+    },
+    {
+      "line": 13510,
+      "timeLocal": "10:25:01.944",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 7: 3/5 bots; state=PreActive, prepared=2.9s, native arrival=0.0s."
+    },
+    {
+      "line": 13521,
+      "timeLocal": "10:25:12.605",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 8: 4/5 bots; state=PreActive, prepared=10.6s, native arrival=0.0s."
+    },
+    {
+      "line": 13532,
+      "timeLocal": "10:25:14.650",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 9: 5/5 bots; state=PreActive, prepared=2.0s, native arrival=0.0s."
+    },
+    {
+      "line": 13537,
+      "timeLocal": "10:25:15.680",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch phase: Assembling -> Countdown; killLimit=0, timeLimit=0s."
+    },
+    {
+      "line": 13538,
+      "timeLocal": "10:25:18.695",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch phase: Countdown -> Live; killLimit=0, timeLimit=0s."
+    },
+    {
+      "line": 13542,
+      "timeLocal": "10:25:18.711",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch ready: 5v5."
+    },
+    {
+      "line": 13612,
+      "timeLocal": "10:26:21.813",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 10: 5/5 bots; state=PreActive, prepared=2.4s, native arrival=0.0s."
+    },
+    {
+      "line": 13637,
+      "timeLocal": "10:26:44.416",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 11: 4/4 bots; state=PreActive, prepared=2.4s, native arrival=0.0s."
+    },
+    {
+      "line": 13659,
+      "timeLocal": "10:27:05.020",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena death #1 — instant respawn."
+    },
+    {
+      "line": 13660,
+      "timeLocal": "10:27:05.023",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena kit drawn: Wraith."
+    },
+    {
+      "line": 13662,
+      "timeLocal": "10:27:05.088",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena team player respawn: 6df008d3-3928-4213-b05b-8285bd15e7c2; nearest enemy 66.3m."
+    },
+    {
+      "line": 13681,
+      "timeLocal": "10:27:06.715",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena respawn timing: kit 0.00s, bundles 0.04s, pipeline 1.65s, total 1.69s."
+    },
+    {
+      "line": 13715,
+      "timeLocal": "10:27:48.152",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 12: 5/5 bots; state=PreActive, prepared=4.6s, native arrival=0.0s."
+    },
+    {
+      "line": 13751,
+      "timeLocal": "10:28:21.700",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 13: 5/5 bots; state=PreActive, prepared=2.2s, native arrival=0.0s."
+    },
+    {
+      "line": 13777,
+      "timeLocal": "10:28:43.054",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 14: 4/4 bots; state=PreActive, prepared=11.2s, native arrival=0.0s."
+    },
+    {
+      "line": 13787,
+      "timeLocal": "10:28:44.226",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 15: 5/5 bots; state=PreActive, prepared=3.2s, native arrival=0.1s."
+    },
+    {
+      "line": 13833,
+      "timeLocal": "10:29:30.708",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 16: 5/5 bots; state=PreActive, prepared=2.9s, native arrival=0.0s."
+    },
+    {
+      "line": 13858,
+      "timeLocal": "10:29:51.431",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted USEC request 17: 4/4 bots; state=PreActive, prepared=2.5s, native arrival=0.0s."
+    },
+    {
+      "line": 13880,
+      "timeLocal": "10:30:06.108",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch admitted BEAR request 18: 5/5 bots; state=PreActive, prepared=1.4s, native arrival=0.0s."
+    },
+    {
+      "line": 13895,
+      "timeLocal": "10:30:18.764",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Team Deathmatch: native raid shutdown; pending spawn work cancelled; status=Stopping, respawn=False; USEC occupied=4/4, active=0, preActive=0, other=4, pending=0; BEAR occupied=5/5, active=0, preActive=0, other=5, pending=0"
+    },
+    {
+      "line": 13909,
+      "timeLocal": "10:30:20.022",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena session ended."
+    },
+    {
+      "line": 13912,
+      "timeLocal": "10:30:20.029",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena match ended: 0 kills / 1 deaths, score 0, best streak 0, 5.8 min."
+    }
+  ],
+  "initialAdmissions": {
+    "total": 9,
+    "USEC": 4,
+    "BEAR": 5,
+    "localPMC": 1
+  },
+  "subsequentAdmissions": {
+    "total": 9,
+    "USEC": 3,
+    "BEAR": 6,
+    "meaning": "Logged admitted replacements after team READY; not a substitute for native kill-count images."
+  },
+  "naturalRespawn": {
+    "deathLocal": "10:27:05.020",
+    "kit": "Wraith",
+    "equipmentSwapLocal": "10:27:05.098",
+    "freecamRebindLocal": "10:27:05.339",
+    "protectionActiveLocal": "10:27:05.567",
+    "recorderRebindLocal": "10:27:06.202",
+    "autoIFFActiveLocal": "10:27:06.219",
+    "completeLocal": "10:27:06.715",
+    "logTotalSeconds": 1.69,
+    "protectionEndedLocal": "10:27:10.784",
+    "giveUpMarkerCount": 0,
+    "operatorEvidence": "Root observed no combat inputs, only later Escape exit; original resume image shows one death and team score4:3. Native observation is root-provided, independently matched to death/replacement logs."
+  },
+  "timing": {
+    "matchStartedLocal": "10:24:28.578",
+    "assemblingToCountdownLocal": "10:25:15.680",
+    "countdownToLiveLocal": "10:25:18.695",
+    "teamReadyLocal": "10:25:18.711",
+    "nativeConfirmLeaveUtc": "2026-09-13T08:30:18.493Z",
+    "nativeMenuConfirmedUtc": "2026-09-13T08:31:25.497Z",
+    "matchToConfirmSeconds": 349.915,
+    "matchToLoggedEndSeconds": 351.451,
+    "nativeEndScreenDurationSeconds": 352,
+    "operatorResumeImageUtc": "2026-09-13T08:29:20.87Z",
+    "operatorResumeHud": "03:59",
+    "imageWallSecondsSinceMatch": 292.292,
+    "imageWallSecondsSinceTeamReady": 242.159,
+    "assessment": "Keep original HUD03:59, native end05:52 and measured wall intervals separate. No HUD reset, pause or time-origin cause inferred. Team-ready starts 50.133s after match-start marker."
+  },
+  "nativeLimits": {
+    "E2BothSpawnAreasAt60And180Seconds": "OFFEN: root reports required original images missing during context interruption.",
+    "corpseLootingAbsence": "No global absence claim from logs.",
+    "profileComparison": "Owned independently by root/profile audit; not performed in this log audit."
+  },
+  "eWarnings": [
+    {
+      "line": 13177,
+      "timeLocal": "10:23:38.157",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "WheelCollider requires an attached Rigidbody to function."
+    },
+    {
+      "line": 13178,
+      "timeLocal": "10:23:38.162",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "WheelCollider requires an attached Rigidbody to function."
+    },
+    {
+      "line": 13179,
+      "timeLocal": "10:23:38.162",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "WheelCollider requires an attached Rigidbody to function."
+    },
+    {
+      "line": 13180,
+      "timeLocal": "10:23:38.163",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "WheelCollider requires an attached Rigidbody to function."
+    },
+    {
+      "line": 13181,
+      "timeLocal": "10:23:38.403",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13184,
+      "timeLocal": "10:23:38.407",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13187,
+      "timeLocal": "10:23:38.409",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13190,
+      "timeLocal": "10:23:38.411",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13193,
+      "timeLocal": "10:23:38.412",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13196,
+      "timeLocal": "10:23:38.413",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13199,
+      "timeLocal": "10:23:38.413",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13202,
+      "timeLocal": "10:23:38.414",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13205,
+      "timeLocal": "10:23:38.414",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13208,
+      "timeLocal": "10:23:38.414",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13211,
+      "timeLocal": "10:23:38.419",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13214,
+      "timeLocal": "10:23:38.419",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13217,
+      "timeLocal": "10:23:38.419",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13220,
+      "timeLocal": "10:23:38.420",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13223,
+      "timeLocal": "10:23:38.420",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13226,
+      "timeLocal": "10:23:38.420",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13229,
+      "timeLocal": "10:23:38.421",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13232,
+      "timeLocal": "10:23:38.421",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13235,
+      "timeLocal": "10:23:38.422",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13238,
+      "timeLocal": "10:23:38.422",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13241,
+      "timeLocal": "10:23:38.422",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13244,
+      "timeLocal": "10:23:38.423",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13247,
+      "timeLocal": "10:23:38.423",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13250,
+      "timeLocal": "10:23:38.424",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13253,
+      "timeLocal": "10:23:38.424",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13256,
+      "timeLocal": "10:23:38.424",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13259,
+      "timeLocal": "10:23:38.425",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13262,
+      "timeLocal": "10:23:38.425",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13265,
+      "timeLocal": "10:23:38.426",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13268,
+      "timeLocal": "10:23:38.426",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13271,
+      "timeLocal": "10:23:38.426",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13274,
+      "timeLocal": "10:23:38.433",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13277,
+      "timeLocal": "10:23:38.434",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13412,
+      "timeLocal": "10:24:30.617",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 13669,
+      "timeLocal": "10:27:05.754",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 13904,
+      "timeLocal": "10:30:20.021",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena raid-end remains pending: {"
+    }
+  ],
+  "eErrors": [],
+  "sourceSha256": {
+    "client": "A6408B803433C100500B15D1F8A5DFF1336A4FC17BDD92FC460FF6B516FFC505",
+    "server": "5B324A3816EE7F3896FBEC7F4A3DED9F8390EDB3ECDF551E4B2E2D3CEA1EEC17"
+  }
+}

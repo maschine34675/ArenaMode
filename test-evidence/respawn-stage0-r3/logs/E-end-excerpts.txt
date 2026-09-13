@@ -1,0 +1,87 @@
+L13177 [10:23:38.157] [Warning:Unity Log] WheelCollider requires an attached Rigidbody to function.
+L13178 [10:23:38.162] [Warning:Unity Log] WheelCollider requires an attached Rigidbody to function.
+L13179 [10:23:38.162] [Warning:Unity Log] WheelCollider requires an attached Rigidbody to function.
+L13180 [10:23:38.163] [Warning:Unity Log] WheelCollider requires an attached Rigidbody to function.
+L13181 [10:23:38.403] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13184 [10:23:38.407] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13187 [10:23:38.409] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13190 [10:23:38.411] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13193 [10:23:38.412] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13196 [10:23:38.413] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13199 [10:23:38.413] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13202 [10:23:38.414] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13205 [10:23:38.414] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13208 [10:23:38.414] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13211 [10:23:38.419] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13214 [10:23:38.419] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13217 [10:23:38.419] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13220 [10:23:38.420] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13223 [10:23:38.420] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13226 [10:23:38.420] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13229 [10:23:38.421] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13232 [10:23:38.421] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13235 [10:23:38.422] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13238 [10:23:38.422] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13241 [10:23:38.422] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13244 [10:23:38.423] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13247 [10:23:38.423] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13250 [10:23:38.424] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13253 [10:23:38.424] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13256 [10:23:38.424] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13259 [10:23:38.425] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13262 [10:23:38.425] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13265 [10:23:38.426] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13268 [10:23:38.426] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13271 [10:23:38.426] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13274 [10:23:38.433] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13277 [10:23:38.434] [Warning:Unity Log] BoxCollider does not support negative scale or size.
+L13293 [10:23:52.601] [Info:maschine-ArenaMode] Arena armed for next raid on bigmap (teamdeathmatch).
+L13294 [10:23:52.603] [Info:maschine-ArenaMode] Arena area armed: customs-factory-center-teams-v1; frozen 5v5.
+L13298 [10:23:55.286] [Info:maschine-ArenaMode] Arena kit drawn: Drifter.
+L13325 [10:23:57.928] [Info:maschine-ArenaMode] Arena team initial PMC: Usec, 2051eb7b-3ae8-49b8-adcb-c13f0ddc7972, position (317.34, 1.13, -78.76).
+L13388 [10:24:28.517] [Info:maschine-ArenaMode] Team Deathmatch: 5v5, local USEC, 4 friendly / 5 opposing bot slots; no PFT followers.
+L13390 [10:24:28.578] [Info:maschine-ArenaMode] Arena match started (Team Deathmatch).
+L13403 [10:24:29.640] [Info:maschine-ArenaMode] Arena area READY: customs-factory-center-teams-v1; connected player=17, bot=11; boundaries and paths verified, frozen 5v5.
+L13412 [10:24:30.617] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+L13438 [10:24:52.300] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 1: 1/4 bots; state=PreActive, prepared=22.5s, native arrival=0.2s.
+L13447 [10:24:52.517] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 2: 1/5 bots; state=PreActive, prepared=22.8s, native arrival=0.0s.
+L13465 [10:24:55.604] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 3: 2/4 bots; state=PreActive, prepared=3.3s, native arrival=0.0s.
+L13476 [10:24:58.722] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 5: 3/4 bots; state=PreActive, prepared=3.1s, native arrival=0.0s.
+L13485 [10:24:58.989] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 4: 2/5 bots; state=PreActive, prepared=6.4s, native arrival=0.0s.
+L13498 [10:25:00.808] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 6: 4/4 bots; state=PreActive, prepared=2.0s, native arrival=0.0s.
+L13510 [10:25:01.944] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 7: 3/5 bots; state=PreActive, prepared=2.9s, native arrival=0.0s.
+L13521 [10:25:12.605] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 8: 4/5 bots; state=PreActive, prepared=10.6s, native arrival=0.0s.
+L13532 [10:25:14.650] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 9: 5/5 bots; state=PreActive, prepared=2.0s, native arrival=0.0s.
+L13537 [10:25:15.680] [Info:maschine-ArenaMode] Team Deathmatch phase: Assembling -> Countdown; killLimit=0, timeLimit=0s.
+L13538 [10:25:18.695] [Info:maschine-ArenaMode] Team Deathmatch phase: Countdown -> Live; killLimit=0, timeLimit=0s.
+L13542 [10:25:18.711] [Info:maschine-ArenaMode] Team Deathmatch ready: 5v5.
+L13612 [10:26:21.813] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 10: 5/5 bots; state=PreActive, prepared=2.4s, native arrival=0.0s.
+L13637 [10:26:44.416] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 11: 4/4 bots; state=PreActive, prepared=2.4s, native arrival=0.0s.
+L13659 [10:27:05.020] [Info:maschine-ArenaMode] Arena death #1 — instant respawn.
+L13660 [10:27:05.023] [Info:maschine-ArenaMode] Arena kit drawn: Wraith.
+L13662 [10:27:05.088] [Info:maschine-ArenaMode] Arena team player respawn: 6df008d3-3928-4213-b05b-8285bd15e7c2; nearest enemy 66.3m.
+L13669 [10:27:05.754] [Warning:Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+L13681 [10:27:06.715] [Info:maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.04s, pipeline 1.65s, total 1.69s.
+L13715 [10:27:48.152] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 12: 5/5 bots; state=PreActive, prepared=4.6s, native arrival=0.0s.
+L13723 [10:27:50.152] [Info:maschine-BotDropDiag] MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=166/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L13733 [10:28:00.274] [Info:maschine-BotDropDiag] MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=114/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L13739 [10:28:15.066] [Info:maschine-BotDropDiag] MEDS-FINISH bot=vargrasen(pmcBEAR, Bear) alive=True item=? queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState
+L13751 [10:28:21.700] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 13: 5/5 bots; state=PreActive, prepared=2.2s, native arrival=0.0s.
+L13777 [10:28:43.054] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 14: 4/4 bots; state=PreActive, prepared=11.2s, native arrival=0.0s.
+L13787 [10:28:44.226] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 15: 5/5 bots; state=PreActive, prepared=3.2s, native arrival=0.1s.
+L13795 [10:28:45.407] [Info:maschine-BotDropDiag] MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=75/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L13802 [10:28:54.948] [Info:maschine-BotDropDiag] MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=58/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L13807 [10:29:03.019] [Info:maschine-BotDropDiag] MEDS-FINISH bot=5o2(pmcBEAR, Bear) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=36/220 from=Стандартный инвентарь/TacticalVest > BEAR Rig/2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate
+L13821 [10:29:24.737] [Info:maschine-BotDropDiag] MEDS-FINISH player=<null> item=? queue=1 state=Finished CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState
+L13822 [10:29:24.741] [Info:maschine-BotDropDiag] MEDS-FINISH player=<null> item=? queue=1 state=Finished CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState
+L13833 [10:29:30.708] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 16: 5/5 bots; state=PreActive, prepared=2.9s, native arrival=0.0s.
+L13858 [10:29:51.431] [Info:maschine-ArenaMode] Team Deathmatch admitted USEC request 17: 4/4 bots; state=PreActive, prepared=2.5s, native arrival=0.0s.
+L13880 [10:30:06.108] [Info:maschine-ArenaMode] Team Deathmatch admitted BEAR request 18: 5/5 bots; state=PreActive, prepared=1.4s, native arrival=0.0s.
+L13895 [10:30:18.764] [Info:maschine-ArenaMode] Team Deathmatch: native raid shutdown; pending spawn work cancelled; status=Stopping, respawn=False; USEC occupied=4/4, active=0, preActive=0, other=4, pending=0; BEAR occupied=5/5, active=0, preActive=0, other=5, pending=0
+L13904 [10:30:20.021] [Warning:maschine-ArenaMode] Arena raid-end remains pending: {
+L13909 [10:30:20.022] [Info:maschine-ArenaMode] Arena session ended.
+L13912 [10:30:20.029] [Info:maschine-ArenaMode] Arena match ended: 0 kills / 1 deaths, score 0, best streak 0, 5.8 min.
+SERVER UTC:
+L4358 [2026-09-13 08:30:20.016] [Information:ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+L4361 [2026-09-13 08:30:20.179] [Information:ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id].
+L4364 [2026-09-13 08:30:20.263] [Information:ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted.
