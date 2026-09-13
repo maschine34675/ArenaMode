@@ -1103,7 +1103,7 @@ public static class Settings
             "HUD",
             "Killfeed",
             true,
-            "Killfeed lines (victim, weapon, distance) in the top-right corner.");
+            "Killfeed lines (attacker, victim, weapon, distance) in the top-left corner; leaves the top-right free for a minimap.");
 
         KillfeedOtherKills = config.Bind(
             "HUD",

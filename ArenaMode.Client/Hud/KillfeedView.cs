@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace ArenaMode.Hud;
 
 /// <summary>
-/// Top-right pooled killfeed: newest at the bottom, opaque hold then per-line fade.
+/// Top-left pooled killfeed: newest at the bottom, opaque hold then per-line fade.
 /// Behavior adapted from DragonDen.Killfeed (MIT, (c) Drexira); rendering is
 /// our own uGUI line pool, player-relative team colors instead of faction icons.
 /// </summary>
@@ -41,8 +41,9 @@ internal sealed class KillfeedView
         var go = new GameObject("ArenaKillfeed", typeof(RectTransform));
         _root = (RectTransform)go.transform;
         _root.SetParent(hudRoot, false);
-        _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(1f, 1f);
-        _root.anchoredPosition = new Vector2(-24f, -96f);
+        // Leave the top-right corner free for DynamicMaps' default minimap.
+        _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0f, 1f);
+        _root.anchoredPosition = new Vector2(24f, -96f);
         _root.sizeDelta = new Vector2(FeedWidth, 0f);
 
         for (var i = 0; i < MaxLines; i++)
@@ -50,7 +51,7 @@ internal sealed class KillfeedView
             var lineGo = new GameObject("Line" + i, typeof(RectTransform), typeof(CanvasGroup));
             var rect = (RectTransform)lineGo.transform;
             rect.SetParent(_root, false);
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
             rect.sizeDelta = new Vector2(FeedWidth, MinLineHeight);
 
             // Background and text share the pooled line's fade and lifetime.
@@ -62,7 +63,7 @@ internal sealed class KillfeedView
             group.interactable = false;
             group.blocksRaycasts = false;
 
-            var text = HudStyle.CreateText(rect, "Text", 18f, TextAlignmentOptions.TopRight);
+            var text = HudStyle.CreateText(rect, "Text", 18f, TextAlignmentOptions.TopLeft);
             text.color = Color.white;
             text.fontStyle = FontStyles.Bold;
             text.enableWordWrapping = true;

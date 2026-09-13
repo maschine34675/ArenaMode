@@ -7,7 +7,7 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Score HUD positioning prepared, NOT deployed (2026-09-13):** branch
+- **HUD positioning prepared, NOT deployed (2026-09-13):** branch
   `fix/hud-panel-position` from `1f3f9f0`. F12 HUD `ScorePanelOffsetX` and
   `ScorePanelOffsetY` add offsets to the existing top-center position; defaults
   0/0 preserve it. Positive X moves right, positive Y down, in scaled 1920x1080
@@ -16,8 +16,15 @@ current. User-facing communication is normally German.
   no-deploy helper; assembly-notice checks pass 44 assertions and five fault
   controls. The fixture gained the position boundary, not a rendering oracle.
   User's respawn r3 GPU tests remain bound to the installed build: **do not deploy
-  these HUD changes yet**. Later visual checks: adjust both offsets during a raid
-  and a visible countdown, reset to 0/0, and check layout at the actual resolution.
+  these HUD changes yet**. Killfeed now anchors and aligns top-left (24 units
+  from the left, 96 from the top), leaving DynamicMaps' usual minimap corner free.
+  Width, wrapping, names, distance, team colors and fading are unchanged.
+  Killfeed checks pass 104 assertions plus five fault controls; info-panel
+  production checks pass 292 (their fault suite was not rerun). Both layout
+  changes independently reviewed; staged client builds pass with zero errors.
+  All 68 inventoried installed DLL/asset files still match their pre-build hashes.
+  Later visual checks: adjust both offsets during a raid and a visible countdown,
+  reset to 0/0, and check long killfeed entries with DynamicMaps at the actual resolution.
 
 - **Gesture gate, corpse-looting gate registered, r2 classified, r3 issued
   (2026-09-13):** three commits on `fix/offline-harness-contracts` after
