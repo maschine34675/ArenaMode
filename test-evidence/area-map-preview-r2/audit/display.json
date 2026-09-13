@@ -1,0 +1,56 @@
+{
+  "testId": "area-map-preview-r2",
+  "date": "2026-09-13",
+  "original": {
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "aspectLabel": "16:9",
+    "mode": "Borderless",
+    "dlss": "Balanced"
+  },
+  "temporary": {
+    "resolution": {
+      "width": 1904,
+      "height": 993
+    },
+    "aspectLabel": "19:10",
+    "mode": "Windowed",
+    "captureDimensions": {
+      "width": 1906,
+      "height": 1025
+    },
+    "configSnapshotSHA256": "3B2EEB83BCE53C663C510A977A503703676EE4BD4A1770C02A3413C3C9B6B583"
+  },
+  "restored": true,
+  "scaling": {
+    "status": "UNTESTED",
+    "reason": "No explicit Scale/Scaling/Interface value found by read-only inspection of Graphics.ini and Game.ini; no assumption of 100 percent."
+  },
+  "unavailable": [
+    {
+      "resolution": "1280x720",
+      "status": "UNTESTED"
+    },
+    {
+      "resolution": "1600x900",
+      "status": "UNTESTED"
+    }
+  ],
+  "nativeObservations": [
+    "Original dropdown offered only 1920x1080 (56).",
+    "Windowed dropdown offered only 1904x993 (64).",
+    "Native corner resize attempt (66) had no effect; no smaller resolution claimed.",
+    "Graphics.ini after cleanup is byte-identical to baseline."
+  ],
+  "transportIncident": {
+    "attemptNumber": 59,
+    "error": "unknown screenshotId screenshot-0",
+    "observation": "Input success not established. Fresh image 60 showed timed auto-revert to original Borderless. Native retry 62 and keyboard y 63 confirmed Windowed."
+  },
+  "video": {
+    "status": "UNTESTED",
+    "reason": "Documented native surface supports screenshots; no recording API available. Timed states do not prove frame-by-frame flicker-free rendering."
+  }
+}

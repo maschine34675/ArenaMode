@@ -1,0 +1,977 @@
+[
+  {
+    "name": "07-original-graphics",
+    "requestedAt": "2026-09-13T11:01:40.317Z",
+    "savedAt": "2026-09-13T11:01:41.121Z",
+    "files": [
+      {
+        "file": "07-original-graphics-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "00B2F2B94AC052DDF45CE1A84EC906D218A62A19E2E9CA0415166CBA8C32CAC9"
+      }
+    ]
+  },
+  {
+    "name": "12-team-dm",
+    "requestedAt": "2026-09-13T11:02:20.593Z",
+    "savedAt": "2026-09-13T11:02:21.369Z",
+    "files": [
+      {
+        "file": "12-team-dm-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "0F53ABF8CD8EA269F4867B41FE12BBEAB620DB4D719AEDDEBEB437E10C98EC5B"
+      }
+    ]
+  },
+  {
+    "name": "13-center-regression-baseline",
+    "requestedAt": "2026-09-13T11:02:27.283Z",
+    "savedAt": "2026-09-13T11:02:28.123Z",
+    "files": [
+      {
+        "file": "13-center-regression-baseline-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "04AA9277E4AD1578713C0F0EA37B060BFF1D703B9DC1E031B8D3362DA7AB6746"
+      }
+    ]
+  },
+  {
+    "name": "14-east-single-click",
+    "requestedAt": "2026-09-13T11:02:35.164Z",
+    "savedAt": "2026-09-13T11:02:35.902Z",
+    "files": [
+      {
+        "file": "14-east-single-click-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "3B9367D7E91AEF7423143DF4BAFA41668D3D3AD3EF9AAAEE01986C3AC0446E11"
+      }
+    ]
+  },
+  {
+    "name": "15-east-after-fifteen-seconds",
+    "requestedAt": "2026-09-13T11:03:08.842Z",
+    "savedAt": "2026-09-13T11:03:08.962Z",
+    "files": [
+      {
+        "file": "15-east-after-fifteen-seconds-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "86DE28A4AE7E94E40BD57464093E2D2BD20EDFE98405CE9991003EBEBFA02599"
+      }
+    ]
+  },
+  {
+    "name": "16-center-contour-area",
+    "requestedAt": "2026-09-13T11:03:20.844Z",
+    "savedAt": "2026-09-13T11:03:21.530Z",
+    "files": [
+      {
+        "file": "16-center-contour-area-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "252BF70ECA19C828AEF9DAD7E740068491A74F727E7370ADA44CB3C4FA9E5C75"
+      }
+    ]
+  },
+  {
+    "name": "17-team-starts-area",
+    "requestedAt": "2026-09-13T11:03:28.414Z",
+    "savedAt": "2026-09-13T11:03:29.128Z",
+    "files": [
+      {
+        "file": "17-team-starts-area-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "582C33D22E1E9E0C72DB012B95E4D38F121B7CB4A95FA699375EEEA0A5F30BDF"
+      }
+    ]
+  },
+  {
+    "name": "18-east-return-fixed-two",
+    "requestedAt": "2026-09-13T11:03:35.632Z",
+    "savedAt": "2026-09-13T11:03:36.345Z",
+    "files": [
+      {
+        "file": "18-east-return-fixed-two-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "696D1633DF587D1D3A51CAD75FA0FA36254822B1192CCE448DF3FCB6EE08F9DC"
+      }
+    ]
+  },
+  {
+    "name": "19-rectangle-row-effect",
+    "requestedAt": "2026-09-13T11:03:51.530Z",
+    "savedAt": "2026-09-13T11:03:52.282Z",
+    "files": [
+      {
+        "file": "19-rectangle-row-effect-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "DF9047D8192A0BE19432CCB98FF57F17F3647FA02B316E60D81CF8434C221BD9"
+      }
+    ]
+  },
+  {
+    "name": "20-east-detail",
+    "requestedAt": "2026-09-13T11:03:59.315Z",
+    "savedAt": "2026-09-13T11:04:00.031Z",
+    "files": [
+      {
+        "file": "20-east-detail-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "98C5E9C7BB9AF7B24619A366DD5EA5BEAFBD7776B8340C62AF45A359BC8035BA"
+      }
+    ]
+  },
+  {
+    "name": "21-east-overview",
+    "requestedAt": "2026-09-13T11:04:07.170Z",
+    "savedAt": "2026-09-13T11:04:07.937Z",
+    "files": [
+      {
+        "file": "21-east-overview-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "CA5F84FCCF1F96D8D58291A2180AD7396ADEC1420CDA09940B8E3A2847D0D5BB"
+      }
+    ]
+  },
+  {
+    "name": "22-east-area-restored",
+    "requestedAt": "2026-09-13T11:04:17.252Z",
+    "savedAt": "2026-09-13T11:04:17.997Z",
+    "files": [
+      {
+        "file": "22-east-area-restored-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "71A0DC2E62F743FC30752BFE8183FD4F612A37D4DB04D1C85BE43A6E15234B25"
+      }
+    ]
+  },
+  {
+    "name": "23-center-detail",
+    "requestedAt": "2026-09-13T11:04:28.323Z",
+    "savedAt": "2026-09-13T11:04:29.120Z",
+    "files": [
+      {
+        "file": "23-center-detail-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "2429FEDCA2A4A32C108009FB934EE88CFEEEFE68166AA6A048443F440E10FE29"
+      }
+    ]
+  },
+  {
+    "name": "24-center-overview",
+    "requestedAt": "2026-09-13T11:04:35.876Z",
+    "savedAt": "2026-09-13T11:04:36.622Z",
+    "files": [
+      {
+        "file": "24-center-overview-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "60EC21827A3B394D97DF4F1642AD302E8259E49FF1DF8B14CED01DEE09A66FBE"
+      }
+    ]
+  },
+  {
+    "name": "25-center-area-restored",
+    "requestedAt": "2026-09-13T11:04:58.500Z",
+    "savedAt": "2026-09-13T11:04:59.254Z",
+    "files": [
+      {
+        "file": "25-center-area-restored-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "0B26086025D3E4276FAE12580D25DE9E211EB0060CF237C193FE5B42CF225682"
+      }
+    ]
+  },
+  {
+    "name": "26-toggle-overview-one",
+    "requestedAt": "2026-09-13T11:05:19.626Z",
+    "savedAt": "2026-09-13T11:05:20.394Z",
+    "files": [
+      {
+        "file": "26-toggle-overview-one-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "D5CE53E75F782E268321BAC67919485A1A19341DFF6E9DB63979AC28FC42A3DA"
+      }
+    ]
+  },
+  {
+    "name": "27-toggle-area-one",
+    "requestedAt": "2026-09-13T11:08:24.133Z",
+    "savedAt": "2026-09-13T11:08:24.873Z",
+    "files": [
+      {
+        "file": "27-toggle-area-one-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "20B2F71899C92B09A6CF5FEB43A58F0329E35179BE285FBFE74FC142D7DEAFAF"
+      }
+    ]
+  },
+  {
+    "name": "28-toggle-overview-two",
+    "requestedAt": "2026-09-13T11:08:33.288Z",
+    "savedAt": "2026-09-13T11:08:33.936Z",
+    "files": [
+      {
+        "file": "28-toggle-overview-two-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "3E6AE9F12F17563C3DA4F7B57549A697E2891CB80B0B4D9958FB8B203D510280"
+      }
+    ]
+  },
+  {
+    "name": "29-toggle-area-two",
+    "requestedAt": "2026-09-13T11:08:39.971Z",
+    "savedAt": "2026-09-13T11:08:40.686Z",
+    "files": [
+      {
+        "file": "29-toggle-area-two-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "A92961CBA4C1CE7900C6ABA8A9ACDB5FA0F26B55E3BDAECCA804BEEBDA396E8B"
+      }
+    ]
+  },
+  {
+    "name": "30-toggle-overview-three",
+    "requestedAt": "2026-09-13T11:08:49.815Z",
+    "savedAt": "2026-09-13T11:08:50.622Z",
+    "files": [
+      {
+        "file": "30-toggle-overview-three-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "2A67EBA38D838A01D1499A8221784D3DC80A21C0662285865297ECD3238F6190"
+      }
+    ]
+  },
+  {
+    "name": "31-overview-after-fifteen-seconds",
+    "requestedAt": "2026-09-13T11:09:17.540Z",
+    "savedAt": "2026-09-13T11:09:17.663Z",
+    "files": [
+      {
+        "file": "31-overview-after-fifteen-seconds-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "C0EB75561A89725CF780134D30EC0D24761BEAF5DFFFF27C6BC5E612C282419F"
+      }
+    ]
+  },
+  {
+    "name": "32-team-starts-reset-area",
+    "requestedAt": "2026-09-13T11:09:25.533Z",
+    "savedAt": "2026-09-13T11:09:26.252Z",
+    "files": [
+      {
+        "file": "32-team-starts-reset-area-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "59178EC36581823C484A72F5840F3479E4FEB1A4DFC617B0569B22A89ABEFFB2"
+      }
+    ]
+  },
+  {
+    "name": "33-team-size-two",
+    "requestedAt": "2026-09-13T11:09:32.252Z",
+    "savedAt": "2026-09-13T11:09:33.002Z",
+    "files": [
+      {
+        "file": "33-team-size-two-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "E9B8482AF0E4138F3BC804879836CB4B36DBEC84359AE6B854B60042941C4467"
+      }
+    ]
+  },
+  {
+    "name": "34-team-size-three",
+    "requestedAt": "2026-09-13T11:09:38.970Z",
+    "savedAt": "2026-09-13T11:09:39.719Z",
+    "files": [
+      {
+        "file": "34-team-size-three-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "A262C9E2701F7A6FBAA7E2C705C3419D3307ABB367030260332BC721A09D4CF8"
+      }
+    ]
+  },
+  {
+    "name": "35-team-size-four",
+    "requestedAt": "2026-09-13T11:09:47.845Z",
+    "savedAt": "2026-09-13T11:09:48.527Z",
+    "files": [
+      {
+        "file": "35-team-size-four-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "845E856EC4916EEE27EFAC8F03156854CD498EDB6AF9BA163093BC8A0F2BA4CC"
+      }
+    ]
+  },
+  {
+    "name": "36-team-size-five-restored",
+    "requestedAt": "2026-09-13T11:09:57.003Z",
+    "savedAt": "2026-09-13T11:09:57.751Z",
+    "files": [
+      {
+        "file": "36-team-size-five-restored-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "C799389337985DDDD33B2AE6664C62B9A727015CABC6BD6F782AF482A9619E33"
+      }
+    ]
+  },
+  {
+    "name": "37-team-starts-overview",
+    "requestedAt": "2026-09-13T11:10:05.471Z",
+    "savedAt": "2026-09-13T11:10:06.240Z",
+    "files": [
+      {
+        "file": "37-team-starts-overview-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "00BBA01E4628458B8F9E5CFD4960CB0B42BAE53CF6E24B1C755882E4B3B4A081"
+      }
+    ]
+  },
+  {
+    "name": "38-east-fixed-two-reset-area",
+    "requestedAt": "2026-09-13T11:10:14.783Z",
+    "savedAt": "2026-09-13T11:10:15.499Z",
+    "files": [
+      {
+        "file": "38-east-fixed-two-reset-area-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "1430DE2C1082CC169D6AE64A31DD62CB3FE15CA1974E25C3D66ECC5627D29DE4"
+      }
+    ]
+  },
+  {
+    "name": "cycle-01-next-east",
+    "requestedAt": "2026-09-13T11:10:22.782Z",
+    "savedAt": "2026-09-13T11:10:23.647Z",
+    "files": [
+      {
+        "file": "cycle-01-next-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "93B92C537480CC6E52BD2BE2F1E3091507A14C32BFD2A4160DD12EA4E2B114DD"
+      }
+    ]
+  },
+  {
+    "name": "cycle-01-back-east",
+    "requestedAt": "2026-09-13T11:10:29.814Z",
+    "savedAt": "2026-09-13T11:10:30.626Z",
+    "files": [
+      {
+        "file": "cycle-01-back-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "708492579B07DAED154257FF4075DE4249FC2A77EEDA19FD36A470C09E60B097"
+      }
+    ]
+  },
+  {
+    "name": "cycle-02-select-center",
+    "requestedAt": "2026-09-13T11:10:38.976Z",
+    "savedAt": "2026-09-13T11:10:39.657Z",
+    "files": [
+      {
+        "file": "cycle-02-select-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "4EEE7930713D987C5EC0D5FF0F5366611972EE62DB6D4BF9F3075F41CAA741CE"
+      }
+    ]
+  },
+  {
+    "name": "cycle-02-next-center",
+    "requestedAt": "2026-09-13T11:10:45.627Z",
+    "savedAt": "2026-09-13T11:10:46.339Z",
+    "files": [
+      {
+        "file": "cycle-02-next-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "36E6BC14C37C1548F500ED95329814A55D3A673FA8992C7C3425D365A3680157"
+      }
+    ]
+  },
+  {
+    "name": "cycle-02-back-center",
+    "requestedAt": "2026-09-13T11:10:52.000Z",
+    "savedAt": "2026-09-13T11:10:52.780Z",
+    "files": [
+      {
+        "file": "cycle-02-back-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "9DFB2F1EDB08FCD2072B035650A492D576C8164C3538C8FC901F30696A3A1DD5"
+      }
+    ]
+  },
+  {
+    "name": "cycle-03-next-center",
+    "requestedAt": "2026-09-13T11:11:02.829Z",
+    "savedAt": "2026-09-13T11:11:03.524Z",
+    "files": [
+      {
+        "file": "cycle-03-next-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "A5FC33EFDE2BC43D3D869B036495400F3D5CEB000CED3C3795FB19E4007D993D"
+      }
+    ]
+  },
+  {
+    "name": "cycle-03-back-center",
+    "requestedAt": "2026-09-13T11:11:11.939Z",
+    "savedAt": "2026-09-13T11:11:12.687Z",
+    "files": [
+      {
+        "file": "cycle-03-back-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "457B68F71616803D3C92435FFA7C83B226FB4A99FF35C58F0693E0D43FCBCDA1"
+      }
+    ]
+  },
+  {
+    "name": "cycle-04-next-center",
+    "requestedAt": "2026-09-13T11:11:28.852Z",
+    "savedAt": "2026-09-13T11:11:29.554Z",
+    "files": [
+      {
+        "file": "cycle-04-next-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "90F27427BE07064B0060EADD76E63DDB1B8434471FCEDC107BA667D92CB8C72C"
+      }
+    ]
+  },
+  {
+    "name": "cycle-04-back-center",
+    "requestedAt": "2026-09-13T11:11:38.845Z",
+    "savedAt": "2026-09-13T11:11:39.686Z",
+    "files": [
+      {
+        "file": "cycle-04-back-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "55BE4E62ED131220B259B0AD891561C97D451108D1651C948925DC79A83438CC"
+      }
+    ]
+  },
+  {
+    "name": "cycle-05-next-center",
+    "requestedAt": "2026-09-13T11:11:46.657Z",
+    "savedAt": "2026-09-13T11:11:47.431Z",
+    "files": [
+      {
+        "file": "cycle-05-next-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "735F647EF38455A0DE3F3A07703E2B65E1C4E70F12C16C5A9C1543C34B83BED7"
+      }
+    ]
+  },
+  {
+    "name": "cycle-05-back-center",
+    "requestedAt": "2026-09-13T11:11:54.796Z",
+    "savedAt": "2026-09-13T11:11:55.532Z",
+    "files": [
+      {
+        "file": "cycle-05-back-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "D634A730F726035149370BE8ED798A9FA7452F235C17F2141239F1315B437454"
+      }
+    ]
+  },
+  {
+    "name": "cycle-06-next-center",
+    "requestedAt": "2026-09-13T11:12:01.912Z",
+    "savedAt": "2026-09-13T11:12:02.681Z",
+    "files": [
+      {
+        "file": "cycle-06-next-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "BB2EC3349BD3A4D50CB42F3B4D9E448207B1EA0FA4FD80C8CDF514D320F8AE99"
+      }
+    ]
+  },
+  {
+    "name": "cycle-06-back-center",
+    "requestedAt": "2026-09-13T11:12:12.657Z",
+    "savedAt": "2026-09-13T11:12:13.436Z",
+    "files": [
+      {
+        "file": "cycle-06-back-center-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "52310655D97DAAAC9C3C7F4F0C1486D9AC04249AA50E422139546766C2D49C8B"
+      }
+    ]
+  },
+  {
+    "name": "cycle-07-select-east",
+    "requestedAt": "2026-09-13T11:12:21.782Z",
+    "savedAt": "2026-09-13T11:12:22.467Z",
+    "files": [
+      {
+        "file": "cycle-07-select-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "05252C12696D9B3C1113E7963098A2DDA93F6FA61A0DE3EF062B30ADE6D807EE"
+      }
+    ]
+  },
+  {
+    "name": "cycle-07-next-east",
+    "requestedAt": "2026-09-13T11:12:30.094Z",
+    "savedAt": "2026-09-13T11:12:30.834Z",
+    "files": [
+      {
+        "file": "cycle-07-next-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "AA2196E0A2606BA27CFAD38FFB018B1F9FA0F92BC086852567874815C344F402"
+      }
+    ]
+  },
+  {
+    "name": "cycle-07-back-east",
+    "requestedAt": "2026-09-13T11:12:38.347Z",
+    "savedAt": "2026-09-13T11:12:39.125Z",
+    "files": [
+      {
+        "file": "cycle-07-back-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "84BF2FE0815CE3EA64B25D3F390AEE31D9134958EFCA6DAB46B50BCB592FE3F6"
+      }
+    ]
+  },
+  {
+    "name": "cycle-08-next-east",
+    "requestedAt": "2026-09-13T11:12:45.504Z",
+    "savedAt": "2026-09-13T11:12:46.278Z",
+    "files": [
+      {
+        "file": "cycle-08-next-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "D7ECBC17653187CC50425AFB3AEFF2E7D2D76257D77CB6894E870734C1306806"
+      }
+    ]
+  },
+  {
+    "name": "cycle-08-back-east",
+    "requestedAt": "2026-09-13T11:12:52.379Z",
+    "savedAt": "2026-09-13T11:12:53.159Z",
+    "files": [
+      {
+        "file": "cycle-08-back-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "8FB664FB6C55CB6CC52E8280632F672AC9C79A46BA348720DAB78371AC773C50"
+      }
+    ]
+  },
+  {
+    "name": "cycle-09-next-east",
+    "requestedAt": "2026-09-13T11:13:00.878Z",
+    "savedAt": "2026-09-13T11:13:01.587Z",
+    "files": [
+      {
+        "file": "cycle-09-next-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "11E9F4A91D8048CA9A14B350FDF3E32253E677070BCDDA56F85EB2BB38AE9600"
+      }
+    ]
+  },
+  {
+    "name": "cycle-09-back-east",
+    "requestedAt": "2026-09-13T11:13:07.787Z",
+    "savedAt": "2026-09-13T11:13:08.564Z",
+    "files": [
+      {
+        "file": "cycle-09-back-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "DBAC32D4AE9031B3FD61C77558CBD14C44ADE5823AAB641CB1F09330E3B4C335"
+      }
+    ]
+  },
+  {
+    "name": "cycle-10-next-east",
+    "requestedAt": "2026-09-13T11:13:15.106Z",
+    "savedAt": "2026-09-13T11:13:15.807Z",
+    "files": [
+      {
+        "file": "cycle-10-next-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "F31B3F39FD77DD91165A4B5113474E8DB715AE2C1CFF3DDBA8DF7D33CCC994B4"
+      }
+    ]
+  },
+  {
+    "name": "cycle-10-back-east",
+    "requestedAt": "2026-09-13T11:13:23.409Z",
+    "savedAt": "2026-09-13T11:13:24.193Z",
+    "files": [
+      {
+        "file": "cycle-10-back-east-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "F27B531C3ADBE0AF3B163CC80FB2D6591BC2AAF4FFF27339FB7CD67F5EF1950C"
+      }
+    ]
+  },
+  {
+    "name": "39-fallback-factory",
+    "requestedAt": "2026-09-13T11:13:55.503Z",
+    "savedAt": "2026-09-13T11:13:56.220Z",
+    "files": [
+      {
+        "file": "39-fallback-factory-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "DF4E1ABE0292133AE5B62AA01924BDD0ACF26F5355692E72319F42FE68CFC0BA"
+      }
+    ]
+  },
+  {
+    "name": "40-fallback-lab",
+    "requestedAt": "2026-09-13T11:14:04.564Z",
+    "savedAt": "2026-09-13T11:14:05.344Z",
+    "files": [
+      {
+        "file": "40-fallback-lab-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "94B364B46615A3238E87658F2397EE5A40E0CE4866EE6CF470DE2756F5ACB13A"
+      }
+    ]
+  },
+  {
+    "name": "41-fallback-labyrinth",
+    "requestedAt": "2026-09-13T11:14:14.256Z",
+    "savedAt": "2026-09-13T11:14:14.997Z",
+    "files": [
+      {
+        "file": "41-fallback-labyrinth-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "78D5004073EA70A689A2740BB5EB698AE07DBA64DC7DCA38BE41E32BFA4EDB3D"
+      }
+    ]
+  },
+  {
+    "name": "42-customs-expected-center-fallback",
+    "requestedAt": "2026-09-13T11:14:24.783Z",
+    "savedAt": "2026-09-13T11:14:25.497Z",
+    "files": [
+      {
+        "file": "42-customs-expected-center-fallback-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "994E9AC559C8DE283A255DA4FAB5CCA6CBE1758126F88B21C6D4E8379DCEB94B"
+      }
+    ]
+  },
+  {
+    "name": "43-east-reselected-after-fallback",
+    "requestedAt": "2026-09-13T11:14:34.633Z",
+    "savedAt": "2026-09-13T11:14:35.344Z",
+    "files": [
+      {
+        "file": "43-east-reselected-after-fallback-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "B3A405CA1E07499B1AD08D2727B66D34E1DF8290CC4B565F8386D895E0A7BBFF"
+      }
+    ]
+  },
+  {
+    "name": "47-ordinary-pmc-customs-info",
+    "requestedAt": "2026-09-13T11:15:10.911Z",
+    "savedAt": "2026-09-13T11:15:11.654Z",
+    "files": [
+      {
+        "file": "47-ordinary-pmc-customs-info-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "3D7F6B934117BCD04D6404E79138ADCBC66333D48C0F16CD65E0A0492ABC8BC8"
+      }
+    ]
+  },
+  {
+    "name": "50-ordinary-scav-map-menu",
+    "requestedAt": "2026-09-13T11:15:40.382Z",
+    "savedAt": "2026-09-13T11:15:41.281Z",
+    "files": [
+      {
+        "file": "50-ordinary-scav-map-menu-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "C6D1BBCF1CB8397821C7465A53806AC47501BBBCF6F6C4DB0C6A6C2D4ED17F6F"
+      }
+    ]
+  },
+  {
+    "name": "51-ordinary-scav-factory-info",
+    "requestedAt": "2026-09-13T11:15:50.033Z",
+    "savedAt": "2026-09-13T11:15:50.778Z",
+    "files": [
+      {
+        "file": "51-ordinary-scav-factory-info-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "FB05EF946936A6E1667EDADC247EF43CD4EC8F81C0B199E13021EA861EC10BFD"
+      }
+    ]
+  },
+  {
+    "name": "56-supported-resolutions",
+    "requestedAt": "2026-09-13T11:16:41.726Z",
+    "savedAt": "2026-09-13T11:16:42.465Z",
+    "files": [
+      {
+        "file": "56-supported-resolutions-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "9F6B46DCF2B13BFDF8D64A82EC615E549674AB40211F3C1A1B221E1F248BD473"
+      }
+    ]
+  },
+  {
+    "name": "58-windowed-resolution-probe",
+    "requestedAt": "2026-09-13T11:17:04.504Z",
+    "savedAt": "2026-09-13T11:17:06.660Z",
+    "files": [
+      {
+        "file": "58-windowed-resolution-probe-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "949753FEFB9E1B404CB211F6DF81F7C550637942B9D93BCEBF9A9E39A6D96E04"
+      }
+    ]
+  },
+  {
+    "name": "60-windowed-probe-current-state",
+    "requestedAt": "2026-09-13T11:17:23.714Z",
+    "savedAt": "2026-09-13T11:17:23.997Z",
+    "files": [
+      {
+        "file": "60-windowed-probe-current-state-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "1BFC4AD242079A5B9B3A470D0A60169B3F210023C9E69EA574CC349392E4A36D"
+      }
+    ]
+  },
+  {
+    "name": "62-windowed-retry",
+    "requestedAt": "2026-09-13T11:17:55.162Z",
+    "savedAt": "2026-09-13T11:17:57.435Z",
+    "files": [
+      {
+        "file": "62-windowed-retry-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "A9A39BEAECBCD2AE7E1669E1A2C89376E6B92826C86AED6E58BA58897A4694B1"
+      }
+    ]
+  },
+  {
+    "name": "63-keep-windowed-keyboard",
+    "requestedAt": "2026-09-13T11:18:04.970Z",
+    "savedAt": "2026-09-13T11:18:07.255Z",
+    "files": [
+      {
+        "file": "63-keep-windowed-keyboard-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "11CA40C8156DB72EC0D429DA0CDE2A5A843CC38A035AAB6FC09E2700FED0F04C"
+      }
+    ]
+  },
+  {
+    "name": "64-windowed-resolution-options",
+    "requestedAt": "2026-09-13T11:18:16.422Z",
+    "savedAt": "2026-09-13T11:18:18.557Z",
+    "files": [
+      {
+        "file": "64-windowed-resolution-options-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "774F1C17C7401840D3F5045BE661F62275231E1DB8DFFB5D72654B98C5CE35F2"
+      }
+    ]
+  },
+  {
+    "name": "66-smaller-window-native-resize",
+    "requestedAt": "2026-09-13T11:19:05.788Z",
+    "savedAt": "2026-09-13T11:19:07.941Z",
+    "files": [
+      {
+        "file": "66-smaller-window-native-resize-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "9A61524C6A53F98998695BB92ABC07FFEC398A0D85556BB13CDDDEE98BFCBE4F"
+      }
+    ]
+  },
+  {
+    "name": "71-windowed-customs-rectangle",
+    "requestedAt": "2026-09-13T11:19:58.411Z",
+    "savedAt": "2026-09-13T11:20:00.540Z",
+    "files": [
+      {
+        "file": "71-windowed-customs-rectangle-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "C7DF44C0A3AC208EA13067836FCA8FD2B4AE54D2613ECD1AE596DC76C3BEBCA6"
+      }
+    ]
+  },
+  {
+    "name": "72-windowed-east-area",
+    "requestedAt": "2026-09-13T11:20:08.850Z",
+    "savedAt": "2026-09-13T11:20:10.940Z",
+    "files": [
+      {
+        "file": "72-windowed-east-area-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "51E580BAAB1C5096BC40C70C0CCC66CD85308C96C6E08C2C3A7551DD2F012267"
+      }
+    ]
+  },
+  {
+    "name": "73-windowed-east-overview",
+    "requestedAt": "2026-09-13T11:20:19.037Z",
+    "savedAt": "2026-09-13T11:20:21.193Z",
+    "files": [
+      {
+        "file": "73-windowed-east-overview-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "12F55B98A801C09A65CF3E72B6065F69C0FC6898DD6CA67C2F3D7A91220933B4"
+      }
+    ]
+  },
+  {
+    "name": "74-windowed-center-area",
+    "requestedAt": "2026-09-13T11:20:29.101Z",
+    "savedAt": "2026-09-13T11:20:31.226Z",
+    "files": [
+      {
+        "file": "74-windowed-center-area-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "A4A71FA4DBCC6843CB1D5CACB570A6A5D8D7E90C29414AB66180019770729F2E"
+      }
+    ]
+  },
+  {
+    "name": "75-windowed-center-overview",
+    "requestedAt": "2026-09-13T11:20:41.352Z",
+    "savedAt": "2026-09-13T11:20:43.505Z",
+    "files": [
+      {
+        "file": "75-windowed-center-overview-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "AC9C9FECC8C9D34F65B48B8538E1F8C1F3B52EF2ADB43ADDB5B9FECDD9411ABD"
+      }
+    ]
+  },
+  {
+    "name": "76-windowed-team-starts-controls",
+    "requestedAt": "2026-09-13T11:20:57.975Z",
+    "savedAt": "2026-09-13T11:21:00.066Z",
+    "files": [
+      {
+        "file": "76-windowed-team-starts-controls-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "E2CAA41543BF71D93B783696A17DF6B63A0DBAB9A6A97C3CAC37466DE331F5CF"
+      }
+    ]
+  },
+  {
+    "name": "77-restore-original-center-area",
+    "requestedAt": "2026-09-13T11:21:07.568Z",
+    "savedAt": "2026-09-13T11:21:09.661Z",
+    "files": [
+      {
+        "file": "77-restore-original-center-area-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "FE3C9F5A2E6EBABB172821048B96274CC289993DA50992B0AFAEFD5ECAB7D271"
+      }
+    ]
+  },
+  {
+    "name": "78-restore-original-deathmatch-mode",
+    "requestedAt": "2026-09-13T11:21:19.665Z",
+    "savedAt": "2026-09-13T11:21:21.786Z",
+    "files": [
+      {
+        "file": "78-restore-original-deathmatch-mode-0.jpg",
+        "width": 1906,
+        "height": 1025,
+        "sha256": "CB2DADDA92E4F12E29113B428AE6EFAB1C5D403BA6DB71B592028849184EF809"
+      }
+    ]
+  },
+  {
+    "name": "85-confirm-original-display",
+    "requestedAt": "2026-09-13T11:22:51.710Z",
+    "savedAt": "2026-09-13T11:22:52.471Z",
+    "files": [
+      {
+        "file": "85-confirm-original-display-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "EE20C782578BE6EE3052D0783A64F94C17CCFE14754DFC0F1CC7E4ED314EB6A0"
+      }
+    ]
+  },
+  {
+    "name": "86-save-original-display-main-menu",
+    "requestedAt": "2026-09-13T11:23:01.692Z",
+    "savedAt": "2026-09-13T11:23:02.596Z",
+    "files": [
+      {
+        "file": "86-save-original-display-main-menu-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "79F294AA3A7F8BD1B0E65BA03FD0182CC4746CCF8F496B07893B2AF238E77EAC"
+      }
+    ]
+  }
+]

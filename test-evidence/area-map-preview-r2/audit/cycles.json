@@ -1,0 +1,531 @@
+{
+  "completed": 10,
+  "centerCycles": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "eastCycles": [
+    1,
+    7,
+    8,
+    9,
+    10
+  ],
+  "actions": [
+    {
+      "name": "cycle-01-next-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:10:22.685Z",
+      "resolvedAt": "2026-09-13T11:10:22.781Z"
+    },
+    {
+      "name": "cycle-01-back-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:10:29.698Z",
+      "resolvedAt": "2026-09-13T11:10:29.813Z"
+    },
+    {
+      "name": "cycle-02-select-center",
+      "kind": "click",
+      "arg": {
+        "x": 237,
+        "y": 747
+      },
+      "at": "2026-09-13T11:10:38.876Z",
+      "resolvedAt": "2026-09-13T11:10:38.969Z"
+    },
+    {
+      "name": "cycle-02-next-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:10:45.530Z",
+      "resolvedAt": "2026-09-13T11:10:45.626Z"
+    },
+    {
+      "name": "cycle-02-back-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:10:51.904Z",
+      "resolvedAt": "2026-09-13T11:10:51.999Z"
+    },
+    {
+      "name": "cycle-03-next-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:11:02.728Z",
+      "resolvedAt": "2026-09-13T11:11:02.816Z"
+    },
+    {
+      "name": "cycle-03-back-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:11:11.856Z",
+      "resolvedAt": "2026-09-13T11:11:11.938Z"
+    },
+    {
+      "name": "cycle-04-next-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:11:28.756Z",
+      "resolvedAt": "2026-09-13T11:11:28.844Z"
+    },
+    {
+      "name": "cycle-04-back-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:11:38.752Z",
+      "resolvedAt": "2026-09-13T11:11:38.844Z"
+    },
+    {
+      "name": "cycle-05-next-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:11:46.567Z",
+      "resolvedAt": "2026-09-13T11:11:46.656Z"
+    },
+    {
+      "name": "cycle-05-back-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:11:54.685Z",
+      "resolvedAt": "2026-09-13T11:11:54.784Z"
+    },
+    {
+      "name": "cycle-06-next-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:12:01.812Z",
+      "resolvedAt": "2026-09-13T11:12:01.905Z"
+    },
+    {
+      "name": "cycle-06-back-center",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:12:12.576Z",
+      "resolvedAt": "2026-09-13T11:12:12.656Z"
+    },
+    {
+      "name": "cycle-07-select-east",
+      "kind": "click",
+      "arg": {
+        "x": 237,
+        "y": 807
+      },
+      "at": "2026-09-13T11:12:21.677Z",
+      "resolvedAt": "2026-09-13T11:12:21.781Z"
+    },
+    {
+      "name": "cycle-07-next-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:12:29.978Z",
+      "resolvedAt": "2026-09-13T11:12:30.093Z"
+    },
+    {
+      "name": "cycle-07-back-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:12:38.269Z",
+      "resolvedAt": "2026-09-13T11:12:38.346Z"
+    },
+    {
+      "name": "cycle-08-next-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:12:45.414Z",
+      "resolvedAt": "2026-09-13T11:12:45.501Z"
+    },
+    {
+      "name": "cycle-08-back-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:12:52.283Z",
+      "resolvedAt": "2026-09-13T11:12:52.378Z"
+    },
+    {
+      "name": "cycle-09-next-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:13:00.784Z",
+      "resolvedAt": "2026-09-13T11:13:00.876Z"
+    },
+    {
+      "name": "cycle-09-back-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:13:07.685Z",
+      "resolvedAt": "2026-09-13T11:13:07.784Z"
+    },
+    {
+      "name": "cycle-10-next-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 942
+      },
+      "at": "2026-09-13T11:13:14.996Z",
+      "resolvedAt": "2026-09-13T11:13:15.094Z"
+    },
+    {
+      "name": "cycle-10-back-east",
+      "kind": "click",
+      "arg": {
+        "x": 960,
+        "y": 1013
+      },
+      "at": "2026-09-13T11:13:23.326Z",
+      "resolvedAt": "2026-09-13T11:13:23.408Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "cycle-01-next-east",
+      "requestedAt": "2026-09-13T11:10:22.782Z",
+      "savedAt": "2026-09-13T11:10:23.647Z",
+      "files": [
+        {
+          "file": "cycle-01-next-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "93B92C537480CC6E52BD2BE2F1E3091507A14C32BFD2A4160DD12EA4E2B114DD"
+        }
+      ]
+    },
+    {
+      "name": "cycle-01-back-east",
+      "requestedAt": "2026-09-13T11:10:29.814Z",
+      "savedAt": "2026-09-13T11:10:30.626Z",
+      "files": [
+        {
+          "file": "cycle-01-back-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "708492579B07DAED154257FF4075DE4249FC2A77EEDA19FD36A470C09E60B097"
+        }
+      ]
+    },
+    {
+      "name": "cycle-02-select-center",
+      "requestedAt": "2026-09-13T11:10:38.976Z",
+      "savedAt": "2026-09-13T11:10:39.657Z",
+      "files": [
+        {
+          "file": "cycle-02-select-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "4EEE7930713D987C5EC0D5FF0F5366611972EE62DB6D4BF9F3075F41CAA741CE"
+        }
+      ]
+    },
+    {
+      "name": "cycle-02-next-center",
+      "requestedAt": "2026-09-13T11:10:45.627Z",
+      "savedAt": "2026-09-13T11:10:46.339Z",
+      "files": [
+        {
+          "file": "cycle-02-next-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "36E6BC14C37C1548F500ED95329814A55D3A673FA8992C7C3425D365A3680157"
+        }
+      ]
+    },
+    {
+      "name": "cycle-02-back-center",
+      "requestedAt": "2026-09-13T11:10:52.000Z",
+      "savedAt": "2026-09-13T11:10:52.780Z",
+      "files": [
+        {
+          "file": "cycle-02-back-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "9DFB2F1EDB08FCD2072B035650A492D576C8164C3538C8FC901F30696A3A1DD5"
+        }
+      ]
+    },
+    {
+      "name": "cycle-03-next-center",
+      "requestedAt": "2026-09-13T11:11:02.829Z",
+      "savedAt": "2026-09-13T11:11:03.524Z",
+      "files": [
+        {
+          "file": "cycle-03-next-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "A5FC33EFDE2BC43D3D869B036495400F3D5CEB000CED3C3795FB19E4007D993D"
+        }
+      ]
+    },
+    {
+      "name": "cycle-03-back-center",
+      "requestedAt": "2026-09-13T11:11:11.939Z",
+      "savedAt": "2026-09-13T11:11:12.687Z",
+      "files": [
+        {
+          "file": "cycle-03-back-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "457B68F71616803D3C92435FFA7C83B226FB4A99FF35C58F0693E0D43FCBCDA1"
+        }
+      ]
+    },
+    {
+      "name": "cycle-04-next-center",
+      "requestedAt": "2026-09-13T11:11:28.852Z",
+      "savedAt": "2026-09-13T11:11:29.554Z",
+      "files": [
+        {
+          "file": "cycle-04-next-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "90F27427BE07064B0060EADD76E63DDB1B8434471FCEDC107BA667D92CB8C72C"
+        }
+      ]
+    },
+    {
+      "name": "cycle-04-back-center",
+      "requestedAt": "2026-09-13T11:11:38.845Z",
+      "savedAt": "2026-09-13T11:11:39.686Z",
+      "files": [
+        {
+          "file": "cycle-04-back-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "55BE4E62ED131220B259B0AD891561C97D451108D1651C948925DC79A83438CC"
+        }
+      ]
+    },
+    {
+      "name": "cycle-05-next-center",
+      "requestedAt": "2026-09-13T11:11:46.657Z",
+      "savedAt": "2026-09-13T11:11:47.431Z",
+      "files": [
+        {
+          "file": "cycle-05-next-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "735F647EF38455A0DE3F3A07703E2B65E1C4E70F12C16C5A9C1543C34B83BED7"
+        }
+      ]
+    },
+    {
+      "name": "cycle-05-back-center",
+      "requestedAt": "2026-09-13T11:11:54.796Z",
+      "savedAt": "2026-09-13T11:11:55.532Z",
+      "files": [
+        {
+          "file": "cycle-05-back-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "D634A730F726035149370BE8ED798A9FA7452F235C17F2141239F1315B437454"
+        }
+      ]
+    },
+    {
+      "name": "cycle-06-next-center",
+      "requestedAt": "2026-09-13T11:12:01.912Z",
+      "savedAt": "2026-09-13T11:12:02.681Z",
+      "files": [
+        {
+          "file": "cycle-06-next-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "BB2EC3349BD3A4D50CB42F3B4D9E448207B1EA0FA4FD80C8CDF514D320F8AE99"
+        }
+      ]
+    },
+    {
+      "name": "cycle-06-back-center",
+      "requestedAt": "2026-09-13T11:12:12.657Z",
+      "savedAt": "2026-09-13T11:12:13.436Z",
+      "files": [
+        {
+          "file": "cycle-06-back-center-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "52310655D97DAAAC9C3C7F4F0C1486D9AC04249AA50E422139546766C2D49C8B"
+        }
+      ]
+    },
+    {
+      "name": "cycle-07-select-east",
+      "requestedAt": "2026-09-13T11:12:21.782Z",
+      "savedAt": "2026-09-13T11:12:22.467Z",
+      "files": [
+        {
+          "file": "cycle-07-select-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "05252C12696D9B3C1113E7963098A2DDA93F6FA61A0DE3EF062B30ADE6D807EE"
+        }
+      ]
+    },
+    {
+      "name": "cycle-07-next-east",
+      "requestedAt": "2026-09-13T11:12:30.094Z",
+      "savedAt": "2026-09-13T11:12:30.834Z",
+      "files": [
+        {
+          "file": "cycle-07-next-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "AA2196E0A2606BA27CFAD38FFB018B1F9FA0F92BC086852567874815C344F402"
+        }
+      ]
+    },
+    {
+      "name": "cycle-07-back-east",
+      "requestedAt": "2026-09-13T11:12:38.347Z",
+      "savedAt": "2026-09-13T11:12:39.125Z",
+      "files": [
+        {
+          "file": "cycle-07-back-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "84BF2FE0815CE3EA64B25D3F390AEE31D9134958EFCA6DAB46B50BCB592FE3F6"
+        }
+      ]
+    },
+    {
+      "name": "cycle-08-next-east",
+      "requestedAt": "2026-09-13T11:12:45.504Z",
+      "savedAt": "2026-09-13T11:12:46.278Z",
+      "files": [
+        {
+          "file": "cycle-08-next-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "D7ECBC17653187CC50425AFB3AEFF2E7D2D76257D77CB6894E870734C1306806"
+        }
+      ]
+    },
+    {
+      "name": "cycle-08-back-east",
+      "requestedAt": "2026-09-13T11:12:52.379Z",
+      "savedAt": "2026-09-13T11:12:53.159Z",
+      "files": [
+        {
+          "file": "cycle-08-back-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "8FB664FB6C55CB6CC52E8280632F672AC9C79A46BA348720DAB78371AC773C50"
+        }
+      ]
+    },
+    {
+      "name": "cycle-09-next-east",
+      "requestedAt": "2026-09-13T11:13:00.878Z",
+      "savedAt": "2026-09-13T11:13:01.587Z",
+      "files": [
+        {
+          "file": "cycle-09-next-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "11E9F4A91D8048CA9A14B350FDF3E32253E677070BCDDA56F85EB2BB38AE9600"
+        }
+      ]
+    },
+    {
+      "name": "cycle-09-back-east",
+      "requestedAt": "2026-09-13T11:13:07.787Z",
+      "savedAt": "2026-09-13T11:13:08.564Z",
+      "files": [
+        {
+          "file": "cycle-09-back-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "DBAC32D4AE9031B3FD61C77558CBD14C44ADE5823AAB641CB1F09330E3B4C335"
+        }
+      ]
+    },
+    {
+      "name": "cycle-10-next-east",
+      "requestedAt": "2026-09-13T11:13:15.106Z",
+      "savedAt": "2026-09-13T11:13:15.807Z",
+      "files": [
+        {
+          "file": "cycle-10-next-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "F31B3F39FD77DD91165A4B5113474E8DB715AE2C1CFF3DDBA8DF7D33CCC994B4"
+        }
+      ]
+    },
+    {
+      "name": "cycle-10-back-east",
+      "requestedAt": "2026-09-13T11:13:23.409Z",
+      "savedAt": "2026-09-13T11:13:24.193Z",
+      "files": [
+        {
+          "file": "cycle-10-back-east-0.jpg",
+          "width": 1920,
+          "height": 1080,
+          "sha256": "F27B531C3ADBE0AF3B163CC80FB2D6591BC2AAF4FFF27339FB7CD67F5EF1950C"
+        }
+      ]
+    }
+  ],
+  "followingScreen": "CONFIRMATION",
+  "raidStarted": false,
+  "followersSelected": false,
+  "observed": "Preview absent on each confirmation; one preview after each Back; area retained; native controls visible."
+}

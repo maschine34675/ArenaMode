@@ -1,0 +1,484 @@
+{
+  "testId": "area-map-preview-r2",
+  "snapshotAtUtc": "2026-09-13T11:24:18.9438023Z",
+  "timeReference": "Date 2026-09-13. Client HH:mm:ss.fff are MESZ (UTC+02:00); server timestamps and ...Utc fields are UTC. Last logged event is separate from snapshot/menu-restored time.",
+  "mainMenuRestoredUtc": "2026-09-13T11:23:16.363Z",
+  "bindingGate": "PASS",
+  "hashMatches": 9,
+  "requiredVersionMatches": 4,
+  "files": [
+    {
+      "relativePath": "BepInEx/plugins/maschine-ArenaMode.Client.dll",
+      "exists": true,
+      "expectedSha256": "5D2443A237DB64A539EC2E5B0B2BDA7B0B583FF5925E32878E60EF31EDDB2C62",
+      "actualSha256": "5D2443A237DB64A539EC2E5B0B2BDA7B0B583FF5925E32878E60EF31EDDB2C62",
+      "sha256Match": true,
+      "expectedProductVersion": "0.1.0+2c0223f643e070d392a13a492411985b743c9966",
+      "actualProductVersion": "0.1.0+2c0223f643e070d392a13a492411985b743c9966",
+      "versionMatch": true
+    },
+    {
+      "relativePath": "SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+      "exists": true,
+      "expectedSha256": "A694911344BE7AC9058211EAC856B6944AA1CB16EB3AB1282ECB46403391C7B7",
+      "actualSha256": "A694911344BE7AC9058211EAC856B6944AA1CB16EB3AB1282ECB46403391C7B7",
+      "sha256Match": true,
+      "expectedProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+      "actualProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+      "versionMatch": true
+    },
+    {
+      "relativePath": "BepInEx/plugins/maschine-Redeploy.Core.dll",
+      "exists": true,
+      "expectedSha256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "actualSha256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "sha256Match": true,
+      "expectedProductVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+      "actualProductVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+      "versionMatch": true
+    },
+    {
+      "relativePath": "BepInEx/plugins/maschine-Redeploy.Client.dll",
+      "exists": true,
+      "expectedSha256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "actualSha256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "sha256Match": true,
+      "expectedProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+      "actualProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+      "versionMatch": true
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/ATTRIBUTION.md",
+      "exists": true,
+      "expectedSha256": "8DEEF9B273521141878316D9BFDDA7B6FB303E254734C893493C12A2F52E3239",
+      "actualSha256": "8DEEF9B273521141878316D9BFDDA7B6FB303E254734C893493C12A2F52E3239",
+      "sha256Match": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "versionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/customs-ground.png",
+      "exists": true,
+      "expectedSha256": "E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
+      "actualSha256": "E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
+      "sha256Match": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "versionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/MAP-SOURCES.json",
+      "exists": true,
+      "expectedSha256": "0972B7065A15A4FD96F4D0D64DD9C7CA22D47430095BE19ED2C8E049B484F7BE",
+      "actualSha256": "0972B7065A15A4FD96F4D0D64DD9C7CA22D47430095BE19ED2C8E049B484F7BE",
+      "sha256Match": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "versionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/Source/Customs-Ground_Level.svg",
+      "exists": true,
+      "expectedSha256": "5BE31C29173854F5F832C3FEA072BFD8603E27EECA2052754F3798CBF1B6B6D9",
+      "actualSha256": "5BE31C29173854F5F832C3FEA072BFD8603E27EECA2052754F3798CBF1B6B6D9",
+      "sha256Match": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "versionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/Source/Shebuka-LICENSE-MODIFIED BY ACIDPHANTASM.md",
+      "exists": true,
+      "expectedSha256": "1349A4B6148492B44F629E64EED676612E234FE9A839E4F3B277C1482C8849F1",
+      "actualSha256": "1349A4B6148492B44F629E64EED676612E234FE9A839E4F3B277C1482C8849F1",
+      "sha256Match": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "versionMatch": null
+    }
+  ],
+  "processes": [
+    {
+      "name": "EscapeFromTarkov",
+      "id": 11972,
+      "startUtc": "2026-09-13T10:59:06.9664943Z",
+      "responding": true
+    },
+    {
+      "name": "SPT.Launcher",
+      "id": 1032,
+      "startUtc": "2026-09-13T10:19:33.3302232Z",
+      "responding": true
+    },
+    {
+      "name": "SPT.Server",
+      "id": 584,
+      "startUtc": "2026-09-13T10:19:33.319369Z",
+      "responding": true
+    }
+  ],
+  "client": {
+    "firstLocal": "12:59:21.599",
+    "lastLocal": "13:21:33.602",
+    "lines": 13290,
+    "sha256": "4920BFE120F4526E21E3A0547A25702E1E4A977C53B5313F67C5104FC472AA92",
+    "severity": {
+      "warnings": 9,
+      "errors": 0,
+      "runtimeExceptionEvents": 0,
+      "warningErrorBySource": [
+        {
+          "source": "FixPluginTypesSerialization",
+          "warnings": 5,
+          "errors": 0
+        },
+        {
+          "source": "HarmonyX",
+          "warnings": 4,
+          "errors": 0
+        }
+      ]
+    },
+    "subsystems": [
+      {
+        "source": "maschine-ArenaMode",
+        "warnings": 0,
+        "errors": 0,
+        "runtimeExceptionEvents": 0
+      },
+      {
+        "source": "maschine-Redeploy",
+        "warnings": 0,
+        "errors": 0,
+        "runtimeExceptionEvents": 0
+      },
+      {
+        "source": "Redeploy.Core",
+        "warnings": 0,
+        "errors": 0,
+        "runtimeExceptionEvents": 0
+      },
+      {
+        "source": "Unity Log",
+        "warnings": 0,
+        "errors": 0,
+        "runtimeExceptionEvents": 0
+      },
+      {
+        "source": "SAIN",
+        "warnings": 0,
+        "errors": 0,
+        "runtimeExceptionEvents": 0
+      }
+    ],
+    "menuAfterStartupSnapshot": {
+      "exclusiveLowerBoundLocal": "13:01:55.625",
+      "records": 153,
+      "firstLocal": "13:01:57.287",
+      "lastLocal": "13:21:33.602",
+      "severity": {
+        "warnings": 0,
+        "errors": 0,
+        "runtimeExceptionEvents": 0,
+        "warningErrorBySource": []
+      }
+    },
+    "markers": {
+      "coreInitialized": {
+        "count": 1,
+        "records": [
+          {
+            "line": 3991,
+            "time": "12:59:36.644",
+            "level": "Info",
+            "source": "Redeploy.Core",
+            "message": "Redeploy.Core 0.9.0.0 initialized"
+          }
+        ]
+      },
+      "arenaDriver": {
+        "count": 1,
+        "records": [
+          {
+            "line": 4545,
+            "time": "12:59:39.610",
+            "level": "Info",
+            "source": "Redeploy.Core",
+            "message": "Death-interception driver registered: ArenaMode (priority 100)"
+          }
+        ]
+      },
+      "redeployDriver": {
+        "count": 1,
+        "records": [
+          {
+            "line": 7173,
+            "time": "12:59:47.597",
+            "level": "Info",
+            "source": "Redeploy.Core",
+            "message": "Death-interception driver registered: Redeploy (priority 0)"
+          }
+        ]
+      },
+      "arenaLoaded": {
+        "count": 1,
+        "records": [
+          {
+            "line": 6196,
+            "time": "12:59:43.622",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "maschine-ArenaMode 0.1.0 loaded (Redeploy.Core 0.9.0.0)"
+          }
+        ]
+      },
+      "previewUnavailable": {
+        "count": 0,
+        "records": []
+      },
+      "duplicateCanvasGroup": {
+        "count": 0,
+        "records": []
+      },
+      "duplicateComponents": {
+        "count": 0,
+        "records": []
+      },
+      "missingTextureShaderMaterial": {
+        "count": 0,
+        "records": []
+      },
+      "MissingReference": {
+        "count": 0,
+        "records": []
+      },
+      "NullReference": {
+        "count": 0,
+        "records": []
+      },
+      "menuException": {
+        "count": 0,
+        "records": []
+      },
+      "selection": {
+        "count": 20,
+        "records": [
+          {
+            "line": 13171,
+            "time": "13:02:35.226",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13174,
+            "time": "13:03:20.879",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-polygon-v1."
+          },
+          {
+            "line": 13177,
+            "time": "13:03:28.473",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-teams-v1."
+          },
+          {
+            "line": 13180,
+            "time": "13:03:35.661",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13183,
+            "time": "13:03:51.590",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-v1."
+          },
+          {
+            "line": 13186,
+            "time": "13:03:59.363",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13189,
+            "time": "13:04:28.383",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-polygon-v1."
+          },
+          {
+            "line": 13192,
+            "time": "13:09:25.589",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-teams-v1."
+          },
+          {
+            "line": 13207,
+            "time": "13:10:14.827",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13213,
+            "time": "13:10:39.009",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-polygon-v1."
+          },
+          {
+            "line": 13231,
+            "time": "13:12:21.819",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13246,
+            "time": "13:13:55.561",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: full-map."
+          },
+          {
+            "line": 13249,
+            "time": "13:14:24.828",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-v1."
+          },
+          {
+            "line": 13252,
+            "time": "13:14:34.667",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13269,
+            "time": "13:19:48.713",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: full-map."
+          },
+          {
+            "line": 13273,
+            "time": "13:19:58.458",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-v1."
+          },
+          {
+            "line": 13276,
+            "time": "13:20:08.895",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-east-polygon-v1."
+          },
+          {
+            "line": 13279,
+            "time": "13:20:29.159",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-polygon-v1."
+          },
+          {
+            "line": 13282,
+            "time": "13:20:58.013",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-teams-v1."
+          },
+          {
+            "line": 13285,
+            "time": "13:21:07.609",
+            "level": "Info",
+            "source": "maschine-ArenaMode",
+            "message": "Arena play area selected in map screen: customs-factory-center-v1."
+          }
+        ]
+      },
+      "arenaArmed": {
+        "count": 0,
+        "records": []
+      },
+      "arenaAreaArmed": {
+        "count": 0,
+        "records": []
+      },
+      "arenaActive": {
+        "count": 0,
+        "records": []
+      },
+      "arenaMatchStarted": {
+        "count": 0,
+        "records": []
+      },
+      "ordinaryRedeployConfirmed": {
+        "count": 0,
+        "records": []
+      },
+      "localRaidStartRequest": {
+        "count": 0,
+        "records": []
+      }
+    },
+    "selectionByArea": [
+      {
+        "areaId": "customs-factory-center-polygon-v1",
+        "count": 4
+      },
+      {
+        "areaId": "customs-factory-center-teams-v1",
+        "count": 3
+      },
+      {
+        "areaId": "customs-factory-center-v1",
+        "count": 4
+      },
+      {
+        "areaId": "customs-factory-east-polygon-v1",
+        "count": 7
+      },
+      {
+        "areaId": "full-map",
+        "count": 2
+      }
+    ]
+  },
+  "server": {
+    "scope": "Only bytes after pre-start r2 boundary; reused r1-process history excluded.",
+    "boundaryAtUtc": "2026-09-13T10:58:57.349Z",
+    "boundaryBytes": 106783,
+    "verifiedPrefixSha256": "B02C75A9703975ABCD7EB6E78B6E9D0890B8DFD014712501677EC28DF831D7AC",
+    "deltaBytes": 50148,
+    "deltaSha256": "232CE1FFD02D3E9E0A52BFCA326F9E1E4C632BE15093B791A4FC74E9C2134671",
+    "firstUtc": "2026-09-13 10:59:04.774",
+    "lastUtc": "2026-09-13 11:24:15.291",
+    "lines": 380,
+    "severity": {
+      "warnings": 0,
+      "errors": 0,
+      "runtimeExceptionEvents": 0,
+      "warningErrorBySource": []
+    },
+    "localRaidStartEndRequestCount": 0
+  },
+  "limitations": [
+    "Native appearance, ten navigation cycles and main-menu restoration are root-owned UI evidence; no visual PASS follows from absence of log errors.",
+    "Server delta excludes all three r1 warnings.",
+    "Nine warnings originate in fresh startup: five FixPluginTypesSerialization and four HarmonyX, separate from Arena/Redeploy/Core.",
+    "Info-level Harmony patch signatures containing Exception are registration diagnostics, not thrown runtime exceptions.",
+    "No raid markers observed; this menu-only task does not accept raid functionality.",
+    "On-disk final hashes do not alone prove loaded identity; process start continuity and prior launch binding provide the process evidence.",
+    "Public projection includes only allowlisted markers/warnings, numeric counts, build identities and process metadata; raw logs remain private."
+  ]
+}

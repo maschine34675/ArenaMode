@@ -1,0 +1,47 @@
+[
+  {
+    "screen": "39-fallback-factory",
+    "at": "2026-09-13T11:14:04.466Z",
+    "values": [
+      "GameMode = teamdeathmatch",
+      "ExperimentalArea = full-map",
+      "AreaPlayersPerTeam = 5"
+    ]
+  },
+  {
+    "screen": "40-fallback-lab",
+    "at": "2026-09-13T11:14:14.139Z",
+    "values": [
+      "GameMode = teamdeathmatch",
+      "ExperimentalArea = full-map",
+      "AreaPlayersPerTeam = 5"
+    ]
+  },
+  {
+    "screen": "41-fallback-labyrinth",
+    "at": "2026-09-13T11:14:24.624Z",
+    "values": [
+      "GameMode = teamdeathmatch",
+      "ExperimentalArea = full-map",
+      "AreaPlayersPerTeam = 5"
+    ]
+  },
+  {
+    "screen": "42-customs-expected-center-fallback",
+    "at": "2026-09-13T11:14:34.531Z",
+    "values": [
+      "GameMode = teamdeathmatch",
+      "ExperimentalArea = customs-factory-center-v1",
+      "AreaPlayersPerTeam = 5"
+    ]
+  },
+  {
+    "screen": "43-east-reselected-after-fallback",
+    "at": "2026-09-13T11:14:45.439Z",
+    "values": [
+      "GameMode = teamdeathmatch",
+      "ExperimentalArea = customs-factory-east-polygon-v1",
+      "AreaPlayersPerTeam = 5"
+    ]
+  }
+]

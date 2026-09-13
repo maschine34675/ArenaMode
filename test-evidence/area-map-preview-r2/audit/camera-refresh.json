@@ -1,0 +1,33 @@
+{
+  "beforeSHA256": "DA73C837E952C72A911A56FA68E3BFAEAE7AFBE74575D90A804829C3C2D80521",
+  "afterSHA256": "DA73C837E952C72A911A56FA68E3BFAEAE7AFBE74575D90A804829C3C2D80521",
+  "unchanged": true,
+  "lastToggle": {
+    "name": "30-toggle-overview-three",
+    "kind": "click",
+    "arg": {
+      "x": 1425,
+      "y": 234
+    },
+    "at": "2026-09-13T11:08:49.715Z",
+    "resolvedAt": "2026-09-13T11:08:49.814Z"
+  },
+  "after": {
+    "name": "31-overview-after-fifteen-seconds",
+    "requestedAt": "2026-09-13T11:09:17.540Z",
+    "savedAt": "2026-09-13T11:09:17.663Z",
+    "files": [
+      {
+        "file": "31-overview-after-fifteen-seconds-0.jpg",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "C0EB75561A89725CF780134D30EC0D24761BEAF5DFFFF27C6BC5E612C282419F"
+      }
+    ]
+  },
+  "settings": [
+    "GameMode = teamdeathmatch",
+    "ExperimentalArea = customs-factory-center-polygon-v1",
+    "AreaPlayersPerTeam = 5"
+  ]
+}

@@ -1,0 +1,40 @@
+area-map-preview-r2; 2026-09-13. All client timestamps below are MESZ (UTC+02:00). Server delta uses UTC. Raw log line numbers refer to private final-client.log.
+Snapshot UTC: 09/13/2026 11:24:18
+STARTUP MARKERS
+L3991 [12:59:36.644 MESZ] [Info:Redeploy.Core] Redeploy.Core 0.9.0.0 initialized
+L4545 [12:59:39.610 MESZ] [Info:Redeploy.Core] Death-interception driver registered: ArenaMode (priority 100)
+L7173 [12:59:47.597 MESZ] [Info:Redeploy.Core] Death-interception driver registered: Redeploy (priority 0)
+L6196 [12:59:43.622 MESZ] [Info:maschine-ArenaMode] maschine-ArenaMode 0.1.0 loaded (Redeploy.Core 0.9.0.0)
+AREA SELECTION MARKERS
+L13171 [13:02:35.226 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13174 [13:03:20.879 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-polygon-v1.
+L13177 [13:03:28.473 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-teams-v1.
+L13180 [13:03:35.661 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13183 [13:03:51.590 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-v1.
+L13186 [13:03:59.363 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13189 [13:04:28.383 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-polygon-v1.
+L13192 [13:09:25.589 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-teams-v1.
+L13207 [13:10:14.827 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13213 [13:10:39.009 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-polygon-v1.
+L13231 [13:12:21.819 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13246 [13:13:55.561 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: full-map.
+L13249 [13:14:24.828 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-v1.
+L13252 [13:14:34.667 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13269 [13:19:48.713 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: full-map.
+L13273 [13:19:58.458 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-v1.
+L13276 [13:20:08.895 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-east-polygon-v1.
+L13279 [13:20:29.159 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-polygon-v1.
+L13282 [13:20:58.013 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-teams-v1.
+L13285 [13:21:07.609 MESZ] [Info:maschine-ArenaMode] Arena play area selected in map screen: customs-factory-center-v1.
+WARNINGS - FRESH STARTUP ONLY
+L14 [12:59:21.600 MESZ] [Warning:FixPluginTypesSerialization] Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L15 [12:59:21.600 MESZ] [Warning:FixPluginTypesSerialization] Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L16 [12:59:21.600 MESZ] [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L17 [12:59:21.600 MESZ] [Warning:FixPluginTypesSerialization] Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L18 [12:59:21.600 MESZ] [Warning:FixPluginTypesSerialization] Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist.
+L3841 [12:59:36.314 MESZ] [Warning:HarmonyX] BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner).
+L7914 [12:59:55.071 MESZ] [Warning:HarmonyX] DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update().
+L9130 [13:00:00.649 MESZ] [Warning:HarmonyX] WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor().
+L12401 [13:00:09.861 MESZ] [Warning:HarmonyX] com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition).
+Runtime Error/Exception events: 0. Target preview/menu failure counts: 0. Arena raid armed/area armed/active/match start and local-raid-start request markers: 0.
+Server r2 delta only: 2026-09-13 10:59:04.774 through 2026-09-13 11:24:15.291 UTC; 0 warnings, 0 errors. Prefix SHA256: B02C75A9703975ABCD7EB6E78B6E9D0890B8DFD014712501677EC28DF831D7AC

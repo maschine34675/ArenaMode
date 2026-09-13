@@ -1,0 +1,289 @@
+{
+  "testId": "area-map-preview-r2",
+  "auditedAtUtc": "2026-09-13T11:32:58.7854793Z",
+  "scope": "Saved baseline versus saved after-settings snapshots only; baseline/index.json is provenance, not one of the eight compared settings files. No live files read or changed by this cleanup comparison.",
+  "gate": "PASS semantic cleanup",
+  "fileCount": 8,
+  "byteIdenticalCount": 6,
+  "byteDifferentCount": 2,
+  "files": [
+    {
+      "file": "client-settings.json",
+      "format": "JSON (including EFT .ini files)",
+      "beforeSha256": "51F2E50DA45AEB37887BEB09934242DFD4125012DE1B9814004F8AE7D73F7B85",
+      "afterSha256": "9A396EEED058FA7B46BB5F41DD0ADD56415C288BA6819770D643C22FA1086614",
+      "byteEqual": false,
+      "beforeLeafCount": 1535,
+      "afterLeafCount": 1536,
+      "allJsonLeafValuesEqual": false,
+      "jsonDifferenceCount": 3,
+      "jsonDifferencePaths": [
+        "/Entries/146/Description",
+        "/Entries/146/Options/5",
+        "/UpdatedAt"
+      ],
+      "entriesValueSummary": {
+        "beforeEntries": 150,
+        "afterEntries": 150,
+        "beforeUniqueSectionKeys": 150,
+        "afterUniqueSectionKeys": 150,
+        "duplicateBefore": 0,
+        "duplicateAfter": 0,
+        "valueDifferenceCount": 0,
+        "allEntriesValuesEqual": true,
+        "valueDifferencePaths": []
+      }
+    },
+    {
+      "file": "com.maschine.ArenaMode.cfg",
+      "format": "INI Section/Key",
+      "beforeSha256": "EC1E14DDBDD085FD864561DC374E9765CF8DF476474DBE52B58589C244288C26",
+      "afterSha256": "65FC354B211FD2FFAB7B5E3C8A8077923A85719E9E0A1078C861A67BA90FFEA7",
+      "byteEqual": false,
+      "beforeSectionKeyCount": 152,
+      "afterSectionKeyCount": 152,
+      "allSectionKeyValuesEqual": true,
+      "valueDifferenceCount": 0,
+      "valueDifferencePaths": [],
+      "duplicateKeysBefore": 0,
+      "duplicateKeysAfter": 0,
+      "unparsedBefore": 0,
+      "unparsedAfter": 0,
+      "changedLines": 2,
+      "allChangedLinesComments": true
+    },
+    {
+      "file": "com.maschine.Redeploy.cfg",
+      "format": "INI Section/Key",
+      "beforeSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "afterSha256": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "byteEqual": true,
+      "beforeSectionKeyCount": 7,
+      "afterSectionKeyCount": 7,
+      "allSectionKeyValuesEqual": true,
+      "valueDifferenceCount": 0,
+      "valueDifferencePaths": [],
+      "duplicateKeysBefore": 0,
+      "duplicateKeysAfter": 0,
+      "unparsedBefore": 0,
+      "unparsedAfter": 0
+    },
+    {
+      "file": "Control.ini",
+      "format": "JSON (including EFT .ini files)",
+      "beforeSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "afterSha256": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "byteEqual": true,
+      "beforeLeafCount": 464,
+      "afterLeafCount": 464,
+      "allJsonLeafValuesEqual": true,
+      "jsonDifferenceCount": 0,
+      "jsonDifferencePaths": []
+    },
+    {
+      "file": "Game.ini",
+      "format": "JSON (including EFT .ini files)",
+      "beforeSha256": "59B5039E8E9EBFF126A662EE38C785BF3F50A56FC24A361F36968E4D391E61F4",
+      "afterSha256": "59B5039E8E9EBFF126A662EE38C785BF3F50A56FC24A361F36968E4D391E61F4",
+      "byteEqual": true,
+      "beforeLeafCount": 29,
+      "afterLeafCount": 29,
+      "allJsonLeafValuesEqual": true,
+      "jsonDifferenceCount": 0,
+      "jsonDifferencePaths": []
+    },
+    {
+      "file": "Graphics.ini",
+      "format": "JSON (including EFT .ini files)",
+      "beforeSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "afterSha256": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "byteEqual": true,
+      "beforeLeafCount": 55,
+      "afterLeafCount": 55,
+      "allJsonLeafValuesEqual": true,
+      "jsonDifferenceCount": 0,
+      "jsonDifferencePaths": []
+    },
+    {
+      "file": "PostFx.ini",
+      "format": "JSON (including EFT .ini files)",
+      "beforeSha256": "5B5999B0B50F8905AA81BAC0E211F69015334288588BA26A1EA7389EBC1BAA7B",
+      "afterSha256": "5B5999B0B50F8905AA81BAC0E211F69015334288588BA26A1EA7389EBC1BAA7B",
+      "byteEqual": true,
+      "beforeLeafCount": 11,
+      "afterLeafCount": 11,
+      "allJsonLeafValuesEqual": true,
+      "jsonDifferenceCount": 0,
+      "jsonDifferencePaths": []
+    },
+    {
+      "file": "Sound.ini",
+      "format": "JSON (including EFT .ini files)",
+      "beforeSha256": "68CFFA6E08F52619AAF15FC71883DD57E87E72C545951D4F9BFBAB2A20805C0C",
+      "afterSha256": "68CFFA6E08F52619AAF15FC71883DD57E87E72C545951D4F9BFBAB2A20805C0C",
+      "byteEqual": true,
+      "beforeLeafCount": 12,
+      "afterLeafCount": 12,
+      "allJsonLeafValuesEqual": true,
+      "jsonDifferenceCount": 0,
+      "jsonDifferencePaths": []
+    }
+  ],
+  "clientSettingsEntries": {
+    "beforeEntries": 150,
+    "afterEntries": 150,
+    "beforeUniqueSectionKeys": 150,
+    "afterUniqueSectionKeys": 150,
+    "duplicateBefore": 0,
+    "duplicateAfter": 0,
+    "valueDifferenceCount": 0,
+    "allEntriesValuesEqual": true,
+    "valueDifferencePaths": []
+  },
+  "clientSettingsMetadataDifferences": [
+    {
+      "jsonPointer": "/Entries/146/Description",
+      "entry": "Team Deathmatch/ExperimentalArea",
+      "beforePresent": true,
+      "afterPresent": true,
+      "before": "Experimental bounded arena. Full-map preserves normal TDM settings. Factory South requires Factory daytime and fixes the match at 2v2. Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. Selected before loading; changes during a raid apply next match. Other modes ignore this setting. The area must pass its live navigation checks.",
+      "after": "Experimental bounded arena. Full-map preserves normal TDM settings. Factory South requires Factory daytime and fixes the match at 2v2. Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. Factory Center (contour) and Factory East (contour) use surveyed outlines with side walls only and no height restriction; both fix teams at 2v2. Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. Selected before loading; changes during a raid apply next match. Other modes ignore this setting. The area must pass its live navigation checks."
+    },
+    {
+      "jsonPointer": "/Entries/146/Options/5",
+      "entry": "Team Deathmatch/ExperimentalArea",
+      "beforePresent": false,
+      "afterPresent": true,
+      "before": null,
+      "after": "customs-factory-east-polygon-v1"
+    },
+    {
+      "jsonPointer": "/UpdatedAt",
+      "entry": null,
+      "beforePresent": true,
+      "afterPresent": true,
+      "before": "12:25:10",
+      "after": "13:21:19"
+    }
+  ],
+  "unexpectedMetadataDifferenceCount": 0,
+  "arenaCfgChangedComments": [
+    {
+      "line": 839,
+      "before": "## Experimental bounded arena. Full-map preserves normal TDM settings. Factory South requires Factory daytime and fixes the match at 2v2. Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. Selected before loading; changes during a raid apply next match. Other modes ignore this setting. The area must pass its live navigation checks.",
+      "after": "## Experimental bounded arena. Full-map preserves normal TDM settings. Factory South requires Factory daytime and fixes the match at 2v2. Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. Factory Center (contour) and Factory East (contour) use surveyed outlines with side walls only and no height restriction; both fix teams at 2v2. Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. Selected before loading; changes during a raid apply next match. Other modes ignore this setting. The area must pass its live navigation checks.",
+      "bothComments": true
+    },
+    {
+      "line": 842,
+      "before": "# Acceptable values: full-map, factory-south-v1, customs-factory-center-v1, customs-factory-center-polygon-v1, customs-factory-center-teams-v1",
+      "after": "# Acceptable values: full-map, factory-south-v1, customs-factory-center-v1, customs-factory-center-polygon-v1, customs-factory-center-teams-v1, customs-factory-east-polygon-v1",
+      "bothComments": true
+    }
+  ],
+  "selectedArenaValues": [
+    {
+      "sectionKey": "Arena/DisableLabyrinthSpawnTraps",
+      "baselineValue": "true",
+      "finalValue": "true",
+      "equal": true
+    },
+    {
+      "sectionKey": "Deathmatch/FreeForAll",
+      "baselineValue": "true",
+      "finalValue": "true",
+      "equal": true
+    },
+    {
+      "sectionKey": "Deathmatch/KillLimit",
+      "baselineValue": "0",
+      "finalValue": "0",
+      "equal": true
+    },
+    {
+      "sectionKey": "Deathmatch/LegacyRulesMigrated",
+      "baselineValue": "true",
+      "finalValue": "true",
+      "equal": true
+    },
+    {
+      "sectionKey": "Deathmatch/Rounds",
+      "baselineValue": "0",
+      "finalValue": "0",
+      "equal": true
+    },
+    {
+      "sectionKey": "Deathmatch/TimeLimitSeconds",
+      "baselineValue": "0",
+      "finalValue": "0",
+      "equal": true
+    },
+    {
+      "sectionKey": "Kits/RandomKit",
+      "baselineValue": "true",
+      "finalValue": "true",
+      "equal": true
+    },
+    {
+      "sectionKey": "Kits/SelectedKit",
+      "baselineValue": "",
+      "finalValue": "",
+      "equal": true
+    },
+    {
+      "sectionKey": "Match/GameMode",
+      "baselineValue": "deathmatch",
+      "finalValue": "deathmatch",
+      "equal": true
+    },
+    {
+      "sectionKey": "Match/RoundIntermissionSeconds",
+      "baselineValue": "15",
+      "finalValue": "15",
+      "equal": true
+    },
+    {
+      "sectionKey": "Match/RoundKillTarget",
+      "baselineValue": "15",
+      "finalValue": "15",
+      "equal": true
+    },
+    {
+      "sectionKey": "Match/RoundTimeLimitSeconds",
+      "baselineValue": "300",
+      "finalValue": "300",
+      "equal": true
+    },
+    {
+      "sectionKey": "Team Deathmatch/AreaPlayersPerTeam",
+      "baselineValue": "5",
+      "finalValue": "5",
+      "equal": true
+    },
+    {
+      "sectionKey": "Team Deathmatch/ExperimentalArea",
+      "baselineValue": "customs-factory-center-v1",
+      "finalValue": "customs-factory-center-v1",
+      "equal": true
+    },
+    {
+      "sectionKey": "Team Deathmatch/KillLimit",
+      "baselineValue": "50",
+      "finalValue": "50",
+      "equal": true
+    },
+    {
+      "sectionKey": "Team Deathmatch/PlayersPerTeam",
+      "baselineValue": "5",
+      "finalValue": "5",
+      "equal": true
+    },
+    {
+      "sectionKey": "Team Deathmatch/TimeLimitSeconds",
+      "baselineValue": "600",
+      "finalValue": "600",
+      "equal": true
+    }
+  ],
+  "privacy": "Only setting names, hashes, counts, non-profile metadata and selected Arena settings published. No profile/session IDs or profile nicknames."
+}
