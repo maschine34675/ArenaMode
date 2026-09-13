@@ -26,6 +26,31 @@ current. User-facing communication is normally German.
   Later visual checks: adjust both offsets during a raid and a visible countdown,
   reset to 0/0, and check long killfeed entries with DynamicMaps at the actual resolution.
 
+- **r3 result classified, r4 issued (2026-09-13):** `aaaf510` (Codex, on the
+  same bound build `a2fcced`). **The gesture gate is proven:** E (Customs TDM
+  5v5) had 0 `THROW`/`DROPPER` with `OnStartPeacefulMove` over the whole raid
+  (the user's session before the fix: four in five minutes), a natural death
+  with Arena respawn in 1.69 s, profile equal except the pre-declared hideout
+  timestamp. A and C reached no natural death (tester stayed put); C's
+  give-up respawn passed. Codex stopped on two SAIN error lines in C: SPT
+  gives 10 % of scavs a player name (`bot.json
+  chanceAssaultScavHasPlayerScavName`), its `CustomAiPatch` then rolls the
+  brain from `playerScavBrainType` (Factory: assault 1, bossKilla 1,
+  pmcBEAR 2, pmcUSEC 2), and SAIN 4.5.1 refuses `bossKilla` for a PlayerScav
+  (`IsAssignedBrainAllowed` → `Init SAIN ERROR, Disposing`), leaving that
+  bot on the vanilla Killa brain. SPT default vs SAIN, any raid, not ours;
+  the user may zero `bossKilla` in `playerScavBrainType`. Side finding in A
+  (ordinary raid): a PMC bot called `BotSurgicalKit.ApplyToCurrentPart` every
+  frame for 22 s (861 lines, `using=False`, part `Chest`, Surv12) —
+  `FindDamagedPart` had found the chest destroyed on a living bot and the
+  start was refused each frame; cause open, no Arena involvement. **Next GPU
+  job: `GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r4.md`** (same binding, no
+  rebuild; A' and C' with an explicit "seek death" rule — no armour, walk to
+  the bots, six-minute cap — C carries the missing E2 ground photos, D is
+  mandatory; the SAIN pair is pre-declared as counted, not stopping). The
+  working tree of `feature/area-map-preview` carries another session's
+  uncommitted map-preview work: stage only your own files.
+
 - **Gesture gate, corpse-looting gate registered, r2 classified, r3 issued
   (2026-09-13):** three commits on `fix/offline-harness-contracts` after
   Codex's r2 report `7cc2391`. `1e1ca6d` `NoBotGesturesPatch`: prefix on
