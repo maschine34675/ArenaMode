@@ -24,6 +24,9 @@ internal sealed class KillfeedView
     private const float MinLineHeight = 32f;
     private const float LineGap = 4f;
 
+    private static Vector2 Position => new Vector2(
+        24f + Settings.KillfeedOffsetX.Value, -(96f + Settings.KillfeedOffsetY.Value));
+
     private sealed class Line
     {
         public RectTransform Root;
@@ -43,7 +46,7 @@ internal sealed class KillfeedView
         _root.SetParent(hudRoot, false);
         // Leave the top-right corner free for DynamicMaps' default minimap.
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0f, 1f);
-        _root.anchoredPosition = new Vector2(24f, -96f);
+        _root.anchoredPosition = Position;
         _root.sizeDelta = new Vector2(FeedWidth, 0f);
 
         for (var i = 0; i < MaxLines; i++)
@@ -121,6 +124,15 @@ internal sealed class KillfeedView
 
     public void Tick()
     {
+        if (_root == null)
+            return;
+
+        // Settings move the complete feed, including existing rows, without
+        // resetting their fade, lifetime or individual wrapped-line layout.
+        var position = Position;
+        if (_root.anchoredPosition != position)
+            _root.anchoredPosition = position;
+
         var now = Time.unscaledTime;
         var changed = false;
         for (var i = _live.Count - 1; i >= 0; i--)

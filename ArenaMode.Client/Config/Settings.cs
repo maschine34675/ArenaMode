@@ -80,6 +80,8 @@ public static class Settings
     public static ConfigEntry<float> ScorePanelOffsetY { get; private set; }
     public static ConfigEntry<bool> ShowFriendlyMarkers { get; private set; }
     public static ConfigEntry<bool> ShowKillfeed { get; private set; }
+    public static ConfigEntry<float> KillfeedOffsetX { get; private set; }
+    public static ConfigEntry<float> KillfeedOffsetY { get; private set; }
     public static ConfigEntry<bool> KillfeedOtherKills { get; private set; }
     public static ConfigEntry<bool> ShowHitmarker { get; private set; }
     public static ConfigEntry<bool> ShowDamageNumbers { get; private set; }
@@ -1110,6 +1112,20 @@ public static class Settings
             "KillfeedOtherKills",
             false,
             "Also show bot-vs-bot kills in the killfeed.");
+
+        KillfeedOffsetX = config.Bind(
+            "HUD", "KillfeedOffsetX", 0f,
+            new ConfigDescription("Horizontal offset from the killfeed's default top-left position. " +
+                "Positive moves right, negative moves left; 0 restores the default. " +
+                "Uses scaled 1920x1080 HUD units. Applies immediately to existing and new entries.",
+                new AcceptableValueRange<float>(-500f, 1500f)));
+
+        KillfeedOffsetY = config.Bind(
+            "HUD", "KillfeedOffsetY", 0f,
+            new ConfigDescription("Vertical offset from the killfeed's default position. " +
+                "Positive moves down, negative moves up; 0 restores the default. " +
+                "Uses scaled 1920x1080 HUD units. Applies immediately to existing and new entries.",
+                new AcceptableValueRange<float>(-100f, 700f)));
 
         ShowHitmarker = config.Bind(
             "HUD",
