@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Redeploy.Core 1.0.0, Core skew check and raid-end log level (2026-09-13 evening,
+  Claude):** `6a72ddb` logs the designed first raid-end answer
+  `{restored:false, deferred:true, state:InRaid}` as Info (user request); every other
+  unacknowledged answer stays a warning, covered by new `tools/NativeMenuChecks` cases that
+  fail against both mutants. `b5011cd` stamps the Core version this client is built against
+  (`Redeploy.Core/CoreVersion.props`) and warns in Awake, plus `Chainloader.DependencyErrors`,
+  when the installed Core is older (Redeploy `9f9932d`, design 3.9/5.6). Deployed client
+  `54C2D7B72EF96535813454B5EF07B9B2919EBABFCBFF84AD8F8EAD94C3BE0DEE`
+  (`0.1.0+b5011cde01a508a6c3f0d5ac707d038eb179f589`) with Core
+  `C3DC2F125389F17FC3A171F48A973429CE859628F7375F7F63CD2AACAF2D44E3` (`1.0.0+33c79a7`),
+  Redeploy.Client `FC2F1A40…`, KillcamReplay 0.9.8 `9D3245A8…` and the dev plugin
+  `maschine-RespawnApiProbe.dll` (all scenario switches off; remove it for clean logs). The
+  server was not rebuilt and stays `70FDD6CB…` (`699df57`); `ArenaMode.Tests` was not run
+  because it redeploys the server and links none of the changed files. Consequence: the
+  installed client and Core no longer match `GPU-ARENA-POLISH-r1-BUILD.json` (its Core hash
+  was already stale since the stage-1 Core `82A7C33A…`), so `arena-polish-r1` needs a new
+  binding before a GPU run. Known unrelated breakage: `tools/ArenaWeightChecks` does not
+  compile (`MovementRuntime.cs` references `ArenaAirVault`, not linked in the tool).
+  In-game not yet tested.
 - **Area/Tactical/HUD polish and Git consolidation (2026-09-13):** user-requested
   changes are integrated on `master`. Implementation commits: HUD offsets
   `c6b78c6`, maps `7db7387`, Tactical `7d3a672`. Clean paired build source is
