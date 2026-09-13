@@ -7,12 +7,33 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Area-map r1 blocked; client-only fix and r2 released (2026-09-13):** report
+- **Area-map r2 functional menu acceptance (2026-09-13):** GPU report `b418bd4`,
+  `GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r2.md`, passes the executed native menu cases.
+  One click from Center selects East and retains it beyond 15 seconds; all four
+  areas, AREA/OVERVIEW, camera-only config stability, the team-size offer and ten
+  Next/Back cycles pass. Other maps and ordinary PMC/Scav menus retain native
+  information. No new menu/runtime errors; nine known client startup warnings,
+  zero later client warnings/errors and zero warnings/errors in the r2 server
+  delta. GPU pre/post checks bind all nine files and four ProductVersions to
+  client `2c0223f` / unchanged server `d7cde9d`; the client was freshly started,
+  the same verified r1 server process was retained. Parent review verified all
+  92 evidence hashes, the copied build binding and all nine installed D: files;
+  representative original images agree with the report. No new build/deploy.
+  Layout acceptance covers 1920x1080 Borderless and 1904x993 Windowed only;
+  smaller resolutions/UI scaling and framewise video/flicker remain untested.
+  **Zero raids:** Factory East still needs the user's independent TDM 2v2 test
+  of initial team readiness, reachable spawns/respawns, boundary and normal
+  match exit/profile restoration. Older respawn/HUD tests are not accepted by
+  this menu report. Original r1/r2 evidence and delivery-snapshot status fields
+  remain unchanged. See `AREA-MAP-PREVIEW-REVIEW.md` for the bounded acceptance.
+
+- **Historical area-map r1 block and r2 release (2026-09-13; native menu status
+  superseded by the acceptance above):** report
   `588090f` proved the nine-file/fresh-process binding and initial Center layout,
   but Factory East could not be selected. Settings omitted East in both its
   whitelist and BepInEx acceptable-value list; native selection returned false
   without an exception. Other camera/lifecycle/resolution cases and all raids
-  remain untested. Fix `2c0223f` adds East and shares the BepInEx constraint with
+  were untested at r1. Fix `2c0223f` adds East and shares the BepInEx constraint with
   menu selection; no geometry, server or profile change. Real Settings + real
   BepInEx persistence harness: 165 assertions, both historical failures
   reproduced, fixed probes and clean rerun passed. Area/menu checks 406/73/24
@@ -25,8 +46,8 @@ current. User-facing communication is normally German.
   the other eight bound DLL/assets are unchanged. Read
   `GPU-AREA-MAP-PREVIEW-TEST-INSTRUCTIONS-r2.md`, test ID `area-map-preview-r2`,
   and its exact `GPU-AREA-MAP-PREVIEW-r2-BUILD.json`. Mixed client/server IDs are
-  intentional. Restart the game after mirror/hash verification. GPU success is
-  not claimed; r1 report and evidence stay immutable. Old client backed up under
+  intentional. At delivery, GPU success was not yet claimed; the r1 report and
+  evidence stay immutable. Old client backed up under
   ignored `artifacts/area-map-deploy-r2/backup`.
 
 - **Historical r1 Customs preview + HUD deployment (2026-09-13; client and test

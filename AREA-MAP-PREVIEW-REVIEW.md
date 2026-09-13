@@ -5,8 +5,10 @@ deployment during the user's ongoing tests. The user subsequently authorized
 deployment: the clean `d7cde9d` client/server and map package were installed
 and hash-verified on D:. GPU r1 then found the selection defect below. The current
 client-only correction is `2c0223f`, with the server and assets unchanged; the
-current binding is `GPU-AREA-MAP-PREVIEW-r2-BUILD.json`. See HANDOFF for delivery
-details. Complete native preview acceptance remains outstanding.
+current binding is `GPU-AREA-MAP-PREVIEW-r2-BUILD.json`. GPU report `b418bd4`
+passes the executed native menu cases at the two documented display sizes;
+video, smaller resolutions and the new area's raid acceptance remain open.
+See HANDOFF for delivery details and the r2 acceptance below.
 The second contour was committed separately as `c7de967`.
 
 ## GPU r1 selection failure and correction
@@ -16,7 +18,7 @@ all nine file hashes and four ProductVersions matched, with fresh processes.
 The initial Center preview/layout was visible and unobscured at 1920x1080.
 Factory East was offered but two native clicks could not select it. The tester
 correctly stopped there: other contours, camera controls, lifecycle/resolution
-checks and all raids remain untested. No Arena/Unity exception accompanied the
+checks and all raids were untested at r1. No Arena/Unity exception accompanied the
 failure. Preserve `GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r1.md` and its evidence as-is.
 
 The cause was two missed settings admission sites: the handwritten whitelist in
@@ -39,11 +41,54 @@ state and catalog with the real installed BepInEx configuration implementation.
 It exercises selection, saving and fresh-file loading against scratch config
 files, including every offered ID. Its old-source control must reproduce the
 original East rejection. It does not model the GUI, network or raid engine;
-the native r2 retest still has to demonstrate a working click and preview.
+the subsequent native r2 retest demonstrates the working click and preview.
 Parent re-verification passes 165 assertions, both historical failure probes
 and the fixed-source probes. Existing area/menu checks pass 406/73/24 assertions
 and five source faults; the settings-linked TDM menu harness passes 92 assertions
 and ten source faults. Independent production/oracle review has no open finding.
+
+## GPU r2 acceptance and limits
+
+`GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r2.md` (`b418bd4`, 2026-09-13) records a
+functional native menu PASS. The initial Center-to-East click changes the
+selected row, title and polygon, logs the exact East ID and persists it in the
+configuration; a later capture still shows East about 33.9 seconds after input.
+All four area rows work. Only the team-start preset offers 2v2 through 5v5;
+fixed East 2v2 does not overwrite that preset's saved size.
+
+AREA/OVERVIEW show complete, aligned visible contours and the intended dimming
+and neighboring outlines. Five consecutive camera toggles preserve the entire
+Arena config byte-for-byte, and OVERVIEW remains selected after about 27.9
+seconds. Another area selection resets AREA. Exactly ten Next/Back cycles
+(five Center contour, five East) retain the area, remove the preview on
+CONFIRMATION and restore one visible preview on return, without observed
+duplicate controls or lost input. Other maps and ordinary PMC/Scav menus
+show their native information. These are observed states, not internal object
+counts or framewise proof.
+
+The pre/post GPU audit matches nine file hashes and four ProductVersions to
+client `2c0223f` and unchanged server `d7cde9d`. The fresh client process and
+the continuing, previously verified r1 server process are documented. Logs
+contain zero errors/runtime exceptions, zero post-startup client warnings and
+zero warnings/errors in the new server delta. Nine known client startup
+warnings remain separately recorded. Parent review rechecked all 92 evidence
+manifest entries, all nine D: installed files and the byte-identical copied
+build binding, and inspected original overview/windowed images. No production
+fix, rebuild or deployment follows from this report.
+
+Acceptance covers 1920x1080 Borderless and 1904x993 Windowed (the latter captured
+as 1906x1025 including window chrome), with DLSS Balanced. The narrower window
+is only a modest size variation; 1600x900, 1280x720 and a separate UI-scale
+change were not tested. No video was captured, so temporal flicker remains
+unverified. Native Back/Next were exercised; Ready was intentionally not used,
+and map-overlay/time controls were checked for visibility, not activated.
+
+**No raid was started.** Menu acceptance does not validate Factory East's
+native routes, team readiness, spawns/respawns, barrier or profile restoration.
+The next useful check is the user's Factory East independent TDM 2v2 raid,
+including deaths/respawns and normal match exit. Existing r1/r2 reports,
+evidence and historical delivery-manifest flags remain unchanged. This result
+does not accept unrelated older HUD, movement or respawn test cases.
 
 ## Behavior
 
@@ -118,7 +163,7 @@ not proof of native scene navigation. Existing complete in-area path readiness,
 blocking and enclosure checks still apply. See `tools/CustomsEastAreaChecks/`
 for the original draft, hashes, exact geometry and admission evidence.
 
-## Verification and remaining native acceptance
+## Offline verification and remaining raid acceptance
 
 - Area harness: 2367 assertions and four separately compiled source faults.
 - Preview harness: 1986 assertions and five separately compiled source faults,
@@ -135,9 +180,10 @@ for the original draft, hashes, exact geometry and admission evidence.
 
 Offline checks execute production geometry, mesh generation and controller
 code against external Unity/UI doubles. They do **not** prove native clipping,
-font appearance, landmark alignment or usable scene routes. The first menu GPU
-check is described in `GPU-AREA-MAP-PREVIEW-TEST-INSTRUCTIONS-r1.md`; the new area's
-actual raid/navigation acceptance remains the user's test.
+font appearance, landmark alignment or usable scene routes. The executed native
+menu checks and their limits are recorded above and in
+`GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r2.md`; the new area's actual raid/navigation
+acceptance remains the user's test.
 
 For a paired build without deployment, run:
 
