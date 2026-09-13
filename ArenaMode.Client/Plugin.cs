@@ -59,6 +59,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
+        new Bots.NoBotGesturesPatch().Enable();
         Bots.ArenaBotLifecycleSafety.Enable();
         Bots.ArenaPickupTeardownSafety.Enable();
         Bots.ArenaWeaponCallbackSafety.Enable();

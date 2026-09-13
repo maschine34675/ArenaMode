@@ -72,6 +72,7 @@ public static class Settings
     public static ConfigEntry<int> MaxCorpses { get; private set; }
     public static ConfigEntry<bool> StripCorpseGear { get; private set; }
     public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
+    public static ConfigEntry<bool> NoBotGestures { get; private set; }
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
@@ -707,6 +708,15 @@ public static class Settings
             "Arena only: replace SAIN Rat, Timmy and Coward assignments with the current preset's Normal personality. " +
             "Other personalities and SAIN preset files stay unchanged. Start a new raid when comparing this setting; " +
             "existing bots are not reassigned. PFT keeps its own follower combat behavior.");
+
+        NoBotGestures = config.Bind(
+            "Bots",
+            "NoBotGestures",
+            true,
+            "Stop bots pausing for friendly hand signals during an arena raid. Vanilla " +
+            "pairs a bot with the nearest bot of any side for a gesture, and every " +
+            "gesture throws a random item out of the bot's secure container — with " +
+            "SPT's bot loot that is a PMC's Surv12 or AFAK, left on the ground.");
 
         CorpseLightsOff = config.Bind(
             "Performance",
