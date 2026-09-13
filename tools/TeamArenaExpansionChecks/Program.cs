@@ -1274,7 +1274,8 @@ internal static class Program
 
         RequireAll(match,
             "internal event Action<ArenaAnnouncerCue> OnAnnouncerCue",
-            "internal void ReportAnnouncerCue(ArenaAnnouncerCue cue)",
+            "internal void ReportAnnouncerCue(ArenaAnnouncerCue cue, bool beginAwardRound = true)",
+            "cue == ArenaAnnouncerCue.RoundStart && beginAwardRound",
             "OnAnnouncerCue?.Invoke(cue)");
         RequireAll(announcer,
             "Array.Sort(files, CompareLoadOrder)",
@@ -2176,7 +2177,11 @@ internal static class Program
             "_squad.Count >= expected",
             "requestStillCurrent: () => epoch == _squadEpoch && _phase == Phase.Live",
             "RetireBot(bot, \"stale solo Tactical squad member\")",
-            "ArenaAnnouncerCue.RoundStart");
+            "_match.BeginAwardRound()");
+        Assert(!soloStart.Contains("ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart", StringComparison.Ordinal),
+            "solo request dispatch does not announce combat readiness");
+        RequireAll(tactical, "bot.BotState == EBotState.Active",
+            "ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart, beginAwardRound: false)");
         string soloEnd = Slice(
             tactical,
             "private void EndRound(bool won)",

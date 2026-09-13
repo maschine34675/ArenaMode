@@ -113,4 +113,12 @@ internal static class SoloTacticalRoundStartPolicy
         state.GaveUp = true;
         return SoloTacticalRoundStartDecision.StartAfterGivingUp;
     }
+
+    /// <summary>Time spent choosing a native menu action is not an active buy-phase wait.</summary>
+    public static void Pause(ref State state, float elapsedSeconds)
+    {
+        if (state.Holding && elapsedSeconds > 0f
+            && !float.IsNaN(elapsedSeconds) && !float.IsInfinity(elapsedSeconds))
+            state.HoldStartedAt += elapsedSeconds;
+    }
 }

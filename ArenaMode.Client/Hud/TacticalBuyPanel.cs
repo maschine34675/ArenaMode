@@ -1,9 +1,18 @@
 using ArenaMode.Kits;
 using ArenaMode.Modes;
 using ArenaMode.Session;
+using Comfort.Common;
+using EFT;
+using EFT.InputSystem;
+using EFT.UI.Screens;
+using HarmonyLib;
+using Redeploy.Core.Engine;
+using Redeploy.Core.GameAccess;
+using SPT.Reflection.Patching;
 using Redeploy.Core.Ui;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 
 namespace ArenaMode.Hud;
@@ -52,6 +61,65 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
     private static TacticalMode Mode =>
         ArenaSession.IsActive ? ArenaMatchService.Current?.Mode as TacticalMode : null;
 
+    internal static bool IsNativeMenuOpen => EftScreenManager.Instance != null
+        && (EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.MainMenu)
+            || EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.Settings));
+
+    internal static void ApplyInputPatch() => new CountdownEscapePatch().Enable();
+
+    private sealed class CountdownEscapePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(EftGamePlayerOwner),
+                nameof(EftGamePlayerOwner.TranslateCommand), new[] { typeof(ECommand) })
+               ?? throw new MissingMethodException("EftGamePlayerOwner.TranslateCommand");
+
+        [PatchPrefix]
+        private static bool Prefix(EftGamePlayerOwner __instance, ECommand __0,
+            ref InputNode.ETranslateResult __result)
+        {
+            if (!TryOpenCountdownMenu(__instance, __0)) return true;
+            __result = InputNode.ETranslateResult.BlockAll;
+            return false;
+        }
+    }
+
+    internal static bool TryOpenCountdownMenu(EftGamePlayerOwner owner, ECommand command)
+    {
+        // Native GamePlayerOwner.CanTranslateCommand returns false for every
+        // command on a corpse. Solo Tactical intentionally holds that exact
+        // corpse through the next buy countdown. Route only Escape around the
+        // health test, never authorize gameplay or release the death hold.
+        if (command != ECommand.Escape || Mode?.AllowsCountdownMenu != true
+            || Respawn.ArenaRespawnDriver.StandDown || RespawnEngineState.IsPipelineRunning)
+            return false;
+        try
+        {
+            var game = Singleton<AbstractGame>.Instance as LocalGame;
+            var world = Singleton<GameWorld>.Instance;
+            if (game == null || game.Status != GameStatus.Started
+                || !ArenaSession.IsExactActiveRaid(game, world)
+                || owner == null || owner.State != PlayerOwner.EState.Started
+                || !ReferenceEquals(LocalGameAccessor.GetPlayerOwner(game), owner)
+                || game.LocalPlayer == null || !game.LocalPlayer.IsYourPlayer || game.LocalPlayer.IsAI
+                || !ReferenceEquals(game.LocalPlayer, world.MainPlayer)
+                || !ReferenceEquals(owner.Player, game.LocalPlayer)
+                || !ReferenceEquals(GamePlayerOwner.MyPlayer, game.LocalPlayer)
+                || EftScreenManager.Instance == null
+                || !EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.BattleUI))
+                return false;
+
+            if (!owner.TranslateExitScreenInput(command)) return false;
+            Plugin.ModLogger.LogInfo("Tactical countdown routed Escape to the native raid menu.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Tactical countdown menu could not open: {ex.Message}");
+            return false;
+        }
+    }
+
     private void Update()
     {
         var mode = Mode;
@@ -68,6 +136,14 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         // intermission: a level-triggered check would reopen the menu in the
         // same Update that closed it, so neither Escape nor Ready would work.
         var buying = mode.InBuyPhase;
+        if (IsNativeMenuOpen)
+        {
+            if (_open) SetOpen(false);
+            // Do not reopen the buy overlay over the native menu, even when
+            // this is its first update in a newly entered buy phase.
+            if (buying) _autoOpenHandled = true;
+            return;
+        }
         if (buying && !_autoOpenHandled)
         {
             _autoOpenHandled = true;
@@ -133,7 +209,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
 
     private void OnGUI()
     {
-        if (!_open || Mode == null)
+        if (!_open || Mode == null || IsNativeMenuOpen)
             return;
 
         EnsureStyles();
@@ -144,7 +220,8 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
         {
             SetOpen(false);
-            Event.current.Use();
+            // The native input command is independently sampled. Do not claim
+            // Escape for this IMGUI window; the native menu owns that key.
             return;
         }
 
@@ -174,13 +251,9 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         // What happens if you buy nothing, said plainly. Surviving a round keeps
         // your gear, and a menu that only ever showed things to buy made that
         // look like an omission rather than the reward it is.
-        GUILayout.Label(
-            mode.Bought != null
-                ? $"Buying: {mode.Bought.Name ?? mode.Bought.Id}"
-                : mode.KeepsCurrentGear
-                    ? "Buy nothing and you keep what you are carrying."
-                    : "You have no gear — buy something or you start with the cheapest you can afford.",
-            _bodyStyle);
+        GUILayout.Label(mode.Bought != null
+            ? $"Buying: {mode.Bought.Name ?? mode.Bought.Id}"
+            : mode.NoPurchaseDescription, _bodyStyle);
 
         GUILayout.Space(8f);
 

@@ -96,7 +96,8 @@ public static partial class KitBundlePreloader
             return;
         }
 
-        var opening = KitPreloadPlan.OpeningKit(mode, false, KitCatalog.ReserveBaseKit, GunGameOpening);
+        var opening = KitPreloadPlan.OpeningKit(mode, false, KitCatalog.ReserveBaseKit, GunGameOpening,
+            Modes.TacticalMode.SelectOpeningKit);
 
         var wholeCatalogue = scope == KitPreloadScope.WholeCatalogue;
         var gunGame = string.Equals(mode, KitPreloadPlan.GunGameModeId, StringComparison.OrdinalIgnoreCase);

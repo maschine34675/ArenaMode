@@ -139,9 +139,11 @@ public sealed class ArenaMatch
     public void End()
         => RaiseSafe(Mode.OnMatchEnd, "mode.OnMatchEnd");
 
-    internal void ReportAnnouncerCue(ArenaAnnouncerCue cue)
+    internal void ReportAnnouncerCue(ArenaAnnouncerCue cue, bool beginAwardRound = true)
     {
-        if (cue == ArenaAnnouncerCue.RoundStart) BeginAwardRound();
+        // Solo Tactical resets before dispatch: early kills may precede the
+        // audible readiness cue, which must not erase their awards or chain.
+        if (cue == ArenaAnnouncerCue.RoundStart && beginAwardRound) BeginAwardRound();
         RaiseSafe(() => OnAnnouncerCue?.Invoke(cue), nameof(OnAnnouncerCue));
     }
 

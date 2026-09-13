@@ -97,7 +97,7 @@ namespace ArenaMode.Modes
     {
         public enum Phase { Staging, Buy, Live, Aftermath, Rebinding, Ended }
         internal const int TeamEnemyCount = 5;
-        internal bool _teamArena, _teamEnemiesRequested, _playerDown;
+        internal bool _teamArena, _teamEnemiesRequested, _playerDown, _soloCombatReady;
         internal Phase _phase;
         internal List<object> _squad = new();
         internal int _squadRequested;

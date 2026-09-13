@@ -11,7 +11,8 @@ source contracts that cannot be loaded without the Unity/EFT runtime. It covers
 the measured 12.728-second cold request, the full 45-second assembly window,
 three-second preflight retry, exact and partial squads, synchronous observer
 ordering, same-round retry isolation, an exact round-bound body-swap predicate,
-full combat time after the first arrival, cancellation before native body
+full combat time only after physical Active readiness, no premature fight cue,
+one logical award-round reset without another reset at readiness, cancellation before native body
 dispatch, and the buy-phase end waiting on a body swap still in flight (the
 raid-start kit swap, or a respawn after a death in the buy phase; the pure
 `SoloTacticalRoundStartPolicy` itself is covered by `ArenaMode.Tests`).

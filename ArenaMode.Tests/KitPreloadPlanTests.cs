@@ -35,25 +35,27 @@ public sealed class KitPreloadPlanTests
     public void TheOpeningKitIsAskedTheWayTheSwapAsks()
     {
         var baseKit = Kit("base");
-        var bought = Kit("bought");
         var rung = Kit("rung");
+        var tactical = Kit("tactical-opening");
 
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("endless", false, () => baseKit, Never("gun game")));
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("rounds", false, () => baseKit, Never("gun game")));
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.TeamDeathmatch, false, () => baseKit, Never("gun game")));
-        Assert.Same(rung, KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, false, Never("base"), () => rung));
-        Assert.Same(rung, KitPreloadPlan.OpeningKit("GUNGAME", false, Never("base"), () => rung));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("endless", false, () => baseKit, Never("gun game"), Never("tactical")));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit("rounds", false, () => baseKit, Never("gun game"), Never("tactical")));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.TeamDeathmatch, false, () => baseKit, Never("gun game"), Never("tactical")));
+        Assert.Same(rung, KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, false, Never("base"), () => rung, Never("tactical")));
+        Assert.Same(rung, KitPreloadPlan.OpeningKit("GUNGAME", false, Never("base"), () => rung, Never("tactical")));
 
-        // Tactical too: nothing is bought before its opening buy phase, so the
-        // first life is the base kit, never the dearest affordable one. The plan
-        // once said otherwise and warmed the wrong kit, misled by a match-start
-        // pre-selection that the buy phase cleared again before the swap asked.
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, () => baseKit, Never("gun game")));
-        Assert.NotSame(bought, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, false, () => baseKit, Never("gun game")));
+        // Tactical has a dedicated free starter supplier. Never draw a random
+        // base kit while warming it: that draw would otherwise become free gear.
+        int tacticalCalls = 0;
+        foreach (var mode in new[] { ArenaPopulationPolicy.Tactical, "TACTICAL" })
+            Assert.Same(tactical, KitPreloadPlan.OpeningKit(mode, false, Never("base"), Never("gun game"),
+                () => { tacticalCalls++; return tactical; }));
+        Assert.Equal(2, tacticalCalls);
+        Assert.Null(KitPreloadPlan.OpeningKit("tactical", false, Never("base"), Never("gun game"), () => null));
 
         // A mode nobody recognises gets the base kit — the raid-start swap does
         // the same, because KitCatalog.GetSelectedKit falls through to it.
-        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(null, false, () => baseKit, Never("gun game")));
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(null, false, () => baseKit, Never("gun game"), Never("tactical")));
     }
 
     [Fact]
@@ -62,9 +64,8 @@ public sealed class KitPreloadPlanTests
         // The base-kit supplier DRAWS the raid's random kit. A raid that keeps
         // the PMC's entry loadout must not burn that draw, so no supplier may
         // be asked at all.
-        Assert.Null(KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Tactical, true, Never("base"), Never("gun game")));
-        Assert.Null(KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, true, Never("base"), Never("gun game")));
-        Assert.Null(KitPreloadPlan.OpeningKit("endless", true, Never("base"), Never("gun game")));
+        foreach (var mode in new[] { ArenaPopulationPolicy.Tactical, "TACTICAL", KitPreloadPlan.GunGameModeId, "endless", "teamdeathmatch" })
+            Assert.Null(KitPreloadPlan.OpeningKit(mode, true, Never("base"), Never("gun game"), Never("tactical")));
     }
 
     [Fact]

@@ -160,7 +160,11 @@ internal static class ArenaMatchService
             // leave a protected vanilla raid running forever: no Tactical Tick,
             // no staging guard and no result coordinator. End it immediately as
             // no contest, preserving the original leader body and both stores.
-            if (protectedTeam || Compat.PitFireTeamCompat.HasFrozenTeamRoster)
+            // A failed solo Tactical startup must not fall through to the
+            // generic raid-start random kit either: it has no buy coordinator.
+            if (protectedTeam || Compat.PitFireTeamCompat.HasFrozenTeamRoster
+                || string.Equals(ArenaSession.ActiveMode, Shared.ArenaPopulationPolicy.Tactical,
+                    StringComparison.OrdinalIgnoreCase))
                 ScheduleFailedStartAbort(ex.GetBaseException().Message);
         }
     }

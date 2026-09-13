@@ -100,14 +100,11 @@ public static class KitPreloadPlan
 
     /// <summary>
     /// The kit the raid-start swap will hand out, asked the way the swap asks:
-    /// Gun Game the first rung of its ladder merged onto the base kit, every
-    /// other mode the base kit (the configured one or the random draw).
-    /// Tactical included, and not by accident: nothing is bought before its
-    /// opening buy phase, so its provider falls through to the base kit for
-    /// the first life and records that draw as the kit worn — the review that
-    /// found this had the plan warming the dearest affordable kit, which a
-    /// since-removed dead store at match start pre-selected and the buy phase
-    /// cleared again before the swap asked. Null means the raid does
+    /// Gun Game uses the first rung merged onto the base kit, solo Tactical
+    /// uses its deterministic free starter, and other modes use the configured
+    /// base kit or random draw. Warming a random Tactical kit would reserve an
+    /// unpurchased loadout instead of the starter actually supplied at entry.
+    /// Null means the raid does
     /// not swap at all — a protected PitFireTeam raid keeps the PMC's entry
     /// loadout — and there is nothing to warm.
     ///
@@ -119,13 +116,17 @@ public static class KitPreloadPlan
         string? mode,
         bool protectedTeamRaid,
         Func<KitDefinition?> baseKit,
-        Func<KitDefinition?> gunGameOpening)
+        Func<KitDefinition?> gunGameOpening,
+        Func<KitDefinition?> tacticalOpening)
     {
         if (protectedTeamRaid)
             return null;
 
         if (string.Equals(mode, GunGameModeId, StringComparison.OrdinalIgnoreCase))
             return gunGameOpening();
+
+        if (string.Equals(mode, ArenaPopulationPolicy.Tactical, StringComparison.OrdinalIgnoreCase))
+            return tacticalOpening();
 
         return baseKit();
     }

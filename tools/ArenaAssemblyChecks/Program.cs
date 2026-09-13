@@ -45,7 +45,10 @@ foreach (var exclude in exclusions)
 ArenaSession.IsActive = ArenaSession.Exact = true; team.IsComplete = false;
 var solo = new TacticalMode { _phase = TacticalMode.Phase.Live, _squadRequested = 3 };
 match.Mode = solo; banner.Tick(match); Check(root.activeSelf, "solo asynchronous empty squad shows waiting");
-solo._squad.Add(new object()); banner.Tick(match); Check(!root.activeSelf, "solo notice clears on first arrived opponent");
+solo._squad.Add(new object()); banner.Tick(match); Check(root.activeSelf, "solo notice remains while only one opponent has arrived");
+solo._squad.AddRange(new[] { new object(), new object() }); banner.Tick(match); Check(root.activeSelf, "solo notice remains for full arrivals until physical readiness");
+solo._soloCombatReady = true; banner.Tick(match); Check(!root.activeSelf, "solo notice clears only at combat readiness");
+solo._soloCombatReady = false;
 solo._squad.Clear(); solo._playerDown = true; banner.Tick(match); Check(!root.activeSelf, "solo death is not an assembly wait");
 match.Mode = new object(); banner.Tick(match); Check(!root.activeSelf, "unrelated modes never show notice");
 match.Mode = team; banner.Tick(match); banner.Tick(null); Check(!root.activeSelf, "detached match clears notice");

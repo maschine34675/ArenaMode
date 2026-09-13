@@ -22,13 +22,13 @@ public sealed partial class TacticalMode
             detail = $"ROUND {RoundNumber}  |  Rebuilding teams";
             return true;
         }
-        // Solo Tactical enters Live before asynchronous profiles arrive. Its
-        // existing mode policy starts combat with the first real opponent.
+        // Solo's async request uses Live as its lease, but callbacks may still
+        // be PreActive. Keep the notice until the combat-ready transition.
         if (!_teamArena && _phase == Phase.Live && !_playerDown
-            && _squadRequested > 0 && _squad.Count == 0)
+            && _squadRequested > 0 && !_soloCombatReady)
         {
             heading = "ASSEMBLING OPPONENTS";
-            detail = $"ROUND {RoundNumber}  |  Waiting for the first of {_squadRequested} opponents";
+            detail = $"ROUND {RoundNumber}  |  {_squad.Count}/{_squadRequested} opponents arrived — waiting for combat readiness";
             return true;
         }
         return false;

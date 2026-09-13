@@ -121,12 +121,14 @@ public sealed partial class TacticalMode : IArenaMode
     private int _squadEpoch;
 
     private KitDefinition _bought;
+    private KitDefinition _starter;
+    private bool _soloCombatReady;
 
     /// <summary>
     /// The kit the player is actually wearing, as opposed to one they just paid
     /// for. Keeping it is what lets a survivor be re-issued exactly what they
     /// have rather than the catalogue's default. Recorded when a kit is handed
-    /// out, not when the body swap lands: the raid-start draw by the provider,
+    /// out, not when the body swap lands: the free starter by the provider,
     /// a purchase by StartRound.
     /// </summary>
     private KitDefinition _worn;
@@ -176,6 +178,15 @@ public sealed partial class TacticalMode : IArenaMode
     public Phase CurrentPhase => _phase;
 
     public bool InBuyPhase => !_teamArena && _phase == Phase.Buy;
+
+    internal bool AllowsCountdownMenu => _phase == Phase.Buy
+        || _phase == Phase.Staging || _phase == Phase.Aftermath;
+
+    public string NoPurchaseDescription => RoundNumber == 1 && !_playerDown
+        ? $"No purchase: free starter ({_starter?.Name ?? _starter?.Id ?? "unavailable"})."
+        : KeepsCurrentGear
+            ? "No purchase: keep and resupply your previous round's loadout."
+            : "No purchase: automatically buy the best affordable kit; cheapest kit is free if you cannot afford any.";
 
     /// <summary>
     /// The buy phase is over but the round waits for a body swap to land (the
@@ -379,6 +390,8 @@ public sealed partial class TacticalMode : IArenaMode
         _boundLocalPlayer = null;
         _boundLocalProfileId = null;
         _playerDown = false;
+        _starter = _worn = null;
+        _soloCombatReady = false;
         _roundStartPending = false;
         _teamEnemiesRequested = false;
         _teamStopRequested = false;
@@ -463,40 +476,12 @@ public sealed partial class TacticalMode : IArenaMode
             return;
         }
 
-        // Nothing is pre-selected for the opening round either: EnterBuy below
-        // clears _bought, so the raid-start swap falls through to the base kit.
-        // The loading-screen preload counts on exactly that (KitPreloadPlan
-        // warms the base kit for Tactical). A purchase pre-filled here was a
-        // dead store — EnterBuy overwrote it before anything read it — and all
-        // it ever did was mislead that plan into warming the wrong kit once.
-        //
-        // Every respawn and every round-start swap asks this, so the player is
-        // always handed what they bought rather than the config's selected kit.
-        // GetBaseKit, not GetSelectedKit: the latter asks the provider, so this
-        // lambda would have called itself for as long as _bought was null — an
-        // unbounded recursion, and a StackOverflowException is not catchable.
-        // _worn before the base kit: a survivor who bought nothing must be
-        // re-issued the kit they are standing in, not the catalogue's first
-        // entry. The base kit is drawn once, for the raid-start swap, and it
-        // is what the player stands in from the moment that swap lands — so
-        // it is recorded as worn right here, where it is handed out, the same
-        // way StartRound records a purchase before its swap lands. Left
-        // unrecorded, a round-one survivor who bought nothing had no worn kit
-        // on record, and the round break asked GetBaseKit again: with the
-        // random draw on, a different kit (PickRandomKit never repeats the
-        // last draw), under a toast promising they keep their gear.
-        KitCatalog.KitProvider = () =>
-        {
-            var kit = _bought ?? _worn;
-            if (kit == null)
-            {
-                kit = KitCatalog.GetBaseKit();
-                _worn = kit;
-            }
-
-            return kit;
-        };
-
+        // A free opening loadout is deliberate, but it is always the cheapest
+        // buildable kit, never the user's random/configured paid loadout.
+        // Capture once so purchases and later catalogue reads cannot change it.
+        _starter = SelectOpeningKit()
+            ?? throw new InvalidOperationException("Solo Tactical has no buildable starter kit");
+        KitCatalog.KitProvider = IssueSoloKit;
         EnterBuy();
         Plugin.ModLogger.LogInfo($"Tactical: match started with {Money:N0} roubles.");
     }
@@ -505,6 +490,16 @@ public sealed partial class TacticalMode : IArenaMode
     {
         if (_match == null)
             return;
+
+        // A menu opened during shopping/results must not have its exact player
+        // owner torn out by the next round's body swap while selecting Leave.
+        // Native pause can make deltaTime zero; never manipulate global time.
+        if (AllowsCountdownMenu && Hud.TacticalBuyPanel.IsNativeMenuOpen)
+        {
+            _phaseEndsAt += Mathf.Max(0f, deltaTime);
+            SoloTacticalRoundStartPolicy.Pause(ref _roundStartHold, deltaTime);
+            return;
+        }
 
         switch (_phase)
         {
@@ -687,18 +682,45 @@ public sealed partial class TacticalMode : IArenaMode
         if (_playerDown)
             return;
 
-        var spawnDecision = SoloTacticalSpawnPolicy.Evaluate(
-            _squadRequested,
-            _squad.Count,
-            Time.time,
-            _squadDeadlineAt);
-        if (spawnDecision == SoloTacticalSpawnDecision.Waiting)
-            return;
-
-        if (spawnDecision == SoloTacticalSpawnDecision.Retry)
+        if (!_soloCombatReady)
         {
-            RequestSoloSquad(retry: true);
-            return;
+            // An arrival callback can still describe a native PreActive body.
+            // Resolve the round from physical Active opponents (or bodies the
+            // player already killed while the remaining opponents assembled).
+            int ready = 0;
+            int eliminated = 0;
+            foreach (var bot in _squad)
+            {
+                if (bot?.GetPlayer == null || bot.HealthController == null) continue;
+                if (!bot.HealthController.IsAlive || bot.IsDead) eliminated++;
+                else if (bot.BotState == EBotState.Active) ready++;
+            }
+
+            var spawnDecision = SoloTacticalSpawnPolicy.Evaluate(
+                _squadRequested, ready + eliminated, Time.time, _squadDeadlineAt);
+            if (spawnDecision == SoloTacticalSpawnDecision.Waiting) return;
+            if (spawnDecision == SoloTacticalSpawnDecision.Retry)
+            {
+                RequestSoloSquad(retry: true);
+                return;
+            }
+
+            // An all-eliminated squad needs a win, not a late "fight" call.
+            // Preserve the established partial-squad fallback at the deadline.
+            if (Time.time >= _squadDeadlineAt)
+            {
+                foreach (var bot in _squad)
+                    if (bot?.HealthController?.IsAlive == true && bot.BotState != EBotState.Active)
+                        RetireBot(bot, "unready solo Tactical activation at the assembly deadline");
+            }
+            _soloCombatReady = true;
+            _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
+            if (ready > 0)
+            {
+                _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart, beginAwardRound: false);
+                ArenaToasts.Show($"Round {RoundNumber} — fight! ({ready} opponents ready)");
+                Plugin.ModLogger.LogInfo($"Tactical round {RoundNumber} live: {ready} active opponents, {eliminated} already eliminated.");
+            }
         }
 
         // The safety net, and it has to be checked or it is decoration: a squad
@@ -884,6 +906,7 @@ public sealed partial class TacticalMode : IArenaMode
         // its callback must see both a different epoch and a terminal phase.
         _squadEpoch++;
         _phase = Phase.Ended;
+        _soloCombatReady = false;
         PitFireTeamRoundLifecycle.CancelFollowerSpawnLease("Tactical match ended");
         KitCatalog.KitProvider = null;
         ArenaSpectatorService.Stop("Tactical match ended");
@@ -958,9 +981,7 @@ public sealed partial class TacticalMode : IArenaMode
         // cheap thing you could still pay for — punishing the win.
         _bought = null;
 
-        ArenaToasts.Show(_playerDown
-            ? $"Round {RoundNumber} — buy phase"
-            : $"Round {RoundNumber} — buy phase (you keep your gear)");
+        ArenaToasts.Show($"Round {RoundNumber} — buy phase. {NoPurchaseDescription}");
     }
 
     /// <summary>
@@ -2628,6 +2649,27 @@ public sealed partial class TacticalMode : IArenaMode
         return best;
     }
 
+    /// <summary>Also used by loading-screen preload; never draws a random kit.</summary>
+    internal static KitDefinition SelectOpeningKit()
+    {
+        KitDefinition cheapest = null;
+        foreach (var kit in KitCatalog.Kits ?? Array.Empty<KitDefinition>())
+        {
+            if (kit == null || KitBuilder.ValidateKit(kit).Count != 0) continue;
+            if (cheapest == null || Math.Max(0, kit.Price) < Math.Max(0, cheapest.Price))
+                cheapest = kit;
+        }
+        return cheapest;
+    }
+
+    private KitDefinition IssueSoloKit()
+    {
+        var kit = _bought ?? _worn ?? _starter;
+        if (kit == null) throw new InvalidOperationException("Solo Tactical lost its starter/loadout binding");
+        _worn = kit;
+        return kit;
+    }
+
     private void StartRound()
     {
         if (!_roundStartPending)
@@ -2659,7 +2701,12 @@ public sealed partial class TacticalMode : IArenaMode
             Money -= price;
 
         _squad.Clear();
+        _soloCombatReady = false;
         _phase = Phase.Live;
+        // Bots can be killed as soon as their native activation finishes,
+        // before the complete roster is ready. Awards start now; the delayed
+        // fight cue must not reset First Blood or revenge a second time.
+        _match.BeginAwardRound();
         _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
         RequestSoloSquad(retry: false);
 
@@ -2694,8 +2741,7 @@ public sealed partial class TacticalMode : IArenaMode
             $"Tactical round {RoundNumber}: {_squadRequested} enemies, kit '{_bought?.Id}' for {price:N0}, "
             + $"{Money:N0} left.");
 
-        _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
-        ArenaToasts.Show($"Round {RoundNumber} — {_squadRequested} enemies");
+        ArenaToasts.Show($"Round {RoundNumber} — assembling {_squadRequested} opponents");
     }
 
     private void RequestSoloSquad(bool retry)
@@ -2707,9 +2753,9 @@ public sealed partial class TacticalMode : IArenaMode
         if (retry)
         {
             Plugin.ModLogger.LogWarning(
-                $"Tactical round {RoundNumber}: no opponent arrived within "
+                $"Tactical round {RoundNumber}: no opponent became ready within "
                 + $"{SoloTacticalSpawnPolicy.AssemblySeconds:0}s; retrying the squad request without restarting the round.");
-            _squad.Clear();
+            RetireSquad();
         }
 
         int expected = Mathf.Max(1, Settings.TacticalSquadSize.Value);
@@ -2740,12 +2786,12 @@ public sealed partial class TacticalMode : IArenaMode
                     return;
                 }
 
-                // Profile and bundle assembly must not consume the configured
-                // combat duration. The first real opponent starts that clock.
-                if (_squad.Count == 0)
-                    _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
-
                 _squad.Add(bot);
+                // A callback near the cold-profile deadline still needs EFT's
+                // next PreActive-to-Active updates. Give its real body the same
+                // short independent activation grace used by protected 5v5.
+                _squadDeadlineAt = Mathf.Max(_squadDeadlineAt,
+                    Time.time + TeamOpponentActivationSeconds);
             },
             requestStillCurrent: () => epoch == _squadEpoch && _phase == Phase.Live);
 

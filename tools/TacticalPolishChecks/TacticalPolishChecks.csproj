@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <PanelSource Condition="'$(PanelSource)' == ''">../../ArenaMode.Client/Hud/TacticalBuyPanel.cs</PanelSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(TacticalSlice)" Link="Production/TacticalSlice.cs" />
+    <Compile Include="$(PanelSource)" Link="Production/TacticalBuyPanel.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs" Link="Production/SoloTacticalSpawnPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs" Link="Production/SoloTacticalRoundStartPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaCombatAwards.cs" Link="Production/ArenaCombatAwards.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
+  </ItemGroup>
+</Project>

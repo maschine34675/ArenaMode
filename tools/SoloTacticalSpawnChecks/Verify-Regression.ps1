@@ -80,14 +80,14 @@ Invoke-ExpectedFailure `
 
 $requestAt = $tactical.IndexOf('private void RequestSoloSquad(bool retry)', [StringComparison]::Ordinal)
 $clearAt = if ($requestAt -ge 0) {
-    $tactical.IndexOf('_squad.Clear();', $requestAt, [StringComparison]::Ordinal)
+    $tactical.IndexOf('RetireSquad();', $requestAt, [StringComparison]::Ordinal)
 } else {
     -1
 }
 if ($requestAt -lt 0 -or $clearAt -lt 0) {
     throw 'Expected the exact same-round retry boundary.'
 }
-$insertAt = $clearAt + '_squad.Clear();'.Length
+$insertAt = $clearAt + 'RetireSquad();'.Length
 $newline = if ($tactical.Contains("`r`n")) { "`r`n" } else { "`n" }
 $replay = Join-Path $scratch 'TacticalMode-replay.cs'
 [System.IO.File]::WriteAllText($replay, $tactical.Insert($insertAt, $newline + '            EnterBuy();'))

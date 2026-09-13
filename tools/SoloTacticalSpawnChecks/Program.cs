@@ -64,9 +64,19 @@ internal static class Program
         Assert(assemblyDecision >= 0 && combatTimeout > assemblyDecision,
             "opponent assembly is resolved before the combat round timer can score a loss");
         RequireAll(tick,
+            "if (!_soloCombatReady)",
+            "bot.BotState == EBotState.Active",
+            "_squadRequested, ready + eliminated",
             "SoloTacticalSpawnDecision.Waiting",
             "SoloTacticalSpawnDecision.Retry",
             "RequestSoloSquad(retry: true)");
+        int readyLatch = tick.IndexOf("_soloCombatReady = true;", StringComparison.Ordinal);
+        int cue = tick.IndexOf("ArenaAnnouncerCue.RoundStart", StringComparison.Ordinal);
+        int roundTimer = tick.IndexOf("_phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value)", StringComparison.Ordinal);
+        Assert(readyLatch > assemblyDecision && roundTimer > readyLatch && cue > roundTimer
+               && tick.Contains("if (ready > 0)", StringComparison.Ordinal)
+               && tick.Contains("ArenaAnnouncerCue.RoundStart, beginAwardRound: false", StringComparison.Ordinal),
+            "physical readiness owns the combat timer and one-time cue, with no fight cue for an already-eliminated squad");
 
         string buyTick = Slice(source, "public void Tick(float deltaTime)", "private bool HoldRoundStartForKitSwap()");
         Assert(buyTick.Contains("if (Time.time >= _phaseEndsAt && !HoldRoundStartForKitSwap())", StringComparison.Ordinal),
@@ -88,8 +98,9 @@ internal static class Program
         string start = Slice(source, "private void StartRound()", "private void RequestSoloSquad(");
         Assert(Count(start, "Money -= price") == 1
                && Count(start, "LiveKitRespawn.AtRoundBreak(") == 1
-               && Count(start, "ArenaAnnouncerCue.RoundStart") == 1,
-            "a purchased kit, body swap and round cue remain one-time round-start work");
+               && Count(start, "_match.BeginAwardRound();") == 1
+               && Count(start, "ArenaAnnouncerCue.RoundStart") == 0,
+            "purchased kit and body swap remain one-time start work, while the cue waits for physical opponents");
         RequireAll(start,
             "int roundNumber = RoundNumber",
             "_phase == Phase.Live && RoundNumber == roundNumber");
@@ -105,8 +116,9 @@ internal static class Program
             "requestStillCurrent: () => epoch == _squadEpoch",
             "SoloTacticalSpawnPolicy.Deadline(Time.time, requestDispatched: false)",
             "RetireBot(bot, \"stale solo Tactical squad member\")",
-            "if (_squad.Count == 0)",
-            "_phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value)");
+            "RetireSquad()");
+        Assert(!request.Contains("_phaseEndsAt =", StringComparison.Ordinal),
+            "arrival callbacks do not start the combat timer before native Active readiness");
         Assert(!request.Contains("_squad.Count >= _squadRequested", StringComparison.Ordinal),
             "the observer closes over its request's expected count instead of mutable prior-round state");
         Assert(!request.Contains("EnterBuy()", StringComparison.Ordinal)
