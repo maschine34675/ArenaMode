@@ -22,11 +22,15 @@ Arbeitsverzeichnis `C:\SPT41\SPT_Runtime` starten (r1-Vorbereitungsfehler).
 Hashes vor Start, vor jedem Raid und am Ende prüfen; PID/Startzeit beider
 Prozesse, Git-HEAD, Auflösung und DLSS-Modus festhalten.
 
-Zusätzlich darf `BepInEx\plugins\maschine-BotDropDiag.dll` (0.1.0, SHA256
-`5B37C035BD860E9EED5A9520EE62BF8D607591A77996142BB80CA18BF48E0985`) installiert sein:
+Zusätzlich darf `BepInEx\plugins\maschine-BotDropDiag.dll` (0.1.0) installiert sein, in
+einem dieser beiden Ständen — SHA256
+`0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0` (aktuell, nur eine
+korrigierte Pfadausgabe) oder
+`5B37C035BD860E9EED5A9520EE62BF8D607591A77996142BB80CA18BF48E0985` (Erstausgabe):
 ein reines Log-Plugin (Quelle `maschine-BotDropDiag`) für die separate Surv12-Frage,
 ohne Spielwirkung. Seine Zeilen zählen nicht als Warnungen/Fehler dieses Auftrags; sie
-werden nur mitgesichert.
+werden nur mitgesichert. Ein Wechsel zwischen den beiden Ständen ist kein Grund für
+einen Neustart des Auftrags.
 
 ## Was r1 ergab und was daraus folgt
 

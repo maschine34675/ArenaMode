@@ -20,8 +20,24 @@ current. User-facing communication is normally German.
   (bear/usec `DO_RANDOM_DROP_ITEM`) throws a random secure-container item on
   every peaceful-move start — i.e. PMC bots throw their own meds to each
   other. Log-only plugin `maschine-BotDropDiag` 0.1.0 (repo
-  `../BotDropDiag`, SHA256 `5B37C035…`) is deployed to attribute the next
-  occurrence; r2 lists it as permitted. No Arena change.
+  `../BotDropDiag`, now `f0bafe9`, SHA256 `0D885B3F…`) is deployed to
+  attribute the next occurrence; r2 lists it as permitted. No Arena change.
+  **Log result (2026-09-13, Arena TDM 5v5 Customs):** four Surv12 throws,
+  all from the secure container, all via `OnStartPeacefulMove`, 1.9–11.7 s
+  after the thrower's own spawn; no `SURGERY-START` at all and every
+  `MEDS-FINISH` with `CH.CancelRequested=False`, so mechanism (1) did not
+  occur that session and no bot used a kit. Verified against `_decompiled`:
+  `BotRandomPlanItemDropper._activateTime` is never assigned (the 60 s grace
+  period is dead once the process has run a minute), `_nextTimePossible`
+  starts at 0, `IsTrue100(160)` is always true, and the gesture partner is
+  the nearest bot of any side (`BotsConnections` is raid-wide). Fix options
+  were assessed; the recommended one is a client postfix on
+  `FindItemToDropToBot` returning null for `Meds` plus setting
+  `_activateTime` in `Activate` — as a separate small mod, not in Arena.
+  Do NOT set `Patrol.DO_RANDOM_DROP_ITEM` on an arena bot's
+  `Settings.FileSettings`: `BotSettingsComponents.Copy()` is shallow and
+  `Patrol` is a process-wide cached instance per (difficulty, role), so the
+  change would leak into normal raids.
 
 - **Respawn stage 0 GPU r1 stopped on a vanilla race; r2 issued (2026-09-12):**
   `c42fdec` (Codex) confirms on the bound build: startup markers present, no
