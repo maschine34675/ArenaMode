@@ -74,6 +74,18 @@
     <ProjectReference Include="..\..\Redeploy\Redeploy.Core\Redeploy.Core.csproj" Private="false" />
   </ItemGroup>
 
+  <!-- Driver skew check (Redeploy docs/RESPAWN-API.md 3.9): stamp the Core version this build
+       is compiled against; Plugin.Awake compares it with the installed Core. The version and
+       the shared check live next to Core in the Redeploy repo. -->
+  <Import Project="..\..\Redeploy\Redeploy.Core\CoreVersion.props" />
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>$(RedeployCoreBuiltAgainstKey)</_Parameter1>
+      <_Parameter2>$(RedeployCoreVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <Compile Include="..\..\Redeploy\drivers\CoreVersionGate.cs" Link="Respawn\CoreVersionGate.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="DissonanceVoip" />
     <Reference Include="spt-common" />

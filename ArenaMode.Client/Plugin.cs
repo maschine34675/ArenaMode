@@ -3,10 +3,12 @@ using ArenaMode.Config;
 using ArenaMode.Respawn;
 using ArenaMode.Session;
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using Redeploy.Core;
 using Redeploy.Core.Compat;
 using Redeploy.Core.Engine;
+using Redeploy.Drivers;
 
 namespace ArenaMode;
 
@@ -30,6 +32,7 @@ public class Plugin : BaseUnityPlugin
         Instance = this;
         ModLogger = base.Logger;
         RedeployCore.Init(ModLogger);
+        WarnIfCoreIsOlderThanBuild();
         Settings.Init(Config);
         Hud.InfoPanels.InfoPanelSettings.Init(Config,
             System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));
@@ -149,5 +152,30 @@ public class Plugin : BaseUnityPlugin
         LabyrinthSpawnTraps.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();
         Hud.ArenaInputBlocker.Shutdown();
+    }
+
+    /// <summary>
+    /// Driver skew check (Redeploy docs/RESPAWN-API.md 3.9): every zip carries the same flat
+    /// maschine-Redeploy.Core.dll and the last one unpacked wins, so an older zip can put an
+    /// older Core under this build. Arena keeps running on it, without its fixes; the finding
+    /// goes to the log and to Chainloader.DependencyErrors, which SPT reports after loading.
+    /// RedeployCore.Version exists since Core 0.9, so reading it is safe against any Core.
+    /// </summary>
+    private static void WarnIfCoreIsOlderThanBuild()
+    {
+        try
+        {
+            var warning = CoreVersionGate.Evaluate(
+                PluginName, RedeployCore.Version, CoreVersionGate.ReadBuiltAgainst(typeof(Plugin).Assembly));
+            if (warning == null)
+                return;
+
+            ModLogger.LogWarning(warning);
+            Chainloader.DependencyErrors.Add(warning);
+        }
+        catch (System.Exception ex)
+        {
+            ModLogger.LogWarning($"Core version check skipped: {ex.Message}");
+        }
     }
 }
