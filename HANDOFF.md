@@ -7,6 +7,70 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Area/Tactical/HUD polish and Git consolidation (2026-09-13):** user-requested
+  changes are integrated on `master`. Implementation commits: HUD offsets
+  `c6b78c6`, maps `7db7387`, Tactical `7d3a672`. Clean paired build source is
+  `699df574a062705c8be3242953aba0599b63667f` (ancestry-only merge of a previously
+  reapplied UI patch, with byte-identical tree before/after). Both new Arena DLL
+  ProductVersions are `0.1.0+699df574a062705c8be3242953aba0599b63667f`.
+  Client SHA256 `4513C3F7890517048CAD306C16728EE72ACFAC948B6D67803E8A9FB990E5F2F0`; server SHA256 `70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290`.
+  Both were copied to the D: installation and hash-verified against staging;
+  70 other inventoried installed files, including Redeploy and map/audio
+  assets, remain unchanged. Backups: `artifacts/arena-polish-deploy-r1/babd40d8028942b7bf7a997522cdfe05` (ignored).
+  Restart **both** game and server. The existing mirror transports these files;
+  direct C: hashes and fresh loaded process identity still require the GPU check.
+  Use test ID `arena-polish-r1`, `GPU-ARENA-POLISH-TEST-INSTRUCTIONS-r1.md` and its
+  exact `GPU-ARENA-POLISH-r1-BUILD.json`. Later documentation commits do not change
+  the binary build ID. GPU Codex may run only menu checks; raids remain user-run.
+  No new native menu or raid acceptance is claimed for this build.
+  - Removed only the two prototype rectangles: the exact old "Factory Center"
+    row and "Factory South". Measured Center contour and Center team starts
+    remain. Both retired IDs now fail shared/server admission. Actual BepInEx
+    clamping changes obsolete saved IDs to full-map; native Customs subsequently
+    offers/persists a valid contour before start, while Factory stays full-map.
+  - Former "Factory East" is now **Factory Side (team starts)**, using native
+    ZoneFactorySide naming rather than an unverified compass direction. Same
+    stable ID `customs-factory-east-polygon-v1`, same eleven measured XZ vertices,
+    unlimited height; explicit negotiated 2v2-5v5 on both client and server.
+    Exact native starts: each faction has five alternative PMC markers plus
+    eight USEC/six BEAR bot markers, opposing spacing at least 28.876 m, minimum
+    simultaneous same-team spacing 1.885/1.710 m. Existing full-path, occupancy
+    and area-containment checks are unchanged. Live connectivity, cover,
+    fairness and respawn behavior still need the user's 2v2/5v5 tests.
+  - Solo Tactical waits for Active opponents (recognizing early eliminations)
+    before Round Start and combat timing. Existing partial-ready timeout remains
+    45 seconds plus activation grace for late bodies. Zero-ready retries do not
+    rebuy/swap or announce. Logical award reset happens before dispatch; delayed
+    audio skips that reset, preserving early First Blood and kill chains.
+  - Solo Tactical uses an explicitly free cheapest valid starter without a
+    purchase. No random expensive opening kit; paid choices, survivor resupply
+    and existing post-death affordable automatic purchase remain. Preloading
+    uses the same starter. Initialization failures use protected abort, and PFT
+    keeps its entry gear. Countdown Esc routes the exact local owner to native
+    menus, closes the buy overlay and pauses countdown progress without dropping
+    death/profile protection. See `TACTICAL-START-POLISH-REVIEW.md`.
+  - F12/HUD `KillfeedOffsetX`/`KillfeedOffsetY` are live, zero by default, positive
+    right/down in scaled 1920x1080 units. Moving the root preserves row contents
+    and lifetimes; score-panel offsets remain independent.
+  - Offline: 621 unit tests passed, two existing optional fixture tests skipped.
+    Current production-linked checks passed: Customs survey 2430 assertions,
+    Tactical polish 74, real BepInEx config 141, menu/hooks/view 451/74/23,
+    preview 1982, PFT 248, team expansion 778, assembly 46, give-up 618,
+    area runtime 369, solo spawn 57, and input release/drain 78. Historical
+    regressions and compiled fault controls passed, including the independent
+    review finding about award reset. Staged real client/server builds and map
+    package validation passed. Native input detours, bots and profile exit still
+    need the explicit user-run checks; builds/harnesses are not raid evidence.
+  - Git: all 46 inventoried branch tips remain reachable from master. Deleted
+    45 merged local branch refs and the obsolete remote feature branch without
+    force; `dev/master` is the GitHub default. The three linked worktree
+    directories (DoubleJump, HitmarkerAudio, NativeHud), their ignored artifacts
+    and Git pointers are preserved, detached at their original exact commits.
+    No abandoned working changes or new source remains outside master. Continue
+    from master; do not resurrect an old mirrored feature ref. Old UI tip
+    `3d75c6a` was already represented by `77305dd`; merge `699df57` only records
+    that verified ancestry without overwriting the current evolved files.
+
 - **Area-map r2 functional menu acceptance (2026-09-13):** GPU report `b418bd4`,
   `GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r2.md`, passes the executed native menu cases.
   One click from Center selects East and retains it beyond 15 seconds; all four
