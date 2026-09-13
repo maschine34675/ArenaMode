@@ -201,6 +201,13 @@ namespace ArenaMode.Movement
         }
     }
 
+    internal static class ArenaAirVault
+    {
+        internal static void Tick()
+        {
+        }
+    }
+
     internal static class VaultingTuning
     {
         internal static int RestoreCount { get; private set; }
