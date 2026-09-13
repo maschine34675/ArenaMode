@@ -1,0 +1,123 @@
+[
+  {
+    "name": "13-original-graphics",
+    "requestedAt": "2026-09-13T10:22:40.956Z",
+    "savedAt": "2026-09-13T10:22:41.726Z",
+    "file": "screenshots/13-original-graphics-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "F64D5B83C5CAED83032E11A270F085B5BE48F6913A134A9B5692B849E686AB11",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "17-arena-next",
+    "requestedAt": "2026-09-13T10:23:23.779Z",
+    "savedAt": "2026-09-13T10:23:24.213Z",
+    "file": "screenshots/17-arena-next-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "DFF5A2D1D07DB10E6DC83FB31C0FC62C98413211EBF8FF48D290143A22AF2AAC",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "18-team-dm",
+    "requestedAt": "2026-09-13T10:23:36.841Z",
+    "savedAt": "2026-09-13T10:23:37.543Z",
+    "file": "screenshots/18-team-dm-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "433997DFFAFFE4770914BEC19369241A25F1B9C7DB1B565E1DE198928496FA84",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "19-customs-initial",
+    "requestedAt": "2026-09-13T10:23:42.717Z",
+    "savedAt": "2026-09-13T10:23:43.489Z",
+    "file": "screenshots/19-customs-initial-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "0AD9FE2FD317F4096854F9E2A2415DEEAB3767C60E060D108A6BD2317F422340",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "20-east-area",
+    "requestedAt": "2026-09-13T10:23:50.679Z",
+    "savedAt": "2026-09-13T10:23:50.784Z",
+    "file": "screenshots/20-east-area-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "9BD859333104C9EAB3FCB29EEC6576888E330A1995DF908753876B79F3242D5B",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "21-east-area-settled",
+    "requestedAt": "2026-09-13T10:24:07.955Z",
+    "savedAt": "2026-09-13T10:24:08.092Z",
+    "file": "screenshots/21-east-area-settled-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "DE728CE8F051C6BB2C0C9C1988D8607101A84D5D04380D08DE8D71755398ACFE",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "22-east-selection-repeat",
+    "requestedAt": "2026-09-13T10:24:16.893Z",
+    "savedAt": "2026-09-13T10:24:17.136Z",
+    "file": "screenshots/22-east-selection-repeat-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "8753E6FDD4975022C33D971C7414EB315148145DCBC15DA2D11335A4127837F3",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "23-east-repeat-settled",
+    "requestedAt": "2026-09-13T10:24:30.392Z",
+    "savedAt": "2026-09-13T10:24:30.531Z",
+    "file": "screenshots/23-east-repeat-settled-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "953BCA9FE78E002F1D5F47A47A109C14DA82D708F2941543AD1F9BD1BE335C81",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "cleanup-24-original-deathmatch",
+    "requestedAt": "2026-09-13T10:25:10.831Z",
+    "savedAt": "2026-09-13T10:25:11.515Z",
+    "file": "screenshots/cleanup-24-original-deathmatch-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "5504FE7D2ACA53358F1205888C74B6B2292E46DE68D6432297D1D98A0584A689",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "cleanup-25-back-character",
+    "requestedAt": "2026-09-13T10:25:19.882Z",
+    "savedAt": "2026-09-13T10:25:20.681Z",
+    "file": "screenshots/cleanup-25-back-character-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7337028D7F6AECE4E07507D12AED2FCD96BFA37CACA786058D136579CBB1633A",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  },
+  {
+    "name": "cleanup-26-main-menu",
+    "requestedAt": "2026-09-13T10:25:30.956Z",
+    "savedAt": "2026-09-13T10:25:31.795Z",
+    "file": "screenshots/cleanup-26-main-menu-0.jpg",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "C30D6A338E46B357A8E50BABA3E6A0B28FD50DBF7A4C6EF62E69DFCCFE4D94F6",
+    "format": "JPEG",
+    "unalteredOriginal": true
+  }
+]

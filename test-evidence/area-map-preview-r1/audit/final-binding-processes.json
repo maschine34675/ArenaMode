@@ -1,0 +1,120 @@
+{
+  "testId": "area-map-preview-r1",
+  "measuredAtUtc": "2026-09-13T10:28:16.8214060Z",
+  "sourceCommit": "d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+  "manifestSha256": "95BF8F6ED3C2BC826F870D21AF37AFD25AA0AB4CD4F39202EECACCF97F3F26D3",
+  "hashesMatch": 9,
+  "requiredVersionsMatch": 4,
+  "files": [
+    {
+      "relativePath": "BepInEx/plugins/maschine-ArenaMode.Client.dll",
+      "exists": true,
+      "expectedSha256": "AB53689653C666F8B842DA30C0F4FF9C7C86B801950A8418B47B2FAA37323A17",
+      "actualSha256": "AB53689653C666F8B842DA30C0F4FF9C7C86B801950A8418B47B2FAA37323A17",
+      "hashMatch": true,
+      "expectedProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+      "actualProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+      "productVersionMatch": true
+    },
+    {
+      "relativePath": "SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+      "exists": true,
+      "expectedSha256": "A694911344BE7AC9058211EAC856B6944AA1CB16EB3AB1282ECB46403391C7B7",
+      "actualSha256": "A694911344BE7AC9058211EAC856B6944AA1CB16EB3AB1282ECB46403391C7B7",
+      "hashMatch": true,
+      "expectedProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+      "actualProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+      "productVersionMatch": true
+    },
+    {
+      "relativePath": "BepInEx/plugins/maschine-Redeploy.Core.dll",
+      "exists": true,
+      "expectedSha256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "actualSha256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "hashMatch": true,
+      "expectedProductVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+      "actualProductVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+      "productVersionMatch": true
+    },
+    {
+      "relativePath": "BepInEx/plugins/maschine-Redeploy.Client.dll",
+      "exists": true,
+      "expectedSha256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "actualSha256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "hashMatch": true,
+      "expectedProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+      "actualProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+      "productVersionMatch": true
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/ATTRIBUTION.md",
+      "exists": true,
+      "expectedSha256": "8DEEF9B273521141878316D9BFDDA7B6FB303E254734C893493C12A2F52E3239",
+      "actualSha256": "8DEEF9B273521141878316D9BFDDA7B6FB303E254734C893493C12A2F52E3239",
+      "hashMatch": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "productVersionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/customs-ground.png",
+      "exists": true,
+      "expectedSha256": "E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
+      "actualSha256": "E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
+      "hashMatch": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "productVersionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/MAP-SOURCES.json",
+      "exists": true,
+      "expectedSha256": "0972B7065A15A4FD96F4D0D64DD9C7CA22D47430095BE19ED2C8E049B484F7BE",
+      "actualSha256": "0972B7065A15A4FD96F4D0D64DD9C7CA22D47430095BE19ED2C8E049B484F7BE",
+      "hashMatch": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "productVersionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/Source/Customs-Ground_Level.svg",
+      "exists": true,
+      "expectedSha256": "5BE31C29173854F5F832C3FEA072BFD8603E27EECA2052754F3798CBF1B6B6D9",
+      "actualSha256": "5BE31C29173854F5F832C3FEA072BFD8603E27EECA2052754F3798CBF1B6B6D9",
+      "hashMatch": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "productVersionMatch": null
+    },
+    {
+      "relativePath": "BepInEx/plugins/ArenaMode/MapPreviews/Source/Shebuka-LICENSE-MODIFIED BY ACIDPHANTASM.md",
+      "exists": true,
+      "expectedSha256": "1349A4B6148492B44F629E64EED676612E234FE9A839E4F3B277C1482C8849F1",
+      "actualSha256": "1349A4B6148492B44F629E64EED676612E234FE9A839E4F3B277C1482C8849F1",
+      "hashMatch": true,
+      "expectedProductVersion": null,
+      "actualProductVersion": null,
+      "productVersionMatch": null
+    }
+  ],
+  "processes": [
+    {
+      "pid": 12984,
+      "name": "EscapeFromTarkov",
+      "startTimeUtc": "2026-09-13T10:20:26.7846053Z",
+      "responding": true
+    },
+    {
+      "pid": 584,
+      "name": "SPT.Server",
+      "startTimeUtc": "2026-09-13T10:19:33.3193690Z",
+      "responding": true
+    },
+    {
+      "pid": 1032,
+      "name": "SPT.Launcher",
+      "startTimeUtc": "2026-09-13T10:19:33.3302232Z",
+      "responding": true
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "at": "2026-09-13T10:26:18.370Z",
+  "files": [
+    {
+      "path": "C:/SPT41/BepInEx/config/com.maschine.ArenaMode.cfg",
+      "before": "52E3C7D13A298FE4B945B3C56D7263E855CD9BFD402942F0A9218B72599F93F6",
+      "after": "EC1E14DDBDD085FD864561DC374E9765CF8DF476474DBE52B58589C244288C26",
+      "byteEqual": false,
+      "changedLines": [
+        "## Horizontal offset from the score panel's default top-center position. Positive moves right, negative moves left; 0 restores the default. Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.\r",
+        "# Acceptable value range: From -500 to 500\r",
+        "ScorePanelOffsetX = 0\r",
+        "## Vertical offset from the score panel's default position below the quickslots. Positive moves down, negative moves up; 0 restores the default. Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.\r",
+        "# Acceptable value range: From -100 to 700\r",
+        "ScorePanelOffsetY = 0\r",
+        "## Killfeed lines (attacker, victim, weapon, distance) in the top-left corner; leaves the top-right free for a minimap.\r",
+        "ExperimentalArea = customs-factory-center-v1\r"
+      ]
+    },
+    {
+      "path": "C:/SPT41/BepInEx/config/com.maschine.Redeploy.cfg",
+      "before": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "after": "37FE5B38DDB4362B68E5E6BCC86EBAE850EBD3DB7E34EE0392A6A1FEEB4C2FAD",
+      "byteEqual": true
+    },
+    {
+      "path": "[USER_HOME]/AppData/Roaming/Battlestate Games/Escape from Tarkov/Settings/Control.ini",
+      "before": "08BD811C1A7A36D770EFC488193334405C6AB5B0CB72408040F6F0A31B7B91C3",
+      "after": "08BD811C1A7A36D770EFC488193334405C6AB5B0CB72408040F6F0A31B7B91C3",
+      "byteEqual": true
+    },
+    {
+      "path": "[USER_HOME]/AppData/Roaming/Battlestate Games/Escape from Tarkov/Settings/Game.ini",
+      "before": "03160B60D115FD0CD72E9DAA663251A76EADDDC147A1533F82708DA3E01BF6E4",
+      "after": "03160B60D115FD0CD72E9DAA663251A76EADDDC147A1533F82708DA3E01BF6E4",
+      "byteEqual": true
+    },
+    {
+      "path": "[USER_HOME]/AppData/Roaming/Battlestate Games/Escape from Tarkov/Settings/Graphics.ini",
+      "before": "8400AFBCA8B915F24D85F39D0513EA54E1F9623D3CEB60DFCDC157889115623B",
+      "after": "8400AFBCA8B915F24D85F39D0513EA54E1F9623D3CEB60DFCDC157889115623B",
+      "byteEqual": true
+    },
+    {
+      "path": "[USER_HOME]/AppData/Roaming/Battlestate Games/Escape from Tarkov/Settings/PostFx.ini",
+      "before": "5B5999B0B50F8905AA81BAC0E211F69015334288588BA26A1EA7389EBC1BAA7B",
+      "after": "5B5999B0B50F8905AA81BAC0E211F69015334288588BA26A1EA7389EBC1BAA7B",
+      "byteEqual": true
+    },
+    {
+      "path": "[USER_HOME]/AppData/Roaming/Battlestate Games/Escape from Tarkov/Settings/Sound.ini",
+      "before": "67AAD383DD5551C80816F24125526CAE282C741AE8608001DA1E9F5E22E256EB",
+      "after": "67AAD383DD5551C80816F24125526CAE282C741AE8608001DA1E9F5E22E256EB",
+      "byteEqual": true
+    },
+    {
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Graphics.ini",
+      "before": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "after": "9371D45FA602DAA194169511E1A56930D0D9760E5386814D14B229AB893C401F",
+      "byteEqual": true
+    },
+    {
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Game.ini",
+      "before": "59B5039E8E9EBFF126A662EE38C785BF3F50A56FC24A361F36968E4D391E61F4",
+      "after": "59B5039E8E9EBFF126A662EE38C785BF3F50A56FC24A361F36968E4D391E61F4",
+      "byteEqual": true
+    },
+    {
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Control.ini",
+      "before": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "after": "94DC134D702261334C0288CEFC5E26ADEC0A32A1923B25693F6EEDEE4143EB79",
+      "byteEqual": true
+    },
+    {
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/PostFx.ini",
+      "before": "5B5999B0B50F8905AA81BAC0E211F69015334288588BA26A1EA7389EBC1BAA7B",
+      "after": "5B5999B0B50F8905AA81BAC0E211F69015334288588BA26A1EA7389EBC1BAA7B",
+      "byteEqual": true
+    },
+    {
+      "path": "C:/SPT41/SPT_Runtime/user/sptSettings/Sound.ini",
+      "before": "68CFFA6E08F52619AAF15FC71883DD57E87E72C545951D4F9BFBAB2A20805C0C",
+      "after": "68CFFA6E08F52619AAF15FC71883DD57E87E72C545951D4F9BFBAB2A20805C0C",
+      "byteEqual": true
+    },
+    {
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/config/client-settings.json",
+      "before": "7CE4636C2AB4E9DE5106258A8A05C67CCB4B18BE143923C8EE0BB3EAB728D5B5",
+      "after": "51F2E50DA45AEB37887BEB09934242DFD4125012DE1B9814004F8AE7D73F7B85",
+      "byteEqual": false,
+      "differences": [
+        {
+          "path": "/UpdatedAt",
+          "before": "10:54:28",
+          "after": "12:25:10"
+        }
+      ]
+    }
+  ],
+  "cfgDifferences": [
+    {
+      "key": "Team Deathmatch/ExperimentalArea",
+      "before": "full-map",
+      "after": "customs-factory-center-v1"
+    },
+    {
+      "key": "HUD/ScorePanelOffsetX",
+      "after": "0"
+    },
+    {
+      "key": "HUD/ScorePanelOffsetY",
+      "after": "0"
+    }
+  ],
+  "clientEntryDifferences": [
+    {
+      "id": "HUD/Killfeed",
+      "before": {
+        "Section": "HUD",
+        "Key": "Killfeed",
+        "Description": "Killfeed lines (victim, weapon, distance) in the top-right corner.",
+        "Type": "bool",
+        "Value": "true",
+        "Default": "true",
+        "Min": null,
+        "Max": null,
+        "Options": null,
+        "Id": "HUD/Killfeed"
+      },
+      "after": {
+        "Section": "HUD",
+        "Key": "Killfeed",
+        "Description": "Killfeed lines (attacker, victim, weapon, distance) in the top-left corner; leaves the top-right free for a minimap.",
+        "Type": "bool",
+        "Value": "true",
+        "Default": "true",
+        "Min": null,
+        "Max": null,
+        "Options": null,
+        "Id": "HUD/Killfeed"
+      }
+    },
+    {
+      "id": "Team Deathmatch/ExperimentalArea",
+      "before": {
+        "Section": "Team Deathmatch",
+        "Key": "ExperimentalArea",
+        "Description": "Experimental bounded arena. Full-map preserves normal TDM settings. Factory South requires Factory daytime and fixes the match at 2v2. Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. Selected before loading; changes during a raid apply next match. Other modes ignore this setting. The area must pass its live navigation checks.",
+        "Type": "enum",
+        "Value": "full-map",
+        "Default": "full-map",
+        "Min": null,
+        "Max": null,
+        "Options": [
+          "full-map",
+          "factory-south-v1",
+          "customs-factory-center-v1",
+          "customs-factory-center-polygon-v1",
+          "customs-factory-center-teams-v1"
+        ],
+        "Id": "Team Deathmatch/ExperimentalArea"
+      },
+      "after": {
+        "Section": "Team Deathmatch",
+        "Key": "ExperimentalArea",
+        "Description": "Experimental bounded arena. Full-map preserves normal TDM settings. Factory South requires Factory daytime and fixes the match at 2v2. Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. Selected before loading; changes during a raid apply next match. Other modes ignore this setting. The area must pass its live navigation checks.",
+        "Type": "enum",
+        "Value": "customs-factory-center-v1",
+        "Default": "full-map",
+        "Min": null,
+        "Max": null,
+        "Options": [
+          "full-map",
+          "factory-south-v1",
+          "customs-factory-center-v1",
+          "customs-factory-center-polygon-v1",
+          "customs-factory-center-teams-v1"
+        ],
+        "Id": "Team Deathmatch/ExperimentalArea"
+      }
+    },
+    {
+      "id": "HUD/ScorePanelOffsetX",
+      "after": {
+        "Section": "HUD",
+        "Key": "ScorePanelOffsetX",
+        "Description": "Horizontal offset from the score panel's default top-center position. Positive moves right, negative moves left; 0 restores the default. Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.",
+        "Type": "float",
+        "Value": "0",
+        "Default": "0",
+        "Min": "-500",
+        "Max": "500",
+        "Options": null,
+        "Id": "HUD/ScorePanelOffsetX"
+      }
+    },
+    {
+      "id": "HUD/ScorePanelOffsetY",
+      "after": {
+        "Section": "HUD",
+        "Key": "ScorePanelOffsetY",
+        "Description": "Vertical offset from the score panel's default position below the quickslots. Positive moves down, negative moves up; 0 restores the default. Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.",
+        "Type": "float",
+        "Value": "0",
+        "Default": "0",
+        "Min": "-100",
+        "Max": "700",
+        "Options": null,
+        "Id": "HUD/ScorePanelOffsetY"
+      }
+    }
+  ]
+}

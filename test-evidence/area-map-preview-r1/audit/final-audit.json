@@ -1,0 +1,271 @@
+{
+  "testId": "area-map-preview-r1",
+  "auditAtUtc": "2026-09-13T10:28:16.8686388Z",
+  "snapshotCapturedAtUtc": "2026-09-13T10:26:29.2712344Z",
+  "overallStatus": "Stopped on root-observed reproducible native Factory East selection failure; zero log errors do not pass the menu test.",
+  "scope": {
+    "freshClientStartLocal": "12:20:38.159",
+    "freshClientThroughLocal": "12:25:19.892",
+    "freshClientLineCount": 13176,
+    "menuFromLocal": "12:23:42.766",
+    "menuRecordCount": 6,
+    "serverSource": "spt20260913.8.log",
+    "freshServerFromUtc": "2026-09-13T10:19:33.3193690Z",
+    "serverThroughUtc": "2026-09-13 10:26:22.695",
+    "serverMenuFromUtc": "2026-09-13T10:23:42.766Z"
+  },
+  "fullFreshClient": {
+    "warnings": 9,
+    "errors": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "SAIN": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 5,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 4,
+        "errors": 0
+      }
+    },
+    "failureCategories": {
+      "previewUnavailable": 0,
+      "duplicateCanvasGroup": 0,
+      "otherComponentErrors": 0,
+      "missingTexture": 0,
+      "shaderMaterialFailure": 0,
+      "missingReference": 0,
+      "nullReference": 0,
+      "runtimeException": 0,
+      "menuException": 0,
+      "menuErrorMentions": 0
+    }
+  },
+  "menuInterval": {
+    "warnings": 0,
+    "errors": 0,
+    "bySource": {
+      "Redeploy.Core": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-Redeploy": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "maschine-ArenaMode": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "Unity Log": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "SAIN": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "FixPluginTypesSerialization": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "HarmonyX": {
+        "warnings": 0,
+        "errors": 0
+      }
+    },
+    "failureCategories": {
+      "previewUnavailable": 0,
+      "duplicateCanvasGroup": 0,
+      "otherComponentErrors": 0,
+      "missingTexture": 0,
+      "shaderMaterialFailure": 0,
+      "missingReference": 0,
+      "nullReference": 0,
+      "runtimeException": 0,
+      "menuException": 0,
+      "menuErrorMentions": 0
+    }
+  },
+  "server": {
+    "fullWarnings": 3,
+    "fullErrors": 0,
+    "menuWarnings": 0,
+    "menuErrors": 0,
+    "warningEvidence": [
+      {
+        "line": 484,
+        "timeUtc": "2026-09-13 10:19:41.780",
+        "level": "Warning",
+        "source": "SPTarkov.Server.Core.Helpers.Traders.TraderHelper",
+        "message": "Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+      },
+      {
+        "line": 573,
+        "timeUtc": "2026-09-13 10:21:21.159",
+        "level": "Warning",
+        "source": "SPTarkov.Server.Core.Services.Profile.ProfileFixerService",
+        "message": "Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+      },
+      {
+        "line": 574,
+        "timeUtc": "2026-09-13 10:21:21.160",
+        "level": "Warning",
+        "source": "SPTarkov.Server.Core.Services.Profile.ProfileFixerService",
+        "message": "Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+      }
+    ]
+  },
+  "selectionMarkerCount": 1,
+  "selectionMarkers": [
+    {
+      "line": 13171,
+      "timeLocal": "12:23:42.766",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena play area selected in map screen: customs-factory-center-v1."
+    }
+  ],
+  "factoryEastSelectedMarkerCount": 0,
+  "nativeObservation": {
+    "source": "Root native test evidence, not independent UI interaction by audit",
+    "factoryEastClicks": "Attempts20 and22 did not change stripe or Factory Center preview; waited images21 and23",
+    "cleanup": "Root reports native Deathmatch click reacted immediately, then Back→Back and cleanup-26-main-menu; settings restoration independently owned by root",
+    "runSummaryStarted": "2026-09-13T10:18:32.902Z",
+    "runSummaryEnded": "2026-09-13T10:25:31.798Z",
+    "runSummaryRaids": 0,
+    "runSummaryReason": "Reproducible Factory East selection failed; stop per instruction",
+    "failure": "Reproducible ignored Factory East area selection. No attribution to CanvasGroup, event hit-testing, asset load or other code without evidence."
+  },
+  "fullExceptionStacks": [],
+  "stackAssessment": "No runtime Exception/Error record in this fresh or menu interval; therefore no exception stack to attach. Harmony patch-signature messages are not selection events or runtime exceptions.",
+  "allClientWarningEvidence": [
+    {
+      "line": 14,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 15,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 16,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 17,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 18,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 3841,
+      "timeLocal": "12:20:48.400",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner)."
+    },
+    {
+      "line": 7914,
+      "timeLocal": "12:20:58.034",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update()."
+    },
+    {
+      "line": 9130,
+      "timeLocal": "12:21:00.417",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor()."
+    },
+    {
+      "line": 12401,
+      "timeLocal": "12:21:05.041",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition)."
+    }
+  ],
+  "allClientErrorEvidence": [],
+  "raidMarkers": {
+    "armed": 0,
+    "sessionActive": 0,
+    "matchStarted": 0
+  },
+  "bindingEnd": {
+    "file": "final-binding-processes.json",
+    "measuredAtUtc": "2026-09-13T10:28:16.8214060Z",
+    "hashesMatch": 9,
+    "requiredVersionsMatch": 4,
+    "manifestSha256": "95BF8F6ED3C2BC826F870D21AF37AFD25AA0AB4CD4F39202EECACCF97F3F26D3"
+  },
+  "processes": [
+    {
+      "pid": 12984,
+      "name": "EscapeFromTarkov",
+      "startTimeUtc": "2026-09-13T10:20:26.7846053Z",
+      "responding": true
+    },
+    {
+      "pid": 584,
+      "name": "SPT.Server",
+      "startTimeUtc": "2026-09-13T10:19:33.3193690Z",
+      "responding": true
+    },
+    {
+      "pid": 1032,
+      "name": "SPT.Launcher",
+      "startTimeUtc": "2026-09-13T10:19:33.3302232Z",
+      "responding": true
+    }
+  ],
+  "sourceSha256": {
+    "client": "2C2703D57E8BFC24223040697BB3A2FFF0C4D8566CC33A22633638FDBA806CA7",
+    "server": "91B2172FFAC8E282D992F9CB6B8BE38BDECD70D12AF757B0CC7DD5924C54377F"
+  },
+  "deltaAfterStopSnapshot": {
+    "previousClientThrough": "12:25:19.892",
+    "newClientRecordCount": 0,
+    "previousServerThrough": "2026-09-13 10:25:52.683",
+    "newServerWarnings": 0,
+    "newServerErrors": 0
+  },
+  "limits": "No raid/profile claim. No screenshots or clips independently assessed here. Raw logs stay in support-audit-private; identifiers in this structured summary/excerpts are redacted. No UI/build/deploy/process/config/profile changes by audit."
+}

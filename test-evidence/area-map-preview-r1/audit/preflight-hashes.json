@@ -1,0 +1,56 @@
+[
+  {
+    "Path": "BepInEx/plugins/maschine-ArenaMode.Client.dll",
+    "SHA256": "AB53689653C666F8B842DA30C0F4FF9C7C86B801950A8418B47B2FAA37323A17",
+    "ProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+    "Match": true
+  },
+  {
+    "Path": "SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+    "SHA256": "A694911344BE7AC9058211EAC856B6944AA1CB16EB3AB1282ECB46403391C7B7",
+    "ProductVersion": "0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/maschine-Redeploy.Core.dll",
+    "SHA256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+    "ProductVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/maschine-Redeploy.Client.dll",
+    "SHA256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+    "ProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/ArenaMode/MapPreviews/ATTRIBUTION.md",
+    "SHA256": "8DEEF9B273521141878316D9BFDDA7B6FB303E254734C893493C12A2F52E3239",
+    "ProductVersion": null,
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/ArenaMode/MapPreviews/customs-ground.png",
+    "SHA256": "E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
+    "ProductVersion": null,
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/ArenaMode/MapPreviews/MAP-SOURCES.json",
+    "SHA256": "0972B7065A15A4FD96F4D0D64DD9C7CA22D47430095BE19ED2C8E049B484F7BE",
+    "ProductVersion": null,
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/ArenaMode/MapPreviews/Source/Customs-Ground_Level.svg",
+    "SHA256": "5BE31C29173854F5F832C3FEA072BFD8603E27EECA2052754F3798CBF1B6B6D9",
+    "ProductVersion": null,
+    "Match": true
+  },
+  {
+    "Path": "BepInEx/plugins/ArenaMode/MapPreviews/Source/Shebuka-LICENSE-MODIFIED BY ACIDPHANTASM.md",
+    "SHA256": "1349A4B6148492B44F629E64EED676612E234FE9A839E4F3B277C1482C8849F1",
+    "ProductVersion": null,
+    "Match": true
+  }
+]

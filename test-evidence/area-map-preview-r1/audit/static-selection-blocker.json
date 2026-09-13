@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "d7cde9d115a0f775f8c1b52cc324ee8b0c319e62",
+  "checkoutAtTest": "9dd79b4185047d7592b407de8e8a9f6e9f0bbf90",
+  "sourceFile": "ArenaMode.Client/Config/Settings.cs",
+  "sha256": "E31489AFA4978DE57854A55863042BFA50C1A0F796F43DDE9E24822DC96361C2",
+  "unchangedVersusBoundCommit": true,
+  "method": "Read-only source inspection and empty git diff versus sourceCommit. Not a runtime callback trace.",
+  "ranges": [
+    {
+      "start": 233,
+      "end": 251,
+      "lines": [
+        "    internal static bool TrySelectArea(string areaId)",
+        "    {",
+        "        if (TeamDeathmatchArea == null || (areaId != ArenaAreaCatalog.FullMapId",
+        "                && areaId != ArenaAreaCatalog.FactorySouthId && areaId != ArenaAreaCatalog.CustomsFactoryCenterId",
+        "                && areaId != ArenaAreaCatalog.CustomsFactoryCenterPolygonId && areaId != ArenaAreaCatalog.CustomsFactoryCenterTeamsId))",
+        "            return false;",
+        "        if (TeamDeathmatchArea.Value == areaId) return true;",
+        "        try { TeamDeathmatchArea.Value = areaId; }",
+        "        catch (Exception ex)",
+        "        {",
+        "            Plugin.ModLogger?.LogWarning($\"Arena play-area selection failed: {ex.Message}\");",
+        "            return false;",
+        "        }",
+        "        if (TeamDeathmatchArea.Value != areaId) return false;",
+        "        try { if (File?.SaveOnConfigSet == false) File.Save(); }",
+        "        catch (Exception ex) { Plugin.ModLogger?.LogWarning($\"Arena play-area save failed: {ex.Message}\"); }",
+        "        SettingsSync.Report();",
+        "        Plugin.ModLogger?.LogInfo($\"Arena play area selected in map screen: {areaId}.\");",
+        "        return true;"
+      ]
+    },
+    {
+      "start": 797,
+      "end": 810,
+      "lines": [
+        "            \"Team Deathmatch\",",
+        "            \"ExperimentalArea\",",
+        "            ArenaAreaCatalog.FullMapId,",
+        "            new ConfigDescription(",
+        "                \"Experimental bounded arena. Full-map preserves normal TDM settings. \" +",
+        "                \"Factory South requires Factory daytime and fixes the match at 2v2. \" +",
+        "                \"Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. \" +",
+        "                \"Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. \" +",
+        "                \"Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. \" +",
+        "                \"Selected before loading; changes during a raid apply next match. \" +",
+        "                \"Other modes ignore this setting. The area must pass its live navigation checks.\",",
+        "                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId,",
+        "                    ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,",
+        "                    ArenaAreaCatalog.CustomsFactoryCenterTeamsId)));"
+      ]
+    }
+  ],
+  "finding": "CustomsFactoryEastPolygonId is absent from TrySelectArea allowlist and AcceptableValueList."
+}

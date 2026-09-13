@@ -1,0 +1,16 @@
+{
+  "testId": "area-map-preview-r1",
+  "started": "2026-09-13T10:18:32.902Z",
+  "ended": "2026-09-13T10:25:31.798Z",
+  "raids": 0,
+  "reason": "Reproducible Factory East selection failed; stop per instruction",
+  "display": {
+    "width": 1920,
+    "height": 1080,
+    "screenMode": "Borderless",
+    "dlss": "Balanced",
+    "separateUiScale": "Not measured; no visible scale setting inspected"
+  },
+  "actions": 16,
+  "captures": 25
+}

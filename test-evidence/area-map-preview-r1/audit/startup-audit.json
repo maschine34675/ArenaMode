@@ -1,0 +1,218 @@
+{
+  "testId": "area-map-preview-r1",
+  "auditAtUtc": "2026-09-13T10:23:26.0835623Z",
+  "gate": "PASS fresh startup observations only",
+  "processes": [
+    {
+      "name": "EscapeFromTarkov",
+      "pid": 12984,
+      "startTimeUtc": "2026-09-13T10:20:26.7846053Z",
+      "responding": true
+    },
+    {
+      "name": "SPT.Launcher",
+      "pid": 1032,
+      "startTimeUtc": "2026-09-13T10:19:33.3302232Z",
+      "responding": true
+    },
+    {
+      "name": "SPT.Server",
+      "pid": 584,
+      "startTimeUtc": "2026-09-13T10:19:33.319369Z",
+      "responding": true
+    }
+  ],
+  "scope": {
+    "clientFirstLocal": "12:20:38.159",
+    "clientThroughLocal": "12:21:33.489",
+    "clientLines": 13130,
+    "serverSource": "spt20260913.8.log",
+    "serverFromProcessUtc": "2026-09-13T10:19:33.3193690Z",
+    "serverFirstRecordUtc": "2026-09-13 10:19:33.548",
+    "serverThroughUtc": "2026-09-13 10:23:22.632",
+    "serverRecords": 631
+  },
+  "clientWarnings": 9,
+  "clientErrors": 0,
+  "warningsBySource": [
+    {
+      "Name": "FixPluginTypesSerialization",
+      "Count": 5
+    },
+    {
+      "Name": "HarmonyX",
+      "Count": 4
+    }
+  ],
+  "trackedModCounts": {
+    "CoreWarnings": 0,
+    "CoreErrors": 0,
+    "RedeployWarnings": 0,
+    "RedeployErrors": 0,
+    "ArenaWarnings": 0,
+    "ArenaErrors": 0
+  },
+  "serverWarnings": 3,
+  "serverErrors": 0,
+  "serverWarningEvidence": [
+    {
+      "line": 484,
+      "timeUtc": "2026-09-13 10:19:41.780",
+      "level": "Warning",
+      "source": "SPTarkov.Server.Core.Helpers.Traders.TraderHelper",
+      "message": "Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+    },
+    {
+      "line": 573,
+      "timeUtc": "2026-09-13 10:21:21.159",
+      "level": "Warning",
+      "source": "SPTarkov.Server.Core.Services.Profile.ProfileFixerService",
+      "message": "Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+    },
+    {
+      "line": 574,
+      "timeUtc": "2026-09-13 10:21:21.160",
+      "level": "Warning",
+      "source": "SPTarkov.Server.Core.Services.Profile.ProfileFixerService",
+      "message": "Fixed item: [private-id]s undefined StackObjectsCount value, now set to 1"
+    }
+  ],
+  "clientWarningEvidence": [
+    {
+      "line": 14,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 15,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 16,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 17,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 18,
+      "timeLocal": "12:20:38.160",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 3841,
+      "timeLocal": "12:20:48.400",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner)."
+    },
+    {
+      "line": 7914,
+      "timeLocal": "12:20:58.034",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update()."
+    },
+    {
+      "line": 9130,
+      "timeLocal": "12:21:00.417",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor()."
+    },
+    {
+      "line": 12401,
+      "timeLocal": "12:21:05.041",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition)."
+    }
+  ],
+  "clientErrorEvidence": [],
+  "startupMarkerCounts": {
+    "coreInitialized": 1,
+    "arenaDriver": 1,
+    "redeployDriver": 1,
+    "arenaLoaded": 1,
+    "previewUnavailable": 0,
+    "failClosedIncomplete": 0,
+    "couldNotBeInstalled": 0,
+    "arenaArmed": 0,
+    "arenaSessionActive": 0,
+    "arenaMatchStarted": 0
+  },
+  "startupMarkerOccurrences": {
+    "coreInitialized": [
+      {
+        "line": 3991,
+        "timeLocal": "12:20:48.641",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Redeploy.Core 0.9.0.0 initialized"
+      }
+    ],
+    "arenaDriver": [
+      {
+        "line": 4545,
+        "timeLocal": "12:20:50.372",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: ArenaMode (priority 100)"
+      }
+    ],
+    "redeployDriver": [
+      {
+        "line": 7173,
+        "timeLocal": "12:20:55.146",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: Redeploy (priority 0)"
+      }
+    ],
+    "arenaLoaded": [
+      {
+        "line": 6196,
+        "timeLocal": "12:20:52.909",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "maschine-ArenaMode 0.1.0 loaded (Redeploy.Core 0.9.0.0)"
+      }
+    ],
+    "previewUnavailable": [],
+    "failClosedIncomplete": [],
+    "couldNotBeInstalled": [],
+    "arenaArmed": [],
+    "arenaSessionActive": [],
+    "arenaMatchStarted": []
+  },
+  "previewFailureCategories": {
+    "previewUnavailable": 0,
+    "duplicateCanvasGroupOrComponent": 0,
+    "missingTexture": 0,
+    "shaderOrMaterial": 0,
+    "missingReference": 0,
+    "nullReference": 0,
+    "runtimeException": 0,
+    "menuMentionErrors": 0
+  },
+  "botDropDiagInfoSeparate": 1,
+  "sourceSha256": {
+    "client": "B421D8EAF4744850FF23A1BEE6940AECEE751B3DF5B90C911AEBAC484D836906",
+    "server": "683A15F24B3D75C83F3349ADE340B96232C5B23007B799D44C692325BFC325FE"
+  },
+  "limits": "Fixed startup snapshots. No native full-menu, clipping/alignment/toggle/cycle/resolution or raid pass. Installed full ProductVersion proven by separate nine-file preflight; process times follow it. No live-memory product identity instrumented. Original raw logs remain private."
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "Id": 584,
+    "ProcessName": "SPT.Server",
+    "StartUTC": "2026-09-13T10:19:33.3193690Z",
+    "LaunchWorkingDirectory": "C:\\SPT41\\SPT_Runtime"
+  },
+  {
+    "Id": 1032,
+    "ProcessName": "SPT.Launcher",
+    "StartUTC": "2026-09-13T10:19:33.3302232Z",
+    "LaunchWorkingDirectory": "C:\\SPT41\\SPT_Runtime"
+  }
+]

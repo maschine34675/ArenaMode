@@ -1,0 +1,16 @@
+{"name":"02-local-server","kind":"click","arg":{"x":220,"y":184},"at":"2026-09-13T10:19:59.179Z","resolvedAt":"2026-09-13T10:19:59.462Z"}
+{"name":"04-test-profile","kind":"click","arg":{"x":554,"y":175},"at":"2026-09-13T10:20:12.617Z","resolvedAt":"2026-09-13T10:20:12.742Z"}
+{"name":"06-start-game","kind":"click","arg":{"x":964,"y":64},"at":"2026-09-13T10:20:24.920Z","resolvedAt":"2026-09-13T10:20:25.039Z"}
+{"name":"12-settings","kind":"click","arg":{"x":1878,"y":1066},"at":"2026-09-13T10:22:34.869Z","resolvedAt":"2026-09-13T10:22:34.955Z"}
+{"name":"13-original-graphics","kind":"click","arg":{"x":748,"y":116},"at":"2026-09-13T10:22:40.870Z","resolvedAt":"2026-09-13T10:22:40.955Z"}
+{"name":"14-settings-back","kind":"click","arg":{"x":1818,"y":48},"at":"2026-09-13T10:22:54.705Z","resolvedAt":"2026-09-13T10:22:54.798Z"}
+{"name":"15-character-select","kind":"click","arg":{"x":951,"y":642},"at":"2026-09-13T10:23:08.662Z","resolvedAt":"2026-09-13T10:23:08.843Z"}
+{"name":"16-arena","kind":"click","arg":{"x":959,"y":686},"at":"2026-09-13T10:23:17.491Z","resolvedAt":"2026-09-13T10:23:17.584Z"}
+{"name":"17-arena-next","kind":"click","arg":{"x":961,"y":943},"at":"2026-09-13T10:23:23.573Z","resolvedAt":"2026-09-13T10:23:23.769Z"}
+{"name":"18-team-dm","kind":"click","arg":{"x":231,"y":397},"at":"2026-09-13T10:23:36.756Z","resolvedAt":"2026-09-13T10:23:36.829Z"}
+{"name":"19-customs-initial","kind":"click","arg":{"x":779,"y":432},"at":"2026-09-13T10:23:42.623Z","resolvedAt":"2026-09-13T10:23:42.706Z"}
+{"name":"20-east-area","kind":"click","arg":{"x":242,"y":807},"at":"2026-09-13T10:23:50.592Z","resolvedAt":"2026-09-13T10:23:50.676Z"}
+{"name":"22-east-selection-repeat","kind":"click","arg":{"x":211,"y":806},"at":"2026-09-13T10:24:16.793Z","resolvedAt":"2026-09-13T10:24:16.892Z"}
+{"name":"cleanup-24-original-deathmatch","kind":"click","arg":{"x":237,"y":269},"at":"2026-09-13T10:25:10.741Z","resolvedAt":"2026-09-13T10:25:10.830Z"}
+{"name":"cleanup-25-back-character","kind":"click","arg":{"x":959,"y":1013},"at":"2026-09-13T10:25:19.689Z","resolvedAt":"2026-09-13T10:25:19.821Z"}
+{"name":"cleanup-26-main-menu","kind":"click","arg":{"x":959,"y":1013},"at":"2026-09-13T10:25:30.857Z","resolvedAt":"2026-09-13T10:25:30.955Z"}
