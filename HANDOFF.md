@@ -7,7 +7,30 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Customs preview + HUD deployment released (2026-09-13):** user lifted the
+- **Area-map r1 blocked; client-only fix and r2 released (2026-09-13):** report
+  `588090f` proved the nine-file/fresh-process binding and initial Center layout,
+  but Factory East could not be selected. Settings omitted East in both its
+  whitelist and BepInEx acceptable-value list; native selection returned false
+  without an exception. Other camera/lifecycle/resolution cases and all raids
+  remain untested. Fix `2c0223f` adds East and shares the BepInEx constraint with
+  menu selection; no geometry, server or profile change. Real Settings + real
+  BepInEx persistence harness: 165 assertions, both historical failures
+  reproduced, fixed probes and clean rerun passed. Area/menu checks 406/73/24
+  plus five faults; TDM Settings/menu checks 92 plus ten faults. Independent
+  production/oracle review passed. Staged client build: zero errors, four existing
+  nullable warnings. Only the client was deployed: ProductVersion
+  `0.1.0+2c0223f643e070d392a13a492411985b743c9966`, SHA256
+  `5D2443A237DB64A539EC2E5B0B2BDA7B0B583FF5925E32878E60EF31EDDB2C62`.
+  Server remains `0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62` / `A6949113…`;
+  the other eight bound DLL/assets are unchanged. Read
+  `GPU-AREA-MAP-PREVIEW-TEST-INSTRUCTIONS-r2.md`, test ID `area-map-preview-r2`,
+  and its exact `GPU-AREA-MAP-PREVIEW-r2-BUILD.json`. Mixed client/server IDs are
+  intentional. Restart the game after mirror/hash verification. GPU success is
+  not claimed; r1 report and evidence stay immutable. Old client backed up under
+  ignored `artifacts/area-map-deploy-r2/backup`.
+
+- **Historical r1 Customs preview + HUD deployment (2026-09-13; client and test
+  binding superseded by r2 above):** user lifted the
   no-deploy hold. Promoted the existing clean `d7cde9d` client/server candidate
   without rebuilding: both ProductVersions are
   `0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62`. Installed client SHA256

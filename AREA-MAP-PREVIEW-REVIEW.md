@@ -2,9 +2,11 @@
 
 Prepared on 2026-09-13 on `feature/area-map-preview`; initially staged without
 deployment during the user's ongoing tests. The user subsequently authorized
-deployment: the clean `d7cde9d` client/server and map package are now installed
-and hash-verified on D:. Native GPU acceptance remains untested. The exact test
-binding is `GPU-AREA-MAP-PREVIEW-r1-BUILD.json`; see HANDOFF for delivery details.
+deployment: the clean `d7cde9d` client/server and map package were installed
+and hash-verified on D:. GPU r1 then found the selection defect below. The current
+client-only correction is `2c0223f`, with the server and assets unchanged; the
+current binding is `GPU-AREA-MAP-PREVIEW-r2-BUILD.json`. See HANDOFF for delivery
+details. Complete native preview acceptance remains outstanding.
 The second contour was committed separately as `c7de967`.
 
 ## GPU r1 selection failure and correction
