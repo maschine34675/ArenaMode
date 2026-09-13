@@ -12,16 +12,17 @@ namespace ArenaMode.Hud;
 internal sealed class ArenaAssemblyBanner
 {
     private GameObject _root;
+    private RectTransform _rect;
     private TextMeshProUGUI _heading, _detail;
     private float _nextRefresh;
 
     public void Create(RectTransform parent)
     {
         _root = new GameObject("ArenaAssemblyBanner", typeof(RectTransform));
-        var rect = (RectTransform)_root.transform;
+        var rect = _rect = (RectTransform)_root.transform;
         rect.SetParent(parent, false);
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, 1f);
-        rect.anchoredPosition = new Vector2(0f, -(ScorePanel.TopOffset + ScorePanel.PanelHeight + 20f));
+        rect.anchoredPosition = Position;
         rect.sizeDelta = new Vector2(900f, 90f);
         var backdrop = _root.AddComponent<Image>();
         backdrop.color = new Color(.03f, .04f, .05f, .8f);
@@ -44,9 +45,14 @@ internal sealed class ArenaAssemblyBanner
         rect.sizeDelta = new Vector2(870f, height);
     }
 
+    private static Vector2 Position => ScorePanel.Position - new Vector2(0f, ScorePanel.PanelHeight + 20f);
+
     public void Tick(ArenaMatch match)
     {
         if (_root == null) return;
+        var position = Position;
+        if (_rect.anchoredPosition != position)
+            _rect.anchoredPosition = position;
         string heading = null, detail = null;
         bool notice = match?.Mode is TacticalMode tactical
             ? tactical.TryGetAssemblyNotice(out heading, out detail)

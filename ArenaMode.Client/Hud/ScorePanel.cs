@@ -1,3 +1,4 @@
+using ArenaMode.Config;
 using ArenaMode.Modes;
 using TMPro;
 using UnityEngine;
@@ -12,6 +13,10 @@ internal sealed class ScorePanel
     internal const float TopOffset = 110f;
     internal const float PanelHeight = 60f;
 
+    // Shared with the assembly notice so live F12 adjustments keep their gap.
+    internal static Vector2 Position => new Vector2(
+        Settings.ScorePanelOffsetX.Value, -(TopOffset + Settings.ScorePanelOffsetY.Value));
+
     private RectTransform _root;
     private TextMeshProUGUI _mainLine;
     private TextMeshProUGUI _subLine;
@@ -23,7 +28,7 @@ internal sealed class ScorePanel
         _root = (RectTransform)go.transform;
         _root.SetParent(hudRoot, false);
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0.5f, 1f);
-        _root.anchoredPosition = new Vector2(0f, -TopOffset);
+        _root.anchoredPosition = Position;
         _root.sizeDelta = new Vector2(900f, PanelHeight);
 
         _mainLine = HudStyle.CreateText(_root, "Main", 24f, TextAlignmentOptions.Top);
@@ -46,7 +51,15 @@ internal sealed class ScorePanel
 
     public void Tick(ArenaMatch match)
     {
-        if (_root == null || match == null || Time.unscaledTime < _nextRefreshAt)
+        if (_root == null || match == null)
+            return;
+
+        // Position responds independently of the slower score/text refresh.
+        var position = Position;
+        if (_root.anchoredPosition != position)
+            _root.anchoredPosition = position;
+
+        if (Time.unscaledTime < _nextRefreshAt)
             return;
 
         _nextRefreshAt = Time.unscaledTime + RefreshInterval;

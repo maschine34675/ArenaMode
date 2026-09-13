@@ -4,7 +4,15 @@ namespace UnityEngine
     public class Component : Object { public GameObject gameObject; }
     public class Transform : Component { public void SetParent(Transform parent, bool keep) { } }
     public class RectTransform : Transform { public Vector2 anchorMin, anchorMax, pivot, anchoredPosition, sizeDelta; }
-    public struct Vector2(float x, float y) { public float x = x, y = y; }
+    public struct Vector2(float x, float y)
+    {
+        public float x = x, y = y;
+        public static Vector2 operator -(Vector2 a, Vector2 b) => new(a.x - b.x, a.y - b.y);
+        public static bool operator ==(Vector2 a, Vector2 b) => a.x == b.x && a.y == b.y;
+        public static bool operator !=(Vector2 a, Vector2 b) => !(a == b);
+        public override bool Equals(object obj) => obj is Vector2 other && this == other;
+        public override int GetHashCode() => HashCode.Combine(x, y);
+    }
     public struct Color(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
     public class GameObject : Object
     {
@@ -38,7 +46,11 @@ namespace TMPro
 namespace ArenaMode.Hud
 {
     internal static class ArenaPanel { internal static bool IsVisible; }
-    internal static class ScorePanel { internal const float TopOffset = 114f, PanelHeight = 56f; }
+    internal static class ScorePanel
+    {
+        internal const float TopOffset = 114f, PanelHeight = 56f;
+        internal static UnityEngine.Vector2 Position => new(0f, -TopOffset);
+    }
     internal static class HudStyle
     {
         public static readonly Dictionary<string, TMPro.TextMeshProUGUI> Texts = new();

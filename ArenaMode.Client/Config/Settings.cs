@@ -76,6 +76,8 @@ public static class Settings
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
+    public static ConfigEntry<float> ScorePanelOffsetX { get; private set; }
+    public static ConfigEntry<float> ScorePanelOffsetY { get; private set; }
     public static ConfigEntry<bool> ShowFriendlyMarkers { get; private set; }
     public static ConfigEntry<bool> ShowKillfeed { get; private set; }
     public static ConfigEntry<bool> KillfeedOtherKills { get; private set; }
@@ -1077,6 +1079,20 @@ public static class Settings
             "Enabled",
             true,
             "Arena HUD (score panel, killfeed, callouts) during arena sessions.");
+
+        ScorePanelOffsetX = config.Bind(
+            "HUD", "ScorePanelOffsetX", 0f,
+            new ConfigDescription("Horizontal offset from the score panel's default top-center position. " +
+                "Positive moves right, negative moves left; 0 restores the default. " +
+                "Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.",
+                new AcceptableValueRange<float>(-500f, 500f)));
+
+        ScorePanelOffsetY = config.Bind(
+            "HUD", "ScorePanelOffsetY", 0f,
+            new ConfigDescription("Vertical offset from the score panel's default position below the quickslots. " +
+                "Positive moves down, negative moves up; 0 restores the default. " +
+                "Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.",
+                new AcceptableValueRange<float>(-100f, 700f)));
 
         ShowFriendlyMarkers = config.Bind(
             "HUD", "ShowFriendlyMarkers", true,
