@@ -60,6 +60,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
         new Bots.NoBotGesturesPatch().Enable();
+        new Bots.NoCorpseLootingPatch().Enable();
         Bots.ArenaBotLifecycleSafety.Enable();
         Bots.ArenaPickupTeardownSafety.Enable();
         Bots.ArenaWeaponCallbackSafety.Enable();

@@ -145,8 +145,9 @@ namespace EFT
     public sealed class BotDeadBodyWork
     {
         public BotOwner _owner;
+        public bool ShallUse;
         public int NativeStarts;
-        public void StartLook()
+        public void UpdateCheck()
         {
             object result = null;
             if (NativeHooks.Prefix((MethodInfo)MethodBase.GetCurrentMethod(), this, Array.Empty<object>(), ref result))

@@ -8,7 +8,9 @@ The harness links the actual production `TeamDeathmatchMode`, population policy,
 `TeamDeathmatchRelations`, scoreboard, kill/score/award policies, tracer team
 registry, administrative death scope and no-corpse-looting patch. The actual
 native prefix methods run through the modeled dispatch, rather than reimplementing
-their decisions in test callbacks.
+their decisions in test callbacks. One dependency is a stand-in, not the linked
+file: `ArenaHostility.CountsAsAlly` here is the ally-list branch only; the
+production method's Team-Deathmatch-aware branch is not exercised by this harness.
 
 The 2026-09-07 run covers 209 assertions:
 
