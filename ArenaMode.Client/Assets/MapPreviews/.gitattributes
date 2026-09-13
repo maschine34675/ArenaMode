@@ -1,0 +1,3 @@
+# Preserve the exact reviewed upstream bytes on every checkout.
+Source/** -text
+*.png -text

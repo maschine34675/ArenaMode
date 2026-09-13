@@ -3,6 +3,22 @@ using System.Runtime.ExceptionServices;
 using ArenaMode.Session;
 using ArenaMode.Shared;
 
+namespace ArenaMode.Session.Maps
+{
+    // Renderer seam only. The real preview is exercised by AreaMapPreviewChecks.
+    internal sealed class ArenaAreaMapPreview
+    {
+        internal static ArenaAreaMapPreview Last;
+        internal int Shows, Refreshes;
+        internal bool Closed = true;
+        internal ArenaAreaSelectionState State;
+        internal void Show(UnityEngine.Transform screen, UnityEngine.GameObject info, TMPro.TMP_Text text)
+        { Last = this; Shows++; Closed = false; }
+        internal void Refresh(ArenaAreaSelectionState state) { Refreshes++; State = state; }
+        internal void Close() { Closed = true; State = null; }
+    }
+}
+
 internal static class NativeHooks
 {
     internal static readonly List<string> Trace = new();

@@ -45,7 +45,11 @@ $arenaFaults = @(
       $arenaView,'ProductionAreaViewSource','at most four visible choices'),
     @('retired-size-row','ArenaMode.Client\Session\ArenaAreaSelectionView.cs',
       '|| !_sizeRows.Contains(row)) return;','|| false) return;',
-      $arenaView,'ProductionAreaViewSource','same-view Close/Show replacement cannot inherit old row ownership'))
+      $arenaView,'ProductionAreaViewSource','same-view Close/Show replacement cannot inherit old row ownership'),
+    @('preview-reopened-each-refresh','ArenaMode.Client\Session\ArenaLocationSelectionPatch.cs',
+      'Preview.Refresh(areas);',
+      'Preview.Show(screen.transform, screen._infoPanel?.gameObject, screen._acceptButton?._headerLabel); Preview.Refresh(areas);',
+      $arenaHooks,'ProductionLocationPatchSource','periodic refresh updates the preview without reopening'))
 try {
     foreach ($arenaFault in $arenaFaults) {
         $arenaSource = Get-Content -Raw -LiteralPath (Join-Path $arenaRepo $arenaFault[1])
@@ -62,7 +66,7 @@ try {
 finally {
     # Mutated linked files may remain cached at the same output path. Force an
     # ordinary-source rebuild before restoring and rerunning all checks.
-    foreach ($arenaProject in @($arenaNative,$arenaView)) {
+    foreach ($arenaProject in @($arenaNative,$arenaView,$arenaHooks)) {
         & dotnet build $arenaProject -c Release -t:Rebuild "-p:SPTPath=$arenaSpt" --nologo -v:quiet
         if ($LASTEXITCODE -ne 0) { throw 'Could not restore ordinary standalone compiler inputs.' }
     }

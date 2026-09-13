@@ -27,6 +27,7 @@ internal static class ArenaLocationSelectionPatch
         public readonly ArenaLocationSelectionView Map = new();
         public readonly ArenaModeSelectionView Modes = new();
         public readonly ArenaAreaSelectionView Areas = new();
+        public readonly Maps.ArenaAreaMapPreview Preview = new();
         public readonly List<ArenaConditionalMapView> Customs = new();
         public ArenaMapMenuUpdater Updater;
         public object Generation;
@@ -42,13 +43,15 @@ internal static class ArenaLocationSelectionPatch
             var map = screen.SelectedLocation?.Id;
             if (map != null && !ArenaMenuSelection.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
                 screen.OnLocationSelected(null);
-            Areas.Refresh(ArenaMenuSelection.AreaSelection(screen.SelectedLocation?.Id),
-                eligibility.Allowed && eligibility.IsTeam);
+            var areas = ArenaMenuSelection.AreaSelection(screen.SelectedLocation?.Id);
+            Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam);
+            Preview.Refresh(areas);
         }
 
         public void Restore()
         {
             Generation = null;
+            Preview.Close();
             if (Updater != null)
             {
                 Updater.Tick = null;
@@ -160,10 +163,13 @@ internal static class ArenaLocationSelectionPatch
                     if (accepted) state.Refresh(__instance);
                     return accepted;
                 });
+                state.Preview.Show(__instance.transform, __instance._infoPanel?.gameObject,
+                    __instance._acceptButton?._headerLabel);
                 state.Refresh(__instance);
             }
             catch (System.Exception ex)
             {
+                state.Preview.Close();
                 state.Modes.Close();
                 state.Areas.Close();
                 // The native map screen remains fully usable if our optional

@@ -98,6 +98,7 @@ namespace EFT.UI.Matchmaker
         public SelectionLocationScreenController ScreenController;
         public Transform _locationPathsContainer, _locationButtonsContainer;
         public NativeButton _marathonButton, _acceptButton, _readyButton;
+        public NativeButton _infoPanel;
         public readonly NativeConditions _conditions = new();
         public readonly Dictionary<string, LocationSettings.Location> Locations = new(StringComparer.Ordinal);
         public readonly List<LocationButton> Buttons = new();
@@ -117,6 +118,7 @@ namespace EFT.UI.Matchmaker
             _locationPathsContainer = _locationButtonsContainer = container.transform;
             _marathonButton = ChildButton("Marathon");
             _acceptButton = ChildButton("Next"); _readyButton = ChildButton("Ready");
+            _infoPanel = ChildButton("Native location information");
             foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
                          ArenaMapCatalog.CustomsId, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId, "Sandbox" })
                 Locations[map] = new() { Id = map, Enabled = map != ArenaMapCatalog.FactoryNightId && map != ArenaMapCatalog.LabyrinthId };

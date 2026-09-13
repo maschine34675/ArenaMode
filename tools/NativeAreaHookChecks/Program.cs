@@ -42,6 +42,7 @@ internal static class Program
             Settings.AreaWrites = 0; Settings.RejectAreaWrite = false;
             ArenaClientConfig.Enabled = map => true;
             ArenaModeSelectionView.Last = null; ArenaAreaSelectionView.Last = null;
+            ArenaMode.Session.Maps.ArenaAreaMapPreview.Last = null;
             ArenaMode.Plugin.ModLogger.Warnings.Clear();
             NativeHooks.Trace.Clear();
             Team = team;
@@ -203,7 +204,8 @@ internal static class Program
             Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == South
                 && Settings.AreaWrites == 0, "ordinary " + side + " callbacks leave Arena settings unchanged");
             Assert(f.Screen.GetComponentsInChildren<ArenaMapMenuUpdater>(true).Length == 0
-                && ArenaAreaSelectionView.Last == null, "ordinary " + side + " gets no owned Arena view or updater");
+                && ArenaAreaSelectionView.Last == null && ArenaMode.Session.Maps.ArenaAreaMapPreview.Last == null,
+                "ordinary " + side + " gets no owned Arena view or updater");
             Assert(f.Screen._marathonButton.gameObject.activeSelf, "ordinary " + side + " retains Marathon visibility");
         }
         using var active = new Fixture(Full, Day);
@@ -220,12 +222,18 @@ internal static class Program
     private static void SameScreenGenerationAndCleanup()
     {
         using var f = new Fixture(Full, Day);
+        var preview = ArenaMode.Session.Maps.ArenaAreaMapPreview.Last;
+        int previewShows = preview.Shows;
+        for (int i = 0; i < 20; i++) Updater(f).Tick();
+        Assert(preview.Shows == previewShows && preview.Refreshes >= 20,
+            "periodic refresh updates the preview without reopening or reallocating its owner");
         var oldArea = ArenaAreaSelectionView.Last.Callback;
         var oldTick = Updater(f).Tick;
         f.Screen.Close();
-        Assert(ArenaAreaSelectionView.Last.Closed && ArenaModeSelectionView.Last.Closed,
-            "native Close disposes area and mode views");
+        Assert(ArenaAreaSelectionView.Last.Closed && ArenaModeSelectionView.Last.Closed && preview.Closed,
+            "native Close disposes area, mode and map preview views");
         f.Screen.ShowInternal(f.SettingsOwner);
+        Assert(!preview.Closed && preview.Shows == previewShows + 1, "same-screen reopen acquires the preview once");
         var currentUpdater = Updater(f);
         var currentArea = ArenaAreaSelectionView.Last.Callback;
         Assert(!oldArea(South), "same-screen old generation rejects retained area callback");

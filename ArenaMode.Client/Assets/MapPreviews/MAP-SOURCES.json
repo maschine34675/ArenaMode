@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-09-13",
+  "mapId": "bigmap",
+  "displayName": "Customs ground map",
+  "attribution": "Customs map: Shebuka / Tarkov.dev; DynamicMaps layer adaptation: acidphantasm; ArenaMode grayscale adaptation: maschine.",
+  "license": {
+    "spdx": "CC-BY-NC-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "upstreamUrl": "https://github.com/the-hideout/tarkov-dev-svg-maps/blob/main/LICENSE.md",
+    "file": "Source/Shebuka-LICENSE-MODIFIED BY ACIDPHANTASM.md",
+    "sha256": "1349A4B6148492B44F629E64EED676612E234FE9A839E4F3B277C1482C8849F1",
+    "bytes": 20849,
+    "appliesTo": ["Source/Customs-Ground_Level.svg", "customs-ground.png"],
+    "distribution": "Non-commercial redistribution only, with attribution, source and license links, preserved notices and change indications; adaptations remain CC-BY-NC-SA-4.0. No endorsement is implied.",
+    "upstreamReadmeRestriction": "The upstream README additionally disallows assets in cheat software, live radars/ESP and pixel-bots. This intake is only a static pre-raid area selection floorplan, with no live entity or player tracking."
+  },
+  "source": {
+    "file": "Source/Customs-Ground_Level.svg",
+    "sha256": "5BE31C29173854F5F832C3FEA072BFD8603E27EECA2052754F3798CBF1B6B6D9",
+    "bytes": 107893,
+    "viewBox": [0, 0, 1062.48, 535.17],
+    "upstreamProject": "https://github.com/the-hideout/tarkov-dev-svg-maps",
+    "upstreamOriginal": "https://github.com/the-hideout/tarkov-dev-svg-maps/blob/main/Customs.svg",
+    "layerDistributor": "https://github.com/acidphantasm/SPT-DynamicMaps",
+    "acquiredFrom": "BepInEx/plugins/mpstark-dynamicmaps/Maps/Customs_TarkovDev/Layers/Customs-Ground_Level.svg",
+    "revisionIdentity": "Exact locally installed layer identified by SHA-256; no unverified upstream commit or current-upstream byte equivalence is claimed.",
+    "preservedUnchanged": true
+  },
+  "texture": {
+    "file": "customs-ground.png",
+    "sha256": "E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
+    "bytes": 278400,
+    "width": 2125,
+    "height": 1070,
+    "format": "PNG",
+    "channels": "RGB",
+    "background": "#141414",
+    "grayscale": true,
+    "changes": [
+      "Rasterized the complete original viewBox into an opaque PNG; no geometry rotation or crop.",
+      "Dimensions rounded from 2x source viewBox dimensions (2124.96 x 1070.34) to 2125 x 1070 pixels. Both normalized axes fill the PNG without letterboxing; aspect deviation from the vector is about 0.034 percent.",
+      "Replaced the source palette with explicit dark grayscale values for ground, trees, roads, buildings, floors, stairs, fences and rocks; composited transparency against #141414.",
+      "Omitted the source Sniper hazard annotation from the rendered PNG. No labels, objective/spawn markers or Arena area boundaries are baked into the texture. Original source remains unchanged."
+    ],
+    "conversion": {
+      "script": "tools/AreaMapAssets/build-customs.mjs",
+      "node": "24.19.0",
+      "sharp": "0.35.4",
+      "librsvg": "2.62.91",
+      "libvips": "8.18.6",
+      "libpng": "1.6.58",
+      "zlibNg": "2.3.3"
+    }
+  },
+  "calibration": {
+    "sourceFile": "BepInEx/plugins/mpstark-dynamicmaps/Maps/Customs_TarkovDev/Customs_TarkovDev.jsonc",
+    "sourceSha256": "3299120315877E432B70E9B9D2D8DF99A978731E33B5D5CF931551EAB60F9427",
+    "mapInternalName": "bigmap",
+    "groundLevel": 0,
+    "coordinateRotationDegrees": 180,
+    "worldBounds": { "minX": -372, "maxX": 698, "minZ": -306, "maxZ": 235 },
+    "svgViewBox": [0, 0, 1062.48, 535.17],
+    "imageCoordinates": "Top-left origin; u increases right, v increases down. These are normalized image coordinates, not Unity bottom-left texture UVs.",
+    "worldToImageU": "(698 - worldX) / 1070",
+    "worldToImageV": "(worldZ + 306) / 541",
+    "worldToUnityTextureV": "1 - (worldZ + 306) / 541",
+    "scope": "Horizontal XZ preview only; no world Y filtering. Reuse the selected ArenaAreaBounds.Outline at runtime; never maintain separate hand-drawn Arena geometry here.",
+    "acceptance": "Derived from installed DynamicMaps bounds/rotation; native alignment at known Customs landmarks requires a GPU check before live acceptance."
+  }
+}
