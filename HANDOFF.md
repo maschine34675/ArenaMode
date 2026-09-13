@@ -129,6 +129,36 @@ current. User-facing communication is normally German.
   Later visual checks: adjust both offsets during a raid and a visible countdown,
   reset to 0/0, and check long killfeed entries with DynamicMaps at the actual resolution.
 
+- **User playtest closes the stage-0 list (2026-09-13, 13:39–14:40, client
+  `0.1.0+2c0223f…` which carries `1e1ca6d`/`12f70cb`/`a2fcced`):** two
+  sessions (`BepInEx\logs\LogOutput-2026-09-13_13-59-07.log`, current
+  `LogOutput.log`). Ordinary Factory raids: `Death intercepted 0/3` →
+  respawn → `1/3` → respawn (10 s protection), once a third death answered
+  with give-up → `Player gave up — ending raid as Killed` (expected), once a
+  regular raid end. Arena FFA: 6 deaths (3 natural), respawns 0.36–0.47 s;
+  Tactical: two `Arena round respawn complete`, 2 deaths; Customs TDM 5v5:
+  4 deaths, respawns 0.68 s, `left 8 item(s) out of the secure container`.
+  **0 `THROW`/`DROPPER` in every raid**, no kit on the ground (user). All
+  forbidden markers 0, no SAIN/MenuScreen errors. Two things worth knowing:
+  (1) the raid-end NRE family showed a variant — `BotFirstAid+CG_ApplyToSelf
+  .method_1 ← MedsInHandsOperation.GoNextBodyPart ← Start ← MedsController
+  .Spawn ← FirearmController.Remove.HideWeaponComplete`, 0.4 s after
+  KillcamReplay re-invoked the deferred `LocalGame.Stop` (bot switching to
+  meds as Stop hit; same disposed-owner race); (2) **ContinuousHealing's
+  flag leak is now observed**: 14:36:20 `MEDS-FINISH bot=Belette … queue=1
+  … CH.CancelRequested=True stack=Finish ← ContinuousHealing.Patches
+  .CH_EndHeal_Patch.Prefix ← OnEffectRemoved` — a bot's IFAK operation
+  ended by CH's static flag with a body part still queued. Pre-existing
+  and NOT from today's changes: a Unity error flood `SkinnedMeshRenderer:
+  Rendering stopped because the data for mesh '<body mesh>' … does not
+  match the expected mesh data size and vertex stride` — 678 lines over
+  7 s at 13:45:01 (`Top_wild_Hoody_victory_base_lod0`,
+  `Top_wild_UnderArmor_base_lod1`, FFA) and 384 over 5 s at 08:28:55 in the
+  user's morning session on the old build (`Bear_Head_1_lod0/lod1_base`,
+  TDM); absent in Codex's r3 session. Body meshes of corpses/bots in arena
+  raids; corpse trims nearby but not aligned; cause open, candidates
+  CorpseCleanupService renderer handling and pooled body models.
+
 - **r3 result classified, r4 issued (2026-09-13):** `aaaf510` (Codex, on the
   same bound build `a2fcced`). **The gesture gate is proven:** E (Customs TDM
   5v5) had 0 `THROW`/`DROPPER` with `OnStartPeacefulMove` over the whole raid
