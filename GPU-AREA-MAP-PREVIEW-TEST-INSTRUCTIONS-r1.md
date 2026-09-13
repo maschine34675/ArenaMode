@@ -1,33 +1,86 @@
 # GPU menu test: Customs area map preview r1
 
-Prepared 2026-09-13. **Not released for execution yet. Do not deploy while the
-user's current tests are running.** This is a later menu-only acceptance task,
-not authorization to replace their bound build or start autonomous raid tests.
+Released for menu testing on 2026-09-13 after the user authorized deployment.
+The reviewed client, server and five map files are installed and hash-verified
+under `D:\SPT41`. Wait for the existing mirror and verify the files under
+`C:\SPT41` before starting. This task does not authorize autonomous raid tests.
 
-## Bind the eventual candidate
+## Fixed test and build binding
 
-After the user authorizes installation, use the clean-source delivery manifest
-from `tools/AreaMapDelivery/Build-Staged.ps1`. It records the exact SourceCommit,
-client/server SHA256 and map content path. Both DLLs must be installed for the
-new shared `customs-factory-east-polygon-v1` ID, with the map's attribution,
-license and sources preserved. Restart the client and server after installation.
+- Test ID: `area-map-preview-r1`.
+- Source commit: `d7cde9d115a0f775f8c1b52cc324ee8b0c319e62`.
+- Arena client AND server ProductVersion:
+  `0.1.0+d7cde9d115a0f775f8c1b52cc324ee8b0c319e62`.
+- Exact portable binding: `GPU-AREA-MAP-PREVIEW-r1-BUILD.json`. It records the
+  installed hashes for both Arena DLLs, unchanged Redeploy.Core/Client and all
+  five map/source/license files. Their directory paths are relative to SPT.
+- The binary was built before this documentation-only deployment commit. Later
+  documentation commits are expected; do not rebuild to match the checkout.
+- This is a new test binding. The older `respawn-stage0-r4` instruction remains
+  bound to its old build and is not evidence for this candidate.
 
-Before accepting evidence, compare those recorded hashes with the actual client
-and server under `C:\SPT41`, and record the source commit, manifest, hashes,
-game resolution and UI scaling in the report. Do not rebuild mid-test or infer
-the running build from the checkout. An old currently installed candidate is
-not valid for this task. If hashes differ, stop and report the mismatch.
+| Installed file relative to SPT | SHA256 |
+|---|---|
+| `BepInEx/plugins/maschine-ArenaMode.Client.dll` | `AB53689653C666F8B842DA30C0F4FF9C7C86B801950A8418B47B2FAA37323A17` |
+| `SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll` | `A694911344BE7AC9058211EAC856B6944AA1CB16EB3AB1282ECB46403391C7B7` |
+| `BepInEx/plugins/maschine-Redeploy.Core.dll` | `FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C` |
+| `BepInEx/plugins/maschine-Redeploy.Client.dll` | `7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46` |
+
+Before launch and after the menu checks, run this read-only check from
+`C:\SPT41\Development\ArenaMode` and retain the output:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$testRoot = 'C:\SPT41'
+$binding = Get-Content -LiteralPath GPU-AREA-MAP-PREVIEW-r1-BUILD.json -Raw | ConvertFrom-Json
+foreach ($file in $binding.Files) {
+    $path = Join-Path $testRoot $file.RelativePath
+    if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $file.SHA256) {
+        throw "Wrong installed file: $($file.RelativePath)"
+    }
+    if ($file.ProductVersion -and [Diagnostics.FileVersionInfo]::GetVersionInfo($path).ProductVersion -ne $file.ProductVersion) {
+        throw "Wrong build ID: $($file.RelativePath)"
+    }
+}
+Write-Output "$($binding.TestId): all $($binding.Files.Count) installed files match $($binding.SourceCommit)"
+```
+
+If a file is missing or differs, do not start or rebuild: report the mismatch
+and let the deployment/mirror settle. After matching hashes, **start both game
+and SPT server fresh** so the running processes load this pair. Record the exact
+source commit, binding file, hashes, start times, resolution and UI scaling in
+the report. Never infer the running build from a checkout or a copied file alone.
 
 Read `AGENTS.md`, `HANDOFF.md` and `AREA-MAP-PREVIEW-REVIEW.md` first. Follow the
 local computer-use workflow and preserve other sessions' files and reports.
 Do not change or remove another mod to make this test pass.
 
+## Map, mode and area identifiers
+
+Use visible mode **TEAM DM**, ID `teamdeathmatch`, and map **Customs**, ID
+`bigmap`. Do not select PitFireTeam followers for this independent TDM test;
+an installed PFT mod may remain installed.
+
+| Visible area entry | Exact area ID | Team size |
+|---|---|---|
+| Factory Center | `customs-factory-center-v1` | Fixed 2v2 |
+| Factory Center (contour) | `customs-factory-center-polygon-v1` | Fixed 2v2 |
+| Customs contour (team starts) | `customs-factory-center-teams-v1` | Selectable 2v2–5v5 |
+| Factory East (contour) | `customs-factory-east-polygon-v1` | Fixed 2v2 |
+
+Fallback maps: Factory uses `factory4_day` or `factory4_night` through its native
+time choice; THE LAB is `laboratory`; THE LABYRINTH is `labyrinth`. These maps
+may use `full-map` (Whole map); Customs cannot. AREA and OVERVIEW change only the
+preview camera and are not area/mode identifiers.
+
 ## Menu checks
 
-1. Open ARENA, select Team Deathmatch and Customs. The left area panel offers
+1. Open ARENA, select TEAM DM and Customs, without PFT followers. The left area panel offers
    four entries, including **Factory East (contour)**. Record one full-screen
    image with the new area selected. All area rows, native map controls,
-   time selection and Back/Next/Ready controls must remain visible and usable.
+   time selection and Back/Next/Ready controls must remain unobscured, with
+   their native availability/interactivity unchanged. A button legitimately
+   disabled or absent by vanilla is not itself a preview failure.
 2. Check AREA for both measured contours. The selected polygon is blue, its
    interior map is brighter than its surroundings, and the full contour fits
    the preview. Buildings, roads and boundaries remain aligned when switching
@@ -48,11 +101,13 @@ Do not change or remove another mod to make this test pass.
    ten open/back cycles, including switching between the two contours. The
    preview must appear only once, with no flicker or growing duplicated text,
    controls or artwork. The selected settings must stay consistent with the
-   existing menu behavior. Record any restoration/change instead of assuming
-   it is intended.
+   existing menu behavior. In particular, camera toggles never select an area.
 6. Switch to Factory, Labs and Labyrinth: the Customs artwork is absent and
    native map information is restored. Return to Customs; the preview works
-   again. Return to character selection and inspect ordinary PMC and Scav:
+   again. Switching to those other maps normally selects `full-map`; returning
+   to Customs can therefore choose Factory Center (the rectangle) as its valid
+   default. This existing fallback is expected, not loss of the preview state.
+   Reselect Factory East explicitly for its checks. Return to character selection and inspect ordinary PMC and Scav:
    neither must display the Arena preview or leave native information invisible.
 7. Inspect at the actual test resolution and, if supported by the UI without
    restarting, at 1920x1080 and a smaller supported resolution. Record each

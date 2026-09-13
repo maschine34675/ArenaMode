@@ -1,7 +1,10 @@
 # Native area map preview
 
-Prepared on 2026-09-13 on `feature/area-map-preview`. **Not deployed or tested in
-the game**: the user's ongoing GPU tests retain their existing installed build.
+Prepared on 2026-09-13 on `feature/area-map-preview`; initially staged without
+deployment during the user's ongoing tests. The user subsequently authorized
+deployment: the clean `d7cde9d` client/server and map package are now installed
+and hash-verified on D:. Native GPU acceptance remains untested. The exact test
+binding is `GPU-AREA-MAP-PREVIEW-r1-BUILD.json`; see HANDOFF for delivery details.
 The second contour was committed separately as `c7de967`.
 
 ## Behavior
@@ -107,5 +110,6 @@ pwsh -NoProfile -File tools/AreaMapDelivery/Build-Staged.ps1 -SptRoot D:\SPT41
 The helper records client/server hashes, source commit and working-tree state in
 an ignored `artifacts/area-map-delivery/<run-id>/manifest.json`, checks installed
 DLL/asset hashes before and after, and leaves deployment false. The final clean
-manifest is the later test candidate; it is not the currently installed build.
-Both client and server must eventually be updated for the new shared area ID.
+manifest identifies the staged candidate; a staging run alone does not install
+it. The separately recorded deployment above promoted both DLLs, required for
+the new shared area ID. Do not rebuild during the bound GPU menu test.
