@@ -1,0 +1,20 @@
+[
+  {
+    "Id": 6332,
+    "ProcessName": "EscapeFromTarkov",
+    "StartUTC": "2026-09-13T06:11:24.0256445Z",
+    "Responding": true
+  },
+  {
+    "Id": 5396,
+    "ProcessName": "SPT.Launcher",
+    "StartUTC": "2026-09-13T06:09:58.4583588Z",
+    "Responding": true
+  },
+  {
+    "Id": 9780,
+    "ProcessName": "SPT.Server",
+    "StartUTC": "2026-09-13T06:09:58.4367303Z",
+    "Responding": true
+  }
+]

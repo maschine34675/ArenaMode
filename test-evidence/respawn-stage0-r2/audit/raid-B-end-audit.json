@@ -1,0 +1,321 @@
+{
+  "capturedAtUtc": "2026-09-13T06:35:25.620Z",
+  "status": "OFFEN_COOLDOWN_RACE_NATIVE_EXIT_NOT_AVAILABLE",
+  "scope": {
+    "clientFrom": "08:30:18.000 MESZ",
+    "clientLast": "08:34:48.830",
+    "clientAllLines": 13340,
+    "clientBLines": 75,
+    "serverBFrom": "2026-09-13 06:30:18.000 UTC",
+    "serverFreshFrom": "2026-09-13 06:09:58.000 UTC",
+    "serverLast": "2026-09-13 06:35:24.076",
+    "serverBLines": 290,
+    "serverFreshLines": 1314
+  },
+  "actions": [
+    {
+      "at": "2026-09-13T06:30:18.146Z",
+      "name": "B-ready",
+      "kind": "click",
+      "x": 958,
+      "y": 943,
+      "inputResolvedAt": "2026-09-13T06:30:18.240Z"
+    },
+    {
+      "at": "2026-09-13T06:31:52.966Z",
+      "name": "B-near-corpse",
+      "kind": "click",
+      "x": 855,
+      "y": 526,
+      "inputResolvedAt": "2026-09-13T06:31:53.144Z"
+    },
+    {
+      "at": "2026-09-13T06:32:02.400Z",
+      "name": "B-cooldown-escape",
+      "kind": "key",
+      "key": "Escape",
+      "inputResolvedAt": "2026-09-13T06:32:02.558Z"
+    },
+    {
+      "at": "2026-09-13T06:32:50.342Z",
+      "name": "B-after-respawn-escape",
+      "kind": "key",
+      "key": "Escape",
+      "inputResolvedAt": "2026-09-13T06:32:50.430Z"
+    },
+    {
+      "at": "2026-09-13T06:33:13.161Z",
+      "name": "B-disconnect",
+      "kind": "click",
+      "x": 959,
+      "y": 644,
+      "inputResolvedAt": "2026-09-13T06:33:13.315Z"
+    },
+    {
+      "at": "2026-09-13T06:33:22.651Z",
+      "name": "B-confirm-leave",
+      "kind": "click",
+      "x": 960,
+      "y": 971,
+      "inputResolvedAt": "2026-09-13T06:33:22.782Z"
+    }
+  ],
+  "markers": {
+    "deathIntercepted": [
+      {
+        "line": 13299,
+        "time": "08:31:45.986",
+        "level": "Info",
+        "source": "maschine-Redeploy",
+        "message": "Death intercepted. Respawns used: 0/3"
+      }
+    ],
+    "protectionActive": [
+      {
+        "line": 13314,
+        "time": "08:32:13.374",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection active for 30s."
+      }
+    ],
+    "respawnComplete": [
+      {
+        "line": 13321,
+        "time": "08:32:13.733",
+        "level": "Info",
+        "source": "maschine-Redeploy",
+        "message": "Respawn complete."
+      }
+    ],
+    "protectionEnded": [
+      {
+        "line": 13327,
+        "time": "08:32:43.644",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection ended."
+      }
+    ],
+    "unexpectedBlackFade": [],
+    "externalEndPending": [],
+    "cooldownCancelled": []
+  },
+  "keyEvents": [
+    {
+      "line": 13298,
+      "time": "08:31:45.984",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Corpse renders switched to third person."
+    },
+    {
+      "line": 13299,
+      "time": "08:31:45.986",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Death intercepted. Respawns used: 0/3"
+    },
+    {
+      "line": 13300,
+      "time": "08:31:45.986",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Respawn prompt shown."
+    },
+    {
+      "line": 13301,
+      "time": "08:31:46.018",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Local player unregistered while the raid continues (respawn?) — waiting for the replacement."
+    },
+    {
+      "line": 13302,
+      "time": "08:31:46.740",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Playback start: 173 snapshots, span 9.98s, bones=173, camera=ok"
+    },
+    {
+      "line": 13308,
+      "time": "08:32:04.435",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Playback end after 9.98s: live tail complete"
+    },
+    {
+      "line": 13310,
+      "time": "08:32:13.120",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Profile equipment swapped; corpse retains raid loadout."
+    },
+    {
+      "line": 13312,
+      "time": "08:32:13.256",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam compat: rebound cached GamePlayerOwner and reset freecam state."
+    },
+    {
+      "line": 13313,
+      "time": "08:32:13.363",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Culling: evicted 1 replaced camera(s), 0 still registered."
+    },
+    {
+      "line": 13314,
+      "time": "08:32:13.374",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection active for 30s."
+    },
+    {
+      "line": 13315,
+      "time": "08:32:13.478",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 13316,
+      "time": "08:32:13.704",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: main player changed — reinitializing for respawn"
+    },
+    {
+      "line": 13320,
+      "time": "08:32:13.731",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 13321,
+      "time": "08:32:13.733",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Respawn complete."
+    },
+    {
+      "line": 13323,
+      "time": "08:32:13.850",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Stowing auto-drawn weapon during spawn protection."
+    },
+    {
+      "line": 13327,
+      "time": "08:32:43.644",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection ended."
+    },
+    {
+      "line": 13332,
+      "time": "08:33:23.843",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Raid ended, IdentifierManager removal requested."
+    }
+  ],
+  "serverEnds": [
+    {
+      "line": 2169,
+      "time": "2026-09-13 06:31:06.663",
+      "level": "Information",
+      "source": "SPTarkov.Server.Middleware.SptLoggerMiddleware",
+      "message": "[Client-Anfrage] /arenamode/ordinary-confirm"
+    },
+    {
+      "line": 2304,
+      "time": "2026-09-13 06:33:24.094",
+      "level": "Information",
+      "source": "SPTarkov.Server.Middleware.SptLoggerMiddleware",
+      "message": "[Client-Anfrage] /client/match/local/end"
+    },
+    {
+      "line": 2305,
+      "time": "2026-09-13 06:33:24.102",
+      "level": "Debug",
+      "source": "SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService",
+      "message": "Raid: factory4_day.Pmc 1789281037 outcome: LEFT"
+    }
+  ],
+  "errors": [],
+  "exceptions": [],
+  "serverErrors": [],
+  "serverExceptions": [],
+  "forbidden": [],
+  "knownVanillaBotSurgicalExceptionCount": 0,
+  "sourceCounts": {
+    "Unity Log": {
+      "warnings": 1,
+      "errors": 0
+    },
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "requiredSourceCounts": {
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "clientFreshCounts": {
+    "FixPluginTypesSerialization": {
+      "warnings": 5,
+      "errors": 0
+    },
+    "HarmonyX": {
+      "warnings": 4,
+      "errors": 0
+    },
+    "Unity Log": {
+      "warnings": 11,
+      "errors": 1
+    },
+    "Redeploy.Core": {
+      "warnings": 2,
+      "errors": 0
+    }
+  },
+  "serverBCounts": {},
+  "serverFreshCounts": {
+    "SPTarkov.Server.Core.Helpers.Traders.TraderHelper": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "diagnostics": {
+    "bRecords": 2,
+    "freshRecords": 10,
+    "counts": {}
+  },
+  "processesObserved": {
+    "gamePid": 6332,
+    "gameStartLocal": "2026-09-13T08:11:24.0256445+02:00",
+    "serverPid": 9780,
+    "serverStartLocal": "2026-09-13T08:09:58.4367303+02:00",
+    "bothResponding": true
+  },
+  "rootNativeObservation": "Escape within 20-second cooldown showed killcam without a native exit menu; then no input until regular respawn. After respawn native Escape/Disconnect/Confirm Leave worked.",
+  "interpretation": "Cooldown-race cancellation not exercised: both B cancellation markers absent; normal protection and respawn appeared as expected in the instructed fallback. No B FAIL inferred from those positive respawn markers. Subsequent short PMC reset raid remains to be tested; this snapshot does not pass the reset boundary.",
+  "rawSHA256": {
+    "client": "93524e7d2f9edc598d84d75ce15694083a120b79a0b7e95801525a41c2e52581",
+    "serverFresh": "dc4b2e237085e604bca173dc6033a37ffb5f28b37eab3f80c1233a50fa9c980b"
+  }
+}

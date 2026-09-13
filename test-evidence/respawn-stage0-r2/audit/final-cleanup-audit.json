@@ -1,0 +1,365 @@
+{
+  "createdAtUtc": "2026-09-13T06:57:16.619Z",
+  "source": "Fixed logs/final-cleanup snapshot",
+  "scope": {
+    "clientSessionStartLocal": "08:11:33.241",
+    "clientLast": "08:51:57.474",
+    "clientPhysicalLines": 14107,
+    "clientCAfterREnd": "08:38:31.509",
+    "clientCLines": 705,
+    "serverSinceProcessUtc": "2026-09-13 06:09:58.000",
+    "serverLast": "2026-09-13 06:54:46.503",
+    "serverPhysicalLines": 2040,
+    "serverCLines": 581
+  },
+  "status": "STOP_NEW_EXCEPTION_AND_FINAL_OPTIONAL_DLL_HASH_DRIFT",
+  "errors": [
+    {
+      "line": 13233,
+      "time": "08:18:46.434",
+      "level": "Error",
+      "source": "Unity Log",
+      "message": "Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!"
+    },
+    {
+      "line": 14052,
+      "time": "08:51:03.441",
+      "level": "Error",
+      "source": "Unity Log",
+      "message": "NullReferenceException: Object reference not set to an instance of an object"
+    }
+  ],
+  "exceptions": [
+    {
+      "line": 14052,
+      "text": "[08:51:03.441] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object"
+    }
+  ],
+  "allowedExactBotSurgicalExceptionCount": 0,
+  "forbidden": [
+    {
+      "line": 14100,
+      "time": "08:51:09.714",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena burst spawn of pmcBEAR failed: The operation was canceled."
+    }
+  ],
+  "markerCounts": {
+    "raidStartKitSwap": 1,
+    "arenaRespawnTiming": 1,
+    "giveUp": 1,
+    "wrongNewBody": 0,
+    "replacementAlreadyInFlight": 0,
+    "liveRefused": 0,
+    "oldBodyRecoveryFailed": 0,
+    "replacementRecoveryFailed": 0,
+    "respawnRefused": 0,
+    "ordinaryRedeployRespawn": 0,
+    "playerGaveUpKilled": 0,
+    "bExternalEnd": 0,
+    "bCancelled": 0
+  },
+  "clientBySource": {
+    "FixPluginTypesSerialization": {
+      "warnings": 5,
+      "errors": 0
+    },
+    "HarmonyX": {
+      "warnings": 4,
+      "errors": 0
+    },
+    "Unity Log": {
+      "warnings": 29,
+      "errors": 2
+    },
+    "Redeploy.Core": {
+      "warnings": 4,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 2,
+      "errors": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "clientTotals": {
+    "warnings": 44,
+    "errors": 2
+  },
+  "clientCBySource": {
+    "Redeploy.Core": {
+      "warnings": 2,
+      "errors": 0
+    },
+    "Unity Log": {
+      "warnings": 2,
+      "errors": 1
+    },
+    "maschine-ArenaMode": {
+      "warnings": 2,
+      "errors": 0
+    }
+  },
+  "clientCTotals": {
+    "warnings": 6,
+    "errors": 1
+  },
+  "serverBySource": {
+    "SPTarkov.Server.Core.Helpers.Traders.TraderHelper": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "serverTotals": {
+    "warnings": 1,
+    "errors": 0
+  },
+  "serverCBySource": {},
+  "diagnostics": {
+    "totalRecords": 43,
+    "cRecords": 32,
+    "counts": {}
+  },
+  "binding": {
+    "lastBeforeCAt": "2026-09-13T06:41:31.878Z",
+    "beforeCAllMatch": true,
+    "finalAt": "2026-09-13T06:54:06.092Z",
+    "finalDrift": [
+      {
+        "name": "BotDropDiag",
+        "expected": "5B37C035BD860E9EED5A9520EE62BF8D607591A77996142BB80CA18BF48E0985",
+        "actual": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0"
+      }
+    ],
+    "independentRequiredDllCheckLocal": "2026-09-13T08:56:18.523+02:00",
+    "eightRequiredAllMatch": true,
+    "optionalLastWriteTimeUtc": "2026-09-13T06:42:50.7443527Z",
+    "optionalProductVersion": "0.1.0+04d579413cbfbadb7e4184341084ab956c577cb5",
+    "optionalLength": 14336,
+    "limitation": "Disk hash changed between last matching pre-C measurement and final check. The filesystem timestamp is not an observed write event or proof of writer. No process-memory probe was performed; which bytes remained loaded is not independently measured. No DLL write/build/deploy by this audit."
+  },
+  "profile": {
+    "protectedBeforeSHA256": "14ce251443fc3685ab0a766f5683781b81ee32b53803c4351cbbbc4cb2d8b0c6",
+    "protectedAfterSHA256": "14ce251443fc3685ab0a766f5683781b81ee32b53803c4351cbbbc4cb2d8b0c6",
+    "protectedDiffPaths": [],
+    "fullPmcDiffPaths": [
+      "/Hideout/sptUpdateLastRunTimestamp"
+    ],
+    "fullScavDiffPaths": [],
+    "pmcStatsEqual": true,
+    "scavStatsEqual": true
+  },
+  "budget": {
+    "raids": 4,
+    "nativeDurationsSeconds": [
+      314,
+      137,
+      49,
+      534
+    ],
+    "nativeActiveTotalSeconds": 1034,
+    "nativeActiveTotal": "17:14",
+    "limitRaids": 5,
+    "limitActiveMinutes": 40,
+    "D": "SKIP_AFTER_MANDATORY_STOP; not because budget was exhausted"
+  },
+  "rawSHA256": {
+    "client": "a62a0bd6188311cf5f3d87d8001c77d5f3684f67b70c5bcbef767acc04215909",
+    "server": "6c15eca53d4cddaa3d4cefba1a066e66b2fe532889f1d921aa9092b1d9f45ffb"
+  },
+  "markerScope": "markerCounts contains C-only markers (after R end 08:38:31.509 MESZ through final-cleanup). Thus ordinaryRedeployRespawn=0 there does not describe A/B or the full run.",
+  "allRunMarkerScope": "Entire fresh client process, 2026-09-13 08:11:33.241 MESZ through final-cleanup last timestamp08:51:57.474; A+B+R+C and all postraid/cleanup lines. BotDropDiag excluded.",
+  "allRunCounts": {
+    "coreInitialized": 1,
+    "arenaDriverRegistered": 1,
+    "redeployDriverRegistered": 1,
+    "failClosedIncomplete": 0,
+    "patchCouldNotBeInstalled": 0,
+    "respawnRefusedBeforeAnyTeardown": 0,
+    "coreSubscriberFailed": 0,
+    "arenaSubscriberFailed": 0,
+    "anyCoreOrArenaSubscriberFailed": 0,
+    "gameEndFaultedBeforeFirstAwait": 0,
+    "freecamCompatibilityPatchesCouldNotBeEnabled": 0,
+    "redeployDeathIntercepted": 2,
+    "ordinaryRedeployRespawnComplete": 2,
+    "coreSpawnProtectionActive": 3,
+    "coreSpawnProtectionEnded": 3,
+    "blockedRaidEndBlackScreen": 0,
+    "bExternalEndPending": 0,
+    "bCooldownCancelled": 0,
+    "ordinaryPlayerGaveUpEndingKilled": 0,
+    "arenaGiveUpRespawning": 1,
+    "arenaDeathMarker": 1,
+    "arenaRaidStartKitSwap": 1,
+    "arenaRespawnTiming": 1,
+    "arenaFailedColon": 1,
+    "wrongArenaReplacementBody": 0,
+    "replacementAlreadyInFlight": 0,
+    "liveReplacementRefused": 0,
+    "oldBodyRecoveryFailed": 0,
+    "replacementBodyRecoveryFailed": 0
+  },
+  "allRunMarkerOccurrences": {
+    "coreInitialized": [
+      {
+        "line": 3991,
+        "timeLocal": "08:11:42.852",
+        "source": "Redeploy.Core",
+        "message": "Redeploy.Core 0.9.0.0 initialized"
+      }
+    ],
+    "arenaDriverRegistered": [
+      {
+        "line": 4545,
+        "timeLocal": "08:11:44.110",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: ArenaMode (priority 100)"
+      }
+    ],
+    "redeployDriverRegistered": [
+      {
+        "line": 7153,
+        "timeLocal": "08:11:48.668",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: Redeploy (priority 0)"
+      }
+    ],
+    "failClosedIncomplete": [],
+    "patchCouldNotBeInstalled": [],
+    "respawnRefusedBeforeAnyTeardown": [],
+    "coreSubscriberFailed": [],
+    "arenaSubscriberFailed": [],
+    "anyCoreOrArenaSubscriberFailed": [],
+    "gameEndFaultedBeforeFirstAwait": [],
+    "freecamCompatibilityPatchesCouldNotBeEnabled": [],
+    "redeployDeathIntercepted": [
+      {
+        "line": 13203,
+        "timeLocal": "08:17:41.054",
+        "source": "maschine-Redeploy",
+        "message": "Death intercepted. Respawns used: 0/3"
+      },
+      {
+        "line": 13299,
+        "timeLocal": "08:31:45.986",
+        "source": "maschine-Redeploy",
+        "message": "Death intercepted. Respawns used: 0/3"
+      }
+    ],
+    "ordinaryRedeployRespawnComplete": [
+      {
+        "line": 13225,
+        "timeLocal": "08:18:05.691",
+        "source": "maschine-Redeploy",
+        "message": "Respawn complete."
+      },
+      {
+        "line": 13321,
+        "timeLocal": "08:32:13.733",
+        "source": "maschine-Redeploy",
+        "message": "Respawn complete."
+      }
+    ],
+    "coreSpawnProtectionActive": [
+      {
+        "line": 13218,
+        "timeLocal": "08:18:05.312",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection active for 30s."
+      },
+      {
+        "line": 13314,
+        "timeLocal": "08:32:13.374",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection active for 30s."
+      },
+      {
+        "line": 13718,
+        "timeLocal": "08:46:34.544",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection active for 4s."
+      }
+    ],
+    "coreSpawnProtectionEnded": [
+      {
+        "line": 13230,
+        "timeLocal": "08:18:35.623",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection ended."
+      },
+      {
+        "line": 13327,
+        "timeLocal": "08:32:43.644",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection ended."
+      },
+      {
+        "line": 13733,
+        "timeLocal": "08:46:38.983",
+        "source": "Redeploy.Core",
+        "message": "Spawn protection ended."
+      }
+    ],
+    "blockedRaidEndBlackScreen": [],
+    "bExternalEndPending": [],
+    "bCooldownCancelled": [],
+    "ordinaryPlayerGaveUpEndingKilled": [],
+    "arenaGiveUpRespawning": [
+      {
+        "line": 13709,
+        "timeLocal": "08:46:33.737",
+        "source": "maschine-ArenaMode",
+        "message": "Arena: player gave up — respawning."
+      }
+    ],
+    "arenaDeathMarker": [
+      {
+        "line": 13710,
+        "timeLocal": "08:46:33.767",
+        "source": "maschine-ArenaMode",
+        "message": "Arena death #1 — instant respawn."
+      }
+    ],
+    "arenaRaidStartKitSwap": [
+      {
+        "line": 13542,
+        "timeLocal": "08:42:12.133",
+        "source": "maschine-ArenaMode",
+        "message": "Arena raid-start kit swap complete: Reverend."
+      }
+    ],
+    "arenaRespawnTiming": [
+      {
+        "line": 13725,
+        "timeLocal": "08:46:34.993",
+        "source": "maschine-ArenaMode",
+        "message": "Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 1.13s, total 1.21s."
+      }
+    ],
+    "arenaFailedColon": [
+      {
+        "line": 14100,
+        "timeLocal": "08:51:09.714",
+        "source": "maschine-ArenaMode",
+        "message": "Arena burst spawn of pmcBEAR failed: The operation was canceled."
+      }
+    ],
+    "wrongArenaReplacementBody": [],
+    "replacementAlreadyInFlight": [],
+    "liveReplacementRefused": [],
+    "oldBodyRecoveryFailed": [],
+    "replacementBodyRecoveryFailed": []
+  },
+  "allRunProtectionBreakdown": {
+    "ordinaryRedeployA": 1,
+    "ordinaryRedeployB": 1,
+    "arenaGiveUpC": 1,
+    "ordinaryRedeployCompletionsAandB": 2,
+    "arenaTimingCompletionsC": 1
+  }
+}

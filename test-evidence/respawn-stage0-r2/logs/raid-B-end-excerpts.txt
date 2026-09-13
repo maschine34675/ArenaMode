@@ -1,0 +1,22 @@
+Client L13272 [08:30:41.544 MESZ] [Warning: Unity Log] BoxCollider does not support negative scale or size.
+Client L13298 [08:31:45.984 MESZ] [Info: maschine-Redeploy] Corpse renders switched to third person.
+Client L13299 [08:31:45.986 MESZ] [Info: maschine-Redeploy] Death intercepted. Respawns used: 0/3
+Client L13300 [08:31:45.986 MESZ] [Info: maschine-Redeploy] Respawn prompt shown.
+Client L13301 [08:31:46.018 MESZ] [Info: maschine-AutoIFF] [AutoIFF] Local player unregistered while the raid continues (respawn?) — waiting for the replacement.
+Client L13302 [08:31:46.740 MESZ] [Info: maschine-KillcamReplay] Playback start: 173 snapshots, span 9.98s, bones=173, camera=ok
+Client L13308 [08:32:04.435 MESZ] [Info: maschine-KillcamReplay] Playback end after 9.98s: live tail complete
+Client L13310 [08:32:13.120 MESZ] [Info: Redeploy.Core] Profile equipment swapped; corpse retains raid loadout.
+Client L13312 [08:32:13.256 MESZ] [Info: Redeploy.Core] Freecam compat: rebound cached GamePlayerOwner and reset freecam state.
+Client L13313 [08:32:13.363 MESZ] [Info: Redeploy.Core] Culling: evicted 1 replaced camera(s), 0 still registered.
+Client L13314 [08:32:13.374 MESZ] [Info: Redeploy.Core] Spawn protection active for 30s.
+Client L13315 [08:32:13.478 MESZ] [Warning: Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+Client L13315 [08:32:13.478 MESZ] [Warning: Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+Client L13316 [08:32:13.704 MESZ] [Info: maschine-KillcamReplay] BoneRecorder: main player changed — reinitializing for respawn
+Client L13320 [08:32:13.731 MESZ] [Info: maschine-AutoIFF] [AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0.
+Client L13321 [08:32:13.733 MESZ] [Info: maschine-Redeploy] Respawn complete.
+Client L13323 [08:32:13.850 MESZ] [Info: Redeploy.Core] Stowing auto-drawn weapon during spawn protection.
+Client L13327 [08:32:43.644 MESZ] [Info: Redeploy.Core] Spawn protection ended.
+Client L13332 [08:33:23.843 MESZ] [Info: maschine-AutoIFF] [AutoIFF] Raid ended, IdentifierManager removal requested.
+Server L2169 [2026-09-13 06:31:06.663 UTC] [Information: SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /arenamode/ordinary-confirm
+Server L2304 [2026-09-13 06:33:24.094 UTC] [Information: SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+Server L2305 [2026-09-13 06:33:24.102 UTC] [Debug: SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService] Raid: factory4_day.Pmc 1789281037 outcome: LEFT

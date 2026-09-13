@@ -1,0 +1,48 @@
+{
+  "testId": "respawn-stage0-r2",
+  "case": "C",
+  "basis": "Independent complete recursive comparison of the saved C-before and C-after JSON documents; see C-profile-audit.public.json for hashes, methods and all sixteen field results.",
+  "snapshotTimingUtc": {
+    "before": "2026-09-13T06:41:31.880Z",
+    "after": "2026-09-13T06:52:16.883Z",
+    "mainMenu": "2026-09-13T06:52:16.883Z",
+    "source": "Caller-recorded budget.json and private C-after-capture.json; UI and server restore are independently owned by the root test agent."
+  },
+  "wholeDocumentEqual": false,
+  "wholePmcEqual": false,
+  "wholeScavEqual": true,
+  "fullDocumentDifferenceCount": 1,
+  "reviewedDifferences": [
+    {
+      "path": "/characters/pmc/Hideout/sptUpdateLastRunTimestamp",
+      "before": 1789281663,
+      "after": 1789282328,
+      "beforeUtc": "2026-09-13T06:41:03Z",
+      "afterUtc": "2026-09-13T06:52:08Z",
+      "deltaSeconds": 665,
+      "assessment": "Only a PMC Hideout update timestamp changed. No further difference exists anywhere in either complete profile document. The comparison does not identify the writing process, cause or update mechanism. The difference is reported, not ignored or treated as complete profile equality."
+    }
+  ],
+  "protectedPmc": {
+    "Inventory": "present on both sides; completely equal",
+    "Quests": "present on both sides; completely equal",
+    "Skills": "present on both sides; completely equal",
+    "Health": "present on both sides; completely equal, including UpdateTime",
+    "Info.Experience": "present on both sides; equal",
+    "Info.Level": "present on both sides; equal",
+    "TaskConditionCounters": "present on both sides; completely equal",
+    "RepeatableQuests": "present on both sides; completely equal"
+  },
+  "protectedScav": {
+    "Inventory": "present on both sides; completely equal",
+    "Quests": "present on both sides; completely equal",
+    "Skills": "present on both sides; completely equal",
+    "Health": "present on both sides; completely equal",
+    "Info.Experience": "present on both sides; equal",
+    "Info.Level": "present on both sides; equal",
+    "TaskConditionCounters": "present on both sides; completely equal",
+    "RepeatableQuests": "missing on both sides; no addition or removal"
+  },
+  "conclusion": "All sixteen protected field comparisons are unchanged, and the complete Scav object is equal. The complete PMC object and profile document differ only by the explicitly reported Hideout timestamp. This is not a full-profile equality PASS and does not override the independently observed runtime safety stop.",
+  "scope": "Only the two saved private snapshots were read. No live profile read, profile modification or snapshot copyback was performed. Raw difference values remain private; only the reviewed timestamp values are included here."
+}

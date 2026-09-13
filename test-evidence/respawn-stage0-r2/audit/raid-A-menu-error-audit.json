@@ -1,0 +1,302 @@
+{
+  "capturedAtUtc": "2026-09-13T06:20:16.496Z",
+  "scope": {
+    "clientFromLocal": "08:16:12.000",
+    "clientLastTimestamp": "08:20:00.613",
+    "clientAllLines": 13246,
+    "clientALines": 125,
+    "serverFreshFromUtc": "2026-09-13 06:09:58.000",
+    "serverAFromUtc": "2026-09-13 06:16:12.000",
+    "serverLastTimestamp": "2026-09-13 06:20:14.759",
+    "serverFreshLines": 865,
+    "serverALines": 227
+  },
+  "forbidden": [],
+  "errors": [
+    {
+      "line": 13233,
+      "timeLocal": "08:18:46.434",
+      "level": "Error",
+      "source": "Unity Log",
+      "message": "Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!"
+    }
+  ],
+  "exceptions": [],
+  "serverErrors": [],
+  "serverExceptions": [],
+  "clientSourceCounts": {
+    "Unity Log": {
+      "warnings": 8,
+      "errors": 1
+    },
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "requiredSourceCounts": {
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "serverSourceCounts": {},
+  "diagnostics": {
+    "recordCount": 7,
+    "counts": {}
+  },
+  "relevantMarkers": [
+    {
+      "line": 13131,
+      "timeLocal": "08:16:48.383",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: tracking 139 transforms, buffer 1.1 MB"
+    },
+    {
+      "line": 13174,
+      "timeLocal": "08:17:29.409",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam detected — camera operation patches enabled."
+    },
+    {
+      "line": 13182,
+      "timeLocal": "08:17:29.543",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (raid started). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 13199,
+      "timeLocal": "08:17:40.724",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "ArenaMode detected — death replay follows whatever the running arena mode asks for"
+    },
+    {
+      "line": 13200,
+      "timeLocal": "08:17:40.731",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Death replay: killer=Тагилла, 168 snapshots, window [266.72 .. 276.62], death at 276.66"
+    },
+    {
+      "line": 13201,
+      "timeLocal": "08:17:40.733",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Suppressing death fade during replay"
+    },
+    {
+      "line": 13203,
+      "timeLocal": "08:17:41.054",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Death intercepted. Respawns used: 0/3"
+    },
+    {
+      "line": 13204,
+      "timeLocal": "08:17:41.055",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Respawn prompt shown."
+    },
+    {
+      "line": 13205,
+      "timeLocal": "08:17:41.152",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Local player unregistered while the raid continues (respawn?) — waiting for the replacement."
+    },
+    {
+      "line": 13206,
+      "timeLocal": "08:17:41.862",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Playback start: 168 snapshots, span 9.90s, bones=168, camera=ok"
+    },
+    {
+      "line": 13209,
+      "timeLocal": "08:17:41.983",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Puppet weapon: copied 23 meshes; track spread root=0.00m anim=0.17m -> using anim"
+    },
+    {
+      "line": 13210,
+      "timeLocal": "08:17:41.987",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Killer weapon ghost: copied 2 meshes, aim-locked via fireport"
+    },
+    {
+      "line": 13212,
+      "timeLocal": "08:17:42.006",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Killer weapon ghost: recorded rotation was 109° off the aim"
+    },
+    {
+      "line": 13213,
+      "timeLocal": "08:17:59.551",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Playback end after 9.90s: live tail complete"
+    },
+    {
+      "line": 13214,
+      "timeLocal": "08:18:04.976",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Profile equipment swapped; corpse retains raid loadout."
+    },
+    {
+      "line": 13217,
+      "timeLocal": "08:18:05.272",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Culling: evicted 1 replaced camera(s), 0 still registered."
+    },
+    {
+      "line": 13218,
+      "timeLocal": "08:18:05.312",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection active for 30s."
+    },
+    {
+      "line": 13219,
+      "timeLocal": "08:18:05.435",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 13220,
+      "timeLocal": "08:18:05.675",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: main player changed — reinitializing for respawn"
+    },
+    {
+      "line": 13221,
+      "timeLocal": "08:18:05.679",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: tracking 139 transforms, buffer 1.1 MB"
+    },
+    {
+      "line": 13224,
+      "timeLocal": "08:18:05.687",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 13225,
+      "timeLocal": "08:18:05.691",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Respawn complete."
+    },
+    {
+      "line": 13227,
+      "timeLocal": "08:18:05.818",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Stowing auto-drawn weapon during spawn protection."
+    },
+    {
+      "line": 13230,
+      "timeLocal": "08:18:35.623",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection ended."
+    }
+  ],
+  "errorContext": [
+    {
+      "errorLine": 13233,
+      "lines": [
+        {
+          "line": 13230,
+          "text": "[08:18:35.623] [Info   :Redeploy.Core] Spawn protection ended."
+        },
+        {
+          "line": 13231,
+          "text": "[08:18:37.626] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer"
+        },
+        {
+          "line": 13232,
+          "text": "[08:18:45.486] [Info   :maschine-KillcamReplay] Retired 1 stale player track(s), 9 live"
+        },
+        {
+          "line": 13233,
+          "text": "[08:18:46.434] [Error  : Unity Log] Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!"
+        },
+        {
+          "line": 13234,
+          "text": "[08:18:50.410] [Info   :maschine-BotDropDiag] MEDS-FINISH bot=toaddsworth(pmcUSEC, Usec) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=31/220 from=Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/TacticalVest > USEC Rig/3 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+        },
+        {
+          "line": 13235,
+          "text": "[08:18:54.518] [Info   :ModulePatch] Updated assault bot Жорес Метанол to use: assault brain"
+        },
+        {
+          "line": 13236,
+          "text": "[08:18:56.994] [Info   :maschine-BotDropDiag] MEDS-FINISH bot=cinna.toastie(pmcUSEC, Usec) alive=True item=Automedkit{[private-id]} id=[private-id] type=MedKit res=40/220 from=Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/Pockets > Pockets/pocket2 queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+        },
+        {
+          "line": 13237,
+          "text": "[08:19:02.082] [Info   :maschine-BotDropDiag] MEDS-FINISH bot=toaddsworth(pmcUSEC, Usec) alive=True item=? queue=1 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.OnRemoveItem <- EFT.InventoryLogic.ItemController.SafeRemoveItemEvent <- EFT.InventoryLogic.ItemController.RaiseRemoveEvent <- EFT.InventoryLogic.ItemAddress.RaiseRemoveEvent <- EFT.InventoryLogic.ContainerRemoveResult.RaiseEventsInternal <- EFT.InventoryLogic.ItemInContainerOperationResult.RaiseEvents <- EFT.InventoryLogic.RemoveResult.RaiseEvents <- EFT.InventoryLogic.DiscardResult.RaiseEvents <- EFT.HealthSystem.MedEffectHelper.RemoveItem <- EFT.HealthSystem.ActiveHealthController+MedEffect.Residue <- EFT.HealthSystem.ActiveHealthController+Effect.NextState"
+        },
+        {
+          "line": 13238,
+          "text": "[08:19:04.933] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer"
+        },
+        {
+          "line": 13239,
+          "text": "[08:19:04.940] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer"
+        },
+        {
+          "line": 13240,
+          "text": "[08:19:04.941] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer"
+        },
+        {
+          "line": 13241,
+          "text": "[08:19:11.975] [Info   :maschine-BotDropDiag] MEDS-FINISH bot=toaddsworth(pmcUSEC, Usec) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=229/400 from=Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+        },
+        {
+          "line": 13242,
+          "text": "[08:19:41.377] [Info   :maschine-KillcamReplay] Retired 1 stale player track(s), 8 live"
+        },
+        {
+          "line": 13243,
+          "text": "[08:19:45.529] [Info   :maschine-BotDropDiag] MEDS-FINISH bot=toaddsworth(pmcUSEC, Usec) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=199/400 from=Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+        },
+        {
+          "line": 13244,
+          "text": "[08:19:57.445] [Info   :ModulePatch] Updated assault bot Митяй Локализатор to use: assault brain"
+        },
+        {
+          "line": 13245,
+          "text": "[08:20:00.613] [Info   :maschine-BotDropDiag] MEDS-FINISH bot=toaddsworth(pmcUSEC, Usec) alive=True item=ifak{[private-id]} id=[private-id] type=MedKit res=187/400 from=Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/[private-id] > Стандартный инвентарь/SecuredContainer > Защищенный контейнер Босса/main queue=0 state=Executing CH.CancelRequested=False stack=EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish> <- EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved> <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.NextState <- EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate <- EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate <- EFT.HealthSystem.BaseHealthController`1[[EFT.HealthSystem.ActiveHealthController+Effect, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].ManualUpdate <- EFT.HealthSystem.ActiveHealthController.ManualUpdate <- EFT.Player.HealthControllerUpdate <- EFT.Player.ManualUpdate <- EFT.LocalPlayer.ManualUpdate"
+        }
+      ]
+    }
+  ],
+  "interpretation": "Single Unity MenuScreen-inactive coroutine error is an Error log, not an observed runtime exception; no automatic harmlessness claim. Native Resume/Exit determines whether a softlock exists. r2 stops on every other new exception, softlock, error flood, profile risk or hash drift; exact known BotSurgicalKit-after-stop exception is separately allowed.",
+  "rawSHA256": {
+    "client": "0c664893e88a17e9ae49320828ddbb203c0bf3cae53716fa31339cff9b86c729",
+    "serverFresh": "d5f1efca1050cd477276dded908ad2628ecf6991a1d35897bf47550e7798b0f8"
+  }
+}

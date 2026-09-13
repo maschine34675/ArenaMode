@@ -1,0 +1,74 @@
+[
+  {
+    "Name": "ArenaMode.Client",
+    "Path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+    "FileVersion": "0.1.0.0",
+    "ProductVersion": "0.1.0+b5ff2585f1dea2642835582d7b06bf8e4ec72f65",
+    "Size": 1250816,
+    "LastWriteTimeUtc": "2026-09-12T19:11:48.6907137Z"
+  },
+  {
+    "Name": "Redeploy.Core",
+    "Path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+    "FileVersion": "0.9.0.0",
+    "ProductVersion": "0.9.0+287c2d95a4645ae72dbdf44843958781c84b9b60",
+    "Size": 64000,
+    "LastWriteTimeUtc": "2026-09-12T18:57:12.2512596Z"
+  },
+  {
+    "Name": "Redeploy.Client",
+    "Path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+    "FileVersion": "0.9.0.0",
+    "ProductVersion": "0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936",
+    "Size": 28672,
+    "LastWriteTimeUtc": "2026-09-12T18:27:15.6424739Z"
+  },
+  {
+    "Name": "ArenaMode.Server",
+    "Path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+    "FileVersion": "0.1.0.0",
+    "ProductVersion": "0.1.0+f257a783623daa939ebf6a0750d0521e3b306263",
+    "Size": 357888,
+    "LastWriteTimeUtc": "2026-09-12T18:58:15.8689013Z"
+  },
+  {
+    "Name": "Redeploy.Server",
+    "Path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+    "FileVersion": "0.9.0.0",
+    "ProductVersion": "0.9.0+58abf5876629bb51be808d78ee2cd7a5d34af77a",
+    "Size": 17408,
+    "LastWriteTimeUtc": "2026-09-09T18:03:57.2175494Z"
+  },
+  {
+    "Name": "SAIN",
+    "Path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+    "FileVersion": "4.5.1",
+    "ProductVersion": "4.5.1+2d1d9257dbb3af535e9189e6181311f6355aec27",
+    "Size": 781312,
+    "LastWriteTimeUtc": "2026-09-04T18:35:15.0000000Z"
+  },
+  {
+    "Name": "KillcamReplay",
+    "Path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+    "FileVersion": "0.9.5.0",
+    "ProductVersion": "0.9.5+d38aecfdc11298b0d9468befb456663ffebd8ba7",
+    "Size": 52736,
+    "LastWriteTimeUtc": "2026-09-12T16:18:50.2384653Z"
+  },
+  {
+    "Name": "DynamicMaps",
+    "Path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+    "FileVersion": "1.2.1.0",
+    "ProductVersion": "1.2.1+99200c60f084d1f64491dee93ceb09351bb8a2cd",
+    "Size": 157696,
+    "LastWriteTimeUtc": "2026-08-10T15:50:59.3953343Z"
+  },
+  {
+    "Name": "BotDropDiag",
+    "Path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+    "FileVersion": "0.1.0",
+    "ProductVersion": "0.1.0+04d579413cbfbadb7e4184341084ab956c577cb5",
+    "Size": 14336,
+    "LastWriteTimeUtc": "2026-09-13T06:42:50.7443527Z"
+  }
+]

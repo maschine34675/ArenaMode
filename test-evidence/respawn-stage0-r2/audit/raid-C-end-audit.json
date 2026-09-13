@@ -1,0 +1,512 @@
+{
+  "createdAtUtc": "2026-09-13T06:54:38.319Z",
+  "source": "Fixed logs/C-end-main-menu snapshot, no live reads",
+  "scope": {
+    "clientAfterREnd": "08:38:31.509 MESZ",
+    "clientLast": "08:51:57.474",
+    "clientCLines": 705,
+    "clientFreshLines": 14107,
+    "serverAfterREnd": "2026-09-13 06:38:31.509 UTC",
+    "serverLast": "2026-09-13 06:52:16.432",
+    "serverCLines": 561,
+    "serverFreshFrom": "2026-09-13 06:09:58.000 UTC",
+    "serverFreshLines": 2020
+  },
+  "status": "FAIL_STOP_NEW_NON_ALLOWLISTED_BOTFIRSTAID_EXCEPTION",
+  "actions": [
+    {
+      "at": "2026-09-13T06:41:31.929Z",
+      "name": "C-ready",
+      "kind": "click",
+      "x": 960,
+      "y": 943,
+      "inputResolvedAt": "2026-09-13T06:41:32.020Z"
+    },
+    {
+      "at": "2026-09-13T06:46:33.626Z",
+      "name": "C-give-up-hotkey",
+      "kind": "key",
+      "key": "BackSpace",
+      "inputResolvedAt": "2026-09-13T06:46:33.721Z"
+    },
+    {
+      "at": "2026-09-13T06:50:38.712Z",
+      "name": "C-exit-escape",
+      "kind": "key",
+      "key": "Escape",
+      "inputResolvedAt": "2026-09-13T06:50:38.811Z"
+    },
+    {
+      "at": "2026-09-13T06:50:51.985Z",
+      "name": "C-exit-disconnect",
+      "kind": "click",
+      "x": 960,
+      "y": 644,
+      "inputResolvedAt": "2026-09-13T06:50:52.471Z"
+    },
+    {
+      "at": "2026-09-13T06:51:03.077Z",
+      "name": "C-confirm-leave",
+      "kind": "click",
+      "x": 960,
+      "y": 971,
+      "inputResolvedAt": "2026-09-13T06:51:03.199Z"
+    }
+  ],
+  "keyEvents": [
+    {
+      "line": 13435,
+      "time": "08:41:00.429",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena map view: buttons=4, visible=3, sharedContainer=True, mode=deathmatch"
+    },
+    {
+      "line": 13449,
+      "time": "08:41:51.339",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena armed for next raid on factory4_day (deathmatch)."
+    },
+    {
+      "line": 13453,
+      "time": "08:41:52.111",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena kit drawn: Reverend."
+    },
+    {
+      "line": 13454,
+      "time": "08:41:52.119",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: preloading kit 'reverend' (35 templates) in the loading screen."
+    },
+    {
+      "line": 13479,
+      "time": "08:41:53.248",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: loading-screen preload of kit 'reverend' (35 templates) finished in 1.1 s, before the raid began."
+    },
+    {
+      "line": 13495,
+      "time": "08:42:10.523",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: the loading-screen kit preload is this raid's — 1 batch(es) finished before the raid began, 0 still loading, 0 left to the in-raid warm-up, 0 failed."
+    },
+    {
+      "line": 13496,
+      "time": "08:42:10.525",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena session active on factory4_day."
+    },
+    {
+      "line": 13505,
+      "time": "08:42:10.633",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena match started (Deathmatch)."
+    },
+    {
+      "line": 13530,
+      "time": "08:42:11.467",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Profile equipment swapped; corpse retains raid loadout."
+    },
+    {
+      "line": 13533,
+      "time": "08:42:11.601",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam compat: rebound cached GamePlayerOwner and reset freecam state."
+    },
+    {
+      "line": 13534,
+      "time": "08:42:11.711",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Culling: evicted 1 replaced camera(s), 0 still registered."
+    },
+    {
+      "line": 13542,
+      "time": "08:42:12.133",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena raid-start kit swap complete: Reverend."
+    },
+    {
+      "line": 13544,
+      "time": "08:42:12.202",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena Deathmatch round 1 started."
+    },
+    {
+      "line": 13709,
+      "time": "08:46:33.737",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: player gave up — respawning."
+    },
+    {
+      "line": 13710,
+      "time": "08:46:33.767",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena death #1 — instant respawn."
+    },
+    {
+      "line": 13711,
+      "time": "08:46:33.780",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena kit drawn: Drifter."
+    },
+    {
+      "line": 13713,
+      "time": "08:46:33.863",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Profile equipment swapped; corpse retains raid loadout."
+    },
+    {
+      "line": 13716,
+      "time": "08:46:34.402",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam compat: rebound cached GamePlayerOwner and reset freecam state."
+    },
+    {
+      "line": 13717,
+      "time": "08:46:34.524",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Culling: evicted 1 replaced camera(s), 0 still registered."
+    },
+    {
+      "line": 13718,
+      "time": "08:46:34.544",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection active for 4s."
+    },
+    {
+      "line": 13725,
+      "time": "08:46:34.993",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 1.13s, total 1.21s."
+    },
+    {
+      "line": 13733,
+      "time": "08:46:38.983",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection ended."
+    },
+    {
+      "line": 14085,
+      "time": "08:51:04.715",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: skills restored to their profile values."
+    },
+    {
+      "line": 14086,
+      "time": "08:51:04.715",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena: loading-screen kit preload discarded (raid ended); no batch was loading."
+    },
+    {
+      "line": 14094,
+      "time": "08:51:04.730",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena session ended."
+    },
+    {
+      "line": 14097,
+      "time": "08:51:04.742",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena match ended: 0 kills / 1 deaths, score 0, best streak 0, 8.8 min."
+    },
+    {
+      "line": 14099,
+      "time": "08:51:05.123",
+      "level": "Info",
+      "source": "maschine-ArenaMode",
+      "message": "Arena SAIN teardown: uninitialized Arena component; coroutine cleanup retained."
+    }
+  ],
+  "markerCounts": {
+    "raidStartKitSwap": 1,
+    "arenaRespawnTiming": 1,
+    "giveUp": 1,
+    "wrongNewBody": 0,
+    "replacementAlreadyInFlight": 0,
+    "liveRefused": 0,
+    "oldBodyRecoveryFailed": 0,
+    "replacementRecoveryFailed": 0,
+    "respawnRefused": 0,
+    "ordinaryRedeployRespawn": 0,
+    "playerGaveUpKilled": 0,
+    "bExternalEnd": 0,
+    "bCancelled": 0
+  },
+  "markerOccurrences": {
+    "raidStartKitSwap": [
+      {
+        "line": 13542,
+        "time": "08:42:12.133",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena raid-start kit swap complete: Reverend."
+      }
+    ],
+    "arenaRespawnTiming": [
+      {
+        "line": 13725,
+        "time": "08:46:34.993",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 1.13s, total 1.21s."
+      }
+    ],
+    "giveUp": [
+      {
+        "line": 13709,
+        "time": "08:46:33.737",
+        "level": "Info",
+        "source": "maschine-ArenaMode",
+        "message": "Arena: player gave up — respawning."
+      }
+    ],
+    "wrongNewBody": [],
+    "replacementAlreadyInFlight": [],
+    "liveRefused": [],
+    "oldBodyRecoveryFailed": [],
+    "replacementRecoveryFailed": [],
+    "respawnRefused": [],
+    "ordinaryRedeployRespawn": [],
+    "playerGaveUpKilled": [],
+    "bExternalEnd": [],
+    "bCancelled": []
+  },
+  "forbidden": [
+    {
+      "line": 14100,
+      "time": "08:51:09.714",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena burst spawn of pmcBEAR failed: The operation was canceled."
+    }
+  ],
+  "errors": [
+    {
+      "line": 14052,
+      "time": "08:51:03.441",
+      "level": "Error",
+      "source": "Unity Log",
+      "message": "NullReferenceException: Object reference not set to an instance of an object"
+    }
+  ],
+  "exceptionCount": 1,
+  "exceptions": [
+    {
+      "firstLine": 14052,
+      "lastLine": 14079,
+      "timeLocal": "08:51:03.441",
+      "lines": [
+        "[08:51:03.441] [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object",
+        "[08:51:03.441] Stack trace:",
+        "[08:51:03.441] BotFirstAid+CG_ApplyToSelf.method_1 (Comfort.Common.Result`1[T] applyResult) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] (wrapper dynamic-method) EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::Finish>(EFT.Player/MedsController/MedsInHandsOperation)",
+        "[08:51:03.441] (wrapper dynamic-method) EFT.Player+MedsController+MedsInHandsOperation.DMD<EFT.Player+MedsController+MedsInHandsOperation::OnEffectRemoved>(EFT.Player/MedsController/MedsInHandsOperation,EFT.HealthSystem.IHealthEffect)",
+        "[08:51:03.441] EFT.HealthSystem.ActiveHealthController+Effect.NextState () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] EFT.HealthSystem.ActiveHealthController+Effect.NextState () (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] EFT.HealthSystem.ActiveHealthController+Effect.ManualUpdate (System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] EFT.HealthSystem.ActiveHealthController.ManualEffectUpdate (EFT.HealthSystem.ActiveHealthController+Effect effect, System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] EFT.HealthSystem.PlayerHealthController.ManualEffectUpdate (EFT.HealthSystem.ActiveHealthController+Effect effect, System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] EFT.HealthSystem.BaseHealthController`1[TEffectType].ManualUpdate (System.Single deltaTime) (at <cc2d80b06d5b4cb1a5816d2cc901d4c7>:0)",
+        "[08:51:03.441] UnityEngine.DebugLogHandler:LogException(Exception, Object)",
+        "[08:51:03.441] LogHandler:UnityEngine.ILogHandler.LogException(Exception, Object)",
+        "[08:51:03.441] UnityEngine.Debug:LogException(Exception)",
+        "[08:51:03.441] EFT.HealthSystem.BaseHealthController`1:ManualUpdate(Single)",
+        "[08:51:03.441] EFT.HealthSystem.ActiveHealthController:ManualUpdate(Single)",
+        "[08:51:03.441] EFT.Player:HealthControllerUpdate(Single)",
+        "[08:51:03.441] EFT.Player:ManualUpdate(Single, Nullable`1, Int32)",
+        "[08:51:03.441] EFT.LocalPlayer:ManualUpdate(Single, Nullable`1, Int32)",
+        "[08:51:03.441] EFT.Player:ComplexUpdate(EUpdateQueue, Single)",
+        "[08:51:03.441] EFT.Player:UpdateTick()",
+        "[08:51:03.441] EFT.GameWorld:CG_PlayerTick(Player)",
+        "[08:51:03.441] EFT.GameWorld:SafePlayerOperation(Action`1)",
+        "[08:51:03.441] EFT.GameWorld:PlayerTick(Single)",
+        "[08:51:03.441] ClientLocalGameWorld:PlayerTick(Single)",
+        "[08:51:03.441] EFT.GameWorld:DMD<EFT.GameWorld::DoWorldTick>(GameWorld, Single)",
+        "[08:51:03.441] EFT.GameWorldUnityTickListener:Update()",
+        ""
+      ]
+    }
+  ],
+  "allowedExactBotSurgicalExceptionCount": 0,
+  "serverErrors": [],
+  "serverExceptionLines": [],
+  "clientCCounts": {
+    "Redeploy.Core": {
+      "warnings": 2,
+      "errors": 0
+    },
+    "Unity Log": {
+      "warnings": 2,
+      "errors": 1
+    },
+    "maschine-ArenaMode": {
+      "warnings": 2,
+      "errors": 0
+    }
+  },
+  "clientFreshCounts": {
+    "FixPluginTypesSerialization": {
+      "warnings": 5,
+      "errors": 0
+    },
+    "HarmonyX": {
+      "warnings": 4,
+      "errors": 0
+    },
+    "Unity Log": {
+      "warnings": 29,
+      "errors": 2
+    },
+    "Redeploy.Core": {
+      "warnings": 4,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 2,
+      "errors": 0
+    }
+  },
+  "requiredCCounts": {
+    "Redeploy.Core": {
+      "warnings": 2,
+      "errors": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 2,
+      "errors": 0
+    }
+  },
+  "serverCCounts": {},
+  "serverFreshCounts": {
+    "SPTarkov.Server.Core.Helpers.Traders.TraderHelper": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "warnings": [
+    {
+      "line": 13535,
+      "time": "08:42:11.855",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 13564,
+      "time": "08:42:41.230",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "BoxCollider does not support negative scale or size."
+    },
+    {
+      "line": 13719,
+      "time": "08:46:34.676",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 14083,
+      "time": "08:51:04.468",
+      "level": "Warning",
+      "source": "Unity Log",
+      "message": "Calling Animator.GotoState on Synchronize layer"
+    },
+    {
+      "line": 14089,
+      "time": "08:51:04.729",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena raid-end remains pending: {"
+    },
+    {
+      "line": 14100,
+      "time": "08:51:09.714",
+      "level": "Warning",
+      "source": "maschine-ArenaMode",
+      "message": "Arena burst spawn of pmcBEAR failed: The operation was canceled."
+    }
+  ],
+  "diagnostics": {
+    "cRecords": 32,
+    "freshRecords": 43,
+    "counts": {}
+  },
+  "serverEnd": [
+    {
+      "line": 3018,
+      "time": "2026-09-13 06:51:04.723",
+      "level": "Information",
+      "source": "ArenaMode.Server.Routers.ArenaModeRouter",
+      "message": "[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing."
+    },
+    {
+      "line": 3020,
+      "time": "2026-09-13 06:51:04.833",
+      "level": "Information",
+      "source": "SPTarkov.Server.Middleware.SptLoggerMiddleware",
+      "message": "[Client-Anfrage] /client/match/local/end"
+    },
+    {
+      "line": 3021,
+      "time": "2026-09-13 06:51:04.849",
+      "level": "Information",
+      "source": "ArenaMode.Server.Services.ProfileSnapshotService",
+      "message": "[ArenaMode] Profile snapshot restored for session [private-id]."
+    },
+    {
+      "line": 3024,
+      "time": "2026-09-13 06:51:05.003",
+      "level": "Information",
+      "source": "ArenaMode.Server.Services.ArenaProtectedRaidEndService",
+      "message": "[ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted."
+    }
+  ],
+  "nativeRootObservations": {
+    "result": "Left the Action 08:54",
+    "totalNativeActiveSeconds": 1034,
+    "totalNativeActive": "17:14",
+    "raids": 4,
+    "optionalD": "SKIP_AFTER_MANDATORY_STOP",
+    "naturalPlayerDeath": "not observed",
+    "giveUpReplacement": "VPO209,440HP,Deaths1",
+    "botHits": "HP fell to224 after native Mosin shots",
+    "mainMenuBudgetRecordedUtc": "2026-09-13T06:52:16.883Z"
+  },
+  "interpretation": "BotFirstAid is not the narrowly permitted BotSurgicalKit signature. Stop remains mandatory regardless of possible similarity. No cause/faulting-null-object attribution established; no Redeploy/Core/Arena frame in this stack does not waive the stop. Later canceled burst spawn warning matches forbidden Arena…failed: and is counted. Profile restore requires independent before/after comparison. The expected Arena give-up respawning marker is explicitly allowed and is not the forbidden ordinary Player gave up ending as Killed marker.",
+  "rawSHA256": {
+    "client": "a62a0bd6188311cf5f3d87d8001c77d5f3684f67b70c5bcbef767acc04215909",
+    "serverArchived": "301f01ce410685803809029c80462b3e87e26ee991f0035e24c95892ea7e7620"
+  }
+}

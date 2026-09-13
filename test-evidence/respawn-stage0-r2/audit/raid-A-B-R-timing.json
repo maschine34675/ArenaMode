@@ -1,0 +1,44 @@
+{
+  "capturedAtUtc": "2026-09-13T06:40:19.363Z",
+  "timeline": [
+    {
+      "raid": "A",
+      "readyActionUtc": "2026-09-13T06:16:24.342Z",
+      "readyInputResolvedUtc": "2026-09-13T06:16:24.421Z",
+      "ordinaryConfirmUtc": "2026-09-13 06:17:29.421",
+      "ordinaryConfirmServerLine": 1798,
+      "confirmLeaveActionUtc": "2026-09-13T06:22:42.150Z",
+      "confirmLeaveInputResolvedUtc": "2026-09-13T06:22:42.305Z",
+      "serverLeftUtc": "2026-09-13 06:22:43.874",
+      "serverLeftLine": 1962,
+      "ordinaryConfirmToLeftSeconds": 314.453,
+      "nativeDuration": "Provided separately by Root from native result; ordinary-confirm span is a log interval, not a replacement for the UI timer."
+    },
+    {
+      "raid": "B",
+      "readyActionUtc": "2026-09-13T06:30:18.146Z",
+      "readyInputResolvedUtc": "2026-09-13T06:30:18.240Z",
+      "ordinaryConfirmUtc": "2026-09-13 06:31:06.663",
+      "ordinaryConfirmServerLine": 2169,
+      "confirmLeaveActionUtc": "2026-09-13T06:33:22.651Z",
+      "confirmLeaveInputResolvedUtc": "2026-09-13T06:33:22.782Z",
+      "serverLeftUtc": "2026-09-13 06:33:24.102",
+      "serverLeftLine": 2305,
+      "ordinaryConfirmToLeftSeconds": 137.439,
+      "nativeDuration": "Provided separately by Root from native result; ordinary-confirm span is a log interval, not a replacement for the UI timer."
+    },
+    {
+      "raid": "R",
+      "readyActionUtc": "2026-09-13T06:36:53.984Z",
+      "readyInputResolvedUtc": "2026-09-13T06:36:54.052Z",
+      "ordinaryConfirmUtc": "2026-09-13 06:37:42.039",
+      "ordinaryConfirmServerLine": 2524,
+      "confirmLeaveActionUtc": "2026-09-13T06:38:30.070Z",
+      "confirmLeaveInputResolvedUtc": "2026-09-13T06:38:30.181Z",
+      "serverLeftUtc": "2026-09-13 06:38:31.508",
+      "serverLeftLine": 2536,
+      "ordinaryConfirmToLeftSeconds": 49.469,
+      "nativeDuration": "Provided separately by Root from native result; ordinary-confirm span is a log interval, not a replacement for the UI timer."
+    }
+  ]
+}

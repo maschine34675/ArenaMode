@@ -1,0 +1,243 @@
+{
+  "capturedAtUtc": "2026-09-13T06:25:12.750Z",
+  "scope": {
+    "clientAFrom": "08:16:12.000 MESZ",
+    "clientLast": "08:23:58.574",
+    "clientAllLines": 13260,
+    "clientALines": 139,
+    "serverFreshFrom": "2026-09-13 06:09:58.000 UTC",
+    "serverAFrom": "2026-09-13 06:16:12.000 UTC",
+    "serverLast": "2026-09-13 06:25:08.771",
+    "serverFreshLines": 975,
+    "serverALines": 337
+  },
+  "errors": [
+    {
+      "line": 13233,
+      "time": "08:18:46.434",
+      "level": "Error",
+      "source": "Unity Log",
+      "message": "Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!"
+    }
+  ],
+  "exceptions": [],
+  "serverErrors": [],
+  "serverExceptions": [],
+  "forbidden": [],
+  "markerCounts": {
+    "deathIntercepted": 1,
+    "protectionActive": 1,
+    "respawnComplete": 1,
+    "protectionEnded": 1,
+    "unexpectedBlackFade": 0,
+    "knownVanillaFirstFrame": 0,
+    "externalEndPending": 0,
+    "cooldownCancelled": 0
+  },
+  "clientACounts": {
+    "Unity Log": {
+      "warnings": 10,
+      "errors": 1
+    },
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "clientFreshCounts": {
+    "FixPluginTypesSerialization": {
+      "warnings": 5,
+      "errors": 0
+    },
+    "HarmonyX": {
+      "warnings": 4,
+      "errors": 0
+    },
+    "Unity Log": {
+      "warnings": 10,
+      "errors": 1
+    },
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "requiredSourceCounts": {
+    "Redeploy.Core": {
+      "warnings": 1,
+      "errors": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "serverACounts": {},
+  "serverFreshCounts": {
+    "SPTarkov.Server.Core.Helpers.Traders.TraderHelper": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "diagnostics": {
+    "aRecords": 7,
+    "freshRecords": 8,
+    "aCounts": {}
+  },
+  "keyEvents": [
+    {
+      "line": 13174,
+      "time": "08:17:29.409",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Freecam detected — camera operation patches enabled."
+    },
+    {
+      "line": 13203,
+      "time": "08:17:41.054",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Death intercepted. Respawns used: 0/3"
+    },
+    {
+      "line": 13204,
+      "time": "08:17:41.055",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Respawn prompt shown."
+    },
+    {
+      "line": 13205,
+      "time": "08:17:41.152",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Local player unregistered while the raid continues (respawn?) — waiting for the replacement."
+    },
+    {
+      "line": 13206,
+      "time": "08:17:41.862",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Playback start: 168 snapshots, span 9.90s, bones=168, camera=ok"
+    },
+    {
+      "line": 13213,
+      "time": "08:17:59.551",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "Playback end after 9.90s: live tail complete"
+    },
+    {
+      "line": 13217,
+      "time": "08:18:05.272",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Culling: evicted 1 replaced camera(s), 0 still registered."
+    },
+    {
+      "line": 13218,
+      "time": "08:18:05.312",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection active for 30s."
+    },
+    {
+      "line": 13219,
+      "time": "08:18:05.435",
+      "level": "Warning",
+      "source": "Redeploy.Core",
+      "message": "Destroying stale PerfectCulling sampler 'FPS Camera'."
+    },
+    {
+      "line": 13220,
+      "time": "08:18:05.675",
+      "level": "Info",
+      "source": "maschine-KillcamReplay",
+      "message": "BoneRecorder: main player changed — reinitializing for respawn"
+    },
+    {
+      "line": 13224,
+      "time": "08:18:05.687",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0."
+    },
+    {
+      "line": 13225,
+      "time": "08:18:05.691",
+      "level": "Info",
+      "source": "maschine-Redeploy",
+      "message": "Respawn complete."
+    },
+    {
+      "line": 13227,
+      "time": "08:18:05.818",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Stowing auto-drawn weapon during spawn protection."
+    },
+    {
+      "line": 13230,
+      "time": "08:18:35.623",
+      "level": "Info",
+      "source": "Redeploy.Core",
+      "message": "Spawn protection ended."
+    },
+    {
+      "line": 13233,
+      "time": "08:18:46.434",
+      "level": "Error",
+      "source": "Unity Log",
+      "message": "Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!"
+    },
+    {
+      "line": 13250,
+      "time": "08:22:43.516",
+      "level": "Info",
+      "source": "maschine-AutoIFF",
+      "message": "[AutoIFF] Raid ended, IdentifierManager removal requested."
+    }
+  ],
+  "serverEnd": [
+    {
+      "line": 1961,
+      "time": "2026-09-13 06:22:43.835",
+      "level": "Information",
+      "source": "SPTarkov.Server.Middleware.SptLoggerMiddleware",
+      "message": "[Client-Anfrage] /client/match/local/end"
+    },
+    {
+      "line": 1962,
+      "time": "2026-09-13 06:22:43.874",
+      "level": "Debug",
+      "source": "SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService",
+      "message": "Raid: factory4_day.Pmc 1789280205 outcome: LEFT"
+    }
+  ],
+  "rootNativeObservations": {
+    "source": "Root operator message; not independently controlled by this auditor",
+    "resumeWorked": true,
+    "inventoryAndMapWorked": true,
+    "exfilListWithO": true,
+    "dynamicMapsPlayerFrom": [
+      3.52,
+      -37.56
+    ],
+    "dynamicMapsPlayerTo": [
+      3.16,
+      -37.79
+    ],
+    "escapeDisconnectConfirmLeaveWorked": true,
+    "nativeResult": "Left the Action 05:14",
+    "therapistHealing": "0 RUB applied natively after A"
+  },
+  "interpretation": "No sustained input/menu softlock shown: Root confirmed Resume, inventory/map and regular Exit. Single Unity MenuScreen coroutine Error remains recorded; no runtime Exception/error flood found in snapshot, so conservative script stop was lifted after analysis according to Root. Killcam naturally ended before respawn; no replay abort-by-respawn was demonstrated. Ordinary A has no required protected profile comparison.",
+  "rawSHA256": {
+    "client": "fe1b4160c04aa09cb5108dfcd487dbd5b0aae97bd4e29e00dc5095e4d4d5a77b",
+    "serverFresh": "83b8c871c527fc6813a03f80ede374a40ff5ec39233497d3d24bdb1b5f26be11"
+  }
+}

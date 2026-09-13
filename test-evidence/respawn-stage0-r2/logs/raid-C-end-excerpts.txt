@@ -1,0 +1,38 @@
+Client L13435 [08:41:00.429 MESZ] [Info: maschine-ArenaMode] Arena map view: buttons=4, visible=3, sharedContainer=True, mode=deathmatch
+Client L13449 [08:41:51.339 MESZ] [Info: maschine-ArenaMode] Arena armed for next raid on factory4_day (deathmatch).
+Client L13453 [08:41:52.111 MESZ] [Info: maschine-ArenaMode] Arena kit drawn: Reverend.
+Client L13454 [08:41:52.119 MESZ] [Info: maschine-ArenaMode] Arena: preloading kit 'reverend' (35 templates) in the loading screen.
+Client L13479 [08:41:53.248 MESZ] [Info: maschine-ArenaMode] Arena: loading-screen preload of kit 'reverend' (35 templates) finished in 1.1 s, before the raid began.
+Client L13495 [08:42:10.523 MESZ] [Info: maschine-ArenaMode] Arena: the loading-screen kit preload is this raid's — 1 batch(es) finished before the raid began, 0 still loading, 0 left to the in-raid warm-up, 0 failed.
+Client L13496 [08:42:10.525 MESZ] [Info: maschine-ArenaMode] Arena session active on factory4_day.
+Client L13505 [08:42:10.633 MESZ] [Info: maschine-ArenaMode] Arena match started (Deathmatch).
+Client L13530 [08:42:11.467 MESZ] [Info: Redeploy.Core] Profile equipment swapped; corpse retains raid loadout.
+Client L13533 [08:42:11.601 MESZ] [Info: Redeploy.Core] Freecam compat: rebound cached GamePlayerOwner and reset freecam state.
+Client L13534 [08:42:11.711 MESZ] [Info: Redeploy.Core] Culling: evicted 1 replaced camera(s), 0 still registered.
+Client L13535 [08:42:11.855 MESZ] [Warning: Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+Client L13542 [08:42:12.133 MESZ] [Info: maschine-ArenaMode] Arena raid-start kit swap complete: Reverend.
+Client L13544 [08:42:12.202 MESZ] [Info: maschine-ArenaMode] Arena Deathmatch round 1 started.
+Client L13564 [08:42:41.230 MESZ] [Warning: Unity Log] BoxCollider does not support negative scale or size.
+Client L13709 [08:46:33.737 MESZ] [Info: maschine-ArenaMode] Arena: player gave up — respawning.
+Client L13710 [08:46:33.767 MESZ] [Info: maschine-ArenaMode] Arena death #1 — instant respawn.
+Client L13711 [08:46:33.780 MESZ] [Info: maschine-ArenaMode] Arena kit drawn: Drifter.
+Client L13713 [08:46:33.863 MESZ] [Info: Redeploy.Core] Profile equipment swapped; corpse retains raid loadout.
+Client L13716 [08:46:34.402 MESZ] [Info: Redeploy.Core] Freecam compat: rebound cached GamePlayerOwner and reset freecam state.
+Client L13717 [08:46:34.524 MESZ] [Info: Redeploy.Core] Culling: evicted 1 replaced camera(s), 0 still registered.
+Client L13718 [08:46:34.544 MESZ] [Info: Redeploy.Core] Spawn protection active for 4s.
+Client L13719 [08:46:34.676 MESZ] [Warning: Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+Client L13725 [08:46:34.993 MESZ] [Info: maschine-ArenaMode] Arena respawn timing: kit 0.00s, bundles 0.08s, pipeline 1.13s, total 1.21s.
+Client L13733 [08:46:38.983 MESZ] [Info: Redeploy.Core] Spawn protection ended.
+Client L14052 [08:51:03.441 MESZ] [Error: Unity Log] NullReferenceException: Object reference not set to an instance of an object
+Client L14083 [08:51:04.468 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L14085 [08:51:04.715 MESZ] [Info: maschine-ArenaMode] Arena: skills restored to their profile values.
+Client L14086 [08:51:04.715 MESZ] [Info: maschine-ArenaMode] Arena: loading-screen kit preload discarded (raid ended); no batch was loading.
+Client L14089 [08:51:04.729 MESZ] [Warning: maschine-ArenaMode] Arena raid-end remains pending: {
+Client L14094 [08:51:04.730 MESZ] [Info: maschine-ArenaMode] Arena session ended.
+Client L14097 [08:51:04.742 MESZ] [Info: maschine-ArenaMode] Arena match ended: 0 kills / 1 deaths, score 0, best streak 0, 8.8 min.
+Client L14099 [08:51:05.123 MESZ] [Info: maschine-ArenaMode] Arena SAIN teardown: uninitialized Arena component; coroutine cleanup retained.
+Client L14100 [08:51:09.714 MESZ] [Warning: maschine-ArenaMode] Arena burst spawn of pmcBEAR failed: The operation was canceled.
+Server L3018 [2026-09-13 06:51:04.723 UTC] [Information: ArenaMode.Server.Routers.ArenaModeRouter] [ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.
+Server L3020 [2026-09-13 06:51:04.833 UTC] [Information: SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+Server L3021 [2026-09-13 06:51:04.849 UTC] [Information: ArenaMode.Server.Services.ProfileSnapshotService] [ArenaMode] Profile snapshot restored for session [private-id].
+Server L3024 [2026-09-13 06:51:05.003 UTC] [Information: ArenaMode.Server.Services.ArenaProtectedRaidEndService] [ArenaMode] Protected Arena end completed for session [private-id]; ordinary post-raid processing was skipped and the snapshot was persisted.

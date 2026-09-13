@@ -1,0 +1,55 @@
+{
+  "maxRaids": 5,
+  "maxActiveMinutes": 40,
+  "method": "Conservative full elapsed in-raid time including tool/analysis/wait; loading/postraid separate",
+  "raids": [
+    {
+      "case": "A",
+      "ready": "2026-09-13T06:16:24.274Z",
+      "activeStart": "2026-09-13T06:17:29.421Z",
+      "activeEnd": "2026-09-13T06:22:42.150Z",
+      "activeStartBasis": "Ordinary non-Arena raid-start confirmation marker",
+      "exitConfirmed": "2026-09-13T06:22:42.150Z",
+      "nativeDurationSeconds": 314,
+      "mainMenu": "2026-09-13T06:24:12.689Z",
+      "initialActiveStartEstimate": "2026-09-13T06:17:28.866Z"
+    },
+    {
+      "case": "B",
+      "ready": "2026-09-13T06:30:18.084Z",
+      "activeStart": "2026-09-13T06:31:06.663Z",
+      "exitConfirmed": "2026-09-13T06:33:22.651Z",
+      "activeEnd": "2026-09-13T06:33:22.651Z",
+      "nativeDurationSeconds": 137,
+      "mainMenu": "2026-09-13T06:35:11.625Z",
+      "initialActiveStartEstimate": "2026-09-13T06:31:21.277Z",
+      "activeStartBasis": "Ordinary non-Arena raid-start confirmation marker"
+    },
+    {
+      "case": "B-reset",
+      "ready": "2026-09-13T06:36:53.952Z",
+      "activeStart": "2026-09-13T06:37:42.039Z",
+      "exitConfirmed": "2026-09-13T06:38:30.070Z",
+      "activeEnd": "2026-09-13T06:38:30.070Z",
+      "nativeDurationSeconds": 49,
+      "mainMenu": "2026-09-13T06:40:24.116Z",
+      "initialActiveStartEstimate": "2026-09-13T06:37:59.352Z",
+      "activeStartBasis": "Ordinary non-Arena raid-start confirmation marker"
+    },
+    {
+      "case": "C",
+      "ready": "2026-09-13T06:41:31.890Z",
+      "profileBeforeAt": "2026-09-13T06:41:31.880Z",
+      "rules": "Factory day / Deathmatch FFA / Endless / Kills Off / Time Off",
+      "activeStart": "2026-09-13T06:42:10.525Z",
+      "activeStartBasis": "Arena session active marker",
+      "exitConfirmed": "2026-09-13T06:51:03.077Z",
+      "activeEnd": "2026-09-13T06:51:03.077Z",
+      "nativeDurationSeconds": 534,
+      "mainMenu": "2026-09-13T06:52:16.883Z",
+      "initialActiveStartEstimate": "2026-09-13T06:42:10.525Z"
+    }
+  ],
+  "nativeTotalSeconds": 1034,
+  "stoppedReason": "C exit BotFirstAid NullReferenceException; final optional BotDropDiag disk hash drift"
+}

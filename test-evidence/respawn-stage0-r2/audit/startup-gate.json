@@ -1,0 +1,190 @@
+{
+  "capturedAtUtc": "2026-09-13T06:13:38.512Z",
+  "testId": "respawn-stage0-r2",
+  "scope": {
+    "clientSessionStartLocal": "2026-09-13 08:11:33.241",
+    "clientLastTimestamp": "08:12:52.111",
+    "clientLines": 13117,
+    "serverSinceUtc": "2026-09-13 06:09:58.000",
+    "serverLastTimestamp": "2026-09-13 06:13:08.758",
+    "serverLines": 627
+  },
+  "processesObservedAtLocal": "2026-09-13T08:12:32.728+02:00",
+  "processes": [
+    {
+      "name": "EscapeFromTarkov",
+      "pid": 6332,
+      "startLocal": "2026-09-13T08:11:24.0256445+02:00",
+      "responding": true
+    },
+    {
+      "name": "SPT.Server",
+      "pid": 9780,
+      "startLocal": "2026-09-13T08:09:58.4367303+02:00",
+      "responding": true
+    },
+    {
+      "name": "SPT.Launcher",
+      "pid": 5396,
+      "startLocal": "2026-09-13T08:09:58.4583588+02:00",
+      "responding": true
+    }
+  ],
+  "markers": {
+    "coreInitialized": [
+      {
+        "line": 3991,
+        "timeLocal": "08:11:42.852",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Redeploy.Core 0.9.0.0 initialized"
+      }
+    ],
+    "arenaRegistered": [
+      {
+        "line": 4545,
+        "timeLocal": "08:11:44.110",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: ArenaMode (priority 100)"
+      }
+    ],
+    "redeployRegistered": [
+      {
+        "line": 7153,
+        "timeLocal": "08:11:48.668",
+        "level": "Info",
+        "source": "Redeploy.Core",
+        "message": "Death-interception driver registered: Redeploy (priority 0)"
+      }
+    ]
+  },
+  "failClosed": [],
+  "forbidden": [],
+  "sourceCounts": {
+    "FixPluginTypesSerialization": {
+      "warnings": 5,
+      "errors": 0
+    },
+    "HarmonyX": {
+      "warnings": 4,
+      "errors": 0
+    }
+  },
+  "requiredSourceCounts": {
+    "Redeploy.Core": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "maschine-Redeploy": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "maschine-ArenaMode": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "errors": [],
+  "exceptions": [],
+  "serverSourceCounts": {
+    "SPTarkov.Server.Core.Helpers.Traders.TraderHelper": {
+      "warnings": 1,
+      "errors": 0
+    }
+  },
+  "serverErrors": [],
+  "serverExceptions": [],
+  "diagnostics": {
+    "recordCount": 1,
+    "sourceCounts": {},
+    "records": [
+      {
+        "line": 6310,
+        "timeLocal": "08:11:46.721",
+        "level": "Info",
+        "source": "maschine-BotDropDiag",
+        "message": "maschine-BotDropDiag v0.1.0 loaded (ContinuousHealing flag readable)."
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "line": 14,
+      "timeLocal": "08:11:33.242",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-AutoIFF.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 15,
+      "timeLocal": "08:11:33.242",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'maschine-MedicRound.Client.Fika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 16,
+      "timeLocal": "08:11:33.242",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 17,
+      "timeLocal": "08:11:33.242",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'Tyfon.UIFixes.Net.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 18,
+      "timeLocal": "08:11:33.242",
+      "level": "Warning",
+      "source": "FixPluginTypesSerialization",
+      "message": "Excluding 'WTT-ClientCommonLibFika.dll' from Serialization Fix. It references Fika.Core which doesn't exist."
+    },
+    {
+      "line": 3841,
+      "timeLocal": "08:11:42.627",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "BattleUIScreenShowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner) instead of void EFT.UI.BattleUIScreen<EFT.UI.EftBattleUIScreen+EftBattleUIScreenController, EFT.UI.Screens.EEftScreenType>::Show(EFT.GamePlayerOwner owner)."
+    },
+    {
+      "line": 7894,
+      "timeLocal": "08:11:51.232",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "DialogWindowPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update() instead of virtual void EFT.UI.DialogWindow<EFT.UI.DialogWindowContext>::Update()."
+    },
+    {
+      "line": 9110,
+      "timeLocal": "08:11:54.834",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "WeaponModdingScreenCursorPatch: You should only patch implemented methods/constructors to avoid issues. Patch the declared method virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor() instead of virtual EFT.InputSystem.ECursorResult EFT.UI.ItemObserveScreen<EFT.UI.WeaponModding.WeaponModdingScreen+WeaponModdingScreenController, EFT.UI.WeaponModding.WeaponModdingScreen>::ShouldLockCursor()."
+    },
+    {
+      "line": 12381,
+      "timeLocal": "08:12:00.025",
+      "level": "Warning",
+      "source": "HarmonyX",
+      "message": "com.wtt.commonlib: You should only patch implemented methods/constructors to avoid issues. Patch the declared method bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition) instead of bool EFT.Quests.Conditional<EFT.Quests.Quest>::IsConditionDone(EFT.Quests.Condition condition)."
+    }
+  ],
+  "serverWarnings": [
+    {
+      "lineInScopedCopy": 484,
+      "timeUtc": "2026-09-13 06:10:05.508",
+      "level": "Warning",
+      "source": "SPTarkov.Server.Core.Helpers.Traders.TraderHelper",
+      "message": "Händler: [private-id] nicht gefunden, temporärer Eintrag wird mit der Standardaktualisierungszeit von 3600 generiert"
+    }
+  ],
+  "startupGate": "PASS_FOR_OBSERVED_STARTUP_ONLY",
+  "rawSHA256": {
+    "client": "9406ace777edc13022558c674fdbc08fcdb8e98a3aa1e20029bfb5b0c96e441a",
+    "serverScoped": "ba7683871acd8e326546924ba3b893bc51f2ed206bee1b135cbb01fa039faa3a"
+  }
+}

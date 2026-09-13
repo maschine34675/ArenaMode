@@ -1,0 +1,63 @@
+{
+  "method": "Conservative native result duration includes in-raid observation, waits and tools; tools overlap and are not subtracted.",
+  "raids": [
+    {
+      "case": "A",
+      "ready": "2026-09-13T06:16:24.274Z",
+      "activeStart": "2026-09-13T06:17:28.866Z",
+      "activeEnd": "2026-09-13T06:22:42.150Z",
+      "activeStartBasis": "first native timer19:49 approximates11s elapsed; refine using start log",
+      "exitConfirmed": "2026-09-13T06:22:42.150Z",
+      "nativeDurationSeconds": 314,
+      "mainMenu": "2026-09-13T06:24:12.689Z",
+      "readyInput": "2026-09-13T06:16:24.342Z",
+      "activeStartMarker": "2026-09-13T06:17:29.421Z",
+      "loadAndReadyToStartSeconds": 65.079
+    },
+    {
+      "case": "B",
+      "ready": "2026-09-13T06:30:18.084Z",
+      "activeStart": "2026-09-13T06:31:21.277Z",
+      "exitConfirmed": "2026-09-13T06:33:22.651Z",
+      "activeEnd": "2026-09-13T06:33:22.651Z",
+      "nativeDurationSeconds": 137,
+      "mainMenu": "2026-09-13T06:35:11.625Z",
+      "readyInput": "2026-09-13T06:30:18.146Z",
+      "activeStartMarker": "2026-09-13T06:31:06.663Z",
+      "loadAndReadyToStartSeconds": 48.517
+    },
+    {
+      "case": "B-reset",
+      "ready": "2026-09-13T06:36:53.952Z",
+      "activeStart": "2026-09-13T06:37:59.352Z",
+      "exitConfirmed": "2026-09-13T06:38:30.070Z",
+      "activeEnd": "2026-09-13T06:38:30.070Z",
+      "nativeDurationSeconds": 49,
+      "mainMenu": "2026-09-13T06:40:24.116Z",
+      "readyInput": "2026-09-13T06:36:53.984Z",
+      "activeStartMarker": "2026-09-13T06:37:42.039Z",
+      "loadAndReadyToStartSeconds": 48.055
+    },
+    {
+      "case": "C",
+      "ready": "2026-09-13T06:41:31.890Z",
+      "profileBeforeAt": "2026-09-13T06:41:31.880Z",
+      "rules": "Factory day / Deathmatch FFA / Endless / Kills Off / Time Off",
+      "activeStart": "2026-09-13T06:42:10.525Z",
+      "activeStartBasis": "Arena session active client marker; native result08:54",
+      "exitConfirmed": "2026-09-13T06:51:03.077Z",
+      "activeEnd": "2026-09-13T06:51:03.077Z",
+      "nativeDurationSeconds": 534,
+      "mainMenu": "2026-09-13T06:52:16.883Z",
+      "readyInput": "2026-09-13T06:41:31.929Z",
+      "activeStartMarker": "2026-09-13T06:42:10.525Z",
+      "loadAndReadyToStartSeconds": 38.596
+    }
+  ],
+  "nativeTotalSeconds": 1034,
+  "firstReady": "2026-09-13T06:16:24.342Z",
+  "lastMainMenu": "2026-09-13T06:52:16.883Z",
+  "elapsedFirstReadyToLastMenuSeconds": 2152.541,
+  "nonRaidBetweenFirstReadyAndLastMenuSeconds": 1118.5410000000002,
+  "totalLoadingSeconds": 200.247
+}

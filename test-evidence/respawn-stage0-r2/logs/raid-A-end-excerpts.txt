@@ -1,0 +1,29 @@
+Client L13132 [08:16:52.027 MESZ] [Warning: Unity Log] BoxCollider does not support negative scale or size.
+Client L13148 [08:17:21.680 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13149 [08:17:21.683 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13150 [08:17:22.708 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13174 [08:17:29.409 MESZ] [Info: Redeploy.Core] Freecam detected — camera operation patches enabled.
+Client L13203 [08:17:41.054 MESZ] [Info: maschine-Redeploy] Death intercepted. Respawns used: 0/3
+Client L13204 [08:17:41.055 MESZ] [Info: maschine-Redeploy] Respawn prompt shown.
+Client L13205 [08:17:41.152 MESZ] [Info: maschine-AutoIFF] [AutoIFF] Local player unregistered while the raid continues (respawn?) — waiting for the replacement.
+Client L13206 [08:17:41.862 MESZ] [Info: maschine-KillcamReplay] Playback start: 168 snapshots, span 9.90s, bones=168, camera=ok
+Client L13213 [08:17:59.551 MESZ] [Info: maschine-KillcamReplay] Playback end after 9.90s: live tail complete
+Client L13217 [08:18:05.272 MESZ] [Info: Redeploy.Core] Culling: evicted 1 replaced camera(s), 0 still registered.
+Client L13218 [08:18:05.312 MESZ] [Info: Redeploy.Core] Spawn protection active for 30s.
+Client L13219 [08:18:05.435 MESZ] [Warning: Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+Client L13219 [08:18:05.435 MESZ] [Warning: Redeploy.Core] Destroying stale PerfectCulling sampler 'FPS Camera'.
+Client L13220 [08:18:05.675 MESZ] [Info: maschine-KillcamReplay] BoneRecorder: main player changed — reinitializing for respawn
+Client L13224 [08:18:05.687 MESZ] [Info: maschine-AutoIFF] [AutoIFF] Active as PMC (local player changed — reactivating after respawn). Attention 0, Perception 0, Search 0.
+Client L13225 [08:18:05.691 MESZ] [Info: maschine-Redeploy] Respawn complete.
+Client L13227 [08:18:05.818 MESZ] [Info: Redeploy.Core] Stowing auto-drawn weapon during spawn protection.
+Client L13230 [08:18:35.623 MESZ] [Info: Redeploy.Core] Spawn protection ended.
+Client L13231 [08:18:37.626 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13233 [08:18:46.434 MESZ] [Error: Unity Log] Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!
+Client L13238 [08:19:04.933 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13239 [08:19:04.940 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13240 [08:19:04.941 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13250 [08:22:43.516 MESZ] [Info: maschine-AutoIFF] [AutoIFF] Raid ended, IdentifierManager removal requested.
+Client L13251 [08:22:43.541 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Client L13252 [08:22:43.550 MESZ] [Warning: Unity Log] Calling Animator.GotoState on Synchronize layer
+Server L1961 [2026-09-13 06:22:43.835 UTC] [Information: SPTarkov.Server.Middleware.SptLoggerMiddleware] [Client-Anfrage] /client/match/local/end
+Server L1962 [2026-09-13 06:22:43.874 UTC] [Debug: SPTarkov.Server.Core.Services.InRaid.LocationLifecycleService] Raid: factory4_day.Pmc 1789280205 outcome: LEFT

@@ -1,0 +1,190 @@
+{
+  "schema": "arena-private-snapshot-comparison-v1",
+  "auditAtUtc": "2026-09-13T06:52:54.209Z",
+  "case": "C",
+  "method": "Read-only complete JSON recursion. Case-sensitive keys and strings; dictionary order ignored; array order and JSON types preserved; missing differs from null. Exact integers and decimals, without float rounding. Duplicate keys rejected.",
+  "sourceSha256": {
+    "before": "3214A1BB5C80E130C7FC19F92772374F5C5C1E7E5C249C728E9153465FE8B0DF",
+    "after": "2B4433891CB073080FF82AB24F4D80460390385807A38133D922C30BB450457F"
+  },
+  "sourceFilesByteEqual": false,
+  "operatorProvidedTiming": {
+    "beforeAtUtc": "2026-09-13T06:41:31.880Z",
+    "afterAtUtc": "2026-09-13T06:52:16.883Z",
+    "mainMenuAtUtc": "2026-09-13T06:52:16.883Z"
+  },
+  "timingLimitation": "The caller supplies observation markers. This script does not inspect the UI, prove a completed menu transition or independently establish the server restore.",
+  "wholeDocumentEqual": false,
+  "differenceCount": 1,
+  "differences": [
+    {
+      "path": "/characters/pmc/Hideout/sptUpdateLastRunTimestamp",
+      "beforePresent": true,
+      "afterPresent": true,
+      "beforeType": "number",
+      "afterType": "number",
+      "pathContainsRedaction": false,
+      "valuesRedacted": true
+    }
+  ],
+  "entireScavEqual": true,
+  "protectedFields": {
+    "pmc": {
+      "Inventory": {
+        "path": "/characters/pmc/Inventory",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Quests": {
+        "path": "/characters/pmc/Quests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "array",
+        "afterType": "array",
+        "differenceCount": 0
+      },
+      "Skills": {
+        "path": "/characters/pmc/Skills",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Health": {
+        "path": "/characters/pmc/Health",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Experience": {
+        "path": "/characters/pmc/Info/Experience",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "Level": {
+        "path": "/characters/pmc/Info/Level",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "TaskConditionCounters": {
+        "path": "/characters/pmc/TaskConditionCounters",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "RepeatableQuests": {
+        "path": "/characters/pmc/RepeatableQuests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "array",
+        "afterType": "array",
+        "differenceCount": 0
+      }
+    },
+    "scav": {
+      "Inventory": {
+        "path": "/characters/scav/Inventory",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Quests": {
+        "path": "/characters/scav/Quests",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "array",
+        "afterType": "array",
+        "differenceCount": 0
+      },
+      "Skills": {
+        "path": "/characters/scav/Skills",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Health": {
+        "path": "/characters/scav/Health",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "Experience": {
+        "path": "/characters/scav/Info/Experience",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "Level": {
+        "path": "/characters/scav/Info/Level",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "number",
+        "afterType": "number",
+        "differenceCount": 0
+      },
+      "TaskConditionCounters": {
+        "path": "/characters/scav/TaskConditionCounters",
+        "equal": true,
+        "beforePresent": true,
+        "afterPresent": true,
+        "beforeType": "object",
+        "afterType": "object",
+        "differenceCount": 0
+      },
+      "RepeatableQuests": {
+        "path": "/characters/scav/RepeatableQuests",
+        "equal": true,
+        "beforePresent": false,
+        "afterPresent": false,
+        "beforeType": "missing",
+        "afterType": "missing",
+        "differenceCount": 0
+      }
+    }
+  },
+  "requiredStructureValid": true,
+  "structureProblems": [],
+  "allSixteenProtectedFieldsEqual": true,
+  "bothAbsentFields": [
+    "/characters/scav/RepeatableQuests"
+  ],
+  "result": "REVIEW_REQUIRED",
+  "timestampPolicy": "No ignored paths or automatic timestamp allowance. Health.UpdateTime is part of protected Health. Every full-document difference requires explicit review.",
+  "privacy": "No source paths, raw profile values, arbitrary dictionary keys or full profiles are included. Review this candidate before copying to public evidence."
+}

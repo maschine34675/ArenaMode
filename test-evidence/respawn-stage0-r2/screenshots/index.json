@@ -1,0 +1,548 @@
+[
+  {
+    "name": "a-values-confirm",
+    "requestedAt": "2026-09-13T06:14:31.268Z",
+    "at": "2026-09-13T06:14:31.979Z",
+    "files": [
+      {
+        "path": "screenshots/a-values-confirm-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "44C4EB4FB849A302C21988C559D57862E22778B75AECE7EB42D51D92CFDE3A26"
+      }
+    ]
+  },
+  {
+    "name": "a-pistol-equip",
+    "requestedAt": "2026-09-13T06:15:11.424Z",
+    "at": "2026-09-13T06:15:12.207Z",
+    "files": [
+      {
+        "path": "screenshots/a-pistol-equip-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "97BECDE268B47D431395801E097E44BBBFC5188145100926A271D86577236C6D"
+      }
+    ]
+  },
+  {
+    "name": "a-spawn-check",
+    "requestedAt": "2026-09-13T06:17:39.866Z",
+    "at": "2026-09-13T06:17:40.027Z",
+    "files": [
+      {
+        "path": "screenshots/a-spawn-check-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "41951C1DB8512E24F32321134024825C7B197AE388459DCA50F6C83E4419136B"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-near-1",
+    "requestedAt": "2026-09-13T06:17:59.929Z",
+    "at": "2026-09-13T06:18:00.851Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-near-1-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "E54A7A6D9C6F1338CCE3CDC926892674811109B0F21264138BCD7E5914DB7B91"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-1-arrival",
+    "requestedAt": "2026-09-13T06:18:08.230Z",
+    "at": "2026-09-13T06:18:08.493Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-1-arrival-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "FE6FC96C89E5B9A84192F7BBFAE9427FAF00A57249E8E26394D3B7ED38F1B085"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-cover-strafe",
+    "requestedAt": "2026-09-13T06:18:14.931Z",
+    "at": "2026-09-13T06:18:15.872Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-cover-strafe-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "21A2AFA54EFAE4DFB0C9E414DA73B5E47ABCAC62E80B3CF6AC2A42C2DFF33C5B"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-sprint",
+    "requestedAt": "2026-09-13T06:18:25.659Z",
+    "at": "2026-09-13T06:18:26.650Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-sprint-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "143F1CA0159C778302E6E3C35629FE8270C091A88C40A1B5E230F579E684A5CC"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-jump",
+    "requestedAt": "2026-09-13T06:18:33.719Z",
+    "at": "2026-09-13T06:18:34.816Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-jump-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "EF0A68045E2FC7CADEAE8819105999041D48FFA04C76B82992D79D86D01573BB"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-escape-open",
+    "requestedAt": "2026-09-13T06:18:46.440Z",
+    "at": "2026-09-13T06:18:47.398Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-escape-open-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "AB11192A447ED7DF3D1CD6AA8EE1509DD2F98A223CB31D94E2B3A02CFCF5EF92"
+      }
+    ]
+  },
+  {
+    "name": "a-menu-safe-resume",
+    "requestedAt": "2026-09-13T06:19:23.647Z",
+    "at": "2026-09-13T06:19:24.544Z",
+    "files": [
+      {
+        "path": "screenshots/a-menu-safe-resume-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "12BCAF047CBAB8F197FA267DC6BBFA8D88737DF5E63C393A697FD70EEE7613AD"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-camera-turn",
+    "requestedAt": "2026-09-13T06:19:40.150Z",
+    "at": "2026-09-13T06:19:40.952Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-camera-turn-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "D14C2BCCBB9215313915FA526B686CF0A0AAD10AEAF015B20A887AF891AD5D70"
+      }
+    ]
+  },
+  {
+    "name": "a-respawn-timer",
+    "requestedAt": "2026-09-13T06:19:50.394Z",
+    "at": "2026-09-13T06:19:51.163Z",
+    "files": [
+      {
+        "path": "screenshots/a-respawn-timer-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "5214833700951B3D80D70FF8FBBEFE77A2DC617E67D8518282B40DD891DC71CB"
+      }
+    ]
+  },
+  {
+    "name": "a-map-after-movement",
+    "requestedAt": "2026-09-13T06:21:50.775Z",
+    "at": "2026-09-13T06:21:51.738Z",
+    "files": [
+      {
+        "path": "screenshots/a-map-after-movement-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "44C97FAC730537AA1B76D867E42A3A2F78F28FE802B9AB2616AD32B47DC9A342"
+      }
+    ]
+  },
+  {
+    "name": "a-map-position-second",
+    "requestedAt": "2026-09-13T06:21:58.305Z",
+    "at": "2026-09-13T06:21:58.705Z",
+    "files": [
+      {
+        "path": "screenshots/a-map-position-second-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "AAFF58931E6590D557665791CE8182C56383FDF6A1225C61F975D9EED36B372E"
+      }
+    ]
+  },
+  {
+    "name": "a-disconnect",
+    "requestedAt": "2026-09-13T06:22:30.774Z",
+    "at": "2026-09-13T06:22:31.839Z",
+    "files": [
+      {
+        "path": "screenshots/a-disconnect-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "BA316DC4874A4C400582307645D7C0D6580D0E9AF33EB5E5183E843A2DC3CF02"
+      }
+    ]
+  },
+  {
+    "name": "a-confirm-leave",
+    "requestedAt": "2026-09-13T06:22:42.306Z",
+    "at": "2026-09-13T06:22:43.347Z",
+    "files": [
+      {
+        "path": "screenshots/a-confirm-leave-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "1B95ED717C76F2E365A13859EA66D3B51CCD9E351409F5AEE20A633CC05A8EBA"
+      }
+    ]
+  },
+  {
+    "name": "a-exit-result",
+    "requestedAt": "2026-09-13T06:22:54.389Z",
+    "at": "2026-09-13T06:22:54.521Z",
+    "files": [
+      {
+        "path": "screenshots/a-exit-result-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "9C1EA5A66B920824AB102D41933F1606EC964658CFB839AE74A62A475F78A489"
+      }
+    ]
+  },
+  {
+    "name": "a-main-menu-confirmed",
+    "requestedAt": "2026-09-13T06:24:12.689Z",
+    "at": "2026-09-13T06:24:12.862Z",
+    "files": [
+      {
+        "path": "screenshots/a-main-menu-confirmed-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "FA3BC7C52A411A542DFBA7A882216E8C5E711E1457D3B16CC1726CD60DDA264A"
+      }
+    ]
+  },
+  {
+    "name": "a-stash-after",
+    "requestedAt": "2026-09-13T06:24:19.269Z",
+    "at": "2026-09-13T06:24:20.052Z",
+    "files": [
+      {
+        "path": "screenshots/a-stash-after-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "8A8D588F364D8A2EC8DD11008B19393E80CFF4FFAC226C2EA1E93C3FA72F8D92"
+      }
+    ]
+  },
+  {
+    "name": "b-cooldown-twenty",
+    "requestedAt": "2026-09-13T06:24:58.617Z",
+    "at": "2026-09-13T06:24:59.362Z",
+    "files": [
+      {
+        "path": "screenshots/b-cooldown-twenty-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "238784109C4D9E9DB44C3B6DBDB5C26CD5A778D1DAE05645671FF5AED94ED974"
+      }
+    ]
+  },
+  {
+    "name": "B-spawn",
+    "requestedAt": "2026-09-13T06:31:20.840Z",
+    "at": "2026-09-13T06:31:21.232Z",
+    "files": [
+      {
+        "path": "screenshots/B-spawn-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "B4502ED350A4BF473981E3B9C59C20066B375E3D703E7171670CE009BFCB08CA"
+      }
+    ]
+  },
+  {
+    "name": "B-near-corpse",
+    "requestedAt": "2026-09-13T06:31:53.147Z",
+    "at": "2026-09-13T06:31:53.515Z",
+    "files": [
+      {
+        "path": "screenshots/B-near-corpse-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "36878B3CD57EBAE764CE7409E039A8E63057C6BE0E3BC5E1565FAE1E63C589DE"
+      }
+    ]
+  },
+  {
+    "name": "B-cooldown-escape",
+    "requestedAt": "2026-09-13T06:32:02.573Z",
+    "at": "2026-09-13T06:32:03.089Z",
+    "files": [
+      {
+        "path": "screenshots/B-cooldown-escape-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "57A660BEE79E4BC463BA151DB83C919F892D0C6E71140995EFA38E61D892C45C"
+      }
+    ]
+  },
+  {
+    "name": "B-cooldown-ended",
+    "requestedAt": "2026-09-13T06:32:38.748Z",
+    "at": "2026-09-13T06:32:38.897Z",
+    "files": [
+      {
+        "path": "screenshots/B-cooldown-ended-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "8B8D7765D802D8055E51AA9C358FA33CAC76A43834EF0F0890277FF0127706D1"
+      }
+    ]
+  },
+  {
+    "name": "B-after-respawn-escape",
+    "requestedAt": "2026-09-13T06:32:50.432Z",
+    "at": "2026-09-13T06:32:51.098Z",
+    "files": [
+      {
+        "path": "screenshots/B-after-respawn-escape-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "97DE3FA02D6F3C57E95F1E06B93F24FB53C189B8FB9C7EEE8F5F2A2B352B7ACE"
+      }
+    ]
+  },
+  {
+    "name": "B-postraid",
+    "requestedAt": "2026-09-13T06:33:55.542Z",
+    "at": "2026-09-13T06:33:55.655Z",
+    "files": [
+      {
+        "path": "screenshots/B-postraid-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "C4E21F75BBF4B7C1748FF295C8C71BAB198877BD6B9F13BEF83DAB9D572E56CE"
+      }
+    ]
+  },
+  {
+    "name": "B-stash",
+    "requestedAt": "2026-09-13T06:35:11.892Z",
+    "at": "2026-09-13T06:35:12.592Z",
+    "files": [
+      {
+        "path": "screenshots/B-stash-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "129DD0022B16EAEC4400AD67496A348B31551B84799FEA88750DA5FB0038A24D"
+      }
+    ]
+  },
+  {
+    "name": "R-spawn",
+    "requestedAt": "2026-09-13T06:37:59.118Z",
+    "at": "2026-09-13T06:37:59.339Z",
+    "files": [
+      {
+        "path": "screenshots/R-spawn-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "E04C49C1A7F6642BE017506DBEA6C2AFFAFC7A72030A6018AF339EEEBD2AFB84"
+      }
+    ]
+  },
+  {
+    "name": "R-postraid",
+    "requestedAt": "2026-09-13T06:39:00.543Z",
+    "at": "2026-09-13T06:39:00.678Z",
+    "files": [
+      {
+        "path": "screenshots/R-postraid-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "59FCBF093085496BC38566DCD5B266D84FA7840627D3A90EF6D3C2C77C5A736C"
+      }
+    ]
+  },
+  {
+    "name": "R-main-menu",
+    "requestedAt": "2026-09-13T06:40:13.592Z",
+    "at": "2026-09-13T06:40:13.700Z",
+    "files": [
+      {
+        "path": "screenshots/R-main-menu-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "E4AA9E014B61F7FA292D1BC6D7C4937ABD2182E62365ACB899F9BCB0EEF0987A"
+      }
+    ]
+  },
+  {
+    "name": "R-stash",
+    "requestedAt": "2026-09-13T06:40:24.240Z",
+    "at": "2026-09-13T06:40:24.930Z",
+    "files": [
+      {
+        "path": "screenshots/R-stash-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "F784836614DF5E5F1C2DF62B701951B0E13874A51D753C5C7D9A88ED92E81C7A"
+      }
+    ]
+  },
+  {
+    "name": "C-day-next",
+    "requestedAt": "2026-09-13T06:41:17.804Z",
+    "at": "2026-09-13T06:41:18.109Z",
+    "files": [
+      {
+        "path": "screenshots/C-day-next-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "1C8E8A391F789FBE79904F19A95B67BBF94B21475B918E3999936D36D60E4C67"
+      }
+    ]
+  },
+  {
+    "name": "C-loading",
+    "requestedAt": "2026-09-13T06:42:14.179Z",
+    "at": "2026-09-13T06:42:14.457Z",
+    "files": [
+      {
+        "path": "screenshots/C-loading-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "9316AEA9FF48B9A1F574984AC54B7BE01683F01ACE2BD746C35BC2C71C68130B"
+      }
+    ]
+  },
+  {
+    "name": "C-alert-shot-one",
+    "requestedAt": "2026-09-13T06:42:34.686Z",
+    "at": "2026-09-13T06:42:35.842Z",
+    "files": [
+      {
+        "path": "screenshots/C-alert-shot-one-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "FD99E45606FBE8D0BBDDFBD4414E78D7BAAFA27F665571FDD83A686667DD8B04"
+      }
+    ]
+  },
+  {
+    "name": "C-look-left-floor",
+    "requestedAt": "2026-09-13T06:44:28.335Z",
+    "at": "2026-09-13T06:44:29.245Z",
+    "files": [
+      {
+        "path": "screenshots/C-look-left-floor-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "318D80130D577B58028F89F2ACDF43EFA4F73C595660D2BBEE69D852240CBEE9"
+      }
+    ]
+  },
+  {
+    "name": "C-bot-death-observe",
+    "requestedAt": "2026-09-13T06:44:46.678Z",
+    "at": "2026-09-13T06:44:46.929Z",
+    "files": [
+      {
+        "path": "screenshots/C-bot-death-observe-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "FDE898C2FB239495F7B43DD7B59EA2AF249BD5BC1B7BC6CBC46B1627829F220F"
+      }
+    ]
+  },
+  {
+    "name": "C-give-up-hotkey",
+    "requestedAt": "2026-09-13T06:46:33.739Z",
+    "at": "2026-09-13T06:46:36.691Z",
+    "files": [
+      {
+        "path": "screenshots/C-give-up-hotkey-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "7D77B2D4BD86DEAF2B1715A97FF28E002D0264F3267FE2E51D6338ED2C356FFE"
+      }
+    ]
+  },
+  {
+    "name": "C-current-after-context",
+    "requestedAt": "2026-09-13T06:50:28.635Z",
+    "at": "2026-09-13T06:50:28.890Z",
+    "files": [
+      {
+        "path": "screenshots/C-current-after-context-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "246A42E055254ADB1C9B608B86F66BC78F9FC73CE121E6B96F1E51050C5BCD3E"
+      }
+    ]
+  },
+  {
+    "name": "C-postraid-current",
+    "requestedAt": "2026-09-13T06:51:25.454Z",
+    "at": "2026-09-13T06:51:25.559Z",
+    "files": [
+      {
+        "path": "screenshots/C-postraid-current-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "D8E447510C4625C6CA65D83E045A458C5B67B1956755E1D0F398D1CF4E0D287C"
+      }
+    ]
+  },
+  {
+    "name": "C-main-menu-restored",
+    "requestedAt": "2026-09-13T06:52:03.770Z",
+    "at": "2026-09-13T06:52:03.872Z",
+    "files": [
+      {
+        "path": "screenshots/C-main-menu-restored-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "4185727ADABFCF16E87CD8E063EDD908509E2A8D7136AD686A9A02FAFD921E37"
+      }
+    ]
+  },
+  {
+    "name": "restore-shield-ten",
+    "requestedAt": "2026-09-13T06:53:52.372Z",
+    "at": "2026-09-13T06:53:53.114Z",
+    "files": [
+      {
+        "path": "screenshots/restore-shield-ten-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "E8E5A3486CF7063E084682598D67F7C148DD6AD7827AD667F88D9D6644F9199C"
+      }
+    ]
+  },
+  {
+    "name": "restore-final-confirm",
+    "requestedAt": "2026-09-13T06:54:16.936Z",
+    "at": "2026-09-13T06:54:17.031Z",
+    "files": [
+      {
+        "path": "screenshots/restore-final-confirm-0.png",
+        "width": 1920,
+        "height": 1080,
+        "sha256": "3B1000D921784A2EBCB69C1D5B7DA891CB0249908A0B74EAA1CC64BF1A7B5F16"
+      }
+    ]
+  }
+]

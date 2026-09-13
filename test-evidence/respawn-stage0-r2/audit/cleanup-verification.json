@@ -1,0 +1,73 @@
+{
+  "capturedAt": "2026-09-13T06:58:01.346Z",
+  "redeployPersonalValues": {
+    "MaxRespawnsPerRaid": 2,
+    "RespawnCooldownSeconds": 5,
+    "SpawnProtectionSeconds": 10
+  },
+  "redeployByteEqual": true,
+  "settingsByteEqualCount": 7,
+  "totalSettings": 9,
+  "arenaCfgActiveLinesEqual": true,
+  "serverClientSettingsEqualExceptUpdatedAt": true,
+  "oldUpdatedAt": "08:04:11",
+  "newUpdatedAt": "08:16:53",
+  "assetsByteEqualCount": 64,
+  "builds": [
+    {
+      "name": "ArenaMode.Client",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-ArenaMode.Client.dll",
+      "expected": "A92164BC306762ABD954CF3F2A5AA012FA49E8471626966C5A459A1FEE02843D",
+      "endSha256": "A92164BC306762ABD954CF3F2A5AA012FA49E8471626966C5A459A1FEE02843D"
+    },
+    {
+      "name": "Redeploy.Core",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Core.dll",
+      "expected": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C",
+      "endSha256": "FA452E5A50570D0CDFBDE9CB4B6289BED33A4773A438058EF4F8DB0288E9639C"
+    },
+    {
+      "name": "Redeploy.Client",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-Redeploy.Client.dll",
+      "expected": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46",
+      "endSha256": "7EC406A1AB98FB3348CD59B3C6803DAE3897827BA4F55ADB385FBAE879319E46"
+    },
+    {
+      "name": "ArenaMode.Server",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
+      "expected": "5A9201177DC3E4404995EA314FE48A231712435D5E5EB9E1A081C67734D6C04E",
+      "endSha256": "5A9201177DC3E4404995EA314FE48A231712435D5E5EB9E1A081C67734D6C04E"
+    },
+    {
+      "name": "Redeploy.Server",
+      "path": "C:/SPT41/SPT_Runtime/user/mods/Redeploy/maschine-Redeploy.Server.dll",
+      "expected": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B",
+      "endSha256": "53F283D8B8F32EC7A7FB94AA1CC7EBC12115169C74A97E77B4088B0E5F06070B"
+    },
+    {
+      "name": "SAIN",
+      "path": "C:/SPT41/BepInEx/plugins/SAIN/SAIN.dll",
+      "expected": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489",
+      "endSha256": "C8942B646463283D1247B5673D018C1D3F2EDFBE754A06061CB33BD09C368489"
+    },
+    {
+      "name": "KillcamReplay",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-KillcamReplay.dll",
+      "expected": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5",
+      "endSha256": "B5F984E6605F4DB206E69C3180DFEE0D743278796C1038204E67EA161BE66CD5"
+    },
+    {
+      "name": "DynamicMaps",
+      "path": "C:/SPT41/BepInEx/plugins/mpstark-dynamicmaps/DynamicMaps.dll",
+      "expected": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8",
+      "endSha256": "C41507EB1EDB6D6C8101314FEDF9EB52C874C980E757CBC8348F084D2231B1B8"
+    },
+    {
+      "name": "BotDropDiag",
+      "path": "C:/SPT41/BepInEx/plugins/maschine-BotDropDiag.dll",
+      "expected": "5B37C035BD860E9EED5A9520EE62BF8D607591A77996142BB80CA18BF48E0985",
+      "endSha256": "0D885B3FADCDF448DA71B1D459079253EC15A6DBDB5934AB4959863C2DD686D0"
+    }
+  ],
+  "noFurtherRaidsAfterStop": true
+}
