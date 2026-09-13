@@ -13,14 +13,18 @@ namespace BepInEx.Configuration
 {
     public sealed class KeyboardShortcut
     { public KeyboardShortcut(UnityEngine.KeyCode main, params UnityEngine.KeyCode[] modifiers) { } }
-    public interface IAcceptableValue { object Clamp(object value); }
+    public interface IAcceptableValue { object Clamp(object value); bool IsValid(object value); }
     public class AcceptableValueRange<T>(T min, T max) : IAcceptableValue where T : IComparable<T>
     {
         public T MinValue = min, MaxValue = max;
+        public bool IsValid(object value) => value is T typed && typed.CompareTo(MinValue) >= 0 && typed.CompareTo(MaxValue) <= 0;
         public object Clamp(object value) => ((T)value).CompareTo(MinValue) < 0 ? MinValue : ((T)value).CompareTo(MaxValue) > 0 ? MaxValue : value;
     }
     public class AcceptableValueList<T>(params T[] values) : IAcceptableValue
-    { public object Clamp(object value) => values.Contains((T)value) ? value : values[0]; }
+    {
+        public bool IsValid(object value) => value is T typed && values.Contains(typed);
+        public object Clamp(object value) => IsValid(value) ? value : values[0];
+    }
     public class ConfigDescription(string description, IAcceptableValue acceptable = null)
     { public string Description = description; public IAcceptableValue AcceptableValues = acceptable; }
     public sealed class ConfigEntry<T>(T value, ConfigDescription description, ConfigFile owner)

@@ -1,0 +1,118 @@
+using ArenaMode.Config;
+using ArenaMode.Modes;
+using ArenaMode.Session;
+using ArenaMode.Shared;
+using BepInEx.Configuration;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+
+int checks=0;
+void Need(bool condition,string marker,string reason)
+{checks++;if(!condition)throw new InvalidOperationException(marker+": "+reason);}
+var scratch=Path.Combine(AppContext.BaseDirectory,"config",Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(scratch);
+ConfigFile Bind(string name)
+{
+    var file=new ConfigFile(Path.Combine(scratch,name+".cfg"),false){SaveOnConfigSet=false};
+    Settings.Init(file);return file;
+}
+
+try
+{
+    string probe=args.FirstOrDefault()??"all";
+    Need(probe is "all" or "binding" or "selection","PROBE","Unknown test probe.");
+    var config=Bind("initial");
+    var acceptable=Settings.TeamDeathmatchArea.Description.AcceptableValues as AcceptableValueList<string>;
+    const string eastId="customs-factory-east-polygon-v1";
+    if(probe=="selection")
+    {
+        Need(Settings.TrySelectArea(eastId)&&Settings.TeamDeathmatchArea.Value==eastId,
+            "SELECT-AREA","The actually compiled Settings.TrySelectArea must accept offered Factory East.");
+        Console.WriteLine("AREA CONFIG SELECTION PROBE PASSED");return 0;
+    }
+    Need(acceptable!=null&&acceptable.IsValid(eastId),"ACCEPTABLE-AREA",
+        "Real BepInEx AcceptableValueList must accept offered Factory East.");
+    if(probe=="binding") {Console.WriteLine("AREA CONFIG BINDING PROBE PASSED");return 0;}
+
+    var offered=new HashSet<string>(StringComparer.Ordinal);
+    foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,ArenaMapCatalog.LabyrinthId,
+        ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.CustomsId})
+        foreach(var mode in ArenaModeCatalog.All)
+            foreach(bool pitFireTeam in new[]{false,true})
+            {
+                var state=ArenaAreaSelectionState.Create(map,mode.Id,pitFireTeam,ArenaAreaCatalog.FullMapId,4,4);
+                foreach(var option in state.Options)
+                {
+                    offered.Add(option.Id);
+                    Need(acceptable.IsValid(option.Id),"ACCEPTABLE-AREA",
+                        $"Menu offers {option.Id} on {map}/{mode.Id}, but actual config would reject or clamp it.");
+                }
+            }
+    Need(offered.Contains(eastId)&&offered.Count>=6,"MENU-COVERAGE","Fixture must actually enumerate the new area and the previous choices.");
+    Need(offered.SetEquals(acceptable.AcceptableValues),"CONFIG-MENU-PARITY","The real config list and native-menu proposals must expose the same protocol IDs.");
+    Need(Settings.TeamDeathmatchArea.Definition.Section=="Team Deathmatch"&&Settings.TeamDeathmatchArea.Definition.Key=="ExperimentalArea",
+        "CONFIG-KEY","Keep the existing user configuration address.");
+
+    foreach(bool autoSave in new[]{false,true})
+        foreach(string areaId in offered.OrderBy(id=>id,StringComparer.Ordinal))
+        {
+            string label=(autoSave?"auto-":"batch-")+areaId;
+            config=Bind(label);
+            string baseline=areaId==ArenaAreaCatalog.FullMapId?ArenaAreaCatalog.FactorySouthId:ArenaAreaCatalog.FullMapId;
+            Settings.TeamDeathmatchArea.Value=baseline;config.Save();
+            config.SaveOnConfigSet=autoSave;
+            int reports=SettingsSync.Reports;
+            Need(Settings.TrySelectArea(areaId),"SELECT-AREA",$"Actual Settings selection rejected {areaId} (auto-save={autoSave}).");
+            Need(Settings.TeamDeathmatchArea.Value==areaId,"SELECT-AREA","BepInEx silently clamped the supposedly selected area.");
+            Need(SettingsSync.Reports==reports+1,"SETTINGS-REPORT","Accepted changed menu selection must be reported exactly once.");
+            var saved=File.ReadAllBytes(config.ConfigFilePath);
+            Need(File.ReadAllLines(config.ConfigFilePath).Contains("ExperimentalArea = "+areaId),
+                "PERSISTENCE","Selection must reach the real config file without a test-issued Save.");
+            Need(Settings.TrySelectArea(areaId)&&SettingsSync.Reports==reports+1,"UNCHANGED-SELECTION","Already selected area is accepted without a duplicate report.");
+            Need(saved.SequenceEqual(File.ReadAllBytes(config.ConfigFilePath)),"UNCHANGED-SELECTION","Already selected area must not rewrite its file.");
+
+            var reread=new ConfigFile(config.ConfigFilePath,false){SaveOnConfigSet=false};
+            Settings.Init(reread);
+            Need(Settings.TeamDeathmatchArea.Value==areaId,"RELOAD","Fresh ConfigFile plus full Settings.Init must retain the selected ID.");
+            Need(saved.SequenceEqual(File.ReadAllBytes(config.ConfigFilePath)),"RELOAD","A valid saved choice must not be rewritten while binding.");
+            Need(Settings.TeamDeathmatchArea.Description.AcceptableValues.IsValid(areaId),"RELOAD","The new binding must still accept its persisted value.");
+        }
+
+    config=Bind("unknown-selection");
+    Need(Settings.TrySelectArea(eastId),"SELECT-AREA","East is the stable starting choice for invalid-input checks.");
+    foreach(string invalid in new[]{"not-an-area","customs-factory-east-polygon-v2",eastId.ToUpperInvariant()," "+eastId,eastId+" ","",null})
+    {
+        var before=File.ReadAllBytes(config.ConfigFilePath);int reports=SettingsSync.Reports;
+        Need(!Settings.TeamDeathmatchArea.Description.AcceptableValues.IsValid(invalid),"UNKNOWN-AREA","Real config must reject unknown/nonexact area IDs.");
+        Need(!Settings.TrySelectArea(invalid),"UNKNOWN-AREA","Menu must fail closed for unknown/null area IDs.");
+        Need(Settings.TeamDeathmatchArea.Value==eastId&&before.SequenceEqual(File.ReadAllBytes(config.ConfigFilePath))
+            &&SettingsSync.Reports==reports,"UNKNOWN-UNCHANGED","Rejected input cannot mutate, save or report a selection.");
+    }
+
+    // Exercise BepInEx's actual Reload on the same already-bound entries.
+    string persisted=File.ReadAllText(config.ConfigFilePath);
+    var areaLine=new Regex(@"^ExperimentalArea = [^\r\n]*",RegexOptions.Multiline);
+    Need(areaLine.Matches(persisted).Count==1,"RELOAD-FIXTURE","Exactly one physical persisted area entry is expected.");
+    File.WriteAllText(config.ConfigFilePath,areaLine.Replace(persisted,"ExperimentalArea = "+ArenaAreaCatalog.CustomsFactoryCenterPolygonId));
+    config.Reload();
+    Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.CustomsFactoryCenterPolygonId,"LIVE-RELOAD","Existing ConfigEntry must observe valid external file changes.");
+    File.WriteAllText(config.ConfigFilePath,areaLine.Replace(persisted,"ExperimentalArea = "+eastId));
+    config.Reload();Need(Settings.TeamDeathmatchArea.Value==eastId,"LIVE-RELOAD","Reload must not clamp the newly added area to full-map.");
+    File.WriteAllText(config.ConfigFilePath,areaLine.Replace(persisted,"ExperimentalArea = unpublished-draft"));
+    config.Reload();
+    Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"INVALID-PERSISTED",
+        "Invalid saved input follows real BepInEx's first-acceptable-value clamp; it never becomes an accepted unpublished area.");
+    var corrupt=Path.Combine(scratch,"unknown-on-start.cfg");
+    File.WriteAllText(corrupt,"[Team Deathmatch]\nExperimentalArea = unpublished-draft\n");
+    Settings.Init(new ConfigFile(corrupt,false){SaveOnConfigSet=false});
+    Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"INVALID-PERSISTED","Fresh binding also rejects an unknown saved ID.");
+
+    Console.WriteLine("Real BepInEx assembly: "+typeof(ConfigFile).Assembly.FullName);
+    Console.WriteLine("BepInEx SHA256: "+Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(ConfigFile).Assembly.Location))));
+    Console.WriteLine("Offered and persisted IDs: "+string.Join(", ",offered.OrderBy(id=>id,StringComparer.Ordinal)));
+    Console.WriteLine($"AREA CONFIG PRODUCTION CHECKS PASSED ({checks} assertions; real BepInEx bind/save/reload)");
+    Console.WriteLine("Scratch config files: "+scratch);
+    return 0;
+}
+catch(Exception ex)
+{Console.Error.WriteLine("AREA CONFIG REJECTED: "+ex.Message);return 1;}

@@ -232,9 +232,9 @@ public static class Settings
 
     internal static bool TrySelectArea(string areaId)
     {
-        if (TeamDeathmatchArea == null || (areaId != ArenaAreaCatalog.FullMapId
-                && areaId != ArenaAreaCatalog.FactorySouthId && areaId != ArenaAreaCatalog.CustomsFactoryCenterId
-                && areaId != ArenaAreaCatalog.CustomsFactoryCenterPolygonId && areaId != ArenaAreaCatalog.CustomsFactoryCenterTeamsId))
+        // Use the same constraint as F12 and persisted config loading. A second
+        // ID list here can silently reject a newly offered area (Factory East).
+        if (TeamDeathmatchArea == null || TeamDeathmatchArea.Description.AcceptableValues?.IsValid(areaId) != true)
             return false;
         if (TeamDeathmatchArea.Value == areaId) return true;
         try { TeamDeathmatchArea.Value = areaId; }
@@ -801,13 +801,13 @@ public static class Settings
                 "Experimental bounded arena. Full-map preserves normal TDM settings. " +
                 "Factory South requires Factory daytime and fixes the match at 2v2. " +
                 "Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. " +
-                "Factory Center (contour) uses the surveyed outline with side walls only and no height restriction. " +
+                "Factory Center (contour) and Factory East (contour) use surveyed outlines with side walls only and no height restriction; both fix teams at 2v2. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +
                 "Selected before loading; changes during a raid apply next match. " +
                 "Other modes ignore this setting. The area must pass its live navigation checks.",
                 new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId,
                     ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
-                    ArenaAreaCatalog.CustomsFactoryCenterTeamsId)));
+                    ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId)));
 
         AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,
             new ConfigDescription("Players per faction, including your PMC, for the Customs contour with team starts. " +

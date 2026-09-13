@@ -7,6 +7,42 @@ and hash-verified on D:. Native GPU acceptance remains untested. The exact test
 binding is `GPU-AREA-MAP-PREVIEW-r1-BUILD.json`; see HANDOFF for delivery details.
 The second contour was committed separately as `c7de967`.
 
+## GPU r1 selection failure and correction
+
+Report `588090f` tested the exact deployed `d7cde9d` pair on the GPU host:
+all nine file hashes and four ProductVersions matched, with fresh processes.
+The initial Center preview/layout was visible and unobscured at 1920x1080.
+Factory East was offered but two native clicks could not select it. The tester
+correctly stopped there: other contours, camera controls, lifecycle/resolution
+checks and all raids remain untested. No Arena/Unity exception accompanied the
+failure. Preserve `GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r1.md` and its evidence as-is.
+
+The cause was two missed settings admission sites: the handwritten whitelist in
+`Settings.TrySelectArea` and the BepInEx `ExperimentalArea` acceptable-value list
+both omitted East. A row could be offered by the shared catalog yet rejected
+before the selected setting, UI or success log changed. The earlier native-menu
+checks used a Settings stand-in; the preview checks exercised the proposed area,
+not that real config write. Those tests did not cover this integration boundary.
+
+The correction adds East to the BepInEx list and makes `TrySelectArea` consult
+that same `Description.AcceptableValues.IsValid` constraint. F12, persisted
+loading and menu admission therefore no longer maintain two separate whitelists.
+Unknown/null IDs are rejected before mutation; the native owner, map/mode/PFT
+guards, save/report behavior, shared server admission and profile boundaries are
+unchanged. This is a client-only fix; the existing `d7cde9d` server already knows
+the area and needs no rebuild.
+
+`tools/AreaConfigChecks/` compiles the complete production Settings, area menu
+state and catalog with the real installed BepInEx configuration implementation.
+It exercises selection, saving and fresh-file loading against scratch config
+files, including every offered ID. Its old-source control must reproduce the
+original East rejection. It does not model the GUI, network or raid engine;
+the native r2 retest still has to demonstrate a working click and preview.
+Parent re-verification passes 165 assertions, both historical failure probes
+and the fixed-source probes. Existing area/menu checks pass 406/73/24 assertions
+and five source faults; the settings-linked TDM menu harness passes 92 assertions
+and ten source faults. Independent production/oracle review has no open finding.
+
 ## Behavior
 
 The Arena location screen now displays a Customs ground map beside the existing
