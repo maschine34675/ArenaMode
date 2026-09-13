@@ -528,6 +528,17 @@ internal static class BurstSpawnService
 
             Plugin.ModLogger.LogInfo($"Arena burst spawn: dispatched {reserved}x {role}.");
         }
+        catch (OperationCanceledException) when (operationGeneration != Volatile.Read(ref _operationGeneration))
+        {
+            // The raid ended while this dispatch was in flight. Reset bumped the
+            // generation from the GameEnd postfix, in Stop's own frame, and
+            // cleared the ledgers with it; the cancellation itself arrives later,
+            // from the bundle-pool token that TryUnloadGame cancels once GameEnd's
+            // backend round trip is through (r2 saw it 6 s after the stop). An
+            // expected end of a late request, not a failure — and the GPU log
+            // rules count every "failed:" as one. Nothing to release or retry.
+            Plugin.ModLogger.LogInfo($"Arena burst spawn of {role} cancelled with the raid.");
+        }
         catch (Exception ex)
         {
             ReleaseReservedIfCurrent(ledger, reserved, operationGeneration);
