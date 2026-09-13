@@ -48,7 +48,8 @@ try
                         $"Menu offers {option.Id} on {map}/{mode.Id}, but actual config would reject or clamp it.");
                 }
             }
-    Need(offered.Contains(eastId)&&offered.Count>=6,"MENU-COVERAGE","Fixture must actually enumerate the new area and the previous choices.");
+    Need(offered.SetEquals(new[]{ArenaAreaCatalog.FullMapId,ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
+        ArenaAreaCatalog.CustomsFactoryCenterTeamsId,eastId}),"MENU-COVERAGE","Only whole map and three surveyed Customs choices remain offered.");
     Need(offered.SetEquals(acceptable.AcceptableValues),"CONFIG-MENU-PARITY","The real config list and native-menu proposals must expose the same protocol IDs.");
     Need(Settings.TeamDeathmatchArea.Definition.Section=="Team Deathmatch"&&Settings.TeamDeathmatchArea.Definition.Key=="ExperimentalArea",
         "CONFIG-KEY","Keep the existing user configuration address.");
@@ -58,7 +59,7 @@ try
         {
             string label=(autoSave?"auto-":"batch-")+areaId;
             config=Bind(label);
-            string baseline=areaId==ArenaAreaCatalog.FullMapId?ArenaAreaCatalog.FactorySouthId:ArenaAreaCatalog.FullMapId;
+            string baseline=areaId==ArenaAreaCatalog.FullMapId?ArenaAreaCatalog.CustomsFactoryCenterPolygonId:ArenaAreaCatalog.FullMapId;
             Settings.TeamDeathmatchArea.Value=baseline;config.Save();
             config.SaveOnConfigSet=autoSave;
             int reports=SettingsSync.Reports;
@@ -80,7 +81,8 @@ try
 
     config=Bind("unknown-selection");
     Need(Settings.TrySelectArea(eastId),"SELECT-AREA","East is the stable starting choice for invalid-input checks.");
-    foreach(string invalid in new[]{"not-an-area","customs-factory-east-polygon-v2",eastId.ToUpperInvariant()," "+eastId,eastId+" ","",null})
+    foreach(string invalid in new[]{ArenaAreaCatalog.FactorySouthId,ArenaAreaCatalog.CustomsFactoryCenterId,
+        "not-an-area","customs-factory-east-polygon-v2",eastId.ToUpperInvariant()," "+eastId,eastId+" ","",null})
     {
         var before=File.ReadAllBytes(config.ConfigFilePath);int reports=SettingsSync.Reports;
         Need(!Settings.TeamDeathmatchArea.Description.AcceptableValues.IsValid(invalid),"UNKNOWN-AREA","Real config must reject unknown/nonexact area IDs.");
@@ -106,6 +108,25 @@ try
     File.WriteAllText(corrupt,"[Team Deathmatch]\nExperimentalArea = unpublished-draft\n");
     Settings.Init(new ConfigFile(corrupt,false){SaveOnConfigSet=false});
     Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"INVALID-PERSISTED","Fresh binding also rejects an unknown saved ID.");
+
+    foreach(string retired in new[]{ArenaAreaCatalog.FactorySouthId,ArenaAreaCatalog.CustomsFactoryCenterId})
+    {
+        var retiredPath=Path.Combine(scratch,retired+".cfg");
+        File.WriteAllText(retiredPath,"[Team Deathmatch]\nExperimentalArea = "+retired+"\n");
+        var retiredConfig=new ConfigFile(retiredPath,false){SaveOnConfigSet=false};
+        Settings.Init(retiredConfig);
+        Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-BIND","Actual BepInEx binding clamps obsolete saved IDs to full map.");
+        var migrated=ArenaAreaSelectionState.Create(ArenaMapCatalog.CustomsId,"teamdeathmatch",false,
+            Settings.TeamDeathmatchArea.Value,4,4);
+        Need(migrated.SelectedId==ArenaAreaCatalog.CustomsFactoryCenterPolygonId,"RETIRED-MENU","Customs menu proposes its supported surveyed contour after old config migration.");
+        Need(!ArenaAreaCatalog.TryResolve(retired,ArenaMapCatalog.CustomsId,"teamdeathmatch",false,out _,out _)
+            &&!ArenaAreaCatalog.TryResolve(retired,ArenaMapCatalog.FactoryDayId,"teamdeathmatch",false,out _,out _),
+            "RETIRED-PROTOCOL","Migration does not make an explicit retired arm ID valid.");
+        Settings.TrySelectArea(eastId);
+        File.WriteAllText(retiredPath,"[Team Deathmatch]\nExperimentalArea = "+retired+"\n");
+        retiredConfig.Reload();
+        Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-RELOAD","Live Reload also clamps an obsolete saved ID.");
+    }
 
     Console.WriteLine("Real BepInEx assembly: "+typeof(ConfigFile).Assembly.FullName);
     Console.WriteLine("BepInEx SHA256: "+Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(ConfigFile).Assembly.Location))));

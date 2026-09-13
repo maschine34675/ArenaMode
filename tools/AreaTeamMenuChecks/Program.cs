@@ -22,7 +22,7 @@ view.Show(screen.transform,null,_=>true,(area,size)=>
 view.Refresh(State(teams),false);
 Button[] Buttons()=>view.Root.GetComponentsInChildren<Button>(true);
 Button Size(int size)=>Buttons().Single(b=>b.name=="Arena Team Size "+size);
-Need(Buttons().Length==8,"four area rows and four team buttons are materialized");
+Need(Buttons().Length==7,"three area rows and four team buttons are materialized");
 var rootRect=(RectTransform)view.Root.transform;
 Need(-rootRect.anchoredPosition.y>=668&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=916,
     "largest supported panel remains below mode panel and above native bottom controls");
@@ -45,7 +45,7 @@ Need(calls==2&&selected==5&&!Size(3).transform.Children.Single(t=>t.gameObject.n
     "refused size change does not create a selected marker");
 var retired=Size(4).onClick.Snapshot();
 view.Refresh(State(contour),false);
-Need(Buttons().Length==4,"legacy area removes size row entirely");
+Need(Buttons().Length==3,"fixed contour removes size row entirely");
 foreach(var callback in retired)callback();
 Need(calls==2,"retired row callback cannot affect replacement legacy state");
 view.Refresh(State(teams,99),false);
@@ -61,7 +61,7 @@ view.Refresh(State(teams),false);
 foreach(var callback in retired)callback();
 Need(calls==2&&replacementCalls==0,"same-view Close/Show replacement cannot inherit old row ownership");
 view.Refresh(State(ArenaAreaCatalog.FullMapId,map:ArenaMapCatalog.FactoryDayId),false);
-Need(Buttons().Length==2,"whole map Factory retains only its existing two area choices");
+Need(Buttons().Length==1,"whole map Factory is its only supported area choice");
 view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "deathmatch", false,
     ArenaAreaCatalog.FullMapId, 5), false);
 Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 734,

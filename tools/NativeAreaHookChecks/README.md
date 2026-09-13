@@ -35,7 +35,7 @@ These orders were checked against the local decompiled
 contracts require separate native verification; this fixture is not that proof.
 
 Cases exercise actual hook composition for direct Customs selection from
-full-map, remembered Customs, Factory South to night via click and time event,
+full-map, remembered Customs, a retired Factory South save to night via click and time event,
 rejected area writes before the native non-null branch, incoming direct setters,
 group refresh, F12/mode changes, configured population display, strict final
 request matching, PFT mode repair before row use, ordinary PMC/Scav flows, stale

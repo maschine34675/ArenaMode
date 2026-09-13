@@ -26,7 +26,7 @@ internal static partial class Program
         typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, true);
         typeof(ArenaServerClient).GetField("_ordinaryRaidConfirmed", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, false);
         Settings.GameMode.Value = "teamdeathmatch";
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FactorySouthId;
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
         ArenaAreaRuntime.Reset();
         ArenaAreaNavigationPatches.IsReady = ArenaAreaLoadPatch.IsReady = ArenaAreaSpawnPointsPatch.IsReady = true;
         RequestHandler.Get = route => route == Protocol.StatusRoute ? "{\"state\":\"Idle\"}" : "{\"version\":\"test\"}";
@@ -46,7 +46,7 @@ internal static partial class Program
             RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
                 ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["areaId"] = wrongArea }.ToString()
                 : "{\"disarmed\":true,\"state\":\"Idle\"}";
-            Assert(!ArenaServerClient.PostRaidStart("factory4_day", "teamdeathmatch", false, ArenaAreaCatalog.FactorySouthId),
+            Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false, ArenaAreaCatalog.CustomsFactoryCenterPolygonId),
                 "bounded start rejects missing, downgraded, future or differently cased area acknowledgement");
             Assert(ArenaServerClient.HasPendingArm && Protocol.IsLifecycleRequestId(ArenaServerClient.PendingArmToken),
                 "area acknowledgement mismatch retains exact snapshot cancellation identity");
@@ -55,19 +55,19 @@ internal static partial class Program
         }
 
         ConfigureAreaNegotiation();
-        Select();
-        var request = Request();
+        Select(ArenaMapCatalog.CustomsId);
+        var request = Request(map: ArenaMapCatalog.CustomsId);
         Assert(Start(request, out var task) && task == null, "supported area starts through the actual local-start prefix");
         var sent = JObject.Parse(RequestHandler.LastPostBody);
-        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.FactorySouthId
-            && sent["map"].Value<string>() == "factory4_day" && sent["mode"].Value<string>() == "teamdeathmatch",
+        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterPolygonId
+            && sent["map"].Value<string>() == ArenaMapCatalog.CustomsId && sent["mode"].Value<string>() == "teamdeathmatch",
             "exact area, map and normalized mode are sent together");
-        Assert(ArenaAreaRuntime.ArmCalls == 1 && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.FactorySouth)
+        Assert(ArenaAreaRuntime.ArmCalls == 1 && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon)
             && ArenaAreaRuntime.Token == sent["requestId"].Value<string>()
             && Protocol.IsNativeStartIdentity(request.serverId, ArenaAreaRuntime.Token),
             "only acknowledged area is armed with the same exact native-start token");
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
-        Assert(ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.FactorySouth),
+        Assert(ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon),
             "changing F12 after negotiation cannot rewrite the captured area");
 
         ConfigureAreaNegotiation();
@@ -123,27 +123,27 @@ internal static partial class Program
         foreach (string missingHook in new[] { "navigation", "load", "spawn" })
         {
             ConfigureAreaNegotiation();
-            Select();
+            Select(ArenaMapCatalog.CustomsId);
             ArenaAreaNavigationPatches.IsReady = missingHook != "navigation";
             ArenaAreaLoadPatch.IsReady = missingHook != "load";
             ArenaAreaSpawnPointsPatch.IsReady = missingHook != "spawn";
             int starts = RequestHandler.StartCount;
-            Assert(!Start(Request(), out task) && task.IsFaulted && RequestHandler.StartCount == starts,
+            Assert(!Start(Request(map: ArenaMapCatalog.CustomsId), out task) && task.IsFaulted && RequestHandler.StartCount == starts,
                 "each required area hook must be ready before server arming");
         }
 
         ConfigureAreaNegotiation();
-        Select();
+        Select(ArenaMapCatalog.CustomsId);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => true);
         int beforePft = RequestHandler.StartCount;
-        Assert(!Start(Request(), out task) && task.IsFaulted && RequestHandler.StartCount == beforePft,
+        Assert(!Start(Request(map: ArenaMapCatalog.CustomsId), out task) && task.IsFaulted && RequestHandler.StartCount == beforePft,
             "PitFireTeam cannot inherit the independent TDM area");
 
         ConfigureAreaNegotiation();
-        Select();
+        Select(ArenaMapCatalog.CustomsId);
         Settings.TeamDeathmatchArea.Value = "unknown-area";
         int beforeUnknown = RequestHandler.StartCount;
-        Assert(!Start(Request(), out task) && task.IsFaulted && RequestHandler.StartCount == beforeUnknown,
+        Assert(!Start(Request(map: ArenaMapCatalog.CustomsId), out task) && task.IsFaulted && RequestHandler.StartCount == beforeUnknown,
             "unrecognized configured area cannot silently become full-map");
 
         ConfigureAreaNegotiation();

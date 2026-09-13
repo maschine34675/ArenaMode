@@ -801,18 +801,17 @@ public static class Settings
             ArenaAreaCatalog.FullMapId,
             new ConfigDescription(
                 "Experimental bounded arena. Full-map preserves normal TDM settings. " +
-                "Factory South requires Factory daytime and fixes the match at 2v2. " +
-                "Customs Factory Center enables the Customs map for independent TDM at 2v2; full-map Customs is unavailable. " +
-                "Factory Center (contour) and Factory East (contour) use surveyed outlines with side walls only and no height restriction; both fix teams at 2v2. " +
+                "Customs requires a surveyed area for independent TDM; full-map Customs is unavailable. " +
+                "Factory Center (contour) fixes teams at 2v2. Customs contour (team starts) and Factory Side (team starts) allow 2v2 to 5v5. " +
+                "All surveyed outlines have side walls only, with no height restriction. The old rectangle test areas are retired. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +
                 "Selected before loading; changes during a raid apply next match. " +
                 "Other modes ignore this setting. The area must pass its live navigation checks.",
-                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId,
-                    ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
+                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
                     ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId)));
 
         AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,
-            new ConfigDescription("Players per faction, including your PMC, for the Customs contour with team starts. " +
+            new ConfigDescription("Players per faction, including your PMC, for Customs areas with opposing team starts. " +
                 "Separate from whole-map team size. Selected before loading; changes apply next match.",
                 new AcceptableValueRange<int>(2, 5)));
 

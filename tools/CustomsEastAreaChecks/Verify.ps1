@@ -36,9 +36,14 @@ try {
     $eastState = Get-Content -LiteralPath (Join-Path $eastRepo 'ArenaMode.Client\Session\ArenaAreaSelectionState.cs') -Raw
     $eastFaults = @(
         @{ Name='vertex-drift'; Target='catalog'; Old='new ArenaAreaVertex(494.5332f, -104.145111f)'; New='new ArenaAreaVertex(495.5332f, -104.145111f)'; Marker='EXACT-GEOMETRY' },
-        @{ Name='height-clamp'; Target='catalog'; Old='}, 0f, 12f, limitsHeight: false), 0.5f, 3f, 2);'; New='}, 0f, 12f, limitsHeight: true), 0.5f, 3f, 2);'; Marker='UNLIMITED-HEIGHT' },
+        @{ Name='height-clamp'; Target='catalog'; Old='}, 0f, 12f, limitsHeight: false), 0.5f, 3f, 5, teamStarts:'; New='}, 0f, 12f, limitsHeight: true), 0.5f, 3f, 5, teamStarts:'; Marker='UNLIMITED-HEIGHT' },
         @{ Name='mode-bypass'; Target='catalog'; Old='if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))'; New='if (pitFireTeam)'; Marker='REJECT-MODES' },
-        @{ Name='menu-missing'; Target='state'; Old='        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory East (contour)", ArenaAreaCatalog.CustomsFactoryEastPolygon.MaxTeamSize),'; New=''; Marker='MENU-AREA' }
+        @{ Name='menu-missing'; Target='state'; Old='        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side (team starts)"),'; New=''; Marker='MENU-AREA' },
+        @{ Name='missing-native-start'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"00000000-0000-0000-0000-000000000001"'; Marker='START-BOT' },
+        @{ Name='wrong-native-category'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"0327c5d1-cc7f-432f-92dc-f95fb4719f1b"'; Marker='START-BOT' },
+        @{ Name='opposing-too-close'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"ae0c5e1d-71cc-44a2-86ae-4c45e224a1ff"'; Marker='START-OPPOSING' },
+        @{ Name='retired-area-admitted'; Target='catalog'; Old='var candidate = id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon'; New='var candidate = id == FactorySouthId ? FactorySouth : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon'; Marker='RETIRED-AREA' },
+        @{ Name='team-picker-center-only'; Target='state'; Old='HasTeamSizeChoice = SelectedArea?.TeamStarts != null;'; New='HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;'; Marker='MENU-TEAM-SIZE' }
     )
     foreach ($eastFault in $eastFaults) {
         $eastSource = if ($eastFault.Target -eq 'catalog') { $eastCatalog } else { $eastState }
@@ -54,6 +59,22 @@ try {
         }
         Write-Output "Negative control rejected as intended: $($eastFault.Name) [$($eastFault.Marker)]"
     }
+    # Mutate only a scratch native corpus to demonstrate that real coordinate
+    # spacing is checked, not just known IDs or the catalog's array lengths.
+    $eastNativeFault = Get-Content -LiteralPath $eastDatabase -Raw | ConvertFrom-Json
+    $eastNativeAnchor = $eastNativeFault.SpawnPointParams | Where-Object Id -EQ '01a445b0-4545-48da-9ce6-6d0190869360'
+    $eastNativeMoved = $eastNativeFault.SpawnPointParams | Where-Object Id -EQ '15fb12c7-625d-4665-9fb6-2774905743ca'
+    $eastNativeMoved.Position.x = $eastNativeAnchor.Position.x + 0.1
+    $eastNativeMoved.Position.z = $eastNativeAnchor.Position.z
+    $eastFaultDatabase = Join-Path $eastRun 'close-native-starts.json'
+    $eastNativeFault | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $eastFaultDatabase
+    $eastFaultOutput = & dotnet $eastBaseline $eastFixture $eastFaultDatabase 2>&1
+    $eastFaultExit = $LASTEXITCODE
+    $eastFaultOutput | Set-Content -LiteralPath (Join-Path $eastRun 'close-native-starts.log')
+    if ($eastFaultExit -eq 0 -or ($eastFaultOutput -join "`n") -notmatch 'CUSTOMS EAST REJECTED: START-SPACING:') {
+        throw 'Close native start corpus did not fail at physical spacing.'
+    }
+    Write-Output 'Negative control rejected as intended: close-native-starts [START-SPACING]'
     & dotnet $eastBaseline $eastFixture $eastDatabase
     if ($LASTEXITCODE -ne 0) { throw 'Final clean baseline verification failed.' }
     Write-Output "Evidence: $eastRun"

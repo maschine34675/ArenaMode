@@ -10,11 +10,11 @@ using SPT.Common.Http;
 
 internal static partial class Program
 {
-    private static void ConfigureAreaTeams(int size = 2)
+    private static void ConfigureAreaTeams(int size = 2, string area = ArenaAreaCatalog.CustomsFactoryCenterTeamsId)
     {
         ConfigureAreaNegotiation();
         Settings.AreaTeamSize.Value = size;
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+        Settings.TeamDeathmatchArea.Value = area;
         Settings.RefuseAreaWrite = false;
         SettingsSync.OnSync = null;
         ArenaClientConfig.Enabled = _ => true;
@@ -29,22 +29,25 @@ internal static partial class Program
     private static void CheckAreaTeamMenu()
     {
         const string teams = ArenaAreaCatalog.CustomsFactoryCenterTeamsId, map = ArenaMapCatalog.CustomsId;
+        foreach (string selectedArea in new[] { teams, ArenaAreaCatalog.CustomsFactoryEastPolygonId })
         foreach (int size in new[] { 2, 3, 4, 5 })
         {
-            ConfigureAreaTeams(size);
+            ConfigureAreaTeams(size, selectedArea);
             var owner = Select(map);
             var state = ArenaMenuSelection.AreaSelection(map);
-            Assert(state.Options.Count == 4 && state.HasTeamSizeChoice && state.SelectedTeamSize == size
+            Assert(state.Options.Count == 3 && state.HasTeamSizeChoice && state.SelectedTeamSize == size
                 && state.TeamSizeOptions.SequenceEqual(new[] { 2,3,4,5 }), "new area exposes exact immutable 2..5 size choices");
             Settings.AreaTeamSize.Value = size == 5 ? 2 : 5;
             Assert(state.SelectedTeamSize == size, "existing proposal cannot change when F12 changes");
-            Assert(ArenaMenuSelection.TrySelectAreaTeamSize(owner,map,teams,size), "current area size click accepted");
+            Assert(ArenaMenuSelection.TrySelectAreaTeamSize(owner,map,selectedArea,size), "current area size click accepted");
             var request = Request(map:map);
             Assert(Start(request,out var task) && task == null && ArenaAreaRuntime.TeamSize == size,
                 "real negotiation arms exact menu size");
             var sent = JObject.Parse(RequestHandler.LastPostBody);
             Assert(sent["areaTeamSize"]?.Type == JTokenType.Integer && sent["areaTeamSize"].Value<int>() == size,
                 "exact selected count is sent as integer");
+            Assert(sent["areaId"]?.Value<string>() == selectedArea && ArenaAreaRuntime.ArmedArea?.Id == selectedArea,
+                "both team-start presets retain their own exact protocol identity through negotiation");
             Settings.AreaTeamSize.Value = size == 5 ? 2 : 5;
             Assert(ArenaAreaRuntime.TeamSize == size, "post-arm F12 mutation does not rewrite runtime selection");
         }
@@ -94,8 +97,8 @@ internal static partial class Program
         int starts=RequestHandler.StartCount;
         Assert(!Start(Request(map:map),out var missing) && missing.IsFaulted && RequestHandler.StartCount==starts,
             "new area requires initial placement hook before server arm");
-        ConfigureAreaNegotiation(); Select();
-        Assert(Start(Request(),out var legacy) && legacy==null && ArenaAreaRuntime.TeamSize==0,
+        ConfigureAreaNegotiation(); Select(map);
+        Assert(Start(Request(map:map),out var legacy) && legacy==null && ArenaAreaRuntime.TeamSize==0,
             "missing new placement hook leaves legacy area negotiation unchanged");
         Assert(JObject.Parse(RequestHandler.LastPostBody)["areaTeamSize"]==null, "legacy request omits override field");
         ArenaAreaInitialSpawnPatch.IsReady=true;

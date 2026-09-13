@@ -1,5 +1,25 @@
 # Customs team starts and selectable team sizes
 
+## Current additions (2026-09-13)
+
+Factory Side (formerly displayed as Factory East) now uses the same opposing
+team-start and enemy-aware respawn framework at 2v2–5v5. Its stable ID remains
+`customs-factory-east-polygon-v1`; both client and server require an explicit
+team size. USEC has five alternative PMC/eight bot starts on the map-left side;
+BEAR has five PMC/six bot starts on the map-right side. Installed native marker
+survey gives at least 28.876m opposing spacing and 1.885/1.710m simultaneous
+same-team spacing, without changing the existing 25m/1.5m requirements. These
+are candidate points, not proof of scene NavMesh connectivity or balanced cover.
+The exact surveyed contour and unlimited height are unchanged.
+
+The old Center rectangle and Factory South are retired. Center contour remains
+fixed 2v2; Center team starts remains selectable 2v2–5v5. See
+`AREA-MAP-PREVIEW-REVIEW.md` for name/config migration and
+`tools/CustomsEastAreaChecks/README.md` for the marker provenance and checks.
+The earlier evidence below belongs to the original Center implementation.
+
+## Original Center implementation
+
 2026-09-08, feature/area-team-setup, based on62d610e. User authorized scoped optic preload protection, two opposing start sectors, enemy-aware respawns and native2v2–5v5 selection. CTF and an area editor remain later work.
 
 ## Player-facing behavior

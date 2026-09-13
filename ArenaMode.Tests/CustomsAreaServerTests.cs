@@ -19,7 +19,7 @@ namespace ArenaMode.Tests;
 public sealed partial class ArenaAreaServerTests
 {
     private const string Customs = ArenaMapCatalog.CustomsId;
-    private const string CustomsArea = ArenaAreaCatalog.CustomsFactoryCenterId;
+    private const string CustomsArea = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
     private static readonly JsonSerializerOptions CustomsJsonOptions = new()
     {
         Converters = { new JsonStringEnumConverter(), new StringToMongoIdConverter(), new ListOrTConverterFactory() },
@@ -37,9 +37,10 @@ public sealed partial class ArenaAreaServerTests
         yield return [CustomsArea, Customs, "tactical", true];
         foreach (string? mode in new[] { null, "", "endless", "rounds", "gungame", "tactical", "unknown" })
             yield return [CustomsArea, Customs, mode, false];
-        foreach (string map in new[] { Map, ArenaMapCatalog.FactoryNightId, ArenaMapCatalog.LaboratoryId, "customs" })
+        foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId, ArenaMapCatalog.LaboratoryId, "customs" })
             yield return [CustomsArea, map, Mode, false];
-        yield return [Area, Customs, Mode, false];
+        yield return [ArenaAreaCatalog.FactorySouthId, Customs, Mode, false];
+        yield return [ArenaAreaCatalog.CustomsFactoryCenterId, Customs, Mode, false];
         yield return ["customs-factory-center-v2", Customs, Mode, false];
         yield return [CustomsArea.ToUpperInvariant(), Customs, Mode, false];
     }
@@ -76,7 +77,7 @@ public sealed partial class ArenaAreaServerTests
         Assert.Same(original, saves.GetProfile(Session));
         Assert.Equal(ArenaSessionState.Idle, Sessions.GetStatus(Session).state);
 
-        Sessions.Arm(Session, Map, Mode, armToken: Token, areaId: Area);
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: Area);
         Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, areaId: area));
         Assert.Equal(Token, Sessions.GetArmToken(Session));
         Assert.Equal(Area, Sessions.GetAreaId(Session));
@@ -115,12 +116,12 @@ public sealed partial class ArenaAreaServerTests
         foreach (var tampered in new[]
         {
             request with { AreaId = null },
-            request with { AreaId = Area },
+            request with { AreaId = ArenaAreaCatalog.CustomsFactoryCenterId },
             request with { AreaId = "customs-factory-center-v2" },
             request with { Mode = "tactical" },
             request with { PitFireTeamTeam = true },
-            request with { Map = Map },
-            request with { Map = Map, AreaId = Area },
+            request with { Map = ArenaMapCatalog.FactoryDayId },
+            request with { Map = ArenaMapCatalog.FactoryDayId, AreaId = ArenaAreaCatalog.FullMapId },
             request with { RequestId = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
         })
         {
@@ -177,7 +178,7 @@ public sealed partial class ArenaAreaServerTests
             location.SpawnPointParams = location.SpawnPointParams!.Append(Point("late", 0, 1, 0, "Coop")).ToList();
         else if (tamper == "replacement")
             response = JsonSerializer.Deserialize<LocationBase>(JsonSerializer.Serialize(location))!;
-        else location.Id = Map;
+        else location.Id = ArenaMapCatalog.FactoryDayId;
         Assert.False(Sessions.ValidateAreaResponse(Session, response, out _));
         if (tamper != "replacement")
             Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
@@ -250,14 +251,14 @@ public sealed partial class ArenaAreaServerTests
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
 
         var points = clone.SpawnPointParams!.ToArray();
-        Assert.Equal(22, points.Length);
+        Assert.Equal(28, points.Length);
         Assert.True(original.SpawnPointParams!.Count() > points.Length);
-        Assert.All(points, point => Assert.True(ArenaAreaCatalog.CustomsFactoryCenter.AllowsSpawn(
+        Assert.All(points, point => Assert.True(ArenaAreaCatalog.CustomsFactoryCenterPolygon.AllowsSpawn(
             point.Position!.Value.X, point.Position.Value.Y, point.Position.Value.Z)));
         var bots = points.Where(point => point.Categories!.Any(category => category is "Bot" or "BotPmc")
                 && !string.IsNullOrWhiteSpace(point.BotZoneName))
             .Select(point => point.Position!.Value).Distinct().ToArray();
-        Assert.Equal(7, bots.Length);
+        Assert.Equal(11, bots.Length);
         Assert.All(points.Where(point => point.Categories!.Any(category => category is "Bot" or "BotPmc")),
             point => Assert.Equal(ArenaContext.Config.Maps[Customs].SpawnZones, point.BotZoneName));
         Assert.Equal("ZoneFactoryCenter", ArenaContext.Config.Maps[Customs].SpawnZones);
@@ -267,7 +268,7 @@ public sealed partial class ArenaAreaServerTests
             var players = points.Where(point => point.Categories!.Contains("Player")
                     && point.Sides!.Any(side => side is "All" or "Pmc" || side == faction))
                 .Select(point => point.Position!.Value).Distinct().ToArray();
-            Assert.Equal(15, players.Length);
+            Assert.Equal(17, players.Length);
             foreach (var player in players)
             {
                 Assert.True(players.Any(other => CustomsDistance(player, other) >= 40),
@@ -328,8 +329,8 @@ public sealed partial class ArenaAreaServerTests
         Id = Customs, Waves = [], BossLocationSpawn = [],
         SpawnPointParams =
         [
-            CustomsPoint("cp1", 315, 1, -90, "Player"), CustomsPoint("cp2", 400, 1, -120, "Player"),
-            CustomsPoint("cb1", 320, 1, -100, "Bot"), CustomsPoint("cb2", 365, 1, -110, "BotPmc"),
+            CustomsPoint("cp1", 335, 1, -90, "Player"), CustomsPoint("cp2", 400, 1, -120, "Player"),
+            CustomsPoint("cb1", 345, 1, -100, "Bot"), CustomsPoint("cb2", 365, 1, -110, "BotPmc"),
             CustomsPoint("cb3", 410, 1, -110, "Bot"), CustomsPoint("outside", 0, 1, 0, "Coop"),
         ],
     };

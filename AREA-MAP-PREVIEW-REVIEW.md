@@ -1,5 +1,34 @@
 # Native area map preview
 
+## Current catalog revision after r2 (2026-09-13)
+
+The user has retired the Factory Center rectangle and Factory South prototype.
+Neither is selectable or accepted by the shared arm resolver; their definitions
+remain only as historical geometry fixtures. Factory retains whole-map Arena.
+Customs now offers Center contour (fixed 2v2), Center team starts (2v2–5v5), and
+**Factory Side (team starts)** (2v2–5v5). The old East name was an unverified
+compass label: the contour appears left of Center in the calibrated artwork,
+and its native bot zone is `ZoneFactorySide`. No asset or contour was rotated.
+
+Factory Side retains all eleven measured vertices, unlimited height and the
+stable `customs-factory-east-polygon-v1` ID. It now requires explicit
+`areaTeamSize` 2..5, so old fixed-team requests and mixed old/new builds fail
+closed. Starts use surveyed native PMC/bot identities with the existing runtime
+reservation, occupancy, complete in-area path and roster checks. See
+`tools/CustomsEastAreaChecks/README.md` for source hashes and measured spacing.
+
+Removed saved config IDs follow BepInEx's existing clamp to full-map. The native
+menu proposes whole-map on Factory or the first valid contour on Customs and
+must persist it before starting. The server never silently repairs a retired
+arm request. Existing valid selections and the shared team-size preference
+remain. The prior rectangle is also absent from overview neighbor outlines.
+
+The following r1/r2 results are historical evidence for their exact earlier
+catalog and build; they do not accept the newly expanded Factory Side raid.
+The new GPU instructions and build binding are recorded in HANDOFF.md.
+
+## Initial implementation and r2 acceptance
+
 Prepared on 2026-09-13 on `feature/area-map-preview`; initially staged without
 deployment during the user's ongoing tests. The user subsequently authorized
 deployment: the clean `d7cde9d` client/server and map package were installed

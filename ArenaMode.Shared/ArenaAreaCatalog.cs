@@ -374,6 +374,8 @@ public static class ArenaAreaCatalog
     public const float SpawnInset = 0.75f;
     public const float NavigationInset = 0.4f;
 
+    // Retired prototype geometry retained only for historical regression checks;
+    // TryResolve and the native menu no longer admit these identities.
     // Spawn coordinates establish a candidate, not live navigation evidence.
     // Tunnel spawns are excluded. The bottom barrier closes descent below the
     // ground-level arena; the ceiling leaves headroom for jumping and vaulting.
@@ -427,13 +429,16 @@ public static class ArenaAreaCatalog
 
     // User survey 20260913-090513, geometry SHA256
     // bddf25bdaec03bce8a140cbd7fe0dd73ddc58ef58672ca5ce30078f1f1a7ad1e.
-    // Adjacent eastern factory grounds (native ZoneFactorySide). Preserve every
-    // measured XZ vertex; draft heights are hints, not playable/spawn limits.
+    // Adjacent factory grounds (native ZoneFactorySide). Positive world X projects
+    // left in the calibrated map; use the native zone name, not a compass guess.
+    // Preserve every measured XZ vertex; draft heights are hints, not limits.
     // The native sniper marker and checkpoint spawns are outside this contour.
-    // No extra identity exclusions or team starts are inferred from a map image:
-    // live carving and complete in-area navigation still decide raid readiness.
+    // Exact starts were surveyed from the installed native marker database. The
+    // original ID remains compatible because old fixed-team null/0 requests are
+    // rejected by TryResolveTeamSize, and old servers reject new 2..5 overrides.
+    // Live carving and complete in-area navigation still decide raid readiness.
     public static readonly ArenaAreaDefinition CustomsFactoryEastPolygon = new ArenaAreaDefinition(
-        CustomsFactoryEastPolygonId, "Customs Factory East contour (experimental 2v2)", ArenaMapCatalog.CustomsId,
+        CustomsFactoryEastPolygonId, "Customs Factory Side — team starts", ArenaMapCatalog.CustomsId,
         new ArenaAreaBounds(new[]
         {
             new ArenaAreaVertex(494.5332f, -104.145111f),
@@ -447,7 +452,13 @@ public static class ArenaAreaCatalog
             new ArenaAreaVertex(655.292847f, -166.976868f),
             new ArenaAreaVertex(670.6625f, -48.0239f),
             new ArenaAreaVertex(507.023682f, -25.097086f),
-        }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 2);
+        }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 5, teamStarts: new ArenaTeamStarts(
+            // USEC: map-left sector, native PMC alternatives near X615.
+            new[] { "4d676699-1243-452b-b4d7-3353616854fb", "5a551a12-ca0e-41af-9845-270ffce6808a", "8878252a-9516-4f33-a54d-56f9705098b6", "c11f719c-3491-4a60-901e-cf20832b432e", "d7bae537-f5a0-416d-9849-d939cc3575f4" },
+            new[] { "4fa5e11e-daa0-4594-88ef-d43e87d19f94", "6524d251-5c63-43ae-a7db-ec131b06c33e", "ae0f2712-f51f-4576-943e-aec0c9c3d0b3", "b82d5efc-aa51-41fc-8ac2-9a243920ae7a", "caa78aec-ecbd-4420-9e7b-54f7435de639", "da7e6945-c403-4e9a-9f40-33e0d526264a", "e06b071c-db66-4823-93ea-ea24471eb829", "ecf6b9e8-d95e-4697-85ca-3503aaabea04" },
+            // BEAR: map-right sector, native PMC alternatives near X570.
+            new[] { "105e161c-c1ad-4004-8c02-f3c95164a75e", "3b128730-ba41-4ac8-9c08-517655a787dd", "89fe6e6f-7ebc-458e-8297-621824d1d6ac", "8bae21f5-6d20-4368-a820-0a05730f81ad", "c70da15f-6bc8-4dda-b666-e4163754bcd5" },
+            new[] { "01a445b0-4545-48da-9ce6-6d0190869360", "15fb12c7-625d-4665-9fb6-2774905743ca", "37a06e76-55b5-4a82-a26f-049a41e78c2e", "545760c5-2ab7-43af-bdb3-864b20706af3", "e508eac2-6cae-490b-89cc-4b2e6db5bcb0", "fa37fe1f-0927-4c2a-8d82-917f50cdd47f" }));
 
     /// <summary>Zero denotes the unchanged full-map/legacy protocol, never an inferred new-area choice.</summary>
     public static bool TryResolveTeamSize(ArenaAreaDefinition? area, int? requested, out int selected, out string? reason)
@@ -481,9 +492,7 @@ public static class ArenaAreaCatalog
             { reason = "Customs currently requires an experimental Team Deathmatch area."; return false; }
             return true;
         }
-        var candidate = id == FactorySouthId ? FactorySouth
-            : id == CustomsFactoryCenterId ? CustomsFactoryCenter
-            : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon
+        var candidate = id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon
             : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams
             : id == CustomsFactoryEastPolygonId ? CustomsFactoryEastPolygon : null;
         if (candidate == null)
@@ -496,7 +505,7 @@ public static class ArenaAreaCatalog
         return true;
     }
 }
-/// <summary>Exact surveyed starts: USEC west, BEAR east. Never retains caller-owned sets.</summary>
+/// <summary>Exact surveyed faction starts. Orientation is defined per preset; never retains caller-owned sets.</summary>
 public sealed class ArenaTeamStarts
 {
     private readonly HashSet<string> _usecPlayers, _usecBots, _bearPlayers, _bearBots;

@@ -147,9 +147,8 @@ try
     overviewButton.onClick.Invoke();
     Need(detail.interactable&&!overviewButton.interactable,"OVERVIEW-TOGGLE","Overview changes camera only.");
     var greyEdges=boundaryGraphic.SubmitMesh().Vertices.Where(v=>v.Color==new Color(.7f,.7f,.65f,.6f)).ToArray();
-    Need(greyEdges.Length==4*(ArenaAreaCatalog.CustomsFactoryCenter.Bounds.Outline.Count
-        +ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds.Outline.Count),"OVERVIEW-OTHERS",
-        "Overview shows the legacy rectangle and center contour once; team-start variant must not duplicate its identical outline.");
+    Need(greyEdges.Length==4*ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds.Outline.Count,"OVERVIEW-OTHERS",
+        "Overview omits the retired rectangle and shows center contour once; team-start variant must not duplicate its identical outline.");
     for(int i=0;i<greyEdges.Length;i+=4)
         Near(Distance(greyEdges[i].Position,greyEdges[i+3].Position),1.25f,"OVERVIEW-OTHERS","Other-area edge width",.002f);
     for(int i=0;i<20;i++)preview.Refresh(east);

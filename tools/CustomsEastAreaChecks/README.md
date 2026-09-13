@@ -1,4 +1,4 @@
-# Second Customs contour: Factory East
+# Second Customs contour: Factory Side team starts
 
 The production preset `customs-factory-east-polygon-v1` promotes the user's
 `area-draft-20260913-090513-276a2a3d6c424846bd202992faf489b4.json`. Its original,
@@ -9,8 +9,19 @@ unmodified bytes are retained in `Fixtures/`.
 - Exact 11 XZ vertices; X 466.07547..670.6625, Z -167.768631..-25.097086;
   approximately 21,084 square metres. No smoothing, rectangular approximation,
   snapping to the older contour, or vertical limit.
-- Fixed independent Team Deathmatch 2v2. No PitFireTeam, adjustable team size,
-  inferred faction starts, automatic draft loading, or full-map Customs support.
+- Independent Team Deathmatch with explicit 2v2, 3v3, 4v4 or 5v5 selection and
+  exact native faction starts. No PitFireTeam, automatic draft loading or full-map
+  Customs support. The original draft's 2v2 value is preserved in its raw fixture.
+- Displayed as `Factory Side (team starts)`, from native `ZoneFactorySide`.
+  The previous East label equated positive world X with east without evidence:
+  map U = `(698-X)/1070` puts this contour to the left of Center. The new label
+  deliberately avoids an unverified compass claim.
+- The stable `customs-factory-east-polygon-v1` selection is retained. Old fixed
+  requests with absent/zero team size now fail closed; older fixed-only servers
+  reject the new explicit 2..5 override. Geometry itself has not changed.
+- Legacy Factory South and Customs Center rectangle are no longer offered or
+  admitted by the shared resolver. Their definitions survive only as historical
+  geometry fixtures. Center contour (fixed 2v2) and Center team starts remain.
 - `ArenaAreaSelectionState.MapId` identifies the preview's map.
   `SelectedArea` resolves only its already offered proposal and is null for a
   full-map or unavailable proposal. It neither saves nor arms a selection.
@@ -29,11 +40,21 @@ SHA256 `495820FDBBC2993D786599F3E28DF2AF6243D6EBE2008CDBBA35B68A85B37873`:
 - Five PMC markers at Y -0.3499999 remain candidates. The draft's old spawn-height
   hints do not override the user's unlimited-height decision.
 
+USEC starts on the left of the displayed map (larger X) with five native PMC
+alternatives and eight bot markers. BEAR starts on the right (smaller X), with
+five PMC alternatives and six bot markers. Exact production-selected identities
+are checked against the original database, not hand-generated positions. The
+minimum simultaneous same-side spacing is 1.885m / 1.710m and the closest
+opposing pair is 28.876m, preserving the existing 1.5m / 25m requirements.
+The central marker `ae0c5e1d-71cc-44a2-86ae-4c45e224a1ff` is retained for later
+respawns but not opening starts: it would violate opposing separation. The start
+pools are broad sectors, not a promise of compact formations, cover or balance.
+
 These counts are **database candidates**, not evidence that every marker is
 usable in a running scene. Existing runtime spawn blocking, carving, complete
-in-area path checks and fail-closed readiness remain unchanged. This fixed-2v2
-preset uses the existing direct complete-path readiness; the reserved team-start
-connectivity graph is not newly enabled here. The first GPU raid must validate entry, both factions,
+in-area path checks and fail-closed readiness remain unchanged. This preset now
+uses the existing reserved faction-start connectivity graph and later
+enemy-aware respawns. The first GPU raid must validate entry at 2v2 and 5v5, both factions,
 continuous respawns, boundary behavior and eventual end/leave. If connectivity
 fails, diagnose the concrete marker/route rather than weakening those checks.
 
@@ -55,14 +76,19 @@ All build products and transcripts stay under this harness's ignored
 
 Checks compare the exact draft vertices and fingerprint, independent 2D
 containment/clearance sampling, triangle coverage, unrestricted height, native
-marker admission, supported/unsupported protocol combinations, team-size rules,
-old selections and preview proposal identity. Four separately compiled source
-mutations must fail for their designated assertions: moved vertex, restored
-height clamp, non-TDM admission and missing new menu entry. A compile failure is
+marker admission, supported/unsupported protocol combinations, explicit team-size
+rules, retired-ID rejection, preview proposal identity, native start categories,
+physical uniqueness and simultaneous/opposing spacing. Nine separately compiled
+source mutations must fail at designated assertions: moved vertex, height clamp,
+non-TDM admission, missing menu entry, missing native start, wrong start category,
+too-close opponents, re-admitted retired area and Center-only team-size picker.
+A modified scratch native corpus additionally proves that collapsed simultaneous
+spacing is rejected; the installed database is never changed. A compile failure is
 never accepted as a caught behavioral fault. The final clean baseline is rerun.
 Successful completion ends with `CUSTOMS EAST CHECKS PASSED`.
 
-Implementation passes completed: exact draft promotion; expert reread against
-shared/client/server admission and native category masks; defect hunt including
-source mutation controls; polish of provenance, evidence boundaries and menu
-preview semantics. Parent independently reviews the integration and commits it.
+Implementation passes completed: catalog/menu change; expert reread against
+shared/client/server admission, actual calibration and native category masks;
+defect hunt including source mutation controls; polish of provenance, evidence
+boundaries and saved-selection integration notes. Parent independently reviews
+the integration and commits it.

@@ -152,7 +152,7 @@ public sealed partial class ArenaAreaServerTests
     public async Task AreaTeamLegacyOmissionAndExplicitZeroRemainEquivalent()
     {
         var (router, _, _, cloner) = CustomsRouter();
-        var request = new ArenaRaidStartRequest { Map = Map, Mode = Mode, RequestId = Token, AreaId = Area };
+        var request = new ArenaRaidStartRequest { Map = Customs, Mode = Mode, RequestId = Token, AreaId = Area };
         using var first = JsonDocument.Parse(await InvokeStart(router, request));
         Assert.True(first.RootElement.GetProperty("armed").GetBoolean());
         Assert.Equal(0, first.RootElement.GetProperty("areaTeamSize").GetInt32());

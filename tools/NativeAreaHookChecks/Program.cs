@@ -12,7 +12,7 @@ internal static class Program
     private static int _checks;
     private const string Day = ArenaMapCatalog.FactoryDayId, Night = ArenaMapCatalog.FactoryNightId;
     private const string Customs = ArenaMapCatalog.CustomsId, Full = ArenaAreaCatalog.FullMapId;
-    private const string South = ArenaAreaCatalog.FactorySouthId, Center = ArenaAreaCatalog.CustomsFactoryCenterId;
+    private const string South = ArenaAreaCatalog.FactorySouthId, Center = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
 
     private static void Assert(bool condition, string message)
     { _checks++; if (!condition) throw new InvalidOperationException("ASSERT: " + message); }
@@ -181,11 +181,13 @@ internal static class Program
         Settings.TeamDeathmatchArea.Value = Full;
         Updater(f).Tick();
         Assert(CustomsButton(f).gameObject.activeSelf, "F12 return to TDM rediscovers Customs without setting area");
-        f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
+        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
         var callback = ArenaAreaSelectionView.Last.Callback;
-        Assert(callback(South), "owned native area callback accepts Factory South on selected Factory day");
-        Assert(Settings.TeamDeathmatchArea.Value == South && f.Screen.SelectedLocation?.Id == Day,
+        Assert(callback(ArenaAreaCatalog.CustomsFactoryEastPolygonId), "owned native callback accepts the second surveyed Customs area");
+        Assert(Settings.TeamDeathmatchArea.Value == ArenaAreaCatalog.CustomsFactoryEastPolygonId && f.Screen.SelectedLocation?.Id == Customs,
             "area choice changes the area without reselecting the native map");
+        f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
+        Assert(!ArenaAreaSelectionView.Last.Callback(South), "owned callback rejects retired Factory South on Factory day");
         Settings.TeamDeathmatchArea.Value = Full;
         Updater(f).Tick();
         Assert(ArenaAreaSelectionView.Last.State.SelectedId == Full
@@ -214,7 +216,7 @@ internal static class Program
         var oldTick = oldUpdater.Tick;
         active.Screen.ScreenController = new() { RaidSettings = new() { Side = ESideType.Pmc } };
         int writesBefore = Settings.AreaWrites;
-        Assert(!oldAreaCallback(South) && Settings.AreaWrites == writesBefore, "stale controller rejects retained area callback");
+        Assert(!oldAreaCallback(Full) && Settings.AreaWrites == writesBefore, "stale controller rejects an otherwise valid retained area callback");
         oldTick();
         Assert(oldUpdater == null && ArenaAreaSelectionView.Last.Closed, "old controller updater releases only its owned views");
     }
@@ -236,11 +238,11 @@ internal static class Program
         Assert(!preview.Closed && preview.Shows == previewShows + 1, "same-screen reopen acquires the preview once");
         var currentUpdater = Updater(f);
         var currentArea = ArenaAreaSelectionView.Last.Callback;
-        Assert(!oldArea(South), "same-screen old generation rejects retained area callback");
+        Assert(!oldArea(Full), "same-screen old generation rejects an otherwise valid retained area callback");
         oldTick();
         Assert(currentUpdater != null && currentUpdater.Tick != null && !ArenaAreaSelectionView.Last.Closed,
             "stale updater generation must not destroy newer screen views");
-        Assert(currentArea(South), "current area callback remains usable after rejected stale callbacks");
+        Assert(currentArea(Full), "current supported area callback remains usable after rejected stale callbacks");
         var callbackAfterClose = ArenaAreaSelectionView.Last.Callback;
         f.Screen.Close();
         int writes = Settings.AreaWrites;
@@ -316,9 +318,9 @@ internal static class Program
         Settings.AreaTeamSize.Value = 2;
         f.Screen.ShowInternal(f.SettingsOwner);
         var callback = ArenaAreaSelectionView.Last.SizeCallback;
-        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 4
+        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 3
             && ArenaAreaSelectionView.Last.State.HasTeamSizeChoice,
-            "native area adapter publishes four Customs choices and size state");
+            "native area adapter publishes three Customs choices and size state");
         Assert(callback(teams, 5) && Settings.AreaTeamSize.Value == 5
             && ArenaAreaSelectionView.Last.State.SelectedTeamSize == 5, "native size callback pushes confirmed selection back into view");
         Assert(!callback(teams, 6) && Settings.AreaTeamSize.Value == 5, "native size callback rejects unsupported count");

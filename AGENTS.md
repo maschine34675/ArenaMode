@@ -24,9 +24,12 @@ Arena landing recovery, firearm draw/holster and deliberate airborne vault/hip
 fire are documented in AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
 native geometry/firearm restrictions, temporary-state cleanup and double-jump
 precedence; offline checks cannot certify native animator transitions.
-The optional Customs contour team-start preset adds independent TDM 2v2–5v5,
+The Customs Center and Factory Side team-start presets add independent TDM 2v2–5v5,
 with exact per-raid team-size negotiation and reserved faction starts/respawns.
-Legacy bounded presets remain fixed 2v2. See AREA-TEAM-SETUP-REVIEW.md and the
+The surveyed Center contour remains fixed 2v2; the old Center rectangle and
+Factory South prototype IDs are retired and rejected at arm admission.
+Factory Side retains the earlier `customs-factory-east-polygon-v1` ID, but now
+requires the explicit area team size on both ends. See AREA-TEAM-SETUP-REVIEW.md and the
 dated HANDOFF.md for implementation, delivery and pending user GPU acceptance.
 
 Read this before changing anything. Most of it was learned the expensive way.

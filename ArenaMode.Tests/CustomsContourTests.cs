@@ -229,7 +229,7 @@ public sealed partial class ArenaAreaServerTests
         Assert.True(ArenaContext.Snapshots!.HasSnapshot(Session));
         foreach (var invalid in new[]
         {
-            request with { AreaId = CustomsArea },
+            request with { AreaId = ArenaAreaCatalog.CustomsFactoryCenterId },
             request with { AreaId = ArenaAreaCatalog.FullMapId },
             request with { AreaId = "customs-factory-center-polygon-v2" },
             request with { AreaId = request.AreaId.ToUpperInvariant() },

@@ -37,10 +37,23 @@ public sealed class AreaTeamCatalogTests
     [InlineData(6, false)]
     public void NewPresetRequiresAnExplicitSupportedSize(int? requested, bool expected)
     {
-        Assert.Equal(expected, ArenaAreaCatalog.TryResolveTeamSize(ArenaAreaCatalog.CustomsFactoryCenterTeams,
-            requested, out int selected, out var reason));
-        Assert.Equal(expected ? requested!.Value : 0, selected);
-        Assert.Equal(expected, reason == null);
+        foreach (var area in new[] { ArenaAreaCatalog.CustomsFactoryCenterTeams, ArenaAreaCatalog.CustomsFactoryEastPolygon })
+        {
+            Assert.Equal(5, area.MaxTeamSize);
+            Assert.NotNull(area.TeamStarts);
+            Assert.Equal(expected, ArenaAreaCatalog.TryResolveTeamSize(area,
+                requested, out int selected, out var reason));
+            Assert.Equal(expected ? requested!.Value : 0, selected);
+            Assert.Equal(expected, reason == null);
+        }
+    }
+
+    [Theory]
+    [InlineData(ArenaAreaCatalog.FactorySouthId, ArenaMapCatalog.FactoryDayId)]
+    [InlineData(ArenaAreaCatalog.CustomsFactoryCenterId, ArenaMapCatalog.CustomsId)]
+    public void HistoricalGeometryDoesNotKeepRetiredIdsPlayable(string retired, string map)
+    {
+        Assert.False(ArenaAreaCatalog.TryResolve(retired, map, "teamdeathmatch", false, out _, out _));
     }
 
     [Fact]

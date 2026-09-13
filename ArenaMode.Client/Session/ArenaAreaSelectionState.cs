@@ -26,11 +26,9 @@ internal sealed class ArenaAreaSelectionState
     private static readonly ArenaAreaOption[] Candidates =
     {
         new(ArenaAreaCatalog.FullMapId, "Whole map"),
-        new(ArenaAreaCatalog.FactorySouthId, "Factory South", ArenaAreaCatalog.FactorySouth.MaxTeamSize),
-        new(ArenaAreaCatalog.CustomsFactoryCenterId, "Factory Center", ArenaAreaCatalog.CustomsFactoryCenter.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "Factory Center (contour)", ArenaAreaCatalog.CustomsFactoryCenterPolygon.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Customs contour (team starts)"),
-        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory East (contour)", ArenaAreaCatalog.CustomsFactoryEastPolygon.MaxTeamSize),
+        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side (team starts)"),
     };
 
     private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string map, string mode, bool pitFireTeam, int teamSize, int areaTeamSize)
@@ -45,10 +43,10 @@ internal sealed class ArenaAreaSelectionState
         // This does not persist or arm a selection; the native adapter owns that.
         SelectedArea = selected != null && ArenaAreaCatalog.TryResolve(selected.Id, map, mode, pitFireTeam,
             out var area, out _) ? area : null;
-        HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+        HasTeamSizeChoice = SelectedArea?.TeamStarts != null;
         SelectedTeamSize = HasTeamSizeChoice && ArenaAreaCatalog.TryResolveTeamSize(
-            ArenaAreaCatalog.CustomsFactoryCenterTeams, areaTeamSize, out var validSize, out _) ? validSize : 0;
-        TeamSizeOptions = Array.AsReadOnly(HasTeamSizeChoice ? new[] { 2, 3, 4, 5 } : Array.Empty<int>());
+            SelectedArea, areaTeamSize, out var validSize, out _) ? validSize : 0;
+        TeamSizeOptions = Array.AsReadOnly(HasTeamSizeChoice ? Enumerable.Range(2, SelectedArea.MaxTeamSize - 1).ToArray() : Array.Empty<int>());
         Summary = selected == null ? "Select a map to choose its area."
             : HasTeamSizeChoice ? SelectedTeamSize > 0 ? $"{SelectedTeamSize}v{SelectedTeamSize} - opposing team starts" : "Select a supported team size."
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"

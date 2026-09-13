@@ -37,8 +37,9 @@ try
         "PROTOCOL-ID", "Use an explicit new protocol ID.");
     Need(area.MapId == "bigmap" && geometry.GetProperty("mapId").GetString() == area.MapId,
         "MAP-ID", "New contour belongs to Customs only.");
-    Need(area.MaxTeamSize == 2 && geometry.GetProperty("maxTeamSize").GetInt32() == 2 && area.TeamStarts == null,
-        "FIXED-TEAMS", "No implicit larger teams or invented faction starts.");
+    Need(area.MaxTeamSize == 5 && geometry.GetProperty("maxTeamSize").GetInt32() == 2 && area.TeamStarts != null,
+        "TEAM-STARTS", "The unchanged original survey is upgraded through explicit surveyed 2v2..5v5 team starts.");
+    Need(area.DisplayName == "Customs Factory Side — team starts", "AREA-NAME", "Use the native zone name, not unverified world-X compass orientation.");
     Need(!area.Bounds.LimitsHeight, "UNLIMITED-HEIGHT", "Draft height hints must not become actor/spawn limits.");
     Need(area.Bounds.Outline.Count == vertices.Length && vertices.Length == 11, "EXACT-GEOMETRY", "Measured outline count changed.");
     for (int i = 0; i < vertices.Length; i++)
@@ -101,20 +102,27 @@ try
     Need(!ArenaAreaCatalog.TryResolve(area.Id, "bigmap", "teamdeathmatch", true, out _, out _), "REJECT-PFT", "Independent 2v2 cannot arm with PitFireTeam.");
     foreach (var id in new[] { "customs-factory-east-polygon-v2", draft.GetProperty("proposedAreaId").GetString(), ArenaAreaCatalog.FullMapId })
         Need(!ArenaAreaCatalog.TryResolve(id, "bigmap", "teamdeathmatch", false, out _, out _), "REJECT-PROTOCOL", "Unknown, draft or full-map Customs identity was admitted.");
-    Need(ArenaAreaCatalog.TryResolveTeamSize(area, null, out int size, out _) && size == 0
-        && ArenaAreaCatalog.TryResolveTeamSize(area, 0, out size, out _) && size == 0,
-        "FIXED-TEAM-CONTRACT", "Fixed 2v2 retains the existing zero/absent override protocol.");
-    foreach (int requested in new[] { -1, 1, 2, 3, 5, 12 })
-        Need(!ArenaAreaCatalog.TryResolveTeamSize(area, requested, out _, out _), "FIXED-TEAM-CONTRACT", "Fixed 2v2 accepted an override.");
+    foreach (int? requested in new int?[] { null, -1, 0, 1, 6, 12 })
+        Need(!ArenaAreaCatalog.TryResolveTeamSize(area, requested, out _, out _), "TEAM-CONTRACT", "Unselected, legacy fixed-team or out-of-range request was admitted.");
+    for (int size = 2; size <= 5; size++)
+        Need(ArenaAreaCatalog.TryResolveTeamSize(area, size, out int selected, out _) && selected == size,
+            "TEAM-CONTRACT", "Exact 2v2..5v5 request must be echoed unchanged.");
 
     var menu = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, area.Id, 12);
     Need(menu.Available && menu.SelectedId == area.Id && menu.MapId == "bigmap" && ReferenceEquals(menu.SelectedArea, area),
         "MENU-AREA", "Offered selection and preview must refer to the exact new definition.");
-    Need(menu.Options.Select(o => o.Id).SequenceEqual(new[] { "customs-factory-center-v1", "customs-factory-center-polygon-v1",
+    Need(menu.Options.Select(o => o.Id).SequenceEqual(new[] { "customs-factory-center-polygon-v1",
         "customs-factory-center-teams-v1", area.Id }), "MENU-ORDER", "New option must not replace or reorder existing Customs choices.");
-    Need(menu.Summary == "2v2 - fixed teams" && !menu.HasTeamSizeChoice && menu.TeamSizeOptions.Count == 0,
-        "MENU-TEAM-SIZE", "Full-map size 12 cannot leak into fixed 2v2.");
-    foreach (var definition in new[] { ArenaAreaCatalog.CustomsFactoryCenter, ArenaAreaCatalog.CustomsFactoryCenterPolygon, ArenaAreaCatalog.CustomsFactoryCenterTeams })
+    Need(menu.Summary == "2v2 - opposing team starts" && menu.HasTeamSizeChoice
+        && menu.TeamSizeOptions.SequenceEqual(new[] { 2, 3, 4, 5 }),
+        "MENU-TEAM-SIZE", "Full-map size 12 cannot leak into explicit bounded sizes.");
+    foreach (int size in new[] { 2, 3, 4, 5 })
+    {
+        var selectedMenu = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, area.Id, 12, size);
+        Need(selectedMenu.SelectedTeamSize == size && selectedMenu.Summary == $"{size}v{size} - opposing team starts",
+            "MENU-TEAM-SIZE", "Menu must use this area's requested count, not the full-map setting.");
+    }
+    foreach (var definition in new[] { ArenaAreaCatalog.CustomsFactoryCenterPolygon, ArenaAreaCatalog.CustomsFactoryCenterTeams })
     {
         var old = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, definition.Id, 8, 4);
         Need(old.SelectedId == definition.Id && ReferenceEquals(old.SelectedArea, definition), "LEGACY-AREA", "Existing saved area or preview changed.");
@@ -122,6 +130,16 @@ try
     Need(ArenaAreaCatalog.FactorySouthId == "factory-south-v1" && ArenaAreaCatalog.CustomsFactoryCenter.MaxTeamSize == 2
         && ArenaAreaCatalog.CustomsFactoryCenterPolygon.MaxTeamSize == 2 && ArenaAreaCatalog.CustomsFactoryCenterTeams.MaxTeamSize == 5,
         "LEGACY-AREA", "Existing protocol identities or capacities changed.");
+    foreach (var (id, map, replacement) in new[] {
+        (ArenaAreaCatalog.FactorySouthId, "factory4_day", ArenaAreaCatalog.FullMapId),
+        (ArenaAreaCatalog.CustomsFactoryCenterId, "bigmap", ArenaAreaCatalog.CustomsFactoryCenterPolygonId) })
+    {
+        Need(!ArenaAreaCatalog.TryResolve(id, map, "teamdeathmatch", false, out _, out _),
+            "RETIRED-AREA", "Retired prototype must be rejected by the shared arm resolver.");
+        var retired = ArenaAreaSelectionState.Create(map, "teamdeathmatch", false, id, 5);
+        Need(retired.SelectedId == replacement && retired.Options.All(o => o.Id != id),
+            "RETIRED-MENU", "Offer a valid native proposal without admitting the retired prototype.");
+    }
     var whole = ArenaAreaSelectionState.Create("factory4_day", "deathmatch", false, area.Id, 8);
     Need(whole.SelectedId == ArenaAreaCatalog.FullMapId && whole.SelectedArea == null && whole.MapId == "factory4_day",
         "PREVIEW-FULL-MAP", "An old Customs request must not overlay a full-map Factory proposal.");
@@ -132,8 +150,8 @@ try
         Need(!unavailable.Available && unavailable.SelectedId == null && unavailable.SelectedArea == null,
             "PREVIEW-UNAVAILABLE", "No offered choice means no geometry preview.");
     var invalid = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, "unpublished-draft", 8);
-    Need(invalid.SelectedId == ArenaAreaCatalog.CustomsFactoryCenterId
-        && ReferenceEquals(invalid.SelectedArea, ArenaAreaCatalog.CustomsFactoryCenter), "PREVIEW-PROPOSAL", "Preview must follow offered proposal, not rejected draft ID.");
+    Need(invalid.SelectedId == ArenaAreaCatalog.CustomsFactoryCenterPolygonId
+        && ReferenceEquals(invalid.SelectedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon), "PREVIEW-PROPOSAL", "Preview must follow offered proposal, not rejected draft ID.");
 
     using var nativeDocument = JsonDocument.Parse(File.ReadAllBytes(args[1]));
     var entries = nativeDocument.RootElement.GetProperty("SpawnPointParams").EnumerateArray().Select(ReadEntry).ToArray();
@@ -148,12 +166,45 @@ try
         "SPAWN-CORPUS", "Reviewed Customs candidate counts changed; inspect the new database before rebinding this survey.");
     Need(players.Length >= 2 && bots.Length >= area.MaxTeamSize*2-1, "STATIC-CAPACITY", "Insufficient distinct candidates even before live path validation.");
     Need(allowed.Select(e => (e.X,e.Y,e.Z)).Distinct().Count() == allowed.Length, "SPAWN-POSITIONS", "Allowed markers repeat physical positions.");
-    Need(bots.All(e => e.Zone == "ZoneFactorySide"), "SPAWN-ZONES", "Review unexpected bot zones before claiming the eastern factory name.");
+    Need(bots.All(e => e.Zone == "ZoneFactorySide"), "SPAWN-ZONES", "Review unexpected bot zones before claiming the Factory Side name.");
     Need(!allowed.Any(e => e.Zone.Contains("Snipe",StringComparison.OrdinalIgnoreCase)
         || e.Zone == "ZoneBlockPost"), "SNIPER-OUTSIDE", "Sniper or checkpoint markers unexpectedly entered contour.");
     var sniper = entries.Single(e => e.Id == "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e");
     Need(!area.Bounds.Contains(sniper.X,sniper.Y,sniper.Z) && !area.IsExcludedSpawn(sniper.Id), "SNIPER-OUTSIDE", "Sniper exclusion comes from horizontal geometry, not a guessed new rule.");
     Need(players.Any(e => e.Y < 0), "UNLIMITED-SPAWN-HEIGHT", "Below-ground native PMC candidates must not be dropped by the obsolete height hint.");
+
+    // Exact native categories/coordinates decide capacity, not the ID count in
+    // a copied test array. Every production-selected marker must be eligible.
+    var sectors = new List<Entry[]>();
+    foreach (bool usec in new[] { true, false })
+    {
+        var selectedPlayers = entries.Where(e => area.TeamStarts.Allows(usec, true, e.Id)).ToArray();
+        var selectedBots = entries.Where(e => area.TeamStarts.Allows(usec, false, e.Id)).ToArray();
+        Need(selectedPlayers.Length == 5 && selectedPlayers.All(e => players.Contains(e)),
+            "START-PMC", "Every selected PMC identity must exist, permit both factions and lie inside the measured contour.");
+        Need(selectedBots.Length == (usec ? 8 : 6) && selectedBots.All(e => bots.Contains(e)),
+            "START-BOT", "Every selected bot identity must exist, have Bot/BotPmc and a native zone, and pass all filters.");
+        var sector = selectedPlayers.Concat(selectedBots).ToArray();
+        Need(sector.Select(e => (e.X,e.Y,e.Z)).Distinct().Count() == sector.Length,
+            "START-POSITION", "Start identities must refer to distinct physical positions.");
+        double sameMinimum = selectedBots.SelectMany((a,i) => selectedBots.Skip(i+1).Concat(selectedPlayers).Select(b=>Distance(a,b))).Min();
+        Need(sameMinimum >= 1.5, "START-SPACING", "Simultaneously occupied native starts require at least 1.5m horizontal separation.");
+        for (int size = 2; size <= 5; size++)
+            foreach (var player in selectedPlayers)
+                Need(selectedBots.Count(b => Distance(player,b) >= 1.5) >= size,
+                    "START-CAPACITY", "Either local faction needs a complete opposing team, not just size-1 allies.");
+        sectors.Add(sector);
+        Console.WriteLine($"START {(usec ? "USEC map-left" : "BEAR map-right")}: PMC={selectedPlayers.Length}, bot={selectedBots.Length}, simultaneous min={sameMinimum:F3}m; X={sector.Min(e=>e.X):F3}..{sector.Max(e=>e.X):F3}, Z={sector.Min(e=>e.Z):F3}..{sector.Max(e=>e.Z):F3}.");
+    }
+    Need(!sectors[0].Select(e=>e.Id).Intersect(sectors[1].Select(e=>e.Id)).Any(),
+        "START-DISJOINT", "Opposing sectors may not share native identities.");
+    double opposingMinimum = sectors[0].Min(a => sectors[1].Min(b => Distance(a,b)));
+    Need(opposingMinimum >= 25, "START-OPPOSING", "Every possible opposing pair requires at least 25m horizontal separation.");
+    Need(sectors[0].Min(e=>e.X) > sectors[1].Max(e=>e.X),
+        "START-ORIENTATION", "USEC map-left uses higher world X than BEAR map-right under the actual reversed-U projection.");
+    Need(!area.TeamStarts.Allows(true,false,"ae0c5e1d-71cc-44a2-86ae-4c45e224a1ff"),
+        "START-NEUTRAL", "Central X588 marker remains a respawn candidate, not an opposing start less than 25m from BEAR.");
+    Console.WriteLine($"Opposing native minimum horizontal separation: {opposingMinimum:F3}m.");
     Console.WriteLine($"Native database SHA256: {Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(args[1])))}");
     Console.WriteLine($"Native geometry candidates: total={allowed.Length}, PMC per faction={players.Length}, Bot/BotPmc={bots.Length}; area={outlineArea:F1} square metres.");
     Console.WriteLine("ID | X | Y | Z | categories | sides | native zone");
@@ -188,6 +239,7 @@ static bool OracleContains(ArenaAreaVertex[] polygon, double x, double z, double
 }
 static bool Player(Entry e,string side) => e.Categories.Contains("Player") && e.Sides.Any(s => s == side || s is "Pmc" or "All");
 static bool Bot(Entry e) => !string.IsNullOrWhiteSpace(e.Zone) && e.Categories.Any(c => c is "Bot" or "BotPmc");
+static double Distance(Entry a, Entry b) => Math.Sqrt(Math.Pow((double)a.X-b.X,2)+Math.Pow((double)a.Z-b.Z,2));
 static Entry ReadEntry(JsonElement element)
 {
     var position = element.GetProperty("Position");
