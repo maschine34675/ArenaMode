@@ -7,6 +7,43 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Gesture gate, corpse-looting gate registered, r2 classified, r3 issued
+  (2026-09-13):** three commits on `fix/offline-harness-contracts` after
+  Codex's r2 report `7cc2391`. `1e1ca6d` `NoBotGesturesPatch`: prefix on
+  `BotPeacefulActions.SetActiveAction` (the only raiser of
+  `OnStartPeacefulMove`), gated on `IsActive || ArmedForNextRaid` (bots tick
+  during the countdown), F12 Bots/`NoBotGestures` default on — no friendly
+  hand signal in an arena raid, hence no secure-container item exchange;
+  StartDo's pair cooldown and bark stay vanilla. `12f70cb`: the
+  `NoCorpseLooting` setting had been a no-op since `c8bb849` (patch never
+  registered); the gate moved from `StartLook` to `BotDeadBodyWork.UpdateCheck`
+  (the step that chooses a body; a skipped `StartLook` would have left
+  `_isStay` and the loot cursor behind) and is registered now; the TDM
+  runtime harness models `UpdateCheck` (327 checks). `a2fcced`: a burst spawn
+  cancelled by raid teardown logs `cancelled with the raid` at Info instead of
+  `failed:`. Three adversarial review rounds (10 agents) drove the
+  SetActiveAction target, the armed gate and the harness assertion for a
+  hostile bot. Installed: Client `E4CD2ACB…` and Server `71C0AEC1…` (both
+  `0.1.0+a2fcced…`; server source unchanged since `f257a78`, rebuilt because
+  `dotnet test` had already redeployed it at `7cc2391` — `dotnet test` deploys
+  the server DLL, mind the hash binding), Core/Redeploy unchanged.
+  **r2 (`7cc2391`, Codex) classified:** the C stop
+  (`BotFirstAid+CG_ApplyToSelf.method_1`, 364 ms after Confirm Leave) is the
+  same vanilla race family as r1 — `BotWeaponManager.Dispose` nulls
+  `Selector`, the bot's meds operation finishes on the next health tick,
+  caught by `BaseHealthController.ManualUpdate`; no Arena/Redeploy frame.
+  B (cooldown race) is not natively triggerable (no exit while dead) and is
+  dropped; the `sptUpdateLastRunTimestamp` delta is SPT's
+  `HideoutHelper.UpdatePlayerHideout`; the `burst spawn … failed: The
+  operation was canceled` line was teardown noise (fixed above); the
+  BotDropDiag hash change during r2 was a rebuild on the dev machine at
+  08:42, all four r2 raids ran on the old build. Open: the single Unity
+  `MenuScreen` coroutine error in A (no Arena/Redeploy/PitFireTeam frame
+  found). **Next GPU job: `GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r3.md`**
+  (new client/server binding; E = TDM without kits on the ground, A' open
+  sub-cases, C' natural death, D optional; the meds-callback family and the
+  hideout timestamp are pre-declared as counted, not stopping).
+
 - **Bot Surv12 drop diagnosis (2026-09-12):** the user sees PMC bots start a
   Surv12, stop, and leave it on the ground (Arena). Two verified mechanisms,
   neither in Arena/Redeploy code: (1) ContinuousHealing 1.6.3
@@ -31,9 +68,11 @@ current. User-facing communication is normally German.
   period is dead once the process has run a minute), `_nextTimePossible`
   starts at 0, `IsTrue100(160)` is always true, and the gesture partner is
   the nearest bot of any side (`BotsConnections` is raid-wide). Fix options
-  were assessed; the recommended one is a client postfix on
+  were assessed; the user chose the Arena-only gate (`NoBotGesturesPatch`,
+  see the entry above) since normal raids are not bothered by it. The
+  standalone item-level fix for normal raids (client postfix on
   `FindItemToDropToBot` returning null for `Meds` plus setting
-  `_activateTime` in `Activate` — as a separate small mod, not in Arena.
+  `_activateTime` in `Activate`) stays an option, not built.
   Do NOT set `Patrol.DO_RANDOM_DROP_ITEM` on an arena bot's
   `Settings.FileSettings`: `BotSettingsComponents.Copy()` is shallow and
   `Patrol` is a process-wide cached instance per (difficulty, role), so the
