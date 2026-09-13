@@ -78,7 +78,11 @@ after such a transition. AREA/OVERVIEW change only the preview camera.
 
 ## Checks, in order
 
-1. **Selection regression first.** Click Factory East once. Verify the selection
+1. **Selection regression first.** Establish Factory Center (the rectangle) as
+   the selected starting state; select it first if necessary and confirm its
+   stripe/title. Then click Factory East once. An already selected East is a
+   deliberate no-op without a new success log, so it is not a valid starting
+   state for this regression check. Verify the selection
    stripe, title `CUSTOMS — Factory East (contour)` and polygon all change;
    hover highlighting alone does not count. Capture immediately and after at
    least 15 seconds. Check for the exact log success marker
