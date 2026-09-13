@@ -81,7 +81,13 @@ namespace ArenaMode
     {
         public int WarningCount;
         public string LastWarning;
-        public void LogInfo(object value) { }
+        public int InfoCount;
+        public string LastInfo;
+        public void LogInfo(object value)
+        {
+            InfoCount++;
+            LastInfo = value?.ToString();
+        }
         public void LogWarning(object value)
         {
             WarningCount++;

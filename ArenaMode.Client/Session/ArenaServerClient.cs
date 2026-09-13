@@ -703,8 +703,20 @@ public static class ArenaServerClient
                 && string.Equals(state, "Idle", StringComparison.Ordinal);
             if (!acknowledged)
             {
-                Plugin.ModLogger.LogWarning(
-                    $"Arena raid-end remains pending: {response}");
+                // GameEnd reaches the server before /client/match/local/end, so the first
+                // call normally finds the raid still InRaid and the server answers
+                // deferred:true: the post-raid prefix owns the snapshot restore and runs a
+                // moment later (ArenaModeRouter.HandleRaidEnd logs it as Info too). Only
+                // that exact answer is expected; every other unacknowledged shape is a
+                // real failure and stays a warning.
+                bool expectedDeferral = response["deferred"]?.Value<bool>() == true
+                    && string.Equals(state, "InRaid", StringComparison.Ordinal);
+                if (expectedDeferral)
+                    Plugin.ModLogger.LogInfo(
+                        $"Arena raid-end remains pending: {response}");
+                else
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena raid-end remains pending: {response}");
                 return false;
             }
 

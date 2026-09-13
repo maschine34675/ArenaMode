@@ -158,6 +158,41 @@ internal static partial class Program
                && !ArenaServerClient.HasPendingArm,
             "status-derived exact token cancellation must settle the uncertain arm");
 
+        // GameEnd reaches the server before /client/match/local/end, so the first
+        // raid-end answer is normally deferred:true with state InRaid. That exact
+        // answer is the designed hand-off to the post-raid prefix and logs Info;
+        // every other unacknowledged answer is a real failure and stays a warning.
+        // Either way the end stays pending (the block below settles it).
+        typeof(ArenaServerClient).GetField("_activeArmToken", BindingFlags.Static | BindingFlags.NonPublic)
+            .SetValue(null, "deferred-end-token");
+        var raidEndAnswer = "{\"restored\":false,\"deferred\":true,\"state\":\"InRaid\"}";
+        RequestHandler.Post = (route, body) => route == Protocol.RaidEndRoute
+            ? raidEndAnswer
+            : "{\"disarmed\":false,\"state\":\"Idle\"}";
+        var warningsBeforeEnd = ArenaMode.Plugin.ModLogger.WarningCount;
+        var infosBeforeEnd = ArenaMode.Plugin.ModLogger.InfoCount;
+        Assert(!ArenaServerClient.PostRaidEnd() && ArenaServerClient.HasPendingEnd,
+            "a deferred raid-end answer is not an acknowledgement; the end stays pending");
+        Assert(ArenaMode.Plugin.ModLogger.WarningCount == warningsBeforeEnd
+               && ArenaMode.Plugin.ModLogger.InfoCount == infosBeforeEnd + 1
+               && ArenaMode.Plugin.ModLogger.LastInfo.Contains("remains pending", StringComparison.Ordinal),
+            "the designed deferral (deferred:true, state InRaid) logs Info, not a warning");
+        foreach (var failure in new[]
+                 {
+                     "{\"restored\":false,\"completed\":false,\"state\":\"InRaid\",\"reason\":\"snapshot restore failed\"}",
+                     "{\"restored\":false,\"deferred\":true,\"state\":\"FinalizingEnd\"}",
+                     "{\"restored\":false}",
+                 })
+        {
+            raidEndAnswer = failure;
+            var warningsBeforeFailure = ArenaMode.Plugin.ModLogger.WarningCount;
+            Assert(!ArenaServerClient.PostRaidEnd()
+                   && ArenaServerClient.HasPendingEnd
+                   && ArenaMode.Plugin.ModLogger.WarningCount == warningsBeforeFailure + 1
+                   && ArenaMode.Plugin.ModLogger.LastWarning.Contains("remains pending", StringComparison.Ordinal),
+                "an unacknowledged raid-end answer other than the designed deferral stays a warning: " + failure);
+        }
+
         // GameEnd is observed before EFT's async native end completes. If that
         // native request later exhausts its retries, the next negotiation must
         // explicitly recover the exact token rather than defer forever.
