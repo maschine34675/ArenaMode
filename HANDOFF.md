@@ -149,15 +149,16 @@ current. User-facing communication is normally German.
   … CH.CancelRequested=True stack=Finish ← ContinuousHealing.Patches
   .CH_EndHeal_Patch.Prefix ← OnEffectRemoved` — a bot's IFAK operation
   ended by CH's static flag with a body part still queued. Pre-existing
-  and NOT from today's changes: a Unity error flood `SkinnedMeshRenderer:
-  Rendering stopped because the data for mesh '<body mesh>' … does not
-  match the expected mesh data size and vertex stride` — 678 lines over
-  7 s at 13:45:01 (`Top_wild_Hoody_victory_base_lod0`,
-  `Top_wild_UnderArmor_base_lod1`, FFA) and 384 over 5 s at 08:28:55 in the
-  user's morning session on the old build (`Bear_Head_1_lod0/lod1_base`,
-  TDM); absent in Codex's r3 session. Body meshes of corpses/bots in arena
-  raids; corpse trims nearby but not aligned; cause open, candidates
-  CorpseCleanupService renderer handling and pooled body models.
+  and NOT from today's changes, per the user attributable to outline mods: a
+  Unity error flood `SkinnedMeshRenderer: Rendering stopped because the data
+  for mesh '<body mesh>' … does not match the expected mesh data size and
+  vertex stride` — 678 lines over 7 s at 13:45:01 (`Top_wild_Hoody_victory
+  _base_lod0`, `Top_wild_UnderArmor_base_lod1`, FFA, session with the user's
+  LootOutline loaded and outlining 3 bodies; it stopped when bodies in range
+  dropped to 1) and 384 over 5 s at 08:28:55 in the user's morning session on
+  the old build (`Bear_Head_1_lod0/lod1_base`, TDM; the user had briefly tried
+  `com.harmonyzt.breakoutoutlines` around then). Absent in Codex's r3 session
+  and in the 14:18 session without outline mods; both outline mods are removed.
 
 - **r3 result classified, r4 issued (2026-09-13):** `aaaf510` (Codex, on the
   same bound build `a2fcced`). **The gesture gate is proven:** E (Customs TDM
