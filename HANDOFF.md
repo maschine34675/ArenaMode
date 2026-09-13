@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Second Customs contour prepared, NOT deployed (2026-09-13):**
+  `feature/area-map-preview` adds `customs-factory-east-polygon-v1`, labelled
+  Factory East (contour), from the user's `20260913-090513` draft. All eleven
+  XZ vertices are exact; no floor/ceiling or spawn-height band. This first
+  release is fixed independent TDM 2v2; the existing center/team-start IDs and
+  rules are unchanged. Database survey finds 20 PMC candidates per faction and
+  15 Bot/BotPmc candidates; native navigation/obstacles are not proven offline.
+  Existing live enclosure and complete in-area path checks remain mandatory.
+  Four rows fit the owned area panel, above native navigation. The new standalone
+  area harness passes 2367 assertions and four source-fault controls; existing
+  area-menu checks pass 406 rules, 71 hook and 24 view assertions plus four fault
+  controls. Independent integration review passed. Original draft and byte-hash
+  fixture are retained under `tools/CustomsEastAreaChecks/`. Staged client build
+  succeeds; do not deploy during the user's bound GPU tests. The paired native
+  map-preview implementation is being integrated on this branch.
+
 - **HUD positioning prepared, NOT deployed (2026-09-13):** branch
   `fix/hud-panel-position` from `1f3f9f0`. F12 HUD `ScorePanelOffsetX` and
   `ScorePanelOffsetY` add offsets to the existing top-center position; defaults

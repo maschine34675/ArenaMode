@@ -308,9 +308,9 @@ internal static class Program
         Settings.AreaTeamSize.Value = 2;
         f.Screen.ShowInternal(f.SettingsOwner);
         var callback = ArenaAreaSelectionView.Last.SizeCallback;
-        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 3
+        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 4
             && ArenaAreaSelectionView.Last.State.HasTeamSizeChoice,
-            "native area adapter publishes three Customs choices and size state");
+            "native area adapter publishes four Customs choices and size state");
         Assert(callback(teams, 5) && Settings.AreaTeamSize.Value == 5
             && ArenaAreaSelectionView.Last.State.SelectedTeamSize == 5, "native size callback pushes confirmed selection back into view");
         Assert(!callback(teams, 6) && Settings.AreaTeamSize.Value == 5, "native size callback rejects unsupported count");

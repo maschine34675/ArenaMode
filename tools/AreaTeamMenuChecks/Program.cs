@@ -22,9 +22,9 @@ view.Show(screen.transform,null,_=>true,(area,size)=>
 view.Refresh(State(teams),false);
 Button[] Buttons()=>view.Root.GetComponentsInChildren<Button>(true);
 Button Size(int size)=>Buttons().Single(b=>b.name=="Arena Team Size "+size);
-Need(Buttons().Length==7,"three area rows and four team buttons are materialized");
+Need(Buttons().Length==8,"four area rows and four team buttons are materialized");
 var rootRect=(RectTransform)view.Root.transform;
-Need(-rootRect.anchoredPosition.y>=668&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=892,
+Need(-rootRect.anchoredPosition.y>=668&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=916,
     "largest supported panel remains below mode panel and above native bottom controls");
 foreach(var button in Buttons())
 {
@@ -45,7 +45,7 @@ Need(calls==2&&selected==5&&!Size(3).transform.Children.Single(t=>t.gameObject.n
     "refused size change does not create a selected marker");
 var retired=Size(4).onClick.Snapshot();
 view.Refresh(State(contour),false);
-Need(Buttons().Length==3,"legacy area removes size row entirely");
+Need(Buttons().Length==4,"legacy area removes size row entirely");
 foreach(var callback in retired)callback();
 Need(calls==2,"retired row callback cannot affect replacement legacy state");
 view.Refresh(State(teams,99),false);

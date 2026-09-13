@@ -370,6 +370,7 @@ public static class ArenaAreaCatalog
     public const string CustomsFactoryCenterId = "customs-factory-center-v1";
     public const string CustomsFactoryCenterPolygonId = "customs-factory-center-polygon-v1";
     public const string CustomsFactoryCenterTeamsId = "customs-factory-center-teams-v1";
+    public const string CustomsFactoryEastPolygonId = "customs-factory-east-polygon-v1";
     public const float SpawnInset = 0.75f;
     public const float NavigationInset = 0.4f;
 
@@ -424,6 +425,30 @@ public static class ArenaAreaCatalog
             new[] { "2cb9950d-20ec-484e-919c-5489bb7abd5c", "4d2e6d0c-078c-4918-8227-8df098a47a39", "582b9ea6-4404-4af1-8443-da3db48fcaad", "6d8626ec-449b-4d63-a066-38e802756ec9", "b54ce786-74b8-41b1-889f-0fe62c36d8e0" },
             new[] { "13adbe1b-21b0-4422-90a9-eab3ee8313fb", "295048b1-140d-47c3-85f8-ab5bdaaafa67", "75c4714c-1d9f-411a-8a42-e9d5ee16a77a", "dd28bf37-44a2-4407-a30b-2b0e9ed732eb", "e880fea7-94e8-440f-874b-fd131ac2d998" }));
 
+    // User survey 20260913-090513, geometry SHA256
+    // bddf25bdaec03bce8a140cbd7fe0dd73ddc58ef58672ca5ce30078f1f1a7ad1e.
+    // Adjacent eastern factory grounds (native ZoneFactorySide). Preserve every
+    // measured XZ vertex; draft heights are hints, not playable/spawn limits.
+    // The native sniper marker and checkpoint spawns are outside this contour.
+    // No extra identity exclusions or team starts are inferred from a map image:
+    // live carving and complete in-area navigation still decide raid readiness.
+    public static readonly ArenaAreaDefinition CustomsFactoryEastPolygon = new ArenaAreaDefinition(
+        CustomsFactoryEastPolygonId, "Customs Factory East contour (experimental 2v2)", ArenaMapCatalog.CustomsId,
+        new ArenaAreaBounds(new[]
+        {
+            new ArenaAreaVertex(494.5332f, -104.145111f),
+            new ArenaAreaVertex(491.2321f, -110.743347f),
+            new ArenaAreaVertex(485.52002f, -119.189484f),
+            new ArenaAreaVertex(479.8096f, -123.66256f),
+            new ArenaAreaVertex(475.6268f, -126.166672f),
+            new ArenaAreaVertex(468.341431f, -130.243744f),
+            new ArenaAreaVertex(466.07547f, -145.328766f),
+            new ArenaAreaVertex(648.5004f, -167.768631f),
+            new ArenaAreaVertex(655.292847f, -166.976868f),
+            new ArenaAreaVertex(670.6625f, -48.0239f),
+            new ArenaAreaVertex(507.023682f, -25.097086f),
+        }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 2);
+
     /// <summary>Zero denotes the unchanged full-map/legacy protocol, never an inferred new-area choice.</summary>
     public static bool TryResolveTeamSize(ArenaAreaDefinition? area, int? requested, out int selected, out string? reason)
     {
@@ -453,13 +478,14 @@ public static class ArenaAreaCatalog
         if (id == FullMapId)
         {
             if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))
-            { reason = "Customs currently requires an experimental Factory Center Team Deathmatch area."; return false; }
+            { reason = "Customs currently requires an experimental Team Deathmatch area."; return false; }
             return true;
         }
         var candidate = id == FactorySouthId ? FactorySouth
             : id == CustomsFactoryCenterId ? CustomsFactoryCenter
             : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon
-            : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams : null;
+            : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams
+            : id == CustomsFactoryEastPolygonId ? CustomsFactoryEastPolygon : null;
         if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
         if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))

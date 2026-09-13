@@ -40,9 +40,9 @@ $arenaFaults = @(
       'Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);',
       'Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, 0);',
       $arenaNative,'ProductionLocalStartSource','real negotiation arms exact menu size'),
-    @('only-two-rows','ArenaMode.Client\Session\ArenaAreaSelectionView.cs',
-      'private const int MaxRows = 3;','private const int MaxRows = 2;',
-      $arenaView,'ProductionAreaViewSource','at most three visible choices'),
+    @('only-three-rows','ArenaMode.Client\Session\ArenaAreaSelectionView.cs',
+      'private const int MaxRows = 4;','private const int MaxRows = 3;',
+      $arenaView,'ProductionAreaViewSource','at most four visible choices'),
     @('retired-size-row','ArenaMode.Client\Session\ArenaAreaSelectionView.cs',
       '|| !_sizeRows.Contains(row)) return;','|| false) return;',
       $arenaView,'ProductionAreaViewSource','same-view Close/Show replacement cannot inherit old row ownership'))

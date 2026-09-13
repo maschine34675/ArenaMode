@@ -20,7 +20,7 @@ internal sealed class ArenaAreaSelectionView
     private const float RowTop = 36f;
     private const float RowHeight = 28f;
     private const float RowStride = 30f;
-    private const int MaxRows = 3;
+    private const int MaxRows = 4;
     private const string SelectMapPrompt = "Select a map to choose its area.";
 
     private sealed class Row
@@ -273,7 +273,7 @@ internal sealed class ArenaAreaSelectionView
     {
         if (state == null) return;
         if (state.Options.Count > MaxRows)
-            throw new InvalidOperationException("The area panel supports at most three visible choices.");
+            throw new InvalidOperationException("The area panel supports at most four visible choices.");
         for (int index = 0; index < state.Options.Count; index++)
         {
             var option = state.Options[index];

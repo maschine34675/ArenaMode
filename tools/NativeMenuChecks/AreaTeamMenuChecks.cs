@@ -34,7 +34,7 @@ internal static partial class Program
             ConfigureAreaTeams(size);
             var owner = Select(map);
             var state = ArenaMenuSelection.AreaSelection(map);
-            Assert(state.Options.Count == 3 && state.HasTeamSizeChoice && state.SelectedTeamSize == size
+            Assert(state.Options.Count == 4 && state.HasTeamSizeChoice && state.SelectedTeamSize == size
                 && state.TeamSizeOptions.SequenceEqual(new[] { 2,3,4,5 }), "new area exposes exact immutable 2..5 size choices");
             Settings.AreaTeamSize.Value = size == 5 ? 2 : 5;
             Assert(state.SelectedTeamSize == size, "existing proposal cannot change when F12 changes");

@@ -30,15 +30,21 @@ internal sealed class ArenaAreaSelectionState
         new(ArenaAreaCatalog.CustomsFactoryCenterId, "Factory Center", ArenaAreaCatalog.CustomsFactoryCenter.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "Factory Center (contour)", ArenaAreaCatalog.CustomsFactoryCenterPolygon.MaxTeamSize),
         new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Customs contour (team starts)"),
+        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory East (contour)", ArenaAreaCatalog.CustomsFactoryEastPolygon.MaxTeamSize),
     };
 
-    private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string mode, bool pitFireTeam, int teamSize, int areaTeamSize)
+    private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string map, string mode, bool pitFireTeam, int teamSize, int areaTeamSize)
     {
+        MapId = map;
         ModeId = mode;
         Options = Array.AsReadOnly(options);
         var selected = options.FirstOrDefault(option => option.Id == ArenaAreaCatalog.NormalizeId(requestedArea))
             ?? options.FirstOrDefault();
         SelectedId = selected?.Id;
+        // Preview only the offered proposal, never the unvalidated requested ID.
+        // This does not persist or arm a selection; the native adapter owns that.
+        SelectedArea = selected != null && ArenaAreaCatalog.TryResolve(selected.Id, map, mode, pitFireTeam,
+            out var area, out _) ? area : null;
         HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         SelectedTeamSize = HasTeamSizeChoice && ArenaAreaCatalog.TryResolveTeamSize(
             ArenaAreaCatalog.CustomsFactoryCenterTeams, areaTeamSize, out var validSize, out _) ? validSize : 0;
@@ -56,8 +62,10 @@ internal sealed class ArenaAreaSelectionState
     }
 
     public IReadOnlyList<ArenaAreaOption> Options { get; }
+    public string MapId { get; }
     public string ModeId { get; }
     public string SelectedId { get; }
+    public ArenaAreaDefinition SelectedArea { get; }
     public string Summary { get; }
     public string ModeHint { get; }
     public bool HasTeamSizeChoice { get; }
@@ -74,6 +82,6 @@ internal sealed class ArenaAreaSelectionState
             ? Array.Empty<ArenaAreaOption>()
             : Candidates.Where(option => ArenaAreaCatalog.TryResolve(option.Id, map, mode, pitFireTeam,
                 out _, out _)).ToArray();
-        return new ArenaAreaSelectionState(choices, requestedArea, mode, pitFireTeam, fullMapTeamSize, areaTeamSize);
+        return new ArenaAreaSelectionState(choices, requestedArea, map, mode, pitFireTeam, fullMapTeamSize, areaTeamSize);
     }
 }
