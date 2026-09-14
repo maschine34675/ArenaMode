@@ -56,3 +56,22 @@ After restarting EFT, the user should test a lethal own grenade, an enemy grenad
 and a later bleed death, then repeat after a respawn. Verify that the mocking text
 has no associated sound and the previously added cues and shot awards are audible.
 No server restart is needed for this client-only update.
+
+## Delivered result
+
+Merged main/build `3054375c1aecfafff1354642da6acce42c14559c` is installed on D:.
+Client SHA256 `586C2D1D539B49EE7BABE2071AE782354E194E411FC24FD3D9885075D2F93668`;
+exact four targets, dependencies, external compiler inputs and rollback copies
+are bound in `ANNOUNCER-DEPLOYMENT-20260914.json`. The independent verifier
+re-enumerated 122 inventory files: four intended writes, 118 unchanged files.
+All 46 OGGs separately matched merged source. Core 1.0.1 and the server were not
+deployed. Final clean native build passed with four existing warnings, no errors.
+
+Combined-main `Verify-Regressions.ps1` passed, including actual ArenaMatch
+combat integration (194), audio (236), progress (139), mode adapters (34), shot
+history (113), native shot adapter (128/five compiled faults), PFT (248), team
+expansion (830), give-up (618), Tactical polish (74/historical fault controls),
+TDM (227/15 compiled faults), and unit tests (621 passed/two skipped). Self-grenade
+verification was independently rerun after the merge (74/35/three faults).
+Build and offline checks establish neither native visual timing nor audibility;
+the listed user-run tests and C: mirror verification remain unclaimed.

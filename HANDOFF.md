@@ -7,15 +7,30 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Announcer integration (2026-09-14, Codex; delivery in progress):** user paused
-  parallel respawn work and explicitly authorized deployment of the complete
-  announcer branch, including text-only `NICE THROW, GENIUS!` on a proven direct
-  own-hand-grenade death (`660d249`). Additional cues and shot awards below are
-  now merged with current main; their isolated NOT DEPLOYED build records remain
-  historical. The final combined main build will be bound separately. Retain the
-  installed Core 1.0.1 and server; delivery replaces only the client and three
-  announcer package documents. No OGG bytes, user drafts or map assets change.
-  See `SELF-GRENADE-TAUNT-REVIEW.md`; live audibility/HUD timing remain user tests.
+- **Complete announcer update DEPLOYED (2026-09-14, Codex):** user paused parallel
+  respawn work and authorized delivery. Main merge/build `3054375` includes the
+  19 additional cues, multi-kill priority fix, TRICKSHOT/NO SCOPE (both temporarily
+  using Godlike), and text-only `NICE THROW, GENIUS!` for a proven direct death from
+  the current body's own thrown grenade (`660d249`). Their isolated NOT DEPLOYED
+  build records below are historical and superseded by this combined delivery.
+  Installed client ProductVersion `0.1.0+3054375c1aecfafff1354642da6acce42c14559c`,
+  SHA256 `586C2D1D539B49EE7BABE2071AE782354E194E411FC24FD3D9885075D2F93668`.
+  `ANNOUNCER-DEPLOYMENT-20260914.json` records exact source, targets, installed
+  hashes, external compiler inputs and backups. Four files copied: client and
+  ANNOUNCER-PACK.md, ANNOUNCER-SOURCES.json, AUDIO-LICENSES.md. All 118 other
+  inventoried files unchanged, including Core 1.0.1 (`EE09B6B5...`), server
+  (`70FDD6CB...`) and all 46 OGGs. User drafts were excluded from the operation.
+  No Redeploy build/deployment; its two linked/imported source hashes were frozen.
+  Native client build passed with four existing nullable warnings, zero errors.
+  Combined-source regression checks: 621 unit tests passed/two skipped; audio
+  236, combat 194, progress 139, real mode adapters 34, shot history 113,
+  native shot adapter 128/5 faults, self-grenade 74 plus 35 native/source contracts
+  and three faults; PFT 248, team expansion 830, give-up 618, Tactical 74 and
+  TDM 227/15 faults passed. Independent adversarial review and installed inventory
+  verification passed. Read `SELF-GRENADE-TAUNT-REVIEW.md` and shot/announcer reviews.
+  Restart **EFT only**. No fresh native HUD/audibility/raid acceptance or C: mirror
+  hash proof is claimed. Existing GPU test IDs were not repointed; use this new
+  client binding for later tests. Later documentation commits do not change it.
 
 - **Redeploy.Core 1.0.1 installed (2026-09-14, Claude, Redeploy `d532a3c`):** a respawn near a
   corpse now has to be walkable from it, outside sniper and mine zones and with room to stand
