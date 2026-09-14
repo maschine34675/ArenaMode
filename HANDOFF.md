@@ -1,11 +1,38 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-13. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-14. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Additional announcer lines (2026-09-14, Codex; NOT DEPLOYED):** implemented in
+  isolated `D:\SPT41\Development\ArenaMode-VoiceLines` on
+  `feature/additional-announcer-lines`, code commit `ce53948` (base `5593ea7`).
+  Adds 19 explicitly loaded Creator reserve phrases for real preparation/countdown,
+  lead/limit/series/Gun Game progress, actual Draw, physical-life Shutdown and living
+  protected-team Clutch. Multi-kills now precede sprees in selection and queue;
+  First Blood/Payback/Shutdown remain higher. Original win events/recordings and
+  all score/profile/respawn rules are retained. See `ANNOUNCER-EXPANSION-REVIEW.md`
+  for triggers, priority and the legacy shared-GUISounds cancellation limitation.
+  Parent re-verification and independent adversarial review passed. Unit suite:
+  621 passed, two skipped; audio 203, progress 139, combat 151 and real-adapter 34
+  assertions plus deliberate compiled faults; existing PFT 248, Team Arena 830,
+  give-up 618, Tactical polish 74 and TDM match/exit 227 checks pass. All 46 audio
+  hashes/decodes verified; no OGG bytes or provenance changed.
+  Clean staged client: `0.1.0+ce5394888a01d11f4a8aa0231b7824f030c05e0e`, SHA256
+  `8B83449BC7D1095380D7A1D880B285E0B9ABBA305C02C72BD825082E9F80B143`.
+  Exact path, installed-file snapshots and checks are in
+  `ANNOUNCER-EXPANSION-BUILD.json`. Four existing nullable warnings, no build errors.
+  Main checkout and installed client/server/Core remain unchanged; the respawn
+  session owns its own integration/deployment. Merge this branch into the final
+  combined source and rebuild before deploying; do not install this older staged
+  DLL over newer respawn changes. No server update is needed for this feature.
+  Native audibility/pacing remains untested. After integration, restart EFT and
+  test countdown/readiness loss, coincident Triple Kill/Spree, time/kill/lead
+  warnings, Gun Game wrap and a living Clutch versus a dead-player team victory.
+  Existing GPU test/build IDs have deliberately not been rewritten.
 
 - **Redeploy.Core 1.0.0, Core skew check and raid-end log level (2026-09-13 evening,
   Claude):** `6a72ddb` logs the designed first raid-end answer
