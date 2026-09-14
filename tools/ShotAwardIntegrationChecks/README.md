@@ -15,7 +15,11 @@ Coverage includes the complete aim/ground/bolt condition matrix, exact local
 Arena admission, late landing and weapon switching, same-profile replacement
 bodies, wrong shot/cartridge/fragment/weapon/fire/source identities, direct lethal
 bullet conjunction, nested contexts, copied fragment facts, pooled reuse during
-impact, raid and round resets, and native exception cleanup. Five mutations are
+impact, raid and round resets, and native exception cleanup. The observed flight
+clock covers the 0.499/0.500 second boundary, landing, pause, slow simulation steps,
+identity changes and stale or invalid observations; short flight cannot promote a
+shot merely because its impact is late, or suppress bolt-action No Scope.
+Six mutations (including removal of the flight-time threshold) are
 compiled into scratch copies; each must fail its intended behavioral assertion.
 The clean production suite passes before and after those controls.
 
@@ -23,6 +27,8 @@ The clean production suite passes before and after those controls.
 It verifies the actual controller owner, aim and bolt fields, emission and pool
 contracts, `ClientLocalGameWorld` inheritance, the non-chaining
 `ClientGameWorld.ShotDelegate` override, and the synchronous damage/death path.
+The common ground-refresh to CheckFlying path and native vault/mount/stationary
+state predicates are checked as well; the executable invokes the actual postfix.
 Separately labeled source checks bind the new hooks to `CombatPatches` and the
 award-round reset in `ArenaMatch`. Those outer production classes are inspected,
 not compiled into this small harness.

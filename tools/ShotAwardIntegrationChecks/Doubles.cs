@@ -3,7 +3,11 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace UnityEngine { public struct Vector3 { } }
+namespace UnityEngine
+{
+    public struct Vector3 { }
+    public static class Time { public static float time, deltaTime = 0.1f; }
+}
 namespace Comfort.Common
 {
     internal static class Singleton<T>
@@ -33,7 +37,12 @@ namespace EFT
     public class GameWorld { public Player MainPlayer; }
     public class ClientGameWorld : GameWorld { public virtual void ShotDelegate(Ballistics.Shot shotResult) { } }
     public class Health { public bool IsAlive = true; }
-    public class MovementContext { public bool IsGrounded; }
+    public class MovementContext
+    {
+        public bool IsGrounded, Vaulting, IsInMountedState, IsStationaryWeaponInHands;
+        public bool PlayerAnimatorGetIsVaulting() => Vaulting;
+        public virtual void CheckFlying(float deltaTime) { }
+    }
     public class CharacterController { public bool isGrounded; }
     public class Player
     {

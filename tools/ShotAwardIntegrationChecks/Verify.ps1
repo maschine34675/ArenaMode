@@ -45,6 +45,8 @@ try {
     Write-Output $native.Trim()
     Run-Probe 'production' $shotSource
     $faults = @(
+        @{ Name='instant-airtime'; File='ArenaShotAwardHooks.cs'; Suite='airtime';
+           Find='MinimumAirborneSeconds = 0.5f'; Replace='MinimumAirborneSeconds = 0f'; Failure='airtime threshold is inclusive and rejects short drops' },
         @{ Name='allow-aimed-fire'; File='ArenaShotAwardHooks.cs'; Suite='conditions';
            Find='|| firearm.IsAiming'; Replace=''; Failure='aimed fire has no award snapshot' },
         @{ Name='foreign-active-world'; File='ArenaShotAwardHooks.cs'; Suite='admission';
@@ -81,4 +83,4 @@ try {
     compiledFaultCount=$faults.Count; completedUtc=[DateTime]::UtcNow.ToString('o'); evidenceDirectory=$shotScratch;
     limitation='Adapter behavior uses explicit native boundary doubles. Native metadata and source wiring checks are read-only, not in-game runtime proof.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $shotScratch 'manifest.json')
-Write-Output "SHOT AWARD INTEGRATION PASSED; five compiled faults rejected; installed Arena client/server/Core unchanged; evidence: $shotScratch"
+Write-Output "SHOT AWARD INTEGRATION PASSED; $($faults.Count) compiled faults rejected; installed Arena client/server/Core unchanged; evidence: $shotScratch"
