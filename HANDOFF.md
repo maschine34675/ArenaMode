@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Trickshot flight threshold DEPLOYED (2026-09-14, Codex):** code `abc85c9`,
+  main merge/build `2641c4f5d41d6c241bd3dd64e4d343c6627144bb` requires at least
+  0.5 seconds of observed continuous free flight before the shot, still without
+  ADS. Short drops/early shots no longer qualify; a later impact cannot promote
+  them. Double-jump without landing continues the clock. No Scope and priorities
+  are unchanged. HUD/key remains TRICKSHOT/`trickshot`, with Godlike fallback;
+  AIRBORNE! is a naming/recording suggestion, not a supplied replacement clip.
+  Installed client SHA256 `D3094E40A4CA8C10A2E14B17E11F882A117250CBE0519C7B0F0252AE3C56E421`.
+  Exact deployed files, Core/server hashes, external build inputs and backups:
+  `TRICKSHOT-AIRTIME-DEPLOYMENT-20260914.json`. Only the client bytes changed;
+  the three package documents were recopied unchanged by the scoped delivery tool,
+  with 117 other inventory files unchanged. No Core/server/audio update.
+  Clean native build: zero errors/four existing warnings. Targeted checks: 177
+  adapter assertions, 55 native/source contracts, six compiled faults; audio
+  236, full combat 194 and shot history 113 pass. Independent adversarial review
+  found no blocking issue. Full unit suite was not rerun for this client-only
+  predicate; preceding run below is historical. Restart EFT only. User raid test
+  and C: mirror receipt remain unverified; see `SHOT-AWARDS-REVIEW.md` for limits.
+
 - **Complete announcer update DEPLOYED (2026-09-14, Codex):** user paused parallel
   respawn work and authorized delivery. Main merge/build `3054375` includes the
   19 additional cues, multi-kill priority fix, TRICKSHOT/NO SCOPE (both temporarily
