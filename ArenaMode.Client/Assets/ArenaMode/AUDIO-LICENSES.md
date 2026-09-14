@@ -5,8 +5,11 @@
 All **46 announcer recordings** are newly supplied by the user as
 `alle_ansagen.ogg`, generated with **ElevenLabs Creator**, according to the user.
 They replace all prior free-plan, TripleSnail and WARLORD announcer audio.
-The 18 existing cue files are active; 28 additional/alternative lines live in
-`sounds/reserve/` and are packaged without being loaded or given new triggers.
+The original intake classified 18 existing cues and 28 reserve recordings.
+Since 2026-09-14, 19 of those reserve recordings have explicit runtime bindings
+(37 usable cues); four alternate results and five CTF recordings remain unused.
+Their binary files and source/license record are unchanged; runtimeEventKey in
+the manifest records the added binding separately from original intake usage.
 See [ANNOUNCER-PACK.md](ANNOUNCER-PACK.md) for the ordered mapping and
 [ANNOUNCER-SOURCES.json](ANNOUNCER-SOURCES.json) for hashes and exact cuts.
 

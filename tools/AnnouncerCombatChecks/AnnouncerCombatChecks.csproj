@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <MatchSource Condition="'$(MatchSource)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Modes/ArenaMatch.cs</MatchSource>
+    <ScoreboardSource Condition="'$(ScoreboardSource)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Modes/ArenaScoreboard.cs</ScoreboardSource>
+    <AwardsSource Condition="'$(AwardsSource)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Combat/ArenaCombatAwards.cs</AwardsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Stubs.cs" />
+    <Compile Include="$(MatchSource)" Link="Production/ArenaMatch.cs" />
+    <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="$(AwardsSource)" Link="Production/ArenaCombatAwards.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs" />
+  </ItemGroup>
+</Project>

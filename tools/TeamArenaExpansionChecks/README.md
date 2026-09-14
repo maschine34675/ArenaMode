@@ -10,27 +10,40 @@ loading EFT or optional mods.
 dotnet run --project tools/TeamArenaExpansionChecks -c Release
 ```
 
-## Current announcer contract (2026-09-12)
+## Current announcer contract (2026-09-14)
 
 The old check stopped after 277 assertions because it required the replaced
 WARLORD pack's CC wording. Current announcers use ANNOUNCER-SOURCES.json;
 historical CC texts must not be treated as the replacement's license.
-The revised asset check retains all production cue mappings and requires the
-current 18 active / 28 reserve manifest, six reviewed lifecycle labels, safe
-unique file paths, matching nonempty file hashes and no reserve event bindings.
+The asset check retains the original intake classification of 18 active / 28
+reserve clips. The original `eventKey` remains empty on all reserve rows; exactly
+19 reviewed reserve paths now require their own matching `runtimeEventKey`.
+Four alternate result recordings and five CTF clips remain unbound. An independent
+allowlist verifies these counts and mappings, six original reviewed lifecycle
+labels, the 19 added spoken labels, safe unique paths and nonempty file hashes.
+The production catalog is linked directly: it must load exactly the 18 original
+plus 19 optional paths, and its 25 lifecycle event mappings must match the
+independently declared expected keys. Alternate result basenames cannot replace
+the active result recordings.
 Provenance fields, HTTPS references and source-fingerprint format must be present.
 This verifies records, not source ownership, original-source hash, legal rights
 or spoken content. In particular, a structurally valid source fingerprint is
 not independently matched to the original supplied recording by this harness.
 
-Thirteen in-memory negative controls reject absent provenance, bad fingerprint/
+The thirteen original in-memory controls remain: absent provenance, bad fingerprint/
 URL, wrong file hash, path escape, duplicate/missing cue, event/file mismatch,
-unreviewed round-won label, active reserve file and reserve event. No original
-manifest/audio file is changed; the original passes again afterward.
-Root and independent complete runs: **774 assertions**, including later installed
-PFT/SAIN contracts that the old early failure had prevented from running.
+unreviewed round-won label, active reserve file and reserve event. Eighteen new
+manifest controls reject missing/wrong/empty/duplicate runtime mappings, every
+alternate result and CTF binding, active overrides, a wrong optional hash or
+spoken label, and a changed intake classification. Four loader controls reject
+duplicate paths, alternate result substitution, recursive CTF inclusion and a
+missing optional clip. These **31 manifest + 4 loader controls** mutate only
+in-memory copies; no original manifest or audio file is changed.
+
+The complete current harness passes **830 assertions**, including the existing
+installed PFT and SAIN contracts. This is offline evidence; no native listening
+or new redistribution license is inferred.
 
 For actual codec/PCM/metadata validation also run the existing, read-only
-`python tools/AnnouncerChecks/verify_creator_pack.py`. The 2026-09-12 root run
-passed all **46 clips** and the optional deployment comparison matched **61 asset
-files**. No native listening or new redistribution license is inferred.
+`python tools/AnnouncerChecks/verify_creator_pack.py`. Codec validation and
+deployment verification remain separate from this contract harness.

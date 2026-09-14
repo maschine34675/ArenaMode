@@ -85,6 +85,23 @@ internal sealed class DeathmatchRules
     internal int RetainedKillCounters => _kills.Count;
     internal int RetainedWinCounters => _wins.Count;
 
+    /// <summary>Same per-round raw-kill counters as winner selection; never scoreboard points/history.</summary>
+    internal void ReadAnnouncementScore(out int? killsRemaining, out int? lead)
+    {
+        int best = LocalKills;
+        int otherBest = 0;
+        if (Options.FreeForAll)
+            foreach (var pair in _kills)
+            {
+                best = Math.Max(best, pair.Value.Value);
+                if (pair.Key != _localId) otherBest = Math.Max(otherBest, pair.Value.Value);
+            }
+        killsRemaining = Options.Kills > 0 ? Math.Max(0, Options.Kills - best) : null;
+        // No leadership contest in all-vs-player or unlimited continuous play.
+        lead = Options.FreeForAll && !Options.Continuous && best > 0
+            ? LocalKills.CompareTo(otherBest) : null;
+    }
+
     internal bool StartRound(double now)
     {
         if (!Finite(now) || (Phase != DeathmatchPhase.Waiting && Phase != DeathmatchPhase.Intermission)) return false;

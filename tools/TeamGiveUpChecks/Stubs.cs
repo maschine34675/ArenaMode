@@ -43,6 +43,13 @@ namespace ArenaMode.Combat
 }
 namespace ArenaMode.Modes
 {
+    // Full ArenaMatch now guards Clutch/LastManStanding by protected Tactical.
+    // No Tactical instance is created by this TDM give-up harness.
+    public sealed class TacticalMode : RoundsMode
+    {
+        public bool IsTeamArena => false;
+    }
+
     // Non-TDM mode seam: only GiveUp's existing intermission rule is modeled.
     public class RoundsMode : IArenaMode
     {

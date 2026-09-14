@@ -60,6 +60,11 @@ internal static class AnnouncerService
     private static string _pendingResultKey;
     private static string _pendingCalloutKey;
     private static float _pendingCalloutExpiresAt;
+    private static string _pendingResultFallbackKey;
+    private static bool _clutchArmed;
+    private static int _clutchFrame;
+    private static string _activeKey;
+    private const float StatusMaxWaitSeconds = 2f;
     private const float CalloutMaxWaitSeconds = 4f;
     private const float RecoveryIntervalSeconds = 10f;
     private const float LoadTimeoutSeconds = 10f;
@@ -104,7 +109,7 @@ internal static class AnnouncerService
                 return;
             }
 
-            var files = Directory.GetFiles(soundsDir, "*.ogg");
+            var files = AnnouncerCueCatalog.LoadPaths(soundsDir);
             // The initial load begins when Arena is selected, long before the
             // raid, but keep lifecycle cues first as a second guard for an
             // unusually quick start or a repaired folder. Kill calls must never
@@ -206,13 +211,17 @@ internal static class AnnouncerService
         ReportedSkips.Clear();
         match.OnCallout += OnCallout;
         match.OnAnnouncerCue += OnAnnouncerCue;
+        ArenaAnnouncementDirector.Attach(match);
         Plugin.ModLogger.LogInfo($"Arena announcer attached: enabled={Settings.AnnouncerEnabled.Value}, "
             + $"volume={Number(Settings.AnnouncerVolume.Value)}, ready={ReadyCount()}, loading={_loading}.");
     }
 
     public static void Detach()
     {
+        ArenaAnnouncementDirector.Detach();
         ArenaAnnouncerOutput.Reset();
+        _clutchArmed = false;
+        _activeKey = null;
         CancelPendingResult("match detached");
         if (_match != null)
         {
@@ -226,6 +235,7 @@ internal static class AnnouncerService
 
     private static void OnCallout(string label)
     {
+        _clutchArmed = false;
         if (string.IsNullOrEmpty(label))
             return;
 
@@ -236,6 +246,12 @@ internal static class AnnouncerService
 
     private static void SubmitCallout(string key)
     {
+        bool status = AnnouncerCueCatalog.IsStatus(key);
+        if (status && AudioListener.pause)
+        {
+            Skip(key, "listener_paused");
+            return;
+        }
         if (!Settings.AnnouncerEnabled.Value || Settings.AnnouncerVolume.Value <= 0f)
         {
             Receive(key, out _);
@@ -259,7 +275,8 @@ internal static class AnnouncerService
             {
                 if (_pendingCalloutKey != null) Skip(_pendingCalloutKey, "superseded_callout");
                 _pendingCalloutKey = key;
-                _pendingCalloutExpiresAt = Time.realtimeSinceStartup + CalloutMaxWaitSeconds;
+                _pendingCalloutExpiresAt = Time.realtimeSinceStartup
+                    + (status ? StatusMaxWaitSeconds : CalloutMaxWaitSeconds);
             }
             else Skip(key, "lower_priority_callout");
             return;
@@ -268,10 +285,18 @@ internal static class AnnouncerService
         StartCallout(key);
     }
 
-    private static void StartCallout(string key)
+    private static void StartCallout(string key, string fallbackKey = null)
     {
-        if (Receive(key, out float clipLengthSeconds))
-            _calloutBusyUntil = Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds;
+        if (!Receive(key, out float clipLengthSeconds))
+        {
+            if (fallbackKey == null || !Receive(fallbackKey, out clipLengthSeconds)) return;
+            key = fallbackKey;
+        }
+        _activeKey = key;
+        // Digit clips already include their recorded pause. An additional 100 ms
+        // would make THREE (947 ms) occupy the next real countdown second.
+        _calloutBusyUntil = Time.realtimeSinceStartup + clipLengthSeconds
+            + (AnnouncerCueCatalog.IsCountdown(key) ? 0f : ResultCueGapSeconds);
     }
 
     private static int CalloutPriority(string key) => key switch
@@ -279,34 +304,56 @@ internal static class AnnouncerService
         "last_man_standing" => 100,
         "first_blood" => 95,
         "payback" => 90,
-        "godlike" or "unstoppable" or "dominating" or "rampage" or "killing_spree" => 80,
-        "monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 60,
+        "shutdown" => 85,
+        "monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 80,
+        "godlike" or "unstoppable" or "dominating" or "rampage" or "killing_spree" => 60,
+        "final_weapon" or "ladder_complete" => 45,
+        "final_round" or "match_point" => 40,
+        "one_minute_remaining" or "thirty_seconds_remaining" or "ten_seconds_remaining"
+            or "five_kills_remaining" or "one_kill_remaining" => 30,
+        "taken_the_lead" or "lost_the_lead" or "tied_for_the_lead" => 20,
+        "prepare_to_fight" => 10,
         _ => 50,
     };
 
     private static void OnAnnouncerCue(ArenaAnnouncerCue cue)
     {
-        var key = cue switch
+        bool clutchWin = _clutchArmed && _clutchFrame == Time.frameCount
+            && (cue == ArenaAnnouncerCue.RoundWon || cue == ArenaAnnouncerCue.MatchWon);
+        _clutchArmed = false;
+        if (cue == ArenaAnnouncerCue.CancelStatus)
         {
-            ArenaAnnouncerCue.RoundStart => "round_start",
-            ArenaAnnouncerCue.RoundWon => "round_won",
-            ArenaAnnouncerCue.RoundLost => "round_lost",
-            ArenaAnnouncerCue.LastManStanding => "last_man_standing",
-            ArenaAnnouncerCue.MatchWon => "match_won",
-            ArenaAnnouncerCue.MatchLost => "match_lost",
-            _ => null,
-        };
-
-        if (key == null)
+            CancelStatus("mode status changed");
             return;
-
+        }
+        var kind = AnnouncerCueCatalog.Classify(cue, out string key);
+        if (kind == AnnouncerCueKind.None) return;
         _cuesReceived++;
-        if (cue == ArenaAnnouncerCue.LastManStanding)
+        if (kind == AnnouncerCueKind.Clutch)
+        {
+            // This presentation hint does not consume or replace the lifecycle
+            // event. Only the directly following, same-frame win may use it.
+            _clutchArmed = true;
+            _clutchFrame = Time.frameCount;
+            return;
+        }
+        if (kind == AnnouncerCueKind.Countdown)
+        {
+            // No delayed digits: only a number emitted for the current snapshot
+            // may request audio. A busy channel or slow asset load drops it.
+            ClearPendingStatus("current countdown number");
+            if (AudioListener.pause || _pendingResultKey != null
+                || Time.realtimeSinceStartup < _calloutBusyUntil)
+                Skip(key, "countdown_not_currently_playable");
+            else StartCallout(key);
+            return;
+        }
+        if (kind == AnnouncerCueKind.Award || kind == AnnouncerCueKind.Status)
         {
             SubmitCallout(key);
             return;
         }
-        if (cue == ArenaAnnouncerCue.RoundStart)
+        if (kind == AnnouncerCueKind.Start)
         {
             // A new live round owns the channel. This also prevents an unusually
             // long custom result queue from leaking into the next round.
@@ -314,13 +361,18 @@ internal static class AnnouncerService
             StartCallout(key);
             return;
         }
-
+        // Only explicit result members reach here, never a new/unknown enum.
+        if (kind != AnnouncerCueKind.Result) return;
+        string fallbackKey = clutchWin ? key : null;
+        if (clutchWin) key = "clutch";
+        CancelStatus("round ended");
         ClearPendingCallout("round ended");
         if (Time.realtimeSinceStartup < _calloutBusyUntil)
         {
             if (_pendingResultKey == null)
             {
                 _pendingResultKey = key;
+                _pendingResultFallbackKey = fallbackKey;
                 Plugin.ModLogger.LogInfo($"Arena announcer result queued: '{key}', "
                     + $"waitMs={Number((_calloutBusyUntil - Time.realtimeSinceStartup) * 1000f)}.");
             }
@@ -330,8 +382,23 @@ internal static class AnnouncerService
             }
             return;
         }
+        StartCallout(key, fallbackKey);
+    }
 
-        Receive(key, out _);
+    private static void ClearPendingStatus(string reason)
+    {
+        if (AnnouncerCueCatalog.IsStatus(_pendingCalloutKey)) ClearPendingCallout(reason);
+    }
+
+    private static void CancelStatus(string reason)
+    {
+        ClearPendingStatus(reason);
+        if (!AnnouncerCueCatalog.IsStatus(_activeKey) && !AnnouncerCueCatalog.IsCountdown(_activeKey)) return;
+        // Only our owned output can be stopped safely. Legacy GUISounds shares
+        // its source with buttons and other UI; do not stop somebody else's sound.
+        if (!Settings.AnnouncerUseUiVolume.Value) ArenaAnnouncerOutput.Reset();
+        _activeKey = null;
+        _calloutBusyUntil = 0f;
     }
 
     /// <summary>
@@ -341,11 +408,19 @@ internal static class AnnouncerService
     /// </summary>
     internal static void Tick()
     {
+        _clutchArmed = false;
+        // Fresh mode state must invalidate pending status before it can drain.
+        ArenaAnnouncementDirector.Tick();
         ArenaAnnouncerOutput.Tick(_match != null && Settings.AnnouncerEnabled.Value
-            && !Settings.AnnouncerUseUiVolume.Value, Settings.AnnouncerVolume.Value);
+            && Settings.AnnouncerVolume.Value > 0f && !Settings.AnnouncerUseUiVolume.Value, Settings.AnnouncerVolume.Value);
         if (_match != null && (!Settings.AnnouncerEnabled.Value || Settings.AnnouncerVolume.Value <= 0f))
         {
             CancelPendingResult("announcer muted");
+            return;
+        }
+        if (_match != null && AudioListener.pause)
+        {
+            CancelStatus("listener paused");
             return;
         }
         if (_match == null || Time.realtimeSinceStartup < _calloutBusyUntil)
@@ -354,9 +429,10 @@ internal static class AnnouncerService
         if (_pendingResultKey != null)
         {
             string key = _pendingResultKey;
+            string fallbackKey = _pendingResultFallbackKey;
             ClearPendingResult();
             Plugin.ModLogger.LogInfo($"Arena announcer queued result released: '{key}'.");
-            StartCallout(key);
+            StartCallout(key, fallbackKey);
         }
         else if (_pendingCalloutKey != null)
         {
@@ -371,6 +447,7 @@ internal static class AnnouncerService
     private static void CancelPendingResult(string reason)
     {
         ClearPendingCallout(reason);
+        _clutchArmed = false;
         string key = _pendingResultKey;
         ClearPendingResult();
         if (key != null)
@@ -384,6 +461,8 @@ internal static class AnnouncerService
     private static void ClearPendingResult()
     {
         _pendingResultKey = null;
+        _pendingResultFallbackKey = null;
+        _activeKey = null;
         _calloutBusyUntil = 0f;
     }
 

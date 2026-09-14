@@ -4,7 +4,7 @@ using ArenaMode.Kits;
 using ArenaMode.Combat;
 using EFT;
 namespace ArenaMode.Modes;
-public enum ArenaAnnouncerCue { RoundStart }
+public enum ArenaAnnouncerCue { RoundStart, RoundWon, RoundLost, MatchWon, MatchLost, Draw, Clutch }
 public enum TeamArenaRoundContinuation { RebindNextRound }
 public partial class ArenaMatch
 {
@@ -37,6 +37,7 @@ public partial class TacticalMode
     public int RoundsWon=>Wins; public int RoundsLost=>Losses;
     public int Wins,Losses;
     public Phase CurrentPhase=>_phase;
+    public bool IsTeamArena=>_teamArena;
     public int SquadAlive=>_squad.Count(x=>x?.HealthController?.IsAlive==true);
     public bool WaitingForKitSwap=>false;
     public float PhaseRemaining=>Math.Max(0,_phaseEndsAt-UnityEngine.Time.time);

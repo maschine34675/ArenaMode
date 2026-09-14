@@ -6,6 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Audio/AnnouncerCueCatalog.cs"
+             Link="Production/AnnouncerCueCatalog.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs"
+             Link="Production/ArenaAnnouncerCue.cs" />
     <Compile Include="../../ArenaMode.Client/Spectator/SpectatorPolicy.cs"
              Link="Production/SpectatorPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TeamArenaRoundPolicy.cs"

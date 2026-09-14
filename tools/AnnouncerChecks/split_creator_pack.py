@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+from optional_runtime_keys import runtime_key
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / 'artifacts/creator-announcer/pack'
@@ -86,6 +87,9 @@ def main():
             'eventKey': out.stem if number <= 18 else None,
             'startFrame': start, 'endFrameExclusive': end,
             'durationSeconds': duration, 'sha256': sha(out.read_bytes())})
+        key = runtime_key(relative)
+        if key is not None:
+            manifest['files'][-1]['runtimeEventKey'] = key
         print(f'{number:02d} {label} -> {relative}: {duration:.3f} s')
     (OUTPUT / 'ANNOUNCER-SOURCES.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
     print('CREATOR_PACK_SPLIT: review files before copying to the repository')

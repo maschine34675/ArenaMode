@@ -7,11 +7,16 @@ dotnet run --project tools/AnnouncerChecks -c Release
 pwsh -NoProfile -File tools/AnnouncerChecks/Verify-Regression.ps1
 ```
 
-The harness compiles the actual `AnnouncerService.cs` and `ArenaAnnouncerOutput.cs`. Only external game,
+The harness compiles the actual `AnnouncerService.cs`, `AnnouncerCueCatalog.cs`
+and `ArenaAnnouncerOutput.cs`. Only external game,
 Unity audio, transport, configuration and logging dependencies are stand-ins.
 It drives `EnsureLoaded`, `Attach`, `Detach` and match callout events; assertions
 observe native playback requests, transport requests, clips and logs rather than
 private cache/loading flags.
+
+The director itself is a controlled boundary here, with assertions that the
+exact attached match is forwarded and director invalidation runs before queue
+drain. Its production progress policy and mode adapters have separate checks.
 
 Coverage includes:
 
@@ -44,6 +49,23 @@ Coverage includes:
   every event produces at most one native request.
 - Requested WARLORD award keys, priority/coalescing of rapid awards, bounded
   four-second pending age, and match results superseding pending situation cues.
+- Explicit loading of 19 optional reserve basenames; 4 alternate result and 5
+  CTF recordings stay unused. Nested files cannot enter the cache. Existing root
+  customization wins a same-name optional file once. Original pack intake
+  `usage` and `eventKey` remain unchanged; selected rows add `runtimeEventKey`.
+- Multi-kills outrank sprees in either arrival order. One pending phrase is
+  shared between combat awards and lower-priority status, with only two seconds
+  allowed for status. Current results cancel pending status and preserve the
+  existing result/kill serialization and highest-priority awards.
+- Countdown digits never queue or replay late; representative recorded digit
+  lengths fit one-second updates without the combat-callout gap. Readiness loss,
+  new rounds, results, mute, zero volume, pause and detach cancel stale status.
+  Cancellation stops only the owned Master output. The optional legacy shared
+  GUI source is never forcibly stopped, so a started legacy phrase may finish.
+- Clutch consumes only the immediately preceding, same-frame hint for an actual
+  RoundWon/MatchWon event. Other subscribers retain that original lifecycle
+  event. Missing or unmaterializable Clutch falls back to the established win
+  recording; unpaired, delayed and losing outcomes cannot inherit the hint.
 - A Tactical result arriving while a successfully requested kill callout plays
   waits for that clip's actual duration plus a short gap on either selected route.
   The controlled per-frame tick drains a result or one pending award; round start
@@ -80,6 +102,16 @@ source-contract check requires the managed PCM/rebuild guards and rejects a
 decoder-owned durable cache along with BetterAudio, reflection, priority-lease
 and output-watchdog machinery. The owned Master source is deliberately confined
 to the small output adapter. No test replaces a
-production file; hash checks verify both sources stayed unchanged, and the
+production file; hash checks verify all three sources stayed unchanged, and the
 unchanged service is tested again afterward. Temporary negative-test evidence
 is retained in the printed directory.
+
+Expansion faults deliberately reintroduce recursive/colliding loads, reverse
+multi/spree priority, queue countdown digits, extend status lifetime, remove
+status/director cancellation, weaken Clutch pairing/fallback, restore the extra
+digit gap and let volume-zero revive a canceled owned countdown. Every fault
+must reach its named failed assertion. The same regression entry point verifies
+all 46 encoded hashes and decoded signals, exact optional metadata, unchanged
+reviewed cuts/intake, and seven rejecting metadata faults. Python and FFmpeg /
+ffprobe are required for that real-asset check. The splitter reproduces the
+new integration metadata without changing its cut or encoding procedure.
