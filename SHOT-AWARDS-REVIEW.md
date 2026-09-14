@@ -1,14 +1,16 @@
 # Shot-time announcer awards (2026-09-14)
 
 Presentation-only extension of `ANNOUNCER-EXPANSION-REVIEW.md`, developed on
-`feature/additional-announcer-lines`. No score bonuses, weapon behavior,
-movement restrictions, damage, profile or respawn changes. No live deployment.
+`feature/additional-announcer-lines` and integrated on main. No score bonuses,
+weapon behavior, movement restrictions, damage, profile or respawn changes.
+See dated HANDOFF entries for actual deployment bindings; older counts below
+describe the original shot-award implementation.
 
 ## Behavior
 
 | HUD award | Required state at firing |
 | --- | --- |
-| TRICKSHOT | Local firearm bullet, airborne (jump or fall), without aiming |
+| TRICKSHOT | Local firearm bullet, at least 0.5 seconds continuously airborne (jump or fall) before firing, without aiming |
 | NO SCOPE | Local firearm bullet, native `Weapon.BoltAction`, without aiming |
 
 The bullet must directly kill an eligible enemy. No headshot or one-hit kill is
@@ -17,6 +19,26 @@ ambiguous grounded/near-ground states. A scope attachment is not required for
 NO SCOPE. Underbarrel weapons and grenade launchers are excluded. A later
 landing, ADS change or weapon swap does not change the recorded facts. Bleeding,
 explosions and other delayed damage never borrow the previous shot's award.
+
+The stricter flight clock observes `MovementContext.CheckFlying(float)` after
+native ground refresh, independently of Arena movement settings. It starts with
+the first confirmed airborne observation; either grounded flag, vaulting,
+supported/stationary weapon use or a dead body clears it. Double-jump without
+ground contact does not reset it. Scaled game time excludes time spent paused.
+Body, movement context, game, world and award-round identities must still match
+at firing. Invalid/backwards clocks and stale observations restart measurement.
+Freshness tolerates two actual movement/render timesteps (at least 0.1 seconds),
+so low framerates still work; this is an observation-based clock, not continuous
+physics proof between updates. Native `FreefallTime` is intentionally unused:
+it can reset near the jump apex or stalled vertical motion.
+
+Threshold revision checks: 177 executable adapter assertions, 55 native/source
+contracts, six compiled fault controls including restoration of instant-airborne
+eligibility. The 0.499/0.500 boundary, landing, pause, slow updates, identity and
+round changes, early shot/late impact and unchanged No Scope behavior passed.
+Independent adversarial review found no blocking issue; native raid feel remains
+a user test. HUD/key stays TRICKSHOT / `trickshot`; AIRBORNE! is a proposed future
+recording, not a newly supplied audio asset.
 
 One label per kill, in this order: First Blood, Payback, Shutdown, multi-kill,
 TRICKSHOT, NO SCOPE, spree, single-hit Headshot. An airborne bolt-action hip-fire
@@ -96,8 +118,9 @@ pwsh -NoProfile -File tools/ShotAwardIntegrationChecks/Verify.ps1
 pwsh -NoProfile -File tools/DoubleJumpChecks/Build-Staged.ps1
 ```
 
-After merging with the parallel respawn changes and rebuilding the combined
-client, test a normal grounded hip-fire kill, an airborne hip-fire kill, an
+Use the current combined client binding from HANDOFF. Test a normal grounded
+hip-fire kill, short-step/early-jump kills below 0.5 seconds, a sustained airborne
+hip-fire kill after 0.5 seconds (including double-jump without landing), an
 airborne ADS kill, and bolt-action hip-fire/ADS kills. Consume First Blood first
 and leave more than four seconds between kills when testing the special labels,
 so a higher-priority award does not mask them. Repeat after respawn and a round

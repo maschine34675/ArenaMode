@@ -18,7 +18,7 @@ internal static class Program
         internal Player.FirearmController Gun;
         internal ClientGameWorld World;
         internal LocalGame Game;
-        internal Fixture()
+        internal Fixture(bool matureFlight = true)
         {
             ArenaShotAwardHooks.Reset();
             ArenaHitHistory.Reset();
@@ -32,6 +32,22 @@ internal static class Program
             ArenaSession.Game = Game;
             ArenaSession.World = World;
             ArenaMatchService.Current = new();
+            UnityEngine.Time.time = 0f;
+            UnityEngine.Time.deltaTime = 0.1f;
+            if (matureFlight) FlyUntil(0.5f);
+        }
+        internal void Observe(float at, float deltaTime = 0.1f)
+        {
+            UnityEngine.Time.time = at;
+            UnityEngine.Time.deltaTime = deltaTime;
+            PatchMethod("FlightPatch", "Postfix").Invoke(null, new object[] { Local.MovementContext, deltaTime });
+        }
+        internal void FlyUntil(float end)
+        {
+            float start = UnityEngine.Time.time;
+            Observe(start);
+            for (int step = 1; start + step * 0.05f < end; step++) Observe(start + step * 0.05f);
+            Observe(end);
         }
         internal Shot Raw(int fire = 11, Shot parent = null) => new()
         {
@@ -90,13 +106,16 @@ internal static class Program
 
     private static void NativeBoundary()
     {
-        Check(ModulePatch.Targets.Count == 3, "all three native hook targets registered");
+        Check(ModulePatch.Targets.Count == 4, "all four native hook targets registered");
         Check(ModulePatch.Targets[0].DeclaringType == typeof(Player.FirearmController)
             && ModulePatch.Targets[0].Name == "InitiateShot", "fire hook targets actual initiation");
         Check(ModulePatch.Targets[1].DeclaringType == typeof(Shot)
             && ModulePatch.Targets[1].Name == "Create", "creation hook targets pooled creation");
         Check(ModulePatch.Targets[2].DeclaringType == typeof(ClientGameWorld)
             && ModulePatch.Targets[2].Name == "ShotDelegate", "impact hook targets local world override");
+        Check(ModulePatch.Targets[3].DeclaringType == typeof(MovementContext)
+            && ModulePatch.Targets[3].Name == "CheckFlying", "flight observation follows native ground refresh");
+        Check(PatchMethod("FlightPatch", "Postfix").IsDefined(typeof(PatchPostfixAttribute)), "flight observer is postfix only");
         foreach (var patch in new[] { "FirePatch", "ImpactPatch" })
         {
             Check(PatchMethod(patch, "Prefix").IsDefined(typeof(PatchPrefixAttribute)), patch + " has prefix attribute");
@@ -143,6 +162,82 @@ internal static class Program
         ArenaShotAwardHooks.Created(later);
         Check(!landed.Impact(later).IsKnown, "creation outside actual fire cannot borrow a previous shot");
     }
+    private static void Airtime()
+    {
+        foreach (float elapsed in new[] { 0f, 0.01f, 0.25f, 0.499f, 0.5f, 0.75f })
+        {
+            var f = new Fixture(false); f.FlyUntil(elapsed);
+            var facts = f.Impact(f.Fire());
+            Check(facts.AirborneHipFire == (elapsed >= 0.5f), "airtime threshold is inclusive and rejects short drops");
+            Check(facts.BoltActionHipFire, "short flight does not suppress independently proven no scope");
+        }
+        var absent = new Fixture(false); UnityEngine.Time.time = 5f;
+        Check(!absent.Impact(absent.Fire()).AirborneHipFire, "no observed flight cannot qualify from process age");
+        var early = new Fixture(false); early.FlyUntil(0.25f); var earlyShot = early.Fire(); early.FlyUntil(0.75f);
+        Check(!early.Impact(earlyShot).AirborneHipFire, "later airtime before impact cannot promote an early shot");
+        Check(early.Impact(early.Fire(12)).AirborneHipFire, "continuous flight survives another shot and airborne impulse");
+        foreach (bool movementGround in new[] { true, false })
+        {
+            var f = new Fixture();
+            f.Local.MovementContext.IsGrounded = movementGround;
+            f.Local.CharacterController.isGrounded = !movementGround;
+            f.Observe(0.55f);
+            f.Local.MovementContext.IsGrounded = f.Local.CharacterController.isGrounded = false;
+            f.FlyUntil(0.75f);
+            Check(!f.Impact(f.Fire()).AirborneHipFire, "either grounding signal restarts continuous flight");
+        }
+        foreach (Action<Fixture> invalidate in new Action<Fixture>[]
+        {
+            f => { f.Local = new Player { HandsController = f.Gun }; f.Gun._player = f.Local; f.World.MainPlayer = f.Game.LocalPlayer = f.Local; },
+            f => f.Local.MovementContext = new MovementContext(),
+            f => { f.World = new ClientGameWorld { MainPlayer = f.Local }; Singleton<GameWorld>.Instance = f.World; ArenaSession.World = f.World; },
+            f => { f.Game = new LocalGame { LocalPlayer = f.Local, Status = GameStatus.Started }; Singleton<AbstractGame>.Instance = f.Game; ArenaSession.Game = f.Game; },
+            f => ArenaShotAwardHistory.Reset()
+        })
+        {
+            var f = new Fixture(); invalidate(f);
+            Check(!f.Impact(f.Fire()).AirborneHipFire, "changed body context world game or round cannot inherit flight");
+            f.FlyUntil(1f);
+            Check(f.Impact(f.Fire(12)).AirborneHipFire, "fresh identity can earn a new full flight");
+        }
+        foreach (Action<Fixture> block in new Action<Fixture>[]
+        {
+            f => f.Local.MovementContext.Vaulting = true,
+            f => f.Local.MovementContext.IsInMountedState = true,
+            f => f.Local.MovementContext.IsStationaryWeaponInHands = true,
+            f => f.Local.HealthController.IsAlive = false
+        })
+        {
+            var f = new Fixture(); block(f); f.Observe(0.55f);
+            Check(!f.Impact(f.Fire()).AirborneHipFire, "vault mounted stationary or dead body cannot earn flight");
+        }
+        var bot = new Fixture();
+        ArenaShotAwardHooks.ObserveFlight(new MovementContext { IsGrounded = true }, 0.1f);
+        Check(bot.Impact(bot.Fire()).AirborneHipFire, "unrelated bot ground update cannot erase local flight");
+        var paused = new Fixture(false); paused.FlyUntil(0.25f);
+        for (int n = 0; n < 20; n++) paused.Observe(0.25f, 0f);
+        Check(!paused.Impact(paused.Fire()).AirborneHipFire, "paused scaled clock does not grant airtime");
+        paused.FlyUntil(0.5f);
+        Check(paused.Impact(paused.Fire(12)).AirborneHipFire, "unpaused continuous flight resumes timing");
+        var stale = new Fixture(); UnityEngine.Time.time = 2f;
+        Check(!stale.Impact(stale.Fire()).AirborneHipFire, "stale movement observation cannot qualify a shot");
+        stale.Observe(2f);
+        Check(!stale.Impact(stale.Fire(12)).AirborneHipFire, "resumed observation starts a fresh flight");
+        var gap = new Fixture(); gap.Observe(2f);
+        Check(!gap.Impact(gap.Fire()).AirborneHipFire, "unobserved movement gap resets flight even before firing");
+        var slow = new Fixture(false); slow.Observe(0f, 0.25f); slow.Observe(0.25f, 0.25f); slow.Observe(0.5f, 0.25f);
+        Check(slow.Impact(slow.Fire()).AirborneHipFire, "real slow movement steps still count simulation time");
+        foreach (float invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, -1f })
+        {
+            var f = new Fixture(); f.Observe(invalid);
+            Check(!f.Impact(f.Fire()).AirborneHipFire, "invalid or backwards clock cannot grant flight");
+            f = new Fixture(); f.Observe(0.6f, invalid);
+            Check(!f.Impact(f.Fire()).AirborneHipFire, "invalid movement timestep clears flight");
+        }
+        var reset = new Fixture(); ArenaShotAwardHooks.Reset();
+        Check(!reset.Impact(reset.Fire()).AirborneHipFire, "raid reset removes observed flight");
+    }
+
     private static void Admission()
     {
         var cases = new (string Label, Action<Fixture> Change)[]
@@ -317,7 +412,7 @@ internal static class Program
             ArenaShotAwardHooks.Enable();
             var suites = new Dictionary<string, Action>
             {
-                ["boundary"] = NativeBoundary, ["conditions"] = Conditions, ["admission"] = Admission,
+                ["boundary"] = NativeBoundary, ["conditions"] = Conditions, ["airtime"] = Airtime, ["admission"] = Admission,
                 ["correlation"] = Correlation, ["lifetime"] = Lifetime, ["finalizers"] = Finalizers
             };
             foreach (var suite in suites)

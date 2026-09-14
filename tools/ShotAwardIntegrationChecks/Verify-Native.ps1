@@ -39,6 +39,13 @@ try {
     $bolt = Native-Method 'EFT.InventoryLogic.Weapon' 'get_BoltAction' @()
     Assert-Contract (@($bolt.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.FieldReference] -and $_.Operand.Name -eq 'BoltAction' }).Count -eq 1) 'bolt-action identity reads template flag'
     $ground = Native-Method 'EFT.MovementContext' 'get_IsGrounded' @()
+    $flight = Native-Method 'EFT.MovementContext' 'CheckFlying' @('System.Single')
+    $groundRefresh = Native-Method 'EFT.MovementContext' 'UpdateGroundCollision' @('System.Single')
+    Assert-Contract (Has-Call $groundRefresh 'EFT.MovementContext' 'CheckFlying') 'flight sample follows common native ground refresh'
+    foreach ($name in @('PlayerAnimatorGetIsVaulting','get_IsInMountedState','get_IsStationaryWeaponInHands')) {
+        $state = Native-Method 'EFT.MovementContext' $name @()
+        Assert-Contract ($state.ReturnType.FullName -eq 'System.Boolean') "$name provides actual supported-state exclusion"
+    }
     Assert-Contract ($ground.ReturnType.FullName -eq 'System.Boolean') 'native movement ground state is boolean'
     $createMethods = @((Native-Type 'EFT.Ballistics.Shot').Methods | Where-Object { $_.IsPublic -and $_.IsStatic -and $_.Name -eq 'Create' -and $_.ReturnType.FullName -eq 'EFT.Ballistics.Shot' })
     Assert-Contract ($createMethods.Count -eq 1) 'creation hook unique native selector'

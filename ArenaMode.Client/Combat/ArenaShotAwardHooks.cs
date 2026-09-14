@@ -25,6 +25,14 @@ internal static class ArenaShotAwardHooks
     private static bool _enabled, _warned;
     private static FireScope _fire;
     private static ImpactScope _impact;
+    internal const float MinimumAirborneSeconds = 0.5f;
+    private static FlightObservation _flight;
+
+    private struct FlightObservation
+    {
+        internal long Body, Context, World, Game, Epoch;
+        internal float StartedAt, LastAt, LastStep;
+    }
 
     internal static void Enable()
     {
@@ -35,6 +43,7 @@ internal static class ArenaShotAwardHooks
             new FirePatch().Enable();
             new CreatePatch().Enable();
             new ImpactPatch().Enable();
+            new FlightPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -44,6 +53,7 @@ internal static class ArenaShotAwardHooks
     {
         _fire = null;
         _impact = null;
+        _flight = default;
         ArenaShotAwardHistory.Reset();
     }
 
@@ -77,7 +87,7 @@ internal static class ArenaShotAwardHooks
         _fire = scope;
         try
         {
-            if (!TryLocal(out _, out var local) || !ReferenceEquals(Owner(firearm), local)
+            if (!TryLocal(out var world, out var local) || !ReferenceEquals(Owner(firearm), local)
                 || local.HealthController?.IsAlive != true
                 || !ReferenceEquals(local.HandsController, firearm)
                 || weapon == null || weapon.IsUnderbarrelWeapon
@@ -86,12 +96,62 @@ internal static class ArenaShotAwardHooks
             scope.BodyId = ArenaHitHistory.BodyId(local);
             scope.WeaponId = actual.Id;
             scope.Known = true;
-            scope.Airborne = local.MovementContext != null && local.CharacterController != null
-                && !local.MovementContext.IsGrounded && !local.CharacterController.isGrounded;
+            scope.Airborne = HasQualifiedFlight(world, local);
             scope.BoltAction = actual.BoltAction;
         }
         catch (Exception ex) { scope.Known = false; Warn(ex); }
         return scope;
+    }
+
+    // Native FreefallTime resets at stalled height/apex and is shared with
+    // gravity. Observe the refreshed ground state without changing movement.
+    internal static void ObserveFlight(MovementContext context, float deltaTime)
+    {
+        if (!_enabled || !ArenaSession.IsActive) { _flight = default; return; }
+        try
+        {
+            if (!TryLocal(out var world, out var local)) { _flight = default; return; }
+            if (!ReferenceEquals(context, local.MovementContext)) return; // Bot updates cannot reset local flight.
+            float now = Time.time;
+            if (!IsFreeFlight(local) || !Finite(now) || !Finite(deltaTime) || deltaTime < 0f)
+            { _flight = default; return; }
+            if (!SameFlight(world, local) || !FreshFlight(now, deltaTime))
+                _flight = new FlightObservation
+                {
+                    Body = ArenaHitHistory.BodyId(local), Context = ArenaHitHistory.BodyId(context),
+                    World = ArenaHitHistory.BodyId(world), Game = ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance),
+                    Epoch = ArenaShotAwardHistory.CurrentEpoch, StartedAt = now
+                };
+            _flight.LastAt = now;
+            _flight.LastStep = deltaTime;
+        }
+        catch (Exception ex) { _flight = default; Warn(ex); }
+    }
+
+    private static bool IsFreeFlight(Player local)
+        => local.HealthController?.IsAlive == true && local.MovementContext != null && local.CharacterController != null
+            && !local.MovementContext.IsGrounded && !local.CharacterController.isGrounded
+            && !local.MovementContext.PlayerAnimatorGetIsVaulting()
+            && !local.MovementContext.IsInMountedState && !local.MovementContext.IsStationaryWeaponInHands;
+
+    private static bool SameFlight(GameWorld world, Player local)
+        => _flight.Body != 0 && _flight.Epoch == ArenaShotAwardHistory.CurrentEpoch
+            && _flight.Body == ArenaHitHistory.BodyId(local) && _flight.Context == ArenaHitHistory.BodyId(local.MovementContext)
+            && _flight.World == ArenaHitHistory.BodyId(world) && _flight.Game == ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance);
+
+    private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private static bool FreshFlight(float now, float step)
+        // Permit fixed/render update ordering and a slow actual movement step;
+        // missing movement observations must not age into a qualifying flight.
+        => Finite(now) && Finite(step) && step >= 0f && now >= _flight.LastAt
+            && now - _flight.LastAt <= Math.Max(0.1f, 2f * Math.Max(step, _flight.LastStep));
+
+    private static bool HasQualifiedFlight(GameWorld world, Player local)
+    {
+        if (!IsFreeFlight(local) || !SameFlight(world, local) || !FreshFlight(Time.time, Time.deltaTime))
+        { _flight = default; return false; }
+        return Time.time - _flight.StartedAt >= MinimumAirborneSeconds;
     }
 
     internal static void Created(Shot shot)
@@ -195,6 +255,14 @@ internal static class ArenaShotAwardHooks
         [PatchFinalizer]
         private static Exception Finalizer(Exception __exception, IDisposable __state)
         { __state?.Dispose(); return __exception; }
+    }
+
+    private sealed class FlightPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(MovementContext), nameof(MovementContext.CheckFlying), new[] { typeof(float) });
+        [PatchPostfix]
+        private static void Postfix(MovementContext __instance, float deltaTime) => ObserveFlight(__instance, deltaTime);
     }
 
     private sealed class CreatePatch : ModulePatch
