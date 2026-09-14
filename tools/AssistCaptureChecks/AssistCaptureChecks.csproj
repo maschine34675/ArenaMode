@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssistSourceRoot Condition="'$(AssistSourceRoot)' == ''">../../ArenaMode.Client/Combat</AssistSourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs"/><Compile Include="Doubles.cs"/>
+    <Compile Include="$(AssistSourceRoot)/ArenaAssistCapture.cs" Link="Production/ArenaAssistCapture.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaCombatAwards.cs" Link="Production/ArenaCombatAwards.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaHitHistory.cs" Link="Production/ArenaHitHistory.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaShotAwardHistory.cs" Link="Production/ArenaShotAwardHistory.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs"/>
+  </ItemGroup>
+</Project>

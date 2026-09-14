@@ -72,6 +72,7 @@ public sealed class ArenaScoreboardEntry
     public int Score { get; internal set; }
     public int Kills { get; internal set; }
     public int Deaths { get; internal set; }
+    public int Assists { get; internal set; }
     public int Headshots { get; internal set; }
     public int Streak { get; internal set; }
     public int BestStreak { get; internal set; }
@@ -82,22 +83,25 @@ public sealed class ArenaScoreboardEntry
     // physical life can make its eventual victim eligible for Shutdown.
     internal long AwardBodyId { get; set; }
     internal int AwardLifeStreak { get; set; }
+    internal bool IsArchived { get; set; }
 }
 
 public readonly struct ArenaScoreboardTotals
 {
-    public ArenaScoreboardTotals(int score, int kills, int deaths, int headshots)
+    public ArenaScoreboardTotals(int score, int kills, int deaths, int headshots, int assists = 0)
     {
         Score = score;
         Kills = kills;
         Deaths = deaths;
         Headshots = headshots;
+        Assists = assists;
     }
 
     public int Score { get; }
     public int Kills { get; }
     public int Deaths { get; }
     public int Headshots { get; }
+    public int Assists { get; }
 }
 
 /// <summary>
@@ -129,6 +133,23 @@ public sealed class ArenaScoreboard
     private int _nextOrder;
     private int _historicalParticipantCount;
     private int _archivedParticipantCount;
+    private const int AssistVictimLimit = 128;
+    private const int AssistContributorLimit = 128;
+    private readonly Dictionary<long, AssistVictim> _assistVictims = new();
+    private bool _assistOverflow;
+
+    private sealed class AssistVictim
+    {
+        internal double TotalDamage;
+        internal bool Invalid;
+        internal readonly Dictionary<string, AssistContribution> Contributors = new(StringComparer.Ordinal);
+    }
+
+    private sealed class AssistContribution
+    {
+        internal ArenaScoreboardEntry Entry;
+        internal double Damage;
+    }
 
     public ArenaScoreboard(string localProfileId, string localDisplayName, string localRoleLabel)
     {
@@ -225,7 +246,11 @@ public sealed class ArenaScoreboard
     /// </summary>
     public void ReportKill(ArenaKill kill)
     {
-        if (kill == null || (!kill.ScoreEligible
+        if (kill == null) return;
+        kill.Assists = Array.Empty<ArenaAssist>();
+        _assistVictims.TryGetValue(kill.VictimBodyId, out var contribution);
+        _assistVictims.Remove(kill.VictimBodyId); // Every settlement consumes the physical life, even rejected kills.
+        if ((!kill.ScoreEligible
                             && !kill.KillerIsFriendly.HasValue && !kill.VictimIsFriendly.HasValue))
             return;
 
@@ -271,6 +296,9 @@ public sealed class ArenaScoreboard
             if (killer.Streak > 0 && killer.Streak % ScoreRules.StreakBonusEvery == 0)
                 points += ScoreRules.StreakBonus;
             killer.Score += points;
+            if (kill.AwardEligible && kill.KillerBodyId != 0 && kill.VictimBodyId != 0
+                && kill.KillerBodyId != kill.VictimBodyId)
+                kill.Assists = SettleAssists(contribution, killer, victim, kill);
         }
 
         if (!kill.LocalIsVictim)
@@ -283,6 +311,86 @@ public sealed class ArenaScoreboard
         }
 
         Version++;
+    }
+
+    internal void RecordAssistDamage(ArenaAssistDamage damage)
+    {
+        if (_assistOverflow || damage == null || damage.VictimBodyId == 0
+            || damage.Damage <= 0d || double.IsNaN(damage.Damage) || double.IsInfinity(damage.Damage)) return;
+        if (!_assistVictims.TryGetValue(damage.VictimBodyId, out var victim))
+        {
+            if (_assistVictims.Count >= AssistVictimLimit)
+            {
+                // Dropping only some denominator entries would inflate later shares.
+                // Stop this round's optional rewards instead; normal kill scoring is unaffected.
+                _assistOverflow = true;
+                _assistVictims.Clear();
+                return;
+            }
+            _assistVictims.Add(damage.VictimBodyId, victim = new AssistVictim());
+        }
+        victim.TotalDamage += damage.Damage;
+        if (double.IsInfinity(victim.TotalDamage)) victim.Invalid = true;
+        if (victim.Invalid || damage.AttackerBodyId == 0 || damage.AttackerBodyId == damage.VictimBodyId) return;
+        string profile = Normalize(damage.AttackerProfileId);
+        // Only established roster identities can receive assists. Damage must not
+        // invent a temporary ordinary-bot row for an authenticated PFT companion.
+        if (profile == null || !_entriesByProfile.TryGetValue(profile, out var entry)
+            || damage.AttackerIsLocal != entry.IsLocal
+            || (damage.AttackerIsFriendly.HasValue
+                && (entry.Side == ArenaScoreboardSide.Friendly) != damage.AttackerIsFriendly.Value)) return;
+        if (!victim.Contributors.TryGetValue(entry.Key, out var contribution))
+        {
+            if (victim.Contributors.Count >= AssistContributorLimit)
+            { victim.Invalid = true; victim.Contributors.Clear(); return; }
+            victim.Contributors.Add(entry.Key, contribution = new AssistContribution { Entry = entry });
+        }
+        contribution.Damage += damage.Damage;
+    }
+
+    internal void ForgetAssistVictim(long bodyId) => _assistVictims.Remove(bodyId);
+
+    internal void ResetAssists()
+    {
+        _assistVictims.Clear();
+        _assistOverflow = false;
+    }
+
+    private IReadOnlyList<ArenaAssist> SettleAssists(AssistVictim contribution,
+        ArenaScoreboardEntry killer, ArenaScoreboardEntry victim, ArenaKill kill)
+    {
+        if (contribution == null || contribution.Invalid || contribution.TotalDamage <= 0d)
+            return Array.Empty<ArenaAssist>();
+        var rewards = new List<ArenaAssist>();
+        foreach (var pair in contribution.Contributors)
+        {
+            var captured = pair.Value.Entry;
+            // A late projectile can recreate the same ordinary participant after
+            // compaction. Accumulate/round once by key and credit its current row,
+            // or the archived totals when no row remains.
+            var entry = _entriesByKey.TryGetValue(pair.Key, out var current) ? current : captured;
+            if (entry.IsLocal != captured.IsLocal || entry.Side != captured.Side) continue;
+            // Resolve may recreate an already archived ordinary shooter's row
+            // for a delayed grenade. Its immutable key still denotes the same
+            // contestant; object identity alone would award a self-assist.
+            if (string.Equals(entry.Key, killer.Key, StringComparison.Ordinal)
+                || string.Equals(entry.Key, victim.Key, StringComparison.Ordinal)) continue;
+            int points = ScoreRules.AssistPointsFor(kill.VictimRole, pair.Value.Damage, contribution.TotalDamage);
+            if (points <= 0) continue;
+            entry.Score += points;
+            entry.Assists++;
+            if (entry.IsArchived)
+            {
+                // An earlier helper may have died and been compacted while its
+                // victim survived. Preserve exact team totals without recreating it.
+                var archived = entry.Side == ArenaScoreboardSide.Friendly ? _archivedFriendly : _archivedOpponent;
+                archived.Score += points;
+                archived.Assists++;
+            }
+            rewards.Add(new ArenaAssist(entry.Key, entry.DisplayName, entry.IsLocal,
+                kill.VictimBodyId, points, pair.Value.Damage / contribution.TotalDamage));
+        }
+        return rewards;
     }
 
     /// <summary>Presentation-only read performed before ReportKill retires the victim.</summary>
@@ -383,6 +491,7 @@ public sealed class ArenaScoreboard
         int kills = archived.Kills;
         int deaths = archived.Deaths;
         int headshots = archived.Headshots;
+        int assists = archived.Assists;
         if (side == ArenaScoreboardSide.Opponent)
         {
             kills += _opponentForfeitKills;
@@ -397,9 +506,10 @@ public sealed class ArenaScoreboard
             kills += entry.Kills;
             deaths += entry.Deaths;
             headshots += entry.Headshots;
+            assists += entry.Assists;
         }
 
-        return new ArenaScoreboardTotals(score, kills, deaths, headshots);
+        return new ArenaScoreboardTotals(score, kills, deaths, headshots, assists);
     }
 
     public ArenaScoreboardEntry Leader(ArenaScoreboardSide side)
@@ -750,6 +860,7 @@ public sealed class ArenaScoreboard
             ? _archivedFriendly
             : _archivedOpponent;
         totals.Add(entry);
+        entry.IsArchived = true;
         _entriesByKey.Remove(entry.Key);
         _currentRoster.Remove(entry);
 
@@ -802,6 +913,7 @@ public sealed class ArenaScoreboard
         internal int Kills;
         internal int Deaths;
         internal int Headshots;
+        internal int Assists;
 
         internal void Add(ArenaScoreboardEntry entry)
         {
@@ -809,6 +921,7 @@ public sealed class ArenaScoreboard
             Kills += entry.Kills;
             Deaths += entry.Deaths;
             Headshots += entry.Headshots;
+            Assists += entry.Assists;
         }
     }
 

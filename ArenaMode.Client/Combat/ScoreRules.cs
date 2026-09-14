@@ -43,6 +43,15 @@ public static class ScoreRules
         }
     }
 
+    /// <summary>Base-value contribution only; the final killer keeps existing bonuses.</summary>
+    public static int AssistPointsFor(ArenaRole role, double damage, double totalDamage)
+    {
+        if (double.IsNaN(damage) || double.IsInfinity(damage) || damage <= 0d
+            || double.IsNaN(totalDamage) || double.IsInfinity(totalDamage) || totalDamage <= 0d
+            || damage > totalDamage) return 0;
+        return (int)System.Math.Floor(PointsFor(role) * (damage / totalDamage));
+    }
+
     public static string MultiKillLabel(int chain)
     {
         switch (chain)

@@ -64,6 +64,8 @@ public sealed partial class GunGameMode : IArenaMode
 
     /// <summary>The ladder restarts instead of ending the raid — see OnKill.</summary>
     public bool IsComplete => false;
+    internal bool AssistScoringOpen => !_givenUp && !_preloading && _ladder.Count > 0
+        && ReferenceEquals(ArenaMatchService.Current, _match);
 
     public int Tier => _tier;
 

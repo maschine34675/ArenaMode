@@ -1,4 +1,6 @@
 #nullable disable
+using System;
+using System.Collections.Generic;
 
 namespace ArenaMode.Combat;
 
@@ -55,4 +57,34 @@ public sealed class ArenaKill
 
     /// <summary>Time.time at capture.</summary>
     public float Time;
+
+    /// <summary>Settled match-local contributions; never additional kill events.</summary>
+    public IReadOnlyList<ArenaAssist> Assists { get; internal set; } = Array.Empty<ArenaAssist>();
+}
+
+/// <summary>Actual native HP loss, already clamped and armor-adjusted. No Unity references.</summary>
+internal sealed class ArenaAssistDamage
+{
+    internal long VictimBodyId, AttackerBodyId;
+    internal string AttackerProfileId;
+    internal bool AttackerIsLocal;
+    internal bool? AttackerIsFriendly;
+    internal double Damage;
+}
+
+/// <summary>An immutable proportional reward for one logical participant.</summary>
+public readonly struct ArenaAssist
+{
+    internal ArenaAssist(string contributorKey, string displayName, bool isLocal,
+        long victimBodyId, int points, double damageShare)
+    {
+        ContributorKey = contributorKey; DisplayName = displayName; IsLocal = isLocal;
+        VictimBodyId = victimBodyId; Points = points; DamageShare = damageShare;
+    }
+    public string ContributorKey { get; }
+    public string DisplayName { get; }
+    public bool IsLocal { get; }
+    public long VictimBodyId { get; }
+    public int Points { get; }
+    public double DamageShare { get; }
 }

@@ -21,6 +21,16 @@ internal sealed class ScorePanel
     private TextMeshProUGUI _mainLine;
     private TextMeshProUGUI _subLine;
     private float _nextRefreshAt;
+    private int _assistPoints;
+    private float _assistUntil;
+
+    public void ShowAssist(int points)
+    {
+        if (points <= 0) return;
+        _assistPoints = Time.unscaledTime < _assistUntil ? _assistPoints + points : points;
+        _assistUntil = Time.unscaledTime + 2.5f;
+        _nextRefreshAt = 0f;
+    }
 
     public void Create(RectTransform hudRoot)
     {
@@ -67,7 +77,8 @@ internal sealed class ScorePanel
         // TMP's SetText formatter does not know .NET specifiers like n0 — build
         // the string ourselves (4 Hz refresh, allocation is irrelevant).
         _mainLine.text =
-            $"<b>{match.Kills}</b> Kills   {match.Deaths} Deaths   <color=#7FDBFF>{match.Score:n0}</color>";
+            $"<b>{match.Kills}</b> Kills   {match.Deaths} Deaths   {match.Assists} Assists   <color=#7FDBFF>{match.Score:n0}</color>"
+            + (Time.unscaledTime < _assistUntil ? $"   <color=#A8E6A3>ASSIST +{_assistPoints}</color>" : string.Empty);
 
         var elapsed = match.Mode is TeamDeathmatchMode teams ? teams.PlayingElapsed : match.Elapsed;
         var minutes = (int)(elapsed / 60f);

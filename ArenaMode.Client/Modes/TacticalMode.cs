@@ -196,6 +196,7 @@ public sealed partial class TacticalMode : IArenaMode
     public bool WaitingForKitSwap => !_teamArena && _phase == Phase.Buy && _roundStartHold.Holding;
 
     public bool IsTeamArena => _teamArena;
+    internal bool AssistScoringOpen => _phase == Phase.Live && !IsComplete;
 
     // Awards use current physical bodies, never historical tracer/profile aliases.
     internal bool IsOpposingAwardKill(Player victim, IPlayer attacker)

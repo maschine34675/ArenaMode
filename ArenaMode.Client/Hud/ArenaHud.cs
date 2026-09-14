@@ -41,6 +41,7 @@ internal static class ArenaHud
             match.OnKill += OnKill;
             match.OnCallout += OnCallout;
             match.OnTextCallout += OnCallout;
+            match.OnAssist += OnAssist;
             ArenaEvents.OnLocalDamageDealt += OnDamage;
         }
         catch (Exception ex)
@@ -61,6 +62,7 @@ internal static class ArenaHud
             _match.OnKill -= OnKill;
             _match.OnCallout -= OnCallout;
             _match.OnTextCallout -= OnCallout;
+            _match.OnAssist -= OnAssist;
             ArenaEvents.OnLocalDamageDealt -= OnDamage;
             _match = null;
         }
@@ -153,6 +155,11 @@ internal static class ArenaHud
     }
 
     private static void OnCallout(string label) => _callout?.Show(label);
+
+    private static void OnAssist(ArenaAssist assist)
+    {
+        if (assist.IsLocal) _score?.ShowAssist(assist.Points);
+    }
 
     private static void OnDamage(ArenaDamage damage)
     {

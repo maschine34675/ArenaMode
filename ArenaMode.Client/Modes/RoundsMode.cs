@@ -48,6 +48,7 @@ public sealed partial class RoundsMode : IArenaMode
     public DeathmatchOptions Options => _options;
     public RoundState Round { get; } = new RoundState();
     public bool InIntermission => !_ended && _rules?.Phase == DeathmatchPhase.Intermission;
+    internal bool AssistScoringOpen => !_ended && IsCurrentRaid() && _rules?.Phase == DeathmatchPhase.Live;
     public bool IntermissionProtected => InIntermission && IsCurrentRaid() && ArenaProtection.IsProtectedNow;
     public float IntermissionRemaining => InIntermission ? Mathf.Max(0f, _intermissionEndsAt - Time.time) : 0f;
     public float TimeRemaining => (float)(_rules?.TimeRemaining(Time.time) ?? -1d);

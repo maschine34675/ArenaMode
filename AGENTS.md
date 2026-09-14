@@ -20,6 +20,10 @@ Independent TDM also has a ready/countdown/live/result lifecycle and client-owne
 kill/time limits, frozen per match. See TDM-MATCH-FLOW-REVIEW.md before changing
 scoring or death handling: terminal death interception must remain armed until
 the native player owner is verified and the intentional protected exit starts.
+Damage assists add proportional base points without changing the killer reward,
+kill limits or Tactical money. Read ASSIST-SCORING-REVIEW.md before changing HP
+capture, settlement or scoreboard compaction: actual HP deltas precede native
+kill callbacks, and assist identity must use immutable keys across archived rows.
 Arena landing recovery, firearm draw/holster and deliberate airborne vault/hip
 fire are documented in AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
 native geometry/firearm restrictions, temporary-state cleanup and double-jump
