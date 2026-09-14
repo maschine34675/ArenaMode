@@ -16,9 +16,20 @@ current. User-facing communication is normally German.
   healthy future root `trickshot.ogg`/`no_scope.ogg` recordings override it.
   First Blood/Payback/Shutdown/multi-kills precede these awards; sprees and
   Headshot follow. No score, gameplay, asset bytes or profile changes. Read
-  `SHOT-AWARDS-REVIEW.md` for boundaries and user-run tests. Build/deployment status
-  for the preceding 19-cue snapshot below is historical, not this extension's
-  final build. The parallel checkout remains responsible for respawn integration.
+  `SHOT-AWARDS-REVIEW.md` for boundaries and user-run tests. Code commit `0f25d5c`;
+  clean staged client `0.1.0+0f25d5c8e03d29078dca9eb20d62d60d232ca3ae`, SHA256
+  `3F7D1C5CE3D830945F9FA4EBC85FB095771477FA325BEDC0989BCC0CACB747A5`.
+  Exact path, installed hashes, external Core source hashes and checks are in
+  `SHOT-AWARDS-BUILD.json`. Four existing native-build warnings, no errors.
+  Parent checks: history 113/6 faults, native adapter 128/5 faults plus 46
+  metadata/wiring assertions, audio 236, combat 194 and six new audio/combat
+  faults; retained historical controls and all 46 clip hashes/decodes pass.
+  Unit suite 621 passed/two skipped; PFT, team expansion, give-up, Tactical and
+  TDM regression suites remain green. Independent adversarial review passed.
+  No native audibility/raid proof; main and installed client/server/Core unchanged.
+  The preceding 19-cue build below is historical. The parallel checkout remains
+  responsible for respawn integration; merge combined source and rebuild before
+  deploying, never copy this isolated DLL over a newer respawn build.
   During this work, main independently advanced to `fa43fa5` documenting installed
   Redeploy.Core 1.0.1 (`EE09B6B5...`); client/server were unchanged. New staging
   uses the actually installed Core, without building or deploying Redeploy.

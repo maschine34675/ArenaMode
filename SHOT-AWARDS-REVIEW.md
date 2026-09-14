@@ -33,6 +33,9 @@ through the normal root-file loader after restarting the game. Missing,
 undecodable or invalidated optional clips use Godlike; mute/output failures
 preserve the existing no-play behavior. The first fallback per logical key and
 match is logged, without per-kill spam. Existing independent volume applies.
+The existing clip diagnostics can also report `missing_clip` once for the absent
+logical recording before the provisional-recording message. That message alone
+does not mean Godlike was silent; the actual play request is logged as `godlike`.
 
 ## Native boundary and lifetime
 

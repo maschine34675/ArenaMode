@@ -1,0 +1,52 @@
+{
+  "SourceCommit": "0f25d5c8e03d29078dca9eb20d62d60d232ca3ae",
+  "SourceChanges": [],
+  "ClientPath": "D:\\SPT41\\Development\\ArenaMode-VoiceLines\\artifacts\\double-jump-build\\834dbebb049e4dfebc2768dd83b060f4\\out\\maschine-ArenaMode.Client.dll",
+  "ClientSha256": "3F7D1C5CE3D830945F9FA4EBC85FB095771477FA325BEDC0989BCC0CACB747A5",
+  "InstalledUnchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll": "54C2D7B72EF96535813454B5EF07B9B2919EBABFCBFF84AD8F8EAD94C3BE0DEE",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "EE09B6B5EE6736C7067E8F07A6115DFD93DC0ACD9D87FC824EC3C6F8E8C3D687"
+  },
+  "Deployed": false,
+  "LiveGpuTested": false,
+  "ProductVersion": "0.1.0+0f25d5c8e03d29078dca9eb20d62d60d232ca3ae",
+  "Branch": "feature/additional-announcer-lines",
+  "Date": "2026-09-14",
+  "Purpose": "Shot-time announcer extension staging only. Merge with parallel respawn source and rebuild before deployment.",
+  "InstalledCoreVersion": "1.0.1+d532a3c2843c9c7b96690e6867ff0316f4d3813a",
+  "ExternalBuildSources": {
+    "../Redeploy/drivers/CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26",
+    "../Redeploy/Redeploy.Core/CoreVersion.props": "2A123657B91F781197AEAAA5FD63A1DF44C300F036264451918A9B61BE886CD3"
+  },
+  "ParentVerified": {
+    "NativeMetadataWiringAssertions": 46,
+    "NativeAdapterFaults": 5,
+    "UnitPassed": 621,
+    "NativeAdapterAssertions": 128,
+    "CombatAssertions": 194,
+    "TeamExpansionAssertions": 830,
+    "HistoryAssertions": 113,
+    "PftAssertions": 248,
+    "ExistingAudioFaults": 29,
+    "AddedAudioCombatFaults": 6,
+    "TacticalAssertions": 74,
+    "ExistingCombatHistoricalControls": 1,
+    "TdmMatchAssertions": 227,
+    "MetadataFaults": 7,
+    "ExistingCombatFaults": 9,
+    "GiveUpFaults": 16,
+    "GiveUpAssertions": 618,
+    "HistoryFaults": 6,
+    "TdmMatchFaults": 15,
+    "UnitSkipped": 2,
+    "AudioAssertions": 236,
+    "AssetClips": 46
+  },
+  "VerificationManifests": [
+    "artifacts/shot-award-history-checks/7cdc8ce6c93c4f1096b2eec542044cec/manifest.json",
+    "artifacts/shot-award-audio/92bd805af12e4b27b3e6b1ac6fb6ad2d/source-binding.json",
+    "D:\\SPT41\\Development\\ArenaMode-VoiceLines\\artifacts\\shot-award-integration\\4864d2cef91c467a9abf59a37dc54415\\manifest.json",
+    "artifacts/shot-unit/ab1f90f9aa2041a0950b99b5b9e53752/units.trx"
+  ]
+}
