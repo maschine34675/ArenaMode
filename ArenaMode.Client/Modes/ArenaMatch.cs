@@ -41,6 +41,12 @@ public sealed class ArenaMatch
     /// <summary>Short shout-style label ("DOUBLE KILL", "KILLING SPREE").</summary>
     public event Action<string> OnCallout;
 
+    /// <summary>HUD only; no audio cue, score event or speech queue entry.</summary>
+    internal event Action<string> OnTextCallout;
+
+    internal void ReportTextCallout(string label)
+        => RaiseSafe(() => OnTextCallout?.Invoke(label), nameof(OnTextCallout));
+
     /// <summary>Round lifecycle presentation that must not appear as a HUD kill callout.</summary>
     internal event Action<ArenaAnnouncerCue> OnAnnouncerCue;
 

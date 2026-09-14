@@ -43,6 +43,7 @@ internal static class CombatPatches
         new DamageFeedPatch().Enable();
         new RagdollImpulsePatch().Enable();
         ArenaShotAwardHooks.Enable();
+        ArenaSelfGrenadeTaunt.Enable();
     }
 
     public static void ResetRaidState()
@@ -51,6 +52,7 @@ internal static class CombatPatches
         _reportedAudioObservationFailure = false;
         ArenaHitHistory.Reset();
         ArenaShotAwardHooks.Reset();
+        ArenaSelfGrenadeTaunt.Reset();
         ArenaAdministrativeDeathGate.Reset();
     }
 
@@ -119,6 +121,7 @@ internal static class CombatPatches
 
             try
             {
+                ArenaSelfGrenadeTaunt.ObserveDeath(__instance, aggressor, damageInfo, lethalDamageType);
                 var victimId = __instance.ProfileId;
                 if (string.IsNullOrEmpty(victimId) || aggressor.ProfileId == victimId)
                     return;
