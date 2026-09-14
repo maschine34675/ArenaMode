@@ -7,6 +7,35 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Damage assists DEPLOYED (2026-09-14, Codex):** code `a69e9c1`, main
+  merge/build `f8f21c47a9465df26124f07d8bc8d2994536b253`. The user confirmed
+  additional assist rewards while preserving the killer's existing full points:
+  `floor(victim base points * contributed actual HP loss / all actual HP loss)`.
+  A 30% contribution against a 200-point PMC earns 60 points. No shared bonuses,
+  extra kills, Gun Game progress or Tactical buy money. HUD adds an assist count,
+  brief `ASSIST +N`, and scoreboard `A`; no new speech or assets.
+  Native HealthChanged observation captures the final clamped HP delta before
+  kill scoring. Hostile source/final-hit admission and physical-life/round cleanup
+  prevent friendly/stale payouts. Logical-key buckets preserve PFT/local identity
+  and archived/recreated ordinary rows without duplicate or self-assists.
+  Read `ASSIST-SCORING-REVIEW.md` for the full rules and pending GPU checks.
+  Installed client `0.1.0+f8f21c47a9465df26124f07d8bc8d2994536b253`, SHA256
+  `8A764AD3B80E269148C25A3F833A0D550B6F35DA85D04CA9F680AD171064003B`.
+  Exact delivery/build/test bindings and backups: `ASSIST-DEPLOYMENT-20260914.json`.
+  Only client bytes changed; the scoped helper recopied three unchanged package
+  documents, and all 117 other inventoried files remained unchanged, including
+  Core/server/audio. No Redeploy build/deployment; external compiler inputs bound.
+  Clean native build: zero errors/four existing nullable warnings. Final main
+  re-verification: capture 126 assertions/39 installed-IL+source contracts/five
+  compiled faults, scoring 431/three faults; unit suite 621 passed/two skipped.
+  Existing announcer 236, combat 194, progress 139, integration 34, shot history
+  113, PFT 248, expansion 830, give-up 618, roles 174, Tactical 74 and TDM 227
+  checks pass with their existing negative controls. Independent adversarial
+  review and follow-up fixes reviewed without remaining concrete blockers.
+  Feature branch merged and removed. Restart **EFT only**. Fresh native raid/HUD
+  acceptance and the C: mirror's received file hash remain unverified; older GPU
+  test IDs were not repointed. Later handoff commits do not change the DLL stamp.
+
 - **Trickshot flight threshold DEPLOYED (2026-09-14, Codex):** code `abc85c9`,
   main merge/build `2641c4f5d41d6c241bd3dd64e4d343c6627144bb` requires at least
   0.5 seconds of observed continuous free flight before the shot, still without

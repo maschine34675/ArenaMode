@@ -1,0 +1,61 @@
+{
+  "SourceCommit": "f8f21c47a9465df26124f07d8bc8d2994536b253",
+  "ProductVersion": "0.1.0+f8f21c47a9465df26124f07d8bc8d2994536b253",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-14T18:19:32.7081249Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "SHA256": "14A96F3A267B6B8FF9FFA3DCAEECCBC17EB5FFD5D726800D276FA65B2DAA5680",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\480edbfcd3824e2c9bbac7522a0c2337\\backup-0-ANNOUNCER-PACK.md"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\480edbfcd3824e2c9bbac7522a0c2337\\backup-1-ANNOUNCER-SOURCES.json"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "SHA256": "B387D4A728E85879CBF48719A63622344C4118D14CDF9F6DBE26396782D684DE",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\480edbfcd3824e2c9bbac7522a0c2337\\backup-2-AUDIO-LICENSES.md"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\b255b308b3dd45c3b835f1e4221f20f3\\out\\maschine-ArenaMode.Client.dll",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "SHA256": "8A764AD3B80E269148C25A3F833A0D550B6F35DA85D04CA9F680AD171064003B",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\480edbfcd3824e2c9bbac7522a0c2337\\backup-3-maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 117,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "EE09B6B5EE6736C7067E8F07A6115DFD93DC0ACD9D87FC824EC3C6F8E8C3D687"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "2A123657B91F781197AEAAA5FD63A1DF44C300F036264451918A9B61BE886CD3",
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\480edbfcd3824e2c9bbac7522a0c2337",
+  "BuildManifest": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\b255b308b3dd45c3b835f1e4221f20f3\\manifest.json",
+  "Validation": {
+    "UnitPassed": 621,
+    "NativeContracts": 39,
+    "CaptureAssertions": 126,
+    "EvidenceDirectories": {
+      "assist-capture": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\assist-capture\\b04f5b6f5a46430081383636382aee98",
+      "assist-checks": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\assist-checks\\8829f39030394289af61d4cffc798277",
+      "assist-regressions": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\assist-regressions\\25e89e030f8e46fb86af52dc6d230c5d"
+    },
+    "ScoringAssertions": 431,
+    "AdversarialReview": "Reviewed and fixes re-reviewed; no remaining concrete blocker; no GPU raid test",
+    "CaptureCompiledFaults": 5,
+    "ScoringCompiledFaults": 3,
+    "UnitSkipped": 2
+  }
+}
