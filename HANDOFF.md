@@ -7,6 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Redeploy.Core 1.0.1 installed (2026-09-14, Claude, Redeploy `d532a3c`):** a respawn near a
+  corpse now has to be walkable from it, outside sniper and mine zones and with room to stand
+  (fix for a user's repeated out-of-map respawns). Arena reaches that code only through the
+  open-arena fallback (`ArenaSpawnSelector` -> `InfilSpawnSelector` -> `NearPositionSpawnSelector`,
+  25 m) when both native spawn lookups fail; bounded areas never do. No ArenaMode change and no
+  rebuild: the installed client `54C2D7B7…` is stamped 1.0.0, which the Awake gate accepts against
+  Core 1.0.1 (hash `EE09B6B5…`). Its new log lines start with `Respawn position on`.
+
 - **Redeploy.Core 1.0.0, Core skew check and raid-end log level (2026-09-13 evening,
   Claude):** `6a72ddb` logs the designed first raid-end answer
   `{restored:false, deferred:true, state:InRaid}` as Info (user request); every other
