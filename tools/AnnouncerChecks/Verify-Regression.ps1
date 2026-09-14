@@ -3,6 +3,9 @@ $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $project = Join-Path $PSScriptRoot 'AnnouncerChecks.csproj'
 $sourcePath = Join-Path $repoRoot 'ArenaMode.Client\Audio\AnnouncerService.cs'
 $source = [System.IO.File]::ReadAllText($sourcePath)
+$catalogSourcePath = Join-Path $repoRoot 'ArenaMode.Client\Audio\AnnouncerCueCatalog.cs'
+$catalogSource = [System.IO.File]::ReadAllText($catalogSourcePath)
+$catalogSourceHash = (Get-FileHash -LiteralPath $catalogSourcePath -Algorithm SHA256).Hash
 $outputSourcePath = Join-Path $repoRoot 'ArenaMode.Client\Audio\ArenaAnnouncerOutput.cs'
 $outputSource = [System.IO.File]::ReadAllText($outputSourcePath)
 $outputSourceHash = (Get-FileHash -LiteralPath $outputSourcePath -Algorithm SHA256).Hash
@@ -118,12 +121,15 @@ Invoke-NegativeCase 'result-queue-admission' ($source.Replace($resultQueueGate,
     $resultQueueGate.Replace('if (Time.realtimeSinceStartup < _calloutBusyUntil)', 'if (false)'))) `
     'A result cue arriving behind a kill callout must not replace it immediately.'
 
-$calloutDeadline = 'Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds'
+$calloutDeadlinePattern = 'Time\.realtimeSinceStartup \+ clipLengthSeconds\r?\n\s+\+ \(AnnouncerCueCatalog\.IsCountdown\(key\) \? 0f : ResultCueGapSeconds\);'
+$deadlineMatch = [regex]::Match($source, $calloutDeadlinePattern)
+if (-not $deadlineMatch.Success) { throw 'Expected the duration-based cue deadline.' }
+$calloutDeadline = $deadlineMatch.Value
 if ([regex]::Matches($source, [regex]::Escape($calloutDeadline)).Count -ne 1) {
     throw 'Expected exactly one clip-length result deadline; refusing an ambiguous duration mutation.'
 }
 Invoke-NegativeCase 'result-queue-duration' `
-    ($source.Replace($calloutDeadline, 'Time.realtimeSinceStartup + ResultCueGapSeconds')) `
+    ($source.Replace($calloutDeadline, 'Time.realtimeSinceStartup + ResultCueGapSeconds;')) `
     'The result queue must preserve a short post-callout gap before replacing the shared source.'
 
 $resultQueueDrainPattern = 'if \(_match == null \|\| Time\.realtimeSinceStartup < _calloutBusyUntil\)'
@@ -152,6 +158,42 @@ Invoke-NegativeCase 'result-queue-round-start' ($source.Replace($roundStartCance
 Invoke-NegativeCase 'award-queue-admission' ($source.Replace('SubmitCallout(key);', 'StartCallout(key);')) `
     'Rapid awards cannot cut off the spoken First Blood phrase.'
 
+Invoke-NegativeCase 'reserve-recursive-collision' ($catalogSource.Replace(
+    'Directory.GetFiles(soundsDirectory, "*.ogg")',
+    'Directory.GetFiles(soundsDirectory, "*.ogg", SearchOption.AllDirectories)')) `
+    'Runtime loading admits exactly the 19 optional keys, with no recursive alternate or CTF collision.' 'AnnouncerCatalogSource'
+Invoke-NegativeCase 'reserve-root-overwrite' ($catalogSource.Replace('!rootKeys.Contains(key) && File.Exists(path)', 'File.Exists(path)')) `
+    'An existing root cue wins its basename once, without an optional reserve overwrite.' 'AnnouncerCatalogSource'
+Invoke-NegativeCase 'multi-kill-queue-priority' ($source.Replace(
+    '"monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 80,',
+    '"monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 50,')) `
+    'A queued multi-kill replaces a pending spree and drains before it.'
+Invoke-NegativeCase 'countdown-backlog' ($source.Replace(
+    'Skip(key, "countdown_not_currently_playable");', 'SubmitCallout(key);')) `
+    'Busy countdown numbers are dropped instead of replaying after their spoken second.'
+Invoke-NegativeCase 'status-deadline' ($source.Replace('StatusMaxWaitSeconds = 2f;', 'StatusMaxWaitSeconds = 20f;')) `
+    'A status delayed beyond two seconds expires without consuming the result slot.'
+Invoke-NegativeCase 'status-cancellation' ($source.Replace(
+    'if (AnnouncerCueCatalog.IsStatus(_pendingCalloutKey)) ClearPendingCallout(reason);',
+    'if (false) ClearPendingCallout(reason);')) `
+    'Pending status is canceled by its lifecycle boundary: CancelStatus'
+Invoke-NegativeCase 'director-before-drain' ($source.Replace('ArenaAnnouncementDirector.Tick();', '')) `
+    'Director invalidation runs before the audio queue can release stale status.'
+Invoke-NegativeCase 'clutch-fallback' ($source.Replace('string fallbackKey = clutchWin ? key : null;', 'string fallbackKey = (string)null;')) `
+    'A missing optional Clutch preserves the established win recording.'
+Invoke-NegativeCase 'clutch-frame-boundary' ($source.Replace('_clutchFrame == Time.frameCount', 'true')) `
+    'An unpaired or losing outcome cannot inherit a Clutch audio hint: 1'
+Invoke-NegativeCase 'status-owned-cancellation' ($source.Replace(
+    'if (!Settings.AnnouncerUseUiVolume.Value) ArenaAnnouncerOutput.Reset();', '')) `
+    'Readiness loss cancels playing owned countdown/status without touching shared GUI audio.'
+Invoke-NegativeCase 'countdown-extra-gap' ($source.Replace(
+    '(AnnouncerCueCatalog.IsCountdown(key) ? 0f : ResultCueGapSeconds)', 'ResultCueGapSeconds')) `
+    'Pack-length countdown clips fit each actual second without an inherited combat-callout gap.'
+Invoke-NegativeCase 'zero-volume-owned-cancellation' ($source.Replace(
+    '&& Settings.AnnouncerVolume.Value > 0f && !Settings.AnnouncerUseUiVolume.Value',
+    '&& !Settings.AnnouncerUseUiVolume.Value')) `
+    'Canceled owned countdown cannot revive after mute, zero volume or listener pause: 0'
+
 Invoke-NegativeCase 'independent-master-route' ($outputSource.Replace('FindMatchingGroups("Master")', 'FindMatchingGroups("UI")')) `
     'Independent output uses an owned source on the native host''s exact Master branch.' 'AnnouncerOutputSource'
 Invoke-NegativeCase 'independent-listener-pause' ($outputSource.Replace('_source.ignoreListenerPause = false;', '_source.ignoreListenerPause = true;')) `
@@ -166,9 +208,16 @@ Invoke-NegativeCase 'independent-hot-volume' ($outputSource.Replace('_source.vol
 if ((Get-FileHash -LiteralPath $outputSourcePath -Algorithm SHA256).Hash -ne $outputSourceHash) {
     throw 'Production output source changed during negative verification.'
 }
+if ((Get-FileHash -LiteralPath $catalogSourcePath -Algorithm SHA256).Hash -ne $catalogSourceHash) {
+    throw 'Production cue catalog changed during negative verification.'
+}
 
 $finalHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 if ($sourceHash -ne $finalHash) { throw 'Production source changed during negative verification.' }
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its final positive check.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (load, PCM reset, native legacy route, independent Master route, listener, mixer validation, hot volume and cue queue mutants rejected; production sources unchanged; evidence: $scratch)"
+& python (Join-Path $PSScriptRoot 'verify_creator_metadata_faults.py')
+if ($LASTEXITCODE -ne 0) { throw 'Creator metadata positive/negative checks failed.' }
+& python (Join-Path $PSScriptRoot 'verify_creator_pack.py')
+if ($LASTEXITCODE -ne 0) { throw 'Creator asset decoding, hashes or exact runtime mapping failed.' }
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants rejected; production sources unchanged; evidence: $scratch)"

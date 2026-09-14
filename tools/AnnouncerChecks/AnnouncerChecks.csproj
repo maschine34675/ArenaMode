@@ -7,10 +7,12 @@
     <!-- Allows a temporary mutation copy for the negative regression check. -->
     <AnnouncerServiceSource Condition="'$(AnnouncerServiceSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\AnnouncerService.cs</AnnouncerServiceSource>
     <AnnouncerOutputSource Condition="'$(AnnouncerOutputSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\ArenaAnnouncerOutput.cs</AnnouncerOutputSource>
+    <AnnouncerCatalogSource Condition="'$(AnnouncerCatalogSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\AnnouncerCueCatalog.cs</AnnouncerCatalogSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(AnnouncerServiceSource)" Link="Production/AnnouncerService.cs" />
     <Compile Include="$(AnnouncerOutputSource)" Link="Production/ArenaAnnouncerOutput.cs" />
+    <Compile Include="$(AnnouncerCatalogSource)" Link="Production/AnnouncerCueCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs"
              Link="Production/ArenaAnnouncerCue.cs" />
   </ItemGroup>

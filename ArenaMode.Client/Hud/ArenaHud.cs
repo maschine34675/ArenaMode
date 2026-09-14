@@ -40,6 +40,7 @@ internal static class ArenaHud
             _match = match;
             match.OnKill += OnKill;
             match.OnCallout += OnCallout;
+            match.OnTextCallout += OnCallout;
             ArenaEvents.OnLocalDamageDealt += OnDamage;
         }
         catch (Exception ex)
@@ -59,6 +60,7 @@ internal static class ArenaHud
         {
             _match.OnKill -= OnKill;
             _match.OnCallout -= OnCallout;
+            _match.OnTextCallout -= OnCallout;
             ArenaEvents.OnLocalDamageDealt -= OnDamage;
             _match = null;
         }

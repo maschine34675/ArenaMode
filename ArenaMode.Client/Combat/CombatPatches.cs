@@ -42,6 +42,8 @@ internal static class CombatPatches
         new TeamStagingContusionPatch().Enable();
         new DamageFeedPatch().Enable();
         new RagdollImpulsePatch().Enable();
+        ArenaShotAwardHooks.Enable();
+        ArenaSelfGrenadeTaunt.Enable();
     }
 
     public static void ResetRaidState()
@@ -49,6 +51,8 @@ internal static class CombatPatches
         SeenVictims.Clear();
         _reportedAudioObservationFailure = false;
         ArenaHitHistory.Reset();
+        ArenaShotAwardHooks.Reset();
+        ArenaSelfGrenadeTaunt.Reset();
         ArenaAdministrativeDeathGate.Reset();
     }
 
@@ -117,6 +121,7 @@ internal static class CombatPatches
 
             try
             {
+                ArenaSelfGrenadeTaunt.ObserveDeath(__instance, aggressor, damageInfo, lethalDamageType);
                 var victimId = __instance.ProfileId;
                 if (string.IsNullOrEmpty(victimId) || aggressor.ProfileId == victimId)
                     return;
@@ -166,6 +171,8 @@ internal static class CombatPatches
                 {
                 }
 
+                var shotAwards = ArenaHitHistory.ShotAwards(__instance, aggressor,
+                    lethalDamageType == EDamageType.Bullet);
                 var kill = new ArenaKill
                 {
                     KillerProfileId = aggressor.ProfileId,
@@ -186,6 +193,8 @@ internal static class CombatPatches
                     SingleHitHeadshot = ArenaHitHistory.IsSingleHitHeadshot(
                         __instance, aggressor, lethalDamageType == EDamageType.Bullet,
                         bodyPart == EBodyPart.Head),
+                    AirborneHipFire = shotAwards.AirborneHipFire,
+                    BoltActionHipFire = shotAwards.BoltActionHipFire,
                     Distance = distance,
                     DistanceKnown = distanceKnown,
                     WeaponName = weaponName,
@@ -210,7 +219,7 @@ internal static class CombatPatches
         return !(match.Mode is RoundsMode rounds) || !rounds.InIntermission;
     }
 
-    private static IDisposable BeginHitContext(Player victim, DamageInfo info, EBodyPart part, bool shot)
+    private static IDisposable BeginHitContext(Player victim, DamageInfo info, EBodyPart part, bool shot, ShotId? shotId = null)
     {
         if (!ArenaSession.IsActive || ArenaMatchService.Current == null
             || victim?.HealthController?.IsAlive != true) return null;
@@ -223,9 +232,10 @@ internal static class CombatPatches
                 finally { ArenaHitHistory.InitializeBody(victim, pristine); }
             }
             object shooter = info.Player?.iPlayer;
+            var facts = ArenaShotAwardHooks.CurrentFacts(info, shotId);
             return shot
-                ? ArenaHitHistory.BeginShot(victim, shooter, info.DamageType == EDamageType.Bullet, part == EBodyPart.Head)
-                : ArenaHitHistory.BeginDamage(victim, shooter, info.DamageType == EDamageType.Bullet, part == EBodyPart.Head);
+                ? ArenaHitHistory.BeginShot(victim, shooter, info.DamageType == EDamageType.Bullet, part == EBodyPart.Head, facts)
+                : ArenaHitHistory.BeginDamage(victim, shooter, info.DamageType == EDamageType.Bullet, part == EBodyPart.Head, facts);
         }
         catch (Exception ex)
         {
@@ -255,14 +265,14 @@ internal static class CombatPatches
                 });
 
         [PatchPrefix]
-        private static bool Prefix(Player __instance, DamageInfo damageInfo, EBodyPart bodyPartType,
+        private static bool Prefix(Player __instance, DamageInfo damageInfo, EBodyPart bodyPartType, ShotId shotId,
             ref PlayerHitInfo __result, out IDisposable __state)
         {
             __state = null;
             if (!ShouldBlockProtectedTeamMutation(__instance, "shot")
                 && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer))
             {
-                __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: true);
+                __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: true, shotId: shotId);
                 return true;
             }
 

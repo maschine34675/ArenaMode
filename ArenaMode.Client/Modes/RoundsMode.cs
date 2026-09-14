@@ -12,7 +12,7 @@ namespace ArenaMode.Modes;
 /// and round events remain intact for HUD/lighting consumers; accepted options
 /// are immutable for this match and the native world is never rebuilt by rules.
 /// </summary>
-public sealed class RoundsMode : IArenaMode
+public sealed partial class RoundsMode : IArenaMode
 {
     public sealed class RoundState
     {

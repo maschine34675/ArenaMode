@@ -41,6 +41,12 @@ public sealed class ArenaMatch
     /// <summary>Short shout-style label ("DOUBLE KILL", "KILLING SPREE").</summary>
     public event Action<string> OnCallout;
 
+    /// <summary>HUD only; no audio cue, score event or speech queue entry.</summary>
+    internal event Action<string> OnTextCallout;
+
+    internal void ReportTextCallout(string label)
+        => RaiseSafe(() => OnTextCallout?.Invoke(label), nameof(OnTextCallout));
+
     /// <summary>Round lifecycle presentation that must not appear as a HUD kill callout.</summary>
     internal event Action<ArenaAnnouncerCue> OnAnnouncerCue;
 
@@ -74,6 +80,9 @@ public sealed class ArenaMatch
             if (!deathmatch.TryBeginScoredEvent()) return;
             if (kill.LocalIsVictim) ReportLocalDeath();
         }
+        // ReportKill clears the victim's life. Capture only its currently bound,
+        // opposing physical body before that reset; historical aliases do not count.
+        bool shutdown = Scoreboard.IsShutdown(kill);
         Scoreboard.ReportKill(kill);
 
         string existingLabel = null;
@@ -82,9 +91,9 @@ public sealed class ArenaMatch
             _multiKillChain = kill.Time - _lastLocalKillAt <= ScoreRules.MultiKillWindowSeconds
                 ? _multiKillChain + 1 : 1;
             _lastLocalKillAt = kill.Time;
-            existingLabel = ScoreRules.StreakLabel(Streak) ?? ScoreRules.MultiKillLabel(_multiKillChain);
+            existingLabel = ScoreRules.MultiKillLabel(_multiKillChain) ?? ScoreRules.StreakLabel(Streak);
         }
-        var label = _awards.ReportKill(kill, existingLabel);
+        var label = _awards.ReportKill(kill, shutdown ? "SHUTDOWN" : existingLabel);
         if (label != null)
             RaiseSafe(() => OnCallout?.Invoke(label), nameof(OnCallout));
         if (kill.KilledByLocal && !kill.LocalIsVictim)
@@ -96,6 +105,7 @@ public sealed class ArenaMatch
 
     public void ReportLocalDeath()
     {
+        _awards.InvalidateClutch();
         if (Mode is TeamDeathmatchMode teams && !teams.TryRecordLocalDeath())
         {
             // Unscored staging deaths still invalidate the current countdown.
@@ -114,6 +124,9 @@ public sealed class ArenaMatch
     public void ReportLocalRespawn(Player player)
     {
         if (ArenaMatchResult.HasResult(Mode)) return;
+        // A replacement body never inherits a surviving last-man win, including
+        // an unexpected respawn within a protected round.
+        _awards.InvalidateClutch();
         // Isolated like the mode callback: a scoreboard fault must not keep the mode
         // from learning about the new body.
         RaiseSafe(() => Scoreboard.ReportLocalRespawn(
@@ -144,11 +157,22 @@ public sealed class ArenaMatch
         // Solo Tactical resets before dispatch: early kills may precede the
         // audible readiness cue, which must not erase their awards or chain.
         if (cue == ArenaAnnouncerCue.RoundStart && beginAwardRound) BeginAwardRound();
+        if (cue is ArenaAnnouncerCue.RoundLost or ArenaAnnouncerCue.MatchLost or ArenaAnnouncerCue.Draw)
+            _awards.InvalidateClutch();
+        if (cue is ArenaAnnouncerCue.RoundWon or ArenaAnnouncerCue.MatchWon)
+        {
+            bool clutch = _awards.ConsumeClutch();
+            if (clutch && Mode is TacticalMode tactical && tactical.IsTeamArena)
+                RaiseSafe(() => OnAnnouncerCue?.Invoke(ArenaAnnouncerCue.Clutch), nameof(OnAnnouncerCue));
+        }
+        // Preserve the original result event for lighting and every other
+        // lifecycle consumer. Audio coalesces only the immediately preceding Clutch.
         RaiseSafe(() => OnAnnouncerCue?.Invoke(cue), nameof(OnAnnouncerCue));
     }
 
     internal void BeginAwardRound(bool clearRevenge = true)
     {
+        ArenaShotAwardHistory.Reset();
         _awards.BeginRound(clearRevenge);
         _multiKillChain = 0;
         _lastLocalKillAt = float.NegativeInfinity;
@@ -156,6 +180,7 @@ public sealed class ArenaMatch
 
     internal void ReportTeamSurvivors(bool localAlive, int alliesAlive, int enemiesAlive)
     {
+        if (!(Mode is TacticalMode tactical) || !tactical.IsTeamArena) return;
         if (_awards.LastManStanding(localAlive, alliesAlive, enemiesAlive))
             ReportAnnouncerCue(ArenaAnnouncerCue.LastManStanding);
     }

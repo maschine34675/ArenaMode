@@ -1196,6 +1196,9 @@ public sealed partial class TacticalMode : IArenaMode
         // A simultaneous wipe is a loss: Arena never awards a win without a
         // surviving member of the authenticated five-player team.
         int alliesAlive = followers.Count + (localAlive ? 1 : 0);
+        // Observe the final physical survivor state before deciding the result.
+        // In particular, a simultaneous local death cannot inherit a stale clutch.
+        _match.ReportTeamSurvivors(localAlive, alliesAlive, enemiesAlive);
         if (alliesAlive <= 0)
         {
             EndTeamRound(false, "the complete player team was eliminated");
@@ -1224,7 +1227,6 @@ public sealed partial class TacticalMode : IArenaMode
             return;
         }
 
-        _match.ReportTeamSurvivors(localAlive, alliesAlive, enemiesAlive);
         if (_playerDown)
             TeamArenaPursuit.Tick(_teamRoundEpoch, true, followers, _boundTeamEnemies);
     }

@@ -2,6 +2,10 @@ param([string]$SptRoot = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaGame = [IO.Path]::GetFullPath($SptRoot)
+$arenaSourceCommit = (& git -C $arenaRepo rev-parse HEAD)
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read staged build source commit' }
+$arenaSourceChanges = @(& git -C $arenaRepo status --short)
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read staged build source state' }
 $arenaStage = Join-Path $arenaRepo ('artifacts\double-jump-build\' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($arenaStage) | Out-Null
 $arenaInstalled = @(
@@ -11,6 +15,13 @@ $arenaInstalled = @(
 $arenaHashes = @{}
 foreach ($arenaPath in $arenaInstalled) {
     $arenaHashes[$arenaPath] = (Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash
+}
+# The staged project still imports/links these two external source files. Bind
+# them without building or deploying Redeploy, and reject a concurrent edit.
+$arenaExternalHashes = @{}
+foreach ($arenaRelative in @('../Redeploy/Redeploy.Core/CoreVersion.props', '../Redeploy/drivers/CoreVersionGate.cs')) {
+    $arenaPath = [IO.Path]::GetFullPath((Join-Path $arenaRepo $arenaRelative))
+    $arenaExternalHashes[$arenaPath] = (Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash
 }
 
 # Imported after the real client project. Replace only the external project
@@ -53,16 +64,26 @@ finally {
             throw "Installed artifact changed during staged build: $arenaPath"
         }
     }
+    foreach ($arenaPath in $arenaExternalHashes.Keys) {
+        if ((Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash -ne $arenaExternalHashes[$arenaPath]) {
+            throw "External source changed during staged build: $arenaPath"
+        }
+    }
+    if ((& git -C $arenaRepo rev-parse HEAD) -ne $arenaSourceCommit -or
+        (@(& git -C $arenaRepo status --short) -join "`n") -cne ($arenaSourceChanges -join "`n")) {
+        throw 'Repository state changed during staged build'
+    }
 }
 if ($arenaBuildExit -ne 0) { throw "Staged client build failed: $arenaBuildExit" }
 $arenaDll = Join-Path $arenaOutput 'maschine-ArenaMode.Client.dll'
 if (-not (Test-Path -LiteralPath $arenaDll)) { throw 'Staged client DLL missing' }
 $arenaManifest = [ordered]@{
-    SourceCommit = (& git -C $arenaRepo rev-parse HEAD)
-    SourceChanges = @(& git -C $arenaRepo status --short)
+    SourceCommit = $arenaSourceCommit
+    SourceChanges = $arenaSourceChanges
     ClientPath = $arenaDll
     ClientSha256 = (Get-FileHash -LiteralPath $arenaDll -Algorithm SHA256).Hash
     InstalledUnchanged = $arenaHashes
+    ExternalBuildSources = $arenaExternalHashes
     Deployed = $false
     LiveGpuTested = $false
 }

@@ -31,7 +31,7 @@ namespace ArenaMode.Modes;
 /// that question while it runs, so a respawn hands back the tier the player had
 /// reached instead of a random kit.
 /// </summary>
-public sealed class GunGameMode : IArenaMode
+public sealed partial class GunGameMode : IArenaMode
 {
     /// <summary>After this many consecutive failures the mode stops fighting the inventory.</summary>
     private const int MaxConsecutiveSwapFailures = 3;

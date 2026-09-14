@@ -78,6 +78,10 @@ public sealed class ArenaScoreboardEntry
 
     internal int Order { get; }
     internal string ActiveProfileId { get; set; }
+    // Separate from match-long account scoring: only proved kills of the same
+    // physical life can make its eventual victim eligible for Shutdown.
+    internal long AwardBodyId { get; set; }
+    internal int AwardLifeStreak { get; set; }
 }
 
 public readonly struct ArenaScoreboardTotals
@@ -242,6 +246,16 @@ public sealed class ArenaScoreboard
 
         if (kill.ScoreEligible)
         {
+            if (kill.AwardEligible && kill.KillerBodyId != 0
+                && IsCurrentBody(killer, kill.KillerProfileId))
+            {
+                if (killer.AwardBodyId != kill.KillerBodyId)
+                {
+                    killer.AwardBodyId = kill.KillerBodyId;
+                    killer.AwardLifeStreak = 0;
+                }
+                killer.AwardLifeStreak++;
+            }
             killer.Kills++;
             killer.Streak++;
             if (killer.Streak > killer.BestStreak)
@@ -261,6 +275,8 @@ public sealed class ArenaScoreboard
 
         if (!kill.LocalIsVictim)
         {
+            if (victim.AwardBodyId == kill.VictimBodyId)
+                victim.AwardLifeStreak = 0;
             victim.Deaths++;
             victim.Streak = 0;
             MarkProfileInactive(victim, kill.VictimProfileId);
@@ -269,10 +285,33 @@ public sealed class ArenaScoreboard
         Version++;
     }
 
+    /// <summary>Presentation-only read performed before ReportKill retires the victim.</summary>
+    internal bool IsShutdown(ArenaKill kill)
+    {
+        if (kill == null || !kill.KilledByLocal || kill.LocalIsVictim
+            || !kill.AwardEligible || !kill.ScoreEligible || kill.VictimIsFriendly == true
+            || kill.KillerIsFriendly == false
+            || kill.KillerBodyId == 0 || kill.VictimBodyId == 0
+            || kill.KillerBodyId == kill.VictimBodyId
+            || Normalize(kill.KillerProfileId) == null
+            || !string.Equals(Local.ActiveProfileId, Normalize(kill.KillerProfileId), StringComparison.Ordinal))
+            return false;
+        string profile = Normalize(kill.VictimProfileId);
+        return profile != null && _entriesByProfile.TryGetValue(profile, out var victim)
+            && !victim.IsLocal && victim.Side == ArenaScoreboardSide.Opponent
+            && IsCurrentBody(victim, profile) && victim.AwardBodyId == kill.VictimBodyId
+            && victim.AwardLifeStreak >= 5;
+    }
+
+    private bool IsCurrentBody(ArenaScoreboardEntry entry, string profileId)
+        => entry.IsActive && entry.IsCurrentRoster && entry.RosterEpoch == CurrentRosterEpoch
+            && string.Equals(entry.ActiveProfileId, Normalize(profileId), StringComparison.Ordinal);
+
     public void ReportLocalDeath()
     {
         Local.Deaths++;
         Local.Streak = 0;
+        Local.AwardLifeStreak = 0;
         Local.IsActive = false;
         Version++;
     }

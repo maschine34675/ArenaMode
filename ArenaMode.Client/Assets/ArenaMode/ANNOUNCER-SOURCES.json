@@ -224,7 +224,8 @@
       "startFrame": 1064798,
       "endFrameExclusive": 1129540,
       "durationSeconds": 1.4680725623582767,
-      "sha256": "D71F7D74D43AC569895C40B049DDC9B6911C211DB0864410577279B97A9D0C1E"
+      "sha256": "D71F7D74D43AC569895C40B049DDC9B6911C211DB0864410577279B97A9D0C1E",
+      "runtimeEventKey": "prepare_to_fight"
     },
     {
       "number": 20,
@@ -235,7 +236,8 @@
       "startFrame": 1129540,
       "endFrameExclusive": 1171323,
       "durationSeconds": 0.9474603174603174,
-      "sha256": "D3AB4C9BCC9BD0CF7DEB3F6AF1330739A5CA09FF7EC431CA8EEB1B07D748C3C1"
+      "sha256": "D3AB4C9BCC9BD0CF7DEB3F6AF1330739A5CA09FF7EC431CA8EEB1B07D748C3C1",
+      "runtimeEventKey": "three"
     },
     {
       "number": 21,
@@ -246,7 +248,8 @@
       "startFrame": 1171323,
       "endFrameExclusive": 1207768,
       "durationSeconds": 0.8264172335600907,
-      "sha256": "041F8A305226A0573857AE7FB4578D4F6E03FA576238356110CACB139A85AAA4"
+      "sha256": "041F8A305226A0573857AE7FB4578D4F6E03FA576238356110CACB139A85AAA4",
+      "runtimeEventKey": "two"
     },
     {
       "number": 22,
@@ -257,7 +260,8 @@
       "startFrame": 1207768,
       "endFrameExclusive": 1245535,
       "durationSeconds": 0.8563945578231292,
-      "sha256": "2A1715656914EFEAFAD2648214BDE9FAEC341099FC1F43195AAEAD25CEE4DE50"
+      "sha256": "2A1715656914EFEAFAD2648214BDE9FAEC341099FC1F43195AAEAD25CEE4DE50",
+      "runtimeEventKey": "one"
     },
     {
       "number": 23,
@@ -268,7 +272,8 @@
       "startFrame": 1245535,
       "endFrameExclusive": 1303083,
       "durationSeconds": 1.3049433106575963,
-      "sha256": "C961EE936448E4A779C44B64150BE5C438F6EFDE66EF3AA13AD811A89EB3B402"
+      "sha256": "C961EE936448E4A779C44B64150BE5C438F6EFDE66EF3AA13AD811A89EB3B402",
+      "runtimeEventKey": "taken_the_lead"
     },
     {
       "number": 24,
@@ -279,7 +284,8 @@
       "startFrame": 1303083,
       "endFrameExclusive": 1365135,
       "durationSeconds": 1.4070748299319729,
-      "sha256": "F559D8518CF2D0E1023081216CFF34BA0A7D31D77B8E9B9E17CF75C4F6926349"
+      "sha256": "F559D8518CF2D0E1023081216CFF34BA0A7D31D77B8E9B9E17CF75C4F6926349",
+      "runtimeEventKey": "lost_the_lead"
     },
     {
       "number": 25,
@@ -290,7 +296,8 @@
       "startFrame": 1365135,
       "endFrameExclusive": 1432214,
       "durationSeconds": 1.5210657596371882,
-      "sha256": "B948FEF4F1FFD78A81AB63CECA945DA0DC67D410AD5BE73F5B0450DA3831666C"
+      "sha256": "B948FEF4F1FFD78A81AB63CECA945DA0DC67D410AD5BE73F5B0450DA3831666C",
+      "runtimeEventKey": "tied_for_the_lead"
     },
     {
       "number": 26,
@@ -301,7 +308,8 @@
       "startFrame": 1432214,
       "endFrameExclusive": 1506639,
       "durationSeconds": 1.687641723356009,
-      "sha256": "CCC42497513DC794061FFABFCAABF110DC2E06286EEF823F27299AE3544FB314"
+      "sha256": "CCC42497513DC794061FFABFCAABF110DC2E06286EEF823F27299AE3544FB314",
+      "runtimeEventKey": "one_minute_remaining"
     },
     {
       "number": 27,
@@ -312,7 +320,8 @@
       "startFrame": 1506639,
       "endFrameExclusive": 1586559,
       "durationSeconds": 1.8122448979591836,
-      "sha256": "3D5256225A0F8A5453C09CCF2AC4FB41851701EC93D1DC1AFDA3A435935441DB"
+      "sha256": "3D5256225A0F8A5453C09CCF2AC4FB41851701EC93D1DC1AFDA3A435935441DB",
+      "runtimeEventKey": "thirty_seconds_remaining"
     },
     {
       "number": 28,
@@ -323,7 +332,8 @@
       "startFrame": 1586559,
       "endFrameExclusive": 1666247,
       "durationSeconds": 1.806984126984127,
-      "sha256": "CD4FD53B44B789CAE5FA178A19255F6EEB71FDBBA63585A3D773AE28F87BA789"
+      "sha256": "CD4FD53B44B789CAE5FA178A19255F6EEB71FDBBA63585A3D773AE28F87BA789",
+      "runtimeEventKey": "ten_seconds_remaining"
     },
     {
       "number": 29,
@@ -334,7 +344,8 @@
       "startFrame": 1666247,
       "endFrameExclusive": 1744630,
       "durationSeconds": 1.777392290249433,
-      "sha256": "F67C09929083654E8FC6527F67C565D4AA80BF7841E47FB04F5C097E68290452"
+      "sha256": "F67C09929083654E8FC6527F67C565D4AA80BF7841E47FB04F5C097E68290452",
+      "runtimeEventKey": "five_kills_remaining"
     },
     {
       "number": 30,
@@ -345,7 +356,8 @@
       "startFrame": 1744630,
       "endFrameExclusive": 1822506,
       "durationSeconds": 1.7658956916099773,
-      "sha256": "119759789C18BFAF47141629AA649C4A8DE973D69D651BFB87D719F153AC4DF7"
+      "sha256": "119759789C18BFAF47141629AA649C4A8DE973D69D651BFB87D719F153AC4DF7",
+      "runtimeEventKey": "one_kill_remaining"
     },
     {
       "number": 31,
@@ -356,7 +368,8 @@
       "startFrame": 1822506,
       "endFrameExclusive": 1878498,
       "durationSeconds": 1.2696598639455783,
-      "sha256": "9BAD98CB7B6E2F8A4A8A043785EC1485FD0DA00E3A15DC4565BCF185864AD9DE"
+      "sha256": "9BAD98CB7B6E2F8A4A8A043785EC1485FD0DA00E3A15DC4565BCF185864AD9DE",
+      "runtimeEventKey": "match_point"
     },
     {
       "number": 32,
@@ -367,7 +380,8 @@
       "startFrame": 1878498,
       "endFrameExclusive": 1937681,
       "durationSeconds": 1.3420181405895693,
-      "sha256": "00E75F2D7BCF36B372989DA5E07DA1C62D000AE6B7EFFB3D78F1B744D0374A4A"
+      "sha256": "00E75F2D7BCF36B372989DA5E07DA1C62D000AE6B7EFFB3D78F1B744D0374A4A",
+      "runtimeEventKey": "final_round"
     },
     {
       "number": 33,
@@ -378,7 +392,8 @@
       "startFrame": 1937681,
       "endFrameExclusive": 1990274,
       "durationSeconds": 1.1925850340136055,
-      "sha256": "4BD5D919B3858436DE003A301E377D810DF82A1E5594D9D14942EB2E52777E91"
+      "sha256": "4BD5D919B3858436DE003A301E377D810DF82A1E5594D9D14942EB2E52777E91",
+      "runtimeEventKey": "final_weapon"
     },
     {
       "number": 34,
@@ -389,7 +404,8 @@
       "startFrame": 1990274,
       "endFrameExclusive": 2052417,
       "durationSeconds": 1.409138321995465,
-      "sha256": "C4FA2BDD436A58EB008FC1ABF9DC15CBD4FFDF19E3BB2C412C82DAB78C22B230"
+      "sha256": "C4FA2BDD436A58EB008FC1ABF9DC15CBD4FFDF19E3BB2C412C82DAB78C22B230",
+      "runtimeEventKey": "ladder_complete"
     },
     {
       "number": 35,
@@ -400,7 +416,8 @@
       "startFrame": 2052417,
       "endFrameExclusive": 2087628,
       "durationSeconds": 0.7984353741496598,
-      "sha256": "98102DDA113CA5F6FD163E9081E817192AF30A6C60A3F8A02E2BDA97174BF80E"
+      "sha256": "98102DDA113CA5F6FD163E9081E817192AF30A6C60A3F8A02E2BDA97174BF80E",
+      "runtimeEventKey": "draw"
     },
     {
       "number": 36,
@@ -411,7 +428,8 @@
       "startFrame": 2087628,
       "endFrameExclusive": 2137994,
       "durationSeconds": 1.1420861678004535,
-      "sha256": "3E42BFA92AA4369AB218A9765395A81DCED3D533581643CB07E05114EB3D7543"
+      "sha256": "3E42BFA92AA4369AB218A9765395A81DCED3D533581643CB07E05114EB3D7543",
+      "runtimeEventKey": "shutdown"
     },
     {
       "number": 37,
@@ -422,7 +440,8 @@
       "startFrame": 2137994,
       "endFrameExclusive": 2183194,
       "durationSeconds": 1.0249433106575965,
-      "sha256": "B13805C76789EE16C1B65084C13C3AB60D38C7FDCCA54F6B848645474A53084D"
+      "sha256": "B13805C76789EE16C1B65084C13C3AB60D38C7FDCCA54F6B848645474A53084D",
+      "runtimeEventKey": "clutch"
     },
     {
       "number": 38,

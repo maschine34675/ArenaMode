@@ -6,7 +6,7 @@ using EFT.UI;
 using UnityEngine;
 using UnityEngine.Networking;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _assertions;
     private static readonly List<string> CreatedFiles = new();
@@ -54,6 +54,8 @@ internal static class Program
             VerifyAwardQueue(pluginDir, context);
             VerifyIndependentVolume();
             ArenaMatch.SpaceEvents = true;
+            VerifyExpansion(pluginDir, context);
+            VerifyShotAwards(pluginDir, context);
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;

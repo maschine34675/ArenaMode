@@ -6,9 +6,11 @@ import argparse
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 import struct
 import subprocess
+from optional_runtime_keys import OPTIONAL, runtime_key
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / 'ArenaMode.Client/Assets/ArenaMode'
@@ -26,12 +28,39 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 
 
+def verify_metadata(manifest):
+    rows = manifest['files']
+    cuts = json.loads(Path(__file__).with_name('creator_cuts.json').read_text(encoding='utf-8'))
+    require(len(rows) == len(cuts) == 46, 'Expected all 46 phrases')
+    require(manifest['sourceSha256'] == '79AFBFE5ABC5BF45DC3B95FC7379C49512805846D0D252B6111551244A1625D9',
+        'Original source recording changed')
+    require([[r['spoken'], r['file'], r['startFrame'], r['endFrameExclusive']] for r in rows] == cuts,
+        'Reviewed phrase order, destinations or cuts changed')
+    require({r.get('runtimeEventKey') for r in rows if r.get('runtimeEventKey')} == OPTIONAL
+        and sum(bool(r.get('runtimeEventKey')) for r in rows) == 19, 'Enabled optional cue set differs')
+    for row in rows:
+        require(row.get('runtimeEventKey') == runtime_key(row['file']), 'Optional runtime mapping differs')
+        active = row['file'] == 'sounds/' + Path(row['file']).stem + '.ogg'
+        require(row['usage'] == ('active' if active else 'reserve'), 'Original intake classification changed')
+        require(row['eventKey'] == (Path(row['file']).stem if active else None), 'Original event mapping changed')
+
+
+def verify_runtime_catalog():
+    catalog = (ROOT / 'ArenaMode.Client/Audio/AnnouncerCueCatalog.cs').read_text(encoding='utf-8')
+    match = re.search(r'OptionalReserveKeys\s*=\s*\{([^}]+)\}', catalog)
+    require(match is not None, 'Explicit optional runtime catalog missing')
+    keys = re.findall(r'"([a-z_]+)"', match.group(1))
+    require(len(keys) == 19 and set(keys) == OPTIONAL, 'Production optional cue set differs')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--assets', type=Path, default=ASSETS)
     parser.add_argument('--deployment', type=Path, action='append', default=[])
     args = parser.parse_args()
     manifest = json.loads((args.assets / 'ANNOUNCER-SOURCES.json').read_text(encoding='utf-8'))
+    verify_metadata(manifest)
+    verify_runtime_catalog()
     rows = manifest['files']
     require(len(rows) == 46, 'Expected all 46 phrases')
     require({p.stem for p in (args.assets / 'sounds').glob('*.ogg')} == ACTIVE, 'Active cue set changed')
@@ -52,7 +81,7 @@ def main():
         require(path.resolve().is_relative_to(args.assets.resolve()), 'Unsafe path')
         require(sha(path) == row['sha256'], f'{path}: hash mismatch')
         active = path.parent == args.assets / 'sounds'
-        require(active == (row['usage'] == 'active'), f'{path}: incorrect loading scope')
+        require(active == (row['usage'] == 'active'), f'{path}: incorrect original intake classification')
         require(row['eventKey'] == (path.stem if active else None), 'Event mapping differs')
         probe = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_streams', '-of', 'json', str(path)]))
         require(len(probe['streams']) == 1, 'Expected one stream')
@@ -72,7 +101,9 @@ def main():
         peaks.append(peak)
         durations.append(duration)
     require(previous == manifest['sourceFrames'] == 2758982, 'Source coverage differs')
-    print(f'CREATOR_PACK_VERIFIED: {len(rows)} clips; 18 active, 28 reserve; duration {min(durations):.3f}-{max(durations):.3f}s; max decoded peak {max(peaks):.5f}')
+    print(f'CREATOR_PACK_VERIFIED: {len(rows)} clips; original intake 18 active, 28 reserve; '
+        f'19 reserve cues enabled, 9 unused; duration {min(durations):.3f}-{max(durations):.3f}s; '
+        f'max decoded peak {max(peaks):.5f}')
     for installed in args.deployment:
         count = 0
         for src in args.assets.rglob('*'):

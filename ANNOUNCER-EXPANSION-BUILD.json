@@ -1,0 +1,39 @@
+{
+  "SourceCommit": "ce5394888a01d11f4a8aa0231b7824f030c05e0e",
+  "SourceChanges": [],
+  "ClientPath": "D:\\SPT41\\Development\\ArenaMode-VoiceLines\\artifacts\\double-jump-build\\d190fd38571f4a9092d2c37a011959a9\\out\\maschine-ArenaMode.Client.dll",
+  "ClientSha256": "8B83449BC7D1095380D7A1D880B285E0B9ABBA305C02C72BD825082E9F80B143",
+  "InstalledUnchanged": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll": "54C2D7B72EF96535813454B5EF07B9B2919EBABFCBFF84AD8F8EAD94C3BE0DEE",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "C3DC2F125389F17FC3A171F48A973429CE859628F7375F7F63CD2AACAF2D44E3"
+  },
+  "Deployed": false,
+  "LiveGpuTested": false,
+  "Purpose": "Announcer expansion staging only; merge with concurrent respawn changes and rebuild before deployment.",
+  "Branch": "feature/additional-announcer-lines",
+  "Date": "2026-09-14",
+  "BaseCommit": "5593ea74ebb961f407a9262e9719cb864754d69d",
+  "ProductVersion": "0.1.0+ce5394888a01d11f4a8aa0231b7824f030c05e0e",
+  "ParentVerified": {
+    "AudioAssertions": 203,
+    "PftAssertions": 248,
+    "UnitSkipped": 2,
+    "AssetClips": 46,
+    "IntegrationAssertions": 34,
+    "RuntimeClips": 37,
+    "AudioFaults": 29,
+    "CombatAssertions": 151,
+    "GiveUpFaults": 16,
+    "TdmMatchAssertions": 227,
+    "GiveUpAssertions": 618,
+    "CombatHistoricalControls": 1,
+    "TacticalAssertions": 74,
+    "IntegrationFaults": 4,
+    "ProgressAssertions": 139,
+    "ProgressFaults": 22,
+    "TeamExpansionAssertions": 830,
+    "UnitPassed": 621,
+    "CombatFaults": 9
+  }
+}

@@ -9,8 +9,11 @@ The 18 existing event keys are unchanged. In particular, ULTRA KILL uses the
 existing four-kill MULTI event; the HUD still says MULTI KILL. ROUND WINNER,
 MISSION FAILED, MISSION ACCOMPLISHED and GAME OVER remain the current result
 phrases. ROUND WON/LOST and VICTORY/DEFEAT are alternatives kept in reserve.
-The 28 reserve clips have **no new gameplay triggers**. The current loader scans
-only the top level of `sounds`; normal build/publish also copies `sounds/reserve`.
+As of 2026-09-14, **19 additional phrases** have explicit runtime triggers in
+existing modes: 37 recordings can play; four alternate results and five CTF lines
+remain unused. The loader reads the root plus an explicit reserve whitelist, never
+a recursive scan. Root custom overrides still win. See
+[ANNOUNCER-EXPANSION-REVIEW.md](../../../ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
 
 Slicing uses pause midpoints cross-checked against the waveform and a local
 base.en Whisper transcript. The input was not uploaded for transcription.
@@ -40,25 +43,25 @@ encoding headroom. 44.1 kHz stereo Vorbis q7 minimizes another encoding loss.
 | 16 | MISSION FAILED | `sounds/round_lost.ogg` | active |
 | 17 | MISSION ACCOMPLISHED | `sounds/match_won.ogg` | active |
 | 18 | GAME OVER | `sounds/match_lost.ogg` | active |
-| 19 | PREPARE TO FIGHT | `sounds/reserve/prepare_to_fight.ogg` | reserve |
-| 20 | THREE | `sounds/reserve/three.ogg` | reserve |
-| 21 | TWO | `sounds/reserve/two.ogg` | reserve |
-| 22 | ONE | `sounds/reserve/one.ogg` | reserve |
-| 23 | TAKEN THE LEAD | `sounds/reserve/taken_the_lead.ogg` | reserve |
-| 24 | LOST THE LEAD | `sounds/reserve/lost_the_lead.ogg` | reserve |
-| 25 | TIED FOR THE LEAD | `sounds/reserve/tied_for_the_lead.ogg` | reserve |
-| 26 | ONE MINUTE REMAINING | `sounds/reserve/one_minute_remaining.ogg` | reserve |
-| 27 | THIRTY SECONDS REMAINING | `sounds/reserve/thirty_seconds_remaining.ogg` | reserve |
-| 28 | TEN SECONDS REMAINING | `sounds/reserve/ten_seconds_remaining.ogg` | reserve |
-| 29 | FIVE KILLS REMAINING | `sounds/reserve/five_kills_remaining.ogg` | reserve |
-| 30 | ONE KILL REMAINING | `sounds/reserve/one_kill_remaining.ogg` | reserve |
-| 31 | MATCH POINT | `sounds/reserve/match_point.ogg` | reserve |
-| 32 | FINAL ROUND | `sounds/reserve/final_round.ogg` | reserve |
-| 33 | FINAL WEAPON | `sounds/reserve/final_weapon.ogg` | reserve |
-| 34 | LADDER COMPLETE | `sounds/reserve/ladder_complete.ogg` | reserve |
-| 35 | DRAW | `sounds/reserve/draw.ogg` | reserve |
-| 36 | SHUTDOWN | `sounds/reserve/shutdown.ogg` | reserve |
-| 37 | CLUTCH | `sounds/reserve/clutch.ogg` | reserve |
+| 19 | PREPARE TO FIGHT | `sounds/reserve/prepare_to_fight.ogg` | active (explicit reserve binding) |
+| 20 | THREE | `sounds/reserve/three.ogg` | active (explicit reserve binding) |
+| 21 | TWO | `sounds/reserve/two.ogg` | active (explicit reserve binding) |
+| 22 | ONE | `sounds/reserve/one.ogg` | active (explicit reserve binding) |
+| 23 | TAKEN THE LEAD | `sounds/reserve/taken_the_lead.ogg` | active (explicit reserve binding) |
+| 24 | LOST THE LEAD | `sounds/reserve/lost_the_lead.ogg` | active (explicit reserve binding) |
+| 25 | TIED FOR THE LEAD | `sounds/reserve/tied_for_the_lead.ogg` | active (explicit reserve binding) |
+| 26 | ONE MINUTE REMAINING | `sounds/reserve/one_minute_remaining.ogg` | active (explicit reserve binding) |
+| 27 | THIRTY SECONDS REMAINING | `sounds/reserve/thirty_seconds_remaining.ogg` | active (explicit reserve binding) |
+| 28 | TEN SECONDS REMAINING | `sounds/reserve/ten_seconds_remaining.ogg` | active (explicit reserve binding) |
+| 29 | FIVE KILLS REMAINING | `sounds/reserve/five_kills_remaining.ogg` | active (explicit reserve binding) |
+| 30 | ONE KILL REMAINING | `sounds/reserve/one_kill_remaining.ogg` | active (explicit reserve binding) |
+| 31 | MATCH POINT | `sounds/reserve/match_point.ogg` | active (explicit reserve binding) |
+| 32 | FINAL ROUND | `sounds/reserve/final_round.ogg` | active (explicit reserve binding) |
+| 33 | FINAL WEAPON | `sounds/reserve/final_weapon.ogg` | active (explicit reserve binding) |
+| 34 | LADDER COMPLETE | `sounds/reserve/ladder_complete.ogg` | active (explicit reserve binding) |
+| 35 | DRAW | `sounds/reserve/draw.ogg` | active (explicit reserve binding) |
+| 36 | SHUTDOWN | `sounds/reserve/shutdown.ogg` | active (explicit reserve binding) |
+| 37 | CLUTCH | `sounds/reserve/clutch.ogg` | active (explicit reserve binding) |
 | 38 | ROUND WON | `sounds/reserve/round_won.ogg` | reserve |
 | 39 | ROUND LOST | `sounds/reserve/round_lost.ogg` | reserve |
 | 40 | VICTORY | `sounds/reserve/victory.ogg` | reserve |
@@ -92,7 +95,7 @@ Optional `--deployment <asset-folder>` compares the entire packaged asset tree.
 The checks do not certify subjective audio quality or native in-game playback.
 
 **Restart the game after updating**: healthy announcer PCM is cached across
-matches. No DLL swap or server restart is needed for this asset-only change.
+matches. Enabling the additional triggers also requires the updated client DLL; no server change is needed.
 Use F12 Audio / AnnouncerVolume for the independent voice volume.
 Backups and delivery evidence for this intake: ignored
 `artifacts/creator-announcer/`; the original combined OGG stays outside Git.

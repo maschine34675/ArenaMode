@@ -1,11 +1,21 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-13. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-14. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Announcer integration (2026-09-14, Codex; delivery in progress):** user paused
+  parallel respawn work and explicitly authorized deployment of the complete
+  announcer branch, including text-only `NICE THROW, GENIUS!` on a proven direct
+  own-hand-grenade death (`660d249`). Additional cues and shot awards below are
+  now merged with current main; their isolated NOT DEPLOYED build records remain
+  historical. The final combined main build will be bound separately. Retain the
+  installed Core 1.0.1 and server; delivery replaces only the client and three
+  announcer package documents. No OGG bytes, user drafts or map assets change.
+  See `SELF-GRENADE-TAUNT-REVIEW.md`; live audibility/HUD timing remain user tests.
 
 - **Redeploy.Core 1.0.1 installed (2026-09-14, Claude, Redeploy `d532a3c`):** a respawn near a
   corpse now has to be walkable from it, outside sniper and mine zones and with room to stand
@@ -14,6 +24,60 @@ current. User-facing communication is normally German.
   25 m) when both native spawn lookups fail; bounded areas never do. No ArenaMode change and no
   rebuild: the installed client `54C2D7B7…` is stamped 1.0.0, which the Awake gate accepts against
   Core 1.0.1 (hash `EE09B6B5…`). Its new log lines start with `Respawn position on`.
+
+- **Shot-time awards (2026-09-14, Codex; NOT DEPLOYED):** the isolated announcer
+  branch also implements TRICKSHOT (airborne hip fire, including falling) and
+  NO SCOPE (bolt-action hip fire). Direct lethal bullets use the exact local
+  body's firing snapshot, not ADS/grounded/held-weapon state at death. Pooled
+  projectile, parent/fragment, accepted native hit and round/body identities are
+  checked. Both logical labels provisionally play the existing Godlike recording;
+  healthy future root `trickshot.ogg`/`no_scope.ogg` recordings override it.
+  First Blood/Payback/Shutdown/multi-kills precede these awards; sprees and
+  Headshot follow. No score, gameplay, asset bytes or profile changes. Read
+  `SHOT-AWARDS-REVIEW.md` for boundaries and user-run tests. Code commit `0f25d5c`;
+  clean staged client `0.1.0+0f25d5c8e03d29078dca9eb20d62d60d232ca3ae`, SHA256
+  `3F7D1C5CE3D830945F9FA4EBC85FB095771477FA325BEDC0989BCC0CACB747A5`.
+  Exact path, installed hashes, external Core source hashes and checks are in
+  `SHOT-AWARDS-BUILD.json`. Four existing native-build warnings, no errors.
+  Parent checks: history 113/6 faults, native adapter 128/5 faults plus 46
+  metadata/wiring assertions, audio 236, combat 194 and six new audio/combat
+  faults; retained historical controls and all 46 clip hashes/decodes pass.
+  Unit suite 621 passed/two skipped; PFT, team expansion, give-up, Tactical and
+  TDM regression suites remain green. Independent adversarial review passed.
+  No native audibility/raid proof; main and installed client/server/Core unchanged.
+  The preceding 19-cue build below is historical. The parallel checkout remains
+  responsible for respawn integration; merge combined source and rebuild before
+  deploying, never copy this isolated DLL over a newer respawn build.
+  During this work, main independently advanced to `fa43fa5` documenting installed
+  Redeploy.Core 1.0.1 (`EE09B6B5...`); client/server were unchanged. New staging
+  uses the actually installed Core, without building or deploying Redeploy.
+
+- **Additional announcer lines (2026-09-14, Codex; NOT DEPLOYED):** implemented in
+  isolated `D:\SPT41\Development\ArenaMode-VoiceLines` on
+  `feature/additional-announcer-lines`, code commit `ce53948` (base `5593ea7`).
+  Adds 19 explicitly loaded Creator reserve phrases for real preparation/countdown,
+  lead/limit/series/Gun Game progress, actual Draw, physical-life Shutdown and living
+  protected-team Clutch. Multi-kills now precede sprees in selection and queue;
+  First Blood/Payback/Shutdown remain higher. Original win events/recordings and
+  all score/profile/respawn rules are retained. See `ANNOUNCER-EXPANSION-REVIEW.md`
+  for triggers, priority and the legacy shared-GUISounds cancellation limitation.
+  Parent re-verification and independent adversarial review passed. Unit suite:
+  621 passed, two skipped; audio 203, progress 139, combat 151 and real-adapter 34
+  assertions plus deliberate compiled faults; existing PFT 248, Team Arena 830,
+  give-up 618, Tactical polish 74 and TDM match/exit 227 checks pass. All 46 audio
+  hashes/decodes verified; no OGG bytes or provenance changed.
+  Clean staged client: `0.1.0+ce5394888a01d11f4a8aa0231b7824f030c05e0e`, SHA256
+  `8B83449BC7D1095380D7A1D880B285E0B9ABBA305C02C72BD825082E9F80B143`.
+  Exact path, installed-file snapshots and checks are in
+  `ANNOUNCER-EXPANSION-BUILD.json`. Four existing nullable warnings, no build errors.
+  Main checkout and installed client/server/Core remain unchanged; the respawn
+  session owns its own integration/deployment. Merge this branch into the final
+  combined source and rebuild before deploying; do not install this older staged
+  DLL over newer respawn changes. No server update is needed for this feature.
+  Native audibility/pacing remains untested. After integration, restart EFT and
+  test countdown/readiness loss, coincident Triple Kill/Spree, time/kill/lead
+  warnings, Gun Game wrap and a living Clutch versus a dead-player team victory.
+  Existing GPU test/build IDs have deliberately not been rewritten.
 
 - **Redeploy.Core 1.0.0, Core skew check and raid-end log level (2026-09-13 evening,
   Claude):** `6a72ddb` logs the designed first raid-end answer

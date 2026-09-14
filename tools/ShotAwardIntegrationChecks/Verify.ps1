@@ -1,0 +1,84 @@
+param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+$ErrorActionPreference = 'Stop'
+$shotRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+$shotSource = Join-Path $shotRoot 'ArenaMode.Client/Combat'
+$shotProject = Join-Path $PSScriptRoot 'ShotAwardIntegrationChecks.csproj'
+$shotScratch = Join-Path $shotRoot ('artifacts/shot-award-integration/' + [guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($shotScratch)
+$shotFiles = @('ArenaShotAwardHooks.cs','ArenaShotAwardHistory.cs','ArenaHitHistory.cs')
+$shotBound = @($shotFiles | ForEach-Object { 'ArenaMode.Client/Combat/' + $_ }) + @(
+    'ArenaMode.Client/Combat/CombatPatches.cs','ArenaMode.Client/Modes/ArenaMatch.cs'
+) + @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ShotAwardIntegrationChecks/' + $_.Name })
+$shotHashes = @{}
+foreach ($path in $shotBound) { $shotHashes[$path] = (Get-FileHash -LiteralPath (Join-Path $shotRoot $path)).Hash }
+$shotInstalledPaths = @(
+    'BepInEx/plugins/maschine-ArenaMode.Client.dll',
+    'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
+    'BepInEx/plugins/maschine-Redeploy.Core.dll',
+    'EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll'
+)
+$shotInstalledHashes = @{}
+foreach ($path in $shotInstalledPaths) { $shotInstalledHashes[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash }
+
+function Run-Probe([string]$name, [string]$sourceRoot, [string]$suite = 'all', [string]$failure = '') {
+    $dir = Join-Path $shotScratch $name
+    [void][IO.Directory]::CreateDirectory($dir)
+    $build = & dotnet build $shotProject -c Release --nologo "-p:ShotSourceRoot=$sourceRoot" "-p:BaseIntermediateOutputPath=$dir/obj/" "-p:OutputPath=$dir/out/" 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    [IO.File]::WriteAllText((Join-Path $dir 'build.log'), $build)
+    if ($code -ne 0) { throw "$name must compile before it can demonstrate a behavioral failure: $build" }
+    $run = & dotnet (Join-Path $dir 'out/ShotAwardIntegrationChecks.dll') $suite 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    [IO.File]::WriteAllText((Join-Path $dir 'result.log'), $run)
+    if ($failure) {
+        if ($code -eq 0 -or !$run.Contains('FAILED: ' + $failure)) { throw "$name did not reject the intended fault: $run" }
+        Write-Output "Rejected $name at: $failure"
+    } elseif ($code -ne 0 -or !$run.Contains('SHOT_AWARD_NATIVE_ADAPTER_PASSED:')) { throw "$name failed: $run" }
+    else { Write-Output $run.Trim() }
+}
+
+try {
+    $native = & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Verify-Native.ps1') -SptPath $SptPath 2>&1 | Out-String
+    $nativeCode = $LASTEXITCODE
+    [IO.File]::WriteAllText((Join-Path $shotScratch 'native-contract.log'), $native)
+    if ($nativeCode -ne 0 -or !$native.Contains('SHOT_AWARD_NATIVE_SOURCE_CONTRACT_PASSED:')) { throw $native }
+    Write-Output $native.Trim()
+    Run-Probe 'production' $shotSource
+    $faults = @(
+        @{ Name='allow-aimed-fire'; File='ArenaShotAwardHooks.cs'; Suite='conditions';
+           Find='|| firearm.IsAiming'; Replace=''; Failure='aimed fire has no award snapshot' },
+        @{ Name='foreign-active-world'; File='ArenaShotAwardHooks.cs'; Suite='admission';
+           Find='&& ArenaSession.IsExactActiveRaid(game, world)'; Replace='&& true'; Failure='foreign active raid cannot create award facts' },
+        @{ Name='wrong-ammunition-source'; File='ArenaShotAwardHooks.cs'; Suite='correlation';
+           Find='|| !string.Equals(info.SourceId, scope.Shot.Ammo.TemplateId, StringComparison.Ordinal)'; Replace=''; Failure='wrong ammunition source rejected' },
+        @{ Name='pooled-shot-retains-old-facts'; File='ArenaShotAwardHistory.cs'; Suite='lifetime';
+           Find='_shots.Remove(shot);'; Replace='if (_shots.TryGetValue(shot, out _)) return;'; Failure='unknown pooled create erases former firing facts' },
+        @{ Name='missing-native-finalizer-cleanup'; File='ArenaShotAwardHooks.cs'; Suite='finalizers';
+           Find='__state?.Dispose(); return __exception;'; Replace='return __exception;'; Occurrences=2; Failure='fire exception finalizer clears capture' }
+    )
+    foreach ($fault in $faults) {
+        $faultRoot = Join-Path $shotScratch ($fault.Name + '/source')
+        [void][IO.Directory]::CreateDirectory($faultRoot)
+        foreach ($file in $shotFiles) { Copy-Item -LiteralPath (Join-Path $shotSource $file) -Destination (Join-Path $faultRoot $file) }
+        $path = Join-Path $faultRoot $fault.File
+        $source = [IO.File]::ReadAllText($path)
+        $occurrences = if ($fault.Occurrences) { $fault.Occurrences } else { 1 }
+        if ($source.Split(@($fault.Find), [StringSplitOptions]::None).Length -ne $occurrences + 1) { throw "Ambiguous compiled fault anchor: $($fault.Name)" }
+        [IO.File]::WriteAllText($path, $source.Replace($fault.Find, $fault.Replace))
+        Run-Probe $fault.Name $faultRoot $fault.Suite $fault.Failure
+    }
+    Run-Probe 'production-final' $shotSource
+    foreach ($path in $shotBound) {
+        if ((Get-FileHash -LiteralPath (Join-Path $shotRoot $path)).Hash -ne $shotHashes[$path]) { throw "Bound source changed; rerun required: $path" }
+    }
+} finally {
+    foreach ($path in $shotInstalledPaths) {
+        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $shotInstalledHashes[$path]) { throw "Installed binary changed during verification: $path" }
+    }
+}
+[ordered]@{
+    sourceHashes=$shotHashes; installedHashes=$shotInstalledHashes; sourcesUnchanged=$true; installedUnchanged=$true;
+    compiledFaultCount=$faults.Count; completedUtc=[DateTime]::UtcNow.ToString('o'); evidenceDirectory=$shotScratch;
+    limitation='Adapter behavior uses explicit native boundary doubles. Native metadata and source wiring checks are read-only, not in-game runtime proof.'
+} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $shotScratch 'manifest.json')
+Write-Output "SHOT AWARD INTEGRATION PASSED; five compiled faults rejected; installed Arena client/server/Core unchanged; evidence: $shotScratch"

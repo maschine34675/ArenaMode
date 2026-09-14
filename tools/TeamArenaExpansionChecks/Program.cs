@@ -1,6 +1,7 @@
 using ArenaMode.Modes;
 using ArenaMode.Spectator;
 using ArenaMode.Bots;
+using ArenaMode.Audio;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System.Text.Json.Nodes;
@@ -1058,6 +1059,8 @@ internal static class Program
 
         JsonObject Cue(JsonObject pack, string key) => pack["files"]!.AsArray()
             .Select(row => row!.AsObject()).Single(row => row["eventKey"]?.GetValue<string>() == key);
+        JsonObject Reserve(JsonObject pack, string basename) => pack["files"]!.AsArray()
+            .Select(row => row!.AsObject()).Single(row => row["file"]?.GetValue<string>() == "sounds/reserve/" + basename + ".ogg");
         var faults = new (string Name, Action<JsonObject> Change, string Failure)[]
         {
             ("missing generator", pack => pack.Remove("generator"), "missing provenance"),
@@ -1072,7 +1075,25 @@ internal static class Program
             ("unreviewed round-won alternative", pack => Cue(pack, "round_won")["spoken"] = "ROUND WON", "reviewed lifecycle mapping differs"),
             ("reserve file loaded as active", pack => Cue(pack, "round_start")["file"] = "sounds/reserve/round_start.ogg", "wrong loading scope"),
             ("reserve event", pack => pack["files"]!.AsArray().Select(row => row!.AsObject()).First(row => row["usage"]!.GetValue<string>() == "reserve")["eventKey"] = "reserved", "reserve cue has an event"),
-            ("missing lifecycle cue", pack => pack["files"]!.AsArray().Remove(Cue(pack, "round_won")), "active/reserve cue set differs")
+            ("missing lifecycle cue", pack => pack["files"]!.AsArray().Remove(Cue(pack, "round_won")), "active/reserve cue set differs"),
+            ("missing optional runtime binding", pack => Reserve(pack, "prepare_to_fight").Remove("runtimeEventKey"), "missing reserve runtime binding"),
+            ("wrong optional runtime mapping", pack => Reserve(pack, "prepare_to_fight")["runtimeEventKey"] = "three", "reserve runtime event/file mapping differs"),
+            ("duplicate runtime mapping", pack => Reserve(pack, "three")["runtimeEventKey"] = "prepare_to_fight", "duplicate reserve runtime cue"),
+            ("empty runtime mapping", pack => Reserve(pack, "prepare_to_fight")["runtimeEventKey"] = "", "reserve runtime event/file mapping differs"),
+            ("alternate round-won runtime", pack => Reserve(pack, "round_won")["runtimeEventKey"] = "round_won", "unsupported reserve runtime binding"),
+            ("alternate round-lost runtime", pack => Reserve(pack, "round_lost")["runtimeEventKey"] = "round_lost", "unsupported reserve runtime binding"),
+            ("alternate victory runtime", pack => Reserve(pack, "victory")["runtimeEventKey"] = "victory", "unsupported reserve runtime binding"),
+            ("alternate defeat runtime", pack => Reserve(pack, "defeat")["runtimeEventKey"] = "defeat", "unsupported reserve runtime binding"),
+            ("unsupported CTF runtime", pack => Reserve(pack, "flag_captured")["runtimeEventKey"] = "flag_captured", "unsupported reserve runtime binding"),
+            ("unsupported flag-taken runtime", pack => Reserve(pack, "your_flag_has_been_taken")["runtimeEventKey"] = "your_flag_has_been_taken", "unsupported reserve runtime binding"),
+            ("unsupported enemy-flag runtime", pack => Reserve(pack, "enemy_flag_taken")["runtimeEventKey"] = "enemy_flag_taken", "unsupported reserve runtime binding"),
+            ("unsupported flag-dropped runtime", pack => Reserve(pack, "flag_dropped")["runtimeEventKey"] = "flag_dropped", "unsupported reserve runtime binding"),
+            ("unsupported flag-returned runtime", pack => Reserve(pack, "flag_returned")["runtimeEventKey"] = "flag_returned", "unsupported reserve runtime binding"),
+            ("CTF disguised as a result", pack => Reserve(pack, "flag_captured")["runtimeEventKey"] = "round_won", "unsupported reserve runtime binding"),
+            ("active runtime override", pack => Cue(pack, "round_won")["runtimeEventKey"] = "victory", "active cue has a reserve runtime binding"),
+            ("optional cue hash", pack => Reserve(pack, "clutch")["sha256"] = new string('0', 64), "cue checksum differs"),
+            ("optional reviewed speech", pack => Reserve(pack, "clutch")["spoken"] = "VICTORY", "reviewed reserve label differs"),
+            ("promoted reserve intake", pack => Reserve(pack, "clutch")["usage"] = "active", "wrong loading scope")
         };
         foreach (var fault in faults)
         {
@@ -1086,6 +1107,50 @@ internal static class Program
         // Fixture controls never edit packaged files or the original record.
         AnnouncerAssetContract.Validate(assets, manifest);
         Assert(true, "unmodified announcer manifest still passes after negative controls");
+
+        string[] loaded = AnnouncerCueCatalog.LoadPaths(Path.Combine(assets, "sounds"));
+        AnnouncerAssetContract.ValidateLoadedPaths(assets, loaded);
+        Assert(true, "production loader selects the exact 18 original plus 19 explicitly bound reserve files");
+        Assert(AnnouncerCueCatalog.OptionalReserveKeys.Length == 19
+               && AnnouncerCueCatalog.OptionalReserveKeys.ToHashSet(StringComparer.Ordinal).SetEquals(AnnouncerAssetContract.ReserveRuntimeBindings.Keys),
+            "production catalog allowlist matches the independent reviewed 19-cue contract");
+        var lifecycleBindings = new Dictionary<ArenaAnnouncerCue, string>
+        {
+            [ArenaAnnouncerCue.RoundStart] = "round_start", [ArenaAnnouncerCue.RoundWon] = "round_won",
+            [ArenaAnnouncerCue.RoundLost] = "round_lost", [ArenaAnnouncerCue.MatchWon] = "match_won",
+            [ArenaAnnouncerCue.MatchLost] = "match_lost", [ArenaAnnouncerCue.LastManStanding] = "last_man_standing",
+            [ArenaAnnouncerCue.PrepareToFight] = "prepare_to_fight", [ArenaAnnouncerCue.Three] = "three",
+            [ArenaAnnouncerCue.Two] = "two", [ArenaAnnouncerCue.One] = "one",
+            [ArenaAnnouncerCue.TakenTheLead] = "taken_the_lead", [ArenaAnnouncerCue.LostTheLead] = "lost_the_lead",
+            [ArenaAnnouncerCue.TiedForTheLead] = "tied_for_the_lead", [ArenaAnnouncerCue.OneMinuteRemaining] = "one_minute_remaining",
+            [ArenaAnnouncerCue.ThirtySecondsRemaining] = "thirty_seconds_remaining", [ArenaAnnouncerCue.TenSecondsRemaining] = "ten_seconds_remaining",
+            [ArenaAnnouncerCue.FiveKillsRemaining] = "five_kills_remaining", [ArenaAnnouncerCue.OneKillRemaining] = "one_kill_remaining",
+            [ArenaAnnouncerCue.MatchPoint] = "match_point", [ArenaAnnouncerCue.FinalRound] = "final_round",
+            [ArenaAnnouncerCue.FinalWeapon] = "final_weapon", [ArenaAnnouncerCue.LadderComplete] = "ladder_complete",
+            [ArenaAnnouncerCue.Draw] = "draw", [ArenaAnnouncerCue.Shutdown] = "shutdown", [ArenaAnnouncerCue.Clutch] = "clutch"
+        };
+        foreach (var binding in lifecycleBindings)
+        {
+            var kind = AnnouncerCueCatalog.Classify(binding.Key, out string key);
+            Assert(kind != AnnouncerCueKind.None && key == binding.Value,
+                "production lifecycle mapping matches independent reviewed key: " + binding.Key);
+        }
+        var loadedFaults = new (string Name, string[] Paths, string Failure)[]
+        {
+            ("duplicate loaded key", loaded.Append(loaded[0]).ToArray(), "duplicate runtime load path"),
+            ("alternate result collision", loaded.Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/') == "sounds/round_won.ogg"
+                ? Path.Combine(assets, "sounds/reserve/round_won.ogg") : file).ToArray(), "runtime loaded cue set differs"),
+            ("CTF recursively loaded", loaded.Append(Path.Combine(assets, "sounds/reserve/flag_captured.ogg")).ToArray(), "runtime loaded cue set differs"),
+            ("missing optional loaded file", loaded.Where(file => Path.GetFileName(file) != "clutch.ogg").ToArray(), "runtime loaded cue set differs")
+        };
+        foreach (var fault in loadedFaults)
+        {
+            bool rejected = false;
+            try { AnnouncerAssetContract.ValidateLoadedPaths(assets, fault.Paths); }
+            catch (InvalidDataException ex) { rejected = ex.Message.Contains(fault.Failure, StringComparison.Ordinal); }
+            Assert(rejected, "runtime loader contract rejects " + fault.Name);
+        }
+        Console.WriteLine($"ANNOUNCER_ASSET_CONTRACT_PASSED: 46 hashes; 18 active, 19 bound reserve, 9 unbound; {faults.Length} manifest + {loadedFaults.Length} loader negative controls; {lifecycleBindings.Count} production cue mappings");
     }
 
     private static void CheckSourceContract()
@@ -1117,6 +1182,7 @@ internal static class Program
         string tactical = Read(root, "ArenaMode.Client", "Modes", "TacticalMode.cs");
         string match = Read(root, "ArenaMode.Client", "Modes", "ArenaMatch.cs");
         string announcer = Read(root, "ArenaMode.Client", "Audio", "AnnouncerService.cs");
+        string announcerCatalog = Read(root, "ArenaMode.Client", "Audio", "AnnouncerCueCatalog.cs");
         string audioLicenses = Read(root, "ArenaMode.Client", "Assets", "ArenaMode", "AUDIO-LICENSES.md");
         string combat = Read(root, "ArenaMode.Client", "Combat", "CombatPatches.cs");
         string respawn = Read(root, "ArenaMode.Client", "Respawn", "ArenaRespawnDriver.cs");
@@ -1282,9 +1348,8 @@ internal static class Program
             "string.Equals(key, \"round_start\"",
             "match.OnAnnouncerCue += OnAnnouncerCue",
             "_match.OnAnnouncerCue -= OnAnnouncerCue",
-            "ArenaAnnouncerCue.RoundStart => \"round_start\"",
-            "ArenaAnnouncerCue.RoundWon => \"round_won\"",
-            "ArenaAnnouncerCue.RoundLost => \"round_lost\"",
+            "AnnouncerCueCatalog.LoadPaths(soundsDir)",
+            "AnnouncerCueCatalog.Classify(cue, out string key)",
             "private sealed class CachedClip",
             "float[] Samples;",
             "CachedClip cached = TryCapturePcm(decoded, key, out string pcmProblem);",
@@ -1319,12 +1384,17 @@ internal static class Program
             "private static float _calloutBusyUntil",
             "private static string _pendingResultKey",
             "ResultCueGapSeconds",
-            "Time.realtimeSinceStartup + clipLengthSeconds + ResultCueGapSeconds",
+            "_calloutBusyUntil = Time.realtimeSinceStartup + clipLengthSeconds",
+            "AnnouncerCueCatalog.IsCountdown(key) ? 0f : ResultCueGapSeconds",
             "Arena announcer result queued:",
             "Arena announcer queued result released:",
             "CancelPendingResult(\"match detached\")",
             "CancelPendingResult(\"new round started\")",
             "queued_result_canceled");
+        RequireAll(announcerCatalog,
+            "ArenaAnnouncerCue.RoundStart => \"round_start\"",
+            "ArenaAnnouncerCue.RoundWon => \"round_won\"",
+            "ArenaAnnouncerCue.RoundLost => \"round_lost\"");
         string pcmCapture = Slice(
             announcer,
             "private static CachedClip TryCapturePcm(",

@@ -56,6 +56,20 @@ namespace ArenaMode.Modes
     }
 }
 
+namespace ArenaMode.Audio
+{
+    // The director's policies/mode adapters are verified in their own production-
+    // linked tools. This boundary verifies service subscription and tick ordering.
+    internal static class ArenaAnnouncementDirector
+    {
+        internal static ArenaMode.Modes.ArenaMatch Attached;
+        internal static Action OnTick;
+        internal static void Attach(ArenaMode.Modes.ArenaMatch match) => Attached = match;
+        internal static void Detach() { Attached = null; OnTick = null; }
+        internal static void Tick() => OnTick?.Invoke();
+    }
+}
+
 namespace Comfort.Common
 {
     internal static class Singleton<T> where T : class
@@ -218,7 +232,7 @@ namespace UnityEngine
                 if (clip != null) clip.SimulateAudioReset();
         }
     }
-    internal static class Time { public static float realtimeSinceStartup = 100f; }
+    internal static class Time { public static float realtimeSinceStartup = 100f; public static int frameCount; }
     internal static class AudioListener { public static float volume = 0.8f; public static bool pause; }
 
     internal class Component : Object
