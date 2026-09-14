@@ -21,6 +21,7 @@ public sealed class ArenaMatch
     public int Score => Scoreboard.Local.Score;
     public int Kills => Scoreboard.Local.Kills;
     public int Deaths => Scoreboard.Local.Deaths;
+    public int Assists => Scoreboard.Local.Assists;
     public int Streak => Scoreboard.Local.Streak;
     public int BestStreak => Scoreboard.Local.BestStreak;
     public int Headshots => Scoreboard.Local.Headshots;
@@ -35,7 +36,10 @@ public sealed class ArenaMatch
     /// <summary>Every captured kill (local and observed), after bookkeeping.</summary>
     public event Action<ArenaKill> OnKill;
 
-    /// <summary>Local score changed (kill scored or bookkeeping reset).</summary>
+    /// <summary>One proportional contribution reward; never a kill or speech event.</summary>
+    public event Action<ArenaAssist> OnAssist;
+
+    /// <summary>Local score changed (kill, assist or bookkeeping reset).</summary>
     public event Action OnScoreChanged;
 
     /// <summary>Short shout-style label ("DOUBLE KILL", "KILLING SPREE").</summary>
@@ -68,7 +72,11 @@ public sealed class ArenaMatch
 
         if (Mode is TeamDeathmatchMode teams)
         {
-            if (!teams.TryBeginScoredEvent()) return;
+            if (!teams.TryBeginScoredEvent())
+            {
+                ForgetAssistVictim(kill.VictimBodyId);
+                return;
+            }
             teams.ClassifyKill(kill);
             // Native death and kill notifications can arrive in either order.
             // Count the final local casualty before the terminal score freezes;
@@ -77,13 +85,23 @@ public sealed class ArenaMatch
         }
         if (Mode is RoundsMode deathmatch)
         {
-            if (!deathmatch.TryBeginScoredEvent()) return;
+            if (!deathmatch.TryBeginScoredEvent())
+            {
+                ForgetAssistVictim(kill.VictimBodyId);
+                return;
+            }
             if (kill.LocalIsVictim) ReportLocalDeath();
         }
         // ReportKill clears the victim's life. Capture only its currently bound,
         // opposing physical body before that reset; historical aliases do not count.
         bool shutdown = Scoreboard.IsShutdown(kill);
         Scoreboard.ReportKill(kill);
+        foreach (var assist in kill.Assists)
+        {
+            RaiseSafe(() => OnAssist?.Invoke(assist), nameof(OnAssist));
+            if (assist.IsLocal)
+                RaiseSafe(() => OnScoreChanged?.Invoke(), nameof(OnScoreChanged));
+        }
 
         string existingLabel = null;
         if (kill.KilledByLocal && !kill.LocalIsVictim && kill.AwardEligible)
@@ -121,6 +139,14 @@ public sealed class ArenaMatch
         RaiseSafe(Mode.OnLocalDeath, "mode.OnLocalDeath");
     }
 
+    internal void RecordAssistDamage(ArenaAssistDamage damage)
+    {
+        if (Mode == null || Mode.IsComplete) return;
+        Scoreboard.RecordAssistDamage(damage);
+    }
+
+    internal void ForgetAssistVictim(long bodyId) => Scoreboard.ForgetAssistVictim(bodyId);
+
     public void ReportLocalRespawn(Player player)
     {
         if (ArenaMatchResult.HasResult(Mode)) return;
@@ -150,7 +176,10 @@ public sealed class ArenaMatch
     }
 
     public void End()
-        => RaiseSafe(Mode.OnMatchEnd, "mode.OnMatchEnd");
+    {
+        Scoreboard.ResetAssists();
+        RaiseSafe(Mode.OnMatchEnd, "mode.OnMatchEnd");
+    }
 
     internal void ReportAnnouncerCue(ArenaAnnouncerCue cue, bool beginAwardRound = true)
     {
@@ -172,6 +201,7 @@ public sealed class ArenaMatch
 
     internal void BeginAwardRound(bool clearRevenge = true)
     {
+        Scoreboard.ResetAssists();
         ArenaShotAwardHistory.Reset();
         _awards.BeginRound(clearRevenge);
         _multiKillChain = 0;

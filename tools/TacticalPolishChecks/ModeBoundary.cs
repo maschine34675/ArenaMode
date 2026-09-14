@@ -8,6 +8,8 @@ public enum ArenaAnnouncerCue { RoundStart, RoundWon, RoundLost, MatchWon, Match
 public enum TeamArenaRoundContinuation { RebindNextRound }
 public partial class ArenaMatch
 {
+    // Assist reset behavior is exercised against the full scoreboard in AssistChecks.
+    public AssistScoreboardBoundary Scoreboard { get; } = new();
     private readonly ArenaCombatAwards _awards=new();
     private int _multiKillChain;
     private float _lastLocalKillAt;
@@ -18,6 +20,7 @@ public partial class ArenaMatch
     public string KillForTest(){_multiKillChain++;_lastLocalKillAt=UnityEngine.Time.time;return _awards.ReportKill(new ArenaKill{AwardEligible=true,KilledByLocal=true,VictimBodyId=1},null);}
     public int Chain=>_multiKillChain;
 }
+public sealed class AssistScoreboardBoundary { public void ResetAssists() {} }
 public static class ArenaMatchService { public static ArenaMatch Current; }
 public partial class TacticalMode
 {

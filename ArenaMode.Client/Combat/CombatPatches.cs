@@ -44,6 +44,7 @@ internal static class CombatPatches
         new RagdollImpulsePatch().Enable();
         ArenaShotAwardHooks.Enable();
         ArenaSelfGrenadeTaunt.Enable();
+        ArenaAssistCapture.Enable();
     }
 
     public static void ResetRaidState()
@@ -201,6 +202,7 @@ internal static class CombatPatches
                     Time = Time.time,
                 };
 
+                ArenaAssistCapture.PrepareKill(match, __instance, aggressor, lethalDamageType);
                 match.ReportKill(kill);
             }
             catch (Exception ex)

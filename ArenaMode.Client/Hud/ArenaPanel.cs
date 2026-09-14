@@ -444,6 +444,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         GUILayout.Label("STATE", _tableHeaderStyle, GUILayout.Width(55f));
         GUILayout.Label("K", _tableHeaderStyle, GUILayout.Width(35f));
         GUILayout.Label("D", _tableHeaderStyle, GUILayout.Width(35f));
+        GUILayout.Label("A", _tableHeaderStyle, GUILayout.Width(35f));
         GUILayout.Label("HS", _tableHeaderStyle, GUILayout.Width(35f));
         GUILayout.Label("SCORE", _tableHeaderStyle, GUILayout.Width(95f));
         GUILayout.EndHorizontal();
@@ -468,6 +469,7 @@ internal sealed class ArenaPanel : MonoBehaviour
             GUILayout.Label(row.IsActive ? "LIVE" : "OUT", row.IsActive ? style : _mutedStyle, GUILayout.Width(55f));
             GUILayout.Label(row.Kills.ToString(), style, GUILayout.Width(35f));
             GUILayout.Label(row.Deaths.ToString(), style, GUILayout.Width(35f));
+            GUILayout.Label(row.Assists.ToString(), style, GUILayout.Width(35f));
             GUILayout.Label(row.Headshots.ToString(), style, GUILayout.Width(35f));
             GUILayout.Label(row.Score.ToString("n0"), style, GUILayout.Width(95f));
             GUILayout.EndHorizontal();
