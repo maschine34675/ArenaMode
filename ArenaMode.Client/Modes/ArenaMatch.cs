@@ -166,6 +166,7 @@ public sealed class ArenaMatch
 
     internal void BeginAwardRound(bool clearRevenge = true)
     {
+        ArenaShotAwardHistory.Reset();
         _awards.BeginRound(clearRevenge);
         _multiKillChain = 0;
         _lastLocalKillAt = float.NegativeInfinity;

@@ -9,6 +9,7 @@ $combatSources = @{
     AwardsSource = 'ArenaMode.Client/Combat/ArenaCombatAwards.cs'
 }
 $combatBoundPaths = @($combatSources.Values) + @('ArenaMode.Client/Combat/ArenaKill.cs',
+    'ArenaMode.Client/Combat/ArenaShotAwardHistory.cs',
     'ArenaMode.Client/Combat/ScoreRules.cs', 'ArenaMode.Client/Modes/IArenaMode.cs',
     'ArenaMode.Client/Modes/ArenaAnnouncerCue.cs', 'ArenaMode.Client/Modes/TacticalMode.cs')
 $combatBoundPaths += Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/AnnouncerCombatChecks/' + $_.Name }

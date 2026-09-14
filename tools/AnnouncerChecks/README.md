@@ -5,6 +5,7 @@ Run from the ArenaMode repository:
 ```powershell
 dotnet run --project tools/AnnouncerChecks -c Release
 pwsh -NoProfile -File tools/AnnouncerChecks/Verify-Regression.ps1
+pwsh -NoProfile -File tools/AnnouncerChecks/Verify-ShotAwards.ps1
 ```
 
 The harness compiles the actual `AnnouncerService.cs`, `AnnouncerCueCatalog.cs`
@@ -19,6 +20,14 @@ exact attached match is forwarded and director invalidation runs before queue
 drain. Its production progress policy and mode adapters have separate checks.
 
 Coverage includes:
+
+- Logical Trickshot / No Scope awards retain queue priorities 70 / 65 while
+  Godlike is only their provisional recording. A healthy future root
+  `trickshot.ogg` or `no_scope.ogg` wins; missing, undecodable or unmaterializable
+  optional audio falls back without rewriting its key or changing output routes.
+  Output rejection/mute cannot trigger another playback attempt. Diagnostics
+  remain bounded per key/match. The combined shot verifier retains the historical
+  audio/combat regressions and adds six compiled priority/clip-fallback faults.
 
 - First-match asynchronous loading, URI escaping, nonduplicated subscriptions,
   configured volume, missing phrases, and detached/old matches.

@@ -6,7 +6,8 @@ New-Item -ItemType Directory -Path $scratch -Force | Out-Null
 $boundPaths=@('ArenaMode.Client/Modes/TacticalMode.cs','ArenaMode.Client/Modes/ArenaMatch.cs',
     'ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs','ArenaMode.Client/Hud/TacticalBuyPanel.cs',
     'ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs','ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs',
-    'ArenaMode.Client/Combat/ArenaCombatAwards.cs','ArenaMode.Client/Combat/ArenaKill.cs','ArenaMode.Client/Combat/ScoreRules.cs')
+    'ArenaMode.Client/Combat/ArenaCombatAwards.cs','ArenaMode.Client/Combat/ArenaKill.cs','ArenaMode.Client/Combat/ScoreRules.cs',
+    'ArenaMode.Client/Combat/ArenaShotAwardHistory.cs')
 $boundPaths+=Get-ChildItem -LiteralPath $PSScriptRoot -File|ForEach-Object {'tools/TacticalPolishChecks/'+$_.Name}
 $before=@{};foreach($relative in $boundPaths){$before[$relative]=(Get-FileHash -LiteralPath (Join-Path $root $relative) -Algorithm SHA256).Hash}
 $tactical=[IO.File]::ReadAllText((Join-Path $root 'ArenaMode.Client/Modes/TacticalMode.cs'))

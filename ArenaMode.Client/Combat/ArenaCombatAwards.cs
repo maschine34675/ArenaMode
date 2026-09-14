@@ -54,10 +54,15 @@ internal sealed class ArenaCombatAwards
             return null;
         }
         if (!kill.KilledByLocal) return null;
-        // One HUD/audio label per kill. First Blood and Payback retain precedence
-        // over the selected shutdown, multi-kill or spree label.
+        // One HUD/audio label per kill. The match supplies Shutdown or its
+        // selected multi/spree label; only sprees yield to verified shot awards.
+        // These are presentation facts, with no new score or streak bonus.
         return first ? "FIRST BLOOD"
             : payback ? "PAYBACK"
+            : existingLabel is "SHUTDOWN" or "DOUBLE KILL" or "TRIPLE KILL"
+                or "MULTI KILL" or "MONSTER KILL" ? existingLabel
+            : kill.ScoreEligible && kill.AirborneHipFire ? "TRICKSHOT"
+            : kill.ScoreEligible && kill.BoltActionHipFire ? "NO SCOPE"
             : existingLabel ?? (kill.SingleHitHeadshot ? "HEADSHOT" : null);
     }
 

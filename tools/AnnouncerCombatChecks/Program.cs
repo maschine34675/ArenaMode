@@ -2,7 +2,7 @@ using ArenaMode.Combat;
 using ArenaMode.Modes;
 using EFT;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static long _body = 100;
@@ -209,6 +209,7 @@ internal static class Program
         if (part is "all" or "shutdown") Shutdown();
         if (part is "all" or "clutch") Clutch();
         if (part is "all" or "safety") Safety();
+        if (part is "all" or "shot") ShotAwards();
         Check(_checks > 0, "requested test group exists");
         Console.WriteLine($"ANNOUNCER_COMBAT_PRODUCTION_PASSED: {_checks} assertions ({part})");
     }

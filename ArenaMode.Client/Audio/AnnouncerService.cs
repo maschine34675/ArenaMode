@@ -257,7 +257,7 @@ internal static class AnnouncerService
             Receive(key, out _);
             return;
         }
-        if (!Clips.TryGetValue(key, out var queuedClip) || !IsReady(queuedClip))
+        if (!HasReadyCallout(key))
         {
             Receive(key, out _); // diagnose/recover now, never replay a late load
             return;
@@ -285,6 +285,28 @@ internal static class AnnouncerService
         StartCallout(key);
     }
 
+    private static bool HasReadyCallout(string key)
+    {
+        if (Clips.TryGetValue(key, out var clip) && IsReady(clip)) return true;
+        string fallback = ShotAwardFallback(key);
+        return fallback != null && Clips.TryGetValue(fallback, out clip) && IsReady(clip);
+    }
+
+    // Provisional audio only: the award/HUD/queue keep their own logical key.
+    // Root trickshot.ogg and no_scope.ogg already use normal optional loading.
+    private static string ShotAwardFallback(string key)
+        => key is "trickshot" or "no_scope" ? "godlike" : null;
+
+    private static bool PlayShotAwardFallback(string key, out float clipLengthSeconds)
+    {
+        clipLengthSeconds = 0f;
+        string fallback = ShotAwardFallback(key);
+        if (fallback == null || !Play(fallback, out clipLengthSeconds)) return false;
+        if (ReportedSkips.Add(key + ":provisional_fallback"))
+            Plugin.ModLogger.LogInfo($"Arena announcer provisional recording: '{key}' uses '{fallback}'.");
+        return true;
+    }
+
     private static void StartCallout(string key, string fallbackKey = null)
     {
         if (!Receive(key, out float clipLengthSeconds))
@@ -306,6 +328,8 @@ internal static class AnnouncerService
         "payback" => 90,
         "shutdown" => 85,
         "monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 80,
+        "trickshot" => 70,
+        "no_scope" => 65,
         "godlike" or "unstoppable" or "dominating" or "rampage" or "killing_spree" => 60,
         "final_weapon" or "ladder_complete" => 45,
         "final_round" or "match_point" => 40,
@@ -506,13 +530,13 @@ internal static class AnnouncerService
                     && !_loading && Time.realtimeSinceStartup >= _nextRecoveryAt)
                     EnsureLoaded();
                 // A late load is for future callouts; do not replay this kill.
-                return false;
+                return PlayShotAwardFallback(key, out clipLengthSeconds);
             }
 
             if (!TryGetRuntimeClip(cached, out AudioClip clip, out string clipProblem))
             {
                 Skip(key, "clip_rebuild_failed", clipProblem);
-                return false;
+                return PlayShotAwardFallback(key, out clipLengthSeconds);
             }
 
             float volume = Settings.AnnouncerVolume.Value;

@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Shot-time awards (2026-09-14, Codex; NOT DEPLOYED):** the isolated announcer
+  branch also implements TRICKSHOT (airborne hip fire, including falling) and
+  NO SCOPE (bolt-action hip fire). Direct lethal bullets use the exact local
+  body's firing snapshot, not ADS/grounded/held-weapon state at death. Pooled
+  projectile, parent/fragment, accepted native hit and round/body identities are
+  checked. Both logical labels provisionally play the existing Godlike recording;
+  healthy future root `trickshot.ogg`/`no_scope.ogg` recordings override it.
+  First Blood/Payback/Shutdown/multi-kills precede these awards; sprees and
+  Headshot follow. No score, gameplay, asset bytes or profile changes. Read
+  `SHOT-AWARDS-REVIEW.md` for boundaries and user-run tests. Build/deployment status
+  for the preceding 19-cue snapshot below is historical, not this extension's
+  final build. The parallel checkout remains responsible for respawn integration.
+  During this work, main independently advanced to `fa43fa5` documenting installed
+  Redeploy.Core 1.0.1 (`EE09B6B5...`); client/server were unchanged. New staging
+  uses the actually installed Core, without building or deploying Redeploy.
+
 - **Additional announcer lines (2026-09-14, Codex; NOT DEPLOYED):** implemented in
   isolated `D:\SPT41\Development\ArenaMode-VoiceLines` on
   `feature/additional-announcer-lines`, code commit `ce53948` (base `5593ea7`).

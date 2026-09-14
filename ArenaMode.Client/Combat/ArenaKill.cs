@@ -48,6 +48,10 @@ public sealed class ArenaKill
     internal bool? KillerIsFriendly;
     internal bool? VictimIsFriendly;
     internal bool SingleHitHeadshot;
+    // Verified direct lethal bullet facts captured at firing, never sampled
+    // from the player's current posture after impact or a weapon swap.
+    internal bool AirborneHipFire;
+    internal bool BoltActionHipFire;
 
     /// <summary>Time.time at capture.</summary>
     public float Time;
