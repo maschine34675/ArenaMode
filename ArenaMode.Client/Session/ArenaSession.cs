@@ -352,6 +352,7 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        ArenaPostRaidScreens.CaptureEndedRaid(_startedGame, _startedWorld);
         Areas.ArenaAreaRuntime.Reset();
         // Clear exact start identity before any early return. A later GameWorld
         // must never be mistaken for a duplicate of this completed raid.

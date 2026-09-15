@@ -144,6 +144,11 @@ test above was verified that way — reintroduce the comma and three tests go re
    and the guard covers their building to the end. The Deathmatch group and
    relationship hooks described above likewise require a confirmed matching-map
    arm before activation; they must settle initial membership during loading.
+   Post-raid UI runs after IsActive is cleared. ArenaPostRaidScreens captures the
+   exact ended LocalRaidSettings/profile/epoch and binds one native result
+   operation before changing its warning/XP presentation. This is a UI-only
+   exception; native profile refresh and result completion must remain intact.
+   See POSTRAID-PAGES-REVIEW.md for both forward and health-back navigation.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with
