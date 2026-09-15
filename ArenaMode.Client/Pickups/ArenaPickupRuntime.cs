@@ -188,7 +188,7 @@ internal static class ArenaPickupRuntime
             entry.View = new ArenaPickupView(point, floor);
             if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 100/20s, weapon auto-take local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, weapon auto-take local only.");
     }
 
     private static bool Owns(int generation, Entry entry) => _live && Generation == generation
@@ -294,7 +294,7 @@ internal static class ArenaPickupRuntime
                 Complete(false);
         }
         else Complete(entry.Definition.Kind == ArenaPickupKind.DoubleDamage
-            ? ArenaPowerups.GrantDamage(player, 20f) : ArenaPowerups.GrantShield(player, 100f, 20f));
+            ? ArenaPowerups.GrantDamage(player, 20f) : ArenaPowerups.GrantShield(player, 220f, 30f));
 
         void Complete(bool success)
         {
@@ -312,7 +312,7 @@ internal static class ArenaPickupRuntime
                 if (!player.IsAI) Notice(entry.Definition.Kind switch
                 {
                     ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE — 20s",
-                    ArenaPickupKind.Shield => "SHIELD — 100 / 20s",
+                    ArenaPickupKind.Shield => "SHIELD — 220 / 30s",
                     _ => "WEAPON COLLECTED"
                 });
                 Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");

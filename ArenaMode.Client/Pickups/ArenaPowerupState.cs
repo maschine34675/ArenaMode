@@ -18,7 +18,8 @@ internal readonly struct ArenaPowerupSnapshot
 internal sealed class ArenaPowerupState
 {
     internal const float MaximumDuration = 20f;
-    internal const float MaximumShield = 100f;
+    internal const float MaximumShieldDuration = 30f;
+    internal const float MaximumShield = 220f;
     private float _damageUntil, _shieldUntil, _shieldPoints;
 
     internal bool GrantDamage(float now, float duration)
@@ -30,7 +31,7 @@ internal sealed class ArenaPowerupState
 
     internal bool GrantShield(float now, float points, float duration)
     {
-        if (!PositiveFinite(points) || !TryDeadline(now, duration, out var deadline)) return false;
+        if (!PositiveFinite(points) || !TryDeadline(now, duration, out var deadline, MaximumShieldDuration)) return false;
         _shieldUntil = deadline;
         _shieldPoints = Math.Min(points, MaximumShield);
         return true;
@@ -77,11 +78,11 @@ internal sealed class ArenaPowerupState
     internal static bool PositiveFinite(float value) => value > 0f && Finite(value);
     private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
-    private static bool TryDeadline(float now, float duration, out float deadline)
+    private static bool TryDeadline(float now, float duration, out float deadline, float maximum = MaximumDuration)
     {
         deadline = 0f;
         if (!Finite(now) || now < 0f || !PositiveFinite(duration)) return false;
-        deadline = now + Math.Min(duration, MaximumDuration);
+        deadline = now + Math.Min(duration, maximum);
         return Finite(deadline) && deadline > now;
     }
 }

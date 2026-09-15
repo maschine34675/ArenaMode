@@ -10,7 +10,7 @@ ordinary raids and existing dropped loot are unchanged.
 | Pickup | Effect | Returns after |
 |---|---|---|
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
-| Shield (blue) | Separate pool of 100 impact points; expires after at most 20 gameplay seconds | 30 seconds |
+| Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
 | Weapon (gold) | Loaded primary weapon from catalogue kit `spartan`, with attachments; no spare magazines or other equipment | 45 seconds |
 
 Effects refresh duration/refill the shield to its cap; they never stack. Both
@@ -116,7 +116,7 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
   template, armor, configuration or `DamageCoeff` mutation.
 - Shield absorbs hostile Bullet/Explosion/GrenadeFragment impact damage after the
   native incoming multiplier, before body-part scaling/clamping/black-limb spread.
-  **100 points are not necessarily 100 total HP** across those native rules. Shield
+  **220 points are not necessarily 220 total HP** across those native rules. Shield
   does not prevent wound relapse/stamina loss or repair worn armor. Bleeding, falls,
   self/admin damage, blocked friendly damage and native invulnerability neither
   spend shield nor receive a bonus. Proven hostile dead grenade owners can still

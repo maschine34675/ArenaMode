@@ -74,18 +74,22 @@ static class Checks
     {
         Fresh(); Both();
         Near(20, ArenaPowerups.Read(_local).DamageSeconds, "damage defaults20");
-        Near(100, ArenaPowerups.Read(_victim).ShieldPoints, "shield defaults100");
-        Near(20, ArenaPowerups.Read(_victim).ShieldSeconds, "shield defaults20");
+        Near(100, ArenaPowerups.Read(_victim).ShieldPoints, "explicit smaller shield pool");
+        Near(20, ArenaPowerups.Read(_victim).ShieldSeconds, "explicit shorter shield duration");
         Time.time += 7;
         Near(13, ArenaPowerups.Read(_local).DamageSeconds, "scaled game clock duration");
         ArenaPowerups.GrantDamage(_local, 1000); ArenaPowerups.GrantShield(_victim, 1000, 1000);
         Near(20, ArenaPowerups.Read(_local).DamageSeconds, "refresh does not stack duration");
-        Near(20, ArenaPowerups.Read(_victim).ShieldSeconds, "shield duration hard cap");
-        Near(100, ArenaPowerups.Read(_victim).ShieldPoints, "shield point hard cap");
+        Near(30, ArenaPowerups.Read(_victim).ShieldSeconds, "shield duration hard cap");
+        Near(220, ArenaPowerups.Read(_victim).ShieldPoints, "shield point hard cap");
         Time.time += 19.5f;
         Near(0.5f, ArenaPowerups.Read(_local).DamageSeconds, "active immediately before expiry");
         Time.time += 0.5f;
         Near(0, ArenaPowerups.Read(_local).DamageSeconds, "damage expires at deadline");
+        Near(10, ArenaPowerups.Read(_victim).ShieldSeconds, "shield outlasts double damage by ten seconds");
+        Time.time += 9.5f;
+        Near(.5f, ArenaPowerups.Read(_victim).ShieldSeconds, "shield remains active before its own deadline");
+        Time.time += .5f;
         Near(0, ArenaPowerups.Read(_victim).ShieldPoints, "shield expires at deadline");
         foreach (float invalid in new[] { 0f, -1f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
         {

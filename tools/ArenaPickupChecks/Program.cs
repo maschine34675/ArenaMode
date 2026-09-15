@@ -143,6 +143,7 @@ internal static class Program
     private static void Collection()
     {
         Ready();Move(_local,0);Check(ArenaPowerups.Grants.Count==1,"crossing consumes available powerup");
+        Check(ArenaPowerups.Grants.Single().Seconds==20,"damage pickup still grants twenty seconds");
         Check(State().Phase==ArenaPickupPhase.Cooldown,"successful effect enters cooldown");Step();Check(ArenaPowerups.Grants.Count==1,"standing cannot consume twice");
         Step(10);Check(State().Phase==ArenaPickupPhase.Available&&ArenaPowerups.Grants.Count==1,"cooldown appearance requires leave before recollect");
         Move(_local,-3);Move(_local,0);Check(ArenaPowerups.Grants.Count==2,"reentering refreshed point collects once");
@@ -168,6 +169,7 @@ internal static class Program
         Ready();ArenaPowerups.GrantResult=false;Move(_local,0);Check(State().Phase==ArenaPickupPhase.Available,"failed effect grant does not consume point");
         ArenaPowerups.GrantResult=true;Step();Check(ArenaPowerups.Grants.Count==0,"failed effect requires new approach");Move(_local,-3);Move(_local,0);Check(ArenaPowerups.Grants.Count==1,"failed effect may retry on reentry");
         Ready(ArenaPickupKind.Shield);Move(_local,0);Check(ArenaPowerups.Grants.Single().Kind=="shield","shield point dispatches shield grant");
+        Check(ArenaPowerups.Grants.Single().Points==220&&ArenaPowerups.Grants.Single().Seconds==30,"shield pickup grants 220 points for thirty seconds");
     }
     private static void Weapons()
     {

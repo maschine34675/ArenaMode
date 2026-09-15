@@ -162,10 +162,10 @@ namespace ArenaMode.Pickups
     }
     internal static class ArenaPowerups
     {
-        internal static List<(Player Player,string Kind)> Grants=[];internal static int Resets;internal static bool GrantResult=true;
+        internal static List<(Player Player,string Kind,float Points,float Seconds)> Grants=[];internal static int Resets;internal static bool GrantResult=true;
         internal static void Reset()=>Resets++;
-        internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage"));return GrantResult;}
-        internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield"));return GrantResult;}
+        internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage",0,seconds));return GrantResult;}
+        internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield",points,seconds));return GrantResult;}
     }
     internal sealed class ArenaPickupView:IDisposable
     {
