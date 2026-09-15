@@ -7,6 +7,35 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Arena model click and direct raid exit DEPLOYED (2026-09-15, Codex):**
+  character-click `5ef5fb4`, direct-exit `d21b19a`; main merge/build
+  `ee6bf1f4af3201f1c55ca06885cfbf25cce47df6`. This supersedes the pickup build
+  below and includes its unchanged features. Clicking the Arena figure now
+  changes the existing native Arena toggle, retaining all eligibility checks.
+  The layout owns/removes its separate input target before preview transfer;
+  later menu screens remain input-transparent. Independent review corrected
+  early-preview-failure and optional-button-failure cleanup paths.
+  In an exact active Arena raid, Esc -> Disconnect now skips the entire red
+  item-loss confirmation and invokes the native Stop(Left) continuation. A
+  running respawn/missing owner or paused game defers exit until safe; it never
+  forces an owner rebuild or bypasses protected profile restoration. Normal
+  raids retain their confirmation. Notification faults cannot discard an exit.
+  `CHARACTER-MODEL-CLICK-REVIEW.md` and `ARENA-RAID-EXIT-REVIEW.md` explain scope,
+  native seams, failure handling and the short user GPU acceptance steps.
+  Offline: 65 exit assertions, 6 rejected compiled defects, installed native IL
+  contract; native menu/preview/host-lifecycle checks green. TDM exit regression
+  227 assertions and 15 rejected defects green. Both independent final reviews
+  had no remaining concrete blocker; staged native build had 0 errors and the
+  4 existing CS8632 warnings. These do not prove native rendered clicks/raid exit.
+  Local client `0.1.0+ee6bf1f4af3201f1c55ca06885cfbf25cce47df6`, SHA256
+  `69BC4E4A19C4E88A04D7DF16B4601B937EFD811377545F5AB83B1568F21751A7`.
+  `UI-INTERACTIONS-DEPLOYMENT-20260915.json` binds sources/build/local deployment;
+  only client bytes changed, 118 unrelated installed files unchanged (the three
+  package docs were recopied unchanged). Core/server were not rebuilt or replaced.
+  Restart EFT only. GPU mirror receipt, native model hitbox and live exit/profile
+  return are not tested here. User tests: figure click/forward/back; Arena exit
+  alive and after death/PFT; ordinary raid still offers cancellation.
+
 - **Arena pickups DEPLOYED (2026-09-15, Codex):** feature `14cbeba`, main
   merge/build `b0511045020bc6d9fa3271aa5273dcae4272d0ad`. Live Deathmatch and
   independent TDM gain fixed collectibles; other modes/ordinary loot unchanged.

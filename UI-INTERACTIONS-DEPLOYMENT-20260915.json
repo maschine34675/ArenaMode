@@ -1,0 +1,73 @@
+{
+  "SourceCommit": "ee6bf1f4af3201f1c55ca06885cfbf25cce47df6",
+  "ProductVersion": "0.1.0+ee6bf1f4af3201f1c55ca06885cfbf25cce47df6",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-15T10:20:34.0572075Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "SHA256": "14A96F3A267B6B8FF9FFA3DCAEECCBC17EB5FFD5D726800D276FA65B2DAA5680",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\af0fda3e6f9a4553a50508bffc45ec41\\backup-0-ANNOUNCER-PACK.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md"
+    },
+    {
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\af0fda3e6f9a4553a50508bffc45ec41\\backup-1-ANNOUNCER-SOURCES.json",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json"
+    },
+    {
+      "SHA256": "B387D4A728E85879CBF48719A63622344C4118D14CDF9F6DBE26396782D684DE",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\af0fda3e6f9a4553a50508bffc45ec41\\backup-2-AUDIO-LICENSES.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md"
+    },
+    {
+      "SHA256": "69BC4E4A19C4E88A04D7DF16B4601B937EFD811377545F5AB83B1568F21751A7",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\af0fda3e6f9a4553a50508bffc45ec41\\backup-3-maschine-ArenaMode.Client.dll",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\c9607ed531f94cb487fde3e9b2fa0a86\\out\\maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 118,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "EE09B6B5EE6736C7067E8F07A6115DFD93DC0ACD9D87FC824EC3C6F8E8C3D687",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26",
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "2A123657B91F781197AEAAA5FD63A1DF44C300F036264451918A9B61BE886CD3"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\af0fda3e6f9a4553a50508bffc45ec41",
+  "Task": "Arena character model click and direct raid exit",
+  "BuildManifest": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\c9607ed531f94cb487fde3e9b2fa0a86\\manifest.json",
+  "VerifiedSources": {
+    "tools/ArenaUiInteractionChecks/Verify.ps1": "CBDD193C0B724C85B49E955E08AB28848278B42B7BD82FF8E2EFA9D3C58540B7",
+    "ArenaMode.Client/ArenaController.cs": "B329F505299B91C362536B12C736CDCBF4A550932DC5A766CE810E3F37D2AB10",
+    "ArenaMode.Client/Session/ArenaSideSelectionLayout.cs": "D5CCFB3564D04D2003D393650DFB640B827167A0318802FED48F8690679D7F64",
+    "tools/ArenaUiInteractionChecks/BoundaryDoubles.cs": "22D53958CAE4EB3071E92790949CAA6A36EEC9049E4CEFC8DDDD0E25674034E0",
+    "ArenaMode.Client/Plugin.cs": "21F94C7276C14B80BCE3734C6386E8887B877B4ACB5FEE089FD5F0D6430C13AF",
+    "ArenaMode.Client/Session/ArenaRaidExit.cs": "5C8D2FB9CB659BDF46F1B32340CFF3931D3DC1DB315F861F2D3132B09E9E9749",
+    "tools/ArenaUiInteractionChecks/Program.cs": "64FBA4FC6010B79470255266D87AFA48C2A02EBF8FBF7617A383EA64482A9BC4"
+  },
+  "Checks": {
+    "TdmEvidence": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\tdm-match-checks\\acab1adfb7274a11a59877622d65b910",
+    "TdmRejectedDefects": 15,
+    "NativeMenu": "passed",
+    "ExitRejectedDefects": 6,
+    "TdmAssertions": 227,
+    "ModelHitboxGpuTested": false,
+    "ExitEvidence": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\ui-interaction-checks\\06171755f01f4762a6508e6acc38f40b",
+    "PreviewHostLifecycle": "passed",
+    "ExitAssertions": 65,
+    "NativeClientBuild": "passed, 0 errors, 4 existing CS8632 warnings",
+    "IndependentReviews": "arena_model_click_review and arena_exit_review: final no concrete blockers after fixes",
+    "CharacterPreview": "passed"
+  },
+  "ActualByteChanges": [
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+  ]
+}
