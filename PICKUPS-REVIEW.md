@@ -154,7 +154,7 @@ HANDOFF and deployment record contain exact counts, evidence and build IDs.
 
 Pending user checks (restart EFT only after delivery):
 
-1. Full Factory day/night, Deathmatch and TDM: log should report3 configured points
+1. Full Factory day/night, Deathmatch and TDM: log should report 3 configured points
    and placed count/reasons. Find markers, check floor position/readable labels,
    bobbing/spinning weapon and no navigation obstruction.
 2. Collect buffs, verify timers/shield balance, expiry/death reset. Both bot sides

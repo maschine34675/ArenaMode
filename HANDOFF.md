@@ -7,6 +7,41 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Arena pickups DEPLOYED (2026-09-15, Codex):** feature `14cbeba`, main
+  merge/build `b0511045020bc6d9fa3271aa5273dcae4272d0ad`. Live Deathmatch and
+  independent TDM gain fixed collectibles; other modes/ordinary loot unchanged.
+  Full Factory day/night each have three candidate points: Double Damage (20s,
+  non-launcher firearm health damage), shield (100 impact points/max20s) and the
+  loaded primary weapon from `spartan` (free compatible inactive slot only, no
+  swap/draw). Powerups return after30s, weapon45s. Both sides' bots can collect
+  powerups by crossing; weapon auto-take local only, no added AI routing.
+  F12 **Arena pickups** defaults on; disabling clears the current match, enabling
+  again applies next match. Effects reset per physical death/round/end, do not
+  stack and never change worn armor or DamageCoeff. Buff timers/balance appear
+  below the score panel. Placement rejects obstructed/disconnected/wrong-floor
+  candidates and logs reasons; all three Factory points remain GPU candidates.
+  `PICKUPS-REVIEW.md` documents exact positions, damage/inventory limits and the
+  five native test steps. Optional `ArenaMode/Pickups.json` replaces built-ins
+  per exact map/area; **Development - Pickups** captures aim/feet with AltF6/F10,
+  undo AltF7, export AltF8 to PickupDrafts. Normal PMC survey additionally needs
+  **Development - Area outline / AllowInNormalPmc**, and remains read-only.
+  Installed client `0.1.0+b0511045020bc6d9fa3271aa5273dcae4272d0ad`, SHA256
+  `146648D056A5792845825BE4756C6F1D2A4E38FFC58938E4B6049C5C6EA5B420`.
+  `PICKUPS-DEPLOYMENT-20260915.json` binds staged build, source/test hashes, scoped
+  delivery, external compiler inputs and backups. Only client bytes changed;
+  three package documents recopied unchanged, 118 other inventoried files
+  unchanged including Core/server/audio. No external project build/deployment.
+  Clean native build: zero errors/four existing warnings. Final merged checks:
+  effects327 +42 native/source contracts +8 compiled faults; weapon101 +34 native
+  contracts +4 faults; actual runtime/layout/geometry155 +22 source contracts
+  +11 faults. Existing regressions1564 (431/126/163/126/155/44/292/227), TDM15
+  fault controls, units621 passed/two skipped. Independent reviews clear after
+  fixing projected-contact wall admission, outward reentry, anchor readiness and
+  queued native ownership. Restart **EFT only**. Native Factory placement, rendering,
+  collection/hands/collision and C: mirror receipt remain unverified. Existing
+  GPU instruction build IDs were not repointed. Later documentation commits do
+  not change the DLL stamp; no Git push performed for this feature.
+
 - **Bot movement speed DEPLOYED (2026-09-15, Codex):** code `96f18cf`, main
   merge/build `3e78736032f9dfbc651a92d5aa4ad48ba5f040d1`. F12 **Bot movement**
   adds an independent enabled switch, walk/strafe x1.25 and sprint x1.30, both
