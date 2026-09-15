@@ -46,7 +46,7 @@ internal static class Program
         ArenaHudVisibility.IsBattleUiActive=true;KitCatalog.Kits=[new(){Id="spartan"}];
         Time.time=0;Time.unscaledTime=0;Time.timeScale=1;
         NavMesh.SampleOk=true;NavMesh.PathOk=true;NavMesh.Status=NavMeshPathStatus.PathComplete;
-        NavMesh.Sample=p=>p;NavMesh.Samples=NavMesh.Paths=0;NavMesh.Corners=null;Physics.Overlaps=[];
+        NavMesh.Sample=p=>p;NavMesh.Samples=NavMesh.Paths=0;NavMesh.Corners=null;Physics.Overlaps=[];Physics.Capsule=null;
         Physics.Rays=(from,dir,distance)=>dir.y<-.9f?[new(){collider=new Collider(),point=from-Vector3.up*.65f,normal=Vector3.up,distance=.65f}]:[];
         ArenaPickupView.Created.Clear();ArenaPickupView.ThrowOnTick=false;ArenaWeaponPickup.Created.Clear();ArenaWeaponPickup.PrepareNull=false;
         ArenaPowerups.Grants.Clear();ArenaPowerups.Resets=0;ArenaPowerups.GrantResult=true;
@@ -232,9 +232,61 @@ internal static class Program
         Check(ArenaPickupGeometry.LineClear(new(0,0,0),new(1,0,0)),"self visual and actors do not block contact ray");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider()}];Check(!ArenaPickupGeometry.LineClear(new(),new(1,0,0)),"world wall remains solid to contact ray");
     }
+    private static void NearbyPlacement()
+    {
+        var origin=new Vector3(0,0,0);var anchor=new Vector3(-3,0,0);
+        Fixture();
+        Check(ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out var floor,out _,out var moved)&&!moved&&NavMesh.Samples==1,"safe original point needs no relocation search");
+        Physics.Capsule=(a,b,r)=>a.x*a.x+a.z*a.z<.16f?[new Collider()]:[];
+        NavMesh.Samples=0;
+        Check(ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out floor,out var reason,out moved)&&moved&&floor.x==.5f&&floor.z==0,"obstructed prototype finds deterministic nearby clear floor");
+        Check(reason=="pedestal clearance obstructed"&&NavMesh.Samples==2,"relocation retains original reason and stops at first safe floor");
+        Check(ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out var repeat,out _,out _)&&(floor-repeat).sqrMagnitude==0,"identical scene produces identical fallback");
+        NavMesh.Samples=0;
+        Check(!ArenaPickupGeometry.TryPlacePoint(origin,anchor,false,out _,out _,out moved)&&!moved&&NavMesh.Samples==1,"custom positions never try nearby alternatives");
+        Step();Check(ArenaPickupView.Created.Count==0,"runtime custom layout remains exact when obstructed");
+
+        foreach(var fail in new Action[]{()=>Physics.Overlaps=[new Collider()],()=>NavMesh.SampleOk=false,
+            ()=>Physics.Rays=(a,b,c)=>[],()=>Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),point=a-Vector3.up*.65f,normal=new(1,0,0)}],
+            ()=>NavMesh.Status=NavMeshPathStatus.PathPartial,()=>NavMesh.PathOk=false,
+            ()=>ArenaAreaRuntime.CurrentArea=new(){Bounds=new(){PointAllowed=false}},
+            ()=>ArenaAreaRuntime.CurrentArea=new(){Bounds=new(){PathAllowed=false}}})
+        {
+            Fixture();fail();
+            Check(!ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out _,out reason,out moved)&&!moved,"unsafe alternatives keep every original geometry guard");
+            Check(NavMesh.Samples==33&&reason.Contains("32 candidates"),"failed search is bounded and explains exhaustion");
+        }
+        Fixture();int samples=0;
+        NavMesh.Sample=p=>++samples==1?origin:new Vector3(2.1f,0,p.z);
+        Physics.Capsule=(a,b,r)=>a.x==0?[new Collider()]:[];
+        Check(!ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out _,out _,out _),"final navigation snap outside two metre radius rejected");
+        Fixture();samples=0;
+        NavMesh.Sample=p=>++samples==1?origin:p+Vector3.up*.4f;
+        Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),point=a-Vector3.up*.45f,normal=Vector3.up}];
+        Physics.Capsule=(a,b,r)=>a.x==0&&a.z==0?[new Collider()]:[];
+        Check(!ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out _,out _,out _),"combined floor and nav height drift cannot change level");
+
+        Fixture();System.IO.File.Delete(LayoutPath);
+        var requested=ArenaPickupLayouts.Factory("spartan").Layouts[0].Points[0];
+        Physics.Capsule=(a,b,r)=>(a.x-requested.X)*(a.x-requested.X)+(a.z-requested.Z)*(a.z-requested.Z)<.16f?[new Collider()]:[];
+        Step();var damage=ArenaPickupView.Created.Single(v=>v.Point.Kind==ArenaPickupKind.DoubleDamage);
+        Check(ArenaPickupView.Created.Count==3&&damage.Floor.x>requested.X,"built-in runtime opts into safe fallback");
+        Check(damage.Point.X==requested.X&&damage.Point.Y==requested.Y&&damage.Point.Z==requested.Z,"relocation never mutates layout definitions");
+        Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("factory-damage' relocated")&&s.Contains("pedestal clearance obstructed")),"relocation logs requested and chosen position plus original obstruction");
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(FileFor()));Dm.Round.Number++;Step();
+        Check(ArenaPickupView.Created.Count==6,"built-in fallback choice remains frozen across rounds");
+
+        Fixture();Check(ArenaPickupGeometry.BeamLength(origin)==4,"open sky beacon height capped at four metres");
+        Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=3},new(){collider=new Collider(),distance=1}];
+        Check(Math.Abs(ArenaPickupGeometry.BeamLength(origin)-.9f)<.001,"nearest ceiling clips beam with clearance");
+        Physics.Rays=(a,b,c)=>[new(){collider=new Collider{Owner=_local},distance=.2f}];
+        Check(ArenaPickupGeometry.BeamLength(origin)==4,"actor overhead does not permanently shorten beam");
+        Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=.05f}];
+        Check(ArenaPickupGeometry.BeamLength(origin)==0,"very low ceiling yields no negative beam");
+    }
     public static int Main()
     {
-        try {Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
+        try {Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
         catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
         finally {ArenaMatchService.Current=null;ArenaPickupRuntime.Tick();}
     }

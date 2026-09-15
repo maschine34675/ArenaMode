@@ -50,6 +50,9 @@ try {
         @('ArenaMode.Client/Pickups/ArenaPickupCapture.cs','ArenaPickupLayouts.Export(directory, file)'),
         @('ArenaMode.Client/Pickups/ArenaPickupView.cs','collider.enabled = false; UnityEngine.Object.Destroy(collider);'),
         @('ArenaMode.Client/Pickups/ArenaPickupView.cs','UnityEngine.Object.Destroy(_material);'),
+        @('ArenaMode.Client/Pickups/ArenaPickupView.cs','UnityEngine.Object.Destroy(_beamMaterial);'),
+        @('ArenaMode.Client/Pickups/ArenaPickupView.cs','if (_beam != null) _beam.SetActive(available);'),
+        @('ArenaMode.Client/Pickups/ArenaPickupView.cs','float beamLength = ArenaPickupGeometry.BeamLength(floor);'),
         @('ArenaMode.Client/Pickups/ArenaPickupSettings.cs','"Development - Pickups", "Enabled", false'),
         @('ArenaMode.Client/Pickups/ArenaPickupLayout.cs','FileMode.CreateNew')
     )
@@ -67,6 +70,8 @@ try {
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
     Run-Pickup 'production' $pickupSource
     $faults = @(
+        @{Name='custom-relocates';File='ArenaPickupGeometry.cs';Find='if (!allowNearby) return false;';Replace='';Failure='custom positions never try nearby alternatives'},
+        @{Name='unbounded-final-snap';File='ArenaPickupGeometry.cs';Find='delta.x * delta.x + delta.z * delta.z > RelocationRadius * RelocationRadius + .0001f';Replace='false';Failure='final navigation snap outside two metre radius rejected'},
         @{Name='token-alias';File='ArenaPickupState.cs';Find='reservation != _reservation';Replace='false';Failure='foreign token cannot settle'},
         @{Name='teleport-sweep';File='ArenaPickupState.cs';Find='planar + dy * dy <= 25';Replace='true';Failure='teleport does not sweep pickup'},
         @{Name='timeout-rearms';File='ArenaPickupState.cs';Find='if (Phase == ArenaPickupPhase.Pending && now >= _pendingUntil) Retire();';Replace='if (Phase == ArenaPickupPhase.Pending && now >= _pendingUntil) Phase = ArenaPickupPhase.Available;';Failure='timeout retires instead of duplicating'},

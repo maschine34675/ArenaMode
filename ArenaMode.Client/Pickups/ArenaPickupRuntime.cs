@@ -39,7 +39,7 @@ internal static class ArenaPickupRuntime
     private static LocalGame _game;
     private static GameWorld _world;
     private static ArenaPickupLayout _layout;
-    private static bool _live, _faulted, _placementPending;
+    private static bool _live, _faulted, _placementPending, _builtInLayout;
     private static int _round;
     private static float _nextScan, _placementDeadline, _nextPlacement;
     private static readonly List<Entry> Entries = new();
@@ -162,7 +162,8 @@ internal static class ArenaPickupRuntime
     {
         string path = Path.Combine(Path.GetDirectoryName(Plugin.Instance.Info.Location), "ArenaMode", "Pickups.json");
         ArenaPickupLayoutFile file;
-        if (File.Exists(path))
+        _builtInLayout = !File.Exists(path);
+        if (!_builtInLayout)
         {
             if (new FileInfo(path).Length > 512 * 1024) throw new InvalidDataException("Pickups.json exceeds 512 KiB.");
             file = ArenaPickupLayouts.Parse(File.ReadAllText(path));
@@ -177,12 +178,15 @@ internal static class ArenaPickupRuntime
         if (_layout == null) return;
         foreach (var point in _layout.Points)
         {
-            if (!ArenaPickupGeometry.TryPlace(new Vector3(point.X, point.Y, point.Z), anchor,
-                out var floor, out var reason))
+            var requested = new Vector3(point.X, point.Y, point.Z);
+            if (!ArenaPickupGeometry.TryPlacePoint(requested, anchor, _builtInLayout,
+                out var floor, out var reason, out var relocated))
             {
                 Plugin.ModLogger.LogWarning($"Arena pickup '{point.Id}' skipped: {reason}");
                 continue;
             }
+            if (relocated)
+                Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
             var entry = new Entry { Definition = point, Floor = floor };
             Entries.Add(entry);
             entry.View = new ArenaPickupView(point, floor);
@@ -353,6 +357,6 @@ internal static class ArenaPickupRuntime
     internal static void Reset()
     {
         if (_match != null || _live || Entries.Count != 0) ClearRound();
-        _match = null; _game = null; _world = null; _layout = null; _round = 0; _faulted = false;
+        _match = null; _game = null; _world = null; _layout = null; _round = 0; _faulted = false; _builtInLayout = false;
     }
 }
