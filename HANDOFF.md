@@ -7,6 +7,38 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Pickup refinements DEPLOYED (2026-09-15, Codex):** shield `3140360`, weapon
+  transfer `f06381b`, safe placement/beacons `66901a9`; main merge/build
+  `bc84accc8ee2e3bc9104c18bcefb917f9e18c459`. Supersedes the builds below and
+  retains their post-raid/UI features. Shield now refills 220 impact points for
+  30 gameplay seconds; Double Damage stays 20 seconds. Native transfer refusal
+  was caused by treating zero-destroy inventory bookkeeping as item loss; only
+  positive losses are now rejected. Empty compatible inactive slots work in the
+  adapter tests without changing hands or weakening queued ownership safeguards.
+  Refusal messages/logs distinguish capacity/compatibility, native veto and loss.
+  The playtest log skipped the obstructed Factory damage point (2/3 placed).
+  Built-in prototypes now try at most 32 fully checked alternatives within 2m,
+  with final floor height bounded to 0.5m. Custom layouts stay exact and frozen.
+  Available pickups have same-color glow/core beacons up to 4m, ceiling-clipped,
+  hidden while unavailable; marker-owned cleanup never takes weapon ownership.
+  Independent adversarial reviews: no remaining concrete blockers. Final merged
+  checks: powerups 329 assertions + 42 native contracts/8 rejected faults;
+  weapons 108 assertions + 46 native contracts/5 rejected faults; runtime/geometry
+  189 assertions + 25 source contracts/13 rejected faults. Native build: 0 errors,
+  4 existing CS8632 warnings. Source checks are not native rendering/raid proof.
+  Installed client `0.1.0+bc84accc8ee2e3bc9104c18bcefb917f9e18c459`, SHA256
+  `1002C05D76F4CC3657A70AD91F279833B88C62F03CF6149BB88437B3B9DFB8B0`.
+  `PICKUP-REFINEMENTS-DEPLOYMENT-20260915.json` binds final sources, checks, stage,
+  backups and installation. Only client bytes changed; three existing package
+  docs recopied unchanged; 118 unrelated inventoried files including Core/server
+  unchanged. Restart EFT only; GPU mirror receipt remains unverified.
+  Next user test: Factory day/night DM/TDM, find all three points and inspect any
+  `relocated`/`skipped` log; cross shield for 220/30; take weapon with a free inactive
+  slot (also empty hands), then again after cooldown; inspect colored beacons,
+  ceiling/wall occlusion and their disappearance during cooldown/round/raid exit.
+  Actual Factory alternative positions, native transfer and Unity rendering still
+  require that GPU acceptance. See `PICKUPS-REVIEW.md` for unchanged scope/safety.
+
 - **Arena post-raid pages DEPLOYED (2026-09-15, Codex):** code `a9f3711`,
   main merge/build `ac704d39099ad97e89a6a18071afdbeb3d5c5f94`. Supersedes the
   previous UI/pickup builds below and retains their features. The native Raid
