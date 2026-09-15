@@ -24,6 +24,11 @@ Damage assists add proportional base points without changing the killer reward,
 kill limits or Tactical money. Read ASSIST-SCORING-REVIEW.md before changing HP
 capture, settlement or scoreboard compaction: actual HP deltas precede native
 kill callbacks, and assist identity must use immutable keys across archived rows.
+Arena-owned powerups and automatic weapon pickups are limited to live Deathmatch
+and independent TDM. Read PICKUPS-REVIEW.md before changing damage, scene or native
+inventory ownership: only confirmed transfers consume a pickup, ambiguous/pending
+failures never rearm it, and pooled weapon models must never be destroyed or parented
+by the marker view. Gun Game, Tactical/PFT and ordinary loot are excluded.
 Arena landing recovery, firearm draw/holster and deliberate airborne vault/hip
 fire are documented in AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
 native geometry/firearm restrictions, temporary-state cleanup and double-jump
@@ -156,6 +161,11 @@ explicitly export draft files in a normal local PMC raid when BOTH `Enabled` and
 contour. This does not authorize ordinary-raid gameplay/profile changes, Arena
 activation, invulnerability, Scav/Hideout capture or weakening any Arena barrier.
 Both switches default off. See `POLYGON-AREA-REVIEW.md` for the exact boundary.
+The accepted pickup prototype extends this read-only exception to its separate
+`Development - Pickups / Enabled` capture tool plus the same explicit
+`AllowInNormalPmc` switch. It may preview coordinates and export new PickupDrafts;
+it must never spawn loot, grant effects or automatically install a layout there.
+See `PICKUPS-REVIEW.md` for per-map/area layout admission and capture shortcuts.
 
 ## Traps this project has already fallen into
 

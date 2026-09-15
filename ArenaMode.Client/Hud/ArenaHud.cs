@@ -25,6 +25,7 @@ internal static class ArenaHud
     private static HitmarkerElement _hitmarker;
     private static DamageNumbersElement _numbers;
     private static ArenaAssemblyBanner _assembly;
+    private static ArenaPowerupPanel _powerups;
     private static ArenaFriendlyMarkers _friendlyMarkers;
     private static InfoPanels.ArenaInfoPanels _infoPanels;
 
@@ -80,6 +81,7 @@ internal static class ArenaHud
         _hitmarker = null;
         _numbers = null;
         _assembly = null;
+        _powerups = null;
     }
 
     public static void Tick()
@@ -96,6 +98,7 @@ internal static class ArenaHud
             _hitmarker.Tick();
             _numbers.Tick();
             _assembly.Tick(_match);
+            _powerups.Tick();
             _friendlyMarkers.Tick(_match);
             _infoPanels?.Tick();
         }
@@ -138,6 +141,8 @@ internal static class ArenaHud
         _numbers.Create(root, canvas);
         _assembly = new ArenaAssemblyBanner();
         _assembly.Create(root);
+        _powerups = new ArenaPowerupPanel();
+        _powerups.Create(root);
         _friendlyMarkers = new ArenaFriendlyMarkers();
         _friendlyMarkers.Create(root);
         _infoPanels = new InfoPanels.ArenaInfoPanels(root, match);

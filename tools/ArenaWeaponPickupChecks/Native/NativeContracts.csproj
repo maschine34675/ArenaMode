@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion>
+    <SptPath Condition="'$(SptPath)' == ''">D:\SPT41</SptPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../ArenaMode.Client/Pickups/ArenaWeaponPickup.cs" Link="Production/ArenaWeaponPickup.cs" />
+    <Reference Include="Assembly-CSharp;Assembly-CSharp-firstpass;Comfort;Comfort.Unity;UnityEngine;UnityEngine.CoreModule;UnityEngine.PhysicsModule;ItemComponent.Types;ItemTemplate.Types;AnimationSystem.Types">
+      <HintPath>$(SptPath)/EscapeFromTarkov_Data/Managed/%(Identity).dll</HintPath><Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
