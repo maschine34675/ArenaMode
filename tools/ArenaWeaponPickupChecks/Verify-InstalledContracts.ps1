@@ -25,6 +25,18 @@ function AsyncBody($Method) {
     return @($arenaState.Methods | Where-Object Name -eq 'MoveNext')[0]
 }
 try {
+    $arenaLimits = Method 'EFT.InventoryLogic.ChangeDiscardLimitsResult' '.ctor' 'EFT.InventoryLogic.Item,System.Int32,EFT.InventoryLogic.IAntiRMTItemController,EFT.InventoryLogic.ItemAddress'
+    $arenaCount = @($arenaLimits.Body.Instructions | Where-Object { $_.OpCode.Code -eq 'Newobj' -and $_.Operand.DeclaringType.FullName -eq 'EFT.InventoryLogic.ItemsCount' })
+    Require ($arenaCount.Count -eq 1) 'discard bookkeeping constructs exactly one ItemsCount'
+    $arenaNew = $arenaCount[0]
+    Require ($arenaNew.Previous.OpCode.Code -eq 'Ldarg_2' -and $arenaNew.Previous.Previous.OpCode.Code -eq 'Ldc_I4_0' -and $arenaNew.Previous.Previous.Previous.OpCode.Code -eq 'Ldarg_1') 'ordinary transfer preserves count and destroys zero items'
+    Require ($arenaNew.Next.OpCode.Code -eq 'Stfld' -and $arenaNew.Next.Operand.Name -eq '_itemsCount') 'zero-destroy count stored for enumeration'
+    $arenaRequired = Method 'EFT.InventoryLogic.ChangeDiscardLimitsResult' 'get_ItemsDestroyRequired' ''
+    Require ((@($arenaRequired.Body.Instructions | Where-Object { $_.OpCode.Code -ne 'Nop' } | ForEach-Object { $_.OpCode.Code }) -join ',') -eq 'Ldc_I4_0,Ret') 'bookkeeping requires no destruction'
+    $arenaEnumerate = Method 'EFT.InventoryLogic.ChangeDiscardLimitsResult/CG_get_ItemsToDestroy' 'MoveNext' ''
+    $arenaLoads = @($arenaEnumerate.Body.Instructions | Where-Object { $_.OpCode.Code -eq 'Ldfld' -and $_.Operand.FullName -eq $arenaNew.Next.Operand.FullName })
+    Require ($arenaLoads.Count -eq 1 -and $arenaLoads[0].Next.OpCode.Code -eq 'Stfld' -and $arenaLoads[0].Next.Operand.FieldType.FullName -eq 'EFT.InventoryLogic.ItemsCount') 'nonempty enumeration exposes the zero-destroy bookkeeping entry'
+    Require (@($arenaEnumerate.Body.Instructions | Where-Object { $_.OpCode.Code -eq 'Ldc_I4_1' -and $_.Next.OpCode.Code -eq 'Ret' }).Count -eq 1) 'iterator returns true for its bookkeeping element'
     $arenaOut = Method 'EFT.InventoryLogic.ItemController' 'OutProcess' 'EFT.InventoryLogic.ItemController,EFT.InventoryLogic.Item,EFT.InventoryLogic.ItemAddress,EFT.InventoryLogic.ItemAddress,EFT.InventoryLogic.Operations.IInventoryOperation,Comfort.Common.Callback'
     Require ($arenaOut.IsVirtual -and !$arenaOut.IsFinal) 'Arena source owner can override the exact source process'
     $arenaDispatch = Method 'EFT.InventoryLogic.ItemController' 'OutProcess' 'EFT.InventoryLogic.Item,EFT.InventoryLogic.ItemAddress,EFT.InventoryLogic.ItemAddress,EFT.InventoryLogic.Operations.IInventoryOperation,Comfort.Common.Callback'

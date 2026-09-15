@@ -9,6 +9,47 @@ namespace ArenaMode.Pickups;
 
 internal static class ArenaPickupGeometry
 {
+    internal const float RelocationRadius = 2f;
+
+    // Only unsurveyed built-in prototypes may move. Custom layouts remain exact.
+    // Every candidate runs the original floor, clearance, contour and path checks.
+    internal static bool TryPlacePoint(Vector3 requested, Vector3 anchor, bool allowNearby,
+        out Vector3 floor, out string reason, out bool relocated)
+    {
+        relocated = false;
+        if (TryPlace(requested, anchor, out floor, out reason)) return true;
+        if (!allowNearby) return false;
+        string originalReason = reason;
+        for (int ring = 1; ring <= 4; ring++)
+        for (int direction = 0; direction < 8; direction++)
+        {
+            double angle = direction * Math.PI / 4d;
+            float radius = ring * .5f;
+            var candidate = requested + new Vector3((float)Math.Cos(angle) * radius, 0, (float)Math.Sin(angle) * radius);
+            if (!TryPlace(candidate, anchor, out var alternative, out _)) continue;
+            var delta = alternative - requested;
+            // NavMesh sampling may move an additional .75m; bound the FINAL floor,
+            // not just the candidate, and never relocate onto another level.
+            if (delta.x * delta.x + delta.z * delta.z > RelocationRadius * RelocationRadius + .0001f
+                || Math.Abs(delta.y) > .5f) continue;
+            floor = alternative; reason = originalReason; relocated = true;
+            return true;
+        }
+        floor = default;
+        reason = originalReason + "; no safe alternative within 2m (32 candidates)";
+        return false;
+    }
+
+    internal static float BeamLength(Vector3 floor)
+    {
+        const float maximum = 4f;
+        float length = maximum;
+        foreach (var hit in Physics.RaycastAll(floor + Vector3.up * .15f, Vector3.up,
+            maximum, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            if (!Ignored(hit.collider)) length = Math.Min(length, Math.Max(0f, hit.distance - .1f));
+        return length;
+    }
+
     internal static bool TryAnchor(GameWorld world, out Vector3 anchor)
     {
         anchor = default;

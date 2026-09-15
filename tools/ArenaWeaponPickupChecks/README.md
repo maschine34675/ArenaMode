@@ -3,7 +3,7 @@
 `pwsh -NoProfile -File tools/ArenaWeaponPickupChecks/Verify.ps1` runs the real
 `ArenaMode.Client/Pickups/ArenaWeaponPickup.cs` against controlled native boundary
 models, compiles that same file against installed EFT/Unity assemblies, checks the
-installed native IL, and verifies four deliberately broken production variants.
+installed native IL, and verifies five deliberately broken production variants.
 The projects do not build or deploy ArenaMode or Redeploy. Generated evidence is
 under this directory's ignored `artifacts/` path.
 
@@ -14,6 +14,13 @@ an empty compatible primary/secondary/holster slot. It excludes `ActiveSlot`,
 including an empty active slot, because native inbound processing draws into it.
 It never calls the weapon swap service, selects hands, removes carried equipment,
 uses unrestricted inventory mutations, or collects unrelated world loot.
+
+Native discard bookkeeping can enumerate `ItemsCount(item, 0, count)` even for a
+lossless transfer. Reject only entries with positive `NumberToDestroy`, not any
+nonempty enumeration. The boundary model reproduces this native entry; a fault
+control restores the original blanket rejection and must fail the first safe take.
+Empty hands and an empty active slot are covered without allowing automatic draw.
+Refusal messages distinguish full/incompatible slots, native veto and actual loss.
 
 The Arena-only source owner rechecks player body, inventory, hands, world, round,
 caller scope and destination immediately before native transfer. Native single
@@ -40,6 +47,8 @@ Native sources inspected in `../_decompiled/` (outside the ArenaMode repository)
 - `EFT.InventoryLogic/ItemController.cs`: source-owner `OutProcess` dispatch,
   `RunNetworkTransaction` and `Execute`.
 - `EFT.InventoryLogic/ItemManipulator.cs`: `Move` simulation and rollback.
+- `EFT.InventoryLogic/ChangeDiscardLimitsResult.cs`: zero-destroy bookkeeping
+  constructor and nonempty `ItemsToDestroy` iterator, checked against installed IL.
 - `EFT.InventoryLogic.Operations/MoveOperation.cs`: outbound check, move, inbound.
 - `EFT.InventoryLogic.Operations/AbstractAsyncOperation.cs`: completed outbound
   callbacks continue synchronously; finalization emits success or rolls back.

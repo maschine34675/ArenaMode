@@ -10,9 +10,9 @@ namespace ArenaMode.Pickups;
 /// <summary>Owns only marker geometry; pooled weapon models belong to their native handle.</summary>
 internal sealed class ArenaPickupView : IDisposable
 {
-    private readonly GameObject _root, _symbol;
+    private readonly GameObject _root, _symbol, _beam;
     private readonly TextMeshPro _label;
-    private readonly Material _material;
+    private readonly Material _material, _beamMaterial;
     private readonly Vector3 _floor;
     private readonly float _yaw;
     private readonly string _name;
@@ -46,6 +46,36 @@ internal sealed class ArenaPickupView : IDisposable
                 float angle = i * Mathf.PI * 2f / 32f;
                 ring.SetPosition(i, new Vector3(Mathf.Cos(angle) * .42f, .06f, Mathf.Sin(angle) * .42f));
             }
+            // Sprites/Default supports vertex alpha and ordinary scene depth. Do
+            // not use an overlay shader: walls must still occlude the beacon.
+            var beamShader = Shader.Find("Sprites/Default");
+            float beamLength = ArenaPickupGeometry.BeamLength(floor);
+            if (beamShader != null && beamLength > .1f)
+            {
+                _beamMaterial = new Material(beamShader) { color = Color.white };
+                _beam = new GameObject("Pickup beacon");
+                _beam.transform.SetParent(_root.transform, false);
+                _beam.SetActive(false);
+                AddBeam("Glow", .3f, .28f);
+                AddBeam("Core", .055f, .9f);
+
+                void AddBeam(string name, float width, float opacity)
+                {
+                    var go = new GameObject(name);
+                    go.transform.SetParent(_beam.transform, false);
+                    var line = go.AddComponent<LineRenderer>();
+                    line.useWorldSpace = false; line.positionCount = 2;
+                    line.SetPosition(0, Vector3.up * .15f);
+                    line.SetPosition(1, Vector3.up * (.15f + beamLength));
+                    line.startWidth = width; line.endWidth = width * .4f;
+                    line.startColor = new Color(color.r, color.g, color.b, opacity);
+                    line.endColor = new Color(color.r, color.g, color.b, 0f);
+                    line.sharedMaterial = _beamMaterial;
+                    line.shadowCastingMode = ShadowCastingMode.Off; line.receiveShadows = false;
+                }
+            }
+            else if (beamShader == null)
+                Plugin.ModLogger.LogWarning("Arena pickup beacon unavailable: Sprites/Default shader missing; ordinary marker retained.");
             if (point.Kind != ArenaPickupKind.Weapon)
             {
                 _symbol = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -81,6 +111,7 @@ internal sealed class ArenaPickupView : IDisposable
         bool visible = state.Phase != ArenaPickupPhase.Retired && camera != null
             && (camera.transform.position - _floor).sqrMagnitude < 6400f;
         _root.SetActive(visible);
+        if (_beam != null) _beam.SetActive(available);
         if (_symbol != null)
         {
             _symbol.SetActive(available);
@@ -108,5 +139,6 @@ internal sealed class ArenaPickupView : IDisposable
     {
         if (_root != null) { _root.SetActive(false); UnityEngine.Object.Destroy(_root); }
         if (_material != null) UnityEngine.Object.Destroy(_material);
+        if (_beamMaterial != null) UnityEngine.Object.Destroy(_beamMaterial);
     }
 }

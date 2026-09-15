@@ -125,6 +125,7 @@ internal static class ArenaWeaponPickup
         public BoxCollider Collider => Visual != null ? _collider : null;
         public bool IsPending { get; private set; }
         public bool IsAvailable => !_disposed && !_consumed && !_uncertain && OwnsSource();
+        public string LastRefusal { get; private set; }
 
         /// <summary>
         /// True means submitted, not collected. A pending transaction is never timed out
@@ -133,7 +134,9 @@ internal static class ArenaWeaponPickup
         /// </summary>
         public bool TryTake(Player player, Func<bool> isCurrent, Action<bool> completed)
         {
+            LastRefusal = "pickup or player is no longer ready";
             if (!IsAvailable || IsPending || !Eligible(player, isCurrent)) return false;
+            LastRefusal = "hands or inventory are busy";
             var inventory = player.InventoryController;
             if (!(inventory is Player.SinglePlayerInventoryController)
                 || inventory.IsChangingWeapon || player.HandsController == null
@@ -141,18 +144,25 @@ internal static class ArenaWeaponPickup
 
             var equipment = inventory.Inventory?.Equipment;
             if (equipment == null) return false;
+            int free = 0, rejected = 0, blocked = 0, destructive = 0;
             foreach (var slotName in WeaponSlots)
             {
                 var slot = equipment.GetSlot(slotName);
                 // Native Player.TrySetInHands draws automatically into ActiveSlot.
                 // Even an empty active slot therefore cannot be an automatic pickup target.
                 if (slot == null || slot.ContainedItem != null || ReferenceEquals(slot, player.ActiveSlot)) continue;
+                free++;
                 var plan = ItemManipulator.Move(_weapon, slot.CreateItemAddress(), inventory, simulate: true);
-                if (plan.Failed || !inventory.CanExecute(plan.Value)
-                    || plan.Value.ItemsToDestroy?.Any() == true) continue;
+                if (plan.Failed) { rejected++; continue; }
+                if (!inventory.CanExecute(plan.Value)) { blocked++; continue; }
+                // Native ChangeDiscardLimitsResult also enumerates preserved items
+                // as ItemsCount(item, 0, count). Only a positive loss is destructive.
+                if (plan.Value.ItemsToDestroy?.Any(count => count.NumberToDestroy > 0) == true)
+                { destructive++; continue; }
 
                 var hands = player.HandsController;
                 IsPending = true;
+                LastRefusal = "native transfer did not complete";
                 bool settled = false;
                 // SinglePlayerInventoryController.ExecuteAsync first yields a frame.
                 // This source-owner hook runs AFTER that yield and before native Move.
@@ -181,6 +191,8 @@ internal static class ArenaWeaponPickup
                         _consumed |= carried;
                         bool success = result != null && result.Succeed && carried
                             && Eligible(player, isCurrent) && ReferenceEquals(player.InventoryController, inventory);
+                        if (!success)
+                            Plugin.ModLogger.LogInfo($"Arena pickup weapon transfer refused: nativeSuccess={result?.Succeed == true}, carried={carried}, slot={slotName}.");
                         if (success)
                         {
                             try { KitBuilder.RegisterAsChecked(player.Profile, _weapon.GetAllItems()); }
@@ -203,6 +215,11 @@ internal static class ArenaWeaponPickup
                 }
                 return true;
             }
+            LastRefusal = free == 0 ? "free an inactive weapon slot"
+                : destructive > 0 ? "transfer would discard items"
+                : blocked > 0 ? "inventory rejected the transfer"
+                : "no compatible inactive weapon slot";
+            Plugin.ModLogger.LogInfo($"Arena pickup weapon not taken: {LastRefusal}; free={free}, incompatible={rejected}, blocked={blocked}, destructive={destructive}.");
             return false;
         }
 

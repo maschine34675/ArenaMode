@@ -1,8 +1,8 @@
 # Arena powerup contract
 
-Collection refreshes the effect for up to **20 seconds of game time**; collecting
-twice never stacks the multiplier, timer or shield. Shield refills to at most
-**100 impact points**. Effects belong to the exact physical body and health
+Collection refreshes Double Damage for up to **20 seconds of game time** and
+Shield for up to **30 seconds**; collecting twice never stacks the multiplier,
+timer or shield. Shield refills to at most **220 impact points**. Effects belong to the exact physical body and health
 controller, are cleared on native death, and cannot survive runtime generation or
 round/raid reset. State uses weak body keys so discarded corpses are not retained.
 

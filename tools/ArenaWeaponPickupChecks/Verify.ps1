@@ -25,7 +25,8 @@ $arenaResult = Run-Adapter 'production'
 if ($arenaResult.Code -ne 0 -or !$arenaResult.Output.Contains('ARENA WEAPON ADAPTER PASSED')) { throw $arenaResult.Output }
 Write-Output $arenaResult.Output
 $arenaFaults = @(
-    @('active-slot', 'slot.ContainedItem != null || ReferenceEquals(slot, player.ActiveSlot)', 'slot.ContainedItem != null', 'active-empty is refused before submission'),
+    @('zero-destroy-bookkeeping', 'Any(count => count.NumberToDestroy > 0)', 'Any()', 'free compatible secondary starts'),
+    @('active-slot', 'slot.ContainedItem != null || ReferenceEquals(slot, player.ActiveSlot)', 'slot.ContainedItem != null', 'empty-hands native transfer admitted'),
     @('late-scope', '&& IsAvailable && Eligible(player, isCurrent)', '&& IsAvailable', 'native boundary rejects delayed round'),
     @('ownership', 'result != null && result.Succeed && carried', 'result != null && result.Succeed', 'success callback without ownership is rejected'),
     @('premature-cleanup', 'if (!IsPending) ReleaseSourceVisual();', 'ReleaseSourceVisual();', 'dispose defers visual cleanup while native transfer may roll back')

@@ -15,6 +15,14 @@ controls include the outward-sweep retry and zero-length projected ray defects
 found by this harness. Every mutant must build successfully and fail its named
 behavioral assertion; a compile failure is not a passing fault control.
 
+Built-in prototype fallback is tested separately from exact custom layouts:
+unchanged valid originals, deterministic clear alternatives, all original geometry
+vetoes, at most 32 retries, final 2m radius/0.5m height bounds after NavMesh/floor
+snapping, frozen layout provenance and logged displacement. Compiled faults force
+custom relocation and remove the final-radius check. Beam ceiling clipping is
+executable geometry coverage; availability/owned-material cleanup are source
+contracts only. The real LineRenderer and its color/occlusion need a GPU check.
+
 HUD, authoring and plugin wiring have source contracts only. In-game readability,
 Factory floor/mesh geometry and native inventory animation require GPU tests.
 Effects and the weapon transfer adapter have their own separate harnesses.

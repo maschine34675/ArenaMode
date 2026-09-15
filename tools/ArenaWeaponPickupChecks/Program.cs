@@ -83,12 +83,19 @@ internal static class Program
             Check(_world.Destroyed == 1 && ReferenceEquals(KitBuilder.Next.Parent.GetOwner(), Inv), "dispose never destroys transferred equipment or reused visual");
             Inv.Finish(); Check(KitBuilder.Registered == 1, "duplicate native callback cannot grant twice");
 
+            Reset(); P.ActiveSlot.ContainedItem = null; h = Prepare(); hands = P.HandsController; result = null;
+            Check(h.TryTake(P, () => true, ok => result = ok), "all weapon slots empty still accepts an inactive compatible slot");
+            Check(Inv.Pending.ItemsToDestroy.Single().NumberToDestroy == 0, "native bookkeeping entry does not destroy the weapon");
+            Check(Inv.BeginMove(), "empty-hands native transfer admitted"); Inv.Finish();
+            Check(result == true && P.ActiveSlot.ContainedItem == null && ReferenceEquals(P.HandsController, hands), "empty active slot and hands remain untouched");
+            h.Dispose();
+
             foreach (var scenario in new[] { "full", "active-empty", "incompatible", "changing", "unsupported-hands", "ai", "foreign-body", "dead", "stale", "network-controller", "can-execute", "destruction" })
             {
                 Reset(); h = Prepare(); var actor = P;
                 switch (scenario)
                 {
-                    case "full": Slot(EquipmentSlot.SecondPrimaryWeapon).ContainedItem = new Weapon(); break;
+                    case "full": Slot(EquipmentSlot.SecondPrimaryWeapon).ContainedItem = new Weapon(); Slot(EquipmentSlot.Holster).ContainedItem = new Weapon(); break;
                     case "active-empty": P.ActiveSlot = Slot(EquipmentSlot.SecondPrimaryWeapon); break;
                     case "incompatible": Slot(EquipmentSlot.SecondPrimaryWeapon).Compatible = false; break;
                     case "changing": Inv.IsChangingWeapon = true; break;
@@ -103,6 +110,9 @@ internal static class Program
                 }
                 Check(!h.TryTake(actor, () => true, _ => throw new Exception()), scenario + " is refused before submission");
                 Check(Inv.Submitted == 0 && h.IsAvailable, scenario + " leaves pickup unconsumed");
+                if (scenario == "destruction") Check(h.LastRefusal.Contains("discard"), "real item loss explains refusal");
+                if (scenario == "full") Check(h.LastRefusal.Contains("free an inactive"), "full slots explain refusal");
+                if (scenario == "can-execute") Check(h.LastRefusal.Contains("inventory rejected"), "native rejection is not reported as full slots");
                 h.Dispose(); Check(_world.Destroyed == 1, "untransferred visual is cleaned once");
             }
 

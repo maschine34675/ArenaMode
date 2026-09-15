@@ -30,8 +30,9 @@ namespace UnityEngine
         public const int DefaultRaycastLayers=-5;
         public static Func<Vector3,Vector3,float,RaycastHit[]> Rays;
         public static Collider[] Overlaps=[];
+        public static Func<Vector3,Vector3,float,Collider[]> Capsule;
         public static RaycastHit[] RaycastAll(Vector3 from,Vector3 direction,float distance,int layers,QueryTriggerInteraction trigger)=>Rays?.Invoke(from,direction,distance)??[];
-        public static Collider[] OverlapCapsule(Vector3 a,Vector3 b,float radius,int layers,QueryTriggerInteraction trigger)=>Overlaps;
+        public static Collider[] OverlapCapsule(Vector3 a,Vector3 b,float radius,int layers,QueryTriggerInteraction trigger)=>Capsule?.Invoke(a,b,radius)??Overlaps;
     }
 }
 namespace UnityEngine.AI
@@ -162,16 +163,16 @@ namespace ArenaMode.Pickups
     }
     internal static class ArenaPowerups
     {
-        internal static List<(Player Player,string Kind)> Grants=[];internal static int Resets;internal static bool GrantResult=true;
+        internal static List<(Player Player,string Kind,float Points,float Seconds)> Grants=[];internal static int Resets;internal static bool GrantResult=true;
         internal static void Reset()=>Resets++;
-        internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage"));return GrantResult;}
-        internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield"));return GrantResult;}
+        internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage",0,seconds));return GrantResult;}
+        internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield",points,seconds));return GrantResult;}
     }
     internal sealed class ArenaPickupView:IDisposable
     {
         internal static List<ArenaPickupView> Created=[];internal static bool ThrowOnTick;
-        internal ArenaPickupPoint Point;internal bool Disposed;internal ArenaPickupPhase Phase;
-        internal ArenaPickupView(ArenaPickupPoint point,Vector3 floor){Point=point;Created.Add(this);}
+        internal ArenaPickupPoint Point;internal Vector3 Floor;internal bool Disposed;internal ArenaPickupPhase Phase;
+        internal ArenaPickupView(ArenaPickupPoint point,Vector3 floor){Point=point;Floor=floor;Created.Add(this);}
         internal void Tick(ArenaPickupState state,bool preparing,GameObject visual){if(ThrowOnTick)throw new InvalidOperationException("test view failure");Phase=state.Phase;}
         public void Dispose()=>Disposed=true;
     }
@@ -183,6 +184,7 @@ namespace ArenaMode.Pickups
         internal sealed class Handle:IDisposable
         {
             internal GameObject Visual=new();internal bool IsAvailable=true,IsPending,Disposed,StartResult=true;
+            internal string LastRefusal="test transfer refusal";
             internal bool? ImmediateResult;internal int Attempts;internal Player Taker;internal Func<bool> Current;internal Action<bool> Callback;
             internal bool TryTake(Player player,Func<bool> current,Action<bool> done)
             {

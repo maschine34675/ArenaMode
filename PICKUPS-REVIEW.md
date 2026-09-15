@@ -10,7 +10,7 @@ ordinary raids and existing dropped loot are unchanged.
 | Pickup | Effect | Returns after |
 |---|---|---|
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
-| Shield (blue) | Separate pool of 100 impact points; expires after at most 20 gameplay seconds | 30 seconds |
+| Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
 | Weapon (gold) | Loaded primary weapon from catalogue kit `spartan`, with attachments; no spare magazines or other equipment | 45 seconds |
 
 Effects refresh duration/refill the shield to its cap; they never stack. Both
@@ -55,7 +55,11 @@ and corresponding `factory4_night/base.json`. At the first live phase the runtim
 waits up to 15 gameplay seconds for a grounded local NavMesh anchor. Points must
 pass nearby navigation, level floor, pedestal clearance, complete native path and
 active-area inset/path checks. Invalid points log a reason and are skipped without
-aborting the match. Final geometry/rendering/navigation require a native raid.
+aborting the match. Built-in prototypes alone try up to 32 nearby candidates on
+0.5/1/1.5/2m rings if the original point fails. Every candidate passes the same
+checks; the final sampled floor must stay within 2m horizontally and 0.5m in
+height of the original. The first safe floor and original refusal are logged.
+Custom `Pickups.json` points never use this fallback. Final geometry/rendering/navigation require a native raid.
 
 ## Layouts and authoring
 
@@ -116,7 +120,7 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
   template, armor, configuration or `DamageCoeff` mutation.
 - Shield absorbs hostile Bullet/Explosion/GrenadeFragment impact damage after the
   native incoming multiplier, before body-part scaling/clamping/black-limb spread.
-  **100 points are not necessarily 100 total HP** across those native rules. Shield
+  **220 points are not necessarily 220 total HP** across those native rules. Shield
   does not prevent wound relapse/stamina loss or repair worn armor. Bleeding, falls,
   self/admin damage, blocked friendly damage and native invulnerability neither
   spend shield nor receive a bonus. Proven hostile dead grenade owners can still
@@ -170,3 +174,42 @@ Pending user checks (restart EFT only after delivery):
 
 Supply fresh logs and marker/HUD screenshots. Native transfer, rendering, Factory
 placement/collision and C: mirror receipt are not certified by offline success.
+
+## Pickup playtest corrections (2026-09-15)
+
+The user confirmed shield collection. It now grants/refills 220 impact points for
+30 gameplay seconds, while Double Damage remains 20 seconds. The original damage
+ordering, physical-life ownership and no-stacking rules are unchanged.
+
+The rejected weapon pickup was a local adapter bug: native
+`ChangeDiscardLimitsResult.ItemsToDestroy` enumerates bookkeeping entries with
+`NumberToDestroy=0`. Testing only `Any()` rejected even a lossless transfer into an
+empty compatible inactive weapon slot. The adapter now rejects positive losses
+only; the source gate, queued checks, native transaction, ownership confirmation
+and pending/uncertain quarantine are unchanged. Refusal text/logs distinguish
+full/incompatible slots, native veto and actual loss. Installed IL contracts and
+a faithful nonempty zero-loss boundary model reproduce this case; restoring the
+old predicate must fail the first valid take. Actual native collection, empty
+hands and cooldown repetition still require the next user raid test.
+
+The 16:28:11 playtest log reports `factory-damage` skipped for obstructed pedestal
+clearance (2/3 points placed), not an active powerup inside the obstacle. The
+built-in bounded fallback above attempts a safe nearby floor without changing
+spawn lists or weakening clearance/path checks; exhaustion still skips just that
+point. This is a prototype recovery, not a claim to have surveyed Factory geometry.
+
+Available pickups also have a same-color upward beacon (blue shield, pink damage,
+gold weapon): a narrow core with a wider translucent glow, fading upward over at
+most 4m. An upward scene ray clips it below the nearest ceiling. It uses ordinary
+scene depth, casts no shadow and adds no collider/light; it is hidden while loading,
+pending, cooling or retired. The view owns its beam children/material and disposes
+them with the marker; native pooled weapon ownership stays untouched. Missing
+beam shader logs a warning and retains the ordinary marker. GPU acceptance must
+check visibility, walls/ceilings, cooldown disappearance and clean round/raid exit.
+
+Independent adversarial reviews accepted the shield, weapon and geometry/view
+changes with no remaining concrete blocker. Offline checks pass 329 powerup
+assertions plus 42 native contracts and 8 compiled faults; 108 weapon assertions,
+46 native contracts and 5 faults; 189 runtime/geometry assertions, 25 wiring
+contracts and 13 faults. Native client compilation passes (4 existing CS8632
+warnings). These checks do not certify the actual Unity renderer or raid transfer.
