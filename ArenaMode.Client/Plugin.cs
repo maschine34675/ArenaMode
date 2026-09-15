@@ -86,6 +86,7 @@ public class Plugin : BaseUnityPlugin
         LabyrinthSpawnTraps.Enable();
         Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
+        Movement.ArenaBotMovement.Enable();
         Movement.ArenaDoubleJump.Enable();
         Movement.ArenaAirControl.Enable();
         Movement.ArenaHandlingPatches.Enable();

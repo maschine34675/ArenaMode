@@ -29,6 +29,9 @@ public static class Settings
     public static ConfigEntry<float> SpawnProtectionSeconds { get; private set; }
     public static ConfigEntry<bool> DisableLabyrinthSpawnTraps { get; private set; }
     public static ConfigEntry<bool> MovementEnabled { get; private set; }
+    public static ConfigEntry<bool> BotMovementEnabled { get; private set; }
+    public static ConfigEntry<float> BotWalkSpeedMult { get; private set; }
+    public static ConfigEntry<float> BotSprintSpeedMult { get; private set; }
     public static ConfigEntry<float> LandingRecoveryMultiplier { get; private set; }
     public static ConfigEntry<float> WeaponDrawSpeedMultiplier { get; private set; }
     public static ConfigEntry<float> WeaponHolsterSpeedMultiplier { get; private set; }
@@ -389,6 +392,18 @@ public static class Settings
                 new AcceptableValueRange<float>(0f, 180f)));
         AirHipFireEnabled = config.Bind("Movement", "AirHipFireEnabled", true,
             "Allow firearm hip fire during an Arena jump. Native aiming, ammo, reload, malfunction and vault restrictions remain.");
+
+        BotMovementEnabled = config.Bind("Bot movement", "BotMovementEnabled", true,
+            "Boost grounded Arena bots on both teams, including PitFireTeam followers. " +
+            "Does not change the local player, ordinary raids, AI decisions or weapon animations.");
+        BotWalkSpeedMult = config.Bind("Bot movement", "BotWalkSpeedMult", 1.25f,
+            new ConfigDescription("Arena bot walk/strafe displacement multiplier. " +
+                "Preserves native slowdowns; the bonus fades near native path corners and is suppressed during door handling or large low-FPS steps. 1 = no boost.",
+                new AcceptableValueRange<float>(1f, 1.5f)));
+        BotSprintSpeedMult = config.Bind("Bot movement", "BotSprintSpeedMult", 1.3f,
+            new ConfigDescription("Arena bot sprint displacement multiplier. " +
+                "Only affects a sprint the AI already chose; does not force sprint or add stamina. Safety limits can reduce the bonus. 1 = no boost.",
+                new AcceptableValueRange<float>(1f, 1.5f)));
 
         WalkSpeedMult = config.Bind(
             "Movement",
