@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <PowerupSourceRoot Condition="'$(PowerupSourceRoot)' == ''">../../ArenaMode.Client/Pickups</PowerupSourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs"/><Compile Include="Doubles.cs"/>
+    <Compile Include="$(PowerupSourceRoot)/ArenaPowerups.cs" Link="Production/ArenaPowerups.cs"/>
+    <Compile Include="$(PowerupSourceRoot)/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs"/>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs"/>
+  </ItemGroup>
+</Project>

@@ -34,6 +34,7 @@ public class Plugin : BaseUnityPlugin
         RedeployCore.Init(ModLogger);
         WarnIfCoreIsOlderThanBuild();
         Settings.Init(Config);
+        Pickups.ArenaPickupSettings.Init(Config);
         Hud.InfoPanels.InfoPanelSettings.Init(Config,
             System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));
         PitFireTeamCompat.Initialize();
@@ -58,6 +59,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
+        Pickups.ArenaPowerups.Enable();
         Movement.ArenaLegInjuryPatches.Enable();
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();
@@ -107,6 +109,7 @@ public class Plugin : BaseUnityPlugin
         Hud.TacticalBuyPanel.ApplyInputPatch();
         gameObject.AddComponent<ArenaController>();
         gameObject.AddComponent<Areas.ArenaAreaCapture>();
+        gameObject.AddComponent<Pickups.ArenaPickupCapture>();
         gameObject.AddComponent<Hud.ArenaPanel>();
         gameObject.AddComponent<Hud.TacticalBuyPanel>();
         gameObject.AddComponent<Spectator.ArenaSpectatorOverlay>();
@@ -119,6 +122,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Pickups.ArenaPickupRuntime.Reset();
         DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();
