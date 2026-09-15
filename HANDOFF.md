@@ -7,6 +7,28 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Arena post-raid pages DEPLOYED (2026-09-15, Codex):** code `a9f3711`,
+  main merge/build `ac704d39099ad97e89a6a18071afdbeb3d5c5f94`. Supersedes the
+  previous UI/pickup builds below and retains their features. The native Raid
+  Ended page remains with duration/status/navigation, but the false red item-loss
+  warning is hidden only for its exactly bound Arena result. The XP page is
+  skipped both after statistics and in the Main Menu button's queued treatment
+  history, so treatment Back cannot expose it. Ordinary results, treatment,
+  cancellation prompts, profile refresh and native menu completion are unchanged.
+  `POSTRAID-PAGES-REVIEW.md` explains result identity capture before native unload,
+  post-raid latch exception and the four GPU checks. Independent review found no
+  concrete blocker. Final merged offline checks: 55 assertions/native contracts,
+  6 compiled defects rejected; existing direct-exit regression 65 assertions green.
+  Native staged client: 0 errors, 4 existing CS8632 warnings. No native UI test here.
+  Local client `0.1.0+ac704d39099ad97e89a6a18071afdbeb3d5c5f94`, SHA256
+  `8286A57FA9A3D874EF34F3618435EFE6800667B412FFB2DDC3039E6017870CD0`.
+  `POSTRAID-PAGES-DEPLOYMENT-20260915.json` binds sources, checks, stage and verified
+  local installation. Only client bytes changed; three existing package docs
+  recopied unchanged; 118 unrelated inventoried files including Core/server
+  unchanged. Restart EFT only. GPU mirror receipt/rendering/navigation remain
+  unverified. Test Arena Leave -> results -> Next and Main Menu/Back; ordinary
+  raids must retain vanilla loss warning and XP page.
+
 - **Arena model click and direct raid exit DEPLOYED (2026-09-15, Codex):**
   character-click `5ef5fb4`, direct-exit `d21b19a`; main merge/build
   `ee6bf1f4af3201f1c55ca06885cfbf25cce47df6`. This supersedes the pickup build

@@ -1,0 +1,66 @@
+{
+  "SourceCommit": "ac704d39099ad97e89a6a18071afdbeb3d5c5f94",
+  "ProductVersion": "0.1.0+ac704d39099ad97e89a6a18071afdbeb3d5c5f94",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-15T13:15:19.3119989Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md",
+      "SHA256": "14A96F3A267B6B8FF9FFA3DCAEECCBC17EB5FFD5D726800D276FA65B2DAA5680",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\48d36972b6f74db785cc2fda7dffc394\\backup-0-ANNOUNCER-PACK.md"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\48d36972b6f74db785cc2fda7dffc394\\backup-1-ANNOUNCER-SOURCES.json"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md",
+      "SHA256": "B387D4A728E85879CBF48719A63622344C4118D14CDF9F6DBE26396782D684DE",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\48d36972b6f74db785cc2fda7dffc394\\backup-2-AUDIO-LICENSES.md"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\33f32c59d981452fa90649cd770e7f15\\out\\maschine-ArenaMode.Client.dll",
+      "SHA256": "8286A57FA9A3D874EF34F3618435EFE6800667B412FFB2DDC3039E6017870CD0",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\48d36972b6f74db785cc2fda7dffc394\\backup-3-maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 118,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "EE09B6B5EE6736C7067E8F07A6115DFD93DC0ACD9D87FC824EC3C6F8E8C3D687",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "2A123657B91F781197AEAAA5FD63A1DF44C300F036264451918A9B61BE886CD3",
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\48d36972b6f74db785cc2fda7dffc394",
+  "Task": "Arena post-raid loss warning and experience page",
+  "BuildManifest": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\33f32c59d981452fa90649cd770e7f15\\manifest.json",
+  "VerifiedSources": {
+    "ArenaMode.Client/Session/ArenaPostRaidScreens.cs": "7E9BB39A44AF68D9C68F81F6B71CF74ED13BDD9FFDF2E78FC4EBA97A6BFEEE99",
+    "ArenaMode.Client/Session/ArenaSession.cs": "D88F64F039C60094D9603A43258F076EBBFC6B1478E5EE8246DABBC8A65D6916",
+    "tools/ArenaPostRaidChecks/BoundaryDoubles.cs": "8555BAC773289825C0C1D2223BC1A5CE89E594D405902C5A89A93980840B7A67",
+    "ArenaMode.Client/Plugin.cs": "AE375825410C7C9E95164E09337A4773000BE41205DF3AF24CBFB58B0880B099",
+    "tools/ArenaPostRaidChecks/Program.cs": "68821005B766B0189C2B411F74321B9C7C2C02CF786887CD4613295B6C24C7D8",
+    "tools/ArenaPostRaidChecks/Verify.ps1": "55C08FA9F1BF7A0923FC12642BBCC535C0700ED2DAEFFCA65976126BA765451A"
+  },
+  "Checks": {
+    "NativeClientBuild": "0 errors; 4 existing CS8632 warnings",
+    "PostRaidAssertionsAndContracts": 55,
+    "RejectedCompiledDefects": 6,
+    "IndependentReview": "postraid_flow_review: no concrete blockers",
+    "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\postraid-checks\\396396d4975141d28ce3ac8bb1a456e6",
+    "ExistingExitAssertions": 65
+  },
+  "ActualByteChanges": [
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+  ]
+}
