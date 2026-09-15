@@ -28,6 +28,10 @@ Arena landing recovery, firearm draw/holster and deliberate airborne vault/hip
 fire are documented in AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
 native geometry/firearm restrictions, temporary-state cleanup and double-jump
 precedence; offline checks cannot certify native animator transitions.
+Bot locomotion has independent Arena-only walk/sprint controls. Read
+BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN door
+guard; preserve exact live body identity, native collision and finalizer cleanup.
+Normalized movement targets alone do not provide the displacement bonus.
 The Customs Center and Factory Side team-start presets add independent TDM 2v2–5v5,
 with exact per-raid team-size negotiation and reserved faction starts/respawns.
 The surveyed Center contour remains fixed 2v2; the old Center rectangle and
