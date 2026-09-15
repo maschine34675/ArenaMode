@@ -50,6 +50,7 @@ public class Plugin : BaseUnityPlugin
         Spectator.ArenaSpectatorService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
+        ArenaRaidExit.Enable();
         Session.Preview.ArenaPreviewFlowPatch.Enable();
         ArenaLocationSelectionPatch.Enable();
         ArenaRaidSettingsApplyPatch.EnablePatch();

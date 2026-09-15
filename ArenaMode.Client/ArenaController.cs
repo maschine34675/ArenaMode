@@ -44,6 +44,7 @@ internal sealed class ArenaController : MonoBehaviour
         Session.LabyrinthSpawnTraps.Tick();
         Spectator.ArenaSpectatorService.Tick();
         Hud.ArenaHud.Tick();
+        Session.ArenaRaidExit.Tick();
     }
 
     /// <summary>
