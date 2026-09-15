@@ -318,7 +318,7 @@ internal static class ArenaPickupRuntime
                 Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");
             }
             else if (!player.IsAI && entry.Definition.Kind == ArenaPickupKind.Weapon)
-                Notice("WEAPON LEFT — free an inactive weapon slot, then approach again");
+                Notice("WEAPON LEFT — " + (entry.Weapon?.LastRefusal ?? "transfer unavailable") + "; approach again");
         }
     }
 

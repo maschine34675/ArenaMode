@@ -183,6 +183,7 @@ namespace ArenaMode.Pickups
         internal sealed class Handle:IDisposable
         {
             internal GameObject Visual=new();internal bool IsAvailable=true,IsPending,Disposed,StartResult=true;
+            internal string LastRefusal="test transfer refusal";
             internal bool? ImmediateResult;internal int Attempts;internal Player Taker;internal Func<bool> Current;internal Action<bool> Callback;
             internal bool TryTake(Player player,Func<bool> current,Action<bool> done)
             {

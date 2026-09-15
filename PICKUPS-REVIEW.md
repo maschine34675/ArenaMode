@@ -170,3 +170,20 @@ Pending user checks (restart EFT only after delivery):
 
 Supply fresh logs and marker/HUD screenshots. Native transfer, rendering, Factory
 placement/collision and C: mirror receipt are not certified by offline success.
+
+## Pickup playtest corrections (2026-09-15)
+
+The user confirmed shield collection. It now grants/refills 220 impact points for
+30 gameplay seconds, while Double Damage remains 20 seconds. The original damage
+ordering, physical-life ownership and no-stacking rules are unchanged.
+
+The rejected weapon pickup was a local adapter bug: native
+`ChangeDiscardLimitsResult.ItemsToDestroy` enumerates bookkeeping entries with
+`NumberToDestroy=0`. Testing only `Any()` rejected even a lossless transfer into an
+empty compatible inactive weapon slot. The adapter now rejects positive losses
+only; the source gate, queued checks, native transaction, ownership confirmation
+and pending/uncertain quarantine are unchanged. Refusal text/logs distinguish
+full/incompatible slots, native veto and actual loss. Installed IL contracts and
+a faithful nonempty zero-loss boundary model reproduce this case; restoring the
+old predicate must fail the first valid take. Actual native collection, empty
+hands and cooldown repetition still require the next user raid test.

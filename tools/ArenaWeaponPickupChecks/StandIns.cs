@@ -74,7 +74,9 @@ namespace EFT.InventoryLogic
         public Slot GetSlot(EquipmentSlot slot) => Slots[slot];
     }
     public class Inventory(InventoryController owner) { public Equipment Equipment = new(owner); }
-    public class Plan { public Weapon Item; public ItemAddress From, To; public IEnumerable<Item> ItemsToDestroy; }
+    public class ItemsCount(Item item, int destroy, int preserve)
+    { public Item Item=item; public int NumberToDestroy=destroy, NumberToPreserve=preserve; }
+    public class Plan { public Weapon Item; public ItemAddress From, To; public IEnumerable<ItemsCount> ItemsToDestroy; }
     public class PlanResult { public bool Failed; public Plan Value; }
     public static class ItemManipulator
     {
@@ -86,7 +88,7 @@ namespace EFT.InventoryLogic
             Simulations++;
             var slot = (Slot)to.Container;
             return new() { Failed = !slot.Compatible || slot.ContainedItem != null, Value = new()
-                { Item = (Weapon)item, From = item.Parent, To = to, ItemsToDestroy = DestroyOnMove ? new[] { item } : Array.Empty<Item>() } };
+                { Item = (Weapon)item, From = item.Parent, To = to, ItemsToDestroy = new[] { new ItemsCount(item, DestroyOnMove ? 1 : 0, DestroyOnMove ? 0 : 1) } } };
         }
     }
     public class InventoryController : ItemController
@@ -191,7 +193,7 @@ namespace EFT
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger = new(); }
-    public class Logger { public void LogWarning(string message) { } }
+    public class Logger { public void LogWarning(string message) { } public void LogInfo(string message) { } }
 }
 namespace ArenaMode.Kits
 {
