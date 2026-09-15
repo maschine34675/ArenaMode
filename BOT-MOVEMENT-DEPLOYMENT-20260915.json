@@ -1,0 +1,66 @@
+{
+  "SourceCommit": "3e78736032f9dfbc651a92d5aa4ad48ba5f040d1",
+  "ProductVersion": "0.1.0+3e78736032f9dfbc651a92d5aa4ad48ba5f040d1",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-15T04:25:56.4127914Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\75ab9fc7196642bbad0973b32fbfa6b8\\backup-0-ANNOUNCER-PACK.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "SHA256": "14A96F3A267B6B8FF9FFA3DCAEECCBC17EB5FFD5D726800D276FA65B2DAA5680",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md"
+    },
+    {
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\75ab9fc7196642bbad0973b32fbfa6b8\\backup-1-ANNOUNCER-SOURCES.json",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json"
+    },
+    {
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\75ab9fc7196642bbad0973b32fbfa6b8\\backup-2-AUDIO-LICENSES.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "SHA256": "B387D4A728E85879CBF48719A63622344C4118D14CDF9F6DBE26396782D684DE",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md"
+    },
+    {
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\75ab9fc7196642bbad0973b32fbfa6b8\\backup-3-maschine-ArenaMode.Client.dll",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "SHA256": "4EB97AA6EA8B4E2827BD6D0BC55B6520FB16D10DE0B190C03FC3ED5F37093C84",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\539c71766a474dbbb80a527264a02de5\\out\\maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 117,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "70FDD6CB46A5E7601AA3476703791D684A118DDFEBB545D6A395656DFA56A290",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "EE09B6B5EE6736C7067E8F07A6115DFD93DC0ACD9D87FC824EC3C6F8E8C3D687"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26",
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "2A123657B91F781197AEAAA5FD63A1DF44C300F036264451918A9B61BE886CD3"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\75ab9fc7196642bbad0973b32fbfa6b8",
+  "BuildManifest": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\539c71766a474dbbb80a527264a02de5\\manifest.json",
+  "Validation": {
+    "CompiledFaults": 4,
+    "AdversarialReview": "Independent native and adversarial reviews found no remaining concrete blocker; no native GPU test",
+    "InstalledNativeAndSainContractsPassed": true,
+    "NativeBuildErrors": 0,
+    "RegressionEvidence": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\bot-movement-regressions\\b603a95a6c464db9822ce1a14ac1501e",
+    "NativeBuildExistingWarnings": 4,
+    "SainBehaviorAssertions": 43,
+    "MotionAssertions": 126,
+    "MotionEvidence": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\bot-movement-checks\\b3614e7c0537412fbdb70402cbca2ec5\\evidence.json",
+    "RegressionAssertions": 832.0,
+    "RegressionSuites": {
+      "TdmSearchTempoChecks": 104,
+      "ArenaAirFireChecks": 92,
+      "DoubleJumpChecks": 278,
+      "ArenaHandlingChecks": 161,
+      "TeamArenaPursuitRuntimeChecks": 42,
+      "ArenaAirControlChecks": 155
+    }
+  }
+}

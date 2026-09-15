@@ -91,7 +91,7 @@ An independent source-linked helper test also exercises the real reflection
 binding and door/owner admission against an explicitly synthetic SAIN assembly.
 The 2026-09-15 checks pass 126 motion assertions, 43 SAIN assertions and four
 compiled fault controls. Six existing movement/search/pursuit harnesses pass
-932 assertions. Independent native and adversarial reviews found no remaining
+832 assertions. Independent native and adversarial reviews found no remaining
 concrete blocker; native runtime and performance acceptance remain outstanding.
 
 Final counts, native build and deployment identity belong in the dated HANDOFF

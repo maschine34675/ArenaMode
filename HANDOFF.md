@@ -1,11 +1,39 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-14. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-15. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Bot movement speed DEPLOYED (2026-09-15, Codex):** code `96f18cf`, main
+  merge/build `3e78736032f9dfbc651a92d5aa4ad48ba5f040d1`. F12 **Bot movement**
+  adds an independent enabled switch, walk/strafe x1.25 and sprint x1.30, both
+  adjustable live from 1 to 1.5. Both teams and PFT followers qualify only as
+  exact live registered Arena AI. Local movement and ordinary raids are unchanged.
+  Native collision remains active; the bonus is suppressed at doors, outside
+  grounded Run/Sprint, near native path corners, or on already-large steps.
+  The SAIN 4.5.1 read-only door guard rejects unproven ownership/unsupported
+  contracts. This changes travel speed, not sprint decisions, stamina, weapon
+  animations or idle/search behavior. Read `BOT-MOVEMENT-REVIEW.md` for limits
+  and the four user-run GPU checks, including corners/doors and PFT round rebind.
+  Installed client `0.1.0+3e78736032f9dfbc651a92d5aa4ad48ba5f040d1`, SHA256
+  `4EB97AA6EA8B4E2827BD6D0BC55B6520FB16D10DE0B190C03FC3ED5F37093C84`.
+  `BOT-MOVEMENT-DEPLOYMENT-20260915.json` binds the clean staged build, delivery,
+  source/harness evidence, external compiler inputs and backups. Only client
+  bytes changed; three existing package documents were recopied unchanged.
+  All 117 other inventoried files stayed unchanged, including Core/server/audio.
+  Clean native build: zero errors/four existing nullable warnings. Final main
+  verification: 126 motion and 43 SAIN assertions, four compiled faults,
+  installed native/SAIN contracts and six existing harnesses with **832**
+  assertions (155/161/278/92/104/42). The earlier implementation commit message
+  incorrectly summed those six counts as 932; the individual logs and this
+  delivery record carry the correct total. Independent reviews found no remaining
+  concrete blocker. Feature merged and removed; restart **EFT only**. Native
+  traversal speed, crowded navigation, animation/performance and C: mirror
+  receipt remain unverified. Existing GPU test IDs were not repointed. Later
+  documentation commits do not change the DLL stamp.
 
 - **Damage assists DEPLOYED (2026-09-14, Codex):** code `a69e9c1`, main
   merge/build `f8f21c47a9465df26124f07d8bc8d2994536b253`. The user confirmed
