@@ -51,6 +51,7 @@ public class Plugin : BaseUnityPlugin
         LocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
         ArenaRaidExit.Enable();
+        ArenaPostRaidScreens.Enable();
         Session.Preview.ArenaPreviewFlowPatch.Enable();
         ArenaLocationSelectionPatch.Enable();
         ArenaRaidSettingsApplyPatch.EnablePatch();
