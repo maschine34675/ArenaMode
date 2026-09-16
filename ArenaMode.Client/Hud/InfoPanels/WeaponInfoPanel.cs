@@ -58,10 +58,18 @@ namespace ArenaMode.Hud.InfoPanels
 
         public void ApplyLayout()
         {
-            PanelStyle.ApplyPanelTransform(_panelRect, InfoPanelSettings.WeaponPanelOffset.Value);
-            PanelStyle.ApplyTextColor(_titleLine, InfoPanelSettings.WeaponTextColor.Value);
-            PanelStyle.ApplyTextColor(_ammoLine, InfoPanelSettings.WeaponTextColor.Value);
-            PanelStyle.ApplyTextColor(_metaLine, InfoPanelSettings.WeaponTextColor.Value);
+            Vector2 offset = InfoPanelSettings.WeaponPanelOffset.Value;
+            float scale = InfoPanelSettings.UiScale != null
+                ? Mathf.Clamp(InfoPanelSettings.UiScale.Value, 0.5f, 2f) : 1f;
+            Color color = InfoPanelSettings.WeaponTextColor.Value;
+            if (_panelRect.anchoredPosition != offset || _panelRect.localScale.x != scale)
+                PanelStyle.ApplyPanelTransform(_panelRect, offset);
+            if (_titleLine.color != color)
+            {
+                PanelStyle.ApplyTextColor(_titleLine, color);
+                PanelStyle.ApplyTextColor(_ammoLine, color);
+                PanelStyle.ApplyTextColor(_metaLine, color);
+            }
         }
 
         public void Clear()

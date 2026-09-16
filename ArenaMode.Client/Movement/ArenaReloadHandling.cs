@@ -143,6 +143,16 @@ internal static partial class ArenaReloadHandling
             if (Leases.TryGetValue(controller, out var lease)
                 && !ReferenceEquals(controller.CurrentOperation, lease.Operation))
             { Release(controller); lease = null; }
+            // ManualUpdate runs for every firearm, including bots. Lease
+            // admission stays in TryFactor; skip only idle/non-reload ticks so
+            // foreign-player and factor=1 controls still observe that path.
+            if (lease == null)
+            {
+                var pending = controller.CurrentOperation;
+                if (pending is not Player.FirearmController.BaseReloadOperation
+                    && !IsMagazineOperation(pending))
+                    return;
+            }
             ObserveReload(controller);
             if (!TryFactor(controller, controller.CurrentOperation, out float factor))
             {

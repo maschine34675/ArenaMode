@@ -95,7 +95,11 @@ namespace ArenaMode.Hud.InfoPanels
 
         public void ApplyLayout()
         {
-            PanelStyle.ApplyPanelTransform(_panelRect, InfoPanelSettings.StatusPanelOffset.Value);
+            Vector2 offset = InfoPanelSettings.StatusPanelOffset.Value;
+            float scale = InfoPanelSettings.UiScale != null
+                ? Mathf.Clamp(InfoPanelSettings.UiScale.Value, 0.5f, 2f) : 1f;
+            if (_panelRect.anchoredPosition != offset || _panelRect.localScale.x != scale)
+                PanelStyle.ApplyPanelTransform(_panelRect, offset);
         }
 
         public void Clear()

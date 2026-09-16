@@ -32,6 +32,13 @@ namespace UnityEngine
         public static Collider[] Overlaps=[];
         public static Func<Vector3,Vector3,float,Collider[]> Capsule;
         public static RaycastHit[] RaycastAll(Vector3 from,Vector3 direction,float distance,int layers,QueryTriggerInteraction trigger)=>Rays?.Invoke(from,direction,distance)??[];
+        public static int RaycastNonAlloc(Vector3 from,Vector3 direction,RaycastHit[] results,float distance,int layers,QueryTriggerInteraction trigger)
+        {
+            var all = RaycastAll(from,direction,distance,layers,trigger);
+            int n = Math.Min(all.Length, results?.Length ?? 0);
+            for (int i = 0; i < n; i++) results[i] = all[i];
+            return n;
+        }
         public static Collider[] OverlapCapsule(Vector3 a,Vector3 b,float radius,int layers,QueryTriggerInteraction trigger)=>Capsule?.Invoke(a,b,radius)??Overlaps;
     }
 }

@@ -11,6 +11,11 @@ internal static class ArenaPickupGeometry
 {
     internal const float RelocationRadius = 2f;
 
+    // Contact scans run every 75 ms for every live actor. RaycastAll allocated
+    // a new hit array each call; reuse one buffer on the main thread.
+    private const int HitCapacity = 32;
+    private static readonly RaycastHit[] Hits = new RaycastHit[HitCapacity];
+
     // Only unsurveyed built-in prototypes may move. Custom layouts remain exact.
     // Every candidate runs the original floor, clearance, contour and path checks.
     internal static bool TryPlacePoint(Vector3 requested, Vector3 anchor, bool allowNearby,
@@ -44,9 +49,9 @@ internal static class ArenaPickupGeometry
     {
         const float maximum = 4f;
         float length = maximum;
-        foreach (var hit in Physics.RaycastAll(floor + Vector3.up * .15f, Vector3.up,
-            maximum, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-            if (!Ignored(hit.collider)) length = Math.Min(length, Math.Max(0f, hit.distance - .1f));
+        int count = QueryHits(floor + Vector3.up * .15f, Vector3.up, maximum, out var hits);
+        for (int i = 0; i < count; i++)
+            if (!Ignored(hits[i].collider)) length = Math.Min(length, Math.Max(0f, hits[i].distance - .1f));
         return length;
     }
 
@@ -101,9 +106,23 @@ internal static class ArenaPickupGeometry
         Vector3 direction = to - from;
         float distance = direction.magnitude;
         if (distance < .01f) return true;
-        foreach (var hit in Physics.RaycastAll(from, direction / distance, distance,
-            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-            if (!Ignored(hit.collider)) return false;
+        int count = QueryHits(from, direction / distance, distance, out var hits);
+        for (int i = 0; i < count; i++)
+            if (!Ignored(hits[i].collider)) return false;
         return true;
+    }
+
+    private static int QueryHits(Vector3 from, Vector3 direction, float distance, out RaycastHit[] hits)
+    {
+        int count = Physics.RaycastNonAlloc(from, direction, Hits, distance,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        if (count < HitCapacity)
+        {
+            hits = Hits;
+            return count;
+        }
+        hits = Physics.RaycastAll(from, direction, distance,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        return hits.Length;
     }
 }

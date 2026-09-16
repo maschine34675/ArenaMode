@@ -52,10 +52,28 @@ internal static class ArenaMovementPatches
         new VaultingReachPatch().Enable();
     }
 
+    private static Player _slidePlayer;
+    private static ArenaSlideController _slide;
+
     internal static void ResetPerRaidState()
     {
         InertiaValuesPatch.LoggedThisRaid = false;
+        _slidePlayer = null;
+        _slide = null;
         ArenaHandlingPatches.ResetPerRaidState();
+    }
+
+    private static ArenaSlideController SlideFor(MovementContext context)
+    {
+        var player = PlayerField(context);
+        // Recache when the body changes or the previous component is gone so a
+        // late AddComponent on the same player is still seen.
+        if (!ReferenceEquals(player, _slidePlayer) || _slide == null)
+        {
+            _slidePlayer = player;
+            _slide = player != null ? player.GetComponent<ArenaSlideController>() : null;
+        }
+        return _slide;
     }
 
     private static bool IsArenaMovement(MovementContext context)
@@ -152,7 +170,7 @@ internal static class ArenaMovementPatches
             // AFTER the root-motion scaling so they are not stretched by it.
             if (Settings.SlideEnabled.Value)
             {
-                var slide = PlayerField(__instance)?.GetComponent<ArenaSlideController>();
+                var slide = SlideFor(__instance);
                 if (slide != null && slide.IsSliding)
                 {
                     motion += slide.SlideVelocity * deltaTime;
@@ -202,7 +220,7 @@ internal static class ArenaMovementPatches
             if (!Settings.SlideEnabled.Value || !IsArenaMovement(__instance))
                 return;
 
-            var slide = PlayerField(__instance)?.GetComponent<ArenaSlideController>();
+            var slide = SlideFor(__instance);
             if (slide == null)
                 return;
 

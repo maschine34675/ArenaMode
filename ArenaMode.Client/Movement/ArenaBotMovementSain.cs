@@ -2,6 +2,7 @@ using EFT;
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace ArenaMode.Movement;
@@ -15,12 +16,20 @@ internal static class ArenaBotMovementSain
 {
     private enum BindingState { Uninitialized, Absent, Ready, Unsupported }
 
-    // Metadata only: never retain a bot, component, player, door or raid here.
+    // Bind fields stay metadata-only. Proven doors are weakly keyed on the live
+    // BotOwner so a pooled body disappearing drops the row with it.
     private static volatile BindingState _state;
     private static readonly object BindingGate = new();
     private static Type _componentType, _doorType;
     private static PropertyInfo _owner, _player, _door, _doorBot, _interacting;
     private static bool _warned, _watchingAssemblies;
+    private static ConditionalWeakTable<BotOwner, ProvenDoor> ProvenDoors = new();
+
+    private sealed class ProvenDoor
+    {
+        internal object Component;
+        internal object Door;
+    }
 
     internal static void Enable()
     {
@@ -39,6 +48,7 @@ internal static class ArenaBotMovementSain
             AppDomain.CurrentDomain.AssemblyLoad += OnAssemblyLoaded;
         }
         if (_state != BindingState.Uninitialized) return;
+        ProvenDoors = new ConditionalWeakTable<BotOwner, ProvenDoor>();
         try
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies()
@@ -102,10 +112,34 @@ internal static class ArenaBotMovementSain
         try
         {
             // SAIN creates BotComponent on the native owner's GameObject.
+            // GetComponent stays mandatory: Attached=null vs Destroyed are
+            // different, and Unity-null is not ReferenceEquals-null.
             var component = owner.GetComponent(_componentType);
-            if (ReferenceEquals(component, null)) return true;
-            if (component == null || component.GetType() != _componentType
-                || !ReferenceEquals(_owner.GetValue(component), owner)
+            if (ReferenceEquals(component, null))
+            {
+                ProvenDoors.Remove(owner);
+                return true;
+            }
+            if (component == null || component.GetType() != _componentType)
+            {
+                ProvenDoors.Remove(owner);
+                Warn("SAIN component ownership is unproven", null);
+                return false;
+            }
+
+            if (ProvenDoors.TryGetValue(owner, out var proven)
+                && ReferenceEquals(proven.Component, component)
+                && proven.Door != null)
+            {
+                if (ReferenceEquals(_owner.GetValue(component), owner)
+                    && ReferenceEquals(_player.GetValue(component), player)
+                    && ReferenceEquals(_door.GetValue(component), proven.Door)
+                    && ReferenceEquals(_doorBot.GetValue(proven.Door), component))
+                    return !(bool)_interacting.GetValue(proven.Door);
+                ProvenDoors.Remove(owner);
+            }
+
+            if (!ReferenceEquals(_owner.GetValue(component), owner)
                 || !ReferenceEquals(_player.GetValue(component), player))
             {
                 Warn("SAIN component ownership is unproven", null);
@@ -119,6 +153,13 @@ internal static class ArenaBotMovementSain
                 Warn("SAIN door ownership is unproven", null);
                 return false;
             }
+            if (!ProvenDoors.TryGetValue(owner, out proven))
+            {
+                proven = new ProvenDoor();
+                ProvenDoors.Add(owner, proven);
+            }
+            proven.Component = component;
+            proven.Door = door;
             return !(bool)_interacting.GetValue(door);
         }
         catch (Exception exception)

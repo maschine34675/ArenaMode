@@ -89,26 +89,29 @@ internal static class ArenaExtractionList
             if (list == null) { Release(); return; }
             if (_mask != null && !ReferenceEquals(_mask.gameObject, list.gameObject)) Release();
             if (ReferenceEquals(list, _failedList)) return;
-            if (_mask == null)
+            if (_mask == null || !_mask.enabled || _mask.alpha != 0f)
             {
-                // The installed native PointsPanel already has a CanvasGroup.
-                // Unity rejects a second one and returns null (not an exception
-                // from AddComponent). Never add components in this polling path.
-                var native = list.GetComponent<CanvasGroup>();
-                if (native == null)
-                    throw new MissingComponentException("Native extraction list has no CanvasGroup; leaving it unchanged.");
-                _restoreAlpha = native.alpha;
-                _restoreEnabled = native.enabled;
-                _mask = native;
+                if (_mask == null)
+                {
+                    // The installed native PointsPanel already has a CanvasGroup.
+                    // Unity rejects a second one and returns null (not an exception
+                    // from AddComponent). Never add components in this polling path.
+                    var native = list.GetComponent<CanvasGroup>();
+                    if (native == null)
+                        throw new MissingComponentException("Native extraction list has no CanvasGroup; leaving it unchanged.");
+                    _restoreAlpha = native.alpha;
+                    _restoreEnabled = native.enabled;
+                    _mask = native;
+                }
+                _mask.alpha = 0f;
+                _mask.enabled = true;
+                if (!_maskedLogged)
+                {
+                    _maskedLogged = true;
+                    Plugin.ModLogger.LogInfo("Arena extraction-list: existing native list CanvasGroup hidden.");
+                }
             }
-            _mask.alpha = 0f;
-            _mask.enabled = true;
             UpdateHeader(panel);
-            if (!_maskedLogged)
-            {
-                _maskedLogged = true;
-                Plugin.ModLogger.LogInfo("Arena extraction-list: existing native list CanvasGroup hidden.");
-            }
         }
         catch (Exception ex)
         {
