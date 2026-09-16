@@ -1590,43 +1590,6 @@ internal static class PitFireTeamRoundLifecycle
     }
 
     /// <summary>
-    /// Mid-raid PFT follower assembly is still loading after ActivateBotAtPosition
-    /// returns: wrappers appear only on the first UpdateManual. BotLoadBoost must
-    /// treat that wait as loading even when BundlesLoading already reads zero.
-    /// </summary>
-    public static bool TryReadFollowerAssemblyLoading(out int signature)
-    {
-        signature = 0;
-        lock (StateLock)
-        {
-            FollowerSpawnLease lease = _spawnLease;
-            if (_stage != PitFireTeamRoundLifecycleStage.SpawnRequested
-                || lease == null
-                || lease.Revoked)
-            {
-                return false;
-            }
-
-            int wrappers = 0;
-            try
-            {
-                wrappers = ReadFollowerWrappersUnsafe().Count;
-            }
-            catch (Exception)
-            {
-                wrappers = 0;
-            }
-
-            signature = lease.StartedProfileIds.Count
-                        + (lease.ActivatedProfileIds.Count * 8)
-                        + (lease.SettledProfileIds.Count * 64)
-                        + (lease.ObservedBodiesByProfileId.Count * 512)
-                        + (wrappers * 4096);
-            return true;
-        }
-    }
-
-    /// <summary>
     /// Idempotent fail-closed boundary for Tactical transition failure and raid
     /// end. Every started detached activation loses its token, its outstanding
     /// BotSpawner counter is settled once, and any body already delivered by EFT
@@ -3498,12 +3461,44 @@ internal static class PitFireTeamRoundLifecycle
             }
 
             missing.Add(
-                $"{nickname}/{accountId}/{profileId} BotState={botState} watcher={watcher} started={started} activated={activated} settled={settled} bundles={bundles}");
+                $"{nickname}/{accountId}/{profileId} BotState={botState} {DescribeWeaponReadinessUnsafe(body)} "
+                + $"watcher={watcher} started={started} activated={activated} settled={settled} bundles={bundles}");
         }
 
         return missing.Count == 0
             ? string.Empty
             : "missing " + string.Join("; ", missing);
+    }
+
+    /// <summary>
+    /// The exact native reason a PreActive follower never reaches Active.
+    ///
+    /// BotOwner.UpdateManual only calls its own activation once
+    /// WeaponManager.IsReady, which BotWeaponManager sets in
+    /// UpdateFirearmsController — reached only when the FIRST weapon take
+    /// succeeds. BotWeaponSelector.OnWeaponTaken schedules a retry for a failed
+    /// take in every state EXCEPT PreActive, so a body whose first take failed
+    /// waits forever with no error of its own. Reporting the two native flags
+    /// separates that terminal case from a take still in flight.
+    /// </summary>
+    private static string DescribeWeaponReadinessUnsafe(BotOwner bot)
+    {
+        if (ReferenceEquals(bot, null) || bot == null)
+            return "weapon=no-body";
+
+        try
+        {
+            BotWeaponManager weapons = bot.WeaponManager;
+            if (weapons == null)
+                return "weapon=no-manager";
+
+            string hands = bot.GetPlayer?.HandsController?.Item?.TemplateId.ToString() ?? "none";
+            return $"weaponReady={weapons.IsReady} selectorReady={weapons.Selector?.IsWeaponReady} hands={hands}";
+        }
+        catch (Exception ex)
+        {
+            return "weapon=unreadable:" + ex.GetBaseException().GetType().Name;
+        }
     }
 
     private static void ValidateFollowerRegistryEntryUnsafe(

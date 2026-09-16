@@ -101,14 +101,16 @@ public sealed partial class TacticalMode : IArenaMode
     private const float TeamTransitionSeconds = 45f;
     private static readonly TimeSpan TeamLifecycleTimeout = TimeSpan.FromSeconds(30);
     /// <summary>
-    /// Round-2 remapped followers complete ActivateBotAtPosition before PFT
-    /// publishes wrappers on the first UpdateManual. That wait is mid-raid and
-    /// unboosted unless BotLoadBoost sees the assembly; 30s was enough for the
-    /// loading-screen first round and too short once StandartBotBrain.Activate
-    /// lagged a remapped body. This clock is independent of TeamTransitionSeconds,
-    /// which does not bound AwaitFollowers.
+    /// Follower assembly is NOT slow when it works: a healthy round publishes all
+    /// four wrappers within four seconds of the spawn request, boosted or not.
+    /// A longer wait was tried at ninety seconds and measured nothing — the one
+    /// body that fails is stuck for good, because EFT gives up on it silently.
+    /// A PreActive body only reaches Active once BotWeaponManager.IsReady, and
+    /// BotWeaponSelector.OnWeaponTaken deliberately schedules NO retry while the
+    /// bot is PreActive, so a single failed first weapon take is terminal. Wait
+    /// only as long as a real assembly plausibly needs, then fail the round.
     /// </summary>
-    private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(20);
 
     private const int TeamCompanionCount = 4;
     private const int TeamEnemyCount = 5;

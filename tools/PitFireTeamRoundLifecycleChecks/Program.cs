@@ -1294,24 +1294,16 @@ internal static class Program
                    "bool wasReady = _stage == PitFireTeamRoundLifecycleStage.FollowersReady",
                    StringComparison.Ordinal),
             "follower idempotence checks persistence before revalidating ready");
-        string boostSource = File.ReadAllText(Path.Combine(
-            root,
-            "ArenaMode.Client",
-            "Bots",
-            "BotLoadBoost.cs"));
-        Assert(source.Contains(
-                   "public static bool TryReadFollowerAssemblyLoading(out int signature)",
-                   StringComparison.Ordinal)
-               && source.Contains("DescribeIncompleteFollowerAssemblyUnsafe(", StringComparison.Ordinal)
+        Assert(source.Contains("DescribeIncompleteFollowerAssemblyUnsafe(", StringComparison.Ordinal)
                && source.Contains(
                    "PitFireTeam follower assembly incomplete after activation lease:",
                    StringComparison.Ordinal)
-               && boostSource.Contains("TryReadFollowerAssemblyLoading", StringComparison.Ordinal)
-               && tacticalSource.Contains("TeamFollowerAssemblyTimeout", StringComparison.Ordinal)
+               && source.Contains("weaponReady={weapons.IsReady}", StringComparison.Ordinal)
+               && source.Contains("selectorReady={weapons.Selector?.IsWeaponReady}", StringComparison.Ordinal)
                && tacticalSource.Contains(
-                   "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(90);",
+                   "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(20);",
                    StringComparison.Ordinal),
-            "round-2 follower assembly names missing bodies and keeps the load boost armed for the longer wait");
+            "an incomplete assembly names each missing body with the native weapon readiness that decides PreActive, under a bounded wait");
     }
 
     private static PitFireTeamRoundPolicyDecision EvaluateFollowers(

@@ -834,18 +834,20 @@ internal static class Program
         Assert(startTeamFollowers.Contains("TeamFollowerAssemblyTimeout", StringComparison.Ordinal)
                && !startTeamFollowers.Contains("TeamLifecycleTimeout", StringComparison.Ordinal)
                && tactical.Contains(
-                   "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(90);",
-                   StringComparison.Ordinal)
-               && roundLifecycle.Contains(
-                   "public static bool TryReadFollowerAssemblyLoading(out int signature)",
+                   "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(20);",
                    StringComparison.Ordinal)
                && roundLifecycle.Contains("DescribeIncompleteFollowerAssemblyUnsafe(", StringComparison.Ordinal)
+               && roundLifecycle.Contains("DescribeWeaponReadinessUnsafe(", StringComparison.Ordinal)
+               && roundLifecycle.Contains("weaponReady={weapons.IsReady}", StringComparison.Ordinal)
                && roundLifecycle.Contains(
                    "PitFireTeam follower assembly incomplete after activation lease:",
                    StringComparison.Ordinal)
-               && boost.Contains("TryReadFollowerAssemblyLoading", StringComparison.Ordinal)
-               && boost.Contains("followerPart << 8", StringComparison.Ordinal),
-            "round-2 follower assembly has a 90s wait, names missing bodies, and keeps the load boost armed");
+               // The measured wait is about four seconds; a ninety-second hold of
+               // the scheduler's force mode over a body that never activates was
+               // tried and bought nothing, so the boost calls no follower API.
+               && !boost.Contains("PitFireTeamRoundLifecycle", StringComparison.Ordinal)
+               && !boost.Contains("using ArenaMode.Compat;", StringComparison.Ordinal),
+            "the follower wait is bounded near the measured assembly time, names the missing body with its native weapon readiness, and does not hold the load boost");
         Assert(tactical.Contains("HaveExactBodySet(oldFollowers, _boundTeamFollowers)", StringComparison.Ordinal)
                && tactical.Contains("PitFireTeamCompat.CanonicalCompanionProfilesByAccountId", StringComparison.Ordinal)
                && tactical.Contains("status.Epoch != _expectedPitLifecycleEpoch", StringComparison.Ordinal)
