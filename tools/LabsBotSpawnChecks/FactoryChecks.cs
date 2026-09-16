@@ -12,6 +12,22 @@ internal static partial class Program
     private const string UnsafeFactoryId = "c671337f-e58f-4de6-a387-307d877954a3";
     private const string NeighborFactoryId = "c671337f-e58f-4de6-a387-307d877954a4";
 
+    /// <summary>
+    /// Every Factory player marker Arena refuses, with the coordinate it was
+    /// excluded for. The installed fixture below compares these against the live
+    /// database, so a BSG marker move is a failed check rather than a spawn that
+    /// silently stops being excluded.
+    /// </summary>
+    private static readonly (string Id, float X, float Y, float Z)[] UnsafeFactoryPoints =
+    {
+        (UnsafeFactoryId, 14.018f, 1.18999994f, 58.119f),
+        ("c2d01ce0-e0e4-41af-8311-44dc5cf38a93", -6.47099972f, -2.598f, 15.79f),
+        ("97998a75-baa4-4b03-ac1f-f86dfbf48d79", -6.689f, -2.598f, 17.303f),
+        ("ea010f6f-4860-4339-b576-09439f8f4c3a", -5.58f, -2.598f, 14.757f),
+        ("8128ea83-0d4f-4e64-b109-5acc9e477b33", -4.302f, -2.598f, 14.318f),
+        ("71c2ba1e-e226-47be-814f-d52ddd931603", -2.81400013f, -2.598f, 18.476f)
+    };
+
     private static void CheckFactory()
     {
         foreach (string map in new[] { "factory4_day", "factory4_night" })
@@ -200,6 +216,21 @@ internal static partial class Program
             Assert(!ArenaBotSpawnPolicy.IsRestrictedMap(map) && ArenaBotSpawnPolicy.HasPointExclusions(map)
                 && !ArenaBotSpawnPolicy.HasZoneExclusions(map), map + ": Factory point restriction does not opt server callers into Labs zone processing");
             Assert(ArenaBotSpawnPolicy.IsExcludedPoint(map, UnsafeFactoryId.ToUpperInvariant()), map + ": exact unsafe ID is case-insensitive");
+            foreach (var unsafePoint in UnsafeFactoryPoints)
+            {
+                Assert(ArenaBotSpawnPolicy.IsExcludedPoint(map, unsafePoint.Id)
+                    && ArenaBotSpawnPolicy.IsExcludedPoint(map, unsafePoint.Id.ToUpperInvariant()),
+                    map + ": every reported unsafe marker is excluded in either casing: " + unsafePoint.Id);
+
+                // The stuck-companion group is one place, not one marker: an
+                // exclusion that covered only its nearest member would hand the
+                // next round the marker 1.8 m away.
+                foreach (string near in new[] { unsafePoint.Id + "0", unsafePoint.Id[..^1], " " + unsafePoint.Id })
+                    Assert(!ArenaBotSpawnPolicy.IsExcludedPoint(map, near), map + ": near IDs are not excluded: " + near);
+            }
+            Assert(UnsafeFactoryPoints.Length == 6
+                && UnsafeFactoryPoints.Select(point => point.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 6,
+                map + ": the excluded set is exactly the six distinct reported markers");
             foreach (string other in new[] { (string)null, "", NeighborFactoryId, UnsafeFactoryId + "0", UnsafeFactoryId[..^1] })
                 Assert(!ArenaBotSpawnPolicy.IsExcludedPoint(map, other), map + ": null empty near and partial IDs are not excluded");
             string csv = " BotZoneGate1, BotZoneFloor2 ";
@@ -270,15 +301,18 @@ internal static partial class Program
             string path = Path.Combine(database, "locations", map, "base.json");
             using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
             var rawPoints = document.RootElement.GetProperty("SpawnPointParams").EnumerateArray().ToArray();
-            var target = rawPoints.Single(point => point.GetProperty("Id").GetString() == UnsafeFactoryId);
-            var targetPosition = target.GetProperty("Position");
-            Assert(target.GetProperty("Categories").EnumerateArray().Select(value => value.GetString()).SequenceEqual(new[] { "Player" })
-                && string.IsNullOrEmpty(target.GetProperty("BotZoneName").GetString()),
-                map + ": installed unsafe ID is a Player-only marker without a bot-zone name");
-            Assert(Math.Abs(targetPosition.GetProperty("x").GetSingle() - 14.018f) < .0001f
-                && Math.Abs(targetPosition.GetProperty("y").GetSingle() - 1.18999994f) < .0001f
-                && Math.Abs(targetPosition.GetProperty("z").GetSingle() - 58.119f) < .0001f,
-                map + ": installed ID matches the reported courtyard coordinate");
+            foreach (var unsafePoint in UnsafeFactoryPoints)
+            {
+                var target = rawPoints.Single(point => point.GetProperty("Id").GetString() == unsafePoint.Id);
+                var targetPosition = target.GetProperty("Position");
+                Assert(target.GetProperty("Categories").EnumerateArray().Select(value => value.GetString()).SequenceEqual(new[] { "Player" })
+                    && string.IsNullOrEmpty(target.GetProperty("BotZoneName").GetString()),
+                    map + ": installed unsafe ID is a Player-only marker without a bot-zone name: " + unsafePoint.Id);
+                Assert(Math.Abs(targetPosition.GetProperty("x").GetSingle() - unsafePoint.X) < .0001f
+                    && Math.Abs(targetPosition.GetProperty("y").GetSingle() - unsafePoint.Y) < .0001f
+                    && Math.Abs(targetPosition.GetProperty("z").GetSingle() - unsafePoint.Z) < .0001f,
+                    map + ": installed ID still sits at the reported coordinate: " + unsafePoint.Id);
+            }
             var points = rawPoints.Select(point =>
             {
                 var position = point.GetProperty("Position");
@@ -299,9 +333,12 @@ internal static partial class Program
             var originalDictionary = original._dictionary;
             var before = Snapshot(points);
             var view = RunTeamScenePostfix(original);
-            Assert(view.Count == rawPoints.Length - 1 && view.All(point => point.Id != UnsafeFactoryId)
-                && points.Where(point => point.Id != UnsafeFactoryId).All(view.Contains),
-                map + ": installed scene view removes exactly the reported point and retains every other physical object");
+            var unsafeIds = new HashSet<string>(
+                UnsafeFactoryPoints.Select(point => point.Id), StringComparer.OrdinalIgnoreCase);
+            Assert(view.Count == rawPoints.Length - unsafeIds.Count
+                && view.All(point => !unsafeIds.Contains(point.Id))
+                && points.Where(point => !unsafeIds.Contains(point.Id)).All(view.Contains),
+                map + ": installed scene view removes exactly the reported points and retains every other physical object");
             Assert(ReferenceEquals(original._dictionary, originalDictionary) && original.Count == rawPoints.Length
                 && view.All(point => ReferenceEquals(view._dictionary[point], originalDictionary[point])),
                 map + ": installed original collection and all retained scene markers preserve identity");

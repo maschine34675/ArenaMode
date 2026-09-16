@@ -46,6 +46,7 @@ internal sealed class ArenaTeamSpawnPointsPatch : ModulePatch
             .ToDictionary(pair => pair.Key, pair => pair.Value);
         __result = new SpawnPointsCollection(allowed, __result._logger);
         Plugin.ModLogger.LogInfo(
-            $"Arena protected 5v5: excluded Factory courtyard team spawn; {allowed.Count}/{original.Count} markers retained.");
+            $"Arena protected 5v5: excluded {original.Count - allowed.Count} unsafe Factory team spawn(s); "
+            + $"{allowed.Count}/{original.Count} markers retained.");
     }
 }
