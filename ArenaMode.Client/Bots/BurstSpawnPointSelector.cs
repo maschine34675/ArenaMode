@@ -61,6 +61,12 @@ internal static class BurstSpawnPointSelector
     /// Returns distinct points in priority order: 25-70 m first, then points
     /// beyond 70 m. Points closer than 25 m, blocked and Arena-excluded points
     /// remain excluded before planning a full squad, not after dispatch starts.
+    ///
+    /// <paramref name="grouped"/> asks for one cluster instead of that spread.
+    /// Round-robin over a whole zone is right for the ambient deathmatch drip,
+    /// where bots should arrive from everywhere, and wrong for a Tactical team:
+    /// five opponents scattered across the map are five duels, not a 5v5. A
+    /// grouped request keeps the same exclusions and the same 25 m floor.
     /// </summary>
     internal static List<ISpawnPoint> PickPoints(
         BotZone zone,
@@ -68,7 +74,8 @@ internal static class BurstSpawnPointSelector
         int count,
         ref int cursor,
         out int preferredAvailable,
-        out int distantAvailable)
+        out int distantAvailable,
+        bool grouped = false)
     {
         preferredAvailable = 0;
         distantAvailable = 0;
@@ -110,10 +117,48 @@ internal static class BurstSpawnPointSelector
         if (preferred.Count == 0 && distant.Count == 0)
             return null;
 
+        if (grouped && playerPosition.HasValue)
+            return PickCluster(preferred, distant, playerPosition.Value, count, ref cursor);
+
         var result = new List<ISpawnPoint>(count);
         AppendDistinct(result, preferred, count, ref cursor);
         AppendDistinct(result, distant, count, ref cursor);
         return result;
+    }
+
+    /// <summary>
+    /// One anchor as far from the player as the zone allows, plus its nearest
+    /// neighbours. Both bands are pooled first: the 25-70 m preference exists to
+    /// keep an ambient spawn from arriving on top of the player, and for a team
+    /// that starts a round together the far band is the better half of the map.
+    ///
+    /// The anchor rotates with the shared cursor over the farthest third, so a
+    /// long match does not replay the identical opening every round. Distance is
+    /// straight-line: it orders candidates, it does not prove a path, and the
+    /// caller still fails closed when the zone cannot supply the exact count.
+    /// </summary>
+    private static List<ISpawnPoint> PickCluster(
+        List<ISpawnPoint> preferred,
+        List<ISpawnPoint> distant,
+        Vector3 playerPosition,
+        int count,
+        ref int cursor)
+    {
+        var usable = new List<ISpawnPoint>(preferred.Count + distant.Count);
+        usable.AddRange(preferred);
+        usable.AddRange(distant);
+        usable.Sort((left, right) => Vector3.Distance(right.Position, playerPosition)
+            .CompareTo(Vector3.Distance(left.Position, playerPosition)));
+
+        var anchorPool = Math.Max(1, usable.Count / 3);
+        cursor = PositiveModulo(cursor + 1, anchorPool);
+        var anchor = usable[cursor].Position;
+
+        usable.Sort((left, right) => Vector3.Distance(left.Position, anchor)
+            .CompareTo(Vector3.Distance(right.Position, anchor)));
+
+        var take = Math.Min(count, usable.Count);
+        return usable.GetRange(0, take);
     }
 
     internal static int CountUsable(BotZone zone, Vector3? playerPosition)

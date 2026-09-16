@@ -250,6 +250,38 @@ internal static partial class Program
         Assert(pair.Count == 2 && pair.All(preferred.Contains),
             "ambient two-bot bursts still use only the preferred band when it is sufficient");
 
+        // Same zone, same exclusions, grouped: the contrast with the spread
+        // selection above is the point — that one takes every preferred point,
+        // this one takes none of them.
+        cursor = 0;
+        var team = BurstSpawnPointSelector.PickPoints(
+            floor2, origin, 5, ref cursor, out _, out _, grouped: true);
+        Assert(team.Count == 5 && team.Distinct().Count() == 5
+            && team.All(point => point != tooClose && point != blocked && point != duplicatePosition),
+            "a grouped request still returns the exact count from distinct unexcluded points");
+        Assert(team.All(distant.Contains) && !team.Any(preferred.Contains),
+            "a grouped request leaves the near band to the ambient drip and takes the far one");
+        Assert(team.All(point => Vector3.Distance(point.Position, origin) >= 80f)
+            && team.Max(point => Vector3.Distance(point.Position, team[0].Position)) <= 40f,
+            "the grouped points sit far from the player and close to one another");
+
+        // Two candidate groups, one near the 25 m floor and one at the far end:
+        // the anchor must come from the far end, and nothing may be pulled back
+        // across the map to fill the count.
+        var nearGroup = Enumerable.Range(0, 5)
+            .Select(index => PointAt("BotZoneSplit", 26f + index)).ToArray();
+        var farGroup = Enumerable.Range(0, 5)
+            .Select(index => PointAt("BotZoneSplit", 200f + index)).ToArray();
+        var split = new BotZone("BotZoneSplit")
+        {
+            SpawnPoints = nearGroup.Concat(farGroup).ToArray(),
+        };
+        var splitCursor = 0;
+        var farTeam = BurstSpawnPointSelector.PickPoints(
+            split, origin, 5, ref splitCursor, out _, out _, grouped: true);
+        Assert(farTeam.Count == 5 && farTeam.All(farGroup.Contains),
+            "the grouped anchor is chosen from the far end and its neighbours come with it");
+
         var shortZone = new BotZone("BotZoneBasement")
         {
             SpawnPoints = new[] { PointAt("BotZoneBasement", 30f), PointAt("BotZoneBasement", 80f), tooClose },

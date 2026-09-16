@@ -333,8 +333,12 @@ internal static class BurstSpawnService
                 points = new List<ISpawnPoint> { teamPoint };
                 preferredAvailable = 1; distantAvailable = 0;
             }
+            // An exact multi-bot squad is one team and starts as one: group it.
+            // A single-profile exact request (Team Deathmatch) keeps the ambient
+            // round-robin, where grouping would mean nothing anyway.
             else points = BurstSpawnPointSelector.PickPoints(zone, playerPosition, profileCount,
-                ref _pointCursor, out preferredAvailable, out distantAvailable);
+                ref _pointCursor, out preferredAvailable, out distantAvailable,
+                grouped: requireExactCount && profileCount > 1);
 
             if (explicitFaction)
                 Plugin.ModLogger.LogInfo($"Team Deathmatch placement request {requestId} ({role}): "
