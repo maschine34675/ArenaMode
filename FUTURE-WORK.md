@@ -161,6 +161,15 @@ terminal results are implemented in `TDM-MATCH-FLOW-REVIEW.md`; GPU acceptance i
 separate. Respawn line-of-sight fairness, a single control-point prototype and CTF
 remain proposed later work. This feature adds no objective bot steering.
 
+2026-09-16 follow-up: the user chose the single control point as the first
+objective mode, ahead of CTF, and chose exact BigBrain 1.5.0 as a hard
+requirement rather than a silent degradation. `CONTROL-POINT-REVIEW.md` holds
+that frozen scope: the king-of-the-hill rule set, the split into a human-playable
+slice and a later bot-steering slice, the rules still to be decided, and the
+finding that `TeamArenaPursuitLeaseBridge` cannot carry an objective lease
+because it is gated on protected Tactical with a dead local player and requires
+an exact live enemy profile. Still a proposal; nothing is implemented.
+
 Recorded 2026-09-07: the user wants to revisit more complex game modes, with
 **Capture the Flag** as an explicit example. Deferred idea only; no implementation
 or final rules selected.
