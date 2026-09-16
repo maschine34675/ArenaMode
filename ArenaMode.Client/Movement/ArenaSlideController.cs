@@ -63,6 +63,26 @@ public class ArenaSlideController : MonoBehaviour
     {
         if (_player == null || _ctx == null) return;
 
+        // A respawn does not destroy this body. Arena keeps corpses, so without
+        // this the component Unity is still ticking here belongs to a body that
+        // will never slide again, and every death left one more of them running
+        // for the rest of the raid (measured: 26 deaths, 26 Updates per frame).
+        // Stop the dispatch rather than early-out, so the cost is bounded by the
+        // live body instead of the death count. This also closes a latent write:
+        // a body that died within the slide window could still reach
+        // SetPoseLevel below. MovementRuntime re-enables the component if this
+        // exact body is ever the live local player again.
+        if (_player.HealthController?.IsAlive != true)
+        {
+            _isSliding = false;
+            _slideVelocity = Vector3.zero;
+            _sprintEndTime = -1f;
+            _wasSprintingLastFrame = false;
+            IsFadingOut = false;
+            enabled = false;
+            return;
+        }
+
         bool isSprinting = _player.IsSprintEnabled;
 
         if (isSprinting)

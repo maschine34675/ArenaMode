@@ -227,8 +227,12 @@ namespace ArenaMode.Movement
 
     internal sealed class ArenaSlideController
     {
-        internal void Init(Player player, MovementContext context)
-        {
-        }
+        // Mirrors the MonoBehaviour flag the production runtime now reads: the
+        // controller disables itself on the body's death and must be adopted
+        // again, not re-added, if that same body is ever live once more.
+        internal bool enabled = true;
+        internal int Inits;
+
+        internal void Init(Player player, MovementContext context) => Inits++;
     }
 }

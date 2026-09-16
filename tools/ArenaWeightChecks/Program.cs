@@ -20,6 +20,7 @@ internal static class Program
             CheckPatchGatesAndFields();
             CheckRuntimeLifecycle();
             CheckRuntimeRetries();
+            CheckSlideControllerLifecycle();
             CheckDetachedBodyDoesNotTouchOrdinaryRaid();
             CheckSourceContract();
             Console.WriteLine($"ARENA_WEIGHT_CHECKS_PASSED ({_assertions} assertions)");
@@ -177,6 +178,58 @@ internal static class Program
         MovementRuntime.Tick();
         Assert(ordinary.WeightLimitsUpdateCount == 0,
             "ordinary raid never applies Arena weight limits");
+    }
+
+    /// <summary>
+    /// One slide controller per LIVE body, never one per death. Arena keeps
+    /// corpses, so the component on a replaced body is not destroyed; it
+    /// disables itself, and a long raid used to accumulate one running Update
+    /// per death (measured: 26 deaths, 26 Updates per frame). The runtime must
+    /// therefore attach to a fresh body, leave a healthy one alone, and adopt a
+    /// disabled component rather than skip it because it is not null.
+    /// </summary>
+    private static void CheckSlideControllerLifecycle()
+    {
+        Reset();
+        ArenaSession.IsActive = true;
+        Settings.MovementEnabled.Value = true;
+        Settings.SlideEnabled.Value = true;
+
+        NewWorldPhysical();
+        Player body = Singleton<GameWorld>.Instance.MainPlayer;
+        MovementRuntime.Tick();
+        var slide = body.GetComponent<ArenaSlideController>();
+        Assert(slide != null && slide.enabled && slide.Inits == 1,
+            "a fresh live body receives one initialised slide controller");
+
+        MovementRuntime.Tick();
+        MovementRuntime.Tick();
+        Assert(ReferenceEquals(body.GetComponent<ArenaSlideController>(), slide) && slide.Inits == 1,
+            "a healthy controller is neither replaced nor re-initialised every frame");
+
+        // What the production Update does once its body is dead. The runtime
+        // must not treat the disabled leftover as "already handled".
+        slide.enabled = false;
+        MovementRuntime.Tick();
+        Assert(ReferenceEquals(body.GetComponent<ArenaSlideController>(), slide)
+               && slide.enabled && slide.Inits == 2,
+            "a body that is live again adopts and re-initialises its own controller");
+
+        // A respawn is a new body; the corpse keeps its own component.
+        NewWorldPhysical();
+        Player respawned = Singleton<GameWorld>.Instance.MainPlayer;
+        MovementRuntime.Tick();
+        var second = respawned.GetComponent<ArenaSlideController>();
+        Assert(second != null && !ReferenceEquals(second, slide) && second.Inits == 1,
+            "a respawned body gets its own controller");
+        Assert(ReferenceEquals(body.GetComponent<ArenaSlideController>(), slide) && slide.Inits == 2,
+            "the previous body's controller is left untouched, not re-initialised");
+
+        Settings.SlideEnabled.Value = false;
+        NewWorldPhysical();
+        MovementRuntime.Tick();
+        Assert(Singleton<GameWorld>.Instance.MainPlayer.GetComponent<ArenaSlideController>() == null,
+            "sliding switched off attaches no controller at all");
     }
 
     private static void CheckSourceContract()

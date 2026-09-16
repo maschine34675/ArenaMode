@@ -93,15 +93,27 @@ internal static class MovementRuntime
 
         try
         {
-            // Slide controller lives on the player object and dies with each respawn —
-            // (re)attach lazily (absorbed CombatSlide behavior, arena-only now).
-            if (Settings.SlideEnabled.Value
-                && player.MovementContext != null
-                && player.GetComponent<ArenaSlideController>() == null)
+            // Slide controller lives on the player object; a respawn brings a new
+            // one, while the old body stays as a corpse (absorbed CombatSlide
+            // behavior, arena-only now). Attach lazily — and adopt a component
+            // that disabled itself on death, which is the only way this exact
+            // body can be live again, since a disabled component is not null and
+            // would otherwise never be re-added.
+            if (Settings.SlideEnabled.Value && player.MovementContext != null)
             {
-                var slide = player.gameObject.AddComponent<ArenaSlideController>();
-                slide.Init(player, player.MovementContext);
-                ArenaMovementPatches.RememberSlide(player, slide);
+                var slide = player.GetComponent<ArenaSlideController>();
+                if (slide == null)
+                    slide = player.gameObject.AddComponent<ArenaSlideController>();
+                else if (slide.enabled)
+                    slide = null;
+                else
+                    slide.enabled = true;
+
+                if (slide != null)
+                {
+                    slide.Init(player, player.MovementContext);
+                    ArenaMovementPatches.RememberSlide(player, slide);
+                }
             }
 
             if (Settings.InfiniteStamina.Value && player.Physical != null)
