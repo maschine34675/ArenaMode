@@ -1097,6 +1097,10 @@ public sealed partial class TacticalMode : IArenaMode
                 _phase = Phase.Live;
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
                 _preferredSpectatorProfileId = null;
+                // Only here, never during the rebuild: the previous round's ten
+                // actors have been retired and this round's ten already exist, so
+                // no body a clear could touch belongs to anybody still playing.
+                Bots.CorpseCleanupService.ClearAllSoon($"team round {RoundNumber} start");
                 TeamArenaPursuit.BeginRound(_teamRoundEpoch);
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
                 ArenaToasts.Show("5v5 — fight!");
@@ -2717,6 +2721,7 @@ public sealed partial class TacticalMode : IArenaMode
         _squad.Clear();
         _soloCombatReady = false;
         _phase = Phase.Live;
+        Bots.CorpseCleanupService.ClearAllSoon($"round {RoundNumber} start");
         // Bots can be killed as soon as their native activation finishes,
         // before the complete roster is ready. Awards start now; the delayed
         // fight cue must not reset First Blood or revenge a second time.

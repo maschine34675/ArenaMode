@@ -34,6 +34,16 @@ internal static class CorpseCleanupService
     private const float MinDistanceMeters = 15f;
     private const int KeepOwnCorpses = 1;
 
+    /// <summary>
+    /// How long a requested full clear keeps overriding the ordinary budget.
+    ///
+    /// One sweep is not enough. A body whose ragdoll has not settled is refused
+    /// by TrimCorpse on purpose, and the last casualties of a round are exactly
+    /// the unsettled ones — so the request stays open across a few cadences
+    /// instead of leaving the bodies that were still falling when it was made.
+    /// </summary>
+    private const float FullClearSeconds = 20f;
+
     /// <summary>What was hidden for one body, so the sweep can maintain it.</summary>
     private sealed class TrimState
     {
@@ -59,12 +69,43 @@ internal static class CorpseCleanupService
         new Dictionary<Corpse, TrimState>();
 
     private static float _nextSweepAt;
+    private static float _fullClearUntil;
 
     public static void Reset()
     {
         _nextSweepAt = 0f;
+        _fullClearUntil = 0f;
         Trimmed.Clear();
         Compat.DynamicMapsCorpseMarkers.Reset();
+    }
+
+    /// <summary>
+    /// Clears the field for a round start: every corpse is trimmed, not just the
+    /// overflow, and the three standing exemptions are lifted for the request.
+    ///
+    /// The exemptions exist for a live round, not for the boundary between two.
+    /// Own corpses are kept so a player can walk back to their gear; PitFireTeam
+    /// companion bodies are kept because a dead companion is still part of the
+    /// protected five-player roster — and that keeps a HISTORY, so by round four
+    /// every teammate who ever died is still lying there. Both readings expire
+    /// the moment the next round's bodies exist: the previous round's actors have
+    /// been retired and replaced by then, which is why this is only ever
+    /// requested after that, never during a rebuild.
+    ///
+    /// A player who turned corpse cleanup off (MaxCorpses = 0, "keep all") is
+    /// taken at their word here as everywhere else.
+    /// </summary>
+    public static void ClearAllSoon(string reason)
+    {
+        if (!ArenaSession.IsActive || Settings.MaxCorpses.Value <= 0)
+            return;
+
+        _fullClearUntil = Time.time + FullClearSeconds;
+
+        // Do not wait out the remainder of the ordinary cadence for a clear the
+        // player is about to look at.
+        _nextSweepAt = 0f;
+        Plugin.ModLogger.LogInfo($"Arena corpse cleanup: clearing every corpse ({reason}).");
     }
 
     internal static bool IsSuccessfullyTrimmed(Corpse corpse)
@@ -99,16 +140,19 @@ internal static class CorpseCleanupService
                 .Where(c => c != null && c.HasRagdoll && !Trimmed.ContainsKey(c))
                 .ToList();
 
-            var overflow = corpses.Count - maxCorpses;
+            var clearEverything = Time.time < _fullClearUntil;
+            var overflow = clearEverything ? corpses.Count : corpses.Count - maxCorpses;
             if (overflow <= 0)
                 return;
 
             var ownProfileId = mainPlayer.ProfileId;
-            var protectedOwn = new HashSet<Corpse>(
-                corpses.Where(c => c.PlayerProfileID == ownProfileId)
-                    .AsEnumerable()
-                    .Reverse()
-                    .Take(KeepOwnCorpses));
+            var protectedOwn = clearEverything
+                ? new HashSet<Corpse>()
+                : new HashSet<Corpse>(
+                    corpses.Where(c => c.PlayerProfileID == ownProfileId)
+                        .AsEnumerable()
+                        .Reverse()
+                        .Take(KeepOwnCorpses));
 
             var trimmed = 0;
             foreach (var corpse in corpses)
@@ -122,17 +166,24 @@ internal static class CorpseCleanupService
                 // A selected PitFireTeam companion remains part of the protected
                 // five-player roster after death. Its profile id is cached before
                 // the body can leave PFT's live-follower list, so neither its
-                // renderers nor its equipment are trimmed by Arena.
-                if (Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
+                // renderers nor its equipment are trimmed by Arena. A round-start
+                // clear lifts this: see ClearAllSoon.
+                if (!clearEverything
+                    && Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
+                {
                     continue;
+                }
 
+                // Never taken from under a native interaction, not even for a
+                // full clear: the player is holding this body's loot window open.
                 if (ReferenceEquals(mainPlayer.InteractableObject, corpse))
                     continue;
 
                 if (OpenLootTracker.IsOpen(corpse.ItemOwner?.RootItem))
                     continue;
 
-                if (corpse.transform != null
+                if (!clearEverything
+                    && corpse.transform != null
                     && Vector3.Distance(mainPlayer.Position, corpse.transform.position) < MinDistanceMeters)
                 {
                     continue;
@@ -146,7 +197,9 @@ internal static class CorpseCleanupService
             }
 
             if (trimmed > 0)
-                Plugin.ModLogger.LogInfo($"Arena corpse cleanup: trimmed {trimmed} old corpse(s), {maxCorpses} kept visible, {Trimmed.Count} trimmed in total.");
+                Plugin.ModLogger.LogInfo(clearEverything
+                    ? $"Arena corpse cleanup: cleared {trimmed} corpse(s) for the round start, {Trimmed.Count} trimmed in total."
+                    : $"Arena corpse cleanup: trimmed {trimmed} old corpse(s), {maxCorpses} kept visible, {Trimmed.Count} trimmed in total.");
         }
         catch (Exception ex)
         {

@@ -155,4 +155,62 @@ foreach (var excluded in new[] { "normal", "disabled", "budget-off", "ragdoll", 
         "exclusion preserves all gear without invoking removal: " + excluded);
 }
 
+// A round start clears the field. Each case is its own positive control: the
+// ordinary sweep must keep the body first, or the clear proves nothing.
+foreach (var kept in new[] { "team", "own", "near" })
+{
+    var (world, body, gear) = Setup();
+    var slot = Add(body, gear, "Headwear");
+    switch (kept)
+    {
+        case "team": ArenaMode.Compat.PitFireTeamCompat.TeamProfile = body.PlayerProfileID; break;
+        case "own": body.PlayerProfileID = world.MainPlayer.ProfileId; break;
+        case "near": body.transform.position = world.MainPlayer.Position; break;
+    }
+    CorpseCleanupService.Tick();
+    Check(slot.Returns == 0 && body.ItemOwner.Attempts == 0,
+        "positive control: the live-round budget keeps this body: " + kept);
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Check(slot.ContainedItem == null && slot.Returns == 1,
+        "a round-start clear removes the body the live round kept: " + kept);
+}
+
+// The request is a boundary, not a new policy: it expires on its own.
+{
+    var (_, body, gear) = Setup();
+    var slot = Add(body, gear, "Headwear");
+    ArenaMode.Compat.PitFireTeamCompat.TeamProfile = body.PlayerProfileID;
+    CorpseCleanupService.ClearAllSoon("round start");
+    Time.time += 25;
+    CorpseCleanupService.Tick();
+    Check(slot.Returns == 0 && body.ItemOwner.Attempts == 0,
+        "an expired round-start clear protects the companion body again");
+}
+
+// A player who turned the budget off keeps every corpse, round start or not.
+{
+    var (_, body, gear) = Setup();
+    var slot = Add(body, gear, "Headwear");
+    Settings.MaxCorpses.Value = 0;
+    CorpseCleanupService.ClearAllSoon("round start");
+    Time.time += 1;
+    CorpseCleanupService.Tick();
+    Check(slot.Returns == 0 && body.ItemOwner.Attempts == 0,
+        "a round-start clear does not override MaxCorpses = 0");
+}
+
+// Native interaction outranks the clear: this body has a window open on it.
+foreach (var guard in new[] { "open", "interacting" })
+{
+    var (world, body, gear) = Setup();
+    var slot = Add(body, gear, "Headwear");
+    if (guard == "open") ArenaMode.Loot.OpenLootTracker.Open = gear;
+    else world.MainPlayer.InteractableObject = body;
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Check(slot.ContainedItem != null && slot.Returns == 0 && body.ItemOwner.Attempts == 0,
+        "a round-start clear never takes a body from under a native interaction: " + guard);
+}
+
 Console.WriteLine($"CORPSE_CLEANUP_CHECKS_PASSED ({assertions} assertions)");
