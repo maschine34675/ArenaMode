@@ -24,6 +24,7 @@
     <Compile Include="..\ArenaMode.Shared\ArenaMapCatalog.cs" Link="Shared\ArenaMapCatalog.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaAreaCatalog.cs" Link="Shared\ArenaAreaCatalog.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaPopulationPolicy.cs" Link="Shared\ArenaPopulationPolicy.cs" />
+    <Compile Include="..\ArenaMode.Shared\PitFireTeamVersions.cs" Link="Shared\PitFireTeamVersions.cs" />
   </ItemGroup>
 
   <ItemGroup>

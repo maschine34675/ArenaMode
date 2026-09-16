@@ -7,6 +7,7 @@ using EFT.InventoryLogic;
 using HarmonyLib;
 using ArenaMode.Respawn;
 using ArenaMode.Session;
+using ArenaMode.Shared;
 using Redeploy.Core.Inventory;
 using System;
 using System.Collections;
@@ -40,7 +41,9 @@ internal sealed class PitFireTeamRoundLifecycleSnapshot
 internal static class PitFireTeamRoundLifecycle
 {
     public const string PluginGuid = "xyz.pit.fireteam";
-    public const string SupportedVersion = "0.10.0";
+    // Only for the "same build after re-configuration" comparison below; the
+    // accepted set lives in PitFireTeamVersions and is applied on first configure.
+    private static string _configuredVersion;
 
     private const string BossTypeName = "pitTeam.Components.pitAIBossPlayer";
     private const string FollowerTypeName = "pitTeam.Components.BotFollowerPlayer";
@@ -316,7 +319,7 @@ internal static class PitFireTeamRoundLifecycle
             if (_assembly != null)
             {
                 if (ReferenceEquals(_assembly, pitFireTeamAssembly)
-                    && string.Equals(pluginVersion, SupportedVersion, StringComparison.Ordinal))
+                    && string.Equals(pluginVersion, _configuredVersion, StringComparison.Ordinal))
                 {
                     return _capability;
                 }
@@ -331,19 +334,19 @@ internal static class PitFireTeamRoundLifecycle
                 return _capability;
             }
 
-            if (!string.Equals(pluginVersion, SupportedVersion, StringComparison.Ordinal))
+            if (!PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion))
             {
                 SetUnavailableUnsafe(
-                    $"PitFireTeam {pluginVersion ?? "unknown"} is unsupported; exact {SupportedVersion} is required.");
+                    $"PitFireTeam {pluginVersion ?? "unknown"} is unsupported; exact {PitFireTeamVersions.Describe} is required.");
                 return _capability;
             }
 
             AssemblyName assemblyName = pitFireTeamAssembly.GetName();
             if (!string.Equals(assemblyName.Name, "pitFireTeam", StringComparison.Ordinal)
-                || assemblyName.Version != new System.Version(0, 10, 0, 0))
+                || !PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version))
             {
                 SetUnavailableUnsafe(
-                    $"PitFireTeam assembly identity '{assemblyName.FullName}' is unsupported; exact pitFireTeam 0.10.0.0 is required.");
+                    $"PitFireTeam assembly identity '{assemblyName.FullName}' is unsupported; exact pitFireTeam {PitFireTeamVersions.Describe} is required.");
                 return _capability;
             }
 
@@ -351,17 +354,18 @@ internal static class PitFireTeamRoundLifecycle
             {
                 DiscoverExactContract(pitFireTeamAssembly);
                 _assembly = pitFireTeamAssembly;
+                _configuredVersion = pluginVersion;
                 _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
                 _capability = PitFireTeamRoundCapability.Available();
                 ClearRaidStateUnsafe(clearHistory: true);
                 _stage = PitFireTeamRoundLifecycleStage.ContractReady;
-                _diagnostic = "PitFireTeam 0.10.0 round lifecycle contract is ready.";
+                _diagnostic = $"PitFireTeam {pluginVersion} round lifecycle contract is ready.";
             }
             catch (Exception ex)
             {
                 ClearContractUnsafe();
                 SetUnavailableUnsafe(
-                    "PitFireTeam 0.10.0 round lifecycle contract failed: "
+                    $"PitFireTeam {pluginVersion} round lifecycle contract failed: "
                     + ex.GetBaseException().Message);
             }
 
@@ -1678,7 +1682,7 @@ internal static class PitFireTeamRoundLifecycle
             if (_capability.CanStartAdditionalRound)
             {
                 _stage = PitFireTeamRoundLifecycleStage.ContractReady;
-                _diagnostic = "PitFireTeam 0.10.0 round lifecycle contract is ready.";
+                _diagnostic = $"PitFireTeam {_configuredVersion} round lifecycle contract is ready.";
             }
             else
             {
@@ -4244,6 +4248,7 @@ internal static class PitFireTeamRoundLifecycle
             _spawnLeasePatchInstalled = false;
         }
         _assembly = null;
+        _configuredVersion = null;
         _ownerThreadId = 0;
         _bossType = null;
         _followerType = null;

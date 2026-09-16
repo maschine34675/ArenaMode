@@ -716,7 +716,11 @@ internal static class Program
             "bossGroup.Contains(candidate)",
             "bool wasReady = _stage == PitFireTeamRoundLifecycleStage.FollowersReady",
             "the previously ready PFT follower roster lost its physical binding",
-            "assemblyName.Version != new System.Version(0, 10, 0, 0)",
+            // The lifecycle keeps its own version gate; PitFireTeamChecks owns the
+            // contents of the accepted set and that all six gates read it.
+            "!PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)",
+            "!PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)",
+            "string.Equals(assemblyName.Name, \"pitFireTeam\", StringComparison.Ordinal)",
             "_botCreationDataCreateMethod = RequireMethod(",
             "nameof(BotCreationData.Create)",
             "typeof(IGetProfileData)",

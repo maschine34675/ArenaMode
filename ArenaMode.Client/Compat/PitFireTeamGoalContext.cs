@@ -1,3 +1,4 @@
+using ArenaMode.Shared;
 using System;
 using System.Reflection;
 
@@ -17,7 +18,7 @@ internal static class PitFireTeamGoalContext
         _currentReason = null;
         problem = "pft-goal-context-contract-unavailable";
         if (assembly?.GetName().Name != "pitFireTeam"
-            || assembly.GetName().Version != new Version(0, 10, 0, 0)) return false;
+            || !PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)) return false;
         const string trackerName = "pitTeam.Modules.FollowerGoalEnemyTracker";
         var tracker = assembly.GetType(trackerName, false);
         var scope = assembly.GetType(trackerName + "+GoalEnemySetScope", false);

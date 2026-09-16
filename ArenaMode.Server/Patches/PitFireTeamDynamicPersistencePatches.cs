@@ -9,8 +9,9 @@ using System.Reflection.Emit;
 namespace ArenaMode.Server.Patches;
 
 /// <summary>
-/// Protects both SPT's main profile and PitFireTeam 0.10.0's separate teammate
-/// store while Arena owns the raid result. Discovery is intentionally limited
+/// Protects both SPT's main profile and the separate teammate store of the
+/// PitFireTeam builds listed in PitFireTeamVersions, while Arena owns the raid
+/// result. Discovery is intentionally limited
 /// to assemblies already loaded by SPT: ArenaMode never loads or references the
 /// optional mod itself. Every expected boundary is validated before Harmony
 /// changes any of them, so a changed PFT layout rejects team Arena as a whole.
@@ -18,7 +19,6 @@ namespace ArenaMode.Server.Patches;
 public static class PitFireTeamDynamicPersistencePatches
 {
     private const string HarmonyId = "com.maschine.ArenaMode.server.pitfireteam-persistence";
-    private static readonly Version SupportedVersion = new(0, 10, 0, 0);
     private static readonly Lock EnableLock = new();
     private static bool _enableAttempted;
 
@@ -29,12 +29,21 @@ public static class PitFireTeamDynamicPersistencePatches
     public static string IncompatibilityReason { get; private set; } =
         "PitFireTeam persistence protection has not been initialized.";
 
+    /// <summary>
+    /// <paramref name="RequiredForAssemblyVersions"/> null means every accepted
+    /// PitFireTeam build must expose this method. A non-empty set narrows the
+    /// requirement to the builds that introduced it, and it is still MANDATORY
+    /// there: a listed build that cannot resolve it rejects the whole guard.
+    /// This is not an "optional" flag — nothing is ever merely skipped when the
+    /// installed build is one that ships the transaction.
+    /// </summary>
     private sealed record MethodContract(
         string TypeName,
         string MethodName,
         string ReturnTypeName,
         int SessionParameterIndex = 0,
-        bool IsPublic = true);
+        bool IsPublic = true,
+        Version[]? RequiredForAssemblyVersions = null);
 
     /// <summary>Automatic raid-result work affecting profile, mail, queues, or PFT caches.</summary>
     private static readonly MethodContract[] RaidPersistenceContracts =
@@ -75,6 +84,11 @@ public static class PitFireTeamDynamicPersistencePatches
         new("pitTeam.Server.Services.FriendlyTeammateService", "BuyTeammateKit", "pitTeam.Server.Models.FriendlyTeammateBuyKitResponse"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "RepairTeammateDefaultEquipment", "pitTeam.Server.Models.FriendlyTeammateRepairEquipmentResponse"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAggression", "System.Void"),
+        // 0.10.3 added follower proficiency as a direct sibling of aggression and
+        // tactic: same session-scoped settings write, same store. Leaving it out
+        // would let one teammate-settings edit skip the scope the other two get.
+        new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateProficiency", "System.Void",
+            RequiredForAssemblyVersions: [new Version(0, 10, 3, 0)]),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateTactic", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAutoJoin", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammate", "System.Boolean"),
@@ -225,13 +239,14 @@ public static class PitFireTeamDynamicPersistencePatches
         }
 
         Version? version = pitFireTeam.GetName().Version;
-        if (version != SupportedVersion)
+        if (!ArenaMode.Shared.PitFireTeamVersions.IsSupportedAssemblyVersion(version))
         {
             IsCompatible = false;
             IncompatibilityReason =
-                $"PitFireTeam server {version} is unsupported; expected {SupportedVersion}.";
+                $"PitFireTeam server {version} is unsupported; expected {ArenaMode.Shared.PitFireTeamVersions.Describe}.";
             ArenaContext.Logger?.Warning(
-                $"[ArenaMode] PitFireTeam server {version} is unsupported (expected {SupportedVersion}); " +
+                $"[ArenaMode] PitFireTeam server {version} is unsupported " +
+                $"(expected {ArenaMode.Shared.PitFireTeamVersions.Describe}); " +
                 "optional persistence service patches fail open.");
             return;
         }
@@ -249,6 +264,9 @@ public static class PitFireTeamDynamicPersistencePatches
         {
             foreach (MethodContract contract in contracts)
             {
+                if (!AppliesToInstalledBuild(contract, version))
+                    continue;
+
                 MethodInfo? target = ResolveContract(pitFireTeam, contract);
                 if (target == null)
                 {
@@ -488,11 +506,14 @@ public static class PitFireTeamDynamicPersistencePatches
 
             IsCompatible = true;
             IncompatibilityReason = string.Empty;
+            // Report the RESOLVED management count, not the table length: a build
+            // that predates a narrowed contract legitimately guards one fewer
+            // transaction, and the log has to say which it actually patched.
             ArenaContext.Logger?.Info(
                 $"[ArenaMode] PitFireTeam {version} persistence guard enabled " +
-                $"({RaidPersistenceContracts.Length} raid, {ManagementContracts.Length} management, " +
+                $"({raidTargets.Count} raid, {managementTargets.Count} management, " +
                 $"{OperationBoundaryContracts.Length} outer operations, " +
-                $"{RecoveryContracts.Length + 1} recovery, and global settings boundaries).");
+                $"{recoveryTargets.Count + 1} recovery, and global settings boundaries).");
         }
         catch (Exception ex)
         {
@@ -506,6 +527,15 @@ public static class PitFireTeamDynamicPersistencePatches
                 $"[ArenaMode] PitFireTeam persistence service patch failed open and was rolled back: {ex}");
         }
     }
+
+    /// <summary>
+    /// Whether the installed build must expose this contract. A build outside a
+    /// narrowed set never reaches ResolveContract, so its absence there is not a
+    /// rejection; a build inside it is held to the ordinary exact requirement.
+    /// </summary>
+    private static bool AppliesToInstalledBuild(MethodContract contract, Version? installed)
+        => contract.RequiredForAssemblyVersions == null
+           || (installed != null && contract.RequiredForAssemblyVersions.Contains(installed));
 
     private static MethodInfo? ResolveContract(Assembly assembly, MethodContract contract)
     {

@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Session;
+using ArenaMode.Shared;
 using BepInEx;
 using BepInEx.Bootstrap;
 using Comfort.Common;
@@ -21,14 +22,14 @@ using System.Threading;
 namespace ArenaMode.Compat;
 
 /// <summary>
-/// Optional, version-locked adapter for PitFireTeam 0.10.0. No PitFireTeam type
-/// appears in a signature or build reference: the external assembly is inspected
-/// only after BepInEx reports that exact plugin as loaded.
+/// Optional, version-locked adapter for the PitFireTeam builds listed in
+/// PitFireTeamVersions. No PitFireTeam type appears in a signature or build
+/// reference: the external assembly is inspected only after BepInEx reports one
+/// of those exact plugins as loaded.
 /// </summary>
 internal static class PitFireTeamCompat
 {
     public const string PluginGuid = "xyz.pit.fireteam";
-    public const string SupportedVersion = "0.10.0";
 
     private const string SelectedGroupTypeName = "pitTeam.Patches.MainMenuControllerPatch";
     private const string SelectedGroupFieldName = "GroupPlayers";
@@ -1510,12 +1511,12 @@ internal static class PitFireTeamCompat
                 || _squadModeActiveProperty.GetMethod == null)
                 throw new InvalidOperationException("PitFireTeam squad-screen state has an unsupported signature");
 
-            if (!string.Equals(pluginInfo.Metadata.Version?.ToString(), SupportedVersion,
-                    StringComparison.Ordinal))
+            string pluginVersion = pluginInfo.Metadata.Version?.ToString();
+            if (!PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion))
                 throw new InvalidOperationException(
-                    $"version {pluginInfo.Metadata.Version ?? new System.Version(0, 0)} is unsupported (expected {SupportedVersion})");
+                    $"version {pluginInfo.Metadata.Version ?? new System.Version(0, 0)} is unsupported (expected {PitFireTeamVersions.Describe})");
 
-            if (assembly.GetName().Version != new System.Version(0, 10, 0, 0))
+            if (!PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version))
                 throw new InvalidOperationException($"assembly identity '{assembly.FullName}' is unsupported");
 
             var selectedGroupType = RequireType(assembly, SelectedGroupTypeName);
@@ -1618,8 +1619,11 @@ internal static class PitFireTeamCompat
                 BindingFlags.NonPublic | BindingFlags.Static);
             Harmony.Patch(stopGettingInfoPrefixMethod, finalizer: new HarmonyMethod(stopFinalizer));
 
+            // The ACTUAL version, not the accepted list: the lifecycle repeats both
+            // gates for the build in front of it, which is only a real second
+            // opinion if it is told what that build claims to be.
             PitFireTeamRoundCapability roundCapability =
-                PitFireTeamRoundLifecycle.Configure(assembly, SupportedVersion);
+                PitFireTeamRoundLifecycle.Configure(assembly, pluginVersion);
             if (!roundCapability.CanStartAdditionalRound)
             {
                 throw new InvalidOperationException(
@@ -1632,7 +1636,7 @@ internal static class PitFireTeamCompat
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
             Plugin.ModLogger.LogInfo(
-                $"Arena found compatible PitFireTeam {SupportedVersion}; optional 5v5 Tactical integration is available.");
+                $"Arena found compatible PitFireTeam {pluginVersion}; optional 5v5 Tactical integration is available.");
         }
         catch (Exception ex)
         {

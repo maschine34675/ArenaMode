@@ -23,6 +23,7 @@
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Compat/PitFireTeamSelectionPolicy.cs" Link="Production/PitFireTeamSelectionPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/PitFireTeamVersions.cs" Link="Production/PitFireTeamVersions.cs" />
     <Compile Include="../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="$(ProductionAreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />

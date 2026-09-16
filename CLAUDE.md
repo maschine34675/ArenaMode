@@ -3,7 +3,9 @@
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version
-PitFireTeam 0.10.0 compatibility path supports protected Tactical 5v5 matches.
+PitFireTeam compatibility path supports protected Tactical 5v5 matches; the
+accepted builds are the exact set in `ArenaMode.Shared/PitFireTeamVersions.cs`
+(0.10.0 and 0.10.3), never a range — 0.10.1/0.10.2 were never diffed.
 Four modes: Endless Deathmatch, Rounds, Gun Game, Tactical.
 
 Read this before changing anything. Most of it was learned the expensive way.
@@ -157,7 +159,7 @@ Open:
   curve was a separate bug and is fixed. Needs a long test raid before guessing again.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
-- **PitFireTeam 5v5** — the optional 0.10.0 compatibility path now has a guarded
+- **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded
   best-of-N round lifecycle and still needs a GPU playtest. It preserves the PMC entry
   loadout after a death, rebuilds fresh follower/opponent bodies between rounds, offers
   post-death third-person spectating, and refreshes both teams' pursuit knowledge while

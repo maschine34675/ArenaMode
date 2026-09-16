@@ -1167,7 +1167,7 @@ public class PitFireTeamPersistenceGuardTests
     }
 
     [SkippableFact]
-    public void InstalledPitFireTeamContractAcceptsAllSixtyThreeTransactionTargets()
+    public void InstalledPitFireTeamContractAcceptsEveryTransactionTargetOfItsBuild()
     {
         const string harmonyId = "com.maschine.ArenaMode.server.pitfireteam-persistence";
         string runtimeRoot = Environment.GetEnvironmentVariable("SPT_RUNTIME")
@@ -1181,7 +1181,7 @@ public class PitFireTeamPersistenceGuardTests
         Skip.IfNot(File.Exists(assemblyPath), "PitFireTeam is optional and is not installed on this test host.");
 
         Assembly pitFireTeam = Assembly.LoadFrom(assemblyPath);
-        Assert.Equal(new Version(0, 10, 0, 0), pitFireTeam.GetName().Version);
+        Assert.Contains(pitFireTeam.GetName().Version, ArenaMode.Shared.PitFireTeamVersions.SupportedAssemblyVersions);
 
         InstalledMethodContract[] raidContracts =
         [
@@ -1213,6 +1213,14 @@ public class PitFireTeamPersistenceGuardTests
             new("pitTeam.Server.Services.FriendlyTeammateService", "RepairTeammateDefaultEquipment", "pitTeam.Server.Models.FriendlyTeammateRepairEquipmentResponse"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAggression", "System.Void"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateTactic", "System.Void"),
+            // Mirrors production's version-narrowed contract, so this test
+            // resolves against whichever accepted build is actually installed.
+            .. pitFireTeam.GetName().Version == new Version(0, 10, 3, 0)
+                ? new InstalledMethodContract[]
+                {
+                    new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateProficiency", "System.Void"),
+                }
+                : [],
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAutoJoin", "System.Void"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammate", "System.Boolean"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammateByProfileId", "System.Boolean"),
@@ -1331,11 +1339,15 @@ public class PitFireTeamPersistenceGuardTests
             saveAndApply,
         ];
         allTargets = allTargets.Distinct().ToArray();
+        // 0.10.3 adds exactly one management transaction (teammate proficiency).
+        int expectedManagement = pitFireTeam.GetName().Version == new Version(0, 10, 3, 0) ? 20 : 19;
         Assert.Equal(11, raidTargets.Length);
-        Assert.Equal(19, managementTargets.Length);
+        Assert.Equal(expectedManagement, managementTargets.Length);
         Assert.Equal(3, recoveryTargets.Length);
         Assert.Equal(30, operationBoundaryTargets.Length);
-        Assert.Equal(63, allTargets.Length);
+        // Two targets are shared between groups, so the distinct total is the
+        // other four groups plus the management count for the installed build.
+        Assert.Equal(44 + expectedManagement, allTargets.Length);
 
         PitFireTeamDynamicPersistencePatches.TryEnable();
 

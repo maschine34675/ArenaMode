@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using ArenaMode.Compat;
+using ArenaMode.Shared;
 using ArenaMode.Modes;
 using ArenaMode.Respawn;
 using ArenaMode.Server.Services;
@@ -126,9 +127,31 @@ internal static class Program
             native: Native(Four), selected: Four);
         AssertRejected(incompatibleTeam,
             "unsupported version or layout cannot authenticate team Arena");
-        Assert(incompatibleTeam.Reason.Contains("0.10.0", StringComparison.Ordinal)
+        Assert(PitFireTeamVersions.SupportedPluginVersions.All(
+                   version => incompatibleTeam.Reason.Contains(version, StringComparison.Ordinal))
                && incompatibleTeam.Reason.Contains("layout", StringComparison.OrdinalIgnoreCase),
-            "unsupported contract rejection explains both pinned version and runtime layout");
+            "unsupported contract rejection names every pinned version and the runtime layout");
+        Assert(PitFireTeamVersions.SupportedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3" })
+               && PitFireTeamVersions.SupportedAssemblyVersions.SequenceEqual(
+                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0) })
+               && PitFireTeamVersions.IsSupportedPluginVersion("0.10.0")
+               && PitFireTeamVersions.IsSupportedPluginVersion("0.10.3")
+               && PitFireTeamVersions.IsSupportedAssemblyVersion(new Version(0, 10, 3, 0)),
+            "the accepted set is exactly the two diffed builds");
+        // A set, not a range: the builds between them were never compared, and a
+        // newer one cannot be assumed to keep a private reflected signature.
+        foreach (var unsupported in new[] { "0.10.1", "0.10.2", "0.10.4", "0.11.0", "0.10", "0.10.0.0", " ", "", null })
+            Assert(!PitFireTeamVersions.IsSupportedPluginVersion(unsupported),
+                "an undiffed or malformed plugin version is rejected: " + (unsupported ?? "null"));
+        foreach (var unsupported in new[]
+                 {
+                     new Version(0, 10, 1, 0), new Version(0, 10, 2, 0), new Version(0, 10, 4, 0),
+                     new Version(0, 10, 3, 1), new Version(0, 10, 3), new Version(0, 11, 0, 0)
+                 })
+            Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(unsupported),
+                "an undiffed assembly version is rejected: " + unsupported);
+        Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(null),
+            "a missing assembly version is rejected");
 
         foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical" })
         {
@@ -487,9 +510,43 @@ internal static class Program
                 @"<(?:Reference|ProjectReference)\b[^>]*(?:pitFireTeam|SPT-PitFireTeam)",
                 RegexOptions.IgnoreCase),
             "client project has no compile-time PitFireTeam reference");
+        var versions = Read(repo, "ArenaMode.Shared/PitFireTeamVersions.cs");
+        var goalContext = Read(repo, "ArenaMode.Client/Compat/PitFireTeamGoalContext.cs");
+        var serverPersistence = Read(repo,
+            "ArenaMode.Server/Patches/PitFireTeamDynamicPersistencePatches.cs");
         Assert(compat.Contains("PluginGuid = \"xyz.pit.fireteam\"", StringComparison.Ordinal)
-               && compat.Contains("SupportedVersion = \"0.10.0\"", StringComparison.Ordinal),
-            "runtime adapter pins the supported PitFireTeam identity and version");
+               && compat.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)", StringComparison.Ordinal),
+            "runtime adapter pins the supported PitFireTeam identity and checks both version identities");
+        // Every gate reads the one list, and none of them keeps a private copy:
+        // six places accepting "a version" independently is how a build slips in
+        // through the half of the contract nobody remembered to widen.
+        Assert(versions.Contains("SupportedPluginVersions = { \"0.10.0\", \"0.10.3\" }", StringComparison.Ordinal)
+               && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
+               && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)", StringComparison.Ordinal)
+               && goalContext.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(", StringComparison.Ordinal)
+               && serverPersistence.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(version)", StringComparison.Ordinal)
+               // 0.10.3's new teammate-settings transaction is gated like its
+               // aggression/tactic siblings, and mandatorily so on that build.
+               && serverPersistence.Contains(
+                   "\"SetTeammateProficiency\", \"System.Void\",", StringComparison.Ordinal)
+               && serverPersistence.Contains(
+                   "RequiredForAssemblyVersions: [new Version(0, 10, 3, 0)]", StringComparison.Ordinal)
+               && serverPersistence.Contains(
+                   "contract.RequiredForAssemblyVersions.Contains(installed)", StringComparison.Ordinal)
+               && serverPersistence.Contains("AppliesToInstalledBuild(contract, version)", StringComparison.Ordinal)
+               && serverPersistence.IndexOf("AppliesToInstalledBuild(contract, version)", StringComparison.Ordinal)
+                  < serverPersistence.IndexOf("ResolveContract(pitFireTeam, contract)", StringComparison.Ordinal)
+               && !compat.Contains("new System.Version(0, 10", StringComparison.Ordinal)
+               && !roundLifecycle.Contains("new System.Version(0, 10", StringComparison.Ordinal)
+               && !goalContext.Contains("new Version(0, 10", StringComparison.Ordinal)
+               && !serverPersistence.Contains("new(0, 10", StringComparison.Ordinal),
+            "all six version gates read the shared accepted set instead of their own literal");
+        // Arena reflects private members and patches a private activation seam;
+        // the lifecycle must re-check the build it was handed, not the list.
+        Assert(compat.Contains("PitFireTeamRoundLifecycle.Configure(assembly, pluginVersion)", StringComparison.Ordinal)
+               && !compat.Contains("Configure(assembly, SupportedVersion)", StringComparison.Ordinal),
+            "the round lifecycle receives the actual installed version, not the accepted list");
 
         Assert(skip.Contains("PitFireTeamCompat.IsInstalled", StringComparison.Ordinal)
                && skip.IndexOf("PitFireTeamCompat.IsInstalled", StringComparison.Ordinal)
@@ -767,7 +824,7 @@ internal static class Program
         Assert(compat.Contains("PersistenceSuppressionActive", StringComparison.Ordinal)
                && compat.Contains("=> TeamArenaActive || IsFinalizing || ProtectedAbortPending", StringComparison.Ordinal)
                && compat.Contains("if (!PersistenceSuppressionActive)", StringComparison.Ordinal)
-               && compat.Contains("PitFireTeamRoundLifecycle.Configure(assembly, SupportedVersion)", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamRoundLifecycle.Configure(assembly, pluginVersion)", StringComparison.Ordinal)
                && compat.Contains("roundCapability.CanStartAdditionalRound", StringComparison.Ordinal)
                && roundLifecycle.Contains("RequirePersistenceSuppressionUnsafe", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeam persistence suppression", StringComparison.Ordinal),
@@ -1376,8 +1433,9 @@ internal static class Program
         using var eft = AssemblyDefinition.ReadAssembly(eftPath);
         using var pitServer = AssemblyDefinition.ReadAssembly(pitServerPath);
 
-        Assert(pit.Name.Name == "pitFireTeam" && pit.Name.Version == new Version(0, 10, 0, 0),
-            "installed PitFireTeam client assembly has the exact supported identity");
+        Assert(pit.Name.Name == "pitFireTeam"
+               && PitFireTeamVersions.IsSupportedAssemblyVersion(pit.Name.Version),
+            "installed PitFireTeam client assembly has one of the exact supported identities");
 
         var plugin = pit.MainModule.GetType("pitTeam.pitFireTeam")
                      ?? throw new InvalidOperationException("Installed PitFireTeam plugin type is missing.");
@@ -1385,8 +1443,14 @@ internal static class Program
             attribute.AttributeType.FullName == "BepInEx.BepInPlugin");
         Assert(bepin.ConstructorArguments.Count == 3
                && (string)bepin.ConstructorArguments[0].Value == "xyz.pit.fireteam"
-               && (string)bepin.ConstructorArguments[2].Value == "0.10.0",
+               && PitFireTeamVersions.IsSupportedPluginVersion((string)bepin.ConstructorArguments[2].Value),
             "installed BepInEx PitFireTeam GUID and metadata version match the adapter");
+        // The two identities are forgeable separately, so the installed build must
+        // agree with itself before Arena trusts either against its accepted set.
+        Assert($"{pit.Name.Version.Major}.{pit.Name.Version.Minor}.{pit.Name.Version.Build}"
+               == (string)bepin.ConstructorArguments[2].Value
+               && pit.Name.Version.Revision == 0,
+            "installed PitFireTeam metadata and assembly versions describe one build");
 
         var selectedType = pit.MainModule.GetType("pitTeam.Patches.MainMenuControllerPatch")
                            ?? throw new InvalidOperationException("Installed PFT selected-roster type is missing.");

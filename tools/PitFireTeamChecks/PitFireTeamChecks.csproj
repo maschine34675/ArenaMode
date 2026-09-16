@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ProductionPolicySource)" Link="Production/PitFireTeamSelectionPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/PitFireTeamVersions.cs" Link="Production/PitFireTeamVersions.cs" />
     <Compile Include="../../ArenaMode.Client/Respawn/ArenaRaidEpoch.cs" Link="Production/ArenaRaidEpoch.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TeamOpponentActivationPolicy.cs" Link="Production/TeamOpponentActivationPolicy.cs" />
     <Compile Include="../../ArenaMode.Server/Services/PitFireTeamRaidStartPolicy.cs" Link="Production/PitFireTeamRaidStartPolicy.cs" />

@@ -1,3 +1,4 @@
+using ArenaMode.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -147,7 +148,8 @@ internal static class PitFireTeamSelectionPolicy
 
             return PitFireTeamSelectionDecision.Reject(
                 input.Contract == PitFireTeamContractState.Incompatible
-                    ? "PitFireTeam team Arena requires PitFireTeam 0.10.0 and its supported runtime layout."
+                    ? "PitFireTeam team Arena requires PitFireTeam "
+                      + PitFireTeamVersions.Describe + " and its supported runtime layout."
                     : "Arena supports only solo play or exactly four authenticated PitFireTeam companions.");
         }
 
