@@ -63,11 +63,19 @@ internal static class ArenaMovementPatches
         ArenaHandlingPatches.ResetPerRaidState();
     }
 
+    internal static void RememberSlide(Player player, ArenaSlideController slide)
+    {
+        _slidePlayer = player;
+        _slide = slide;
+    }
+
     private static ArenaSlideController SlideFor(MovementContext context)
     {
         var player = PlayerField(context);
-        // Recache when the body changes or the previous component is gone so a
-        // late AddComponent on the same player is still seen.
+        // Recache on a new body or Unity-null (destroyed / not yet attached).
+        // MovementRuntime publishes the instance on first AddComponent. It never
+        // attaches a second live controller; GetComponent would still return the
+        // original, so polling for a replacement is not a distinct case.
         if (!ReferenceEquals(player, _slidePlayer) || _slide == null)
         {
             _slidePlayer = player;

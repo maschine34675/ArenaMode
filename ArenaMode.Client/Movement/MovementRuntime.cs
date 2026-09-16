@@ -101,6 +101,7 @@ internal static class MovementRuntime
             {
                 var slide = player.gameObject.AddComponent<ArenaSlideController>();
                 slide.Init(player, player.MovementContext);
+                ArenaMovementPatches.RememberSlide(player, slide);
             }
 
             if (Settings.InfiniteStamina.Value && player.Physical != null)

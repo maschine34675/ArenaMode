@@ -219,6 +219,10 @@ namespace ArenaMode.Movement
         internal static void ResetPerRaidState()
         {
         }
+
+        internal static void RememberSlide(Player player, ArenaSlideController slide)
+        {
+        }
     }
 
     internal sealed class ArenaSlideController
