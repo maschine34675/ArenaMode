@@ -864,6 +864,31 @@ public class ArenaSessionService
         }
     }
 
+    /// <summary>
+    /// Undo a first-end claim whose snapshot restore failed. The arm stays
+    /// InRaid with its bound identity so the same native retry is FirstArenaEnd
+    /// again, not a Finalizing retry that would persist the unrestored profile.
+    /// </summary>
+    public bool AbortNativeEndFinalization(
+        MongoId sessionId,
+        string? nativeEndIdentity)
+    {
+        string key = sessionId.ToString();
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(key, out var entry)
+                || entry.State != ArenaSessionState.FinalizingEnd
+                || !MatchesNativeEndIdentity(entry, nativeEndIdentity))
+            {
+                return false;
+            }
+
+            entry.State = ArenaSessionState.InRaid;
+            entry.NativeEndCompletedAtUtc = default;
+            return true;
+        }
+    }
+
     public bool CompleteNativeEndFinalization(
         MongoId sessionId,
         string? nativeEndIdentity)

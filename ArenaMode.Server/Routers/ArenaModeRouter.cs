@@ -734,18 +734,9 @@ public sealed class ArenaModeRouter : StaticRouter
                         request.ArmToken,
                         out string? crashRecoveryIdentity))
                 {
-                    if (!Snapshots.RestoreSnapshot(sessionId))
-                    {
-                        return Json(new
-                        {
-                            restored = false,
-                            completed = false,
-                            state = state.ToString(),
-                            reason = "crashed Arena snapshot could not be restored",
-                        });
-                    }
-
-                    if (!Sessions.BeginNativeEndFinalization(
+                    if (!ArenaNativeEndAdmission.TryClaimAndRestore(
+                            Sessions,
+                            Snapshots,
                             sessionId,
                             crashRecoveryIdentity))
                     {
@@ -754,7 +745,7 @@ public sealed class ArenaModeRouter : StaticRouter
                             restored = false,
                             completed = false,
                             state = Sessions.GetStatus(sessionId).state.ToString(),
-                            reason = "crashed Arena end transaction could not be claimed",
+                            reason = "crashed Arena end could not be claimed and restored",
                         });
                     }
 

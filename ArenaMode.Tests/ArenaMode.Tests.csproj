@@ -35,6 +35,7 @@
        be exercised without loading Unity or EFT. -->
   <ItemGroup>
     <Compile Include="..\ArenaMode.Client\Combat\ArenaKill.cs" Link="ClientRules\ArenaKill.cs" />
+    <Compile Include="..\ArenaMode.Client\Session\ArenaRestoreCommit.cs" Link="ClientRules\ArenaRestoreCommit.cs" />
     <Compile Include="..\ArenaMode.Client\Combat\ArenaHitHistory.cs" Link="ClientRules\ArenaHitHistory.cs" />
     <Compile Include="..\ArenaMode.Client\Combat\ArenaShotAwardHistory.cs" Link="ClientRules\ArenaShotAwardHistory.cs" />
     <Compile Include="..\ArenaMode.Client\Combat\ArenaCombatAwards.cs" Link="ClientRules\ArenaCombatAwards.cs" />

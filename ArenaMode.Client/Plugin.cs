@@ -124,6 +124,9 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Combat.ArenaSkills.Restore();
+        Movement.VaultingTuning.Restore();
+        Movement.FastDeployPatches.Restore();
         Pickups.ArenaPickupRuntime.Reset();
         DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();

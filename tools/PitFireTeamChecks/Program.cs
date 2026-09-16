@@ -471,6 +471,8 @@ internal static class Program
         var protocol = Read(repo, "ArenaMode.Shared/Protocol.cs");
         var snapshots = Read(repo,
             "ArenaMode.Server/Services/ProfileSnapshotService.cs");
+        var nativeEndAdmission = Read(repo,
+            "ArenaMode.Server/Services/ArenaNativeEndAdmission.cs");
         var locationPatch = Read(repo,
             "ArenaMode.Server/Patches/GenerateLocationAndLootPatch.cs");
         var patchManager = Read(repo, "ArenaMode.Server/PatchManager.cs");
@@ -1164,6 +1166,16 @@ internal static class Program
                && serverClient.Contains("HasPendingEnd", StringComparison.Ordinal)
                && serverClient.Contains("completed", StringComparison.Ordinal),
             "native local-end is an exact-id serialized transaction with cancellation-independent persistence, recovery and retained acknowledgement");
+        Assert(nativeEndAdmission.IndexOf("BeginNativeEndFinalization", StringComparison.Ordinal)
+               < nativeEndAdmission.IndexOf("RestoreSnapshot", StringComparison.Ordinal)
+               && nativeEndAdmission.Contains("AbortNativeEndFinalization", StringComparison.Ordinal)
+               && postRaid.Contains("ArenaNativeEndAdmission.TryClaimAndRestore", StringComparison.Ordinal)
+               && router.Contains("ArenaNativeEndAdmission.TryClaimAndRestore", StringComparison.Ordinal)
+               && sessionService.Contains("AbortNativeEndFinalization", StringComparison.Ordinal)
+               && Regex.IsMatch(
+                   protocol,
+                   @"HasNativeEndMarker\([\s\S]*?NativeEndIdentitySeparator"),
+            "native Arena end claims the transaction before consuming the snapshot and tags ends by the exact separator");
         Assert(!postRaid.Contains("HandlePostRaidPmc", StringComparison.Ordinal)
                && protectedEnd.Contains("ordinary post-raid processing was skipped", StringComparison.Ordinal),
             "protected Arena end skips the whole ordinary reward, transfer, health and inventory pipeline");

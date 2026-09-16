@@ -123,12 +123,13 @@ internal static class VaultingTuning
     /// </summary>
     public static void Restore()
     {
-        if (!_applied || !_captured)
-        {
-            _applied = false;
+        if (!_applied)
             return;
-        }
 
+        if (!_captured)
+            return;
+
+        var succeeded = false;
         try
         {
             var moves = Singleton<GlobalConfiguration>.Instance?.VaultingSettings?.MovesSettings;
@@ -144,15 +145,17 @@ internal static class VaultingTuning
             climb.MaxHeight = _climbMaxHeight;
             climb.MaxLength = _climbMaxLength;
             climb.MinDistantToInteract = _climbReach;
+            succeeded = true;
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena vaulting reach could not be restored: {ex.Message}");
         }
-        finally
-        {
-            _applied = false;
-        }
+
+        if (!ArenaRestoreCommit.ShouldDropRetryState(succeeded))
+            return;
+
+        _applied = false;
     }
 
     /// <summary>True while an arena raid wants the widened limits.</summary>

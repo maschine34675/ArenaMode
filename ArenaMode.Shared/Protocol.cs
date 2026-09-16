@@ -107,9 +107,14 @@ public static class Protocol
                NativeEndIdentitySeparator + armToken,
                StringComparison.Ordinal);
 
+    /// <summary>
+    /// Exact Arena local-end tag. Substring "arenamode" would also match
+    /// <c>arenamode-start:</c> and <c>arenamode-ordinary-start:</c>, which are
+    /// start identities, not end transactions.
+    /// </summary>
     public static bool HasNativeEndMarker(string candidate)
         => !string.IsNullOrWhiteSpace(candidate)
            && candidate.Contains(
-               "arenamode",
+               NativeEndIdentitySeparator,
                StringComparison.OrdinalIgnoreCase);
 }

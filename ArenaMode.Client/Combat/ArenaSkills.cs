@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Session;
 using EFT;
 using System;
 using System.Collections.Generic;
@@ -98,6 +99,7 @@ internal static class ArenaSkills
         if (BuffSnapshot.Count == 0 && MasterySnapshot.Count == 0 && StickyEliteBuffs.Count == 0)
             return;
 
+        var succeeded = false;
         try
         {
             // The setter recomputes every rule, so this also walks the ordinary
@@ -121,19 +123,21 @@ internal static class ArenaSkills
                     pair.Key.Current = pair.Value;
             }
 
+            succeeded = true;
             Plugin.ModLogger.LogInfo("Arena: skills restored to their profile values.");
         }
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena skill restore failed: {ex.Message}");
         }
-        finally
-        {
-            BuffSnapshot.Clear();
-            MasterySnapshot.Clear();
-            StickyEliteBuffs.Clear();
-            _nextMasteryTickAt = 0f;
-        }
+
+        if (!ArenaRestoreCommit.ShouldDropRetryState(succeeded))
+            return;
+
+        BuffSnapshot.Clear();
+        MasterySnapshot.Clear();
+        StickyEliteBuffs.Clear();
+        _nextMasteryTickAt = 0f;
     }
 
     /// <summary>
