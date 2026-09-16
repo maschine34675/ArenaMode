@@ -39,13 +39,15 @@ public class ArenaModeConfig
     /// Template ids the Gun Game weapon pool and the attachment draw must never
     /// hand out. Seeded with the game's own placeholders — the eight templates
     /// whose display name says !!!DO_NOT_USE!!! (one of them !!!DO NOT USE!!!)
-    /// — which are refused by that name as well (ArenaTemplateEligibility);
-    /// the list is for the next one, or for a round that misbehaves for a
-    /// reason no name reveals. The weapon pool reads it at server start; the
-    /// per-raid cartridge draw and the attachment draw at every raid.
+    /// — plus the unfinished items that carry no marker at all; both groups are
+    /// refused by ArenaTemplateEligibility whatever this list says, so they are
+    /// here to be visible and not to be switched off. The list itself is for
+    /// the next one, or for a round that misbehaves for a reason no name
+    /// reveals. The weapon pool reads it at server start; the per-raid
+    /// cartridge draw and the attachment draw at every raid.
     /// </summary>
     [JsonPropertyName("excludedTemplates")]
-    public List<string> ExcludedTemplates { get; set; } = new(Services.ArenaTemplateEligibility.KnownPlaceholders);
+    public List<string> ExcludedTemplates { get; set; } = new(Services.ArenaTemplateEligibility.SeededExclusions);
 
 
     [JsonPropertyName("maps")]

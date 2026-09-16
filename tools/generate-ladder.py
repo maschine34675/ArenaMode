@@ -37,11 +37,14 @@ loc = json.load(io.open(D + r'\locales\global\en.json', encoding='utf-8-sig'))
 # '!!!DO_NOT_USE!!!23x75mm "Cheremukha-7M"': real-looking numbers, no handbook
 # entry, and it does not fire. Mirror of ArenaTemplateEligibility on the C# side
 # (marker matched exactly as the game spells it; the ids are the same seed list).
+# The last id is the unmarked case: a scope whose prefab is variable-zoom and
+# whose template is not, which throws once per aiming frame in ScopeZoomHandler.
 PLACEHOLDER_MARKERS = ('DO_NOT_USE', 'DO NOT USE')
 EXCLUDED_TEMPLATES = {
     '5e85aac65505fa48730d8af2', '5ede47641cf3836a88318df1', '62811d61578c54356d6d67ea',
     '628120415631d45211793c99', '628120f210e26c1f344e6558', '6281214c1d5df4475f46a33a',
     '6281215b4fa03b6b6c35dc6c', '628121651d5df4475f46a33c',
+    '544a3d0a4bdc2d1b388b4567',
 }
 
 def excluded(tpl):

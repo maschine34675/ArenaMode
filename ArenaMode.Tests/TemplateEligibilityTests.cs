@@ -47,11 +47,17 @@ public sealed class TemplateEligibilityTests
     [Fact]
     public void TheConfiguredListIsTrimmedDedupedAndNullSafe()
     {
-        Assert.Empty(ArenaTemplateEligibility.ExclusionSet(null));
-        Assert.Empty(ArenaTemplateEligibility.ExclusionSet(new string?[] { null, "", "   " }));
+        var seeded = ArenaTemplateEligibility.SeededExclusions.ToArray();
+
+        Assert.Equal(seeded.OrderBy(x => x, StringComparer.Ordinal),
+            ArenaTemplateEligibility.ExclusionSet(null).OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(seeded.OrderBy(x => x, StringComparer.Ordinal),
+            ArenaTemplateEligibility.ExclusionSet(new string?[] { null, "", "   " })
+                .OrderBy(x => x, StringComparer.Ordinal));
 
         var set = ArenaTemplateEligibility.ExclusionSet(new[] { " abc ", "abc", "def", null, "" });
-        Assert.Equal(new[] { "abc", "def" }, set.OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(seeded.Concat(new[] { "abc", "def" }).OrderBy(x => x, StringComparer.Ordinal),
+            set.OrderBy(x => x, StringComparer.Ordinal));
     }
 
     [Fact]
@@ -64,5 +70,51 @@ public sealed class TemplateEligibilityTests
         Assert.True(ArenaTemplateEligibility.IsExcluded("bbbb", "!!!DO_NOT_USE!!!thing", null));
         Assert.False(ArenaTemplateEligibility.IsExcluded("bbbb", "A perfectly fine name", list));
         Assert.False(ArenaTemplateEligibility.IsExcluded(null, null, list));
+    }
+
+    /// <summary>
+    /// The Nightforce NXS 2.5-10x24 is unfinished without saying so: the marker
+    /// rule cannot see it and it has a handbook entry, so only its id keeps it
+    /// out. Fifty-eight hosts accept it in mod_scope — including the SR-25
+    /// upper receiver, which is how a kit got one and then threw once per
+    /// aiming frame in ScopeZoomHandler.
+    /// </summary>
+    [Fact]
+    public void TheUnmarkedBrokenTemplatesAreWellFormedAndNamedOrdinarily()
+    {
+        Assert.Contains("544a3d0a4bdc2d1b388b4567", ArenaTemplateEligibility.KnownBrokenTemplates);
+
+        foreach (var id in ArenaTemplateEligibility.KnownBrokenTemplates)
+        {
+            Assert.Equal(24, id.Length);
+            Assert.True(id.All(Uri.IsHexDigit), $"'{id}' is not a template id");
+            Assert.DoesNotContain(id, ArenaTemplateEligibility.KnownPlaceholders);
+        }
+
+        Assert.Equal(ArenaTemplateEligibility.KnownPlaceholders.Count
+                     + ArenaTemplateEligibility.KnownBrokenTemplates.Count,
+            ArenaTemplateEligibility.SeededExclusions.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// The reason the seed is not merely a config default: the server's
+    /// start-up migration adds missing config KEYS, so an installation whose
+    /// excludedTemplates was written before an id existed keeps that list
+    /// verbatim. Such a config must still not reach the draw.
+    /// </summary>
+    [Fact]
+    public void AConfigWrittenBeforeTheIdWasKnownStillCannotHandItOut()
+    {
+        var oldConfig = ArenaTemplateEligibility.KnownPlaceholders.ToArray();
+        Assert.DoesNotContain("544a3d0a4bdc2d1b388b4567", oldConfig);
+
+        var set = ArenaTemplateEligibility.ExclusionSet(oldConfig);
+
+        Assert.Contains("544a3d0a4bdc2d1b388b4567", set);
+        Assert.True(ArenaTemplateEligibility.IsExcluded(
+            "544a3d0a4bdc2d1b388b4567", "Nightforce NXS 2.5-10x24 scope", set));
+        // Even handed an empty list, which is what a hand-cleared config gives.
+        Assert.True(ArenaTemplateEligibility.IsExcluded(
+            "544a3d0a4bdc2d1b388b4567", "Nightforce NXS 2.5-10x24 scope", Array.Empty<string>()));
     }
 }
