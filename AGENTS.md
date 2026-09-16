@@ -287,8 +287,17 @@ Open:
 - **M8 polish** — KillcamReplay short arena replay (the compat exists but only skips),
   README, release packaging. Never bundle ABPS/APBS/SAIN DLLs.
 - **Tactical** needs a longer playtest; only the first rounds have been played.
-- **Performance** degrades around minute 20 of a long raid. Unexplained; the respawn
-  curve was a separate bug and is fixed. Needs a long test raid before guessing again.
+- **Performance** is now measured, not guessed: see LONG-RAID-REVIEW-2026-09-16.md,
+  which supersedes the 2026-09-05 report. Over 27 minutes all mods together grow
+  from ~2.1 to ~3.0 ms/frame, SAIN is five times our cost, and one SAIN postfix on
+  `GameWorld.DoWorldTick` is 29% of measured mod time — too small to explain a
+  severe collapse. The one concrete Arena-side lead is the respawn pipeline stage:
+  strictly monotonic, +0.023 s per respawn, tracking respawn count rather than
+  elapsed time. Time the stages inside it instead of theorising. Read the review's
+  methodology before trusting any new ModProfiler numbers: the counters only
+  advance while its window is open, the frame count is `WebOverlayPlugin.Update`
+  (per-mod call sums are not frame counts), and rows near 0.6 us/call are the
+  instrumentation, not work.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded

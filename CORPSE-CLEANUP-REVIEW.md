@@ -1,8 +1,10 @@
 # Corpse cleanup: paired native inventory notifications
 
-The long-raid report in `LONG-RAID-REVIEW-2026-09-05.md` identified 5,640
+The 2026-09-05 long-raid report identified 5,640
 `No parent inventory ... RemoveItemEventArgs` diagnostics matching Arena's
-649 trimmed corpses. These are missing inventory-activity notifications, not
+649 trimmed corpses. `LONG-RAID-REVIEW-2026-09-16.md`, which supersedes it,
+records 14 of them against 657 trimmed corpses — this pairing holds at a
+comparable corpse count. These are missing inventory-activity notifications, not
 evidence of lost player gear or a failed profile restore. The original log
 snapshot has since rotated; the report records the historical evidence.
 

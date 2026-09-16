@@ -130,8 +130,9 @@ Adversarial review checked duplicate pool control IDs, exact scene/raid gating,
 pending damage cancellation, native drain ownership and sound cleanup; no
 unresolved findings remain. Visible drainage and live contact remain GPU tests.
 
-The previous long raid is documented separately in
-`LONG-RAID-REVIEW-2026-09-05.md`; it predates this change. This host has no GPU.
+The long raids are documented separately in
+`LONG-RAID-REVIEW-2026-09-16.md`, which supersedes the 2026-09-05 report; both
+predate this change. This host has no GPU.
 After restarting the client, test all four entrance types without relying on
 respawn protection, then repeat after respawn/round changes. A successful
 setup logs `Arena Labyrinth spawn traps disabled: 12 hazards ...` and
