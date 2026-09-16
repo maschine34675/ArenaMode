@@ -1,3 +1,4 @@
+using ArenaMode.Compat;
 using ArenaMode.Config;
 using ArenaMode.Session;
 using Comfort.Common;
@@ -37,10 +38,10 @@ namespace ArenaMode.Bots;
 /// enables the scheduler's force mode, which ignores the frame budget and
 /// grants LoopTicks × multiplier of step time per frame; it switches it off
 /// once the raid is up. This service turns it back on, briefly, whenever bot
-/// bundles or kit pools are loading mid-raid, and off again once they are
-/// done. The cost is a longer frame while a bot loads — up to LoopTicks ×
-/// multiplier, so 4 ms at the defaults — instead of a bot that arrives a
-/// minute after it was asked for.
+/// bundles, kit pools, or a live PitFireTeam follower assembly are loading
+/// mid-raid, and off again once they are done. The cost is a longer frame while
+/// a bot loads — up to LoopTicks × multiplier, so 4 ms at the defaults —
+/// instead of a bot that arrives a minute after it was asked for.
 ///
 /// What the boost cannot do: extra passes only help steps that are CPU work.
 /// A step that waits on an asynchronous operation costs at least one frame
@@ -190,9 +191,11 @@ internal static class BotLoadBoost
     /// <summary>
     /// Anything that walks the scheduler's loading chains right now: the
     /// bot creator's own bundle counter (bumped around every profile's
-    /// LoadBundlesAndCreatePools) and the arena's kit preloader. The
-    /// signature is those two folded together with the preloader's count of
-    /// finished loads; the policy only asks whether it changed.
+    /// LoadBundlesAndCreatePools), the arena's kit preloader, and a live
+    /// PitFireTeam follower assembly whose wrappers wait on UpdateManual
+    /// after ActivateBotAtPosition already returned. The signature is those
+    /// folded together with the preloader's count of finished loads; the
+    /// policy only asks whether it changed.
     /// </summary>
     private static void ReadLoading(bool active, out bool loading, out int signature)
     {
@@ -211,13 +214,19 @@ internal static class BotLoadBoost
         }
 
         bool kits = Kits.KitBundlePreloader.IsPreloading;
+        bool followers = PitFireTeamRoundLifecycle.TryReadFollowerAssemblyLoading(out int followerSignature);
+        int followerPart = followers ? 17 + followerSignature : 0;
 
-        loading = bundles > 0 || kits;
+        loading = bundles > 0 || kits || followers;
         // The kit part carries the preloader's completed-load count as well:
         // a single flag would sit still for the whole of a long warm-up and
         // read as a stuck counter after ninety seconds, releasing the boost
         // from a load that is genuinely progressing.
-        signature = unchecked(bundles + (kits ? 1 << 16 : 0) + (Kits.KitBundlePreloader.LoadsCompleted << 20));
+        signature = unchecked(
+            bundles
+            + (kits ? 1 << 16 : 0)
+            + (Kits.KitBundlePreloader.LoadsCompleted << 20)
+            + (followerPart << 8));
     }
 
     /// <summary>

@@ -50,6 +50,7 @@ internal static class PitFireTeamCompat
     private const int FinalizingSeconds = 30;
 
     private static readonly object StateLock = new();
+    private static readonly object ProfileCacheLock = new();
     // The menu-authenticated identities are immutable for the whole raid. A
     // round may replace PFT's runtime profile/body identities, but never this
     // account-to-stored-profile proof.
@@ -93,6 +94,14 @@ internal static class PitFireTeamCompat
     private static DateTime _finalizingUntilUtc;
     private static int _squadOpenDepth;
     private static IReadOnlyList<StopCleanupStep> _stopCleanupSteps = Array.Empty<StopCleanupStep>();
+    private static StoredProfileResolution _storedProfileCache;
+
+    private sealed class StoredProfileResolution
+    {
+        public string[] AccountIds { get; set; }
+        public string[] RaidIds { get; set; }
+        public string[] ProfileIds { get; set; }
+    }
 
     private sealed class StopCleanupStep
     {
@@ -317,8 +326,9 @@ internal static class PitFireTeamCompat
     }
 
     /// <summary>
-    /// Freeze only the already live-validated decision. The caller evaluates it
-    /// once alongside the final map/request checks, avoiding display-time state.
+    /// Freeze only the already live-validated decision. Display ticks may reuse
+    /// a stored-profile cache; raid start always re-authenticates the live
+    /// roster against that decision before arming.
     /// </summary>
     public static bool TryFreezeTeamRoster(PitFireTeamSelectionDecision decision, out string reason)
     {
@@ -327,6 +337,39 @@ internal static class PitFireTeamCompat
         {
             reason = decision?.Reason ?? "Arena could not validate the current PitFireTeam roster.";
             return false;
+        }
+
+        InvalidateStoredProfileCache();
+        if (decision.IsTeam)
+        {
+            if (!TryReadSelectedMembers(
+                    out IReadOnlyList<string> liveAccountIds,
+                    out IReadOnlyList<string> liveRaidIds,
+                    out var readProblem))
+            {
+                reason = "could not re-authenticate the live PitFireTeam roster: " + readProblem;
+                return false;
+            }
+
+            if (!TryResolveSelectedProfileIds(
+                    liveAccountIds,
+                    liveRaidIds,
+                    out IReadOnlyList<string> liveProfileIds,
+                    out var identityProblem))
+            {
+                reason = "could not re-authenticate every selected stored PitFireTeam teammate: "
+                         + identityProblem;
+                return false;
+            }
+
+            if (!TryMatchLiveRosterToDecision(
+                    decision,
+                    liveAccountIds,
+                    liveProfileIds,
+                    out reason))
+            {
+                return false;
+            }
         }
 
         PitFireTeamRoundLifecycle.Reset();
@@ -1407,6 +1450,7 @@ internal static class PitFireTeamCompat
             _runtimeRosterProblem = string.Empty;
         }
 
+        InvalidateStoredProfileCache();
         PitFireTeamRoundLifecycle.Reset();
 
         if (hadState)
@@ -1941,6 +1985,11 @@ internal static class PitFireTeamCompat
     /// before Arena can arm. A foreign native group member therefore fails here,
     /// and the live body can later be matched against the real stored profile.
     /// Fixed Goon ids stay as markers so the policy can reject them explicitly.
+    ///
+    /// Map-screen eligibility re-runs this on every 0.2s updater tick. Display
+    /// ticks reuse one successful resolution for the same selected AID/RaidPlayer
+    /// set; freeze invalidates that cache and re-authenticates immediately
+    /// before arming.
     /// </summary>
     private static bool TryResolveSelectedProfileIds(
         IReadOnlyList<string> accountIds,
@@ -1956,7 +2005,12 @@ internal static class PitFireTeamCompat
             return false;
         }
 
+        if (TryGetCachedSelectedProfileIds(accountIds, raidIds, out profileIds))
+            return true;
+
         List<string> resolved = new(accountIds.Count);
+        var trimmedAccounts = new string[accountIds.Count];
+        var trimmedRaidIds = new string[raidIds.Count];
         for (int index = 0; index < accountIds.Count; index++)
         {
             string accountId = accountIds[index]?.Trim();
@@ -1966,6 +2020,9 @@ internal static class PitFireTeamCompat
                 problem = "a selected member has no account or RaidPlayer identity";
                 return false;
             }
+
+            trimmedAccounts[index] = accountId;
+            trimmedRaidIds[index] = raidId;
 
             if (PitFireTeamSelectionPolicy.IsUnsupportedSpecialProfileId(raidId))
             {
@@ -2003,7 +2060,124 @@ internal static class PitFireTeamCompat
             }
         }
 
+        StoreSelectedProfileCache(trimmedAccounts, trimmedRaidIds, resolved.ToArray());
         profileIds = resolved;
+        return true;
+    }
+
+    private static bool TryGetCachedSelectedProfileIds(
+        IReadOnlyList<string> accountIds,
+        IReadOnlyList<string> raidIds,
+        out IReadOnlyList<string> profileIds)
+    {
+        profileIds = Array.Empty<string>();
+        lock (ProfileCacheLock)
+        {
+            if (_storedProfileCache == null
+                || _storedProfileCache.AccountIds == null
+                || _storedProfileCache.RaidIds == null
+                || _storedProfileCache.ProfileIds == null
+                || _storedProfileCache.AccountIds.Length != accountIds.Count
+                || _storedProfileCache.RaidIds.Length != raidIds.Count
+                || _storedProfileCache.ProfileIds.Length != accountIds.Count)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < accountIds.Count; index++)
+            {
+                if (!string.Equals(
+                        _storedProfileCache.AccountIds[index],
+                        accountIds[index]?.Trim(),
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        _storedProfileCache.RaidIds[index],
+                        raidIds[index]?.Trim(),
+                        StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            profileIds = (string[])_storedProfileCache.ProfileIds.Clone();
+            return true;
+        }
+    }
+
+    private static void StoreSelectedProfileCache(
+        string[] accountIds,
+        string[] raidIds,
+        string[] profileIds)
+    {
+        lock (ProfileCacheLock)
+        {
+            _storedProfileCache = new StoredProfileResolution
+            {
+                AccountIds = accountIds,
+                RaidIds = raidIds,
+                ProfileIds = profileIds
+            };
+        }
+    }
+
+    private static void InvalidateStoredProfileCache()
+    {
+        lock (ProfileCacheLock)
+            _storedProfileCache = null;
+    }
+
+    private static bool TryMatchLiveRosterToDecision(
+        PitFireTeamSelectionDecision decision,
+        IReadOnlyList<string> liveAccountIds,
+        IReadOnlyList<string> liveProfileIds,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (decision.CompanionAccountIds.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+            || decision.CompanionProfilesByAccountId.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+            || liveAccountIds == null
+            || liveProfileIds == null
+            || liveAccountIds.Count != liveProfileIds.Count
+            || liveAccountIds.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount)
+        {
+            reason = "the PitFireTeam roster changed between map display and raid start.";
+            return false;
+        }
+
+        var live = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int index = 0; index < liveAccountIds.Count; index++)
+        {
+            string accountId = liveAccountIds[index]?.Trim();
+            string profileId = liveProfileIds[index]?.Trim();
+            if (string.IsNullOrWhiteSpace(accountId)
+                || string.IsNullOrWhiteSpace(profileId)
+                || !live.TryAdd(accountId, profileId))
+            {
+                reason = "Arena refused an invalid, duplicate or mismatched live PitFireTeam companion identity.";
+                return false;
+            }
+        }
+
+        foreach (string accountId in decision.CompanionAccountIds)
+        {
+            string normalized = accountId?.Trim();
+            if (string.IsNullOrWhiteSpace(normalized) || !live.ContainsKey(normalized))
+            {
+                reason = "the PitFireTeam roster changed between map display and raid start.";
+                return false;
+            }
+        }
+
+        foreach (var pair in decision.CompanionProfilesByAccountId)
+        {
+            if (!live.TryGetValue(pair.Key, out string liveProfile)
+                || !string.Equals(liveProfile, pair.Value?.Trim(), StringComparison.Ordinal))
+            {
+                reason = "a PitFireTeam companion stored profile changed between map display and raid start.";
+                return false;
+            }
+        }
+
         return true;
     }
 

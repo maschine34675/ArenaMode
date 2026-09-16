@@ -100,6 +100,15 @@ public sealed partial class TacticalMode : IArenaMode
     private const float TeamOpponentActivationSeconds = 5f;
     private const float TeamTransitionSeconds = 45f;
     private static readonly TimeSpan TeamLifecycleTimeout = TimeSpan.FromSeconds(30);
+    /// <summary>
+    /// Round-2 remapped followers complete ActivateBotAtPosition before PFT
+    /// publishes wrappers on the first UpdateManual. That wait is mid-raid and
+    /// unboosted unless BotLoadBoost sees the assembly; 30s was enough for the
+    /// loading-screen first round and too short once StandartBotBrain.Activate
+    /// lagged a remapped body. This clock is independent of TeamTransitionSeconds,
+    /// which does not bound AwaitFollowers.
+    /// </summary>
+    private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(90);
 
     private const int TeamCompanionCount = 4;
     private const int TeamEnemyCount = 5;
@@ -2269,7 +2278,7 @@ public sealed partial class TacticalMode : IArenaMode
 
         if (!PitFireTeamRoundLifecycle.TryStartFollowerSpawn(
                 PitFireTeamCompat.PersistenceSuppressionActive,
-                TeamLifecycleTimeout,
+                TeamFollowerAssemblyTimeout,
                 out string problem))
         {
             FailTeamTransition("PitFireTeam follower spawn failed: " + problem);

@@ -176,6 +176,7 @@ internal sealed class PitFireTeamFollowerObservation
     public string SpawnProblem { get; set; }
     public int StablePasses { get; set; }
     public bool TimedOut { get; set; }
+    public string IncompleteDetail { get; set; }
 }
 
 internal enum PitFireTeamFollowerDetachDecision
@@ -523,14 +524,17 @@ internal static class PitFireTeamRoundLifecyclePolicy
                         && observation.DistinctProfileCount == expected;
         if (!complete)
         {
+            string incomplete = string.IsNullOrWhiteSpace(observation.IncompleteDetail)
+                ? string.Empty
+                : ": " + observation.IncompleteDetail.Trim();
             if (observation.TimedOut)
             {
                 return PitFireTeamRoundPolicyDecision.Failed(
-                    $"follower assembly timed out (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount})");
+                    $"follower assembly timed out (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount}){incomplete}");
             }
 
             return PitFireTeamRoundPolicyDecision.Pending(
-                $"waiting for four followers (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount})");
+                $"waiting for four followers (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount}){incomplete}");
         }
 
         if (observation.StablePasses < RequiredStablePasses)

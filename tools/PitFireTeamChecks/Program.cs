@@ -476,6 +476,8 @@ internal static class Program
         var locationPatch = Read(repo,
             "ArenaMode.Server/Patches/GenerateLocationAndLootPatch.cs");
         var patchManager = Read(repo, "ArenaMode.Server/PatchManager.cs");
+        var mapMenu = Read(repo, "ArenaMode.Client/Session/ArenaLocationSelectionPatch.cs");
+        var boost = Read(repo, "ArenaMode.Client/Bots/BotLoadBoost.cs");
 
         Assert(Regex.IsMatch(plugin,
                 @"BepInDependency\s*\([^\)]*PitFireTeamCompat\.PluginGuid[^\)]*SoftDependency",
@@ -519,6 +521,31 @@ internal static class Program
                && menu.Contains("_freezeRoster?.Invoke", StringComparison.Ordinal)
                && side.Contains("PitFireTeamCompat.TryFreezeTeamRoster", StringComparison.Ordinal),
             "raid start revalidates and freezes the live Pit roster");
+        string freezeRoster = Slice(
+            compat,
+            "public static bool TryFreezeTeamRoster(",
+            "public static bool TryBindLocalPlayerBody(");
+        string resolveProfiles = Slice(
+            compat,
+            "private static bool TryResolveSelectedProfileIds(",
+            "private static bool TryGetCurrentProfileId(");
+        string clearCompat = Slice(
+            compat,
+            "public static void Clear(string reason)",
+            "private static void EnsureInitialized(");
+        Assert(freezeRoster.Contains("InvalidateStoredProfileCache()", StringComparison.Ordinal)
+               && freezeRoster.IndexOf("InvalidateStoredProfileCache()", StringComparison.Ordinal)
+                  < freezeRoster.IndexOf("TryResolveSelectedProfileIds(", StringComparison.Ordinal)
+               && freezeRoster.Contains("TryMatchLiveRosterToDecision(", StringComparison.Ordinal)
+               && compat.Contains(
+                   "the PitFireTeam roster changed between map display and raid start.",
+                   StringComparison.Ordinal)
+               && resolveProfiles.Contains("TryGetCachedSelectedProfileIds(", StringComparison.Ordinal)
+               && resolveProfiles.Contains("StoreSelectedProfileCache(", StringComparison.Ordinal)
+               && resolveProfiles.Contains("TeammateProfileRoute", StringComparison.Ordinal)
+               && clearCompat.Contains("InvalidateStoredProfileCache()", StringComparison.Ordinal)
+               && mapMenu.Contains("Display-time stored-profile HTTP is", StringComparison.Ordinal),
+            "map-display stored-profile HTTP is cached, freeze re-authenticates the live roster, and leaving setup drops the cache");
         Assert(compat.Contains("GetField(nameof(RaidPlayer.AccountId)", StringComparison.Ordinal)
                && compat.Contains("GetField(nameof(RaidPlayer.Id)", StringComparison.Ordinal)
                && compat.Contains("TeammateProfileRoute", StringComparison.Ordinal)
@@ -800,6 +827,25 @@ internal static class Program
                && pollFollowers > startFollowers
                && adoptFollowers > pollFollowers,
             "Tactical advances monotonically through PFT teardown, retirement, leader rebuild, fresh follower spawn and adoption");
+        string startTeamFollowers = Slice(
+            tactical,
+            "private void StartTeamFollowers()",
+            "private void TickTeamFollowers()");
+        Assert(startTeamFollowers.Contains("TeamFollowerAssemblyTimeout", StringComparison.Ordinal)
+               && !startTeamFollowers.Contains("TeamLifecycleTimeout", StringComparison.Ordinal)
+               && tactical.Contains(
+                   "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(90);",
+                   StringComparison.Ordinal)
+               && roundLifecycle.Contains(
+                   "public static bool TryReadFollowerAssemblyLoading(out int signature)",
+                   StringComparison.Ordinal)
+               && roundLifecycle.Contains("DescribeIncompleteFollowerAssemblyUnsafe(", StringComparison.Ordinal)
+               && roundLifecycle.Contains(
+                   "PitFireTeam follower assembly incomplete after activation lease:",
+                   StringComparison.Ordinal)
+               && boost.Contains("TryReadFollowerAssemblyLoading", StringComparison.Ordinal)
+               && boost.Contains("followerPart << 8", StringComparison.Ordinal),
+            "round-2 follower assembly has a 90s wait, names missing bodies, and keeps the load boost armed");
         Assert(tactical.Contains("HaveExactBodySet(oldFollowers, _boundTeamFollowers)", StringComparison.Ordinal)
                && tactical.Contains("PitFireTeamCompat.CanonicalCompanionProfilesByAccountId", StringComparison.Ordinal)
                && tactical.Contains("status.Epoch != _expectedPitLifecycleEpoch", StringComparison.Ordinal)

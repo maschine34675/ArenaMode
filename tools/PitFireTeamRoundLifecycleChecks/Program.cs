@@ -339,11 +339,15 @@ internal static class Program
             RegisteredBodyCount = 3,
             DistinctAccountCount = 3,
             DistinctProfileCount = 3,
-            TimedOut = true
+            TimedOut = true,
+            IncompleteDetail = "missing sdfgsdfgh BotState=PreActive watcher=True"
         };
         Assert(PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(timedOut).Decision
-               == PitFireTeamRoundPollDecision.Failed,
-            "a partial follower timeout cannot start combat");
+                   == PitFireTeamRoundPollDecision.Failed
+               && PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(timedOut).Reason.Contains(
+                   "missing sdfgsdfgh BotState=PreActive watcher=True",
+                   StringComparison.Ordinal),
+            "a partial follower timeout cannot start combat and names the missing body");
 
         object ownedBody = new();
         Assert(PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(
@@ -1290,6 +1294,24 @@ internal static class Program
                    "bool wasReady = _stage == PitFireTeamRoundLifecycleStage.FollowersReady",
                    StringComparison.Ordinal),
             "follower idempotence checks persistence before revalidating ready");
+        string boostSource = File.ReadAllText(Path.Combine(
+            root,
+            "ArenaMode.Client",
+            "Bots",
+            "BotLoadBoost.cs"));
+        Assert(source.Contains(
+                   "public static bool TryReadFollowerAssemblyLoading(out int signature)",
+                   StringComparison.Ordinal)
+               && source.Contains("DescribeIncompleteFollowerAssemblyUnsafe(", StringComparison.Ordinal)
+               && source.Contains(
+                   "PitFireTeam follower assembly incomplete after activation lease:",
+                   StringComparison.Ordinal)
+               && boostSource.Contains("TryReadFollowerAssemblyLoading", StringComparison.Ordinal)
+               && tacticalSource.Contains("TeamFollowerAssemblyTimeout", StringComparison.Ordinal)
+               && tacticalSource.Contains(
+                   "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(90);",
+                   StringComparison.Ordinal),
+            "round-2 follower assembly names missing bodies and keeps the load boost armed for the longer wait");
     }
 
     private static PitFireTeamRoundPolicyDecision EvaluateFollowers(

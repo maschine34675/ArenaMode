@@ -122,7 +122,8 @@ internal static class ArenaLocationSelectionPatch
             state.Map.HideExtras(__instance._locationPathsContainer, __instance._marathonButton.gameObject);
 
             // Own a single updater for this exact native controller. This also
-            // observes direct F12 changes; it reads cached settings, never HTTP.
+            // observes direct F12 changes. Display-time stored-profile HTTP is
+            // cached across these ticks; freeze re-authenticates before arming.
             var owner = Controller(__instance);
             var generation = state.Generation = new object();
             var updaterRoot = new GameObject("Arena Conditional Map Updater");

@@ -118,6 +118,7 @@ internal static class PitFireTeamRoundLifecycle
     private static List<BotOwner> _currentFollowers = new();
     private static List<BotOwner> _lastStableFollowers = new();
     private static int _stableFollowerPasses;
+    private static bool _loggedIncompleteFollowerAssembly;
     private static Dictionary<string, string> _canonicalProfilesByAccountId =
         new(StringComparer.Ordinal);
     private static Dictionary<string, string> _runtimeProfilesByAccountId =
@@ -1227,6 +1228,7 @@ internal static class PitFireTeamRoundLifecycle
                 _deadlineUtc = Deadline(timeout);
                 _lastStableFollowers.Clear();
                 _stableFollowerPasses = 0;
+                _loggedIncompleteFollowerAssembly = false;
                 _stage = PitFireTeamRoundLifecycleStage.SpawnRequested;
                 Task spawnTask = _spawnGroupBotsMethod.Invoke(
                     patchInstance,
@@ -1497,6 +1499,19 @@ internal static class PitFireTeamRoundLifecycle
                     _stableFollowerPasses = 0;
                 }
 
+                string incompleteDetail = wasReady
+                    ? string.Empty
+                    : DescribeIncompleteFollowerAssemblyUnsafe(_spawnLease, profiles);
+                if (!wasReady
+                    && leasedActivationsComplete
+                    && !string.IsNullOrWhiteSpace(incompleteDetail)
+                    && !_loggedIncompleteFollowerAssembly)
+                {
+                    _loggedIncompleteFollowerAssembly = true;
+                    Plugin.ModLogger.LogWarning(
+                        $"PitFireTeam follower assembly incomplete after activation lease: {incompleteDetail}");
+                }
+
                 PitFireTeamRoundPolicyDecision decision =
                     PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(
                         new PitFireTeamFollowerObservation
@@ -1514,7 +1529,8 @@ internal static class PitFireTeamRoundLifecycle
                             SpawnFaulted = spawnFaulted,
                             SpawnProblem = spawnProblem,
                             StablePasses = _stableFollowerPasses,
-                            TimedOut = utcNow >= _deadlineUtc
+                            TimedOut = utcNow >= _deadlineUtc,
+                            IncompleteDetail = incompleteDetail
                         });
 
                 _diagnostic = decision.Reason;
@@ -1571,6 +1587,43 @@ internal static class PitFireTeamRoundLifecycle
     {
         lock (StateLock)
             return _retiringBodies.ToArray();
+    }
+
+    /// <summary>
+    /// Mid-raid PFT follower assembly is still loading after ActivateBotAtPosition
+    /// returns: wrappers appear only on the first UpdateManual. BotLoadBoost must
+    /// treat that wait as loading even when BundlesLoading already reads zero.
+    /// </summary>
+    public static bool TryReadFollowerAssemblyLoading(out int signature)
+    {
+        signature = 0;
+        lock (StateLock)
+        {
+            FollowerSpawnLease lease = _spawnLease;
+            if (_stage != PitFireTeamRoundLifecycleStage.SpawnRequested
+                || lease == null
+                || lease.Revoked)
+            {
+                return false;
+            }
+
+            int wrappers = 0;
+            try
+            {
+                wrappers = ReadFollowerWrappersUnsafe().Count;
+            }
+            catch (Exception)
+            {
+                wrappers = 0;
+            }
+
+            signature = lease.StartedProfileIds.Count
+                        + (lease.ActivatedProfileIds.Count * 8)
+                        + (lease.SettledProfileIds.Count * 64)
+                        + (lease.ObservedBodiesByProfileId.Count * 512)
+                        + (wrappers * 4096);
+            return true;
+        }
     }
 
     /// <summary>
@@ -3388,9 +3441,69 @@ internal static class PitFireTeamRoundLifecycle
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogError(
-                $"Arena could not remove PFT's shall-be-follower marker for {profileId}: {ex.GetBaseException().Message}");
+                Plugin.ModLogger.LogError(
+                    $"Arena could not remove PFT's shall-be-follower marker for {profileId}: {ex.GetBaseException().Message}");
         }
+    }
+
+    private static string DescribeIncompleteFollowerAssemblyUnsafe(
+        FollowerSpawnLease lease,
+        HashSet<string> publishedProfileIds)
+    {
+        if (lease?.ProfilesById == null || lease.ProfilesById.Count == 0)
+            return string.Empty;
+
+        int bundles = 0;
+        try
+        {
+            if (lease.Spawner?._botCreator != null)
+                bundles = lease.Spawner._botCreator.BundlesLoading;
+        }
+        catch (Exception)
+        {
+            bundles = 0;
+        }
+
+        List<string> missing = new();
+        foreach (var pair in lease.ProfilesById.OrderBy(
+                     item => item.Value?.Nickname ?? item.Key,
+                     StringComparer.Ordinal))
+        {
+            string profileId = pair.Key?.Trim();
+            if (string.IsNullOrWhiteSpace(profileId)
+                || (publishedProfileIds != null && publishedProfileIds.Contains(profileId)))
+            {
+                continue;
+            }
+
+            Profile profile = pair.Value;
+            string nickname = profile?.Nickname ?? profile?.Info?.Nickname ?? "?";
+            string accountId = profile?.AccountId?.Trim() ?? "?";
+            bool started = lease.StartedProfileIds.Contains(profileId);
+            bool activated = lease.ActivatedProfileIds.Contains(profileId);
+            bool settled = lease.SettledProfileIds.Contains(profileId);
+            lease.ObservedBodiesByProfileId.TryGetValue(profileId, out BotOwner body);
+            string botState = ReferenceEquals(body, null) || body == null
+                ? "no-body"
+                : body.BotState.ToString();
+            bool watcher = false;
+            try
+            {
+                if (_manualUpdateField?.GetValue(null) is IDictionary manualUpdates)
+                    watcher = manualUpdates.Contains(profileId);
+            }
+            catch (Exception)
+            {
+                watcher = false;
+            }
+
+            missing.Add(
+                $"{nickname}/{accountId}/{profileId} BotState={botState} watcher={watcher} started={started} activated={activated} settled={settled} bundles={bundles}");
+        }
+
+        return missing.Count == 0
+            ? string.Empty
+            : "missing " + string.Join("; ", missing);
     }
 
     private static void ValidateFollowerRegistryEntryUnsafe(
@@ -4115,6 +4228,7 @@ internal static class PitFireTeamRoundLifecycle
         _currentFollowers.Clear();
         _lastStableFollowers.Clear();
         _stableFollowerPasses = 0;
+        _loggedIncompleteFollowerAssembly = false;
         _canonicalProfilesByAccountId.Clear();
         _runtimeProfilesByAccountId.Clear();
         _preparedProfilesByAccountId.Clear();
