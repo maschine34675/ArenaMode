@@ -897,8 +897,9 @@ internal static class Program
                && roundLifecycle.Contains("DescribeWeaponReadinessUnsafe(", StringComparison.Ordinal)
                && roundLifecycle.Contains("weaponReady={weapons.IsReady}", StringComparison.Ordinal)
                && roundLifecycle.Contains(
-                   "PitFireTeam follower assembly incomplete after activation lease:",
+                   "PitFireTeam follower assembly stalled with an unarmed body:",
                    StringComparison.Ordinal)
+               && roundLifecycle.Contains("IsSettledWithoutFirearmUnsafe(", StringComparison.Ordinal)
                // The measured wait is about four seconds; a ninety-second hold of
                // the scheduler's force mode over a body that never activates was
                // tried and bought nothing, so the boost calls no follower API.

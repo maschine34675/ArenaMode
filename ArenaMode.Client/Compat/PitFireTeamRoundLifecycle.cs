@@ -1510,17 +1510,24 @@ internal static class PitFireTeamRoundLifecycle
                     _stableFollowerPasses = 0;
                 }
 
+                bool settledUnarmed = false;
                 string incompleteDetail = wasReady
                     ? string.Empty
-                    : DescribeIncompleteFollowerAssemblyUnsafe(_spawnLease, profiles);
+                    : DescribeIncompleteFollowerAssemblyUnsafe(
+                        _spawnLease,
+                        profiles,
+                        out settledUnarmed);
+                // The detail still travels with a timeout regardless; this warning
+                // is only for the shape nothing native will resolve on its own.
                 if (!wasReady
                     && leasedActivationsComplete
+                    && settledUnarmed
                     && !string.IsNullOrWhiteSpace(incompleteDetail)
                     && !_loggedIncompleteFollowerAssembly)
                 {
                     _loggedIncompleteFollowerAssembly = true;
                     Plugin.ModLogger.LogWarning(
-                        $"PitFireTeam follower assembly incomplete after activation lease: {incompleteDetail}");
+                        $"PitFireTeam follower assembly stalled with an unarmed body: {incompleteDetail}");
                 }
 
                 PitFireTeamRoundPolicyDecision decision =
@@ -3420,10 +3427,21 @@ internal static class PitFireTeamRoundLifecycle
         }
     }
 
+    /// <summary>
+    /// <paramref name="anySettledUnarmed"/> separates a normal mid-flight assembly
+    /// from one worth a warning. A healthy round is caught here about eighty
+    /// milliseconds after the spawn request, when all four bodies are legitimately
+    /// PreActive with their weapon takes still open, and warning about that in
+    /// every won round trains the reader to skip the one line that ever mattered.
+    /// The suspicious shape is a take that has SETTLED without arming the body:
+    /// no change in flight and BotWeaponManager.IsReady still false.
+    /// </summary>
     private static string DescribeIncompleteFollowerAssemblyUnsafe(
         FollowerSpawnLease lease,
-        HashSet<string> publishedProfileIds)
+        HashSet<string> publishedProfileIds,
+        out bool anySettledUnarmed)
     {
+        anySettledUnarmed = false;
         if (lease?.ProfilesById == null || lease.ProfilesById.Count == 0)
             return string.Empty;
 
@@ -3471,6 +3489,7 @@ internal static class PitFireTeamRoundLifecycle
                 watcher = false;
             }
 
+            anySettledUnarmed |= IsSettledWithoutFirearmUnsafe(body);
             missing.Add(
                 $"{nickname}/{accountId}/{profileId} BotState={botState} {DescribeWeaponReadinessUnsafe(body)} "
                 + $"watcher={watcher} started={started} activated={activated} settled={settled} bundles={bundles}");
@@ -3479,6 +3498,29 @@ internal static class PitFireTeamRoundLifecycle
         return missing.Count == 0
             ? string.Empty
             : "missing " + string.Join("; ", missing);
+    }
+
+    /// <summary>
+    /// A body whose weapon take is finished and still did not arm it. Nothing
+    /// native will move it from here: OnWeaponTaken schedules no retry while
+    /// PreActive, and re-issuing the take was measured to change nothing.
+    /// </summary>
+    private static bool IsSettledWithoutFirearmUnsafe(BotOwner bot)
+    {
+        if (ReferenceEquals(bot, null) || bot == null)
+            return false;
+
+        try
+        {
+            return bot.BotState == EBotState.PreActive
+                   && bot.WeaponManager?.IsReady == false
+                   && bot.GetPlayer?.InventoryController?.IsChangingWeapon == false;
+        }
+        catch (Exception)
+        {
+            // An unreadable body is not evidence of the terminal shape.
+            return false;
+        }
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text.RegularExpressions;
 using ArenaMode.Compat;
 
 internal static class Program
@@ -1396,8 +1397,21 @@ internal static class Program
                    "bool wasReady = _stage == PitFireTeamRoundLifecycleStage.FollowersReady",
                    StringComparison.Ordinal),
             "follower idempotence checks persistence before revalidating ready");
+        // A healthy round is inspected while all four takes are still open, so the
+        // warning must require the shape nothing native resolves; the timeout keeps
+        // carrying the full detail either way.
         Assert(source.Contains("DescribeIncompleteFollowerAssemblyUnsafe(", StringComparison.Ordinal)
+               && source.Contains("&& settledUnarmed", StringComparison.Ordinal)
+               && source.Contains("private static bool IsSettledWithoutFirearmUnsafe(", StringComparison.Ordinal)
+               && Regex.IsMatch(
+                   Slice(source,
+                       "private static bool IsSettledWithoutFirearmUnsafe(",
+                       "/// The exact native reason a PreActive follower never reaches Active."),
+                   @"bot\.BotState == EBotState\.PreActive\s*&&\s*bot\.WeaponManager\?\.IsReady == false\s*&&\s*bot\.GetPlayer\?\.InventoryController\?\.IsChangingWeapon == false")
                && source.Contains(
+                   "PitFireTeam follower assembly stalled with an unarmed body:",
+                   StringComparison.Ordinal)
+               && !source.Contains(
                    "PitFireTeam follower assembly incomplete after activation lease:",
                    StringComparison.Ordinal)
                && source.Contains("weaponReady={weapons.IsReady}", StringComparison.Ordinal)
