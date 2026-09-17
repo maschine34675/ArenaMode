@@ -64,6 +64,7 @@ internal static class AnnouncerService
     private static bool _clutchArmed;
     private static int _clutchFrame;
     private static string _activeKey;
+    private static bool _noContestReceived;
     private const float StatusMaxWaitSeconds = 2f;
     private const float CalloutMaxWaitSeconds = 4f;
     private const float RecoveryIntervalSeconds = 10f;
@@ -222,6 +223,7 @@ internal static class AnnouncerService
         ArenaAnnouncerOutput.Reset();
         _clutchArmed = false;
         _activeKey = null;
+        _noContestReceived = false;
         CancelPendingResult("match detached");
         if (_match != null)
         {
@@ -235,6 +237,7 @@ internal static class AnnouncerService
 
     private static void OnCallout(string label)
     {
+        if (_noContestReceived) return;
         _clutchArmed = false;
         if (string.IsNullOrEmpty(label))
             return;
@@ -293,9 +296,9 @@ internal static class AnnouncerService
     }
 
     // Provisional audio only: the award/HUD/queue keep their own logical key.
-    // Root trickshot.ogg and no_scope.ogg already use normal optional loading.
+    // Root airborne.ogg and no_scope.ogg use normal optional loading.
     private static string ShotAwardFallback(string key)
-        => key is "trickshot" or "no_scope" ? "godlike" : null;
+        => key is "airborne" or "no_scope" ? "godlike" : null;
 
     private static bool PlayShotAwardFallback(string key, out float clipLengthSeconds)
     {
@@ -328,7 +331,8 @@ internal static class AnnouncerService
         "payback" => 90,
         "shutdown" => 85,
         "monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 80,
-        "trickshot" => 70,
+        "airborne" => 70,
+        "embarrassing" => 105,
         "no_scope" => 65,
         "godlike" or "unstoppable" or "dominating" or "rampage" or "killing_spree" => 60,
         "final_weapon" or "ladder_complete" => 45,
@@ -342,6 +346,20 @@ internal static class AnnouncerService
 
     private static void OnAnnouncerCue(ArenaAnnouncerCue cue)
     {
+        // A technical end replaces stale pending results, awards and countdown.
+        // Latch until detach even if the optional recording is missing/muted:
+        // an old victory or a later status must not leak after this outcome.
+        if (_noContestReceived) return;
+        if (cue == ArenaAnnouncerCue.NoContest)
+        {
+            _noContestReceived = true;
+            _cuesReceived++;
+            CancelPendingResult("no contest");
+            ArenaAnnouncerOutput.Reset(); // owned output only, never native UI
+            if (!AudioListener.pause) StartCallout("no_contest");
+            else Skip("no_contest", "listener_paused");
+            return;
+        }
         bool clutchWin = _clutchArmed && _clutchFrame == Time.frameCount
             && (cue == ArenaAnnouncerCue.RoundWon || cue == ArenaAnnouncerCue.MatchWon);
         _clutchArmed = false;
@@ -735,7 +753,8 @@ internal static class AnnouncerService
         if (string.Equals(key, "round_won", StringComparison.OrdinalIgnoreCase)
             || string.Equals(key, "round_lost", StringComparison.OrdinalIgnoreCase)
             || string.Equals(key, "match_won", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(key, "match_lost", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(key, "match_lost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(key, "no_contest", StringComparison.OrdinalIgnoreCase))
             return 1;
         return 2;
     }

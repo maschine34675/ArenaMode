@@ -61,7 +61,7 @@ internal sealed class ArenaCombatAwards
             : payback ? "PAYBACK"
             : existingLabel is "SHUTDOWN" or "DOUBLE KILL" or "TRIPLE KILL"
                 or "MULTI KILL" or "MONSTER KILL" ? existingLabel
-            : kill.ScoreEligible && kill.AirborneHipFire ? "TRICKSHOT"
+            : kill.ScoreEligible && kill.AirborneHipFire ? "AIRBORNE"
             : kill.ScoreEligible && kill.BoltActionHipFire ? "NO SCOPE"
             : existingLabel ?? (kill.SingleHitHeadshot ? "HEADSHOT" : null);
     }

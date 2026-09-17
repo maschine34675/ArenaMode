@@ -1867,6 +1867,7 @@ public sealed partial class TacticalMode : IArenaMode
                 : decision.Continuation == TeamArenaRoundContinuation.EndMatchLost ? ArenaAnnouncerCue.MatchLost
                 : won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);
         }
+        else _match.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
 
         string outcome = won == true ? "victory" : won == false ? "defeat" : "no contest";
         string continuation = decision.Continuation == TeamArenaRoundContinuation.RebindNextRound
@@ -2557,6 +2558,7 @@ public sealed partial class TacticalMode : IArenaMode
         _squadEpoch++;
         RetireSquad();
         ArenaToasts.Show("5v5 no contest — protected round rebuild failed");
+        _match.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
         Plugin.ModLogger.LogError(
             $"Tactical team Arena ended no contest during round {RoundNumber} rebind: {reason}.");
     }

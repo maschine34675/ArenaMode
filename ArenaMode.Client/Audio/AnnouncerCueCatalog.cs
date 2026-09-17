@@ -62,15 +62,18 @@ internal static class AnnouncerCueCatalog
             ArenaAnnouncerCue.Draw => "draw",
             ArenaAnnouncerCue.Shutdown => "shutdown",
             ArenaAnnouncerCue.Clutch => "clutch",
+            ArenaAnnouncerCue.NoContest => "no_contest",
+            ArenaAnnouncerCue.Embarrassing => "embarrassing",
             _ => null,
         };
         if (key == null) return AnnouncerCueKind.None;
         if (cue == ArenaAnnouncerCue.RoundStart) return AnnouncerCueKind.Start;
         if (cue == ArenaAnnouncerCue.RoundWon || cue == ArenaAnnouncerCue.RoundLost
             || cue == ArenaAnnouncerCue.MatchWon || cue == ArenaAnnouncerCue.MatchLost
-            || cue == ArenaAnnouncerCue.Draw) return AnnouncerCueKind.Result;
+            || cue == ArenaAnnouncerCue.Draw || cue == ArenaAnnouncerCue.NoContest) return AnnouncerCueKind.Result;
         if (cue == ArenaAnnouncerCue.Clutch) return AnnouncerCueKind.Clutch;
-        if (cue == ArenaAnnouncerCue.LastManStanding || cue == ArenaAnnouncerCue.Shutdown)
+        if (cue == ArenaAnnouncerCue.LastManStanding || cue == ArenaAnnouncerCue.Shutdown
+            || cue == ArenaAnnouncerCue.Embarrassing)
             return AnnouncerCueKind.Award;
         return IsCountdown(key) ? AnnouncerCueKind.Countdown : AnnouncerCueKind.Status;
     }

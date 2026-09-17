@@ -4,7 +4,7 @@ using ArenaMode.Kits;
 using ArenaMode.Combat;
 using EFT;
 namespace ArenaMode.Modes;
-public enum ArenaAnnouncerCue { RoundStart, RoundWon, RoundLost, MatchWon, MatchLost, Draw, Clutch }
+public enum ArenaAnnouncerCue { RoundStart, RoundWon, RoundLost, MatchWon, MatchLost, Draw, Clutch, NoContest }
 public enum TeamArenaRoundContinuation { RebindNextRound }
 public partial class ArenaMatch
 {
@@ -13,6 +13,8 @@ public partial class ArenaMatch
     private readonly ArenaCombatAwards _awards=new();
     private int _multiKillChain;
     private float _lastLocalKillAt;
+    // The extracted ReportAnnouncerCue owns this once-per-match terminal latch.
+    private bool _noContestAnnounced;
     internal event Action<ArenaAnnouncerCue> OnAnnouncerCue;
     public List<ArenaAnnouncerCue> Cues=[];
     public TacticalMode Mode;

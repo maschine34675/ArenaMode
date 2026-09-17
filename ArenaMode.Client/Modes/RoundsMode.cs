@@ -256,6 +256,7 @@ public sealed partial class RoundsMode : IArenaMode
         {
             if (_rules.Outcome == DeathmatchOutcome.Won) _match.ReportAnnouncerCue(ArenaAnnouncerCue.MatchWon);
             else if (_rules.Outcome == DeathmatchOutcome.Lost) _match.ReportAnnouncerCue(ArenaAnnouncerCue.MatchLost);
+            else if (_rules.Outcome == DeathmatchOutcome.NoContest) _match.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
         }
         try
         {

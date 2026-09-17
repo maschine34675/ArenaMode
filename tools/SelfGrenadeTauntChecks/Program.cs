@@ -33,7 +33,7 @@ internal static class Program
             ArenaMatchService.Current = Match;
             Match.OnTextCallout += label => Text.Add(label);
             Match.OnCallout += _ => CombatAudio++;
-            Match.OnAnnouncerCue += _ => AnnouncerAudio++;
+            Match.OnAnnouncerCue += cue => { Check(cue == ArenaAnnouncerCue.Embarrassing, "self grenade emits only typed Embarrassing"); AnnouncerAudio++; };
             Match.OnScoreChanged += () => ScoreEvents++;
         }
         internal void BindBody(Player body)
@@ -61,7 +61,12 @@ internal static class Program
         {
             Check(Match.Score == 27 && Match.Kills == 12 && Match.Deaths == 3 && Match.KillCalls == 0
                 && Match.LocalDeathCalls == 0 && ScoreEvents == 0, "text dispatch changes no score death or kill bookkeeping");
-            Check(CombatAudio == 0 && AnnouncerAudio == 0, "text dispatch emits no combat or announcer audio event");
+            // Coupled to the HUD text rather than a fixed count: this helper also
+            // runs after a same-profile replacement has earned a second taunt, and
+            // the invariant is one separate cue per emitted taunt — never a
+            // combat award, never a cue without its text.
+            Check(CombatAudio == 0 && AnnouncerAudio == Text.Count,
+                "self grenade emits exactly one separate audio cue per taunt without a combat award");
         }
     }
     private static void Check(bool value, string label)
@@ -90,7 +95,7 @@ internal static class Program
             Check(f.Text.SequenceEqual(new[] { "NICE THROW, GENIUS!" }), "proven own grenade emits exactly the HUD text");
             f.Neutral();
             ArenaSelfGrenadeTaunt.ObserveDeath(f.Local, f.Local, info, type);
-            Check(f.Text.Count == 1, "later stored aggressor does not duplicate HUD text");
+            Check(f.Text.Count == 1 && f.AnnouncerAudio == 1, "later stored aggressor duplicates neither HUD text nor speech");
         }
         var consumer = new Fixture(); consumer.Throw();
         consumer.Match.OnTextCallout += _ => throw new Exception("HUD listener failure");

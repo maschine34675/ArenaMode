@@ -26,19 +26,19 @@ foreach ($check in $(if ($ShotOnly) { @() } else { @('tools/AnnouncerChecks/Veri
 
 $shotFaults = @(
     @{ Name='spree-before-shot'; Property='AwardsSource';
-       Find=': kill.ScoreEligible && kill.AirborneHipFire ? "TRICKSHOT"';
-       Replace=': existingLabel != null ? existingLabel : kill.ScoreEligible && kill.AirborneHipFire ? "TRICKSHOT"';
-       Failure='shot award precedes simultaneous spree: TRICKSHOT' },
-    @{ Name='noscope-before-trickshot'; Property='AwardsSource';
-       Find=": kill.ScoreEligible && kill.AirborneHipFire ? `"TRICKSHOT`"`n            : kill.ScoreEligible && kill.BoltActionHipFire ? `"NO SCOPE`"";
-       Replace=": kill.ScoreEligible && kill.BoltActionHipFire ? `"NO SCOPE`"`n            : kill.ScoreEligible && kill.AirborneHipFire ? `"TRICKSHOT`"";
-       Failure='verified shot selects exactly one logical award: TRICKSHOT' },
+       Find=': kill.ScoreEligible && kill.AirborneHipFire ? "AIRBORNE"';
+       Replace=': existingLabel != null ? existingLabel : kill.ScoreEligible && kill.AirborneHipFire ? "AIRBORNE"';
+       Failure='shot award precedes simultaneous spree: AIRBORNE' },
+    @{ Name='noscope-before-airborne'; Property='AwardsSource';
+       Find=": kill.ScoreEligible && kill.AirborneHipFire ? `"AIRBORNE`"`n            : kill.ScoreEligible && kill.BoltActionHipFire ? `"NO SCOPE`"";
+       Replace=": kill.ScoreEligible && kill.BoltActionHipFire ? `"NO SCOPE`"`n            : kill.ScoreEligible && kill.AirborneHipFire ? `"AIRBORNE`"";
+       Failure='verified shot selects exactly one logical award: AIRBORNE' },
     @{ Name='godlike-priority-collapse'; Property='AnnouncerServiceSource';
        Find='"no_scope" => 65,'; Replace='"no_scope" => 60,';
        Failure='Shot queue priority chooses the expected recording: NO SCOPE/KILLING SPREE' },
     @{ Name='missing-fallback'; Property='AnnouncerServiceSource';
-       Find='=> key is "trickshot" or "no_scope" ? "godlike" : null;'; Replace='=> (string)null;';
-       Failure='Missing shot recordings use Godlike exactly once while preserving logical awards: TRICKSHOT' },
+       Find='=> key is "airborne" or "no_scope" ? "godlike" : null;'; Replace='=> (string)null;';
+       Failure='Missing shot recordings use Godlike exactly once while preserving logical awards: AIRBORNE' },
     @{ Name='failed-custom-runtime'; Property='AnnouncerServiceSource';
        Find="Skip(key, `"clip_rebuild_failed`", clipProblem);`n                return PlayShotAwardFallback(key, out clipLengthSeconds);";
        Replace="Skip(key, `"clip_rebuild_failed`", clipProblem);`n                return false;";
@@ -46,7 +46,7 @@ $shotFaults = @(
     @{ Name='custom-recording-ignored'; Property='AnnouncerServiceSource';
        Find='var found = Clips.TryGetValue(key, out var cached);';
        Replace='var found = Clips.TryGetValue(key, out var cached); if (found && ShotAwardFallback(key) != null) { key = ShotAwardFallback(key); found = Clips.TryGetValue(key, out cached); }';
-       Failure='Healthy custom root audio wins; invalid optional decode still falls back: TRICKSHOT' }
+       Failure='Healthy custom root audio wins; invalid optional decode still falls back: AIRBORNE' }
 )
 foreach ($fault in $shotFaults) {
     $source = $shotTexts[$fault.Property]

@@ -32,4 +32,6 @@ internal enum ArenaAnnouncerCue
     Draw,
     Shutdown,
     Clutch,
+    NoContest,
+    Embarrassing,
 }

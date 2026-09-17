@@ -1,0 +1,8 @@
+[
+  ["TRICKSHOT", "sounds/reserve/trickshot.ogg", 0, 42625],
+  ["NO SCOPE", "sounds/no_scope.ogg", 42625, 89881],
+  ["AIRBORNE", "sounds/airborne.ogg", 89881, 143661],
+  ["AIR SUPERIORITY", "sounds/reserve/air_superiority.ogg", 143661, 221008],
+  ["NO CONTEST", "sounds/no_contest.ogg", 221008, 287522],
+  ["EMBARRASSING", "sounds/embarrassing.ogg", 287522, 357446]
+]

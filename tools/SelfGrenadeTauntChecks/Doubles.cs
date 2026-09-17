@@ -107,13 +107,13 @@ namespace ArenaMode.Modes
         internal Mode Mode = new();
         internal int Score = 27, Deaths = 3, Kills = 12, LocalDeathCalls, KillCalls;
         internal event Action<string> OnCallout;
-        internal event Action<string> OnAnnouncerCue;
+        internal event Action<ArenaAnnouncerCue> OnAnnouncerCue;
         internal event Action OnScoreChanged;
         internal void ReportKill(object kill) { KillCalls++; Score++; OnScoreChanged?.Invoke(); }
         internal void ReportLocalDeath() { LocalDeathCalls++; Deaths++; OnScoreChanged?.Invoke(); }
         // Unused policy boundaries remain observable if the extracted actual method
         // ever changes routing. These methods are not substitutes for production text dispatch.
-        internal void ReportAnnouncerCue(string label) => OnAnnouncerCue?.Invoke(label);
+        internal void ReportAnnouncerCue(ArenaAnnouncerCue cue) => OnAnnouncerCue?.Invoke(cue);
         internal void PublishCombatLabel(string label) => OnCallout?.Invoke(label);
     }
 }

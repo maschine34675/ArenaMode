@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace ArenaMode.Combat;
 
-/// <summary>Text-only presentation for a proven direct own-hand-grenade death.</summary>
+/// <summary>Presentation only for a proven direct own-hand-grenade death.</summary>
 internal static class ArenaSelfGrenadeTaunt
 {
     internal const string Label = "NICE THROW, GENIUS!";
@@ -145,6 +145,7 @@ internal static class ArenaSelfGrenadeTaunt
             // Never ReportKill/ReportLocalDeath: native respawn/scoring ownership
             // and the existing self-kill early return remain unchanged.
             ArenaMatchService.Current.ReportTextCallout(Label);
+            ArenaMatchService.Current.ReportAnnouncerCue(ArenaAnnouncerCue.Embarrassing);
         }
         catch (Exception ex) { Warn(ex); }
     }

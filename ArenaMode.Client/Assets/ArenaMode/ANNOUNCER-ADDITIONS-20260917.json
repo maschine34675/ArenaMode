@@ -1,0 +1,89 @@
+{
+  "title": "ArenaMode announcer additions - 2026-09-17",
+  "source": "alle_ansagen2.ogg",
+  "sourceSha256": "4CB17E7BAC2B3B81EA55828F2E0DB9C4337591F8670B7AAAA0BBBB7104DA1414",
+  "sourceCodec": "Ogg Vorbis",
+  "sampleRate": 44100,
+  "channels": 2,
+  "sourceFrames": 357446,
+  "sourceDurationSeconds": 8.105351473922903,
+  "generator": "ElevenLabs; supplied as a continuation of the user-described Creator announcer pack",
+  "provenance": "The user explicitly described the original alle_ansagen.ogg pack as generated with Creator. This supplementary recording was supplied in the same workflow; no separate generation-plan statement or voice/model details were provided for this file. No independent account verification.",
+  "rights": "Intended for use with ArenaMode. Paid-plan commercial rights apply only if generated during a qualifying paid subscription, subject to applicable ElevenLabs terms and necessary input/voice rights; Beta Services excluded. No Creative Commons/public-domain or unrestricted standalone asset-reuse license asserted. This import does not publish the recordings.",
+  "licenseChecked": "2026-09-17",
+  "licenseSource": "https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform",
+  "termsSource": "https://elevenlabs.io/terms-of-use",
+  "termsSourceEeaUkSwiss": "https://elevenlabs.io/terms-of-use-eu",
+  "processing": "One floating-point decode; contiguous cuts at reviewed inter-phrase pause midpoints; 5 ms fade-in and 10 ms fade-out per clip; uniform -1 dB gain matching the original pack headroom; Vorbis q7, original 44.1 kHz stereo. No pitch, speed, EQ, denoising or individual normalization.",
+  "boundaryReview": "User-provided six-line order confirmed by local offline faster-whisper base.en and waveform inspection. Cuts use -26 dB / 40 ms inter-phrase silence midpoints, not ASR word timestamps. The complete source is covered without gaps or overlaps. No GPU listening test.",
+  "originalPackManifest": "ANNOUNCER-SOURCES.json (46 recordings remain byte-identical)",
+  "encoder": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+  "files": [
+    {
+      "number": 1,
+      "spoken": "TRICKSHOT",
+      "file": "sounds/reserve/trickshot.ogg",
+      "usage": "reserve",
+      "eventKey": null,
+      "startFrame": 0,
+      "endFrameExclusive": 42625,
+      "durationSeconds": 0.9665532879818595,
+      "sha256": "182F3FE36846FB98F4D2B7CE09B5FA4FA8CCE211F589113049F854324DFD38C7"
+    },
+    {
+      "number": 2,
+      "spoken": "NO SCOPE",
+      "file": "sounds/no_scope.ogg",
+      "usage": "active",
+      "eventKey": "no_scope",
+      "startFrame": 42625,
+      "endFrameExclusive": 89881,
+      "durationSeconds": 1.0715646258503402,
+      "sha256": "4AC224CDE5B648C41AB387454C1094992A0E62D6D4FDE04C2E82F6F984ED31C9"
+    },
+    {
+      "number": 3,
+      "spoken": "AIRBORNE",
+      "file": "sounds/airborne.ogg",
+      "usage": "active",
+      "eventKey": "airborne",
+      "startFrame": 89881,
+      "endFrameExclusive": 143661,
+      "durationSeconds": 1.219501133786848,
+      "sha256": "BA266C4A61AA01625F433672E69919BABB4899A5544F44E46BE202401AA1A24B"
+    },
+    {
+      "number": 4,
+      "spoken": "AIR SUPERIORITY",
+      "file": "sounds/reserve/air_superiority.ogg",
+      "usage": "reserve",
+      "eventKey": null,
+      "startFrame": 143661,
+      "endFrameExclusive": 221008,
+      "durationSeconds": 1.7539002267573696,
+      "sha256": "7858DD69F093360890993DECDDAD039F84FAB966FC865AECD770F2A451F0D5D4"
+    },
+    {
+      "number": 5,
+      "spoken": "NO CONTEST",
+      "file": "sounds/no_contest.ogg",
+      "usage": "active",
+      "eventKey": "no_contest",
+      "startFrame": 221008,
+      "endFrameExclusive": 287522,
+      "durationSeconds": 1.5082539682539682,
+      "sha256": "2E17B0F08012EAD93D21F8C73BC3CC35C404AC0D3A0C7756B4C93854A8F0E9F9"
+    },
+    {
+      "number": 6,
+      "spoken": "EMBARRASSING",
+      "file": "sounds/embarrassing.ogg",
+      "usage": "active",
+      "eventKey": "embarrassing",
+      "startFrame": 287522,
+      "endFrameExclusive": 357446,
+      "durationSeconds": 1.585578231292517,
+      "sha256": "76D3A7A67CB52AC9405EC157B044F549EB5BE7015D1E64D4BDC9E205AF4E67FD"
+    }
+  ]
+}

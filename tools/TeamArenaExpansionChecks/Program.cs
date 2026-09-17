@@ -1108,6 +1108,39 @@ internal static class Program
         AnnouncerAssetContract.Validate(assets, manifest);
         Assert(true, "unmodified announcer manifest still passes after negative controls");
 
+        // The 2026-09-17 supplement carries its own record; the coverage check
+        // above leans on it, so it is reviewed here too and not merely trusted.
+        var additions = AnnouncerAssetContract.ReadAdditions(assets);
+        AnnouncerAssetContract.ValidateAdditions(assets, additions);
+        JsonObject Addition(JsonObject pack, string path) => pack["files"]!.AsArray()
+            .Select(row => row!.AsObject()).Single(row => row["file"]?.GetValue<string>() == path);
+        var additionFaults = new (string Name, Action<JsonObject> Change, string Failure)[]
+        {
+            ("addition hash", pack => Addition(pack, "sounds/no_contest.ogg")["sha256"] = new string('0', 64),
+                "addition checksum differs"),
+            ("addition promoted out of reserve", pack => Addition(pack, "sounds/reserve/trickshot.ogg")["usage"] = "active",
+                "wrong addition loading scope"),
+            ("addition renamed to an original", pack => Addition(pack, "sounds/no_contest.ogg")["file"] = "sounds/godlike.ogg",
+                "addition event/file mapping differs"),
+            ("addition event drift", pack => Addition(pack, "sounds/airborne.ogg")["eventKey"] = "trickshot",
+                "addition event/file mapping differs"),
+            ("reserve addition given an event", pack => Addition(pack, "sounds/reserve/air_superiority.ogg")["eventKey"] = "air_superiority",
+                "reserve addition has an event"),
+            ("addition dropped", pack => pack["files"]!.AsArray().RemoveAt(0), "addition cue set differs"),
+            ("addition provenance", pack => pack["rights"] = " ", "missing addition provenance: rights"),
+        };
+        foreach (var fault in additionFaults)
+        {
+            var copy = (JsonObject)additions.DeepClone();
+            fault.Change(copy);
+            bool rejected = false;
+            try { AnnouncerAssetContract.ValidateAdditions(assets, copy); }
+            catch (InvalidDataException ex) { rejected = ex.Message.Contains(fault.Failure, StringComparison.Ordinal); }
+            Assert(rejected, "current announcer addition contract rejects " + fault.Name);
+        }
+        AnnouncerAssetContract.ValidateAdditions(assets, additions);
+        Assert(true, "unmodified addition manifest still passes after negative controls");
+
         string[] loaded = AnnouncerCueCatalog.LoadPaths(Path.Combine(assets, "sounds"));
         AnnouncerAssetContract.ValidateLoadedPaths(assets, loaded);
         Assert(true, "production loader selects the exact 18 original plus 19 explicitly bound reserve files");
@@ -1150,7 +1183,9 @@ internal static class Program
             catch (InvalidDataException ex) { rejected = ex.Message.Contains(fault.Failure, StringComparison.Ordinal); }
             Assert(rejected, "runtime loader contract rejects " + fault.Name);
         }
-        Console.WriteLine($"ANNOUNCER_ASSET_CONTRACT_PASSED: 46 hashes; 18 active, 19 bound reserve, 9 unbound; {faults.Length} manifest + {loadedFaults.Length} loader negative controls; {lifecycleBindings.Count} production cue mappings");
+        Console.WriteLine($"ANNOUNCER_ASSET_CONTRACT_PASSED: 46 + 6 hashes; 18 + 4 active, 19 bound reserve, 9 + 2 unbound; "
+            + $"{faults.Length} manifest + {additionFaults.Length} addition + {loadedFaults.Length} loader negative controls; "
+            + $"{lifecycleBindings.Count} production cue mappings");
     }
 
     private static void CheckSourceContract()
@@ -2189,7 +2224,9 @@ internal static class Program
                && failedRebind.Contains("_authorizedDeadTeamPlayer = null", StringComparison.Ordinal)
                && failedRebind.Contains("_teamRespawnAuthorizationConsumed = false", StringComparison.Ordinal)
                && !failedRebind.Contains("TeamArenaRoundPolicy.Evaluate(", StringComparison.Ordinal)
-               && !failedRebind.Contains("ReportAnnouncerCue", StringComparison.Ordinal)
+               && failedRebind.Contains("ReportAnnouncerCue(ArenaAnnouncerCue.NoContest)", StringComparison.Ordinal)
+               && !failedRebind.Contains("ArenaAnnouncerCue.MatchWon", StringComparison.Ordinal)
+               && !failedRebind.Contains("ArenaAnnouncerCue.MatchLost", StringComparison.Ordinal)
                && !failedRebind.Contains("RoundsWon =", StringComparison.Ordinal)
                && !failedRebind.Contains("RoundsLost =", StringComparison.Ordinal),
             "a failed rebuild cancels detached follower work and respawn authority before ending no-contest without double scoring");

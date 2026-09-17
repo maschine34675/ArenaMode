@@ -14,8 +14,8 @@ internal static partial class Program
 
     private static void ShotAwards()
     {
-        foreach (var facts in new[] { (Air: true, Bolt: false, Label: "TRICKSHOT"),
-            (Air: false, Bolt: true, Label: "NO SCOPE"), (Air: true, Bolt: true, Label: "TRICKSHOT") })
+        foreach (var facts in new[] { (Air: true, Bolt: false, Label: "AIRBORNE"),
+            (Air: false, Bolt: true, Label: "NO SCOPE"), (Air: true, Bolt: true, Label: "AIRBORNE") })
         {
             var s = New();
             s.Match.ReportKill(Kill("other", 30)); // consume First Blood without a local chain
@@ -58,7 +58,7 @@ internal static partial class Program
             if (invalid == "ineligible") shot.AwardEligible = false;
             if (invalid == "not-scored") shot.ScoreEligible = false;
             s.Match.ReportKill(shot);
-            Check(!s.Labels.Contains("TRICKSHOT") && !s.Labels.Contains("NO SCOPE"), "shot awards retain admission guard: " + invalid);
+            Check(!s.Labels.Contains("AIRBORNE") && !s.Labels.Contains("NO SCOPE"), "shot awards retain admission guard: " + invalid);
         }
         var unknown = New(); unknown.Match.ReportKill(Kill("other", 30)); unknown.Match.ReportKill(Shot(false, false));
         Check(unknown.Labels.SequenceEqual(new[] { "HEADSHOT" }), "unknown shot-time facts retain ordinary headshot fallback");

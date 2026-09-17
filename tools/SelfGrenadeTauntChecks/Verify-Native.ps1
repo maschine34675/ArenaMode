@@ -71,5 +71,5 @@ Assert-Taunt ((Get-TauntMethod $hud 'public static void Detach()').Contains('_ma
 Assert-Taunt (!$audio.Contains('OnTextCallout')) 'announcer does not subscribe to text event'
 Assert-Taunt ((Get-TauntMethod $match 'internal void BeginAwardRound(').Contains('ArenaShotAwardHistory.Reset();')) 'existing award round epoch invalidates thrown origins'
 $observeDeath = Get-TauntMethod $taunt 'internal static void ObserveDeath('
-Assert-Taunt ($observeDeath.Contains('ReportTextCallout(Label)') -and !($observeDeath -match '\.ReportKill\(|\.ReportLocalDeath\(|\.ReportAnnouncerCue\(')) 'taunt dispatch never calls scoring death or speech routes'
+Assert-Taunt ($observeDeath.Contains('ReportTextCallout(Label)') -and $observeDeath.Contains('ReportAnnouncerCue(ArenaAnnouncerCue.Embarrassing)') -and !($observeDeath -match '\.ReportKill\(|\.ReportLocalDeath\(')) 'taunt dispatch adds only separate Embarrassing speech without scoring or death events'
 Write-Output "SELF_GRENADE_NATIVE_CONTRACT_PASSED: $tauntContractCount native metadata and source wiring assertions; not native runtime proof"

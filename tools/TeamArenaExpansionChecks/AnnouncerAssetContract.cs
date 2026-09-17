@@ -37,8 +37,83 @@ internal static class AnnouncerAssetContract
         ("round_won round_lost victory defeat your_flag_has_been_taken enemy_flag_taken " +
          "flag_dropped flag_returned flag_captured").Split(' '), StringComparer.Ordinal);
 
+    internal const string AdditionsManifest = "ANNOUNCER-ADDITIONS-20260917.json";
+
+    // The 2026-09-17 supplement, reviewed here independently of its own Python
+    // verifier and of the production catalog. It is a SEPARATE manifest because
+    // the original 46 recordings and their record must stay byte-identical, so
+    // the folder-coverage check below is the union of the two.
+    private static readonly HashSet<string> AdditionActiveKeys = new(
+        "no_scope airborne no_contest embarrassing".Split(' '), StringComparer.Ordinal);
+
+    // Recorded but deliberately not wired: absent from the production reserve
+    // allowlist, so the runtime loader must never pick them up.
+    private static readonly HashSet<string> AdditionReserveKeys = new(
+        "trickshot air_superiority".Split(' '), StringComparer.Ordinal);
+
     internal static JsonObject Read(string assets)
         => JsonNode.Parse(File.ReadAllText(Path.Combine(assets, "ANNOUNCER-SOURCES.json")))!.AsObject();
+
+    internal static JsonObject ReadAdditions(string assets)
+        => JsonNode.Parse(File.ReadAllText(Path.Combine(assets, AdditionsManifest)))!.AsObject();
+
+    /// <summary>
+    /// The supplement's own record: provenance, exactly the six reviewed
+    /// destinations, and a hash per file. Deliberately not a re-implementation
+    /// of verify_additions.py's audio decoding — this layer answers "is the
+    /// installed set the reviewed set", which is what the coverage check leans on.
+    /// </summary>
+    internal static void ValidateAdditions(string assets, JsonObject manifest)
+    {
+        foreach (string field in new[] { "source", "generator", "rights", "licenseChecked", "licenseSource", "termsSource" })
+            Require(!string.IsNullOrWhiteSpace(manifest[field]?.GetValue<string>()), "missing addition provenance: " + field);
+        Require(Regex.IsMatch(manifest["sourceSha256"]?.GetValue<string>() ?? "", @"\A[0-9A-Fa-f]{64}\z"),
+            "invalid addition source fingerprint");
+        foreach (string field in new[] { "licenseSource", "termsSource" })
+            Require(Uri.TryCreate(manifest[field]!.GetValue<string>(), UriKind.Absolute, out var uri)
+                && uri.Scheme == Uri.UriSchemeHttps, "invalid addition provenance URL: " + field);
+
+        var active = new HashSet<string>(StringComparer.Ordinal);
+        var reserve = new HashSet<string>(StringComparer.Ordinal);
+        var rows = manifest["files"]!.AsArray();
+        foreach (var node in rows)
+        {
+            var row = node!.AsObject();
+            string path = row["file"]!.GetValue<string>();
+            Require(Regex.IsMatch(path, @"\Asounds/(?:reserve/)?[a-z0-9_]+\.ogg\z"), "unsafe addition path");
+            string basename = Path.GetFileNameWithoutExtension(path);
+            bool isActive = row["usage"]!.GetValue<string>() == "active";
+            Require(isActive == !path.StartsWith("sounds/reserve/", StringComparison.Ordinal),
+                "wrong addition loading scope");
+            Require(!string.IsNullOrWhiteSpace(row["spoken"]?.GetValue<string>()), "missing addition spoken label");
+            if (isActive)
+            {
+                Require(row["eventKey"]?.GetValue<string>() == basename, "addition event/file mapping differs");
+                Require(active.Add(basename), "duplicate addition cue");
+            }
+            else
+            {
+                Require(row["eventKey"] == null, "reserve addition has an event");
+                Require(reserve.Add(basename), "duplicate addition reserve cue");
+            }
+
+            string file = Path.Combine(assets, path.Replace('/', Path.DirectorySeparatorChar));
+            Require(File.Exists(file) && new FileInfo(file).Length > 0, "missing or empty addition: " + path);
+            using var stream = File.OpenRead(file);
+            Require(string.Equals(Convert.ToHexString(SHA256.HashData(stream)), row["sha256"]?.GetValue<string>(),
+                StringComparison.OrdinalIgnoreCase), "addition checksum differs: " + path);
+        }
+
+        Require(rows.Count == 6 && active.SetEquals(AdditionActiveKeys) && reserve.SetEquals(AdditionReserveKeys),
+            "addition cue set differs");
+        // An addition may never shadow or replace one of the original 46.
+        Require(!active.Overlaps(ActiveKeys) && !reserve.Overlaps(ReserveRuntimeBindings.Keys),
+            "addition collides with the original pack");
+    }
+
+    private static IEnumerable<string> AdditionPaths()
+        => AdditionActiveKeys.Select(key => "sounds/" + key + ".ogg")
+            .Concat(AdditionReserveKeys.Select(key => "sounds/reserve/" + key + ".ogg"));
 
     internal static void Validate(string assets, JsonObject manifest)
     {
@@ -106,7 +181,11 @@ internal static class AnnouncerAssetContract
         Require(runtimeKeys.SetEquals(ReserveRuntimeBindings.Keys) && unbound == 9, "runtime/unbound reserve cue set differs");
         var actual = Directory.GetFiles(Path.Combine(assets, "sounds"), "*.ogg", SearchOption.AllDirectories)
             .Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/'));
-        Require(paths.SetEquals(actual), "missing or unrecorded cue files");
+        // Coverage spans both records: an installed file recorded in neither is
+        // still an unrecorded cue, which is the property this protects.
+        var recorded = new HashSet<string>(paths, StringComparer.OrdinalIgnoreCase);
+        recorded.UnionWith(AdditionPaths());
+        Require(recorded.SetEquals(actual), "missing or unrecorded cue files");
     }
 
     internal static void ValidateLoadedPaths(string assets, IReadOnlyList<string> files)
@@ -114,8 +193,11 @@ internal static class AnnouncerAssetContract
         var paths = files.Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/')).ToArray();
         Require(paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() == paths.Length, "duplicate runtime load path");
         var expected = new HashSet<string>(ActiveKeys.Select(key => "sounds/" + key + ".ogg"), StringComparer.Ordinal);
+        expected.UnionWith(AdditionActiveKeys.Select(key => "sounds/" + key + ".ogg"));
         expected.UnionWith(ReserveRuntimeBindings.Keys.Select(key => "sounds/reserve/" + key + ".ogg"));
-        Require(expected.SetEquals(paths) && paths.Length == 37, "runtime loaded cue set differs");
+        // 18 original active + 4 reviewed additions + 19 bound reserve. The two
+        // reserve additions are absent from the allowlist and must stay unloaded.
+        Require(expected.SetEquals(paths) && paths.Length == 41, "runtime loaded cue set differs");
     }
 
     private static void Require(bool condition, string problem)

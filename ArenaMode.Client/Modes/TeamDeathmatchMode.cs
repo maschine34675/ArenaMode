@@ -516,6 +516,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         string state = DescribeState();
         _population?.Stop();
         Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason + "; " + state);
+        if (!HasResult) _match?.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
         ArenaToasts.Show("TEAM DM stopped: " + reason);
     }
 

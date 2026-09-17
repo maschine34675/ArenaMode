@@ -17,7 +17,7 @@ internal static partial class Program
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         int logStart = Plugin.ModLogger.Messages.Count;
-        foreach (string label in new[] { "TRICKSHOT", "NO SCOPE", "TRICKSHOT", "NO SCOPE" })
+        foreach (string label in new[] { "AIRBORNE", "NO SCOPE", "AIRBORNE", "NO SCOPE" })
         {
             int before = sounds.PlayRequests.Count;
             match.Callout(label);
@@ -25,17 +25,17 @@ internal static partial class Program
                 "Missing shot recordings use Godlike exactly once while preserving logical awards: " + label);
             Time.realtimeSinceStartup += 3;
         }
-        foreach (string key in new[] { "trickshot", "no_scope" })
+        foreach (string key in new[] { "airborne", "no_scope" })
             Assert(Plugin.ModLogger.Messages.Skip(logStart).Count(line => line.Contains("provisional recording: '" + key + "'")) == 1,
                 "Provisional recording diagnostics are bounded per logical key and match: " + key);
 
         foreach (var scenario in new[] {
             (First: "NO SCOPE", Second: "KILLING SPREE", Winner: "no_scope", Clip: "godlike"),
             (First: "KILLING SPREE", Second: "NO SCOPE", Winner: "no_scope", Clip: "godlike"),
-            (First: "TRICKSHOT", Second: "NO SCOPE", Winner: "trickshot", Clip: "godlike"),
-            (First: "NO SCOPE", Second: "TRICKSHOT", Winner: "trickshot", Clip: "godlike"),
-            (First: "TRICKSHOT", Second: "TRIPLE KILL", Winner: "triple_kill", Clip: "triple_kill"),
-            (First: "TRIPLE KILL", Second: "TRICKSHOT", Winner: "triple_kill", Clip: "triple_kill") })
+            (First: "AIRBORNE", Second: "NO SCOPE", Winner: "airborne", Clip: "godlike"),
+            (First: "NO SCOPE", Second: "AIRBORNE", Winner: "airborne", Clip: "godlike"),
+            (First: "AIRBORNE", Second: "TRIPLE KILL", Winner: "triple_kill", Clip: "triple_kill"),
+            (First: "TRIPLE KILL", Second: "AIRBORNE", Winner: "triple_kill", Clip: "triple_kill") })
         {
             AnnouncerService.Attach(match);
             match.Cue(ArenaAnnouncerCue.RoundStart);
@@ -51,10 +51,10 @@ internal static partial class Program
                     "Godlike fallback retains the selected logical priority: " + scenario.Winner);
         }
         // Future user-supplied root files follow the existing decoder/cache path.
-        AddClip(pluginDir, "trickshot"); AddClip(pluginDir, "no_scope");
+        AddClip(pluginDir, "airborne"); AddClip(pluginDir, "no_scope");
         AnnouncerService.EnsureLoaded();
         PumpShotClips(context, invalidNoScope: true);
-        foreach (var expected in new[] { (Label: "TRICKSHOT", Clip: "trickshot"), (Label: "NO SCOPE", Clip: "godlike") })
+        foreach (var expected in new[] { (Label: "AIRBORNE", Clip: "airborne"), (Label: "NO SCOPE", Clip: "godlike") })
         {
             AnnouncerService.Attach(match); int before = sounds.PlayRequests.Count;
             match.Callout(expected.Label);
@@ -66,26 +66,26 @@ internal static partial class Program
         Assert(sounds.PlayRequests[^1].Clip.Name == "no_scope", "A repaired optional root recording replaces Godlike on a later normal load");
 
         AnnouncerService.Attach(match);
-        var oldTrick = sounds.PlayRequests.Last(play => play.Clip.Name == "trickshot").Clip;
+        var oldTrick = sounds.PlayRequests.Last(play => play.Clip.Name == "airborne").Clip;
         oldTrick.SimulateAudioReset(); AudioClip.NextCreatedGetDataResult = false;
-        int plays = sounds.PlayRequests.Count; match.Callout("TRICKSHOT");
+        int plays = sounds.PlayRequests.Count; match.Callout("AIRBORNE");
         Assert(sounds.PlayRequests.Count == plays + 1 && sounds.PlayRequests[^1].Clip.Name == "godlike",
             "Failed custom runtime reconstruction uses one provisional recording");
-        AnnouncerService.Attach(match); match.Callout("TRICKSHOT");
-        Assert(sounds.PlayRequests[^1].Clip.Name == "trickshot", "Recovered custom PCM regains precedence on the next eligible award");
+        AnnouncerService.Attach(match); match.Callout("AIRBORNE");
+        Assert(sounds.PlayRequests[^1].Clip.Name == "airborne", "Recovered custom PCM regains precedence on the next eligible award");
 
         foreach (int mute in new[] { 0, 1 })
         {
             AnnouncerService.Attach(match); plays = sounds.PlayRequests.Count;
             if (mute == 0) Settings.AnnouncerEnabled.Value = false;
             else Settings.AnnouncerVolume.Value = 0;
-            match.Callout("TRICKSHOT"); match.Callout("NO SCOPE");
+            match.Callout("AIRBORNE"); match.Callout("NO SCOPE");
             Assert(sounds.PlayRequests.Count == plays, "Logical shot awards preserve enable and volume guards: " + mute);
             Settings.AnnouncerEnabled.Value = true; Settings.AnnouncerVolume.Value = .37f;
         }
         AnnouncerService.Attach(match); logStart = Plugin.ModLogger.Messages.Count;
         sounds.ThrowOnPlay = true;
-        try { match.Callout("TRICKSHOT"); }
+        try { match.Callout("AIRBORNE"); }
         finally { sounds.ThrowOnPlay = false; }
         Assert(!Plugin.ModLogger.Messages.Skip(logStart).Any(line => line.Contains("'godlike'")),
             "Native output rejection cannot trigger a second provisional playback attempt");

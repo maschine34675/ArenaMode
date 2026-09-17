@@ -31,6 +31,32 @@ Processing: split in reviewed pauses; 5 ms fade-in and 10 ms fade-out; uniform
 stereo retained. No pitch/speed/EQ/denoising or individual loudness normalization.
 Titles identify each spoken line and metadata points to this provenance record.
 
+## Creator announcer supplement (2026-09-17)
+
+Six further recordings were supplied by the user as `alle_ansagen2.ogg`, in the
+same workflow and on the same stated Creator account; no separate generation
+plan or voice/model statement was given for this file, and no account
+verification was performed. The rights position and the region-specific terms
+above therefore apply unchanged, and nothing here asserts a Creative Commons,
+public-domain or standalone asset-reuse grant.
+
+Four are wired: `no_scope`, `airborne`, `no_contest` and `embarrassing`. Two —
+`trickshot` and `air_superiority` — are recorded but deliberately not wired, so
+they live in `sounds/reserve/` outside the runtime allowlist and are never
+loaded. `airborne` replaces the former TRICKSHOT award label, whose recording is
+the now-reserve `trickshot`.
+
+The original 46 recordings and [ANNOUNCER-SOURCES.json](ANNOUNCER-SOURCES.json)
+are byte-identical; the supplement keeps its own record in
+[ANNOUNCER-ADDITIONS-20260917.json](ANNOUNCER-ADDITIONS-20260917.json), with the
+source fingerprint, exact frame cuts and a hash per clip. Processing matches the
+original pack: reviewed inter-phrase cuts, 5 ms fade-in, 10 ms fade-out, uniform
+-1 dB gain, Ogg Vorbis quality 7 at the original 44.1 kHz stereo, no pitch,
+speed, EQ, denoising or individual normalization. Boundaries were confirmed by
+local offline transcription and waveform inspection rather than ASR word
+timestamps; no listening test was performed. `tools/AnnouncerAssetAdditions/`
+holds the splitter and the verifier that re-checks both records.
+
 ## Superseded announcer sources
 
 [HISTORICAL-AUDIO-LICENSES.md](HISTORICAL-AUDIO-LICENSES.md) preserves the former

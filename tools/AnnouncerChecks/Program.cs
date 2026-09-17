@@ -56,6 +56,7 @@ internal static partial class Program
             ArenaMatch.SpaceEvents = true;
             VerifyExpansion(pluginDir, context);
             VerifyShotAwards(pluginDir, context);
+            VerifySixCues(pluginDir, context);
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;

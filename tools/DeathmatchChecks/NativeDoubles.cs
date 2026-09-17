@@ -71,7 +71,8 @@ namespace ArenaMode.Combat
         public string KillerProfileId, KillerName, VictimProfileId;
         public bool KilledByLocal, LocalIsVictim, ScoreEligible = true;
     }
-    public enum ArenaAnnouncerCue { MatchWon, MatchLost }
+    // Only the cues RoundsMode dispatches; NoContest joined them on 2026-09-17.
+    public enum ArenaAnnouncerCue { MatchWon, MatchLost, NoContest }
     public static class ArenaToasts { public static void Show(string value) { } }
     public static class ArenaProtection
     {

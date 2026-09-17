@@ -1,4 +1,5 @@
-param([Parameter(Mandatory=$true)][string]$BuildManifest, [string]$SptRoot='D:\SPT41')
+param([Parameter(Mandatory=$true)][string]$BuildManifest, [string]$SptRoot='D:\SPT41',
+    [string]$AdditionalAudioManifest)
 $ErrorActionPreference = 'Stop'
 $deliveryRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $deliveryGame = (Resolve-Path -LiteralPath $SptRoot).Path
@@ -38,6 +39,28 @@ foreach ($name in @('ANNOUNCER-PACK.md','ANNOUNCER-SOURCES.json','AUDIO-LICENSES
     $deliveryPairs += @{ Source=(Join-Path $deliveryRepo ('ArenaMode.Client/Assets/ArenaMode/'+$name)); Target=(Join-Path $deliveryGame ('BepInEx/plugins/ArenaMode/'+$name)) }
 }
 $deliveryPairs += @{ Source=$deliveryDll; Target=$deliveryClient }
+# Optional, reviewed additions travel with their provenance in the same guarded
+# transaction as the client. Never copy an entire plugin folder or user drafts.
+if ($AdditionalAudioManifest) {
+    $assetRoot = [IO.Path]::GetFullPath((Join-Path $deliveryRepo 'ArenaMode.Client/Assets/ArenaMode'))
+    if ($AdditionalAudioManifest -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]*\.json$') {
+        throw 'AdditionalAudioManifest must be a JSON filename inside the tracked audio asset folder'
+    }
+    $manifestSource = Join-Path $assetRoot $AdditionalAudioManifest
+    $audioAdditions = Get-Content -LiteralPath $manifestSource -Raw | ConvertFrom-Json
+    if (@($audioAdditions.files).Count -eq 0) { throw 'Additional audio manifest has no files' }
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($entry in $audioAdditions.files) {
+        $relative = [string]$entry.file
+        if ($relative -cnotmatch '^sounds/(reserve/)?[a-z0-9_]+\.ogg$' -or !$seen.Add($relative)) {
+            throw "Invalid or duplicate additional audio destination: $relative"
+        }
+        $source = Join-Path $assetRoot $relative
+        if ((Get-FileHash -LiteralPath $source).Hash -ne $entry.sha256) { throw "Additional audio hash differs: $relative" }
+        $deliveryPairs += @{ Source=$source; Target=(Join-Path $deliveryGame ('BepInEx/plugins/ArenaMode/'+$relative)) }
+    }
+    $deliveryPairs += @{ Source=$manifestSource; Target=(Join-Path $deliveryGame ('BepInEx/plugins/ArenaMode/'+$AdditionalAudioManifest)) }
+}
 function Read-Inventory {
     # Include every plugin DLL and all Arena package files; user survey drafts
     # are deliberately outside deployment. No folder replacement or deletion.
@@ -56,23 +79,30 @@ $index = 0
 foreach ($pair in $deliveryPairs) {
     $pair.Backup = Join-Path $deliveryStage ('backup-'+$index+'-'+[IO.Path]::GetFileName($pair.Target))
     $pair.SHA256 = (Get-FileHash -LiteralPath $pair.Source).Hash
-    # All four destinations already exist. Prove each is writable before the
-    # first mutation; a running process may keep the old DLL locked.
-    $handle = [IO.File]::Open($pair.Target, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-    $handle.Dispose()
-    Copy-Item -LiteralPath $pair.Target -Destination $pair.Backup
-    if ((Get-FileHash -LiteralPath $pair.Backup).Hash -ne $deliveryBefore[$pair.Target]) { throw 'Backup hash mismatch' }
+    $pair.Existed = Test-Path -LiteralPath $pair.Target -PathType Leaf
+    # Check all existing destinations before the first file mutation. Newly
+    # added recordings only target the already installed sounds/reserve folders.
+    if ($pair.Existed) {
+        $handle = [IO.File]::Open($pair.Target, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        $handle.Dispose()
+        Copy-Item -LiteralPath $pair.Target -Destination $pair.Backup
+        if ((Get-FileHash -LiteralPath $pair.Backup).Hash -ne $deliveryBefore[$pair.Target]) { throw 'Backup hash mismatch' }
+    } elseif (!(Test-Path -LiteralPath ([IO.Path]::GetDirectoryName($pair.Target)) -PathType Container)) {
+        throw "Additional audio destination folder is missing: $($pair.Target)"
+    }
     $index++
 }
 $deliveryChanged = @()
 try {
     foreach ($pair in $deliveryPairs) {
+        if (!$pair.Existed -and (Test-Path -LiteralPath $pair.Target)) { throw 'A new destination appeared during deployment' }
         $deliveryChanged += $pair
         Copy-Item -LiteralPath $pair.Source -Destination $pair.Target -Force
         if ((Get-FileHash -LiteralPath $pair.Target).Hash -ne $pair.SHA256) { throw "Copied artifact mismatch: $($pair.Target)" }
     }
     $deliveryAfter = Read-Inventory
-    if ($deliveryBefore.Count -ne $deliveryAfter.Count) { throw 'Installed inventory changed unexpectedly' }
+    $newCount = @($deliveryPairs | Where-Object { !$_.Existed }).Count
+    if ($deliveryBefore.Count + $newCount -ne $deliveryAfter.Count) { throw 'Installed inventory changed unexpectedly' }
     $targets = @($deliveryPairs | ForEach-Object Target)
     foreach ($path in $deliveryBefore.Keys) {
         if (!$deliveryAfter.ContainsKey($path)) { throw "Installed inventory path disappeared: $path" }
@@ -82,7 +112,7 @@ try {
     $deliveryRecord = [ordered]@{
         SourceCommit=$deliveryCommit; ProductVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($deliveryClient).ProductVersion;
         Deployed=$true; LiveGpuTested=$false; GpuMirrorVerified=$false; DateUtc=[DateTime]::UtcNow.ToString('o');
-        SptRoot=$deliveryGame; Files=$deliveryPairs; InstalledUnchangedCount=($deliveryBefore.Count-$deliveryPairs.Count);
+        SptRoot=$deliveryGame; Files=$deliveryPairs; InstalledUnchangedCount=($deliveryBefore.Count-($deliveryPairs.Count-$newCount));
         InstalledUnchanged=@{ $deliveryCore=$deliveryAfter[$deliveryCore]; $deliveryServer=$deliveryAfter[$deliveryServer] };
         ExternalBuildSources=$deliveryBuild.ExternalBuildSources; EvidenceDirectory=$deliveryStage
     }
@@ -96,6 +126,18 @@ try {
     for ($i = $deliveryChanged.Count - 1; $i -ge 0; $i--) {
         $pair = $deliveryChanged[$i]
         try {
+            if (!$pair.Existed) {
+                # Remove only this transaction's new file, never a concurrent
+                # replacement, and never a directory or computed outside path.
+                $assetTargetRoot = [IO.Path]::GetFullPath((Join-Path $deliveryGame 'BepInEx/plugins/ArenaMode')) + [IO.Path]::DirectorySeparatorChar
+                $resolvedTarget = [IO.Path]::GetFullPath($pair.Target)
+                if (!$resolvedTarget.StartsWith($assetTargetRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe rollback destination' }
+                if (Test-Path -LiteralPath $resolvedTarget -PathType Leaf) {
+                    if ((Get-FileHash -LiteralPath $resolvedTarget).Hash -ne $pair.SHA256) { throw 'New destination changed; not removing it' }
+                    Remove-Item -LiteralPath $resolvedTarget
+                }
+                continue
+            }
             $originalHash = $deliveryBefore[$pair.Target]
             $currentHash = if (Test-Path -LiteralPath $pair.Target -PathType Leaf) { (Get-FileHash -LiteralPath $pair.Target).Hash } else { $null }
             if ($currentHash -ne $originalHash) {

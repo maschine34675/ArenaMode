@@ -12,5 +12,6 @@
     <Compile Include="$(TauntSourceRoot)/ArenaHitHistory.cs" Link="Production/ArenaHitHistory.cs"/>
     <Compile Include="$(TauntSourceRoot)/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs"/>
     <Compile Include="$(MatchTextSource)" Link="Production/ArenaMatch.Text.cs"/>
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs"/>
   </ItemGroup>
 </Project>

@@ -32,6 +32,7 @@ public sealed class ArenaMatch
     private float _lastLocalKillAt = float.NegativeInfinity;
     private int _multiKillChain;
     private readonly ArenaCombatAwards _awards = new();
+    private bool _noContestAnnounced;
 
     /// <summary>Every captured kill (local and observed), after bookkeeping.</summary>
     public event Action<ArenaKill> OnKill;
@@ -183,6 +184,14 @@ public sealed class ArenaMatch
 
     internal void ReportAnnouncerCue(ArenaAnnouncerCue cue, bool beginAwardRound = true)
     {
+        // A technical terminal outcome may be reported by several teardown
+        // paths. It is presentation only, once per match, never a scored result.
+        if (cue == ArenaAnnouncerCue.NoContest)
+        {
+            if (_noContestAnnounced) return;
+            _noContestAnnounced = true;
+            _awards.InvalidateClutch();
+        }
         // Solo Tactical resets before dispatch: early kills may precede the
         // audible readiness cue, which must not erase their awards or chain.
         if (cue == ArenaAnnouncerCue.RoundStart && beginAwardRound) BeginAwardRound();

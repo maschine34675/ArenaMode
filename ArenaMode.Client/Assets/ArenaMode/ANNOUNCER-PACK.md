@@ -11,7 +11,8 @@ MISSION FAILED, MISSION ACCOMPLISHED and GAME OVER remain the current result
 phrases. ROUND WON/LOST and VICTORY/DEFEAT are alternatives kept in reserve.
 As of 2026-09-14, **19 additional phrases** have explicit runtime triggers in
 existing modes: 37 recordings can play; four alternate results and five CTF lines
-remain unused. The loader reads the root plus an explicit reserve whitelist, never
+remain unused. The 2026-09-17 supplement below adds four more, for 41. The loader
+reads the root plus an explicit reserve whitelist, never
 a recursive scan. Root custom overrides still win. See
 [ANNOUNCER-EXPANSION-REVIEW.md](../../../ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
 
@@ -71,6 +72,35 @@ encoding headroom. 44.1 kHz stereo Vorbis q7 minimizes another encoding loss.
 | 44 | FLAG DROPPED | `sounds/reserve/flag_dropped.ogg` | reserve |
 | 45 | FLAG RETURNED | `sounds/reserve/flag_returned.ogg` | reserve |
 | 46 | FLAG CAPTURED | `sounds/reserve/flag_captured.ogg` | reserve |
+
+## 2026-09-17 supplement
+
+Six further phrases from the user's `alle_ansagen2.ogg` (8.105351 seconds), kept
+in their own record so the 46 above stay byte-identical. Rights and processing:
+[AUDIO-LICENSES.md](AUDIO-LICENSES.md),
+[ANNOUNCER-ADDITIONS-20260917.json](ANNOUNCER-ADDITIONS-20260917.json).
+
+| # | Phrase | File | Usage |
+|---|---|---|---|
+| 1 | TRICKSHOT | `sounds/reserve/trickshot.ogg` | reserve |
+| 2 | NO SCOPE | `sounds/no_scope.ogg` | active |
+| 3 | AIRBORNE | `sounds/airborne.ogg` | active |
+| 4 | AIR SUPERIORITY | `sounds/reserve/air_superiority.ogg` | reserve |
+| 5 | NO CONTEST | `sounds/no_contest.ogg` | active |
+| 6 | EMBARRASSING | `sounds/embarrassing.ogg` | active |
+
+The four active files raise the loadable set to **41**. `AIRBORNE` is the award
+label for an airborne hip-fire kill, which was previously called TRICKSHOT and
+had no recording; `NO SCOPE` replaces its provisional GODLIKE stand-in.
+`NO CONTEST` is a result cue for a technical end and cancels any queued victory.
+`EMBARRASSING` accompanies the own-hand-grenade death text. The two reserve
+phrases stay outside the runtime whitelist and are never loaded.
+
+```powershell
+python tools/AnnouncerAssetAdditions/split_additions.py 'D:\SPT41\Development\alle_ansagen2.ogg'
+python tools/AnnouncerAssetAdditions/verify_additions.py --assets artifacts/announcer-additions-20260917/pack --negative-controls
+python tools/AnnouncerAssetAdditions/verify_additions.py --negative-controls
+```
 
 ## Reproduction and verification
 
