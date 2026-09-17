@@ -328,7 +328,16 @@ Open:
   objects, 303 ms to count them). Read CORPSE-CLEANUP-REVIEW.md, section
   "Releasing a trimmed corpse", before touching corpse lifetime: the step order
   is load-bearing, own and PitFireTeam bodies are never released, and a body is
-  never destroyed while DynamicMaps still holds its marker.
+  never destroyed while DynamicMaps still holds its marker or while anybody is
+  still owed a death by it. Measured on Labyrinth against a same-evening
+  control raid: the pipeline's growth per raid minute fell from 20.6 to 13.2 ms
+  and the live player-object count from 415 at 23 min to about 63 at 24 min.
+  What is left is dominated by the player's OWN corpses, which are exempt by
+  design. One finding is open — four `Player.ApplyDamageInfo` exceptions per
+  raid out of a grenade explosion, cause not established; the review records
+  the evidence and `ReleaseTrimmedCorpses` turns the whole thing off. The heap
+  still grows to 11 GB without a collection and no longer has a corpse
+  explanation.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded

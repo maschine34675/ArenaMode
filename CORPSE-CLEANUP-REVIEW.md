@@ -245,8 +245,10 @@ This is the one Arena native integration that fails OPEN. If the private
 coroutine table cannot be bound, the entire consequence is one logged native
 exception per affected body and a coroutine that ends itself — a warning, not a
 reason to give up the release. The `leaves-the-trigger-coroutine-running`
-control covers the ordering. The confirmation raid (15:25, 132 trimmed, 119
-released) logged **zero**, against 16-18 in every raid before it.
+control covers the ordering. The two raids after the fix logged zero and one,
+against 16-18 in every raid before it. The one that got through is worth
+remembering: the zone list is bound ONCE per raid, at the first release, so a
+zone belonging to a `LocationScene` that was not loaded yet is not in it.
 
 ### Pending aggressors — introduced by the release, now guarded
 
@@ -283,10 +285,10 @@ until then it costs exactly what a hidden body has always cost. It fails
 CLOSED, unlike the trigger-zone retirement, and for the opposite reason: what
 is at stake is a death that never completes.
 
-### Still open: a grenade damaging a body after its release
+### Still open: a grenade explosion that abandons itself
 
-The confirmation raid logged four of a third kind, which the control raid and
-the first release raid did not have:
+Both raids after the trigger fix logged four of a third kind each, which the
+control raid and the first release raid did not have at all:
 
     (wrapper dynamic-method) EFT.Player.DMD<EFT.Player::ApplyDamageInfo>(...)
     BodyPartCollider+PlayerBridge.ApplyDamageInfo (...)
@@ -294,21 +296,47 @@ the first release raid did not have:
     EFT.ExplosionSharedMethods.AffectPlayersShared (...)
     EFT.Grenade.Explosion () / InvokeBlowUpEvent ()
 
-New with the release and not yet explained. `AffectPlayersShared` collects its
-victims from `GetAlivePlayerBridgeByCollider`, so the victim should be alive and
-registered; the likeliest candidate is the aggressor side, because
-`Player.ManageAggressor` resolves it through
-`GameWorld.GetEverExistedPlayerByID` (`29515`) — and `_allPlayersEverExisted` is
-the one table `UnregisterPlayer` never touches, so it can still hand back a
-destroyed body. That is a hypothesis, not a diagnosis; the top frame is inside a
-Harmony-patched `ApplyDamageInfo`, so an Arena prefix is equally possible.
+Not explained, and the evidence does not even settle whether the release causes
+it. The counts across the evening, same mod set throughout except ArenaMode:
 
-Four occurrences in 15 minutes, in a path the health controller catches and
-logs. Pruning `_allPlayersEverExisted` on release was considered and rejected:
-a destroyed `Player` is still perfectly good for the MANAGED reads most of its
-callers do (`Profile`, `Nickname`, `EftStats`), so replacing it with null would
-trade this for a new set of null dereferences. The next step is a diagnostic
-that records which side of the damage is destroyed, not a speculative fix.
+| Raid | release | `CorpseTriggerZones` | `OnDead` | `ApplyDamageInfo` | `TriggerZone` |
+|---|---|---|---|---|---|
+| control, 405 trimmed | no | no | 0 | 0 | 17 |
+| 18:08 session | no | no | 0 | 0 | 18 |
+| 344 released, 24:25 | yes | no | **5** | 0 | 16 |
+| 119 released, 15:25 | yes | yes | 0 | **4** | 0 |
+| 147 released, ~14 min | yes | yes | 0 | **4** | 1 |
+
+So it appears only with the release, but only in the two raids that ALSO have
+the trigger-zone retirement, and there is no mechanism by which stopping a
+coroutine could cause a grenade to fail. Grenade events near a body that has
+just been released are a matter of luck, so four-and-four against zero may
+simply be that.
+
+The consequence is bounded but not nothing: the exception leaves
+`Grenade.Explosion` through its fuse coroutine, which Unity catches and logs,
+so the remaining victims of that one explosion take no damage.
+
+The leading hypothesis is the aggressor side. `AffectPlayersShared` collects
+victims from `GetAlivePlayerBridgeByCollider`, so the victim should be alive and
+registered, whereas `Player.ManageAggressor` resolves the attacker through
+`GameWorld.GetEverExistedPlayerByID` (`EFT/Player.cs:29515`) — and
+`_allPlayersEverExisted` is the one table `UnregisterPlayer` never touches, so
+it can still hand back a destroyed body. Against that: the destroyed body
+compares equal to null under Unity's operator, which sends that code down its
+own null branch, and the null branch only reads managed state. The top frame is
+a Harmony-patched `ApplyDamageInfo` with Arena prefixes on it, so an Arena
+prefix is equally possible; both are unverified.
+
+Pruning `_allPlayersEverExisted` on release was considered and rejected. A
+destroyed `Player` is still perfectly good for the MANAGED reads most of its
+callers make (`Profile`, `Nickname`, `EftStats`), so replacing it with null
+would trade this for a new set of null dereferences in code that is written
+expecting an object. The next step is a diagnostic that records which side of
+the damage is destroyed — not a speculative fix, and not a second guess.
+
+Until then `ReleaseTrimmedCorpses` (Performance, default on) is the off-ramp:
+turning it off restores the old hide-only behaviour exactly.
 
 ## Bounded work per sweep
 
@@ -357,11 +385,45 @@ steps; they do not execute `Player.Dispose`, `PlayerBody.Dispose`,
 `DestroyImmediate` or Harmony. The double `Player.Dispose` (ours, then the one
 `Player.OnDestroy` runs) is argued from the native sequence rather than tested,
 as is the weapon model's pool return. Nothing here proves a frame-time or memory
-improvement; that is the measuring raid, run the same way as 2026-09-17 —
-`python ..\Redeploy\tools\pipeline-timing\analyze.py <log>` over a long
-Labyrinth deathmatch, against the sweep line's own numbers. Note that the
-"active LocalPlayer objects N" probe those numbers came from no longer exists:
-Redeploy.Core 1.0.4 (`9aba783`) removed it because the count itself cost up to
-303 ms. The sweep line reports the same quantity arithmetically instead —
-`player bodies N created / M pooled` from the pool's own counters, minus the
-released total — and no part of it searches the scene.
+improvement. That is the measuring raid.
+
+## Measured result (2026-09-17)
+
+Labyrinth Deathmatch FFA, give up every ~30 s, `python
+..\Redeploy\tools\pipeline-timing\analyze.py <log>`. The before column is
+the control raid of the same evening (Core `1.0.4+9aba783`, KillcamReplay
+0.9.10, ArenaMode `630b098`, 35 respawns); the after column is 37 respawns over
+24:25 on `2c46c84`. Only ArenaMode differs.
+
+| Raid minute | ArenaMode `pipeline` | `rewire.camera` | rest of frame |
+|---|---|---|---|
+| 3 | 0.38 → **0.36 s** | 111 → 104 ms | 225 → 213 ms |
+| 11 | 0.51 → **0.48 s** | 168 → 141 ms | 286 → 284 ms |
+| 20 | 0.73 → **0.58 s** | 239 → 202 ms | 417 → 333 ms |
+| slope per raid minute | 20.6 → **13.2 ms** | 8.8 → 5.8 ms | 11.1 → 7.2 ms |
+
+A third of the remaining growth, then, not all of it — and the two posts that
+carry it fell by a third each. Against the original 2026-09-17 measuring raid,
+before Core 1.0.3/1.0.4 removed their own three sweeps, minute 20 went from
+1.58 s to 0.58 s.
+
+The body population is bounded, which is what this change set out to do. The
+sweep line's own counters, none of which searches the scene: 407 player bodies
+created, 0 pooled, 344 released at 24 min, so about 63 player objects left in
+the scene, against 415 at 23 min in the raid that measured the problem. A later
+raid read 182 created and 147 released at 14 min, about 35 left, against 232 at
+14 min. (The "active LocalPlayer objects N" probe those 415 and 232 came from no
+longer exists — Redeploy.Core 1.0.4 (`9aba783`) removed it because the count
+itself cost up to 303 ms — so the after figures are
+created - pooled - released, the same quantity as arithmetic.)
+
+What is left of the growth is now dominated by the bodies this change
+deliberately does not take away. The 24-minute raid trimmed 379 bodies and
+released 344; the 35 that stayed are the player's own, one per death, and the
+player died 36 times. An ordinary Arena raid does not die once every 40 seconds,
+so this is close to the worst case for the residue — but it does mean the curve
+is not flat, and the own-corpse exemption is the reason.
+
+The heap is unchanged and untouched by this: 1.1 GB to 11.4 GB over the raid
+with `collections` never moving, the same as before. That remains a separate
+open question, and one that no longer has a corpse explanation.
