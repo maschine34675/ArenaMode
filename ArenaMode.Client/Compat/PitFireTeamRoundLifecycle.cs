@@ -63,6 +63,13 @@ internal static class PitFireTeamRoundLifecycle
     private static readonly AccessTools.FieldRef<EftInventory, InventoryEquipment> EquipmentField =
         AccessTools.FieldRefAccess<EftInventory, InventoryEquipment>(nameof(EftInventory.Equipment));
 
+    /// <summary>
+    /// Readonly in the native type, so a field reference is the only way to keep
+    /// a cloned follower's encyclopedia semantics. See TryPreserveEncyclopediaUnsafe.
+    /// </summary>
+    private static readonly AccessTools.FieldRef<Profile, Dictionary<MongoID, bool>> EncyclopediaField =
+        AccessTools.FieldRefAccess<Profile, Dictionary<MongoID, bool>>(nameof(Profile.Encyclopedia));
+
     private static Assembly _assembly;
     private static int _ownerThreadId;
     private static PitFireTeamRoundCapability _capability =
@@ -3995,6 +4002,9 @@ internal static class PitFireTeamRoundLifecycle
                 return false;
             }
 
+            if (!TryPreserveEncyclopediaUnsafe(source, runtime, canonicalProfileId, out reason))
+                return false;
+
             InventoryEquipment clonedEquipment = source.Inventory.Equipment.CloneItem();
             if (clonedEquipment == null)
             {
@@ -4074,6 +4084,70 @@ internal static class PitFireTeamRoundLifecycle
             HistoricalRuntimeItemIds.Add(itemId);
 
         return true;
+    }
+
+    /// <summary>
+    /// Restores the source's "knows everything" encyclopedia on the clone.
+    ///
+    /// Profile.Clone goes through ProfileDescriptor, whose encyclopedia copy
+    /// answers a NULL dictionary with an EMPTY one. Those two are opposites at
+    /// runtime: Profile.Examined(templateId) returns true for null and
+    /// ContainsKey for empty. PitFireTeam's stored teammates ship a null
+    /// encyclopedia, so cloning one silently turned "this bot knows every item"
+    /// into "this bot knows none".
+    ///
+    /// That is invisible for almost everything, because InventoryController
+    /// .Examined short-circuits on Item.ExaminedByDefault, which nearly every
+    /// template sets. For a template that does not — the M60E6 among the measured
+    /// loadouts — the consequence is a silently paralysed follower:
+    /// IsAtReachablePlace requires Examined, Player.TryProceed answers an
+    /// unreachable item by diverting to SetFirstAvailableItem, and a companion
+    /// with no sidearm is handed EFT's default bayonet. A knife takes
+    /// UpdateHandsController's melee branch, which sets Selector.IsWeaponReady but
+    /// never BotWeaponManager.IsReady, and BotOwner.UpdateManual leaves PreActive
+    /// only on the latter. The body then waits out the round with no error at all.
+    ///
+    /// Only the null case is repaired, and only on Arena's own clone: a source
+    /// that already carries entries is copied by the native path correctly, and
+    /// matching the source exactly is what keeps the clone as safe as the original
+    /// that survives round one.
+    /// </summary>
+    private static bool TryPreserveEncyclopediaUnsafe(
+        Profile source,
+        Profile runtime,
+        string canonicalProfileId,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (source.Encyclopedia != null || runtime.Encyclopedia == null)
+            return true;
+
+        if (runtime.Encyclopedia.Count != 0)
+        {
+            reason = $"PFT profile {canonicalProfileId} gained {runtime.Encyclopedia.Count} "
+                     + "encyclopedia entries its source did not have";
+            return false;
+        }
+
+        try
+        {
+            EncyclopediaField(runtime) = null;
+        }
+        catch (Exception ex)
+        {
+            reason = $"PFT profile {canonicalProfileId} could not keep its source encyclopedia: "
+                     + ex.GetBaseException().Message;
+            return false;
+        }
+
+        return runtime.Encyclopedia == null
+               || FailReason(out reason, canonicalProfileId);
+
+        static bool FailReason(out string reason, string profileId)
+        {
+            reason = $"PFT profile {profileId} kept a substituted encyclopedia after the repair";
+            return false;
+        }
     }
 
     private static string CreateUniqueRuntimeProfileIdUnsafe(

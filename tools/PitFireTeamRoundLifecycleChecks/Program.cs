@@ -390,6 +390,103 @@ internal static class Program
             "a blank invocation identity fails the exact seam proof");
     }
 
+    /// <summary>
+    /// Every link of the chain that paralysed an M60 follower, asserted against
+    /// the decompiled game. Arena's repair is only correct while all of them hold,
+    /// and each is a separate BSG-owned behaviour that could change under us.
+    /// </summary>
+    private static void CheckNativeExaminedContract(string root, string source)
+    {
+        static string Decompiled(string root, params string[] parts) => File.ReadAllText(
+            Path.GetFullPath(Path.Combine(new[] { root, "..", "_decompiled" }.Concat(parts).ToArray())));
+
+        // 1. Cloning a profile answers a NULL encyclopedia with an EMPTY one: the
+        //    null branch assigns null and FALLS THROUGH to the new dictionary.
+        string descriptor = Slice(
+            Decompiled(root, "EFT", "ProfileDescriptor.cs"),
+            "Dictionary<MongoID, bool> encyclopedia = profile.Encyclopedia;",
+            "Encyclopedia = (Dictionary<MongoID, bool>)obj;");
+        // The null branch must assign null and NOT jump: only then does it reach
+        // the unconditional substitution below the else.
+        string nullBranch = Slice(descriptor, "if (encyclopedia == null)", "else");
+        Assert(nullBranch.Contains("obj = null;", StringComparison.Ordinal)
+               && !nullBranch.Contains("goto", StringComparison.Ordinal)
+               && descriptor.Contains("obj = new Dictionary<MongoID, bool>();", StringComparison.Ordinal)
+               && descriptor.IndexOf("obj = new Dictionary<MongoID, bool>();", StringComparison.Ordinal)
+                  > descriptor.IndexOf("else", StringComparison.Ordinal),
+            "a cloned profile still substitutes an empty encyclopedia for a null one");
+
+        // 2. Those two are opposites: null examines everything, empty nothing.
+        string examinedByTemplate = Slice(
+            Decompiled(root, "EFT", "Profile.cs"),
+            "public bool Examined(MongoID templateId)",
+            "public void LearnAll()");
+        Assert(examinedByTemplate.Contains("if (Encyclopedia != null)", StringComparison.Ordinal)
+               && examinedByTemplate.Contains("return Encyclopedia.ContainsKey(templateId);", StringComparison.Ordinal)
+               && examinedByTemplate.Contains("return true;", StringComparison.Ordinal),
+            "a null encyclopedia still examines every template while an empty one examines none");
+
+        // 3. Only a template that is not examined by default consults it, which is
+        //    why this hid behind one weapon out of four.
+        string inventoryController = Decompiled(root, "EFT.InventoryLogic", "InventoryController.cs");
+        string examinedByItem = Slice(
+            inventoryController,
+            "public override bool Examined(Item item)",
+            "bool IMalfunctionController.HasKnownMalfunction(Weapon weapon)");
+        Assert(examinedByItem.Contains("if (!item.ExaminedByDefault)", StringComparison.Ordinal)
+               && examinedByItem.Contains("return Profile.Examined(item.TemplateId);", StringComparison.Ordinal),
+            "an item not examined by default still falls through to the profile encyclopedia");
+
+        // 4. Reachability requires it, and 5. an unreachable item is diverted to
+        //    whatever else can be equipped rather than reported.
+        string reachable = Slice(
+            inventoryController,
+            "public bool IsAtReachablePlace(Item item)",
+            "public async Task<bool> method_27(");
+        Assert(reachable.Contains("Examined(item)", StringComparison.Ordinal)
+               && reachable.Contains("MissingVitalParts.Any()", StringComparison.Ordinal)
+               && reachable.Contains("BindAvailableSlotsExtended", StringComparison.Ordinal),
+            "reachability still depends on Examined alongside vital parts and bindable slots");
+        string tryProceed = Slice(
+            Decompiled(root, "EFT", "Player.cs"),
+            "public void TryProceed(Item item, Callback<IHandsController> completeCallback, bool scheduled = true)",
+            "if (HandsController is MedsController medsController && !IsAI)");
+        Assert(tryProceed.Contains("if (!InventoryController.IsAtReachablePlace(item))", StringComparison.Ordinal)
+               && tryProceed.Contains("SetFirstAvailableItem(", StringComparison.Ordinal),
+            "an unreachable item is still diverted to the first available item instead of failing");
+
+        // 6. The substitute is a knife, and the melee branch never sets the flag
+        //    7. that releases PreActive. That is what made it silent and terminal.
+        string updateHands = Slice(
+            Decompiled(root, "BotWeaponManager.cs"),
+            "public void UpdateHandsController(IHandsController handsController, out bool allFine)",
+            "public void UpdateFirearmsController(");
+        Assert(updateHands.Contains("is IKnifeController knifeController", StringComparison.Ordinal)
+               && updateHands.Contains("Melee.UpdateKnifeController(knifeController)", StringComparison.Ordinal)
+               && updateHands.Contains("allFine = true;", StringComparison.Ordinal)
+               && !updateHands.Contains("IsReady = true", StringComparison.Ordinal),
+            "the melee branch still reports success without setting BotWeaponManager.IsReady");
+        Assert(Decompiled(root, "BotMeleeWeaponData.cs")
+                   .Contains("_owner.WeaponManager.Selector.IsWeaponReady = true;", StringComparison.Ordinal),
+            "the melee path still sets only the selector flag, which is the pair Arena observes");
+        Assert(Decompiled(root, "EFT", "BotOwner.cs")
+                   .Contains("else if (BotState == EBotState.PreActive && WeaponManager.IsReady)", StringComparison.Ordinal),
+            "leaving PreActive still requires BotWeaponManager.IsReady");
+
+        // Arena repairs exactly the null case, on its own clone, and refuses a
+        // clone that gained entries rather than quietly discarding them.
+        string preserve = Slice(
+            source,
+            "private static bool TryPreserveEncyclopediaUnsafe(",
+            "private static string CreateUniqueRuntimeProfileIdUnsafe(");
+        Assert(preserve.Contains("if (source.Encyclopedia != null || runtime.Encyclopedia == null)", StringComparison.Ordinal)
+               && preserve.Contains("runtime.Encyclopedia.Count != 0", StringComparison.Ordinal)
+               && preserve.Contains("EncyclopediaField(runtime) = null;", StringComparison.Ordinal)
+               && !preserve.Contains("EncyclopediaField(source)", StringComparison.Ordinal)
+               && source.Contains("TryPreserveEncyclopediaUnsafe(source, runtime, canonicalProfileId, out reason)", StringComparison.Ordinal),
+            "Arena repairs only a null source encyclopedia, only on the clone, and fails closed on a populated one");
+    }
+
     private static void CheckSynchronousPostfixDeferral()
     {
         SynchronizationContext previous = SynchronizationContext.Current;
@@ -695,6 +792,7 @@ internal static class Program
             "_decompiled",
             "EFT",
             "BaseLocalGame.cs")));
+        CheckNativeExaminedContract(root, source);
 
         RequireAll(source,
             "GameWorld is unavailable while proving old follower retirement",

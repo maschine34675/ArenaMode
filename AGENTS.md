@@ -263,6 +263,24 @@ rule and the configured list, the attachment draw and the per-raid cartridge dra
 refuse the ids they are handed at every raid, and `excludedTemplates` in the config is
 where the next one goes.
 
+**`Profile.Clone()` turns "knows every item" into "knows none".** The clone runs through
+`ProfileDescriptor`, whose encyclopedia copy answers a NULL dictionary with an EMPTY one —
+and those are opposites: `Profile.Examined(templateId)` returns true for null and
+`ContainsKey` for empty. PitFireTeam's stored teammates ship a null encyclopedia, so a
+cloned follower silently stopped knowing anything. Almost nothing notices, because
+`InventoryController.Examined` short-circuits on `Item.ExaminedByDefault`, which nearly
+every template sets. The M60E6 does not. The consequence was a follower paralysed with no
+error anywhere: `IsAtReachablePlace` requires `Examined`, `Player.TryProceed` answers an
+unreachable item by DIVERTING to `SetFirstAvailableItem`, a companion with no sidearm gets
+EFT's default bayonet, a knife takes `UpdateHandsController`'s melee branch — which sets
+`Selector.IsWeaponReady` but never `BotWeaponManager.IsReady` — and `BotOwner.UpdateManual`
+leaves `PreActive` only on the latter. `BotWeaponSelector.OnWeaponTaken` schedules no retry
+either, because the melee branch reported success AND its fallback excludes `PreActive`.
+Nine native steps, one flipped null, zero log lines. `TryPreserveEncyclopediaUnsafe`
+restores the source's null; the whole chain is asserted against `../_decompiled/` in
+`PitFireTeamRoundLifecycleChecks`. There is exactly one `Profile.Clone()` in this
+repository — keep it that way, or repeat this.
+
 **The client caches server answers per game process.** Bot difficulties are fetched once
 and never again. Anything that must vary per raid cannot live there.
 
