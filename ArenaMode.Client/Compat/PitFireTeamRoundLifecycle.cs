@@ -122,6 +122,24 @@ internal static class PitFireTeamRoundLifecycle
     private static List<BotOwner> _lastStableFollowers = new();
     private static int _stableFollowerPasses;
     private static bool _loggedIncompleteFollowerAssembly;
+
+    /// <summary>
+    /// How long a follower's own first weapon take is left alone. Every healthy
+    /// body of a measured round had published its wrapper inside four seconds,
+    /// so a take still open past this is not merely slow.
+    /// </summary>
+    /// <summary>
+    /// How long a follower's own first weapon take is left alone. Every healthy
+    /// body of a measured round had published its wrapper inside four seconds,
+    /// so a take still open past this is not merely slow.
+    ///
+    /// Attempts are bounded by PitFireTeamWeaponTakeRetryPolicy.MaxAttempts, which
+    /// with this grace and interval sits well inside Tactical's twenty-second
+    /// follower deadline: a body this does not rescue still ends the round the
+    /// same way it did before.
+    /// </summary>
+    private static readonly TimeSpan WeaponTakeRetryGrace = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan WeaponTakeRetryInterval = TimeSpan.FromSeconds(3);
     private static Dictionary<string, string> _canonicalProfilesByAccountId =
         new(StringComparer.Ordinal);
     private static Dictionary<string, string> _runtimeProfilesByAccountId =
@@ -169,9 +187,19 @@ internal static class PitFireTeamRoundLifecycle
         public Dictionary<string, SpawnInvocationState> InvocationsByProfileId { get; } =
             new(StringComparer.OrdinalIgnoreCase);
         public BotCreationInvocationState BotCreationInvocation { get; set; }
+        public DateTime StartedUtc { get; set; }
+        public Dictionary<string, WeaponTakeRetryState> WeaponTakeRetriesByProfileId { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
         public bool Completed { get; set; }
         public bool Revoked { get; set; }
         public string RevocationReason { get; set; } = string.Empty;
+    }
+
+    private sealed class WeaponTakeRetryState
+    {
+        public int Attempts;
+        public DateTime NextAttemptUtc;
+        public bool ReportedLatch;
     }
 
     private sealed class HistoricalSpawnRecord
@@ -1209,7 +1237,8 @@ internal static class PitFireTeamRoundLifecycle
                     Controller = controller,
                     Spawner = controller.BotSpawner,
                     Cancellation = new CancellationTokenSource(),
-                    ProfilesById = profilesById
+                    ProfilesById = profilesById,
+                    StartedUtc = DateTime.UtcNow
                 };
                 if (!TryGetExactBotCreatorBindingUnsafe(lease, out _, out string creatorProblem))
                 {
@@ -1515,6 +1544,12 @@ internal static class PitFireTeamRoundLifecycle
                     Plugin.ModLogger.LogWarning(
                         $"PitFireTeam follower assembly incomplete after activation lease: {incompleteDetail}");
                 }
+
+                // Only once PFT is finished with the body: every activation task
+                // has returned and its callback has run, so nothing native is
+                // still expected to move this follower along.
+                if (!wasReady && !invalid && leasedActivationsComplete)
+                    RetryStuckWeaponTakesUnsafe(_spawnLease, profiles, utcNow);
 
                 PitFireTeamRoundPolicyDecision decision =
                     PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(
@@ -3475,6 +3510,118 @@ internal static class PitFireTeamRoundLifecycle
     }
 
     /// <summary>
+    /// Re-issues the first weapon take for a follower EFT has silently given up
+    /// on, and for nothing else.
+    ///
+    /// A body reaches Active only through BotWeaponManager.IsReady, and only
+    /// UpdateFirearmsController sets it — reached when the first take produces a
+    /// firearm controller. Take a MELEE controller instead and
+    /// UpdateHandsController still reports allFine, BotMeleeWeaponData still sets
+    /// Selector.IsWeaponReady, and IsReady stays false. BotWeaponSelector's own
+    /// retry is then skipped twice over: allFine was true, and its fallback branch
+    /// deliberately excludes PreActive. The measured case was a companion whose
+    /// only weapon is one machine gun — no holster, no scabbard — left holding
+    /// EFT's default bayonet for the rest of the raid.
+    ///
+    /// This calls exactly what BotWeaponManager.PreActivate calls, so PFT's and
+    /// EFT's own bookkeeping stays authoritative; Arena drives no controller and
+    /// touches no inventory. A body whose take is genuinely still open is left
+    /// alone: SetItemInHands refuses while IsChangingWeapon, and it answers a
+    /// refusal by invoking the callback with null, which would fault inside
+    /// native OnWeaponTaken. So a latched change is reported, never retried.
+    ///
+    /// Fails open in the only direction that matters: a body this cannot rescue
+    /// still runs the follower deadline out and ends the round as no contest.
+    /// </summary>
+    private static void RetryStuckWeaponTakesUnsafe(
+        FollowerSpawnLease lease,
+        HashSet<string> publishedProfileIds,
+        DateTime utcNow)
+    {
+        if (lease?.ProfilesById == null || utcNow < lease.StartedUtc + WeaponTakeRetryGrace)
+            return;
+
+        bool graceElapsed = utcNow >= lease.StartedUtc + WeaponTakeRetryGrace;
+        foreach (var pair in lease.ObservedBodiesByProfileId)
+        {
+            string profileId = pair.Key?.Trim();
+            if (string.IsNullOrWhiteSpace(profileId))
+                continue;
+
+            BotOwner bot = pair.Value;
+            bool bodyPresent = !ReferenceEquals(bot, null) && bot != null;
+            Player player = bodyPresent ? bot.GetPlayer : null;
+            if (!lease.WeaponTakeRetriesByProfileId.TryGetValue(profileId, out WeaponTakeRetryState retry))
+            {
+                retry = new WeaponTakeRetryState();
+                lease.WeaponTakeRetriesByProfileId[profileId] = retry;
+            }
+
+            PitFireTeamWeaponTakeRetryDecision decision =
+                PitFireTeamWeaponTakeRetryPolicy.Evaluate(new PitFireTeamWeaponTakeObservation
+                {
+                    GraceElapsed = graceElapsed,
+                    WrapperPublished = publishedProfileIds == null
+                                       || publishedProfileIds.Contains(profileId),
+                    LeasedProfile = lease.ProfilesById.ContainsKey(profileId),
+                    BodyPresent = bodyPresent,
+                    Dead = bodyPresent && bot.IsDead,
+                    PreActive = bodyPresent && bot.BotState == EBotState.PreActive,
+                    ProfileIdMatches = bodyPresent
+                                       && string.Equals(
+                                           bot.ProfileId?.Trim(),
+                                           profileId,
+                                           StringComparison.OrdinalIgnoreCase),
+                    WeaponManagerPresent = bodyPresent && bot.WeaponManager != null,
+                    SelectorPresent = bodyPresent && bot.WeaponManager?.Selector != null,
+                    WeaponReady = bodyPresent && bot.WeaponManager?.IsReady == true,
+                    PlayerPresent = player != null,
+                    Alive = player?.HealthController?.IsAlive == true,
+                    InventoryPresent = player?.InventoryController != null,
+                    ChangingWeapon = player?.InventoryController?.IsChangingWeapon == true,
+                    Attempts = retry.Attempts,
+                    AttemptDue = utcNow >= retry.NextAttemptUtc
+                });
+
+            if (decision == PitFireTeamWeaponTakeRetryDecision.Skip)
+                continue;
+
+            if (decision == PitFireTeamWeaponTakeRetryDecision.ReportOpenChange)
+            {
+                if (!retry.ReportedLatch)
+                {
+                    retry.ReportedLatch = true;
+                    Plugin.ModLogger.LogWarning(
+                        $"PitFireTeam follower {profileId} still has an open weapon change; "
+                        + "Arena will not re-issue its take.");
+                }
+
+                continue;
+            }
+
+            retry.Attempts++;
+            retry.NextAttemptUtc = utcNow + WeaponTakeRetryInterval;
+            try
+            {
+                bot.WeaponManager.Selector.TakeMainWeapon();
+                Plugin.ModLogger.LogWarning(
+                    $"Arena re-issued the first weapon take for stuck PitFireTeam follower {profileId} "
+                    + $"(attempt {retry.Attempts}/{PitFireTeamWeaponTakeRetryPolicy.MaxAttempts}, "
+                    + $"{DescribeWeaponReadinessUnsafe(bot)}).");
+            }
+            catch (Exception ex)
+            {
+                // A native fault here is information, not a reason to abort: the
+                // deadline still owns the outcome of this round.
+                retry.Attempts = PitFireTeamWeaponTakeRetryPolicy.MaxAttempts;
+                Plugin.ModLogger.LogWarning(
+                    $"Arena could not re-issue the weapon take for PitFireTeam follower {profileId}: "
+                    + ex.GetBaseException().Message);
+            }
+        }
+    }
+
+    /// <summary>
     /// The exact native reason a PreActive follower never reaches Active.
     ///
     /// BotOwner.UpdateManual only calls its own activation once
@@ -3496,8 +3643,17 @@ internal static class PitFireTeamRoundLifecycle
             if (weapons == null)
                 return "weapon=no-manager";
 
-            string hands = bot.GetPlayer?.HandsController?.Item?.TemplateId.ToString() ?? "none";
-            return $"weaponReady={weapons.IsReady} selectorReady={weapons.Selector?.IsWeaponReady} hands={hands}";
+            Player player = bot.GetPlayer;
+            string hands = player?.HandsController?.Item?.TemplateId.ToString() ?? "none";
+            // The slot the first take reads. Reporting it separates "the weapon is
+            // not there" from "the weapon is there and the take did not land it".
+            string primary = player?.InventoryController?.Inventory?.Equipment
+                ?.GetSlot(EquipmentSlot.FirstPrimaryWeapon)?.ContainedItem?.TemplateId.ToString() ?? "none";
+            string changing = player?.InventoryController == null
+                ? "?"
+                : player.InventoryController.IsChangingWeapon.ToString();
+            return $"weaponReady={weapons.IsReady} selectorReady={weapons.Selector?.IsWeaponReady} "
+                   + $"hands={hands} primary={primary} changing={changing}";
         }
         catch (Exception ex)
         {

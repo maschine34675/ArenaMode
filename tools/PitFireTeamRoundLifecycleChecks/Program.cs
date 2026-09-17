@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text.RegularExpressions;
 using ArenaMode.Compat;
 
 internal static class Program
@@ -14,6 +15,7 @@ internal static class Program
             CheckLeaderBindingPolicy();
             CheckFreshIdentityRemap();
             CheckFollowerBarrier();
+            CheckWeaponTakeRetryPolicy();
             CheckSynchronousPostfixDeferral();
             CheckCapability();
             CheckFollowerDetachPolicy();
@@ -388,6 +390,95 @@ internal static class Program
                 exactProfiles,
                 new[] { Mongo(1), Mongo(2), Mongo(3), " " }),
             "a blank invocation identity fails the exact seam proof");
+    }
+
+    private static void CheckWeaponTakeRetryPolicy()
+    {
+        // The measured terminal shape: PFT is done, the body is alive and still
+        // PreActive, its melee controller set IsWeaponReady but not IsReady.
+        static PitFireTeamWeaponTakeObservation Stuck() => new()
+        {
+            GraceElapsed = true,
+            WrapperPublished = false,
+            LeasedProfile = true,
+            BodyPresent = true,
+            Dead = false,
+            PreActive = true,
+            ProfileIdMatches = true,
+            WeaponManagerPresent = true,
+            SelectorPresent = true,
+            WeaponReady = false,
+            PlayerPresent = true,
+            Alive = true,
+            InventoryPresent = true,
+            ChangingWeapon = false,
+            Attempts = 0,
+            AttemptDue = true
+        };
+
+        Assert(PitFireTeamWeaponTakeRetryPolicy.Evaluate(Stuck())
+                   == PitFireTeamWeaponTakeRetryDecision.Retry,
+            "positive control: the measured stuck follower is retried");
+        Assert(PitFireTeamWeaponTakeRetryPolicy.Evaluate(null)
+                   == PitFireTeamWeaponTakeRetryDecision.Skip,
+            "a missing observation retries nothing");
+
+        // An open change must be reported, never poked: SetItemInHands answers a
+        // refusal with a null callback that faults inside native OnWeaponTaken.
+        var changing = Stuck();
+        changing.ChangingWeapon = true;
+        Assert(PitFireTeamWeaponTakeRetryPolicy.Evaluate(changing)
+                   == PitFireTeamWeaponTakeRetryDecision.ReportOpenChange,
+            "a body with an open weapon change is reported instead of retried");
+
+        // Every single guard must be able to veto on its own.
+        foreach ((string name, Action<PitFireTeamWeaponTakeObservation> spoil) in
+                 new (string, Action<PitFireTeamWeaponTakeObservation>)[]
+                 {
+                     ("grace not elapsed", o => o.GraceElapsed = false),
+                     ("wrapper already published", o => o.WrapperPublished = true),
+                     ("profile not leased by this round", o => o.LeasedProfile = false),
+                     ("no body", o => o.BodyPresent = false),
+                     ("dead body", o => o.Dead = true),
+                     ("not PreActive", o => o.PreActive = false),
+                     ("profile id drifted", o => o.ProfileIdMatches = false),
+                     ("no weapon manager", o => o.WeaponManagerPresent = false),
+                     ("no selector", o => o.SelectorPresent = false),
+                     ("weapon already ready", o => o.WeaponReady = true),
+                     ("no player", o => o.PlayerPresent = false),
+                     ("not alive", o => o.Alive = false),
+                     ("no inventory", o => o.InventoryPresent = false),
+                     ("attempts exhausted", o => o.Attempts = PitFireTeamWeaponTakeRetryPolicy.MaxAttempts),
+                     ("attempt not due", o => o.AttemptDue = false),
+                 })
+        {
+            var observation = Stuck();
+            spoil(observation);
+            Assert(PitFireTeamWeaponTakeRetryPolicy.Evaluate(observation)
+                       == PitFireTeamWeaponTakeRetryDecision.Skip,
+                "this guard alone stops the retry: " + name);
+        }
+
+        // An open change outranks exhaustion so the reason stays visible, but it
+        // still never becomes a retry.
+        var exhaustedAndChanging = Stuck();
+        exhaustedAndChanging.Attempts = PitFireTeamWeaponTakeRetryPolicy.MaxAttempts;
+        exhaustedAndChanging.ChangingWeapon = true;
+        Assert(PitFireTeamWeaponTakeRetryPolicy.Evaluate(exhaustedAndChanging)
+                   == PitFireTeamWeaponTakeRetryDecision.ReportOpenChange,
+            "an exhausted body with an open change still reports rather than retries");
+
+        // Bounded below Tactical's twenty-second follower deadline.
+        Assert(PitFireTeamWeaponTakeRetryPolicy.MaxAttempts == 3,
+            "the retry budget stays small enough to leave the deadline in charge");
+        for (int attempts = 0; attempts < PitFireTeamWeaponTakeRetryPolicy.MaxAttempts; attempts++)
+        {
+            var pending = Stuck();
+            pending.Attempts = attempts;
+            Assert(PitFireTeamWeaponTakeRetryPolicy.Evaluate(pending)
+                       == PitFireTeamWeaponTakeRetryDecision.Retry,
+                $"attempt {attempts + 1} of the budget is still allowed");
+        }
     }
 
     private static void CheckSynchronousPostfixDeferral()
@@ -1304,10 +1395,44 @@ internal static class Program
                    StringComparison.Ordinal)
                && source.Contains("weaponReady={weapons.IsReady}", StringComparison.Ordinal)
                && source.Contains("selectorReady={weapons.Selector?.IsWeaponReady}", StringComparison.Ordinal)
+               && source.Contains("primary={primary} changing={changing}", StringComparison.Ordinal)
                && tacticalSource.Contains(
                    "private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(20);",
                    StringComparison.Ordinal),
             "an incomplete assembly names each missing body with the native weapon readiness that decides PreActive, under a bounded wait");
+
+        string weaponRetry = Slice(
+            source,
+            "private static void RetryStuckWeaponTakesUnsafe(",
+            "private static string DescribeWeaponReadinessUnsafe(");
+        // The pure policy owns the decision (CheckWeaponTakeRetryPolicy drives every
+        // branch). What only the source can show is that the observation is read
+        // from the real leased body and that the native call is PreActivate's own
+        // entry point — Arena drives no controller and touches no inventory.
+        Assert(weaponRetry.Contains("publishedProfileIds.Contains(profileId)", StringComparison.Ordinal)
+               && weaponRetry.Contains("lease.ProfilesById.ContainsKey(profileId)", StringComparison.Ordinal)
+               && weaponRetry.Contains("bot.BotState == EBotState.PreActive", StringComparison.Ordinal)
+               && weaponRetry.Contains("bot.WeaponManager?.IsReady == true", StringComparison.Ordinal)
+               && weaponRetry.Contains("player?.HealthController?.IsAlive == true", StringComparison.Ordinal)
+               && weaponRetry.Contains("player?.InventoryController?.IsChangingWeapon == true", StringComparison.Ordinal)
+               && weaponRetry.Contains("bot.WeaponManager.Selector.TakeMainWeapon()", StringComparison.Ordinal)
+               && !weaponRetry.Contains("SetItemInHands", StringComparison.Ordinal)
+               && !weaponRetry.Contains("UpdateHandsController", StringComparison.Ordinal)
+               && !weaponRetry.Contains("Proceed", StringComparison.Ordinal),
+            "the retry observes the real leased body and calls only PreActivate's own take entry point");
+        Assert(weaponRetry.Contains("PitFireTeamWeaponTakeRetryPolicy.Evaluate(", StringComparison.Ordinal)
+               && weaponRetry.Contains("utcNow >= lease.StartedUtc + WeaponTakeRetryGrace", StringComparison.Ordinal)
+               && weaponRetry.Contains("utcNow >= retry.NextAttemptUtc", StringComparison.Ordinal)
+               && weaponRetry.Contains("retry.NextAttemptUtc = utcNow + WeaponTakeRetryInterval", StringComparison.Ordinal)
+               && weaponRetry.Contains("Arena will not re-issue its take.", StringComparison.Ordinal)
+               && weaponRetry.Contains("catch (Exception ex)", StringComparison.Ordinal),
+            "the adapter observes the body, applies the policy answer, and bounds its own clock");
+        // PFT must be finished with the body first, and a broken binding must
+        // still fail closed rather than be worked around.
+        Assert(Regex.IsMatch(
+                   source,
+                   @"if \(!wasReady && !invalid && leasedActivationsComplete\)\s*RetryStuckWeaponTakesUnsafe\(_spawnLease, profiles, utcNow\);"),
+            "the retry runs only after every leased activation settled and never over an invalid binding");
     }
 
     private static PitFireTeamRoundPolicyDecision EvaluateFollowers(
