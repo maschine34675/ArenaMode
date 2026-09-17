@@ -141,26 +141,46 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             yield break;
         }
 
-        // Timed in three parts because the whole thing grows: measured from a
+        // Timed in parts because the whole thing grows: measured from a
         // playtest log, death to new gear went from 0.09s early in a raid to
         // 10.9s by minute twenty-three. Corpses looked like the culprit and were
         // not — clearing them changed nothing — so the next guess gets measured
         // rather than argued about. Whichever number climbs is the answer.
-        var startedAt = Time.realtimeSinceStartup;
+        //
+        // "pipeline" is the RunRespawn call alone, so it can be set against
+        // Redeploy Core's own "Respawn pipeline #N" line; what Core does outside
+        // its stages (its preflight, reading its counters, writing that line)
+        // is the difference. "prepare" is everything Arena does between the
+        // bundles and that call: the selector, the area preflight and the
+        // request. The preflight resolves the spawn point only while an area is
+        // active; without one the selector runs inside Core's "spawn" group.
+        // The terminal result hold (Team DM and Deathmatch rounds) is a wait,
+        // not work: it is in neither, and appears as "hold" only on the rare
+        // line that actually waited. Until 17.09.2026 "pipeline" was hold,
+        // prepare and pipeline together.
+        // Stopwatch rather than Unity's clock, and spelled out, because
+        // tools/TdmMatchChecks compiles the hold below outside Unity and
+        // without this file's usings.
+        long startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
         var kit = KitCatalog.GetSelectedKit();
-        var kitPickedAt = Time.realtimeSinceStartup;
+        long kitPickedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
         // No-op when this kit was already preloaded this raid (raid-start swap);
         // covers a mid-raid kit switch via F12.
         yield return KitBundlePreloader.Preload(kit);
-        var preloadedAt = Time.realtimeSinceStartup;
+        long preloadedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
         // A final kill or time limit can land while kit bundles are loading.
         // Keep death interception alive, but never start a new body replacement
         // after the immutable Team DM result. Native stop releases this hold.
+        bool held = false;
         while (IsTerminalTdmHold && IsSameActiveRaid(game, raidEpoch) && !StandDown)
+        {
+            held = true;
             yield return null;
+        }
+        long releasedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
         // Preload yields across arbitrary frames. GameEnd advances the epoch and
         // clears Arena before the old coroutine resumes, so never enter Redeploy
@@ -208,7 +228,9 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         };
 
         Exception failure = null;
+        long pipelineStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
         yield return game.StartCoroutine(RespawnEngine.RunRespawn(request, e => failure = e));
+        long pipelineEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
         // ResetSession may have invalidated this coroutine while Redeploy was
         // unwinding. Do not clear a newer raid's flags, recover an old body, show
@@ -245,11 +267,13 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         EndPipelineUse(raidEpoch);
 
-        var now = Time.realtimeSinceStartup;
         Plugin.ModLogger.LogInfo(
-            $"Arena respawn timing: kit {kitPickedAt - startedAt:0.00}s, "
-            + $"bundles {preloadedAt - kitPickedAt:0.00}s, "
-            + $"pipeline {now - preloadedAt:0.00}s, total {now - startedAt:0.00}s.");
+            $"Arena respawn timing: kit {Seconds(startedAt, kitPickedAt):0.00}s, "
+            + $"bundles {Seconds(kitPickedAt, preloadedAt):0.00}s, "
+            + (held ? $"hold {Seconds(preloadedAt, releasedAt):0.00}s, " : "")
+            + $"prepare {Seconds(releasedAt, pipelineStartedAt):0.00}s, "
+            + $"pipeline {Seconds(pipelineStartedAt, pipelineEndedAt):0.00}s, "
+            + $"total {Seconds(startedAt, pipelineEndedAt):0.00}s.");
 
         // Publish only the body the engine produced for THIS request, checked the way
         // the protected path checks it: LastRespawnedPlayer is engine-global, and the
@@ -365,6 +389,9 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             + $"in {Time.realtimeSinceStartup - startedAt:0.00}s.");
         ArenaEvents.RaisePlayerRespawned(respawnedPlayer);
     }
+
+    private static double Seconds(long fromTimestamp, long toTimestamp)
+        => (toTimestamp - fromTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency;
 
     private static void AbortProtectedTeamRespawn(
         int raidEpoch,

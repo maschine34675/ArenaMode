@@ -311,7 +311,13 @@ Open:
   `GameWorld.DoWorldTick` is 29% of measured mod time — too small to explain a
   severe collapse. The one concrete Arena-side lead is the respawn pipeline stage:
   strictly monotonic, +0.023 s per respawn, tracking respawn count rather than
-  elapsed time. Time the stages inside it instead of theorising. Read the review's
+  elapsed time. Time the stages inside it instead of theorising: Redeploy Core
+  1.0.2 logs `Respawn pipeline #N` per stage, and since 2026-09-17 Arena's
+  `Arena respawn timing` line splits the review's `pipeline` into `prepare`
+  (selector, area preflight, request — the spawn point is resolved here only
+  while an area is active, otherwise in Core's `spawn`), `pipeline` (the
+  `RunRespawn` call alone) and, only when the terminal result hold waited,
+  `hold`; compare older logs against their sum. Read the review's
   methodology before trusting any new ModProfiler numbers: the counters only
   advance while its window is open, the frame count is `WebOverlayPlugin.Update`
   (per-mod call sums are not frame counts), and rows near 0.6 us/call are the
