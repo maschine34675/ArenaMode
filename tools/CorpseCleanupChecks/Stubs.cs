@@ -339,3 +339,16 @@ namespace ArenaMode.Bots
         public static void Release(EFT.Player player) => Retired.Add(player);
     }
 }
+namespace ArenaMode.Diagnostics
+{
+    // The release ledger the damage-exception diagnostic reads. Modelled as one
+    // observable step: a confirmed release records the body's profile id, read
+    // while the body was still whole. A failed one records nothing, because a
+    // report that names a body Arena did not take away is worse than no report.
+    public static class CorpseReleaseLedger
+    {
+        public static readonly List<string> Recorded = new();
+        public static void Reset() => Recorded.Clear();
+        public static void Record(string profileId, int sweep) => Recorded.Add(profileId);
+    }
+}

@@ -88,6 +88,19 @@ internal static class CorpseAggressors
         }
     }
 
+    /// <summary>
+    /// The same protected field, for a report rather than a decision
+    /// (<see cref="Diagnostics.ArenaDamageExceptionLog"/>): who this body last
+    /// named as its attacker, which is the reference the guard above exists to
+    /// keep valid. Answers null when the field cannot be bound, because a
+    /// diagnostic has nothing to fail closed about.
+    /// </summary>
+    internal static IPlayer LastAggressorOf(Player body)
+    {
+        try { return body != null && Bind() ? _lastAggressor(body) : null; }
+        catch { return null; }
+    }
+
     private static bool Bind()
     {
         if (_bound)

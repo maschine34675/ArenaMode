@@ -289,6 +289,8 @@ foreach (var guard in new[] { "open", "interacting" })
         "the trigger-zone coroutine that reads this body is retired before the body goes");
     Check(!CorpseCleanupService.IsSuccessfullyTrimmed(body) && Plugin.ModLogger.Warnings.Count == 0,
         "a released body leaves no trim record and no warning");
+    Check(ArenaMode.Diagnostics.CorpseReleaseLedger.Recorded.SequenceEqual(new[] { "opponent" }),
+        "a confirmed release is recorded for the damage diagnostic, under the identity the body had");
 
     Sweep();
     Check(owner.Disposals == 1 && world.Removed.Count == 1,
@@ -406,6 +408,8 @@ foreach (var fault in new[] { "retire", "dispose", "dead-body", "destroy" })
         "a failed release leaves the body in the world, not half-way out: " + fault);
     Check(Plugin.ModLogger.Warnings.Count == 1 && CorpseCleanupService.IsSuccessfullyTrimmed(body),
         "a failed release is reported once and keeps the record that maintains the hidden state: " + fault);
+    Check(ArenaMode.Diagnostics.CorpseReleaseLedger.Recorded.Count == 0,
+        "a failed release records nothing: the damage diagnostic must never name a body that is still there: " + fault);
 
     switch (fault)
     {

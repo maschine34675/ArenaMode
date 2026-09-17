@@ -335,7 +335,15 @@ Open:
   What is left is dominated by the player's OWN corpses, which are exempt by
   design. One finding is open — four `Player.ApplyDamageInfo` exceptions per
   raid out of a grenade explosion, cause not established; the review records
-  the evidence and `ReleaseTrimmedCorpses` turns the whole thing off. The heap
+  the evidence and `ReleaseTrimmedCorpses` turns the whole thing off. Since
+  2026-09-17 `ArenaDamageExceptionLog` (Diagnostics/`LogDamageExceptions`,
+  default on) records it rather than guessing: a finalizer on
+  `Player.ApplyDamageInfo` and one on `ClientGameWorld.ShotDelegate` that print
+  every candidate as null/DESTROYED/live with the throwing method, and cross-
+  reference whether Arena released or merely hid that body. Read the review's
+  three new subsections before theorising again — a recount of the evening found
+  a fourth exception kind that is time-locked to this one, and the reason every
+  trace in this family names nothing but the Harmony wrapper frame. The heap
   still grows to 11 GB without a collection and no longer has a corpse
   explanation.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid

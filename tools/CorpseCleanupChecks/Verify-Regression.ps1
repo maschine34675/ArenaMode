@@ -61,7 +61,12 @@ $arenaMutants = @(
        From = $arenaRecordGuard.Replace("`r`n", "`n"); To = '';
        From2 = '            Singleton<IBotGame>.Instance?.BotsController?.DestroyInfo(player);';
        To2 = $arenaRecordGuard.Replace("`r`n", "`n") + '            Singleton<IBotGame>.Instance?.BotsController?.DestroyInfo(player);';
-       Failure = 'the dead-body record DestroyInfo re-adds for a dead person is cleared afterwards' }
+       Failure = 'the dead-body record DestroyInfo re-adds for a dead person is cleared afterwards' },
+    @{ Name = 'records-a-release-that-never-happened';
+       From = '            Diagnostics.CorpseReleaseLedger.Record(profileId, _sweep);'; To = '';
+       From2 = '        var profileId = corpse.PlayerProfileID;';
+       To2 = "        var profileId = corpse.PlayerProfileID;`n        Diagnostics.CorpseReleaseLedger.Record(profileId, _sweep);";
+       Failure = 'a failed release records nothing: the damage diagnostic must never name a body that is still there: retire' }
 )
 foreach ($arenaMutant in $arenaMutants) {
     if (-not $arenaNormalized.Contains($arenaMutant.From)) { throw "Missing mutation anchor: $($arenaMutant.Name)" }

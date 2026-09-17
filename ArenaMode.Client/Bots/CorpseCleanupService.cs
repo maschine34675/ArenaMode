@@ -161,6 +161,10 @@ internal static class CorpseCleanupService
         CorpseAggressors.Reset();
         CorpseTriggerZones.Reset();
         Compat.DynamicMapsCorpseMarkers.Reset();
+
+        // Reset where it is written, so there is one owner: the ledger only ever
+        // records what Release below confirmed.
+        Diagnostics.CorpseReleaseLedger.Reset();
     }
 
     /// <summary>
@@ -190,6 +194,41 @@ internal static class CorpseCleanupService
         // player is about to look at.
         _nextSweepAt = 0f;
         Plugin.ModLogger.LogInfo($"Arena corpse cleanup: clearing every corpse ({reason}).");
+    }
+
+    /// <summary>
+    /// One field for a damage-exception report
+    /// (<see cref="Diagnostics.ArenaDamageExceptionLog"/>): is a body of this
+    /// profile still lying here hidden, or is this table done with it? It exists
+    /// to separate the two states the open grenade finding has to tell apart —
+    /// a HIDDEN body, which this service has produced since it was written, from
+    /// a RELEASED one, which is new since 2026-09-17. Reads only.
+    /// </summary>
+    internal static string DescribeCorpseState(string profileId)
+    {
+        if (string.IsNullOrEmpty(profileId))
+            return "corpse=?";
+
+        foreach (var entry in Trimmed)
+        {
+            // Unity lifetime check: a destroyed key is a body this table has not
+            // pruned yet, and it is not the hidden body being asked about.
+            var corpse = entry.Key;
+            if (corpse == null
+                || !string.Equals(corpse.PlayerProfileID, profileId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var state = entry.Value;
+            return "corpse=hidden"
+                + (state.Completed ? string.Empty : "/incomplete")
+                + (state.Own ? "/own" : string.Empty)
+                + (state.Protected ? "/pft" : string.Empty)
+                + (state.ReleaseFailed ? "/release-failed" : string.Empty);
+        }
+
+        return "corpse=not-hidden";
     }
 
     internal static bool IsSuccessfullyTrimmed(Corpse corpse)
@@ -647,6 +686,9 @@ internal static class CorpseCleanupService
             return false;
         }
 
+        // Read while the body is still whole, for the release ledger below.
+        var profileId = corpse.PlayerProfileID;
+
         try
         {
             // No bot game means no bot groups, so there is no knowledge to
@@ -684,6 +726,12 @@ internal static class CorpseCleanupService
             CorpseWeaponRegistry.Forget(corpse);
             CorpseLightService.Forget(corpse);
             Trimmed.Remove(corpse);
+
+            // Confirmed releases only, and only while the damage diagnostic is
+            // on. It is what lets a later exception say whether the object on its
+            // stack is a body this method took away — the open finding in
+            // CORPSE-CLEANUP-REVIEW.md.
+            Diagnostics.CorpseReleaseLedger.Record(profileId, _sweep);
             return true;
         }
         catch (Exception ex)

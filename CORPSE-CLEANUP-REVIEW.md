@@ -297,21 +297,44 @@ control raid and the first release raid did not have at all:
     EFT.Grenade.Explosion () / InvokeBlowUpEvent ()
 
 Not explained, and the evidence does not even settle whether the release causes
-it. The counts across the evening, same mod set throughout except ArenaMode:
+it. The counts below are every log of the evening recounted by exception BLOCK
+(one `Stack trace:` header each, classified by the frames under it) rather than
+by substring, which corrected three of the numbers first recorded here and added
+a whole kind that had been missed. Same mod set throughout except ArenaMode; one
+raid per log, and the trim/release totals are each log's last sweep line.
 
-| Raid | release | `CorpseTriggerZones` | `OnDead` | `ApplyDamageInfo` | `TriggerZone` |
-|---|---|---|---|---|---|
-| control, 405 trimmed | no | no | 0 | 0 | 17 |
-| 18:08 session | no | no | 0 | 0 | 18 |
-| 344 released, 24:25 | yes | no | **5** | 0 | 16 |
-| 119 released, 15:25 | yes | yes | 0 | **4** | 0 |
-| 147 released, ~14 min | yes | yes | 0 | **4** | 1 |
+| Log (raid) | release | `CorpseTriggerZones` | `OnDead` | `ApplyDamageInfo` | `ShotDelegate` | `TriggerZone` |
+|---|---|---|---|---|---|---|
+| 17:13, 17:46, 19:46 | no | no | 0 | 0 | 0 | 0 |
+| 18:08 | no | no | 0 | 0 | 0 | 18 |
+| 19:35 | no | no | 0 | 0 | 0 | 30 |
+| 20:52 control, 405 trimmed | no | no | 0 | 0 | 0 | 17 |
+| 21:47, 379 trimmed / 344 released | yes | no | **5** | 0 | 0 | 16 |
+| 22:13, 221 trimmed / 207 released | yes | yes | **2** | **4** | **3** | 3 |
+| 22:14, 159 trimmed / 147 released | yes | yes | 0 | **4** | **2** | 1 |
 
-So it appears only with the release, but only in the two raids that ALSO have
-the trigger-zone retirement, and there is no mechanism by which stopping a
-coroutine could cause a grenade to fail. Grenade events near a body that has
-just been released are a matter of luck, so four-and-four against zero may
-simply be that.
+Three corrections and one addition against the numbers first written here:
+
+- The 22:13 raid was recorded as having no `OnDead` and no `TriggerZone`
+  exceptions. It has two and three. The pending-aggressor guard therefore did
+  NOT take that kind to zero — it went 5 → 2 → 0, and the last raid is the only
+  one that is actually clean. The trigger-zone retirement went 16 → 3 → 1, not
+  16 → 0 → 1.
+- A fourth kind was missed entirely: `ClientGameWorld.ShotDelegate`, three and
+  two, in exactly the two raids that also have `ApplyDamageInfo` and in no other
+  log of the evening. See below.
+- The two release totals recorded as 119 and 147 are mid-raid snapshots; those
+  raids finished at 207 and 147.
+- `GameWorld.DoWorldTick` appears in several of these traces and is NOT a defect
+  of its own: it is the shared tail frame under both `Bleeding.BleedHealth` and
+  `BallisticsCalculator.UpdateShots`, so its count simply equals `OnDead` plus
+  `ShotDelegate`.
+
+So `ApplyDamageInfo` appears only with the release, but only in the two raids
+that ALSO have the trigger-zone retirement, and there is no mechanism by which
+stopping a coroutine could cause a grenade to fail. Grenade events near a body
+that has just been released are a matter of luck, so four-and-four against zero
+may simply be that.
 
 The consequence is bounded but not nothing: the exception leaves
 `Grenade.Explosion` through its fuse coroutine, which Unity catches and logs,
@@ -332,10 +355,145 @@ Pruning `_allPlayersEverExisted` on release was considered and rejected. A
 destroyed `Player` is still perfectly good for the MANAGED reads most of its
 callers make (`Profile`, `Nickname`, `EftStats`), so replacing it with null
 would trade this for a new set of null dereferences in code that is written
-expecting an object. The next step is a diagnostic that records which side of
-the damage is destroyed — not a speculative fix, and not a second guess.
+expecting an object.
 
-Until then `ReleaseTrimmedCorpses` (Performance, default on) is the off-ramp:
+### The missed kind: a shot that throws one frame after the grenade did
+
+    (wrapper dynamic-method) EFT.ClientGameWorld.DMD<EFT.ClientGameWorld::ShotDelegate>(...)
+    EFT.Ballistics.BallisticsCalculator.UpdateShots (System.Single simulationTime)
+    EFT.Ballistics.BallisticsCalculator:ManualUpdate(Single)
+    EFT.GameWorld:DMD<EFT.GameWorld::DoWorldTick>(GameWorld, Single)
+    EFT.GameWorldUnityTickListener:Update()
+
+Three in the 22:13 raid and two in the 22:14 one, none anywhere else. What makes
+this worth more than a fourth row is the timing, which is not a coincidence any
+reasonable reading survives:
+
+| `ApplyDamageInfo` | `ShotDelegate` | gap |
+|---|---|---|
+| 21:54:11.291 | 21:54:11.343 | 52 ms |
+| 21:54:36.885 | 21:54:36.951 | 66 ms |
+| 22:01:52.049 | 22:01:52.084 | 35 ms |
+| 22:19:27.865 | 22:19:27.898 | 33 ms |
+| 22:19:49.338 | 22:19:49.373 | 35 ms |
+
+Five of five follow an `ApplyDamageInfo` exception by one or two frames. Not one
+occurs without one in front of it, and never the other way round. Three of the
+eight `ApplyDamageInfo` exceptions have no follower, so this is a consequence or
+a shared trigger, not an independent defect — and it means the grenade finding is
+very likely the only thing that has to be fixed. The `OnDead` exceptions in the
+same raids (21:58:53, 22:02:37) are NOT part of the pattern; they are the
+pending-aggressor defect above.
+
+One tempting mechanism was checked and does not hold. `ExplosionSharedMethods`
+does all of its work in seven PUBLIC STATIC buffers (`_playerBuffer`,
+`_colliderBuffer`, `_bodyPartCollidersBuffer`, `_hitsBuffer`, `_damagedParts`,
+`_damagedPlayers`, `_armorDamageBuffer`), and an `AffectPlayersShared` that
+unwinds mid-loop leaves every one of them populated — but each is cleared at the
+entry of the method that next uses it (`Explosion` clears `_playerBuffer` as its
+first statement after the dummy check, `AffectPlayersShared` clears the next two,
+and the per-victim ones are cleared inside the loop). A dirty buffer carrying
+over is therefore not the explanation.
+
+What the two sites do have in common is structural, and it is the reason the
+diagnostic instruments both: each dereferences an aggressor BRIDGE in its own IL
+with nothing guarding what is behind it. `Player.ApplyDamageInfo` does it on its
+second line (`player.iPlayer.ProfileId` behind an interface null check that says
+nothing about `iPlayer`), and `ClientGameWorld.ShotDelegate` does it in the
+explosive-ammunition branch (`shotResult.Player.iPlayer.ProfileId`, unguarded),
+next to two more unguarded reads — `shotResult.Ammo`, and
+`shotResult.HittedBallisticCollider.HitType` in the offline-only BTR branch that
+every Arena raid takes, which is tested with Unity's operator and then read
+again. That last one cannot be a destroyed collider, incidentally: `HitType` is a
+plain field, which a destroyed object still answers, so only a genuinely
+reference-null collider throws there.
+
+A single actor whose bridge has become unusable would make both paths throw
+within a frame or two of each other, which is exactly the observed shape. That is
+a hypothesis, and the finalizer on each site records the state that confirms or
+kills it.
+
+### Why none of these traces says where it came from
+
+Every one of the three kinds above is logged with a bare
+`(wrapper dynamic-method)` frame on top and nothing above it, which is the whole
+reason "an Arena prefix or the original body?" is an open question rather than a
+lookup. Two different things produce that frame and the log cannot separate them:
+
+- the throw really being in the original method's body, whose IL Harmony copies
+  INTO the dynamic method, so the body's own frame IS the wrapper; or
+- the trace having been reset by the rethrow at the end of Harmony's finalizer
+  block, which discards everything under it.
+
+The evening supplies one control for this, and it fits: of the four kinds those
+raids logged, the three with a bare wrapper frame are all on methods Arena puts
+a FINALIZER on — `Player.ApplyDamageInfo` (`CombatPatches`,
+`ArenaSelfGrenadeTaunt`), `Player.OnDead` (`ArenaAssistCapture`) and
+`ClientGameWorld.ShotDelegate` (`ArenaShotAwardHooks`) — while the fourth,
+`TriggerZone+CG_MoveInsideRoutine`, is an unpatched native coroutine and is the
+only one whose trace shows its innermost frames (`UnityEngine.Transform`
+`.get_position` under `EFT.BifacialTransform.get_position`). Three for three,
+with a negative control. Either way the consequence is the same: the trace has
+to be read INSIDE the finalizer, before anything rethrows.
+
+Read there, the frames also narrow the grenade case by themselves. Nothing sits
+between the wrapper frame and `PlayerBridge.ApplyDamageInfo`, and the methods
+`Player.ApplyDamageInfo` calls are virtual and would each show a frame of their
+own — so if the trace is not reset, the throw is in that method's own top-level
+IL, and it has exactly three unguarded dereferences there:
+
+- `_healthController.IsAlive`, its first line, read with no null check at all;
+- `player.iPlayer.ProfileId`, where `player` is the aggressor BRIDGE and the
+  `player != null` in front of it is an interface reference check that says
+  nothing about `iPlayer`;
+- `player2?.Loyalty.MarkAsAggressor(this)`, which guards `player2` and NOT
+  `Loyalty` — and `Loyalty` is assigned only by `Player.Init`, so a body that is
+  registered as alive before its Init finished throws there.
+
+None of the three needs a destroyed object, which is why the diagnostic records
+the state of every candidate rather than assuming the release is at fault.
+
+### The diagnostic (2026-09-17)
+
+`ArenaDamageExceptionLog` — a Harmony FINALIZER on `Player.ApplyDamageInfo` and
+one on `ClientGameWorld.ShotDelegate`, both of which record and then return the
+exception unchanged. Nothing about a damage outcome changes. `LogDamageExceptions`
+(Diagnostics, default on) gates it, and it is on by default because it costs one
+null check until something throws: the finalizers do not build a string, read a
+field or evaluate the Arena gate until they have been handed an exception.
+
+Each report is one line, and it answers the two questions the log could not:
+
+- **Which side is destroyed.** Every candidate is printed as `null`,
+  `DESTROYED` or `live`, because those are three states and the native code
+  cannot see the difference between the first two wherever it null-checks
+  through an interface. `DESTROYED` is a reference that is alive to the managed
+  runtime and equal to null under Unity's operator. The candidates are the
+  victim, the aggressor bridge, the bridge's `iPlayer`, the results of asking
+  BOTH resolution tables for that profile id (`GetEverExistedPlayerByID`, which
+  nothing prunes, and `GetAlivePlayerByProfileID`, which death prunes), the
+  victim's `LastAggressor`, and the body-part collider the explosion chose. Each
+  carries its profile id, nickname, AI flag, alive flag, and whether its
+  `Loyalty` and `HealthController` are set — the two unguarded members above.
+- **Where the throw came from.** `thrownIn=` is the exception's `TargetSite`,
+  which names the throwing method outright, and the first report of each raid
+  carries its complete stack trace; later ones carry the innermost eight frames.
+  An Arena prefix appears under its own name; the original body does not.
+
+Two cross-references make the causation question answerable rather than
+inferred. `release=` comes from `CorpseReleaseLedger`, a bounded per-raid record
+of the bodies this service actually destroyed, written on confirmed releases
+only and holding no `Player` reference (a profile id is identity enough, and the
+long-raid heap is an open question that a diagnostic must not feed). `corpse=`
+comes from `CorpseCleanupService.DescribeCorpseState` and separates a body that
+is merely HIDDEN — which this service has always produced — from one that is
+gone. If a body named in a report is neither, the release is not what broke it.
+
+The reports are capped at 32 per raid and the cap announces itself; a report
+that throws stands the whole thing down for the raid with one warning, because a
+diagnostic must not become the failure it is looking at.
+
+`ReleaseTrimmedCorpses` (Performance, default on) remains the off-ramp:
 turning it off restores the old hide-only behaviour exactly.
 
 ## Bounded work per sweep

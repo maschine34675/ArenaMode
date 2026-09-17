@@ -85,6 +85,7 @@ public class Plugin : BaseUnityPlugin
         Effects.ArenaTeamLaserColors.Enable();
         Notifications.ArenaProgressNotifications.Enable();
         Diagnostics.ArenaPreviewDiagnostics.Enable();
+        Diagnostics.ArenaDamageExceptionLog.Enable();
         ArenaGpuAcceptanceCompat.Enable();
         Audio.LabyrinthAlarmPatches.Enable();
         LabyrinthSpawnTraps.Enable();

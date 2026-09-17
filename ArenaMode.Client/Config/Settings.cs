@@ -75,6 +75,8 @@ public static class Settings
     public static ConfigEntry<int> MaxCorpses { get; private set; }
     public static ConfigEntry<bool> StripCorpseGear { get; private set; }
     public static ConfigEntry<bool> ReleaseTrimmedCorpses { get; private set; }
+
+    public static ConfigEntry<bool> LogDamageExceptions { get; private set; }
     public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
     public static ConfigEntry<bool> NoBotGestures { get; private set; }
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
@@ -706,6 +708,18 @@ public static class Settings
             "is still a complete player object, and every search over the scene — the " +
             "game's own included — gets slower with each one that is left. Your own " +
             "bodies and PitFireTeam teammates are never taken away.");
+
+        // Reports only when a damage event actually throws, which a healthy raid
+        // never does — so it is on by default while the grenade finding in
+        // CORPSE-CLEANUP-REVIEW.md is open, and costs a null check until then.
+        LogDamageExceptions = config.Bind(
+            "Diagnostics",
+            "LogDamageExceptions",
+            true,
+            "Log the state of both sides of a hit when applying damage throws: which " +
+            "of them is an object that has been destroyed, and which method the throw " +
+            "came from. For the open grenade finding in CORPSE-CLEANUP-REVIEW.md. " +
+            "It records and rethrows; it never changes a damage outcome.");
 
         NoCorpseLooting = config.Bind(
             "Performance",
