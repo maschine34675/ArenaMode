@@ -149,8 +149,9 @@ public sealed partial class TacticalMode : IArenaMode
     private bool _teamArena;
     private bool _teamEnemiesRequested;
     private bool _teamStopRequested;
-    private bool? _teamWon;
+    private TeamArenaRoundResult _teamRoundResult = TeamArenaRoundResult.NoContest;
     private bool? _teamMatchWon;
+    private int _teamConsecutiveScorelessRounds;
     private TeamArenaRoundContinuation _teamContinuation = TeamArenaRoundContinuation.EndNoContest;
     private int _teamRoundsToWin;
     private int _teamRoundEpoch;
@@ -337,7 +338,7 @@ public sealed partial class TacticalMode : IArenaMode
 
                     case Phase.Aftermath:
                         return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
-                            + $"{(_teamWon == true ? "VICTORY" : _teamWon == false ? "DEFEAT" : "NO CONTEST")}   "
+                            + $"{DescribeTeamRoundResult(_teamRoundResult)}   "
                             + (_teamContinuation == TeamArenaRoundContinuation.RebindNextRound
                                 ? $"next round in {PhaseRemaining:0}s"
                                 : $"raid ending in {PhaseRemaining:0}s");
@@ -407,8 +408,9 @@ public sealed partial class TacticalMode : IArenaMode
         _roundStartPending = false;
         _teamEnemiesRequested = false;
         _teamStopRequested = false;
-        _teamWon = null;
+        _teamRoundResult = TeamArenaRoundResult.NoContest;
         _teamMatchWon = null;
+        _teamConsecutiveScorelessRounds = 0;
         _teamContinuation = TeamArenaRoundContinuation.EndNoContest;
         _teamRoundsToWin = 1;
         _teamRoundEpoch = 1;
@@ -1229,7 +1231,18 @@ public sealed partial class TacticalMode : IArenaMode
 
         if (Time.time >= _phaseEndsAt)
         {
-            EndTeamRound(false, $"round timer expired with {alliesAlive} allies and {enemiesAlive} opponents alive");
+            // Decided on survivors, not called a defeat. Both sides are still
+            // alive here — the elimination branches above already returned — so
+            // whoever has more bodies standing was ahead when time ran out, and
+            // only an equal count is genuinely undecided.
+            TeamArenaRoundResult expiry = alliesAlive > enemiesAlive
+                ? TeamArenaRoundResult.Won
+                : enemiesAlive > alliesAlive
+                    ? TeamArenaRoundResult.Lost
+                    : TeamArenaRoundResult.Drawn;
+            EndTeamRound(
+                expiry,
+                $"round timer expired with {alliesAlive} allies and {enemiesAlive} opponents alive");
             return;
         }
 
@@ -1830,27 +1843,41 @@ public sealed partial class TacticalMode : IArenaMode
         return true;
     }
 
+    /// <summary>
+    /// Every existing caller reports readiness, identity or lifecycle failures as
+    /// null, which is a no contest rather than a played round.
+    /// </summary>
     private void EndTeamRound(bool? won, string reason)
+        => EndTeamRound(
+            won == true ? TeamArenaRoundResult.Won
+            : won == false ? TeamArenaRoundResult.Lost
+            : TeamArenaRoundResult.NoContest,
+            reason);
+
+    private void EndTeamRound(TeamArenaRoundResult result, string reason)
     {
         if (!_teamArena || (_phase != Phase.Staging && _phase != Phase.Live))
             return;
 
         ArenaSpectatorService.Stop("the protected 5v5 round ended");
         TeamArenaPursuit.Reset();
-        _teamWon = won;
+        _teamRoundResult = result;
         TeamArenaRoundDecision decision = TeamArenaRoundPolicy.Evaluate(
-            won,
+            result,
             RoundsWon,
             RoundsLost,
-            _teamRoundsToWin);
+            _teamRoundsToWin,
+            _teamConsecutiveScorelessRounds);
         RoundsWon = decision.RoundsWon;
         RoundsLost = decision.RoundsLost;
+        _teamConsecutiveScorelessRounds = decision.ConsecutiveScorelessRounds;
         _teamContinuation = decision.Continuation;
+        // A drawn match is neither won nor lost, exactly like a no contest: the
+        // raid ends without claiming the player survived a victory.
         _teamMatchWon = decision.Continuation switch
         {
             TeamArenaRoundContinuation.EndMatchWon => true,
             TeamArenaRoundContinuation.EndMatchLost => false,
-            TeamArenaRoundContinuation.EndNoContest => null,
             _ => null,
         };
         _phase = Phase.Aftermath;
@@ -1860,16 +1887,23 @@ public sealed partial class TacticalMode : IArenaMode
         RetireSquad();
         _preferredSpectatorProfileId = null;
 
-        if (won.HasValue)
-        {
-            _match.ReportAnnouncerCue(
-                decision.Continuation == TeamArenaRoundContinuation.EndMatchWon ? ArenaAnnouncerCue.MatchWon
-                : decision.Continuation == TeamArenaRoundContinuation.EndMatchLost ? ArenaAnnouncerCue.MatchLost
-                : won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost);
-        }
-        else _match.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
+        _match.ReportAnnouncerCue(
+            decision.Continuation == TeamArenaRoundContinuation.EndMatchWon ? ArenaAnnouncerCue.MatchWon
+            : decision.Continuation == TeamArenaRoundContinuation.EndMatchLost ? ArenaAnnouncerCue.MatchLost
+            : result == TeamArenaRoundResult.NoContest ? ArenaAnnouncerCue.NoContest
+            // A drawn round and a match that ended on draws share the one cue;
+            // there is no separate match-draw phrase to promise.
+            : result == TeamArenaRoundResult.Drawn ? ArenaAnnouncerCue.Draw
+            : result == TeamArenaRoundResult.Won ? ArenaAnnouncerCue.RoundWon
+            : ArenaAnnouncerCue.RoundLost);
 
-        string outcome = won == true ? "victory" : won == false ? "defeat" : "no contest";
+        string outcome = result switch
+        {
+            TeamArenaRoundResult.Won => "victory",
+            TeamArenaRoundResult.Lost => "defeat",
+            TeamArenaRoundResult.Drawn => "draw",
+            _ => "no contest",
+        };
         string continuation = decision.Continuation == TeamArenaRoundContinuation.RebindNextRound
             ? "next round incoming"
             : "raid ending";
@@ -1877,11 +1911,21 @@ public sealed partial class TacticalMode : IArenaMode
 
         string roundResult = $"Tactical team Arena round {RoundNumber}: {outcome} — {reason}; "
             + $"score {RoundsWon}-{RoundsLost}, continuation {decision.Continuation}.";
-        // Victory/defeat are normal outcomes. Preserve visibility of readiness,
-        // identity and lifecycle failures that end a round without a valid result.
-        if (won.HasValue) Plugin.ModLogger.LogInfo(roundResult);
-        else Plugin.ModLogger.LogWarning(roundResult);
+        // Victory, defeat and a draw are all normal outcomes. Preserve visibility
+        // of readiness, identity and lifecycle failures, which end a round with no
+        // valid result at all.
+        if (result == TeamArenaRoundResult.NoContest) Plugin.ModLogger.LogWarning(roundResult);
+        else Plugin.ModLogger.LogInfo(roundResult);
     }
+
+    private static string DescribeTeamRoundResult(TeamArenaRoundResult result)
+        => result switch
+        {
+            TeamArenaRoundResult.Won => "VICTORY",
+            TeamArenaRoundResult.Lost => "DEFEAT",
+            TeamArenaRoundResult.Drawn => "DRAW",
+            _ => "NO CONTEST",
+        };
 
     private void EnterTeamRebinding()
     {
@@ -1899,7 +1943,8 @@ public sealed partial class TacticalMode : IArenaMode
         _phase = Phase.Rebinding;
         _teamRebindStep = TeamRebindStep.Begin;
         _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
-        _teamWon = null;
+        // The scoreless streak deliberately survives this: it spans rounds.
+        _teamRoundResult = TeamArenaRoundResult.NoContest;
         _preparedTeamRespawn = null;
         _authorizedDeadTeamPlayer = null;
         _teamRespawnAuthorizationAvailable = false;
@@ -2547,7 +2592,7 @@ public sealed partial class TacticalMode : IArenaMode
         TeamArenaPursuit.Reset();
         _teamContinuation = TeamArenaRoundContinuation.EndNoContest;
         _teamMatchWon = null;
-        _teamWon = null;
+        _teamRoundResult = TeamArenaRoundResult.NoContest;
         _teamRebindStep = TeamRebindStep.None;
         _authorizedDeadTeamPlayer = null;
         _teamRespawnAuthorizationAvailable = false;

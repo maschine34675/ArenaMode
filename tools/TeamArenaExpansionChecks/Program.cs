@@ -164,40 +164,90 @@ internal static class Program
     private static void CheckRoundContinuation()
     {
         TeamArenaRoundDecision firstWin = TeamArenaRoundPolicy.Evaluate(
-            won: true,
+            result: TeamArenaRoundResult.Won,
             roundsWon: 0,
             roundsLost: 0,
-            roundsToWin: 3);
+            roundsToWin: 3,
+            consecutiveScorelessRounds: 0);
         Assert(firstWin.RoundsWon == 1
                && firstWin.RoundsLost == 0
                && firstWin.Continuation == TeamArenaRoundContinuation.RebindNextRound,
             "the first best-of-five win advances to another round");
 
-        TeamArenaRoundDecision matchWin = TeamArenaRoundPolicy.Evaluate(true, 2, 1, 3);
+        TeamArenaRoundDecision matchWin = TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.Won, 2, 1, 3, 0);
         Assert(matchWin.RoundsWon == 3
                && matchWin.Continuation == TeamArenaRoundContinuation.EndMatchWon,
             "the configured third win completes the match");
 
-        TeamArenaRoundDecision matchLoss = TeamArenaRoundPolicy.Evaluate(false, 2, 2, 3);
+        TeamArenaRoundDecision matchLoss = TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.Lost, 2, 2, 3, 0);
         Assert(matchLoss.RoundsLost == 3
                && matchLoss.Continuation == TeamArenaRoundContinuation.EndMatchLost,
             "the configured third loss completes the match");
 
-        TeamArenaRoundDecision noContest = TeamArenaRoundPolicy.Evaluate(null, 1, 1, 3);
+        TeamArenaRoundDecision noContest = TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.NoContest, 1, 1, 3, 0);
         Assert(noContest.RoundsWon == 1
                && noContest.RoundsLost == 1
                && noContest.Continuation == TeamArenaRoundContinuation.EndNoContest,
             "a technical no-contest preserves the score and ends the protected match");
 
+        // A drawn round is a played round that nobody won: the score stands and
+        // the match goes on, which is the whole point of the outcome.
+        TeamArenaRoundDecision firstDraw = TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.Drawn, 1, 1, 3, 0);
+        Assert(firstDraw.RoundsWon == 1
+               && firstDraw.RoundsLost == 1
+               && firstDraw.ConsecutiveScorelessRounds == 1
+               && firstDraw.Continuation == TeamArenaRoundContinuation.RebindNextRound,
+            "a drawn round scores nothing and still advances to another round");
+
+        // The round timer is the anti-stuck safety net, so a draw may not repeat
+        // without bound: the second in a row ends the match as a draw.
+        TeamArenaRoundDecision secondDraw = TeamArenaRoundPolicy.Evaluate(
+            TeamArenaRoundResult.Drawn, 1, 1, 3, firstDraw.ConsecutiveScorelessRounds);
+        Assert(secondDraw.RoundsWon == 1
+               && secondDraw.RoundsLost == 1
+               && secondDraw.ConsecutiveScorelessRounds == TeamArenaRoundPolicy.MaxConsecutiveScorelessRounds
+               && secondDraw.Continuation == TeamArenaRoundContinuation.EndMatchDrawn,
+            "two drawn rounds in a row end the protected match as a draw");
+        Assert(secondDraw.MatchComplete && !firstDraw.MatchComplete,
+            "only the streak that reaches the cap completes the match");
+
+        // Consecutive, not cumulative: a decided round clears the streak.
+        TeamArenaRoundDecision decidedAfterDraw = TeamArenaRoundPolicy.Evaluate(
+            TeamArenaRoundResult.Won, 1, 1, 3, firstDraw.ConsecutiveScorelessRounds);
+        Assert(decidedAfterDraw.ConsecutiveScorelessRounds == 0
+               && decidedAfterDraw.Continuation == TeamArenaRoundContinuation.RebindNextRound,
+            "a decided round clears the scoreless streak instead of accumulating toward the cap");
+        Assert(TeamArenaRoundPolicy.Evaluate(
+                       TeamArenaRoundResult.Drawn, 1, 1, 3, decidedAfterDraw.ConsecutiveScorelessRounds)
+                   .Continuation == TeamArenaRoundContinuation.RebindNextRound,
+            "an isolated later draw starts a fresh streak rather than ending the match");
+
+        // A no-contest never counts toward the draw cap: it ends the match itself.
+        Assert(TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.NoContest, 1, 1, 3, 1)
+                   .ConsecutiveScorelessRounds == 1,
+            "a no-contest leaves the scoreless streak untouched");
+
         bool rejected = false;
         try
         {
-            TeamArenaRoundPolicy.Evaluate(true, 0, 0, 0);
+            TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.Won, 0, 0, 0, 0);
         }
         catch (ArgumentOutOfRangeException)
         {
             rejected = true;
         }
+
+        bool negativeStreakRejected = false;
+        try
+        {
+            TeamArenaRoundPolicy.Evaluate(TeamArenaRoundResult.Drawn, 0, 0, 3, -1);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            negativeStreakRejected = true;
+        }
+
+        Assert(negativeStreakRejected, "a negative scoreless streak is rejected");
 
         Assert(rejected, "an invalid rounds-to-win setting fails closed");
     }
@@ -2101,18 +2151,37 @@ internal static class Program
 
         string endRound = Slice(
             tactical,
-            "private void EndTeamRound(bool? won, string reason)",
-            "private void EnterTeamRebinding()");
+            "private void EndTeamRound(TeamArenaRoundResult result, string reason)",
+            "private static string DescribeTeamRoundResult(");
         RequireAll(endRound,
             "ArenaSpectatorService.Stop(\"the protected 5v5 round ended\")",
             "TeamArenaPursuit.Reset()",
             "TeamArenaRoundPolicy.Evaluate(",
             "_teamRoundsToWin",
+            "_teamConsecutiveScorelessRounds",
             "TeamArenaRoundContinuation.EndMatchWon => true",
             "TeamArenaRoundContinuation.EndMatchLost => false",
-            "TeamArenaRoundContinuation.EndNoContest => null",
-            "if (won.HasValue)",
-            "won.Value ? ArenaAnnouncerCue.RoundWon : ArenaAnnouncerCue.RoundLost");
+            "result == TeamArenaRoundResult.NoContest ? ArenaAnnouncerCue.NoContest",
+            "result == TeamArenaRoundResult.Drawn ? ArenaAnnouncerCue.Draw",
+            "result == TeamArenaRoundResult.Won ? ArenaAnnouncerCue.RoundWon");
+        // A drawn match claims no victory, exactly like a no contest.
+        Assert(endRound.Contains("_ => null,", StringComparison.Ordinal)
+               && !endRound.Contains("EndMatchDrawn => true", StringComparison.Ordinal),
+            "a match that ended on draws reports neither a win nor a loss");
+        // Only a missing result stays a warning; a draw is a played round.
+        Assert(endRound.Contains(
+                   "if (result == TeamArenaRoundResult.NoContest) Plugin.ModLogger.LogWarning(roundResult);",
+                   StringComparison.Ordinal),
+            "a drawn round logs as an ordinary outcome while a no contest stays a warning");
+        // Survivor count decides an expired round instead of calling it a defeat.
+        string teamLive = Slice(tactical, "private void TickTeamLive()", "private void EndTeamRound(bool? won");
+        Assert(teamLive.Contains("alliesAlive > enemiesAlive", StringComparison.Ordinal)
+               && teamLive.Contains("enemiesAlive > alliesAlive", StringComparison.Ordinal)
+               && teamLive.Contains("TeamArenaRoundResult.Drawn", StringComparison.Ordinal)
+               && !teamLive.Contains(
+                   "EndTeamRound(false, $\"round timer expired",
+                   StringComparison.Ordinal),
+            "an expired round is decided on survivors, with a draw only at an equal count");
         Assert(endRound.IndexOf("ArenaSpectatorService.Stop", StringComparison.Ordinal)
                < endRound.IndexOf("RetireSquad()", StringComparison.Ordinal)
                && endRound.IndexOf("TeamArenaPursuit.Reset()", StringComparison.Ordinal)
