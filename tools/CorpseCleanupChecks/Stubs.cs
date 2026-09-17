@@ -140,6 +140,7 @@ namespace EFT.InventoryLogic
 }
 namespace EFT
 {
+    public class HealthController { public bool IsAlive = true; }
     public class Player : UnityEngine.Component
     {
         protected Interactive.Corpse Corpse;
@@ -148,35 +149,115 @@ namespace EFT
         public string ProfileId = "local-player";
         public UnityEngine.Vector3 Position;
         public object InteractableObject;
+        public bool IsYourPlayer;
+        public HealthController HealthController = new();
+
+        // Player.Dispose is the step that unregisters from GameWorld, ends the
+        // audio subscriptions and destroys the hands controller (which is what
+        // pools the corpse's weapon model). Only its ORDER is observable here.
+        public int Disposals;
+        public bool ThrowOnDispose;
+        public void Dispose()
+        {
+            Disposals++;
+            if (ThrowOnDispose) throw new Exception("player dispose failed");
+        }
     }
     public class GameWorld
     {
         public Player MainPlayer = new();
         public readonly List<Interactive.Corpse> LootList = new();
+        public readonly List<Interactive.Corpse> Removed = new();
+        public bool ThrowOnDestroyLoot;
+
+        /// <summary>
+        /// GameWorld.DestroyLoot -> Corpse.Kill (PlayerBody.Dispose) ->
+        /// LootItem.Kill -> AssetPoolObject.ReturnToPool. The last step is where
+        /// IsStub decides between destroying the body and PUSHING IT BACK into
+        /// the shared player pool, so both outcomes are recorded separately.
+        /// </summary>
+        public void DestroyLoot(Interactive.Corpse loot)
+        {
+            if (ThrowOnDestroyLoot) throw new Exception("destroy loot failed");
+            LootList.Remove(loot);
+            Removed.Add(loot);
+            loot.PlayerBodyDisposals++;
+            var pool = loot.GetComponent<AssetsManager.AssetPoolObject>();
+            if (pool == null) return;
+            if (pool.IsStub)
+            {
+                pool.Destroyed = true;
+                loot.Destroyed = true;
+                foreach (var component in loot.gameObject.Components.OfType<UnityEngine.Object>())
+                    component.Destroyed = true;
+            }
+            else
+            {
+                pool.PushedBackIntoPool = true;
+            }
+        }
     }
-    public class IBotGame { public BotsController BotsController; }
-    public class BotsController { public BotSpawner BotSpawner; }
+    public class IBotGame { public BotsController BotsController = new(); }
+    public class BotsController
+    {
+        public BotSpawner BotSpawner;
+        public readonly List<Player> Retired = new();
+        public bool ThrowOnDestroyInfo;
+
+        /// <summary>
+        /// BotsController.DestroyInfo -> BotSpawner.DeletePlayer -> every
+        /// BotsGroup.DeletePlayerCauseDead -> RemoveEnemy, which ADDS a DeadBody
+        /// for a person whose health controller says dead. The re-add is the
+        /// reason the dead-body record has to be cleared afterwards.
+        /// </summary>
+        public void DestroyInfo(Player player)
+        {
+            if (ThrowOnDestroyInfo) throw new Exception("destroy info failed");
+            Retired.Add(player);
+            var bodies = BotSpawner?._deadBodiesController;
+            if (bodies != null && player.HealthController?.IsAlive == false)
+                bodies.Bodies.Add(new DeadBody { Player = player });
+        }
+    }
     public class BotSpawner { public DeadBodiesController _deadBodiesController; }
     public class DeadBody { public Player Player; }
     public class DeadBodiesController
     {
         public readonly List<DeadBody> Bodies = new();
-        public void RemoveBody(DeadBody body) => Bodies.Remove(body);
+        public bool ThrowOnRemove;
+        public void RemoveBody(DeadBody body)
+        {
+            if (ThrowOnRemove) throw new Exception("dead body removal failed");
+            Bodies.Remove(body);
+        }
+    }
+    public class ObjectsFactory
+    {
+        public enum PoolsCategory { Raid }
+        public class BodyPool { public int TotalCreatedObjectsCount; public int CurrentPoolSize; }
+        public class Pools { public BodyPool PlayerAssetPool = new(); }
+        public Pools RaidPools = new();
+        public Pools GetPools(PoolsCategory category) => RaidPools;
     }
 }
 namespace EFT.AssetsManager
 {
-    public class AssetPoolObject
+    public class AssetPoolObject : UnityEngine.Component
     {
         public UnityEngine.Collider[] Colliders = Array.Empty<UnityEngine.Collider>();
         public void StoreCollider(UnityEngine.Collider collider) { }
+
+        // The pool's own "this object did not come from a pool" switch.
+        public bool IsStub { get; set; }
+        public bool PushedBackIntoPool;
     }
 }
 namespace EFT.Interactive
 {
     public class Ragdoll { public bool _isPhysicsDone = true; }
     public class Bindable<T> { public T Value; }
-    public class Corpse : UnityEngine.Component
+    public class LootItem : UnityEngine.Component { }
+    public class Corpse : LootItem
     {
         public bool HasRagdoll = true;
         public Ragdoll Ragdoll = new();
@@ -184,6 +265,7 @@ namespace EFT.Interactive
         public InventoryLogic.ItemController ItemOwner = new();
         public InventoryLogic.Item Item;
         public Bindable<InventoryLogic.Item> ItemInHands = new();
+        public int PlayerBodyDisposals;
     }
 }
 namespace ArenaMode
@@ -192,7 +274,8 @@ namespace ArenaMode
     public class Logger
     {
         public readonly List<string> Warnings = new();
-        public void LogInfo(string text) { }
+        public readonly List<string> Infos = new();
+        public void LogInfo(string text) => Infos.Add(text);
         public void LogWarning(string text) => Warnings.Add(text);
     }
 }
@@ -203,6 +286,7 @@ namespace ArenaMode.Config
     {
         public static Setting<int> MaxCorpses = new() { Value = 1 };
         public static Setting<bool> StripCorpseGear = new() { Value = true };
+        public static Setting<bool> ReleaseTrimmedCorpses = new() { Value = true };
     }
 }
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive; } }
@@ -226,6 +310,13 @@ namespace ArenaMode.Bots
 {
     public static class CorpseWeaponRegistry
     {
+        public static readonly List<EFT.Interactive.Corpse> Forgotten = new();
         public static UnityEngine.GameObject Get(EFT.Interactive.Corpse corpse) => null;
+        public static void Forget(EFT.Interactive.Corpse corpse) => Forgotten.Add(corpse);
+    }
+    public static class CorpseLightService
+    {
+        public static readonly List<EFT.Interactive.LootItem> Forgotten = new();
+        public static void Forget(EFT.Interactive.LootItem loot) => Forgotten.Add(loot);
     }
 }

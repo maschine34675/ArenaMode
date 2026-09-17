@@ -321,7 +321,14 @@ Open:
   methodology before trusting any new ModProfiler numbers: the counters only
   advance while its window is open, the frame count is `WebOverlayPlugin.Update`
   (per-mod call sums are not frame counts), and rows near 0.6 us/call are the
-  instrumentation, not work.
+  instrumentation, not work. The Arena-side root cause is fixed since
+  2026-09-17: a trimmed corpse is now RELEASED a sweep later — the body leaves
+  the scene instead of staying an active player object — because 446 hidden
+  bodies were what made every whole-scene search grow (415 active LocalPlayer
+  objects, 303 ms to count them). Read CORPSE-CLEANUP-REVIEW.md, section
+  "Releasing a trimmed corpse", before touching corpse lifetime: the step order
+  is load-bearing, own and PitFireTeam bodies are never released, and a body is
+  never destroyed while DynamicMaps still holds its marker.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded

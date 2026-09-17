@@ -37,6 +37,19 @@ internal static class CorpseWeaponRegistry
 
     public static void Reset() => Weapons.Clear();
 
+    /// <summary>
+    /// Drops a body Arena has released. Reference-null on purpose: a DESTROYED
+    /// corpse compares equal to null under Unity's operator, so the ordinary
+    /// `corpse != null` guard would skip exactly the key that has to go — and
+    /// the entry keeps the whole destroyed corpse and its weapon object alive
+    /// for the rest of the raid.
+    /// </summary>
+    public static void Forget(Corpse corpse)
+    {
+        if (!ReferenceEquals(corpse, null))
+            Weapons.Remove(corpse);
+    }
+
     /// <summary>Cheap and idempotent — safe to call on every sweep.</summary>
     public static void Observe(Corpse corpse)
     {

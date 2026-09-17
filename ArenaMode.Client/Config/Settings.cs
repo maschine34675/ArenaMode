@@ -74,6 +74,7 @@ public static class Settings
     public static ConfigEntry<bool> ShowVictimNames { get; private set; }
     public static ConfigEntry<int> MaxCorpses { get; private set; }
     public static ConfigEntry<bool> StripCorpseGear { get; private set; }
+    public static ConfigEntry<bool> ReleaseTrimmedCorpses { get; private set; }
     public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
     public static ConfigEntry<bool> NoBotGestures { get; private set; }
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
@@ -695,6 +696,16 @@ public static class Settings
             "Take the gear off corpses once they are hidden. Every worn item is " +
             "an instantiated model, and late-raid bodies wear far more of them " +
             "than early ones — removing it hands each model back to its pool.");
+
+        ReleaseTrimmedCorpses = config.Bind(
+            "Performance",
+            "ReleaseTrimmedCorpses",
+            true,
+            "Take a hidden corpse out of the scene for good once nothing can reach " +
+            "it any more, instead of leaving it lying there invisible. A hidden body " +
+            "is still a complete player object, and every search over the scene — the " +
+            "game's own included — gets slower with each one that is left. Your own " +
+            "bodies and PitFireTeam teammates are never taken away.");
 
         NoCorpseLooting = config.Bind(
             "Performance",

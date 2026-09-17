@@ -26,16 +26,50 @@ $arenaUnprotectedPair = @'
                         result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);
 '@
 $arenaNormalized = $arenaOriginal.Replace("`r`n", "`n")
+# The dead-body record is cleared AFTER the AI's knowledge of the person, because
+# clearing that knowledge is itself what re-creates the record. Moving it earlier
+# takes two edits, and so does defeating a pair of guards that protect the same
+# body twice on purpose - hence the optional second pair.
+$arenaRecordGuard = @'
+            if (!RemoveDeadBodyRecord(corpse))
+                throw new InvalidOperationException("the AI's dead-body record could not be cleared");
+'@
+$arenaOwnerReread = @'
+        if (corpse.PlayerProfileID == mainPlayer.ProfileId
+            || Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
+'@
 $arenaMutants = @(
     @{ Name = 'missing-begin'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Begin);'; To = '// mutation: missing Begin'; Failure = 'successful cleanup has no missing Begin activity' },
     @{ Name = 'missing-completion'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);'; To = '// mutation: missing completion'; Failure = 'successful cleanup leaves no active activities' },
     @{ Name = 'existing-activity'; From = 'controller.SelectEvents(item).Any()'; To = 'false'; Failure = 'pre-existing same-item activity is preserved' },
-    @{ Name = 'missing-finally'; From = $arenaPair.Replace("`r`n", "`n"); To = $arenaUnprotectedPair.Replace("`r`n", "`n"); Failure = 'tested failure boundary leaves no unpaired activity: begin' }
+    @{ Name = 'missing-finally'; From = $arenaPair.Replace("`r`n", "`n"); To = $arenaUnprotectedPair.Replace("`r`n", "`n"); Failure = 'tested failure boundary leaves no unpaired activity: begin' },
+    @{ Name = 'pooled-instead-of-destroyed'; From = 'pool.IsStub = true;'; To = '// mutation: let the body go back into the shared player pool'; Failure = 'a released body is destroyed, never pushed back into the shared player pool' },
+    # "corpse and player remain registered" is the earliest assertion that
+    # states this property; the release block states it again by name.
+    @{ Name = 'released-in-the-hiding-sweep'; From = 'state.Sweep >= _sweep'; To = 'false'; Failure = 'corpse and player remain registered' },
+    @{ Name = 'retries-a-failed-release'; From = 'if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)'; To = 'if (!state.Completed || state.Own || state.Protected)'; Failure = 'a failed release is never retried, even once the fault is gone: retire' },
+    @{ Name = 'releases-own-and-teammate-bodies';
+       From = 'if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)';
+       To = 'if (!state.Completed || state.ReleaseFailed)';
+       From2 = $arenaOwnerReread.Replace("`r`n", "`n");
+       To2 = '        if (false)';
+       Failure = 'this body is hidden but never taken out of the scene: own' },
+    @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
+    @{ Name = 'clears-the-record-before-the-ai-knowledge';
+       From = $arenaRecordGuard.Replace("`r`n", "`n"); To = '';
+       From2 = '            Singleton<IBotGame>.Instance?.BotsController?.DestroyInfo(player);';
+       To2 = $arenaRecordGuard.Replace("`r`n", "`n") + '            Singleton<IBotGame>.Instance?.BotsController?.DestroyInfo(player);';
+       Failure = 'the dead-body record DestroyInfo re-adds for a dead person is cleared afterwards' }
 )
 foreach ($arenaMutant in $arenaMutants) {
     if (-not $arenaNormalized.Contains($arenaMutant.From)) { throw "Missing mutation anchor: $($arenaMutant.Name)" }
+    $arenaMutated = $arenaNormalized.Replace($arenaMutant.From, $arenaMutant.To)
+    if ($arenaMutant.ContainsKey('From2')) {
+        if (-not $arenaMutated.Contains($arenaMutant.From2)) { throw "Missing second mutation anchor: $($arenaMutant.Name)" }
+        $arenaMutated = $arenaMutated.Replace($arenaMutant.From2, $arenaMutant.To2)
+    }
     $arenaPath = Join-Path $arenaMutantDir ($arenaMutant.Name + '.cs')
-    [IO.File]::WriteAllText($arenaPath, $arenaNormalized.Replace($arenaMutant.From, $arenaMutant.To))
+    [IO.File]::WriteAllText($arenaPath, $arenaMutated)
     $arenaPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'

@@ -38,7 +38,8 @@ try {
     Assert-Production
     Reject-Mutant 'keep-existing-skulls' 'CleanupSource' 'Compat.DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();' '// regression: no map cleanup' 'successful trim removes existing map and minimap markers'
     Reject-Mutant 'allow-later-skulls' 'AdapterSource' 'return !IsTrimmed(__0);' 'return true;' 'later and reopened map markers stay suppressed'
-    Reject-Mutant 'suppress-failed-trim' 'CleanupSource' 'new TrimState { Body = new Renderer[0] };' 'new TrimState { Body = new Renderer[0], Completed = true, World = Singleton<GameWorld>.Instance };' 'excluded or failed trim keeps existing marker failed'
+    Reject-Mutant 'suppress-failed-trim' 'CleanupSource' 'new TrimState { Body = new Renderer[0], Sweep = _sweep };' 'new TrimState { Body = new Renderer[0], Sweep = _sweep, Completed = true, World = Singleton<GameWorld>.Instance };' 'excluded or failed trim keeps existing marker failed'
+    Reject-Mutant 'destroy-behind-a-held-skull' 'AdapterSource' 'if (!_enabled || player == null) return false;' 'if (true) return false;' 'a body whose map marker is still held is never destroyed'
     Reject-Mutant 'leak-world-evidence' 'CleanupSource' '&& ReferenceEquals(state.World, Singleton<GameWorld>.Instance)' '&& true' 'lifetime boundary stops both suppression paths world'
     Reject-Mutant 'retain-reset-evidence' 'CleanupSource' 'Trimmed.Clear();' '// regression: retain previous trim evidence' 'lifetime boundary stops both suppression paths reset'
     Reject-Mutant 'unreviewed-version' 'AdapterSource' 'info.Metadata.Version != new System.Version(1, 2, 1)' 'false' 'optional bind failure leaves no hook version'

@@ -104,6 +104,18 @@ internal static class DynamicMapsCorpseMarkers
         {
             if (__instance == null || !_markers.DeclaringType.IsInstanceOfType(__instance)) return true;
             Track(__instance);
+
+            // A body Arena has RELEASED is destroyed, so it compares equal to
+            // null while still being a live reference. Suppress that one rather
+            // than fall through: 1.2.1's own creation path reads the body's
+            // nickname and world position, which a destroyed Player cannot
+            // answer. Defence in depth, not the primary guard — that is
+            // HoldsMarker below, because every 1.2.1 caller except OnMapChanged
+            // gates on HasCorpse() and a released body has none.
+            //
+            // A genuine null is NOT ours and keeps failing open, as before.
+            if (!ReferenceEquals(__0, null) && __0 == null) return false;
+
             return !IsTrimmed(__0);
         }
         catch (Exception ex)
@@ -150,6 +162,41 @@ internal static class DynamicMapsCorpseMarkers
             }
             catch (Exception ex) { WarnOnce(ex); }
         }
+    }
+
+    /// <summary>
+    /// True while a tracked provider still holds a marker for this exact body,
+    /// or while that cannot be established.
+    ///
+    /// Arena asks before it destroys a trimmed body. 1.2.1's OnMapChanged walks
+    /// the keys it already has and RE-ADDS each one, reading the body's nickname
+    /// and world position on the way — a destroyed Player answers neither, and
+    /// the creation prefix above cannot help because removal never happened.
+    /// Fails closed: an unreadable table counts as holding, so the body stays
+    /// hidden instead of being destroyed behind a marker that outlives it.
+    /// </summary>
+    internal static bool HoldsMarker(Player player)
+    {
+        if (!_enabled || player == null) return false;
+        for (var i = Providers.Count - 1; i >= 0; i--)
+        {
+            if (!Providers[i].TryGetTarget(out var provider))
+            {
+                Providers.RemoveAt(i);
+                continue;
+            }
+            try
+            {
+                if (_markers.GetValue(provider) is IDictionary markers && markers.Contains(player))
+                    return true;
+            }
+            catch (Exception ex)
+            {
+                WarnOnce(ex);
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void WarnOnce(Exception ex)

@@ -61,6 +61,20 @@ internal static class CorpseLightService
         Done.Clear();
     }
 
+    /// <summary>
+    /// Drops loot Arena has released, so neither table pins a destroyed object.
+    /// Reference-null on purpose: a destroyed object compares equal to null
+    /// under Unity's operator, which would skip exactly the key that has to go.
+    /// </summary>
+    public static void Forget(LootItem loot)
+    {
+        if (ReferenceEquals(loot, null))
+            return;
+
+        Done.Remove(loot);
+        Attempts.Remove(loot);
+    }
+
     public static void Tick()
     {
         if (!ArenaSession.IsActive || Time.time < _nextSweepAt)

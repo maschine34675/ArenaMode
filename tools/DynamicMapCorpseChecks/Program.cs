@@ -32,6 +32,10 @@ void Check(bool condition, string name)
     ArenaSession.IsActive = true;
     Settings.MaxCorpses.Value = 1;
     Settings.StripCorpseGear.Value = false;
+
+    // These checks are about the marker adapter. The release is turned on only
+    // in the block that tests the one place the two files meet.
+    Settings.ReleaseTrimmedCorpses.Value = false;
     ArenaMode.Compat.PitFireTeamCompat.TeamProfile = null;
     ArenaMode.Loot.OpenLootTracker.Open = null;
     Plugin.ModLogger.Warnings.Clear();
@@ -41,14 +45,20 @@ void Check(bool condition, string name)
     corpse.Item = corpse.ItemOwner.RootItem = new InventoryEquipment();
     var dead = new Player { ProfileId = "reused-profile", gameObject = corpse.gameObject };
     dead.SetCorpse(corpse);
+    dead.HealthController.IsAlive = false;
     corpse.gameObject.Components.Add(dead);
     corpse.gameObject.Components.Add(new Renderer());
+    corpse.gameObject.Components.Add(new EFT.AssetsManager.AssetPoolObject());
     var retainedBody = new Corpse { PlayerProfileID = "retained" };
     var retained = new Player { ProfileId = dead.ProfileId };
     retained.SetCorpse(retainedBody);
     world.LootList.Add(corpse);
     world.LootList.Add(retainedBody);
     Singleton<GameWorld>.Instance = world;
+    Singleton<IBotGame>.Instance = new IBotGame
+    {
+        BotsController = new BotsController { BotSpawner = new BotSpawner { _deadBodiesController = new DeadBodiesController() } },
+    };
     if (enable) DynamicMapsCorpseMarkers.Enable();
     return (world, corpse, dead, retained);
 }
@@ -180,6 +190,34 @@ foreach (var boundary in new[] { "ordinary", "reset", "world" })
     DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();
     Check(Plugin.ModLogger.Warnings.Count == 0, "collected provider is safely pruned");
 }
+// The one place the two files meet. Arena destroys a trimmed body, and 1.2.1's
+// OnMapChanged re-adds every key it still holds, reading the body's nickname and
+// world position on the way — so a body whose skull the map has not let go of
+// must stay. The removal failure is the lever that holds it back here.
+{
+    var (world, corpse, dead, _) = Setup();
+    Settings.ReleaseTrimmedCorpses.Value = true;
+    var stubborn = new CorpseMarkerProvider { ThrowOnRemove = true };
+    stubborn.Add(dead);
+
+    CorpseCleanupService.Tick();
+    Check(stubborn.Contains(dead) && CorpseCleanupService.IsSuccessfullyTrimmed(corpse),
+        "positive control: the body is trimmed and its marker could not be removed");
+
+    Time.time += 6;
+    CorpseCleanupService.Tick();
+    Check(world.LootList.Contains(corpse) && !corpse.Destroyed && dead.Disposals == 0,
+        "a body whose map marker is still held is never destroyed");
+
+    stubborn.ThrowOnRemove = false;
+    Time.time += 6;
+    CorpseCleanupService.Tick();
+    Check(!stubborn.Contains(dead) && !world.LootList.Contains(corpse) && corpse.Destroyed && dead.Disposals == 1,
+        "once the marker is gone the body is released");
+    Check(!DynamicMapsCorpseMarkers.BeforeAddMarker(stubborn, dead),
+        "a released body is refused a new marker, which its own creation path could not survive");
+}
+
 DynamicMapsCorpseMarkers.Shutdown();
 Console.WriteLine($"ARENA_DYNAMICMAP_CORPSE_BEHAVIOR_PASSED ({assertions} assertions)");
 

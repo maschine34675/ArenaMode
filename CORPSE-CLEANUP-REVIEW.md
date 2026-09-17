@@ -76,3 +76,181 @@ client, verify many kills with corpse stripping enabled: the original per-item
 activity diagnostics should disappear, bodies/gear should still trim normally,
 and raid exit/profile restoration should complete. This server has no GPU;
 the live check remains an explicit handoff in `tools/CorpseCleanupChecks/GATES.md`.
+
+---
+
+# Releasing a trimmed corpse (2026-09-17)
+
+## Why hiding was not enough
+
+`../Redeploy/docs/RESPAWN-API.md`, header block "Messraid 17.09.2026" (Redeploy
+`8542ef4`, analysis `tools/pipeline-timing/analyze.py`): a 26-minute Arena
+Deathmatch FFA on Labyrinth with 37 respawns and zero player kills reproduced the
+slowdown from `LONG-RAID-REVIEW-2026-09-16.md`. Arena's `pipeline` grew from
+0.66 s to 1.66 s, driven by elapsed raid time rather than respawn count — it
+jumped across a three-minute pause — and the growth sat entirely in steps that
+search the whole scene.
+
+The cause was this service. `FindObjectsOfType<LocalPlayer>()` found 53 objects
+after 3 minutes, 232 after 14 and 415 after 23, and took 95, 178 and 303 ms
+doing it, while the log read "trimmed 1 old corpse(s), 10 kept visible, 446
+trimmed in total". A trimmed body is invisible and inert but still a complete,
+active player GameObject with every MonoBehaviour it was born with, and the
+count only ever grows. Everything that walks the scene pays for it, including
+the game's own searches — which is why Redeploy 1.0.3/1.0.4 and KillcamReplay
+0.9.10 removing their three own sweeps was a fix for those three sweeps only.
+
+## What release does, and where each step comes from
+
+`CorpseCleanupService.ReleaseTrimmed` runs at the end of each 5 s sweep, after
+the trim pass. A body hidden in one sweep becomes eligible in the next
+(`TrimState.Sweep`), so nothing is hidden and destroyed in the same frame and
+the optional map-marker removal has run on it first.
+
+The old attempt — the one the trim was written to replace — called
+`GameWorld.DestroyLoot` and nothing else, so the skeleton went back through the
+shared player pool with its `Player` component never disposed. The steps the
+game itself performs and that attempt skipped, verified in `../_decompiled/`:
+
+1. `BotsController.DestroyInfo(player)` — `EFT/BotsController.cs:650`. Used by
+   `EFT/BaseLocalGame.cs:942-948` (`BotDespawn`), the game's own mid-raid path
+   for a bot that leaves the map. It reaches `BotSpawner.DeletePlayer`
+   (`EFT/BotSpawner.cs:682-694`): every `BotsGroup.DeletePlayerCauseDead` →
+   `RemoveEnemy` (`BotsGroup.cs:733-747`), which clears the group's `Enemies`
+   and `Neutrals` and each member's `Memory.DeleteInfoAboutEnemy`, plus
+   `_allPlayers`, `_bots` and `player.AIData.Dispose()`. A normally dying bot
+   never gets this: `BotOwner.OnDied` (`EFT/BotOwner.cs:698-721`) calls
+   `BotsController.BotDied` and `Dispose`, not `DestroyInfo`.
+2. `Player.Dispose()` — `EFT/Player.cs:30917-30973`. What
+   `BaseLocalGame.CleanUp` (`EFT/BaseLocalGame.cs:1151-1163`) runs before it
+   returns a player object, and what `Player.OnDestroy` (28429) runs by itself.
+   It unregisters from `GameWorld` (2060-2085), leaves the speaker group, ends
+   the audio subscriptions, disposes the conditional controllers and the
+   movement context, and destroys the hands controller — and that last step is
+   what hands the corpse's WEAPON model back to its own pool
+   (`FirearmController.Destroy` → `AssetPoolObject.ReturnToPool`,
+   `EFT/Player.cs:21343-21351`). It deliberately skips `_playerBody.Dispose()`
+   while `Corpse` is set; `Corpse.Kill` owns that one.
+3. The dead-body record, **after** 1 and 2. This ordering is the one genuine
+   trap in the sequence: clearing the AI's knowledge is itself what re-creates
+   the record, because `BotsGroup.RemoveEnemy` calls
+   `DeadBodiesController.AddBody` for a person whose health controller says
+   dead. A record left behind resolves its `Player` through
+   `GameWorld.GetEverExistedPlayerByID`, which nothing ever cleans, and reads
+   its position from `PlayerBones` (`DeadBody.cs:38-44`) — so it would point at
+   a destroyed body. If the removal cannot be confirmed the release is refused
+   and the body stays hidden.
+4. `GameWorld.DestroyLoot(corpse)` — `EFT/GameWorld.cs:1322-1348`: the loot
+   list, the net-id table, the item-owner registry, every player's interaction
+   raycast, then `Corpse.Kill` (`EFT.Interactive/Corpse.cs:238-244`) →
+   `PlayerBody.Dispose` (skins unskinned, slot models back to their pools) →
+   `LootItem.Kill` (`EFT.Interactive/LootItem.cs:490-502`): shadows restored,
+   culling registration dropped, `AssetPoolObject.ReturnToPool`.
+5. Arena's own tables (`CorpseWeaponRegistry`, `CorpseLightService`, `Trimmed`)
+   last, because until step 4 has run they are what keeps the hidden state
+   honest and the optional map marker suppressed. Both `Forget` methods use a
+   reference-null check on purpose: a destroyed object compares equal to null
+   under Unity's operator, so the ordinary guard would skip exactly the key
+   that has to go.
+
+## Destroyed, not pooled
+
+Step 4 sets `AssetPoolObject.IsStub` before the call. That is the pool's own
+switch for "this object did not come from a pool"
+(`EFT.AssetsManager/AssetPoolObject.cs:108-120`): the nested pool objects still
+go back to their pools through `ClearChildren`, and the body itself is
+destroyed instead of pushed back. It is reset in a `finally` in the one case
+that matters — the destroy not happening — because `IsStub` left set on a live
+pooled body would destroy it the next time anything returned it.
+
+Pooling the body was the obvious alternative and is wrong here on two counts.
+`PlayerPoolObject` is one of the two pool types the pool keeps ACTIVE while
+idle (`AssetsPoolStaticConfig.IsGameObjectActiveInPool`, and
+`AbstractAssetsPool.Push` only moves it to `UNSEEN_PLACE`), so pooling would not
+shorten the scene at all — which is the entire point. And the only components
+`ReturnToPool` removes are those in `RegisteredComponentsToClean`, which holds
+the `Player` (`EFT/Player.cs:28055`), a box collider and a beacon setter, and
+nothing else: not the `BotOwner` added at `EFT/BotOwner.cs:473`, not the
+`Corpse` added at `Corpse.cs:104`, not the `ProxyTransportee` on the pelvis, and
+certainly not whatever another mod attached to a bot. `BaseLocalGame.BotDespawn`
+does exactly this and inherits exactly those leftovers. Destroying has no
+recycling hazard at all.
+
+Nothing puts the hidden renderers back, and nothing has to: both primitives the
+trim writes are the pool-restored ones (argued at `TrimCorpse`), so every model
+that outlives the body has its `forceRenderingOff` cleared by the pool as it
+goes back in. Writing `false` at release time would instead write over
+renderers that may already belong to a living bot.
+
+## What holds a reference to a dead body, and what happens to it
+
+| Holder | Handling |
+|---|---|
+| `GameWorld.RegisteredPlayers`, `AllAlivePlayersList`, `allAlivePlayersByID`, `AllAlivePlayerBridges`, `PlayersColliders`, `ItemOwners` | `Player.Dispose` → `UnregisterPlayer`. Already done at death by `OnDeadCoroutine`, so this is the idempotent repeat the game itself performs. |
+| `GameWorld.LootList`, `LootItems`, the corpse's `ItemOwner` | `DestroyLoot`. |
+| `GameWorld._allPlayersEverExisted`, `AllPlayerBridgesEverExisted` | Never cleaned by the game. The entries survive as destroyed Unity objects, which is what the DynamicMaps gate below is about. |
+| `DeadBodiesController` (bots pathing to bodies to loot) | Step 3. The only reader in Arena is `BotDeadBodyWork.UpdateCheck`, which `NoCorpseLootingPatch` gates off. |
+| `BotsGroup` enemy/neutral memory, each member's `BotMemory` | Step 1. A group created later can only add living players (`CheckAndAddEnemy` refuses a dead one). |
+| SAIN | Drops its `BotComponent` at death already: it subscribes to `BotSpawner.OnBotRemoved`, which `BotSpawner.BotDied` raises from `BotOwner.OnDied`, and its tables are keyed by profile id. Nothing of SAIN's survives to see the destroy. |
+| PitFireTeam | Roster members are **never released**, not even for a round-start clear, which does lift the hiding exemption. Recorded at trim time (`TrimState.Protected`, when PFT's answer is still reliable) and re-read at release. |
+| The killfeed and the scoreboard | Keyed by immutable identity, not by body (`ASSIST-SCORING-REVIEW.md`); no `Player` reference is retained. |
+| DynamicMaps corpse markers | A body is not released while any tracked provider still holds its marker (`DynamicMapsCorpseMarkers.HoldsMarker`, fails closed). 1.2.1's `OnMapChanged` re-adds every key it still has and reads the body's nickname and world position doing it, which a destroyed body cannot answer. Its other creation paths gate on `HasCorpse()`, which a released body fails; the creation prefix refuses a destroyed body as well. `OtherPlayersMarkerProvider` only ever removes. |
+| KillcamReplay | Its `SnapshotRecorder` already retires a track whose player has gone unsampled for two seconds, explicitly so it does not pin a dead `Player`. Its death replay uses the LOCAL player's corpse as the puppet source — and own bodies are never released. |
+| AutoIFF | Keyed by profile id (`identifiedBots`); holds no body. |
+| Redeploy.Core / profile protection | Read the local player's own corpse (`EquipmentSurgeon`, `NearSpawnPolicy`, `RespawnService.FixOwnCorpseRenders`). Own bodies are **never released**, recorded at trim time and re-read at release against `MainPlayer.ProfileId` — which is the same across every respawn, so it covers every body that was ever the player's. |
+| Loot on the corpse | Already stripped and unreachable before release: the body is hidden, dropped from the AI's body records, and bots do not loot corpses in Arena. The secure container and the held weapon are what the trim leaves; `PlayerBody.Dispose` and the hands controller pool their models. Release is refused while the player has that body's loot window open or is interacting with it — re-read at release, not trusted from the trim. |
+| `ArenaAreaRuntime.Actors`, `CorpseLightService`, `CorpseWeaponRegistry` | `Actors` already prunes on Unity's null check; the other two are cleared in step 5. |
+
+## Bounded work per sweep
+
+At most eight bodies per sweep. A release walks every bot group and tears down a
+player hierarchy, and a round-start clear can hide fifty bodies at once — so
+without a cap the slow accumulation would be replaced by a frame spike. Eight
+per five seconds is well clear of the production rate: the measuring raid
+trimmed 446 bodies in 26 minutes, one every 3.5 seconds.
+
+## Behaviour that does not change
+
+Normal raids are untouched: `Tick` still returns on `ArenaSession.IsActive`
+before anything else, and the release is a phase inside it. The profile is not
+read or written. `MaxCorpses = 0` still means "keep all" and skips the sweep
+entirely, so it also disables the release. `ReleaseTrimmedCorpses` (Performance,
+default on) turns the release off on its own and leaves the old hide-only
+behaviour exactly as it was. A failed trim is never released — `Completed` is
+the same flag the map-marker suppression requires. A release that throws is
+counted, reported once per raid and never retried; the trim record is
+deliberately kept so the reassert pass still stops the body reappearing.
+
+## Verification and limits
+
+`pwsh -NoProfile -File tools/DynamicMapCorpseChecks/Verify.ps1` runs everything:
+the installed-contract check, 61 marker assertions with eight compiled controls,
+then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 105 assertions and
+ten source mutants. The release is covered by its own block plus these controls,
+each rejected at its named assertion:
+
+- `pooled-instead-of-destroyed` — drops `IsStub`, so the body is pushed back
+  into the shared player pool.
+- `released-in-the-hiding-sweep` — drops the sweep gate.
+- `retries-a-failed-release` — drops `ReleaseFailed`.
+- `releases-own-and-teammate-bodies` — drops both the recorded flags and the
+  re-read, which protect those bodies twice on purpose.
+- `unbounded-release-burst` — drops the per-sweep cap.
+- `clears-the-record-before-the-ai-knowledge` — moves step 3 ahead of step 1,
+  which is the ordering trap above.
+- `destroy-behind-a-held-skull` — makes `HoldsMarker` always answer no.
+
+These are contract fakes, not Unity. They model loot removal, the pool switch,
+the AI retirement and its re-added dead-body record as separate observable
+steps; they do not execute `Player.Dispose`, `PlayerBody.Dispose`,
+`DestroyImmediate` or Harmony. The double `Player.Dispose` (ours, then the one
+`Player.OnDestroy` runs) is argued from the native sequence rather than tested,
+as is the weapon model's pool return. Nothing here proves a frame-time or memory
+improvement; that is the measuring raid, run the same way as 2026-09-17 —
+`python ..\Redeploy\tools\pipeline-timing\analyze.py <log>` over a long
+Labyrinth deathmatch, against the sweep line's own numbers. Note that the
+"active LocalPlayer objects N" probe those numbers came from no longer exists:
+Redeploy.Core 1.0.4 (`9aba783`) removed it because the count itself cost up to
+303 ms. The sweep line reports the same quantity arithmetically instead —
+`player bodies N created / M pooled` from the pool's own counters, minus the
+released total — and no part of it searches the scene.
