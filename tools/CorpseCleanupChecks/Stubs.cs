@@ -319,6 +319,16 @@ namespace ArenaMode.Bots
         public static readonly List<EFT.Interactive.LootItem> Forgotten = new();
         public static void Forget(EFT.Interactive.LootItem loot) => Forgotten.Add(loot);
     }
+    public static class CorpseAggressors
+    {
+        // Player.OnDead hands LastAggressor to OnBeenKilledByAggressor as its
+        // first statement, so a destroyed aggressor abandons the whole death.
+        public static readonly List<EFT.Player> Pending = new();
+        public static bool FailToRead;
+        public static void Reset() { Pending.Clear(); FailToRead = false; }
+        public static bool IsPendingAggressor(EFT.Player body, EFT.GameWorld world)
+            => FailToRead || Pending.Contains(body);
+    }
     public static class CorpseTriggerZones
     {
         // A MoveInside trigger zone hosts an endless coroutine per player that

@@ -200,26 +200,37 @@ renderers that may already belong to a living bot.
 | Redeploy.Core / profile protection | Read the local player's own corpse (`EquipmentSurgeon`, `NearSpawnPolicy`, `RespawnService.FixOwnCorpseRenders`). Own bodies are **never released**, recorded at trim time and re-read at release against `MainPlayer.ProfileId` — which is the same across every respawn, so it covers every body that was ever the player's. |
 | Loot on the corpse | Already stripped and unreachable before release: the body is hidden, dropped from the AI's body records, and bots do not loot corpses in Arena. The secure container and the held weapon are what the trim leaves; `PlayerBody.Dispose` and the hands controller pool their models. Release is refused while the player has that body's loot window open or is interacting with it — re-read at release, not trusted from the trim. |
 | `ArenaAreaRuntime.Actors`, `CorpseLightService`, `CorpseWeaponRegistry` | `Actors` already prunes on Unity's null check; the other two are cleared in step 5. |
-| `TriggerZone` MoveInside coroutines | The one holder the code review missed and the measuring raid found. `CorpseTriggerZones` retires the body's own coroutine before the destroy; see below. |
+| `TriggerZone` MoveInside coroutines | Not found by the code review. `CorpseTriggerZones` retires the body's own coroutine before the destroy; see below. Pre-existing rather than caused by the release. |
+| `Player.LastAggressor` on a living, wounded player | Not found by the code review either, and the one place where the release genuinely broke something. A body stays hidden while anybody still names it (`CorpseAggressors`); see below. |
+| `GameWorld.GetEverExistedPlayerByID` in `Player.ManageAggressor` | Suspected in the one unresolved finding below. Not pruned on purpose: a destroyed `Player` still answers the managed reads its callers make. |
 
-## The one thing that broke, and how
+## What the measuring raids found
 
-The first measuring raid on this change (2026-09-17, 24:25, 36 respawns, 379
-bodies trimmed and 344 released) logged 21 `NullReferenceException`s, each in
-the same second as a release:
+Two separate things, and only one of them was Arena's doing. The comparison is
+clean because the control raid of the same evening (rotated log
+`LogOutput-2026-09-17_20-52-22.log`, 405 bodies trimmed, no release) ran the
+same mod set with only the previous ArenaMode.
+
+### Trigger-zone coroutines — pre-existing, now fixed
+
+The first release raid (24:25, 36 respawns, 379 trimmed, 344 released) logged
+16 of these:
 
     UnityEngine.Transform.get_position ()
     EFT.BifacialTransform.get_position ()
     EFT.GameTriggers.TriggerZone+CG_MoveInsideRoutine.MoveNext ()
 
-A trigger zone in MoveInside mode starts an endless coroutine per player who
-enters it (`TriggerZone.cs:172`), hosts it on ITSELF rather than on the player,
-and reads `player.Transform.position` every frame forever
-(`TriggerZone.cs:198-211`). The only thing that stops it is that player's
-collider count in the zone returning to zero, and a dead body never walks out —
-so the coroutine outlives its subject. While the body was merely hidden that
-was invisible; destroying the body makes the next read throw, and the coroutine
-ends itself on the exception. Labyrinth has these zones around its boss alarm.
+The control raid logged 17 of the same, and an 18:08 session 18 — so this is
+NOT a consequence of the release, and the rate barely moved. A trigger zone in
+MoveInside mode starts an endless coroutine per player who enters it
+(`TriggerZone.cs:172`), hosts it on ITSELF rather than on the player, and reads
+`player.Transform.position` every frame forever (`TriggerZone.cs:198-211`). The
+only thing that stops it is that player's collider count in the zone returning
+to zero, and a dead body never walks out, so the coroutine outlives its
+subject and something about a dead body's transform eventually makes it throw.
+The coroutine then ends itself on the exception, which is why the count per
+raid is a couple of dozen rather than thousands. Labyrinth has these zones
+around its boss alarm.
 
 `CorpseTriggerZones.Release` retires exactly that body's coroutine first — the
 same pair of steps the zone's own exit path performs, `Remove` then
@@ -234,7 +245,70 @@ This is the one Arena native integration that fails OPEN. If the private
 coroutine table cannot be bound, the entire consequence is one logged native
 exception per affected body and a coroutine that ends itself — a warning, not a
 reason to give up the release. The `leaves-the-trigger-coroutine-running`
-control covers the ordering.
+control covers the ordering. The confirmation raid (15:25, 132 trimmed, 119
+released) logged **zero**, against 16-18 in every raid before it.
+
+### Pending aggressors — introduced by the release, now guarded
+
+The same first release raid logged five `NullReferenceException`s the control
+raid did not have a single one of, and every one of them came in through the
+same door:
+
+    (wrapper dynamic-method) EFT.Player.DMD<EFT.Player::OnDead>(...)
+    EFT.LocalPlayer.OnDead (EFT.EDamageType damageType)
+    EFT.HealthSystem.ActiveHealthController.Kill (EFT.EDamageType damageType)
+    ...ActiveHealthController+Bleeding.BleedHealth ()
+
+`Player.ManageAggressor` remembers who hurt you in `LastAggressor`
+(`EFT/Player.cs:29526,29558`), and `Player.OnDead` hands that reference to
+`OnBeenKilledByAggressor` as its FIRST statement (`30099-30101`), which
+dereferences it. Nothing ever clears the field when the aggressor's body goes
+away, and the field is an `IPlayer` — so Unity's lifetime operator does not
+apply to the native `!= null` check in front of it, and a destroyed body sails
+straight through. Every one of the five was a bot that had been wounded, whose
+attacker died and was released, and who then bled out.
+
+The consequence is not a log line. The throw is in the first statement of
+`OnDead`, so the rest of that death never runs: no corpse, no `OnPlayerDead`,
+no `BotsController.BotDied` — which is the spawner bookkeeping whose leak
+starves bot refills, precisely the wreckage the first destroy attempt was
+abandoned for, arriving by a different route.
+
+`CorpseAggressors.IsPendingAggressor` therefore keeps a body hidden while any
+living player still names it. It reads `GameWorld.AllAlivePlayersList`, which
+is the world's own short list, compares by reference (a profile id would match
+every body that participant ever had) and writes nothing. Bleeding is bounded —
+it kills or is healed — so the body becomes releasable shortly afterwards, and
+until then it costs exactly what a hidden body has always cost. It fails
+CLOSED, unlike the trigger-zone retirement, and for the opposite reason: what
+is at stake is a death that never completes.
+
+### Still open: a grenade damaging a body after its release
+
+The confirmation raid logged four of a third kind, which the control raid and
+the first release raid did not have:
+
+    (wrapper dynamic-method) EFT.Player.DMD<EFT.Player::ApplyDamageInfo>(...)
+    BodyPartCollider+PlayerBridge.ApplyDamageInfo (...)
+    BodyPartCollider.ApplyEnvironmentalDamage (...)
+    EFT.ExplosionSharedMethods.AffectPlayersShared (...)
+    EFT.Grenade.Explosion () / InvokeBlowUpEvent ()
+
+New with the release and not yet explained. `AffectPlayersShared` collects its
+victims from `GetAlivePlayerBridgeByCollider`, so the victim should be alive and
+registered; the likeliest candidate is the aggressor side, because
+`Player.ManageAggressor` resolves it through
+`GameWorld.GetEverExistedPlayerByID` (`29515`) — and `_allPlayersEverExisted` is
+the one table `UnregisterPlayer` never touches, so it can still hand back a
+destroyed body. That is a hypothesis, not a diagnosis; the top frame is inside a
+Harmony-patched `ApplyDamageInfo`, so an Arena prefix is equally possible.
+
+Four occurrences in 15 minutes, in a path the health controller catches and
+logs. Pruning `_allPlayersEverExisted` on release was considered and rejected:
+a destroyed `Player` is still perfectly good for the MANAGED reads most of its
+callers do (`Profile`, `Nickname`, `EftStats`), so replacing it with null would
+trade this for a new set of null dereferences. The next step is a diagnostic
+that records which side of the damage is destroyed, not a speculative fix.
 
 ## Bounded work per sweep
 
@@ -260,8 +334,8 @@ deliberately kept so the reassert pass still stops the body reappearing.
 
 `pwsh -NoProfile -File tools/DynamicMapCorpseChecks/Verify.ps1` runs everything:
 the installed-contract check, 61 marker assertions with eight compiled controls,
-then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 105 assertions and
-ten source mutants. The release is covered by its own block plus these controls,
+then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 110 assertions and
+twelve source mutants. The release is covered by its own block plus these controls,
 each rejected at its named assertion:
 
 - `pooled-instead-of-destroyed` — drops `IsStub`, so the body is pushed back
@@ -275,6 +349,7 @@ each rejected at its named assertion:
   which is the ordering trap above.
 - `destroy-behind-a-held-skull` — makes `HoldsMarker` always answer no.
 - `leaves-the-trigger-coroutine-running` — drops the trigger-zone retirement.
+- `releases-a-pending-aggressor` — drops the pending-aggressor guard.
 
 These are contract fakes, not Unity. They model loot removal, the pool switch,
 the AI retirement and its re-added dead-body record as separate observable

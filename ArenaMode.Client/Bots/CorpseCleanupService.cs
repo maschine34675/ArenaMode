@@ -158,6 +158,7 @@ internal static class CorpseCleanupService
         _trimmedTotal = _releasedTotal = _releaseFailures = _sweep = 0;
         _reportedReleaseFailure = false;
         Trimmed.Clear();
+        CorpseAggressors.Reset();
         CorpseTriggerZones.Reset();
         Compat.DynamicMapsCorpseMarkers.Reset();
     }
@@ -577,6 +578,12 @@ internal static class CorpseCleanupService
         // Never a living body. A corpse's owner is dead by construction; an
         // unreadable health controller is refused rather than assumed.
         if (player.HealthController?.IsAlive != false)
+            return false;
+
+        // Nobody may still be owed a death by this body. See CorpseAggressors:
+        // a released body that is somebody's pending aggressor makes that
+        // somebody's OnDead throw, which abandons their whole death.
+        if (CorpseAggressors.IsPendingAggressor(player, world))
             return false;
 
         // The optional map has to have let go first: its own map-change handler

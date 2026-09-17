@@ -30,6 +30,7 @@ void Check(bool condition, string message)
     CorpseWeaponRegistry.Forgotten.Clear();
     CorpseLightService.Forgotten.Clear();
     CorpseTriggerZones.Reset();
+    CorpseAggressors.Reset();
     Time.time = 100;
     var world = new GameWorld();
     var body = new Corpse();
@@ -337,7 +338,7 @@ foreach (var kept in new[] { "own", "team", "off", "same-sweep" })
 
 // Conditions that can change in the seconds between hiding and releasing are
 // re-read, and each of them only DEFERS the release.
-foreach (var blocked in new[] { "interacting", "open", "ragdoll", "alive", "no-owner" })
+foreach (var blocked in new[] { "interacting", "open", "ragdoll", "alive", "no-owner", "aggressor", "aggressor-unreadable" })
 {
     var (world, body, gear) = Setup();
     Add(body, gear, "Headwear");
@@ -350,6 +351,8 @@ foreach (var blocked in new[] { "interacting", "open", "ragdoll", "alive", "no-o
         case "ragdoll": body.Ragdoll._isPhysicsDone = false; break;
         case "alive": owner.HealthController.IsAlive = true; break;
         case "no-owner": body.gameObject.Components.Remove(owner); break;
+        case "aggressor": CorpseAggressors.Pending.Add(owner); break;
+        case "aggressor-unreadable": CorpseAggressors.FailToRead = true; break;
     }
     Sweep();
     Check(world.LootList.Contains(body) && !body.Destroyed,
@@ -362,6 +365,8 @@ foreach (var blocked in new[] { "interacting", "open", "ragdoll", "alive", "no-o
         case "ragdoll": body.Ragdoll._isPhysicsDone = true; break;
         case "alive": owner.HealthController.IsAlive = false; break;
         case "no-owner": body.gameObject.Components.Add(owner); break;
+        case "aggressor": CorpseAggressors.Pending.Remove(owner); break;
+        case "aggressor-unreadable": CorpseAggressors.FailToRead = false; break;
     }
     Sweep();
     Check(!world.LootList.Contains(body) && body.Destroyed,
