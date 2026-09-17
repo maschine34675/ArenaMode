@@ -29,6 +29,7 @@ void Check(bool condition, string message)
     Plugin.ModLogger.Infos.Clear();
     CorpseWeaponRegistry.Forgotten.Clear();
     CorpseLightService.Forgotten.Clear();
+    CorpseTriggerZones.Reset();
     Time.time = 100;
     var world = new GameWorld();
     var body = new Corpse();
@@ -283,6 +284,8 @@ foreach (var guard in new[] { "open", "interacting" })
         "the body's PlayerBody is disposed and the object leaves the scene");
     Check(CorpseWeaponRegistry.Forgotten.Contains(body) && CorpseLightService.Forgotten.Contains(body),
         "the weapon and light registries stop pinning the destroyed body");
+    Check(CorpseTriggerZones.Retired.SequenceEqual(new[] { owner }),
+        "the trigger-zone coroutine that reads this body is retired before the body goes");
     Check(!CorpseCleanupService.IsSuccessfullyTrimmed(body) && Plugin.ModLogger.Warnings.Count == 0,
         "a released body leaves no trim record and no warning");
 

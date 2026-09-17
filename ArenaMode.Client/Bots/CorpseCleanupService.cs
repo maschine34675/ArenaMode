@@ -158,6 +158,7 @@ internal static class CorpseCleanupService
         _trimmedTotal = _releasedTotal = _releaseFailures = _sweep = 0;
         _reportedReleaseFailure = false;
         Trimmed.Clear();
+        CorpseTriggerZones.Reset();
         Compat.DynamicMapsCorpseMarkers.Reset();
     }
 
@@ -654,6 +655,10 @@ internal static class CorpseCleanupService
             // then leaves this one hidden and disposed.
             if (!RemoveDeadBodyRecord(corpse))
                 throw new InvalidOperationException("the AI's dead-body record could not be cleared");
+
+            // The one native coroutine that outlives the body it reads, and the
+            // only thing the 2026-09-17 raid found wrong with destroying one.
+            CorpseTriggerZones.Release(player);
 
             pool.IsStub = true;
             try

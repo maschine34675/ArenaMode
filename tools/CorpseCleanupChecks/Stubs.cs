@@ -319,4 +319,13 @@ namespace ArenaMode.Bots
         public static readonly List<EFT.Interactive.LootItem> Forgotten = new();
         public static void Forget(EFT.Interactive.LootItem loot) => Forgotten.Add(loot);
     }
+    public static class CorpseTriggerZones
+    {
+        // A MoveInside trigger zone hosts an endless coroutine per player that
+        // reads that player's transform. Only the order matters here: it has to
+        // be retired while the body still exists.
+        public static readonly List<EFT.Player> Retired = new();
+        public static void Reset() => Retired.Clear();
+        public static void Release(EFT.Player player) => Retired.Add(player);
+    }
 }

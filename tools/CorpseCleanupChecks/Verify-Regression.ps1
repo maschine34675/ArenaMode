@@ -55,6 +55,7 @@ $arenaMutants = @(
        To2 = '        if (false)';
        Failure = 'this body is hidden but never taken out of the scene: own' },
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
+    @{ Name = 'leaves-the-trigger-coroutine-running'; From = 'CorpseTriggerZones.Release(player);'; To = '// mutation: leave the endless coroutine reading a destroyed body'; Failure = 'the trigger-zone coroutine that reads this body is retired before the body goes' },
     @{ Name = 'clears-the-record-before-the-ai-knowledge';
        From = $arenaRecordGuard.Replace("`r`n", "`n"); To = '';
        From2 = '            Singleton<IBotGame>.Instance?.BotsController?.DestroyInfo(player);';
