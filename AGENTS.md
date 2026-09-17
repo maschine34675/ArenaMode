@@ -333,19 +333,24 @@ Open:
   control raid: the pipeline's growth per raid minute fell from 20.6 to 13.2 ms
   and the live player-object count from 415 at 23 min to about 63 at 24 min.
   What is left is dominated by the player's OWN corpses, which are exempt by
-  design. One finding is open — four `Player.ApplyDamageInfo` exceptions per
-  raid out of a grenade explosion, cause not established; the review records
-  the evidence and `ReleaseTrimmedCorpses` turns the whole thing off. Since
-  2026-09-17 `ArenaDamageExceptionLog` (Diagnostics/`LogDamageExceptions`,
-  default on) records it rather than guessing: a finalizer on
-  `Player.ApplyDamageInfo` and one on `ClientGameWorld.ShotDelegate` that print
-  every candidate as null/DESTROYED/live with the throwing method, and cross-
-  reference whether Arena released or merely hid that body. Read the review's
-  three new subsections before theorising again — a recount of the evening found
-  a fourth exception kind that is time-locked to this one, and the reason every
-  trace in this family names nothing but the Harmony wrapper frame. The heap
-  still grows to 11 GB without a collection and no longer has a corpse
-  explanation.
+  design. The `Player.ApplyDamageInfo` exceptions are no longer a mystery but
+  are NOT yet fixed — measured on 2026-09-17 by `ArenaDamageExceptionLog`
+  (Diagnostics/`LogDamageExceptions`, default on), a finalizer on
+  `Player.ApplyDamageInfo` and one on `ClientGameWorld.ShotDelegate` that record
+  every candidate as null/DESTROYED/live and rethrow. Eleven of eleven reports:
+  the victim is a live bot and the aggressor is a body Arena RELEASED seconds
+  earlier. The throw is `BotWeaponManager.OnBulletNear` reading `source.Position`
+  on it, reached through `BotMemory.GetHit` — `source` is an `IPlayer`, so its
+  `!= null` is a plain reference check Unity's lifetime operator never reaches.
+  Not an Arena prefix, not `ManageAggressor`. `ClientGameWorld.ShotDelegate` is
+  the same defect via `Player.ApplyShot`, so one fix covers both. Do NOT prune
+  `_allPlayersEverExisted` or its bridge twin; read CORPSE-CLEANUP-REVIEW.md,
+  "Settled (2026-09-17…)", for why, for the two native mechanisms that keep a
+  released body reachable as a damage source, and for the fact that one body
+  caused all eleven while 172 other releases caused none — that narrowness is
+  what a fix has to target. `ReleaseTrimmedCorpses` still turns the whole thing
+  off. The heap still grows to 11 GB without a collection and no longer has a
+  corpse explanation.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded

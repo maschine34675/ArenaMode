@@ -285,7 +285,121 @@ until then it costs exactly what a hidden body has always cost. It fails
 CLOSED, unlike the trigger-zone retirement, and for the opposite reason: what
 is at stake is a death that never completes.
 
-### Still open: a grenade explosion that abandons itself
+### Settled (2026-09-17, 23:06-23:19 Labyrinth raid on `90add07`)
+
+The release IS the cause, and the mechanism is not either of the two candidates
+below. Measured, not argued: 12:32 Labyrinth Deathmatch FFA, give up every
+~35-45 s, 207 player bodies created and 173 released, zero release failures,
+eleven diagnostic reports, zero diagnostic stand-downs.
+
+**Every report has the same shape. Eleven of eleven:**
+
+| Field | Every single report |
+|---|---|
+| `victim` | `live` — a healthy AI bot, `alive=True` |
+| `aggressor` / `shooter` | `DESTROYED`, `alive=False` |
+| that body's `release=` | `RELEASED`, 3.7 s to 85.4 s earlier |
+| `aliveById` | `null` — the alive table is correctly pruned |
+| `loyalty`, `health` | `set` on both sides, in all eleven |
+
+**The throwing method**, recovered from the exception's own trace read inside the
+finalizer:
+
+    UnityEngine.Transform.get_position_Injected        <- throws here
+    UnityEngine.Transform.get_position
+    EFT.BifacialTransform.get_position
+    EFT.Player.get_Position                            <- on the DESTROYED body
+    BotWeaponManager.OnBulletNear (BotOwner, IPlayer source)
+    EFT.BotMemory.SetUnderFire (IPlayer source)
+    EFT.BotMemory.GetHitInner (DamageInfo)
+    (wrapper dynamic-method) EFT.BotMemory.DMD<EFT.BotMemory::GetHit>
+
+`BotWeaponManager.OnBulletNear` (`../_decompiled/BotWeaponManager.cs:199-205`)
+is four lines long:
+
+```csharp
+public void OnBulletNear(BotOwner arg1, IPlayer source)
+{
+    if (source != null) { ChecnBlockAuto(source.Position); }
+}
+```
+
+`source` is an **`IPlayer`**, so that `!= null` is a plain reference check and
+Unity's lifetime operator never reaches it — a destroyed body sails through it
+exactly as the review predicted for `LastAggressor`, at a site nobody had
+looked at. `source.Position` is then `Player.Position` → `BifacialTransform`
+→ a destroyed `Transform`, and that throws. `OnGetHit` two lines below has the
+same shape through `arg1.Player.iPlayer.Position`.
+
+Three things this rules out, two of them instrumented on purpose as negative
+controls:
+
+- **Not an Arena prefix.** No Arena frame appears anywhere in the trace.
+- **Not `ManageAggressor`** and not its null branch, which was the leading
+  hypothesis. It is not on the stack at all.
+- **Not `_healthController` and not `Loyalty`**, the two members
+  `Player.ApplyDamageInfo` dereferences unguarded in its own IL. Both reported
+  `set` in all eleven reports.
+
+**`ShotDelegate` is the same defect, not a second one.** Its three reports name
+the same released body as shooter, and its trace is
+`Player.ApplyShot` ← `PlayerBridge.ApplyShot` ← `BodyPartCollider.ApplyHit` ←
+`ShotDelegate`. The 33-66 ms correlation was siblings of one cause. One fix
+covers both.
+
+**It is not only grenades.** `damage=` was `GrenadeFragment` six times and
+`Bullet` five, once at 1.7 damage — a bleed tick, which carries the original
+shooter's `DamageInfo` long after the shot.
+
+**How a released body is still named as an aggressor.** Two native mechanisms,
+both verified in the decompile, and together they make the window wide rather
+than one frame:
+
+- `Shot` resolves its shooter through
+  `GameWorld.GetEverExistedBridgeByProfileID` (`EFT.Ballistics/Shot.cs:460`) —
+  the bridge twin of the one table nothing prunes. Any damage that names a
+  released body's profile id therefore gets a live bridge whose `iPlayer` is the
+  destroyed `Player`. The pooling is not the problem; `Shot.Reset` does clear
+  `Player` (`:414`). The resolution is.
+- `BotMemory.GetHit` does not call `GetHitInner` immediately unless the bot
+  already has a `GoalEnemy`. Otherwise it defers it behind a
+  `HIT_DELAY_WHEN_PEACE` / `HIT_DELAY_WHEN_HAVE_SMT` timer with the `DamageInfo`
+  captured in the closure (`EFT/BotMemory.cs:681-694`). The body can be released
+  inside that delay.
+
+**One body did all of it.** All eleven exceptions name the same profile
+(`6aac5637…`, "Shadow of…", released in sweep 19), spread over 85 seconds, while
+172 other releases in the same raid caused none. So the trigger is narrow: not
+"a released body" but "a released body something still holds a damage reference
+to". That is what a fix has to find, and it is why the existing
+`CorpseAggressors` guard is not enough — it checks living players'
+`LastAggressor`, which covers neither a `DamageInfo` captured in a deferred
+`GetHit` timer nor a projectile still in flight.
+
+**What the fix is not.** Pruning `_allPlayersEverExisted` or its bridge twin,
+for the reason given above: a destroyed `Player` is still good for the managed
+reads most callers make, and nulling it trades this for a new set of null
+dereferences. The shape that fits the evidence is to keep a body while anything
+can still name it as a damage SOURCE, which is the pending-aggressor guard
+widened from `LastAggressor` to the in-flight and deferred cases. Not written
+yet, and not to be guessed at: the next step is to establish what held that one
+body, which the diagnostic now makes a matter of reading one line.
+
+**The log could never have said this.** For the identical exception, Unity
+logged `(wrapper dynamic-method) EFT.Player.DMD<EFT.Player::ApplyDamageInfo>`
+as its innermost frame and nothing above it, while the finalizer read four more
+frames under it. So the truncation described in the next section is real and
+measured, not inferred. `Exception.TargetSite` was null in every report
+(`thrownIn=unknown`), and on some of these NREs Mono leaves `StackTrace` empty
+too — the trace is what did the work here, so a report without one is worth
+nothing, and the first-report full-trace slot is now only spent on a report that
+actually has a trace (fixed after this raid; the evidence above was produced by
+`90add07`, whose eight-frame form happened to cover the whole chain).
+
+Also of note from the same raid: **zero `OnDead` exceptions** across 173
+releases, against five before the pending-aggressor guard. That guard holds.
+
+### The original finding, as it stood before the raid above
 
 Both raids after the trigger fix logged four of a third kind each, which the
 control raid and the first release raid did not have at all:

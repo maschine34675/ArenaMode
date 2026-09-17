@@ -290,8 +290,21 @@ internal static class ArenaDamageExceptionLog
     {
         line.Append(" thrownIn=").Append(Read(() => Name(exception.TargetSite)));
 
-        var trace = Read(() => exception.StackTrace);
-        if (!_tracedInFull)
+        string trace;
+        try { trace = exception.StackTrace; }
+        catch { trace = null; }
+
+        // Only a trace that exists may consume the one full-trace slot. The
+        // 2026-09-17 raid spent it on the first report, whose StackTrace was
+        // empty — Mono leaves both that and TargetSite empty for some of these
+        // NREs — and the complete trace of the ones that HAD one was then never
+        // printed. The eight-frame form happened to cover the whole chain; that
+        // was luck, not design.
+        if (string.IsNullOrEmpty(trace))
+        {
+            line.Append(" origin=none");
+        }
+        else if (!_tracedInFull)
         {
             _tracedInFull = true;
             line.Append(" fullTrace=\n").Append(trace);
