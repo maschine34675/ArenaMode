@@ -353,7 +353,12 @@ namespace EFT.Ballistics
 {
     public interface IBallisticsCalculator { }
     public class BallisticsCalculator : UnityEngine.Component, IBallisticsCalculator { public List<Shot> Shots = new(); }
-    public class Shot { public string PlayerProfileID; }
+
+    // Player is the frozen bridge Shot.method_1 resolves once, at the moment
+    // of firing (real field, see ../../ArenaMode.Client/Bots/CorpseDamageSources.cs
+    // ShotStillInFlightFromBody's doc) - left unset by default, matching a
+    // shot this code has no reason to think came from any particular body.
+    public class Shot { public string PlayerProfileID; public IObserverToPlayerBridge Player; }
 }
 namespace EFT.AssetsManager
 {

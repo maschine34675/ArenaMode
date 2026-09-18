@@ -93,11 +93,19 @@ namespace ArenaMode.Bots;
 /// answers whether the world's own profile-id registry
 /// (<c>GameWorld.GetEverExistedPlayerByID</c>,
 /// <c>GetEverExistedBridgeByProfileID</c>) still resolves to THIS exact body
-/// rather than a newer one — which is what every one of the resolutions
-/// above (a tripwire's explosion, a flare's impact, a shot landing) actually
-/// goes through, so once it says no, nothing in this class can be reached
-/// FROM this body any more, only from whichever one the registry names
-/// instead.
+/// rather than a newer one — which is what a tripwire's explosion and a
+/// flare's impact both actually go through (both resolve their source
+/// LAZILY, at the moment they land), so once it says no, neither can be
+/// resolved FROM this body any more, only from whichever one the registry
+/// names instead. A directly-fired SHOT is the one source that does NOT
+/// go through this at landing time: <c>Shot.Player</c> is resolved EAGERLY,
+/// once, at the moment of firing (<c>EFT.Ballistics/Shot.cs</c>
+/// <c>method_1</c>, called from <c>Create</c> — see <see cref="ShotInFlight"/>'s
+/// own doc), so a bullet this body fired while still alive keeps a frozen
+/// reference to it for the bullet's whole flight regardless of what the
+/// registry says afterwards. <see cref="ShotStillInFlightFromBody"/> is the
+/// registry bypass's own answer to that one case — a REFERENCE check, not a
+/// profile-id one.
 ///
 /// The cost is the one a hidden body has always had. A tripwire nobody walks
 /// into keeps its planter hidden until it expires (<c>TRIPWIRE_INERT_TIME</c>,
@@ -109,11 +117,13 @@ internal static class CorpseDamageSources
 {
     private static bool _reportedFailure;
     private static bool _reportedRegistryFailure;
+    private static bool _reportedShotInFlightFailure;
 
     internal static void Reset()
     {
         _reportedFailure = false;
         _reportedRegistryFailure = false;
+        _reportedShotInFlightFailure = false;
     }
 
     /// <summary>
@@ -274,6 +284,23 @@ internal static class CorpseDamageSources
         return _flareShooter.GetValue(flare) as IPlayer;
     }
 
+    /// <summary>
+    /// Profile-id match, for the ordinary (non-own, or own-and-still-named)
+    /// hold. Unlike a tripwire's explosion or a flare's impact, a shot does
+    /// NOT resolve its source lazily at landing: <c>Shot.Player</c> is set
+    /// once, EAGERLY, in <c>Shot.method_1</c> — called from
+    /// <c>BallisticsCalculator.CreateShot</c>/<c>Shoot</c>, itself called from
+    /// <c>Player.InitiateShot</c> at the moment the trigger is pulled
+    /// (<c>EFT/Player.cs:14322-14329</c>, <c>EFT.Ballistics/Shot.cs:429-460</c>
+    /// — verified against <c>../_decompiled/</c>) — and never reassigned
+    /// before <c>PrepareToPool</c> clears it. A profile-id match here is
+    /// still correct for the ordinary hold, because it does not need to tell
+    /// bodies apart: it is asking "is anything with this id still flying" for
+    /// a body the registry still names as the one true owner of that id.
+    /// <see cref="ShotStillInFlightFromBody"/> is the narrower, reference-based
+    /// question the own-corpse registry bypass needs instead, once more than
+    /// one body can share the id.
+    /// </summary>
     private static string ShotInFlight(string profileId, GameWorld world)
     {
         // The shared calculator is created with the world (GameWorld.InitLevel),
@@ -381,5 +408,88 @@ internal static class CorpseDamageSources
             "Arena corpse release cannot read whether the world's profile-id registry still names an "
             + "own body (" + reason + "); every own body older than the newest keeps its "
             + "damage-source hold until it can.");
+    }
+
+    /// <summary>
+    /// Own corpses only, and only once <see cref="StillNamedInRegistry"/> has
+    /// already said "no" for this body: whether a SHOT this EXACT body fired
+    /// is still travelling.
+    ///
+    /// <see cref="ShotInFlight"/>'s profile-id match is the wrong tool here on
+    /// purpose left unused: once the registry has moved on, the live
+    /// player's own current shots share this body's profile id too, and a
+    /// profile-id match cannot tell "this old corpse's own trailing bullet"
+    /// apart from "the live player is still shooting" — reintroducing
+    /// exactly the self-interference <see cref="StillNamedInRegistry"/> exists
+    /// to remove. What DOES tell them apart is that a shot's <c>Player</c>
+    /// bridge is a frozen reference, fixed at the moment of firing (see
+    /// <see cref="ShotInFlight"/>'s own doc) — a bullet this body fired while
+    /// it was still alive keeps pointing at exactly this body for its whole
+    /// flight, never at whichever one the live player is now, so comparing by
+    /// REFERENCE against this body answers the question the registry itself
+    /// can no longer answer for a released body.
+    ///
+    /// This closes a narrow, currently theoretical gap rather than an
+    /// observed one: MayRelease only reaches this corpse once a LATER own
+    /// death has already produced a newer corpse, which in turn requires an
+    /// intervening respawn — several seconds at minimum, comfortably longer
+    /// than a bullet's flight time under any ammunition in the game. It costs
+    /// one extra list scan only on the corpses that already reached this
+    /// branch (rare — most releases never touch DamageSourcesQuiet's
+    /// own-corpse path at all, since the fast path already covers a corpse
+    /// the registry still names), so there is no reason to leave it to that
+    /// timing margin alone.
+    ///
+    /// Fails CLOSED like every guard in this file: no body, no world, or an
+    /// unreadable calculator all answer "still in flight".
+    /// </summary>
+    internal static bool ShotStillInFlightFromBody(Player body, GameWorld world)
+    {
+        if (body == null || world == null)
+            return true;
+
+        try
+        {
+            return AnyShotFromBody(world.SharedBallisticsCalculator ?? throw new InvalidOperationException("the world has no ballistics calculator"), body)
+                || (world.ClientBallisticCalculator != null && AnyShotFromBody(world.ClientBallisticCalculator, body));
+        }
+        catch (Exception ex)
+        {
+            WarnShotInFlightOnce(ex.GetBaseException().Message);
+            return true;
+        }
+    }
+
+    private static bool AnyShotFromBody(IBallisticsCalculator calculator, Player body)
+    {
+        if (!(calculator is BallisticsCalculator concrete))
+            throw new InvalidOperationException($"unknown ballistics calculator {calculator.GetType().Name}");
+
+        var shots = concrete.Shots
+            ?? throw new InvalidOperationException("the ballistics calculator has no shot list");
+
+        for (var i = 0; i < shots.Count; i++)
+        {
+            // shot.Player is the frozen bridge from the moment this shot was
+            // fired (Shot.method_1) - reference equality against it, not the
+            // profile id, is what tells THIS body's own bullet apart from one
+            // the live player fires later under the same id.
+            var shot = shots[i];
+            if (shot?.Player != null && ReferenceEquals(shot.Player.iPlayer, body))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void WarnShotInFlightOnce(string reason)
+    {
+        if (_reportedShotInFlightFailure)
+            return;
+
+        _reportedShotInFlightFailure = true;
+        Plugin.ModLogger.LogWarning(
+            "Arena corpse release cannot read whether a shot an own body fired is still in flight ("
+            + reason + "); that own body keeps its damage-source hold until it can.");
     }
 }

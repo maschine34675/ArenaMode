@@ -664,6 +664,84 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
     Check(Released(world, older), "and releases once the registry can be read and the source is gone");
 }
 
+// The shot-in-flight refinement (2026-09-18 review pass). ShotInFlight's
+// profile-id match is the wrong tool once the registry has moved on - the
+// live player's own current shots share the id too - so the own-corpse
+// bypass instead checks a shot's frozen Player bridge by REFERENCE against
+// this exact body. A shot that IS this body's own still holds it even
+// though LeftRegistry is already true; a shot under the same profile id but
+// a DIFFERENT body's reference (standing in for the live player's own fire)
+// does not.
+{
+    var (world, _, _) = Setup();
+    var leftRegistry = AddBody(world, world.MainPlayer.ProfileId);
+    var newest = AddBody(world, world.MainPlayer.ProfileId);
+    world.RegisterEverExisted(world.MainPlayer.ProfileId, Owner(newest));
+
+    var ownShot = new Shot { PlayerProfileID = world.MainPlayer.ProfileId, Player = new ObserverBridge(Owner(leftRegistry)) };
+    Shots(world).Add(ownShot);
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Kept(world, leftRegistry),
+        "a shot this exact body fired keeps it hidden even after the registry has moved past it");
+    Check(Plugin.ModLogger.Infos.Any(i => i.Contains("still in flight, even though it left")),
+        "the shot-in-flight hold is said, distinct from the ordinary damage-source hold line");
+    Check(Plugin.ModLogger.Infos.Any(i => i.Contains("left the profile-id registry")),
+        "leaving the registry is announced even while the shot-in-flight guard still holds the body");
+
+    Shots(world).Remove(ownShot);
+    Sweep();
+    Check(Released(world, leftRegistry),
+        "and it releases once that shot has landed, with nothing left to distinguish it from the live player's own fire");
+    Check(Plugin.ModLogger.Infos.Any(i => i.Contains("nothing") && i.Contains("fired is still in flight")),
+        "the release transition out of the shot-in-flight hold is said too");
+}
+
+// The reference, not the profile id, is what matters: a shot fired by a
+// DIFFERENT own body under the same profile id (standing in for the live
+// player's own current fire) does not hold a corpse the registry has
+// already moved past - the exact self-interference StillNamedInRegistry
+// exists to remove, which a profile-id match here would reintroduce.
+{
+    var (world, _, _) = Setup();
+    var leftRegistry = AddBody(world, world.MainPlayer.ProfileId);
+    var newest = AddBody(world, world.MainPlayer.ProfileId);
+    world.RegisterEverExisted(world.MainPlayer.ProfileId, Owner(newest));
+
+    var liveShot = new Shot { PlayerProfileID = world.MainPlayer.ProfileId, Player = new ObserverBridge(Owner(newest)) };
+    Shots(world).Add(liveShot);
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Released(world, leftRegistry),
+        "a shot fired by a DIFFERENT own body under the same profile id does not hold this one hostage");
+}
+
+// Fails closed, same policy as the registry read itself: an own corpse whose
+// shot-in-flight check cannot be read stays held rather than guessing clear.
+{
+    var (world, _, _) = Setup();
+    var older = AddBody(world, world.MainPlayer.ProfileId);
+    var newer = AddBody(world, world.MainPlayer.ProfileId);
+    world.SharedBallisticsCalculator = new ForeignCalculator();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Kept(world, older),
+        "an unreadable shot-in-flight check holds an own corpse that left the registry rather than guessing it is clear");
+    Check(Plugin.ModLogger.Warnings.Any(w => w.Contains("still in flight")),
+        "the unreadable shot-in-flight check is reported");
+
+    world.SharedBallisticsCalculator = new BallisticsCalculator();
+    Sweep();
+    Sweep();
+    Check(Released(world, older), "and releases once the calculator can be read again");
+}
+
 // Foreign-corpse behaviour is untouched: the registry refinement only ever
 // applies to an own corpse (MayRelease's isOwnCorpse gate). A foreign body a
 // damage source still names stays held even with an ever-existed entry

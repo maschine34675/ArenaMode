@@ -183,6 +183,19 @@ internal static class CorpseCleanupService
         /// and makes the next sweep ask again instead of caching a guess.
         /// </summary>
         public bool LeftRegistry;
+
+        /// <summary>
+        /// Own corpses only. Whether the "left the profile-id registry" line
+        /// has already been said for this body — separate from
+        /// <see cref="HeldAsSource"/>, which this branch now also uses, but
+        /// for a DIFFERENT thing: whether a shot THIS body fired is still in
+        /// flight (see DamageSourcesQuiet). Said exactly once per corpse, on
+        /// first entry into the LeftRegistry branch, regardless of whether a
+        /// shot happens to be in flight at that moment — unlike HeldAsSource,
+        /// this does not need to flip back, since leaving the registry is
+        /// itself a one-way, one-time event for a given corpse.
+        /// </summary>
+        public bool LeftRegistryAnnounced;
     }
 
     /// <summary>
@@ -866,17 +879,31 @@ internal static class CorpseCleanupService
     ///
     /// CorpseDamageSources.StillNamedInRegistry answers the question that
     /// actually decides it: is this corpse's Player still what a profile-id
-    /// lookup resolves to at all? Every one of the resolutions
-    /// CorpseDamageSources guards against (a tripwire's explosion, a flare's
-    /// impact, a shot landing) goes through GameWorld's own ever-existed
-    /// tables, and GameWorld.RegisterPlayer overwrites both of them with
-    /// whichever body registers under a profile id — which every own
-    /// respawn does, death or live-kit swap alike. So once a newer own body
-    /// has registered, nothing can resolve THIS corpse through its profile id
-    /// any more, only the live player — and holding it hidden for a source
-    /// that can only ever reach somebody else defers its release for
-    /// nothing. If the registry still names this exact body, the ordinary
-    /// hold below still applies, unchanged.
+    /// lookup resolves to at all? A tripwire's explosion and a flare's
+    /// impact both go through GameWorld's own ever-existed tables LAZILY, at
+    /// the moment they land, and GameWorld.RegisterPlayer overwrites both of
+    /// them with whichever body registers under a profile id — which every
+    /// own respawn does, death or live-kit swap alike. So once a newer own
+    /// body has registered, neither can resolve THIS corpse through its
+    /// profile id any more, only the live player — and holding it hidden for
+    /// a source that can only ever reach somebody else defers its release
+    /// for nothing. If the registry still names this exact body, the
+    /// ordinary hold below still applies, unchanged.
+    ///
+    /// A directly-fired SHOT is the one exception left, because it does NOT
+    /// resolve lazily: Shot.Player is a frozen reference, set once at the
+    /// moment of firing (see CorpseDamageSources.ShotInFlight's own doc), so
+    /// a bullet this body fired while still alive can still be travelling —
+    /// and still pointing at exactly this body — after a newer own body has
+    /// registered. CorpseDamageSources.ShotStillInFlightFromBody is what
+    /// still holds a corpse for exactly that: a REFERENCE check against this
+    /// body, not a profile-id one, so it cannot be fooled by the live
+    /// player's own current shots the way a profile-id match would be. The
+    /// window this actually closes is narrow — MayRelease only reaches an
+    /// own corpse's DamageSourcesQuiet call once a LATER own death already
+    /// exists, which needs an intervening respawn, several seconds at
+    /// minimum against any bullet's flight time — but the guard is cheap
+    /// enough that there is no reason to rely on that margin alone.
     /// </summary>
     private static bool DamageSourcesQuiet(Corpse corpse, TrimState state, GameWorld world, Player player, bool isOwnCorpse)
     {
@@ -887,11 +914,33 @@ internal static class CorpseCleanupService
 
             if (state.LeftRegistry)
             {
+                if (!state.LeftRegistryAnnounced)
+                {
+                    state.LeftRegistryAnnounced = true;
+                    Plugin.ModLogger.LogInfo(
+                        $"Arena corpse release: {corpse.PlayerProfileID} left the profile-id registry (a newer own body replaced it); a source that only shares its profile id can no longer reach it.");
+                }
+
+                // The one resolution that does not go through the registry
+                // lazily. See this method's own doc and
+                // CorpseDamageSources.ShotStillInFlightFromBody.
+                if (CorpseDamageSources.ShotStillInFlightFromBody(player, world))
+                {
+                    if (!state.HeldAsSource)
+                    {
+                        state.HeldAsSource = true;
+                        Plugin.ModLogger.LogInfo(
+                            $"Arena corpse release: keeping {corpse.PlayerProfileID} hidden — a shot it fired is still in flight, even though it left the profile-id registry.");
+                    }
+
+                    return false;
+                }
+
                 if (state.HeldAsSource)
                 {
                     state.HeldAsSource = false;
                     Plugin.ModLogger.LogInfo(
-                        $"Arena corpse release: {corpse.PlayerProfileID} left the profile-id registry (a newer own body replaced it); releasing regardless of any source that still shares its profile id.");
+                        $"Arena corpse release: nothing {corpse.PlayerProfileID} fired is still in flight; releasing it now that it has left the profile-id registry.");
                 }
 
                 return true;

@@ -948,17 +948,35 @@ change:
   (`GameWorld.cs:889-896,967-977`) read only the CURRENT entry in those
   tables — nothing keeps history.
 - Every resolution `CorpseDamageSources` guards against goes through one of
-  these two lookups at the moment it lands: a tripwire's explosion resolves
-  its planter through `Shot.Create` → `Shot` → the shooter bridge (the
-  "Settled" section above), a flare resolves its shooter through
-  `GetEverExistedBridgeByProfileID` directly (`EFT/FlareCartridge.cs:176-190`),
-  and a shot/fragment resolves the same way. So once a NEWER own body has
-  registered under the profile id, none of these lookups can return the OLDER
-  corpse any more — only the live player, which is a healthy, non-destroyed
-  object. Releasing the older corpse at that point cannot produce the
-  dangling-reference crash `CorpseDamageSources` was built to prevent,
-  because nothing can be resolved TO that corpse's `Player` component any
-  more in the first place.
+  these two lookups: a tripwire's explosion resolves its planter through
+  `Shot.Create` → `Shot` → the shooter bridge (the "Settled" section above),
+  and a flare resolves its shooter through `GetEverExistedBridgeByProfileID`
+  directly (`EFT/FlareCartridge.cs:176-190`) — both LAZILY, at the moment
+  they land. **Correction (2026-09-18 review pass, major finding):** a
+  directly-fired shot does NOT resolve the same way. `Shot.Player` is set
+  EAGERLY, once, at the moment of firing — `Player.InitiateShot` →
+  `BallisticsCalculator.Shoot`/`CreateShot` → `Shot.method_1`
+  (`EFT/Player.cs:14322-14329`, `EFT.Ballistics/Shot.cs:429-460`) — and never
+  reassigned before `PrepareToPool` clears it. So once a NEWER own body has
+  registered under the profile id, neither a tripwire's explosion nor a
+  flare's impact can return the OLDER corpse any more — only the live
+  player — but a bullet the older corpse fired while it was still alive can
+  still be travelling, with its frozen `Player` bridge still pointing at
+  exactly that corpse, regardless of what the registry says by the time it
+  lands. `CorpseDamageSources.ShotStillInFlightFromBody` closes that gap: a
+  REFERENCE check (not a profile-id one, which would also catch the live
+  player's own current shots) against this exact body's still-in-flight
+  shots, consulted before the registry bypass returns unconditionally. See
+  `DamageSourcesQuiet`'s own doc for how the two combine. The window this
+  actually closes is narrow under the current constants — `MayRelease` only
+  reaches an own corpse's `DamageSourcesQuiet` call once a LATER own death
+  already produced a newer corpse, which needs an intervening respawn,
+  several seconds at minimum against any bullet's flight time — but nothing
+  in the architecture guaranteed that margin, so the reference check no
+  longer relies on it. Releasing the older corpse once BOTH checks agree
+  cannot produce the dangling-reference crash `CorpseDamageSources` was
+  built to prevent, because nothing can be resolved TO that corpse's
+  `Player` component any more in the first place.
 - Verified that every own respawn actually goes through `RegisterPlayer`
   before relying on this: `Redeploy.Core/Engine/RespawnEngine.cs` creates the
   replacement via `game.vmethod_3(...)` (`RunRespawn`, `"create"` timing
@@ -1050,3 +1068,72 @@ exercising the own-corpse release path end to end (no GPU in this
 environment). `KillcamReplay`'s own replay-puppet path during rapid own
 deaths remains an open risk, structurally unaffected (it reads the newest
 own corpse, which stays exempt) but not measured against this exact timing.
+
+## Review pass, own-corpse release (2026-09-18)
+
+Adversarial review of "Own corpses release too" (this document, above) found
+one major finding that held and fixed it; the rest were doc/tooling defects
+or theoretical-but-currently-inert observations, fixed where cheap, rejected
+with evidence otherwise.
+
+**Fixed:**
+
+- **Major — the registry bypass was unsound for a directly-fired shot.**
+  `StillNamedInRegistry` correctly argues a tripwire's explosion and a
+  flare's impact both resolve their source LAZILY, at the moment they land,
+  so once the registry has moved on neither can reach an older own body. A
+  shot does not resolve that way: `Shot.Player` is frozen EAGERLY, at the
+  moment of firing (verified against `../_decompiled/`), so a bullet an
+  older own body fired while still alive can still be travelling, still
+  pointing at exactly that body, after a newer own body has registered.
+  `CorpseDamageSources.ShotStillInFlightFromBody` closes this with a
+  REFERENCE check (not profile id, which the live player's own current
+  shots share) against the exact body, consulted before the registry bypass
+  returns unconditionally. See `DamageSourcesQuiet`'s doc and the
+  corrected paragraph above. The window this closes is narrow under the
+  current cadence/respawn constants (a bullet's flight time is far shorter
+  than the minimum time before an own corpse can even reach this branch),
+  but the architecture never guaranteed that margin, so the check no longer
+  relies on it alone. Covered by two new `Program.cs` cases (a shot from
+  this exact body holds it past LeftRegistry; a same-profile-id shot from a
+  *different* body does not) and a new `Verify-Regression.ps1` mutant,
+  `ignores-an-own-bodys-own-shot-in-flight`.
+- **Minor — a stale comment in `CorpseReleaseLedger.Describe`** still
+  asserted "an id can only be in here once", contradicting the class doc a
+  few lines above (updated in the same diff this comment was not).
+- **Minor — AGENTS.md's GPU-acceptance sentence** sat directly after the
+  own-corpse-release paragraph with nothing marking the boundary, reading as
+  if the GPU raid (06:34-06:48) covered a path introduced by commits later
+  that same evening (08:27+). Reworded and cross-referenced to "What this
+  does not claim" above.
+- **Minor — `IsNewestOwnCorpse` re-scanned `world.LootList` from scratch on
+  every call**, up to twice per own corpse per sweep (`MayRelease` and
+  `DescribeOwnHeld`). Nothing in `Tick()` adds to `world.LootList`, so the
+  answer cannot change within one sweep; it is now cached per `_sweep`
+  number instead, one scan per sweep regardless of how many own corpses are
+  waiting.
+- **Minor — `Verify-Regression.ps1`'s mutant runs raced on a shared build
+  output path.** Back-to-back `dotnet run` calls against the same apphost
+  file occasionally hit `MSB3026` (Windows holding a brief lock on a
+  just-written exe), and the script's one retry did not always win, letting
+  a STALE exe from an earlier mutant run in the current mutant's place —
+  reproduced three times, a different mutant failing each time, purely from
+  timing. Each mutant now builds to its own `-p:BaseOutputPath`, so no two
+  runs can ever contend for the same file.
+
+**Rejected:**
+
+- **Minor — the "left the profile-id registry...releasing regardless" log
+  line was claimed dead code**, unreachable because `LeftRegistry` is
+  already true by the FIRST time an own corpse's `DamageSourcesQuiet` branch
+  runs (true in the code as it stood). Not fixed as a separate item because
+  the shot-in-flight fix above changes the reachability directly: `HeldAsSource`
+  can now be set by the new in-flight hold and later cleared when it lets
+  go, which is exactly the transition that line was written to report. A
+  new dedicated `LeftRegistryAnnounced` flag was added alongside it so the
+  registry-departure itself is always logged once per corpse, independent of
+  whether a shot happens to be in flight at that moment — the diagnostic
+  purpose the finding's own suggested fix asked for.
+- **Minor — the mutation-harness flakiness finding's root-cause claim** was
+  independently reproduced (see Fixed, above) and is not a rejection; noted
+  here only so the two related findings are not confused with each other.
