@@ -75,6 +75,7 @@ public static class Settings
     public static ConfigEntry<int> MaxCorpses { get; private set; }
     public static ConfigEntry<bool> StripCorpseGear { get; private set; }
     public static ConfigEntry<bool> ReleaseTrimmedCorpses { get; private set; }
+    public static ConfigEntry<float> GcHeapThresholdGB { get; private set; }
 
     public static ConfigEntry<bool> LogDamageExceptions { get; private set; }
     public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
@@ -709,6 +710,25 @@ public static class Settings
             "game's own included — gets slower with each one that is left. PitFireTeam " +
             "teammates and your own NEWEST body are never taken away; an older body of " +
             "your own is released like anybody else's, once nothing still needs it.");
+
+        GcHeapThresholdGB = config.Bind(
+            "Performance",
+            "GcHeapThresholdGB",
+            4f,
+            new ConfigDescription(
+                "Switch Unity's incremental garbage collector back on once the managed " +
+                "heap passes this many GB during an arena raid, instead of leaving it off " +
+                "for the whole raid the way EFT does by default. 0 = never (pure vanilla): " +
+                "the heap grows unbounded for as long as the raid runs, same as an ordinary " +
+                "raid on a machine with enough RAM. Only acts while an arena session is " +
+                "active AND the collector is currently disabled — on a machine EFT itself " +
+                "kept it enabled (under 25 GB system RAM by default) this setting has " +
+                "nothing to switch. The switch itself is EFT's own cheap collector-mode " +
+                "assignment, never a forced collection, and it is timed to a local death, a " +
+                "round break, or a bounded 120 s wait if neither comes first, so a short " +
+                "raid never pays for it and a long one stays bounded. See " +
+                "GC-THRESHOLD-REVIEW.md for the measured cost.",
+                new AcceptableValueRange<float>(0f, 32f)));
 
         // Reports only when a damage event actually throws, which a healthy raid
         // never does — so it is on by default while the grenade finding in

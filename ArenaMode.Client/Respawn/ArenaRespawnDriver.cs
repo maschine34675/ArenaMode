@@ -475,6 +475,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Bots.BotLoadBoost.Reset();
         Bots.ArenaProfilePreloadPatch.Reset();
         Bots.CorpseCleanupService.Reset();
+        Performance.GcThresholdMonitor.Reset();
         Diagnostics.ArenaDamageExceptionLog.Reset();
         Bots.CorpseLightService.Reset();
         Bots.CorpseWeaponRegistry.Reset();

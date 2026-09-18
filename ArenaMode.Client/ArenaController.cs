@@ -30,6 +30,7 @@ internal sealed class ArenaController : MonoBehaviour
         Movement.MovementRuntime.Tick();
         CorpseLightService.Tick();
         CorpseCleanupService.Tick();
+        Performance.GcThresholdMonitor.Tick();
         Combat.ArenaSkills.Tick();
         Combat.ArenaGiveUp.Tick();
         Kits.AutoQuickSlots.Tick();

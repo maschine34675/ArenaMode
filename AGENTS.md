@@ -365,7 +365,17 @@ Open:
   lifetime. `ArenaDamageExceptionLog` (Diagnostics/`LogDamageExceptions`,
   default on) stays as the regression alarm, and `ReleaseTrimmedCorpses` still
   turns the whole release off. The heap still grows to 11 GB without a
-  collection and no longer has a corpse explanation.
+  collection and no longer has a corpse explanation. EFT disables Unity's GC
+  for the whole raid on its own (`InGameMemoryManagement.GCEnabled = false`
+  in `BaseLocalGame.PrepareSession`, effective above `../_decompiled`'s
+  `GigabytesRequiredToDisableGCDuringRaid` — SPT serves 25 GB) and only
+  collects again through a forced, BLOCKING sweep at raid end or in the menu:
+  never call `GC.Collect`/`GC.GetTotalMemory(true)` from Arena code, not even
+  for diagnostics. `Config.Settings.GcHeapThresholdGB` (default 4, 0 = never)
+  switches Unity's own incremental collector back on past a heap threshold,
+  timed to a death/round break/bounded wait so it costs nothing on a raid
+  that never crosses it; see `GC-THRESHOLD-REVIEW.md` and
+  `ArenaMode.Client/Performance/`.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded

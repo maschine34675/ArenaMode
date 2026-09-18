@@ -47,6 +47,7 @@ public class Plugin : BaseUnityPlugin
         // After ArenaSession: RaidLifecycle handlers run in subscription order and
         // the match service needs IsActive already latched when its handler fires.
         Modes.ArenaMatchService.Initialize();
+        Performance.GcThresholdMonitor.Initialize();
         Spectator.ArenaSpectatorService.Initialize();
         LocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
