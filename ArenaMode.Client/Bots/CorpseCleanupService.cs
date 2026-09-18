@@ -196,6 +196,25 @@ internal static class CorpseCleanupService
         /// itself a one-way, one-time event for a given corpse.
         /// </summary>
         public bool LeftRegistryAnnounced;
+
+        /// <summary>
+        /// Own corpses only, and only meaningful once <see cref="LeftRegistry"/>
+        /// is true. When <see cref="CorpseDamageSources.ShotStillInFlightFromBody"/>
+        /// first found nothing in flight, or NaN while it still does at the
+        /// last reading — the same DamageSourceQuietSeconds bridge the
+        /// ordinary path below uses, applied on its own timer here because a
+        /// shot landing (leaving the flight list) is not the end of the
+        /// hazard: BotMemory.GetHit can defer the hit it just delivered by up
+        /// to ~0.4 s (see DamageSourcesQuiet's own doc), and that deferred
+        /// DamageInfo holds a frozen reference to this exact body if it is
+        /// what fired the shot. Kept separate from <see cref="SourcesQuietSince"/>,
+        /// which TrimCorpse already writes once at trim time against a
+        /// different question (a profile-id source reading, taken before
+        /// LeftRegistry was even known) — reusing it here would start this
+        /// clock from the wrong moment, or skip it outright for a corpse
+        /// trimmed long ago.
+        /// </summary>
+        public float ShotQuietSince = float.NaN;
     }
 
     /// <summary>
@@ -904,6 +923,19 @@ internal static class CorpseCleanupService
     /// exists, which needs an intervening respawn, several seconds at
     /// minimum against any bullet's flight time — but the guard is cheap
     /// enough that there is no reason to rely on that margin alone.
+    ///
+    /// A shot leaving the flight list is not the end of that hazard, either:
+    /// BotMemory.GetHit(DamageInfo) (EFT/BotMemory.cs:679-700) can defer the
+    /// hit it just delivered by a timer — up to ~0.4 s under SAIN — before
+    /// calling GetHitInner(damageInfo), and that captured DamageInfo carries
+    /// the same frozen source reference ShotStillInFlightFromBody checks
+    /// (BotWeaponManager.OnBulletNear/OnGetHit then read source.Position on
+    /// it, unprotected by Unity's null check — the same NRE class this
+    /// file's class doc and CorpseDamageSources describe for the ordinary
+    /// path). So once ShotStillInFlightFromBody stops finding anything, this
+    /// branch waits out the same DamageSourceQuietSeconds the ordinary path
+    /// below does, on its own timer (TrimState.ShotQuietSince) — cheap,
+    /// since the body is already hidden either way.
     /// </summary>
     private static bool DamageSourcesQuiet(Corpse corpse, TrimState state, GameWorld world, Player player, bool isOwnCorpse)
     {
@@ -933,6 +965,9 @@ internal static class CorpseCleanupService
                             $"Arena corpse release: keeping {corpse.PlayerProfileID} hidden — a shot it fired is still in flight, even though it left the profile-id registry.");
                     }
 
+                    // Reset: a shot back in flight means an earlier quiet
+                    // reading no longer applies once it lands again.
+                    state.ShotQuietSince = float.NaN;
                     return false;
                 }
 
@@ -940,13 +975,36 @@ internal static class CorpseCleanupService
                 {
                     state.HeldAsSource = false;
                     Plugin.ModLogger.LogInfo(
-                        $"Arena corpse release: nothing {corpse.PlayerProfileID} fired is still in flight; releasing it now that it has left the profile-id registry.");
+                        $"Arena corpse release: nothing {corpse.PlayerProfileID} fired is still in flight; it may go after {DamageSourceQuietSeconds:0} s quiet, now that it has left the profile-id registry.");
                 }
 
-                return true;
+                // Bridges BotMemory.GetHit's deferred read for this branch —
+                // see this method's own doc. Same shape as the ordinary
+                // path's SourcesQuietSince handling below, on its own field.
+                if (float.IsNaN(state.ShotQuietSince))
+                    state.ShotQuietSince = Time.time;
+
+                return Time.time - state.ShotQuietSince >= DamageSourceQuietSeconds;
             }
         }
 
+        // For a real own corpse this line is not reached: MayRelease only
+        // calls this method with isOwnCorpse=true once IsNewestOwnCorpse has
+        // already said false, which needs a LATER own body to already be
+        // registered — and registering it is exactly what makes
+        // StillNamedInRegistry say "no" for this one, on the very first
+        // asking (GameWorld.RegisterPlayer overwrites the profile-id
+        // registry for every own respawn, verified above and in
+        // CorpseDamageSources' own doc). So state.LeftRegistry is already
+        // true the first time an own corpse gets here, and every later
+        // sweep short-circuits inside the block above. What follows is kept
+        // as fail-closed insurance for a StillNamedInRegistry read that
+        // could not be answered (it returns "still named" rather than
+        // guessing) or for a future respawn path that stops going through
+        // RegisterPlayer without this comment being updated — not a path
+        // real gameplay exercises today. The test suite's `stillNamed` case
+        // (tools/CorpseCleanupChecks/Program.cs) reaches it deliberately, by
+        // overriding the registry the way only a test can.
         var source = CorpseDamageSources.Describe(corpse.PlayerProfileID, world);
         if (source != null)
         {

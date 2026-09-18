@@ -103,20 +103,41 @@ $arenaMutants = @(
        From = 'state.LeftRegistry = !CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
        To = 'state.LeftRegistry = true;';
        Failure = 'an own corpse the registry still names stays held behind a live damage source, exactly like before' },
+    # Falls through to the ordinary (bottom) path instead of the LeftRegistry
+    # fast path for a body that HAS left the registry - and since nothing
+    # names it there either, the ordinary path's SourcesQuietSince (already
+    # primed at trim time, when nothing named it yet) is already past
+    # DamageSourceQuietSeconds by the first sweep, releasing it a whole sweep
+    # earlier than the correct LeftRegistry path's own freshly-started
+    # ShotQuietSince timer would (see the "Own corpses release too" tests
+    # added for the DamageSourceQuietSeconds bridge, 2026-09-18 review pass).
     @{ Name = 'inverts-the-registry-condition';
        From = 'state.LeftRegistry = !CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
        To = 'state.LeftRegistry = CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
-       Failure = 'an own corpse the registry still names stays held behind a live damage source, exactly like before' },
+       Failure = 'the first reading that finds the older own corpse has left the registry, with nothing in flight, starts its quiet period rather than releasing it on its own' },
     # The shot-in-flight refinement (2026-09-18 review pass, major finding):
     # once the registry has moved on, a directly-fired shot is the one source
     # that does NOT resolve lazily (Shot.Player is frozen at the moment of
     # firing), so a reference check against this exact body is what still
-    # holds it. Dropping the check releases it while that shot is still
-    # travelling.
+    # holds it. Dropping the check no longer shows up as an early RELEASE by
+    # itself - the DamageSourceQuietSeconds bridge added for the
+    # BotMemory.GetHit deferred-read hazard (2026-09-18 review pass, minor
+    # finding) holds every LeftRegistry own corpse for at least one sweep
+    # regardless, shot-in-flight or not. What the dropped check still changes
+    # is whether the shot-in-flight hold is ever entered (and logged) at all.
     @{ Name = 'ignores-an-own-bodys-own-shot-in-flight';
        From = 'if (CorpseDamageSources.ShotStillInFlightFromBody(player, world))';
        To = 'if (false)';
-       Failure = 'a shot this exact body fired keeps it hidden even after the registry has moved past it' },
+       Failure = 'the shot-in-flight hold is said, distinct from the ordinary damage-source hold line' },
+    # The DamageSourceQuietSeconds bridge for the LeftRegistry branch itself
+    # (2026-09-18 review pass, minor finding): a shot landing (leaving the
+    # flight list) is not the end of the BotMemory.GetHit deferred-read
+    # hazard - up to ~0.4s can still be pending. Reverting to an immediate
+    # release the moment nothing is in flight anymore skips that bridge.
+    @{ Name = 'skips-the-left-registry-quiet-period';
+       From = 'return Time.time - state.ShotQuietSince >= DamageSourceQuietSeconds;';
+       To = 'return true;';
+       Failure = 'the first reading that finds the older own corpse has left the registry, with nothing in flight, starts its quiet period rather than releasing it on its own' },
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
     # The damage-source guard: the call site, the measured tripwire rule (a

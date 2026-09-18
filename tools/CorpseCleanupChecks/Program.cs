@@ -339,6 +339,19 @@ foreach (var kept in new[] { "own", "team", "off", "same-sweep" })
         "positive control: a round-start clear hides even this body: " + kept);
 
     if (kept != "same-sweep") Sweep();
+
+    // "own" needs a second sweep to be a meaningful mutation target: the
+    // sole/newest own corpse in this Setup() is normally never even asked
+    // DamageSourcesQuiet's own-corpse question (IsNewestOwnCorpse already
+    // says yes), but a mutant that removes that exemption would still only
+    // START its quiet period on the first sweep (see the "Own corpses
+    // release too" tests) rather than release it outright - one sweep alone
+    // cannot tell "correctly exempt" apart from "wrongly exempt, but still
+    // mid-quiet-period". A second sweep, past DamageSourceQuietSeconds,
+    // can: correct code stays kept regardless of sweep count, a broken
+    // exemption releases by then.
+    if (kept == "own") Sweep();
+
     Check(world.LootList.Contains(body) && !body.Destroyed && Owner(body).Disposals == 0
             && !Pool(body).PushedBackIntoPool,
         "this body is hidden but never taken out of the scene: " + kept);
@@ -593,10 +606,12 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
         "positive control: a round-start clear trims both own bodies, oldest and newest alike");
 
     Sweep();
-    Check(Released(world, older), "the older own corpse releases once it is no longer the newest");
+    Check(Kept(world, older),
+        "the first reading that finds the older own corpse has left the registry, with nothing in flight, starts its quiet period rather than releasing it on its own");
     Check(Kept(world, newer), "the newest own corpse is never released");
 
     Sweep();
+    Check(Released(world, older), "the older own corpse releases once it is no longer the newest and its quiet period has elapsed");
     Check(Kept(world, newer), "the newest own corpse stays kept across further sweeps");
 }
 
@@ -627,8 +642,15 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
     Sweep();
     Check(Kept(world, stillNamed),
         "an own corpse the registry still names stays held behind a live damage source, exactly like before");
+    Check(Kept(world, leftRegistry),
+        "an own corpse the registry no longer names still waits out its own quiet period, despite a matching live-profile damage source that cannot actually reach it");
+    Check(Kept(world, newest), "the newest own corpse is never released, damage source or not");
+
+    Sweep();
+    Check(Kept(world, stillNamed),
+        "an own corpse the registry still names stays held behind a live damage source, exactly like before");
     Check(Released(world, leftRegistry),
-        "an own corpse the registry no longer names releases despite a matching live-profile damage source");
+        "and it releases once its own quiet period has elapsed, despite a matching live-profile damage source");
     Check(Kept(world, newest), "the newest own corpse is never released, damage source or not");
 
     Shots(world).Remove(shot);
@@ -693,10 +715,14 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
 
     Shots(world).Remove(ownShot);
     Sweep();
-    Check(Released(world, leftRegistry),
-        "and it releases once that shot has landed, with nothing left to distinguish it from the live player's own fire");
+    Check(Kept(world, leftRegistry),
+        "landing is not release: the shot's own deferred-hit hazard (BotMemory.GetHit, up to ~0.4s) still gets its DamageSourceQuietSeconds bridge, the same as the ordinary path");
     Check(Plugin.ModLogger.Infos.Any(i => i.Contains("nothing") && i.Contains("fired is still in flight")),
-        "the release transition out of the shot-in-flight hold is said too");
+        "the transition out of the shot-in-flight hold is said as soon as the shot lands");
+
+    Sweep();
+    Check(Released(world, leftRegistry),
+        "and it releases once that shot has landed AND its own quiet period has elapsed, with nothing left to distinguish it from the live player's own fire");
 }
 
 // The reference, not the profile id, is what matters: a shot fired by a
@@ -716,8 +742,11 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
     CorpseCleanupService.ClearAllSoon("round start");
     CorpseCleanupService.Tick();
     Sweep();
-    Check(Released(world, leftRegistry),
-        "a shot fired by a DIFFERENT own body under the same profile id does not hold this one hostage");
+    Check(Kept(world, leftRegistry),
+        "a shot fired by a DIFFERENT own body under the same profile id does not hold this one hostage, but its own quiet period still applies before release");
+
+    Sweep();
+    Check(Released(world, leftRegistry), "and it releases once that quiet period has elapsed");
 }
 
 // Fails closed, same policy as the registry read itself: an own corpse whose
