@@ -8,7 +8,8 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - **Corpse release: the damage-exception finding FIXED and GPU-ACCEPTED
-  (2026-09-18, Claude):** `d265353` on `feature/announcer-six-cues`. The
+  (2026-09-18, Claude):** `d265353` on `master` (fast-forwarded from the since
+  deleted `feature/announcer-six-cues`, pushed to `dev`). The
   `ApplyDamageInfo`/`ShotDelegate` NREs since the corpse release were the dead
   Labyrinth boss `bossTagillaAgro`'s own TRIPWIRES going off after Arena had
   released his body (21 of 21 on 2026-09-17, each 3.5-4.2 s after SAIN's
