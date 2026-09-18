@@ -56,6 +56,21 @@ of another running session. Update it when handing work over or changing the
 agreed responsibilities. Historical milestone/test counts below are not current
 acceptance evidence; use the dated handoff and the relevant review document.
 
+**UiBridge is allowed in every GPU run (user decision, 2026-09-18).**
+`BepInEx\plugins\maschine-UiBridge.dll` (`com.maschine.UiBridge`, repo
+`../UiBridge`) is a permanent part of the GPU host installation: a test bridge
+that lets agent sessions read the UI, wait for game states and, with
+`[Actions] AllowActions`/`AllowTestHooks` switched on (deliberately, keep them),
+inject ECommands, run item actions and set the look direction. GPU test
+instructions must not treat it as an unexpected or unrelated plugin, must not
+remove or disable it, and must not count its single Harmony patch
+(`UiBridge.Game.CommandInjector::Prefix` on `InputManager`'s
+`(List<ECommand>, float[])` delivery method) as contamination; it adds nothing
+unless a session sends a command. Record its ProductVersion/SHA256 with the other
+unchanged mods; it is not part of the Arena binding, so its hash is not an Arena
+hash change. A run may use it instead of fixed coordinates and sleeps (see
+`../UiBridge/README.md`); any action it takes is in the BepInEx log as `action …`.
+
 ---
 
 ## Layout
