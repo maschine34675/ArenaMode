@@ -210,12 +210,29 @@ internal static class CorpseCleanupService
     private static int _sweep;
     private static bool _reportedReleaseFailure;
 
+    /// <summary>
+    /// One scan of <c>world.LootList</c> per sweep, not one per own corpse per
+    /// call site. IsNewestOwnCorpse used to re-scan the whole list on every
+    /// call, and this sweep can call it once from ReleaseTrimmed's own-corpse
+    /// branch AND once from DescribeOwnHeld for every own body still in
+    /// Trimmed — redundant work the class doc's own "these figures come from
+    /// lists and counters instead" goal argues against. Keyed on <c>_sweep</c>
+    /// rather than recomputed eagerly: nothing in Tick() adds a corpse to
+    /// world.LootList (that only happens on death, outside this service), so
+    /// the answer cannot change between the first and a later call within the
+    /// same sweep, and most sweeps never ask at all.
+    /// </summary>
+    private static int _newestOwnCorpseSweep = -1;
+    private static Corpse _newestOwnCorpseCache;
+
     public static void Reset()
     {
         _nextSweepAt = 0f;
         _fullClearUntil = 0f;
         _trimmedTotal = _releasedTotal = _ownReleasedTotal = _releaseFailures = _sweep = 0;
         _reportedReleaseFailure = false;
+        _newestOwnCorpseSweep = -1;
+        _newestOwnCorpseCache = null;
         Trimmed.Clear();
         CorpseAggressors.Reset();
         CorpseDamageSources.Reset();
@@ -704,14 +721,21 @@ internal static class CorpseCleanupService
     /// </summary>
     private static bool IsNewestOwnCorpse(Corpse corpse, GameWorld world, string ownProfileId)
     {
-        Corpse newest = null;
-        foreach (var loot in world.LootList)
+        // Cached per sweep, not per call - see _newestOwnCorpseCache's own doc.
+        if (_newestOwnCorpseSweep != _sweep)
         {
-            if (loot is Corpse c && c.PlayerProfileID == ownProfileId)
-                newest = c;
+            Corpse newest = null;
+            foreach (var loot in world.LootList)
+            {
+                if (loot is Corpse c && c.PlayerProfileID == ownProfileId)
+                    newest = c;
+            }
+
+            _newestOwnCorpseCache = newest;
+            _newestOwnCorpseSweep = _sweep;
         }
 
-        return ReferenceEquals(newest, corpse);
+        return ReferenceEquals(_newestOwnCorpseCache, corpse);
     }
 
     /// <summary>
