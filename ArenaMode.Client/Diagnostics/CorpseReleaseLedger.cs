@@ -80,8 +80,11 @@ internal static class CorpseReleaseLedger
         if (string.IsNullOrEmpty(profileId))
             return "release=?";
 
-        // Newest first: an id can only be in here once, but the answer that
-        // matters is "how long ago", so read from the end regardless.
+        // Newest first: since 2026-09-18 an own id CAN repeat (every own
+        // corpse but the newest releases too), so this does not assume one
+        // entry per id any more. The answer that matters either way is "how
+        // long ago the MOST RECENT release was", so read from the end
+        // regardless and stop at the first match.
         for (var i = Released.Count - 1; i >= 0; i--)
         {
             var entry = Released[i];
