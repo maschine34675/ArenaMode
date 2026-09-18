@@ -40,6 +40,7 @@ internal static class GcThresholdMonitor
 
         _subscribed = true;
         ArenaEvents.OnPlayerDied += OnPlayerDied;
+        ArenaEvents.OnKitApplied += OnKitApplied;
     }
 
     /// <summary>
@@ -90,10 +91,11 @@ internal static class GcThresholdMonitor
 
     private static void Poll()
     {
+        // No early return for 0 = never: ShouldArm refuses a zero threshold, and a
+        // raid that already armed or switched must keep its bounded wait and its
+        // reassert even if the setting is turned down to 0 mid-raid through the
+        // hot-reloadable config page.
         var thresholdGb = Settings.GcHeapThresholdGB.Value;
-        if (thresholdGb <= 0f)
-            return; // 0 = never: pure vanilla, and no reason to even read the heap.
-
         var gcDisabled = GarbageCollector.GCMode == GarbageCollector.Mode.Disabled;
 
         // The one heap reading this feature is allowed to take: the runtime's
@@ -140,6 +142,23 @@ internal static class GcThresholdMonitor
 
         if (GcThresholdPolicy.ShouldSwitchAtMoment(_state))
             Switch("a local death");
+    }
+
+    /// <summary>
+    /// ArenaEvents.OnKitApplied — raised once a new body wears its kit: after a
+    /// death respawn, the raid-start swap and the round-break swap
+    /// (LiveKitRespawn.AtRoundBreak from RoundsMode and TacticalMode). This is the
+    /// round-break moment: the player stands protected in a fresh body at a
+    /// scoreboard pause. After a death it only repeats the death's moment, and at
+    /// raid start nothing can be armed yet (Reset runs at the raid boundary).
+    /// </summary>
+    private static void OnKitApplied(Kits.KitDefinition _)
+    {
+        if (!ArenaSession.IsActive)
+            return;
+
+        if (GcThresholdPolicy.ShouldSwitchAtMoment(_state))
+            Switch("a new body (round break or respawn)");
     }
 
     private static void Switch(string moment)

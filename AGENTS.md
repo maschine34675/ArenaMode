@@ -284,6 +284,15 @@ repository — keep it that way, or repeat this.
 **The client caches server answers per game process.** Bot difficulties are fetched once
 and never again. Anything that must vary per raid cannot live there.
 
+**EFT switches the garbage collector off for the raid.** `BaseLocalGame.PrepareSession`
+sets `InGameMemoryManagement.GCEnabled = false` on machines with at least
+`GigabytesRequiredToDisableGCDuringRaid` GB of RAM (SPT serves 25), so the managed heap
+is the raid's total allocation — 7 MB/s in a Labyrinth deathmatch — and a growing heap is
+not a leak. The only collections are forced and BLOCKING (raid end, menu): 0.5 to 0.9 s
+each on the GPU host. Never call `GC.Collect` or `GC.GetTotalMemory(true)` from Arena
+code, not even for diagnostics. `GcThresholdMonitor` switches the incremental collector
+back on past `GcHeapThresholdGB`; see `GC-THRESHOLD-REVIEW.md`.
+
 ## Where the knowledge is
 
 There is no design doc. The reasoning lives in two places, both worth reading before

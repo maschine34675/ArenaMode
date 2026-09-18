@@ -58,6 +58,12 @@ internal static class Program
         var monitorText = File.ReadAllText(Meta("MonitorSourcePath"));
         Check(!monitorText.Contains("GC.Collect("), "monitor source never forces a collection");
         Check(!monitorText.Contains("GetTotalMemory(true"), "monitor source never reads the heap with a forced collection");
+
+        // The round break is one of the two promised moments; its only hook is the kit event.
+        Check(monitorText.Contains("ArenaEvents.OnKitApplied += OnKitApplied;"), "monitor switches at a round break");
+        // A zero threshold is refused by ShouldArm; an early return in the poll would also
+        // cancel an armed raid's bounded wait and its reassert.
+        Check(!monitorText.Contains("thresholdGb <= 0"), "a threshold turned to 0 mid-raid keeps the bounded wait");
     }
 
     private static void ThresholdAndGating()

@@ -30,7 +30,9 @@ $faults=@(
     # GcThresholdMonitor references UnityEngine/EFT types that do not exist outside
     # the game, so it is never compiled here — only text-scanned, via MonitorSource.
     @{Name='monitor-forces-a-collection';Path=$monitor;Property='MonitorSource';Find='InGameMemoryManagement.GCEnabled = true;';Replace='InGameMemoryManagement.GCEnabled = true; GC.Collect();';Failure='monitor source never forces a collection'},
-    @{Name='monitor-forces-heap-read';Path=$monitor;Property='MonitorSource';Find='GC.GetTotalMemory(false)';Replace='GC.GetTotalMemory(true)';Failure='monitor source never reads the heap with a forced collection'}
+    @{Name='monitor-forces-heap-read';Path=$monitor;Property='MonitorSource';Find='GC.GetTotalMemory(false)';Replace='GC.GetTotalMemory(true)';Failure='monitor source never reads the heap with a forced collection'},
+    @{Name='no-round-break-hook';Path=$monitor;Property='MonitorSource';Find='ArenaEvents.OnKitApplied += OnKitApplied;';Replace='';Failure='monitor switches at a round break'},
+    @{Name='zero-threshold-cancels-armed-raid';Path=$monitor;Property='MonitorSource';Find='var thresholdGb = Settings.GcHeapThresholdGB.Value;';Replace="var thresholdGb = Settings.GcHeapThresholdGB.Value;`n        if (thresholdGb <= 0f) return;";Failure='a threshold turned to 0 mid-raid keeps the bounded wait'}
 )
 Test-ArenaSourceFaults (Join-Path $PSScriptRoot 'GcThresholdChecks.csproj') 'ARENA_GC_THRESHOLD_BASELINE_PASSED' @() $faults
 Write-Output 'ARENA_GC_THRESHOLD_CHECKS_PASSED'

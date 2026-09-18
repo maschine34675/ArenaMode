@@ -41,8 +41,18 @@ feature exists to avoid. The switch itself happens at the first of:
 - the local player's own death (`ArenaEvents.OnPlayerDied` — the screen is
   about to change regardless, so this is already the least visible moment
   Arena has), or
+- a new body at a round break (`ArenaEvents.OnKitApplied`, raised by
+  `LiveKitRespawn` once the round-break swap from `RoundsMode`/`TacticalMode`
+  stands protected at the scoreboard pause; it also fires after a death
+  respawn, which only repeats the death's moment, and at the raid-start swap,
+  where nothing can be armed yet), or
 - a bounded 120 s wait, so a player who never dies and whose raid never
   breaks between rounds still gets it eventually.
+
+A threshold turned down to 0 through the hot-reloadable config page stops new
+arming, but a raid that already armed keeps its bounded wait and its reassert:
+the poll has no early return for 0, `ShouldArm` refuses a zero threshold on
+its own.
 
 The switch is `InGameMemoryManagement.GCEnabled = true` — EFT's own setter.
 Verified in the decompile (`InGameMemoryManagement.cs:66-88`): its only guard
