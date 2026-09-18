@@ -158,12 +158,12 @@ namespace EFT.InventoryLogic
 namespace EFT
 {
     public class HealthController { public bool IsAlive = true; }
-    public class Player : UnityEngine.Component
+    public class Player : UnityEngine.Component, IPlayer
     {
         protected Interactive.Corpse Corpse;
         public void SetCorpse(Interactive.Corpse corpse) => Corpse = corpse;
         public bool enabled = true;
-        public string ProfileId = "local-player";
+        public string ProfileId { get; set; } = "local-player";
         public UnityEngine.Vector3 Position;
         public object InteractableObject;
         public bool IsYourPlayer;
@@ -208,6 +208,14 @@ namespace EFT
     }
     public interface IPlayer { string ProfileId { get; } }
 
+    /// <summary>The one member CorpseDamageSources.StillNamedInRegistry reads.</summary>
+    public interface IObserverToPlayerBridge { IPlayer iPlayer { get; } }
+    public sealed class ObserverBridge : IObserverToPlayerBridge
+    {
+        public IPlayer iPlayer { get; }
+        public ObserverBridge(IPlayer player) => iPlayer = player;
+    }
+
     /// <summary>The shooter is private in the game too (FlareCartridge.cs:30).</summary>
     public class FlareCartridge : Throwable
     {
@@ -220,6 +228,31 @@ namespace EFT
         public readonly List<Interactive.Corpse> LootList = new();
         public readonly List<Interactive.Corpse> Removed = new();
         public bool ThrowOnDestroyLoot;
+
+        // GameWorld.RegisterPlayer (_decompiled/EFT/GameWorld.cs:2012-2083)
+        // overwrites both _allPlayersEverExisted[profileId] and
+        // AllPlayerBridgesEverExisted[profileId] with whichever body
+        // registers under that id, together, every time - one dictionary
+        // models both real ones for that reason: they are never out of step.
+        private readonly Dictionary<string, Player> _everExisted = new();
+        public bool ThrowOnRegistryRead;
+
+        /// <summary>Simulates GameWorld.RegisterPlayer's write to both tables at once.</summary>
+        public void RegisterEverExisted(string profileId, Player player) => _everExisted[profileId] = player;
+
+        public Player GetEverExistedPlayerByID(string profileId)
+        {
+            if (ThrowOnRegistryRead) throw new Exception("registry read failed");
+            return profileId != null && _everExisted.TryGetValue(profileId, out var player) ? player : null;
+        }
+
+        public IObserverToPlayerBridge GetEverExistedBridgeByProfileID(string profileId)
+        {
+            if (ThrowOnRegistryRead) throw new Exception("registry read failed");
+            return profileId != null && _everExisted.TryGetValue(profileId, out var player)
+                ? new ObserverBridge(player)
+                : null;
+        }
 
         // Created with the world (GameWorld.InitLevel) in the game, so present
         // by default here; a check that needs one missing removes it.

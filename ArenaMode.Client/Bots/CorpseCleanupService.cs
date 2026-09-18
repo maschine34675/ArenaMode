@@ -57,9 +57,13 @@ namespace ArenaMode.Bots;
 /// another mod attached into a living bot. Destroying has no recycling hazard at
 /// all, and it is the only release that actually shortens the scene.
 ///
-/// Never released: the local player's own bodies (Redeploy respawns near them and
-/// the profile protection reads them) and PitFireTeam roster members, not even
-/// for a round-start clear. Those keep the old hide-only behaviour.
+/// Never released: PitFireTeam roster members, not even for a round-start
+/// clear — that one keeps the old hide-only behaviour always. The local
+/// player's own bodies are different since 2026-09-18 ("Own corpses release
+/// too", CORPSE-CLEANUP-REVIEW.md): only the NEWEST is kept (Redeploy
+/// respawns near it and the profile protection reads it). An older body of
+/// the player's own releases exactly like anybody else's, once nothing still
+/// needs it — see MayRelease's own-corpse branch and IsNewestOwnCorpse.
 /// </summary>
 internal static class CorpseCleanupService
 {
@@ -128,12 +132,26 @@ internal static class CorpseCleanupService
         public int Sweep;
 
         /// <summary>
-        /// Decided at trim time, while the answer is still reliable, and checked
-        /// again at release. Both mean "hide this body but never take it away":
-        /// Redeploy respawns at the player's own corpse and the profile
-        /// protection reads it, and a dead PitFireTeam companion is still part of
-        /// the protected roster. A round-start clear lifts the HIDING exemptions
-        /// (see ClearAllSoon); it never lifts these.
+        /// Decided at trim time, while the answer is still reliable. Both are
+        /// still read at release, but they no longer mean the same thing.
+        ///
+        /// <c>Protected</c> means what it always did: "hide this body but
+        /// never take it away" — a dead PitFireTeam companion is still part
+        /// of the protected roster, forever. A round-start clear lifts only
+        /// the HIDING exemption (see ClearAllSoon); it never lifts this one.
+        ///
+        /// <c>Own</c> now means only "this corpse is the local player's".
+        /// Release-time gating moved to a live re-read, MayRelease's
+        /// IsNewestOwnCorpse, because "is this still the newest own corpse"
+        /// can only be answered against the CURRENT world, not a trim-time
+        /// snapshot — a round-start clear can trim the very corpse that is
+        /// about to be the sole/newest one, and a later own death can make an
+        /// already-trimmed corpse stop being the newest without retrimming
+        /// it. <c>Own</c> itself stays trustworthy to cache, though: a
+        /// corpse's PlayerProfileID never changes after Corpse.CreateCorpse,
+        /// and the local player keeps one profile id across every respawn —
+        /// see ReleaseTrimmed's own-release count, which still relies on
+        /// exactly that.
         /// </summary>
         public bool Own, Protected;
 
@@ -149,6 +167,22 @@ internal static class CorpseCleanupService
 
         /// <summary>Whether the sweep last said it is holding this body for that reason.</summary>
         public bool HeldAsSource;
+
+        /// <summary>
+        /// Own corpses only. Once true, the world's profile-id registry no
+        /// longer names this exact body — a newer own body registered — so
+        /// DamageSourcesQuiet's own-corpse refinement bypasses its hold for
+        /// good. See CorpseDamageSources.StillNamedInRegistry.
+        ///
+        /// Cached rather than re-asked every sweep because the answer is
+        /// monotonic: a corpse cannot re-register (a player cannot un-die),
+        /// so once the registry has moved on it can never move back. Starts
+        /// false and is only ever flipped to true, never back — including
+        /// when StillNamedInRegistry itself cannot be read: that answers
+        /// "still named" (fails closed), which correctly leaves this false
+        /// and makes the next sweep ask again instead of caching a guess.
+        /// </summary>
+        public bool LeftRegistry;
     }
 
     /// <summary>
@@ -165,8 +199,13 @@ internal static class CorpseCleanupService
     /// <summary>
     /// Raid totals, kept apart from Trimmed.Count because that table now SHRINKS
     /// as bodies are released and would otherwise under-report the work done.
+    ///
+    /// <c>_ownReleasedTotal</c> is a subset of <c>_releasedTotal</c>, split out
+    /// since 2026-09-18 so the sweep line can show the GPU raid that this is
+    /// actually happening — it is read from TrimState.Own, which stays
+    /// trustworthy for the reason documented there.
     /// </summary>
-    private static int _trimmedTotal, _releasedTotal, _releaseFailures;
+    private static int _trimmedTotal, _releasedTotal, _ownReleasedTotal, _releaseFailures;
 
     private static int _sweep;
     private static bool _reportedReleaseFailure;
@@ -175,7 +214,7 @@ internal static class CorpseCleanupService
     {
         _nextSweepAt = 0f;
         _fullClearUntil = 0f;
-        _trimmedTotal = _releasedTotal = _releaseFailures = _sweep = 0;
+        _trimmedTotal = _releasedTotal = _ownReleasedTotal = _releaseFailures = _sweep = 0;
         _reportedReleaseFailure = false;
         Trimmed.Clear();
         CorpseAggressors.Reset();
@@ -348,10 +387,10 @@ internal static class CorpseCleanupService
             // next one. The overflow above is unaffected either way, because
             // every releasable body is already in Trimmed and so excluded from
             // the corpses list.
-            var released = ReleaseTrimmed(world, mainPlayer);
+            var (released, ownReleased) = ReleaseTrimmed(world, mainPlayer);
 
             if (trimmed > 0 || released > 0)
-                Plugin.ModLogger.LogInfo(Report(clearEverything, trimmed, released, maxCorpses, world));
+                Plugin.ModLogger.LogInfo(Report(clearEverything, trimmed, released, ownReleased, maxCorpses, world, mainPlayer));
         }
         catch (Exception ex)
         {
@@ -372,16 +411,56 @@ internal static class CorpseCleanupService
     /// created - pooled - released is the number still in the scene. That is the
     /// figure the 2026-09-17 raid found at 415 and this service is meant to bound.
     /// </summary>
-    private static string Report(bool clearEverything, int trimmed, int released, int maxCorpses, GameWorld world)
+    private static string Report(
+        bool clearEverything, int trimmed, int released, int ownReleased, int maxCorpses, GameWorld world, Player mainPlayer)
     {
         var inWorld = world.LootList.OfType<Corpse>().Count(c => c != null);
         var failures = _releaseFailures > 0 ? $", {_releaseFailures} release failure(s)" : string.Empty;
+        var ownHeld = DescribeOwnHeld(world, mainPlayer);
 
         return (clearEverything
                 ? $"Arena corpse cleanup: cleared {trimmed} corpse(s) for the round start"
                 : $"Arena corpse cleanup: trimmed {trimmed} old corpse(s), {maxCorpses} kept visible")
-            + $", released {released}; {_trimmedTotal} trimmed and {_releasedTotal} released in total"
-            + $", {inWorld} corpse(s) in the world{DescribeBodyPool()}{failures}.";
+            + $", released {released} ({ownReleased} own)"
+            + $"; {_trimmedTotal} trimmed and {_releasedTotal} released in total ({_ownReleasedTotal} own)"
+            + $", {inWorld} corpse(s) in the world{ownHeld}{DescribeBodyPool()}{failures}.";
+    }
+
+    /// <summary>
+    /// A live snapshot for the sweep line, split by why an own body is still
+    /// hidden: still the newest (permanent, by design — see
+    /// IsNewestOwnCorpse) versus anything else (transient: DamageSourcesQuiet,
+    /// an open loot window, a pending aggressor, a settling ragdoll, a held
+    /// map marker — the per-body log lines elsewhere say which). Read from
+    /// Trimmed, not world.LootList, because only a trimmed body is a release
+    /// candidate at all; a live re-read rather than a counter, so it is
+    /// correct even when nothing happened to trigger the sweep line this
+    /// cadence.
+    /// </summary>
+    private static string DescribeOwnHeld(GameWorld world, Player mainPlayer)
+    {
+        if (mainPlayer == null || Trimmed.Count == 0)
+            return string.Empty;
+
+        var newest = 0;
+        var other = 0;
+        foreach (var entry in Trimmed)
+        {
+            if (entry.Key == null || !entry.Value.Own)
+                continue;
+
+            if (IsNewestOwnCorpse(entry.Key, world, mainPlayer.ProfileId))
+                newest++;
+            else
+                other++;
+        }
+
+        if (newest == 0 && other == 0)
+            return string.Empty;
+
+        return other > 0
+            ? $", {newest} own held as newest + {other} own held for another reason"
+            : $", {newest} own held as newest";
     }
 
     /// <summary>The player asset pool's own counters — no scene search.</summary>
@@ -556,12 +635,15 @@ internal static class CorpseCleanupService
     }
 
     /// <summary>
-    /// Takes the bodies that are ready out of the scene. Returns how many left.
+    /// Takes the bodies that are ready out of the scene. Returns how many
+    /// left in total, and how many of those were the local player's own —
+    /// read from TrimState.Own, which stays trustworthy after release for the
+    /// reason documented on that field.
     /// </summary>
-    private static int ReleaseTrimmed(GameWorld world, Player mainPlayer)
+    private static (int Released, int OwnReleased) ReleaseTrimmed(GameWorld world, Player mainPlayer)
     {
         if (!Settings.ReleaseTrimmedCorpses.Value || Trimmed.Count == 0)
-            return 0;
+            return (0, 0);
 
         // Snapshot: Release mutates Trimmed, and a destroyed body invalidates the
         // enumerator's key as well.
@@ -577,17 +659,59 @@ internal static class CorpseCleanupService
         }
 
         if (due == null)
-            return 0;
+            return (0, 0);
 
         var released = 0;
+        var ownReleased = 0;
         foreach (var corpse in due)
         {
-            if (Trimmed.TryGetValue(corpse, out var state) && Release(corpse, state, world))
+            if (!Trimmed.TryGetValue(corpse, out var state))
+                continue;
+
+            // Read before Release: on success it removes the entry, but the
+            // TrimState object itself stays valid to read from afterwards.
+            var isOwn = state.Own;
+            if (Release(corpse, state, world))
+            {
                 released++;
+                if (isOwn)
+                    ownReleased++;
+            }
         }
 
         _releasedTotal += released;
-        return released;
+        _ownReleasedTotal += ownReleased;
+        return (released, ownReleased);
+    }
+
+    /// <summary>
+    /// Whether this own corpse is the local player's NEWEST — the one
+    /// exemption from release that survives (see CorpseCleanupService's class
+    /// doc and MayRelease's own-corpse branch, "Own corpses release too",
+    /// 2026-09-18).
+    ///
+    /// A live re-derivation from <c>world.LootList</c>, not the cached
+    /// <c>TrimState.Own</c> flag: "is this still the newest" can only be
+    /// answered against the CURRENT world. <c>world.LootList</c> is
+    /// append-ordered (<c>RegisterLoot</c>) — see the comment at Tick's own
+    /// read of it — i.e. already oldest-first, so the LAST match is the
+    /// newest, and this is a query, not a cache: it is correct on every call
+    /// regardless of clears, respawns, or how long ago a corpse was trimmed.
+    /// A round-start clear (<c>ClearAllSoon</c>) trims the sole/current own
+    /// corpse right along with everything else — it is still the only entry
+    /// this loop can find, so it still comes back "newest" and stays
+    /// protected until a genuinely later own death appends one after it.
+    /// </summary>
+    private static bool IsNewestOwnCorpse(Corpse corpse, GameWorld world, string ownProfileId)
+    {
+        Corpse newest = null;
+        foreach (var loot in world.LootList)
+        {
+            if (loot is Corpse c && c.PlayerProfileID == ownProfileId)
+                newest = c;
+        }
+
+        return ReferenceEquals(newest, corpse);
     }
 
     /// <summary>
@@ -597,14 +721,16 @@ internal static class CorpseCleanupService
     ///
     /// The trim's own exclusions are not repeated here — a body that reaches this
     /// table was already past them. What IS repeated is everything that can have
-    /// changed in the seconds since, plus the two protections that a round-start
-    /// clear deliberately lifts for hiding and must never lift for destroying.
+    /// changed in the seconds since, plus the protection a round-start clear
+    /// deliberately lifts for hiding and must never lift for destroying.
     /// </summary>
     private static bool MayRelease(Corpse corpse, TrimState state, GameWorld world, Player mainPlayer)
     {
         // A failed trim is not evidence of anything, and a body from an earlier
         // raid's world must never be touched with this world's owners.
-        if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)
+        // state.Own is NOT read here any more — see IsNewestOwnCorpse below,
+        // and TrimState.Own's own doc, for why that moved to a live re-read.
+        if (!state.Completed || state.ReleaseFailed || state.Protected)
             return false;
 
         if (!ReferenceEquals(state.World, world) || state.Sweep >= _sweep)
@@ -621,12 +747,15 @@ internal static class CorpseCleanupService
 
         // Re-read rather than trusting the record: the local player keeps one
         // profile id across every Redeploy respawn, so this covers every body
-        // that was ever theirs.
-        if (corpse.PlayerProfileID == mainPlayer.ProfileId
-            || Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
-        {
+        // that was ever theirs. Only the NEWEST is kept forever — an older
+        // own body is released like anybody else's, subject to every check
+        // below (including the DamageSourcesQuiet refinement further down).
+        var isOwnCorpse = corpse.PlayerProfileID == mainPlayer.ProfileId;
+        if (isOwnCorpse && IsNewestOwnCorpse(corpse, world, mainPlayer.ProfileId))
             return false;
-        }
+
+        if (Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
+            return false;
 
         // Somebody is holding this body's loot window open right now.
         if (ReferenceEquals(mainPlayer.InteractableObject, corpse)
@@ -639,9 +768,14 @@ internal static class CorpseCleanupService
         // attaches the component to the dead player's own GameObject, so the
         // Player on it IS this body. No Player at all means a map-placed still
         // corpse (Corpse.CreateStillCorpse), which has no owner to dispose and
-        // is none of Arena's business.
+        // is none of Arena's business. player.IsYourPlayer is NOT checked any
+        // more: it is set once at LocalPlayer creation and never reset in the
+        // decompile, so it cannot distinguish "newest" from "not newest" —
+        // that already happened above. ReferenceEquals(player, mainPlayer)
+        // stays: a corpse can never BE the live player's current body, own or
+        // not — that would mean releasing somebody who is still playing.
         var player = corpse.GetComponent<Player>();
-        if (player == null || player.IsYourPlayer || ReferenceEquals(player, mainPlayer))
+        if (player == null || ReferenceEquals(player, mainPlayer))
             return false;
 
         // Never a living body. A corpse's owner is dead by construction; an
@@ -652,14 +786,17 @@ internal static class CorpseCleanupService
         // Nobody may still be owed a death by this body. See CorpseAggressors:
         // a released body that is somebody's pending aggressor makes that
         // somebody's OnDead throw, which abandons their whole death.
+        // Reference-keyed, so this stays in force for an own corpse exactly
+        // as for a foreign one.
         if (CorpseAggressors.IsPendingAggressor(player, world))
             return false;
 
         // Nor may anything still name it as a damage SOURCE. See
         // CorpseDamageSources: every ApplyDamageInfo and ShotDelegate exception
         // the 2026-09-17 raids logged was a tripwire a dead Labyrinth boss had
-        // planted, going off after Arena had released him.
-        if (!DamageSourcesQuiet(corpse, state, world))
+        // planted, going off after Arena had released him. For an own corpse
+        // there is a refinement — see DamageSourcesQuiet.
+        if (!DamageSourcesQuiet(corpse, state, world, player, isOwnCorpse))
             return false;
 
         // The optional map has to have let go first: its own map-change handler
@@ -689,9 +826,54 @@ internal static class CorpseCleanupService
     /// are what shows a raid actually exercised the guard rather than passing
     /// because nobody planted anything. An unreadable world is not repeated per
     /// body; CorpseDamageSources has already warned once.
+    ///
+    /// Refinement for an OWN corpse ("Own corpses release too", 2026-09-18):
+    /// CorpseDamageSources matches by profile id only, and the local player's
+    /// own current shot, grenade or tripwire shares its profile id with every
+    /// one of their own hidden bodies — so once an own corpse becomes
+    /// releasable at all (it is not the newest, see MayRelease), a reading
+    /// that finds a source can no longer tell "this corpse's own trailing
+    /// source" apart from "the live player is still fighting", and would hold
+    /// every hidden own body at once for as long as combat continues. That
+    /// cannot cause a wrongful early release (the guard still only ever holds
+    /// a body longer), but it can erase the whole point of releasing at all
+    /// during exactly the fast, continuous-combat periods this service
+    /// targets — the self-interference the design's critic review found.
+    ///
+    /// CorpseDamageSources.StillNamedInRegistry answers the question that
+    /// actually decides it: is this corpse's Player still what a profile-id
+    /// lookup resolves to at all? Every one of the resolutions
+    /// CorpseDamageSources guards against (a tripwire's explosion, a flare's
+    /// impact, a shot landing) goes through GameWorld's own ever-existed
+    /// tables, and GameWorld.RegisterPlayer overwrites both of them with
+    /// whichever body registers under a profile id — which every own
+    /// respawn does, death or live-kit swap alike. So once a newer own body
+    /// has registered, nothing can resolve THIS corpse through its profile id
+    /// any more, only the live player — and holding it hidden for a source
+    /// that can only ever reach somebody else defers its release for
+    /// nothing. If the registry still names this exact body, the ordinary
+    /// hold below still applies, unchanged.
     /// </summary>
-    private static bool DamageSourcesQuiet(Corpse corpse, TrimState state, GameWorld world)
+    private static bool DamageSourcesQuiet(Corpse corpse, TrimState state, GameWorld world, Player player, bool isOwnCorpse)
     {
+        if (isOwnCorpse)
+        {
+            if (!state.LeftRegistry)
+                state.LeftRegistry = !CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);
+
+            if (state.LeftRegistry)
+            {
+                if (state.HeldAsSource)
+                {
+                    state.HeldAsSource = false;
+                    Plugin.ModLogger.LogInfo(
+                        $"Arena corpse release: {corpse.PlayerProfileID} left the profile-id registry (a newer own body replaced it); releasing regardless of any source that still shares its profile id.");
+                }
+
+                return true;
+            }
+        }
+
         var source = CorpseDamageSources.Describe(corpse.PlayerProfileID, world);
         if (source != null)
         {

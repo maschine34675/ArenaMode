@@ -39,10 +39,6 @@ $arenaRecordGuard = @'
             if (!RemoveDeadBodyRecord(corpse))
                 throw new InvalidOperationException("the AI's dead-body record could not be cleared");
 '@
-$arenaOwnerReread = @'
-        if (corpse.PlayerProfileID == mainPlayer.ProfileId
-            || Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
-'@
 $arenaTripwireFinished = @'
         => state == ETripwireState.Exploded
             || state == ETripwireState.Inert
@@ -73,20 +69,51 @@ $arenaMutants = @(
     @{ Name = 'released-in-the-hiding-sweep'; From = 'state.Sweep >= _sweep'; To = 'false';
        From2 = 'return Time.time - state.SourcesQuietSince >= DamageSourceQuietSeconds;'; To2 = 'return true;';
        Failure = 'corpse and player remain registered' },
-    @{ Name = 'retries-a-failed-release'; From = 'if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)'; To = 'if (!state.Completed || state.Own || state.Protected)'; Failure = 'a failed release is never retried, even once the fault is gone: retire' },
-    @{ Name = 'releases-own-and-teammate-bodies';
-       From = 'if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)';
+    @{ Name = 'retries-a-failed-release'; From = 'if (!state.Completed || state.ReleaseFailed || state.Protected)'; To = 'if (!state.Completed || state.Protected)'; Failure = 'a failed release is never retried, even once the fault is gone: retire' },
+    # The two layers that protect a PitFireTeam body: the trim-time snapshot
+    # (state.Protected, in the fast path) and the live re-read
+    # (IsTeamProfileId). Both have to go before one is actually released,
+    # like the own/teammate pair this replaced - own now has its own pair of
+    # mutants below, since it moved to a different mechanism (IsNewestOwnCorpse)
+    # entirely.
+    @{ Name = 'releases-a-teammate-body';
+       From = 'if (!state.Completed || state.ReleaseFailed || state.Protected)';
        To = 'if (!state.Completed || state.ReleaseFailed)';
-       From2 = $arenaOwnerReread.Replace("`r`n", "`n");
-       To2 = '        if (false)';
+       From2 = 'if (Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))';
+       To2 = 'if (false)';
+       Failure = 'this body is hidden but never taken out of the scene: team' },
+    # Own corpses release too (2026-09-18): only the NEWEST is exempt, decided
+    # by a live re-read (IsNewestOwnCorpse) rather than the trim-time
+    # TrimState.Own snapshot. Removing the newest-check here releases even
+    # the sole/newest own corpse - the positive control the "own" case in the
+    # same "never released" loop above already relies on.
+    @{ Name = 'releases-the-newest-own-body';
+       From = 'if (isOwnCorpse && IsNewestOwnCorpse(corpse, world, mainPlayer.ProfileId))';
+       To = 'if (false)';
        Failure = 'this body is hidden but never taken out of the scene: own' },
+    # DamageSourcesQuiet's own-corpse refinement: an own corpse the world's
+    # profile-id registry no longer names bypasses the ordinary hold, because
+    # nothing can resolve a source TO it any more (CORPSE-CLEANUP-REVIEW.md,
+    # "Own corpses release too", "the registry argument"). Two ways to break
+    # it, both defeating the "still named" half of the two-corpse registry
+    # test: dropping the condition bypasses EVERY own corpse regardless of
+    # what the registry says, and inverting it bypasses exactly the corpses
+    # that should stay held while holding exactly the ones that should go.
+    @{ Name = 'ignores-the-registry-for-own-corpses';
+       From = 'state.LeftRegistry = !CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
+       To = 'state.LeftRegistry = true;';
+       Failure = 'an own corpse the registry still names stays held behind a live damage source, exactly like before' },
+    @{ Name = 'inverts-the-registry-condition';
+       From = 'state.LeftRegistry = !CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
+       To = 'state.LeftRegistry = CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
+       Failure = 'an own corpse the registry still names stays held behind a live damage source, exactly like before' },
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
     # The damage-source guard: the call site, the measured tripwire rule (a
     # tripwire leaves TripwireManager the moment it is TRIGGERED, so reading only
     # armed ones is exactly the gap the 2026-09-17 raids fell into), the quiet
     # period behind BotMemory.GetHit's timer, and the fail-closed catch.
-    @{ Name = 'releases-a-named-damage-source'; From = 'if (!DamageSourcesQuiet(corpse, state, world))'; To = 'if (false)'; Failure = 'a body a tripwire still names stays hidden: Wait' },
+    @{ Name = 'releases-a-named-damage-source'; From = 'if (!DamageSourcesQuiet(corpse, state, world, player, isOwnCorpse))'; To = 'if (false)'; Failure = 'a body a tripwire still names stays hidden: Wait' },
     @{ Name = 'forgets-a-triggered-tripwire'; Target = 'DamageSources';
        From = $arenaTripwireFinished.Replace("`r`n", "`n"); To = "        => state != ETripwireState.Wait;";
        Failure = 'a body a tripwire still names stays hidden: Active' },

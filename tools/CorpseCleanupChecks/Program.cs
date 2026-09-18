@@ -316,6 +316,10 @@ foreach (var guard in new[] { "open", "interacting" })
 }
 
 // Never released, and each case proves the body was still eligible for hiding.
+// "own" here is the SOLE own corpse in this Setup(), so it is trivially the
+// newest (IsNewestOwnCorpse) - that is what keeps it exempt since 2026-09-18,
+// not a blanket own exclusion any more. An OLDER own corpse's different fate
+// is covered separately below, in "Own corpses release too".
 foreach (var kept in new[] { "own", "team", "off", "same-sweep" })
 {
     var (world, body, gear) = Setup();
@@ -559,6 +563,126 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
     Sweep();
     Sweep();
     Check(Released(world, body), "and goes once the world can be read again: " + unreadable);
+}
+
+// ---------------------------------------------------------------------------
+// Own corpses release too (2026-09-18). Only the NEWEST own corpse is exempt
+// from release now, decided by a live re-read (IsNewestOwnCorpse) rather than
+// the trim-time TrimState.Own snapshot; an older own corpse is released like
+// anybody else's. The one refinement is in DamageSourcesQuiet: a live source
+// sharing an own corpse's profile id (the local player's own current shot,
+// grenade or tripwire does, by construction) can only hold a body the
+// world's profile-id registry still resolves to it. See
+// CORPSE-CLEANUP-REVIEW.md, "Own corpses release too", for the full argument.
+// ---------------------------------------------------------------------------
+
+// Two own corpses: the older one releases once it stops being the newest,
+// the newest never does. A round-start clear is used to force BOTH into
+// Trimmed at once - without it the newest would never become a trim
+// candidate at all (protectedOwn already keeps it visible), which would make
+// this a trivial, uninteresting pass rather than exercising IsNewestOwnCorpse
+// against a body that actually reached MayRelease.
+{
+    var (world, _, _) = Setup();
+    var older = AddBody(world, world.MainPlayer.ProfileId);
+    var newer = AddBody(world, world.MainPlayer.ProfileId);
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(older) && CorpseCleanupService.IsSuccessfullyTrimmed(newer),
+        "positive control: a round-start clear trims both own bodies, oldest and newest alike");
+
+    Sweep();
+    Check(Released(world, older), "the older own corpse releases once it is no longer the newest");
+    Check(Kept(world, newer), "the newest own corpse is never released");
+
+    Sweep();
+    Check(Kept(world, newer), "the newest own corpse stays kept across further sweeps");
+}
+
+// The registry argument, isolated: an own corpse the world's profile-id
+// registry still names stays behind the ordinary damage-source hold exactly
+// like before; a sibling it no longer names releases despite a "live" shot
+// under the very same profile id - the ambiguity CorpseDamageSources alone
+// cannot resolve. `stillNamed` models the moment right after its own death,
+// before a replacement has registered; `leftRegistry` models an older own
+// death whose replacement (world.MainPlayer stands in for it) already has.
+{
+    var (world, _, _) = Setup();
+    var stillNamed = AddBody(world, world.MainPlayer.ProfileId);
+    var leftRegistry = AddBody(world, world.MainPlayer.ProfileId);
+    var newest = AddBody(world, world.MainPlayer.ProfileId);
+    world.RegisterEverExisted(world.MainPlayer.ProfileId, Owner(stillNamed));
+
+    var shot = new Shot { PlayerProfileID = world.MainPlayer.ProfileId };
+    Shots(world).Add(shot);
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(stillNamed)
+        && CorpseCleanupService.IsSuccessfullyTrimmed(leftRegistry)
+        && CorpseCleanupService.IsSuccessfullyTrimmed(newest),
+        "positive control: a round-start clear trims all three own bodies");
+
+    Sweep();
+    Check(Kept(world, stillNamed),
+        "an own corpse the registry still names stays held behind a live damage source, exactly like before");
+    Check(Released(world, leftRegistry),
+        "an own corpse the registry no longer names releases despite a matching live-profile damage source");
+    Check(Kept(world, newest), "the newest own corpse is never released, damage source or not");
+
+    Shots(world).Remove(shot);
+    Sweep();
+    Check(Kept(world, stillNamed), "the first reading that finds the remaining own body quiet never releases it on its own");
+    Sweep();
+    Check(Released(world, stillNamed), "and it releases once nothing names it any more, the ordinary quiet-period schedule");
+}
+
+// The registry read failing closed: an own corpse whose registry read throws
+// stays held behind a live damage source rather than guessing it has left
+// and bypassing the hold outright.
+{
+    var (world, _, _) = Setup();
+    var older = AddBody(world, world.MainPlayer.ProfileId);
+    var newer = AddBody(world, world.MainPlayer.ProfileId);
+    var shot = new Shot { PlayerProfileID = world.MainPlayer.ProfileId };
+    Shots(world).Add(shot);
+    world.ThrowOnRegistryRead = true;
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Kept(world, older),
+        "an unreadable registry holds an own corpse behind a live damage source rather than guessing it has left");
+    Check(Plugin.ModLogger.Warnings.Any(w => w.Contains("profile-id registry")),
+        "the unreadable registry is reported");
+
+    world.ThrowOnRegistryRead = false;
+    Shots(world).Remove(shot);
+    Sweep();
+    Sweep();
+    Check(Released(world, older), "and releases once the registry can be read and the source is gone");
+}
+
+// Foreign-corpse behaviour is untouched: the registry refinement only ever
+// applies to an own corpse (MayRelease's isOwnCorpse gate). A foreign body a
+// damage source still names stays held even with an ever-existed entry
+// registered under its own profile id, proving it is the own-corpse gate,
+// not the registry lookup, that protects it from this new code path.
+{
+    var (world, body, gear) = Setup();
+    Add(body, gear, "Headwear");
+    var shot = new Shot { PlayerProfileID = body.PlayerProfileID };
+    Shots(world).Add(shot);
+    world.RegisterEverExisted(body.PlayerProfileID, new Player());
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Kept(world, body), "a foreign corpse is held by a live damage source exactly as before the registry refinement");
+
+    Shots(world).Remove(shot);
+    Sweep();
+    Sweep();
+    Check(Released(world, body), "and releases on the ordinary schedule once the source is gone");
 }
 
 // A body trimmed in another GameWorld is never touched with this world's owners.

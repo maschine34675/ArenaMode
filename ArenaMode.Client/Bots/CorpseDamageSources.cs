@@ -82,22 +82,38 @@ namespace ArenaMode.Bots;
 /// death it may cause is <see cref="CorpseAggressors"/>' business.
 ///
 /// Profile id, not reference, because an id is what each of these resolves at
-/// impact — the flare keeps an <c>IPlayer</c>, and reads its id there too.
-/// It can only ever match more bodies, never fewer, and the only participant
-/// whose bodies share one — the local player — is never released anyway.
+/// impact — the flare keeps an <c>IPlayer</c>, and reads its id there too. It
+/// can only ever match more bodies, never fewer — which used to mean the
+/// local player was safe from this by construction, because their bodies
+/// were never released. Since 2026-09-18 an older own body is (see
+/// CorpseCleanupService's own-corpse branch of MayRelease): the live
+/// player's own current shot, grenade or tripwire shares that profile id
+/// with every one of their own hidden bodies, and this class alone cannot
+/// tell them apart. <see cref="StillNamedInRegistry"/> is what can: it
+/// answers whether the world's own profile-id registry
+/// (<c>GameWorld.GetEverExistedPlayerByID</c>,
+/// <c>GetEverExistedBridgeByProfileID</c>) still resolves to THIS exact body
+/// rather than a newer one — which is what every one of the resolutions
+/// above (a tripwire's explosion, a flare's impact, a shot landing) actually
+/// goes through, so once it says no, nothing in this class can be reached
+/// FROM this body any more, only from whichever one the registry names
+/// instead.
 ///
 /// The cost is the one a hidden body has always had. A tripwire nobody walks
 /// into keeps its planter hidden until it expires (<c>TRIPWIRE_INERT_TIME</c>,
 /// 1200 s unless the bot's difficulty says otherwise), and there is one planter
-/// in a Labyrinth raid.
+/// in a Labyrinth raid — for a released own body, only until the registry no
+/// longer names it, which happens the moment its player respawns.
 /// </summary>
 internal static class CorpseDamageSources
 {
     private static bool _reportedFailure;
+    private static bool _reportedRegistryFailure;
 
     internal static void Reset()
     {
         _reportedFailure = false;
+        _reportedRegistryFailure = false;
     }
 
     /// <summary>
@@ -305,5 +321,65 @@ internal static class CorpseDamageSources
             "Arena corpse release cannot read what may still name a body as a damage source ("
             + reason
             + "); no body will be taken out of the scene while that holds.");
+    }
+
+    /// <summary>
+    /// Own corpses only. Whether the world's profile-id registry still
+    /// resolves to THIS exact body — not a newer one that has since
+    /// registered under the same id. See the class doc's last paragraph for
+    /// why this is what decides whether a live source sharing this profile id
+    /// can actually reach this particular body.
+    ///
+    /// <c>GameWorld.RegisterPlayer</c> (<c>_decompiled/EFT/GameWorld.cs:2012-2083</c>)
+    /// OVERWRITES <c>_allPlayersEverExisted[profileId]</c> and
+    /// <c>AllPlayerBridgesEverExisted[profileId]</c> with whichever body
+    /// registers under that id — both tables, together, every time. Every own
+    /// respawn goes through it: a death respawn
+    /// (<c>Redeploy.Core/Engine/RespawnEngine.cs</c>: <c>game.vmethod_3</c> →
+    /// <c>LocalPlayer.Create</c> → <c>Player.Init</c> →
+    /// <c>GameWorld.RegisterPlayer(this)</c>, <c>EFT/Player.cs:28272</c>) and
+    /// Arena's own live-kit swap alike (<c>LiveKitRespawn.SwapRoutine</c>
+    /// drives the very same <c>RespawnEngine.RunRespawn</c>). So once a newer
+    /// own body has registered, no profile-id lookup can return an older one
+    /// any more — <c>GetEverExistedPlayerByID</c> and
+    /// <c>GetEverExistedBridgeByProfileID</c>
+    /// (<c>GameWorld.cs:889-896,967-977</c>) both read only the current
+    /// entry, both verified against the decompile.
+    ///
+    /// Fails CLOSED like every guard in this file: an unreadable question, or
+    /// one this code cannot even ask (no body, no id, no world), answers
+    /// "still named" — the safer of the two wrong answers, same as
+    /// everywhere else here.
+    /// </summary>
+    internal static bool StillNamedInRegistry(Player body, string profileId, GameWorld world)
+    {
+        if (body == null || string.IsNullOrEmpty(profileId) || world == null)
+            return true;
+
+        try
+        {
+            if (ReferenceEquals(world.GetEverExistedPlayerByID(profileId), body))
+                return true;
+
+            var bridge = world.GetEverExistedBridgeByProfileID(profileId);
+            return bridge != null && ReferenceEquals(bridge.iPlayer, body);
+        }
+        catch (Exception ex)
+        {
+            WarnRegistryOnce(ex.GetBaseException().Message);
+            return true;
+        }
+    }
+
+    private static void WarnRegistryOnce(string reason)
+    {
+        if (_reportedRegistryFailure)
+            return;
+
+        _reportedRegistryFailure = true;
+        Plugin.ModLogger.LogWarning(
+            "Arena corpse release cannot read whether the world's profile-id registry still names an "
+            + "own body (" + reason + "); every own body older than the newest keeps its "
+            + "damage-source hold until it can.");
     }
 }
