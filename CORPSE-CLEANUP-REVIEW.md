@@ -732,6 +732,31 @@ alarm: a Labyrinth raid with a boss kill on the fixed build should report none.
 `ReleaseTrimmedCorpses` (Performance, default on) remains the off-ramp:
 turning it off restores the old hide-only behaviour exactly.
 
+### GPU acceptance (2026-09-18, 06:34-06:48 Labyrinth raid on `d265353`)
+
+Client `0.1.0+d265353`, SHA256 `81DBDD36…F157C`, confirmed in the running game
+by its plugin table (`2026-09-18 06:28`, session start 06:31:01) and by both
+`ArenaDamageExceptionLog` finalizers being patched. Deathmatch FFA, endless,
+give up every ~45 s: 14:10 raid time, 15 deaths, 244 player bodies created, 218
+trimmed and 200 released — more than the 173 of the raid above.
+
+The same scenario, and this time the guard in it. `bossTagillaAgro`
+(`6aacbf3c…`) died in the first minute and a half; its tripwires went off
+eleven times from 06:35:21 to 06:43:48, every one after its death. The sweep
+logged `keeping 6aacbf3c… hidden while a tripwire it planted (Wait) still names
+it as a damage source` at 06:36:09 and `nothing names 6aacbf3c… as a damage
+source any more` at 06:44:25 — 36.6 s after the last activation, which is the
+fuse, the 30 s `Exploding` state and a sweep. No activation followed.
+
+**Zero `ArenaDamageExceptionLog` reports and zero NullReferenceExceptions for
+the whole session**, against eleven reports from eight activations in the raid
+above. The only exceptions in the log are two
+`TriggerZone+CG_MoveInsideRoutine` ones at 06:48:48, six seconds after "Arena
+session ended", while the scene unloads. That is not this finding and not new:
+the raid above ended with the same two, and the raids that released nothing
+end with 17-30 of them (18:08, 19:35, 20:52). The trigger-zone counts in the
+table further up are mostly this teardown burst, not mid-raid throws.
+
 ## Bounded work per sweep
 
 At most eight bodies per sweep. A release walks every bot group and tears down a

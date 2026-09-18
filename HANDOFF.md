@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Corpse release: the damage-exception finding FIXED and GPU-ACCEPTED
+  (2026-09-18, Claude):** `d265353` on `feature/announcer-six-cues`. The
+  `ApplyDamageInfo`/`ShotDelegate` NREs since the corpse release were the dead
+  Labyrinth boss `bossTagillaAgro`'s own TRIPWIRES going off after Arena had
+  released his body (21 of 21 on 2026-09-17, each 3.5-4.2 s after SAIN's
+  "Player Null from ID" for that planter). `CorpseDamageSources` keeps a body
+  hidden while an unfinished tripwire, a reaching grenade, a flare or a shot in
+  flight names it, then 2 s quiet (SAIN's deferred `GetHit`). Offline:
+  `tools/DynamicMapCorpseChecks/Verify.ps1` green (61 + 180 assertions, 19 source
+  mutants), `dotnet test` 633/2 skipped. GPU raid 06:34-06:48 (client SHA256
+  `81DBDD363F5060BCF81E30043E66A99390510386B87DEA9156A7ACEAC76F157C`, plugin
+  table + finalizers checked in the running game): boss tripwires fired 11 times
+  after his death, guard held and let go (both log lines present), 200 bodies
+  released, zero damage reports, zero NREs in-session. Details:
+  `CORPSE-CLEANUP-REVIEW.md`, "What held that body" and "GPU acceptance".
+  Expect SAIN's "Player Null from ID" lines to remain (native, a dead planter's
+  tripwire), and two `TriggerZone` NREs at raid teardown (pre-existing).
+
 - **Pickup refinements DEPLOYED (2026-09-15, Codex):** shield `3140360`, weapon
   transfer `f06381b`, safe placement/beacons `66901a9`; main merge/build
   `bc84accc8ee2e3bc9104c18bcefb917f9e18c459`. Supersedes the builds below and

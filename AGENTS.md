@@ -335,7 +335,7 @@ Open:
   What is left is dominated by the player's OWN corpses, which are exempt by
   design. The `Player.ApplyDamageInfo` / `ClientGameWorld.ShotDelegate`
   exceptions the release introduced are explained and, since 2026-09-18, fixed
-  offline (GPU acceptance: see HANDOFF.md). Every one of the 21 logged that
+  and GPU-accepted (Labyrinth raid on `d265353`: zero reports). Every one of the 21 logged that
   evening was a TRIPWIRE planted by the dead Labyrinth boss `bossTagillaAgro`,
   going off after Arena had released his body. A tripwire keeps its planter's
   profile id for its whole life; the explosion and its fragments resolve that id
