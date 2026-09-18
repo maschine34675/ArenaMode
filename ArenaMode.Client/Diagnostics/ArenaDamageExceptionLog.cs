@@ -12,11 +12,15 @@ using System.Text;
 namespace ArenaMode.Diagnostics;
 
 /// <summary>
-/// Reports the state of both sides of a damage event at the moment it throws,
-/// for the open finding in CORPSE-CLEANUP-REVIEW.md, section "Still open: a
-/// grenade explosion that abandons itself": four NullReferenceExceptions per
-/// Labyrinth raid out of <c>Grenade.Explosion</c>, appearing only since a
-/// trimmed corpse is RELEASED rather than hidden, cause not established.
+/// Reports the state of both sides of a damage event at the moment it throws.
+/// Written for what CORPSE-CLEANUP-REVIEW.md used to call the open grenade
+/// finding: four to eight NullReferenceExceptions per Labyrinth raid out of
+/// <c>Player.ApplyDamageInfo</c> and <c>ClientGameWorld.ShotDelegate</c>,
+/// appearing only since a trimmed corpse is RELEASED rather than hidden. Its
+/// reports settled it (section "Settled", then "What held that body"): the
+/// dead Labyrinth boss's own tripwires, going off after Arena had released
+/// him, fixed by <see cref="Bots.CorpseDamageSources"/>. It stays on as that
+/// fix's regression alarm.
 ///
 /// It records and it rethrows. Nothing here changes a damage outcome, and the
 /// two questions it exists to answer are the two the game's own log cannot:
@@ -56,8 +60,9 @@ namespace ArenaMode.Diagnostics;
 internal static class ArenaDamageExceptionLog
 {
     /// <summary>
-    /// The open finding produces four per raid. The cap is only here so that an
-    /// unforeseen storm cannot fill the log, and it reports that it capped.
+    /// The settled finding produced eleven reports in its worst raid. The cap is
+    /// only here so that an unforeseen storm cannot fill the log, and it reports
+    /// that it capped.
     /// </summary>
     private const int ReportsPerRaid = 32;
 
@@ -86,7 +91,7 @@ internal static class ArenaDamageExceptionLog
 
     /// <summary>
     /// The victim's own entry point: <c>Player.ApplyDamageInfo</c>, which is
-    /// where the open finding's exception leaves the game.
+    /// where the tripwire finding's exception left the game.
     /// </summary>
     private static void ReportDamage(Exception exception, Player victim, DamageInfo damageInfo,
         EBodyPart bodyPart, EBodyPartColliderType colliderType)

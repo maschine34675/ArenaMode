@@ -5,9 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <CleanupSource Condition="'$(CleanupSource)' == ''">../../ArenaMode.Client/Bots/CorpseCleanupService.cs</CleanupSource>
+    <DamageSourcesSource Condition="'$(DamageSourcesSource)' == ''">../../ArenaMode.Client/Bots/CorpseDamageSources.cs</DamageSourcesSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(CleanupSource)" Link="Production/CorpseCleanupService.cs" />
+    <Compile Include="$(DamageSourcesSource)" Link="Production/CorpseDamageSources.cs" />
     <Compile Include="../../ArenaMode.Client/Compat/DynamicMapsCorpseMarkers.cs" Link="Production/DynamicMapsCorpseMarkers.cs" />
     <Compile Include="../DynamicMapCorpseChecks/CompatStubs.cs" Link="CompatStubs.cs" />
   </ItemGroup>

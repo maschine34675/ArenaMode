@@ -202,7 +202,8 @@ renderers that may already belong to a living bot.
 | `ArenaAreaRuntime.Actors`, `CorpseLightService`, `CorpseWeaponRegistry` | `Actors` already prunes on Unity's null check; the other two are cleared in step 5. |
 | `TriggerZone` MoveInside coroutines | Not found by the code review. `CorpseTriggerZones` retires the body's own coroutine before the destroy; see below. Pre-existing rather than caused by the release. |
 | `Player.LastAggressor` on a living, wounded player | Not found by the code review either, and the one place where the release genuinely broke something. A body stays hidden while anybody still names it (`CorpseAggressors`); see below. |
-| `GameWorld.GetEverExistedPlayerByID` in `Player.ManageAggressor` | Suspected in the one unresolved finding below. Not pruned on purpose: a destroyed `Player` still answers the managed reads its callers make. |
+| `GameWorld.GetEverExistedPlayerByID` / `GetEverExistedBridgeByProfileID` | Never pruned, on purpose: a destroyed `Player` still answers the managed reads most callers make. What made them bite is anything that keeps a body's PROFILE ID as a damage source — the next row. |
+| A tripwire the body planted, a grenade it threw, a shot it fired — each by profile id | Found by measurement, not by the review: the Labyrinth boss's own tripwires. A body stays hidden while any of them still names it, and for a quiet period after (`CorpseDamageSources`); see "What held that body" below. |
 
 ## What the measuring raids found
 
@@ -298,7 +299,7 @@ eleven diagnostic reports, zero diagnostic stand-downs.
 |---|---|
 | `victim` | `live` — a healthy AI bot, `alive=True` |
 | `aggressor` / `shooter` | `DESTROYED`, `alive=False` |
-| that body's `release=` | `RELEASED`, 3.7 s to 85.4 s earlier |
+| that body's `release=` | `RELEASED`, 3.7 s to 232 s earlier |
 | `aliveById` | `null` — the alive table is correctly pruned |
 | `loyalty`, `health` | `set` on both sides, in all eleven |
 
@@ -347,9 +348,19 @@ the same released body as shooter, and its trace is
 `ShotDelegate`. The 33-66 ms correlation was siblings of one cause. One fix
 covers both.
 
-**It is not only grenades.** `damage=` was `GrenadeFragment` six times and
-`Bullet` five, once at 1.7 damage — a bleed tick, which carries the original
-shooter's `DamageInfo` long after the shot.
+**Every one was a grenade, and eleven reports are eight exceptions.** (Corrected
+2026-09-18; the first write-up read the 1.7-damage `Bullet` as a bleed tick.)
+`damage=Bullet` is the grenade's FRAGMENTS: shots in the shared calculator, ammo
+`63b35f281745dd52341e5da7` (F1 shrapnel) in every `ShotDelegate` report, landing
+28-103 ms after the blast's own `GrenadeFragment` report on the same victim.
+Bleeding cannot reach this path at all: `Bleeding.BleedHealth` applies damage
+through `HealthController.ApplyDamage` (`ActiveHealthController.cs:707-717`),
+never through `Player.ApplyDamageInfo`, so it never raises `BeingHitAction`
+(`EFT/Player.cs:30055`) and never reaches `BotOwner.OnGetHit`. And each
+`ShotDelegate` report is the `ApplyDamageInfo` exception of 1-3 ms earlier,
+rethrown up through `Player.ApplyShot` and caught a second time by the outer
+finalizer — Unity logged eight exceptions for the eleven reports. Five
+explosions, then.
 
 **How a released body is still named as an aggressor.** Two native mechanisms,
 both verified in the decompile, and together they make the window wide rather
@@ -365,7 +376,9 @@ than one frame:
   already has a `GoalEnemy`. Otherwise it defers it behind a
   `HIT_DELAY_WHEN_PEACE` / `HIT_DELAY_WHEN_HAVE_SMT` timer with the `DamageInfo`
   captured in the closure (`EFT/BotMemory.cs:681-694`). The body can be released
-  inside that delay.
+  inside that delay. (Not on any of these traces — `GetHitInner` sits directly
+  under `GetHit` in all of them — and short: the database sets both delays to -1,
+  never, for every bot type; SAIN sets 0.4 s and 0.1 s.)
 
 **One body did all of it.** All eleven exceptions name the same profile
 (`6aac5637…`, "Shadow of…", released in sweep 19), spread over 85 seconds, while
@@ -381,9 +394,112 @@ for the reason given above: a destroyed `Player` is still good for the managed
 reads most callers make, and nulling it trades this for a new set of null
 dereferences. The shape that fits the evidence is to keep a body while anything
 can still name it as a damage SOURCE, which is the pending-aggressor guard
-widened from `LastAggressor` to the in-flight and deferred cases. Not written
-yet, and not to be guessed at: the next step is to establish what held that one
-body, which the diagnostic now makes a matter of reading one line.
+widened from `LastAggressor` to the in-flight and deferred cases — once it is
+established what held that one body. The next section does that.
+
+### What held that body: its own tripwires (2026-09-18)
+
+**The one line.** The same raid log has eight lines of this shape, 23:07:58 to
+23:11:49, and no other profile in them:
+
+    [Error  :      SAIN] [SAIN.Components.GrenadeController] : [[ActivateGrenade().ThrowGrenade().GrenadeThrown()]:] : [Player Null from ID 6aac56372266080c60611ca3]
+
+SAIN's `GrenadeThrown` handler resolves a new grenade's `ProfileId` through
+`GetAlivePlayerByProfileID` and logs this when nobody alive has it. The event it
+listens to, `GlobalEventDispatcher.ThrowGrenade`, is raised from exactly two
+places: a living player's own grenade hands (`EFT/Player.cs:15708,15712`, under
+that player's own id) and `TripwireSynchronizableObject.ActivateGrenade`
+(`EFT.SynchronizableObjects/TripwireSynchronizableObject.cs:274-298`), which
+creates the grenade under `PlacerPlayerId`. A dead body throws nothing. These
+are tripwires the body planted while it was alive, going off one by one as bots
+walked into them.
+
+**The body.** `6aac5637…` "Shadow of Tagilla" is the Labyrinth boss
+`bossTagillaAgro`. The burst-spawn line lists `bossTagillaAgro x1` among the
+others alive up to 23:07:23 and no longer from 23:07:33; the release sweep took
+it at 23:07:59.6. `BossTagillaAgro.PrewarmMines` queues tripwires and
+`BossLogicUpdate` plants them (`BossTagillaAgro.cs:69-85`). A tripwire keeps its
+planter as an ID for its whole life (`:160`), and nothing about the planter's
+death or release touches it.
+
+**Every exception follows an activation by the fuse**, 3.51-4.22 s, in all three
+release raids. And the evening's logs make a complete two-by-two:
+
+| Log | release | tripwire activations (one dead planter each) | `ApplyDamageInfo` + `ShotDelegate` |
+|---|---|---|---|
+| 18:08 (`LogOutput-2026-09-17_18-08-46`) | no | 8 | 0 |
+| 19:35 (`…_19-35-59`) | no | 9 | 0 |
+| 20:52 control (`…_20-52-22`) | no | 2 | 0 |
+| 21:47 (`…_21-47-49`) | yes | 0 | 0 |
+| 22:13 (`…_22-13-23`) | yes | 10 | 7, each 3.52-3.59 s after one |
+| 22:14 (`…_23-01-27`) | yes | 6 | 6, each 3.51-4.22 s after one |
+| 23:06 on `90add07` | yes | 8 | 8, each 3.52-3.79 s after one |
+
+Twenty-one of twenty-one. The planter's tripwires go off whether or not Arena
+releases bodies; they only throw once the body is gone. That also settles the
+older "grenade finding" below — it was never luck, and the correlation with
+the trigger-zone commit was a coincidence of which raids were Labyrinth raids
+with a boss kill in them.
+
+**Why exactly one body.** The 172 other releases were PMCs and Scavs, and they
+plant nothing. There is one planter per Labyrinth raid.
+
+**Why the pending-aggressor guard could not see it.** A tripwire holds an id,
+not a reference, and until it goes off nobody's `LastAggressor` names the
+planter — by the time somebody's does, the explosion that set it has already
+thrown. And `TripwireManager`, the obvious list to read, drops a tripwire the
+moment it is TRIGGERED (`EFT/GameWorld.cs:1698-1702`), which is exactly when its
+grenade starts burning: at the release sweep of 23:07:59.6 one of this boss's
+tripwires had been triggered 1.2 s earlier and was no longer listed there.
+
+**The fix: `CorpseDamageSources`.** `MayRelease` keeps a body while the world
+still names its profile id as a damage source:
+
+- a tripwire it planted that has not finished, read from the sync-object
+  processor's own two lists, which hold a tripwire from `TakeFromPool` until it
+  is returned. `Wait` (armed), `Active` (grenade burning), `Exploding` (the
+  30 s `DestroyedSeconds` after the grenade went, fragments included) and any
+  state this code does not know all count; `Exploded`, `Inert` (disarmed or
+  expired, the grenade dropped as plain loot) and `None` (pooled, planter
+  cleared) do not;
+- a grenade it threw or a flare it fired that is still in `GameWorld.Grenades`
+  and not destroyed — not observed; a tripwire's grenade is never registered
+  there, but a grenade thrown or a flare fired just before death is. A flare
+  keeps its shooter as a private `IPlayer` and resolves it on impact through the
+  same table (`EFT/FlareCartridge.cs:176-190`; found by the adversarial review).
+  A grenade whose explosion reaches nobody does not count: the native
+  explosion only touches who is inside max(2 x `MaxExplosionDistance`,
+  `Blindness.y`, `Contusion.y`) (`EFT/ExplosionSharedMethods.cs:306`), both
+  smoke grenades carry zero for all three, and a smoke is the one grenade never
+  destroyed after it goes off (`SmokeGrenade.OnExplosion` replaces the base
+  `DestroyImmediate`) — counted, it would hold its thrower all raid. Any other
+  kind of throwable counts as naming every body;
+- a shot it fired still in flight, which includes every fragment, because a
+  grenade's calculator IS the world's shared one (`EFT/GameWorld.cs:1061-1064`).
+  The client calculator is read too when it exists; offline it normally does not.
+
+Then for a quiet period: `DamageSourcesQuiet` releases only when a reading finds
+nothing AND an earlier reading at least 2 s before already found nothing. That
+is the deferred `GetHit` above, which no reading can see: a dead body cannot
+plant, throw or fire, so once nothing names it nothing new can start to, and
+every hit already dealt has run within SAIN's 0.4 s. The first reading is taken
+at the trim, so a body that nothing names still goes one sweep after it was
+hidden, exactly as before; a sweep that a round-start clear pulls forward
+cannot cut the period short.
+
+Profile id rather than reference, because an id is all a tripwire, a grenade or
+a shot holds. It can only match more bodies, and the one participant whose
+bodies share an id, the local player, is never released anyway. It fails CLOSED
+for the reason `CorpseAggressors` gives: anything unreadable keeps the body and
+is reported once per raid.
+
+The cost is the one a hidden body always had: a planter whose tripwires nobody
+walks into stays hidden until they expire (`TRIPWIRE_INERT_TIME`, 1200 s by
+default), and there is one planter per Labyrinth raid. SAIN's "Player Null from
+ID" lines will keep appearing — they are the native activation of a dead
+planter's tripwire, present in the three raids that released nothing at all,
+not a defect of either mod. What this does not cover: another mod or preset
+raising `HIT_DELAY_*` above 2 s would reopen the deferred case.
 
 **The log could never have said this.** For the identical exception, Unity
 logged `(wrapper dynamic-method) EFT.Player.DMD<EFT.Player::ApplyDamageInfo>`
@@ -400,6 +516,9 @@ Also of note from the same raid: **zero `OnDead` exceptions** across 173
 releases, against five before the pending-aggressor guard. That guard holds.
 
 ### The original finding, as it stood before the raid above
+
+(Kept as the record of what was believed. The cause is in "What held that
+body" above: the planter's tripwires, not luck.)
 
 Both raids after the trigger fix logged four of a third kind each, which the
 control raid and the first release raid did not have at all:
@@ -607,6 +726,9 @@ The reports are capped at 32 per raid and the cap announces itself; a report
 that throws stands the whole thing down for the raid with one warning, because a
 diagnostic must not become the failure it is looking at.
 
+It stays on after the fix, as the fix's acceptance test and its regression
+alarm: a Labyrinth raid with a boss kill on the fixed build should report none.
+
 `ReleaseTrimmedCorpses` (Performance, default on) remains the off-ramp:
 turning it off restores the old hide-only behaviour exactly.
 
@@ -634,13 +756,17 @@ deliberately kept so the reassert pass still stops the body reappearing.
 
 `pwsh -NoProfile -File tools/DynamicMapCorpseChecks/Verify.ps1` runs everything:
 the installed-contract check, 61 marker assertions with eight compiled controls,
-then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 110 assertions and
-twelve source mutants. The release is covered by its own block plus these controls,
-each rejected at its named assertion:
+then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 180 assertions and
+nineteen source mutants. `CorpseDamageSources.cs` is linked as production
+source too, against fakes of the three registries it reads, so its own rules are
+mutated rather than only its call site. The release is covered by its own block
+plus these controls, each rejected at its named assertion:
 
 - `pooled-instead-of-destroyed` — drops `IsStub`, so the body is pushed back
   into the shared player pool.
-- `released-in-the-hiding-sweep` — drops the sweep gate.
+- `released-in-the-hiding-sweep` — drops the sweep gate, and the quiet period's
+  threshold with it: since the quiet period takes its first reading at the
+  trim, it keeps a body out of the sweep that hid it on its own as well.
 - `retries-a-failed-release` — drops `ReleaseFailed`.
 - `releases-own-and-teammate-bodies` — drops both the recorded flags and the
   re-read, which protect those bodies twice on purpose.
@@ -650,6 +776,28 @@ each rejected at its named assertion:
 - `destroy-behind-a-held-skull` — makes `HoldsMarker` always answer no.
 - `leaves-the-trigger-coroutine-running` — drops the trigger-zone retirement.
 - `releases-a-pending-aggressor` — drops the pending-aggressor guard.
+- `releases-a-named-damage-source` — drops the damage-source guard's call.
+- `forgets-a-triggered-tripwire` — counts only an ARMED tripwire, which is
+  what reading `TripwireManager` alone would amount to and exactly the gap the
+  measured raids fell into: rejected at the `Active` state.
+- `releases-inside-the-hit-delay` — drops the quiet period.
+- `trusts-an-unreadable-world` — turns the guard's fail-closed catch into
+  "nothing names it".
+- `holds-every-flare` — drops the flare branch, so a flare falls to the
+  fail-closed default and holds every body while it flies: rejected by another
+  shooter's flare.
+- `holds-behind-a-smoke` — drops the reach test, so a smoke that stays in the
+  registry after going off holds its thrower for good.
+
+The damage-source block walks the measured sequence (a planter's tripwire
+through `Wait`, `Active`, `Exploding` and an unknown state, each held and each
+released only after the quiet period), the sources that name nobody (`Exploded`,
+`Inert`, `None`, another planter's tripwire, another shooter's flare, a smoke —
+released on the ordinary schedule, which is also the proof that the first
+reading is taken at the trim), a tripwire in the static list, a registered
+grenade, a flare, an unknown throwable, a shot in each calculator, the quiet
+period against a sweep a round-start clear pulled forward, the hold and
+let-go log lines, and five unreadable worlds.
 
 These are contract fakes, not Unity. They model loot removal, the pool switch,
 the AI retirement and its re-added dead-body record as separate observable

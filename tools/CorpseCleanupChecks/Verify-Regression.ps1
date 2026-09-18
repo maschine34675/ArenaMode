@@ -9,6 +9,11 @@ function Get-ArenaSha256([string] $Path) {
     finally { $arenaSha.Dispose() }
 }
 $arenaHash = Get-ArenaSha256 $arenaSource
+# The damage-source guard is linked as production source too, so its own rules
+# can be mutated rather than only its call site. Target = 'DamageSources'.
+$arenaSourcesSource = Join-Path $arenaRepo 'ArenaMode.Client\Bots\CorpseDamageSources.cs'
+$arenaSourcesNormalized = [IO.File]::ReadAllText($arenaSourcesSource).Replace("`r`n", "`n")
+$arenaSourcesHash = Get-ArenaSha256 $arenaSourcesSource
 $arenaMutantDir = Join-Path ([IO.Path]::GetTempPath()) ('arena-cleanup-mutants-' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($arenaMutantDir)
 $arenaPair = @'
@@ -38,6 +43,22 @@ $arenaOwnerReread = @'
         if (corpse.PlayerProfileID == mainPlayer.ProfileId
             || Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID))
 '@
+$arenaTripwireFinished = @'
+        => state == ETripwireState.Exploded
+            || state == ETripwireState.Inert
+            || state == ETripwireState.None;
+'@
+$arenaSourcesFailClosed = @'
+            WarnOnce(ex.GetBaseException().Message);
+            return Unreadable;
+'@
+$arenaFlareBranch = @'
+                case FlareCartridge flare:
+                    if (Same(FlareShooter(flare)?.ProfileId, profileId))
+                        return "a flare it fired";
+                    break;
+
+'@
 $arenaMutants = @(
     @{ Name = 'missing-begin'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Begin);'; To = '// mutation: missing Begin'; Failure = 'successful cleanup has no missing Begin activity' },
     @{ Name = 'missing-completion'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);'; To = '// mutation: missing completion'; Failure = 'successful cleanup leaves no active activities' },
@@ -45,8 +66,13 @@ $arenaMutants = @(
     @{ Name = 'missing-finally'; From = $arenaPair.Replace("`r`n", "`n"); To = $arenaUnprotectedPair.Replace("`r`n", "`n"); Failure = 'tested failure boundary leaves no unpaired activity: begin' },
     @{ Name = 'pooled-instead-of-destroyed'; From = 'pool.IsStub = true;'; To = '// mutation: let the body go back into the shared player pool'; Failure = 'a released body is destroyed, never pushed back into the shared player pool' },
     # "corpse and player remain registered" is the earliest assertion that
-    # states this property; the release block states it again by name.
-    @{ Name = 'released-in-the-hiding-sweep'; From = 'state.Sweep >= _sweep'; To = 'false'; Failure = 'corpse and player remain registered' },
+    # states this property; the release block states it again by name. Since
+    # the damage-source quiet period, whose first reading is taken AT the trim,
+    # a body cannot be released in the sweep that hid it on that ground alone
+    # either - so this control defeats both, like the own/teammate pair below.
+    @{ Name = 'released-in-the-hiding-sweep'; From = 'state.Sweep >= _sweep'; To = 'false';
+       From2 = 'return Time.time - state.SourcesQuietSince >= DamageSourceQuietSeconds;'; To2 = 'return true;';
+       Failure = 'corpse and player remain registered' },
     @{ Name = 'retries-a-failed-release'; From = 'if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)'; To = 'if (!state.Completed || state.Own || state.Protected)'; Failure = 'a failed release is never retried, even once the fault is gone: retire' },
     @{ Name = 'releases-own-and-teammate-bodies';
        From = 'if (!state.Completed || state.ReleaseFailed || state.Own || state.Protected)';
@@ -56,6 +82,29 @@ $arenaMutants = @(
        Failure = 'this body is hidden but never taken out of the scene: own' },
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
+    # The damage-source guard: the call site, the measured tripwire rule (a
+    # tripwire leaves TripwireManager the moment it is TRIGGERED, so reading only
+    # armed ones is exactly the gap the 2026-09-17 raids fell into), the quiet
+    # period behind BotMemory.GetHit's timer, and the fail-closed catch.
+    @{ Name = 'releases-a-named-damage-source'; From = 'if (!DamageSourcesQuiet(corpse, state, world))'; To = 'if (false)'; Failure = 'a body a tripwire still names stays hidden: Wait' },
+    @{ Name = 'forgets-a-triggered-tripwire'; Target = 'DamageSources';
+       From = $arenaTripwireFinished.Replace("`r`n", "`n"); To = "        => state != ETripwireState.Wait;";
+       Failure = 'a body a tripwire still names stays hidden: Active' },
+    @{ Name = 'releases-inside-the-hit-delay'; From = 'return Time.time - state.SourcesQuietSince >= DamageSourceQuietSeconds;'; To = 'return true;'; Failure = 'a body is not released on the first reading that finds it quiet: Wait' },
+    @{ Name = 'trusts-an-unreadable-world'; Target = 'DamageSources';
+       From = $arenaSourcesFailClosed.Replace("`r`n", "`n"); To = "            WarnOnce(ex.GetBaseException().Message);`n            return null;";
+       Failure = 'a body stays hidden while the world cannot say what still names it: no-processor' },
+    # Without its own branch a flare falls to the fail-closed default and holds
+    # EVERY body while it flies - safe, but no longer the shooter's alone.
+    @{ Name = 'holds-every-flare'; Target = 'DamageSources';
+       From = $arenaFlareBranch.Replace("`r`n", "`n"); To = '';
+       Failure = 'a source that names nobody holds nothing, on the ordinary schedule: other-flare' },
+    # A smoke stays registered for the rest of the raid after it goes off, so
+    # counting it would hold its thrower for good, for an explosion of no reach.
+    @{ Name = 'holds-behind-a-smoke'; Target = 'DamageSources';
+       From = 'if (Same(grenade.ProfileId, profileId) && CanReachAnybody(grenade.WeaponSource))';
+       To = 'if (Same(grenade.ProfileId, profileId))';
+       Failure = 'a source that names nobody holds nothing, on the ordinary schedule: smoke' },
     @{ Name = 'leaves-the-trigger-coroutine-running'; From = 'CorpseTriggerZones.Release(player);'; To = '// mutation: leave the endless coroutine reading a destroyed body'; Failure = 'the trigger-zone coroutine that reads this body is retired before the body goes' },
     @{ Name = 'clears-the-record-before-the-ai-knowledge';
        From = $arenaRecordGuard.Replace("`r`n", "`n"); To = '';
@@ -69,8 +118,11 @@ $arenaMutants = @(
        Failure = 'a failed release records nothing: the damage diagnostic must never name a body that is still there: retire' }
 )
 foreach ($arenaMutant in $arenaMutants) {
-    if (-not $arenaNormalized.Contains($arenaMutant.From)) { throw "Missing mutation anchor: $($arenaMutant.Name)" }
-    $arenaMutated = $arenaNormalized.Replace($arenaMutant.From, $arenaMutant.To)
+    $arenaOnSources = $arenaMutant.ContainsKey('Target') -and $arenaMutant.Target -eq 'DamageSources'
+    $arenaText = if ($arenaOnSources) { $arenaSourcesNormalized } else { $arenaNormalized }
+    $arenaProperty = if ($arenaOnSources) { 'DamageSourcesSource' } else { 'CleanupSource' }
+    if (-not $arenaText.Contains($arenaMutant.From)) { throw "Missing mutation anchor: $($arenaMutant.Name)" }
+    $arenaMutated = $arenaText.Replace($arenaMutant.From, $arenaMutant.To)
     if ($arenaMutant.ContainsKey('From2')) {
         if (-not $arenaMutated.Contains($arenaMutant.From2)) { throw "Missing second mutation anchor: $($arenaMutant.Name)" }
         $arenaMutated = $arenaMutated.Replace($arenaMutant.From2, $arenaMutant.To2)
@@ -80,7 +132,7 @@ foreach ($arenaMutant in $arenaMutants) {
     $arenaPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $arenaOutput = & dotnet run --project $arenaProject -c Release "-p:CleanupSource=$arenaPath" 2>&1 | Out-String
+        $arenaOutput = & dotnet run --project $arenaProject -c Release "-p:${arenaProperty}=$arenaPath" 2>&1 | Out-String
         $arenaExit = $LASTEXITCODE
     }
     finally { $ErrorActionPreference = $arenaPreference }
@@ -90,6 +142,7 @@ foreach ($arenaMutant in $arenaMutants) {
     Write-Output "Rejected mutant: $($arenaMutant.Name)"
 }
 if ((Get-ArenaSha256 $arenaSource) -ne $arenaHash) { throw 'Production source changed' }
+if ((Get-ArenaSha256 $arenaSourcesSource) -ne $arenaSourcesHash) { throw 'Production damage-source guard changed' }
 & dotnet run --project $arenaProject -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Production checks failed' }
 Write-Output 'ARENA_CORPSE_CLEANUP_REGRESSION_PASSED'

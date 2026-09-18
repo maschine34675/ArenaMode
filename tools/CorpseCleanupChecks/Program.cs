@@ -5,8 +5,10 @@ using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
 using EFT.AssetsManager;
+using EFT.Ballistics;
 using EFT.Interactive;
 using EFT.InventoryLogic;
+using EFT.SynchronizableObjects;
 using UnityEngine;
 
 int assertions = 0;
@@ -375,6 +377,190 @@ foreach (var blocked in new[] { "interacting", "open", "ragdoll", "alive", "no-o
         "and is released once the condition is gone again: " + blocked);
 }
 
+// ---------------------------------------------------------------------------
+// Damage sources. Every ApplyDamageInfo/ShotDelegate exception the 2026-09-17
+// raids logged was a tripwire a dead Labyrinth boss had planted, going off
+// after Arena had released him (CORPSE-CLEANUP-REVIEW.md, "Settled"). The
+// tripwire names its planter by profile id for its whole life, so the body
+// stays until nothing names it any more — and then for a quiet period, because
+// the last hit may still sit in BotMemory.GetHit's timer.
+// ---------------------------------------------------------------------------
+
+TripwireSynchronizableObject Tripwire(GameWorld world, string placer, ETripwireState state, bool isStatic = false)
+{
+    var tripwire = new TripwireSynchronizableObject { PlacerPlayerId = placer, TripwireState = state };
+    var processor = world.SynchronizableObjectLogicProcessor;
+    (isStatic ? processor._staticSynchronizableObjects : processor._activeSynchronizableObjects).Add(tripwire);
+    return tripwire;
+}
+List<Shot> Shots(GameWorld world) => ((BallisticsCalculator)world.SharedBallisticsCalculator).Shots;
+bool Kept(GameWorld world, Corpse body) => world.LootList.Contains(body) && !body.Destroyed;
+bool Released(GameWorld world, Corpse body) => !world.LootList.Contains(body) && body.Destroyed;
+
+// The measured sequence, one state at a time: planted and armed, triggered with
+// the grenade burning (TripwireManager has already dropped it by then), the
+// fragments in the air, and a state this code has never heard of.
+foreach (var naming in new[] { ETripwireState.Wait, ETripwireState.Active, ETripwireState.Exploding, (ETripwireState)99 })
+{
+    var (world, body, gear) = Setup();
+    Add(body, gear, "Headwear");
+    var tripwire = Tripwire(world, body.PlayerProfileID, naming);
+    CorpseCleanupService.Tick();
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(body),
+        "positive control: the planter's body is hidden: " + naming);
+
+    Sweep();
+    Check(Kept(world, body), "a body a tripwire still names stays hidden: " + naming);
+    Sweep();
+    Check(Plugin.ModLogger.Infos.Count(i => i.Contains("keeping opponent hidden while a tripwire it planted (")) == 1,
+        "holding a body is said once, with what holds it: " + naming);
+
+    tripwire.TripwireState = ETripwireState.Exploded;
+    Sweep();
+    Check(Kept(world, body), "a body is not released on the first reading that finds it quiet: " + naming);
+    Check(Plugin.ModLogger.Infos.Count(i => i.Contains("nothing names opponent as a damage source any more")) == 1,
+        "letting go of it is said once as well: " + naming);
+    Sweep();
+    Check(Released(world, body), "and is released once nothing has named it for the quiet period: " + naming);
+}
+
+// A tripwire that can no longer hurt anybody holds nothing, and neither does one
+// somebody else planted, nor a flare somebody else fired: each of these goes on
+// the ordinary one-sweep schedule, which is also the proof that the first
+// reading is taken at the trim.
+foreach (var finished in new[] { "Exploded", "Inert", "None", "other-planter", "other-flare", "smoke" })
+{
+    var (world, body, gear) = Setup();
+    Add(body, gear, "Headwear");
+    if (finished == "other-planter") Tripwire(world, "somebody-else", ETripwireState.Wait);
+    else if (finished == "other-flare") world.Grenades.Add(2, new FlareCartridge(new Shooter("somebody-else")));
+    // RDG-2B and M18: no explosion distance, contusion or blindness, and never
+    // destroyed after going off - it would otherwise hold its thrower all raid.
+    else if (finished == "smoke") world.Grenades.Add(4, new Grenade { ProfileId = body.PlayerProfileID, WeaponSource = new ThrowWeap() });
+    else Tripwire(world, body.PlayerProfileID, Enum.Parse<ETripwireState>(finished));
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Released(world, body), "a source that names nobody holds nothing, on the ordinary schedule: " + finished);
+}
+
+// The same code path reached another way. None of these was observed; each is a
+// grenade or a shot whose explosion or hit resolves its thrower by profile id.
+foreach (var source in new[] { "static-tripwire", "grenade", "flare", "unknown-throwable", "shot", "client-shot" })
+{
+    var (world, body, gear) = Setup();
+    Add(body, gear, "Headwear");
+    Action gone = null;
+    switch (source)
+    {
+        case "static-tripwire":
+            var tripwire = Tripwire(world, body.PlayerProfileID, ETripwireState.Active, isStatic: true);
+            gone = () => tripwire.TripwireState = ETripwireState.Exploded;
+            break;
+        case "grenade":
+            // Exploded, and still in the registry: a destroyed grenade must not
+            // hold its thrower forever.
+            var grenade = new Grenade
+            {
+                ProfileId = body.PlayerProfileID,
+                // F-1: MaxExplosionDistance 7, Contusion.y 4.
+                WeaponSource = new ThrowWeap { MaxExplosionDistance = 7, Contusion = new Vector3(1.5f, 4, 15) },
+            };
+            world.Grenades.Add(1, grenade);
+            gone = () => grenade.Destroyed = true;
+            break;
+        case "flare":
+            var flare = new FlareCartridge(new Shooter(body.PlayerProfileID));
+            world.Grenades.Add(2, flare);
+            gone = () => flare.Destroyed = true;
+            break;
+        case "unknown-throwable":
+            // A kind the guard has not read may name anybody, so it holds all.
+            var unknown = new UnknownThrowable();
+            world.Grenades.Add(3, unknown);
+            gone = () => unknown.Destroyed = true;
+            break;
+        case "shot":
+            var shot = new Shot { PlayerProfileID = body.PlayerProfileID };
+            Shots(world).Add(shot);
+            gone = () => Shots(world).Remove(shot);
+            break;
+        case "client-shot":
+            var client = new BallisticsCalculator();
+            var clientShot = new Shot { PlayerProfileID = body.PlayerProfileID };
+            client.Shots.Add(clientShot);
+            world.ClientBallisticCalculator = client;
+            gone = () => client.Shots.Remove(clientShot);
+            break;
+    }
+    CorpseCleanupService.Tick();
+    Sweep();
+    Check(Kept(world, body), "a body something still names as a damage source stays hidden: " + source);
+
+    gone();
+    Sweep();
+    Sweep();
+    Check(Released(world, body), "and goes once that source is gone and has stayed gone: " + source);
+}
+
+// The quiet period on its own. A shot in flight at the trim lands between two
+// sweeps, so the next reading is the first clear one — and the hit it dealt may
+// still be waiting in BotMemory.GetHit's timer.
+{
+    var (world, body, gear) = Setup();
+    Add(body, gear, "Headwear");
+    var shot = new Shot { PlayerProfileID = body.PlayerProfileID };
+    Shots(world).Add(shot);
+    CorpseCleanupService.Tick();
+    Shots(world).Remove(shot);
+
+    Sweep();
+    Check(Kept(world, body), "the first reading that finds a body quiet never releases it on its own");
+
+    Time.time += 1;
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Check(Kept(world, body), "a sweep a round-start clear pulled forward does not cut the quiet period short");
+
+    Sweep();
+    Check(Released(world, body), "the body goes once it has been quiet for the whole period");
+}
+
+// Fails closed: whatever cannot be read keeps the body, it is said once, and the
+// body goes when the world can be read again.
+foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "unknown-calculator", "no-profile" })
+{
+    var (world, body, gear) = Setup();
+    Add(body, gear, "Headwear");
+    CorpseCleanupService.Tick();
+    var processor = world.SynchronizableObjectLogicProcessor;
+    var calculator = world.SharedBallisticsCalculator;
+    switch (unreadable)
+    {
+        case "no-processor": world.SynchronizableObjectLogicProcessor = null; break;
+        case "no-list": processor._staticSynchronizableObjects = null; break;
+        case "no-calculator": world.SharedBallisticsCalculator = null; break;
+        case "unknown-calculator": world.SharedBallisticsCalculator = new ForeignCalculator(); break;
+        case "no-profile": body.PlayerProfileID = null; break;
+    }
+    Sweep();
+    Sweep();
+    Check(Kept(world, body), "a body stays hidden while the world cannot say what still names it: " + unreadable);
+    Check(unreadable == "no-profile"
+            ? Plugin.ModLogger.Warnings.Count == 0
+            : Plugin.ModLogger.Warnings.Count == 1 && Plugin.ModLogger.Warnings[0].Contains("damage source"),
+        "an unreadable world is reported once per raid: " + unreadable);
+    Check(!Plugin.ModLogger.Infos.Any(i => i.Contains("keeping")),
+        "an unreadable world is not repeated as a hold line per body: " + unreadable);
+
+    world.SynchronizableObjectLogicProcessor = processor;
+    processor._staticSynchronizableObjects ??= new();
+    world.SharedBallisticsCalculator = calculator;
+    body.PlayerProfileID = "opponent";
+    Sweep();
+    Sweep();
+    Check(Released(world, body), "and goes once the world can be read again: " + unreadable);
+}
+
 // A body trimmed in another GameWorld is never touched with this world's owners.
 {
     var (_, body, gear) = Setup();
@@ -484,3 +670,11 @@ foreach (var fault in new[] { "retire", "dispose", "dead-body", "destroy" })
 }
 
 Console.WriteLine($"CORPSE_CLEANUP_CHECKS_PASSED ({assertions} assertions)");
+
+/// <summary>A calculator the guard does not know how to read.</summary>
+sealed class ForeignCalculator : EFT.Ballistics.IBallisticsCalculator { }
+
+/// <summary>A throwable kind the guard does not know how to read.</summary>
+sealed class UnknownThrowable : Throwable { }
+
+sealed record Shooter(string ProfileId) : EFT.IPlayer;

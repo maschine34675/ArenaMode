@@ -94,6 +94,16 @@ internal static class CorpseCleanupService
     /// </summary>
     private const float FullClearSeconds = 20f;
 
+    /// <summary>
+    /// How long nothing may have named a body as a damage source before it may
+    /// go. See DamageSourcesQuiet: it covers the one deferral that
+    /// CorpseDamageSources cannot read — BotMemory.GetHit running GetHitInner
+    /// from a timer, which SAIN sets to 0.4 s at most — five times over, and it
+    /// is shorter than the cadence, so a body nothing names still goes one sweep
+    /// after it was hidden.
+    /// </summary>
+    private const float DamageSourceQuietSeconds = 2f;
+
     /// <summary>What was hidden for one body, so the sweep can maintain it.</summary>
     private sealed class TrimState
     {
@@ -129,6 +139,16 @@ internal static class CorpseCleanupService
 
         /// <summary>A release that threw is never retried — see Release.</summary>
         public bool ReleaseFailed;
+
+        /// <summary>
+        /// When CorpseDamageSources first found nothing naming this body as a
+        /// damage source, or NaN while something still did at the last reading.
+        /// See DamageSourcesQuiet.
+        /// </summary>
+        public float SourcesQuietSince = float.NaN;
+
+        /// <summary>Whether the sweep last said it is holding this body for that reason.</summary>
+        public bool HeldAsSource;
     }
 
     /// <summary>
@@ -159,6 +179,7 @@ internal static class CorpseCleanupService
         _reportedReleaseFailure = false;
         Trimmed.Clear();
         CorpseAggressors.Reset();
+        CorpseDamageSources.Reset();
         CorpseTriggerZones.Reset();
         Compat.DynamicMapsCorpseMarkers.Reset();
 
@@ -200,9 +221,9 @@ internal static class CorpseCleanupService
     /// One field for a damage-exception report
     /// (<see cref="Diagnostics.ArenaDamageExceptionLog"/>): is a body of this
     /// profile still lying here hidden, or is this table done with it? It exists
-    /// to separate the two states the open grenade finding has to tell apart —
-    /// a HIDDEN body, which this service has produced since it was written, from
-    /// a RELEASED one, which is new since 2026-09-17. Reads only.
+    /// to separate the two states the tripwire finding had to tell apart — a
+    /// HIDDEN body, which this service has produced since it was written, from a
+    /// RELEASED one, which is new since 2026-09-17. Reads only.
     /// </summary>
     internal static string DescribeCorpseState(string profileId)
     {
@@ -510,6 +531,15 @@ internal static class CorpseCleanupService
                 // about to leave its live-follower list.
                 Own = corpse.PlayerProfileID == mainPlayer?.ProfileId,
                 Protected = Compat.PitFireTeamCompat.IsTeamProfileId(corpse.PlayerProfileID),
+
+                // The damage-source guard's first reading, taken here so that a
+                // body nothing names has already been quiet for a whole cadence
+                // by the sweep that may release it — the quiet period then costs
+                // it nothing. See DamageSourcesQuiet.
+                SourcesQuietSince = CorpseDamageSources.NamesAsSource(
+                        corpse.PlayerProfileID, Singleton<GameWorld>.Instance)
+                    ? float.NaN
+                    : Time.time,
             };
             _trimmedTotal++;
             Compat.DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();
@@ -625,10 +655,68 @@ internal static class CorpseCleanupService
         if (CorpseAggressors.IsPendingAggressor(player, world))
             return false;
 
+        // Nor may anything still name it as a damage SOURCE. See
+        // CorpseDamageSources: every ApplyDamageInfo and ShotDelegate exception
+        // the 2026-09-17 raids logged was a tripwire a dead Labyrinth boss had
+        // planted, going off after Arena had released him.
+        if (!DamageSourcesQuiet(corpse, state, world))
+            return false;
+
         // The optional map has to have let go first: its own map-change handler
         // re-adds every key it still holds, reading the body's nickname and
         // position on the way, and a destroyed body answers neither.
         return !Compat.DynamicMapsCorpseMarkers.HoldsMarker(player);
+    }
+
+    /// <summary>
+    /// True once nothing has named this body as a damage source for
+    /// DamageSourceQuietSeconds — a reading of CorpseDamageSources now, AND an
+    /// earlier one that was already clear.
+    ///
+    /// A single reading is not enough, because the last damage a source dealt
+    /// can outlive the source by a moment: a bot hit while it has no goal enemy
+    /// runs BotMemory.GetHitInner from a timer with the DamageInfo captured
+    /// (EFT/BotMemory.cs:679-700), after the grenade and its fragments are
+    /// gone. SAIN sets that delay to 0.4 s at most. What makes a quiet period
+    /// sufficient is that it can only shrink: a dead body cannot plant, throw or
+    /// fire, so once a reading finds nothing, nothing new can start naming it,
+    /// and every hit still in the air at that reading has landed within the
+    /// delay. The stamp therefore survives sweeps that did not evaluate this
+    /// body, and is cleared by any reading that finds a source.
+    ///
+    /// It says so when it starts and stops holding a body, once each: a
+    /// Labyrinth raid has one planter, so these are a couple of lines, and they
+    /// are what shows a raid actually exercised the guard rather than passing
+    /// because nobody planted anything. An unreadable world is not repeated per
+    /// body; CorpseDamageSources has already warned once.
+    /// </summary>
+    private static bool DamageSourcesQuiet(Corpse corpse, TrimState state, GameWorld world)
+    {
+        var source = CorpseDamageSources.Describe(corpse.PlayerProfileID, world);
+        if (source != null)
+        {
+            if (!state.HeldAsSource && source != CorpseDamageSources.Unreadable)
+            {
+                state.HeldAsSource = true;
+                Plugin.ModLogger.LogInfo(
+                    $"Arena corpse release: keeping {corpse.PlayerProfileID} hidden while {source} still names it as a damage source.");
+            }
+
+            state.SourcesQuietSince = float.NaN;
+            return false;
+        }
+
+        if (state.HeldAsSource)
+        {
+            state.HeldAsSource = false;
+            Plugin.ModLogger.LogInfo(
+                $"Arena corpse release: nothing names {corpse.PlayerProfileID} as a damage source any more; it may go after {DamageSourceQuietSeconds:0} s quiet.");
+        }
+
+        if (float.IsNaN(state.SourcesQuietSince))
+            state.SourcesQuietSince = Time.time;
+
+        return Time.time - state.SourcesQuietSince >= DamageSourceQuietSeconds;
     }
 
     /// <summary>
@@ -729,8 +817,9 @@ internal static class CorpseCleanupService
 
             // Confirmed releases only, and only while the damage diagnostic is
             // on. It is what lets a later exception say whether the object on its
-            // stack is a body this method took away — the open finding in
-            // CORPSE-CLEANUP-REVIEW.md.
+            // stack is a body this method took away — how the tripwire finding
+            // in CORPSE-CLEANUP-REVIEW.md ("Settled") was pinned, and how a
+            // regression of CorpseDamageSources would announce itself.
             Diagnostics.CorpseReleaseLedger.Record(profileId, _sweep);
             return true;
         }

@@ -1,6 +1,17 @@
 // Contract fakes, not Unity/runtime proof. Native references are documented in
 // CORPSE-CLEANUP-REVIEW.md. In particular, physical removal, activity pairing
 // and reactive slot/model release are deliberately separate observable steps.
+
+// Global namespace in the game as well. The grenade registry is only ever
+// iterated by index here.
+public abstract class Throwable : UnityEngine.Component { }
+public class DictionaryListHydra<TKey, TValue>
+{
+    private readonly List<TValue> _iteration = new();
+    public int Count => _iteration.Count;
+    public TValue GetByIndex(int index) => _iteration[index];
+    public void Add(TKey key, TValue value) => _iteration.Add(value);
+}
 namespace UnityEngine
 {
     public class Object
@@ -55,6 +66,12 @@ namespace EFT.InventoryLogic
         public bool RejectRemoval, ThrowBeforeRemoval, ThrowAfterRemoval, ThrowBeginNotification, ThrowSuccessNotification;
     }
     public class InventoryEquipment : Item { public readonly List<Slot> Slots = new(); }
+    public class ThrowWeap : Item, IExplosiveItem
+    {
+        public float MaxExplosionDistance { get; set; }
+        public UnityEngine.Vector3 Blindness { get; set; }
+        public UnityEngine.Vector3 Contusion { get; set; }
+    }
     public class Slot
     {
         public string ID;
@@ -163,12 +180,53 @@ namespace EFT
             if (ThrowOnDispose) throw new Exception("player dispose failed");
         }
     }
+    /// <summary>
+    /// The three registries CorpseDamageSources reads, with the two members of
+    /// MongoID it uses. EqualsToString is the native comparison: case-insensitive
+    /// against the id string the tripwire was planted with.
+    /// </summary>
+    public struct MongoID
+    {
+        private readonly string _id;
+        public MongoID(string id) { _id = id; }
+        public static implicit operator MongoID(string id) => new(id);
+        public override string ToString() => _id ?? string.Empty;
+        public bool EqualsToString(string str) => str.Equals(ToString(), StringComparison.InvariantCultureIgnoreCase);
+    }
+    public class Grenade : Throwable
+    {
+        public string ProfileId { get; set; }
+        public InventoryLogic.ThrowWeap WeaponSource { get; set; }
+    }
+
+    /// <summary>The three numbers the native explosion takes its reach from.</summary>
+    public interface IExplosiveItem
+    {
+        float MaxExplosionDistance { get; }
+        UnityEngine.Vector3 Blindness { get; }
+        UnityEngine.Vector3 Contusion { get; }
+    }
+    public interface IPlayer { string ProfileId { get; } }
+
+    /// <summary>The shooter is private in the game too (FlareCartridge.cs:30).</summary>
+    public class FlareCartridge : Throwable
+    {
+        private IPlayer _player;
+        public FlareCartridge(IPlayer shooter) { _player = shooter; }
+    }
     public class GameWorld
     {
         public Player MainPlayer = new();
         public readonly List<Interactive.Corpse> LootList = new();
         public readonly List<Interactive.Corpse> Removed = new();
         public bool ThrowOnDestroyLoot;
+
+        // Created with the world (GameWorld.InitLevel) in the game, so present
+        // by default here; a check that needs one missing removes it.
+        public SynchronizableObjects.SynchronizableObjectLogicProcessor SynchronizableObjectLogicProcessor { get; set; } = new();
+        public readonly DictionaryListHydra<int, Throwable> Grenades = new();
+        public Ballistics.IBallisticsCalculator SharedBallisticsCalculator { get; set; } = new Ballistics.BallisticsCalculator();
+        public Ballistics.IBallisticsCalculator ClientBallisticCalculator { get; set; }
 
         /// <summary>
         /// GameWorld.DestroyLoot -> Corpse.Kill (PlayerBody.Dispose) ->
@@ -239,6 +297,30 @@ namespace EFT
         public Pools RaidPools = new();
         public Pools GetPools(PoolsCategory category) => RaidPools;
     }
+}
+namespace EFT.SynchronizableObjects
+{
+    // TripwireSynchronizableObject.cs: Wait when planted (168), Active once
+    // triggered (297), Exploding then Exploded around the grenade's end
+    // (360-366), Inert when disarmed or expired (258), None after Reset (405).
+    public enum ETripwireState { None, Wait, Active, Exploding, Exploded, Inert }
+    public class SynchronizableObject : UnityEngine.Component { }
+    public class TripwireSynchronizableObject : SynchronizableObject
+    {
+        public MongoID PlacerPlayerId { get; set; }
+        public ETripwireState TripwireState { get; set; }
+    }
+    public class SynchronizableObjectLogicProcessor
+    {
+        public List<SynchronizableObject> _activeSynchronizableObjects = new();
+        public List<SynchronizableObject> _staticSynchronizableObjects = new();
+    }
+}
+namespace EFT.Ballistics
+{
+    public interface IBallisticsCalculator { }
+    public class BallisticsCalculator : UnityEngine.Component, IBallisticsCalculator { public List<Shot> Shots = new(); }
+    public class Shot { public string PlayerProfileID; }
 }
 namespace EFT.AssetsManager
 {
