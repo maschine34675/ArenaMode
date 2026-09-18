@@ -195,9 +195,9 @@ renderers that may already belong to a living bot.
 | PitFireTeam | Roster members are **never released**, not even for a round-start clear, which does lift the hiding exemption. Recorded at trim time (`TrimState.Protected`, when PFT's answer is still reliable) and re-read at release. |
 | The killfeed and the scoreboard | Keyed by immutable identity, not by body (`ASSIST-SCORING-REVIEW.md`); no `Player` reference is retained. |
 | DynamicMaps corpse markers | A body is not released while any tracked provider still holds its marker (`DynamicMapsCorpseMarkers.HoldsMarker`, fails closed). 1.2.1's `OnMapChanged` re-adds every key it still has and reads the body's nickname and world position doing it, which a destroyed body cannot answer. Its other creation paths gate on `HasCorpse()`, which a released body fails; the creation prefix refuses a destroyed body as well. `OtherPlayersMarkerProvider` only ever removes. |
-| KillcamReplay | Its `SnapshotRecorder` already retires a track whose player has gone unsampled for two seconds, explicitly so it does not pin a dead `Player`. Its death replay uses the LOCAL player's corpse as the puppet source — and own bodies are never released. |
+| KillcamReplay | Its `SnapshotRecorder` already retires a track whose player has gone unsampled for two seconds, explicitly so it does not pin a dead `Player`. Its death replay uses the LOCAL player's corpse as the puppet source — which is the NEWEST own body at the moment of that death, and only the newest own body is exempt from release since 2026-09-18 (see "Own corpses release too"). Not run against the new release timing in-game; flagged as an open risk there, not ruled out. |
 | AutoIFF | Keyed by profile id (`identifiedBots`); holds no body. |
-| Redeploy.Core / profile protection | Read the local player's own corpse (`EquipmentSurgeon`, `NearSpawnPolicy`, `RespawnService.FixOwnCorpseRenders`). Own bodies are **never released**, recorded at trim time and re-read at release against `MainPlayer.ProfileId` — which is the same across every respawn, so it covers every body that was ever the player's. |
+| Redeploy.Core / profile protection | Read the local player's own corpse (`EquipmentSurgeon`, `NearSpawnPolicy`, `RespawnService.FixOwnCorpseRenders`) — the NEWEST one, which these always mean and which is the only own body **never released** since 2026-09-18 (see "Own corpses release too"). Recorded at trim time and re-read live at release against `MainPlayer.ProfileId` plus a fresh `world.LootList` scan for which own corpse is newest — the profile id is the same across every respawn, so it covers every body that was ever the player's, but only the newest of them is exempt. |
 | Loot on the corpse | Already stripped and unreachable before release: the body is hidden, dropped from the AI's body records, and bots do not loot corpses in Arena. The secure container and the held weapon are what the trim leaves; `PlayerBody.Dispose` and the hands controller pool their models. Release is refused while the player has that body's loot window open or is interacting with it — re-read at release, not trusted from the trim. |
 | `ArenaAreaRuntime.Actors`, `CorpseLightService`, `CorpseWeaponRegistry` | `Actors` already prunes on Unity's null check; the other two are cleared in step 5. |
 | `TriggerZone` MoveInside coroutines | Not found by the code review. `CorpseTriggerZones` retires the body's own coroutine before the destroy; see below. Pre-existing rather than caused by the release. |
@@ -488,10 +488,14 @@ hidden, exactly as before; a sweep that a round-start clear pulls forward
 cannot cut the period short.
 
 Profile id rather than reference, because an id is all a tripwire, a grenade or
-a shot holds. It can only match more bodies, and the one participant whose
-bodies share an id, the local player, is never released anyway. It fails CLOSED
-for the reason `CorpseAggressors` gives: anything unreadable keeps the body and
-is reported once per raid.
+a shot holds. It can only match more bodies — which, at the time this was
+written, meant the one participant whose bodies share an id, the local
+player, was never released anyway, so this could only ever over-protect
+bots. **That precondition no longer holds since 2026-09-18** — see "Own
+corpses release too" below, which is also where the guard gained a way to
+tell an old own body's own trailing source apart from the live player's
+current one sharing its id. It fails CLOSED for the reason `CorpseAggressors`
+gives: anything unreadable keeps the body and is reported once per raid.
 
 The cost is the one a hidden body always had: a planter whose tripwires nobody
 walks into stays hidden until they expire (`TRIPWIRE_INERT_TIME`, 1200 s by
@@ -872,3 +876,177 @@ is not flat, and the own-corpse exemption is the reason.
 The heap is unchanged and untouched by this: 1.1 GB to 11.4 GB over the raid
 with `collections` never moving, the same as before. That remains a separate
 open question, and one that no longer has a corpse explanation.
+
+---
+
+# Own corpses release too (2026-09-18)
+
+## What changed
+
+Until this change, `MayRelease` refused every own corpse unconditionally —
+three separate ways at once: `state.Own` in the fast-path disqualifier
+(`:607` in the pre-change source), the own branch of the profile re-read
+(`:625-629`), and `player.IsYourPlayer` in the identity check (`:644`), which
+blocked every own body regardless of the other two. The trim side already
+distinguished the newest own corpse from an older one (`KeepOwnCorpses = 1`,
+the `protectedOwn` set in `Tick`) — only the RELEASE side treated "own" as one
+undifferentiated, permanently-protected group.
+
+The user's decision (2026-09-18): release every own corpse except the newest,
+exactly like any other corpse. The newest keeps the old hide-only behaviour
+(Redeploy respawns near it, the profile protection reads it); everything older
+is now eligible, subject to every other check `MayRelease` already applies to
+a foreign body — settled ragdoll, no open interaction, not a pending
+aggressor, quiet of any damage source, no held map marker.
+
+`IsNewestOwnCorpse` (`CorpseCleanupService.cs`) answers "is this still the
+newest" with a live query over `world.LootList` rather than the cached
+`TrimState.Own` flag, because a trim-time snapshot cannot answer a question
+about the CURRENT world — a round-start clear can trim the very corpse that
+is about to stay the sole/newest one, and a later own death can make an
+already-trimmed corpse stop being newest without retrimming it. `world.LootList`
+is append-ordered, so the last matching entry is the newest; this is
+re-derived on every call, never cached, which is what makes it correct across
+clears and respawns without extra bookkeeping.
+
+`state.Own` did not go away: it is still recorded at trim time (while PFT's
+answer and the profile match are both still reliable) and is still read —
+just no longer as a release gate. It backs the `own` tag in
+`DescribeCorpseState`, the own-release counts in the sweep line, and
+`ReleaseTrimmed`'s own-release tally, all of which stay correct because a
+corpse's `PlayerProfileID` never changes after `Corpse.CreateCorpse` and the
+local player keeps one profile id across every respawn.
+
+## The registry argument (the damage-source refinement)
+
+Releasing an older own corpse reopens the exact hazard `CorpseDamageSources`
+exists for: `CorpseDamageSources` matches a tripwire, a grenade or a shot by
+PROFILE ID, never by corpse reference (finding 1/2 of the prior critic
+review, both re-confirmed here). Before this change the local player's
+bodies were never released, so that never mattered — the comment at
+`CorpseDamageSources.cs:84-87` said so outright, and it was true. Now that an
+older own body can be released while the live player, sharing that same
+profile id, is still fighting, `DamageSourcesQuiet`'s ordinary reading cannot
+tell "this old corpse's own trailing tripwire/grenade/shot" apart from "the
+live player is still shooting" — sustained combat could hold every hidden own
+corpse open at once, for as long as it continues, which is precisely the
+fast-continuous-combat scenario this service targets. This cannot cause a
+wrongful EARLY release (the guard still only ever holds a body longer, never
+releases one early), but it could erase the entire point of releasing own
+corpses at all during the raids that produce the most of them.
+
+The fix is `CorpseDamageSources.StillNamedInRegistry`, and it rests on one
+fact about the game verified directly against `../_decompiled/` for this
+change:
+
+- `GameWorld.RegisterPlayer` (`_decompiled/EFT/GameWorld.cs:2012-2083`)
+  OVERWRITES `_allPlayersEverExisted[profileId]`,
+  `allAlivePlayersByID[profileId]`, `AllAlivePlayerBridges[profileId]` and
+  `AllPlayerBridgesEverExisted[profileId]` with whichever body registers
+  under that profile id — all four tables, every time, unconditionally.
+- `GetEverExistedPlayerByID` and `GetEverExistedBridgeByProfileID`
+  (`GameWorld.cs:889-896,967-977`) read only the CURRENT entry in those
+  tables — nothing keeps history.
+- Every resolution `CorpseDamageSources` guards against goes through one of
+  these two lookups at the moment it lands: a tripwire's explosion resolves
+  its planter through `Shot.Create` → `Shot` → the shooter bridge (the
+  "Settled" section above), a flare resolves its shooter through
+  `GetEverExistedBridgeByProfileID` directly (`EFT/FlareCartridge.cs:176-190`),
+  and a shot/fragment resolves the same way. So once a NEWER own body has
+  registered under the profile id, none of these lookups can return the OLDER
+  corpse any more — only the live player, which is a healthy, non-destroyed
+  object. Releasing the older corpse at that point cannot produce the
+  dangling-reference crash `CorpseDamageSources` was built to prevent,
+  because nothing can be resolved TO that corpse's `Player` component any
+  more in the first place.
+- Verified that every own respawn actually goes through `RegisterPlayer`
+  before relying on this: `Redeploy.Core/Engine/RespawnEngine.cs` creates the
+  replacement via `game.vmethod_3(...)` (`RunRespawn`, `"create"` timing
+  mark), which decompiles to `BaseLocalGame.vmethod_3` →
+  `LocalPlayer.Create(...)` → the shared `Player.Init` path, whose last
+  quarter calls `GameWorld.RegisterPlayer(this)` at `EFT/Player.cs:28272`.
+  Confirmed both for a death respawn and for Arena's own live-kit swap
+  (`ArenaMode.Client/Respawn/LiveKitRespawn.cs`, `SwapRoutine`), which drives
+  the exact same `RespawnEngine.RunRespawn` — it is not a separate path. The
+  one place `LiveKitRespawn` re-registers a body by hand
+  (`RecoverOldBody`, `world.RegisterPlayer(oldBody)`) is a failure-recovery
+  path that re-arms the OLD body as the still-alive local player — that body
+  never becomes a corpse in that branch, so it never reaches `MayRelease` at
+  all, and does not weaken the argument above.
+
+`StillNamedInRegistry(body, profileId, world)` compares `body` by reference
+against `GetEverExistedPlayerByID(profileId)` and
+`GetEverExistedBridgeByProfileID(profileId)?.iPlayer`. If either still names
+this exact `Player`, the ordinary `DamageSourcesQuiet` hold applies
+unchanged — ordinary quiet-period bookkeeping, ordinary hold/release log
+lines. If neither does, the hold is skipped outright for this corpse: it
+cannot be what a profile-id source resolves to, so there is nothing left to
+wait for. Fails CLOSED like every other guard in this file: no body, no
+profile id, no world, or an exception reading the registry, all answer
+"still named". The result is cached on `TrimState.LeftRegistry` once it
+comes back `true` (not-named), because the answer is monotonic — a corpse
+cannot re-register, so it can never become "still named" again — but a
+`false` (still named, including "unreadable") is never cached, so a
+transient read failure is retried every sweep rather than latched.
+
+Foreign and PitFireTeam bodies never take this branch: `DamageSourcesQuiet`'s
+new own-corpse block is gated on `isOwnCorpse`, which `MayRelease` only ever
+passes as true for a corpse whose profile id matches the CURRENT
+`mainPlayer.ProfileId` — a foreign or PFT body's `DamageSourcesQuiet` call is
+bit-identical to before.
+
+## Diagnostics
+
+The sweep's own summary line (`Report`, logged only on a sweep that did
+work) now carries an own/foreign split: `released N (M own); T trimmed and R
+released in total (O own)`, plus a live snapshot of what is still held —
+`, K own held as newest` and, only when nonzero, `+ J own held for another
+reason` (`DescribeOwnHeld`, read fresh from `Trimmed` every time, not a
+counter). The per-body hold/release log lines `DamageSourcesQuiet` already
+had are unchanged for the case the registry still names a body; a new one
+("...left the profile-id registry...releasing regardless of any source...")
+covers the bypass, so a GPU raid log can show both paths being exercised
+rather than assumed.
+
+## Offline verification
+
+`tools/CorpseCleanupChecks/Program.cs` gained: two own corpses (older
+released, newest kept, across several sweeps); a round-start clear with a
+single own corpse (already covered by the existing `"own"` case in the
+"never released" loop — annotated to explain why it still passes: with only
+one own corpse in the world it is trivially the newest); an own corpse the
+registry still names staying held behind a live damage source, and a sibling
+whose registry entry has moved on releasing despite the same kind of source;
+foreign-corpse behaviour re-run unmodified (every existing damage-source,
+aggressor, interaction and quiet-period case) as the proof nothing there
+changed.
+
+`tools/CorpseCleanupChecks/Verify-Regression.ps1` replaced the old
+`releases-own-and-teammate-bodies` mutant, which no longer matches the
+source it targeted, with mutants that match the new structure precisely:
+
+- `releases-a-teammate-body` — drops `state.Protected` from the fast path and
+  defeats the PFT re-read branch: a PFT body is released. (The own half of
+  the old combined mutant is superseded by the next one, which targets it
+  specifically rather than as a side effect of gutting both gates at once.)
+- `releases-the-newest-own-body` — removes the newest-check from the
+  own-corpse branch of the profile re-read: even the sole/newest own corpse
+  is released.
+- `ignores-the-registry-for-own-corpses` — drops the registry condition from
+  `DamageSourcesQuiet`'s own-corpse bypass entirely: an own corpse the
+  registry STILL names is released anyway, defeating the test that proves
+  the ordinary hold survives for it.
+- `inverts-the-registry-condition` — flips the bypass condition, so it
+  triggers when the registry still names the body and falls through to the
+  ordinary hold when it does not: both directions of the new two-case test
+  fail.
+
+Each is rejected at the assertion the change above exists to keep true.
+
+## What this does not claim
+
+Not run in this pass, same as the prior design's own risk list: a GPU raid
+exercising the own-corpse release path end to end (no GPU in this
+environment). `KillcamReplay`'s own replay-puppet path during rapid own
+deaths remains an open risk, structurally unaffected (it reads the newest
+own corpse, which stays exempt) but not measured against this exact timing.

@@ -706,8 +706,9 @@ public static class Settings
             "Take a hidden corpse out of the scene for good once nothing can reach " +
             "it any more, instead of leaving it lying there invisible. A hidden body " +
             "is still a complete player object, and every search over the scene — the " +
-            "game's own included — gets slower with each one that is left. Your own " +
-            "bodies and PitFireTeam teammates are never taken away.");
+            "game's own included — gets slower with each one that is left. PitFireTeam " +
+            "teammates and your own NEWEST body are never taken away; an older body of " +
+            "your own is released like anybody else's, once nothing still needs it.");
 
         // Reports only when a damage event actually throws, which a healthy raid
         // never does — so it is on by default while the grenade finding in

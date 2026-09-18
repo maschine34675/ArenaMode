@@ -15,9 +15,12 @@ namespace ArenaMode.Diagnostics;
 /// shell still holds its profile, inventory and controllers, and the long-raid
 /// heap is an open question of its own (CORPSE-CLEANUP-REVIEW.md) — a
 /// diagnostic must not be the reason anything stays reachable. The profile id
-/// is identity enough here: every released body is a bot with an id of its own,
-/// and the local player's bodies, the only ones that repeat an id across
-/// respawns, are never released at all.
+/// is identity enough here: every bot's own id is unique to it, and the local
+/// player's own repeats across every body they have ever had — including an
+/// older one this service releases since 2026-09-18 (only the NEWEST own body
+/// stays exempt), so <see cref="Describe"/>'s newest-match-wins read gives the
+/// answer that matters for that id: how long ago the MOST RECENT release of
+/// it was, own or not.
 ///
 /// Recording is gated on the same switch as the reports, so this costs nothing
 /// while it is off.

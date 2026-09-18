@@ -327,13 +327,20 @@ Open:
   bodies were what made every whole-scene search grow (415 active LocalPlayer
   objects, 303 ms to count them). Read CORPSE-CLEANUP-REVIEW.md, section
   "Releasing a trimmed corpse", before touching corpse lifetime: the step order
-  is load-bearing, own and PitFireTeam bodies are never released, and a body is
+  is load-bearing, PitFireTeam bodies are never released, and a body is
   never destroyed while DynamicMaps still holds its marker or while anybody is
   still owed a death by it. Measured on Labyrinth against a same-evening
   control raid: the pipeline's growth per raid minute fell from 20.6 to 13.2 ms
   and the live player-object count from 415 at 23 min to about 63 at 24 min.
-  What is left is dominated by the player's OWN corpses, which are exempt by
-  design. The `Player.ApplyDamageInfo` / `ClientGameWorld.ShotDelegate`
+  What was left there was dominated by the player's OWN corpses, which were
+  exempt by design at the time. Since 2026-09-18 ("Own corpses release too",
+  CORPSE-CLEANUP-REVIEW.md) only the NEWEST own body keeps that exemption: an
+  older one releases like any other corpse, once nothing still needs it —
+  including a refinement so the live player's own current combat cannot hold
+  an older own body open forever just because it shares that body's profile
+  id (`CorpseDamageSources.StillNamedInRegistry`, keyed on whether
+  `GameWorld`'s own ever-existed registry still resolves to that exact body).
+  The `Player.ApplyDamageInfo` / `ClientGameWorld.ShotDelegate`
   exceptions the release introduced are explained and, since 2026-09-18, fixed
   and GPU-accepted (Labyrinth raid on `d265353`: zero reports). Every one of the 21 logged that
   evening was a TRIPWIRE planted by the dead Labyrinth boss `bossTagillaAgro`,
