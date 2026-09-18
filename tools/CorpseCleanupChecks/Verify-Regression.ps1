@@ -107,6 +107,16 @@ $arenaMutants = @(
        From = 'state.LeftRegistry = !CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
        To = 'state.LeftRegistry = CorpseDamageSources.StillNamedInRegistry(player, corpse.PlayerProfileID, world);';
        Failure = 'an own corpse the registry still names stays held behind a live damage source, exactly like before' },
+    # The shot-in-flight refinement (2026-09-18 review pass, major finding):
+    # once the registry has moved on, a directly-fired shot is the one source
+    # that does NOT resolve lazily (Shot.Player is frozen at the moment of
+    # firing), so a reference check against this exact body is what still
+    # holds it. Dropping the check releases it while that shot is still
+    # travelling.
+    @{ Name = 'ignores-an-own-bodys-own-shot-in-flight';
+       From = 'if (CorpseDamageSources.ShotStillInFlightFromBody(player, world))';
+       To = 'if (false)';
+       Failure = 'a shot this exact body fired keeps it hidden even after the registry has moved past it' },
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
     # The damage-source guard: the call site, the measured tripwire rule (a
@@ -156,14 +166,37 @@ foreach ($arenaMutant in $arenaMutants) {
     }
     $arenaPath = Join-Path $arenaMutantDir ($arenaMutant.Name + '.cs')
     [IO.File]::WriteAllText($arenaPath, $arenaMutated)
+    # A UNIQUE build output per mutant, not the project's shared bin/. A prior
+    # run reported this script failing nondeterministically with an MSB3026
+    # "being used by another process" warning at a DIFFERENT mutant each
+    # time (2026-09-18 review pass, minor finding); this was not reproduced
+    # directly, but giving every mutant its own output directory removes any
+    # possibility of one mutant's build touching a file a previous run's
+    # process has not yet released, whatever the exact original cause was.
+    # (The actually-reproduced part of that finding turned out to be a
+    # different bug entirely - see the Contains() fix below.)
+    $arenaOutDir = Join-Path $arenaMutantDir ($arenaMutant.Name + '.out')
     $arenaPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $arenaOutput = & dotnet run --project $arenaProject -c Release "-p:${arenaProperty}=$arenaPath" 2>&1 | Out-String
+        $arenaOutput = & dotnet run --project $arenaProject -c Release "-p:${arenaProperty}=$arenaPath" "-p:BaseOutputPath=$arenaOutDir\" 2>&1 | Out-String
         $arenaExit = $LASTEXITCODE
     }
     finally { $ErrorActionPreference = $arenaPreference }
-    if ($arenaExit -eq 0 -or -not $arenaOutput.Contains($arenaMutant.Failure)) {
+    # PowerShell renders a native process's merged stderr (2>&1) through its
+    # own ErrorRecord formatting, which WORD-WRAPS at the host's console
+    # width - and an unhandled .NET exception's own dump is exactly what a
+    # rejected mutant throws. A long Failure phrase can straddle that wrap
+    # and come back with a newline in the middle of it, and because the wrap
+    # position also depends on the length of whatever precedes it on screen
+    # (this mutant's own GUID-named temp path, different every run), WHICH
+    # Failure text gets broken looks random from one run to the next - this
+    # is what a prior run diagnosed as a build-output file-lock race; it is
+    # not one (reproduced deterministically without any lock, mutant
+    # 'pooled-instead-of-destroyed', 2026-09-18 review pass). Collapsing
+    # whitespace runs on both sides before comparing survives any wrap.
+    $arenaOutputFlat = $arenaOutput -replace '\s+', ' '
+    if ($arenaExit -eq 0 -or -not $arenaOutputFlat.Contains(($arenaMutant.Failure -replace '\s+', ' '))) {
         throw "Mutant was not rejected by its intended assertion: $($arenaMutant.Name)`n$arenaOutput"
     }
     Write-Output "Rejected mutant: $($arenaMutant.Name)"
