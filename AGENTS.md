@@ -340,10 +340,15 @@ Open:
   an older own body open forever just because it shares that body's profile
   id (`CorpseDamageSources.StillNamedInRegistry`, keyed on whether
   `GameWorld`'s own ever-existed registry still resolves to that exact body).
+  The own-corpse-release path itself has NOT had its own GPU raid — see
+  CORPSE-CLEANUP-REVIEW.md's "What this does not claim". Do not read the GPU
+  acceptance below as covering it; it predates it.
   The `Player.ApplyDamageInfo` / `ClientGameWorld.ShotDelegate`
-  exceptions the release introduced are explained and, since 2026-09-18, fixed
-  and GPU-accepted (Labyrinth raid on `d265353`: zero reports). Every one of the 21 logged that
-  evening was a TRIPWIRE planted by the dead Labyrinth boss `bossTagillaAgro`,
+  exceptions the ORIGINAL (2026-09-17) trimmed-corpse release introduced are
+  explained and, on `d265353` (06:27, still before the own-corpse-release
+  commits that evening), fixed and GPU-accepted: a Labyrinth raid from
+  06:34-06:48 logged zero reports. Every one of the 21 logged before the fix
+  was a TRIPWIRE planted by the dead Labyrinth boss `bossTagillaAgro`,
   going off after Arena had released his body. A tripwire keeps its planter's
   profile id for its whole life; the explosion and its fragments resolve that id
   through `GetEverExistedBridgeByProfileID`, and the victim bot's
