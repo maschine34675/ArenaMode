@@ -157,6 +157,27 @@ correct that inference: force a low threshold, watch frame times in the
 30-60 s window after the "GC threshold switch" log line, and update this
 document with the result.
 
+## Measured: the switch in a long raid (GPU host, 2026-09-18, 10:22-10:46 on `9218bb7`)
+
+Labyrinth deathmatch, default threshold 4 GB, HeapProbe without instrumentation:
+
+- Armed at 10:30:20 (heap 4.01 GB, raid minute 7.4); switched five seconds later
+  at the next local death. EFT's own log shows "GC mode switched to Enabled" at the
+  same second.
+- First collection finished within 15 s: heap 4.04 GB at the switch, 1.99 GB at the
+  next 30 s reading; the follow-up line 45 s later read 2.00 GB, one collection.
+- The 30 s interval containing the switch: p99 42.9 ms, 5 frames over 50 ms, worst
+  frame 357 ms, the same as the intervals around it (346 and 358 ms worst frames,
+  which the respawn pipeline itself produces). No freeze.
+- Afterwards the heap stayed at 1.9 to 2.5 GB for the remaining 16 minutes,
+  about 1 collection per minute. Frames over 50 ms: 1.2 % from the switch to minute
+  16 (raid B without a collector: 1.25 %), rising to 2.5 % after minute 16, which
+  raid B never reached and which matches the time-driven slowdown the corpse review
+  records rather than the collector.
+
+The open question above is answered: the first pass over a 4 GB heap is one
+ordinary incremental collection, not a hitch cluster.
+
 ## Verification
 
 `tools/GcThresholdChecks` — offline, no game required, built in the style of

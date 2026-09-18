@@ -1137,3 +1137,36 @@ with evidence otherwise.
 - **Minor — the mutation-harness flakiness finding's root-cause claim** was
   independently reproduced (see Fixed, above) and is not a rejection; noted
   here only so the two related findings are not confused with each other.
+
+## GPU raid, own-corpse release (2026-09-18, 10:22-10:46 Labyrinth on `9218bb7`)
+
+Deathmatch FFA, profile ArenaGPU20260908, giving up every 40 s: 32 respawns in
+23 minutes, client `D8311C49`. Compared with raid B of the same morning (same mod
+set on `d265353`, 16 minutes, 22 respawns):
+
+| | B (`d265353`) | this raid |
+|---|---|---|
+| Own corpses released | 0 | 31 of 32 deaths |
+| Corpses in the world | 35 at 16 min (max 39) | 12-17 all raid |
+| Player bodies created / released | - | 463 / 434 |
+| Arena `pipeline` at minute 3 / 11 / 15 | 0.38 / 0.47 / 0.57 s | 0.37 / 0.47 / 0.55 s |
+| Growth up to minute 16 | 12.8 ms per minute | 14.7 ms per minute |
+
+Every own release logged "left the profile-id registry"; no damage-source
+report, no NullReferenceException, and the warning set is the one raid B had
+(stale PerfectCulling sampler per respawn, missing scripts at raid start, SAIN's
+"Player Null from ID" for the dead boss's tripwires before any own release).
+
+**What this falsifies.** The corpse population is now flat, and the respawn
+pipeline grows exactly as before. The own corpses were not what carried the
+remaining growth; the claim above ("dominated by the bodies this change
+deliberately keeps") is wrong. Core's timing lines put the growth where it was:
+`rewire.camera` +6.5 ms per minute (R² 0.93) and the rest of the frame +8.6 ms
+per minute, neither correlated with the heap. What does rise with every respawn
+or every created body, in Core's "before" counters: `cullingJobs` +1 per respawn
+(2 to 32; the replaced camera's entry in `CullingManager.CullingJob.JobParameters`
+is never removed, though a destroyed camera is skipped when jobs are scheduled),
+`traderHandlers` +1 and `skillHandlers` +6 per respawn (handlers on the one
+shared Profile/SkillManager), `flareSubscribers` +1 per created player body (438
+at the end, against 463 bodies created). Which of these, if any, costs the
+camera creation its time is not measured yet.
