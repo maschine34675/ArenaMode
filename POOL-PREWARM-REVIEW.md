@@ -402,11 +402,10 @@ public static void Reset()
 {
     if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))
     {
-        /* build and log the one summary line from _poolsTouched/_expansionsClamped/_instancesAvoided, see Logging below */
+        /* build and log the one summary line from _poolsTouched/_expansionsClamped, see Logging below */
     }
     _poolsTouched.Clear();
     _expansionsClamped = 0;
-    _instancesAvoided = 0;
     _disabledForRaid = false;
     _warnedThisRaid = false;
 }
@@ -421,10 +420,14 @@ before `_poolsTouched.Clear()` runs — is checked at the source level by the of
 checks project (see below), since `PoolPrewarmMonitor` itself cannot be compiled
 outside the game to unit-test `Reset()` directly.
 
-(The ledger is three fields, not one dictionary: `_poolsTouched` is a
+(The ledger is two fields, not one dictionary: `_poolsTouched` is a
 `HashSet&lt;string&gt;` of `IAssetPool.PoolShortName` values, `_expansionsClamped` an
-`int` count of clamp decisions, `_instancesAvoided` a `long` running total. All three
-are cleared together; `ShouldLogLedger` is asked about `_poolsTouched.Count` because
+`int` count of clamp decisions. There is deliberately no "instances avoided" total:
+`RequestCount` never drops, so every declined top-up asks for
+`RequestCount - FuturePoolSize`, a number that grows with every bot spawned, and
+summing it produced "~424,046 instances not created" for a raid in which vanilla
+would have created about one instance per top-up (GPU raid 2026-09-19). The number
+of declined top-ups is the honest estimate. Both fields are cleared together; `ShouldLogLedger` is asked about `_poolsTouched.Count` because
 that is the one field whose emptiness exactly tracks "did anything happen this raid".)
 
 ## Logging
@@ -437,7 +440,7 @@ Four log lines, no more:
 - **Per-raid ledger, at most once per raid, only when non-trivial** (from
   `Reset()`, gated by `ShouldLogLedger`):
   `Arena pool prewarm: {pools} pool(s) capped at {keepIdle} idle this raid,
-  {expansions} expansion(s) clamped, ~{avoided} instance(s) not created.`
+  {expansions} top-up(s) declined (vanilla adds about one instance per top-up).`
   A vanilla raid, an arena raid with the feature off, or an arena raid whose demand
   never exceeded `keepIdle` all produce zero extra lines.
 - **Fail-open, at most once per raid**: `Arena pool prewarm clamp disabled for the
@@ -565,7 +568,7 @@ scan — each confirmed against the exact prefix/`Reset()` text in this design):
 | `missing-completed-task-on-skip` | `__result = Task.CompletedTask;` | `` | the skip path leaves `__result` null |
 | `ledger-cleared-before-log-decision` | `if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `_poolsTouched.Clear(); if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `Reset()` clears the ledger before deciding whether to log it |
 | `monitor-forces-a-collection` | `_expansionsClamped++;` | `_expansionsClamped++;` followed by `GC.Collect();` | monitor source never forces a collection |
-| `monitor-forces-heap-read` | `_instancesAvoided += Math.Max(0, requested - allowed);` | the same line followed by `GC.GetTotalMemory(true);` | monitor source never reads the heap with a forced collection |
+| `monitor-forces-heap-read` | `_poolsTouched.Add(poolShortName);` | the same line followed by `GC.GetTotalMemory(true);` | monitor source never reads the heap with a forced collection |
 | `writeback-after-runoriginal-branch` | the write-back line immediately followed by the `if (!decision.RunOriginal) { ...; return false; }` block, then `return true;` | the same block moved BEFORE the write-back, so the full-skip path's `return false;` runs before `objectsCount` is ever reassigned | reproduces `harmony-runtime-r1-F1`: `Prefix` writes objectsCount back before branching on RunOriginal |
 
 Fourteen faults in total (7 targeting `PoolPrewarmPolicy.cs`, 7 targeting
@@ -631,10 +634,10 @@ numbers, not just trusted at face value:
 - `pool(s) capped` in the low tens (matches expected kit/weapon variety, not the
   fixed count of 7 closed generic types).
 - `expansion(s) clamped` growing roughly with body count.
-- `instance(s) not created` in the same order of magnitude as Raid J's *excess* per
-  pool (roughly: Raid J's final idle count for a pool minus `PoolPrewarmKeepIdle`,
-  summed across pools) — a sanity cross-check that the ledger's arithmetic matches
-  the externally observable pool sizes, not just an internally consistent number.
+- `top-up(s) declined` in the same order of magnitude as the bodies spawned times
+  the resources per loadout — each declined top-up is one instance vanilla would
+  have added (the first measured raid, below, is what replaced the earlier
+  "instances not created" total with this count).
 
 A second, short **non-arena** raid should also run once, to confirm zero
 `Arena pool prewarm:` lines and zero behavioural difference from before this feature
@@ -643,7 +646,7 @@ existed — the one thing that must stay true no matter what.
 Finally, because the Harmony-chained-double-invoke question is explicitly unresolved
 (see "Idempotence" above): if `TotalCreatedObjectsCount` for any clamped pool ever
 exceeds `keepIdle` plus a plausible in-use count by more than a handful, or the
-ledger's `instancesAvoided` looks implausibly doubled against the probe's own creation
+ledger's declined count looks implausibly doubled against the probe's own creation
 counts, that is the specific signal that `Prefix` is being invoked as two
 *independent* calls rather than a chained pair on one call — a materially different
 problem from what this design assumes, worth a dedicated follow-up rather than a
@@ -651,14 +654,47 @@ silent shrug.
 
 ### Measured
 
-_Placeholder — to be filled in by the orchestrator after the probe raid described
-above. Record here: the `TotalCreatedObjectsCount` curve before/after warm-up per top
-pool, the top pools' `CurrentPoolSize`/`FuturePoolSize` readings against
-`PoolPrewarmKeepIdle`, the exact `Arena pool prewarm: ...` ledger line at match end,
-spawn-error count (expect zero), whether the fail-open warning ever fired, the
-active-`MonoBehaviour`-per-body growth rate compared to Raid J's ~380/body, and the
-result of the required non-arena control raid (expect zero `Arena pool prewarm:`
-lines)._
+**GPU raid M, 2026-09-19 09:53-10:15, The Labyrinth deathmatch, `PoolPrewarmKeepIdle = 4`,
+client DLL `dd4c4c0c` (source `f26573e`), RespawnLeakProbe 0.1.5, same protocol as Raid J
+(give up every 40 s, 25 own respawns, 257 bodies created).** Install line:
+`Arena pool prewarm clamp ready: 7/7 pool types patched.` No fail-open warning, no spawn
+error, no `Can't return to pool` / `Failed to expand pool` line; 24 deaths inflicted by
+bots, `uibridge_player` listed armed bots throughout. Ledger at match end (the wording
+before this section's follow-up commit):
+`Arena pool prewarm: 550 pool(s) capped at 4 idle this raid, 6948 expansion(s) clamped,
+~424046 instance(s) not created.` — 550 pools, not "the low tens": pools are keyed by
+resource path and an Arena raid's bot loadouts cover hundreds of them. The third number
+was the artefact explained under "Nothing leaks into the next raid" and is gone.
+
+| Probe count (per created body, R²) | Raid J (vanilla prewarm) | Raid M (clamp) |
+|---|---|---|
+| `weaponPoolCreatedTotal` | +7.22 (0.999) | +2.60 (0.95) |
+| `weaponPoolInstancesTotal` (idle) | +7.16 (0.999) | +2.57 (0.96) |
+| active `MonoBehaviour`s, first to last census | +91.5 | +64.1 |
+| `UsableHandsPrefab` active in pool | +3.88 | +0.65 |
+| `BaseSoundPlayer` active in pool | +5.50 | +1.05 |
+| `WeaponPrefab` active in pool | +2.64 | +1.71 |
+| `ObservedLootItem` active in pool | +3.23 | +1.85 |
+| `RainCondensator` active in pool | +13.8 | +12.7 |
+| `poolsTotal` (number of pools) | +6.29 | +6.19 |
+
+Top pools at census #23 (257 bodies): F1 grenade 12 idle / 15 created (thrown and
+returned, real use), AK-74N 7, AKS-74UB 7, SVD-S 6 — a pool exceeds `keepIdle` only by
+objects that were in use and came back, i.e. the peak concurrent demand, which is the
+intended bound. Raid J's AFAK pool of 210 idle instances is 5 here.
+
+What the clamp does NOT remove, by design: `poolsTotal` still grows 6.2 per body. Every
+never-before-seen resource path (SPT's bot loadouts draw from thousands of mod and
+clothing variants) creates a new pool with its role model and its `"initial"` fill,
+which this feature leaves alone. That is where the remaining `RainCondensator` growth
+(one per renderer of each new mod pool's objects) and most of the remaining active
+growth come from. Bounding it would mean touching pool creation itself or reducing the
+loadout variety Arena bots draw from — a separate decision, not a bug in this clamp.
+
+Frame time before each respawn: no measurable trend in either raid (Redeploy.Core's
+pipeline total 0.71 ms per raid minute at R² 0.15 in Raid M; 0.51 at R² 0.19 in Raid
+J). The non-arena control raid has not been run yet; the gate is `ArenaSession.IsActive`
+at the top of the prefix, the same latch every other Arena patch uses.
 
 ## Implementation checklist
 
