@@ -76,6 +76,7 @@ public static class Settings
     public static ConfigEntry<bool> StripCorpseGear { get; private set; }
     public static ConfigEntry<bool> ReleaseTrimmedCorpses { get; private set; }
     public static ConfigEntry<float> GcHeapThresholdGB { get; private set; }
+    public static ConfigEntry<int> PoolPrewarmKeepIdle { get; private set; }
 
     public static ConfigEntry<bool> LogDamageExceptions { get; private set; }
     public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
@@ -729,6 +730,27 @@ public static class Settings
                 "raid never pays for it and a long one stays bounded. See " +
                 "GC-THRESHOLD-REVIEW.md for the measured cost.",
                 new AcceptableValueRange<float>(0f, 32f)));
+
+        PoolPrewarmKeepIdle = config.Bind(
+            "Performance",
+            "PoolPrewarmKeepIdle",
+            4,
+            new ConfigDescription(
+                "Cap how many idle instances EFT's own asset-prewarm keeps per resource " +
+                "(weapons, AFAKs, survival kits, hands prefabs, ...) during an arena raid, " +
+                "instead of letting it grow to match every bot that has ever spawned. 0 = " +
+                "never (pure vanilla): ObjectsFactory.InitAndFillPools sizes every pool to " +
+                "the TOTAL request count across the whole raid and that count never drops, " +
+                "so Arena's continuous respawn keeps growing every pool for as long as the " +
+                "raid runs (measured: 210 idle AFAKs and 207 idle survival kits after 267 " +
+                "bodies in 17 minutes, ~380 stale components per body). Only acts while an " +
+                "arena session is active AND the request is EFT's own periodic top-up to " +
+                "total demand (reason \"LoadPlayerResources\") — pool CREATION and the " +
+                "separate MaintainMinPoolSize top-up are never touched, and a pool run down " +
+                "to this cap still creates on demand exactly as vanilla does for any pool's " +
+                "first use, so a spawn is never short an item, only the standing idle " +
+                "surplus is bounded. See POOL-PREWARM-REVIEW.md for the measured cost.",
+                new AcceptableValueRange<int>(0, 64)));
 
         // Reports only when a damage event actually throws, which a healthy raid
         // never does — so it is on by default while the grenade finding in
