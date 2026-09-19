@@ -192,13 +192,27 @@ internal static class PoolPrewarmMonitor
 
             RecordClamp(pool.PoolShortName, requested: objectsCount, allowed: decision.ObjectsCount);
 
+            // Written back unconditionally, on BOTH branches below, not only the
+            // RunOriginal-true one: this ref parameter is the only channel a
+            // second, repeated invocation of this shared prefix (see the class
+            // doc comment on Mono generic-code sharing) has for observing what
+            // the first invocation already decided. A full skip (RunOriginal
+            // false) clamps to 0 — leaving objectsCount at the caller's original,
+            // unclamped value here would make a repeated invocation recompute
+            // the SAME clamp against the SAME (unmoved) futurePoolSize and double
+            // the ledger for what is really one clamp. Writing 0 here means a
+            // repeated call sees requestedCount == 0, which Decide's own
+            // requestedCount &lt;= 0 guard resolves to Unclamped — no second
+            // RecordClamp, matching the idempotence PoolPrewarmPolicy already
+            // assumes.
+            objectsCount = decision.ObjectsCount;
+
             if (!decision.RunOriginal)
             {
                 __result = Task.CompletedTask;
                 return false;
             }
 
-            objectsCount = decision.ObjectsCount;
             return true;
         }
         catch (Exception exception)
