@@ -23,7 +23,10 @@ $faults = @(
     @('points-for-kills','Modes/TeamDeathmatchMode.Announcements.cs','.Kills;','.Score;','TDM uses raw team kills rather than points'),
     @('early-tactical-live','Modes/TacticalMode.Announcements.cs','(_teamArena || _soloCombatReady)','true','Solo Tactical assembly never spends or announces combat time'),
     @('unearned-final-weapon','Modes/GunGameMode.Announcements.cs','!equipping && player?.HealthController?.IsAlive == true','player?.HealthController?.IsAlive == true','Earned but not equipped final weapon stays silent'),
-    @('foreign-world','Audio/ArenaAnnouncementDirector.cs','|| !ArenaSession.IsExactActiveRaid(game, world)','|| false','Foreign world cancels and cannot publish progress')
+    @('foreign-world','Audio/ArenaAnnouncementDirector.cs','|| !ArenaSession.IsExactActiveRaid(game, world)','|| false','Foreign world cancels and cannot publish progress'),
+    @('old-dm-epoch','Modes/RoundsMode.Announcements.cs','Epoch = epoch','Epoch = _rules.RoundNumber','DM waiting-to-first-live keeps preparation instead of canceling it'),
+    @('intermission-not-preparing','Modes/RoundsMode.Announcements.cs','bool preparing = WaitingForStart || InIntermission;','bool preparing = WaitingForStart;','DM intermission prepares the next epoch while retaining the actual prior draw'),
+    @('draw-consumed-in-preparation','Audio/ArenaAnnouncementPolicy.cs','            _drawSpoken = false;','','DM terminal draw remains audible after a preceding intermission draw')
 )
 foreach ($fault in $faults) {
     $faultRoot = Join-Path $scratch ($fault[0] + '/source')
@@ -41,4 +44,4 @@ foreach ($fault in $faults) {
 foreach ($file in $bound) { if ((Get-FileHash -LiteralPath (Join-Path $source $file)).Hash -ne $hashes[$file]) { throw 'Source changed during verification' } }
 Run-Probe 'clean-rerun' $source ''
 $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $scratch 'source-hashes.json')
-Write-Output "ANNOUNCEMENT INTEGRATION PASSED; four compiled faults rejected; evidence: $scratch"
+Write-Output "ANNOUNCEMENT INTEGRATION PASSED; $($faults.Count) compiled faults rejected; evidence: $scratch"

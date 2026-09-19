@@ -7,8 +7,100 @@ using UnityEngine;
 
 int checks = 0;
 void Check(bool yes, string message) { checks++; if (!yes) throw new Exception(message); }
+void VerifyDeathmatchPreparation()
+{
+    var game = new LocalGame { Status = GameStatus.Started };
+    var world = new GameWorld { MainPlayer = new Player() };
+    Singleton<AbstractGame>.Instance = ArenaSession.Game = game;
+    Singleton<GameWorld>.Instance = ArenaSession.World = world;
+    var options = new DeathmatchOptions(2, 0, 30, true, 3, false);
+    var mode = new RoundsMode { _options = options, _rules = new DeathmatchRules(options, "me", "Local") };
+    var match = new ArenaMatch { Mode = mode };
+    ArenaMatchService.Current = match;
+    ArenaAnnouncementDirector.Attach(match);
+    try
+    {
+        Time.time = 100;
+        var waiting = mode.AnnouncementSnapshot();
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.SequenceEqual(new[] { ArenaAnnouncerCue.PrepareToFight }),
+            "Actual waiting DM emits preparation once");
+        Time.time = 100.7f;
+        Check(mode._rules.StartRound(Time.time), "Actual DM first-round rules start");
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.SequenceEqual(new[] { ArenaAnnouncerCue.PrepareToFight, ArenaAnnouncerCue.AdvanceStatus }),
+            "DM waiting-to-first-live keeps preparation instead of canceling it");
+        Check(waiting.Epoch == 1 && mode.AnnouncementSnapshot().Epoch == waiting.Epoch,
+            "DM waiting belongs to the first live round epoch");
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.Count == 2, "DM live entry does not repeat preparation or advancement");
+
+        Time.time = 131;
+        mode._rules.Tick(Time.time); // actual tied round -> intermission
+        var intermission = mode.AnnouncementSnapshot();
+        ArenaAnnouncementDirector.Tick();
+        Check(intermission.Preparing && intermission.Epoch == 2 && intermission.Draw,
+            "DM intermission prepares the next epoch while retaining the actual prior draw");
+        Check(match.Cues.TakeLast(3).SequenceEqual(new[] { ArenaAnnouncerCue.CancelStatus,
+                ArenaAnnouncerCue.PrepareToFight, ArenaAnnouncerCue.Draw }),
+            "DM next preparation invalidates old status once and preserves the finished draw");
+        // Existing audio-result priority lets Draw replace preparation here.
+        // This checks epoch/result dispatch, not a claim that Prepare survives
+        // a result. The non-draw intermission below has no such supersession.
+        int before = match.Cues.Count;
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.Count == before, "DM intermission preparation and prior draw are once-only");
+
+        Time.time = 134;
+        Check(mode._rules.StartRound(Time.time), "Actual DM second-round rules start");
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.Skip(before).SequenceEqual(new[] { ArenaAnnouncerCue.AdvanceStatus, ArenaAnnouncerCue.FinalRound }),
+            "DM intermission-to-live adds no epoch cancellation and announces the real final round");
+        Check(mode.AnnouncementSnapshot().Epoch == intermission.Epoch,
+            "DM intermission and following live round share an epoch");
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.Count(c => c == ArenaAnnouncerCue.Draw) == 1,
+            "DM live entry does not repeat the preceding round draw");
+        Time.time = 165;
+        mode._rules.Tick(Time.time);
+        ArenaAnnouncementDirector.Tick();
+        Check(mode.AnnouncementSnapshot().Terminal && match.Cues.Count(c => c == ArenaAnnouncerCue.Draw) == 2,
+            "DM terminal draw remains audible after a preceding intermission draw");
+        before = match.Cues.Count;
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.Count == before, "DM terminal draw is once-only");
+
+        var wonOptions = new DeathmatchOptions(2, 1, 0, true, 3, false);
+        mode = new RoundsMode { _options = wonOptions, _rules = new DeathmatchRules(wonOptions, "me", "Local") };
+        match = new ArenaMatch { Mode = mode };
+        ArenaMatchService.Current = match;
+        ArenaAnnouncementDirector.Attach(match);
+        Time.time = 200;
+        ArenaAnnouncementDirector.Tick();
+        Time.time = 201;
+        Check(mode._rules.StartRound(Time.time), "Scored DM first-round rules start");
+        ArenaAnnouncementDirector.Tick();
+        Time.time = 202;
+        Check(mode._rules.RecordKill(Time.time, "me", "Local", "enemy"), "Scored DM reaches its actual kill limit");
+        ArenaAnnouncementDirector.Tick();
+        Check(mode.AnnouncementSnapshot().Preparing && !mode.AnnouncementSnapshot().Draw
+            && mode.AnnouncementSnapshot().Epoch == 2,
+            "Non-draw DM intermission prepares the next actual round");
+        Check(match.Cues.TakeLast(2).SequenceEqual(new[] { ArenaAnnouncerCue.CancelStatus, ArenaAnnouncerCue.PrepareToFight })
+            && !match.Cues.Contains(ArenaAnnouncerCue.Draw),
+            "Non-draw DM preparation is not superseded by a fabricated result");
+        before = match.Cues.Count;
+        Time.time = 205;
+        Check(mode._rules.StartRound(Time.time), "Scored DM next-round rules start");
+        ArenaAnnouncementDirector.Tick();
+        Check(match.Cues.Skip(before).SequenceEqual(new[] { ArenaAnnouncerCue.AdvanceStatus, ArenaAnnouncerCue.FinalRound }),
+            "Non-draw DM next live entry preserves preparation through normal advancement");
+    }
+    finally { ArenaAnnouncementDirector.Detach(); }
+}
 try
 {
+    VerifyDeathmatchPreparation();
     var options = new DeathmatchOptions(2, 10, 120, true, 3, false);
     var dm = new RoundsMode { _options = options, _rules = new DeathmatchRules(options, "me", "Local") };
     Check(dm.AnnouncementSnapshot().Preparing, "DM preparation is observable before start");

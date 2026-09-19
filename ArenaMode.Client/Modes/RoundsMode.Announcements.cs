@@ -9,10 +9,16 @@ public sealed partial class RoundsMode
     {
         if (_ended || _rules == null || !IsCurrentRaid()) return default;
         _rules.ReadAnnouncementScore(out int? killsRemaining, out int? lead);
+        bool preparing = WaitingForStart || InIntermission;
+        // Preparation belongs to the round it announces: rules increment only
+        // on StartRound. Keeping the old number here makes ordinary 0->1 (and
+        // intermission->next round) look like an invalidated audio epoch.
+        int epoch = preparing && _rules.RoundNumber < int.MaxValue
+            ? _rules.RoundNumber + 1 : _rules.RoundNumber;
         return new ArenaAnnouncementSnapshot
         {
-            Active = true, Epoch = _rules.RoundNumber, Now = Time.time,
-            Preparing = WaitingForStart || InIntermission,
+            Active = true, Epoch = epoch, Now = Time.time,
+            Preparing = preparing,
             Live = _rules.Phase == DeathmatchPhase.Live,
             Terminal = HasResult,
             Draw = HasResult ? _rules.Outcome == DeathmatchOutcome.Draw

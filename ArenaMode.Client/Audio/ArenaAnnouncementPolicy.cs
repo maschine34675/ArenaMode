@@ -103,6 +103,10 @@ internal sealed class ArenaAnnouncementPolicy
         if (snapshot.Live && !snapshot.Terminal && !_enteredLive)
         {
             _enteredLive = true;
+            // A preparing DM epoch can present the preceding round's draw.
+            // Once its own round enters combat, that earlier result must not
+            // consume this round's eventual terminal draw announcement.
+            _drawSpoken = false;
             if (snapshot.FinalRound) emit(ArenaAnnouncerCue.FinalRound);
             else if (snapshot.MatchPoint) emit(ArenaAnnouncerCue.MatchPoint);
         }

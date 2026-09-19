@@ -1,5 +1,35 @@
 # Preparation voice lifetime (2026-09-19)
 
+## Follow-up from the user's actual retest
+
+`D:\SPT41\Development\LogOutput.log`, SHA256
+`5252C0FC5324F9F7D3E8A43F91FB4886F566F0ECC335A1FE517AD7000B350F9D`,
+provides the missing direct evidence: Prepare starts at 16:40:53.176 with all
+64,742 frames, Deathmatch starts round 1 at 16:40:53.881, then the service logs
+`status canceled` at 16:40:53.899. Only 723 ms of the 1,468 ms recording elapsed.
+The previous fix handled phase advancement within one epoch, but the actual
+Deathmatch rules increment their round number at combat start (0 -> 1).
+Their snapshot therefore still triggered the deliberately hard epoch cancellation.
+
+The DM adapter now assigns preparation/intermission to the round being prepared,
+so its epoch stays stable when those real rules enter combat. Genuine new epochs,
+invalid raid/readiness, pause, mute and terminal results still cancel normally.
+A narrow first-live reset keeps a preceding intermission's Draw from consuming
+the upcoming round's eventual terminal Draw. A Draw result already superseded
+preparation at intermission before this change; that result priority is preserved,
+not claimed as uninterrupted Prepare playback.
+
+Regression coverage now drives the actual Deathmatch rules through the actual
+snapshot/director/policy for first start, drawn and non-drawn intermission, and
+the following final result. The old adapter fails the first-start case; restoring
+its epoch, omitting intermission or losing the later Draw are rejected faults.
+All 54 integration assertions and seven compiled fault controls pass; the root
+review also reran the actual integration after the final changes. Evidence:
+`artifacts/announcement-integration/cbf4091bb8434859a9cb87fa3bc5f77c`.
+The earlier audio checks remain in place (309 assertions/four preparation faults),
+as do 139 pure-policy assertions/22 faults. No recording, timing, scoring or
+gameplay rule was changed. Native hearing remains a user restart/retest.
+
 ## Finding
 
 The repository and installed `sounds/reserve/prepare_to_fight.ogg` are identical:
