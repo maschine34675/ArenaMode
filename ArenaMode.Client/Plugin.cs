@@ -75,6 +75,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaSainDisableSafety.Enable();
         Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
+        Performance.PoolPrewarmMonitor.Initialize();
         Bots.TdmSearchTempo.Enable();
         Bots.ArenaBotDifficultyClockPatch.EnablePatch();
         Bots.ArenaProfilePreloadPatch.EnablePatch();
