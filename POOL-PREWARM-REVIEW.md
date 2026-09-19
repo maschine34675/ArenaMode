@@ -693,8 +693,24 @@ loadout variety Arena bots draw from — a separate decision, not a bug in this 
 
 Frame time before each respawn: no measurable trend in either raid (Redeploy.Core's
 pipeline total 0.71 ms per raid minute at R² 0.15 in Raid M; 0.51 at R² 0.19 in Raid
-J). The non-arena control raid has not been run yet; the gate is `ArenaSession.IsActive`
-at the top of the prefix, the same latch every other Arena patch uses.
+J).
+
+**Non-arena control raid, 2026-09-19 13:32-13:35, Factory (day) as Scav, same host and
+config (`PoolPrewarmKeepIdle = 4`), loaded client DLL `dcd5e0d` (the clamp's merge
+commit; `556545e` changes nothing under `Performance/`, `Config/` or `Plugin.cs`).**
+12 bots spawned (probe: `bodiesEverExisted=12`, so `LoadPlayerResources` went through the
+patched `ExpandPool` for each of them), the probe's ticks show ordinary pool activity
+(`weaponPoolsTotal` 60 → 64, `weaponPoolInstancesTotal` 104 → 113,
+`weaponPoolCreatedTotal` 116 → 125 at raid minutes 0.5 and 1.0), and the BepInEx log holds
+**zero** lines from `maschine-ArenaMode` between the pre-raid character-preview line and
+the post-raid main menu: no ledger, no fail-open warning, no `ExpandPool` message. The
+only warnings were vanilla Unity ones (`BoxCollider ... negative scale` on
+`TRANSITS/Road_to_woods`, `extractor_smoke` missing-script lines on unload). What this
+raid proves is the absence of any Arena side effect or log line in a normal raid; the
+per-pool sizes that would show the pools filling past `keepIdle` are only logged on a
+respawn, so "the clamp never acted" rests on the gate itself — `ArenaSession.IsActive` at
+the top of the prefix, the same latch every other Arena patch uses — and on the
+`policy-ignores-arena-gate` source mutant.
 
 ## Implementation checklist
 

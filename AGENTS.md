@@ -430,7 +430,8 @@ Open:
   exactly as vanilla does for any pool's first use. Measured on the GPU host (19.09.2026,
   257 bodies, same protocol as the unclamped raid): weapon-pool creations 7.2 → 2.6 per
   body, active MonoBehaviours 91.5 → 64.1 per body, 6,948 top-ups declined, no spawn
-  error. What remains is the number of pools itself (+6 per body: every never-seen
+  error; a non-arena control raid (Factory as Scav, 12 bots, 19.09.2026) logged no
+  ArenaMode line at all. What remains is the number of pools itself (+6 per body: every never-seen
   loadout variant creates a pool with its `"initial"` fill), deliberately untouched.
   See `POOL-PREWARM-REVIEW.md`.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
