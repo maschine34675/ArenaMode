@@ -63,7 +63,12 @@ internal static class PoolPrewarmMonitor
     // count of 7 generic instantiations.
     private static readonly HashSet<string> _poolsTouched = new();
     private static int _expansionsClamped;
-    private static long _instancesAvoided;
+    // No "instances avoided" total: because RequestCount never drops, every
+    // declined top-up asks for RequestCount - FuturePoolSize, a number that
+    // grows with each bot spawned, so summing the declined amounts said
+    // "~424,046 instances not created" for a raid in which vanilla would
+    // have created about one per top-up (GPU raid 2026-09-19, 6,948 top-ups
+    // declined). The count of declined top-ups IS the honest estimate.
 
     /// <summary>
     /// Called once from Plugin.Awake, alongside the other Harmony
@@ -137,7 +142,7 @@ internal static class PoolPrewarmMonitor
         {
             Plugin.ModLogger.LogInfo(
                 $"Arena pool prewarm: {_poolsTouched.Count} pool(s) capped at {Settings.PoolPrewarmKeepIdle.Value} idle "
-                + $"this raid, {_expansionsClamped} expansion(s) clamped, ~{_instancesAvoided} instance(s) not created.");
+                + $"this raid, {_expansionsClamped} top-up(s) declined (vanilla adds about one instance per top-up).");
 
             if (_disabledForRaid)
                 Plugin.ModLogger.LogInfo("Arena pool prewarm: the clamp disabled itself partway through this raid (see the warning above) — the ledger above stops at that point, not a complete picture of the whole raid.");
@@ -145,7 +150,6 @@ internal static class PoolPrewarmMonitor
 
         _poolsTouched.Clear();
         _expansionsClamped = 0;
-        _instancesAvoided = 0;
         _disabledForRaid = false;
         _warnedThisRaid = false;
     }
@@ -190,7 +194,7 @@ internal static class PoolPrewarmMonitor
             if (!decision.Clamped)
                 return true; // Feature off, wrong reason, or already within budget — vanilla, unchanged.
 
-            RecordClamp(pool.PoolShortName, requested: objectsCount, allowed: decision.ObjectsCount);
+            RecordClamp(pool.PoolShortName);
 
             // Written back unconditionally, on BOTH branches below, not only the
             // RunOriginal-true one: this ref parameter is the only channel a
@@ -222,11 +226,10 @@ internal static class PoolPrewarmMonitor
         }
     }
 
-    private static void RecordClamp(string poolShortName, int requested, int allowed)
+    private static void RecordClamp(string poolShortName)
     {
         _poolsTouched.Add(poolShortName);
         _expansionsClamped++;
-        _instancesAvoided += Math.Max(0, requested - allowed);
     }
 
     /// <summary>

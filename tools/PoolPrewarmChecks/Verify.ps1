@@ -24,7 +24,7 @@ $faults=@(
     @{Name='missing-completed-task-on-skip';Path=$monitor;Property='MonitorSource';Find='__result = Task.CompletedTask;';Replace='';Failure='the skip path sets __result before returning false'},
     @{Name='ledger-cleared-before-log-decision';Path=$monitor;Property='MonitorSource';Find='if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))';Replace='_poolsTouched.Clear(); if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))';Failure='Reset() decides whether to log the ledger before clearing it'},
     @{Name='monitor-forces-a-collection';Path=$monitor;Property='MonitorSource';Find='_expansionsClamped++;';Replace="_expansionsClamped++;`n        GC.Collect();";Failure='monitor source never forces a collection'},
-    @{Name='monitor-forces-heap-read';Path=$monitor;Property='MonitorSource';Find='_instancesAvoided += Math.Max(0, requested - allowed);';Replace="_instancesAvoided += Math.Max(0, requested - allowed);`n        GC.GetTotalMemory(true);";Failure='monitor source never reads the heap with a forced collection'},
+    @{Name='monitor-forces-heap-read';Path=$monitor;Property='MonitorSource';Find='_poolsTouched.Add(poolShortName);';Replace="_poolsTouched.Add(poolShortName);`n        GC.GetTotalMemory(true);";Failure='monitor source never reads the heap with a forced collection'},
 
     # Reproduces harmony-runtime-r1-F1 itself: moves the write-back to after the
     # RunOriginal branch, so the full-skip path (the block's `return false;`) never
