@@ -57,6 +57,14 @@ Fresh checks: 309 audio assertions, four compiled preparation faults rejected,
 assertions. The historical audio fault suite and its final 309 assertions passed;
 its original-pack Python verifier exposed a separate stale exact-file-set check
 after the six-cue addition, repaired separately without relaxing asset identity.
+The repaired verifier admits exactly the disjoint 46+6 recorded destinations,
+pins the original manifest/hash table and validates all 52 decoded clips. Seven
+metadata and eleven inventory/supplement faults are rejected, including unknown
+root/reserve/nested OGGs and rewriting an original plus its recorded checksum.
+All installed audio/assets match repository bytes except the two CC licence text
+files: their text is identical after CRLF/LF normalization. The strict full-folder
+`--deployment` check therefore still rejects those existing line-ending differences;
+neither its equality rule nor the unrelated licence files were changed here.
 Six-cue review checks: 194 combat, 80 self-grenade behavior, 35 native contracts,
 and supplemental audio validation with five rejected asset faults.
 Independent adversarial playback review found no concrete remaining blocker.

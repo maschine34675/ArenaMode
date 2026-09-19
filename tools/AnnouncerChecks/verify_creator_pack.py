@@ -4,12 +4,14 @@ Requires Python 3 and FFmpeg/ffprobe. Does not install files or change game stat
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import re
 from pathlib import Path
 import struct
 import subprocess
+import sys
 from optional_runtime_keys import OPTIONAL, runtime_key
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +19,18 @@ ASSETS = ROOT / 'ArenaMode.Client/Assets/ArenaMode'
 ACTIVE = set('double_kill triple_kill multi_kill monster_kill killing_spree rampage '
     'dominating unstoppable godlike first_blood headshot payback last_man_standing '
     'round_start round_won round_lost match_won match_lost'.split())
+
+# Use the supplement's reviewed cuts, exact 4+2 destinations and decode/hash
+# contract, rather than accepting arbitrary files beyond the original pack.
+_addition_spec = importlib.util.spec_from_file_location('announcer_additions_contract',
+    ROOT / 'tools/AnnouncerAssetAdditions/verify_additions.py')
+ADDITIONS = importlib.util.module_from_spec(_addition_spec)
+_previous_dont_write_bytecode = sys.dont_write_bytecode
+try:
+    sys.dont_write_bytecode = True
+    _addition_spec.loader.exec_module(ADDITIONS)
+finally:
+    sys.dont_write_bytecode = _previous_dont_write_bytecode
 
 
 def require(condition, message):
@@ -53,23 +67,39 @@ def verify_runtime_catalog():
     require(len(keys) == 19 and set(keys) == OPTIONAL, 'Production optional cue set differs')
 
 
+def verify_inventory(assets, manifest, supplement):
+    verify_metadata(manifest)
+    ADDITIONS.verify_metadata(supplement)
+    # This pins the reviewed original manifest AND all 46 original file hashes;
+    # rewriting a file and its manifest checksum cannot silently redefine them.
+    ADDITIONS.verify_originals(assets)
+    rows = manifest['files']
+    paths = {r['file'] for r in rows}
+    extra_paths = {r['file'] for r in supplement['files']}
+    require(len(paths) == 46, 'Duplicate original destination')
+    require(len(extra_paths) == 6 and paths.isdisjoint(extra_paths), 'Addition destination collision')
+    require(sum(r['usage'] == 'active' for r in rows) == 18, 'Original active count differs')
+    require(sum(r['usage'] == 'reserve' for r in rows) == 28, 'Original reserve count differs')
+    require({p.stem for p in (assets / 'sounds').glob('*.ogg')} == ACTIVE | ADDITIONS.ACTIVE,
+        'Active cue set changed')
+    expected = paths | extra_paths
+    actual = {p.relative_to(assets).as_posix() for p in (assets / 'sounds').rglob('*.ogg')}
+    require(expected == actual, 'Missing/unrecorded OGGs')
+    for row in supplement['files']:
+        require(sha(assets / row['file']) == row['sha256'], 'Addition clip changed: ' + row['file'])
+    return expected
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--assets', type=Path, default=ASSETS)
     parser.add_argument('--deployment', type=Path, action='append', default=[])
     args = parser.parse_args()
     manifest = json.loads((args.assets / 'ANNOUNCER-SOURCES.json').read_text(encoding='utf-8'))
-    verify_metadata(manifest)
+    supplement = json.loads((args.assets / ADDITIONS.MANIFEST).read_text(encoding='utf-8'))
+    paths = verify_inventory(args.assets, manifest, supplement)
     verify_runtime_catalog()
     rows = manifest['files']
-    require(len(rows) == 46, 'Expected all 46 phrases')
-    require({p.stem for p in (args.assets / 'sounds').glob('*.ogg')} == ACTIVE, 'Active cue set changed')
-    paths = {r['file'] for r in rows}
-    require(len(paths) == 46, 'Duplicate destination')
-    actual = {p.relative_to(args.assets).as_posix() for p in (args.assets / 'sounds').rglob('*.ogg')}
-    require(paths == actual, 'Missing/unrecorded OGGs')
-    require(sum(r['usage'] == 'active' for r in rows) == 18, 'Active count differs')
-    require(sum(r['usage'] == 'reserve' for r in rows) == 28, 'Reserve count differs')
     previous = 0
     peaks, durations = [], []
     for number, row in enumerate(rows, 1):
@@ -101,8 +131,13 @@ def main():
         peaks.append(peak)
         durations.append(duration)
     require(previous == manifest['sourceFrames'] == 2758982, 'Source coverage differs')
-    print(f'CREATOR_PACK_VERIFIED: {len(rows)} clips; original intake 18 active, 28 reserve; '
-        f'19 reserve cues enabled, 9 unused; duration {min(durations):.3f}-{max(durations):.3f}s; '
+    for row in supplement['files']:
+        duration, peak = ADDITIONS.verify_clip(args.assets, row)
+        durations.append(duration)
+        peaks.append(peak)
+    print(f'CREATOR_PACK_VERIFIED: {len(paths)} clips; 46 originals unchanged '
+        f'(intake 18 active, 28 reserve), supplement 4 active, 2 reserve; '
+        f'41 runtime cues, 11 unused; duration {min(durations):.3f}-{max(durations):.3f}s; '
         f'max decoded peak {max(peaks):.5f}')
     for installed in args.deployment:
         count = 0
