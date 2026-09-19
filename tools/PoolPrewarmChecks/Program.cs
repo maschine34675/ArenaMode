@@ -43,19 +43,52 @@ internal static class Program
     /// — the guard is inherited from the GC-threshold feature's own habit
     /// check and costs nothing, but it does catch an accidental copy-paste.
     ///
-    /// PoolPrewarmMonitor.cs is NOT scanned here yet: it does not exist until
-    /// the next implementation step (the pure policy is proven correct in
-    /// isolation first). That step extends this method with the monitor's
-    /// own structural guards (no __originalMethod, the exact "objectsCount"
-    /// spelling, __result set before every false return, and the
-    /// ShouldLogLedger-before-Clear ordering in Reset()) once there is a
-    /// real file to scan.
+    /// The monitor-side checks below scan PoolPrewarmMonitor.cs as TEXT, not
+    /// compiled code — it references UnityEngine/EFT/HarmonyLib types that
+    /// only exist inside the game. The generic-declaring-type crash guard
+    /// checks for the literal "__originalMethod)" — the parameter name
+    /// immediately followed by a closing paren, i.e. appearing AS a
+    /// parameter — rather than a bare "does not contain __originalMethod".
+    /// This file's own doc comments explain the __originalMethod trap by
+    /// name as prior art (RespawnLeakProbe.Timing.MethodTimer), and none of
+    /// that prose happens to end a line in "__originalMethod)", so the
+    /// narrower pattern still fails the instant the parameter is actually
+    /// added to a signature, without tripping on the legitimate explanation
+    /// of why not to.
     /// </summary>
     private static void SourceGuard()
     {
         var policyText = File.ReadAllText(Meta("PolicySourcePath"));
         Check(!policyText.Contains("GC.Collect("), "policy source never forces a collection");
         Check(!policyText.Contains("GetTotalMemory(true"), "policy source never reads the heap with a forced collection");
+
+        var monitorText = File.ReadAllText(Meta("MonitorSourcePath"));
+        Check(!monitorText.Contains("GC.Collect("), "monitor source never forces a collection");
+        Check(!monitorText.Contains("GetTotalMemory(true"), "monitor source never reads the heap with a forced collection");
+
+        // The generic-declaring-type crash guard (see the class doc comment above):
+        // the shared prefix's signature must never gain a MethodBase __originalMethod
+        // parameter.
+        Check(!monitorText.Contains("__originalMethod)"), "the prefix signature must not gain an __originalMethod parameter");
+
+        // ref int objectsCount must be spelled exactly as the AbstractAssetsPool<T>
+        // implementation spells it, never as IAssetPool's interface declaration
+        // misspells the same parameter ("objectsCoun", no final t) — Harmony binds a
+        // prefix's by-name pass-through parameters against the method it actually
+        // patched, the concrete implementation.
+        Check(monitorText.Contains("ref int objectsCount,"), "the ref parameter is spelled objectsCount, matching the implementation");
+        Check(!monitorText.Contains("objectsCoun,"), "the ref parameter is never spelled objectsCoun, matching the interface's typo");
+
+        // Every false-return path must set __result first, or the caller receives a
+        // null Task and crashes either ObjectsFactory.InitAndFillPools call site.
+        Check(monitorText.Contains("__result = Task.CompletedTask;"), "the skip path sets __result before returning false");
+
+        // Reset() must decide whether to log the ledger BEFORE clearing it — the
+        // ordering this feature's log-once-per-boundary behaviour depends on, since
+        // ResetSession() itself can fire more than once around a single raid boundary.
+        var shouldLogAt = monitorText.IndexOf("PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count)", StringComparison.Ordinal);
+        var clearAt = monitorText.IndexOf("_poolsTouched.Clear();", StringComparison.Ordinal);
+        Check(shouldLogAt >= 0 && clearAt >= 0 && shouldLogAt < clearAt, "Reset() decides whether to log the ledger before clearing it");
     }
 
     private static void ClampDecisions()
