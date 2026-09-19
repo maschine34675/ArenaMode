@@ -465,8 +465,12 @@ cs`'s own guard against `GC.Collect(`/`GetTotalMemory(true`.
 **`Program.cs`**, in order:
 
 1. `SourceGuard()` — text-scans `PoolPrewarmMonitor.cs` (via `MonitorSourcePath`
-   metadata) and asserts: does **not** contain the literal substring
-   `"__originalMethod"` (the generic-declaring-type crash guard); contains the literal
+   metadata) and asserts: does **not** contain the literal `"__originalMethod)"` — the
+   parameter name immediately followed by a closing paren, i.e. appearing AS a
+   parameter, deliberately **narrower** than a bare `"__originalMethod"` substring
+   check, because this file's own doc comments explain the `__originalMethod` trap by
+   name as prior art and a bare-substring check would permanently fail against that
+   legitimate prose (the generic-declaring-type crash guard); contains the literal
    `"ref int objectsCount,"` (the correct spelling, never the interface's
    `objectsCoun` typo); contains `"__result = Task.CompletedTask;"` (the null-`Task`
    guard on the skip path); contains `"PoolPrewarmPolicy.ShouldLogLedger("`, and that
