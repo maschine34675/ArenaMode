@@ -22,7 +22,7 @@ internal sealed class ArenaPowerupState
     internal const float MaximumShieldDuration = 30f;
     internal const float MaximumShield = 220f;
     internal const float MaximumJumpDuration = 30f;
-    internal const float JumpHeightMultiplier = 1.5f;
+    internal const float JumpHeightMultiplier = 2f;
     private float _damageUntil, _shieldUntil, _shieldPoints, _jumpUntil;
 
     internal bool GrantJump(float now, float duration)

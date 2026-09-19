@@ -22,7 +22,7 @@ internal static class ArenaPickupSettings
         CaptureEnabled = config.Bind("Development - Pickups", "Enabled", false,
             "Read-only point authoring. Aim/feet captures write only to an explicit PickupDrafts export. Normal PMC capture additionally requires Development - Area outline / AllowInNormalPmc. Never grants pickups outside Arena.");
         CaptureKind = config.Bind("Development - Pickups", "Kind", ArenaPickupKind.DoubleDamage,
-            "Kind of the next captured point. Shield: 220/30s; Double Damage: 20s; Jump Boots: +50% height/30s with Arena movement enabled (local only). Effects do not stack.");
+            "Kind of the next captured point. Shield: 220/30s; Double Damage: 20s; Jump Boots: +100% height/30s with Arena movement enabled (local only). Effects do not stack.");
         CaptureCooldown = config.Bind("Development - Pickups", "RespawnSeconds", 30f,
             new ConfigDescription("Pickup reappears this many gameplay seconds after successful collection.", new AcceptableValueRange<float>(10f, 600f)));
         CaptureAim = config.Bind("Development - Pickups", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftAlt), "Capture the surface under the crosshair.");

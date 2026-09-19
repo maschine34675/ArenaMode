@@ -192,7 +192,7 @@ internal static class ArenaPickupRuntime
             entry.View = new ArenaPickupView(point, floor);
             if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, jump boots +50%/30s; weapon/boots local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, jump boots +100%/30s; weapon/boots local only.");
     }
 
     private static bool Owns(int generation, Entry entry) => _live && Generation == generation
@@ -323,7 +323,7 @@ internal static class ArenaPickupRuntime
                 {
                     ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE — 20s",
                     ArenaPickupKind.Shield => "SHIELD — 220 / 30s",
-                    ArenaPickupKind.JumpBoots => "JUMP BOOTS — +50% HEIGHT / 30s",
+                    ArenaPickupKind.JumpBoots => "JUMP BOOTS — +100% HEIGHT / 30s",
                     _ => "WEAPON COLLECTED"
                 });
                 Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");

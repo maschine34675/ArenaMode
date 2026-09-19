@@ -386,9 +386,9 @@ internal static class Program
     private static void JumpBoots()
     {
         void Grant() => ArenaMode.Pickups.ArenaPowerups.State.GrantJump(Time.time,30);
-        float boosted=10*MathF.Sqrt(.8f*1.5f), ordinary=10*MathF.Sqrt(.8f);
+        float boosted=10*MathF.Sqrt(.8f*2f), ordinary=10*MathF.Sqrt(.8f);
         var f=new Fixture();Grant();f.Entry(f.Jump);
-        Check(Near(f.Jump._liftForce.y,8*MathF.Sqrt(1.5f)),"boots boost native entry even at base height one");
+        Check(Near(f.Jump._liftForce.y,8*MathF.Sqrt(2f)),"boots boost native entry even at base height one");
         Check(Near(ArenaJumpBoots.WithoutEntryBonus(f.Jump).y,8),"entry normalization strips only the applied boots factor");
         f.Airborne();f.Press();Check(Near(f.Jump._currentLiftforce.y,boosted),"boots affect double jump exactly once");
         for(int i=0;i<3;i++)

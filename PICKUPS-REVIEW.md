@@ -11,7 +11,7 @@ ordinary raids and existing dropped loot are unchanged.
 |---|---|---|
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
 | Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
-| Jump Boots (green) | 50% more jump height for 30 gameplay seconds, including the existing double jump; no extra jump credit | 30 seconds |
+| Jump Boots (green) | 100% more jump height for 30 gameplay seconds, including the existing double jump; no extra jump credit | 30 seconds |
 | Weapon (gold) | Pickup-only M60E6 FDE copied from `retzrestdfg`, with attachments and 100 M993 rounds; no spare magazines or other equipment | 45 seconds |
 
 Effects refresh duration/refill the shield to its cap; they never stack. Both
@@ -117,7 +117,7 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
 
 ## Native boundaries
 
-- Jump Boots multiply only a newly requested native jump impulse by sqrt(1.5),
+- Jump Boots multiply only a newly requested native jump impulse by sqrt(2),
   after Arena's base height. Gravity, skills/injuries, stamina and collisions stay
   native. Expiration changes the next impulse, never snaps an in-flight trajectory.
   A weak entry record remembers the factor actually applied to each native jump
