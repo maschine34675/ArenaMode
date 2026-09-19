@@ -1,0 +1,136 @@
+{
+  "SourceCommit": "48549ef15ce40cc690e1042cf17e214aec4a3c73",
+  "ProductVersion": "0.1.0+48549ef15ce40cc690e1042cf17e214aec4a3c73",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-19T11:27:44.2471029Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "SHA256": "870F8774A9C4FC89BA0C2B1170F573F861A3A31708440DFD3F8C3C1FE4271E91",
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\86c75e8251d14d8a8abbcf9725a88c91\\backup-0-ANNOUNCER-PACK.md"
+    },
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\86c75e8251d14d8a8abbcf9725a88c91\\backup-1-ANNOUNCER-SOURCES.json"
+    },
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "SHA256": "75205274F39C329EF6670AC295FAB20B080D4464B315114819B7874BBC6E57BC",
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\86c75e8251d14d8a8abbcf9725a88c91\\backup-2-AUDIO-LICENSES.md"
+    },
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "SHA256": "4AF74D51F36493F644776CACB4714934E87B3A115D36C72F3EB0B7C396707250",
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\54f80601f5e143f78d208fa5fca2cedd\\out\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\86c75e8251d14d8a8abbcf9725a88c91\\backup-3-maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 129,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "6F9D702C2FF9BA7F0FBA932FB05F9390E5FBF639CC2A1CF7399C2588E2FA7C0F",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "CE69BDF504B3A1A0952DC154EC735C99B85957AC4C586E5E0EB45E2E635B94EA",
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\86c75e8251d14d8a8abbcf9725a88c91",
+  "Task": "Timed Jump Boots and isolated M60 retzrestdfg pickup",
+  "BuildManifest": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\54f80601f5e143f78d208fa5fca2cedd\\manifest.json",
+  "ConfigDelivery": {
+    "Target": "D:\\SPT41\\BepInEx\\config\\com.maschine.ArenaMode.cfg",
+    "BeforeSha256": "AF3551A11EB6F5862F0AB53EC809644C9D4781B7E4F11B117C13FC1E11505AEB",
+    "AfterSha256": "70B392717D6A9625699C23A2BCE5958C12065861E10BE17FDF7EAAEF408F0A92",
+    "Backup": "D:\\SPT41\\Development\\ArenaMode\\.unlazy\\jump-boots-m60-20260919\\arena-config-before-da356762e9294d2386f00171f93daf21.cfg",
+    "Setting": "Arena pickups / PrototypeWeaponKit",
+    "Before": "spartan",
+    "After": "pickup-m60-retzrestdfg",
+    "OnlyRequestedSettingChanged": true,
+    "SourceProfileUnchangedSha256": "59E30F7B385B8A4E415DA358BC72E39A61F4A34112365A126283B2A697CFE5C5"
+  },
+  "ReadOnlyPresetSource": {
+    "Nickname": "spt41dev",
+    "Sha256": "59E30F7B385B8A4E415DA358BC72E39A61F4A34112365A126283B2A697CFE5C5",
+    "Preset": "retzrestdfg",
+    "ByteIdenticalAfterWork": true
+  },
+  "VerifiedSources": {
+    "ArenaMode.Client/Pickups/ArenaPickupWeapons.cs": "A54C90047B5F1B784E18F0B3DD7D36DDCB535A259CCB5668247B67E7F298F13C",
+    "ArenaMode.Client/Movement/ArenaMovementPatches.cs": "33C40C3FCE5E181E03F34395C5D401CEC3F62EB0A1BA6C07E3F7132DA18FEA6B",
+    "tools/DoubleJumpChecks/Verify.ps1": "2B353887B7D2A945D826EB0CFDA752D7D438A4704B1AA4AC06888BCCC76B0547",
+    "tools/ArenaWeaponPickupChecks/ArenaWeaponPickupChecks.csproj": "B4479230A6307F00A84ECEFD92541D49FEAD271E5417FAD6309482D6A957284D",
+    "tools/ArenaWeaponPickupChecks/README.md": "170551C5FA86DC52DD86E1860B7E506D9284D1A17FEC88A4236E9CCCD550F216",
+    "tools/ArenaPickupChecks/Program.cs": "0822CE3AF3A4AE4BE1F7804262B5BB2588DBB726A2ECCAB6970E190B6BF2268A",
+    "tools/ArenaWeaponPickupChecks/Verify.ps1": "093DB4A78FC16768CEF87B81CBE620A43242D6FAA763B9B107A6A54416B57139",
+    "tools/DoubleJumpChecks/Program.cs": "CC0D5C14B7F4D8F8C0DFA025573EA23758334B3626A9EB2E20995931C6AD20A8",
+    "ArenaMode.Client/Movement/ArenaDoubleJump.cs": "B937A857AA55406FAA043CEA058CDD24EA42D5D99F1A91168310E052E1096F62",
+    "tools/DoubleJumpChecks/DoubleJumpChecks.csproj": "E020461590377CB82DF24F6DD6809D6DB3C37016F7B76360235E7CBB27D19219",
+    "tools/ArenaWeaponPickupChecks/Definition/M60DefinitionChecks.csproj": "FD9E58E6E75AC967865C64A1E5BCB97B788F89A234CEE98E6918C3AC40525177",
+    "tools/ArenaPowerupChecks/Verify.ps1": "AFD8B55A318A0B2BD90C2042EA2F877192ABBCF61DCF8C765BE963DA51489E4D",
+    "ArenaMode.Client/Pickups/ArenaPickupSettings.cs": "A5CF9106FA785C5D3A67BE9965A01AC60855CFA48BF8C6C3639B72D37FEAF63A",
+    "tools/ArenaWeaponPickupChecks/Definition/Program.cs": "A7EA7A9E982DF9DAFB0C1D10DB520E8E3C481C2541C9D721EBF8DE1224E266F6",
+    "tools/DoubleJumpChecks/Stubs.cs": "E4DE87A86E4324E2007B59B20B5B4E3D20BB52A557B6211FA35FE0257037F781",
+    "ArenaMode.Client/Movement/ArenaJumpBoots.cs": "4CDE6A1C6DC2E3E83B48C378C057B69E769C7511732DF82B616D260720AA6B14",
+    "ArenaMode.Client/Pickups/ArenaPickupLayout.cs": "2117262F7B9C0C1A8E555F155520F36CC6749C1D35E19D009C96FC9C7365E5E5",
+    "PICKUPS-REVIEW.md": "F793ABEBD7B5F66204D4DC4D96BA4141FF2CD3FFD7D0F58AECD46F8EEBC55B17",
+    "tools/ArenaPickupChecks/ArenaPickupChecks.csproj": "CC7A8761FD5964A932EE28846AD818C8108A00BFC9F010C53395A06FCC812BE9",
+    "tools/ArenaPowerupChecks/README.md": "AF652CC8287EA8997DDD511D3F22F3B68DF01AF70C005CEB136410DB501B1330",
+    "tools/ArenaPowerupChecks/Doubles.cs": "2B1E8A44F1315DCB5F86C5B83B80D6D1169C78AACF4097A07D02B189A7F6CA84",
+    "ArenaMode.Client/Pickups/ArenaPickupView.cs": "59C6CA56A2AF4E8513CCEEAAA8832E9F3CF07461D4FA2BAB0ACFDB5F1D3198AC",
+    "ArenaMode.Client/Pickups/ArenaPowerupState.cs": "783C44A61888C3D7E79FE6F3AACA2DC2644AD03A22367B475627038FBCDA9DCF",
+    "ArenaMode.Client/Pickups/ArenaPowerups.cs": "03A86D901A69F6E1061B4921AA6F265516A2F84F5276897D899D947251E75E97",
+    "ArenaMode.Client/Pickups/ArenaPickupRuntime.cs": "60081886E31161286E45A4BB4BAF4B085A26BB46A59D47B80F8C3ED040867815",
+    "tools/ArenaPickupChecks/Verify.ps1": "EC265C69DE811713299E477DCF774CEC81838B5AE7F0439D3A62BAF2BD73A032",
+    "tools/ArenaPickupChecks/README.md": "FBCFB6BABD119BDDA4C9C325D23C9A6EDC9CC939396E01214EC17171E0209534",
+    "tools/ArenaPowerupChecks/Program.cs": "AA7D7F45AC34D007C777B139166136BCC9617E68BE4C148B3A42351EE1F0C2E3",
+    "ArenaMode.Client/Hud/ArenaPowerupPanel.cs": "E0CB54426CDCB0C9A21049B69429CC58BC1131575DBC45E97CE6A3E285577D5C",
+    "tools/ArenaPickupChecks/Doubles.cs": "F91FBB46E89424C3EB397816BC7E4D2C787906B8DA2C9385D7559348643161B2"
+  },
+  "Checks": {
+    "NativeClientBuild": "0 errors; 4 existing CS8632 warnings",
+    "PowerupAssertions": 348,
+    "PowerupNativeContracts": 42,
+    "PowerupRejectedFaults": 9,
+    "DoubleJumpAssertions": 293,
+    "DoubleJumpRejectedFaults": 24,
+    "RuntimeAssertions": 195,
+    "RuntimeSourceContracts": 28,
+    "RuntimeRejectedFaults": 13,
+    "M60DefinitionAssertions": 41,
+    "WeaponAssertions": 108,
+    "WeaponNativeContracts": 46,
+    "WeaponRejectedFaults": 5,
+    "UnitsPassed": 633,
+    "UnitsSkipped": 2,
+    "RegressionSuites": "Assist 431; Capture 126; Deathmatch 163; BotMovement 126; AirControl 155; HUD 44; InfoPanels 292; TDM 227 with 15 rejected faults",
+    "FinalMergedSourceVerified": true
+  },
+  "CheckEvidence": {
+    "Powerups": "artifacts/powerup-checks/49222420c7c7421faa08eab730a44090",
+    "DoubleJump": "artifacts/double-jump-checks/b0f525df107846f38589da654cc51933",
+    "Runtime": "artifacts/pickup-checks/477354f9d490465facb06e454902ff0e",
+    "Weapon": "tools/ArenaWeaponPickupChecks/artifacts/2e55729a25ab4717ac42f8a8ad91d5c4",
+    "Regressions": "artifacts/pickup-regressions/6a893b62da6e4ade8c3d58733cb7d780"
+  },
+  "Reviews": [
+    "Independent read-only Boots/native movement/lifecycle review: no remaining concrete blocker; ground wiring source contract added and corrected.",
+    "Independent read-only M60/preset/native ownership review: no remaining concrete blocker; private profile provenance made explicit opt-in, standard checks stay portable."
+  ],
+  "Limitations": [
+    "Offline source-linked doubles, native IL contracts and client compilation are not Unity/Harmony or GPU raid proof.",
+    "Factory Boots geometry/visibility, native jump feel and M60 pickup/hands behavior require a game test.",
+    "GPU mirror receipt, including the saved PrototypeWeaponKit setting, has not been verified.",
+    "Native examination is not bypassed; source profile already knows the M60."
+  ]
+}

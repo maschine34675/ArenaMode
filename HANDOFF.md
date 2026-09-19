@@ -1,11 +1,46 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-15. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-19. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Jump Boots and M60 pickup DEPLOYED (2026-09-19, Codex):** implementation
+  `ed669cf`, merged/client build `48549ef15ce40cc690e1042cf17e214aec4a3c73` on
+  master; retains the current corpse/pool/announcer work. Jump Boots are the fourth
+  Factory day/night pickup: green marker/beacon, +50% relative jump height for
+  30 gameplay seconds, also for the existing double jump, no extra jump credit.
+  Local player only, Arena movement must be enabled; bots do not consume them.
+  Refresh never stacks; expiry/death/scope reset remove the bonus. Native gravity,
+  collision, stamina, ordinary raids and existing air-vault limits stay intact.
+  Gold weapon pickup now uses the copied M60E6 FDE `retzrestdfg` from the actual
+  `spt41dev` profile, MRS/blue laser/RK-1/Fortis RED and 100 M993 (40+40+20).
+  Fresh native IDs, no normal catalogue insertion or runtime profile access.
+  Source profile SHA256 stayed byte-identical; native examination stays required.
+  M60 requires a free compatible **inactive** weapon slot and never auto-draws.
+  Only the local `PrototypeWeaponKit` value was migrated from `spartan` to
+  `pickup-m60-retzrestdfg`; other config bytes were preserved and backed up.
+  Installed client SHA256
+  `4AF74D51F36493F644776CACB4714934E87B3A115D36C72F3EB0B7C396707250`.
+  `JUMP-BOOTS-M60-DEPLOYMENT-20260919.json` binds client/config, source hashes,
+  original preset, backups and checks. Only client/config bytes changed; three
+  package docs recopied unchanged, 129 other inventoried files including
+  Core/server/UiBridge unchanged. Restart EFT only; GPU mirror receipt unverified,
+  so check the saved pickup setting on that host before testing.
+  Two independent adversarial reviews: no open concrete blocker. Final merged
+  checks: powerups 348 + 42 native/9 faults; double jump 293/24 faults; runtime
+  195 + 28 source/13 faults; M60 definition 41; weapon 108 + 46 native/5 faults;
+  selected movement/combat/HUD/TDM regressions green, units 633 passed/2 skipped.
+  Native build 0 errors/4 existing CS8632 warnings. No native GPU raid proof here.
+  Next GPU test: full Factory DM/TDM, inspect four placement markers and logs;
+  compare ground/double jumps before collection, during 30s and after expiry;
+  confirm one extra jump only, death/reset cleanup and green beacon/timer.
+  Collect M60 with empty compatible inactive slot, inspect attachments/ammo and
+  free hands, repeat after 45s cooldown; inspect all markers during round/raid exit.
+  Existing custom `Pickups.json` replaces built-ins; add `JumpBoots` explicitly
+  there if used. See `PICKUPS-REVIEW.md` for placement/authoring and native limits.
 
 - **Corpse release: the damage-exception finding FIXED and GPU-ACCEPTED
   (2026-09-18, Claude):** `d265353` on `master` (fast-forwarded from the since
