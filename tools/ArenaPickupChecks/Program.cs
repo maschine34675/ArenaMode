@@ -43,6 +43,7 @@ internal static class Program
         ArenaAreaRuntime.IsPending=false;ArenaAreaRuntime.CurrentArea=null;
         ArenaPickupSettings.Enabled=new(true);ArenaPickupSettings.BotsCollectPowerups.Value=true;ArenaPickupSettings.WeaponKit.Value="spartan";
         ArenaRespawnDriver.IsRespawnInProgress=false;WeaponSwapService.IsSwapping=false;KitBundlePreloader.IsPreloading=false;
+        ArenaMode.Movement.ArenaMovementScope.Enabled=true;
         ArenaHudVisibility.IsBattleUiActive=true;KitCatalog.Kits=[new(){Id="spartan"}];
         Time.time=0;Time.unscaledTime=0;Time.timeScale=1;
         NavMesh.SampleOk=true;NavMesh.PathOk=true;NavMesh.Status=NavMeshPathStatus.PathComplete;
@@ -91,12 +92,14 @@ internal static class Program
     private static void Layouts()
     {
         var factory=ArenaPickupLayouts.Factory("spartan");Check(factory.Layouts.Count==2,"Factory day and night supplied");
-        Check(factory.Layouts.All(x=>x.Points.Count==3&&x.Points.Select(p=>p.Kind).Distinct().Count()==3),"each factory prototype has all pickup kinds");
+        Check(factory.Layouts.All(x=>x.Points.Count==4&&x.Points.Select(p=>p.Kind).Distinct().Count()==4),"each factory prototype has all pickup kinds");
         Check(ArenaPickupLayouts.Select(factory,"FACTORY4_DAY",null)!=null,"map identity case insensitive");
         Check(ArenaPickupLayouts.Select(factory,"factory4_day","new-area")==null,"area never falls back to full map");
         Check(ArenaPickupLayouts.Select(factory,"bigmap",null)==null,"unsupported map has no implicit pickups");
         var decoded=ArenaPickupLayouts.Parse(ArenaPickupLayouts.Serialize(factory));
         Check(decoded.Layouts[1].Points[2].KitId=="spartan"&&decoded.Layouts[1].Points[2].RespawnSeconds==45,"layout roundtrip preserves weapon config");
+        Check(decoded.Layouts[1].Points[3].Kind==ArenaPickupKind.JumpBoots,"jump boots survive authoring roundtrip");
+        Check((int)ArenaPickupKind.DoubleDamage==0&&(int)ArenaPickupKind.Shield==1&&(int)ArenaPickupKind.Weapon==2,"new pickup preserves legacy enum values");
         foreach(string json in new[]{"null","{}","{\"Version\":2}","{\"Version\":1,\"Unknown\":true}","{\"Layouts\":null}"})
         {
             // An empty v1 file is deliberately valid; the default fields make {} equivalent.
@@ -170,6 +173,9 @@ internal static class Program
         ArenaPowerups.GrantResult=true;Step();Check(ArenaPowerups.Grants.Count==0,"failed effect requires new approach");Move(_local,-3);Move(_local,0);Check(ArenaPowerups.Grants.Count==1,"failed effect may retry on reentry");
         Ready(ArenaPickupKind.Shield);Move(_local,0);Check(ArenaPowerups.Grants.Single().Kind=="shield","shield point dispatches shield grant");
         Check(ArenaPowerups.Grants.Single().Points==220&&ArenaPowerups.Grants.Single().Seconds==30,"shield pickup grants 220 points for thirty seconds");
+        Ready(ArenaPickupKind.JumpBoots);Move(_local,0);Check(ArenaPowerups.Grants.Single().Kind=="boots"&&ArenaPowerups.Grants.Single().Seconds==30,"boots dispatch thirty-second jump grant");
+        Ready(ArenaPickupKind.JumpBoots);bot=Bot("bot",-3);Step();Move(bot,0);Check(ArenaPowerups.Grants.Count==0&&State().Phase==ArenaPickupPhase.Available,"bots leave boots available");
+        Ready(ArenaPickupKind.JumpBoots);ArenaMode.Movement.ArenaMovementScope.Enabled=false;Move(_local,0);Check(ArenaPowerups.Grants.Count==0,"disabled movement cannot consume boots");
     }
     private static void Weapons()
     {
@@ -193,6 +199,8 @@ internal static class Program
         Step();weapon.Settle(true);Check(ArenaPickupView.Created.All(v=>v.Disposed),"lost raid disposes views even with late callback");
         Ready(ArenaPickupKind.Weapon);weapon=ArenaWeaponPickup.Created.Single();var bot=Bot("bot",-2);Step();Move(bot,0);Check(weapon.Attempts==0,"bots never auto-take weapon");
         Fixture(ArenaPickupKind.Weapon);KitCatalog.Kits=[];Step();Check(State().Phase==ArenaPickupPhase.Retired&&ArenaWeaponPickup.Created.Count==0,"missing kit disables just weapon point");
+        Fixture();System.IO.File.Delete(LayoutPath);KitCatalog.Kits=[];ArenaPickupSettings.WeaponKit.Value=ArenaPickupWeapons.M60Id;Step();Step();
+        Check(ArenaWeaponPickup.Created.Single().Kit.Id==ArenaPickupWeapons.M60Id&&KitCatalog.Kits.Count==0,"runtime prepares built-in M60 without normal catalog insertion");
         Fixture(ArenaPickupKind.Weapon);ArenaWeaponPickup.PrepareNull=true;Step();Check(State().Phase==ArenaPickupPhase.Retired,"preparation failure retires weapon source");
         Fixture(ArenaPickupKind.Weapon);KitBundlePreloader.IsPreloading=true;Step();Check(ArenaWeaponPickup.Created.Count==0,"optional weapon waits for required preload");
         KitBundlePreloader.IsPreloading=false;Step();Check(ArenaWeaponPickup.Created.Count==1,"optional weapon resumes after required preload");
@@ -270,11 +278,11 @@ internal static class Program
         var requested=ArenaPickupLayouts.Factory("spartan").Layouts[0].Points[0];
         Physics.Capsule=(a,b,r)=>(a.x-requested.X)*(a.x-requested.X)+(a.z-requested.Z)*(a.z-requested.Z)<.16f?[new Collider()]:[];
         Step();var damage=ArenaPickupView.Created.Single(v=>v.Point.Kind==ArenaPickupKind.DoubleDamage);
-        Check(ArenaPickupView.Created.Count==3&&damage.Floor.x>requested.X,"built-in runtime opts into safe fallback");
+        Check(ArenaPickupView.Created.Count==4&&damage.Floor.x>requested.X,"built-in runtime opts into safe fallback");
         Check(damage.Point.X==requested.X&&damage.Point.Y==requested.Y&&damage.Point.Z==requested.Z,"relocation never mutates layout definitions");
         Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("factory-damage' relocated")&&s.Contains("pedestal clearance obstructed")),"relocation logs requested and chosen position plus original obstruction");
         System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(FileFor()));Dm.Round.Number++;Step();
-        Check(ArenaPickupView.Created.Count==6,"built-in fallback choice remains frozen across rounds");
+        Check(ArenaPickupView.Created.Count==8,"built-in fallback choice remains frozen across rounds");
 
         Fixture();Check(ArenaPickupGeometry.BeamLength(origin)==4,"open sky beacon height capped at four metres");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=3},new(){collider=new Collider(),distance=1}];

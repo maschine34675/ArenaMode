@@ -132,6 +132,11 @@ namespace ArenaMode.Areas
     public static class ArenaAreaRuntime { public static bool IsPending;public static Area CurrentArea; }
 }
 namespace ArenaMode.Combat { }
+namespace ArenaMode.Movement
+{
+    public static class ArenaMovementScope
+    { public static bool Enabled=true; public static bool IsLocal(EFT.Player player)=>Enabled&&!player.IsAI; }
+}
 namespace ArenaMode.Modes
 {
     public class ArenaMatch { public object Mode; }
@@ -155,7 +160,6 @@ namespace ArenaMode.Hud { public static class ArenaHudVisibility {public static 
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver {public static bool IsRespawnInProgress;} }
 namespace ArenaMode.Kits
 {
-    public class KitDefinition {public string Id;}
     public static class KitCatalog {public static List<KitDefinition> Kits=[new(){Id="spartan"}];}
     public static class KitBundlePreloader {public static bool IsPreloading;}
     public static class WeaponSwapService {public static bool IsSwapping;}
@@ -174,6 +178,7 @@ namespace ArenaMode.Pickups
         internal static void Reset()=>Resets++;
         internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage",0,seconds));return GrantResult;}
         internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield",points,seconds));return GrantResult;}
+        internal static bool GrantJump(Player p,float seconds){if(GrantResult)Grants.Add((p,"boots",0,seconds));return GrantResult;}
     }
     internal sealed class ArenaPickupView:IDisposable
     {
@@ -187,9 +192,10 @@ namespace ArenaMode.Pickups
     {
         internal static List<Handle> Created=[];internal static bool PrepareNull;
         internal static IEnumerator Prepare(GameWorld world,ArenaMode.Kits.KitDefinition kit,Vector3 p,Quaternion q,Func<bool> current,Action<Handle> done)
-        {if(PrepareNull)done(null);else {var h=new Handle();Created.Add(h);done(h);}yield break;}
+        {if(PrepareNull)done(null);else {var h=new Handle{Kit=kit};Created.Add(h);done(h);}yield break;}
         internal sealed class Handle:IDisposable
         {
+            internal ArenaMode.Kits.KitDefinition Kit;
             internal GameObject Visual=new();internal bool IsAvailable=true,IsPending,Disposed,StartResult=true;
             internal string LastRefusal="test transfer refusal";
             internal bool? ImmediateResult;internal int Attempts;internal Player Taker;internal Func<bool> Current;internal Action<bool> Callback;

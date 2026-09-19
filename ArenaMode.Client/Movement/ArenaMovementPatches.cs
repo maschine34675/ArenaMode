@@ -496,10 +496,10 @@ internal static class ArenaMovementPatches
         private static void Postfix(JumpPlayerState __instance)
         {
             var mult = Settings.JumpHeightMult.Value;
-            if (mult <= 1f || !IsArenaMovement(__instance.MovementContext))
-                return;
-
-            __instance._liftForce *= Mathf.Sqrt(mult);
+            if (mult > 1f && IsArenaMovement(__instance.MovementContext))
+                __instance._liftForce *= Mathf.Sqrt(mult);
+            // Runs even at base height 1.0 and clears reused-state metadata when inactive.
+            ArenaJumpBoots.ApplyEntry(__instance);
         }
     }
 

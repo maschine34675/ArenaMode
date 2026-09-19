@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Compile Include="../../../ArenaMode.Client/Pickups/ArenaPickupWeapons.cs" Link="Production/ArenaPickupWeapons.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitPreloadPlan.cs" Link="Production/KitPreloadPlan.cs" />
+  </ItemGroup>
+</Project>

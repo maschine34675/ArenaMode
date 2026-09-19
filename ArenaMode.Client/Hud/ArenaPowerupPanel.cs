@@ -20,7 +20,7 @@ internal sealed class ArenaPowerupPanel
         _rect = (RectTransform)_root.transform;
         _rect.SetParent(parent, false);
         _rect.anchorMin = _rect.anchorMax = _rect.pivot = new Vector2(.5f, 1f);
-        _rect.sizeDelta = new Vector2(660f, 52f);
+        _rect.sizeDelta = new Vector2(880f, 52f);
         var background = _root.AddComponent<Image>();
         background.color = new Color(.03f, .04f, .06f, .85f); background.raycastTarget = false;
         _text = HudStyle.CreateText(_rect, "Powerups", 19f, TextAlignmentOptions.Center);
@@ -43,6 +43,8 @@ internal sealed class ArenaPowerupPanel
         if (state.ShieldSeconds > 0 && state.ShieldPoints > 0)
             label += (label.Length > 0 ? "     " : "") + "<color=#70DFFF>SHIELD  "
                 + Mathf.CeilToInt(state.ShieldPoints) + "  |  " + Mathf.CeilToInt(state.ShieldSeconds) + "s</color>";
+        if (state.JumpSeconds > 0)
+            label += (label.Length > 0 ? "     " : "") + "<color=#80FF60>JUMP BOOTS  " + Mathf.CeilToInt(state.JumpSeconds) + "s</color>";
         if (Time.unscaledTime < ArenaPickupRuntime.NoticeUntil)
             label += (label.Length > 0 ? "\n" : "") + "<size=14>" + ArenaPickupRuntime.LastNotice + "</size>";
         _text.text = label;

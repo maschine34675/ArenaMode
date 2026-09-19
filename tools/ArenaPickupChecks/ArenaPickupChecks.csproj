@@ -8,6 +8,8 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <Compile Include="Program.cs"/><Compile Include="Doubles.cs"/>
+    <Compile Include="../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupWeapons.cs" Link="Production/ArenaPickupWeapons.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupRuntime.cs" Link="Production/ArenaPickupRuntime.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupState.cs" Link="Production/ArenaPickupState.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupLayout.cs" Link="Production/ArenaPickupLayout.cs"/>

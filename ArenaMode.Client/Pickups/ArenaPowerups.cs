@@ -82,6 +82,14 @@ internal static class ArenaPowerups
         catch (Exception ex) { Warn(ex); return default; }
     }
 
+    internal static bool GrantJump(Player player, float duration)
+    {
+        // AI has no Arena jump input; never consume boots on its behalf.
+        if (player == null || player.IsAI) return false;
+        try { return CurrentLife(player, create: true)?.State.GrantJump(Time.time, duration) == true; }
+        catch (Exception ex) { Warn(ex); return false; }
+    }
+
     private static Life CurrentLife(Player player, bool create)
     {
         if (_generation != ArenaPickupRuntime.Generation) Reset();

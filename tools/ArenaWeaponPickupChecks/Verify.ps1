@@ -1,10 +1,16 @@
-param([string]$SptPath = 'D:\SPT41')
+param([string]$SptPath = 'D:\SPT41', [string]$PresetSourceProfile = '')
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSourcePath = Join-Path $arenaRepo 'ArenaMode.Client\Pickups\ArenaWeaponPickup.cs'
 $arenaSource = [IO.File]::ReadAllText($arenaSourcePath).Replace("`r`n", "`n")
 $arenaWork = Join-Path $PSScriptRoot ('artifacts\' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $arenaWork -Force | Out-Null
+$arenaDefinitionArgs = @($SptPath)
+if ($PresetSourceProfile) { $arenaDefinitionArgs += $PresetSourceProfile }
+$arenaDefinition = & dotnet run --project (Join-Path $PSScriptRoot 'Definition/M60DefinitionChecks.csproj') -c Release -- @arenaDefinitionArgs 2>&1 | Out-String
+if ($LASTEXITCODE -ne 0 -or !$arenaDefinition.Contains('ARENA M60 DEFINITION PASSED')) { throw $arenaDefinition }
+[IO.File]::WriteAllText((Join-Path $arenaWork 'm60-definition.log'), $arenaDefinition)
+Write-Output $arenaDefinition.Trim()
 function Run-Adapter([string]$Name, [string]$Override = '') {
     $arenaArgs = @('run', '--project', (Join-Path $PSScriptRoot 'ArenaWeaponPickupChecks.csproj'), '-c', 'Release')
     if ($Override) { $arenaArgs += "-p:PickupSource=$Override" }
