@@ -491,10 +491,14 @@ cs`'s own guard against `GC.Collect(`/`GetTotalMemory(true`.
    `objectsCoun` typo); contains `"__result = Task.CompletedTask;"` (the null-`Task`
    guard on the skip path); contains `"PoolPrewarmPolicy.ShouldLogLedger("`, and that
    substring's index precedes the index of `"_poolsTouched.Clear();"` (the `Reset()`
-   log-before-clear ordering); does **not** contain `"GC.Collect("` or
-   `"GetTotalMemory(true"` (inherited habit-guard from the GC feature; this feature
-   never has a reason to touch the heap, so the guard costs nothing and catches an
-   accidental copy-paste).
+   log-before-clear ordering); the index of `"objectsCount = decision.ObjectsCount;"`
+   precedes the index of `"if (!decision.RunOriginal)"` (the write-back-before-branch
+   ordering `harmony-runtime-r1-F1` fixed and the whole idempotence argument below
+   depends on — a `Contains()` check alone cannot catch the write-back being moved
+   after the branch, only this position comparison can); does **not** contain
+   `"GC.Collect("` or `"GetTotalMemory(true"` (inherited habit-guard from the GC
+   feature; this feature never has a reason to touch the heap, so the guard costs
+   nothing and catches an accidental copy-paste).
 2. `ClampDecisions()` — unit assertions against the compiled `PoolPrewarmPolicy.
    Decide`:
    - `keepIdle = 0` never clamps, regardless of `arenaActive`/`reason`/demand (the
@@ -562,8 +566,9 @@ scan — each confirmed against the exact prefix/`Reset()` text in this design):
 | `ledger-cleared-before-log-decision` | `if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `_poolsTouched.Clear(); if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `Reset()` clears the ledger before deciding whether to log it |
 | `monitor-forces-a-collection` | `_expansionsClamped++;` | `_expansionsClamped++;` followed by `GC.Collect();` | monitor source never forces a collection |
 | `monitor-forces-heap-read` | `_instancesAvoided += Math.Max(0, requested - allowed);` | the same line followed by `GC.GetTotalMemory(true);` | monitor source never reads the heap with a forced collection |
+| `writeback-after-runoriginal-branch` | the write-back line immediately followed by the `if (!decision.RunOriginal) { ...; return false; }` block, then `return true;` | the same block moved BEFORE the write-back, so the full-skip path's `return false;` runs before `objectsCount` is ever reassigned | reproduces `harmony-runtime-r1-F1`: `Prefix` writes objectsCount back before branching on RunOriginal |
 
-Thirteen faults in total (7 targeting `PoolPrewarmPolicy.cs`, 6 targeting
+Fourteen faults in total (7 targeting `PoolPrewarmPolicy.cs`, 7 targeting
 `PoolPrewarmMonitor.cs`), matching the shipped `Verify.ps1`.
 
 `Write-Output 'ARENA_POOL_PREWARM_CHECKS_PASSED'` at the end, same

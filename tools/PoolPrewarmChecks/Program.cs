@@ -89,6 +89,23 @@ internal static class Program
         var shouldLogAt = monitorText.IndexOf("PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count)", StringComparison.Ordinal);
         var clearAt = monitorText.IndexOf("_poolsTouched.Clear();", StringComparison.Ordinal);
         Check(shouldLogAt >= 0 && clearAt >= 0 && shouldLogAt < clearAt, "Reset() decides whether to log the ledger before clearing it");
+
+        // Prefix must write objectsCount = decision.ObjectsCount back UNCONDITIONALLY,
+        // before branching on RunOriginal — not only on the RunOriginal-true path.
+        // This is the exact ordering harmony-runtime-r1-F1 fixed (853463c) and the one
+        // POOL-PREWARM-REVIEW.md's own idempotence argument rests on: a repeated
+        // invocation of this shared prefix (Mono generic-code sharing, see the class
+        // doc comment) has only this ref parameter to learn what a first invocation
+        // already decided, and the full-skip outcome (RunOriginal == false) is the
+        // most common one once a pool sits at keepIdle. A write-back that only
+        // happens after the `if (!decision.RunOriginal)` block never runs on that
+        // path, because the block returns early — so this checks the two literals'
+        // POSITIONS, not just their presence, which the plain Contains() checks above
+        // would both still pass even with the write-back moved after the branch.
+        var writeBackAt = monitorText.IndexOf("objectsCount = decision.ObjectsCount;", StringComparison.Ordinal);
+        var runOriginalBranchAt = monitorText.IndexOf("if (!decision.RunOriginal)", StringComparison.Ordinal);
+        Check(writeBackAt >= 0 && runOriginalBranchAt >= 0 && writeBackAt < runOriginalBranchAt,
+            "Prefix writes objectsCount back before branching on RunOriginal (harmony-runtime-r1-F1 regression guard)");
     }
 
     private static void ClampDecisions()
