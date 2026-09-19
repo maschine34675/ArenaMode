@@ -271,13 +271,17 @@ private static bool Prefix(object __instance, ref int objectsCount, string reaso
 
         RecordClamp(pool.PoolShortName, requested: objectsCount, allowed: decision.ObjectsCount);
 
+        // Written back unconditionally, on BOTH branches below — see "Idempotence"
+        // further down for why the full-skip path needs this just as much as the
+        // partial-clamp one.
+        objectsCount = decision.ObjectsCount;
+
         if (!decision.RunOriginal)
         {
             __result = Task.CompletedTask;
             return false;
         }
 
-        objectsCount = decision.ObjectsCount;
         return true;
     }
     catch (Exception exception)
