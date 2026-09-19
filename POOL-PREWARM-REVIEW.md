@@ -319,6 +319,18 @@ target of one of the checks project's own unit tests (see Verification below): c
 call's `requestedCount` and the same `futurePoolSize` — the second call must return
 `Clamped == false`.
 
+This whole argument depends on `Prefix` actually writing `objectsCount =
+decision.ObjectsCount` on **every** `Clamped` decision, including the full-skip one
+(`decision.RunOriginal == false`, `ObjectsCount == 0`) — not only the partial-clamp one
+that goes on to run the (shrunk) original. `Prefix` writes it unconditionally, before
+branching on `RunOriginal`, for exactly this reason: a full skip is the single most
+common clamp outcome once a pool has reached `keepIdle` (the AFAK/kit pools this
+feature targets spend most of a long raid there), so a repeated invocation must see
+`objectsCount == 0` — which `Decide`'s own `requestedCount <= 0` guard resolves to
+`Unclamped` — rather than the caller's original, unclamped request replayed against an
+unmoved `FuturePoolSize`, which would reproduce the identical `ClampedTo(0)` decision
+and double the ledger for one real clamp.
+
 This argument only covers "two prefixes chained onto one call". If a real GPU raid
 instead shows `TotalCreatedObjectsCount` behaving as though `ExpandPool` itself ran
 twice per logical bot spawn, that is a different, more serious failure than anything
