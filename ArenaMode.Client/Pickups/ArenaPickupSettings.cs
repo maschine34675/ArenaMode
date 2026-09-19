@@ -1,4 +1,5 @@
 using BepInEx.Configuration;
+using System;
 using UnityEngine;
 
 namespace ArenaMode.Pickups;
@@ -19,6 +20,17 @@ internal static class ArenaPickupSettings
             "Allow living Arena bots on either side to collect damage/shield powerups by walking over them. Does not change their routes. Weapons and Jump Boots are local-player-only.");
         WeaponKit = config.Bind("Arena pickups", "PrototypeWeaponKit", ArenaPickupWeapons.M60Id,
             "Pickup weapon: pickup-m60-retzrestdfg is the copied M60E6 with MRS, blue laser and 100 M993 rounds. Any existing catalogue kit ID also works (weapon only, no spare magazines or armor). Read at match start.");
+        var weaponDefaultMigrated = config.Bind("Arena pickups", "M60DefaultMigrated", false,
+            "Internal one-time migration of the old spartan prototype default to M60; leave enabled. Other kits and later manual choices are preserved.");
+        if (!weaponDefaultMigrated.Value)
+        {
+            // Bind's new default does not replace a saved value. Migrate on the
+            // machine loading this DLL, so a stale mirrored config cannot keep
+            // the old prototype on every restart. Do not rewrite custom layouts.
+            if (string.Equals(WeaponKit.Value, "spartan", StringComparison.OrdinalIgnoreCase))
+                WeaponKit.Value = ArenaPickupWeapons.M60Id;
+            weaponDefaultMigrated.Value = true;
+        }
         CaptureEnabled = config.Bind("Development - Pickups", "Enabled", false,
             "Read-only point authoring. Aim/feet captures write only to an explicit PickupDrafts export. Normal PMC capture additionally requires Development - Area outline / AllowInNormalPmc. Never grants pickups outside Arena.");
         CaptureKind = config.Bind("Development - Pickups", "Kind", ArenaPickupKind.DoubleDamage,

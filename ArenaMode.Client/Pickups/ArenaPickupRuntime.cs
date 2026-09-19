@@ -170,7 +170,10 @@ internal static class ArenaPickupRuntime
         }
         else file = ArenaPickupLayouts.Factory(ArenaPickupSettings.WeaponKit.Value);
         _layout = ArenaPickupLayouts.Select(file, map, area);
-        Plugin.ModLogger.LogInfo($"Arena pickups layout: {map}/{area ?? "full map"}; {_layout?.Points.Count ?? 0} configured points. Frozen for this match.");
+        var weapons = _layout?.Points.Where(point => point.Kind == ArenaPickupKind.Weapon)
+            .Select(point => point.Id + ":" + point.KitId) ?? Enumerable.Empty<string>();
+        Plugin.ModLogger.LogInfo($"Arena pickups layout: {map}/{area ?? "full map"}; {_layout?.Points.Count ?? 0} configured points. "
+            + $"Source={(_builtInLayout ? "built-in" : "Pickups.json")}; weapons=[{string.Join(", ", weapons)}]. Frozen for this match.");
     }
 
     private static void BeginRound(Vector3 anchor)

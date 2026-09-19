@@ -36,10 +36,14 @@ clear effects/temporary objects. Paused gameplay time pauses durations/cooldowns
 
 F12 **Arena pickups** defaults enabled with **BotsCollectPowerups** enabled.
 `PrototypeWeaponKit` defaults to `pickup-m60-retzrestdfg`; it can also select an
-existing catalogue kit. Existing installs retain their saved choice; the requested
-September 19 deployment explicitly changes the local old `spartan` choice to M60.
-Layout
-and kit choices freeze at match start. Disabling during a match clears pickups and
+existing catalogue kit. The September 19 follow-up migrates the old `spartan`
+prototype value once on the machine loading the plugin, using the persistent
+`M60DefaultMigrated` marker. A new default alone had left the saved M4 selection
+in place, including after mirroring a stale config back from another host.
+Other kit choices and later deliberate changes (including back to `spartan`)
+are preserved. Custom `Pickups.json` weapon entries are not rewritten. The layout
+log now includes built-in/custom origin and the actual weapon point/kit IDs.
+Layout and kit choices freeze at match start. Disabling during a match clears pickups and
 effects; re-enabling applies next match.
 
 ## Initial Factory points

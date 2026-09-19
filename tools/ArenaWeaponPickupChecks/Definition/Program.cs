@@ -3,7 +3,7 @@ using ArenaMode.Pickups;
 using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static void Check(bool value,string message){_checks++;if(!value)throw new Exception("ASSERT: "+message);}
@@ -27,6 +27,7 @@ internal static class Program
         {
             if(args.Length<1||args.Length>2)throw new ArgumentException("SPT root and optional read-only source profile expected");
             string spt=args[0];
+            VerifyWeaponSettingMigration();
             var kit=ArenaPickupWeapons.Find(ArenaPickupWeapons.M60Id);var other=ArenaPickupWeapons.CreateM60();
             Check(kit.Items.Count==15&&kit.Fill.SpareMagazines==0&&kit.Fill.RigContents.Count==0,"pickup includes only weapon tree and loaded ammo");
             var weapon=kit.Items.Single(n=>n.SlotId=="FirstPrimaryWeapon");
