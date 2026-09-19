@@ -73,7 +73,7 @@ internal static class Program
         s.Snapshot.Countdown = 2;
         s.Tick(ArenaAnnouncerCue.Two);
         s.Snapshot.Live = true;
-        s.Tick(ArenaAnnouncerCue.CancelStatus);
+        s.Tick(ArenaAnnouncerCue.AdvanceStatus);
         s.Tick(); // stale Preparing and Countdown cannot speak while live
         s.Snapshot.Live = false;
         s.Snapshot.Terminal = true;
@@ -272,7 +272,7 @@ internal static class Program
         s.Snapshot.Preparing = true;
         s.Tick(ArenaAnnouncerCue.PrepareToFight);
         s.Snapshot.Live = true;
-        s.Tick(ArenaAnnouncerCue.CancelStatus, ArenaAnnouncerCue.FinalRound);
+        s.Tick(ArenaAnnouncerCue.AdvanceStatus, ArenaAnnouncerCue.FinalRound);
         s.Tick();
         s.Snapshot.FinalRound = s.Snapshot.MatchPoint = false;
         s.Tick();

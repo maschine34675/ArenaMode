@@ -7,6 +7,16 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Preparation announcer repair (2026-09-19, Codex):** the existing 1.468 s
+  PREPARE TO FIGHT clip is complete. Normal preparation-to-countdown/live
+  progress used to stop it early; direct RoundStart could replace it as well.
+  Preserve its spoken duration and defer only the start voice, never gameplay.
+  Real cancellation/epoch/result/mute/exit still discard pending speech. See
+  `ANNOUNCER-PREPARE-REVIEW.md` and `tools/AnnouncerChecks/Verify-Preparation.ps1`.
+  Claude's six-cue integration reviewed without a concrete runtime blocker;
+  corrected outdated AIRBORNE documentation. No audio assets or settings changed.
+  Native hearing after restart remains the user's test; this is offline proof.
+
 - **Jump Boots and M60 pickup DEPLOYED (2026-09-19, Codex):** implementation
   `ed669cf`, merged/client build `48549ef15ce40cc690e1042cf17e214aec4a3c73` on
   master; retains the current corpse/pool/announcer work. Jump Boots are the fourth

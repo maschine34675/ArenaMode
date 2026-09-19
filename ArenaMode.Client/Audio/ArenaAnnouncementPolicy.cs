@@ -74,7 +74,12 @@ internal sealed class ArenaAnnouncementPolicy
         bool countdownEnded = _countdown.HasValue && !countdown.HasValue;
         if (!newEpoch && (countdownEnded || (_preparing && !preparing) || (_live && !snapshot.Live) ||
             (!_terminal && snapshot.Terminal)))
-            emit(ArenaAnnouncerCue.CancelStatus);
+        {
+            bool advancing = !snapshot.Terminal &&
+                ((_preparing && !preparing && (countdown.HasValue || snapshot.Live)) ||
+                 (_countdown.HasValue && snapshot.Live));
+            emit(advancing ? ArenaAnnouncerCue.AdvanceStatus : ArenaAnnouncerCue.CancelStatus);
+        }
 
         // Readiness can be lost within one logical round. A fresh contiguous
         // countdown may repeat digits; Prepare remains once per round/epoch.

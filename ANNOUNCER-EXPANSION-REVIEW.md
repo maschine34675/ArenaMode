@@ -44,12 +44,14 @@ Triple Kill at both stages. Per-kill selection is now:
 2. Payback
 3. Shutdown
 4. Multi-kill (Double / Triple / Multi / Monster)
-5. TRICKSHOT (airborne hip fire), then NO SCOPE (bolt-action hip fire)
+5. AIRBORNE (airborne hip fire), then NO SCOPE (bolt-action hip fire)
 6. Kill streak (Killing Spree through Godlike)
 7. Single-hit Headshot
 
-The later shot-time extension is specified in `SHOT-AWARDS-REVIEW.md`; both
-special labels provisionally use Godlike audio while retaining their own priority.
+The later shot-time extension is specified in `SHOT-AWARDS-REVIEW.md`. Since the
+2026-09-17 supplement, AIRBORNE replaces the former TRICKSHOT name with unchanged
+conditions; both special labels use their own `airborne.ogg` / `no_scope.ogg`
+recordings. Godlike remains only a missing/invalid-clip fallback.
 
 Scores and the HUD's existing four-kill label MULTI KILL remain unchanged; that
 file's recording says ULTRA KILL. This is one selected award per kill, not a queue
@@ -57,7 +59,7 @@ of every coincident award. Triple Kill can still be displaced by a higher-ranked
 award or superseded by a later multi-kill while speech is busy.
 
 For the one pending speech slot, Last Man Standing ranks above First Blood,
-Payback, Shutdown, multi-kills, Trickshot, No Scope, sprees, Headshot, ladder milestones, series
+Payback, Shutdown, multi-kills, Airborne, No Scope, sprees, Headshot, ladder milestones, series
 milestones, remaining-limit warnings, lead changes and preparation, in that order.
 Equal priority keeps the latest event. Ordinary awards expire after four seconds;
 status expires after two. Numbers are never queued, so a busy or unavailable

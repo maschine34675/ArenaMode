@@ -10,7 +10,7 @@ describe the original shot-award implementation.
 
 | HUD award | Required state at firing |
 | --- | --- |
-| TRICKSHOT | Local firearm bullet, at least 0.5 seconds continuously airborne (jump or fall) before firing, without aiming |
+| AIRBORNE | Local firearm bullet, at least 0.5 seconds continuously airborne (jump or fall) before firing, without aiming |
 | NO SCOPE | Local firearm bullet, native `Weapon.BoltAction`, without aiming |
 
 The bullet must directly kill an eligible enemy. No headshot or one-hit kill is
@@ -37,21 +37,23 @@ contracts, six compiled fault controls including restoration of instant-airborne
 eligibility. The 0.499/0.500 boundary, landing, pause, slow updates, identity and
 round changes, early shot/late impact and unchanged No Scope behavior passed.
 Independent adversarial review found no blocking issue; native raid feel remains
-a user test. HUD/key stays TRICKSHOT / `trickshot`; AIRBORNE! is a proposed future
-recording, not a newly supplied audio asset.
+a user test. The 2026-09-17 supplement renamed the former TRICKSHOT HUD/key to
+AIRBORNE / `airborne` and supplied its own recording. The 0.5-second shot-time
+condition remains unchanged; no additional award trigger was introduced.
 
 One label per kill, in this order: First Blood, Payback, Shutdown, multi-kill,
-TRICKSHOT, NO SCOPE, spree, single-hit Headshot. An airborne bolt-action hip-fire
-kill selects TRICKSHOT. Multi-kills keep the higher queue priority introduced by
+AIRBORNE, NO SCOPE, spree, single-hit Headshot. An airborne bolt-action hip-fire
+kill selects AIRBORNE. Multi-kills keep the higher queue priority introduced by
 the preceding announcer change. First Blood and other higher awards can still
 replace either special-shot announcement.
 
-Both new logical keys provisionally play the existing `godlike.ogg` recording,
-as requested. Their HUD labels and queue priorities stay separate (70/65,
-below multi-kills at 80 and above sprees at 60). No audio bytes, licence text or
-provenance were changed. Later healthy recordings at
-`BepInEx/plugins/ArenaMode/sounds/trickshot.ogg` and `no_scope.ogg` take precedence
-through the normal root-file loader after restarting the game. Missing,
+Both logical keys now use their supplied recordings at
+`BepInEx/plugins/ArenaMode/sounds/airborne.ogg` and `no_scope.ogg` through the normal
+root-file loader. Their HUD labels and queue priorities stay separate (70/65,
+below multi-kills at 80 and above sprees at 60). The supplement's provenance and
+licence status are recorded in `ANNOUNCER-ADDITIONS-20260917.json` and
+`AUDIO-LICENSES.md` beside the assets. `reserve/trickshot.ogg` and
+`reserve/air_superiority.ogg` are packaged but have no active trigger. Missing,
 undecodable or invalidated optional clips use Godlike; mute/output failures
 preserve the existing no-play behavior. The first fallback per logical key and
 match is logged, without per-kill spam. Existing independent volume applies.
@@ -125,5 +127,6 @@ airborne ADS kill, and bolt-action hip-fire/ADS kills. Consume First Blood first
 and leave more than four seconds between kills when testing the special labels,
 so a higher-priority award does not mask them. Repeat after respawn and a round
 change. Also test firing airborne then landing before impact, and a delayed
-bleeding death. Confirm Godlike audio, independent volume and normal-raid silence.
+bleeding death. Confirm the AIRBORNE and NO SCOPE recordings, independent volume
+and normal-raid silence; Godlike is only the missing/invalid-clip fallback.
 Do not install the isolated staged DLL over a newer combined/respawn build.

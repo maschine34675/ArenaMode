@@ -57,6 +57,7 @@ internal static partial class Program
             VerifyExpansion(pluginDir, context);
             VerifyShotAwards(pluginDir, context);
             VerifySixCues(pluginDir, context);
+            VerifyPreparationTransitions();
             VerifyNativeUiOutputLifecycle();
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;

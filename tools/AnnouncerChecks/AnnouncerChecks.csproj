@@ -4,15 +4,20 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <!-- The linked snapshot includes progress fields unused by these audio-only scenarios. -->
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
     <!-- Allows a temporary mutation copy for the negative regression check. -->
     <AnnouncerServiceSource Condition="'$(AnnouncerServiceSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\AnnouncerService.cs</AnnouncerServiceSource>
     <AnnouncerOutputSource Condition="'$(AnnouncerOutputSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\ArenaAnnouncerOutput.cs</AnnouncerOutputSource>
     <AnnouncerCatalogSource Condition="'$(AnnouncerCatalogSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\AnnouncerCueCatalog.cs</AnnouncerCatalogSource>
+    <AnnouncementPolicySource Condition="'$(AnnouncementPolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Audio\ArenaAnnouncementPolicy.cs</AnnouncementPolicySource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(AnnouncerServiceSource)" Link="Production/AnnouncerService.cs" />
     <Compile Include="$(AnnouncerOutputSource)" Link="Production/ArenaAnnouncerOutput.cs" />
     <Compile Include="$(AnnouncerCatalogSource)" Link="Production/AnnouncerCueCatalog.cs" />
+    <Compile Include="$(AnnouncementPolicySource)" Link="Production/ArenaAnnouncementPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Audio/ArenaAnnouncementSnapshot.cs" Link="Production/ArenaAnnouncementSnapshot.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs"
              Link="Production/ArenaAnnouncerCue.cs" />
   </ItemGroup>

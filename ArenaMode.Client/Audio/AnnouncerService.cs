@@ -58,6 +58,7 @@ internal static class AnnouncerService
     private static string _lastOutputState;
     private static float _calloutBusyUntil;
     private static string _pendingResultKey;
+    private static string _pendingStartKey;
     private static string _pendingCalloutKey;
     private static float _pendingCalloutExpiresAt;
     private static string _pendingResultFallbackKey;
@@ -368,6 +369,11 @@ internal static class AnnouncerService
             CancelStatus("mode status changed");
             return;
         }
+        if (cue == ArenaAnnouncerCue.AdvanceStatus)
+        {
+            CancelStatus("mode preparation advanced", preservePreparation: true);
+            return;
+        }
         var kind = AnnouncerCueCatalog.Classify(cue, out string key);
         if (kind == AnnouncerCueKind.None) return;
         _cuesReceived++;
@@ -397,6 +403,16 @@ internal static class AnnouncerService
         }
         if (kind == AnnouncerCueKind.Start)
         {
+            // The gameplay event has already happened. Delay only its voice,
+            // so a fast kit swap/readiness transition cannot cut "... TO FIGHT".
+            if (PreparationPlaying)
+            {
+                _pendingStartKey = key;
+                ClearPendingStatus("new round started");
+                Plugin.ModLogger.LogInfo($"Arena announcer start queued: '{key}', "
+                    + $"finishing=prepare_to_fight, waitMs={Number((_calloutBusyUntil - Time.realtimeSinceStartup) * 1000f)}.");
+                return;
+            }
             // A new live round owns the channel. This also prevents an unusually
             // long custom result queue from leaking into the next round.
             CancelPendingResult("new round started");
@@ -432,10 +448,17 @@ internal static class AnnouncerService
         if (AnnouncerCueCatalog.IsStatus(_pendingCalloutKey)) ClearPendingCallout(reason);
     }
 
-    private static void CancelStatus(string reason)
+    private static bool PreparationPlaying
+        => _activeKey == "prepare_to_fight" && Time.realtimeSinceStartup < _calloutBusyUntil;
+
+    private static void CancelStatus(string reason, bool preservePreparation = false)
     {
         ClearPendingStatus(reason);
+        if (!preservePreparation) _pendingStartKey = null;
+        if (preservePreparation && PreparationPlaying) return;
         if (!AnnouncerCueCatalog.IsStatus(_activeKey) && !AnnouncerCueCatalog.IsCountdown(_activeKey)) return;
+        if (Time.realtimeSinceStartup < _calloutBusyUntil)
+            Plugin.ModLogger.LogInfo($"Arena announcer status canceled: '{_activeKey}', reason={reason}.");
         // Only our owned output can be stopped safely. Legacy GUISounds shares
         // its source with buttons and other UI; do not stop somebody else's sound.
         if (!Settings.AnnouncerUseUiVolume.Value) ArenaAnnouncerOutput.Reset();
@@ -476,6 +499,12 @@ internal static class AnnouncerService
             Plugin.ModLogger.LogInfo($"Arena announcer queued result released: '{key}'.");
             StartCallout(key, fallbackKey);
         }
+        else if (_pendingStartKey != null)
+        {
+            string key = _pendingStartKey;
+            _pendingStartKey = null;
+            StartCallout(key);
+        }
         else if (_pendingCalloutKey != null)
         {
             string key = _pendingCalloutKey;
@@ -488,6 +517,7 @@ internal static class AnnouncerService
 
     private static void CancelPendingResult(string reason)
     {
+        _pendingStartKey = null;
         ClearPendingCallout(reason);
         _clutchArmed = false;
         string key = _pendingResultKey;

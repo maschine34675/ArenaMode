@@ -54,7 +54,7 @@ internal static partial class Program
         {
             var request = UnityWebRequestMultimedia.Requests.Last(r => !r.Operation.isDone);
             string key = Path.GetFileNameWithoutExtension(new Uri(request.Url).LocalPath);
-            int frames = key switch { "three" => 41783, "two" => 36445, "one" => 37767, _ => 8 };
+            int frames = key switch { "prepare_to_fight" => 64742, "three" => 41783, "two" => 36445, "one" => 37767, _ => 8 };
             request.Content = AudioClip.CreateDecodedFixture(key, frames, 2, 44100);
             int count = UnityWebRequestMultimedia.Requests.Count;
             request.Complete(UnityWebRequest.Result.Success);

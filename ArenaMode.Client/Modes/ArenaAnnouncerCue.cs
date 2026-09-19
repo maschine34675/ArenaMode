@@ -34,4 +34,6 @@ internal enum ArenaAnnouncerCue
     Clutch,
     NoContest,
     Embarrassing,
+    // Normal preparation/countdown progress, distinct from invalidation.
+    AdvanceStatus,
 }
