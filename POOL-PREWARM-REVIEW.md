@@ -525,6 +525,16 @@ compiled unit assertions):
 | `negative-allowed-possible` | `Math.Max(0, keepIdle - futurePoolSize)` | `(keepIdle - futurePoolSize)` | allowed goes negative once futurePoolSize exceeds keepIdle |
 | `already-in-budget-still-clamped` | `requestedCount <= allowed` | `false` | a request already within budget gets clamped anyway |
 
+Targeting `PoolPrewarmPolicy.cs` again (the GC-habit guard, inherited from the same
+check `GC-THRESHOLD-REVIEW.md` runs against its own policy — proves `SourceGuard`'s
+text scan reads the same mutated file the behavioural assertions above just ran
+against):
+
+| Name | Find | Replace | Expected failure |
+|---|---|---|---|
+| `policy-forces-a-collection` | `return Decision.ClampedTo(allowed);` | `GC.Collect(); return Decision.ClampedTo(allowed);` | policy source never forces a collection |
+| `policy-forces-heap-read` | `public static bool ShouldLogLedger(int poolsTouched) => poolsTouched > 0;` | a two-line body that calls `GC.GetTotalMemory(true)` before returning `poolsTouched > 0` | policy source never reads the heap with a forced collection |
+
 Targeting `PoolPrewarmMonitor.cs` (structural mutants, caught by `SourceGuard`'s text
 scan — each confirmed against the exact prefix/`Reset()` text in this design):
 
@@ -534,6 +544,11 @@ scan — each confirmed against the exact prefix/`Reset()` text in this design):
 | `objectscount-misspelled` | `ref int objectsCount,` | `ref int objectsCoun,` | the ref parameter no longer matches the implementation's spelling |
 | `missing-completed-task-on-skip` | `__result = Task.CompletedTask;` | `` | the skip path leaves `__result` null |
 | `ledger-cleared-before-log-decision` | `if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `_poolsTouched.Clear(); if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `Reset()` clears the ledger before deciding whether to log it |
+| `monitor-forces-a-collection` | `_expansionsClamped++;` | `_expansionsClamped++;` followed by `GC.Collect();` | monitor source never forces a collection |
+| `monitor-forces-heap-read` | `_instancesAvoided += Math.Max(0, requested - allowed);` | the same line followed by `GC.GetTotalMemory(true);` | monitor source never reads the heap with a forced collection |
+
+Thirteen faults in total (7 targeting `PoolPrewarmPolicy.cs`, 6 targeting
+`PoolPrewarmMonitor.cs`), matching the shipped `Verify.ps1`.
 
 `Write-Output 'ARENA_POOL_PREWARM_CHECKS_PASSED'` at the end, same
 token-and-hash-verification discipline `Invoke-ArenaSourceChecks.ps1` already runs for
