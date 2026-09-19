@@ -384,11 +384,13 @@ log-worthiness decision is itself pulled into the pure, compiled policy —
 ```csharp
 public static void Reset()
 {
-    if (PoolPrewarmPolicy.ShouldLogLedger(_ledger.Count))
+    if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))
     {
-        /* build and log the one summary line from _ledger, see Logging below */
+        /* build and log the one summary line from _poolsTouched/_expansionsClamped/_instancesAvoided, see Logging below */
     }
-    _ledger.Clear();
+    _poolsTouched.Clear();
+    _expansionsClamped = 0;
+    _instancesAvoided = 0;
     _disabledForRaid = false;
     _warnedThisRaid = false;
 }
@@ -397,11 +399,17 @@ public static void Reset()
 The first call in a boundary sees a non-empty ledger, logs once, then clears
 everything; every subsequent call in the same boundary sees an empty ledger,
 `ShouldLogLedger(0)` is `false` (a compiled, unit-tested fact — see Verification), and
-clearing an already-empty dictionary and already-false flags is a no-op. The ordering
-invariant this depends on — the log decision must be evaluated strictly before
-`_ledger.Clear()` runs — is checked at the source level by the offline checks project
-(see below), since `PoolPrewarmMonitor` itself cannot be compiled outside the game to
-unit-test `Reset()` directly.
+clearing an already-empty set/counters and already-false flags is a no-op. The
+ordering invariant this depends on — the log decision must be evaluated strictly
+before `_poolsTouched.Clear()` runs — is checked at the source level by the offline
+checks project (see below), since `PoolPrewarmMonitor` itself cannot be compiled
+outside the game to unit-test `Reset()` directly.
+
+(The ledger is three fields, not one dictionary: `_poolsTouched` is a
+`HashSet&lt;string&gt;` of `IAssetPool.PoolShortName` values, `_expansionsClamped` an
+`int` count of clamp decisions, `_instancesAvoided` a `long` running total. All three
+are cleared together; `ShouldLogLedger` is asked about `_poolsTouched.Count` because
+that is the one field whose emptiness exactly tracks "did anything happen this raid".)
 
 ## Logging
 
@@ -462,7 +470,7 @@ cs`'s own guard against `GC.Collect(`/`GetTotalMemory(true`.
    `"ref int objectsCount,"` (the correct spelling, never the interface's
    `objectsCoun` typo); contains `"__result = Task.CompletedTask;"` (the null-`Task`
    guard on the skip path); contains `"PoolPrewarmPolicy.ShouldLogLedger("`, and that
-   substring's index precedes the index of `"_ledger.Clear();"` (the `Reset()`
+   substring's index precedes the index of `"_poolsTouched.Clear();"` (the `Reset()`
    log-before-clear ordering); does **not** contain `"GC.Collect("` or
    `"GetTotalMemory(true"` (inherited habit-guard from the GC feature; this feature
    never has a reason to touch the heap, so the guard costs nothing and catches an
@@ -521,7 +529,7 @@ scan — each confirmed against the exact prefix/`Reset()` text in this design):
 | `originalmethod-reintroduced` | `ref Task __result)` | `ref Task __result, System.Reflection.MethodBase __originalMethod)` | the prefix requests `__originalMethod` on a generic declaring type again |
 | `objectscount-misspelled` | `ref int objectsCount,` | `ref int objectsCoun,` | the ref parameter no longer matches the implementation's spelling |
 | `missing-completed-task-on-skip` | `__result = Task.CompletedTask;` | `` | the skip path leaves `__result` null |
-| `ledger-cleared-before-log-decision` | `if (PoolPrewarmPolicy.ShouldLogLedger(_ledger.Count))` | `_ledger.Clear(); if (PoolPrewarmPolicy.ShouldLogLedger(_ledger.Count))` | `Reset()` clears the ledger before deciding whether to log it |
+| `ledger-cleared-before-log-decision` | `if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `_poolsTouched.Clear(); if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))` | `Reset()` clears the ledger before deciding whether to log it |
 
 `Write-Output 'ARENA_POOL_PREWARM_CHECKS_PASSED'` at the end, same
 token-and-hash-verification discipline `Invoke-ArenaSourceChecks.ps1` already runs for
