@@ -308,6 +308,22 @@ each on the GPU host. Never call `GC.Collect` or `GC.GetTotalMemory(true)` from 
 code, not even for diagnostics. `GcThresholdMonitor` switches the incremental collector
 back on past `GcHeapThresholdGB`; see `GC-THRESHOLD-REVIEW.md`.
 
+**A Harmony patch that asks for `__originalMethod` on a method declared on a generic
+type throws on every call, before the patch body ever runs — even for a closed
+instantiation.** First hit patching `ComponentSystem<MuzzleManager, MuzzleSystem>.Update`
+(`RespawnLeakProbe.Timing.MethodTimer.IsPatchable`): HarmonyX/the CLR cannot resolve a
+`MethodBase` for a method handle whose declaring type still carries an open type
+parameter, and the error is "Cannot resolve method ... because the declaring type of the
+method handle ... is generic". Hit again patching `AbstractAssetsPool<T>.ExpandPool`
+(`Performance.PoolPrewarmMonitor`, one prefix shared across seven closed `T`s via
+`AccessTools.DeclaredMethod(typeof(AbstractAssetsPool<>).MakeGenericType(t), ...)`). The
+fix both times was the same: never declare `MethodBase __originalMethod` in the patch
+signature — use `object __instance` cast to whatever public interface the type exposes,
+and by-name pass-through parameters spelled EXACTLY as the concrete implementation spells
+them, not as an interface it implements may spell them (`IAssetPool.ExpandPool`
+misspells `objectsCount` as `objectsCoun`; Harmony binds by name against the method it
+actually patched). See `POOL-PREWARM-REVIEW.md`, "The Harmony recipe".
+
 ## Where the knowledge is
 
 There is no design doc. The reasoning lives in two places, both worth reading before
@@ -400,6 +416,18 @@ Open:
   timed to a death/round break/bounded wait so it costs nothing on a raid
   that never crosses it; see `GC-THRESHOLD-REVIEW.md` and
   `ArenaMode.Client/Performance/`.
+  A second, separate cost in the same class: `ObjectsFactory.InitAndFillPools` sizes
+  every asset pool (AFAKs, survival kits, weapon families, hands prefabs, ...) to the
+  TOTAL number of bots that have ever spawned this raid, never the concurrent demand,
+  and that counter never drops — harmless at vanilla's ~30 bots, unbounded under Arena's
+  continuous respawn (measured: 210 idle AFAKs and 207 idle survival kits after 267
+  bodies in 17 minutes, ~380 stale components per body). `Config.Settings.
+  PoolPrewarmKeepIdle` (default 4, 0 = never) caps the idle instances EFT's own prewarm
+  keeps per resource during an arena raid via `Performance.PoolPrewarmMonitor`, a Harmony
+  prefix on `AbstractAssetsPool<T>.ExpandPool` gated on `ArenaSession.IsActive` and the
+  exact `"LoadPlayerResources"` reason string; pool creation and the separate
+  `MaintainMinPoolSize` top-up are untouched, and a capped pool still creates on demand
+  exactly as vanilla does for any pool's first use. See `POOL-PREWARM-REVIEW.md`.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded
