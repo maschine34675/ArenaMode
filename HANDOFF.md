@@ -7,7 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Preparation announcer repair (2026-09-19, Codex):** the existing 1.468 s
+- **Preparation announcer repair DEPLOYED (2026-09-19, Codex):** source fix
+  `64f0d7f`, asset-verifier follow-up/client build
+  `4bca31cddf0d47e716f824031089aea76e1c0ea6`, now on master. Installed client SHA256
+  `99C7F9DB982D1DCBF8727D096363620087FD958C57231558C1A8AD36CE888C56`.
+  `ANNOUNCER-PREPARE-DEPLOYMENT-20260919.json` binds the clean staged build and
+  verified local deployment. Only client bytes changed; three package docs were
+  recopied unchanged, 129 other files (including Core/server/UiBridge) unchanged.
+  Native build: zero errors/four existing CS8632 warnings. Audio checks: 309
+  assertions/four new fault controls, full historical regression green; progress
+  139 assertions/22 faults; mode integration 34; all 52 OGGs validated, seven
+  metadata plus eleven inventory faults rejected. Independent review found no
+  concrete remaining blocker. GPU mirror and native hearing remain unverified.
+  The existing 1.468 s
   PREPARE TO FIGHT clip is complete. Normal preparation-to-countdown/live
   progress used to stop it early; direct RoundStart could replace it as well.
   Preserve its spoken duration and defer only the start voice, never gameplay.

@@ -1,0 +1,72 @@
+{
+  "SourceCommit": "4bca31cddf0d47e716f824031089aea76e1c0ea6",
+  "ProductVersion": "0.1.0+4bca31cddf0d47e716f824031089aea76e1c0ea6",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-19T12:56:00.9714147Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\c2e9ca9802744e1fb5b29eafd49f99ad\\backup-0-ANNOUNCER-PACK.md",
+      "SHA256": "870F8774A9C4FC89BA0C2B1170F573F861A3A31708440DFD3F8C3C1FE4271E91",
+      "Existed": true
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\c2e9ca9802744e1fb5b29eafd49f99ad\\backup-1-ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Existed": true
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\c2e9ca9802744e1fb5b29eafd49f99ad\\backup-2-AUDIO-LICENSES.md",
+      "SHA256": "75205274F39C329EF6670AC295FAB20B080D4464B315114819B7874BBC6E57BC",
+      "Existed": true
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\e570f7fc6ea1411fbf3eb5b0d31a4a3c\\out\\maschine-ArenaMode.Client.dll",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\c2e9ca9802744e1fb5b29eafd49f99ad\\backup-3-maschine-ArenaMode.Client.dll",
+      "SHA256": "99C7F9DB982D1DCBF8727D096363620087FD958C57231558C1A8AD36CE888C56",
+      "Existed": true
+    }
+  ],
+  "InstalledUnchangedCount": 129,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "6F9D702C2FF9BA7F0FBA932FB05F9390E5FBF639CC2A1CF7399C2588E2FA7C0F",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26",
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "CE69BDF504B3A1A0952DC154EC735C99B85957AC4C586E5E0EB45E2E635B94EA"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\c2e9ca9802744e1fb5b29eafd49f99ad",
+  "ChangedFiles": [
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+  ],
+  "Checks": {
+    "MetadataFaultsRejected": 7,
+    "ExistingBuildWarnings": 4,
+    "InventoryFaultsRejected": 11,
+    "PreparationFaultsRejected": 4,
+    "ClipLocalTranscript": "Prepare to fight.",
+    "AudioClipsValidated": 52,
+    "FullRegressionPassed": true,
+    "LicenceTextLineEndings": "Two installed CC licence texts differ only in CRLF/LF; strict full-folder asset deployment verifier rejects those unchanged pre-existing byte differences.",
+    "AnnouncerAssertions": 309,
+    "BuildErrors": 0,
+    "ProgressAssertions": 139,
+    "ProgressFaultsRejected": 22,
+    "DeploymentBindingPassed": true,
+    "IntegrationAssertions": 34
+  },
+  "UiBridgeUnchanged": {
+    "ProductVersion": "0.4.0+5ef939090d9c3ddfb99a4b4e2707dba3e1def55c",
+    "SHA256": "058D22D49FBAF20E7F9BCC0824984DAF1156470C7031ACA1B93E9255752528C9"
+  }
+}

@@ -70,3 +70,19 @@ and supplemental audio validation with five rejected asset faults.
 Independent adversarial playback review found no concrete remaining blocker.
 Controlled output checks do not prove audibility on the GPU host: restart EFT
 and hear a fast initial start, normal countdown, pause/exit and next-round start.
+
+## Delivery
+
+Fix `64f0d7f` and strict asset-verifier follow-up `4bca31c` are on master. The
+combined clean build has zero errors and four existing CS8632 warnings. Full
+`Verify-Regression.ps1` now passes including 309 assertions, historical compiled
+fault controls and the 52-clip verifier. Local transcription of the unchanged
+preparation file returns "Prepare to fight."
+
+Installed client SHA256:
+`99C7F9DB982D1DCBF8727D096363620087FD958C57231558C1A8AD36CE888C56`.
+The guarded transaction changed only client bytes, recopied three unchanged
+package documents and preserved 129 other inventoried files, including
+Core/server/UiBridge. `Verify-Deployed.ps1` passed. See the tracked
+`ANNOUNCER-PREPARE-DEPLOYMENT-20260919.json`; remote mirror receipt and GPU hearing
+are not claimed. Restart EFT only.
