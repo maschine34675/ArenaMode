@@ -1,7 +1,7 @@
 # Arena powerup contract
 
 Collection refreshes Double Damage for up to **20 seconds of game time** and
-Shield for up to **30 seconds**; collecting twice never stacks the multiplier,
+Shield and Jump Boots for up to **30 seconds**; collecting twice never stacks the multiplier,
 timer or shield. Shield refills to at most **220 impact points**. Effects belong to the exact physical body and health
 controller, are cleared on native death, and cannot survive runtime generation or
 round/raid reset. State uses weak body keys so discarded corpses are not retained.
@@ -61,7 +61,7 @@ Assembly-CSharp IL by `Verify-Native.ps1` where the check is executable:
 
 Run `pwsh -NoProfile -File tools/ArenaPowerupChecks/Verify.ps1` from the repository.
 The project source-links both production powerup files and the real administrative
-death gate, exercises the actual patch prefix via reflection, and compiles eight
+death gate, exercises the actual patch prefix via reflection, and compiles nine
 faulty production copies to prove important tests reject their named bugs. Installed
 IL contracts check signatures, native ordering and the relevant internal vetoes.
 Native/world/mode boundaries are explicit doubles, so these checks do not claim a
@@ -72,3 +72,7 @@ The runtime owner must verify exact current raid/mode/living actor admission in
 `ArenaPickupRuntime.IsLiveActor`, reset Generation on every round/raid boundary,
 and clear effects when the runtime becomes non-live. The root integration checks
 own this dependency; it is not replaced by the doubles in this project.
+
+Boots tests cover exact expiry, non-stacking refresh, invalid durations, bot
+refusal and body/health/generation/scope reset. Actual ground/air impulse integration
+is source-linked separately by `tools/DoubleJumpChecks/Verify.ps1`.

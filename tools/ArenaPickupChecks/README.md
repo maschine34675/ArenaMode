@@ -27,6 +27,11 @@ HUD, authoring and plugin wiring have source contracts only. In-game readability
 Factory floor/mesh geometry and native inventory animation require GPU tests.
 Effects and the weapon transfer adapter have their own separate harnesses.
 
+Four Factory points and the appended JumpBoots enum round-trip are covered without
+changing legacy numeric kinds. The real runtime rejects bot/disabled-movement
+Boots collection and selects the separate M60 definition even with an empty normal
+kit catalogue. HUD label/color and hook checks are source contracts, not rendering.
+
 `Verify-Regressions.ps1` runs selected production-source assist/combat, mode,
 movement and HUD suites, the existing TDM lifecycle runner and server/data unit
 tests. Native mod projects are not built by the console suites. The unit suite's

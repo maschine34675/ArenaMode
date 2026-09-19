@@ -4,5 +4,5 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <PickupSource Condition="'$(PickupSource)' == ''">../../ArenaMode.Client/Pickups/ArenaWeaponPickup.cs</PickupSource>
   </PropertyGroup>
-  <ItemGroup><Compile Remove="Native/**/*.cs;artifacts/**/*.cs" /><Compile Include="$(PickupSource)" Link="Production/ArenaWeaponPickup.cs" /></ItemGroup>
+  <ItemGroup><Compile Remove="Native/**/*.cs;Definition/**/*.cs;artifacts/**/*.cs" /><Compile Include="$(PickupSource)" Link="Production/ArenaWeaponPickup.cs" /></ItemGroup>
 </Project>

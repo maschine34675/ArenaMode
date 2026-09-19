@@ -7,6 +7,15 @@ installed native IL, and verifies five deliberately broken production variants.
 The projects do not build or deploy ArenaMode or Redeploy. Generated evidence is
 under this directory's ignored `artifacts/` path.
 
+The source-linked `Definition` check validates the pickup-only M60 against installed
+item templates: attachment slot filters, required slots, 100 M993 rounds in legal
+stacks, fresh mutable definitions and inclusion of the weapon root by the actual
+preload planner. It needs no profile. To additionally compare the original named
+preset without modifying it, supply `-PresetSourceProfile <absolute-profile-path>`;
+the opt-in check binds its before/after SHA256 and normalized attachment tree.
+Native creation, ownership and fresh item IDs still belong to the existing builder
+and adapter; the definition check is not a native ItemFactory execution.
+
 The adapter accepts only the exact live local player with a native
 `Player.SinglePlayerInventoryController`. It uses a complete loaded kit weapon,
 preloads before prefab creation and submits a regular simulated native Move into

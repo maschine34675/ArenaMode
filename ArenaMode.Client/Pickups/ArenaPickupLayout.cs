@@ -8,7 +8,7 @@ using System.Linq;
 namespace ArenaMode.Pickups;
 
 [JsonConverter(typeof(StringEnumConverter))]
-internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon }
+internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots }
 
 internal sealed class ArenaPickupPoint
 {
@@ -95,7 +95,9 @@ internal static class ArenaPickupLayouts
                     // the live scene must still prove floor/nav/clearance before display.
                     new() { Id = "factory-damage", Kind = ArenaPickupKind.DoubleDamage, X = 35.924f, Y = 4.55418539f, Z = 35.339f },
                     new() { Id = "factory-shield", Kind = ArenaPickupKind.Shield, X = -32.087f, Y = -2.581647f, Z = 29.9733315f },
-                    new() { Id = "factory-weapon", Kind = ArenaPickupKind.Weapon, X = -5.89f, Y = .08f, Z = -27.46f, KitId = kit, RespawnSeconds = 45f }
+                    new() { Id = "factory-weapon", Kind = ArenaPickupKind.Weapon, X = -5.89f, Y = .08f, Z = -27.46f, KitId = kit, RespawnSeconds = 45f },
+                    // Native Bot-only marker 86ff84ac-edf7-4efd-9643-4bacc59073e7.
+                    new() { Id = "factory-boots", Kind = ArenaPickupKind.JumpBoots, X = -6.77f, Y = .17f, Z = 10.01f }
                 }
             });
         Validate(file);

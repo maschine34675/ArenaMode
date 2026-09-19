@@ -26,6 +26,7 @@ namespace EFT
         public string ProfileId { get; set; }
         public int Team;
         public AIData AIData = new();
+        public bool IsAI => AIData.IsAI;
         public HealthSystem.ActiveHealthController ActiveHealthController;
         public Player(string id) { ProfileId = id; ActiveHealthController = new() { Player = this }; }
         public virtual void OnDead(EDamageType type) { }

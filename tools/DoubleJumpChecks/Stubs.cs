@@ -16,7 +16,7 @@ namespace UnityEngine
     }
     public struct Vector2(float x, float y) { public float x = x, y = y; }
     public static class Physics { public static Vector3 gravity = new(0, -9.81f, 0); }
-    public static class Time { public static float realtimeSinceStartup = 10; }
+    public static class Time { public static float realtimeSinceStartup = 10, time = 10; }
     public static class Mathf
     {
         public static float Sqrt(float value) => MathF.Sqrt(value);
@@ -70,7 +70,7 @@ namespace ArenaMode.Config
     }
 }
 namespace ArenaMode.Hud { public static class ArenaInputBlocker { public static bool Blocked; } }
-namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
+namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress, StandDown; } }
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
 namespace ArenaMode.Movement
 {
@@ -104,6 +104,8 @@ namespace ArenaMode.Session
 namespace EFT
 {
     public class AbstractGame { }
+    public enum GameStatus { Started, Stopped }
+    public class LocalGame : AbstractGame { public GameStatus Status=GameStatus.Started; public Player LocalPlayer; }
     public class GameWorld { public Player MainPlayer; }
     public class GlobalConfiguration
     {
@@ -270,5 +272,16 @@ namespace SPT.Reflection.Patching
             var target = GetTargetMethod() ?? throw new InvalidOperationException("missing patch target");
             Registrations.Add((GetType(), target));
         }
+    }
+}
+
+namespace ArenaMode.Pickups
+{
+    internal static class ArenaPowerups
+    {
+        internal static ArenaPowerupState State = new();
+        internal static EFT.Player Owner;
+        internal static ArenaPowerupSnapshot Read(EFT.Player player)
+            => ReferenceEquals(player,Owner) ? State.Read(UnityEngine.Time.time) : default;
     }
 }

@@ -6,7 +6,7 @@ $pickupEvidence = Join-Path $pickupRepo ('artifacts/pickup-checks/' + [guid]::Ne
 [void][IO.Directory]::CreateDirectory($pickupEvidence)
 $pickupInputs = @{}
 $pickupBound = @('ArenaMode.Client/Plugin.cs','ArenaMode.Client/ArenaController.cs','ArenaMode.Client/Hud/ArenaHud.cs',
-    'ArenaMode.Client/Hud/ArenaPowerupPanel.cs')
+    'ArenaMode.Client/Hud/ArenaPowerupPanel.cs','ArenaMode.Client/Kits/KitModels.cs')
 $pickupBound += @(Get-ChildItem -LiteralPath $pickupSource -File | ForEach-Object { 'ArenaMode.Client/Pickups/' + $_.Name })
 $pickupBound += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ArenaPickupChecks/' + $_.Name })
 foreach ($path in $pickupBound) { $pickupInputs[$path] = (Get-FileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash }
@@ -43,6 +43,9 @@ try {
         @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','background.raycastTarget = false'),
         @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.ShieldPoints'),
         @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.DamageSeconds'),
+        @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.JumpSeconds'),
+        @('ArenaMode.Client/Pickups/ArenaPickupSettings.cs','ArenaPickupWeapons.M60Id'),
+        @('ArenaMode.Client/Pickups/ArenaPickupView.cs','"JUMP BOOTS"'),
         @('ArenaMode.Client/Pickups/ArenaPickupCapture.cs','Settings.AreaCaptureAllowInNormalPmc?.Value != true'),
         @('ArenaMode.Client/Pickups/ArenaPickupCapture.cs','ArenaSession.IsExactActiveRaid(game, world)'),
         @('ArenaMode.Client/Pickups/ArenaPickupCapture.cs','settings.playerSide == ESideType.Pmc'),
@@ -86,7 +89,7 @@ try {
     )
     foreach ($fault in $faults) {
         $faultRoot = Join-Path $pickupEvidence ($fault.Name + '/source'); [void][IO.Directory]::CreateDirectory($faultRoot)
-        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupGeometry.cs')) {
+        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs')) {
             $text = [IO.File]::ReadAllText((Join-Path $pickupSource $name))
             if ($name -eq $fault.File) {
                 if ($text.Split(@($fault.Find), [StringSplitOptions]::None).Length -ne 2) { throw "Ambiguous fault anchor: $($fault.Name)" }

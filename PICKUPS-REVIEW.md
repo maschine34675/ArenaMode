@@ -11,10 +11,12 @@ ordinary raids and existing dropped loot are unchanged.
 |---|---|---|
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
 | Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
-| Weapon (gold) | Loaded primary weapon from catalogue kit `spartan`, with attachments; no spare magazines or other equipment | 45 seconds |
+| Jump Boots (green) | 50% more jump height for 30 gameplay seconds, including the existing double jump; no extra jump credit | 30 seconds |
+| Weapon (gold) | Pickup-only M60E6 FDE copied from `retzrestdfg`, with attachments and 100 M993 rounds; no spare magazines or other equipment | 45 seconds |
 
 Effects refresh duration/refill the shield to its cap; they never stack. Both
-sides' living bots may collect powerups by crossing them; this adds no AI routing.
+sides' living bots may collect damage/shield powerups by crossing them; this adds no AI routing.
+Jump Boots are local-only and require Arena movement enabled; bots leave them available.
 Weapon auto-take is **local only**, into a free compatible **inactive** weapon slot.
 No replacement or automatic draw. Full/unsuitable slots or busy hands leave it in
 place: free a slot and approach again. Cooldowns start after confirmed collection.
@@ -33,7 +35,10 @@ TDM deaths preserve cooldowns. Intermissions, exit and invalid scene ownership
 clear effects/temporary objects. Paused gameplay time pauses durations/cooldowns.
 
 F12 **Arena pickups** defaults enabled with **BotsCollectPowerups** enabled.
-`PrototypeWeaponKit` selects another existing kit for the built-in weapon. Layout
+`PrototypeWeaponKit` defaults to `pickup-m60-retzrestdfg`; it can also select an
+existing catalogue kit. Existing installs retain their saved choice; the requested
+September 19 deployment explicitly changes the local old `spartan` choice to M60.
+Layout
 and kit choices freeze at match start. Disabling during a match clears pickups and
 effects; re-enabling applies next match.
 
@@ -49,6 +54,7 @@ unchanged. None uses the excluded penned player spawn.
 | factory-damage | 35.924, 4.55418539, 35.339 | cca16615-941d-4b07-a88f-4064628c1581 |
 | factory-shield | -32.087, -2.581647, 29.9733315 | de479fb9-789f-499b-ac6b-0530fab5235b |
 | factory-weapon | -5.89, 0.08, -27.46 | a5a35da1-0545-4774-b5a0-194f4903a9de |
+| factory-boots | -6.77, 0.17, 10.01 | 86ff84ac-edf7-4efd-9643-4bacc59073e7 |
 
 Sources: native `SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json`
 and corresponding `factory4_night/base.json`. At the first live phase the runtime
@@ -85,7 +91,7 @@ Example (reuses one Factory candidate):
 }
 ```
 
-Kinds: `DoubleDamage`, `Shield`, `Weapon`. Weapons additionally require `KitId`.
+Kinds: `DoubleDamage`, `Shield`, `Weapon`, `JumpBoots`. Weapons additionally require `KitId`.
 Limits: version1, 512KiB, 32 layouts, 64 points each, unique map/area pairs and point
 IDs, finite coordinates, cooldown10–600 seconds. Empty layouts are allowed.
 
@@ -111,6 +117,21 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
 
 ## Native boundaries
 
+- Jump Boots multiply only a newly requested native jump impulse by sqrt(1.5),
+  after Arena's base height. Gravity, skills/injuries, stamina and collisions stay
+  native. Expiration changes the next impulse, never snaps an in-flight trajectory.
+  A weak entry record remembers the factor actually applied to each native jump
+  state; the double-jump cache removes that recorded factor and applies the current
+  buff once. Expiring between jumps, collecting midair and reusing jump states
+  cannot retain/compound the old bonus. Ownership/effect state is rechecked after
+  synchronous native stamina debit callbacks. Air-vault limits remain unchanged.
+- The M60 uses a synthetic equipment parent solely for the existing preload plan;
+  `KitBuilder` creates fresh owned native item IDs. The 11-node weapon/attachment
+  tree matches the provided preset and stash: MRS, NcSTAR blue laser, RK-1/B25U,
+  M60E3 barrel and Fortis RED; its Capco box contains 40+40+20 M993. Runtime uses
+  a static copied definition, never reads/writes a profile or inserts a normal kit.
+  Examination stays native: an unknown weapon can be refused before transfer;
+  the source profile already knows this M60. No examination or hands bypass.
 - Exact match/game/world, round, registered physical body, health owner and alive
   state are checked; AI additionally requires active BotOwner. Effects cannot be
   recovered by profile ID on a replacement body. Native death forgets that life.

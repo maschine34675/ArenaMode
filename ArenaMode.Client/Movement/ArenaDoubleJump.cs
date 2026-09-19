@@ -262,7 +262,7 @@ internal static class ArenaDoubleJump
             if (!ReferenceEquals(credit.LiftState, jump))
             {
                 credit.LiftState = jump;
-                credit.NativeLift = jump._liftForce;
+                credit.NativeLift = ArenaJumpBoots.WithoutEntryBonus(jump);
             }
             lift = credit.NativeLift;
         }
@@ -281,6 +281,7 @@ internal static class ArenaDoubleJump
             float firstHeight = Settings.JumpHeightMult.Value;
             if (firstHeight > 1f) lift *= Mathf.Sqrt(firstHeight);
         }
+        lift *= ArenaJumpBoots.LiftMultiplier(jump.MovementContext);
         lift *= Mathf.Sqrt(Mathf.Clamp(height, 0.25f, 1.5f));
         velocity = lift * jump._skilledBoost;
         return FinitePositive(velocity.y) && FinitePositive(lift.y)
@@ -364,7 +365,7 @@ internal static class ArenaDoubleJump
                     if (credit != null && OwnsCredit(__instance, credit.Player, credit))
                     {
                         credit.LiftState = __instance;
-                        credit.NativeLift = __instance._liftForce;
+                        credit.NativeLift = ArenaJumpBoots.WithoutEntryBonus(__instance);
                     }
                 }
                 CompleteNativeEntry(__instance, __state);
@@ -491,6 +492,9 @@ internal static class ArenaDoubleJump
                 if (!OwnsCredit(jump, player, __state.Credit)
                     || __state.StateRevision != __state.Credit.StateRevision
                     || !IsAirborneActionAllowed(jump, player)) return;
+                // OnJump may synchronously clear/refresh a powerup. Use the live
+                // bonus after that callback, without a second stamina debit.
+                if (!TryGetImpulse(jump, __state.Credit, out lift, out velocity)) return;
                 ApplyImpulse(jump, lift, velocity);
                 jump.MovementContext.EmitJumpNoise();
                 Plugin.ModLogger.LogDebug("Arena double jump: renewed local vertical impulse.");

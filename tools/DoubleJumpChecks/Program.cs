@@ -49,7 +49,9 @@ internal static class Program
             Translator = new MoveInputTranslator(Player);
             World = new GameWorld { MainPlayer = Player };
             Singleton<GameWorld>.Instance = ArenaSession.ActiveWorld = World;
-            Singleton<AbstractGame>.Instance = ArenaSession.ActiveGame = new AbstractGame();
+            Singleton<AbstractGame>.Instance = ArenaSession.ActiveGame = new LocalGame { LocalPlayer = Player };
+            ArenaMode.Pickups.ArenaPowerups.State = new(); ArenaMode.Pickups.ArenaPowerups.Owner = Player;
+            Time.time = 10; ArenaRespawnDriver.StandDown = false;
             Singleton<GlobalConfiguration>.Instance = new GlobalConfiguration();
             EFTHardSettings.Instance = new(); Time.realtimeSinceStartup = 10;
             Physics.gravity = new Vector3(0, -9.81f, 0);
@@ -72,6 +74,7 @@ internal static class Program
             Invoke(patch, "Prefix", args);
             if (nativeDebit) Player.Physical.OnJump(true);
             duringNative?.Invoke();
+            ArenaJumpBoots.ApplyEntry(state);
             Invoke(patch, "Postfix", state, args[1]);
         }
         internal void EarlyEdge(int kind = 0)
@@ -380,6 +383,38 @@ internal static class Program
                 "falling lift evaluates native speed curve using actual entry speed");
         }
     }
+    private static void JumpBoots()
+    {
+        void Grant() => ArenaMode.Pickups.ArenaPowerups.State.GrantJump(Time.time,30);
+        float boosted=10*MathF.Sqrt(.8f*1.5f), ordinary=10*MathF.Sqrt(.8f);
+        var f=new Fixture();Grant();f.Entry(f.Jump);
+        Check(Near(f.Jump._liftForce.y,8*MathF.Sqrt(1.5f)),"boots boost native entry even at base height one");
+        Check(Near(ArenaJumpBoots.WithoutEntryBonus(f.Jump).y,8),"entry normalization strips only the applied boots factor");
+        f.Airborne();f.Press();Check(Near(f.Jump._currentLiftforce.y,boosted),"boots affect double jump exactly once");
+        for(int i=0;i<3;i++)
+        {
+            f.Land();f.Jump._liftForce=new(0,8,0);Grant();f.Entry(f.Jump);f.Airborne();f.Press();
+            Check(Near(f.Jump._currentLiftforce.y,boosted),"reused entry and refreshed boots never compound");
+        }
+        f=new Fixture();Grant();f.Entry(f.Jump);Time.time+=30;f.Airborne();f.Press();
+        Check(Near(f.Jump._currentLiftforce.y,ordinary),"expired boots do not survive in cached takeoff lift");
+        f=new Fixture();f.Entry(f.Jump);f.Airborne();Grant();f.Press();
+        Check(Near(f.Jump._currentLiftforce.y,boosted),"collecting boots midair boosts the next deliberate impulse");
+        f=new Fixture();Grant();f.Entry(f.Jump);f.Airborne();
+        f.Player.Physical.OnDebit=()=>ArenaMode.Pickups.ArenaPowerups.State=new();f.Press();
+        Check(Near(f.Jump._currentLiftforce.y,ordinary)&&f.Player.Physical.Debits==1,"debit callback clears boots before impulse without double cost");
+        f=new Fixture(falling:true);Grant();f.Entry(f.Jump);
+        Check(f.Jump._liftForce.y==0,"boots do not turn passive falling into an automatic jump");
+        f.Airborne();f.Press();Check(Near(f.Jump._currentLiftforce.y,boosted),"falling boots impulse applies height once");
+        f=new Fixture();Grant();ArenaSession.IsActive=false;ArenaJumpBoots.ApplyEntry(f.Jump);
+        Check(f.Jump._liftForce.y==8,"ordinary jump receives no boots force");
+        f=new Fixture();Grant();Settings.MovementEnabled.Value=false;ArenaJumpBoots.ApplyEntry(f.Jump);
+        Check(f.Jump._liftForce.y==8,"movement master disables boots force");
+        f=new Fixture();Grant();var foreign=new JumpPlayerState(new());ArenaJumpBoots.ApplyEntry(foreign);
+        Check(foreign._liftForce.y==8,"foreign movement context receives no boots force");
+        f.Entry(f.Jump);ArenaMode.Pickups.ArenaPowerups.State=new();f.Jump._liftForce=new(0,8,0);f.Entry(f.Jump);
+        Check(ArenaJumpBoots.WithoutEntryBonus(f.Jump).y==8,"unbuffed native reentry clears the old normalization factor");
+    }
     private static void MetadataAndShutdown()
     {
         var f = new Fixture();
@@ -410,7 +445,7 @@ internal static class Program
         try
         {
             SuccessfulImpulse(); IdentityAndFeatureGuards(); EpisodeLifecycle();
-            EarlyLedgeNativeTransition(); CaptureAndDebitOwnership(); StrengthAndFiniteInputs(); MetadataAndShutdown();
+            EarlyLedgeNativeTransition(); CaptureAndDebitOwnership(); StrengthAndFiniteInputs(); JumpBoots(); MetadataAndShutdown();
             Console.WriteLine($"ARENA_DOUBLE_JUMP_CONTRACTS_PASSED ({_assertions} assertions; production source with contract doubles, no live Unity/Harmony claim)");
             return 0;
         }

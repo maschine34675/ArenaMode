@@ -192,7 +192,7 @@ internal static class ArenaPickupRuntime
             entry.View = new ArenaPickupView(point, floor);
             if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, weapon auto-take local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, jump boots +50%/30s; weapon/boots local only.");
     }
 
     private static bool Owns(int generation, Entry entry) => _live && Generation == generation
@@ -203,7 +203,7 @@ internal static class ArenaPickupRuntime
     {
         if (entry.Preparing) return;
         entry.Weapon?.Dispose(); entry.Weapon = null;
-        var kit = KitCatalog.Kits?.FirstOrDefault(candidate => string.Equals(candidate.Id, entry.Definition.KitId, StringComparison.Ordinal));
+        var kit = ArenaPickupWeapons.Find(entry.Definition.KitId);
         if (kit == null)
         {
             entry.State.Retire();
@@ -281,7 +281,8 @@ internal static class ArenaPickupRuntime
     private static bool CanCollect(Player player, ArenaPickupKind kind)
     {
         if (!IsLiveActor(player) || player.ActiveHealthController == null || player.ActiveHealthController.DamageCoeff <= 0f) return false;
-        if (player.IsAI) return kind != ArenaPickupKind.Weapon && ArenaPickupSettings.BotsCollectPowerups.Value;
+        if (player.IsAI) return kind != ArenaPickupKind.Weapon && kind != ArenaPickupKind.JumpBoots && ArenaPickupSettings.BotsCollectPowerups.Value;
+        if (kind == ArenaPickupKind.JumpBoots && !Movement.ArenaMovementScope.IsLocal(player)) return false;
         return Hud.ArenaHudVisibility.IsBattleUiActive && !ArenaRespawnDriver.IsRespawnInProgress && !WeaponSwapService.IsSwapping
             && player.InventoryController != null && !player.InventoryController.IsChangingWeapon;
     }
@@ -297,8 +298,13 @@ internal static class ArenaPickupRuntime
             if (!entry.Weapon.TryTake(player, () => Owns(generation, entry) && CanCollect(player, ArenaPickupKind.Weapon), Complete))
                 Complete(false);
         }
-        else Complete(entry.Definition.Kind == ArenaPickupKind.DoubleDamage
-            ? ArenaPowerups.GrantDamage(player, 20f) : ArenaPowerups.GrantShield(player, 220f, 30f));
+        else Complete(entry.Definition.Kind switch
+        {
+            ArenaPickupKind.DoubleDamage => ArenaPowerups.GrantDamage(player, 20f),
+            ArenaPickupKind.Shield => ArenaPowerups.GrantShield(player, 220f, 30f),
+            ArenaPickupKind.JumpBoots => ArenaPowerups.GrantJump(player, 30f),
+            _ => false
+        });
 
         void Complete(bool success)
         {
@@ -317,6 +323,7 @@ internal static class ArenaPickupRuntime
                 {
                     ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE — 20s",
                     ArenaPickupKind.Shield => "SHIELD — 220 / 30s",
+                    ArenaPickupKind.JumpBoots => "JUMP BOOTS — +50% HEIGHT / 30s",
                     _ => "WEAPON COLLECTED"
                 });
                 Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");

@@ -32,7 +32,7 @@ static class Checks
             _deathPrefix = installed.Single(x => x.Target.Name == "OnDead").Patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
             ArenaPowerups.Enable();
             Check(installed.Count == 2, "enable is idempotent");
-            Durations(); Damage(); Scope(); Lifetimes();
+            Durations(); Damage(); Scope(); Lifetimes(); JumpBoots();
             Console.WriteLine($"ARENA_POWERUP_BEHAVIOR_PASSED: {_count} production policy/adapter assertions");
             return 0;
         }
@@ -101,6 +101,24 @@ static class Checks
         Time.time = float.NaN;
         Check(!ArenaPowerups.GrantDamage(_local, 20), "invalid clock rejects grant");
         Near(0, ArenaPowerups.Read(_victim).ShieldPoints, "invalid clock hides effects");
+    }
+    private static void JumpBoots()
+    {
+        Fresh(); Check(ArenaPowerups.GrantJump(_local, 300), "boots grant admitted");
+        Near(30, ArenaPowerups.Read(_local).JumpSeconds, "boots duration capped at thirty");
+        Time.time += 10; ArenaPowerups.GrantJump(_local, 30);
+        Near(30, ArenaPowerups.Read(_local).JumpSeconds, "boots refresh never adds duration");
+        Time.time += 29.5f; Near(.5f, ArenaPowerups.Read(_local).JumpSeconds, "boots remain before expiry");
+        Time.time += .5f; Near(0, ArenaPowerups.Read(_local).JumpSeconds, "boots expire at deadline");
+        foreach(float bad in new[]{0,-1,float.NaN,float.PositiveInfinity})
+            Check(!ArenaPowerups.GrantJump(_local,bad), "invalid boots duration rejected");
+        Fresh(); _local.AIData.IsAI=true; Check(!ArenaPowerups.GrantJump(_local,30), "bots cannot receive jump boots");
+        foreach(var invalidate in new Action[]{()=>ArenaPowerups.Forget(_local),()=>ArenaPowerups.Reset(),
+            ()=>ArenaPickupRuntime.Generation++,()=>_local.ActiveHealthController=new(){Player=_local},
+            ()=>ArenaPickupRuntime.Registered.Remove(_local),()=>_local.ActiveHealthController.IsAlive=false,
+            ()=>ArenaPickupRuntime.Live=false,()=>ArenaSession.IsActive=false})
+        {Fresh();ArenaPowerups.GrantJump(_local,30);invalidate();Near(0,ArenaPowerups.Read(_local).JumpSeconds,"boots cannot survive life or scope loss");}
+        Fresh();ArenaSession.IsActive=false;Check(!ArenaPowerups.GrantJump(_local,30),"ordinary raid cannot grant boots");
     }
     private static void Damage()
     {

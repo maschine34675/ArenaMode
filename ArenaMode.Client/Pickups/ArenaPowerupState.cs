@@ -4,13 +4,14 @@ namespace ArenaMode.Pickups;
 
 internal readonly struct ArenaPowerupSnapshot
 {
-    internal readonly float DamageSeconds, ShieldSeconds, ShieldPoints;
+    internal readonly float DamageSeconds, ShieldSeconds, ShieldPoints, JumpSeconds;
 
-    internal ArenaPowerupSnapshot(float damageSeconds, float shieldSeconds, float shieldPoints)
+    internal ArenaPowerupSnapshot(float damageSeconds, float shieldSeconds, float shieldPoints, float jumpSeconds = 0f)
     {
         DamageSeconds = damageSeconds;
         ShieldSeconds = shieldSeconds;
         ShieldPoints = shieldPoints;
+        JumpSeconds = jumpSeconds;
     }
 }
 
@@ -20,7 +21,16 @@ internal sealed class ArenaPowerupState
     internal const float MaximumDuration = 20f;
     internal const float MaximumShieldDuration = 30f;
     internal const float MaximumShield = 220f;
-    private float _damageUntil, _shieldUntil, _shieldPoints;
+    internal const float MaximumJumpDuration = 30f;
+    internal const float JumpHeightMultiplier = 1.5f;
+    private float _damageUntil, _shieldUntil, _shieldPoints, _jumpUntil;
+
+    internal bool GrantJump(float now, float duration)
+    {
+        if (!TryDeadline(now, duration, out var deadline, MaximumJumpDuration)) return false;
+        _jumpUntil = deadline;
+        return true;
+    }
 
     internal bool GrantDamage(float now, float duration)
     {
@@ -41,13 +51,14 @@ internal sealed class ArenaPowerupState
     {
         if (!Finite(now) || now < 0f) return default;
         if (now >= _damageUntil) _damageUntil = 0f;
+        if (now >= _jumpUntil) _jumpUntil = 0f;
         if (now >= _shieldUntil || !PositiveFinite(_shieldPoints))
         {
             _shieldUntil = 0f;
             _shieldPoints = 0f;
         }
         return new ArenaPowerupSnapshot(Math.Max(0f, _damageUntil - now),
-            Math.Max(0f, _shieldUntil - now), _shieldPoints);
+            Math.Max(0f, _shieldUntil - now), _shieldPoints, Math.Max(0f, _jumpUntil - now));
     }
 
     /// <summary>

@@ -9,5 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(DoubleJumpSource)" Link="Production/ArenaDoubleJump.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaJumpBoots.cs" Link="Production/ArenaJumpBoots.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaMovementScope.cs" Link="Production/ArenaMovementScope.cs" />
+    <Compile Include="../../ArenaMode.Client/Pickups/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs" />
   </ItemGroup>
 </Project>

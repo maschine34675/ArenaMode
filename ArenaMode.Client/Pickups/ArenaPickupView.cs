@@ -21,11 +21,12 @@ internal sealed class ArenaPickupView : IDisposable
     internal ArenaPickupView(ArenaPickupPoint point, Vector3 floor)
     {
         _floor = floor; _yaw = point.Yaw;
-        _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", _ => "WEAPON" };
+        _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", ArenaPickupKind.JumpBoots => "JUMP BOOTS", _ => "WEAPON" };
         Color color = point.Kind switch
         {
             ArenaPickupKind.DoubleDamage => new Color(1f, .25f, .7f),
             ArenaPickupKind.Shield => new Color(.25f, .8f, 1f),
+            ArenaPickupKind.JumpBoots => new Color(.4f, 1f, .3f),
             _ => new Color(1f, .75f, .2f)
         };
         _root = new GameObject("Arena pickup marker " + point.Id);
