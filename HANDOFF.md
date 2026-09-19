@@ -7,6 +7,38 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **User retest follow-up DEPLOYED (2026-09-19, Codex):** supersedes the
+  announcer/pickup runtime details below. Separate commits: Jump Boots `454fec1`,
+  persisted M60 setting `e6367a2`, Deathmatch preparation `42a9782`; combined clean
+  master/client build `42a97824b7f791fb6d628bd6cbb3258fa9b3efd6`, SHA256
+  `1C9F19563B463B8EEE428845CF758E90D4AF07562F0705906D770D867E7086C0`.
+  The user's supplied `../LogOutput.log` proves Prepare was canceled after
+  723 ms when Deathmatch's real rules advanced from round 0 to 1. Preparation
+  and intermission now announce the upcoming round's epoch, preserving normal
+  speech advancement without weakening real cancellation. A preceding round's
+  Draw does not consume the following terminal Draw; existing result priority
+  remains intact. See `ANNOUNCER-PREPARE-REVIEW.md` for evidence and limits.
+  Jump Boots now give **+100% relative height** for 30 gameplay seconds, including
+  double jump, without stacking or extra jump credit. The old persisted
+  `PrototypeWeaponKit=spartan` is migrated on plugin startup once to the M60;
+  other configured kits and later intentional choices survive. Custom
+  `Pickups.json` files are untouched; layout logs now identify actual weapon kits.
+  Build: zero errors/four existing CS8632 warnings. Checks: audio 309/4 faults,
+  progress 139/22, actual mode integration 54/7, jump 293/24, powerups 348 plus
+  42 native contracts/9 faults, pickup runtime 195 plus 28 contracts/13 faults,
+  native M60 definition and real BepInEx configuration persistence 59 assertions.
+  Faulty prior behavior was reproduced before the fixes; independent reviews
+  found no remaining concrete blocker. Only client bytes changed; three package
+  docs recopied unchanged, 129 other files including Core/server/UiBridge unchanged.
+  Config was not manually edited during deployment. Receipt:
+  `ANNOUNCER-PICKUP-FOLLOWUP-DEPLOYMENT-20260919.json`.
+  Read-only UiBridge confirmed the matching DLL on the GPU disk at
+  `192.168.178.114:C:\SPT41`; its running process still loaded `4bca31c`, so the
+  next **EFT restart** is required. No remote actions interrupted the other test,
+  no native hearing or pickup acceptance is claimed. Next user check: full
+  Prepare at Deathmatch start, M60 pickup after startup migration, and +100%
+  ground/double-jump height during Boots followed by normal expiry.
+
 - **Preparation announcer repair DEPLOYED (2026-09-19, Codex):** source fix
   `64f0d7f`, asset-verifier follow-up/client build
   `4bca31cddf0d47e716f824031089aea76e1c0ea6`, now on master. Installed client SHA256

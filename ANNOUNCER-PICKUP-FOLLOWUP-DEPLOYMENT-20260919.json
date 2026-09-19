@@ -1,0 +1,114 @@
+{
+  "SourceCommit": "42a97824b7f791fb6d628bd6cbb3258fa9b3efd6",
+  "ProductVersion": "0.1.0+42a97824b7f791fb6d628bd6cbb3258fa9b3efd6",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": true,
+  "DateUtc": "2026-09-19T15:02:41.4206515Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md",
+      "SHA256": "870F8774A9C4FC89BA0C2B1170F573F861A3A31708440DFD3F8C3C1FE4271E91",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\a0157f49d73843a29d122153fda7fcea\\backup-0-ANNOUNCER-PACK.md"
+    },
+    {
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\a0157f49d73843a29d122153fda7fcea\\backup-1-ANNOUNCER-SOURCES.json"
+    },
+    {
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md",
+      "SHA256": "75205274F39C329EF6670AC295FAB20B080D4464B315114819B7874BBC6E57BC",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\a0157f49d73843a29d122153fda7fcea\\backup-2-AUDIO-LICENSES.md"
+    },
+    {
+      "Existed": true,
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\d7f6a07162f9429caf02bc8cba9f9547\\out\\maschine-ArenaMode.Client.dll",
+      "SHA256": "1C9F19563B463B8EEE428845CF758E90D4AF07562F0705906D770D867E7086C0",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\a0157f49d73843a29d122153fda7fcea\\backup-3-maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 129,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "6F9D702C2FF9BA7F0FBA932FB05F9390E5FBF639CC2A1CF7399C2588E2FA7C0F",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26",
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "CE69BDF504B3A1A0952DC154EC735C99B85957AC4C586E5E0EB45E2E635B94EA"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\a0157f49d73843a29d122153fda7fcea",
+  "ChangedFiles": [
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+  ],
+  "ChangeCommits": {
+    "JumpBoots": "454fec1",
+    "M60SettingsMigration": "e6367a2",
+    "DeathmatchPreparation": "42a9782"
+  },
+  "Gpu": {
+    "Address": "192.168.178.114",
+    "SptRoot": "C:\\SPT41",
+    "DiskSha256": "1C9F19563B463B8EEE428845CF758E90D4AF07562F0705906D770D867E7086C0",
+    "DiskVersion": "0.1.0+42a97824b7f791fb6d628bd6cbb3258fa9b3efd6",
+    "LoadedVersion": "0.1.0+4bca31cddf0d47e716f824031089aea76e1c0ea6",
+    "LoadedMatchesDisk": false,
+    "RestartRequired": true,
+    "Verification": "Read-only UiBridge GET /v1/status; no GPU actions or native hearing test"
+  },
+  "UiBridgeUnchanged": {
+    "ProductVersion": "0.4.0+5ef939090d9c3ddfb99a4b4e2707dba3e1def55c",
+    "SHA256": "058D22D49FBAF20E7F9BCC0824984DAF1156470C7031ACA1B93E9255752528C9"
+  },
+  "Config": {
+    "DeploymentChangedConfig": false,
+    "Migration": "On plugin startup once: spartan (case-insensitive) -> pickup-m60-retzrestdfg; other kits and subsequent choices preserved",
+    "CustomLayoutsUnchanged": true
+  },
+  "Checks": {
+    "BuildErrors": 0,
+    "ExistingBuildWarnings": 4,
+    "AnnouncerAssertions": 309,
+    "PreparationFaultsRejected": 4,
+    "ProgressAssertions": 139,
+    "ProgressFaultsRejected": 22,
+    "IntegrationAssertions": 54,
+    "IntegrationFaultsRejected": 7,
+    "JumpAssertions": 293,
+    "JumpFaultsRejected": 24,
+    "PowerupAssertions": 348,
+    "PowerupNativeContracts": 42,
+    "PowerupFaultsRejected": 9,
+    "PickupRuntimeAssertions": 195,
+    "PickupRuntimeSourceContracts": 28,
+    "PickupRuntimeFaultsRejected": 13,
+    "M60DefinitionAndSettingsAssertions": 59,
+    "DeploymentBindingPassed": true,
+    "IndependentReviews": "Boots: separate agent; M60: independent agent; audio: root review of agent implementation"
+  },
+  "Evidence": {
+    "Build": "artifacts/double-jump-build/d7f6a07162f9429caf02bc8cba9f9547",
+    "Integration": "artifacts/announcement-integration/cbf4091bb8434859a9cb87fa3bc5f77c",
+    "Preparation": "artifacts/announcer-prepare-review/aa1a69f9b55e4de4a91df9f21d85e79c",
+    "Jump": "artifacts/double-jump-checks/c0b40e0e554540e6b0bc15a5d4b1cda6",
+    "Powerups": "artifacts/powerup-checks/8c5c27c18e224e21bcb8878d89ce4730",
+    "PickupRuntime": "artifacts/pickup-checks/6eab10efd8f84e618003630402461c32",
+    "GpuDisk": "artifacts/announcer-pickup-followup/gpu-status-after.json"
+  },
+  "UserLog": {
+    "Path": "D:\\SPT41\\Development\\LogOutput.log",
+    "SHA256": "5252C0FC5324F9F7D3E8A43F91FB4886F566F0ECC335A1FE517AD7000B350F9D",
+    "PrepareStart": "16:40:53.176",
+    "DmRoundStart": "16:40:53.881",
+    "StatusCanceled": "16:40:53.899",
+    "PlayedMillisecondsBeforeCancel": 723
+  }
+}
