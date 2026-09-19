@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PolicySource Condition="'$(PolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Performance\PoolPrewarmPolicy.cs</PolicySource>
+    <MonitorSource Condition="'$(MonitorSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Performance\PoolPrewarmMonitor.cs</MonitorSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      PoolPrewarmPolicy is plain C# (no Unity/EFT/HarmonyLib types), so it
+      compiles straight into this console app with no stubs, and the fault
+      harness can point PolicySource at a mutated temp copy the same way the
+      other tools/*Checks projects redirect their production source.
+
+      PoolPrewarmMonitor is NOT compiled here — it references UnityEngine,
+      EFT and HarmonyLib types that only exist inside the game — so its half
+      of the source guard is a text scan, not a compiled check. MonitorSource
+      still redirects to a mutated temp copy for that scan during a fault run.
+    -->
+    <Compile Include="$(PolicySource)" Link="Production/PoolPrewarmPolicy.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Exposed to Program.cs via AssemblyMetadataAttribute so the source-guard scan
+         reads exactly the file this run was built (or, for a monitor fault, would
+         have been built) against, never a hardcoded path that a mutant could dodge. -->
+    <AssemblyMetadata Include="PolicySourcePath" Value="$(PolicySource)" />
+    <AssemblyMetadata Include="MonitorSourcePath" Value="$(MonitorSource)" />
+  </ItemGroup>
+</Project>
