@@ -90,3 +90,67 @@ test actual Arena admission, replenishment from the center, death/respawn and
 protected return. The separate EQUATOR DEBUG button starts an ordinary PMC raid
 and cannot certify this integration. Gun Game and team-mode rejection should be
 recorded separately from the first Deathmatch test.
+
+## Integrated GPU acceptance — 2026-09-20 23:02-23:18 CEST
+
+The preceding candidate checkpoint is now complete. Clean source commit
+`22ff21655c4620d429c5b4585074baa273b7ef9b` was built with the isolated client
+builder and Release server build. Only the two ArenaMode DLLs were promoted;
+123 other inventoried plugin/server/config files stayed unchanged. No installed
+config was manually edited. MapPort `9547b0b` was deployed through its own
+script, including ten bot/four player markers. Server and EFT were restarted.
+
+| Deployed artifact | SHA256 |
+|---|---|
+| ArenaMode client | `3E9E1DE4B96402EECBE18FD029280C67F282C410576117713BF8A750DCDD2266` |
+| ArenaMode server | `F0F33D562B9F5339B9E85A0B20E110B382FCD1EA72ED1DC98D7532C7BC920A0E` |
+| Companion MapPort server | `73D51278422D0C814A0D4F2DF9D2ED76828CE82237BCF98B381F2371214C8D6B` |
+| Companion Equator base.json | `8C2D5F007F52C6BA79FD2AE47B4304CFFEF55C76E413963675978585EF5D0830` |
+
+GPU host `192.168.178.114:C:\SPT41`: SPT 4.1.6, EFT 0.16.9.5-40743,
+Unity 2022.3.43f1. UiBridge instance `4a8bd804`, started 23:02:19, confirmed
+all 25 maschine plugins and Redeploy Core identical across VM, host disk and
+loaded assemblies. The map loaded ten NavMesh-valid bot markers, 98 patrol
+subpoints and one connected ground component. MapPort's existing placement
+repair shifts the south-west bot point 1.5 m to clear its booth bounds; the
+resulting point passed an additional native reachability/standing-room probe.
+
+Native ARENA menu selection showed Equator for Deathmatch and Gun Game.
+Changing a selected Equator to Tactical hid/deselected it and removed NEXT;
+Team DM also hid it. Switching back restored the tile. These checks used the
+native mode buttons, not the ordinary EQUATOR DEBUG shortcut.
+
+| Mode | Observed lifecycle |
+|---|---|
+| Deathmatch | Armed 23:05:43.994 (#2908), active 23:06:13.682 (#3019), round 1 began. From atrium (0, 0.2, 2), four legal distant spawn candidates supported two-PMC bursts at 23:06:39 and 23:06:42. Up to eight bots active. Natural deaths 23:07:14.941 and 23:07:39.542 respawned in 0.52/0.16 s with fresh kits and 440 HP. Further replenishment requested 23:08:01, dispatched 23:08:04. Stop(Left) 23:08:35, MainMenu about 23:09:22. |
+| Gun Game | Armed 23:14:40.895 (#3885), active 23:14:57.483 (#3967), HUD tier 1/24 and PB pistol. Two-PMC atrium replenishment 23:15:53 (#4142-4149). Natural death 23:16:24.478 (#4179), respawn 0.51 s with 440 HP and unchanged PB rung. Stop(Left) 23:16:47.869 (#4227), MainMenu about 23:17:21. |
+
+### Profile return evidence
+
+Independent read-only comparison and parent recheck compared the complete saved
+profile JSON before/after both raids. Profile `6a9fc7d99347b1276407f8ad` backups
+under `SPT_Runtime/user/profiles/backups/2026-09-20_21-05-44`, `_21-08-36`
+and `_21-16-49`, the pre-Gun-Game copy and fresh live profile after MainMenu
+match except `/characters/pmc/Hideout/sptUpdateLastRunTimestamp`. Removing
+only that background field and serializing sorted compact UTF-8 JSON yields
+SHA256 `7f5c0e9da100ef9dfa8f785c20b37f91377e85c94604edc2e6a20c1bbc2fde37`
+for every snapshot. Health 440, level 2/1500 XP, 446169 roubles, 149 inventory
+entries and all skills, quests and PMC/Scav counters were preserved. The UI's
+55 raids/32 AWOL sum PMC 54/31 and Scav 1/1.
+
+The client `raid-end` response was initially deferred in state `InRaid` before
+native Stop finished. That intermediate response does not prove a failed or
+completed restore. Fresh persisted profile backups establish the final result;
+the mirrored server log was buffered and not used as fresh restore evidence.
+
+### Limits
+
+This is short integration acceptance, not long-session/performance acceptance.
+Gun Game was tested at tier 1; no kill-driven rung change or completed ladder.
+Tactical/Team DM are intentionally unavailable on Equator; PitFireTeam rejection
+was checked offline. Existing two-second fast deploy and ExitStatus screen
+remain. EQUATOR DEBUG retains its separate ordinary-raid shortcut behavior.
+The installed `RespawnApiProbe.AlwaysThrow(8.5)` diagnostic threw as designed
+and was caught during body replacement; existing PerfectCulling cleanup warnings
+also appeared. No ArenaMode/MapPort blocker occurred, but this is not a claim
+that the entire installed mod stack logged no warnings.

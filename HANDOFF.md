@@ -1,22 +1,30 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-19. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-20. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Optional Equator integration candidate (2026-09-20, Codex):** branch
+- **Optional Equator integration DEPLOYED AND HOST-TESTED (2026-09-20, Codex):** branch
   `feature/equator-map-integration`, based on `649a773`. Native Arena menu and
   server admission now support installed ArenaMapPort `arena_equator` for
   Deathmatch/Gun Game only. Exact `BotZone_Main`, eight-bot cap/four-alive
   replenishment target; unchanged two-bot burst and 25m gate. Optional dependency
   absence fails closed, customized/disabled map settings are retained with
   one-time default migration guards. See `EQUATOR-MAP-REVIEW.md` and
-  `tools/EquatorMapChecks/Verify.ps1`. This is a candidate until the root records
-  independent review, matching MapPort spawn data, final build/deployment and
-  actual Arena raid evidence. Ordinary EQUATOR DEBUG raids are not that proof.
+  `tools/EquatorMapChecks/Verify.ps1`. Clean code build `22ff216` was independently
+  reviewed, deployed with MapPort `9547b0b` (ten bot/four player markers), and
+  verified loaded after restarting server and EFT on the SPT 4.1.6 GPU host.
+  Actual native ARENA Deathmatch and Gun Game starts, atrium replenishment,
+  combat deaths/respawns and return passed at 23:05-23:17 CEST. Whole persisted
+  profiles match before/after except the background hideout timestamp. Gun Game
+  was a tier-1 smoke test, not full ladder advancement. Tactical/Team DM hiding
+  was tested in the native menu; PitFireTeam rejection remains offline-tested.
+  Full hashes and evidence are in `EQUATOR-MAP-REVIEW.md`. Existing two-second
+  countdown and ExitStatus flow remain; EQUATOR DEBUG is a separate ordinary
+  raid shortcut. Other Arena maps are not admitted by this change.
 
 - **User retest follow-up DEPLOYED (2026-09-19, Codex):** supersedes the
   announcer/pickup runtime details below. Separate commits: Jump Boots `454fec1`,
