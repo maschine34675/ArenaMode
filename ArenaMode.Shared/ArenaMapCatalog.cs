@@ -14,6 +14,8 @@ public static class ArenaMapCatalog
     public const string LabyrinthId = "labyrinth";
     public const string LaboratoryId = "laboratory";
     public const string CustomsId = "bigmap";
+    public const string EquatorId = "arena_equator";
+    public const string ArenaMapPortPluginId = "com.maschine.ArenaMapPort";
 
     public const string LegacyDefaultClientAllowlist =
         FactoryDayId + "," + LabyrinthId + "," + LaboratoryId;
@@ -21,14 +23,23 @@ public static class ArenaMapCatalog
     public const string PreviousDefaultClientAllowlist =
         FactoryDayId + "," + FactoryNightId + "," + LabyrinthId + "," + LaboratoryId;
 
-    public const string DefaultClientAllowlist = PreviousDefaultClientAllowlist + "," + CustomsId;
+    public const string NativeDefaultClientAllowlist = PreviousDefaultClientAllowlist + "," + CustomsId;
+
+    public const string DefaultClientAllowlist = NativeDefaultClientAllowlist + "," + EquatorId;
 
     public static bool IsSupportedMap(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, FactoryNightId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, LabyrinthId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, LaboratoryId, StringComparison.OrdinalIgnoreCase)
-           || string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase);
+           || string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase)
+           || IsEquator(locationId);
+
+    public static bool IsEquator(string locationId)
+        => string.Equals(locationId, EquatorId, StringComparison.OrdinalIgnoreCase);
+
+    public static bool RequiresModeFilteredView(string locationId)
+        => string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsEquator(locationId);
 
     public static bool IsFactoryVariant(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
@@ -58,6 +69,7 @@ public static class ArenaMapCatalog
     public static string UpgradeLegacyClientAllowlist(string allowlist)
         => string.Equals(allowlist, LegacyDefaultClientAllowlist, StringComparison.Ordinal)
            || string.Equals(allowlist, PreviousDefaultClientAllowlist, StringComparison.Ordinal)
+           || string.Equals(allowlist, NativeDefaultClientAllowlist, StringComparison.Ordinal)
             ? DefaultClientAllowlist
             : allowlist;
 
@@ -67,7 +79,8 @@ public static class ArenaMapCatalog
                || isAvailable(FactoryNightId)
                || isAvailable(LabyrinthId)
                || isAvailable(LaboratoryId)
-               || isAvailable(CustomsId));
+               || isAvailable(CustomsId)
+               || isAvailable(EquatorId));
 
     /// <summary>
     /// EFT represents both Factory variants with the day tile. Keep the night

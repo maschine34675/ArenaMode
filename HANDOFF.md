@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Optional Equator integration candidate (2026-09-20, Codex):** branch
+  `feature/equator-map-integration`, based on `649a773`. Native Arena menu and
+  server admission now support installed ArenaMapPort `arena_equator` for
+  Deathmatch/Gun Game only. Exact `BotZone_Main`, eight-bot cap/four-alive
+  replenishment target; unchanged two-bot burst and 25m gate. Optional dependency
+  absence fails closed, customized/disabled map settings are retained with
+  one-time default migration guards. See `EQUATOR-MAP-REVIEW.md` and
+  `tools/EquatorMapChecks/Verify.ps1`. This is a candidate until the root records
+  independent review, matching MapPort spawn data, final build/deployment and
+  actual Arena raid evidence. Ordinary EQUATOR DEBUG raids are not that proof.
+
 - **User retest follow-up DEPLOYED (2026-09-19, Codex):** supersedes the
   announcer/pickup runtime details below. Separate commits: Jump Boots `454fec1`,
   persisted M60 setting `e6367a2`, Deathmatch preparation `42a9782`; combined clean

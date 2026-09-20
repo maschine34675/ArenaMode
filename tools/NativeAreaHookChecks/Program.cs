@@ -305,6 +305,7 @@ internal static class Program
             StrictStartAndTeamBoundaryStayStrict();
             PftWrongF12ModeStillMaterializesMapsBeforePostfixRepair();
             AreaTeamSizeCallbacksStayOwned();
+            EquatorOptionalDependencyAndModeTransitions();
             Console.WriteLine($"NATIVE_AREA_HOOK_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }
@@ -337,5 +338,55 @@ internal static class Program
         Assert(current(teams, 4), "replacement Show generation has independent live callback");
         f.Screen.Close();
         Assert(!current(teams, 2), "closed native screen rejects deferred size click");
+    }
+
+    private static void EquatorOptionalDependencyAndModeTransitions()
+    {
+        const string equator = ArenaMapCatalog.EquatorId;
+        var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;
+        plugins.Clear();
+        using (var absent = new Fixture(mode: "deathmatch"))
+            Assert(absent.Screen.Buttons.All(button => button.Location.Id != equator),
+                "server config alone never offers Equator without MapPort client");
+        plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
+        try
+        {
+            using var f = new Fixture(mode: "deathmatch");
+            var row = f.Screen.Buttons.Single(button => button.Location.Id == equator);
+            Assert(row.gameObject.activeSelf, "installed Equator is visible in Deathmatch");
+            SafeNative(() => row._spawnableToggle.Toggle.IsToggled = true, "Equator click preserves native selection order");
+            Assert(f.Screen.SelectedLocation?.Id == equator && ArenaMenuSelection.IsMapAvailable(equator),
+                "Equator selects full map through strict admission");
+            Updater(f).Tick();
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Deathmatch and Gun Game",
+                "Equator area hint names its actual modes");
+            foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch" })
+            {
+                Settings.GameMode.Value = mode;
+                Updater(f).Tick();
+                bool permitted = mode is "gungame" or "deathmatch";
+                Assert(row.gameObject.activeSelf == permitted, "mode switch updates the owned Equator row");
+                if (!permitted)
+                {
+                    Assert(f.Screen.SelectedLocation == null, "unsupported mode clears remembered Equator selection");
+                    f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+                    Assert(f.Screen.SelectedLocation == null, "direct unsupported map click fails closed");
+                }
+                else f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+            }
+            ArenaClientConfig.Enabled = map => map != equator;
+            Updater(f).Tick();
+            Assert(!row.gameObject.activeSelf && f.Screen.SelectedLocation == null,
+                "server disable hides and deselects Equator without rebuilding native screen");
+            f.Screen.Close();
+            ArenaClientConfig.Enabled = map => true;
+            Settings.Allowlist = equator;
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
+                "Equator-only configuration offers solo Arena but never PFT");
+        }
+        finally { plugins.Clear(); }
+        using var ordinary = new Fixture(arena: false, mode: "tactical");
+        Assert(ordinary.Screen.Buttons.Any(button => button.Location.Id == equator && button.gameObject.activeSelf),
+            "ordinary native map rows stay unchanged outside Arena, even with no MapPort registry entry");
     }
 }

@@ -329,18 +329,23 @@ public static class Settings
             "General",
             "Maps",
             ArenaMapCatalog.DefaultClientAllowlist,
-            "Arena map allowlist for the native Arena choice (Factory day/night, Labyrinth, The Lab). " +
+            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, bounded Customs, optional Equator). " +
             "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
 
-        var upgradedMaps = ArenaMapCatalog.UpgradeLegacyClientAllowlist(Maps.Value);
-        if (!string.Equals(upgradedMaps, Maps.Value, StringComparison.Ordinal))
+        var optionalMapsMigrated = config.Bind("General", "OptionalMapsMigrated", false,
+            "Internal one-time map-default migration marker. Leave enabled after migration.");
+        if (!optionalMapsMigrated.Value)
         {
-            // Existing installs retain the old Bind value. The exact former
-            // default was never capable of expressing Factory night, so add it;
-            // any customized value remains untouched.
-            Maps.Value = upgradedMaps;
-            Plugin.ModLogger?.LogInfo("Arena map allowlist upgraded with Factory night.");
+            var upgradedMaps = ArenaMapCatalog.UpgradeLegacyClientAllowlist(Maps.Value);
+            if (!string.Equals(upgradedMaps, Maps.Value, StringComparison.Ordinal))
+            {
+                Maps.Value = upgradedMaps;
+                Plugin.ModLogger?.LogInfo("Arena default map allowlist upgraded with optional Equator.");
+            }
+            // Record even an edited list; deleting Equator later must not
+            // accidentally recreate an exact old default and re-enable it.
+            optionalMapsMigrated.Value = true;
         }
 
         RandomKit = config.Bind(

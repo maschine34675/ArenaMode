@@ -160,6 +160,29 @@ public static class ConfigStore
     /// </summary>
     internal static bool FillMissingKeys(JsonNode? saved, JsonNode? defaults)
     {
+        // Optional maps do not return after the user removes them. Introduce
+        // Equator only once for an exact historical default map-ID set; map
+        // values (including enabled=false) always remain user-owned.
+        if (saved is JsonObject root && root["maps"] is JsonObject maps
+            && !maps.ContainsKey(ArenaMapCatalog.EquatorId)
+            && defaults is JsonObject defaultRoot && defaultRoot["maps"] is JsonObject)
+        {
+            bool legacy = !root.ContainsKey("optionalMapsRevision")
+                && new[] { ArenaMapCatalog.LegacyDefaultClientAllowlist,
+                    ArenaMapCatalog.PreviousDefaultClientAllowlist, ArenaMapCatalog.NativeDefaultClientAllowlist }
+                    .Any(ids => maps.Select(x => x.Key).OrderBy(x => x, StringComparer.Ordinal)
+                        .SequenceEqual(ids.Split(',').OrderBy(x => x, StringComparer.Ordinal)));
+            if (!legacy)
+            {
+                defaults = defaults.DeepClone();
+                defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.EquatorId);
+            }
+        }
+        return FillMissingKeysCore(saved, defaults);
+    }
+
+    private static bool FillMissingKeysCore(JsonNode? saved, JsonNode? defaults)
+    {
         if (saved is not JsonObject savedObject || defaults is not JsonObject defaultObject)
             return false;
 
@@ -174,7 +197,7 @@ public static class ConfigStore
                 continue;
             }
 
-            if (FillMissingKeys(existing, value))
+            if (FillMissingKeysCore(existing, value))
                 added = true;
         }
 
