@@ -38,6 +38,14 @@ try {
         Require ((Calls (Method 'EFT.FirearmHandsInputTranslator' 'ReloadExternalMagazine') 'GetReachableItemsOfTypeNonAlloc').Count -eq 1) 'R reload candidate seam'
         Require ((Calls (Method 'EFT.UI.AmmoSelector/CG_FindAmmoForWeapon' 'method_0') 'GetReachableItemsOfType').Count -eq 1) 'reload selection menu seam'
         Require ((Calls (Method 'EFT.UI.ItemUiContext' 'FindSuitableMagazine') 'GetReachableItemsOfType').Count -eq 1) 'inventory reload action seam'
+        foreach($entry in @(@('EFT.FirearmHandsInputTranslator','ReloadExternalMagazine','GetReachableItemsOfTypeNonAlloc'),@('EFT.UI.AmmoSelector/CG_FindAmmoForWeapon','method_0','GetReachableItemsOfType'),@('EFT.UI.ItemUiContext','FindSuitableMagazine','GetReachableItemsOfType'))) {
+            $consumer=Method $entry[0] $entry[1]
+            Require ($consumer.GenericParameters.Count -eq 0 -and $consumer.DeclaringType.GenericParameters.Count -eq 0) 'non-generic consumer target'
+            $call=@(Calls $consumer $entry[2])
+            Require ($call.Count -eq 1 -and $call[0].Operand -is [Mono.Cecil.GenericInstanceMethod] -and $call[0].Operand.DeclaringType.FullName -eq $type -and $call[0].Operand.GenericArguments.Count -eq 1 -and $call[0].Operand.GenericArguments[0].FullName -eq 'EFT.InventoryLogic.Magazine') 'exact typed magazine callsite'
+        }
+        $grenades=@(Calls (Method 'EFT.PlayerInputTranslator' 'vmethod_1') 'GetReachableItemsOfTypeNonAlloc')
+        Require ($grenades.Count -eq 1 -and $grenades[0].Operand.GenericArguments[0].FullName -eq 'EFT.InventoryLogic.ThrowWeap') 'G remains separate native grenade query'
     }
     Write-Output "ARENA $Mode NATIVE CONTRACTS PASSED: $script:count assertions; no Unity execution"
     Write-Output "Assembly-CSharp SHA256=$((Get-FileHash -LiteralPath $binary).Hash)"

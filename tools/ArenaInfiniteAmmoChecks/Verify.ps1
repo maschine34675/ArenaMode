@@ -16,11 +16,11 @@ $paths+=@(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object FullNa
 if (!$isAmmo) { $paths+=@(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../BackpackReloadChecks') -File | ForEach-Object FullName) }
 foreach($path in $paths){$inputs[$path]=(Get-FileHash -LiteralPath $path).Hash}
 $installed=@{}
-foreach($rel in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll')) {$p=Join-Path $SptPath $rel;$installed[$p]=(Get-FileHash -LiteralPath $p).Hash}
+foreach($rel in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll','BepInEx/core/0Harmony.dll')) {$p=Join-Path $SptPath $rel;$installed[$p]=(Get-FileHash -LiteralPath $p).Hash}
 $source=[IO.File]::ReadAllText($sourcePath).Replace("`r`n","`n")
 function Run([string]$name,[string]$path,[string]$failure='') {
     $out=Join-Path $work $name;[void][IO.Directory]::CreateDirectory($out)
-    $build=& dotnet build $project -c Release --nologo "-p:$property=$path" "-p:BaseIntermediateOutputPath=$out/obj/" "-p:OutputPath=$out/bin/" 2>&1 | Out-String
+    $build=& dotnet build $project -c Release --nologo "-p:$property=$path" "-p:SptRoot=$SptPath" "-p:BaseIntermediateOutputPath=$out/obj/" "-p:OutputPath=$out/bin/" 2>&1 | Out-String
     $code=$LASTEXITCODE;[IO.File]::WriteAllText((Join-Path $out 'build.log'),$build);if($code){throw $build}
     $result=& dotnet (Join-Path $out "bin/$assemblyName.dll") 2>&1 | Out-String
     $code=$LASTEXITCODE;[IO.File]::WriteAllText((Join-Path $out 'result.log'),$result)
@@ -39,10 +39,12 @@ try {
         @('expiry-removed','&& ArenaPowerups.Read(player).AmmoSeconds > 0f','','exact expiry restores native consumption'),
         @('hands-identity-removed','&& ReferenceEquals(player.HandsController, op.Controller)','','unsupported or foreign scope uses native consumption')
     )}else{@(
-        @('ordinary-leak','!ArenaSession.IsActive','false','ordinary foreign or inactive inventory untouched'),
+        @('ordinary-leak','!ArenaSession.IsActive','false','ordinary helper preserves original scan'),
         @('duplicate-results','if (!output.Any(existing => ReferenceEquals(existing, magazine)))','if (true)','other reach mods cannot duplicate magazine candidates'),
-        @('predicate-ignored','Backpack, candidates, (Predicate<Magazine>)predicate','Backpack, candidates, null','native predicate respected'),
-        @('late-body-recheck-removed','if (!Wanted(__instance) || !ReferenceEquals(backpack,','if (!ReferenceEquals(backpack,','predicate body replacement prevents publication')
+        @('predicate-ignored','Backpack, candidates, predicate','Backpack, candidates, null','native predicate respected'),
+        @('late-body-recheck-removed','if (!Wanted(controller) || !ReferenceEquals(backpack,','if (!ReferenceEquals(backpack,','predicate body replacement prevents publication'),
+        @('generic-detour','typeof(FirearmHandsInputTranslator).GetMethod(nameof(FirearmHandsInputTranslator.ReloadExternalMagazine))','typeof(InventoryController).GetMethod("GetReachableItemsOfTypeNonAlloc").MakeGenericMethod(typeof(Magazine))','never detour shared generic code'),
+        @('query-drift-ignored','if (calls.Length != 1)','if (false)','missing or duplicate query rejected before editing IL')
     )}
     foreach($fault in $faults) {
         if($source.Split(@($fault[1]),[StringSplitOptions]::None).Count -ne 2){throw "Fault anchor not unique: $($fault[0])"}

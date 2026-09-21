@@ -334,6 +334,14 @@ actually patched). See `POOL-PREWARM-REVIEW.md`, "The Harmony recipe".
 
 ## Where the knowledge is
 
+**Do not detour constructed generic inventory queries on Mono.** Patching
+`GetReachableItemsOfTypeNonAlloc<Magazine>` also replaced Ammo and ThrowWeap
+calls with the Magazine wrapper. The original scanner then threw
+`ArrayTypeMismatchException` before the postfix could check the runtime types,
+breaking the weapon HUD, internal reload and G. Patch non-generic consumers and
+replace only their exact Magazine calls instead. A desktop-CLR test of a postfix
+cannot certify Mono generic detours. See `BACKPACK-RELOAD-REVIEW.md`.
+
 There is no design doc. The reasoning lives in two places, both worth reading before
 touching an area:
 

@@ -21,6 +21,7 @@ namespace EFT.InventoryLogic
 {
     public class Item { public string Id; public object CurrentAddress; public int StackObjectsCount=1; public virtual T GetTemplate<T>()=>default; }
     public class AmmoTemplate { public bool HasGrenaderComponent; }
+    public class ThrowWeap:Item { }
     public class Ammo:Item
     {
         public bool IsUsed;public AmmoTemplate Template=new();public static Action OnClone;public static bool ThrowOnClone,ReturnSelf;
@@ -48,7 +49,10 @@ namespace EFT.InventoryLogic
     public class InventoryController
     {
         public Inventory Inventory=new();
-        public void GetReachableItemsOfTypeNonAlloc<T>(IList<T> preAllocatedList,Predicate<T> predicate=null) where T:Item { }
+        public void GetReachableItemsOfTypeNonAlloc<T>(IList<T> preAllocatedList,Predicate<T> predicate=null) where T:Item
+            => GetAcceptableItemsNonAlloc(new[]{EquipmentSlot.Pockets,EquipmentSlot.TacticalVest},preAllocatedList,predicate);
+        public IEnumerable<T> GetReachableItemsOfType<T>(Predicate<T> predicate=null) where T:Item
+        {var list=new List<T>();GetReachableItemsOfTypeNonAlloc(list,predicate);return list;}
         public virtual void GetAcceptableItemsNonAlloc<T>(EquipmentSlot[] equipmentSlots,IList<T> preAllocatedList,Predicate<T> predicate=null,Predicate<ContainerCollection> goDeeperPredicate=null) where T:Item
         {foreach(var slot in equipmentSlots)if(Inventory.Equipment.GetSlot(slot).ContainedItem is ContainerCollection c&&(goDeeperPredicate==null||goDeeperPredicate(c)))foreach(var item in c.Items)if(item is T found&&(predicate==null||predicate(found)))preAllocatedList.Add(found);}
     }
@@ -56,6 +60,7 @@ namespace EFT.InventoryLogic
 namespace EFT
 {
     using EFT.InventoryLogic;
+    public class FirearmHandsInputTranslator { public bool ReloadExternalMagazine(Weapon weapon,bool quick)=>false; }
     public class Health { public bool IsAlive=true; }
     public class Player
     {
@@ -77,14 +82,21 @@ namespace EFT
     public enum GameStatus { Started,Stopped }
     public class LocalGame:AbstractGame { public Player LocalPlayer;public GameWorld GameWorld;public GameStatus Status=GameStatus.Started; }
 }
+namespace EFT.UI
+{
+    public class AmmoSelector { public class CG_FindAmmoForWeapon { public IEnumerable<EFT.InventoryLogic.Item> method_0()=>null; } }
+    public class ItemUiContext { public EFT.InventoryLogic.Magazine FindSuitableMagazine(EFT.InventoryLogic.Slot slot,IEnumerable<EFT.InventoryLogic.ContainerCollection> collections)=>null; }
+}
+#if !BACKPACK_REAL_HARMONY
 namespace HarmonyLib
 {
     public class HarmonyPriority(int priority):Attribute { public int priority=priority; }
     public static class Priority { public const int Last=0; }
     public static class AccessTools { public static MethodInfo Method(Type t,string name)=>t.GetMethod(name); }
 }
+#endif
 namespace SPT.Reflection.Patching
 {
-    public class PatchPrefixAttribute:Attribute { } public class PatchPostfixAttribute:Attribute { }
+    public class PatchPrefixAttribute:Attribute { } public class PatchPostfixAttribute:Attribute { } public class PatchTranspilerAttribute:Attribute { }
     public abstract class ModulePatch { public static List<(MethodBase Target,Type Patch)> Enabled=[];protected abstract MethodBase GetTargetMethod();public void Enable(){var m=GetTargetMethod()??throw new Exception("missing target");Enabled.Add((m,GetType()));} }
 }
