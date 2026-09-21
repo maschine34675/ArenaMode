@@ -184,3 +184,108 @@ Map-area presets could also store bases and objective positions, with reachable
 routes and suitable team spawns. Assess reuse of independent Team Deathmatch team
 handling without assuming PFT is required. Preserve Arena-only state and profile
 isolation; detailed feasibility, rules and other candidate modes remain open.
+
+## Private online Arena with an optional Fika integration
+
+Recorded 2026-09-21 at the user's request. **Planning only; no multiplayer
+implementation or compatibility claim.** The goal is an uncomplicated way to
+play Arena with or against friends over the internet, preferably without any
+VPN client. Global matchmaking, public ranked play and large public servers are
+explicitly outside the intended scope.
+
+Fika is a plausible networking foundation: it supplies lobby/raid networking,
+base-game replication and documented mod events/custom packets. It is designed
+for cooperative play with trusted friends, not a complete PvP ruleset or an
+anti-cheat service. Keep it an optional dependency through a separate Arena
+adapter; the existing solo path must continue to work without Fika. Select and
+audit a concrete SPT 4.1-compatible Fika version before implementation; current
+documentation is not proof of compatibility with our installed builds.
+
+### Connection goal: no VPN requirement for friends
+
+Fika already supports internet play without a VPN, but two connections must be
+considered separately:
+
+- **SPT backend:** all participants need access to the same backend for profiles
+  and lobby operations. With direct hosting, the documented default is TCP 6969.
+  It needs an externally reachable address and appropriate host/router setup.
+- **Raid host:** the documented direct-hosting default is UDP 25565. This may be
+  a player's game or a separate Fika Headless instance; backend and raid traffic
+  need not terminate on the same machine. Forward each port to its actual owner.
+- **NAT punching:** Fika offers a public introduction service and a self-hosted
+  alternative. This can establish the raid connection without manually forwarding
+  the raid port, but does **not** make the SPT backend reachable. The public-service
+  guide requires compatible Full-Cone NAT on both sides; it is router-dependent,
+  and service availability is not guaranteed. This is not a guaranteed traffic
+  relay or a replacement for backend hosting. It shares connection IP addresses
+  with the introduction service.
+
+Preferred later setup: a private, externally reachable SPT backend and raid host,
+with one-time configuration by the host and a saved server address for friends.
+Assess a small join/setup UI with separate backend and raid connectivity checks,
+clear diagnostics and mod/version checks. A shareable address or future invite
+helper is a convenience feature, not matchmaking; a code alone cannot fix an
+unreachable host. Friends still need legitimate game copies and compatible
+SPT/Fika/Arena installations.
+
+Do not promise zero configuration on every connection. CGNAT/shared public IPs
+can prevent host-side port forwarding, and NAT punching can also fail. A publicly
+reachable dedicated host is one alternative; a transparent relay/tunnel fallback
+would require a separate feasibility/security/operating-cost decision, not an
+assumed Fika feature. No firewall rules, router mappings or public exposure are
+authorized by this planning note. Before hosting, review access restrictions,
+backend/profile security and exactly which services must be reachable; do not
+expose development/test/admin tools as part of the game endpoint.
+
+Fika Headless is a possible later raid host, including on the existing machine
+without a GPU: its documentation describes a full SPT/Fika game instance with
+rendering disabled, still requiring game files and substantial RAM. Running only
+SPT.Server does not move the raid simulation or AI to that machine. Hardware,
+mod compatibility and actual performance need separate validation.
+
+### Arena work and first acceptance milestones
+
+The current code deliberately rejects Fika. Removing that check alone is unsafe:
+
+- One authoritative raid host must own match rules, readiness, team membership,
+  scoring, timers, bot population and result decisions; clients consume confirmed
+  events. Freeze the selected map/area, kits and gameplay settings for everyone.
+- Replace the current single-human roster assumption with stable participant
+  identities and explicit life/round identities. Network respawns must replace
+  the body, equipment and remote representations without stale packets affecting
+  a later life. This is the principal technical risk, not merely lobby creation.
+- Preserve every participant's profile, including Fika save/death/disconnect
+  paths and recovery after host failure. Our exact local-raid end interception
+  is not proof that those paths are protected.
+- Arbitrate pickups and effects on the host, verify inventory replication, and
+  test double jump/air control, damage, team markers and spectating from another
+  player's view. Reuse existing kits, area definitions, rules and HUD where
+  appropriate. Human teams do not require PitFireTeam; bot/PFT support needs its
+  own later scope rather than inheriting a compatibility claim.
+
+Suggested sequence, with native multi-client evidence at each step:
+
+1. **Private 1v1 proof of concept:** fixed kits, separated starts, one elimination
+   round, no respawns, bots or pickups. Both clients see the same start and result;
+   both profiles remain unchanged. Test the VPN-free connection from separate
+   internet connections, not just two clients on the same LAN.
+2. **Network respawn and round reset:** repeat death, body replacement and kit
+   assignment from both perspectives; test delayed/duplicate events, disconnects
+   and host loss. Verify profile recovery and regression-test ordinary/solo raids.
+3. **Mode expansion:** TDM, Gun Game and cooperative matches, then bot-filled
+   slots, assists, pickups and additional movement rules. Decide reconnect and
+   join-in-progress behavior explicitly instead of assuming Fika provides Arena
+   state restoration. Reassess larger teams only after the small setup is stable.
+
+Sources checked 2026-09-21; recheck before implementation:
+
+- [Fika features and limitations](https://wiki.project-fika.com/general-information)
+- [Fika mod events and custom packets](https://wiki.project-fika.com/modding-fika)
+- [Direct hosting and default ports](https://wiki.project-fika.com/hosting-a-fika-server/host-using-port-forwarding)
+- [Hosting methods and CGNAT limits](https://wiki.project-fika.com/hosting-a-fika-server/choose-your-hosting-method)
+- [NAT punching options](https://wiki.project-fika.com/advanced-features/nat-punching)
+- [Public NAT punch service: backend exclusion and router requirements](https://wiki.project-fika.com/advanced-features/nat-punching/fika-nat-punch-server)
+- [Headless host requirements](https://wiki.project-fika.com/advanced-features/headless-client)
+- [Fika project/license guidance](https://wiki.project-fika.com/): CC BY-NC-SA 4.0;
+  respect the published restrictions on monetization, large public servers and
+  artwork. Prefer integration over copying or bundling Fika code/assets.
