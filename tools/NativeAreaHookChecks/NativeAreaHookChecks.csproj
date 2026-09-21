@@ -7,6 +7,7 @@
     <ProductionLocationPatchSource Condition="'$(ProductionLocationPatchSource)' == ''">../../ArenaMode.Client/Session/ArenaLocationSelectionPatch.cs</ProductionLocationPatchSource>
     <ProductionMenuSelectionSource Condition="'$(ProductionMenuSelectionSource)' == ''">../../ArenaMode.Client/Session/ArenaMenuSelection.cs</ProductionMenuSelectionSource>
     <ProductionAreaCatalogSource Condition="'$(ProductionAreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</ProductionAreaCatalogSource>
+    <ProductionMapCatalogSource Condition="'$(ProductionMapCatalogSource)' == ''">../../ArenaMode.Shared/ArenaMapCatalog.cs</ProductionMapCatalogSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
@@ -21,7 +22,7 @@
     <Compile Include="../../ArenaMode.Client/Session/ArenaLocationSelectionView.cs" Link="Production/ArenaLocationSelectionView.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaMapMenuUpdater.cs" Link="Production/ArenaMapMenuUpdater.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
-    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="$(ProductionMapCatalogSource)" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="$(ProductionAreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />
   </ItemGroup>
 </Project>

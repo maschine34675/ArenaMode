@@ -121,7 +121,7 @@ namespace EFT.UI.Matchmaker
             _infoPanel = ChildButton("Native location information");
             foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
                          ArenaMapCatalog.CustomsId, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId,
-                         ArenaMapCatalog.EquatorId, "Sandbox" })
+                         ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, "Sandbox" })
                 Locations[map] = new() { Id = map, Enabled = map != ArenaMapCatalog.FactoryNightId && map != ArenaMapCatalog.LabyrinthId };
         }
         private NativeButton ChildButton(string name)

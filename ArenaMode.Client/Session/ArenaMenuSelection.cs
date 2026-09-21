@@ -163,7 +163,7 @@ internal static class ArenaMenuSelection
 
     public static bool IsMapConfigured(string map)
         => Config.Settings.IsArenaMap(map) && ArenaClientConfig.IsMapEnabledOnServer(map)
-           && (!ArenaMapCatalog.IsEquator(map)
+           && (!ArenaMapCatalog.IsOptionalMap(map)
                || BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId));
 
     // A solo player must reach the mode picker even when only bounded Customs

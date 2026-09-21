@@ -471,7 +471,7 @@ public sealed class ArenaModeRouter : StaticRouter
         // Missing imported data must not trigger stale-snapshot recovery or arm
         // preparation. Config alone cannot make an optional location playable.
         if (!ArenaOptionalMapPolicy.IsAvailable(request.Map))
-            return Json(new { armed = false, reason = "Equator requires an enabled ArenaMapPort server location." });
+            return Json(new { armed = false, reason = "This map requires its matching enabled ArenaMapPort server location." });
 
         // Reject contradictory rules before even stale-snapshot recovery. A
         // request/retry must identify the same advertised bot relationships.

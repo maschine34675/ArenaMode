@@ -35,17 +35,19 @@ public class LocationMutatorTests
     };
 
     [Theory]
-    [InlineData("deathmatch")]
-    [InlineData("gungame")]
-    public void EquatorGeneratedWavesUseOnlyTheAuthoredBotZoneOnTheRaidClone(string mode)
+    [InlineData(ArenaMapCatalog.EquatorId, "deathmatch")]
+    [InlineData(ArenaMapCatalog.EquatorId, "gungame")]
+    [InlineData(ArenaMapCatalog.Bay5Id, "deathmatch")]
+    [InlineData(ArenaMapCatalog.Bay5Id, "gungame")]
+    public void ImportedMapGeneratedWavesUseOnlyTheAuthoredBotZoneOnTheRaidClone(string mapId, string mode)
     {
         var original = FreshLocation();
-        original.Id = ArenaMapCatalog.EquatorId;
+        original.Id = mapId;
         original.DisabledForScav = true;
         var before = JsonSerializer.Serialize(original, JsonOptions);
         var clone = JsonSerializer.Deserialize<LocationBase>(before, JsonOptions)!;
         var config = new ArenaModeConfig();
-        WithAbps(false, () => ArenaLocationMutator.Mutate(clone, config.Maps[ArenaMapCatalog.EquatorId], config, mode));
+        WithAbps(false, () => ArenaLocationMutator.Mutate(clone, config.Maps[mapId], config, mode));
         Assert.NotEmpty(clone.Waves!);
         Assert.All(clone.Waves!, wave => Assert.Equal("BotZone_Main", wave.SpawnPoints));
         Assert.NotEmpty(clone.BossLocationSpawn!);

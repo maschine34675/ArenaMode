@@ -1,11 +1,25 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-20. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-21. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Optional Bay5 integration CANDIDATE (2026-09-21, Codex):** branch
+  `feature/bay5-map-integration`, based on `8c05327`. `arena_bay5` now joins
+  Equator in the native Arena menu for Deathmatch/Gun Game only, with independent
+  per-map server availability and owned menu rows. Defaults use `BotZone_Main`,
+  eight bots/four-alive target; the two-bot burst and 25m gate are unchanged.
+  Revision 2 upgrades the exact existing Equator defaults while preserving
+  customized lists, disabled values and prior/subsequent map removals. Real
+  BepInEx and server-file reload checks cover the deployed revision-1 boundary.
+  `tools/EquatorMapChecks/Verify.ps1` now covers both optional maps, five native
+  source-linked harnesses and five fault controls, with isolated builds and no
+  direct installation writes. See `BAY5-MAP-REVIEW.md`. Parent still owns
+  independent review, MapPort spawn data, clean-build promotion, restart and
+  actual Bay5 lifecycle/profile-return acceptance. No GPU result is implied.
 
 - **Optional Equator integration DEPLOYED AND HOST-TESTED (2026-09-20, Codex):** branch
   `feature/equator-map-integration`, based on `649a773`. Native Arena menu and

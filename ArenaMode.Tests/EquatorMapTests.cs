@@ -14,6 +14,7 @@ public sealed class EquatorMapConfigTests
     [InlineData(ArenaMapCatalog.LegacyDefaultClientAllowlist)]
     [InlineData(ArenaMapCatalog.PreviousDefaultClientAllowlist)]
     [InlineData(ArenaMapCatalog.NativeDefaultClientAllowlist)]
+    [InlineData(ArenaMapCatalog.EquatorDefaultClientAllowlist)]
     public void ExactClientDefaultsGainOptionalEquator(string old)
         => Assert.Equal(ArenaMapCatalog.DefaultClientAllowlist, ArenaMapCatalog.UpgradeLegacyClientAllowlist(old));
 
@@ -25,10 +26,12 @@ public sealed class EquatorMapConfigTests
     public void EditedClientListsStayExact(string edited)
         => Assert.Equal(edited, ArenaMapCatalog.UpgradeLegacyClientAllowlist(edited));
 
-    [Fact]
-    public void DefaultsUseRealZoneAndSmallMapPopulation()
+    [Theory]
+    [InlineData(ArenaMapCatalog.EquatorId)]
+    [InlineData(ArenaMapCatalog.Bay5Id)]
+    public void DefaultsUseRealZoneAndSmallMapPopulation(string mapId)
     {
-        var map = new ArenaModeConfig().Maps[ArenaMapCatalog.EquatorId];
+        var map = new ArenaModeConfig().Maps[mapId];
         Assert.True(map.Enabled);
         Assert.Equal("BotZone_Main", map.SpawnZones);
         Assert.Equal(8, map.BotMax);
@@ -51,6 +54,7 @@ public sealed class EquatorMapConfigTests
         var defaults = JsonSerializer.SerializeToNode(new ArenaModeConfig());
         Assert.True(ConfigStore.FillMissingKeys(saved, defaults));
         Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.EquatorId]!["spawnZones"]!.GetValue<string>());
+        Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.Bay5Id]!["spawnZones"]!.GetValue<string>());
         foreach (var id in old.Split(','))
         {
             Assert.False(maps[id]!["enabled"]!.GetValue<bool>());
@@ -58,8 +62,10 @@ public sealed class EquatorMapConfigTests
             Assert.Equal(7, maps[id]!["botMax"]!.GetValue<int>());
         }
         maps.Remove(ArenaMapCatalog.EquatorId);
+        maps.Remove(ArenaMapCatalog.Bay5Id);
         ConfigStore.FillMissingKeys(saved, defaults);
         Assert.False(maps.ContainsKey(ArenaMapCatalog.EquatorId));
+        Assert.False(maps.ContainsKey(ArenaMapCatalog.Bay5Id));
     }
 
     [Theory]
@@ -90,23 +96,24 @@ public sealed class EquatorMapConfigTests
 
 public sealed partial class ArenaAreaServerTests
 {
+    public static IEnumerable<object?[]> OptionalRouteCases()
+    {
+        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
+            foreach (string? mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "endless", "rounds", null })
+                yield return new object?[] { map, mode, mode is "deathmatch" or "gungame" };
+    }
+
     [Theory]
-    [InlineData("deathmatch", true)]
-    [InlineData("gungame", true)]
-    [InlineData("tactical", false)]
-    [InlineData("teamdeathmatch", false)]
-    [InlineData("endless", false)]
-    [InlineData("rounds", false)]
-    [InlineData(null, false)]
-    public async Task EquatorRouteAdmitsOnlyIndividualModesAndKeepsSnapshotContract(string? mode, bool expected)
+    [MemberData(nameof(OptionalRouteCases))]
+    public async Task OptionalMapRouteAdmitsOnlyIndividualModesAndKeepsSnapshotContract(string mapId, string? mode, bool expected)
     {
         var oldLookup = ArenaOptionalMapPolicy.FindLocation;
         try
         {
-            ArenaOptionalMapPolicy.FindLocation = _ => new() { Id = ArenaMapCatalog.EquatorId, Enabled = true };
-            ArenaContext.Config.Maps[ArenaMapCatalog.EquatorId] = new ArenaModeConfig().Maps[ArenaMapCatalog.EquatorId];
+            ArenaOptionalMapPolicy.FindLocation = _ => new() { Id = mapId, Enabled = true };
+            ArenaContext.Config.Maps[mapId] = new ArenaModeConfig().Maps[mapId];
             var (router, saves, profile, cloner) = CustomsRouter();
-            var request = new ArenaRaidStartRequest { Map = ArenaMapCatalog.EquatorId, Mode = mode, RequestId = Token,
+            var request = new ArenaRaidStartRequest { Map = mapId, Mode = mode, RequestId = Token,
                 DeathmatchHostility = mode == "deathmatch" ? DeathmatchSelection.FreeForAll : null };
             using var result = JsonDocument.Parse(await InvokeStart(router, request));
             Assert.Equal(expected, result.RootElement.GetProperty("armed").GetBoolean());
@@ -120,17 +127,21 @@ public sealed partial class ArenaAreaServerTests
                 Assert.Equal(1, cloner.Calls);
                 Assert.Equal(Token, Sessions.GetArmToken(Session));
             }
-            Assert.False(ArenaAreaCatalog.TryResolve(null, ArenaMapCatalog.EquatorId, mode, true, out _, out _));
+            Assert.False(ArenaAreaCatalog.TryResolve(null, mapId, mode, true, out _, out _));
         }
         finally { ArenaOptionalMapPolicy.FindLocation = oldLookup; }
     }
 
+    public static IEnumerable<object[]> OptionalUnavailableCases()
+    {
+        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
+            foreach (string scenario in new[] { "missing", "disabled", "wrong-id", "other-imported-map", "throws" })
+                yield return new object[] { map, scenario };
+    }
+
     [Theory]
-    [InlineData("missing")]
-    [InlineData("disabled")]
-    [InlineData("wrong-id")]
-    [InlineData("throws")]
-    public async Task UnavailableEquatorNeverRecoversOrArmsOrAdvertisesAndKeepsConfig(string scenario)
+    [MemberData(nameof(OptionalUnavailableCases))]
+    public async Task UnavailableOptionalMapNeverRecoversOrArmsOrAdvertisesAndKeepsConfig(string mapId, string scenario)
     {
         var oldLookup = ArenaOptionalMapPolicy.FindLocation;
         try
@@ -138,20 +149,21 @@ public sealed partial class ArenaAreaServerTests
             ArenaOptionalMapPolicy.FindLocation = scenario switch
             {
                 "missing" => null,
-                "disabled" => _ => new() { Id = ArenaMapCatalog.EquatorId, Enabled = false },
+                "disabled" => _ => new() { Id = mapId, Enabled = false },
                 "wrong-id" => _ => new() { Id = Map, Enabled = true },
+                "other-imported-map" => _ => new() { Id = ArenaMapCatalog.IsEquator(mapId) ? ArenaMapCatalog.Bay5Id : ArenaMapCatalog.EquatorId, Enabled = true },
                 _ => _ => throw new InvalidOperationException("database not ready"),
             };
             ArenaContext.Config = new ArenaModeConfig();
             string before = JsonSerializer.Serialize(ArenaContext.Config);
             using var config = JsonDocument.Parse(ArenaOptionalMapPolicy.ClientConfigJson(ArenaContext.Config));
-            Assert.False(config.RootElement.GetProperty("maps").TryGetProperty(ArenaMapCatalog.EquatorId, out _));
+            Assert.False(config.RootElement.GetProperty("maps").TryGetProperty(mapId, out _));
             Assert.True(config.RootElement.GetProperty("maps").TryGetProperty(Map, out _));
             Assert.Equal(before, JsonSerializer.Serialize(ArenaContext.Config));
             var (router, saves, profile, cloner) = CustomsRouter();
             Assert.True(ArenaContext.Snapshots!.TakeSnapshot(Session));
             using var result = JsonDocument.Parse(await InvokeStart(router,
-                new() { Map = ArenaMapCatalog.EquatorId, Mode = "gungame", RequestId = Token }));
+                new() { Map = mapId, Mode = "gungame", RequestId = Token }));
             Assert.False(result.RootElement.GetProperty("armed").GetBoolean());
             Assert.Equal(1, cloner.Calls);
             Assert.True(ArenaContext.Snapshots.HasSnapshot(Session));

@@ -8,7 +8,7 @@ try {
     $env:SPT_DATABASE = Join-Path $SptRoot 'SPT_Runtime/SPT_Data/database'
     & dotnet test (Join-Path $arenaRepo 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release "-p:SPTUserMods=$arenaNoDeploy" --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Arena server tests failed.' }
-    foreach ($arenaHarness in @('NativeMenuChecks', 'NativeAreaHookChecks', 'NativeMapViewChecks', 'ArenaLabyrinthAccessChecks')) {
+    foreach ($arenaHarness in @('NativeMenuChecks', 'NativeAreaHookChecks', 'NativeMapViewChecks', 'ArenaLabyrinthAccessChecks', 'AreaConfigChecks')) {
         & dotnet run --project (Join-Path $arenaRepo "tools/$arenaHarness/$arenaHarness.csproj") -c Release
         if ($LASTEXITCODE -ne 0) { throw "$arenaHarness failed." }
     }

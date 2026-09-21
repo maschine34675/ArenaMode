@@ -14,11 +14,12 @@ internal static class ArenaOptionalMapPolicy
 
     internal static bool IsAvailable(string? map)
     {
-        if (!ArenaMapCatalog.IsEquator(map!)) return true;
+        if (!ArenaMapCatalog.IsOptionalMap(map!)) return true;
         try
         {
-            var location = FindLocation?.Invoke(ArenaMapCatalog.EquatorId);
-            return location?.Enabled == true && ArenaMapCatalog.IsEquator(location.Id!);
+            string canonicalId = ArenaMapCatalog.IsEquator(map!) ? ArenaMapCatalog.EquatorId : ArenaMapCatalog.Bay5Id;
+            var location = FindLocation?.Invoke(canonicalId);
+            return location?.Enabled == true && string.Equals(location.Id, canonicalId, StringComparison.OrdinalIgnoreCase);
         }
         catch { return false; }
     }
@@ -30,6 +31,8 @@ internal static class ArenaOptionalMapPolicy
         var view = JsonSerializer.SerializeToNode(config)!;
         if (!IsAvailable(ArenaMapCatalog.EquatorId))
             view["maps"]?.AsObject().Remove(ArenaMapCatalog.EquatorId);
+        if (!IsAvailable(ArenaMapCatalog.Bay5Id))
+            view["maps"]?.AsObject().Remove(ArenaMapCatalog.Bay5Id);
         return view.ToJsonString();
     }
 }

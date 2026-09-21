@@ -155,30 +155,43 @@ public static class ConfigStore
     /// hunt-sweep values were the case that surfaced it — an installed config
     /// left the Lab on Factory's numbers with nothing to indicate it.
     ///
-    /// Only ADDS. A value the user has set is never touched, including one that
-    /// happens to equal the default.
+    /// User settings are only added, never replaced. The internal optional-map
+    /// revision advances after its guarded migration decision.
     /// </summary>
     internal static bool FillMissingKeys(JsonNode? saved, JsonNode? defaults)
     {
-        // Optional maps do not return after the user removes them. Introduce
-        // Equator only once for an exact historical default map-ID set; map
-        // values (including enabled=false) always remain user-owned.
+        // Evaluate the saved map set before generic repair adds native maps.
+        // Revision 1 may have already recorded a deliberate Equator removal;
+        // only its exact complete Equator default can gain Bay5 at revision 2.
+        bool migrated = false;
         if (saved is JsonObject root && root["maps"] is JsonObject maps
-            && !maps.ContainsKey(ArenaMapCatalog.EquatorId)
             && defaults is JsonObject defaultRoot && defaultRoot["maps"] is JsonObject)
         {
-            bool legacy = !root.ContainsKey("optionalMapsRevision")
+            int revision = root["optionalMapsRevision"] is JsonValue value && value.TryGetValue<int>(out int stored)
+                ? stored : root.ContainsKey("optionalMapsRevision") ? int.MaxValue : 0;
+            bool ExactMapSet(string ids) => maps.Select(x => x.Key).OrderBy(x => x, StringComparer.Ordinal)
+                .SequenceEqual(ids.Split(',').OrderBy(x => x, StringComparer.Ordinal));
+            bool nativeDefault = revision <= 0
                 && new[] { ArenaMapCatalog.LegacyDefaultClientAllowlist,
                     ArenaMapCatalog.PreviousDefaultClientAllowlist, ArenaMapCatalog.NativeDefaultClientAllowlist }
-                    .Any(ids => maps.Select(x => x.Key).OrderBy(x => x, StringComparer.Ordinal)
-                        .SequenceEqual(ids.Split(',').OrderBy(x => x, StringComparer.Ordinal)));
-            if (!legacy)
-            {
-                defaults = defaults.DeepClone();
+                    .Any(ExactMapSet);
+            bool equatorDefault = revision < ArenaMapCatalog.OptionalMapsRevision
+                && ExactMapSet(ArenaMapCatalog.EquatorDefaultClientAllowlist);
+
+            // Detached defaults retain per-map field repair for existing entries,
+            // including explicitly disabled or customized optional entries.
+            defaults = defaults.DeepClone();
+            if (!maps.ContainsKey(ArenaMapCatalog.EquatorId) && !nativeDefault)
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.EquatorId);
+            if (!maps.ContainsKey(ArenaMapCatalog.Bay5Id) && !nativeDefault && !equatorDefault)
+                defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.Bay5Id);
+            if (revision < ArenaMapCatalog.OptionalMapsRevision)
+            {
+                root["optionalMapsRevision"] = ArenaMapCatalog.OptionalMapsRevision;
+                migrated = true;
             }
         }
-        return FillMissingKeysCore(saved, defaults);
+        return FillMissingKeysCore(saved, defaults) || migrated;
     }
 
     private static bool FillMissingKeysCore(JsonNode? saved, JsonNode? defaults)

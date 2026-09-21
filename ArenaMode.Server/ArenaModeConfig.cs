@@ -12,7 +12,7 @@ public class ArenaModeConfig
 {
     /// <summary>Guards the one-time optional-map default migration; absence after it is user-owned.</summary>
     [JsonPropertyName("optionalMapsRevision")]
-    public int OptionalMapsRevision { get; set; } = 1;
+    public int OptionalMapsRevision { get; set; } = ArenaMapCatalog.OptionalMapsRevision;
 
     [JsonPropertyName("debug")]
     public bool Debug { get; set; } = false;
@@ -67,6 +67,14 @@ public class ArenaModeConfig
         // Optional ArenaMapPort location. Presence is checked live for the client
         // config response and before arm; this default never installs a map.
         [ArenaMapCatalog.EquatorId] = new ArenaMapConfig
+        {
+            SpawnZones = "BotZone_Main",
+            BotMax = 8,
+            MaxBotPerZone = 8,
+            BurstMinAliveBots = 4,
+        },
+
+        [ArenaMapCatalog.Bay5Id] = new ArenaMapConfig
         {
             SpawnZones = "BotZone_Main",
             BotMax = 8,
