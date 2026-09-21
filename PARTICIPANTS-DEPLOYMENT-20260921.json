@@ -1,0 +1,73 @@
+{
+  "SourceCommit": "be7c49d7334135fbf6f7f8e0b0c1c279960271b2",
+  "Timestamp": "2026-09-21T11:27:47.3484739+02:00",
+  "BuildManifest": "artifacts/duration-balance/build/c02adb240a474bcbba4c2a257a638f21/manifest.json",
+  "Copied": [
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\842780b5d4804a288edb6479fb0dfdab\\out\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\participant-deployment\\0cad3efa05fb4912920edf7329683dfe\\maschine-ArenaMode.Client.dll.backup",
+      "Hash": "2263FBDDEEF9DFD516B04B04792B764171B4B5B8FD9EDB6AE3970D86C3DC5C6A",
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+    },
+    {
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\duration-balance\\build\\c02adb240a474bcbba4c2a257a638f21\\server\\maschine-ArenaMode.Server.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\participant-deployment\\0cad3efa05fb4912920edf7329683dfe\\maschine-ArenaMode.Server.dll.backup",
+      "Hash": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+      "Target": "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll"
+    }
+  ],
+  "UnrelatedFilesUnchanged": 353,
+  "InstalledCoreSha256": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+  "AssemblyCSharpSha256": "EE25CEE1259777B38ED8B3E7841FDC2DB3C98540B1469FA539B1FF183476E436",
+  "ClientBuildManifest": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\842780b5d4804a288edb6479fb0dfdab\\manifest.json",
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "CE69BDF504B3A1A0952DC154EC735C99B85957AC4C586E5E0EB45E2E635B94EA",
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26"
+  },
+  "Deployed": true,
+  "GameAndServerRestartRequired": true,
+  "GpuTested": false,
+  "GpuMirrorVerified": false,
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\participant-deployment\\0cad3efa05fb4912920edf7329683dfe",
+  "ImplementationCommit": "f84c915",
+  "Checks": {
+    "ServerCases": 126,
+    "ServerWarnings": 2,
+    "NativeIlContracts": 17,
+    "FullSuiteFailed": 0,
+    "MenuAssertions": 3227,
+    "FfaGroupAssertions": 83,
+    "BuildErrors": 0,
+    "MenuFaultControls": 6,
+    "IntegrationFaultControls": 3,
+    "ServerFaultControls": 4,
+    "DeathmatchMenuRegression": "passed",
+    "NativeMenuHookAssertions": 129,
+    "FullSuitePassed": 765,
+    "GiveUpAssertions": 618,
+    "SoloRuntimeAssertions": 131,
+    "LabsFactorySpawnAssertions": 415,
+    "AreaViewAssertions": 23,
+    "FullSuiteSkipped": 1,
+    "FfaGroupFaultControls": 2,
+    "TdmRuntimeAssertions": 332,
+    "SoloFaultControls": 11,
+    "ClientWarnings": 4,
+    "FullSuiteDuplicateIdWarnings": 1,
+    "ClientProtocolAssertions": 474
+  },
+  "Review": {
+    "ManualGpuPending": true,
+    "FailedDuplicateRetirementFinding": "fixed; body-specific ticket and quarantine accounting",
+    "BossInitializationFinding": "fixed; native SetBoss(0) before admission",
+    "MenuServerSessionReview": "no further actionable findings",
+    "IndependentReviewer": "/root/participant_runtime/native_population_review"
+  },
+  "Evidence": {
+    "FullSuite": "artifacts/participant-fullsuite/a78ea5e0867b400eb2d22a6ed0a1f0b3/receipt.json",
+    "MenuRegressions": "artifacts/participants-menu-regressions.log",
+    "FeatureTreeMatchesMergedMaster": true,
+    "FinalIntegration": "artifacts/participants-final-integration.log",
+    "NativeBuild": "artifacts/participants-final-build.log"
+  }
+}

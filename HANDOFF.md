@@ -7,6 +7,39 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Teilnehmerzahl pro Karte EINGESPIELT (2026-09-21, Codex):** Implementierung
+  `f84c915`, sauberer gemeinsamer Master-Build
+  `be7c49d7334135fbf6f7f8e0b0c1c279960271b2`. Client-SHA256
+  `2263FBDDEEF9DFD516B04B04792B764171B4B5B8FD9EDB6AE3970D86C3DC5C6A`, Server-SHA256
+  `42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660`.
+  Minus/Wert/Plus im nativen Kartenbildschirm, Gesamtzahl inklusive Spieler;
+  pro Karte gespeicherte Solo-/TDM-Werte. Vorgaben: Equator 4 (keine harte Grenze),
+  Bay5 8, Factory Tag/Nacht je 10, Labs 16, Labyrinth 12. DM/GG erlauben 2–24,
+  volle Team-DM-Karten gerade 4–24; optionale MapPort-Karten weiter nur DM/GG,
+  Customs-Teamstarts und Tactical/PFT unverändert. Explizite Zahlen werden exakt
+  ausgehandelt; Serverklon und finale Startfreigabe halten fremde Wellen fern.
+  Solo reserviert Botplätze über Profilanfragen, native Aktivierung und lokale
+  Respawns hinweg; unklare native Arbeit wird nicht nach Timeout überbucht.
+  Bei aktivierten Labyrinth-Bossen ein mitgezählter Bossplatz, Tagilla/Killa im
+  Wechsel nach Tod, keine zusätzlichen Helper-/Escort-Wellen.
+  Nur Client- und Server-DLL ersetzt; Core, Configs, Audiodateien und Drafts
+  unverändert. Beleg: `PARTICIPANTS-DEPLOYMENT-20260921.json`.
+  Offline: neue Solo-Prüfung 131/11 Fehlerkontrollen, 17 native IL-Verträge;
+  Menü 3227 plus Hooks 129/Bereichsansicht 23, sechs Fehlerkontrollen; Server 126,
+  vier Fehlerkontrollen; Integration 474 Client-/332 TDM-Prüfungen, drei
+  Fehlerkontrollen. Vollständige Unit-Suite 765 bestanden/1 übersprungen
+  (gesonderter APBS-Integrationstest), bestehende doppelte Test-ID gemeldet.
+  Spawnfilter 415, Give-up 618, FFA-Gruppen 83/zwei Fehlerkontrollen und
+  Deathmatch-/TDM-Menü-/Ende-Regressionsprüfungen grün. Unabhängiger Review fand
+  fehlende native Boss-Initialisierung und falsche Freigabe nach einem zweiten
+  fehlgeschlagenen Spawn-Callback; beide behoben und erneut geprüft.
+  Native Builds: keine Fehler, vier bestehende Client-/zwei Serverwarnungen.
+  **EFT UND SPT-Server neu starten; GPU-Abnahme und Spiegelung nicht verifiziert.**
+  Kurze Spieltestanweisung steht in `PARTICIPANTS-REVIEW.md`; gesonderte Details in
+  `PARTICIPANT-MENU-REVIEW.md`, `PARTICIPANT-SERVER-REVIEW.md` und
+  `SOLO-POPULATION-REVIEW.md`. Eigener Feature-Branch nach Merge entfernt,
+  andere Worktrees/Branches unberührt, nicht gepusht.
+
 - **Pickup-Rotation, Infinite Ammo und Rucksack-Nachladen EINGESPIELT
   (2026-09-21, Codex):** Commits `1bac37a` (Pickups) und `4384855`
   (Rucksack-Nachladen), gemeinsamer sauberer Master-Build
