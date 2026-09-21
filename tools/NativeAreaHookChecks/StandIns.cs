@@ -142,6 +142,20 @@ namespace ArenaMode
 }
 namespace ArenaMode.Config
 {
+    internal static class ArenaParticipantSettings
+    {
+        internal static readonly Dictionary<string, int> Values = new();
+        internal static bool Reject;
+        internal static int Writes;
+        internal static int Get(string map, string mode)
+            => Values.TryGetValue((map ?? "") + ":" + mode, out var value) ? value : ArenaParticipantPolicy.DefaultTotal(map, mode);
+        internal static bool TrySelect(string map, string mode, int total)
+        {
+            if (Reject || Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid
+                || !ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out _, out _)) return false;
+            Values[map + ":" + mode] = total; Writes++; return true;
+        }
+    }
     public sealed class Entry<T> { public T Value; }
     public static class Settings
     {
@@ -173,6 +187,11 @@ namespace ArenaMode.Config
 namespace ArenaMode.Audio { public static class AnnouncerService { public static void EnsureLoaded() { } } }
 namespace ArenaMode.Session
 {
+    internal static class ArenaSession
+    {
+        internal static bool IsActive, ArmedForNextRaid;
+        internal static int? Participants;
+    }
     public static class ArenaClientConfig
     {
         public static Func<string, bool> Enabled = map => true;
@@ -200,12 +219,16 @@ namespace ArenaMode.Session
         public static ArenaAreaSelectionView Last;
         internal Func<string, bool> Callback;
         internal Func<string, int, bool> SizeCallback;
+        internal Func<ArenaParticipantSelectionState, int, bool> ParticipantCallback;
         internal ArenaAreaSelectionState State;
+        internal ArenaParticipantSelectionState Participants;
         internal bool Closed = true;
         internal bool Team;
-        public void Show(UnityEngine.Transform screen, TMPro.TMP_Text text, Func<string, bool> callback, Func<string, int, bool> sizeCallback = null)
-        { Last = this; Callback = callback; SizeCallback = sizeCallback; Closed = false; }
-        public void Refresh(ArenaAreaSelectionState state, bool team) { State = state; Team = team; }
-        public void Close() { Closed = true; Callback = null; SizeCallback = null; State = null; }
+        public void Show(UnityEngine.Transform screen, TMPro.TMP_Text text, Func<string, bool> callback,
+            Func<string, int, bool> sizeCallback = null, Func<ArenaParticipantSelectionState, int, bool> participantCallback = null)
+        { Last = this; Callback = callback; SizeCallback = sizeCallback; ParticipantCallback = participantCallback; Closed = false; }
+        public void Refresh(ArenaAreaSelectionState state, bool team, ArenaParticipantSelectionState participants = null)
+        { State = state; Team = team; Participants = participants; }
+        public void Close() { Closed = true; Callback = null; SizeCallback = null; ParticipantCallback = null; State = null; Participants = null; }
     }
 }

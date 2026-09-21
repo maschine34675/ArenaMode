@@ -28,7 +28,7 @@ internal static partial class Program
         internal Raid(bool usec = true, int size = 5, bool active = true,
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
             bool bounded = false, bool areaPending = false, int? areaSize = null,
-            int killLimit = 0, int timeLimit = 0)
+            int killLimit = 0, int timeLimit = 0, int? participants = null)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
@@ -50,6 +50,7 @@ internal static partial class Program
             Singleton<GameWorld>.Instance = World;
             ArenaSession.IsActive = active;
             ArenaSession.ActiveMode = mode;
+            ArenaSession.Participants = participants;
             ArenaSession.OwnedGame = Game;
             ArenaSession.OwnedWorld = World;
             ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = pft;
@@ -105,6 +106,16 @@ internal static partial class Program
 
     private static void InitializationAndReady()
     {
+        foreach (int total in new[] { 4, 8, 16, 24 })
+        {
+            var negotiated = new Raid(size: 5, participants: total);
+            Settings.TeamDeathmatchSize.Value = 12;
+            negotiated.Fill();
+            Check(negotiated.Mode.TeamSize == total / 2 && negotiated.Bots.Count == total - 1,
+                "frozen full-map total overrides legacy team setting, includes human, stays equal after F12 edit");
+        }
+        var boundedNegotiated = new Raid(areaSize: 3, participants: 24);
+        Check(boundedNegotiated.Mode.TeamSize == 3, "bounded-area reservation wins over unrelated full-map value");
         foreach (bool usec in new[] { true, false })
         foreach (int size in new[] { 2, 5, 12 })
         {

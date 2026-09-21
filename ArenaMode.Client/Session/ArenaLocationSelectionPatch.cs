@@ -43,7 +43,9 @@ internal static class ArenaLocationSelectionPatch
             if (map != null && !ArenaMenuSelection.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
                 screen.OnLocationSelected(null);
             var areas = ArenaMenuSelection.AreaSelection(screen.SelectedLocation?.Id);
-            Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam);
+            var participants = ArenaParticipantSelectionState.Create(areas, eligibility.IsTeam,
+                ArenaParticipantSettings.Get(areas.MapId, areas.ModeId));
+            Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam, participants);
             Preview.Refresh(areas);
         }
 
@@ -160,6 +162,23 @@ internal static class ArenaLocationSelectionPatch
                         || !ReferenceEquals(Controller(__instance), owner) || !IsArena(__instance)) return false;
                     var accepted = ArenaMenuSelection.TrySelectAreaTeamSize(owner.RaidSettings,
                         __instance.SelectedLocation?.Id, areaId, size);
+                    if (accepted) state.Refresh(__instance);
+                    return accepted;
+                }, (rendered, total) =>
+                {
+                    if (__instance == null || !ReferenceEquals(state.Generation, generation)
+                        || !ReferenceEquals(Controller(__instance), owner) || !IsArena(__instance)
+                        || rendered?.Available != true
+                        || !string.Equals(__instance.SelectedLocation?.Id, rendered.MapId, System.StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(owner.RaidSettings.SelectedLocation?.Id, rendered.MapId, System.StringComparison.OrdinalIgnoreCase)
+                        || Settings.SelectedGameModeId != rendered.ModeId
+                        || ArenaParticipantPolicy.IsTeam(rendered.ModeId)
+                            && Settings.TeamDeathmatchArea?.Value != rendered.AreaId) return false;
+                    var current = ArenaMenuSelection.AreaSelection(rendered.MapId);
+                    var live = ArenaParticipantSelectionState.Create(current, ArenaMenuSelection.CurrentEligibility.IsTeam,
+                        ArenaParticipantSettings.Get(current.MapId, current.ModeId));
+                    if (!rendered.SameContext(live) || !live.Available || live.Total != rendered.Total) return false;
+                    var accepted = ArenaParticipantSettings.TrySelect(rendered.MapId, rendered.ModeId, total);
                     if (accepted) state.Refresh(__instance);
                     return accepted;
                 });

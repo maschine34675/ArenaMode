@@ -34,6 +34,7 @@ public class Plugin : BaseUnityPlugin
         RedeployCore.Init(ModLogger);
         WarnIfCoreIsOlderThanBuild();
         Settings.Init(Config);
+        ArenaParticipantSettings.Init(Config);
         Pickups.ArenaPickupSettings.Init(Config);
         Hud.InfoPanels.InfoPanelSettings.Init(Config,
             System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));

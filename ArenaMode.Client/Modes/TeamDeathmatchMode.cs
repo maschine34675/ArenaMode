@@ -86,7 +86,8 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             return;
         }
         _population = new TeamDeathmatchPopulation(
-            Areas.ArenaAreaRuntime.CurrentTeamSize ?? Settings.TeamDeathmatchSize.Value,
+            Areas.ArenaAreaRuntime.CurrentTeamSize ?? (ArenaSession.Participants.HasValue
+                ? ArenaSession.Participants.Value / 2 : Settings.TeamDeathmatchSize.Value),
             faction == EPlayerSide.Usec);
         TeamDeathmatchRelations.Reset();
         TeamDeathmatchRelations.Register(_local);

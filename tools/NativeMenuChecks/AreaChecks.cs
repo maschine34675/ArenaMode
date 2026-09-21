@@ -34,7 +34,8 @@ internal static partial class Program
         {
             if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
             var sent = JObject.Parse(body);
-            return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["areaId"] = sent["areaId"], ["deathmatchHostility"] = sent["deathmatchHostility"] }.ToString();
+            return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["areaId"] = sent["areaId"], ["deathmatchHostility"] = sent["deathmatchHostility"],
+                ["participants"] = sent["participants"], ["participantBosses"] = false }.ToString();
         };
     }
 
@@ -151,9 +152,10 @@ internal static partial class Program
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
         ArenaAreaNavigationPatches.IsReady = ArenaAreaLoadPatch.IsReady = ArenaAreaSpawnPointsPatch.IsReady = false;
         RequestHandler.Post = (route, body) => new JObject
-            { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"] }.ToString();
+            { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"],
+                ["participants"] = JObject.Parse(body)["participants"], ["participantBosses"] = false }.ToString();
         Assert(Start(Request(), out task) && ArenaAreaRuntime.ArmedArea == null,
-            "legacy full-map server replies remain compatible without area hooks or an area echo");
+            "full-map participant negotiation needs neither area hooks nor an area echo");
         ConfigureAreaNegotiation();
     }
 }

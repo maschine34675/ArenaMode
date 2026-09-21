@@ -49,7 +49,8 @@ internal static partial class Program
     {
         ModulePatch.EnabledTargets.Clear();
         ArenaBotSpawnPatches.Enable();
-        Assert(ModulePatch.EnabledTargets.Count == 4, "exactly four spawn hooks registered");
+        Assert(ModulePatch.EnabledTargets.Count == 7 && ArenaBotSpawnPatches.SoloPopulationReady,
+            "four placement and three solo creation hooks registered before readiness");
         AssertTarget(0, typeof(BotSpawner), nameof(BotSpawner.SpawnZones),
             typeof(IEnumerable<BotZone>), typeof(bool));
         AssertTarget(1, typeof(SpawnSystem), nameof(SpawnSystem.SelectAISpawnPoints),
@@ -58,7 +59,16 @@ internal static partial class Program
         AssertTarget(2, typeof(BotSpawner), nameof(BotSpawner.SpawnBotsInZoneOnPositions),
             typeof(void), typeof(List<ISpawnPoint>), typeof(BotZone),
             typeof(BotCreationData), typeof(Action<BotOwner>));
-        AssertTarget(3, typeof(SpawnPointsCollection), nameof(SpawnPointsCollection.CreateFromScene),
+        AssertTarget(3, typeof(BotCreatorClient), nameof(BotCreatorClient.ActivateBot),
+            typeof(System.Threading.Tasks.Task), typeof(BotCreationData), typeof(BotZone), typeof(bool),
+            typeof(Func<BotOwner, BotZone, BotsGroup>), typeof(Action<BotOwner>), typeof(System.Threading.CancellationToken));
+        AssertTarget(4, typeof(BotCreatorClient), nameof(BotCreatorClient.ActivateBot),
+            typeof(System.Threading.Tasks.Task), typeof(Profile), typeof(PositionNote), typeof(BotZone), typeof(bool),
+            typeof(Func<BotOwner, BotZone, BotsGroup>), typeof(Action<BotOwner>), typeof(System.Threading.CancellationToken));
+        AssertTarget(5, typeof(BotCreatorClient), nameof(BotCreatorClient.CreateBot),
+            typeof(System.Threading.Tasks.Task), typeof(Profile), typeof(PositionNote), typeof(Action<BotOwner>),
+            typeof(bool), typeof(System.Threading.CancellationToken));
+        AssertTarget(6, typeof(SpawnPointsCollection), nameof(SpawnPointsCollection.CreateFromScene),
             typeof(SpawnPointsCollection), typeof(DateTime?), typeof(SpawnPointParams[]));
     }
 

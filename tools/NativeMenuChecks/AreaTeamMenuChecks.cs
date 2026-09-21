@@ -22,6 +22,7 @@ internal static partial class Program
         ArenaAreaInitialSpawnPatch.IsReady = true;
         RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
             ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"],
+                ["participants"] = JObject.Parse(body)["participants"], ["participantBosses"] = false,
                 ["areaId"] = JObject.Parse(body)["areaId"], ["areaTeamSize"] = JObject.Parse(body)["areaTeamSize"] }.ToString()
             : "{\"disarmed\":true,\"state\":\"Idle\"}";
     }

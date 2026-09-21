@@ -32,12 +32,23 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
         var protectedTeam = sessions.IsProtectedTeamRaid(sessionId);
         var areaId = sessions.GetAreaId(sessionId);
         var areaTeamSize = sessions.GetAreaTeamSize(sessionId);
+        var participants = sessions.GetParticipants(sessionId);
         var boundedArea = areaId != ArenaMode.Shared.ArenaAreaCatalog.FullMapId;
-        var requiresLocation = protectedTeam || boundedArea;
+        var requiresLocation = protectedTeam || boundedArea || participants.HasValue;
         if (__result == null)
         {
             if (requiresLocation)
                 sessions.MarkLocationMutationFailed(sessionId, "the server returned no location clone");
+            return;
+        }
+
+        // Native start is already bound to one map. A mismatched callback must
+        // not mutate or stash a different clone under that participant contract.
+        if (participants.HasValue
+            && (!string.Equals(sessions.GetStatus(sessionId).map, name, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(__result.Id, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            sessions.MarkLocationMutationFailed(sessionId, "the participant-managed location did not match its exact armed map");
             return;
         }
 
@@ -53,17 +64,17 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
         try
         {
             var mode = sessions.GetStatus(sessionId).mode;
-            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode, areaId, areaTeamSize);
+            ArenaLocationMutator.Mutate(__result, mapConfig, ArenaContext.Config, mode, areaId, areaTeamSize, participants);
             sessions.StashLocationClone(sessionId, __result);
             sessions.MarkLocationMutationReady(sessionId);
 
-            var strategy = ArenaLocationMutator.IsQuietMap(mode)
+            var strategy = ArenaLocationMutator.IsQuietMap(mode) || participants.HasValue
                 ? "silent (the mode spawns its own squads)"
                 : ArenaLocationMutator.AbpsPresent ? "ABPS pump" : "generated waves";
 
             ArenaContext.Logger?.Info(
-                $"[ArenaMode] Location clone mutated for arena ({name}, mode={mode ?? "?"}): botMax={mapConfig.BotMax}, " +
-                $"spawn strategy={strategy}, area={areaId}, areaTeamSize={areaTeamSize}, " +
+                $"[ArenaMode] Location clone mutated for arena ({name}, mode={mode ?? "?"}): botMax={__result.BotMax}, " +
+                $"spawn strategy={strategy}, area={areaId}, areaTeamSize={areaTeamSize}, participants={participants}, " +
                 $"raid={ArenaContext.Config.RaidTimeMinutes}min, stripLoot={ArenaContext.Config.StripLoot}.");
         }
         catch (Exception ex)
