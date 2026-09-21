@@ -664,7 +664,7 @@ public static class Settings
             "Kits",
             "UseItemsAnywhere",
             true,
-            "Let anything worn be used and bound, not only what is in a pocket or a rig. " +
+            "Let anything worn be used and bound, and reload from magazines directly in the backpack during Arena. " +
             "The bulky medical items go where they FIT — a Grizzly is 2x2 and a Surv12 3x1 — " +
             "so without this the best medicine in the catalogue sits unreachable in the backpack.");
 

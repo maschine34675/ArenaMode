@@ -105,6 +105,7 @@ public class Plugin : BaseUnityPlugin
         Loot.OpenLootTracker.Enable();
         Loot.ArenaLootPatches.Enable();
         Kits.ArenaReachPatches.Enable();
+        Kits.ArenaBackpackReload.Enable();
         Kits.ArenaSlotVisibilityPatches.Enable();
         Loot.AutoSearchService.Initialize();
         PerfectCullingFix.EnableOnce();

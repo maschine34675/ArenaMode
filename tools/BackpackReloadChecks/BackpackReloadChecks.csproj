@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems><ReloadSource Condition="'$(ReloadSource)' == ''">../../ArenaMode.Client/Kits/ArenaBackpackReload.cs</ReloadSource></PropertyGroup>
+  <ItemGroup><Compile Include="Program.cs"/><Compile Include="../ArenaInfiniteAmmoChecks/NativeDoubles.cs" Link="NativeDoubles.cs"/><Compile Include="$(ReloadSource)" Link="Production/ArenaBackpackReload.cs"/><Compile Include="../../ArenaMode.Client/Pickups/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs"/></ItemGroup>
+</Project>
