@@ -43,6 +43,7 @@ internal static class ArenaPickupRuntime
     private static int _round;
     private static float _nextScan, _placementDeadline, _nextPlacement;
     private static readonly List<Entry> Entries = new();
+    private static readonly System.Random PositionRandom = new(); // Never change Unity's shared RNG state.
     private static readonly Dictionary<Player, ActorSample> Actors = new();
     internal static int Generation { get; private set; }
     internal static string LastNotice { get; private set; }
@@ -179,23 +180,34 @@ internal static class ArenaPickupRuntime
     private static void BeginRound(Vector3 anchor)
     {
         if (_layout == null) return;
-        foreach (var point in _layout.Points)
+        // Reserve legacy fixed custom points first; rotation must not displace
+        // authored positions or change the spacing of existing fixed layouts.
+        foreach (var definition in _layout.Points.OrderBy(point => (point.Alternatives?.Count ?? 0) > 0 ? 1 : 0))
         {
-            var requested = new Vector3(point.X, point.Y, point.Z);
-            if (!ArenaPickupGeometry.TryPlacePoint(requested, anchor, _builtInLayout,
-                out var floor, out var reason, out var relocated))
+            bool rotating = (definition.Alternatives?.Count ?? 0) > 0;
+            bool placed = false;
+            string lastReason = "no candidates";
+            foreach (var point in ArenaPickupLayouts.Candidates(definition, PositionRandom))
             {
-                Plugin.ModLogger.LogWarning($"Arena pickup '{point.Id}' skipped: {reason}");
-                continue;
+                var requested = new Vector3(point.X, point.Y, point.Z);
+                if (!ArenaPickupGeometry.TryPlacePoint(requested, anchor, _builtInLayout,
+                    out var floor, out var reason, out var relocated))
+                { lastReason = reason; continue; }
+                if (rotating && Entries.Any(other => (other.Floor - floor).sqrMagnitude < 9f))
+                { lastReason = "another pickup is within 3m"; continue; }
+                if (relocated)
+                    Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
+                var entry = new Entry { Definition = point, Floor = floor };
+                Entries.Add(entry);
+                entry.View = new ArenaPickupView(point, floor);
+                if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
+                Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' selected ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}) for round {_round}; {(definition.Alternatives?.Count ?? 0) + 1} candidates."));
+                placed = true;
+                break;
             }
-            if (relocated)
-                Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
-            var entry = new Entry { Definition = point, Floor = floor };
-            Entries.Add(entry);
-            entry.View = new ArenaPickupView(point, floor);
-            if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
+            if (!placed) Plugin.ModLogger.LogWarning($"Arena pickup '{definition.Id}' skipped: all candidates refused; last reason: {lastReason}");
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, jump boots +100%/30s; weapon/boots local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
     }
 
     private static bool Owns(int generation, Entry entry) => _live && Generation == generation
@@ -284,7 +296,7 @@ internal static class ArenaPickupRuntime
     private static bool CanCollect(Player player, ArenaPickupKind kind)
     {
         if (!IsLiveActor(player) || player.ActiveHealthController == null || player.ActiveHealthController.DamageCoeff <= 0f) return false;
-        if (player.IsAI) return kind != ArenaPickupKind.Weapon && kind != ArenaPickupKind.JumpBoots && ArenaPickupSettings.BotsCollectPowerups.Value;
+        if (player.IsAI) return (kind == ArenaPickupKind.DoubleDamage || kind == ArenaPickupKind.Shield) && ArenaPickupSettings.BotsCollectPowerups.Value;
         if (kind == ArenaPickupKind.JumpBoots && !Movement.ArenaMovementScope.IsLocal(player)) return false;
         return Hud.ArenaHudVisibility.IsBattleUiActive && !ArenaRespawnDriver.IsRespawnInProgress && !WeaponSwapService.IsSwapping
             && player.InventoryController != null && !player.InventoryController.IsChangingWeapon;
@@ -306,6 +318,7 @@ internal static class ArenaPickupRuntime
             ArenaPickupKind.DoubleDamage => ArenaPowerups.GrantDamage(player, 20f),
             ArenaPickupKind.Shield => ArenaPowerups.GrantShield(player, 220f, 30f),
             ArenaPickupKind.JumpBoots => ArenaPowerups.GrantJump(player, 30f),
+            ArenaPickupKind.InfiniteAmmo => ArenaPowerups.GrantAmmo(player, 10f),
             _ => false
         });
 
@@ -327,6 +340,7 @@ internal static class ArenaPickupRuntime
                     ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE — 20s",
                     ArenaPickupKind.Shield => "SHIELD — 220 / 30s",
                     ArenaPickupKind.JumpBoots => "JUMP BOOTS — +100% HEIGHT / 30s",
+                    ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO — 10s / LOADED MAGAZINE WEAPONS",
                     _ => "WEAPON COLLECTED"
                 });
                 Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");

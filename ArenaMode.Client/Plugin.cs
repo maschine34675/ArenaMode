@@ -63,6 +63,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
         Pickups.ArenaPowerups.Enable();
+        Pickups.ArenaInfiniteAmmo.Enable();
         Movement.ArenaLegInjuryPatches.Enable();
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();
@@ -104,6 +105,7 @@ public class Plugin : BaseUnityPlugin
         Loot.OpenLootTracker.Enable();
         Loot.ArenaLootPatches.Enable();
         Kits.ArenaReachPatches.Enable();
+        Kits.ArenaBackpackReload.Enable();
         Kits.ArenaSlotVisibilityPatches.Enable();
         Loot.AutoSearchService.Initialize();
         PerfectCullingFix.EnableOnce();

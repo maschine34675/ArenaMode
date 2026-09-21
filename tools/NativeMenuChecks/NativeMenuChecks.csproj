@@ -11,6 +11,7 @@
     <ProductionLocalStartSource Condition="'$(ProductionLocalStartSource)' == ''">../../ArenaMode.Client/Session/LocalRaidStartedPatch.cs</ProductionLocalStartSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DeathmatchRules.cs" Link="Production/DeathmatchRules.cs" />

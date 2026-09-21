@@ -28,7 +28,7 @@ internal static class ArenaLocationSelectionPatch
         public readonly ArenaModeSelectionView Modes = new();
         public readonly ArenaAreaSelectionView Areas = new();
         public readonly Maps.ArenaAreaMapPreview Preview = new();
-        public readonly List<ArenaConditionalMapView> Customs = new();
+        public readonly List<(string MapId, ArenaConditionalMapView View)> ConditionalMaps = new();
         public ArenaMapMenuUpdater Updater;
         public object Generation;
 
@@ -36,10 +36,9 @@ internal static class ArenaLocationSelectionPatch
         {
             var eligibility = ArenaMenuSelection.CurrentModeEligibility;
             Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
-            var available = ArenaMenuSelection.IsMapDiscoverable(ArenaMapCatalog.CustomsId);
-            var selected = string.Equals(screen.SelectedLocation?.Id, ArenaMapCatalog.CustomsId,
-                System.StringComparison.OrdinalIgnoreCase);
-            foreach (var row in Customs) row.Refresh(available, selected);
+            foreach (var row in ConditionalMaps)
+                row.View.Refresh(ArenaMenuSelection.IsMapDiscoverable(row.MapId),
+                    string.Equals(screen.SelectedLocation?.Id, row.MapId, System.StringComparison.OrdinalIgnoreCase));
             var map = screen.SelectedLocation?.Id;
             if (map != null && !ArenaMenuSelection.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
                 screen.OnLocationSelected(null);
@@ -59,8 +58,8 @@ internal static class ArenaLocationSelectionPatch
                 UnityEngine.Object.Destroy(Updater.gameObject);
                 Updater = null;
             }
-            foreach (var row in Customs) row.Close();
-            Customs.Clear();
+            foreach (var row in ConditionalMaps) row.View.Close();
+            ConditionalMaps.Clear();
             Areas.Close();
             Modes.Close();
             Map.Restore();
@@ -202,7 +201,7 @@ internal static class ArenaLocationSelectionPatch
                 // Materialize configured rows before the mode view exists. A
                 // PFT roster with a stale F12 mode is repaired only in Postfix;
                 // strict discovery here would permanently omit all its rows.
-                // Customs visibility and all selections are guarded separately.
+                // Mode-dependent map visibility and all selections are guarded separately.
                 __result = ArenaMapCatalog.ShouldDisplayNativeLocation(
                     location?.Id, ArenaMenuSelection.IsMapConfigured);
         }
@@ -296,7 +295,7 @@ internal static class ArenaLocationSelectionPatch
         private static void Postfix(LocationButton __instance, LocationSettings.Location location,
             System.Action<LocationSettings.Location> onSelected)
         {
-            if (!string.Equals(location?.Id, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase)
+            if (!ArenaMapCatalog.RequiresModeFilteredView(location?.Id)
                 || onSelected?.Target is not MatchMakerSelectionLocationScreen screen
                 || onSelected.Method.Name != nameof(MatchMakerSelectionLocationScreen.OnLocationSelected)
                 || onSelected.Method.DeclaringType != typeof(MatchMakerSelectionLocationScreen)
@@ -311,9 +310,9 @@ internal static class ArenaLocationSelectionPatch
                     if (__instance != null) __instance._spawnableToggle.Toggle.IsToggled = false;
                     if (screen != null) screen.OnLocationSelected(null);
                 });
-            States.GetOrCreateValue(screen).Customs.Add(row);
-            row.Refresh(ArenaMenuSelection.IsMapDiscoverable(ArenaMapCatalog.CustomsId),
-                string.Equals(screen.SelectedLocation?.Id, ArenaMapCatalog.CustomsId, System.StringComparison.OrdinalIgnoreCase));
+            States.GetOrCreateValue(screen).ConditionalMaps.Add((location.Id, row));
+            row.Refresh(ArenaMenuSelection.IsMapDiscoverable(location.Id),
+                string.Equals(screen.SelectedLocation?.Id, location.Id, System.StringComparison.OrdinalIgnoreCase));
         }
     }
 

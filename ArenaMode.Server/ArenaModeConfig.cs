@@ -10,6 +10,10 @@ namespace ArenaMode.Server;
 /// </summary>
 public class ArenaModeConfig
 {
+    /// <summary>Guards the one-time optional-map default migration; absence after it is user-owned.</summary>
+    [JsonPropertyName("optionalMapsRevision")]
+    public int OptionalMapsRevision { get; set; } = ArenaMapCatalog.OptionalMapsRevision;
+
     [JsonPropertyName("debug")]
     public bool Debug { get; set; } = false;
 
@@ -59,6 +63,24 @@ public class ArenaModeConfig
         // its own database entry is deliberately Enabled=false so it never gets
         // a duplicate tile. Arena's client filter opens only that native variant.
         [ArenaMapCatalog.FactoryNightId] = new ArenaMapConfig(),
+
+        // Optional ArenaMapPort location. Presence is checked live for the client
+        // config response and before arm; this default never installs a map.
+        [ArenaMapCatalog.EquatorId] = new ArenaMapConfig
+        {
+            SpawnZones = "BotZone_Main",
+            BotMax = 8,
+            MaxBotPerZone = 8,
+            BurstMinAliveBots = 4,
+        },
+
+        [ArenaMapCatalog.Bay5Id] = new ArenaMapConfig
+        {
+            SpawnZones = "BotZone_Main",
+            BotMax = 8,
+            MaxBotPerZone = 8,
+            BurstMinAliveBots = 4,
+        },
 
         // Customs is admitted only with its versioned bounded independent TDM
         // preset; enabling this map never enables a whole-map Arena raid.

@@ -20,6 +20,7 @@ public sealed class PatchManager(
     ArenaProtectedRaidEndService protectedRaidEnd,
     OrdinaryRaidLifecycleService ordinaryRaids,
     MatchBotDetailsCacheService matchBotCache,
+    SPTarkov.Server.Core.Models.Spt.Tables.LocationTable locationTable,
     IReadOnlyList<SptMod> loadedMods,
     ISptLogger<PatchManager> logger) : IOnLoad
 {
@@ -32,6 +33,8 @@ public sealed class PatchManager(
         ArenaContext.OrdinaryRaids = ordinaryRaids;
         ArenaContext.MatchBotCache = matchBotCache;
         ArenaContext.Logger = logger;
+        ArenaOptionalMapPolicy.FindLocation = id => locationTable.GetDictionary()
+            .TryGetValue(id, out var location) ? location.Base : null;
 
         new StartLocalRaidPatch().Enable();
         new EndLocalRaidPatch().Enable();

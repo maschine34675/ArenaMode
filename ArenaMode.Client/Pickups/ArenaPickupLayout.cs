@@ -8,7 +8,12 @@ using System.Linq;
 namespace ArenaMode.Pickups;
 
 [JsonConverter(typeof(StringEnumConverter))]
-internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots }
+internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots, InfiniteAmmo }
+
+internal sealed class ArenaPickupPosition
+{
+    public float X, Y, Z, Yaw;
+}
 
 internal sealed class ArenaPickupPoint
 {
@@ -17,6 +22,9 @@ internal sealed class ArenaPickupPoint
     public float X, Y, Z, Yaw;
     public string KitId;
     public float RespawnSeconds = 30f;
+    // Absent in existing/custom layouts: their single exact point stays unchanged.
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<ArenaPickupPosition> Alternatives;
 }
 
 internal sealed class ArenaPickupLayout
@@ -74,6 +82,10 @@ internal static class ArenaPickupLayouts
                     || !Finite(point.RespawnSeconds) || point.RespawnSeconds < 10 || point.RespawnSeconds > 600
                     || point.Kind == ArenaPickupKind.Weapon && (string.IsNullOrWhiteSpace(point.KitId) || point.KitId.Length > 100))
                     throw new InvalidDataException("Invalid pickup point in " + layout.MapId + ".");
+                if (point.Alternatives != null && (point.Alternatives.Count > 15 || point.Alternatives.Any(p =>
+                    p == null || !Finite(p.X) || !Finite(p.Y) || !Finite(p.Z) || !Finite(p.Yaw)
+                    || Math.Abs(p.X) > 100000 || Math.Abs(p.Y) > 100000 || Math.Abs(p.Z) > 100000)))
+                    throw new InvalidDataException("Invalid pickup alternatives in " + layout.MapId + ".");
             }
         }
     }
@@ -97,11 +109,43 @@ internal static class ArenaPickupLayouts
                     new() { Id = "factory-shield", Kind = ArenaPickupKind.Shield, X = -32.087f, Y = -2.581647f, Z = 29.9733315f },
                     new() { Id = "factory-weapon", Kind = ArenaPickupKind.Weapon, X = -5.89f, Y = .08f, Z = -27.46f, KitId = kit, RespawnSeconds = 45f },
                     // Native Bot-only marker 86ff84ac-edf7-4efd-9643-4bacc59073e7.
-                    new() { Id = "factory-boots", Kind = ArenaPickupKind.JumpBoots, X = -6.77f, Y = .17f, Z = 10.01f }
+                    new() { Id = "factory-boots", Kind = ArenaPickupKind.JumpBoots, X = -6.77f, Y = .17f, Z = 10.01f },
+                    new() { Id = "factory-ammo", Kind = ArenaPickupKind.InfiniteAmmo, X = 13.78f, Y = -2.291f, Z = -21.65f, RespawnSeconds = 45f }
                 }
             });
+        // Shared candidate pool. Keep all four user-accepted positions, plus four
+        // native Bot-only day/night markers away from the penned Main Gate spawn.
+        var extra = new[]
+        {
+            new ArenaPickupPosition { X = 13.78f, Y = -2.291f, Z = -21.65f }, // 03a779de
+            new ArenaPickupPosition { X = -20.756f, Y = .166f, Z = 22.769f }, // 2355be95
+            new ArenaPickupPosition { X = 4.73f, Y = .01f, Z = -35.10f }, // 68ac9245
+            new ArenaPickupPosition { X = 23.83f, Y = -2.604f, Z = -30.66f } // 90da8fb3
+        };
+        foreach (var layout in file.Layouts)
+        {
+            var pool = layout.Points.Select(p => new ArenaPickupPosition { X = p.X, Y = p.Y, Z = p.Z, Yaw = p.Yaw })
+                .Concat(extra).GroupBy(p => (p.X, p.Y, p.Z)).Select(g => g.First()).ToList();
+            foreach (var point in layout.Points)
+                point.Alternatives = pool.Where(p => p.X != point.X || p.Y != point.Y || p.Z != point.Z)
+                    .Select(p => new ArenaPickupPosition { X = p.X, Y = p.Y, Z = p.Z, Yaw = p.Yaw }).ToList();
+        }
         Validate(file);
         return file;
+    }
+
+    // New copies: neither selection nor geometry fallback can move frozen definitions.
+    internal static List<ArenaPickupPoint> Candidates(ArenaPickupPoint point, Random random)
+    {
+        var positions = new List<ArenaPickupPosition> { new() { X = point.X, Y = point.Y, Z = point.Z, Yaw = point.Yaw } };
+        if (point.Alternatives != null) positions.AddRange(point.Alternatives);
+        for (int i = positions.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (positions[i], positions[j]) = (positions[j], positions[i]);
+        }
+        return positions.Select(p => new ArenaPickupPoint { Id = point.Id, Kind = point.Kind, KitId = point.KitId,
+            RespawnSeconds = point.RespawnSeconds, X = p.X, Y = p.Y, Z = p.Z, Yaw = p.Yaw }).ToList();
     }
 
     internal static string Serialize(ArenaPickupLayoutFile file)

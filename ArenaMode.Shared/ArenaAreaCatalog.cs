@@ -486,6 +486,12 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
+        // The imported maps have only been prepared for individual matches.
+        // Reject team starts through the same contract at menu, arm and replay.
+        if (ArenaMapCatalog.IsOptionalMap(map!) && (pitFireTeam
+            || !string.Equals(mode, "deathmatch", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(mode, "gungame", StringComparison.OrdinalIgnoreCase)))
+        { reason = "Imported Arena maps currently support Deathmatch and Gun Game only."; return false; }
         if (id == FullMapId)
         {
             if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))

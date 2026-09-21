@@ -90,6 +90,13 @@ internal static class ArenaPowerups
         catch (Exception ex) { Warn(ex); return false; }
     }
 
+    internal static bool GrantAmmo(Player player, float duration)
+    {
+        if (player == null || player.IsAI || !ArenaInfiniteAmmo.Enabled) return false;
+        try { return CurrentLife(player, create: true)?.State.GrantAmmo(Time.time, duration) == true; }
+        catch (Exception ex) { Warn(ex); return false; }
+    }
+
     private static Life CurrentLife(Player player, bool create)
     {
         if (_generation != ArenaPickupRuntime.Generation) Reset();

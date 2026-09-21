@@ -92,7 +92,7 @@ internal static class Program
     private static void Layouts()
     {
         var factory=ArenaPickupLayouts.Factory("spartan");Check(factory.Layouts.Count==2,"Factory day and night supplied");
-        Check(factory.Layouts.All(x=>x.Points.Count==4&&x.Points.Select(p=>p.Kind).Distinct().Count()==4),"each factory prototype has all pickup kinds");
+        Check(factory.Layouts.All(x=>x.Points.Count==5&&x.Points.Select(p=>p.Kind).Distinct().Count()==5),"each factory prototype has all pickup kinds");
         Check(ArenaPickupLayouts.Select(factory,"FACTORY4_DAY",null)!=null,"map identity case insensitive");
         Check(ArenaPickupLayouts.Select(factory,"factory4_day","new-area")==null,"area never falls back to full map");
         Check(ArenaPickupLayouts.Select(factory,"bigmap",null)==null,"unsupported map has no implicit pickups");
@@ -100,6 +100,15 @@ internal static class Program
         Check(decoded.Layouts[1].Points[2].KitId=="spartan"&&decoded.Layouts[1].Points[2].RespawnSeconds==45,"layout roundtrip preserves weapon config");
         Check(decoded.Layouts[1].Points[3].Kind==ArenaPickupKind.JumpBoots,"jump boots survive authoring roundtrip");
         Check((int)ArenaPickupKind.DoubleDamage==0&&(int)ArenaPickupKind.Shield==1&&(int)ArenaPickupKind.Weapon==2,"new pickup preserves legacy enum values");
+        Check(factory.Layouts.All(l=>l.Points.All(p=>p.Alternatives.Count==7)),"every Factory pickup retains original plus seven alternatives");
+        var source=factory.Layouts[0].Points[0];
+        var orders=Enumerable.Range(0,24).Select(seed=>ArenaPickupLayouts.Candidates(source,new Random(seed))).ToList();
+        Check(orders.All(p=>p.Count==8&&p.Select(x=>(x.X,x.Y,x.Z)).Distinct().Count()==8),"candidate shuffle retains each possible point exactly once");
+        Check(orders.Select(p=>(p[0].X,p[0].Y,p[0].Z)).Distinct().Count()>4,"seeded rounds can choose different positions");
+        Check(orders.SelectMany(p=>p).All(p=>p.Id==source.Id&&p.Kind==source.Kind&&p.RespawnSeconds==source.RespawnSeconds),"position selection preserves pickup identity and rules");
+        orders[0][0].X=999;
+        Check(source.X!=999&&source.Alternatives.All(p=>p.X!=999),"selection never changes frozen layout positions");
+        Check(decoded.Layouts[1].Points[0].Alternatives.Count==7,"alternatives survive JSON roundtrip");
         foreach(string json in new[]{"null","{}","{\"Version\":2}","{\"Version\":1,\"Unknown\":true}","{\"Layouts\":null}"})
         {
             // An empty v1 file is deliberately valid; the default fields make {} equivalent.
@@ -114,6 +123,8 @@ internal static class Program
         Invalid(x=>x.Layouts[0].Points[0].Y=100001,"outlandish position rejected");
         Invalid(x=>x.Layouts[0].Points[0].RespawnSeconds=0,"cooldown under ten rejected");
         Invalid(x=>x.Layouts[0].Points[0].Kind=(ArenaPickupKind)99,"undefined pickup type rejected");
+        Invalid(x=>x.Layouts[0].Points[0].Alternatives=[new(){X=float.NaN}],"nonfinite alternative rejected");
+        Invalid(x=>x.Layouts[0].Points[0].Alternatives=Enumerable.Range(0,16).Select(i=>new ArenaPickupPosition()).ToList(),"alternative count bounded");
         Invalid(x=>x.Layouts[0].Points[0].Kind=ArenaPickupKind.Weapon,"weapon without kit rejected");
         Invalid(x=>x.Layouts[0].AreaId=" ","blank area rejected");
         Invalid(x=>x.Layouts[0].Points=Enumerable.Range(0,65).Select(i=>new ArenaPickupPoint{Id=i.ToString()}).ToList(),"point count bounded");
@@ -176,6 +187,8 @@ internal static class Program
         Ready(ArenaPickupKind.JumpBoots);Move(_local,0);Check(ArenaPowerups.Grants.Single().Kind=="boots"&&ArenaPowerups.Grants.Single().Seconds==30,"boots dispatch thirty-second jump grant");
         Ready(ArenaPickupKind.JumpBoots);bot=Bot("bot",-3);Step();Move(bot,0);Check(ArenaPowerups.Grants.Count==0&&State().Phase==ArenaPickupPhase.Available,"bots leave boots available");
         Ready(ArenaPickupKind.JumpBoots);ArenaMode.Movement.ArenaMovementScope.Enabled=false;Move(_local,0);Check(ArenaPowerups.Grants.Count==0,"disabled movement cannot consume boots");
+        Ready(ArenaPickupKind.InfiniteAmmo);Move(_local,0);Check(ArenaPowerups.Grants.Single().Kind=="ammo"&&ArenaPowerups.Grants.Single().Seconds==10,"ammo dispatches ten-second grant");
+        Ready(ArenaPickupKind.InfiniteAmmo);bot=Bot("bot",-3);Step();Move(bot,0);Check(ArenaPowerups.Grants.Count==0&&State().Phase==ArenaPickupPhase.Available,"bots leave ammo powerup available");
     }
     private static void Weapons()
     {
@@ -275,14 +288,30 @@ internal static class Program
         Check(!ArenaPickupGeometry.TryPlacePoint(origin,anchor,true,out _,out _,out _),"combined floor and nav height drift cannot change level");
 
         Fixture();System.IO.File.Delete(LayoutPath);
-        var requested=ArenaPickupLayouts.Factory("spartan").Layouts[0].Points[0];
-        Physics.Capsule=(a,b,r)=>(a.x-requested.X)*(a.x-requested.X)+(a.z-requested.Z)*(a.z-requested.Z)<.16f?[new Collider()]:[];
+        var definition=ArenaPickupLayouts.Factory("spartan").Layouts[0].Points[0];
+        var originals=ArenaPickupLayouts.Candidates(definition,new Random(1));
+        Physics.Capsule=(a,b,r)=>originals.Any(p=>(a.x-p.X)*(a.x-p.X)+(a.z-p.Z)*(a.z-p.Z)<.16f)?[new Collider()]:[];
         Step();var damage=ArenaPickupView.Created.Single(v=>v.Point.Kind==ArenaPickupKind.DoubleDamage);
-        Check(ArenaPickupView.Created.Count==4&&damage.Floor.x>requested.X,"built-in runtime opts into safe fallback");
-        Check(damage.Point.X==requested.X&&damage.Point.Y==requested.Y&&damage.Point.Z==requested.Z,"relocation never mutates layout definitions");
+        Check(ArenaPickupView.Created.Count==5&&damage.Floor.x>damage.Point.X,"built-in runtime opts into safe fallback");
+        Check(originals.Any(p=>p.X==damage.Point.X&&p.Y==damage.Point.Y&&p.Z==damage.Point.Z),"relocation never mutates layout definitions");
         Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("factory-damage' relocated")&&s.Contains("pedestal clearance obstructed")),"relocation logs requested and chosen position plus original obstruction");
         System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(FileFor()));Dm.Round.Number++;Step();
-        Check(ArenaPickupView.Created.Count==8,"built-in fallback choice remains frozen across rounds");
+        Check(ArenaPickupView.Created.Count==10,"built-in fallback choice remains frozen across rounds");
+
+        Fixture();var overlap=FileFor();var second=Point(ArenaPickupKind.Shield);second.Id="two";overlap.Layouts[0].Points.Add(second);
+        second.X=2.5f;
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(overlap));Step();
+        Check(ArenaPickupView.Created.Count==2,"legacy fixed custom points keep authored spacing");
+        Fixture();second.X=0;second.Alternatives=[new(){X=1}];
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(overlap));Step();
+        Check(ArenaPickupView.Created.Count==1,"final pickup floors cannot overlap within three metres");
+        Fixture();second.Alternatives=[new(){X=10}];
+        overlap.Layouts[0].Points.Reverse();
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(overlap));Step();
+        Check(ArenaPickupView.Created.Count==2&&ArenaPickupView.Created.Any(v=>v.Floor.x==10),"available alternative avoids occupied floor without moving exact custom point");
+        Check(ArenaPickupView.Created[0].Point.Id!="two","fixed custom points reserve their place before earlier rotating points");
+        var fixedPositions=ArenaPickupView.Created.Select(v=>v.Floor.x).ToArray();Step(80);
+        Check(ArenaPickupView.Created.Select(v=>v.Floor.x).SequenceEqual(fixedPositions),"placement stays fixed during a live round");
 
         Fixture();Check(ArenaPickupGeometry.BeamLength(origin)==4,"open sky beacon height capped at four metres");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=3},new(){collider=new Collider(),distance=1}];
@@ -292,9 +321,20 @@ internal static class Program
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=.05f}];
         Check(ArenaPickupGeometry.BeamLength(origin)==0,"very low ceiling yields no negative beam");
     }
-    public static int Main()
+    private static void NativeCandidates(string root)
     {
-        try {Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
+        var file=ArenaPickupLayouts.Factory("spartan");
+        foreach(var layout in file.Layouts)
+        {
+            var db=Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(Path.Combine(root,"SPT_Runtime/SPT_Data/database/locations",layout.MapId,"base.json")));
+            var bots=db["SpawnPointParams"].Where(p=>p["Categories"].Count()==1&&(string)p["Categories"][0]=="Bot").ToList();
+            var candidates=layout.Points.SelectMany(p=>ArenaPickupLayouts.Candidates(p,new Random(1))).GroupBy(p=>(p.X,p.Y,p.Z)).Select(g=>g.First());
+            foreach(var p in candidates) Check(bots.Any(b=>Math.Abs((float)b["Position"]["x"]-p.X)<.0001f&&Math.Abs((float)b["Position"]["y"]-p.Y)<.0001f&&Math.Abs((float)b["Position"]["z"]-p.Z)<.0001f),"Factory candidate matches installed native Bot-only marker");
+        }
+    }
+    public static int Main(string[] args)
+    {
+        try {Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();if(args.Length==1)NativeCandidates(args[0]);Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
         catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
         finally {ArenaMatchService.Current=null;ArenaPickupRuntime.Tick();}
     }

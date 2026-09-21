@@ -14,6 +14,10 @@ public static class ArenaMapCatalog
     public const string LabyrinthId = "labyrinth";
     public const string LaboratoryId = "laboratory";
     public const string CustomsId = "bigmap";
+    public const string EquatorId = "arena_equator";
+    public const string Bay5Id = "arena_bay5";
+    public const string ArenaMapPortPluginId = "com.maschine.ArenaMapPort";
+    public const int OptionalMapsRevision = 2;
 
     public const string LegacyDefaultClientAllowlist =
         FactoryDayId + "," + LabyrinthId + "," + LaboratoryId;
@@ -21,14 +25,29 @@ public static class ArenaMapCatalog
     public const string PreviousDefaultClientAllowlist =
         FactoryDayId + "," + FactoryNightId + "," + LabyrinthId + "," + LaboratoryId;
 
-    public const string DefaultClientAllowlist = PreviousDefaultClientAllowlist + "," + CustomsId;
+    public const string NativeDefaultClientAllowlist = PreviousDefaultClientAllowlist + "," + CustomsId;
+
+    public const string EquatorDefaultClientAllowlist = NativeDefaultClientAllowlist + "," + EquatorId;
+    public const string DefaultClientAllowlist = EquatorDefaultClientAllowlist + "," + Bay5Id;
 
     public static bool IsSupportedMap(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, FactoryNightId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, LabyrinthId, StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId, LaboratoryId, StringComparison.OrdinalIgnoreCase)
-           || string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase);
+           || string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase)
+           || IsOptionalMap(locationId);
+
+    public static bool IsEquator(string locationId)
+        => string.Equals(locationId, EquatorId, StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsBay5(string locationId)
+        => string.Equals(locationId, Bay5Id, StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsOptionalMap(string locationId) => IsEquator(locationId) || IsBay5(locationId);
+
+    public static bool RequiresModeFilteredView(string locationId)
+        => string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsOptionalMap(locationId);
 
     public static bool IsFactoryVariant(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
@@ -56,8 +75,19 @@ public static class ArenaMapCatalog
     /// only the exact former default; any edited allowlist remains user-owned.
     /// </summary>
     public static string UpgradeLegacyClientAllowlist(string allowlist)
-        => string.Equals(allowlist, LegacyDefaultClientAllowlist, StringComparison.Ordinal)
-           || string.Equals(allowlist, PreviousDefaultClientAllowlist, StringComparison.Ordinal)
+        => UpgradeOptionalClientAllowlist(allowlist, 0, false);
+
+    /// <summary>
+    /// Revision 2 extends the exact Equator default. The earlier boolean marker
+    /// still protects an intentional Equator removal that resembles an old default.
+    /// </summary>
+    public static string UpgradeOptionalClientAllowlist(string allowlist, int revision, bool equatorMigrationRecorded)
+        => revision < OptionalMapsRevision
+           && (string.Equals(allowlist, EquatorDefaultClientAllowlist, StringComparison.Ordinal)
+               || revision <= 0 && !equatorMigrationRecorded
+                   && (string.Equals(allowlist, LegacyDefaultClientAllowlist, StringComparison.Ordinal)
+                       || string.Equals(allowlist, PreviousDefaultClientAllowlist, StringComparison.Ordinal)
+                       || string.Equals(allowlist, NativeDefaultClientAllowlist, StringComparison.Ordinal)))
             ? DefaultClientAllowlist
             : allowlist;
 
@@ -67,7 +97,9 @@ public static class ArenaMapCatalog
                || isAvailable(FactoryNightId)
                || isAvailable(LabyrinthId)
                || isAvailable(LaboratoryId)
-               || isAvailable(CustomsId));
+               || isAvailable(CustomsId)
+               || isAvailable(EquatorId)
+               || isAvailable(Bay5Id));
 
     /// <summary>
     /// EFT represents both Factory variants with the day tile. Keep the night

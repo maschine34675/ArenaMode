@@ -162,13 +162,15 @@ internal static class ArenaMenuSelection
     public static string CannotStartReason => CurrentEligibility.Reason;
 
     public static bool IsMapConfigured(string map)
-        => Config.Settings.IsArenaMap(map) && ArenaClientConfig.IsMapEnabledOnServer(map);
+        => Config.Settings.IsArenaMap(map) && ArenaClientConfig.IsMapEnabledOnServer(map)
+           && (!ArenaMapCatalog.IsOptionalMap(map)
+               || BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId));
 
     // A solo player must reach the mode picker even when only bounded Customs
     // is configured and the previous match left a different mode in settings.
     public static bool HasConfiguredMap(bool pitFireTeam)
         => ArenaMapCatalog.AnyMapAvailable(map => IsMapConfigured(map)
-            && (!pitFireTeam || !string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)));
+            && (!pitFireTeam || !ArenaMapCatalog.RequiresModeFilteredView(map)));
 
     public static bool IsMapAvailable(string map) => IsMapAvailable(map, CurrentEligibility);
 

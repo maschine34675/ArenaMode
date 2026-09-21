@@ -305,6 +305,8 @@ internal static class Program
             StrictStartAndTeamBoundaryStayStrict();
             PftWrongF12ModeStillMaterializesMapsBeforePostfixRepair();
             AreaTeamSizeCallbacksStayOwned();
+            EquatorOptionalDependencyAndModeTransitions();
+            Bay5AndEquatorHaveIndependentOwnedRows();
             Console.WriteLine($"NATIVE_AREA_HOOK_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }
@@ -337,5 +339,125 @@ internal static class Program
         Assert(current(teams, 4), "replacement Show generation has independent live callback");
         f.Screen.Close();
         Assert(!current(teams, 2), "closed native screen rejects deferred size click");
+    }
+
+    private static void EquatorOptionalDependencyAndModeTransitions()
+    {
+        const string equator = ArenaMapCatalog.EquatorId;
+        var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;
+        plugins.Clear();
+        using (var absent = new Fixture(mode: "deathmatch"))
+            Assert(absent.Screen.Buttons.All(button => button.Location.Id != equator),
+                "server config alone never offers Equator without MapPort client");
+        plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
+        try
+        {
+            using var f = new Fixture(mode: "deathmatch");
+            var row = f.Screen.Buttons.Single(button => button.Location.Id == equator);
+            Assert(row.gameObject.activeSelf, "installed Equator is visible in Deathmatch");
+            SafeNative(() => row._spawnableToggle.Toggle.IsToggled = true, "Equator click preserves native selection order");
+            Assert(f.Screen.SelectedLocation?.Id == equator && ArenaMenuSelection.IsMapAvailable(equator),
+                "Equator selects full map through strict admission");
+            Updater(f).Tick();
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Deathmatch and Gun Game",
+                "Equator area hint names its actual modes");
+            foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch" })
+            {
+                Settings.GameMode.Value = mode;
+                Updater(f).Tick();
+                bool permitted = mode is "gungame" or "deathmatch";
+                Assert(row.gameObject.activeSelf == permitted, "mode switch updates the owned Equator row");
+                if (!permitted)
+                {
+                    Assert(f.Screen.SelectedLocation == null, "unsupported mode clears remembered Equator selection");
+                    f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+                    Assert(f.Screen.SelectedLocation == null, "direct unsupported map click fails closed");
+                }
+                else f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+            }
+            ArenaClientConfig.Enabled = map => map != equator;
+            Updater(f).Tick();
+            Assert(!row.gameObject.activeSelf && f.Screen.SelectedLocation == null,
+                "server disable hides and deselects Equator without rebuilding native screen");
+            f.Screen.Close();
+            ArenaClientConfig.Enabled = map => true;
+            Settings.Allowlist = equator;
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
+                "Equator-only configuration offers solo Arena but never PFT");
+        }
+        finally { plugins.Clear(); }
+        using var ordinary = new Fixture(arena: false, mode: "tactical");
+        Assert(ordinary.Screen.Buttons.Any(button => button.Location.Id == equator && button.gameObject.activeSelf),
+            "ordinary native map rows stay unchanged outside Arena, even with no MapPort registry entry");
+    }
+
+    private static void Bay5AndEquatorHaveIndependentOwnedRows()
+    {
+        const string bay5 = ArenaMapCatalog.Bay5Id, equator = ArenaMapCatalog.EquatorId;
+        var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;
+        plugins.Clear();
+        plugins["com.maschine.ArenaMapPort.Wrong"] = new object();
+        using (var absent = new Fixture(mode: "deathmatch"))
+            Assert(absent.Screen.Buttons.All(button => button.Location.Id != bay5),
+                "server config alone never offers Bay5 without MapPort client");
+        plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
+        try
+        {
+            using var f = new Fixture(mode: "deathmatch");
+            var row = f.Screen.Buttons.Single(button => button.Location.Id == bay5);
+            var equatorRow = f.Screen.Buttons.Single(button => button.Location.Id == equator);
+            Assert(row.gameObject.activeSelf && equatorRow.gameObject.activeSelf,
+                "both installed imported maps have separate visible native rows");
+            SafeNative(() => row._spawnableToggle.Toggle.IsToggled = true,
+                "Bay5 click preserves native non-null selection order");
+            var request = new LocalRaidSettings { location = bay5, playerSide = ESideType.Pmc,
+                transitionType = ELocationTransition.Common };
+            Assert(f.Screen.SelectedLocation?.Id == bay5 && ArenaMenuSelection.MatchesRequest(request),
+                "Bay5 selects and passes strict final request matching");
+            ArenaClientConfig.Enabled = map => map != equator;
+            Updater(f).Tick();
+            Assert(row.gameObject.activeSelf && !equatorRow.gameObject.activeSelf && f.Screen.SelectedLocation?.Id == bay5,
+                "unavailable Equator cannot hide or deselect selected Bay5");
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Deathmatch and Gun Game",
+                "Bay5 area hint names its two admitted modes");
+            ArenaClientConfig.Enabled = map => true;
+            foreach (string mode in new[] { "tactical", "gungame", "teamdeathmatch", "deathmatch" })
+            {
+                Settings.GameMode.Value = mode;
+                Updater(f).Tick();
+                bool permitted = mode is "deathmatch" or "gungame";
+                Assert(row.gameObject.activeSelf == permitted && equatorRow.gameObject.activeSelf == permitted,
+                    "mode switch updates the owned Bay5 row independently alongside Equator");
+                if (!permitted)
+                {
+                    Assert(f.Screen.SelectedLocation == null && !row._spawnableToggle.Toggle.IsToggled
+                        && !f.Screen._readyButton.gameObject.activeSelf && !ArenaMenuSelection.MatchesRequest(request),
+                        "unsupported mode clears Bay5 toggle Ready and stale final request");
+                    f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
+                    Assert(f.Screen.SelectedLocation == null, "direct Bay5 click cannot bypass team-mode rejection");
+                }
+                else f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
+            }
+            f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+            ArenaClientConfig.Enabled = map => map != bay5;
+            Updater(f).Tick();
+            Assert(!row.gameObject.activeSelf && equatorRow.gameObject.activeSelf && f.Screen.SelectedLocation?.Id == equator,
+                "unavailable Bay5 cannot hide or deselect selected Equator");
+            ArenaClientConfig.Enabled = map => true;
+            f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
+            Settings.Allowlist = equator;
+            Updater(f).Tick();
+            Assert(!row.gameObject.activeSelf && equatorRow.gameObject.activeSelf && f.Screen.SelectedLocation == null,
+                "client removal of selected Bay5 hides and deselects only its own row");
+            Settings.Allowlist = bay5;
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
+                "Bay5-only configuration admits solo Arena and rejects PitFireTeam");
+            Assert(f.Screen.ShowCalls == 1 && f.Screen.SubscriptionCount == 2,
+                "two optional row refreshes never rebuild the native screen or duplicate subscriptions");
+        }
+        finally { plugins.Clear(); }
+        using var ordinary = new Fixture(arena: false, mode: "tactical");
+        Assert(ordinary.Screen.Buttons.Any(button => button.Location.Id == bay5 && button.gameObject.activeSelf),
+            "ordinary Bay5 map selection is unchanged without loaded MapPort registry evidence");
     }
 }

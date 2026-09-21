@@ -50,7 +50,7 @@ internal static class InfoPanelSettings
             UseShortWeaponName = Bind(config, legacy, "Weapon", "UseShortName", true,
                 "Use the weapon short name instead of the full name.");
             ShowSpareMagCount = Bind(config, legacy, "Weapon", "ShowSpareMagCount", true,
-                "Show quick-reload spare mags (rig/pockets) and backpack mags separately.");
+                "Show rig/pocket and backpack spare magazines separately. With Arena UseItemsAnywhere, backpack magazines also appear in reload selection.");
 
             WeaponPanelOffset = Bind(config, legacy, "Weapon", "PanelOffset", new Vector2(-24f, 140f),
                 "Panel offset from the bottom-right corner (pixels).");

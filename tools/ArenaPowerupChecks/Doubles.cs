@@ -105,3 +105,4 @@ namespace HarmonyLib
             => type.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, null, parameters, null);
     }
 }
+namespace ArenaMode.Pickups { internal static class ArenaInfiniteAmmo { internal static bool Enabled = true; } }

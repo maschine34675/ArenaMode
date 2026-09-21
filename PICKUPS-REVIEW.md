@@ -5,6 +5,14 @@ collection on approach, cooldowns and per-map/area placement. Implemented only i
 live **Deathmatch** and independent **Team Deathmatch**. Gun Game, Tactical/PFT,
 ordinary raids and existing dropped loot are unchanged.
 
+September 21 extension: per-round Factory position rotation and short Infinite
+Ammo. Offline checks: 226 runtime/layout/geometry assertions with 14 compiled
+fault controls; 366 effect assertions with 42 native contracts and 10 faults;
+2,839 shot-adapter assertions with 32 native contracts and four faults. Independent
+reviews found no remaining concrete P0–P2 after preserving legacy fixed spacing.
+These are source-linked/installed-IL checks, not native shooting or placement proof.
+The dated HANDOFF and deployment receipt bind final delivery and pending GPU work.
+
 ## Gameplay
 
 | Pickup | Effect | Returns after |
@@ -12,11 +20,13 @@ ordinary raids and existing dropped loot are unchanged.
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
 | Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
 | Jump Boots (green) | 100% more jump height for 30 gameplay seconds, including the existing double jump; no extra jump credit | 30 seconds |
+| Infinite Ammo (orange) | Loaded magazine firearms consume no cartridges for 10 gameplay seconds; no magazine reload needed | 45 seconds |
 | Weapon (gold) | Pickup-only M60E6 FDE copied from `retzrestdfg`, with attachments and 100 M993 rounds; no spare magazines or other equipment | 45 seconds |
 
 Effects refresh duration/refill the shield to its cap; they never stack. Both
 sides' living bots may collect damage/shield powerups by crossing them; this adds no AI routing.
 Jump Boots are local-only and require Arena movement enabled; bots leave them available.
+Infinite Ammo is local-only and does not fill an empty weapon or magazine.
 Weapon auto-take is **local only**, into a free compatible **inactive** weapon slot.
 No replacement or automatic draw. Full/unsuitable slots or busy hands leave it in
 place: free a slot and approach again. Cooldowns start after confirmed collection.
@@ -46,12 +56,15 @@ log now includes built-in/custom origin and the actual weapon point/kit IDs.
 Layout and kit choices freeze at match start. Disabling during a match clears pickups and
 effects; re-enabling applies next match.
 
-## Initial Factory points
+## Factory position pool (2026-09-21)
 
-Built-in layouts cover full **Factory day/night** only. These are candidates from
-identical native Bot-only markers, not manually surveyed pickup positions or live
-acceptance evidence. Independent literal positions are stored; spawn lists stay
-unchanged. None uses the excluded penned player spawn.
+Built-in layouts cover full **Factory day/night** only. Each round selects five
+positions from eight candidates: one pickup of each kind, not eight pickups.
+The original four positions below remain in the pool; the user accepted their
+placement. Four additional positions come from identical native Bot-only markers
+on both map variants and still need a GPU placement check. Independent literal
+positions are stored; native spawn lists stay unchanged. None uses the excluded
+penned player spawn near Main Gate.
 
 | Pickup ID | X, Y, Z | Native marker (provenance only) |
 |---|---|---|
@@ -59,6 +72,18 @@ unchanged. None uses the excluded penned player spawn.
 | factory-shield | -32.087, -2.581647, 29.9733315 | de479fb9-789f-499b-ac6b-0530fab5235b |
 | factory-weapon | -5.89, 0.08, -27.46 | a5a35da1-0545-4774-b5a0-194f4903a9de |
 | factory-boots | -6.77, 0.17, 10.01 | 86ff84ac-edf7-4efd-9643-4bacc59073e7 |
+| additional / factory-ammo origin | 13.78, -2.291, -21.65 | 03a779de-ef2d-43e3-a4f3-fdcfed474f05 |
+| additional | -20.756, 0.166, 22.769 | 2355be95-341b-46db-90fd-6a383e286e5c |
+| additional | 4.73, 0.01, -35.10 | 68ac9245-633b-4287-a999-2c3028fa8d45 |
+| additional | 23.83, -2.604, -30.66 | 90da8fb3-422a-46cd-b540-648cde8ee9f3 |
+
+All five types share this pool. Each point shuffles its candidates using a private
+RNG, keeps its identity/type/kit/cooldown, and chooses the first safe floor at least
+3m from already placed pickups. Final floors determine separation. Exhausted
+candidates skip only that pickup with a reason. A round's selected position stays
+fixed through cooldowns and deaths; Deathmatch rounds resample, continuous TDM
+resamples next match. Layout input stays frozen and unmodified. Random selection
+can repeat a previous position; it does not guarantee a different spot every time.
 
 Sources: native `SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json`
 and corresponding `factory4_night/base.json`. At the first live phase the runtime
@@ -95,9 +120,15 @@ Example (reuses one Factory candidate):
 }
 ```
 
-Kinds: `DoubleDamage`, `Shield`, `Weapon`, `JumpBoots`. Weapons additionally require `KitId`.
+Kinds: `DoubleDamage`, `Shield`, `Weapon`, `JumpBoots`, `InfiniteAmmo`. Weapons additionally require `KitId`.
 Limits: version1, 512KiB, 32 layouts, 64 points each, unique map/area pairs and point
 IDs, finite coordinates, cooldown10–600 seconds. Empty layouts are allowed.
+Each point optionally accepts `"Alternatives": [{"X": 1, "Y": 0, "Z": 2, "Yaw": 0}]`
+(up to 15 entries). The original position and alternatives form its per-round
+pool; no alternatives preserves the old fixed point. Each explicit custom candidate
+still requires normal geometry validation and never uses the built-in nearby
+fallback. Fixed custom points are placed first and retain their authored spacing;
+rotating points must stay at least 3m away from those and other selected points.
 
 Enable F12 **Development - Pickups / Enabled**. Select `Kind` and `RespawnSeconds`
 before adding a point; weapons use `PrototypeWeaponKit`.
@@ -121,6 +152,20 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
 
 ## Native boundaries
 
+- Infinite Ammo intercepts only `FireOperationBase.ProcessInventoryOperationsForSingleShot`
+  with no malfunction, on the exact current local player's current hands/operation.
+  It gives the native shot a detached one-round clone of the actual chamber/top
+  cartridge using the native factory ID source. The real chamber, magazine order,
+  stacks, item ownership and inventory events remain untouched. Shot counters and
+  chamber-model data describe retained cartridges; no item is inserted into inventory.
+  Mixed ammunition repeats the currently loaded/top cartridge until expiry. Native
+  recoil, heat, wear, malfunctions, animations and bolt/pump cycling remain intact.
+  Empty guns, revolvers, launchers, flare/one-off weapons and multi-barrel/break-action
+  firearms use vanilla consumption. A magazine is required, even with a chambered
+  round. An already prepared native shot may finish after expiry or death (vanilla
+  `FastForward`); no new bonus decision is allowed. Do not cancel native weapon
+  operations to prevent that completion. Body/health/round changes clear the effect;
+  ordinary raids, bots, Tactical and Gun Game never receive it.
 - Jump Boots multiply only a newly requested native jump impulse by sqrt(2),
   after Arena's base height. Gravity, skills/injuries, stamina and collisions stay
   native. Expiration changes the next impulse, never snaps an in-flight trajectory.
@@ -183,16 +228,21 @@ HANDOFF and deployment record contain exact counts, evidence and build IDs.
 
 Pending user checks (restart EFT only after delivery):
 
-1. Full Factory day/night, Deathmatch and TDM: log should report 3 configured points
+1. Full Factory day/night, Deathmatch and TDM: log should report 5 configured points
    and placed count/reasons. Find markers, check floor position/readable labels,
    bobbing/spinning weapon and no navigation obstruction.
 2. Collect buffs, verify timers/shield balance, expiry/death reset. Both bot sides
-   can collect. Check DD/shield, unchanged worn armor and no self/fall/bleed immunity.
+   can collect DD/shield only. Check unchanged worn armor and no self/fall/bleed immunity.
+   Check the orange 10s ammo timer with semi-auto, automatic, bolt-action and M60;
+   loaded ammo must not decrease during it and must decrease again after expiry.
+   Test an empty gun, a weapon switch, last chambered round, malfunction and death.
+   No extra ammo items may remain in inventory. Compare a normal PMC raid.
 3. Full weapon slots: leave weapon. Free a compatible inactive slot, leave/re-enter,
    verify a loaded usable weapon and unchanged hands. Repeat after cooldown; open
    inventory/die/exit during collection: no stuck hands, duplicates or stale model.
 4. Camp a cooling point: must leave/re-enter to collect. Cross a round boundary and
-   disable/re-enable: no old effects/objects should return unexpectedly.
+   disable/re-enable: no old effects/objects should return unexpectedly. Verify
+   position choices can vary across rounds but never relocate during cooldown.
 5. Capture/export points, including two nearby floors/wall obstruction. Install
    reviewed layouts for next match and verify exact-area behavior. Ordinary PMC
    survey, Tactical and Gun Game must never get pickups/effects.

@@ -35,6 +35,29 @@ public class LocationMutatorTests
     };
 
     [Theory]
+    [InlineData(ArenaMapCatalog.EquatorId, "deathmatch")]
+    [InlineData(ArenaMapCatalog.EquatorId, "gungame")]
+    [InlineData(ArenaMapCatalog.Bay5Id, "deathmatch")]
+    [InlineData(ArenaMapCatalog.Bay5Id, "gungame")]
+    public void ImportedMapGeneratedWavesUseOnlyTheAuthoredBotZoneOnTheRaidClone(string mapId, string mode)
+    {
+        var original = FreshLocation();
+        original.Id = mapId;
+        original.DisabledForScav = true;
+        var before = JsonSerializer.Serialize(original, JsonOptions);
+        var clone = JsonSerializer.Deserialize<LocationBase>(before, JsonOptions)!;
+        var config = new ArenaModeConfig();
+        WithAbps(false, () => ArenaLocationMutator.Mutate(clone, config.Maps[mapId], config, mode));
+        Assert.NotEmpty(clone.Waves!);
+        Assert.All(clone.Waves!, wave => Assert.Equal("BotZone_Main", wave.SpawnPoints));
+        Assert.NotEmpty(clone.BossLocationSpawn!);
+        Assert.All(clone.BossLocationSpawn!, wave => Assert.Equal("BotZone_Main", wave.BossZone));
+        Assert.Equal(8, clone.BotMax);
+        Assert.True(clone.DisabledForScav);
+        Assert.Equal(before, JsonSerializer.Serialize(original, JsonOptions));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TeamDeathmatchSuppressesEveryAmbientSpawnTrack(bool abps)

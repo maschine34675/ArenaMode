@@ -320,6 +320,13 @@ internal static class Program
         OtherLayoutsAndNullInputs();
         FactoryNightCatalogAndUpgrade();
         FactoryNightNativeSelectionPolicy();
+        Assert(ArenaMapCatalog.ShouldDisplayNativeLocation(ArenaMapCatalog.Bay5Id, ArenaMapCatalog.IsBay5)
+            && ArenaMapCatalog.CanSelectNativeLocation(ArenaMapCatalog.Bay5Id, ArenaMapCatalog.IsBay5)
+            && ArenaMapCatalog.AnyMapAvailable(ArenaMapCatalog.IsBay5),
+            "Bay5-only availability preserves its own tile and Arena admission");
+        Assert(!ArenaMapCatalog.ShouldDisplayNativeLocation(ArenaMapCatalog.EquatorId, ArenaMapCatalog.IsBay5)
+            && !ArenaMapCatalog.ShouldDisplayNativeLocation(ArenaMapCatalog.Bay5Id, ArenaMapCatalog.IsEquator),
+            "optional native tiles cannot borrow the other imported map's availability");
         Console.WriteLine($"PASS: {_checks} native map-view regression checks (production helper linked).");
     }
 }

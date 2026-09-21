@@ -12,7 +12,8 @@ $pickupBound += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Objec
 foreach ($path in $pickupBound) { $pickupInputs[$path] = (Get-FileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash }
 $pickupInstalled = @{}
 foreach ($path in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
-    'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll')) {
+    'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll',
+    'SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json','SPT_Runtime/SPT_Data/database/locations/factory4_night/base.json')) {
     $pickupInstalled[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {
@@ -21,7 +22,7 @@ function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {
         "-p:PickupSourceRoot=$source" "-p:BaseIntermediateOutputPath=$directory/obj/" "-p:OutputPath=$directory/out/" 2>&1 | Out-String
     $code = $LASTEXITCODE; [IO.File]::WriteAllText((Join-Path $directory 'build.log'), $build)
     if ($code -ne 0) { throw "$name must compile before behavioral verification: $build" }
-    $run = & dotnet (Join-Path $directory 'out/ArenaPickupChecks.dll') 2>&1 | Out-String
+    $run = & dotnet (Join-Path $directory 'out/ArenaPickupChecks.dll') $SptPath 2>&1 | Out-String
     $code = $LASTEXITCODE; [IO.File]::WriteAllText((Join-Path $directory 'result.log'), $run)
     if ($failure) {
         if ($code -eq 0 -or !$run.Contains('ASSERT: ' + $failure)) { throw "$name did not reject intended fault: $run" }
@@ -34,6 +35,7 @@ try {
     $contracts = @(
         @('ArenaMode.Client/Plugin.cs','Pickups.ArenaPickupSettings.Init(Config);'),
         @('ArenaMode.Client/Plugin.cs','Pickups.ArenaPowerups.Enable();'),
+        @('ArenaMode.Client/Plugin.cs','Pickups.ArenaInfiniteAmmo.Enable();'),
         @('ArenaMode.Client/Plugin.cs','AddComponent<Pickups.ArenaPickupCapture>()'),
         @('ArenaMode.Client/Plugin.cs','Pickups.ArenaPickupRuntime.Reset();'),
         @('ArenaMode.Client/ArenaController.cs','Pickups.ArenaPickupRuntime.Tick();'),
@@ -44,6 +46,7 @@ try {
         @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.ShieldPoints'),
         @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.DamageSeconds'),
         @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.JumpSeconds'),
+        @('ArenaMode.Client/Hud/ArenaPowerupPanel.cs','state.AmmoSeconds'),
         @('ArenaMode.Client/Pickups/ArenaPickupSettings.cs','ArenaPickupWeapons.M60Id'),
         @('ArenaMode.Client/Pickups/ArenaPickupView.cs','"JUMP BOOTS"'),
         @('ArenaMode.Client/Pickups/ArenaPickupCapture.cs','Settings.AreaCaptureAllowInNormalPmc?.Value != true'),
@@ -73,6 +76,7 @@ try {
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
     Run-Pickup 'production' $pickupSource
     $faults = @(
+        @{Name='overlapping-pickups';File='ArenaPickupRuntime.cs';Find='Entries.Any(other => (other.Floor - floor).sqrMagnitude < 9f)';Replace='false';Failure='final pickup floors cannot overlap within three metres'},
         @{Name='custom-relocates';File='ArenaPickupGeometry.cs';Find='if (!allowNearby) return false;';Replace='';Failure='custom positions never try nearby alternatives'},
         @{Name='unbounded-final-snap';File='ArenaPickupGeometry.cs';Find='delta.x * delta.x + delta.z * delta.z > RelocationRadius * RelocationRadius + .0001f';Replace='false';Failure='final navigation snap outside two metre radius rejected'},
         @{Name='token-alias';File='ArenaPickupState.cs';Find='reservation != _reservation';Replace='false';Failure='foreign token cannot settle'},

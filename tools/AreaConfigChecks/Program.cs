@@ -128,6 +128,41 @@ try
         Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-RELOAD","Live Reload also clamps an obsolete saved ID.");
     }
 
+    // Actual Settings.Init against real persisted BepInEx entries, including
+    // the boolean written by the already deployed Equator release.
+    foreach (var migration in new[]
+    {
+        (Name: "equator-release", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 0, Gain: true),
+        (Name: "native-first-upgrade", Maps: ArenaMapCatalog.NativeDefaultClientAllowlist, Legacy: false, Revision: 0, Gain: true),
+        (Name: "equator-removed", Maps: ArenaMapCatalog.NativeDefaultClientAllowlist, Legacy: true, Revision: 0, Gain: false),
+        (Name: "custom-subset", Maps: "factory4_day,arena_equator", Legacy: true, Revision: 0, Gain: false),
+        (Name: "custom-order", Maps: "arena_equator,"+ArenaMapCatalog.NativeDefaultClientAllowlist, Legacy: true, Revision: 0, Gain: false),
+        (Name: "revision-one", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 1, Gain: true),
+        (Name: "bay5-removed", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 2, Gain: false),
+        (Name: "future-version", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 3, Gain: false),
+    })
+    {
+        string path=Path.Combine(scratch,"optional-"+migration.Name+".cfg");
+        File.WriteAllText(path,"[General]\nMaps = "+migration.Maps+"\nOptionalMapsMigrated = "+migration.Legacy
+            +(migration.Revision==0?"":"\nOptionalMapsRevision = "+migration.Revision)+"\n");
+        var persistedConfig=new ConfigFile(path,false){SaveOnConfigSet=true};
+        Settings.Init(persistedConfig);
+        string expected=migration.Gain?ArenaMapCatalog.DefaultClientAllowlist:migration.Maps;
+        Need(Settings.Maps.Value==expected,"OPTIONAL-MAP-UPGRADE",
+            "Actual Settings.Init must honor the revision and saved Equator marker for "+migration.Name);
+        Need((int)persistedConfig[new ConfigDefinition("General","OptionalMapsRevision")].BoxedValue==Math.Max(2,migration.Revision),
+            "OPTIONAL-MAP-MARKER","Internal revision records the upgrade decision without reducing a future marker.");
+        Settings.Init(new ConfigFile(path,false){SaveOnConfigSet=true});
+        Need(Settings.Maps.Value==expected,"OPTIONAL-MAP-PERSISTED","Optional map upgrade survives a fresh real ConfigFile binding.");
+        if (migration.Gain)
+        {
+            Settings.Maps.Value=ArenaMapCatalog.EquatorDefaultClientAllowlist;
+            Settings.Init(new ConfigFile(path,false){SaveOnConfigSet=true});
+            Need(Settings.Maps.Value==ArenaMapCatalog.EquatorDefaultClientAllowlist,"OPTIONAL-MAP-REMOVAL",
+                "Removing Bay5 after migration must survive a real save and subsequent Settings.Init.");
+        }
+    }
+
     Console.WriteLine("Real BepInEx assembly: "+typeof(ConfigFile).Assembly.FullName);
     Console.WriteLine("BepInEx SHA256: "+Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(ConfigFile).Assembly.Location))));
     Console.WriteLine("Offered and persisted IDs: "+string.Join(", ",offered.OrderBy(id=>id,StringComparer.Ordinal)));

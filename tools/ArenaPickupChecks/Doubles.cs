@@ -179,6 +179,7 @@ namespace ArenaMode.Pickups
         internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage",0,seconds));return GrantResult;}
         internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield",points,seconds));return GrantResult;}
         internal static bool GrantJump(Player p,float seconds){if(GrantResult)Grants.Add((p,"boots",0,seconds));return GrantResult;}
+        internal static bool GrantAmmo(Player p,float seconds){if(GrantResult)Grants.Add((p,"ammo",0,seconds));return GrantResult;}
     }
     internal sealed class ArenaPickupView:IDisposable
     {
