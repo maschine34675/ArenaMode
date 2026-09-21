@@ -40,6 +40,8 @@ internal static class Program
             Settings.TeamDeathmatchSize.Value = 7;
             Settings.Allowlist = ArenaMapCatalog.DefaultClientAllowlist;
             Settings.AreaWrites = 0; Settings.RejectAreaWrite = false;
+            ArenaParticipantSettings.Values.Clear(); ArenaParticipantSettings.Reject = false; ArenaParticipantSettings.Writes = 0;
+            ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false; ArenaSession.Participants = null;
             ArenaClientConfig.Enabled = map => true;
             ArenaModeSelectionView.Last = null; ArenaAreaSelectionView.Last = null;
             ArenaMode.Session.Maps.ArenaAreaMapPreview.Last = null;
@@ -307,10 +309,67 @@ internal static class Program
             AreaTeamSizeCallbacksStayOwned();
             EquatorOptionalDependencyAndModeTransitions();
             Bay5AndEquatorHaveIndependentOwnedRows();
+            ParticipantCallbacksStayOwned();
             Console.WriteLine($"NATIVE_AREA_HOOK_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+
+    private static void ParticipantCallbacksStayOwned()
+    {
+        using var f = new Fixture(initialMap: Day, mode: "deathmatch");
+        var view = ArenaAreaSelectionView.Last;
+        var callback = view.ParticipantCallback;
+        var rendered = view.Participants;
+        Assert(rendered.Available && rendered.Total == 10 && rendered.MapId == Day && rendered.ModeId == "deathmatch",
+            "native hook publishes map-owned participant proposal");
+        Assert(callback(rendered, 13) && view.Participants.Total == 13, "native participant callback pushes saved total to view");
+        Assert(!callback(rendered, 14), "stale displayed total rejects before next refresh");
+        rendered = view.Participants;
+        ArenaParticipantSettings.Reject = true;
+        Assert(!callback(rendered, 14) && view.Participants.Total == 13, "refused persistence cannot update rendered total");
+        ArenaParticipantSettings.Reject = false;
+        f.Screen.OnLocationSelected(f.Screen.Locations[ArenaMapCatalog.LaboratoryId]);
+        Assert(!callback(rendered, 14), "NATIVE-PARTICIPANT-MAP: map change rejects pending click before updater");
+        f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
+        Settings.GameMode.Value = "gungame";
+        Assert(!callback(rendered, 14), "NATIVE-PARTICIPANT-MODE: mode change rejects pending click before updater");
+        Settings.GameMode.Value = "deathmatch";
+        f.Team = true;
+        Assert(!callback(rendered, 14), "new PFT roster rejects a solo participant callback");
+        f.Team = false;
+        ArenaClientConfig.Enabled = _ => false;
+        Assert(!callback(rendered, 14), "disabled map rejects a previously rendered participant callback");
+        ArenaClientConfig.Enabled = _ => true;
+        ArenaSession.ArmedForNextRaid = true;
+        Assert(!callback(rendered, 14), "armed participant callback cannot write");
+        ArenaSession.ArmedForNextRaid = false; ArenaSession.IsActive = true;
+        Assert(!callback(rendered, 14), "active participant callback cannot write");
+        ArenaSession.IsActive = false;
+        f.Screen.ShowInternal(f.SettingsOwner);
+        Assert(!callback(rendered, 14), "NATIVE-PARTICIPANT-GENERATION: prior Show callback cannot write replacement screen");
+        view = ArenaAreaSelectionView.Last; callback = view.ParticipantCallback; rendered = view.Participants;
+        var originalController = f.Screen.ScreenController;
+        f.Screen.ScreenController = new MatchMakerSelectionLocationScreen.SelectionLocationScreenController { RaidSettings = f.SettingsOwner };
+        Assert(!callback(rendered, 14), "replaced controller rejects retained participant callback");
+        f.Screen.ScreenController = originalController;
+        Assert(callback(rendered, 14), "unchanged live participant owner remains writable");
+        Settings.GameMode.Value = "teamdeathmatch"; Updater(f).Tick();
+        rendered = view.Participants;
+        Assert(rendered.Available && rendered.Step == 2, "full-map TDM receives symmetric participant controls");
+        Settings.TeamDeathmatchArea.Value = Center;
+        Assert(!callback(rendered, 12), "NATIVE-PARTICIPANT-AREA: changed saved area rejects old full-map click before repair");
+        Settings.TeamDeathmatchArea.Value = Full;
+        Assert(callback(rendered, 12), "full-map TDM accepts valid symmetric total");
+        Assert(!callback(view.Participants, 13), "full-map TDM rejects odd total");
+        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]); Updater(f).Tick();
+        Assert(!view.Participants.Available, "bounded Customs keeps existing team-size rules");
+        Assert(!callback(rendered, 12), "bounded context rejects a retained full-map proposal");
+        f.Screen.OnLocationSelected(f.Screen.Locations[Day]); Updater(f).Tick();
+        rendered = view.Participants;
+        f.Screen.Close();
+        Assert(!callback(rendered, 14), "closed screen rejects queued participant click");
     }
 
     private static void AreaTeamSizeCallbacksStayOwned()

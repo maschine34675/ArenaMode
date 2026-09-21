@@ -49,6 +49,8 @@ public class ArenaSessionService
         public string? Map;
         public string? Mode;
         public string? DeathmatchHostility;
+        public int? Participants;
+        public bool ParticipantBosses;
         public string AreaId = ArenaAreaCatalog.FullMapId;
         public int AreaTeamSize;
         public DateTime ArmedAtUtc;
@@ -97,13 +99,17 @@ public class ArenaSessionService
         string? armToken = null,
         string? areaId = null,
         int? areaTeamSize = null,
-        string? deathmatchHostility = null)
+        string? deathmatchHostility = null,
+        int? participants = null)
     {
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out var hostilityFailure))
             throw new ArgumentException(hostilityFailure, nameof(deathmatchHostility));
         if (!ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out var areaFailure)
             || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out areaFailure))
             throw new ArgumentException(areaFailure, nameof(areaId));
+        if (!ArenaParticipantPolicy.TryResolve(map, mode!, area != null, protectPitFireTeam,
+                participants, out var selectedParticipants, out var participantFailure))
+            throw new ArgumentException(participantFailure, nameof(participants));
         string key = sessionId.ToString();
         string token = string.IsNullOrWhiteSpace(armToken)
             ? Guid.NewGuid().ToString("N")
@@ -116,6 +122,8 @@ public class ArenaSessionService
                 Map = map.ToLowerInvariant(),
                 Mode = mode,
                 DeathmatchHostility = frozenHostility,
+                Participants = selectedParticipants,
+                ParticipantBosses = FreezeParticipantBosses(map, mode, selectedParticipants),
                 AreaId = ArenaAreaCatalog.NormalizeId(areaId!),
                 AreaTeamSize = selectedSize,
                 ArmedAtUtc = DateTime.UtcNow,
@@ -159,12 +167,15 @@ public class ArenaSessionService
         out string? armToken,
         string? areaId = null,
         int? areaTeamSize = null,
-        string? deathmatchHostility = null)
+        string? deathmatchHostility = null,
+        int? participants = null)
     {
         armToken = null;
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId, map, mode, protectPitFireTeam, out var area, out _)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _)
+            || !ArenaParticipantPolicy.TryResolve(map!, mode!, area != null, protectPitFireTeam,
+                participants, out var selectedParticipants, out _))
             return false;
         lock (_lock)
         {
@@ -175,6 +186,7 @@ public class ArenaSessionService
                 || entry.ProtectPitFireTeam != protectPitFireTeam
                 || !string.Equals(entry.AreaId, ArenaAreaCatalog.NormalizeId(areaId!), StringComparison.Ordinal)
                 || entry.AreaTeamSize != selectedSize
+                || entry.Participants != selectedParticipants
                 || !string.Equals(entry.DeathmatchHostility, frozenHostility, StringComparison.Ordinal)
                 || !string.Equals(entry.Map, map, StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(entry.Mode, mode, StringComparison.OrdinalIgnoreCase))
@@ -219,12 +231,15 @@ public class ArenaSessionService
         string armToken,
         string? areaId = null,
         int? areaTeamSize = null,
-        string? deathmatchHostility = null)
+        string? deathmatchHostility = null,
+        int? participants = null)
     {
         if (!Protocol.IsLifecycleRequestId(armToken)
             || !DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out _)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _)
+            || !ArenaParticipantPolicy.TryResolve(map, mode!, area != null, protectPitFireTeam,
+                participants, out var selectedParticipants, out _))
             return false;
 
         string key = sessionId.ToString();
@@ -247,7 +262,7 @@ public class ArenaSessionService
                         mode,
                         protectPitFireTeam,
                         armToken,
-                        ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility);
+                        ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility, selectedParticipants);
             }
         }
 
@@ -258,7 +273,7 @@ public class ArenaSessionService
                 mode,
                 protectPitFireTeam,
                 armToken,
-                ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility);
+                ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility, selectedParticipants);
     }
 
     private bool PublishArmPreparationLocked(
@@ -269,7 +284,8 @@ public class ArenaSessionService
         string armToken,
         string areaId,
         int areaTeamSize,
-        string? deathmatchHostility)
+        string? deathmatchHostility,
+        int? participants)
     {
         if (_sessions.TryGetValue(key, out var existing)
             && existing.State != ArenaSessionState.Idle)
@@ -283,6 +299,8 @@ public class ArenaSessionService
             Map = map.ToLowerInvariant(),
             Mode = mode,
             DeathmatchHostility = deathmatchHostility,
+            Participants = participants,
+            ParticipantBosses = FreezeParticipantBosses(map, mode, participants),
             AreaId = areaId,
             AreaTeamSize = areaTeamSize,
             ArmedAtUtc = DateTime.UtcNow,
@@ -350,6 +368,8 @@ public class ArenaSessionService
             entry.State = ArenaSessionState.Idle;
             entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.DeathmatchHostility = null;
+            entry.Participants = null;
+            entry.ParticipantBosses = false;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
             entry.ArmToken = null;
@@ -592,7 +612,7 @@ public class ArenaSessionService
                 return false;
             }
 
-            if (entry.AreaId != ArenaAreaCatalog.FullMapId
+            if (RequiresValidatedLocation(entry)
                 && !IsAreaLocationReady(entry, out _))
                 return false;
 
@@ -701,6 +721,30 @@ public class ArenaSessionService
         }
     }
 
+    /// <summary>One reserved local slot is included, even while that player is dead.</summary>
+    public int? GetParticipants(MongoId sessionId)
+    {
+        lock (_lock)
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State != ArenaSessionState.Idle && !string.IsNullOrEmpty(entry.ArmToken)
+                ? entry.Participants : null;
+    }
+
+    /// <summary>Frozen at preparation, never recomputed by a retry or config reload.</summary>
+    public bool GetParticipantBosses(MongoId sessionId)
+    {
+        lock (_lock)
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State != ArenaSessionState.Idle && !string.IsNullOrEmpty(entry.ArmToken)
+                   && entry.ParticipantBosses;
+    }
+
+    private static bool FreezeParticipantBosses(string map, string? mode, int? participants)
+        => participants.HasValue && ArenaParticipantPolicy.IsSolo(mode!)
+           && string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)
+           && ArenaContext.Config.Maps.TryGetValue(map.ToLowerInvariant(), out var mapConfig)
+           && mapConfig.Enabled && !mapConfig.DisableBosses;
+
     /// <summary>Only the current non-idle arm may expose its negotiated relation.</summary>
     public string? GetDeathmatchHostility(MongoId sessionId)
     {
@@ -714,8 +758,8 @@ public class ArenaSessionService
     }
 
     /// <summary>
-    /// A bounded raid may leave native server start only after its exact clone
-    /// was filtered. Full-map raids retain their existing location behavior.
+    /// A bounded or participant-managed raid may leave native server start only
+    /// after its exact clone was filtered. Legacy full maps retain their behavior.
     /// </summary>
     public bool ValidateAreaLocation(MongoId sessionId, out string? reason)
     {
@@ -741,20 +785,23 @@ public class ArenaSessionService
                 reason = "the exact Arena raid is no longer active";
                 return false;
             }
-            if (entry.AreaId != ArenaAreaCatalog.FullMapId
+            if (RequiresValidatedLocation(entry)
                 && !ReferenceEquals(entry.LocationClone, responseLocation))
             {
-                reason = "the bounded Arena response did not retain its exact filtered location clone";
+                reason = "the protected Arena response did not retain its exact filtered location clone";
                 return false;
             }
             return IsAreaLocationReady(entry, out reason);
         }
     }
 
+    private static bool RequiresValidatedLocation(SessionEntry entry)
+        => entry.AreaId != ArenaAreaCatalog.FullMapId || entry.Participants.HasValue;
+
     private static bool IsAreaLocationReady(SessionEntry entry, out string? reason)
     {
         reason = null;
-        if (entry.AreaId == ArenaAreaCatalog.FullMapId)
+        if (!RequiresValidatedLocation(entry))
             return true;
         if (!ArenaAreaCatalog.TryResolve(entry.AreaId, entry.Map!, entry.Mode!,
                 entry.ProtectPitFireTeam, out _, out reason))
@@ -765,6 +812,8 @@ public class ArenaSessionService
         {
             try
             {
+                if (entry.Participants.HasValue)
+                    ArenaLocationMutator.ValidateParticipantPopulation(location, entry.Map!, entry.Mode!, entry.Participants.Value);
                 ArenaLocationMutator.ValidateAreaSpawns(location, entry.Mode, entry.AreaId, entry.AreaTeamSize);
                 return true;
             }
@@ -774,7 +823,7 @@ public class ArenaSessionService
                 return false;
             }
         }
-        reason = entry.LocationMutationFailure ?? "the bounded Arena location filter has not completed";
+        reason = entry.LocationMutationFailure ?? "the required Arena location filter has not completed";
         return false;
     }
 
@@ -912,6 +961,8 @@ public class ArenaSessionService
             entry.State = ArenaSessionState.Idle;
             entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.DeathmatchHostility = null;
+            entry.Participants = null;
+            entry.ParticipantBosses = false;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
             entry.ArmToken = null;
@@ -1068,6 +1119,8 @@ public class ArenaSessionService
                 entry.State = ArenaSessionState.Idle;
                 entry.AreaId = ArenaAreaCatalog.FullMapId;
                 entry.DeathmatchHostility = null;
+                entry.Participants = null;
+                entry.ParticipantBosses = false;
                 entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ProtectPitFireTeam = false;
                 entry.ArmToken = null;
@@ -1104,6 +1157,8 @@ public class ArenaSessionService
                 entry.State = ArenaSessionState.Idle;
                 entry.AreaId = ArenaAreaCatalog.FullMapId;
                 entry.DeathmatchHostility = null;
+                entry.Participants = null;
+                entry.ParticipantBosses = false;
                 entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ArmToken = null;
                 entry.ClientRaidStarted = false;

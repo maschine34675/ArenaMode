@@ -84,6 +84,11 @@ internal static class BurstSpawnService
 
     public static void Tick()
     {
+        if (ArenaSoloPopulation.IsSelected)
+        {
+            ArenaSoloPopulation.Tick();
+            return;
+        }
         if (ManualControl || !ArenaSession.IsActive || Time.time < _nextAttemptAt)
             return;
 
@@ -659,6 +664,126 @@ internal static class BurstSpawnService
             Plugin.ModLogger.LogError(
                 $"Arena burst spawn: could not retire a late {role} body: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Negotiated solo single-bot path. It has its own raid lifetime, independent
+    /// of the ambient reset used during player replacement, and never assumes
+    /// that an ordinary scav or a Labyrinth boss has a PMC faction.
+    /// </summary>
+    internal static async void SpawnManagedBot(
+        WildSpawnType role, BotDifficulty difficulty, Func<BotOwner, bool> observer,
+        Func<bool> requestStillCurrent, Func<bool> beginNativeDispatch,
+        Action<bool> dispatchFinished, Action<BotOwner, bool, bool> arrivalRejected, int requestId)
+    {
+        BotCreationData data = null;
+        bool handedToNative = false;
+        int generation = ArenaSoloPopulation.Generation;
+        try
+        {
+            if (observer == null || requestStillCurrent == null || beginNativeDispatch == null
+                || !IsManagedRole(role) || !ArenaSoloPopulation.IsLeaseCurrent(generation)
+                || !IsRequestStillCurrent(requestStillCurrent, role)) return;
+            var spawner = Singleton<IBotGame>.Instance?.BotsController?.BotSpawner;
+            if (spawner == null || PickZone(spawner, 1) == null) return;
+            bool Current() => ArenaSoloPopulation.IsLeaseCurrent(generation)
+                && ReferenceEquals(Singleton<IBotGame>.Instance?.BotsController?.BotSpawner, spawner)
+                && IsRequestStillCurrent(requestStillCurrent, role);
+
+            var profileParams = new GetProfileDataParams(EPlayerSide.Savage, role, difficulty, -1f, new BotSpawnParams());
+            data = await BotCreationData.Create(profileParams, spawner._botCreator, 1, spawner);
+            if (!Current() || data == null || data.Count != 1 || data.Profiles[0]?.Info?.Settings?.Role != role)
+                return;
+            // Re-plan after profile/pool preparation. The ordinary selector's
+            // distance, enabled-zone and area filters remain authoritative.
+            var zone = PickZone(spawner, 1);
+            if (zone == null) return;
+            var points = BurstSpawnPointSelector.PickPoints(zone, GetPlayerPosition(), 1, ref _pointCursor,
+                out _, out _, grouped: false);
+            if (points == null || points.Count != 1 || !Current()) return;
+
+            bool arrivalSeen = false;
+            BotOwner observedBody = null;
+            Action<BotOwner> onArrival = bot =>
+            {
+                if (arrivalSeen && ReferenceEquals(observedBody, bot)) return;
+                bool duplicate = arrivalSeen;
+                arrivalSeen = true;
+                if (!duplicate) observedBody = bot;
+                try
+                {
+                    if (!duplicate && Current() && HasManagedIdentity(bot, role))
+                    {
+                        // Direct creation does not run BotBossSpawn's callback.
+                        // That native callback initializes the real boss logic;
+                        // match it explicitly with zero followers inside our slot.
+                        if (role == WildSpawnType.bossTagillaAgro || role == WildSpawnType.bossKillaAgro)
+                            bot.Boss.SetBoss(0);
+                        if (observer(bot))
+                        {
+                            OnBotSpawned(bot, new List<float>(0), role, includeLifecycleIdentity: true);
+                            return;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.ModLogger.LogWarning($"Arena solo arrival {requestId} rejected: {ex.Message}");
+                }
+
+                RetireStaleSpawn(bot, role);
+                // Null/missing health or a failed kill is not evidence that the
+                // native slot is free. Keep the reservation in those cases.
+                bool retired = false;
+                try { retired = !ReferenceEquals(bot, null) && bot != null
+                    && bot.HealthController != null && !bot.HealthController.IsAlive; }
+                catch { }
+                // Retiring an extra callback body proves nothing about the
+                // first body's unresolved capacity (its kill may have failed).
+                try { arrivalRejected?.Invoke(bot, retired, !duplicate); }
+                catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena solo rejection notification failed: {ex.Message}"); }
+            };
+
+            if (!Current() || !IsRequestStillCurrent(beginNativeDispatch, role) || !Current()) return;
+            using (var scope = ArenaSoloSpawnDispatch.Enter(spawner, data))
+            {
+                // Set before invoking native: completion can be synchronous, and
+                // an exception after entry still leaves activation uncertain.
+                handedToNative = true;
+                try { spawner.SpawnBotsInZoneOnPositions(points, zone, data, onArrival); }
+                finally { if (scope.WasRejected) handedToNative = false; }
+            }
+            Plugin.ModLogger.LogInfo($"Arena solo population: request {requestId}, {role}, native={handedToNative}.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena solo preparation {requestId}: {ex.Message}");
+        }
+        finally
+        {
+            if (!handedToNative)
+            {
+                try { data?.StopSpawn(); }
+                catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena solo cancellation failed: {ex.Message}"); }
+            }
+            NotifyDispatchFinished(dispatchFinished, handedToNative);
+        }
+    }
+
+    private static bool IsManagedRole(WildSpawnType role)
+        => role == WildSpawnType.pmcUSEC || role == WildSpawnType.pmcBEAR || role == WildSpawnType.assault
+            || role == WildSpawnType.bossTagillaAgro || role == WildSpawnType.bossKillaAgro;
+
+    private static bool HasManagedIdentity(BotOwner bot, WildSpawnType role)
+    {
+        if (bot == null || bot.Profile?.Info?.Settings?.Role != role || bot.GetPlayer == null
+            || bot.HealthController == null || !bot.HealthController.IsAlive
+            || bot.GetPlayer.HealthController == null || !bot.GetPlayer.HealthController.IsAlive
+            || string.IsNullOrWhiteSpace(bot.ProfileId)
+            || !string.Equals(bot.ProfileId, bot.GetPlayer.ProfileId, StringComparison.Ordinal)) return false;
+        var side = role == WildSpawnType.pmcUSEC ? EPlayerSide.Usec
+            : role == WildSpawnType.pmcBEAR ? EPlayerSide.Bear : EPlayerSide.Savage;
+        return bot.Profile.Info.Side == side && bot.GetPlayer.Side == side;
     }
 
     /// <summary>

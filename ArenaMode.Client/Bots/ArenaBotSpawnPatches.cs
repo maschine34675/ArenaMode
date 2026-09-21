@@ -5,6 +5,9 @@ using SPT.Reflection.Patching;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ArenaMode.Bots;
 
@@ -12,13 +15,19 @@ internal static class ArenaBotSpawnPatches
 {
     private static int _rejectedBatches;
     private static int _rejectedTeamBatches;
+    internal static bool SoloPopulationReady { get; private set; }
 
     public static void Enable()
     {
+        SoloPopulationReady = false;
         new SpawnZonesPatch().Enable();
         new SelectAiPointsPatch().Enable();
         new DispatchPatch().Enable();
+        new SoloActivationPatch().Enable();
+        new SoloProfileActivationPatch().Enable();
+        new SoloCreationPatch().Enable();
         new ArenaTeamSpawnPointsPatch().Enable();
+        SoloPopulationReady = true;
     }
 
     public static void ResetRaidState()
@@ -75,8 +84,11 @@ internal static class ArenaBotSpawnPatches
             if (Areas.ArenaAreaRuntime.ShouldBlockLoadingBotDispatch())
             {
                 TeamDeathmatchSpawnDispatch.MarkRejected(__instance, data);
+                ArenaSoloSpawnDispatch.MarkRejected(__instance, data);
                 return false;
             }
+            if (!ArenaSoloSpawnDispatch.CanDispatch(__instance, data))
+                return false;
             if (!TeamDeathmatchSpawnDispatch.CanDispatch(__instance, data))
             {
                 // Deny unowned batches before the native method charges its
@@ -96,9 +108,58 @@ internal static class ArenaBotSpawnPatches
             // positions to its profiles; partial removal would break accounting.
             // Do not stop or modify BotCreationData: other requests may share it.
             TeamDeathmatchSpawnDispatch.MarkRejected(__instance, data);
+            ArenaSoloSpawnDispatch.MarkRejected(__instance, data);
             _rejectedBatches++;
             if (_rejectedBatches <= 3 || _rejectedBatches % 25 == 0)
                 Plugin.ModLogger.LogWarning($"Arena: rejected excluded bot spawn batch #{_rejectedBatches}.");
+            return false;
+        }
+    }
+
+    // ABPS and other native integrations may bypass BotSpawner dispatch and
+    // call the creator directly. All three entry points must carry the same
+    // synchronous lease. Native one-profile creation reaches CreateBot before
+    // its first await; no global or AsyncLocal permission survives that call.
+    private sealed class SoloActivationPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotCreatorClient), nameof(BotCreatorClient.ActivateBot),
+                new[] { typeof(BotCreationData), typeof(BotZone), typeof(bool), typeof(Func<BotOwner, BotZone, BotsGroup>),
+                    typeof(Action<BotOwner>), typeof(CancellationToken) });
+        [PatchPrefix, HarmonyPriority(Priority.First)]
+        private static bool Prefix(BotCreatorClient __instance, BotCreationData data, ref Task __result)
+        {
+            if (ArenaSoloSpawnDispatch.CanActivate(__instance, data)) return true;
+            __result = Task.CompletedTask;
+            return false;
+        }
+    }
+
+    private sealed class SoloProfileActivationPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotCreatorClient), nameof(BotCreatorClient.ActivateBot),
+                new[] { typeof(Profile), typeof(PositionNote), typeof(BotZone), typeof(bool), typeof(Func<BotOwner, BotZone, BotsGroup>),
+                    typeof(Action<BotOwner>), typeof(CancellationToken) });
+        [PatchPrefix, HarmonyPriority(Priority.First)]
+        private static bool Prefix(ref Task __result)
+        {
+            if (!ArenaSoloSpawnDispatch.IsActive) return true;
+            __result = Task.CompletedTask;
+            return false;
+        }
+    }
+
+    private sealed class SoloCreationPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.Method(typeof(BotCreatorClient), nameof(BotCreatorClient.CreateBot),
+                new[] { typeof(Profile), typeof(PositionNote), typeof(Action<BotOwner>), typeof(bool), typeof(CancellationToken) });
+        [PatchPrefix, HarmonyPriority(Priority.First)]
+        private static bool Prefix(BotCreatorClient __instance, Profile profile, ref Task __result)
+        {
+            if (ArenaSoloSpawnDispatch.CanCreate(__instance, profile)) return true;
+            __result = Task.CompletedTask;
             return false;
         }
     }

@@ -74,6 +74,7 @@ namespace SPT.Common.Http
     }
 }
 namespace Redeploy.Core.Compat { public static class FikaCompatCheck { public static bool IsFikaLoaded; } }
+namespace ArenaMode.Bots { internal static class ArenaBotSpawnPatches { internal static bool SoloPopulationReady = true; } }
 namespace ArenaMode
 {
     public static class Plugin { public static TestLogger ModLogger = new(); }
@@ -93,7 +94,8 @@ namespace ArenaMode
             WarningCount++;
             LastWarning = value?.ToString();
         }
-        public void LogError(object value) { }
+        public string LastError;
+        public void LogError(object value) { LastError = value?.ToString(); }
     }
 }
 namespace ArenaMode.Config
@@ -123,6 +125,12 @@ namespace ArenaMode.Config
         public static bool IsArenaMap(string map) => ArenaMode.Shared.ArenaMapCatalog.AllowlistContains(Allowlist, map);
     }
     public static class SettingsSync { public static Action OnSync; public static void SyncNow() { OnSync?.Invoke(); } }
+    public static class ArenaParticipantSettings
+    {
+        public static int? Override;
+        public static int Get(string map, string mode)
+            => Override ?? ArenaMode.Shared.ArenaParticipantPolicy.DefaultTotal(map, mode);
+    }
 }
 namespace ArenaMode.Audio
 {
@@ -147,17 +155,24 @@ namespace ArenaMode.Session
         public static bool ArmedForNextRaid;
         public static string ArmedMode;
         public static ArenaMode.Modes.DeathmatchOptions FrozenDeathmatch;
-        public static void MarkArmed(string map, string mode, ArenaMode.Modes.DeathmatchOptions deathmatch = null)
+        public static int? Participants;
+        public static bool ParticipantBosses;
+        public static void MarkArmed(string map, string mode, ArenaMode.Modes.DeathmatchOptions deathmatch = null,
+            int? participants = null, bool participantBosses = false)
         {
             ArmedForNextRaid = true;
             ArmedMode = mode;
             FrozenDeathmatch = deathmatch;
+            Participants = participants;
+            ParticipantBosses = participantBosses;
         }
         public static void ClearArmed(string reason)
         {
             if (!ArmedForNextRaid) return;
             ArmedForNextRaid = false;
             ArmedMode = null;
+            Participants = null;
+            ParticipantBosses = false;
             ArenaServerClient.PostRaidCancel();
         }
     }

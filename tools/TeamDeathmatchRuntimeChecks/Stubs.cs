@@ -300,6 +300,7 @@ namespace ArenaMode.Session
     {
         internal static bool IsActive;
         internal static string ActiveMode;
+        internal static int? Participants;
         internal static AbstractGame OwnedGame;
         internal static GameWorld OwnedWorld;
         internal static bool IsExactActiveRaid(AbstractGame game, GameWorld world)
@@ -327,7 +328,7 @@ namespace ArenaMode.Modes
         internal readonly List<ArenaAnnouncerCue> Cues = new();
         public void ReportAnnouncerCue(ArenaAnnouncerCue cue) => Cues.Add(cue);
     }
-    public enum ArenaAnnouncerCue { RoundStart, MatchWon, MatchLost }
+    public enum ArenaAnnouncerCue { RoundStart, MatchWon, MatchLost, NoContest }
 #endif
     // Native stop/owner handling has a separate production-linked adapter suite.
     // Here record the real mode's intent without pretending to run EFT teardown.

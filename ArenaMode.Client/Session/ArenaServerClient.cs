@@ -232,13 +232,18 @@ public static class ArenaServerClient
 
     internal static string PendingArmToken => _pendingArmToken;
     internal static string ActiveArmToken => _activeArmToken;
+    internal static bool PendingParticipantBosses { get; private set; }
 
     public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
-        string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null)
+        string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null,
+        int? participants = null)
     {
+        PendingParticipantBosses = false;
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam, out var area, out _)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _))
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _)
+            || !ArenaParticipantPolicy.TryResolve(map, mode, area != null, pitFireTeamTeam,
+                participants, out _, out _))
             return false;
         HasPendingArm = true;
         HasPendingEnd = false;
@@ -261,11 +266,20 @@ public static class ArenaServerClient
             });
             if (selectedSize != 0) payload["areaTeamSize"] = selectedSize;
             if (frozenHostility != null) payload["deathmatchHostility"] = frozenHostility;
+            if (participants.HasValue) payload["participants"] = participants.Value;
             var body = payload.ToString(Formatting.None);
             var response = RequestHandler.PostJson(Protocol.RaidStartRoute, body);
             var parsed = string.IsNullOrEmpty(response) ? null : JObject.Parse(response);
             string returnedArmToken = parsed?["armToken"]?.Value<string>();
             var ok = parsed?["armed"]?.Value<bool>() == true
+                && (participants.HasValue
+                    ? parsed?["participants"]?.Type == JTokenType.Integer
+                        && parsed["participants"].Value<int>() == participants.Value
+                        && parsed["participantBosses"]?.Type == JTokenType.Boolean
+                        && (!parsed["participantBosses"].Value<bool>()
+                            || ArenaParticipantPolicy.IsSolo(mode)
+                            && string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase))
+                    : parsed?["participants"] == null || parsed["participants"].Type == JTokenType.Null)
                 && (frozenHostility == null || parsed?["deathmatchHostility"]?.Type == JTokenType.String
                     && string.Equals(parsed["deathmatchHostility"].Value<string>(), frozenHostility, StringComparison.Ordinal))
                 && (selectedSize == 0
@@ -288,6 +302,8 @@ public static class ArenaServerClient
                 // token as success from the server.
                 Plugin.ModLogger.LogWarning($"Arena raid-start rejected by server: {response}");
             }
+            if (ok && participants.HasValue)
+                PendingParticipantBosses = parsed["participantBosses"].Value<bool>();
             return ok;
         }
         catch (Exception ex)

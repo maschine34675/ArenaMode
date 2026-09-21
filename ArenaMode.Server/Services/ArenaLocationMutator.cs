@@ -42,8 +42,12 @@ public static class ArenaLocationMutator
         => ArenaPopulationPolicy.OwnsEntirePopulation(mode);
 
     public static void Mutate(LocationBase location, ArenaMapConfig map, ArenaModeConfig config,
-        string? mode = null, string? areaId = null, int? areaTeamSize = null)
+        string? mode = null, string? areaId = null, int? areaTeamSize = null, int? participants = null)
     {
+        if (!ArenaParticipantPolicy.TryResolve(location.Id!, mode!,
+                ArenaAreaCatalog.NormalizeId(areaId) != ArenaAreaCatalog.FullMapId, false,
+                participants, out _, out var participantFailure))
+            throw new InvalidOperationException(participantFailure);
         // Validate the complete retained set before changing any raid data.
         // A missing area preserves the legacy path, including its original list.
         ApplyAreaSpawns(location, mode, areaId, areaTeamSize);
@@ -78,8 +82,16 @@ public static class ArenaLocationMutator
         }
 
         var raidSeconds = Math.Max(60, config.RaidTimeMinutes * 60);
-        var quiet = IsQuietMap(mode);
+        var quiet = IsQuietMap(mode) || participants.HasValue;
         var spawnZones = ArenaBotSpawnPolicy.FilterZones(location.Id, map.SpawnZones);
+
+        if (participants.HasValue)
+        {
+            // Remove unowned schedules before zone filtering, which edits each
+            // retained schedule record. Even an aliased source must stay intact.
+            location.Waves = [];
+            location.BossLocationSpawn = [];
+        }
 
         ExcludeSealedLabsBotSpawns(location);
 
@@ -92,9 +104,9 @@ public static class ArenaLocationMutator
         // and spawn cadence. Note BotSpawnPeriodCheck is floored to 10-15s by both the
         // vanilla scheduler and ABPS's pump — the density beyond that comes from the
         // client burst spawner.
-        location.BotMax = map.BotMax;
-        location.BotMaxPvE = map.BotMax;
-        location.MaxBotPerZone = map.MaxBotPerZone;
+        location.BotMax = participants.HasValue ? participants.Value - 1 : map.BotMax;
+        location.BotMaxPvE = participants.HasValue ? participants.Value - 1 : map.BotMax;
+        location.MaxBotPerZone = participants.HasValue ? participants.Value - 1 : map.MaxBotPerZone;
         location.BotSpawnPeriodCheck = map.BotSpawnPeriodCheckSeconds;
         if (quiet)
         {
@@ -113,6 +125,10 @@ public static class ArenaLocationMutator
             location.NewSpawn = false;
             location.OfflineNewSpawn = false;
 
+            // An explicit total requires explicit zeroed pump limits even if a
+            // custom map omitted the modifier. Do not mutate an aliased record.
+            if (participants.HasValue)
+                location.BotLocationModifier = (location.BotLocationModifier ?? new BotLocationModifier()) with { };
             if (location.BotLocationModifier != null)
             {
                 location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayer = 0;
@@ -150,10 +166,40 @@ public static class ArenaLocationMutator
 
         // Bosses are off in a quiet map for the same reason as the waves: a boss
         // arriving unbidden is a bot the round is not counting.
-        MutateBossSpawns(location, map, raidSeconds, quiet || map.DisableBosses, quiet, spawnZones);
+        // The client owns the optional Labyrinth boss slot too: selected raids
+        // already removed every native boss/escort entry before zone filtering.
+        if (!participants.HasValue)
+            MutateBossSpawns(location, map, raidSeconds, quiet || map.DisableBosses, quiet, spawnZones);
 
         if (config.StripLoot)
             location.Loot = [];
+
+        if (participants.HasValue)
+            ValidateParticipantPopulation(location, location.Id!, mode!, participants.Value);
+    }
+
+    /// <summary>Rechecked against the final response clone and again before client activation.</summary>
+    internal static void ValidateParticipantPopulation(LocationBase location, string expectedMap, string mode, int participants)
+    {
+        if (!ArenaParticipantPolicy.TryResolve(expectedMap, mode, false, false, participants, out _, out var reason))
+            throw new InvalidOperationException(reason);
+        if (!string.Equals(location.Id, expectedMap, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The participant-managed Arena clone belongs to another map.");
+        int bots = participants - 1;
+        if (location.BotMax != bots || location.BotMaxPvE != bots || location.MaxBotPerZone != bots)
+            throw new InvalidOperationException("The participant-managed Arena bot caps changed after negotiation.");
+        if (location.Waves == null || location.Waves.Any()
+            || location.BossLocationSpawn == null || location.BossLocationSpawn.Any())
+            throw new InvalidOperationException("The participant-managed Arena clone contains native bot or boss waves.");
+        if (location.NewSpawn != false || location.OfflineNewSpawn != false
+            || location.BotSpawnCountStep != 0 || location.BotStart is not > 0 || location.BotStop != 0
+            || location.BotSpawnTimeOnMin != 0 || location.BotSpawnTimeOnMax != 0
+            || !(location.BotSpawnTimeOffMin >= location.BotStart) || !(location.BotSpawnTimeOffMax >= location.BotStart))
+            throw new InvalidOperationException("The participant-managed Arena continuous spawn window is not closed.");
+        if (location.BotLocationModifier == null
+            || location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayer != 0
+            || location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE != 0)
+            throw new InvalidOperationException("The participant-managed Arena non-wave spawn limits changed.");
     }
 
     private static void ApplyAreaSpawns(LocationBase location, string? mode, string? areaId, int? areaTeamSize)

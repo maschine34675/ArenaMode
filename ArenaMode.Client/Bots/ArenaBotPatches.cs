@@ -364,9 +364,22 @@ internal static class ArenaBotPatches
             if (!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid)
                 return;
 
+            if (ArenaSession.Participants.HasValue)
+            {
+                var world = Comfort.Common.Singleton<GameWorld>.Instance;
+                var game = Comfort.Common.Singleton<AbstractGame>.Instance;
+                if (world == null || !ReferenceEquals(
+                        Comfort.Common.Singleton<IBotGame>.Instance?.BotsController, __instance)
+                    || (ArenaSession.IsActive ? !ArenaSession.IsExactActiveRaid(game, world)
+                        : !string.Equals(world.LocationId, ArenaSession.ArmedMap, System.StringComparison.OrdinalIgnoreCase)))
+                    return;
+            }
+
             var cap = ArenaClientConfig.GetBotCap(ArenaSession.ArmedMap ?? "factory4_day");
             var mode = ArenaSession.IsActive ? ArenaSession.ActiveMode : ArenaSession.ArmedMode;
-            if (string.Equals(mode, "teamdeathmatch", System.StringComparison.Ordinal))
+            if (ArenaSession.Participants.HasValue)
+                cap = ArenaSession.Participants.Value - 1;
+            else if (string.Equals(mode, "teamdeathmatch", System.StringComparison.Ordinal))
             {
                 int teamSize = System.Math.Max(2, System.Math.Min(12, Config.Settings.TeamDeathmatchSize.Value));
                 cap = System.Math.Max(cap, 2 * teamSize - 1);

@@ -142,15 +142,23 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // left behind for whoever reads the log next.
             // CompatibilityTeamArenaActive queries PitFireTeamCompat.TeamArenaActive;
             // at this point it reflects the roster frozen just above.
+            int? participants = Shared.ArenaParticipantPolicy.IsSelectable(requestedMode, area != null,
+                ArenaMenuSelection.CompatibilityTeamArenaActive)
+                ? Config.ArenaParticipantSettings.Get(settings.location, requestedMode) : (int?)null;
+            if (participants.HasValue && Shared.ArenaParticipantPolicy.IsSolo(requestedMode)
+                && !Bots.ArenaBotSpawnPatches.SoloPopulationReady)
+                throw new InvalidOperationException("Arena participant spawn protection is unavailable; restart after updating the client.");
             if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode,
-                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize, hostility))
+                    ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize,
+                    hostility, participants))
                 throw new InvalidOperationException("The server did not arm Arena profile protection.");
 
             if (!ArenaServerClient.BindNativeStartIdentity(settings))
                 throw new InvalidOperationException(
                     "Arena could not bind the native local-start request to its exact arm token.");
 
-            ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch);
+            ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch,
+                participants, ArenaServerClient.PendingParticipantBosses);
             Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);
 
             // Fetch catalog now (loading screen) instead of inside a gameplay frame.

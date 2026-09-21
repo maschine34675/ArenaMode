@@ -212,7 +212,7 @@ internal static partial class Program
         // JSON property order and whitespace must not affect acknowledgement.
         Select("factory4_night");
         RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
-            ? $"{{ \"snapshotTaken\": true, \"armToken\": \"{JObject.Parse(body)["requestId"]?.Value<string>()}\", \"armed\": true }}"
+            ? $"{{ \"snapshotTaken\": true, \"armToken\": \"{JObject.Parse(body)["requestId"]?.Value<string>()}\", \"armed\": true, \"participants\": {JObject.Parse(body)["participants"]}, \"participantBosses\": false }}"
             : route == Protocol.RaidConfirmRoute
                 ? "{\"confirmed\":true,\"state\":\"InRaid\"}"
                 : "{\"disarmed\":true}";
@@ -305,6 +305,7 @@ internal static partial class Program
         CheckLivePftModeRepair();
         CheckNativeAreas();
         CheckAreaTeamMenu();
+        CheckParticipantNegotiation();
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

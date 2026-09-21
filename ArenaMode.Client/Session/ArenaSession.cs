@@ -46,6 +46,17 @@ public static class ArenaSession
 
     internal static Modes.DeathmatchOptions DeathmatchSelection { get; private set; }
 
+    /// <summary>Exact server-acknowledged total, including the human while dead.</summary>
+    public static int? Participants { get; private set; }
+    public static bool ParticipantBosses { get; private set; }
+
+    private static void ClearParticipants()
+    {
+        Participants = null;
+        ParticipantBosses = false;
+        Bots.ArenaSoloPopulation.Reset();
+    }
+
     public static bool IsActive { get; private set; }
     public static string ActiveMode { get; private set; }
 
@@ -96,10 +107,18 @@ public static class ArenaSession
         RaidLifecycle.OnRaidEnded += OnRaidEnded;
     }
 
-    public static void MarkArmed(string map, string mode, Modes.DeathmatchOptions deathmatch = null)
+    public static void MarkArmed(string map, string mode, Modes.DeathmatchOptions deathmatch = null,
+        int? participants = null, bool participantBosses = false)
     {
         if (Modes.ArenaModeCatalog.NormalizeId(mode) == Modes.ArenaModeCatalog.DeathmatchId && deathmatch == null)
             throw new InvalidOperationException("Deathmatch rules are missing before arming.");
+        if (!Shared.ArenaParticipantPolicy.TryResolve(map, mode, false, false, participants, out _, out var reason)
+            || participantBosses && (!participants.HasValue || !Shared.ArenaParticipantPolicy.IsSolo(mode)
+                || !string.Equals(map, Shared.ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException(reason ?? "Invalid Arena participant boss slot.");
+        ClearParticipants();
+        Participants = participants;
+        ParticipantBosses = participantBosses;
         DeathmatchSelection = deathmatch;
         unchecked { ArmEpoch++; }
         ArmedForNextRaid = true;
@@ -119,6 +138,7 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         DeathmatchSelection = null;
+        ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
@@ -165,6 +185,9 @@ public static class ArenaSession
             }
         }
 
+        // A real new raid boundary, unlike the player's in-raid respawn reset.
+        // Preserve the newly acknowledged selection when recovering a missed end.
+        Bots.ArenaSoloPopulation.Reset();
         _startedWorld = world;
         _startedGame = currentGame;
 
@@ -187,6 +210,7 @@ public static class ArenaSession
             ArmedMode = null;
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ClearParticipants();
             ActiveMode = null;
             LastRaidWasArena = false;
             PitFireTeamCompat.Clear("ordinary raid started");
@@ -215,6 +239,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ClearParticipants();
             PitFireTeamCompat.Clear("Fika raid rejected");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -227,6 +252,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ClearParticipants();
             PitFireTeamCompat.Clear("armed map did not match started raid");
             ArenaServerClient.PostRaidCancel();
             return;
@@ -243,6 +269,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ClearParticipants();
             _rejectedServerRaidPendingEnd = true;
             LastRaidWasArena = true;
             Plugin.ModLogger.LogError(
@@ -353,6 +380,7 @@ public static class ArenaSession
     private static void OnRaidEnded()
     {
         ArenaPostRaidScreens.CaptureEndedRaid(_startedGame, _startedWorld);
+        ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();
         // Clear exact start identity before any early return. A later GameWorld
         // must never be mistaken for a duplicate of this completed raid.

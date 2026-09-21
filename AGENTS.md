@@ -18,6 +18,14 @@ remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
+Map-screen participant totals include one reserved human slot. Negotiated
+Deathmatch/Gun Game owns its single-bot roster and optional Labyrinth boss slot;
+native waves and unowned creator calls are suppressed only for the exact selected
+Arena raid, including its confirmed matching-map loading phase. Never reset
+ArenaSoloPopulation during the player's respawn or expire dispatched reservations
+into free capacity. New full-map totals require exact quiet-clone validation on
+the server, not just the existing bounded-area check. See PARTICIPANTS-REVIEW.md
+and SOLO-POPULATION-REVIEW.md before changing this admission contract.
 Independent TDM also has a ready/countdown/live/result lifecycle and client-owned
 kill/time limits, frozen per match. See TDM-MATCH-FLOW-REVIEW.md before changing
 scoring or death handling: terminal death interception must remain armed until
