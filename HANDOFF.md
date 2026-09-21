@@ -7,6 +7,43 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Pickup-Rotation, Infinite Ammo und Rucksack-Nachladen EINGESPIELT
+  (2026-09-21, Codex):** Commits `1bac37a` (Pickups) und `4384855`
+  (Rucksack-Nachladen), gemeinsamer sauberer Master-Build
+  `2a1e7f132b670ff49cf8d4b0d94d149efa67efbe`. Client-SHA256
+  `DCF4FA9A80F34C4AB18211C1DE4F8FBFAE534641F40D9F34EE6F6703EB328E7A`.
+  Factory Tag/Nacht wählt pro Runde fünf Pickups (je eines pro Art) aus acht
+  möglichen Stellen; die vier vom Nutzer bestätigten Stellen bleiben enthalten.
+  Sichere Positionen werden pro Runde gewählt und bleiben während der Cooldowns
+  stehen. Feste eigene Layouts behalten ihre Abstände, optionale `Alternatives`
+  erlauben Rotation. TDM ohne Rundenwechsel wählt erst beim nächsten Match neu.
+  Neues oranges Infinite-Ammo-Pickup: 10s, 45s Wiederkehr, nur lokaler Spieler,
+  nur live Deathmatch/independent TDM. Geladene Magazinwaffen verbrauchen dabei
+  keine Patronen; keine Inventarauffüllung. Leere Waffen, Werfer, Revolver und
+  Kipplaufwaffen bleiben ausgenommen; Störungen und Repetieren bleiben nativ.
+  Bereits vorbereitete Schüsse dürfen nach Ablauf/Tod nativ abschließen.
+  Mit `UseItemsAnywhere` findet R zusätzlich passende Magazine direkt im Rucksack,
+  unter Beibehaltung der nativen Such-/Untersucht-Filter, Animation und Transaktion.
+  Der Ablageort des alten Magazins bleibt nativ; volle Rig/Pockets können weiter
+  zum Fallenlassen führen. Verschachtelte Behälter sind nicht zusätzlich freigegeben.
+  Keine Profil-, Server-, Config- oder Draft-Änderung; nur Clientbytes geändert,
+  drei Paketdokumente unverändert kopiert, 130 andere Dateien unverändert.
+  Build: 0 Fehler/4 bestehende CS8632-Warnungen. Offline: Pickup 226/14 Fehlerkontrollen,
+  Effekte 366/10, Ammo 2839/4, Rucksack 30/4; native Verträge und unabhängige Reviews
+  ohne verbleibenden konkreten P0–P2. Nachladen 779/11, Granaten 123/14, Double Jump
+  293/24, M60/Config 59, Modus/Assist/Movement/HUD-Regressionsprüfungen grün;
+  Unit-Suite 690 bestanden/2 übersprungen (bekannte doppelte Test-ID ebenfalls gemeldet).
+  Neue Prüfsuiten und Modus/Assist/Movement/HUD/Units nach dem Merge erneut geprüft.
+  Beleg: `PICKUP-AMMO-BACKPACK-DEPLOYMENT-20260921.json`.
+  **EFT-Neustart und GPU-Abnahme noch ausstehend; GPU-Spiegelung nicht verifiziert.**
+  Prüfen: neue Positionen/geometrische Freigabe und Wechsel über mehrere Runden,
+  10s Schießen mit M60/Automatik/Halbautomatik/Repetierer, Ablauf/Tod/Waffenwechsel,
+  R mit Magazin nur im Rucksack sowie normaler PMC-Kontrollraid. Native Mono-Hooks
+  und Darstellung sind durch Offline-Checks nicht bewiesen. Siehe
+  `PICKUPS-REVIEW.md` und `BACKPACK-RELOAD-REVIEW.md`. Eigener Feature-Branch entfernt;
+  andere Branches/Worktrees unberührt, nicht gepusht. Die bereits getesteten
+  Equator/Bay5-Commits sind im gemeinsamen Stand enthalten.
+
 - **Optional Bay5 integration DEPLOYED AND HOST-TESTED (2026-09-21, Codex):** branch
   `feature/bay5-map-integration`, based on `8c05327`. `arena_bay5` now joins
   Equator in the native Arena menu for Deathmatch/Gun Game only, with independent

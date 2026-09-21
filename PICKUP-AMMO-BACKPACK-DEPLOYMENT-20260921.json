@@ -1,0 +1,189 @@
+{
+  "SourceCommit": "2a1e7f132b670ff49cf8d4b0d94d149efa67efbe",
+  "ProductVersion": "0.1.0+2a1e7f132b670ff49cf8d4b0d94d149efa67efbe",
+  "Deployed": true,
+  "LiveGpuTested": false,
+  "GpuMirrorVerified": false,
+  "DateUtc": "2026-09-21T08:45:19.5591274Z",
+  "SptRoot": "D:\\SPT41",
+  "Files": [
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-PACK.md",
+      "SHA256": "870F8774A9C4FC89BA0C2B1170F573F861A3A31708440DFD3F8C3C1FE4271E91",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-PACK.md",
+      "Existed": true,
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\2ff1c81ea3a341e9b1892abed401730c\\backup-0-ANNOUNCER-PACK.md"
+    },
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "SHA256": "957600A17E1F461C0BA168A85B2E05E92CCC4F733AAFC12E5E1A24ACA896A03B",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\ANNOUNCER-SOURCES.json",
+      "Existed": true,
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\2ff1c81ea3a341e9b1892abed401730c\\backup-1-ANNOUNCER-SOURCES.json"
+    },
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\ArenaMode\\AUDIO-LICENSES.md",
+      "SHA256": "75205274F39C329EF6670AC295FAB20B080D4464B315114819B7874BBC6E57BC",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Assets\\ArenaMode\\AUDIO-LICENSES.md",
+      "Existed": true,
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\2ff1c81ea3a341e9b1892abed401730c\\backup-2-AUDIO-LICENSES.md"
+    },
+    {
+      "Target": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "SHA256": "DCF4FA9A80F34C4AB18211C1DE4F8FBFAE534641F40D9F34EE6F6703EB328E7A",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\58393c2befe54a06b4dfcf7a11684890\\out\\maschine-ArenaMode.Client.dll",
+      "Existed": true,
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\2ff1c81ea3a341e9b1892abed401730c\\backup-3-maschine-ArenaMode.Client.dll"
+    }
+  ],
+  "InstalledUnchangedCount": 130,
+  "InstalledUnchanged": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "B87F965583766E6C0E9A62476AA08E433E8419B6B58047F7C0D763495BC78F29"
+  },
+  "ExternalBuildSources": {
+    "D:\\SPT41\\Development\\Redeploy\\Redeploy.Core\\CoreVersion.props": "CE69BDF504B3A1A0952DC154EC735C99B85957AC4C586E5E0EB45E2E635B94EA",
+    "D:\\SPT41\\Development\\Redeploy\\drivers\\CoreVersionGate.cs": "609B46BB353B09AC9390C9707C967E5567E578353812CBA275A98502000E6B26"
+  },
+  "EvidenceDirectory": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\announcer-deploy\\2ff1c81ea3a341e9b1892abed401730c",
+  "BuildManifest": "artifacts/double-jump-build/58393c2befe54a06b4dfcf7a11684890/manifest.json",
+  "ImplementationCommits": [
+    "1bac37a",
+    "4384855"
+  ],
+  "Checks": {
+    "Pickups": {
+      "Evidence": "artifacts/pickup-checks/073dcf2604a74cb5b8ea7d7c990138bc/manifest.json",
+      "Sha256": "0D4CCDFE498DFCAD322EA1B2F43A565E94B0ECFD2D59E0C59E7D97593E8A080F",
+      "SourceHashes": {
+        "ArenaMode.Client/Pickups/ArenaPickupCapture.cs": "586641A4DC906B29B0A7C7683EA4F7EC43700189D3B65D02B831E17EB42B164C",
+        "tools/ArenaPickupChecks/README.md": "FBCFB6BABD119BDDA4C9C325D23C9A6EDC9CC939396E01214EC17171E0209534",
+        "tools/ArenaPickupChecks/Verify-Regressions.ps1": "08F89DDFD677EDF2CF2A6A0B87B951DCBEDAF37B9CFE3FC7D51343D15931E09D",
+        "ArenaMode.Client/Pickups/ArenaPickupView.cs": "03571AEBC6F7127BE2B6677AAF6D055DCD349359DC629C611B763E225827F667",
+        "ArenaMode.Client/Pickups/ArenaPickupSettings.cs": "77D199A8E93065693F5205EDFC6E513DF3D867B06921E4E6820C340A88B8BF96",
+        "ArenaMode.Client/Pickups/ArenaInfiniteAmmo.cs": "BCF1CAB97DA0E7D2845D80625815F32F7E9E39B7EE8882F6D492646CF6A7D6A2",
+        "ArenaMode.Client/Pickups/ArenaPickupGeometry.cs": "6C49E1936AEB3A91319D4ACCC021BEF92CE277F6607800E6FF605838C21ACDA9",
+        "tools/ArenaPickupChecks/Program.cs": "25CCAE5FFC91C9ED985AEFA28895BB5DBF6216CB293AE41B54AAFE2D8419F4CB",
+        "ArenaMode.Client/Pickups/ArenaWeaponPickup.cs": "5367B24D7014749C12B2F51F586BDCD4957F1EBB924C2975D0A853CC47B01FC5",
+        "ArenaMode.Client/Pickups/ArenaPickupRuntime.cs": "7D83AA9DCDF5A62E5FEFCD9587F6874B622CAC5ECEC1DA53EB36EB45B91799E7",
+        "ArenaMode.Client/Hud/ArenaPowerupPanel.cs": "74BB7442912942E9BE7F58DA883D920D2596D225F0C833B6F851ECC1817E2E17",
+        "ArenaMode.Client/Pickups/ArenaPickupLayout.cs": "0E42B7F9452C9706D2EBBFA3C3053F56AD4866433B819C4D2FFC3E96A06F0754",
+        "tools/ArenaPickupChecks/ArenaPickupChecks.csproj": "CC7A8761FD5964A932EE28846AD818C8108A00BFC9F010C53395A06FCC812BE9",
+        "ArenaMode.Client/Pickups/ArenaPowerups.cs": "FBCC702A1BD714CD69098C47C252278B66E39D2BEB45E7BBD94A3A8CD6CF2010",
+        "ArenaMode.Client/Pickups/ArenaPickupState.cs": "B5C80702311F21400EE9563D0BCC23BFEE0E297CCFF22E83A91E6FB239A6A1D8",
+        "tools/ArenaPickupChecks/Verify.ps1": "B8632205CBEE468227A89745654F155E8331195F9BA44B996887E3F80113863F",
+        "ArenaMode.Client/Hud/ArenaHud.cs": "EB423CA38FCD6CC307AAE07315EB42B0BE6BEA4A448778F022975AD439AD0ED7",
+        "ArenaMode.Client/Kits/KitModels.cs": "D55B7FF84F8110B1E1F080A033E9CF14D202F0BF1E33179C8A584A4E0106D3F5",
+        "ArenaMode.Client/Pickups/ArenaPickupWeapons.cs": "A54C90047B5F1B784E18F0B3DD7D36DDCB535A259CCB5668247B67E7F298F13C",
+        "ArenaMode.Client/ArenaController.cs": "97943CC166D09F89415221ECBAF8E1A58370C324CEE6234802A413EA0C5CF0D6",
+        "ArenaMode.Client/Plugin.cs": "41AE34A8E3347B43F96F248E82979E0DA8CBC62C785BC8A386D0CA5A8A77CA32",
+        "tools/ArenaPickupChecks/Doubles.cs": "2B7CAFDD8A0F8E7EDEDE78DC15AC73EAA113E9ECB56F89ACA61A54EC6759B558",
+        "ArenaMode.Client/Pickups/ArenaPowerupState.cs": "12278984AF79B498E9BB2F21BBE045C9EE43B63DDFAECE9356FB5D90D05BA941"
+      },
+      "CompiledFaults": 14
+    },
+    "Powerups": {
+      "Evidence": "artifacts/powerup-checks/b64ff81b5ccf472b83a50a538a72c9a3/manifest.json",
+      "Sha256": "3EBD1B1D2BE9989539D081CD4713351F3D90965E80C0679B33246455C9F46B4E",
+      "SourceHashes": {
+        "tools/ArenaPowerupChecks/Verify.ps1": "215E581DAF27068490CB8E7289454EE102E0104CF19A1F02FB7C47B07A9B900F",
+        "tools/ArenaPowerupChecks/Verify-Native.ps1": "A9C89F938A7A831687FAAC07C736943F2E2C0B24179C58753A62DC2BE82F1263",
+        "ArenaMode.Client/Pickups/ArenaPowerupState.cs": "12278984AF79B498E9BB2F21BBE045C9EE43B63DDFAECE9356FB5D90D05BA941",
+        "tools/ArenaPowerupChecks/ArenaPowerupChecks.csproj": "03FE45AB3056A015D2F8690FAFB3950D1BC063A24E299352F0751D0826DF48F0",
+        "tools/ArenaPowerupChecks/README.md": "AF652CC8287EA8997DDD511D3F22F3B68DF01AF70C005CEB136410DB501B1330",
+        "tools/ArenaPowerupChecks/Program.cs": "97544F443A3205B38267BB1B17E6ECCFC9C46694DCBA54650DD385C825DACF23",
+        "ArenaMode.Client/Combat/ArenaAssistCapture.cs": "F0C7BFBE0158651BD452A257BF92B0FAE240030000D78E810EEBB80FF21CD1FC",
+        "ArenaMode.Client/Combat/CombatPatches.cs": "A650D2C99101A6B5793640D3461A56966474A6E0A6D8A3C2A8DD50B358B8CB0C",
+        "ArenaMode.Client/Pickups/ArenaPowerups.cs": "FBCC702A1BD714CD69098C47C252278B66E39D2BEB45E7BBD94A3A8CD6CF2010",
+        "ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs": "D44ADEC88A07F6F2090F49C7BC30EF5A75EAF6DB1A3CED7A232BAD67D4FF3FE9",
+        "tools/ArenaPowerupChecks/Doubles.cs": "1AB5C697934602BC54FFA4A5B8E5468C4EA6C22A7F50ECF45D226A713B36799B"
+      },
+      "CompiledFaults": 10
+    },
+    "InfiniteAmmo": {
+      "Evidence": "artifacts/inventory-extension-checks/Ammo/0b39ac6d092a4b1b987e829e6bdb9944/manifest.json",
+      "Sha256": "E4467546F8D7A686A2E3EEF4A16D596ECFD8042308D5C76A4C5CB15DAB1E892C",
+      "SourceHashes": {
+        "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Plugin.cs": "41AE34A8E3347B43F96F248E82979E0DA8CBC62C785BC8A386D0CA5A8A77CA32",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\Verify-Native.ps1": "C295B64870FA7790FBA4A0B630AF0E387A9264630AE7768FA43BE0746C691AB9",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\README.md": "35BA4A5657694664E47E4258D4770B93E4E5DDFE56F0DA68C8779AA2FFCC8E61",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\Program.cs": "3A863608E9631E173729951E6AE38E2870363B40A9A74B82B3697F3478670E80",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\ArenaInfiniteAmmoChecks.csproj": "969DD94189F9CC75045CAD737E0F4B05576614370BE605D2A9CBD7179899AE32",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\Verify.ps1": "5655137DE8CD76791AC2E148E2E4014860282F09E1947D92421C47D01A9BB8DD",
+        "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Pickups\\ArenaInfiniteAmmo.cs": "BCF1CAB97DA0E7D2845D80625815F32F7E9E39B7EE8882F6D492646CF6A7D6A2",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\NativeDoubles.cs": "4E67188B0B7BF970715E3C86A31D2506C2CD08F14409BED64754B2C3E30C8E65",
+        "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Pickups\\ArenaPowerupState.cs": "12278984AF79B498E9BB2F21BBE045C9EE43B63DDFAECE9356FB5D90D05BA941"
+      },
+      "CompiledFaults": 4
+    },
+    "Backpack": {
+      "Evidence": "artifacts/inventory-extension-checks/Backpack/28bad7b03c8d4d93a65dec0502684271/manifest.json",
+      "Sha256": "0946CA5B590BCB871FD19382E70B8C59786A18BD55AE46B1C96E8D0872294DA0",
+      "SourceHashes": {
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\BackpackReloadChecks\\Program.cs": "E7EEBA38A256FD05185EED6B0D6CFF68428F783982A9EAAA07A404C6B11A8C53",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\ArenaInfiniteAmmoChecks.csproj": "969DD94189F9CC75045CAD737E0F4B05576614370BE605D2A9CBD7179899AE32",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\BackpackReloadChecks\\Verify.ps1": "AA838F36A23DAFAE1D58206ABE3ECAF247A0B1AEA3A0FCF56D2F974D07F5739F",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\Verify.ps1": "5655137DE8CD76791AC2E148E2E4014860282F09E1947D92421C47D01A9BB8DD",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\BackpackReloadChecks\\README.md": "501A459590425343AEB8CE07F8DD1FB8385B19A1B21808B9C755F01B21611640",
+        "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Plugin.cs": "41AE34A8E3347B43F96F248E82979E0DA8CBC62C785BC8A386D0CA5A8A77CA32",
+        "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Kits\\ArenaBackpackReload.cs": "473E8FB3F68AF5BFCF12238779450F12C56A80DF0DEDC923E87E628F2DC7EF30",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\BackpackReloadChecks\\BackpackReloadChecks.csproj": "B66A197BBF78C9FBC19A58F5DB6886660F707B7B3A2BE917CC74C6F3B2C18B09",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\Verify-Native.ps1": "C295B64870FA7790FBA4A0B630AF0E387A9264630AE7768FA43BE0746C691AB9",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\Program.cs": "3A863608E9631E173729951E6AE38E2870363B40A9A74B82B3697F3478670E80",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\README.md": "35BA4A5657694664E47E4258D4770B93E4E5DDFE56F0DA68C8779AA2FFCC8E61",
+        "D:\\SPT41\\Development\\ArenaMode\\tools\\ArenaInfiniteAmmoChecks\\NativeDoubles.cs": "4E67188B0B7BF970715E3C86A31D2506C2CD08F14409BED64754B2C3E30C8E65",
+        "D:\\SPT41\\Development\\ArenaMode\\ArenaMode.Client\\Pickups\\ArenaPowerupState.cs": "12278984AF79B498E9BB2F21BBE045C9EE43B63DDFAECE9356FB5D90D05BA941"
+      },
+      "CompiledFaults": 4
+    },
+    "Regressions": {
+      "Evidence": "artifacts/pickup-regressions/fda97ea89f0e420b9cc038a428aee798/manifest.json",
+      "Sha256": "E53CC0BB7BDAD4CA688CA3C4ACF3D0D29B0BFB0CDED473FD8EB229A02E10D219",
+      "CompiledFaults": null,
+      "SourceFileCount": 902,
+      "SourceBindingsSha256": "4E57764BB5A17049A5592B725AAB7D5334F24CC1AAE13F358FF1854B4CB58A0F"
+    }
+  },
+  "OfflineCounts": {
+    "PickupAssertions": 226,
+    "PickupSourceContracts": 30,
+    "PowerupAssertions": 366,
+    "PowerupNativeContracts": 42,
+    "AmmoAssertions": 2839,
+    "AmmoNativeContracts": 32,
+    "BackpackAssertions": 30,
+    "BackpackNativeContracts": 19,
+    "UnitPassed": 690,
+    "UnitSkipped": 2,
+    "UnitFailed": 0,
+    "ReloadAssertions": 779,
+    "ReloadFaults": 11,
+    "GrenadeAssertions": 123,
+    "GrenadeFaults": 14,
+    "DoubleJumpAssertions": 293,
+    "DoubleJumpFaults": 24,
+    "M60DefinitionAndConfigAssertions": 59
+  },
+  "OtherEvidence": [
+    "artifacts/arena-reload-checks/276546674e6a441eac9892e63f1b1381",
+    "artifacts/double-jump-checks/ca87df5d133c45558d6b40cd3c137534",
+    "C:\\Users\\Administrator\\AppData\\Local\\Temp\\ArenaGrenadePickMutation-9511c33ca1a94fef81f616cb1cafc112"
+  ],
+  "IndependentReviews": [
+    "infinite_ammo_research: final source review, no remaining P0-P2; explicit special-weapon and post-clone weapon-identity guards included",
+    "backpack_reload_research: no P0-P2; native virtual search/examination filter retained and tested; ineffective UI fallback change removed",
+    "pickup_layout_review: P2 legacy fixed-spacing regression corrected and re-reviewed; rotating points alone require separation, fixed points reserve first"
+  ],
+  "PendingGpuAcceptance": [
+    "Restart EFT with the delivered client; mirror/load identity not verified here",
+    "Factory day/night DM and independent TDM: five safe points drawn from eight; per-round rotation, stable cooldown locations",
+    "Infinite Ammo: loaded semi/automatic/bolt/M60, ten-second expiry, weapon switch, death and no added inventory ammo; empty and special weapons remain native",
+    "Backpack R/menu/context reload with compatible/incompatible/empty magazines; direct bag storage only; ordinary PMC and setting-off control"
+  ],
+  "ProfileDataTouched": false,
+  "ConfigChanged": false,
+  "Limitations": "Source-linked policy/adapters with explicit boundary doubles, installed native IL and a real client build. No Unity/Harmony execution or GPU raid acceptance; no claim that mirrored or running EFT loaded this build.",
+  "ActualChangedFiles": [
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+  ]
+}
