@@ -17,7 +17,7 @@ internal static class ArenaPickupSettings
         Enabled = config.Bind("Arena pickups", "Enabled", true,
             "Arena-owned pickups in Deathmatch and Team Deathmatch. Factory day/night prototype is built in; optional ArenaMode/Pickups.json replaces it. Layouts are frozen per match. Disabling clears this match's pickups and effects.");
         BotsCollectPowerups = config.Bind("Arena pickups", "BotsCollectPowerups", true,
-            "Allow living Arena bots on either side to collect damage/shield powerups by walking over them. Does not change their routes. Weapons and Jump Boots are local-player-only.");
+            "Allow living Arena bots on either side to collect damage/shield powerups by walking over them. Does not change their routes. Weapons, Jump Boots and Infinite Ammo are local-player-only.");
         WeaponKit = config.Bind("Arena pickups", "PrototypeWeaponKit", ArenaPickupWeapons.M60Id,
             "Pickup weapon: pickup-m60-retzrestdfg is the copied M60E6 with MRS, blue laser and 100 M993 rounds. Any existing catalogue kit ID also works (weapon only, no spare magazines or armor). Read at match start.");
         var weaponDefaultMigrated = config.Bind("Arena pickups", "M60DefaultMigrated", false,
@@ -34,7 +34,7 @@ internal static class ArenaPickupSettings
         CaptureEnabled = config.Bind("Development - Pickups", "Enabled", false,
             "Read-only point authoring. Aim/feet captures write only to an explicit PickupDrafts export. Normal PMC capture additionally requires Development - Area outline / AllowInNormalPmc. Never grants pickups outside Arena.");
         CaptureKind = config.Bind("Development - Pickups", "Kind", ArenaPickupKind.DoubleDamage,
-            "Kind of the next captured point. Shield: 220/30s; Double Damage: 20s; Jump Boots: +100% height/30s with Arena movement enabled (local only). Effects do not stack.");
+            "Kind of the next captured point. Shield: 220/30s; Double Damage: 20s; Jump Boots: +100% height/30s with Arena movement enabled; Infinite Ammo: 10s for loaded magazine weapons, including M60. No launchers/revolvers/break-action; native cycling and malfunctions remain. Boots/ammo are local only. Effects do not stack.");
         CaptureCooldown = config.Bind("Development - Pickups", "RespawnSeconds", 30f,
             new ConfigDescription("Pickup reappears this many gameplay seconds after successful collection.", new AcceptableValueRange<float>(10f, 600f)));
         CaptureAim = config.Bind("Development - Pickups", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftAlt), "Capture the surface under the crosshair.");

@@ -34,6 +34,7 @@ try {
     Write-Output $native.Trim()
     Run-Power 'production' $powerSource
     $faults = @(
+        @{Name='ammo-stacks';File='ArenaPowerupState.cs';Find='_ammoUntil = deadline;';Replace='_ammoUntil = Math.Max(now, _ammoUntil) + duration;';Failure='ammo duration capped at ten seconds'},
         @{ Name='boots-stack'; File='ArenaPowerupState.cs'; Find='_jumpUntil = deadline;'; Replace='_jumpUntil = Math.Max(now, _jumpUntil) + (deadline - now);'; Failure='boots refresh never adds duration' },
         @{ Name='duration-stacks'; File='ArenaPowerupState.cs'; Find='_damageUntil = deadline;'; Replace='_damageUntil = Math.Max(now, _damageUntil) + (deadline - now);'; Failure='refresh does not stack duration' },
         @{ Name='shield-pool-overfill'; File='ArenaPowerupState.cs'; Find='_shieldPoints = Math.Min(points, MaximumShield);'; Replace='_shieldPoints = points;'; Failure='shield point hard cap' },

@@ -63,6 +63,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
         Pickups.ArenaPowerups.Enable();
+        Pickups.ArenaInfiniteAmmo.Enable();
         Movement.ArenaLegInjuryPatches.Enable();
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();

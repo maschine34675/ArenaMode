@@ -32,7 +32,7 @@ static class Checks
             _deathPrefix = installed.Single(x => x.Target.Name == "OnDead").Patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
             ArenaPowerups.Enable();
             Check(installed.Count == 2, "enable is idempotent");
-            Durations(); Damage(); Scope(); Lifetimes(); JumpBoots();
+            Durations(); Damage(); Scope(); Lifetimes(); JumpBoots(); InfiniteAmmo();
             Console.WriteLine($"ARENA_POWERUP_BEHAVIOR_PASSED: {_count} production policy/adapter assertions");
             return 0;
         }
@@ -40,6 +40,21 @@ static class Checks
     }
 
     private static void Check(bool value, string name) { _count++; if (!value) throw new Exception("ASSERT: " + name); }
+    private static void InfiniteAmmo()
+    {
+        var state=new ArenaPowerupState();Check(state.GrantAmmo(100,100),"ammo duration admitted");
+        Near(10,state.Read(100).AmmoSeconds,"ammo duration capped at ten seconds");
+        state.GrantAmmo(105,10);Near(10,state.Read(105).AmmoSeconds,"ammo refresh does not stack");
+        Near(0,state.Read(115).AmmoSeconds,"ammo expires at exact deadline");
+        foreach(float bad in new[]{0f,-1f,float.NaN,float.PositiveInfinity}) Check(!state.GrantAmmo(1,bad),"invalid ammo duration rejected");
+        Fresh();Check(ArenaPowerups.GrantAmmo(_local,10),"local ammo grant");
+        ArenaInfiniteAmmo.Enabled=false;Check(!ArenaPowerups.GrantAmmo(_local,10),"missing native ammo patch rejects collection");ArenaInfiniteAmmo.Enabled=true;
+        _victim.AIData.IsAI=true;Check(!ArenaPowerups.GrantAmmo(_victim,10),"bot ammo grant refused");
+        foreach(Action invalidate in new Action[]{()=>ArenaPickupRuntime.Generation++,()=>ArenaPickupRuntime.Live=false,
+            ()=>_local.ActiveHealthController.IsAlive=false,()=>_local.ActiveHealthController=new(){Player=_local},
+            ()=>_deathPrefix.Invoke(null,new object[]{_local}),()=>ArenaPowerups.Reset(),()=>ArenaSession.IsActive=false})
+        {Fresh();ArenaPowerups.GrantAmmo(_local,10);invalidate();Near(0,ArenaPowerups.Read(_local).AmmoSeconds,"ammo cannot survive scope life or round reset");}
+    }
     private static void Near(float expected, float actual, string name)
         => Check(float.IsFinite(actual) && Math.Abs(expected - actual) <= 0.0005f * Math.Max(1f, Math.Abs(expected)), name);
     private static void Fresh()

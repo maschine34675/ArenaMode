@@ -4,14 +4,15 @@ namespace ArenaMode.Pickups;
 
 internal readonly struct ArenaPowerupSnapshot
 {
-    internal readonly float DamageSeconds, ShieldSeconds, ShieldPoints, JumpSeconds;
+    internal readonly float DamageSeconds, ShieldSeconds, ShieldPoints, JumpSeconds, AmmoSeconds;
 
-    internal ArenaPowerupSnapshot(float damageSeconds, float shieldSeconds, float shieldPoints, float jumpSeconds = 0f)
+    internal ArenaPowerupSnapshot(float damageSeconds, float shieldSeconds, float shieldPoints, float jumpSeconds = 0f, float ammoSeconds = 0f)
     {
         DamageSeconds = damageSeconds;
         ShieldSeconds = shieldSeconds;
         ShieldPoints = shieldPoints;
         JumpSeconds = jumpSeconds;
+        AmmoSeconds = ammoSeconds;
     }
 }
 
@@ -23,7 +24,15 @@ internal sealed class ArenaPowerupState
     internal const float MaximumShield = 220f;
     internal const float MaximumJumpDuration = 30f;
     internal const float JumpHeightMultiplier = 2f;
-    private float _damageUntil, _shieldUntil, _shieldPoints, _jumpUntil;
+    internal const float MaximumAmmoDuration = 10f;
+    private float _damageUntil, _shieldUntil, _shieldPoints, _jumpUntil, _ammoUntil;
+
+    internal bool GrantAmmo(float now, float duration)
+    {
+        if (!TryDeadline(now, duration, out var deadline, MaximumAmmoDuration)) return false;
+        _ammoUntil = deadline;
+        return true;
+    }
 
     internal bool GrantJump(float now, float duration)
     {
@@ -52,13 +61,14 @@ internal sealed class ArenaPowerupState
         if (!Finite(now) || now < 0f) return default;
         if (now >= _damageUntil) _damageUntil = 0f;
         if (now >= _jumpUntil) _jumpUntil = 0f;
+        if (now >= _ammoUntil) _ammoUntil = 0f;
         if (now >= _shieldUntil || !PositiveFinite(_shieldPoints))
         {
             _shieldUntil = 0f;
             _shieldPoints = 0f;
         }
         return new ArenaPowerupSnapshot(Math.Max(0f, _damageUntil - now),
-            Math.Max(0f, _shieldUntil - now), _shieldPoints, Math.Max(0f, _jumpUntil - now));
+            Math.Max(0f, _shieldUntil - now), _shieldPoints, Math.Max(0f, _jumpUntil - now), Math.Max(0f, _ammoUntil - now));
     }
 
     /// <summary>
