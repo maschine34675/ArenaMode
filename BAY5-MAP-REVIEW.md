@@ -172,3 +172,52 @@ startup issues. Root is addressing those separately and must validate the final
 MapPort build after deployment. This checkpoint establishes the ArenaMode
 integration's native behavior; it does not certify those later map or rendering
 changes.
+
+## Final companion MapPort acceptance — 2026-09-21, 08:11–08:32 CEST
+
+The later map/navigation/donor corrections identified above have now passed
+their own restarted-client acceptance. ArenaMode code remains `75a7430`; no
+additional ArenaMode production change or redeployment was required for this
+follow-up. The final ordinary raids complement, rather than repeat, the native
+DM/GG lifecycle and protected-profile comparisons already documented above.
+
+UiBridge instance `c2a37398` started at 08:11:03 on SPT 4.1.6 / EFT
+0.16.9.5-40743. Initial and final checks reported all 25 maschine plugins and
+Redeploy Core identical across VM, host disk and loaded process. Final MapPort
+source is `d896214`, with Bay5 Unity output built from `c95bdca`:
+
+| Companion artifact | SHA256 |
+|---|---|
+| MapPort client | `9957897262AA1F5C0AE9E2BFFB2DA6B1FB80B1EE54F8DD711DDBCE63FFF92D34` |
+| Bay5 NavMesh | `5BA00920DFA3A5E9E5D33E05A3A08CD3B9B9959C31C83A87D2EE5FDCC5C00DEB` |
+
+Bay5 installed **14,754 vertices / 6,816 triangles** at 08:27:48.122. All
+fourteen authored spawn points, both runtime-adjusted bot positions, both exits,
+the former ghost-box point and depot/warehouse controls passed full NavMesh,
+zone, on-foot reachability and standing-room checks from the central yard.
+The zone's ten bot markers formed one connected NavMesh component. The north
+exit now stays at its authored loading-door floor; both exits logged a nearby
+floor sample with 0.0 m displacement. Separate ordinary raids completed north
+extraction (trigger entered 08:28:49.841, raid-end notification 08:28:58.921) and south
+extraction (08:30:54.261 → 08:31:03.346), reaching ExitStatus and then the menu.
+Post-extraction saves began 8.024 s / 8.025 s after entry; the configured countdown
+remained eight seconds, followed by teardown before the raid-end notification.
+
+The same process also passed the Equator donor-reuse control: automatic indoor
+classification at 08:13:48 and again at 08:25:40 after a deliberate Hideout visit,
+both 607 renderers / 1,103 clones and 7,022 capped slots, without F8. Hideout's
+roughly three-minute busy period recovered without a kill/restart. The final
+snapshot confirmed MainMenu and identical loaded identities; EFT was quit at
+08:32 for log flushing.
+
+Evidence: `D:/.unlazy/bay5-reflections/mapport-accepted-candidate-artifacts.json`
+and `native-c2a37398-evidence.json`, with the complete flushed `native-c2a37398.log`
+through 08:32:31, plus MapPort's append-only
+`docs/progress/bay5-arenamode-integration.md` and `equator-specular-cap.md`.
+The 21 archived Bay5 batch probes cover the authored points, exits and geometry
+controls; the two runtime-adjusted bot checks were additional native checks,
+logged at 08:28:49.783 / 08:28:49.817.
+These ordinary raids are not new protected-profile tests. The accepted ArenaMode
+profile hash and tier-1 Gun Game limitation above remain unchanged. Navigation
+probes do not establish an exhaustive physical walk-through, full ladder
+advancement, or long-session/performance acceptance.

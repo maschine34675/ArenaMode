@@ -7,7 +7,7 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Optional Bay5 Arena lifecycle HOST-TESTED; final MapPort retest pending (2026-09-21, Codex):** branch
+- **Optional Bay5 integration DEPLOYED AND HOST-TESTED (2026-09-21, Codex):** branch
   `feature/bay5-map-integration`, based on `8c05327`. `arena_bay5` now joins
   Equator in the native Arena menu for Deathmatch/Gun Game only, with independent
   per-map server availability and owned menu rows. Defaults use `BotZone_Main`,
@@ -27,9 +27,16 @@ current. User-facing communication is normally German.
   Gun Game remained tier 1/24; coordinate-assisted movement does not establish
   a complete walk-through of every map area. See `BAY5-MAP-REVIEW.md` for hashes,
   exact times, source evidence and the early unflushed GG snapshot caveat.
-  This acceptance used MapPort client `DD2F77DE…20601C`. Root is separately
-  correcting its Bay5 NavMesh ghost spawn boxes/north exit and Equator donor
-  startup; those later MapPort artifacts still require their own host retest.
+  That Arena lifecycle pass used MapPort client `DD2F77DE…20601C`. The final
+  companion MapPort retest subsequently passed on `d896214`, client
+  `99578972…F92D34`, fresh instance `c2a37398`, 08:11–08:32 CEST. Its rebuilt
+  Bay5 NavMesh (14,754 vertices / 6,816 triangles) passed all authored spawn,
+  adjusted bot, old ghost-box, depot/warehouse and exit probes; both ordinary
+  exits completed extraction. Equator automatically classified 607 indoor
+  renderers / 1,103 clones in both raids around Hideout, without F8. The unchanged
+  ArenaMode code was not retested through another DM/GG cycle during these
+  ordinary map checks. The first-pass profile hash remains the ArenaMode evidence;
+  no full Gun Game ladder or exhaustive passage walk-through is claimed.
 
 - **Optional Equator integration DEPLOYED AND HOST-TESTED (2026-09-20, Codex):** branch
   `feature/equator-map-integration`, based on `649a773`. Native Arena menu and
