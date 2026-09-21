@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **UseItemsAnywhere / Rucksack-Nachladen REPARIERT UND GPU-GEPRÜFT
+  (2026-09-21, Codex):** Fix `0d9ceea`; Client-SHA256
+  `C14FBCEC806AE884876CACEAEB67B0E41A18B81A0CC7D95C629A7CC0A8FC14B8`,
+  lokal und auf GPU eingespielt, in frischem EFT-Prozess identisch geladen.
+  Ursache der fehlenden Waffenpanels und kaputten R-/G-Abfragen: Monos gemeinsam
+  genutzte generische Inventarmethode lief für Munition/Granaten durch den
+  Magazine-Harmony-Wrapper (`ArrayTypeMismatchException` im nativen Original).
+  Ersetzt durch drei nichtgenerische Magazin-Call-Sites; native Ammo/ThrowWeap-
+  Abfragen bleiben unangetastet. GPU: M4, MP-153 und Mosin mit sichtbarem Panel
+  und erfolgreichem R; Rucksack-only mit Aus/An-Kontrolle, G-Ziehen und Wurf,
+  Granatentod/Respawns ohne Wiederkehr des Fehlers. Teilnehmer- und Kitsettings
+  vollständig zurückgestellt; Profil nur mit zwei nativen Zeitstempeländerungen.
+  EFT danach regulär beendet. Server/Core/UiBridge unverändert. Unabhängiger
+  Source- und Belegaudit bestanden; Offlineprüfungen und Grenzen stehen in
+  `GPU-BACKPACK-RELOAD-RESULTS-2026-09-21.md`, Lieferbeleg in
+  `BACKPACK-RELOAD-DEPLOYMENT-20260921.json`. Teilnehmerauswahl vom Nutzer bestätigt;
+  die Vorgaben ausdrücklich noch nicht angepasst.
+
 - **Teilnehmerzahl pro Karte EINGESPIELT (2026-09-21, Codex):** Implementierung
   `f84c915`, sauberer gemeinsamer Master-Build
   `be7c49d7334135fbf6f7f8e0b0c1c279960271b2`. Client-SHA256

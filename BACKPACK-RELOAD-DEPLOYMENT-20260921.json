@@ -1,0 +1,333 @@
+{
+  "recordedUtc": "2026-09-21T17:14:41.716Z",
+  "sourceCommit": "0d9ceea23c8c3cbcfb011024fbc23eddd8c4125e",
+  "sourceChanges": [
+    " M HANDOFF.md"
+  ],
+  "sourceChangesNote": "Pre-existing foreign HANDOFF documentation only; no dirty compiler inputs.",
+  "deployment": {
+    "sourceCommit": "0d9ceea23c8c3cbcfb011024fbc23eddd8c4125e",
+    "clientSha256": "C14FBCEC806AE884876CACEAEB67B0E41A18B81A0CC7D95C629A7CC0A8FC14B8",
+    "productVersion": "0.1.0+0d9ceea23c8c3cbcfb011024fbc23eddd8c4125e",
+    "destinations": [
+      "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+    ],
+    "unchanged": {
+      "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+      "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+      "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-UiBridge.dll": "3F722D9020C97632122544066009A006B2C56D752C1623CCBC79798CE2807A22",
+      "\\\\192.168.178.114\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+      "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660"
+    },
+    "sourceChanges": [
+      " M HANDOFF.md"
+    ],
+    "deployedUtc": "2026-09-21T16:51:00.6207151Z"
+  },
+  "loadedClient": {
+    "file": "maschine-ArenaMode.Client.dll",
+    "relativePath": "maschine-ArenaMode.Client.dll",
+    "guid": "com.maschine.ArenaMode",
+    "name": "maschine-ArenaMode",
+    "version": "0.1.0",
+    "loadedMvid": "9e53748a-8ed8-4ced-8eee-199860a52376",
+    "loadedInformationalVersion": "0.1.0+0d9ceea23c8c3cbcfb011024fbc23eddd8c4125e",
+    "diskMvid": "9e53748a-8ed8-4ced-8eee-199860a52376",
+    "diskInformationalVersion": "0.1.0+0d9ceea23c8c3cbcfb011024fbc23eddd8c4125e",
+    "diskSha256": "C14FBCEC806AE884876CACEAEB67B0E41A18B81A0CC7D95C629A7CC0A8FC14B8",
+    "diskWriteTimeUtc": "2026-09-21T16:50:27Z",
+    "diskError": null,
+    "loadedMatchesDisk": true
+  },
+  "runtime": {
+    "bridge": {
+      "version": "0.6.0",
+      "informationalVersion": "0.6.0+e8e638e2b76911a7c1168a8f192c415004089357",
+      "instanceId": "1284f6edbf614f5787e597a6affb7ea4",
+      "startedUtc": "2026-09-21T16:51:32.3932367Z",
+      "uptimeMs": 435558,
+      "frame": 26290
+    },
+    "game": {
+      "version": "0.16.9.5-40743-f137e819",
+      "applicationVersion": "1.0",
+      "unity": "2022.3.43f1"
+    },
+    "map": "factory4_day",
+    "mode": "Deathmatch/Endless/FFA",
+    "participantsDuringTest": 4
+  },
+  "observations": [
+    {
+      "file": "m4-shot.json",
+      "hands": {
+        "item": "M4A1",
+        "templateId": "5447a9cd4bdc2dbd208b4567",
+        "weapon": {
+          "magazine": 18,
+          "magazineMax": 30,
+          "chamber": 1,
+          "fireMode": "fullauto"
+        }
+      }
+    },
+    {
+      "file": "m4-reloaded.json",
+      "hands": {
+        "item": "M4A1",
+        "templateId": "5447a9cd4bdc2dbd208b4567",
+        "weapon": {
+          "magazine": 30,
+          "magazineMax": 30,
+          "chamber": 1,
+          "fireMode": "fullauto"
+        }
+      }
+    },
+    {
+      "file": "bag-disabled-after-r.json",
+      "hands": {
+        "item": "M4A1",
+        "templateId": "5447a9cd4bdc2dbd208b4567",
+        "weapon": {
+          "magazine": 0,
+          "magazineMax": 30,
+          "chamber": 1,
+          "fireMode": "fullauto"
+        }
+      }
+    },
+    {
+      "file": "bag-enabled-after-r.json",
+      "hands": {
+        "item": "M4A1",
+        "templateId": "5447a9cd4bdc2dbd208b4567",
+        "weapon": {
+          "magazine": 30,
+          "magazineMax": 30,
+          "chamber": 1,
+          "fireMode": "fullauto"
+        }
+      }
+    },
+    {
+      "file": "shotgun-fired.json",
+      "hands": {
+        "item": "MP-153",
+        "templateId": "56dee2bdd2720bc8328b4567",
+        "weapon": {
+          "magazine": 3,
+          "magazineMax": 4,
+          "chamber": 1,
+          "fireMode": "single"
+        }
+      }
+    },
+    {
+      "file": "shotgun-reloaded.json",
+      "hands": {
+        "item": "MP-153",
+        "templateId": "56dee2bdd2720bc8328b4567",
+        "weapon": {
+          "magazine": 4,
+          "magazineMax": 4,
+          "chamber": 1,
+          "fireMode": "single"
+        }
+      }
+    },
+    {
+      "file": "mosin-fired-second.json",
+      "hands": {
+        "item": "Mosin Sniper",
+        "templateId": "5ae08f0a5acfc408fb1398a1",
+        "weapon": {
+          "magazine": 3,
+          "magazineMax": 5,
+          "chamber": 1,
+          "fireMode": "single"
+        }
+      }
+    },
+    {
+      "file": "mosin-reloaded-second.json",
+      "hands": {
+        "item": "Mosin Sniper",
+        "templateId": "5ae08f0a5acfc408fb1398a1",
+        "weapon": {
+          "magazine": 4,
+          "magazineMax": 5,
+          "chamber": 1,
+          "fireMode": "single"
+        }
+      }
+    },
+    {
+      "file": "grenade-drawn.json",
+      "hands": {
+        "item": "RGD-5",
+        "templateId": "5448be9a4bdc2dfd2f8b456a",
+        "weapon": null
+      }
+    }
+  ],
+  "restoredSettings": [
+    {
+      "section": "kits-config",
+      "restoredCount": 5
+    },
+    {
+      "section": "participants",
+      "restoredCount": 14
+    }
+  ],
+  "profileChanges": [
+    {
+      "path": "/characters/pmc/Health/UpdateTime",
+      "before": 1790007848,
+      "after": 1790009512
+    },
+    {
+      "path": "/characters/pmc/Hideout/sptUpdateLastRunTimestamp",
+      "before": 1790008578,
+      "after": 1790010676
+    }
+  ],
+  "absentLogPatterns": [
+    "ArrayTypeMismatchException",
+    "Arena weapon panel update failed",
+    "[Warning:maschine-ArenaMode]",
+    "[Error  :maschine-ArenaMode]"
+  ],
+  "nativeLimits": [
+    "No ordinary PMC control raid or separate Tactical/PFT test.",
+    "M4 HUD directly observed in tool screenshot/snapshot; no separate saved M4 HUD snapshot.",
+    "Backpack placement and off/on result verified; empty post-reload inventory snapshot cannot certify exact transferred magazine ID.",
+    "Grenade draw/throw/selfdeath verified; no separately captured grenade count decrement.",
+    "Magazine selector and inventory reload callsites covered offline, not separately operated in this raid."
+  ],
+  "exit": "Returned to MainMenu, restored test settings, exited EFT normally; bridge unreachable confirmed.",
+  "evidence": [
+    {
+      "file": "artifacts/backpack-mono-fix/before.log",
+      "sha256": "4AF8D69351411AC6ADC08C6B8BA9F658E3224056AEB81A9A72F7B5FBE3CCF942"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/gpu-after.log",
+      "sha256": "964F1BF3401563254A65DEE783F8B869D15B81A557E9DE867EF37AA62F1E61E8"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/status-native.json",
+      "sha256": "99C377002E06080BDC0EA7D8EE436505678A4F249ACA2765CB471E12D2AF55C8"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/status-after.json",
+      "sha256": "8CD77338319FA1C7870EA8CAFE54C72CCA926845D8506B122CE4F047437CD804"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/deployment.json",
+      "sha256": "998DD85826CF89FCBE11F6F3706926D12CA639405D8E0D0CF48A08CCAC7D0B90"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/reload.log",
+      "sha256": "9BC465DFA02A378B34D15B6B3FAF0F942E6EA4C6C0E38F4C1C6F260F0740F49C"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/grenade.log",
+      "sha256": "93D9D83832239DDE853E7C66D47DE4D21F4C79C01040A4391EDF5BD8702E0701"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/panels.log",
+      "sha256": "1FD6F85CD774BF5028A1DA842ACBC8E3D02FF18AF16AAE17BE5E1295921CE777"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/ammo.log",
+      "sha256": "0752944834981FB95E361872AED49A49D581B214CDCA812FB19F9C731BFE777A"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/build-final.log",
+      "sha256": "5E78F7A8C9D5C995F9D8F673805B456FD411D1365B6A36D163939B3E69AABCE6"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/bag-only-ready-before.json",
+      "sha256": "3A90CE3B2C73E9B7BB0C8754E1B962C0AA12DDBAFF6ADF993330EB7BE243DC28"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/shotgun-hud.json",
+      "sha256": "C957FAB804419D9CD8198BE488184A6FAC5C0F095C658EBB66C3836A576E94B1"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/mosin-hud.json",
+      "sha256": "F61FA0C2A1F129CCC309D99E3263E2AEF87FC92ADB71D980E9B5206179246354"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/grenade-throw-log.json",
+      "sha256": "7A5949FBE8AED50E3E6DB03D8215A45B198D6FB441CDC2DD082A9B52FCC96D78"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/kits-config-before.json",
+      "sha256": "3804DF22BEE6A35B82015E1DCF597F3C33FA69891BA231212ED8F175ABE944E3"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/kits-config-after.json",
+      "sha256": "3804DF22BEE6A35B82015E1DCF597F3C33FA69891BA231212ED8F175ABE944E3"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/participants-before.json",
+      "sha256": "7F927166E1A780E19223F7456D05C1A9E9CFD9A3B141E2FEE1CCF9D251BF7FA7"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/participants-after.json",
+      "sha256": "7F927166E1A780E19223F7456D05C1A9E9CFD9A3B141E2FEE1CCF9D251BF7FA7"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/profile-before.json",
+      "sha256": "6AE74E7EA638DF7BA237DEB1E73A7DD6E3546B2A4CFA4C371342FFF0FB156C21"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/profile-after.json",
+      "sha256": "1284FB64B25CD3AE69ECF69753C11F07BDDA00A1D21629667E95D12FC86DAF95"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/profile-diff.json",
+      "sha256": "6160635A7B4F47B015910CE00FAF630CEE40E5871CAD2ADCDD89D9551DD3B5C3"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/m4-shot.json",
+      "sha256": "D22E8FD7CEC5FC7A9028724083AB658C8AEE669C229723532DD25D7F4B99641F"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/m4-reloaded.json",
+      "sha256": "06C7B368383E0EF81112E2FEEBE0D54A957D45A3F11F06EEA538CBB2933F8D3E"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/bag-disabled-after-r.json",
+      "sha256": "AF38E649A9B5512B5398C608659CF551D7ECBDECA57191ECBB5EA6C6C9609983"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/bag-enabled-after-r.json",
+      "sha256": "F326808F194BE659D15F12879C97A2B93ABBFAB271EA9F46CEA958C7F130B8D0"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/shotgun-fired.json",
+      "sha256": "5B0679922CE993D1D7E9DA3CE9CA5C9839F5D2121500C99B5C0DFD0FCDA29E4A"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/shotgun-reloaded.json",
+      "sha256": "6751617027703F834B263E52A1AF2E1139DF323BE1B901E681D5C9791F2B2980"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/mosin-fired-second.json",
+      "sha256": "40790D06A36FFA4D0FD43C1BCCEC9C956352ED660859A3491661BFEF6C891F6F"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/mosin-reloaded-second.json",
+      "sha256": "A46695A2637181A25F32ABE04FE6F356009C8C8720BF14973B686E0618AD7BB5"
+    },
+    {
+      "file": "artifacts/backpack-mono-fix/grenade-drawn.json",
+      "sha256": "B1BBBEA2B3998EB20F25BD73416F10AE7C5D30EE371FADE0AC2BA9D52ADC6606"
+    }
+  ]
+}

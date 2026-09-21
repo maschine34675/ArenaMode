@@ -59,5 +59,8 @@ calls and separate G/ThrowWeap query. Measured: 51 behavior assertions, 34 nativ
 contracts, six faults; independent review found no concrete P0-P2.
 
 A fresh EFT process is mandatory: replacing the DLL cannot remove a detour already
-installed in Mono. GPU acceptance is recorded separately after delivery; source
-checks and successful builds alone do not certify the runtime patch.
+installed in Mono. The fresh-process GPU run passed on client `0d9ceea`: M4A1,
+MP-153 and Mosin panels/reload, backpack-only reload with an off/on control, G draw
+and actual grenade throw. See [GPU-BACKPACK-RELOAD-RESULTS-2026-09-21.md](GPU-BACKPACK-RELOAD-RESULTS-2026-09-21.md)
+for exact hashes, evidence limits and restored test settings. Ordinary-raid scope
+and the separate selector/inventory consumers remain offline-checked in this run.
