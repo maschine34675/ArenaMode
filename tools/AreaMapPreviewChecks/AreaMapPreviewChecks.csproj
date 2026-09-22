@@ -10,6 +10,7 @@
     <PreviewSource Condition="'$(PreviewSource)' == ''">../../ArenaMode.Client/Session/Maps/ArenaAreaMapPreview.cs</PreviewSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Hud/ArenaUiTheme.cs" Link="Production/ArenaUiTheme.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="UnityDoubles.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />

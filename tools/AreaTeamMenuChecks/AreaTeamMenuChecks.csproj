@@ -5,6 +5,7 @@
     <ProductionAreaViewSource Condition="'$(ProductionAreaViewSource)' == ''">../../ArenaMode.Client/Session/ArenaAreaSelectionView.cs</ProductionAreaViewSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Hud/ArenaUiTheme.cs" Link="Production/ArenaUiTheme.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />

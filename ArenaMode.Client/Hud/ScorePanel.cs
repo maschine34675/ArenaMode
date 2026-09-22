@@ -11,7 +11,7 @@ internal sealed class ScorePanel
     private const float RefreshInterval = 0.25f;
     // Reserve the top strip for the quick-access bar (1920x1080 HUD units).
     internal const float TopOffset = 110f;
-    internal const float PanelHeight = 60f;
+    internal const float PanelHeight = 84f;
 
     // Shared with the assembly notice so live F12 adjustments keep their gap.
     internal static Vector2 Position => new Vector2(
@@ -39,24 +39,31 @@ internal sealed class ScorePanel
         _root.SetParent(hudRoot, false);
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0.5f, 1f);
         _root.anchoredPosition = Position;
-        _root.sizeDelta = new Vector2(900f, PanelHeight);
+        _root.sizeDelta = new Vector2(760f, PanelHeight);
+        ArenaUiTheme.Fill(_root, "Score surface", ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .86f));
+        ArenaUiTheme.Decorate(_root);
 
         _mainLine = HudStyle.CreateText(_root, "Main", 24f, TextAlignmentOptions.Top);
         var mainRect = _mainLine.rectTransform;
         mainRect.anchorMin = new Vector2(0f, 1f);
         mainRect.anchorMax = new Vector2(1f, 1f);
         mainRect.pivot = new Vector2(0.5f, 1f);
-        mainRect.anchoredPosition = Vector2.zero;
-        mainRect.sizeDelta = new Vector2(0f, 30f);
+        mainRect.anchoredPosition = new Vector2(0f, -9f);
+        mainRect.sizeDelta = new Vector2(-32f, 30f);
+        _mainLine.enableAutoSizing = true;
+        _mainLine.fontSizeMin = 18f;
+        _mainLine.fontSizeMax = 24f;
 
         _subLine = HudStyle.CreateText(_root, "Sub", 16f, TextAlignmentOptions.Top);
-        _subLine.color = new Color(0.85f, 0.85f, 0.85f, 0.9f);
+        _subLine.color = ArenaUiTheme.Muted;
+        _subLine.enableWordWrapping = true;
         var subRect = _subLine.rectTransform;
         subRect.anchorMin = new Vector2(0f, 1f);
         subRect.anchorMax = new Vector2(1f, 1f);
         subRect.pivot = new Vector2(0.5f, 1f);
-        subRect.anchoredPosition = new Vector2(0f, -30f);
-        subRect.sizeDelta = new Vector2(0f, 22f);
+        subRect.anchoredPosition = new Vector2(0f, -42f);
+        subRect.sizeDelta = new Vector2(-32f, 38f);
+        _subLine.overflowMode = TextOverflowModes.Ellipsis;
     }
 
     public void Tick(ArenaMatch match)
@@ -77,7 +84,7 @@ internal sealed class ScorePanel
         // TMP's SetText formatter does not know .NET specifiers like n0 — build
         // the string ourselves (4 Hz refresh, allocation is irrelevant).
         _mainLine.text =
-            $"<b>{match.Kills}</b> Kills   {match.Deaths} Deaths   {match.Assists} Assists   <color=#7FDBFF>{match.Score:n0}</color>"
+            $"<b>{match.Kills}</b> <size=13>KILLS</size>   {match.Deaths} <size=13>DEATHS</size>   {match.Assists} <size=13>ASSISTS</size>   <color=#C9BF9E><b>{match.Score:n0}</b></color> <size=13>PTS</size>"
             + (Time.unscaledTime < _assistUntil ? $"   <color=#A8E6A3>ASSIST +{_assistPoints}</color>" : string.Empty);
 
         var elapsed = match.Mode is TeamDeathmatchMode teams ? teams.PlayingElapsed : match.Elapsed;

@@ -48,6 +48,7 @@ internal sealed class ArenaPanel : MonoBehaviour
     private GUIStyle _opponentRowStyle;
     private GUIStyle _mutedStyle;
     private GUIStyle _buttonStyle;
+    private ArenaWindowSkin _skin;
 
     private void OnDisable()
     {
@@ -56,7 +57,11 @@ internal sealed class ArenaPanel : MonoBehaviour
         SetOpen(false);
     }
 
-    private void OnDestroy() => OnDisable();
+    private void OnDestroy()
+    {
+        try { OnDisable(); }
+        finally { _skin?.Dispose(); _skin = null; }
+    }
 
     private void SetCursor(bool show) => CursorVote.Set(this, show);
 
@@ -513,57 +518,20 @@ internal sealed class ArenaPanel : MonoBehaviour
         if (_stylesReady)
             return;
 
-        _windowStyle = new GUIStyle(GUI.skin.window)
-        {
-            fontSize = 14,
-            fontStyle = FontStyle.Bold,
-        };
-
-        _titleStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 18,
-            fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.MiddleCenter,
-        };
-        _titleStyle.normal.textColor = new Color(0.55f, 0.85f, 1f);
-
-        _bodyStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 13,
-            wordWrap = true,
-        };
-        _bodyStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
-
-        _statStyle = new GUIStyle(_bodyStyle)
-        {
-            fontStyle = FontStyle.Bold,
-        };
-        _statStyle.normal.textColor = new Color(1f, 0.85f, 0.45f);
-
-        _tableHeaderStyle = new GUIStyle(_bodyStyle)
-        {
-            fontSize = 12,
-            fontStyle = FontStyle.Bold,
-        };
-        _tableHeaderStyle.normal.textColor = new Color(0.72f, 0.76f, 0.8f);
-
-        _friendlyRowStyle = new GUIStyle(_bodyStyle)
-        {
-            fontStyle = FontStyle.Bold,
-        };
+        _skin = new ArenaWindowSkin();
+        _windowStyle = _skin.Window();
+        _titleStyle = _skin.Label(22, ArenaUiTheme.Accent, true, TextAnchor.MiddleCenter);
+        _bodyStyle = _skin.Label(14);
+        _statStyle = _skin.Label(16, ArenaUiTheme.Text, true);
+        _tableHeaderStyle = _skin.Label(12, ArenaUiTheme.Muted, true);
+        _friendlyRowStyle = _skin.Label(14, bold: true);
         _friendlyRowStyle.normal.textColor = new Color(0.49f, 0.85f, 1f);
 
-        _opponentRowStyle = new GUIStyle(_bodyStyle);
+        _opponentRowStyle = _skin.Label(14);
         _opponentRowStyle.normal.textColor = new Color(1f, 0.48f, 0.43f);
 
-        _mutedStyle = new GUIStyle(_bodyStyle);
-        _mutedStyle.normal.textColor = new Color(0.58f, 0.61f, 0.64f);
-
-        _buttonStyle = new GUIStyle(GUI.skin.button)
-        {
-            fontSize = 14,
-            fontStyle = FontStyle.Bold,
-        };
+        _mutedStyle = _skin.Label(12, ArenaUiTheme.Muted);
+        _buttonStyle = _skin.Button();
 
         _stylesReady = true;
     }

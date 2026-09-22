@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Einheitlicher Arena-Look (2026-09-22, Codex):** Dezente blaugraue Flächen,
+  helle Hauptschrift, ruhigere Details und feine Akzentlinien in HUD, Scoreboard,
+  Tactical-Kaufmenü, Zuschauerstatus und Arena-eigenen Auswahl-/Kartenelementen.
+  Keine neuen Regler; gespeicherte Offsets, Teamfarben, Eingabe und Spielregeln
+  unverändert. Eigenimplementierung, kein kopierter ImpactCue-Code/Asset.
+  Offlineprüfungen inklusive negativer Kontrollen und isolierter Client-Build
+  bestanden; unabhängiger Source-Review ohne offenen P0–P2.
+  Details: `UNIFIED-UI-REVIEW.md`. Deployment/native Sichtprüfung separat belegen.
+
 - **UseItemsAnywhere / Rucksack-Nachladen REPARIERT UND GPU-GEPRÜFT
   (2026-09-21, Codex):** Fix `0d9ceea`; Client-SHA256
   `C14FBCEC806AE884876CACEAEB67B0E41A18B81A0CC7D95C629A7CC0A8FC14B8`,

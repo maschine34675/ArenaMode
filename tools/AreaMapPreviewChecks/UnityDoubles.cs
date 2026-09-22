@@ -52,6 +52,8 @@ namespace UnityEngine
         { parent?.Children.Remove(this);parent=target;parent?.Children.Add(this); }
         public void SetAsLastSibling()
         { if(parent!=null){parent.Children.Remove(this);parent.Children.Add(this);} }
+        public void SetAsFirstSibling()
+        { if(parent!=null){parent.Children.Remove(this);parent.Children.Insert(0,this);} }
     }
     public class RectTransform:Transform
     {
@@ -72,7 +74,7 @@ namespace UnityEngine
     public readonly record struct Vector3(float x,float y,float z);
     public readonly record struct Rect(float x,float y,float width,float height)
     { public float xMin=>x;public float xMax=>x+width;public float yMin=>y;public float yMax=>y+height; }
-    public readonly record struct Color(float r,float g,float b,float a)
+    public record struct Color(float r,float g,float b,float a)
     { public static Color white=>new(1,1,1,1); }
     public static class Mathf { public static float Sqrt(float value)=>MathF.Sqrt(value); }
     public class CanvasRenderer:Component{}
@@ -159,9 +161,12 @@ namespace UnityEngine.UI
     public class Image:MaskableGraphic{}
     public class RectMask2D:UnityEngine.Component{}
     public struct Navigation { public enum Mode { None } public Mode mode; }
-    public class Button:UnityEngine.Component
+    public class Selectable:UnityEngine.Component { public enum Transition { None,ColorTint } public Transition transition; }
+    public struct ColorBlock { public UnityEngine.Color normalColor,highlightedColor,pressedColor,selectedColor,disabledColor; public float colorMultiplier,fadeDuration; }
+    public class Button:Selectable
     {
         public bool interactable=true;public Navigation navigation;public Graphic targetGraphic;
+        public ColorBlock colors;
         public ButtonClickedEvent onClick=new();
         public class ButtonClickedEvent
         {
@@ -175,11 +180,13 @@ namespace UnityEngine.UI
 }
 namespace TMPro
 {
+    public enum FontStyles { Normal }
     public enum TextOverflowModes { Ellipsis }
     public enum TextAlignmentOptions { MidlineLeft,Midline }
     public class TMP_Text:UnityEngine.UI.MaskableGraphic
     {
         public string text;public object font,fontSharedMaterial;public float fontSize;
+        public FontStyles fontStyle;
         public bool enableWordWrapping;
         public TextOverflowModes overflowMode;
         public TextAlignmentOptions alignment;

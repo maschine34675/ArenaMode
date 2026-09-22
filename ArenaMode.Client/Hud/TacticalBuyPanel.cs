@@ -49,11 +49,16 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
     private GUIStyle _buttonStyle;
     private GUIStyle _pickedStyle;
     private GUIStyle _detailStyle;
+    private ArenaWindowSkin _skin;
 
     private void OnDestroy()
     {
-        SetCursor(false);
-        ArenaInputBlocker.Request(this, false, drainOnRelease: true);
+        try
+        {
+            SetCursor(false);
+            ArenaInputBlocker.Request(this, false, drainOnRelease: true);
+        }
+        finally { _skin?.Dispose(); _skin = null; }
     }
 
     private void SetCursor(bool show) => CursorVote.Set(this, show);
@@ -330,21 +335,23 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         if (_stylesReady)
             return;
 
-        _stylesReady = true;
-
-        _windowStyle = new GUIStyle(GUI.skin.window) { padding = new RectOffset(12, 12, 24, 12) };
-        _titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold };
-        _bodyStyle = new GUIStyle(GUI.skin.label) { fontSize = 13 };
-        _buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 13, alignment = TextAnchor.MiddleLeft };
-        _pickedStyle = new GUIStyle(_buttonStyle) { fontStyle = FontStyle.Bold };
+        _skin = new ArenaWindowSkin();
+        _windowStyle = _skin.Window();
+        _titleStyle = _skin.Label(22, ArenaUiTheme.Accent, true);
+        _bodyStyle = _skin.Label(14);
+        _buttonStyle = _skin.Button();
+        _buttonStyle.alignment = TextAnchor.MiddleLeft;
+        _pickedStyle = _skin.Button(selected: true);
+        _pickedStyle.alignment = TextAnchor.MiddleLeft;
 
         // Dimmer and smaller than the row above it: the contents line is there
         // to be scanned while comparing kits, not read one at a time.
         _detailStyle = new GUIStyle(_bodyStyle)
         {
-            fontSize = Mathf.Max(10, _bodyStyle.fontSize - 2),
+            fontSize = 12,
             wordWrap = true,
         };
-        _detailStyle.normal.textColor = new Color(0.72f, 0.74f, 0.78f, 1f);
+        _detailStyle.normal.textColor = ArenaUiTheme.Muted;
+        _stylesReady = true;
     }
 }

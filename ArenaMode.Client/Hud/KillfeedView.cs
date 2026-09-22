@@ -60,15 +60,16 @@ internal sealed class KillfeedView
             // Background and text share the pooled line's fade and lifetime.
             // Create TMP while the hierarchy is active, then hide the finished row.
             var backdrop = lineGo.AddComponent<Image>();
-            backdrop.color = new Color(.03f, .04f, .05f, .88f);
+            backdrop.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .90f);
             backdrop.raycastTarget = false;
+            ArenaUiTheme.Rule(rect, "Feed edge", ArenaUiTheme.Edge);
             var group = lineGo.GetComponent<CanvasGroup>();
             group.interactable = false;
             group.blocksRaycasts = false;
 
             var text = HudStyle.CreateText(rect, "Text", 18f, TextAlignmentOptions.TopLeft);
-            text.color = Color.white;
-            text.fontStyle = FontStyles.Bold;
+            text.color = ArenaUiTheme.Text;
+            text.fontStyle = FontStyles.Normal;
             text.enableWordWrapping = true;
             text.overflowMode = TextOverflowModes.Overflow;
             var textRect = text.rectTransform;

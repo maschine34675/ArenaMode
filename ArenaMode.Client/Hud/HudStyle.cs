@@ -61,6 +61,7 @@ internal static class HudStyle
         var text = go.AddComponent<TextMeshProUGUI>();
         text.font = Font;
         text.fontSize = fontSize;
+        text.color = ArenaUiTheme.Text;
         text.alignment = alignment;
         text.raycastTarget = false;
         text.enableWordWrapping = false;

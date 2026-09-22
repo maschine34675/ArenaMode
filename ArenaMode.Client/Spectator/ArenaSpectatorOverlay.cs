@@ -1,13 +1,18 @@
 using UnityEngine;
+using ArenaMode.Hud;
 
 namespace ArenaMode.Spectator;
 
 internal sealed class ArenaSpectatorOverlay : MonoBehaviour
 {
     private GUIStyle _style;
+    private ArenaWindowSkin _skin;
 
     private void OnDestroy()
-        => ArenaSpectatorService.Stop("spectator overlay destroyed");
+    {
+        try { ArenaSpectatorService.Stop("spectator overlay destroyed"); }
+        finally { _skin?.Dispose(); _skin = null; }
+    }
 
     private void OnGUI()
     {
@@ -17,14 +22,8 @@ internal sealed class ArenaSpectatorOverlay : MonoBehaviour
 
         if (_style == null)
         {
-            _style = new GUIStyle(GUI.skin.box)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
-                richText = false,
-                normal = { textColor = Color.white }
-            };
+            _skin = new ArenaWindowSkin();
+            _style = _skin.Notice();
         }
 
         GUI.depth = 75;

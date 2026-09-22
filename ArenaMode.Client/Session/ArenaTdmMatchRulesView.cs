@@ -99,6 +99,7 @@ internal sealed class ArenaTdmMatchRulesView
         label.overflowMode = TextOverflowModes.Ellipsis;
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
+        Hud.ArenaUiTheme.StyleButton(button, label);
         SetRect(label.rectTransform, 10f, 0f, width - 16f, 26f);
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
@@ -115,7 +116,7 @@ internal sealed class ArenaTdmMatchRulesView
         choice.Marker.transform.SetAsFirstSibling();
         SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 26f);
         var marker = choice.Marker.GetComponent<Image>();
-        marker.color = typography != null ? typography.color : Color.white;
+        marker.color = Hud.ArenaUiTheme.Accent;
         marker.raycastTarget = false;
         button.onClick.AddListener(() => Select(choice));
         button.gameObject.SetActive(true);
@@ -157,6 +158,8 @@ internal sealed class ArenaTdmMatchRulesView
             text.characterSpacing = typography.characterSpacing;
         }
         text.fontSize = 14f;
+        text.color = Hud.ArenaUiTheme.Muted;
+        text.fontStyle = FontStyles.Normal;
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.raycastTarget = false;
         text.enableWordWrapping = false;

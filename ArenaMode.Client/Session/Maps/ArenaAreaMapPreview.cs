@@ -131,7 +131,8 @@ internal sealed class ArenaAreaMapPreview
         _root.transform.SetParent(_screen, false);
         _root.transform.SetAsLastSibling();
         var background = _root.GetComponent<Image>();
-        background.color = new Color(.02f, .025f, .03f, .96f); background.raycastTarget = false;
+        background.color = Hud.ArenaUiTheme.WithAlpha(Hud.ArenaUiTheme.Surface, .96f); background.raycastTarget = false;
+        Hud.ArenaUiTheme.Decorate((RectTransform)_root.transform);
         _title = Text("Area map title", "CUSTOMS", 21f);
         _caption = Text("Area map caption", "", 14f);
         _credit = Text("Area map attribution", "Map: Shebuka / Tarkov.dev, modified by acidphantasm\nArena adaptation: CC BY-NC-SA 4.0 · Ground floor", 11f);
@@ -211,7 +212,7 @@ internal sealed class ArenaAreaMapPreview
         var text = go.GetComponent<TextMeshProUGUI>();
         text.font = _typography?.font ?? TMP_Settings.defaultFontAsset;
         if (_typography != null) text.fontSharedMaterial = _typography.fontSharedMaterial;
-        text.color = new Color(.82f, .82f, .76f, 1f);
+        text.color = size >= 20f ? Hud.ArenaUiTheme.Text : Hud.ArenaUiTheme.Muted;
         text.fontSize = size; text.text = value; text.raycastTarget = false;
         text.enableWordWrapping = false; text.overflowMode = TextOverflowModes.Ellipsis;
         text.alignment = TextAlignmentOptions.MidlineLeft;
@@ -229,6 +230,7 @@ internal sealed class ArenaAreaMapPreview
         var text = Text(label + " label", label, 16f);
         text.transform.SetParent(go.transform, false);
         text.alignment = TextAlignmentOptions.Midline;
+        Hud.ArenaUiTheme.StyleButton(button, text);
         Stretch(text.rectTransform);
         return button;
     }

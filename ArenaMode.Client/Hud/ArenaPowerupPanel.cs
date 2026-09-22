@@ -24,7 +24,8 @@ internal sealed class ArenaPowerupPanel
         _rect.anchorMin = _rect.anchorMax = _rect.pivot = new Vector2(.5f, 1f);
         _rect.sizeDelta = new Vector2(880f, 52f);
         var background = _root.AddComponent<Image>();
-        background.color = new Color(.03f, .04f, .06f, .85f); background.raycastTarget = false;
+        background.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .86f); background.raycastTarget = false;
+        ArenaUiTheme.Decorate(_rect);
         _text = HudStyle.CreateText(_rect, "Powerups", 19f, TextAlignmentOptions.Center);
         _text.rectTransform.anchorMin = Vector2.zero; _text.rectTransform.anchorMax = Vector2.one;
         _text.rectTransform.offsetMin = new Vector2(8f, 3f); _text.rectTransform.offsetMax = new Vector2(-8f, -3f);

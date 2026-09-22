@@ -6,7 +6,8 @@ namespace UnityEngine
     {
         public static T Instantiate<T>(T original, Transform parent, bool world) where T:Component
         {
-            var result = new GameObject("cloned native row",typeof(RectTransform),typeof(UnityEngine.UI.Button));
+            var result = new GameObject("cloned native row",typeof(RectTransform),typeof(UnityEngine.UI.Image),typeof(UnityEngine.UI.Button));
+            result.GetComponent<UnityEngine.UI.Button>().targetGraphic = result.GetComponent<UnityEngine.UI.Image>();
             result.transform.SetParent(parent,false);
             var label=new GameObject("native label",typeof(RectTransform),typeof(TMPro.TextMeshProUGUI));
             label.transform.SetParent(result.transform,false);
@@ -31,8 +32,8 @@ namespace UnityEngine
         public void SetAsLastSibling(){}
         public void SetAsFirstSibling(){}
     }
-    public class RectTransform:Transform { public Vector2 anchorMin,anchorMax,pivot,anchoredPosition,sizeDelta; }
-    public readonly record struct Vector2(float x,float y);
+    public class RectTransform:Transform { public Vector2 anchorMin,anchorMax,pivot,anchoredPosition,sizeDelta,offsetMin,offsetMax; }
+    public readonly record struct Vector2(float x,float y) { public static Vector2 zero=>new(0,0); public static Vector2 one=>new(1,1); }
     public readonly record struct Vector3(float x,float y,float z) { public static Vector3 one=>new(1,1,1); }
     public struct Color(float red,float green,float blue,float alpha)
     { public float r=red,g=green,b=blue,a=alpha; public static Color white=>new(1,1,1,1); }
@@ -66,9 +67,12 @@ namespace UnityEngine.UI
     public class Image:UnityEngine.Component { public UnityEngine.Color color;public bool raycastTarget; }
     public class LayoutElement:UnityEngine.Component { public bool ignoreLayout; }
     public struct Navigation { public enum Mode { None } public Mode mode; }
-    public class Button:UnityEngine.Component
+    public class Selectable:UnityEngine.Component { public enum Transition { None,ColorTint } public Transition transition; }
+    public struct ColorBlock { public UnityEngine.Color normalColor,highlightedColor,pressedColor,selectedColor,disabledColor; public float colorMultiplier,fadeDuration; }
+    public class Button:Selectable
     {
         public bool interactable;public Navigation navigation;
+        public UnityEngine.Component targetGraphic; public ColorBlock colors;
         public ButtonClickedEvent onClick=new();
         public class ButtonClickedEvent
         {
@@ -82,6 +86,7 @@ namespace UnityEngine.UI
 }
 namespace TMPro
 {
+    public enum FontStyles { Normal }
     public enum TextOverflowModes { Ellipsis }
     public enum TextAlignmentOptions { MidlineLeft }
     public class TMP_Text:UnityEngine.Component

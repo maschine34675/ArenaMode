@@ -19,8 +19,8 @@ internal sealed class DamageNumbersElement
     private const float RisePixels = 30f;
     private const float EdgePadding = 0.04f;
 
-    private static readonly Color NumberColor = new Color(1f, 0.85f, 0.25f, 1f);
-    private static readonly Color KillColor = new Color(1f, 0.2f, 0.2f, 1f);
+    private static readonly Color NumberColor = ArenaUiTheme.Text;
+    private static readonly Color KillColor = ArenaUiTheme.Danger;
 
     private sealed class Entry
     {

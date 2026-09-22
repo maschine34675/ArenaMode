@@ -190,8 +190,9 @@ internal sealed class ArenaAreaSelectionView
         _root.transform.SetParent(screen, false);
         _root.transform.SetAsLastSibling();
         var background = _root.GetComponent<Image>();
-        background.color = new Color(0f, 0f, 0f, .68f);
+        background.color = Hud.ArenaUiTheme.WithAlpha(Hud.ArenaUiTheme.Surface, .94f);
         background.raycastTarget = false;
+        Hud.ArenaUiTheme.Decorate((RectTransform)_root.transform);
 
         var heading = CreateText("Area heading", "PLAY AREA", 14f, 14f, 22f);
         heading.color = Dim(_typography, .65f);
@@ -227,6 +228,7 @@ internal sealed class ArenaAreaSelectionView
         row.Label.overflowMode = TextOverflowModes.Ellipsis;
         row.Label.alignment = TextAlignmentOptions.MidlineLeft;
         row.Label.raycastTarget = false;
+        Hud.ArenaUiTheme.StyleButton(button, row.Label);
         SetRect(row.Label.rectTransform, 14f, 0f, width - 28f, RowHeight);
 
         var tooltip = button.GetComponent<HoverTooltipArea>();
@@ -244,7 +246,7 @@ internal sealed class ArenaAreaSelectionView
         row.Marker.transform.SetAsFirstSibling();
         SetRect((RectTransform)row.Marker.transform, 0f, 0f, 3f, RowHeight);
         var markerImage = row.Marker.GetComponent<Image>();
-        markerImage.color = _typography != null ? _typography.color : Color.white;
+        markerImage.color = Hud.ArenaUiTheme.Accent;
         markerImage.raycastTarget = false;
         row.Marker.SetActive(false);
         // Stable identity plus row ownership, never a mutable option index.
@@ -400,6 +402,8 @@ internal sealed class ArenaAreaSelectionView
             text.characterSpacing = _typography.characterSpacing;
         }
         text.text = value;
+        text.color = Hud.ArenaUiTheme.Text;
+        text.fontStyle = FontStyles.Normal;
         text.fontSize = size;
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.raycastTarget = false;
@@ -422,7 +426,7 @@ internal sealed class ArenaAreaSelectionView
 
     private static Color Dim(TMP_Text source, float alpha)
     {
-        var color = source != null ? source.color : Color.white;
+        var color = Hud.ArenaUiTheme.Text;
         color.a *= alpha;
         return color;
     }

@@ -9,6 +9,29 @@ using UnityEngine.UI;
 int checks = 0;
 void Need(bool condition, string reason) { if (!condition) throw new Exception(reason); checks++; }
 var config = new ConfigFile();
+// Presentation can add decoration, never consume input or replace callbacks.
+var themeRoot = new GameObject("theme fixture", typeof(RectTransform));
+ArenaMode.Hud.ArenaUiTheme.Fill((RectTransform)themeRoot.transform, "surface", ArenaMode.Hud.ArenaUiTheme.Surface);
+ArenaMode.Hud.ArenaUiTheme.Decorate((RectTransform)themeRoot.transform);
+Need(themeRoot.GetComponentsInChildren<Image>(true).All(i => !i.raycastTarget),
+    "all theme decoration leaves gameplay/menu clicks untouched");
+var themeButton = new GameObject("theme button", typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<Button>();
+themeButton.targetGraphic = themeButton.GetComponent<Image>();
+var themeLabel = new GameObject("theme label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+themeLabel.text = "A very long preserved kit name";
+int themeClicks = 0;
+themeButton.onClick.AddListener(() => themeClicks++);
+themeButton.interactable = false;
+ArenaMode.Hud.ArenaUiTheme.StyleButton(themeButton, themeLabel);
+Need(!themeButton.interactable && themeLabel.text == "A very long preserved kit name",
+    "theme does not enable locked choices or replace content");
+themeButton.onClick.Invoke();
+Need(themeClicks == 1, "theme preserves exact caller-owned action callback");
+float Linear(float c) => c <= .04045f ? c / 12.92f : MathF.Pow((c + .055f) / 1.055f, 2.4f);
+float Luminance(Color c) => .2126f * Linear(c.r) + .7152f * Linear(c.g) + .0722f * Linear(c.b);
+foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hud.ArenaUiTheme.Muted })
+    Need((Luminance(foreground) + .05f) / (Luminance(ArenaMode.Hud.ArenaUiTheme.Raised) + .05f) >= 4.5f,
+        "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
 Need(Settings.TeamDeathmatchKillLimit.Value == 50 && Settings.TeamDeathmatchTimeLimitSeconds.Value == 600,
     "production defaults are 50 team kills and ten minutes");

@@ -49,6 +49,11 @@ namespace ArenaMode.Hud.InfoPanels
 
             _titleLine.fontSize = 19f;
             _titleLine.fontStyle = FontStyles.Bold;
+            _ammoLine.fontSize = 22f;
+            _ammoLine.enableAutoSizing = true;
+            _ammoLine.fontSizeMin = 18f;
+            _ammoLine.fontSizeMax = 22f;
+            _metaLine.fontSize = 15f;
         }
 
         public void SetVisible(bool visible)
@@ -209,7 +214,7 @@ namespace ArenaMode.Hud.InfoPanels
 
         private static string AppendLoadedAmmo(string counts, string loadedAmmoName)
         {
-            return loadedAmmoName != null ? $"{counts}  ·  {loadedAmmoName}" : counts;
+            return loadedAmmoName != null ? $"{counts}  <size=16>·  {loadedAmmoName}</size>" : counts;
         }
 
         // Deliberately not Weapon.CurrentAmmoTemplate: that reports a spent

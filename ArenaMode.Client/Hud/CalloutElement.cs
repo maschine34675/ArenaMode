@@ -14,8 +14,8 @@ internal sealed class CalloutElement
     public void Create(RectTransform hudRoot)
     {
         _text = HudStyle.CreateText(hudRoot, "ArenaCallout", 44f, TextAlignmentOptions.Center);
-        _text.color = new Color(1f, 0.85f, 0.25f, 0f);
-        _text.fontStyle = FontStyles.Bold | FontStyles.Italic;
+        _text.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Accent, 0f);
+        _text.fontStyle = FontStyles.Bold;
         var rect = _text.rectTransform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = new Vector2(0f, 180f);

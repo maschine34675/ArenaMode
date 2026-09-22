@@ -15,8 +15,8 @@ namespace ArenaMode.Hud.InfoPanels.UI
         // stacked opaque rectangles. The tint stays near-black so it darkens the
         // scene behind the text without introducing a color cast; the rim light
         // is what actually defines the panel edge.
-        private static readonly Color PanelTint = new Color(0.04f, 0.05f, 0.07f, 1f);
-        private static readonly Color RimColor = new Color(1f, 1f, 1f, 0.18f);
+        private static readonly Color PanelTint = ArenaUiTheme.Surface;
+        private static readonly Color RimColor = ArenaUiTheme.Edge;
 
         private static readonly List<Image> _panelFills = new List<Image>();
         private static readonly List<Image> _panelRims = new List<Image>();

@@ -102,11 +102,11 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
         var caption = _caption.AddComponent<TextMeshProUGUI>();
         caption.font = pmcLabel.font;
         caption.fontSharedMaterial = pmcLabel.fontSharedMaterial;
-        caption.fontSize = 10f;
+        caption.fontSize = 12f;
         caption.fontStyle = FontStyles.Normal;
         // The toggle's current label tint depends on hover/selection. Use the
         // stable native description tint for this always-neutral subheading.
-        caption.color = screen._sideDescriptionText.color;
+        caption.color = Hud.ArenaUiTheme.Muted;
         caption.alignment = TextAlignmentOptions.Center;
         caption.enableWordWrapping = false;
         caption.raycastTarget = false;

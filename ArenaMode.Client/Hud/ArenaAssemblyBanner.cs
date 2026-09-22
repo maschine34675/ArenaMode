@@ -23,17 +23,18 @@ internal sealed class ArenaAssemblyBanner
         rect.SetParent(parent, false);
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, 1f);
         rect.anchoredPosition = Position;
-        rect.sizeDelta = new Vector2(900f, 90f);
+        rect.sizeDelta = new Vector2(760f, 90f);
         var backdrop = _root.AddComponent<Image>();
-        backdrop.color = new Color(.03f, .04f, .05f, .8f);
+        backdrop.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .94f);
         backdrop.raycastTarget = false;
+        ArenaUiTheme.Decorate(rect);
 
         _heading = HudStyle.CreateText(rect, "AssemblyHeading", 30f, TextAlignmentOptions.Center);
         _heading.fontStyle = FontStyles.Bold;
-        _heading.color = new Color(1f, .85f, .25f, 1f);
+        _heading.color = ArenaUiTheme.Accent;
         Place(_heading.rectTransform, -23f, 38f);
         _detail = HudStyle.CreateText(rect, "AssemblyDetail", 17f, TextAlignmentOptions.Center);
-        _detail.color = new Color(.92f, .94f, .96f, 1f);
+        _detail.color = ArenaUiTheme.Muted;
         Place(_detail.rectTransform, -62f, 28f);
         _root.SetActive(false);
     }
@@ -42,7 +43,7 @@ internal sealed class ArenaAssemblyBanner
     {
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, 1f);
         rect.anchoredPosition = new Vector2(0f, y);
-        rect.sizeDelta = new Vector2(870f, height);
+        rect.sizeDelta = new Vector2(728f, height);
     }
 
     private static Vector2 Position => ScorePanel.Position - new Vector2(0f, ScorePanel.PanelHeight + 20f);

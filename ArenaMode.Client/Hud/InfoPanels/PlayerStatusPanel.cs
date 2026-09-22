@@ -37,9 +37,9 @@ namespace ArenaMode.Hud.InfoPanels
             "THRT B", "THRX B", "STOM B", "PELV B"
         };
 
-        private static readonly Color HealthyColor = new Color(0.35f, 0.78f, 0.36f, 0.95f);
-        private static readonly Color WornColor = new Color(0.91f, 0.79f, 0.24f, 0.95f);
-        private static readonly Color DamagedColor = new Color(0.88f, 0.29f, 0.23f, 0.95f);
+        private static readonly Color HealthyColor = ArenaUiTheme.WithAlpha(ArenaUiTheme.Positive, .95f);
+        private static readonly Color WornColor = ArenaUiTheme.WithAlpha(ArenaUiTheme.Accent, .95f);
+        private static readonly Color DamagedColor = ArenaUiTheme.WithAlpha(ArenaUiTheme.Danger, .95f);
 
         private readonly RectTransform _panelRect;
         private readonly StatRowView _healthRow;

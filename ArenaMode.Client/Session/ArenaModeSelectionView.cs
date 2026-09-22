@@ -127,8 +127,9 @@ internal sealed class ArenaModeSelectionView
         rect.anchoredPosition = new Vector2(56f, -ArenaModeCatalog.ModePanelTop);
         rect.sizeDelta = new Vector2(PanelWidth, PanelHeight);
         var background = _root.GetComponent<Image>();
-        background.color = new Color(0f, 0f, 0f, .68f);
+        background.color = Hud.ArenaUiTheme.WithAlpha(Hud.ArenaUiTheme.Surface, .94f);
         background.raycastTarget = false;
+        Hud.ArenaUiTheme.Decorate(rect);
 
         var title = CreateText("Title", typography, "ARENA", 26f, 16f, 32f);
         var subtitle = CreateText("Mode heading", typography,
@@ -175,6 +176,7 @@ internal sealed class ArenaModeSelectionView
         label.overflowMode = TextOverflowModes.Ellipsis;
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
+        Hud.ArenaUiTheme.StyleButton(button, label);
         SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, 38f);
 
         var allowed = _selection.CanSelectIndex(index);
@@ -194,7 +196,7 @@ internal sealed class ArenaModeSelectionView
         marker.transform.SetAsFirstSibling();
         SetRect((RectTransform)marker.transform, 0f, 0f, 3f, 38f);
         var markerImage = marker.GetComponent<Image>();
-        markerImage.color = typography != null ? typography.color : Color.white;
+        markerImage.color = Hud.ArenaUiTheme.Accent;
         markerImage.raycastTarget = false;
         _markers.Add(marker);
         var owner = _root;
@@ -290,6 +292,8 @@ internal sealed class ArenaModeSelectionView
             text.characterSpacing = source.characterSpacing;
         }
         text.text = value;
+        text.color = Hud.ArenaUiTheme.Text;
+        text.fontStyle = FontStyles.Normal;
         text.fontSize = size;
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.raycastTarget = false;
@@ -301,7 +305,7 @@ internal sealed class ArenaModeSelectionView
 
     private static Color Dim(TMP_Text source, float alpha)
     {
-        var color = source != null ? source.color : Color.white;
+        var color = Hud.ArenaUiTheme.Text;
         color.a *= alpha;
         return color;
     }

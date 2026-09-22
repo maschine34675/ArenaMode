@@ -14,10 +14,10 @@ internal sealed class HitmarkerElement
     private const float Size = 13f;
     private const float FadeSeconds = 0.5f;
 
-    private static readonly Color HitColor = new Color(0f, 0.75f, 0f, 1f);
-    private static readonly Color KillColor = new Color(1f, 0f, 0f, 1f);
-    private static readonly Color HeadshotColor = new Color(1f, 0.25f, 0.25f, 1f);
-    private static readonly Color ArmorColor = new Color(0f, 0.75f, 1f, 1f);
+    private static readonly Color HitColor = ArenaUiTheme.Positive;
+    private static readonly Color KillColor = ArenaUiTheme.Danger;
+    private static readonly Color HeadshotColor = ArenaUiTheme.Headshot;
+    private static readonly Color ArmorColor = ArenaUiTheme.Armor;
 
     private RectTransform _root;
     private CanvasGroup _group;
