@@ -1,0 +1,84 @@
+{
+  "sourceCommit": "d9d408c93d512a506baaac72b6cffae5237b8372",
+  "sourceChanges": [
+    " M HANDOFF.md"
+  ],
+  "sourceChangesNote": "Pre-existing HANDOFF documentation only; all compiler inputs committed.",
+  "clientSha256": "2AB51B569ED9D339DB6FD84F3961B2A2D1976EBD94DDAEC08112AE66B4766551",
+  "productVersion": "0.1.0+d9d408c93d512a506baaac72b6cffae5237b8372",
+  "destinations": [
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll"
+  ],
+  "unchanged": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "\\\\192.168.178.114\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-UiBridge.dll": "48CF7318EE65B3F087EA6CA3858F03ED1406B8366FCBA9E697057BCFA6166E0D",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "deployedUtc": "2026-09-22T07:50:46.4814804Z",
+  "nativeTested": true,
+  "nativeScope": "Bounded 1920x1080 Factory UI check; see GPU-UNIFIED-UI-RESULTS-2026-09-22.md for tested and untested states.",
+  "loadedClient": {
+    "file": "maschine-ArenaMode.Client.dll",
+    "relativePath": "maschine-ArenaMode.Client.dll",
+    "guid": "com.maschine.ArenaMode",
+    "name": "maschine-ArenaMode",
+    "version": "0.1.0",
+    "loadedMvid": "15c33ccd-33d7-4f16-aedd-8093aaf81608",
+    "loadedInformationalVersion": "0.1.0+d9d408c93d512a506baaac72b6cffae5237b8372",
+    "diskMvid": "15c33ccd-33d7-4f16-aedd-8093aaf81608",
+    "diskInformationalVersion": "0.1.0+d9d408c93d512a506baaac72b6cffae5237b8372",
+    "diskSha256": "2AB51B569ED9D339DB6FD84F3961B2A2D1976EBD94DDAEC08112AE66B4766551",
+    "diskWriteTimeUtc": "2026-09-22T07:49:47Z",
+    "diskError": null,
+    "loadedMatchesDisk": true
+  },
+  "profileSecondChangedPaths": [
+    "/characters/pmc/Hideout/sptUpdateLastRunTimestamp"
+  ],
+  "settingsRestored": true,
+  "evidence": [
+    {
+      "file": "artifacts/ui-refresh-native/status-start.json",
+      "sha256": "1E12ECA543B1C1EC9ACB257073F7B774D31FDC43E7C57CC77970FD463C6819B1"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/status-exit.json",
+      "sha256": "873012799ECBC2D9744E28877B9E5B2B3D2D556331053CDC34886FFD072D3332"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/hud-first.json",
+      "sha256": "F3DBEAC03240B23C733086B22D832866A79EE5B6F0D7E654C2DC85CFF9BAC22D"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/hud-final.json",
+      "sha256": "C7240E57CE7C06E72B9602C160C3F49D7D2A1878463FE3A1436E2DFC1986DBCD"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/player-final.json",
+      "sha256": "2CF9646739BACAD6BF4157018BD000DA23184EC72FA9DC090FDA1595E743F8F8"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/arena-first.log.json",
+      "sha256": "E64099AC20CE9B3CCAC8FA1332073EA6F91C985FFC2E9C57D945AC92AB83FCEC"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/arena-final.log.json",
+      "sha256": "972B3DA7E3743EEB079D2B3F8420CF58C02B9BA83052E7B690132C5184288305"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/arena-warnings-final.json",
+      "sha256": "03D572B6C36AA95F93F9A1DC341866BC018EB5A84E06A52D1FDF7A5485A63137"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/warnings-final.json",
+      "sha256": "1C4FA8BE0804DE22A51C08D2995B4016EB628EE5BB1FDAC7DC49516852EAEB01"
+    },
+    {
+      "file": "artifacts/ui-refresh-native/profile-second-diff.json",
+      "sha256": "C1A99F7A2E1B3A98C0B3BD9E67709FE196B3C857F18B94BA641BE36E8C968995"
+    }
+  ]
+}

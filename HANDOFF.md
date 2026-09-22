@@ -1,20 +1,27 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-21. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-22. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Einheitlicher Arena-Look (2026-09-22, Codex):** Dezente blaugraue Flächen,
-  helle Hauptschrift, ruhigere Details und feine Akzentlinien in HUD, Scoreboard,
-  Tactical-Kaufmenü, Zuschauerstatus und Arena-eigenen Auswahl-/Kartenelementen.
-  Keine neuen Regler; gespeicherte Offsets, Teamfarben, Eingabe und Spielregeln
-  unverändert. Eigenimplementierung, kein kopierter ImpactCue-Code/Asset.
-  Offlineprüfungen inklusive negativer Kontrollen und isolierter Client-Build
-  bestanden; unabhängiger Source-Review ohne offenen P0–P2.
-  Details: `UNIFIED-UI-REVIEW.md`. Deployment/native Sichtprüfung separat belegen.
+- **Einheitlicher Arena-Look EINGESPIELT (2026-09-22, Codex):** Umsetzung `fa8acae`,
+  native Nachbesserung `d9d408c`; Client-SHA256
+  `2AB51B569ED9D339DB6FD84F3961B2A2D1976EBD94DDAEC08112AE66B4766551`,
+  lokal/GPU identisch und in frischem EFT-Prozess verifiziert. Dezenter gemeinsamer
+  Stil für HUD, Scoreboard, Tactical-Shop, Zuschauer und Arena-Menüflächen.
+  Keine neuen Regler; Offsets/Spielregeln unverändert. Native Sichtproben auf
+  Factory in DM und Tactical: Panels/Killfeed/Scoreboard/Shop/Bereitschaft und
+  Eingabe sichtbar/bedienbar, F9-Checkbox aus/an geprüft. Vollständige Offline-
+  Prüfungen und unabhängiger Review grün. Noch offene visuelle Fälle (PFT-Zuschauer,
+  Arealkarte, DLSS etc.) ausdrücklich in `GPU-UNIFIED-UI-RESULTS-2026-09-22.md`;
+  keine pauschale Vollabnahme. Zweiter Profilvergleich nur nativer Hideout-
+  Zeitstempel, Konfiguration zurückgestellt, EFT beendet; Server unverändert.
+  Erster Vorherstand war anderer vorhandener Syncthing/Server-Profilzweig, kein
+  belastbarer Vorher/Nachher-Nachweis; nicht blind Profile zurückschreiben.
+  Details: `UNIFIED-UI-REVIEW.md`, `UNIFIED-UI-DEPLOYMENT-20260922.json`.
 
 - **UseItemsAnywhere / Rucksack-Nachladen REPARIERT UND GPU-GEPRÜFT
   (2026-09-21, Codex):** Fix `0d9ceea`; Client-SHA256
