@@ -41,6 +41,14 @@ current. User-facing communication is normally German.
   `BACKPACK-RELOAD-DEPLOYMENT-20260921.json`. Teilnehmerauswahl vom Nutzer bestätigt;
   die Vorgaben ausdrücklich noch nicht angepasst.
 
+- **Redeploy RespawnApi-Probe im Spiel (2026-09-21):** Kein Arena-Commit. GPU-Lauf der
+  offenen Core-Szenarien 3–6 auf Factory Tag, Arena Deathmatch Endless, ArenaMode.Client
+  `be7c49d` / SHA256 `2263FBDDEEF9DFD516B04B04792B764171B4B5B8FD9EDB6AE3970D86C3DC5C6A`
+  als Todes-Treiber (Prio 100). Arena hat den Tod nach dem Raidstart-Swap beansprucht
+  (Nachzug 15:13 bei echten **0,50 s**, Schalter über UiBridge 0.6.0
+  `uibridge_config_set`); Reentranz und Stop-Ablehnung halten. Beleg:
+  `../Redeploy/docs/RESPAWN-API-PROBE-RESULTS-2026-09-21.md`.
+
 - **Teilnehmerzahl pro Karte EINGESPIELT (2026-09-21, Codex):** Implementierung
   `f84c915`, sauberer gemeinsamer Master-Build
   `be7c49d7334135fbf6f7f8e0b0c1c279960271b2`. Client-SHA256
