@@ -148,6 +148,8 @@ namespace UnityEngine.UI
     }
     public class Graphic:UnityEngine.Component
     {
+        public UnityEngine.Color RendererTint;
+        public void CrossFadeColor(UnityEngine.Color color,float duration,bool ignoreTimeScale,bool useAlpha) => RendererTint=color;
         public bool raycastTarget=true;public UnityEngine.Color color;
         public UnityEngine.RectTransform rectTransform=>(UnityEngine.RectTransform)transform;
         public virtual UnityEngine.Texture mainTexture=>null;

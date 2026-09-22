@@ -243,7 +243,7 @@ internal sealed class ArenaAreaSelectionView
 
         row.Marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         row.Marker.transform.SetParent(button.transform, false);
-        row.Marker.transform.SetAsFirstSibling();
+        row.Marker.transform.SetAsLastSibling();
         SetRect((RectTransform)row.Marker.transform, 0f, 0f, 3f, RowHeight);
         var markerImage = row.Marker.GetComponent<Image>();
         markerImage.color = Hud.ArenaUiTheme.Accent;

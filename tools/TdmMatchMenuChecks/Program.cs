@@ -19,10 +19,15 @@ var themeButton = new GameObject("theme button", typeof(RectTransform), typeof(I
 themeButton.targetGraphic = themeButton.GetComponent<Image>();
 var themeLabel = new GameObject("theme label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
 themeLabel.text = "A very long preserved kit name";
+themeButton.targetGraphic = themeLabel; // Native dropdowns may tint the text itself.
 int themeClicks = 0;
 themeButton.onClick.AddListener(() => themeClicks++);
 themeButton.interactable = false;
 ArenaMode.Hud.ArenaUiTheme.StyleButton(themeButton, themeLabel);
+Need(themeButton.targetGraphic is Image ownedSurface && !ownedSurface.raycastTarget
+    && ownedSurface.transform.parent == themeButton.transform
+    && themeLabel.RendererTint.Equals(Color.white),
+    "native text tint is reset and moves to an owned passive button surface");
 Need(!themeButton.interactable && themeLabel.text == "A very long preserved kit name",
     "theme does not enable locked choices or replace content");
 themeButton.onClick.Invoke();

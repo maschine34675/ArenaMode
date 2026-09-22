@@ -69,3 +69,19 @@ lange Ammo-Namen, zweizeilige Match-/Zuschauertexte und Schaltflächenhöhe.
 Build, Deployment und visuelle Spielabnahme sind getrennte Nachweise. Der
 abschließende Liefer-/GPU-Beleg wird separat dokumentiert; Offlineprüfungen
 allein bestätigen keine visuelle Abnahme.
+
+### Nachbesserung aus erster GPU-Sichtprobe
+
+Der native Dropdownklon kann seine Beschriftung als `targetGraphic` verwenden.
+Die erste Fassung beließ dadurch Teile des Vanilla-Tints. Jeder Arena-Menübutton
+bekommt nun ein eigenes passives Hintergrund-Image als Tintziel; der alte
+Label-Tween wird mit `CrossFadeColor(white, 0, true, true)` zurückgesetzt.
+Auswahlstreifen liegen darüber. Ein Fixture mit TMP als ursprünglichem Tintziel
+prüft diese Grenze; das ist weiterhin keine Pixelprüfung.
+
+Die vorhandenen fünf F9-Schalter benutzen eine Kopie von `GUI.skin.toggle`, damit
+ihr Ein/Aus-Zustand sichtbar ist. Native Checkboxgrafiken/-abstände bleiben
+geborgt; nur Schrift und Textfarben kommen aus der Arena-Gestaltung.
+Unabhängiger Nachreview ohne P0–P2, auch gegen installierte Unity/TMP-Lebensdauer
+für den Tint-Reset unter inaktiven Menüeltern geprüft. Vollständiger Wrapper erneut
+grün (`artifacts/ui-refresh-checks/08b0eaefa50b4c4fb8320cc499b6756b/`).

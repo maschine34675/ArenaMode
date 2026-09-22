@@ -62,6 +62,20 @@ internal sealed class ArenaWindowSkin : IDisposable
         onFocused = { background = _hover, textColor = ArenaUiTheme.Text }
     };
 
+    internal GUIStyle Toggle() => new GUIStyle(GUI.skin.toggle)
+    {
+        // Keep borrowed native checkbox graphics and their geometry.
+        font = _font, fontSize = 14,
+        normal = { textColor = ArenaUiTheme.Text },
+        hover = { textColor = ArenaUiTheme.Text },
+        active = { textColor = ArenaUiTheme.Text },
+        focused = { textColor = ArenaUiTheme.Text },
+        onNormal = { textColor = ArenaUiTheme.Accent },
+        onHover = { textColor = ArenaUiTheme.Accent },
+        onActive = { textColor = ArenaUiTheme.Accent },
+        onFocused = { textColor = ArenaUiTheme.Accent }
+    };
+
     internal GUIStyle Notice()
     {
         var style = Label(16, alignment: TextAnchor.MiddleCenter);

@@ -193,7 +193,7 @@ internal sealed class ArenaModeSelectionView
 
         var marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         marker.transform.SetParent(button.transform, false);
-        marker.transform.SetAsFirstSibling();
+        marker.transform.SetAsLastSibling();
         SetRect((RectTransform)marker.transform, 0f, 0f, 3f, 38f);
         var markerImage = marker.GetComponent<Image>();
         markerImage.color = Hud.ArenaUiTheme.Accent;

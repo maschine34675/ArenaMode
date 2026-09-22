@@ -111,7 +111,7 @@ internal sealed class ArenaDeathmatchRulesView
         button.navigation = navigation;
         choice.Marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         choice.Marker.transform.SetParent(button.transform, false);
-        choice.Marker.transform.SetAsFirstSibling();
+        choice.Marker.transform.SetAsLastSibling();
         SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 26f);
         var marker = choice.Marker.GetComponent<Image>();
         marker.color = Hud.ArenaUiTheme.Accent;

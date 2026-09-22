@@ -68,9 +68,11 @@ internal static class ArenaUiTheme
     {
         label.color = Text;
         label.fontStyle = FontStyles.Normal;
-        var image = button.targetGraphic as Image;
-        if (image == null) return;
-        image.color = Color.white;
+        // Native dropdown templates can tint the label itself. Give our clone
+        // its own passive tint target and cancel the inherited label tween.
+        var image = Fill((RectTransform)button.transform, "Arena button surface", Color.white);
+        button.targetGraphic = image;
+        label.CrossFadeColor(Color.white, 0f, true, true);
         var colors = button.colors;
         colors.normalColor = WithAlpha(Raised, .92f);
         colors.highlightedColor = Hover;

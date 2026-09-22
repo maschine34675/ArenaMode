@@ -48,6 +48,7 @@ internal sealed class ArenaPanel : MonoBehaviour
     private GUIStyle _opponentRowStyle;
     private GUIStyle _mutedStyle;
     private GUIStyle _buttonStyle;
+    private GUIStyle _toggleStyle;
     private ArenaWindowSkin _skin;
 
     private void OnDisable()
@@ -285,15 +286,15 @@ internal sealed class ArenaPanel : MonoBehaviour
                 GUILayout.Label("Both factions track opposing combatants. Team size is fixed for this match.", _mutedStyle);
             else
                 Settings.HuntPlayer.Value = GUILayout.Toggle(
-                    Settings.HuntPlayer.Value, " Bots keep hunting the player", _bodyStyle);
+                    Settings.HuntPlayer.Value, " Bots keep hunting the player", _toggleStyle);
             Settings.ScaleDifficulty.Value = GUILayout.Toggle(
-                Settings.ScaleDifficulty.Value, " Arena pushes back harder over time", _bodyStyle);
+                Settings.ScaleDifficulty.Value, " Arena pushes back harder over time", _toggleStyle);
             Settings.ShowKillfeed.Value = GUILayout.Toggle(
-                Settings.ShowKillfeed.Value, " Killfeed", _bodyStyle);
+                Settings.ShowKillfeed.Value, " Killfeed", _toggleStyle);
             Settings.ShowHitmarker.Value = GUILayout.Toggle(
-                Settings.ShowHitmarker.Value, " Hitmarker", _bodyStyle);
+                Settings.ShowHitmarker.Value, " Hitmarker", _toggleStyle);
             Settings.ShowDamageNumbers.Value = GUILayout.Toggle(
-                Settings.ShowDamageNumbers.Value, " Damage numbers", _bodyStyle);
+                Settings.ShowDamageNumbers.Value, " Damage numbers", _toggleStyle);
 
             GUILayout.Space(6);
             if (!(match.Mode is TeamDeathmatchMode))
@@ -532,6 +533,7 @@ internal sealed class ArenaPanel : MonoBehaviour
 
         _mutedStyle = _skin.Label(12, ArenaUiTheme.Muted);
         _buttonStyle = _skin.Button();
+        _toggleStyle = _skin.Toggle();
 
         _stylesReady = true;
     }

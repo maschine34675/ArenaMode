@@ -91,6 +91,8 @@ namespace TMPro
     public enum TextAlignmentOptions { MidlineLeft }
     public class TMP_Text:UnityEngine.Component
     {
+        public UnityEngine.Color RendererTint;
+        public void CrossFadeColor(UnityEngine.Color color,float duration,bool ignoreTimeScale,bool useAlpha) => RendererTint=color;
         public string text;
         public object font,fontSharedMaterial,fontStyle;
         public float fontSize,characterSpacing;
