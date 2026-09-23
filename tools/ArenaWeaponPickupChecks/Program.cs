@@ -6,7 +6,7 @@ using EFT;
 using EFT.InventoryLogic;
 using UnityEngine;
 
-internal static class Program
+internal static partial class Program
 {
     private sealed class NativeRefusal
     {
@@ -30,6 +30,8 @@ internal static class Program
     private static void Reset()
     {
         _current = true;
+        ArenaMode.Session.ArenaSession.IsActive = true;
+        ArenaPickupRuntime.ScopeLive = true;
         _world = new();
         Singleton<GameWorld>.Instance = _world;
         Singleton<ObjectsFactory>.Instance = new();
@@ -193,6 +195,7 @@ internal static class Program
             Inv.Finish(false); h.Dispose();
             Check(_world.Destroyed == 1, "uncertain failure eventually cleans the source visual");
 
+            VerifyExamination();
             Console.WriteLine($"ARENA WEAPON ADAPTER PASSED: {_checks} assertions");
             return 0;
         }

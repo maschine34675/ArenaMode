@@ -159,6 +159,42 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
 
 ## Native boundaries
 
+### Confirmed examination refusal and instance-scoped correction (2026-09-23)
+
+The subsequent GPU log confirms `InstallNotExaminedError` for the M60E6 itself
+at 20:09:00.334 and 20:09:05.717, including the free SecondPrimaryWeapon slot.
+This is not a capacity failure. `Slot.Examined(Item)` dispatches through the
+native virtual ItemController slot to `InventoryController.Examined(Item)`.
+
+Before an otherwise eligible automatic collection attempt, Arena now remembers
+only the exact original item instances created for that pickup, including its
+attachments/ammunition. A postfix on the concrete, non-generic inventory method
+can turn its false answer into true only for the same current local inventory,
+physical player, world and pickup generation in live Deathmatch/independent TDM.
+`IsLiveActor` retains the exact active raid, phase, roster and settings guards.
+Known native answers remain unchanged. The snapshot is captured when the weapon
+handle is created, so later attached ordinary loot does not gain this exception.
+Identity is by object reference, not template or item ID. A weak-key table avoids
+owning item lifetime; retired bodies/rounds/raids are rejected even if old objects
+remain alive. The grant survives the successful pickup's source-model cleanup,
+so the carried gun can still be drawn, reloaded and modified during that life.
+
+There is no Profile/Encyclopedia write, examination operation/XP, shared template
+change, inventory restriction bypass or automatic draw. Free inactive slots,
+CanExecute, discard limits and delayed source ownership remain native/unchanged.
+Ordinary weapons (including another M60), other controllers, bots and all modes
+outside pickup admission keep vanilla examination. The previous diagnosis below
+records the historical state before this narrowly scoped correction.
+
+Offline adapter tests model the previously failing unexamined weapon, exercise
+collection and post-transfer knowledge, reject identity/actor/world/generation
+changes and later added parts, and preserve native known answers. Fault controls
+remove registration, replace the frozen item tree or weaken the lifetime guards.
+These tests and the installed IL contract checks do not prove Harmony execution
+or native animation/ownership behavior. Next GPU test after restart: collect the
+M60 with a free second slot, draw/fire/reload it, and confirm no permanent new
+examination entries after protected return. Native acceptance remains pending.
+
 ### Weapon refusal diagnosis (2026-09-23)
 
 The MASCHINE11 run 17:02–17:19 recorded nine `Arena pickup weapon not taken`
@@ -214,8 +250,8 @@ compiled negative control removes the error detail and must fail those checks.
   tree matches the provided preset and stash: MRS, NcSTAR blue laser, RK-1/B25U,
   M60E3 barrel and Fortis RED; its Capco box contains 40+40+20 M993. Runtime uses
   a static copied definition, never reads/writes a profile or inserts a normal kit.
-  Examination stays native: an unknown weapon can be refused before transfer;
-  the source profile already knows this M60. No examination or hands bypass.
+  Generated pickup instances have the bounded examination exception above;
+  template/profile knowledge and native hands/inventory restrictions stay intact.
 - Exact match/game/world, round, registered physical body, health owner and alive
   state are checked; AI additionally requires active BotOwner. Effects cannot be
   recovered by profile ID on a replacement body. Native death forgets that life.

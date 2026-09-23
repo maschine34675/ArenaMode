@@ -98,6 +98,7 @@ internal static class ArenaWeaponPickup
         private readonly int _generation;
         private readonly Func<bool> _isCurrent;
         private readonly Weapon _weapon;
+        private readonly Item[] _generatedItems;
         private readonly PickupOwner _owner;
         private LootItem _loot;
         private readonly BoxCollider _collider;
@@ -112,6 +113,7 @@ internal static class ArenaWeaponPickup
             _generation = generation;
             _isCurrent = isCurrent;
             _weapon = weapon;
+            _generatedItems = weapon.GetAllItems().ToArray();
             _owner = owner;
             _loot = loot;
             _collider = collider;
@@ -145,6 +147,9 @@ internal static class ArenaWeaponPickup
 
             var equipment = inventory.Inventory?.Equipment;
             if (equipment == null) return false;
+            // Freeze knowledge to the original generated tree, not later attached loot.
+            // This survives native transfer/draw but expires with this body/round/raid.
+            ArenaPickupExamination.Remember(_generatedItems, player, _world, _generation);
             int free = 0, rejected = 0, blocked = 0, destructive = 0;
             var refusals = new List<string>(WeaponSlots.Length);
             foreach (var slotName in WeaponSlots)

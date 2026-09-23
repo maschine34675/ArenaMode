@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **M60-Aufnahme: Ursache bestätigt, temporärer Untersuchungsstatus (2026-09-23):**
+  GPU-Log 20:09:00.334/20:09:05.717 nennt `InstallNotExaminedError` für die M60
+  selbst bei freiem zweitem Slot. Arena erkennt nun nur die konkreten erzeugten
+  Pickup-Instanzen inklusive ursprünglicher Anbauteile für den aktuellen lokalen
+  Spieler im laufenden DM/TDM als bekannt. Keine Profil-/Enzyklopädie-Änderung,
+  keine XP und kein Ändern gemeinsamer Templates. Fremde Beute bleibt unverändert;
+  Körper-/Inventar-/Welt-/Rundenwechsel und beendete Arenaphase entziehen die
+  Ausnahme. Übergabe, freie inaktive Slots und spätere Waffensteuerung bleiben
+  nativ. Siehe PICKUPS-REVIEW.md. Nach Client-Neustart Aufnahme, Ziehen, Schießen,
+  Nachladen und unverändertes Profil nach Rückkehr prüfen; native Abnahme offen.
+
 - **Waffen-Pickup: Ablehnung genauer protokolliert (2026-09-23, Codex):**
   Diagnose-Commit `a5a6fa2` auf master, Client lokal/GPU eingespielt und identisch:
   SHA256 `52E873A85DD010D3150E97656E3EF362FF4FAFF58F84F63397085E765E08178A`.

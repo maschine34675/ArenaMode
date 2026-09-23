@@ -4,5 +4,6 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <PickupSource Condition="'$(PickupSource)' == ''">../../ArenaMode.Client/Pickups/ArenaWeaponPickup.cs</PickupSource>
   </PropertyGroup>
-  <ItemGroup><Compile Remove="Native/**/*.cs;Definition/**/*.cs;artifacts/**/*.cs" /><Compile Include="$(PickupSource)" Link="Production/ArenaWeaponPickup.cs" /></ItemGroup>
+  <PropertyGroup><ExaminationSource Condition="'$(ExaminationSource)' == ''">../../ArenaMode.Client/Pickups/ArenaPickupExamination.cs</ExaminationSource></PropertyGroup>
+  <ItemGroup><Compile Remove="Native/**/*.cs;Definition/**/*.cs;artifacts/**/*.cs" /><Compile Include="$(PickupSource)" Link="Production/ArenaWeaponPickup.cs" /><Compile Include="$(ExaminationSource)" Link="Production/ArenaPickupExamination.cs" /></ItemGroup>
 </Project>

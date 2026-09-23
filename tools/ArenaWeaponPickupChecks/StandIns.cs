@@ -44,6 +44,7 @@ namespace EFT.InventoryLogic
     {
         public string Id = Guid.NewGuid().ToString();
         public string ShortName = "Weapon";
+        public bool ExaminedByDefault = true;
         public ItemAddress Parent;
     }
     public class Ammo : Item { public int StackObjectsCount = 1; }
@@ -88,10 +89,12 @@ namespace EFT.InventoryLogic
             if (!simulate) throw new Exception("native simulation required before submission");
             Simulations++;
             var slot = (Slot)to.Container;
-            return new() { Failed = Rejection != null || !slot.Compatible || slot.ContainedItem != null, Error = Rejection, Value = new()
+            object error = Rejection ?? (((InventoryController)owner).Examined(item) ? null : new InstallNotExaminedError());
+            return new() { Failed = error != null || !slot.Compatible || slot.ContainedItem != null, Error = error, Value = new()
                 { Item = (Weapon)item, From = item.Parent, To = to, ItemsToDestroy = new[] { new ItemsCount(item, DestroyOnMove ? 1 : 0, DestroyOnMove ? 0 : 1) } } };
         }
     }
+    public class InstallNotExaminedError { }
     public class InventoryController : ItemController
     {
         public Inventory Inventory;
@@ -101,6 +104,12 @@ namespace EFT.InventoryLogic
         public Callback Completion;
         public InventoryController() : base(null, "", "") { Inventory = new(this); }
         public bool CanExecute(Plan plan) => Allowed;
+        public bool Examined(Item item)
+        {
+            bool result = item.ExaminedByDefault;
+            ArenaMode.Pickups.ArenaPickupExamination.Apply(this, item, ref result);
+            return result;
+        }
         public void RunNetworkTransaction(Plan plan, Callback callback)
         {
             Submitted++;
@@ -229,6 +238,8 @@ namespace ArenaMode.Pickups
     public static class ArenaPickupRuntime
     {
         public static int Generation;
-        public static bool IsLiveActor(EFT.Player player) => player.Live;
+        public static bool ScopeLive = true;
+        public static bool IsLiveActor(EFT.Player player) => ScopeLive && player.Live;
     }
 }
+namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive = true; } }

@@ -25,6 +25,12 @@ function AsyncBody($Method) {
     return @($arenaState.Methods | Where-Object Name -eq 'MoveNext')[0]
 }
 try {
+    $arenaExamined = Method 'EFT.InventoryLogic.InventoryController' 'Examined' 'EFT.InventoryLogic.Item'
+    Require ($arenaExamined.ReturnType.FullName -eq 'System.Boolean' -and !$arenaExamined.HasGenericParameters) 'examination hook is the concrete non-generic item overload'
+    Require ((Calls $arenaExamined 'get_ExaminedByDefault').Count -eq 1 -and (Calls $arenaExamined 'Examined').Count -eq 1) 'native examination reads the individual template and profile knowledge'
+    $arenaSlotExamined = Method 'EFT.InventoryLogic.Slot' 'Examined' 'EFT.InventoryLogic.Item'
+    Require ($arenaExamined.IsVirtual -and !$arenaExamined.IsNewSlot) 'inventory examination overrides the native base virtual slot'
+    Require (@((Calls $arenaSlotExamined 'Examined') | Where-Object { $_.OpCode.Code -eq 'Callvirt' -and $_.Operand.DeclaringType.FullName -eq 'EFT.InventoryLogic.ItemController' -and ($_.Operand.Parameters.ParameterType.FullName -join ',') -eq 'EFT.InventoryLogic.Item' }).Count -eq 1) 'slot admission dispatches to the inventory examination override'
     $arenaLimits = Method 'EFT.InventoryLogic.ChangeDiscardLimitsResult' '.ctor' 'EFT.InventoryLogic.Item,System.Int32,EFT.InventoryLogic.IAntiRMTItemController,EFT.InventoryLogic.ItemAddress'
     $arenaCount = @($arenaLimits.Body.Instructions | Where-Object { $_.OpCode.Code -eq 'Newobj' -and $_.Operand.DeclaringType.FullName -eq 'EFT.InventoryLogic.ItemsCount' })
     Require ($arenaCount.Count -eq 1) 'discard bookkeeping constructs exactly one ItemsCount'

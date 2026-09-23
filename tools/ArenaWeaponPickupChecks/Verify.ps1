@@ -11,9 +11,10 @@ $arenaDefinition = & dotnet run --project (Join-Path $PSScriptRoot 'Definition/M
 if ($LASTEXITCODE -ne 0 -or !$arenaDefinition.Contains('ARENA M60 DEFINITION PASSED')) { throw $arenaDefinition }
 [IO.File]::WriteAllText((Join-Path $arenaWork 'm60-definition.log'), $arenaDefinition)
 Write-Output $arenaDefinition.Trim()
-function Run-Adapter([string]$Name, [string]$Override = '') {
+function Run-Adapter([string]$Name, [string]$Override = '', [string]$ExaminationOverride = '') {
     $arenaArgs = @('run', '--project', (Join-Path $PSScriptRoot 'ArenaWeaponPickupChecks.csproj'), '-c', 'Release')
     if ($Override) { $arenaArgs += "-p:PickupSource=$Override" }
+    if ($ExaminationOverride) { $arenaArgs += "-p:ExaminationSource=$ExaminationOverride" }
     $arenaText = (& dotnet @arenaArgs 2>&1 | ForEach-Object { "$_" }) -join "`n"
     $arenaExit = $LASTEXITCODE
     [IO.File]::WriteAllText((Join-Path $arenaWork ($Name + '.log')), $arenaText)
@@ -31,6 +32,8 @@ $arenaResult = Run-Adapter 'production'
 if ($arenaResult.Code -ne 0 -or !$arenaResult.Output.Contains('ARENA WEAPON ADAPTER PASSED')) { throw $arenaResult.Output }
 Write-Output $arenaResult.Output
 $arenaFaults = @(
+    @('no-pickup-knowledge', 'ArenaPickupExamination.Remember(_generatedItems, player, _world, _generation);', '', 'unknown generated weapon admits native transfer'),
+    @('later-ordinary-parts', 'Remember(_generatedItems, player, _world, _generation)', 'Remember(_weapon.GetAllItems(), player, _world, _generation)', 'same-id or later attached ordinary loot is not granted knowledge'),
     @('lost-native-refusal', 'DescribeError(plan.Error)', '"unknown native error"', 'each attempted slot retains the native error type'),
     @('zero-destroy-bookkeeping', 'Any(count => count.NumberToDestroy > 0)', 'Any()', 'free compatible secondary starts'),
     @('active-slot', 'slot.ContainedItem != null || ReferenceEquals(slot, player.ActiveSlot)', 'slot.ContainedItem != null', 'empty-hands native transfer admitted'),
@@ -44,6 +47,19 @@ try {
         $arenaMutant = Join-Path $arenaWork ($arenaFault[0] + '.cs')
         [IO.File]::WriteAllText($arenaMutant, $arenaSource.Replace($arenaFault[1], $arenaFault[2]))
         $arenaResult = Run-Adapter $arenaFault[0] $arenaMutant
+        if ($arenaResult.Code -eq 0 -or !$arenaResult.Output.Contains('ASSERT: ' + $arenaFault[3])) { throw $arenaResult.Output }
+        Write-Output "NEGATIVE CONTROL PASSED: $($arenaFault[0])"
+    }
+    $arenaExamination = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client/Pickups/ArenaPickupExamination.cs')).Replace("`r`n", "`n")
+    foreach ($arenaFault in @(
+        @('knowledge-round', 'grant.Generation != ArenaPickupRuntime.Generation', 'false', 'examination rejects stale round'),
+        @('knowledge-world', '!ReferenceEquals(Singleton<GameWorld>.Instance, world)', 'false', 'examination rejects stale world'),
+        @('knowledge-live', '!ArenaPickupRuntime.IsLiveActor(player) || player.IsAI', 'player.IsAI', 'examination rejects stale dead')
+    )) {
+        if (($arenaExamination.Split([string[]]@($arenaFault[1]), [StringSplitOptions]::None)).Count -ne 2) { throw "Expected one examination mutation site: $($arenaFault[0])" }
+        $arenaMutant = Join-Path $arenaWork ($arenaFault[0] + '.cs')
+        [IO.File]::WriteAllText($arenaMutant, $arenaExamination.Replace($arenaFault[1], $arenaFault[2]))
+        $arenaResult = Run-Adapter $arenaFault[0] '' $arenaMutant
         if ($arenaResult.Code -eq 0 -or !$arenaResult.Output.Contains('ASSERT: ' + $arenaFault[3])) { throw $arenaResult.Output }
         Write-Output "NEGATIVE CONTROL PASSED: $($arenaFault[0])"
     }
