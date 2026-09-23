@@ -1,0 +1,48 @@
+{
+  "SourceCommit": "aac5822b693e6408b76de5f0a5f05373df010d48",
+  "CompletedUtc": "2026-09-23T09:44:53.6736272Z",
+  "ClientMvid": "bc4ca929-9b8f-4a3c-87b1-dda64625fbc0",
+  "CompatMvid": "bef884ae-e69e-4bf2-b68e-e80b0c63f621",
+  "Artifacts": [
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\ff7d96aed3e54ebb995cc04d7e89a5c8\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\health-objective-deploy\\65ba2c20e3c342cc8136c0902666cd6a\\0-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "2AB51B569ED9D339DB6FD84F3961B2A2D1976EBD94DDAEC08112AE66B4766551",
+      "Sha256": "0208A9E0FFAE708936B7603720F2B4CF202EBD9627FBF4D626CA16D6D9B1D11F"
+    },
+    {
+      "Kind": "Compat",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\ff7d96aed3e54ebb995cc04d7e89a5c8\\compat\\maschine-ArenaMode.BigBrainCompat.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\health-objective-deploy\\65ba2c20e3c342cc8136c0902666cd6a\\1-maschine-ArenaMode.BigBrainCompat.dll",
+      "BeforeSha256": "400F3E8D746D12BE03A0DFA5D5E68D12A0F9A2D4FC124B0EBB9D92FB9BC650DE",
+      "Sha256": "72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1"
+    },
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\ff7d96aed3e54ebb995cc04d7e89a5c8\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\health-objective-deploy\\65ba2c20e3c342cc8136c0902666cd6a\\2-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "2AB51B569ED9D339DB6FD84F3961B2A2D1976EBD94DDAEC08112AE66B4766551",
+      "Sha256": "0208A9E0FFAE708936B7603720F2B4CF202EBD9627FBF4D626CA16D6D9B1D11F"
+    },
+    {
+      "Kind": "Compat",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\ff7d96aed3e54ebb995cc04d7e89a5c8\\compat\\maschine-ArenaMode.BigBrainCompat.dll",
+      "Destination": "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\health-objective-deploy\\65ba2c20e3c342cc8136c0902666cd6a\\3-maschine-ArenaMode.BigBrainCompat.dll",
+      "BeforeSha256": "400F3E8D746D12BE03A0DFA5D5E68D12A0F9A2D4FC124B0EBB9D92FB9BC650DE",
+      "Sha256": "72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1"
+    }
+  ],
+  "Untouched": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "\\\\192.168.178.114\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660"
+  },
+  "LiveGpuTested": false,
+  "Limitation": "Disk delivery verified under exclusive file locks. UiBridge was unreachable; no claim about loaded EFT modules, native paths, visuals or profile acceptance. Restart EFT for testing."
+}

@@ -217,6 +217,11 @@ other ideas below remain proposals, not enabled game rules or promised dates.
 Sequence: health pickups and bot powerup objectives first; the control-point
 prototype afterwards. Avoid a large new configuration surface.
 
+2026-09-23 delivery: health pickups and optional BigBrain pickup objectives are
+implemented in `aac5822`; see `PICKUP-OBJECTIVES-REVIEW.md` and the dated handoff.
+Offline verification and local/GPU disk delivery are complete; native gameplay
+acceptance remains open. The remaining variants/announcements above are deferred.
+
 ## Private online Arena with an optional Fika integration
 
 Recorded 2026-09-21 at the user's request. **Planning only; no multiplayer

@@ -1,11 +1,37 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-22. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-23. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Heilungs-Pickups und gezielte Bot-Pickup-Suche EINGESPIELT (2026-09-23, Codex):**
+  Fahrplan `9a9bf82`, Umsetzung/Tests `aac5822`. Client-SHA256
+  `0208A9E0FFAE708936B7603720F2B4CF202EBD9627FBF4D626CA16D6D9B1D11F`,
+  MVID `bc4ca929-9b8f-4a3c-87b1-dda64625fbc0`; BigBrainCompat-SHA256
+  `72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1`,
+  MVID `bef884ae-e69e-4bf2-b68e-e80b0c63f621`. Beide DLLs lokal/GPU identisch
+  unter exklusiven Dateisperren eingespielt, Sicherungen im Lieferbeleg.
+  **Noch kein In-Raid-Test und kein Nachweis geladener Module**: UiBridge war
+  nicht erreichbar. EFT für den Test neu starten; nichts am Server/Core geändert.
+  Factory Tag/Nacht hat nun sechs Pickups aus denselben acht Positionskandidaten:
+  weißes Heilungs-Kreuz, bis 75 HP, 20s Wiederkehr, keine Wundheilung oder Reparatur
+  ausgeschalteter Körperteile. Eigene `Pickups.json` bleiben unverändert und
+  benötigen einen selbst ergänzten `Health`-Punkt. Nur DM/unabhängiges TDM.
+  Optionale bestehende BigBrain-1.5.0-Erweiterung steuert Bots zu nützlicher
+  Heilung/DD/Schild; Kampf/Gefahr haben Vorrang, Wege/Versuche sind begrenzt.
+  Keine neue Einstellungsflut, kein PFT-Pursuit-Umbau, keine Waffenaufnahme für Bots.
+  Source-linked: 345 Prüfungen inkl. Pickup-Basis und zehn gezielt abgewiesene
+  Fehlerkontrollen; bestehende Pickup-Suite 226 + 30 Quellverträge/14 Kontrollen.
+  Integration Assist/HUD/Movement/DM/TDM grün, PFT-Pursuit 42, TDM-Suche 104;
+  Unit-Suite 764 bestanden/2 vorhandene Überspringer (Factory-Installationsfall,
+  APBS-Integration), vorhandene doppelte Test-ID gemeldet. Native Client-/Compat-
+  Builds ohne Einspiele-Nebenwirkung grün. Unabhängiger Review ohne offene
+  konkrete P0–P2-Befunde nach Fixes für Callback-Rundenwechsel, Tür-Rückkehr und
+  endgültige Claim-Invalidierung. Verhalten/Abnahmefälle und Grenzen stehen in
+  `PICKUP-OBJECTIVES-REVIEW.md`; Lieferung `HEALTH-PICKUPS-DEPLOYMENT-20260923.json`.
 
 - **Einheitlicher Arena-Look EINGESPIELT (2026-09-22, Codex):** Umsetzung `fa8acae`,
   native Nachbesserung `d9d408c`; Client-SHA256
