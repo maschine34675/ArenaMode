@@ -185,6 +185,38 @@ routes and suitable team spawns. Assess reuse of independent Team Deathmatch tea
 handling without assuming PFT is required. Preserve Arena-only state and profile
 isolation; detailed feasibility, rules and other candidate modes remain open.
 
+## Arena flow, pickups and later variants
+
+Accepted for this roadmap on 2026-09-23. Only **health pickups and purposeful bot
+movement to useful available powerups** are the next implementation task. The
+other ideas below remain proposals, not enabled game rules or promised dates.
+
+1. **Contested powerups:** make Double Damage and strong weapon pickups valuable
+   map destinations, with recognizable places and eventually a short notice before
+   they return. Bots should deliberately seek eligible useful powerups rather than
+   collect them only by chance. Do not send bots to local-only weapon pickups.
+   Preserve immediate combat/danger responses and bound failed navigation attempts.
+2. **Small health pickups:** Deathmatch and independent TDM only; a limited amount
+   of HP without automatically curing bleeding, fractures or every injury. Keep
+   damage/bleeding meaningful. Use the existing placement/cooldown infrastructure;
+   healing must not alter a persistent profile or require an inventory item.
+3. **Classic weapon-pickup Deathmatch:** a separate optional variant with the same
+   basic starting equipment for everyone and stronger weapons acquired in the map.
+   Do not silently replace the existing kit-based Deathmatch.
+4. **King of the Hill before CTF:** start with one contested control point and
+   objective-aware bots. The earlier `CONTROL-POINT-REVIEW.md` decision remains;
+   pickup navigation is a useful bounded precursor, not proof of a complete
+   objective mode or permission to widen the PFT pursuit contract.
+5. **Jump pads and occasional teleporters:** possible later additions for faster
+   routes and vertical play. Safe landings, bot navigation, area boundaries and
+   respawn/round cleanup need separate design and native tests first.
+6. **Instagib:** optional fun variant with the same precise weapon, one-hit kills
+   and immediate respawns. Separate balance/profile-safe rules; not a change to
+   ordinary Deathmatch damage or the existing Double Damage effect.
+
+Sequence: health pickups and bot powerup objectives first; the control-point
+prototype afterwards. Avoid a large new configuration surface.
+
 ## Private online Arena with an optional Fika integration
 
 Recorded 2026-09-21 at the user's request. **Planning only; no multiplayer
