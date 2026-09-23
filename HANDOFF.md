@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Waffen-Pickup: Ablehnung genauer protokolliert (2026-09-23, Codex):**
+  Aktuelles GPU-Log 17:02–17:19: neun Ablehnungen bereits in der nativen
+  Transferplanung, auch bei drei freien inaktiven Waffenplätzen. Der bisherige
+  Zähler `incompatible` unterschied keine Fehlerursachen; eine konkrete Ursache
+  ist aus diesem Lauf daher nicht bewiesen. Neue Diagnose nennt Fehlerklasse und
+  Beschreibung pro Zielslot (`reasons` / `planRejected`); keine Inventarprüfung
+  gelockert, kein Profil-/Untersuchungszustand verändert. Siehe PICKUPS-REVIEW.md.
+  Dies ist noch kein bestätigter Aufnahme-Fix. Nächster Test nach Client-Neustart:
+  freien zweiten Waffenplatz lassen und M60-Pickup erneut betreten; bei Ablehnung
+  die neue `reasons`-Zeile auswerten. Native Laufzeitprüfung hier nicht möglich
+  (UiBridge nicht erreichbar).
+
 - **Heilungs-Pickups und gezielte Bot-Pickup-Suche EINGESPIELT (2026-09-23, Codex):**
   Fahrplan `9a9bf82`, Umsetzung/Tests `aac5822`. Client-SHA256
   `0208A9E0FFAE708936B7603720F2B4CF202EBD9627FBF4D626CA16D6D9B1D11F`,

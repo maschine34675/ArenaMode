@@ -8,6 +8,14 @@ using UnityEngine;
 
 internal static class Program
 {
+    private sealed class NativeRefusal
+    {
+        public override string ToString() => "not examined\r\n" + new string('x', 900);
+    }
+    private sealed class BrokenRefusal
+    {
+        public override string ToString() => throw new InvalidOperationException("retired native object");
+    }
     private static int _checks;
     private static bool _current;
     private static GameWorld _world;
@@ -29,6 +37,7 @@ internal static class Program
         KitBundlePreloader.Done = false;
         KitBuilder.Next = new(); KitBuilder.Built = 0; KitBuilder.Registered = 0;
         ItemManipulator.Simulations = 0; ItemManipulator.DestroyOnMove = false;
+        ItemManipulator.Rejection = null; ArenaMode.Plugin.ModLogger.Messages.Clear();
         P.ActiveSlot = Slot(EquipmentSlot.FirstPrimaryWeapon);
         P.ActiveSlot.ContainedItem = new Weapon();
         Slot(EquipmentSlot.Holster).Compatible = false;
@@ -114,6 +123,22 @@ internal static class Program
                 if (scenario == "full") Check(h.LastRefusal.Contains("free an inactive"), "full slots explain refusal");
                 if (scenario == "can-execute") Check(h.LastRefusal.Contains("inventory rejected"), "native rejection is not reported as full slots");
                 h.Dispose(); Check(_world.Destroyed == 1, "untransferred visual is cleaned once");
+            }
+
+            foreach (var error in new object[] { new NativeRefusal(), new BrokenRefusal() })
+            {
+                Reset(); h = Prepare(); ItemManipulator.Rejection = error;
+                Check(!h.TryTake(P, () => true, _ => throw new Exception()), "native plan refusal remains refused");
+                Check(Inv.Submitted == 0 && h.IsAvailable, "diagnostics neither submit nor consume failed pickup");
+                Check(h.LastRefusal.Contains("native inventory refused"), "plan failure is not falsely reported as incompatible slots");
+                string diagnostic = ArenaMode.Plugin.ModLogger.Messages.Last();
+                Check(diagnostic.Contains("SecondPrimaryWeapon=" + error.GetType().Name)
+                    && diagnostic.Contains("Holster=" + error.GetType().Name), "each attempted slot retains the native error type");
+                Check(!diagnostic.Contains('\n') && !diagnostic.Contains('\r') && diagnostic.Length < 1400,
+                    "native refusal diagnostic is bounded and single line");
+                Check(error is BrokenRefusal ? diagnostic.Contains("description unavailable") : diagnostic.Contains("not examined"),
+                    "native error detail is preserved or formatting failure contained");
+                h.Dispose();
             }
 
             foreach (var scenario in new[] { "round", "raid", "body", "dead", "caller", "slot-filled", "active-slot", "hands", "inventory", "dispose" })

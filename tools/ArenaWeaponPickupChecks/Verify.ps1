@@ -31,6 +31,7 @@ $arenaResult = Run-Adapter 'production'
 if ($arenaResult.Code -ne 0 -or !$arenaResult.Output.Contains('ARENA WEAPON ADAPTER PASSED')) { throw $arenaResult.Output }
 Write-Output $arenaResult.Output
 $arenaFaults = @(
+    @('lost-native-refusal', 'DescribeError(plan.Error)', '"unknown native error"', 'each attempted slot retains the native error type'),
     @('zero-destroy-bookkeeping', 'Any(count => count.NumberToDestroy > 0)', 'Any()', 'free compatible secondary starts'),
     @('active-slot', 'slot.ContainedItem != null || ReferenceEquals(slot, player.ActiveSlot)', 'slot.ContainedItem != null', 'empty-hands native transfer admitted'),
     @('late-scope', '&& IsAvailable && Eligible(player, isCurrent)', '&& IsAvailable', 'native boundary rejects delayed round'),

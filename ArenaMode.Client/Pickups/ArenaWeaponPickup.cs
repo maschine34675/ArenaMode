@@ -8,6 +8,7 @@ using EFT.InventoryLogic;
 using EFT.InventoryLogic.Operations;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -145,6 +146,7 @@ internal static class ArenaWeaponPickup
             var equipment = inventory.Inventory?.Equipment;
             if (equipment == null) return false;
             int free = 0, rejected = 0, blocked = 0, destructive = 0;
+            var refusals = new List<string>(WeaponSlots.Length);
             foreach (var slotName in WeaponSlots)
             {
                 var slot = equipment.GetSlot(slotName);
@@ -153,12 +155,22 @@ internal static class ArenaWeaponPickup
                 if (slot == null || slot.ContainedItem != null || ReferenceEquals(slot, player.ActiveSlot)) continue;
                 free++;
                 var plan = ItemManipulator.Move(_weapon, slot.CreateItemAddress(), inventory, simulate: true);
-                if (plan.Failed) { rejected++; continue; }
-                if (!inventory.CanExecute(plan.Value)) { blocked++; continue; }
+                if (plan.Failed)
+                {
+                    rejected++;
+                    refusals.Add($"{slotName}={DescribeError(plan.Error)}");
+                    continue;
+                }
+                if (!inventory.CanExecute(plan.Value))
+                {
+                    blocked++;
+                    refusals.Add($"{slotName}=CanExecute:false");
+                    continue;
+                }
                 // Native ChangeDiscardLimitsResult also enumerates preserved items
                 // as ItemsCount(item, 0, count). Only a positive loss is destructive.
                 if (plan.Value.ItemsToDestroy?.Any(count => count.NumberToDestroy > 0) == true)
-                { destructive++; continue; }
+                { destructive++; refusals.Add($"{slotName}=would discard items"); continue; }
 
                 var hands = player.HandsController;
                 IsPending = true;
@@ -218,9 +230,26 @@ internal static class ArenaWeaponPickup
             LastRefusal = free == 0 ? "free an inactive weapon slot"
                 : destructive > 0 ? "transfer would discard items"
                 : blocked > 0 ? "inventory rejected the transfer"
-                : "no compatible inactive weapon slot";
-            Plugin.ModLogger.LogInfo($"Arena pickup weapon not taken: {LastRefusal}; free={free}, incompatible={rejected}, blocked={blocked}, destructive={destructive}.");
+                : "native inventory refused the weapon (see log)";
+            // A failed Move is not necessarily a slot filter mismatch: native
+            // examination, search, locking and other restrictions fail here too.
+            // Preserve the actual error without weakening any transfer checks.
+            Plugin.ModLogger.LogInfo($"Arena pickup weapon not taken: {LastRefusal}; free={free}, planRejected={rejected}, blocked={blocked}, destructive={destructive}; reasons=[{string.Join("; ", refusals)}].");
             return false;
+        }
+
+        private static string DescribeError(object error)
+        {
+            if (error == null) return "unknown native error";
+            string type = error.GetType().Name;
+            // Diagnostics must not turn an ordinary refusal into a thrown pickup
+            // operation if an error's formatter accesses a retired native object.
+            try
+            {
+                string detail = (error.ToString() ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ');
+                return type + ": " + (detail.Length > 512 ? detail.Substring(0, 512) : detail);
+            }
+            catch { return type + " (description unavailable)"; }
         }
 
         private bool Eligible(Player player, Func<bool> isCurrent)

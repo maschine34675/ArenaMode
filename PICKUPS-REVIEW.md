@@ -159,6 +159,34 @@ or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excl
 
 ## Native boundaries
 
+### Weapon refusal diagnosis (2026-09-23)
+
+The MASCHINE11 run 17:02–17:19 recorded nine `Arena pickup weapon not taken`
+messages (first 17:05:56.541), all with native Move simulation failures for every
+free inactive slot. At 17:06:17.207 and 17:06:18.748 even three slots were free.
+No transaction was submitted in these attempts. The old `incompatible` counter
+included **every** failed Move, so neither physical incompatibility nor insufficient
+space nor a specific other mod is established by this log. There is no recorded
+native error object to reconstruct the actual cause after the raid.
+
+Refusals now log the native error type/detail separately for each attempted slot;
+`planRejected` replaces the misleading `incompatible` label, and the HUD no longer
+claims slot incompatibility for an unspecified planning error. Details are bounded
+to 512 characters per slot, single-line and protected against throwing formatters.
+This is a diagnostic change, **not a proven fix for weapon collection**. The Move,
+CanExecute, destruction, inactive-slot and delayed ownership checks are unchanged.
+Native `ItemManipulator.Move` / `CanModifyItem` / `Add` and `Slot.CheckConditions`
+can reject for distinct search, lock, examination, filter or other restrictions.
+No examination state or profile is changed to bypass them.
+
+Next native test: restart EFT, leave a secondary weapon slot empty, then approach
+the M60 and retain the `reasons=[SecondPrimaryWeapon=...]` log line if refused.
+Leaving and reentering the pickup remains required for a retry. UiBridge was
+unreachable during diagnosis, so no fresh runtime reproduction is claimed.
+The adapter checks cover error identity/detail, multiple target slots, bounded
+formatting, a throwing formatter and unchanged refusal/consumption behavior; a
+compiled negative control removes the error detail and must fail those checks.
+
 - Infinite Ammo intercepts only `FireOperationBase.ProcessInventoryOperationsForSingleShot`
   with no malfunction, on the exact current local player's current hands/operation.
   It gives the native shot a detached one-round clone of the actual chamber/top

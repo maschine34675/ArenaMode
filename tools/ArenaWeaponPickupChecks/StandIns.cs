@@ -77,17 +77,18 @@ namespace EFT.InventoryLogic
     public class ItemsCount(Item item, int destroy, int preserve)
     { public Item Item=item; public int NumberToDestroy=destroy, NumberToPreserve=preserve; }
     public class Plan { public Weapon Item; public ItemAddress From, To; public IEnumerable<ItemsCount> ItemsToDestroy; }
-    public class PlanResult { public bool Failed; public Plan Value; }
+    public class PlanResult { public bool Failed; public Plan Value; public object Error; }
     public static class ItemManipulator
     {
         public static int Simulations;
         public static bool DestroyOnMove;
+        public static object Rejection;
         public static PlanResult Move(Item item, ItemAddress to, ItemController owner, bool simulate = false)
         {
             if (!simulate) throw new Exception("native simulation required before submission");
             Simulations++;
             var slot = (Slot)to.Container;
-            return new() { Failed = !slot.Compatible || slot.ContainedItem != null, Value = new()
+            return new() { Failed = Rejection != null || !slot.Compatible || slot.ContainedItem != null, Error = Rejection, Value = new()
                 { Item = (Weapon)item, From = item.Parent, To = to, ItemsToDestroy = new[] { new ItemsCount(item, DestroyOnMove ? 1 : 0, DestroyOnMove ? 0 : 1) } } };
         }
     }
@@ -193,7 +194,12 @@ namespace EFT
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger = new(); }
-    public class Logger { public void LogWarning(string message) { } public void LogInfo(string message) { } }
+    public class Logger
+    {
+        public List<string> Messages = new();
+        public void LogWarning(string message) => Messages.Add(message);
+        public void LogInfo(string message) => Messages.Add(message);
+    }
 }
 namespace ArenaMode.Kits
 {
