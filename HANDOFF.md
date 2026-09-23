@@ -8,6 +8,15 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - **Waffen-Pickup: Ablehnung genauer protokolliert (2026-09-23, Codex):**
+  Diagnose-Commit `a5a6fa2` auf master, Client lokal/GPU eingespielt und identisch:
+  SHA256 `52E873A85DD010D3150E97656E3EF362FF4FAFF58F84F63397085E765E08178A`.
+  Lieferbeleg `WEAPON-PICKUP-DIAGNOSTICS-DEPLOYMENT-20260923.json`; Server,
+  Redeploy.Core und BigBrainCompat unverändert. Build grün (vier bestehende
+  CS8632-Warnungen); Waffenadapter 120 Prüfungen, sechs absichtlich erkannte
+  Fehlerkontrollen, 46 installierte native Verträge und 59 M60-Definitionstests.
+  Gegenprüfung des Diffs: nur Diagnose/Anzeige verändert, keine neue Transaktion,
+  keine Lockerung der Eigentums-/Runden-/Hands-Prüfungen; Formatter-Ausnahmen
+  abgefangen, Ausgaben begrenzt. Kein unabhängiger Laufzeittest behauptet.
   Aktuelles GPU-Log 17:02–17:19: neun Ablehnungen bereits in der nativen
   Transferplanung, auch bei drei freien inaktiven Waffenplätzen. Der bisherige
   Zähler `incompatible` unterschied keine Fehlerursachen; eine konkrete Ursache
