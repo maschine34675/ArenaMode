@@ -13,7 +13,7 @@ using EFT;
 using UnityEngine;
 using UnityEngine.AI;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static readonly string Scratch=Path.Combine(Path.GetTempPath(),"ArenaPickupChecks-"+Guid.NewGuid().ToString("N"));
@@ -92,7 +92,7 @@ internal static class Program
     private static void Layouts()
     {
         var factory=ArenaPickupLayouts.Factory("spartan");Check(factory.Layouts.Count==2,"Factory day and night supplied");
-        Check(factory.Layouts.All(x=>x.Points.Count==5&&x.Points.Select(p=>p.Kind).Distinct().Count()==5),"each factory prototype has all pickup kinds");
+        Check(factory.Layouts.All(x=>x.Points.Count==6&&x.Points.Select(p=>p.Kind).Distinct().Count()==6),"each factory prototype has all pickup kinds");
         Check(ArenaPickupLayouts.Select(factory,"FACTORY4_DAY",null)!=null,"map identity case insensitive");
         Check(ArenaPickupLayouts.Select(factory,"factory4_day","new-area")==null,"area never falls back to full map");
         Check(ArenaPickupLayouts.Select(factory,"bigmap",null)==null,"unsupported map has no implicit pickups");
@@ -292,11 +292,11 @@ internal static class Program
         var originals=ArenaPickupLayouts.Candidates(definition,new Random(1));
         Physics.Capsule=(a,b,r)=>originals.Any(p=>(a.x-p.X)*(a.x-p.X)+(a.z-p.Z)*(a.z-p.Z)<.16f)?[new Collider()]:[];
         Step();var damage=ArenaPickupView.Created.Single(v=>v.Point.Kind==ArenaPickupKind.DoubleDamage);
-        Check(ArenaPickupView.Created.Count==5&&damage.Floor.x>damage.Point.X,"built-in runtime opts into safe fallback");
+        Check(ArenaPickupView.Created.Count==6&&damage.Floor.x>damage.Point.X,"built-in runtime opts into safe fallback");
         Check(originals.Any(p=>p.X==damage.Point.X&&p.Y==damage.Point.Y&&p.Z==damage.Point.Z),"relocation never mutates layout definitions");
         Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("factory-damage' relocated")&&s.Contains("pedestal clearance obstructed")),"relocation logs requested and chosen position plus original obstruction");
         System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(FileFor()));Dm.Round.Number++;Step();
-        Check(ArenaPickupView.Created.Count==10,"built-in fallback choice remains frozen across rounds");
+        Check(ArenaPickupView.Created.Count==12,"built-in fallback choice remains frozen across rounds");
 
         Fixture();var overlap=FileFor();var second=Point(ArenaPickupKind.Shield);second.Id="two";overlap.Layouts[0].Points.Add(second);
         second.X=2.5f;
@@ -334,7 +334,12 @@ internal static class Program
     }
     public static int Main(string[] args)
     {
-        try {Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();if(args.Length==1)NativeCandidates(args[0]);Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
+        try {
+            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();
+#if PICKUP_OBJECTIVES
+            ObjectiveCases();
+#endif
+            if(args.Length==1)NativeCandidates(args[0]);Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
         catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
         finally {ArenaMatchService.Current=null;ArenaPickupRuntime.Tick();}
     }

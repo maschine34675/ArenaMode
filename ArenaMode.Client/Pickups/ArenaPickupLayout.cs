@@ -8,7 +8,7 @@ using System.Linq;
 namespace ArenaMode.Pickups;
 
 [JsonConverter(typeof(StringEnumConverter))]
-internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots, InfiniteAmmo }
+internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots, InfiniteAmmo, Health }
 
 internal sealed class ArenaPickupPosition
 {
@@ -110,7 +110,8 @@ internal static class ArenaPickupLayouts
                     new() { Id = "factory-weapon", Kind = ArenaPickupKind.Weapon, X = -5.89f, Y = .08f, Z = -27.46f, KitId = kit, RespawnSeconds = 45f },
                     // Native Bot-only marker 86ff84ac-edf7-4efd-9643-4bacc59073e7.
                     new() { Id = "factory-boots", Kind = ArenaPickupKind.JumpBoots, X = -6.77f, Y = .17f, Z = 10.01f },
-                    new() { Id = "factory-ammo", Kind = ArenaPickupKind.InfiniteAmmo, X = 13.78f, Y = -2.291f, Z = -21.65f, RespawnSeconds = 45f }
+                    new() { Id = "factory-ammo", Kind = ArenaPickupKind.InfiniteAmmo, X = 13.78f, Y = -2.291f, Z = -21.65f, RespawnSeconds = 45f },
+                    new() { Id = "factory-health", Kind = ArenaPickupKind.Health, X = -20.756f, Y = .166f, Z = 22.769f, RespawnSeconds = 20f }
                 }
             });
         // Shared candidate pool. Keep all four user-accepted positions, plus four

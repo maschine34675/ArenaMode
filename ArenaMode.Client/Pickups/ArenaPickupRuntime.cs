@@ -16,7 +16,7 @@ using UnityEngine;
 namespace ArenaMode.Pickups;
 
 /// <summary>Temporary scene/appearance owner. No actor inventory survives its native life.</summary>
-internal static class ArenaPickupRuntime
+internal static partial class ArenaPickupRuntime
 {
     private sealed class Entry
     {
@@ -46,6 +46,7 @@ internal static class ArenaPickupRuntime
     private static readonly System.Random PositionRandom = new(); // Never change Unity's shared RNG state.
     private static readonly Dictionary<Player, ActorSample> Actors = new();
     internal static int Generation { get; private set; }
+    internal static bool BotObjectivesAvailable { get; set; }
     internal static string LastNotice { get; private set; }
     internal static float NoticeUntil { get; private set; }
 
@@ -207,7 +208,8 @@ internal static class ArenaPickupRuntime
             }
             if (!placed) Plugin.ModLogger.LogWarning($"Arena pickup '{definition.Id}' skipped: all candidates refused; last reason: {lastReason}");
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, health up to 75HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickup bot routing: {(BotObjectivesAvailable && ArenaPickupSettings.BotsCollectPowerups.Value ? "available via BigBrain companion" : "inactive; passive collection only if enabled")}.");
     }
 
     private static bool Owns(int generation, Entry entry) => _live && Generation == generation
@@ -249,6 +251,7 @@ internal static class ArenaPickupRuntime
 
     private static void ScanActors()
     {
+        int generation = Generation;
         var live = _world.AllAlivePlayersList.Where(IsLiveActor).ToArray();
         foreach (var old in Actors.Keys.Where(player => !live.Contains(player)).ToArray()) Actors.Remove(old);
         foreach (var player in live)
@@ -283,6 +286,10 @@ internal static class ArenaPickupRuntime
             }
             if (ready) entry.NeedsEntry = false;
             if (closest != null) Collect(entry, closest);
+            // Native healing/inventory listeners can synchronously end or
+            // replace the round. Never advance the old Entries enumerator or
+            // mutate the replacement generation's actor samples afterwards.
+            if (generation != Generation) return;
         }
         foreach (var player in live)
         {
@@ -296,7 +303,8 @@ internal static class ArenaPickupRuntime
     private static bool CanCollect(Player player, ArenaPickupKind kind)
     {
         if (!IsLiveActor(player) || player.ActiveHealthController == null || player.ActiveHealthController.DamageCoeff <= 0f) return false;
-        if (player.IsAI) return (kind == ArenaPickupKind.DoubleDamage || kind == ArenaPickupKind.Shield) && ArenaPickupSettings.BotsCollectPowerups.Value;
+        if (kind == ArenaPickupKind.Health && ArenaHealthPickup.Missing(player) <= .001f) return false;
+        if (player.IsAI) return (kind == ArenaPickupKind.DoubleDamage || kind == ArenaPickupKind.Shield || kind == ArenaPickupKind.Health) && ArenaPickupSettings.BotsCollectPowerups.Value;
         if (kind == ArenaPickupKind.JumpBoots && !Movement.ArenaMovementScope.IsLocal(player)) return false;
         return Hud.ArenaHudVisibility.IsBattleUiActive && !ArenaRespawnDriver.IsRespawnInProgress && !WeaponSwapService.IsSwapping
             && player.InventoryController != null && !player.InventoryController.IsChangingWeapon;
@@ -308,10 +316,23 @@ internal static class ArenaPickupRuntime
         if (reservation == 0) return;
         entry.MustLeave.Add(player);
         int generation = Generation;
+        float healed = 0;
         if (entry.Definition.Kind == ArenaPickupKind.Weapon)
         {
             if (!entry.Weapon.TryTake(player, () => Owns(generation, entry) && CanCollect(player, ArenaPickupKind.Weapon), Complete))
                 Complete(false);
+        }
+        else if (entry.Definition.Kind == ArenaPickupKind.Health)
+        {
+            var result = ArenaHealthPickup.Apply(player, out healed);
+            if (result == ArenaHealingResult.Indeterminate)
+            {
+                // A native listener can throw after HP already changed. Do not
+                // rearm an appearance whose health mutation cannot be proven.
+                if (Owns(generation, entry)) entry.State.Retire();
+                Plugin.ModLogger.LogWarning($"Arena health pickup '{entry.Definition.Id}' retired after unconfirmed healing.");
+            }
+            else Complete(result == ArenaHealingResult.Applied);
         }
         else Complete(entry.Definition.Kind switch
         {
@@ -341,6 +362,7 @@ internal static class ArenaPickupRuntime
                     ArenaPickupKind.Shield => "SHIELD — 220 / 30s",
                     ArenaPickupKind.JumpBoots => "JUMP BOOTS — +100% HEIGHT / 30s",
                     ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO — 10s / LOADED MAGAZINE WEAPONS",
+                    ArenaPickupKind.Health => $"HEALTH — +{healed:0.#} HP",
                     _ => "WEAPON COLLECTED"
                 });
                 Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");

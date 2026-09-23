@@ -19,6 +19,7 @@ public sealed class Plugin : BaseUnityPlugin
     public const string BigBrainPluginGuid = "xyz.drakia.bigbrain";
     public const string SupportedBigBrainVersion = "1.5.0";
     public const int PursuitLayerPriority = 74;
+    public const int PickupLayerPriority = 35;
 
     private static readonly Version RequiredBigBrainVersion = new(1, 5, 0);
     private static readonly Version RequiredArenaVersion = new(0, 1, 0);
@@ -26,6 +27,15 @@ public sealed class Plugin : BaseUnityPlugin
     internal static bool RuntimeEnabled { get; private set; }
     internal static ManualLogSource ModLogger { get; private set; }
     private bool _consumerRegistered;
+    private float _nextPickupPrune;
+
+    private void Update()
+    {
+        if (UnityEngine.Time.time < _nextPickupPrune) return;
+        _nextPickupPrune = UnityEngine.Time.time + .5f;
+        try { ArenaPickupObjective.Prune(); }
+        catch { ArenaPickupObjective.ResetClaims(); }
+    }
 
     private void Awake()
     {
@@ -83,7 +93,15 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             _consumerRegistered = true;
+            int pickupLayerId = BrainManager.AddCustomLayer(typeof(ArenaPickupLayer), brains, PickupLayerPriority);
+            if (!BrainManager.CustomLayersReadOnly.TryGetValue(pickupLayerId, out var pickupLayer)
+                || pickupLayer.customLayerType != typeof(ArenaPickupLayer)
+                || pickupLayer.customLayerPriority != PickupLayerPriority
+                || brains.Any(brain => !pickupLayer.CustomLayerBrains.Contains(brain)))
+                throw new InvalidOperationException("BigBrain did not retain the Arena pickup layer registration.");
             RuntimeEnabled = true;
+            Pickups.ArenaPickupRuntime.BotObjectivesAvailable = true;
+            Logger.LogInfo($"Arena pickup layer {pickupLayerId} registered at priority {PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
             Logger.LogInfo(
                 $"Arena pursuit layer {layerId} registered for {brains.Count} brains "
                 + $"at priority {PursuitLayerPriority} (BigBrain {SupportedBigBrainVersion}).");
@@ -104,6 +122,8 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         RuntimeEnabled = false;
+        Pickups.ArenaPickupRuntime.BotObjectivesAvailable = false;
+        ArenaPickupObjective.ResetClaims();
         if (_consumerRegistered)
         {
             Bots.TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid);

@@ -11,6 +11,7 @@ internal sealed class ArenaPickupState
     internal float ReadyAt { get; private set; }
     private float _pendingUntil;
     private int _reservation;
+    internal int Appearance => _reservation;
 
     internal int Reserve(float now)
     {

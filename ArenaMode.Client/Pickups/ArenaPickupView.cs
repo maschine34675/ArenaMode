@@ -21,13 +21,14 @@ internal sealed class ArenaPickupView : IDisposable
     internal ArenaPickupView(ArenaPickupPoint point, Vector3 floor)
     {
         _floor = floor; _yaw = point.Yaw;
-        _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", ArenaPickupKind.JumpBoots => "JUMP BOOTS", ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO", _ => "WEAPON" };
+        _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", ArenaPickupKind.JumpBoots => "JUMP BOOTS", ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO", ArenaPickupKind.Health => "HEALTH +75", _ => "WEAPON" };
         Color color = point.Kind switch
         {
             ArenaPickupKind.DoubleDamage => new Color(1f, .25f, .7f),
             ArenaPickupKind.Shield => new Color(.25f, .8f, 1f),
             ArenaPickupKind.JumpBoots => new Color(.4f, 1f, .3f),
             ArenaPickupKind.InfiniteAmmo => new Color(1f, .35f, .06f),
+            ArenaPickupKind.Health => new Color(.95f, .95f, 1f),
             _ => new Color(1f, .75f, .2f)
         };
         _root = new GameObject("Arena pickup marker " + point.Id);
@@ -88,6 +89,22 @@ internal sealed class ArenaPickupView : IDisposable
                 _symbol.transform.localScale = point.Kind == ArenaPickupKind.Shield ? new Vector3(.32f, .42f, .12f) : Vector3.one * .3f;
                 var renderer = _symbol.GetComponent<Renderer>();
                 renderer.sharedMaterial = _material; renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
+                if (point.Kind == ArenaPickupKind.Health)
+                {
+                    _symbol.transform.localScale = Vector3.one;
+                    renderer.enabled = false;
+                    foreach (var size in new[] { new Vector3(.36f, .12f, .1f), new Vector3(.12f, .36f, .1f) })
+                    {
+                        var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        bar.transform.SetParent(_symbol.transform, false);
+                        bar.transform.localScale = size;
+                        var solid = bar.GetComponent<Collider>();
+                        if (solid != null) { solid.enabled = false; UnityEngine.Object.Destroy(solid); }
+                        var surface = bar.GetComponent<Renderer>();
+                        surface.sharedMaterial = _material;
+                        surface.shadowCastingMode = ShadowCastingMode.Off; surface.receiveShadows = false;
+                    }
+                }
             }
             var labelGo = new GameObject("Pickup label");
             labelGo.transform.SetParent(_root.transform, false);

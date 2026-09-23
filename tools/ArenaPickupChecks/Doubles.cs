@@ -91,12 +91,14 @@ namespace EFT
     public class Health { public bool IsAlive=true; public float DamageCoeff=1; }
     public class MovementContext { public bool IsGrounded=true; }
     public class Inventory { public bool IsChangingWeapon; }
-    public class BotOwner { public EBotState BotState=EBotState.Active;public Player GetPlayer; }
+    public partial class BotOwner { public EBotState BotState=EBotState.Active;public Player GetPlayer; }
     public class AIData { public BotOwner BotOwner; }
     public class Player
     {
         public string ProfileId; public bool IsAI,IsYourPlayer; public Vector3 Position;
-        public Health HealthController=new(),ActiveHealthController=new();
+        public Health HealthController=new();
+        public EFT.HealthSystem.ActiveHealthController ActiveHealthController;
+        public Player() { ActiveHealthController = new(){Player=this}; }
         public MovementContext MovementContext=new(); public Inventory InventoryController=new(); public AIData AIData;
     }
     public class GameWorld
@@ -126,7 +128,7 @@ namespace ArenaMode.Areas
     {
         public bool PointAllowed=true,PathAllowed=true;
         public bool Contains(float x,float y,float z,float inset)=>PointAllowed;
-        public bool ContainsPath<T>(ArenaMode.Shared.ArenaAreaPoint anchor,T[] points,bool closed,Func<T,ArenaMode.Shared.ArenaAreaPoint> projection,float inset)=>PathAllowed;
+        public bool ContainsPath<T>(ArenaMode.Shared.ArenaAreaPoint anchor,IReadOnlyList<T> points,bool closed,Func<T,ArenaMode.Shared.ArenaAreaPoint> projection,float inset)=>PathAllowed;
     }
     public class Area {public string Id;public Bounds Bounds=new();}
     public static class ArenaAreaRuntime { public static bool IsPending;public static Area CurrentArea; }
@@ -180,6 +182,8 @@ namespace ArenaMode.Pickups
         internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield",points,seconds));return GrantResult;}
         internal static bool GrantJump(Player p,float seconds){if(GrantResult)Grants.Add((p,"boots",0,seconds));return GrantResult;}
         internal static bool GrantAmmo(Player p,float seconds){if(GrantResult)Grants.Add((p,"ammo",0,seconds));return GrantResult;}
+        internal static ArenaPowerupSnapshot Snapshot;
+        internal static ArenaPowerupSnapshot Read(Player player)=>Snapshot;
     }
     internal sealed class ArenaPickupView:IDisposable
     {

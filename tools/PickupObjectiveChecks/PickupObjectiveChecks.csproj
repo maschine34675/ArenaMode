@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>PICKUP_OBJECTIVES</DefineConstants>
+    <PickupSourceRoot Condition="'$(PickupSourceRoot)' == ''">../../ArenaMode.Client/Pickups</PickupSourceRoot>
+    <ObjectiveSourceRoot Condition="'$(ObjectiveSourceRoot)' == ''">../../ArenaMode.BigBrainCompat</ObjectiveSourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Compile Include="../ArenaPickupChecks/Program.cs"/><Compile Include="../ArenaPickupChecks/Doubles.cs"/><Compile Include="../ArenaPickupChecks/HealthDoubles.cs"/>
+    <Compile Include="ObjectiveCases.cs"/><Compile Include="ObjectiveDoubles.cs"/>
+    <Compile Include="../../ArenaMode.Client/Kits/KitModels.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupWeapons.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupRuntime.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupState.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupLayout.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupGeometry.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaHealthPickup.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPowerupState.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupTargets.cs"/>
+    <Compile Include="$(ObjectiveSourceRoot)/ArenaPickupObjective.cs"/>
+    <Compile Include="$(ObjectiveSourceRoot)/ArenaPickupLayer.cs"/>
+    <Compile Include="$(ObjectiveSourceRoot)/ArenaPickupLogic.cs"/>
+  </ItemGroup>
+</Project>

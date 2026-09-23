@@ -15,16 +15,23 @@ The dated HANDOFF and deployment receipt bind final delivery and pending GPU wor
 
 ## Gameplay
 
+2026-09-23 extension: `Health` and optional deliberate bot collection are specified
+in `PICKUP-OBJECTIVES-REVIEW.md`. Factory now has six pickups from the same eight
+candidate positions. Historical five-point counts below describe the earlier build.
+
 | Pickup | Effect | Returns after |
 |---|---|---|
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
 | Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
+| Health (white cross) | Up to 75 HP on surviving damaged parts; wounds and native maxima remain | 20 seconds |
 | Jump Boots (green) | 100% more jump height for 30 gameplay seconds, including the existing double jump; no extra jump credit | 30 seconds |
 | Infinite Ammo (orange) | Loaded magazine firearms consume no cartridges for 10 gameplay seconds; no magazine reload needed | 45 seconds |
 | Weapon (gold) | Pickup-only M60E6 FDE copied from `retzrestdfg`, with attachments and 100 M993 rounds; no spare magazines or other equipment | 45 seconds |
 
 Effects refresh duration/refill the shield to its cap; they never stack. Both
-sides' living bots may collect damage/shield powerups by crossing them; this adds no AI routing.
+sides' living bots may collect damage/shield/health pickups by crossing them.
+The optional exact BigBrain companion also routes eligible bots to useful available
+pickups, with combat priority and bounded travel; see the objective review above.
 Jump Boots are local-only and require Arena movement enabled; bots leave them available.
 Infinite Ammo is local-only and does not fill an empty weapon or magazine.
 Weapon auto-take is **local only**, into a free compatible **inactive** weapon slot.
@@ -120,7 +127,7 @@ Example (reuses one Factory candidate):
 }
 ```
 
-Kinds: `DoubleDamage`, `Shield`, `Weapon`, `JumpBoots`, `InfiniteAmmo`. Weapons additionally require `KitId`.
+Kinds: `DoubleDamage`, `Shield`, `Weapon`, `JumpBoots`, `InfiniteAmmo`, `Health`. Weapons additionally require `KitId`.
 Limits: version1, 512KiB, 32 layouts, 64 points each, unique map/area pairs and point
 IDs, finite coordinates, cooldown10–600 seconds. Empty layouts are allowed.
 Each point optionally accepts `"Alternatives": [{"X": 1, "Y": 0, "Z": 2, "Yaw": 0}]`

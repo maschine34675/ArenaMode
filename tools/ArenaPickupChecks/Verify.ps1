@@ -93,7 +93,7 @@ try {
     )
     foreach ($fault in $faults) {
         $faultRoot = Join-Path $pickupEvidence ($fault.Name + '/source'); [void][IO.Directory]::CreateDirectory($faultRoot)
-        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs')) {
+        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs','ArenaHealthPickup.cs','ArenaPowerupState.cs')) {
             $text = [IO.File]::ReadAllText((Join-Path $pickupSource $name))
             if ($name -eq $fault.File) {
                 if ($text.Split(@($fault.Find), [StringSplitOptions]::None).Length -ne 2) { throw "Ambiguous fault anchor: $($fault.Name)" }
