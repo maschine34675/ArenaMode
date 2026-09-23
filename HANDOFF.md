@@ -8,6 +8,16 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - **M60-Aufnahme: Ursache bestätigt, temporärer Untersuchungsstatus (2026-09-23):**
+  Umsetzung `5d31353` auf master; nur Client lokal/GPU unter exklusiven
+  Dateisperren eingespielt, identische SHA256
+  `0DE9A41D06B58B3C55A7E47EDC4A2314BFDC5B6036261D0552A42DDEC0CEEDC1`.
+  Lieferbeleg `WEAPON-PICKUP-EXAMINATION-DEPLOYMENT-20260923.json`.
+  155 Adapterprüfungen, elf erkannte Fehlerkontrollen, 54 installierte native
+  Vertragsprüfungen und 59 M60-Definitionstests grün; Client-Build erfolgreich
+  (vier vorhandene CS8632-Warnungen). Server/Core/BigBrainCompat unverändert.
+  Gegenprüfung: keine Profil-/Template-Schreibzugriffe, Referenzidentitäten und
+  Phasengrenzen erhalten, schwache Referenzen halten keine alten Welten fest.
+  UiBridge nicht erreichbar; keine native Aufnahme oder Profilerhaltung getestet.
   GPU-Log 20:09:00.334/20:09:05.717 nennt `InstallNotExaminedError` für die M60
   selbst bei freiem zweitem Slot. Arena erkennt nun nur die konkreten erzeugten
   Pickup-Instanzen inklusive ursprünglicher Anbauteile für den aktuellen lokalen
