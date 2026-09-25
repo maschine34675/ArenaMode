@@ -50,7 +50,7 @@ internal static class InfoPanelSettings
             UseShortWeaponName = Bind(config, legacy, "Weapon", "UseShortName", true,
                 "Use the weapon short name instead of the full name.");
             ShowSpareMagCount = Bind(config, legacy, "Weapon", "ShowSpareMagCount", true,
-                "Show rig/pocket and backpack spare magazines separately. With Arena UseItemsAnywhere, backpack magazines also appear in reload selection.");
+                "Show full and partial spare magazines that the reload key can actually load right now. With Arena UseItemsAnywhere, that includes magazines lying directly in the backpack. Shell-by-shell weapons show loose rounds instead; backpack rounds are listed separately, since the reload key can never load those.");
 
             WeaponPanelOffset = Bind(config, legacy, "Weapon", "PanelOffset", new Vector2(-24f, 140f),
                 "Panel offset from the bottom-right corner (pixels).");
@@ -78,9 +78,9 @@ internal static class InfoPanelSettings
                 "Show current carried weight next to the health value.");
             WeightTextColor = Bind(config, legacy, "Status", "WeightColor",
                 new Color(0.82f, 0.86f, 0.90f, 0.96f),
-                "Text color for carried weight.");
+                "Text color for carried weight, also used for the body armor and helmet percentages while they are above ArmorWarningPercent.");
             ArmorWarningPercent = Bind(config, legacy, "Status", "ArmorWarningPercent", 35f,
-                "Zones at or below this remaining-durability percentage are additionally listed as text next to the paper doll (the zone fills themselves always show the green-to-red state).");
+                "The body armor and helmet percentages switch to the warning color at or below this remaining-durability percentage.");
 
 
     }

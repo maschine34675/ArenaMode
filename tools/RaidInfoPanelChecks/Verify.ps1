@@ -58,45 +58,46 @@ if (!$ProductionOnly) {
         '// deliberately omitted theme unsubscribe' 'Dispose unsubscribes theme handler'
     Invoke-PanelFault 'legacy-config-write' 'SettingsSource' 'InfoPanelSettings.cs' `
         'SaveOnConfigSet = false' 'SaveOnConfigSet = true' 'Legacy bind cannot write config'
-    Invoke-PanelFault 'tactical-vest-omitted' 'MagazineSource' 'MagazineInventoryCounter.cs' `
-        'Item tacticalVest = equipment.GetSlot(EquipmentSlot.TacticalVest).ContainedItem;' `
-        'Item tacticalVest = null;' 'Armored CompoundItem in TacticalVest counts full and partial ready mags expected'
     Invoke-PanelFault 'magazine-exception-retains-items' 'MagazineSource' 'MagazineInventoryCounter.cs' `
         'finally { Reset(); }' 'finally { /* deliberate scratch leak */ }' `
-        'Armored CompoundItem in TacticalVest counts full and partial ready mags releases scratch references'
+        'TacticalVest spares count as full and partial via the native reachable query releases scratch references'
+    Invoke-PanelFault 'magazine-backpack-hook-ignored' 'MagazineSource' 'MagazineInventoryCounter.cs' `
+        'if (ArenaBackpackReload.AppendsBackpackFor(controller))' 'if (true)' `
+        "Backpack magazines are not counted while Arena's backpack-reload hook is off expected"
+    Invoke-PanelFault 'magazine-nested-pouch-counted' 'MagazineSource' 'MagazineInventoryCounter.cs' `
+        'controller.GetAcceptableItemsNonAlloc(BackpackSlot, _backpackScratch, magazine => magazine.Count > 0);' `
+        'controller.GetAcceptableItemsNonAlloc(BackpackSlot, _backpackScratch, magazine => magazine.Count > 0); if (controller.Inventory.Equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem is CompoundItem backpackMutant && backpackMutant.Grids != null) foreach (var backpackGrid in backpackMutant.Grids) foreach (var backpackItem in backpackGrid.Items) if (backpackItem is CompoundItem backpackPouch && backpackPouch.Grids != null) foreach (var pouchGrid in backpackPouch.Grids) foreach (var pouchItem in pouchGrid.Items) if (pouchItem is Magazine pouchMag && pouchMag.Count > 0) _backpackScratch.Add(pouchMag);' `
+        'Nested pouch magazines, in the rig or the backpack, are never counted expected'
+    Invoke-PanelFault 'magazine-backpack-all-full' 'MagazineSource' 'MagazineInventoryCounter.cs' `
+        "                for (int i = 0; i < _backpackScratch.Count; i++)`n                {`n                    Magazine candidate = _backpackScratch[i];`n                    if (!ContainsReference(_magazineScratch, candidate))`n                    {`n                        _magazineScratch.Add(candidate);`n                    }`n                }" `
+        "                for (int i = 0; i < _backpackScratch.Count; i++)`n                {`n                    Magazine candidate = _backpackScratch[i];`n                    if (!ContainsReference(_magazineScratch, candidate) && IsSpareLoadedMagazine(candidate, magazineSlot))`n                    {`n                        summary.FullCount++;`n                    }`n                }" `
+        'With the hook on, backpack top-level magazines count as full/partial like any other spare expected'
     Invoke-PanelFault 'grenade-exception-retains-items' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
         'finally { Reset(); }' 'finally { /* deliberate scratch leak */ }' `
-        'Direct rig and pocket grenades are ready for the native quick throw releases scratch references'
+        'Direct rig and pocket grenades are on G and usable releases scratch references'
     Invoke-PanelFault 'grenade-exception-path-leak' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
         'try { return CollectSummary(player, out summary); } finally { Reset(); }' `
         'bool collected = CollectSummary(player, out summary); Reset(); return collected;' `
         'Classification exception propagates to UI but finally clears grenade scratch'
-    Invoke-PanelFault 'grenade-nested-counted-ready' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
-        'summary.Add(kind, ready: false);' 'summary.Add(kind, ready: true);' `
-        'Backpack and nested-pouch grenades are carried but not quick-throwable expected'
-    Invoke-PanelFault 'grenade-ready-from-carried-only' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
-        'if (TryClassify(_readyScratch[i], out GrenadeKind kind))' `
-        'if (ContainsReference(_carriedScratch, _readyScratch[i]) && TryClassify(_readyScratch[i], out GrenadeKind kind))' `
-        "With UseItemsAnywhere's slots, loose backpack and secure-container grenades are ready expected"
     Invoke-PanelFault 'grenade-native-reach-replaced' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
-        'controller.GetReachableItemsOfTypeNonAlloc(_readyScratch, grenade => controller.Examined(grenade));' `
-        'foreach (EquipmentSlot s in new[] { EquipmentSlot.Pockets, EquipmentSlot.TacticalVest }) if (equipment.GetSlot(s).ContainedItem is CompoundItem c) foreach (Grid g in c.Grids) foreach (Item it in g.Items) if (it is ThrowWeap t) _readyScratch.Add(t);' `
-        'An unexamined grenade is not a native quick-throw candidate expected'
+        'controller.GetReachableItemsOfTypeNonAlloc(_onGScratch, grenade => controller.Examined(grenade));' `
+        'foreach (EquipmentSlot s in new[] { EquipmentSlot.Pockets, EquipmentSlot.TacticalVest }) if (equipment.GetSlot(s).ContainedItem is CompoundItem c) foreach (Grid g in c.Grids) foreach (Item it in g.Items) if (it is ThrowWeap t) _onGScratch.Add(t);' `
+        'An unexamined pocket grenade is neither on G nor usable expected'
     Invoke-PanelFault 'grenade-stun-not-flash' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
         'case ThrowWeapType.stun_grenade:' '// stun case deliberately omitted' `
         'Stun grenades count as flash by type alone expected'
     Invoke-PanelFault 'grenade-secure-counted' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
         'CollectGrenades(equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem as CompoundItem, _carriedScratch);' `
         'CollectGrenades(equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem as CompoundItem, _carriedScratch); CollectGrenades(equipment.GetSlot(EquipmentSlot.SecuredContainer).ContainedItem as CompoundItem, _carriedScratch);' `
-        'ArmorVest and secure container grenades are excluded expected'
-    Invoke-PanelFault 'reserve-row-gap-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
-        '|| magazineRight + GroupGap + grenadeWidth <= ContentWidth;' `
-        '|| magazineRight + grenadeWidth <= ContentWidth;' `
-        'The group gap is part of the fit: 240 px of slots wrap'
-    Invoke-PanelFault 'reserve-row-magazines-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
-        '|| magazineRight + GroupGap + grenadeWidth <= ContentWidth;' `
-        '|| grenadeWidth <= ContentWidth;' `
-        'Three magazine kinds and three grenade kinds wrap'
+        "Arena's reach widening makes an examined backpack grenade usable without changing G's own list expected"
+    Invoke-PanelFault 'grenade-isatreachableplace-dropped' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        'bool usable = ContainsReference(_onGScratch, grenade) || controller.IsAtReachablePlace(grenade);' `
+        'bool usable = true;' `
+        "A grenade nested inside the rig is reachable without Arena's reach widening; a backpack grenade is not expected"
+    Invoke-PanelFault 'grenade-ong-from-usable-set' 'GrenadeSource' 'GrenadeInventoryCounter.cs' `
+        "            for (int i = 0; i < _onGScratch.Count; i++)`n            {`n                if (TryClassify(_onGScratch[i], out GrenadeKind kind))`n                {`n                    summary.AddOnG(kind);`n                }`n            }" `
+        "            for (int i = 0; i < _carriedScratch.Count; i++)`n            {`n                if (TryClassify(_carriedScratch[i], out GrenadeKind kind))`n                {`n                    summary.AddOnG(kind);`n                }`n            }" `
+        "A grenade nested inside the rig is reachable without Arena's reach widening; a backpack grenade is not expected"
     Invoke-PanelFault 'reserve-row-hidden-slot-reserves' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
         'lefts[i] = 0f;' 'lefts[i] = 0f; if (!visible[i]) { cursor += widths[i] + MagazineSpacing; }' `
         'A hidden full-magazine slot takes no room: partial starts at the left edge'
@@ -106,13 +107,6 @@ if (!$ProductionOnly) {
     Invoke-PanelFault 'reserve-row-estimate-removed' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
         'float text = usable ? measuredText : glyphs * fontSize * 0.65f;' 'float text = measuredText;' `
         'An unmeasured count falls back to a per-glyph estimate'
-    Invoke-PanelFault 'reserve-row-wrap-not-kept' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
-        '=> wrappedBefore || !GrenadesFitBeside(magazineRight, grenadeWidth);' `
-        '=> !GrenadesFitBeside(magazineRight, grenadeWidth);' `
-        'Drawing a grenade keeps a body''s wrap'
-    Invoke-PanelFault 'reserve-row-empty-magazines-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
-        '=> grenadeWidth <= 0f || magazineRight <= 0f' '=> grenadeWidth <= 0f' `
-        'One empty group always fits'
     Invoke-PanelFault 'reserve-row-grenade-order-reversed' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
         'for (int i = 0; i < visible.Length; i++)' 'for (int i = visible.Length - 1; i >= 0; i--)' `
         'Frag stays outermost when flashes are carried too'
@@ -120,9 +114,37 @@ if (!$ProductionOnly) {
         'bool usable = !float.IsInfinity(measuredText) && measuredText >= glyphs * fontSize * MinGlyphEm;' `
         'bool usable = !float.IsInfinity(measuredText) && measuredText > 0f;' `
         'A measurement far below any real glyph width falls back to the estimate'
+    Invoke-PanelFault 'reserve-row-fitscale-empty-group-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'if (magazineRight <= 0f || grenadeWidth <= 0f)' 'if (grenadeWidth <= 0f)' `
+        'One empty group always returns full scale'
+    Invoke-PanelFault 'reserve-row-fitscale-not-applied' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'return Math.Max(MinFitScale, ContentWidth / needed);' 'return 1f;' `
+        'A crowded row (144 px of magazine slots, three grenade kinds) shrinks instead of wrapping'
+    Invoke-PanelFault 'reserve-row-fitscale-no-clamp' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'return Math.Max(MinFitScale, ContentWidth / needed);' 'return ContentWidth / needed;' `
+        'Extreme combined width clamps to the minimum scale instead of shrinking further'
+    Invoke-PanelFault 'reserve-row-fitscale-gap-ignored' 'LayoutSource' 'UI\ReserveRowLayout.cs' `
+        'float needed = magazineRight + GroupGap + grenadeWidth;' 'float needed = magazineRight + grenadeWidth;' `
+        'A crowded row (144 px of magazine slots, three grenade kinds) shrinks instead of wrapping'
+    Invoke-PanelFault 'armor-component-double-counted' 'ArmorSource' 'ArmorDurabilityCounter.cs' `
+        'groups[(int)group].Add(armor.Repairable.Durability, armor.Repairable.MaxDurability);' `
+        'groups[(int)group].Add(armor.Repairable.Durability, armor.Repairable.MaxDurability); groups[(int)group].Add(armor.Repairable.Durability, armor.Repairable.MaxDurability);' `
+        'Headwear and TacticalVest each contribute their own soft armor to separate groups expected'
+    Invoke-PanelFault 'armor-head-slot-facecover-missing' 'ArmorSource' 'ArmorDurabilityCounter.cs' `
+        "EquipmentSlot.FaceCover,`n            EquipmentSlot.Eyewear" 'EquipmentSlot.Eyewear' `
+        'FaceCover and Eyewear both land in the head group alongside Headwear expected'
+    Invoke-PanelFault 'armor-armorvest-omitted-from-body' 'ArmorSource' 'ArmorDurabilityCounter.cs' `
+        "EquipmentSlot.TacticalVest,`n            EquipmentSlot.ArmorVest" 'EquipmentSlot.TacticalVest' `
+        'ArmorVest and an armored TacticalVest are both in the body group expected'
+    Invoke-PanelFault 'armor-pockets-added-to-body' 'ArmorSource' 'ArmorDurabilityCounter.cs' `
+        "EquipmentSlot.ArmorVest`n        };" "EquipmentSlot.ArmorVest,`n            EquipmentSlot.Pockets`n        };" `
+        'An armor component sitting in Pockets, outside HeadSlots/BodySlots, is never scanned expected'
+    Invoke-PanelFault 'armor-scratch-not-reset' 'ArmorSource' 'ArmorDurabilityCounter.cs' `
+        'finally { Reset(); }' 'finally { /* deliberate scratch leak */ }' `
+        'Headwear and TacticalVest each contribute their own soft armor to separate groups releases scratch references'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 27 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 34 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

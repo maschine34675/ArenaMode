@@ -12,10 +12,6 @@ namespace ArenaMode.Hud.InfoPanels
         private const float PanelWidth = 280f;
         private const float PanelHeight = 132f;
         private const float ReserveRowTop = -94f;
-        // Only when magazines and grenades do not fit side by side; this is
-        // the height the panel had with a permanent grenade row.
-        private const float WrappedGrenadeRowTop = -124f;
-        private const float WrappedPanelHeight = 160f;
 
         private readonly RectTransform _panelRect;
         private readonly TextMeshProUGUI _titleLine;
@@ -23,8 +19,6 @@ namespace ArenaMode.Hud.InfoPanels
         private readonly TextMeshProUGUI _metaLine;
         private readonly SpareMagazineBarView _spareMagBar;
         private readonly GrenadeBarView _grenadeBar;
-        private Player _layoutBody;
-        private bool _grenadesWrapped;
 
         public WeaponInfoPanel(Transform parent)
         {
@@ -96,34 +90,22 @@ namespace ArenaMode.Hud.InfoPanels
 
         public void UpdateFromPlayer(Player player)
         {
-            if (!ReferenceEquals(player, _layoutBody))
-            {
-                _layoutBody = player;
-                _grenadesWrapped = false;
-            }
-
             UpdateGrenadeLine(player);
             UpdateWeaponLines(player);
             ArrangeReserveRow();
         }
 
-        // Magazines keep the reserve row's left side; the grenades take its
-        // right side when they fit beside them, otherwise the row below.
-        // The panel is bottom-anchored, so wrapping lifts every line by one
-        // row. Once a body needed the wrap it keeps it until the next body:
-        // drawing a grenade or knife hides the magazines, and a count crossing
-        // a digit boundary changes their width, and neither may make the
-        // whole panel jump back and forth.
+        // Magazines keep the reserve row's left side, grenades its right
+        // side, always on the one fixed-height row (ReserveRowTop): the row
+        // never wraps. When they do not fit beside each other at natural
+        // size, shrink both groups by the same factor instead of growing the
+        // panel — see ReserveRowLayout.FitScale for why that never lets them
+        // overlap.
         private void ArrangeReserveRow()
         {
-            _grenadesWrapped = ReserveRowLayout.GrenadesWrapped(
-                _grenadesWrapped, _spareMagBar.ContentRight, _grenadeBar.GroupWidth);
-            _grenadeBar.PlaceOnRow(_grenadesWrapped ? WrappedGrenadeRowTop : ReserveRowTop);
-            float height = _grenadesWrapped ? WrappedPanelHeight : PanelHeight;
-            if (_panelRect.sizeDelta.y != height)
-            {
-                _panelRect.sizeDelta = new Vector2(PanelWidth, height);
-            }
+            float scale = ReserveRowLayout.FitScale(_spareMagBar.ContentRight, _grenadeBar.GroupWidth);
+            _spareMagBar.ApplyScale(scale);
+            _grenadeBar.ApplyScale(scale);
         }
 
         private void UpdateWeaponLines(Player player)
@@ -260,9 +242,9 @@ namespace ArenaMode.Hud.InfoPanels
             // magazine slot, so an all-zero summary is not the same as "no
             // magazine display applies" and must fall through as well.
             if (MagazineInventoryCounter.TryGetSpareMagSummary(player, weapon, out var summary)
-                && (summary.FullCount > 0 || summary.PartialCount > 0 || summary.BackpackLoadedCount > 0))
+                && (summary.FullCount > 0 || summary.PartialCount > 0))
             {
-                _spareMagBar.SetSummary(summary.FullCount, summary.PartialCount, summary.BackpackLoadedCount, color);
+                _spareMagBar.SetSummary(summary.FullCount, summary.PartialCount, color);
                 return;
             }
 

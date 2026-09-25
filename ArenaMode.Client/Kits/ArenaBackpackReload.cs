@@ -40,6 +40,13 @@ internal static class ArenaBackpackReload
         Plugin.ModLogger.LogWarning("Arena backpack magazine selection failed; native candidates retained: " + ex.GetBaseException().Message);
     }
 
+    // Read-only mirror of the gate above for display code (the weapon HUD's
+    // spare-magazine counter): reports whether THIS call would append the
+    // backpack's direct children to the reload candidate list, without
+    // touching the reload path itself. Allocation-free, safe to call every
+    // HUD refresh.
+    internal static bool AppendsBackpackFor(InventoryController controller) => Wanted(controller);
+
     private static bool Wanted(InventoryController controller)
     {
         if (!ArenaSession.IsActive || Settings.UseItemsAnywhere?.Value != true

@@ -286,3 +286,77 @@ rounds plus grenades; counts after a throw, reload and respawn; if a kit allows
 it, full, partial and backpack magazines with frags and flashes (the tightest
 one-row case) and a third grenade kind to see the wrap, which must then stay
 until the next respawn; unchanged or larger distance to the killfeed.
+
+## Minimal armor row and usable-only reserve counts (2026-09-25, user follow-up)
+
+After playing with the panels the user asked for three things: the armor display
+reduced to a minimum ("eher störend"), no separate backpack counters for
+magazines and grenades because ArenaMode makes those usable from there, and
+magazines and grenades in one row instead of two. The earlier sections above
+describe the replaced designs; this one is current.
+
+**Armor.** The two paper-doll figures (19 tinted zones) and the four damage text
+lines are gone. The status panel is 250x94 (was 202, bottom-left anchored, so
+only its top edge comes down): HP and weight as before, one armor row below with
+body armor % (TacticalVest + ArmorVest) and helmet % (Headwear, FaceCover,
+Eyewear), then the bleeding/fracture strip. Each percentage is the durability
+sum over DISTINCT ArmorComponents of that group (plates and helmet mods
+included); the old model credited a component to every zone it covered, so its
+zones must never be summed. A group without armor hides its stat. The text is
+the weight row's neutral color and switches to the warning color at or below
+`ArmorWarningPercent` (unrounded comparison, like HP). Two new authored glyphs,
+`armor_body.png` and `armor_helmet.png` (`tools/RaidInfoPanelIcons/gen_armor_icons.ps1`,
+ARENA-ICONS.json). The 16 paper-doll icons and `mag_backpack.png` are no longer
+embedded; SOURCE-IMPORT.json keeps their provenance marked `retired`, and
+Build-Verify asserts they are absent (9 imported + 5 authored icons now).
+
+**Magazines.** Full and partial now count exactly the candidates the reload
+selection offers: the native `GetReachableItemsOfTypeNonAlloc<Magazine>` (rig and
+pockets, direct children; called, never patched) plus the backpack's direct
+children exactly when `ArenaBackpackReload` would append them (new read-only
+`AppendsBackpackFor`, the same gate: Arena active, UseItemsAnywhere on, exact
+live local body, not respawning or spectating). Magazines in nested pouches are
+no longer counted anywhere, because R cannot take them. The third (backpack)
+slot is gone.
+
+**Grenades.** One number per kind: every carried grenade (rig, pockets,
+backpack, nested pouches included) for which `IsAtReachablePlace` is true, the
+exact question a bound number key asks, so ArenaReachPatches' widening and its
+setting gate apply automatically; with UseItemsAnywhere off, backpack grenades
+are not counted. No "+N" any more. What the game still does not do: tap-G and the
+hold-G radial only ever take rig/pocket top-level grenades (the third-party
+UseItemsAnywhere mod that widened G is not installed any more; the earlier
+comments saying so were corrected). A kind with none on G keeps its dimmed icon,
+the only remaining cue that it needs a number key.
+
+**Loose rounds** are unchanged, including their separate backpack slot: no Arena
+patch makes backpack cartridges loadable, so merging them would overstate what
+R can do.
+
+**One row, always.** The wrap to a second row and the per-body latch are
+removed; the weapon panel is always 280x132. When magazines + gap + grenades
+exceed the 248 px content, both groups shrink by one factor
+(`ReserveRowLayout.FitScale`, floor 0.6), magazines pinned to the left edge and
+grenades to the right, so the gap scales with them and they never touch (the
+derivation is at the code). With two magazine slots the realistic worst cases
+(two loose-round counts plus three grenade kinds) shrink by a few percent at
+most; the common kits stay at full size.
+
+Verification: fact-finding pass (four readers plus a completeness critic, all
+reach claims checked against `../_decompiled`), then implementation, five
+review lenses with two refuters per finding, fixes, and a second review round.
+No P0-P2 survived; the confirmed P3s (armor threshold compared after rounding,
+a wrong decompiled citation, an uncovered extra-slot mutation, a stale fault
+count, an examine-fault check that no longer ran with a filled scratch list, the
+reused weight color undocumented) are fixed. Offline suite: 326 assertions and
+34 rejected source faults, including the real ArmorDurabilityCounter now linked
+instead of a stub. Staged real client build: zero errors, the four existing
+CS8632 warnings; Build-Verify green. Rendering and in-raid behavior still need
+the GPU check.
+
+GPU acceptance: the smaller status panel with body/helmet percentages and icons
+readable, warning color after taking hits; magazines lying directly in the
+backpack counted as full/partial (R then loads them) while a magazine in a
+nested pouch is not; a grenade moved into the backpack still counted, its icon
+dimmed while no grenade of that kind is in rig/pockets; one reserve row in every
+case, including a shotgun kit with backpack shells and grenades.

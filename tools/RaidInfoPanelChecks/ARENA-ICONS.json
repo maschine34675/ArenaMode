@@ -15,6 +15,16 @@
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/grenade_smoke.png",
       "generator": "tools/RaidInfoPanelIcons/gen_grenades.ps1",
       "sha256": "5DEF1E33EC88B85897473461302DFAF5007C5E6F006BD557B64A94962DA3AC46"
+    },
+    {
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_body.png",
+      "generator": "tools/RaidInfoPanelIcons/gen_armor_icons.ps1",
+      "sha256": "2756B4B2DA6741F181D650F3E46D00209471AC10A2C3406ED808C5B528681FD7"
+    },
+    {
+      "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_helmet.png",
+      "generator": "tools/RaidInfoPanelIcons/gen_armor_icons.ps1",
+      "sha256": "507C5683C8BF88BB90AB488621A2DC391FC2F6B1FD3F8F7D560BAE02744F8197"
     }
   ]
 }

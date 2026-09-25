@@ -1,57 +1,40 @@
 using EFT;
 using EFT.HealthSystem;
 using ArenaMode.Hud.InfoPanels.UI;
-using TMPro;
 using UnityEngine;
 
 namespace ArenaMode.Hud.InfoPanels
 {
     // Health, armor and active status effects in one panel. Hydration and
     // energy are deliberately absent: this HUD targets ArenaMode, where neither
-    // matters.
+    // matters. Kept to a minimum by design (2026-09-25, "HUD minimal reserve"):
+    // two armor percentages (head, body) replace the old 19-zone paper doll
+    // and its damage-line text — see ArmorDurabilityCounter.
     internal sealed class PlayerStatusPanel
     {
         private const float PanelWidth = 250f;
-        private const float PanelHeight = 202f;
-        private const float FigureWidth = 60f;
-        private const float FigureHeight = 118f;
-        private const float ValueColumnLeft = 136f;
-        private const int MaxDamageLines = 4;
+        // The old panel's own bottom padding, kept unchanged: 8px between its
+        // status strip and the panel's bottom edge (202 - 172 - 22 = 8). The
+        // three rows above it are spaced 4px apart (header bottom -32, armor
+        // row top -36; armor row bottom -60, status strip top -64), so the
+        // minimum height that still fits everything is
+        // 8 (padding) + 64 (status strip top) + 22 (status strip height) = 94.
+        private const float PanelHeight = 94f;
 
-        // Vertical bands, measured from the panel's top edge. The figures must
-        // clear the header row: they used to be pinned at -8 like everything
-        // else, which put the doll's head right behind the health value.
+        // Vertical bands, measured from the panel's top edge.
         private const float HeaderTop = -8f;
-        private const float FiguresTop = -38f;
-        private const float StatusStripTop = -172f;
-
-        // Indexed by FineArmorZone. Kept to ~6 characters: the value column is
-        // only about 110px wide, so longer labels get ellipsized ("STOMACH…").
-        // The paper doll already shows where the zone is, the text just names it.
-        private static readonly string[] ZoneNames =
-        {
-            "HEAD", "THRT", "THRX", "STOM", "PELV",
-            "SD L", "SD R",
-            "ARM L", "FARM L", "ARM R", "FARM R",
-            "LEG L", "CALF L", "LEG R", "CALF R",
-            "THRT B", "THRX B", "STOM B", "PELV B"
-        };
-
-        private static readonly Color HealthyColor = ArenaUiTheme.WithAlpha(ArenaUiTheme.Positive, .95f);
-        private static readonly Color WornColor = ArenaUiTheme.WithAlpha(ArenaUiTheme.Accent, .95f);
-        private static readonly Color DamagedColor = ArenaUiTheme.WithAlpha(ArenaUiTheme.Danger, .95f);
+        private const float ArmorRowTop = -36f;
+        private const float StatusStripTop = -64f;
 
         private readonly RectTransform _panelRect;
         private readonly StatRowView _healthRow;
         private readonly StatRowView _weightRow;
-        private readonly ArmorPuppetView _frontFigure;
-        private readonly ArmorPuppetView _backFigure;
-        private readonly TextMeshProUGUI[] _damageLines = new TextMeshProUGUI[MaxDamageLines];
+        private readonly StatRowView _bodyArmorRow;
+        private readonly StatRowView _helmetRow;
         private readonly StatusStripView _statusStrip;
 
-        private readonly ArmorDurabilityCounter.ZoneSummary[] _zones =
-            new ArmorDurabilityCounter.ZoneSummary[ArmorDurabilityCounter.ZoneCount];
-        private readonly int[] _worstZones = new int[MaxDamageLines];
+        private readonly ArmorDurabilityCounter.GroupSummary[] _armor =
+            new ArmorDurabilityCounter.GroupSummary[ArmorDurabilityCounter.GroupCount];
         private readonly BodyStatusEntry[] _statusEntries = new BodyStatusEntry[StatusStripView.MaxEntries];
 
         public PlayerStatusPanel(Transform parent)
@@ -67,23 +50,8 @@ namespace ArenaMode.Hud.InfoPanels
 
             _healthRow = new StatRowView(_panelRect, "HealthLine", 12f, HeaderTop, 118f, 24f);
             _weightRow = new StatRowView(_panelRect, "WeightLine", 134f, HeaderTop, 104f, 24f);
-
-            _frontFigure = new ArmorPuppetView(_panelRect, 8f, FiguresTop, FigureWidth, FigureHeight, "FRONT", true);
-            _backFigure = new ArmorPuppetView(_panelRect, 70f, FiguresTop, FigureWidth, FigureHeight, "BACK", false);
-
-            for (int i = 0; i < MaxDamageLines; i++)
-            {
-                TextMeshProUGUI line = PanelStyle.CreateLine(_panelRect, $"DamageLine{i}", FiguresTop - 2f - i * 28f, 26f);
-                // Shrink instead of ellipsizing: overlapping armor sums up, so a
-                // line can reach three digits on both sides ("STOM B 135/150").
-                line.enableAutoSizing = true;
-                line.fontSizeMax = 12f;
-                line.fontSizeMin = 9f;
-                RectTransform rect = line.rectTransform;
-                rect.offsetMin = new Vector2(ValueColumnLeft, rect.offsetMin.y);
-                rect.offsetMax = new Vector2(-6f, rect.offsetMax.y);
-                _damageLines[i] = line;
-            }
+            _bodyArmorRow = new StatRowView(_panelRect, "BodyArmorLine", 12f, ArmorRowTop, 118f, 24f);
+            _helmetRow = new StatRowView(_panelRect, "HelmetLine", 134f, ArmorRowTop, 104f, 24f);
 
             _statusStrip = new StatusStripView(_panelRect, StatusStripTop, 22f);
         }
@@ -106,13 +74,8 @@ namespace ArenaMode.Hud.InfoPanels
         {
             _healthRow.Clear();
             _weightRow.Clear();
-            _frontFigure.HideZones();
-            _backFigure.HideZones();
-            for (int i = 0; i < MaxDamageLines; i++)
-            {
-                _damageLines[i].text = string.Empty;
-            }
-
+            _bodyArmorRow.Clear();
+            _helmetRow.Clear();
             _statusStrip.Clear();
         }
 
@@ -128,17 +91,9 @@ namespace ArenaMode.Hud.InfoPanels
             UpdateHealthRow(healthController);
             UpdateWeightRow(player, healthController);
 
-            ArmorDurabilityCounter.FillSummary(player, _zones);
-            for (int i = 0; i < _zones.Length; i++)
-            {
-                var zone = (FineArmorZone)i;
-                bool hasArmor = _zones[i].HasArmor;
-                Color color = hasArmor ? GradientColor(_zones[i].Normalized) : default;
-                _frontFigure.SetZone(zone, hasArmor, color);
-                _backFigure.SetZone(zone, hasArmor, color);
-            }
-
-            UpdateDamageLines();
+            ArmorDurabilityCounter.FillSummary(player, _armor);
+            UpdateArmorRow(_bodyArmorRow, _armor[(int)ArmorGroup.Body], EmbeddedIcons.Get("armor_body.png"));
+            UpdateArmorRow(_helmetRow, _armor[(int)ArmorGroup.Head], EmbeddedIcons.Get("armor_helmet.png"));
 
             int statusCount = BodyStatusCounter.Fill(healthController, _statusEntries);
             _statusStrip.SetEntries(_statusEntries, statusCount);
@@ -173,70 +128,23 @@ namespace ArenaMode.Hud.InfoPanels
             _weightRow.Set(GameIconLoader.GetWeightIcon(), $"{weightInfo.CurrentKg:0.0} kg", color);
         }
 
-        // The zone fills already tell the full story; text is reserved for the
-        // zones that actually need attention (at or below the warning percent),
-        // worst first.
-        private void UpdateDamageLines()
+        // A group with no armor at all hides its stat instead of showing 0%,
+        // matching how the weight row hides when it has nothing to report.
+        // The normal color is the weight row's neutral one on purpose (its
+        // setting description says so): no extra setting for a secondary stat.
+        private static void UpdateArmorRow(StatRowView row, ArmorDurabilityCounter.GroupSummary summary, Sprite icon)
         {
-            float threshold = InfoPanelSettings.ArmorWarningPercent.Value / 100f;
-            int count = 0;
-
-            for (int i = 0; i < _zones.Length; i++)
+            if (!summary.HasArmor)
             {
-                if (!_zones[i].HasArmor || _zones[i].Normalized > threshold)
-                {
-                    continue;
-                }
-
-                // Insertion sort into the worst-N list, ascending by remaining percent.
-                int insertAt = count < MaxDamageLines ? count : -1;
-                for (int j = 0; j < count && j < MaxDamageLines; j++)
-                {
-                    if (_zones[i].Normalized < _zones[_worstZones[j]].Normalized)
-                    {
-                        insertAt = j;
-                        break;
-                    }
-                }
-
-                if (insertAt < 0)
-                {
-                    continue;
-                }
-
-                for (int j = Mathf.Min(count, MaxDamageLines - 1); j > insertAt; j--)
-                {
-                    _worstZones[j] = _worstZones[j - 1];
-                }
-
-                _worstZones[insertAt] = i;
-                if (count < MaxDamageLines)
-                {
-                    count++;
-                }
+                row.Clear();
+                return;
             }
 
-            for (int i = 0; i < MaxDamageLines; i++)
-            {
-                if (i >= count)
-                {
-                    _damageLines[i].text = string.Empty;
-                    continue;
-                }
-
-                int zoneIndex = _worstZones[i];
-                int current = Mathf.RoundToInt(_zones[zoneIndex].CurrentDurability);
-                int maximum = Mathf.RoundToInt(_zones[zoneIndex].MaxDurability);
-                _damageLines[i].text = $"{ZoneNames[zoneIndex]} {current}/{maximum}";
-                PanelStyle.ApplyTextColor(_damageLines[i], GradientColor(_zones[zoneIndex].Normalized));
-            }
-        }
-
-        private static Color GradientColor(float normalized)
-        {
-            return normalized <= 0.5f
-                ? Color.Lerp(DamagedColor, WornColor, normalized * 2f)
-                : Color.Lerp(WornColor, HealthyColor, (normalized - 0.5f) * 2f);
+            float percent = summary.Normalized * 100f;
+            Color color = percent <= InfoPanelSettings.ArmorWarningPercent.Value
+                ? InfoPanelSettings.WarningTextColor.Value
+                : InfoPanelSettings.WeightTextColor.Value;
+            row.Set(icon, $"{Mathf.RoundToInt(percent)}%", color);
         }
     }
 }

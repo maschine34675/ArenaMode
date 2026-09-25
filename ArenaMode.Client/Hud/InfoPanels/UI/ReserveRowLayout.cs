@@ -8,13 +8,11 @@ namespace ArenaMode.Hud.InfoPanels.UI
     // kit carries frags, so the common case keeps that icon in one place.
     // Hidden slots take no room; each icon says what it counts.
     //
-    // When both groups do not fit side by side, the grenades wrap onto a
-    // second row below and the panel grows by that row (WeaponInfoPanel
-    // keeps that for the rest of the body's life). That is the only height
-    // change, and it takes a crowded row: at the HUD font's 10 px digits,
-    // every magazine kind plus frags and flashes still fits with a few
-    // pixels to spare, while a third grenade kind, stored "+N" grenades or
-    // multi-digit loose-round counts can tip it.
+    // The row never wraps: there is exactly one reserve row, always at the
+    // same height (WeaponInfoPanel). When both groups do not fit beside each
+    // other at their natural size, FitScale below shrinks both uniformly
+    // instead — a crowded row gets smaller icons and text rather than a
+    // taller panel.
     //
     // Plain arithmetic without Unity types, so the offline panel checks link
     // and exercise this exact file.
@@ -26,7 +24,10 @@ namespace ArenaMode.Hud.InfoPanels.UI
         internal const float MagazineSpacing = 12f;
         internal const float GrenadeSpacing = 10f;
         internal const float GroupGap = 14f;
-        // Far below the average glyph width of a count like "2 +1" in any real
+        // Below this, further shrinking stops being worth it — an icon at
+        // 60% of its drawn size stops reading as what it is. See FitScale.
+        internal const float MinFitScale = 0.6f;
+        // Far below the average glyph width of a count like "12" in any real
         // font, far above the tenth that TMP's unscaled path would report.
         private const float MinGlyphEm = 0.25f;
 
@@ -68,13 +69,50 @@ namespace ArenaMode.Hud.InfoPanels.UI
             return width;
         }
 
-        internal static bool GrenadesFitBeside(float magazineRight, float grenadeWidth)
-            => grenadeWidth <= 0f || magazineRight <= 0f
-                || magazineRight + GroupGap + grenadeWidth <= ContentWidth;
+        // Single scale factor for both reserve groups, applied so magazines
+        // stay pinned to the row's left content edge and grenades to its
+        // right content edge (SpareMagazineBarView.ApplyScale,
+        // GrenadeBarView.ApplyScale) — never centered, so shrinking a group
+        // pulls it away from the OTHER group, not toward it.
+        //
+        // At scale 1 the two groups plus the gap between them must fit
+        // ContentWidth: magazineRight + GroupGap + grenadeWidth <= ContentWidth.
+        // When they do not, scaling every distance in that sum by the same
+        // factor scale = ContentWidth / needed makes the sum equal
+        // ContentWidth exactly:
+        //   scale * magazineRight + scale * GroupGap + scale * grenadeWidth
+        //     == scale * needed == ContentWidth
+        // Pinning each group to its own edge rather than recentering only
+        // ever widens the real gap beyond what that sum implies (the fixed
+        // 8 px inset ahead of each group, see the field comment above, is
+        // never part of `needed` and shrinks along with its group, adding
+        // slack this derivation does not even count): with
+        // gap = ContentWidth - scale * (magazineRight + grenadeWidth), and
+        // needed = magazineRight + GroupGap + grenadeWidth,
+        //   gap = ContentWidth * GroupGap / needed
+        // which is strictly positive for any GroupGap > 0 and any needed > 0
+        // — the two groups can never touch at the unclamped scale, however
+        // wide their combined content. Below MinFitScale the row stops
+        // shrinking further and this guarantee no longer holds; reaching
+        // that floor needs several hundred pixels of combined content in a
+        // 248 px budget, which no real magazine/grenade count produces.
+        internal static float FitScale(float magazineRight, float grenadeWidth)
+        {
+            // An empty group has nothing to gap against — no shrink needed
+            // just because the other group alone is wide.
+            if (magazineRight <= 0f || grenadeWidth <= 0f)
+            {
+                return 1f;
+            }
 
-        // A wrap is kept once needed; only the caller's new body clears it.
-        internal static bool GrenadesWrapped(bool wrappedBefore, float magazineRight, float grenadeWidth)
-            => wrappedBefore || !GrenadesFitBeside(magazineRight, grenadeWidth);
+            float needed = magazineRight + GroupGap + grenadeWidth;
+            if (needed <= ContentWidth)
+            {
+                return 1f;
+            }
+
+            return Math.Max(MinFitScale, ContentWidth / needed);
+        }
 
         // A slot's footprint: its icon column plus the measured count. A
         // missing, non-finite or implausibly small measurement (TMP scales by

@@ -7,15 +7,18 @@ namespace ArenaMode.Hud.InfoPanels.UI
     {
         Full,
         Partial,
-        Backpack,
         LooseRounds,
         LooseRoundsBackpack
     }
 
-    // One image per slot; the three states are baked into purpose-built
-    // embedded sprites (see EmbeddedIcons / tools/RaidInfoPanelIcons/gen_icons.ps1). The earlier
+    // One image per slot; each visual state is baked into a purpose-built
+    // embedded sprite (see EmbeddedIcons / tools/RaidInfoPanelIcons/gen_icons.ps1). The earlier
     // approach — EFT's magazine sprite with masked ammo icons stacked inside —
-    // was unreadable at this display size.
+    // was unreadable at this display size. There used to be a fifth state,
+    // a backpack magazine icon; the reserve row no longer shows a separate
+    // backpack magazine bucket (backpack spares that R can actually load now
+    // count as full/partial like any other spare), so that style and its
+    // embedded icon are retired.
     internal sealed class MagazineIconWidget
     {
         private const float IconWidth = 24f;
@@ -52,14 +55,11 @@ namespace ArenaMode.Hud.InfoPanels.UI
                 case MagazineVisualStyle.Partial:
                     sprite = EmbeddedIcons.MagPartial;
                     break;
-                case MagazineVisualStyle.LooseRounds:
-                    sprite = EmbeddedIcons.Get("rounds_ready.png");
-                    break;
                 case MagazineVisualStyle.LooseRoundsBackpack:
                     sprite = EmbeddedIcons.Get("rounds_backpack.png");
                     break;
-                default:
-                    sprite = EmbeddedIcons.MagBackpack;
+                default: // LooseRounds
+                    sprite = EmbeddedIcons.Get("rounds_ready.png");
                     break;
             }
 

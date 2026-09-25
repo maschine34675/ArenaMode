@@ -11,34 +11,45 @@ namespace ArenaMode.Hud.InfoPanels
         Smoke = 2
     }
 
-    // Counts the local body's hand grenades by kind, split into what the native
-    // quick throw can actually take ("ready") and what is carried elsewhere
-    // ("stored"). Hand grenades are ThrowWeap items; 40mm/30mm launcher rounds
-    // and rockets are Ammo/Rocket, so an `is ThrowWeap` test already excludes
-    // them (EFT.InventoryLogic/ThrowWeap.cs:9, Ammo.cs:10, Rocket.cs:7).
+    // Counts the local body's hand grenades by kind: how many of each are
+    // "usable" right now, i.e. could be bound to a number key and drawn
+    // (Player.SetQuickSlotItem -> TryProceed, Player.cs:31417-31435,
+    // 31560-31666) or drawn with a tap of G. Hand grenades are ThrowWeap
+    // items; 40mm/30mm launcher rounds and rockets are Ammo/Rocket, so an
+    // `is ThrowWeap` test already excludes them (EFT.InventoryLogic/ThrowWeap.cs:9,
+    // Ammo.cs:10, Rocket.cs:7).
     internal static class GrenadeInventoryCounter
     {
         internal struct GrenadeSummary
         {
-            public int ReadyFrag, ReadyFlash, ReadySmoke;
-            public int StoredFrag, StoredFlash, StoredSmoke;
+            public int UsableFrag, UsableFlash, UsableSmoke;
+            public int OnGFrag, OnGFlash, OnGSmoke;
 
-            public int Ready(GrenadeKind kind)
-                => kind == GrenadeKind.Frag ? ReadyFrag : kind == GrenadeKind.Flash ? ReadyFlash : ReadySmoke;
+            public int Usable(GrenadeKind kind)
+                => kind == GrenadeKind.Frag ? UsableFrag : kind == GrenadeKind.Flash ? UsableFlash : UsableSmoke;
 
-            public int Stored(GrenadeKind kind)
-                => kind == GrenadeKind.Frag ? StoredFrag : kind == GrenadeKind.Flash ? StoredFlash : StoredSmoke;
+            public int OnG(GrenadeKind kind)
+                => kind == GrenadeKind.Frag ? OnGFrag : kind == GrenadeKind.Flash ? OnGFlash : OnGSmoke;
 
-            public bool IsEmpty
-                => ReadyFrag + ReadyFlash + ReadySmoke + StoredFrag + StoredFlash + StoredSmoke == 0;
+            public bool IsEmpty => UsableFrag + UsableFlash + UsableSmoke == 0;
 
-            internal void Add(GrenadeKind kind, bool ready)
+            internal void AddUsable(GrenadeKind kind)
             {
                 switch (kind)
                 {
-                    case GrenadeKind.Frag: if (ready) ReadyFrag++; else StoredFrag++; break;
-                    case GrenadeKind.Flash: if (ready) ReadyFlash++; else StoredFlash++; break;
-                    default: if (ready) ReadySmoke++; else StoredSmoke++; break;
+                    case GrenadeKind.Frag: UsableFrag++; break;
+                    case GrenadeKind.Flash: UsableFlash++; break;
+                    default: UsableSmoke++; break;
+                }
+            }
+
+            internal void AddOnG(GrenadeKind kind)
+            {
+                switch (kind)
+                {
+                    case GrenadeKind.Frag: OnGFrag++; break;
+                    case GrenadeKind.Flash: OnGFlash++; break;
+                    default: OnGSmoke++; break;
                 }
             }
         }
@@ -46,7 +57,7 @@ namespace ArenaMode.Hud.InfoPanels
         // Reused across refreshes; only ever touched from the main thread.
         // Cleared after every read, including failed ones, like the magazine
         // counter, so no item reference outlives a refresh or a body.
-        private static readonly List<ThrowWeap> _readyScratch = new List<ThrowWeap>();
+        private static readonly List<ThrowWeap> _onGScratch = new List<ThrowWeap>();
         private static readonly List<ThrowWeap> _carriedScratch = new List<ThrowWeap>();
 
         public static bool TryGetSummary(Player player, out GrenadeSummary summary)
@@ -56,7 +67,7 @@ namespace ArenaMode.Hud.InfoPanels
 
         internal static void Reset()
         {
-            _readyScratch.Clear();
+            _onGScratch.Clear();
             _carriedScratch.Clear();
         }
 
@@ -75,35 +86,25 @@ namespace ArenaMode.Hud.InfoPanels
                 return false;
             }
 
-            // "Ready" is the candidate list of the native G key, obtained through
-            // the same virtual call (PlayerInputTranslator.cs:502-503):
-            // - vanilla: direct children of Inventory.FastAccessSlots, i.e. the
-            //   Pockets and TacticalVest containers (Inventory.cs:193-197), with
-            //   Examined as the filter;
-            // - the local controller's override additionally skips a rig or
-            //   pockets that has not been searched yet (Player.cs:22345-22360);
-            // - the installed UseItemsAnywhere 1.4.0 rewrites that static slot
-            //   list at startup to add Backpack, SecuredContainer and ArmBand, so
-            //   loose backpack grenades really are quick-throwable there
-            //   (KIT-POLISH-REVIEW.md).
-            // Counting ready from this list rather than from our own walk keeps
-            // the row equal to G on either install. The helper APPENDS and never
-            // clears (InventoryController.cs:887-907), hence the explicit Clear.
-            //
-            // Known exception: tap-G prefers Equipment.TopPriorityGrenade whenever
-            // this list is non-empty (PlayerInputTranslator.cs:509-516). A grenade
-            // drawn earlier through a bound number key (Arena's reach patches allow
-            // binding one outside rig/pockets) stays that pick, so tap-G can draw a
-            // grenade shown here as stored. That takes a deliberate chain of actions.
-            _readyScratch.Clear();
-            controller.GetReachableItemsOfTypeNonAlloc(_readyScratch, grenade => controller.Examined(grenade));
+            // "On G" is the native tap-G candidate list, unchanged by Arena:
+            // GetReachableItemsOfTypeNonAlloc walks Inventory.FastAccessSlots'
+            // (Pockets, TacticalVest) DIRECT children only
+            // (InventoryController.cs:882-907, Inventory.cs:193-197), which
+            // Arena never rewrites — only the third-party UseItemsAnywhere mod
+            // did that, and it is not installed any more. This drives the
+            // dimming cue below and, since every grenade on it is also
+            // reachable through the widened check below, folds straight into
+            // "usable" without a second reachability test.
+            _onGScratch.Clear();
+            controller.GetReachableItemsOfTypeNonAlloc(_onGScratch, grenade => controller.Examined(grenade));
 
-            // "Carried" is every grenade a player would still call "mine":
-            // including pouches nested inside rig/pockets and the backpack.
-            // SecuredContainer and ArmorVest are not walked, matching the magazine
-            // and loose-round counters; no stock secure container accepts ThrowWeap
-            // (its grid ExcludedFilter lists the ThrowWeap node
-            // 543be6564bdc2df4348b4568) and no stock armband has a grid.
+            // Carried = every grenade a player would still call "mine": rig,
+            // pockets and backpack, including pouches nested inside any of
+            // them. SecuredContainer and ArmorVest are not walked, matching
+            // the magazine and loose-round counters; no stock secure
+            // container accepts ThrowWeap (its grid ExcludedFilter lists the
+            // ThrowWeap node 543be6564bdc2df4348b4568) and no stock armband
+            // has a grid.
             _carriedScratch.Clear();
             CollectGrenades(equipment.GetSlot(EquipmentSlot.Pockets).ContainedItem as CompoundItem, _carriedScratch);
             CollectGrenades(equipment.GetSlot(EquipmentSlot.TacticalVest).ContainedItem as CompoundItem, _carriedScratch);
@@ -112,25 +113,51 @@ namespace ArenaMode.Hud.InfoPanels
             // Never compare a kind against default: GrenadeKind.Frag is 0, the
             // same trap as EBoundItem/ThrowWeapType (AGENTS.md). TryClassify's
             // bool is the only "found" signal.
-            for (int i = 0; i < _readyScratch.Count; i++)
+            for (int i = 0; i < _onGScratch.Count; i++)
             {
-                if (TryClassify(_readyScratch[i], out GrenadeKind kind))
+                if (TryClassify(_onGScratch[i], out GrenadeKind kind))
                 {
-                    summary.Add(kind, ready: true);
+                    summary.AddOnG(kind);
                 }
             }
 
-            // Stored = carried minus ready. Ready grenades outside the walked
-            // subtrees (possible under UseItemsAnywhere) are still counted above.
             for (int i = 0; i < _carriedScratch.Count; i++)
             {
                 ThrowWeap grenade = _carriedScratch[i];
-                if (ContainsReference(_readyScratch, grenade) || !TryClassify(grenade, out GrenadeKind kind))
+                if (!TryClassify(grenade, out GrenadeKind kind))
                 {
                     continue;
                 }
 
-                summary.Add(kind, ready: false);
+                // Usable = on G already (cheapest check, and every on-G
+                // grenade is also reachable below, so this only saves the
+                // call) OR IsAtReachablePlace says so — the exact question
+                // Player.TryProceed asks at a bound number key
+                // (InventoryController.cs:448-464: native rig/pockets/weapon
+                // slots, recursively, so nested pouches inside THOSE count
+                // natively). Inside the arena with UseItemsAnywhere on,
+                // ArenaReachPatches.ReachableAnywherePatch turns this true for
+                // ANY worn, examined, whole grenade — backpack top level or a
+                // pouch nested anywhere, including inside the backpack
+                // (ArenaMode.Client/Kits/ArenaReachPatches.cs). With it off,
+                // only the native rig/pockets recursion applies and a
+                // backpack grenade shows as not usable.
+                //
+                // IsAtReachablePlace is not allocation-free: natively it
+                // builds a fresh array of the six BindAvailableSlotsExtended
+                // items and chains several LINQ iterators over them before
+                // testing Contains (Inventory.cs:174-182, 327-331;
+                // ItemExtensions.cs:86-100, 163-172). Called once per carried,
+                // not-yet-on-G grenade on every HUD refresh (a handful of
+                // grenades, InfoPanelSettings.UpdateIntervalSeconds apart),
+                // which is cheap next to a raid's other per-frame allocations
+                // but is not free — GC-THRESHOLD-REVIEW.md is the place to
+                // look if that ever needs to change.
+                bool usable = ContainsReference(_onGScratch, grenade) || controller.IsAtReachablePlace(grenade);
+                if (usable)
+                {
+                    summary.AddUsable(kind);
+                }
             }
 
             return true;

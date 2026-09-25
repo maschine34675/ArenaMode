@@ -4,48 +4,51 @@ using UnityEngine;
 namespace ArenaMode.Hud.InfoPanels.UI
 {
     // Left half of the weapon panel's reserve row (see ReserveRowLayout):
-    // full, partial and backpack magazines, or loose cartridges for weapons
-    // that load shell by shell. The grenade group shares the row from the
-    // right, so the slots pack by their measured width instead of the old
-    // fixed 88 px pitch.
+    // full and partial magazines the reload button can actually reach (rig
+    // and pockets, plus the backpack's own top level when Arena's
+    // UseItemsAnywhere widens reload — MagazineInventoryCounter), or loose
+    // cartridges for weapons that load shell by shell. The grenade group
+    // shares the row from the right, so the slots pack by their measured
+    // width instead of a fixed pitch.
     internal sealed class SpareMagazineBarView
     {
         private const float RowHeight = 30f;
+        // Fixed inset from the panel's own edge to this row's pivot (see
+        // CreateRowRoot); never scales, unlike everything drawn inside it.
+        private const float RootInset = 8f;
 
         private readonly RectTransform _root;
-        private readonly MagazineCountSlotView[] _slots = new MagazineCountSlotView[3];
-        private readonly float[] _widths = new float[3];
-        private readonly bool[] _visible = new bool[3];
-        private readonly float[] _lefts = new float[3];
+        private readonly MagazineCountSlotView[] _slots = new MagazineCountSlotView[2];
+        private readonly float[] _widths = new float[2];
+        private readonly bool[] _visible = new bool[2];
+        private readonly float[] _lefts = new float[2];
 
         public SpareMagazineBarView(RectTransform panelRect, float topOffset)
         {
             _root = CreateRowRoot(panelRect, topOffset);
             _slots[0] = new MagazineCountSlotView(_root, "A");
             _slots[1] = new MagazineCountSlotView(_root, "B");
-            _slots[2] = new MagazineCountSlotView(_root, "C");
         }
 
         // Right edge of the last visible slot within the row content; 0 while
         // nothing is shown.
         public float ContentRight { get; private set; }
 
-        public void SetSummary(int fullCount, int partialCount, int backpackCount, Color color)
+        public void SetSummary(int fullCount, int partialCount, Color color)
         {
             _slots[0].Set(MagazineVisualStyle.Full, fullCount, color);
             _slots[1].Set(MagazineVisualStyle.Partial, partialCount, color);
-            _slots[2].Set(MagazineVisualStyle.Backpack, backpackCount, color);
             Arrange();
         }
 
         // Shell-by-shell weapons have no spare magazines to count, so the same
-        // row shows carried loose cartridges instead: reachable first, backpack
-        // second, and the third slot stays empty.
+        // row shows carried loose cartridges instead: reachable first,
+        // backpack second (backpack loose rounds are never loadable, so they
+        // stay their own bucket — LooseAmmoCounter).
         public void SetRoundSummary(int readyRounds, int backpackRounds, Color color)
         {
             _slots[0].Set(MagazineVisualStyle.LooseRounds, readyRounds, color);
             _slots[1].Set(MagazineVisualStyle.LooseRoundsBackpack, backpackRounds, color);
-            _slots[2].Hide();
             Arrange();
         }
 
@@ -58,6 +61,19 @@ namespace ArenaMode.Hud.InfoPanels.UI
 
             _root.gameObject.SetActive(false);
             ContentRight = 0f;
+        }
+
+        // Shrinks the whole row (icons, text and its own 8 px content inset)
+        // toward its left edge so it never overlaps the grenade group; see
+        // ReserveRowLayout.FitScale for the derivation and WeaponInfoPanel for
+        // the caller. Skips the write once applied, matching the idle-work
+        // style elsewhere in this panel (commit 92cbc5c).
+        public void ApplyScale(float scale)
+        {
+            if (_root.localScale.x != scale)
+            {
+                _root.localScale = new Vector3(scale, scale, 1f);
+            }
         }
 
         private void Arrange()
@@ -90,8 +106,14 @@ namespace ArenaMode.Hud.InfoPanels.UI
             var rectTransform = rowObject.AddComponent<RectTransform>();
             rectTransform.anchorMin = new Vector2(0f, 1f);
             rectTransform.anchorMax = new Vector2(1f, 1f);
-            rectTransform.pivot = new Vector2(0.5f, 1f);
-            rectTransform.anchoredPosition = new Vector2(0f, topOffset);
+            // Pivot on the LEFT edge, not centered: ApplyScale shrinks this
+            // row toward that edge, so magazines stay pinned to the row's
+            // left content edge at any scale (ReserveRowLayout.FitScale).
+            // anchoredPosition.x compensates for the pivot move so the drawn
+            // left edge stays at RootInset regardless of scale, exactly where
+            // the centered pivot put it before (0.5 * -sizeDelta.x == 8).
+            rectTransform.pivot = new Vector2(0f, 1f);
+            rectTransform.anchoredPosition = new Vector2(RootInset, topOffset);
             rectTransform.sizeDelta = new Vector2(-16f, RowHeight);
             return rectTransform;
         }

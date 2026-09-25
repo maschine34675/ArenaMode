@@ -130,11 +130,36 @@ namespace EFT
 }
 namespace EFT.InventoryLogic
 {
-    internal enum EquipmentSlot { TacticalVest, Pockets, Backpack, ArmorVest, SecuredContainer, FirstPrimaryWeapon, SecondPrimaryWeapon, ArmBand }
+    internal enum EquipmentSlot
+    { TacticalVest, Pockets, Backpack, ArmorVest, SecuredContainer, FirstPrimaryWeapon, SecondPrimaryWeapon, ArmBand, Headwear, FaceCover, Eyewear }
+    // Stand-in for RepairableComponent (RepairableComponent.cs:8-107), named
+    // for the field ArmorComponent.Repairable actually reads: only the two
+    // members ArmorDurabilityCounter touches.
+    internal sealed class Repairable
+    {
+        public float Durability;
+        public float MaxDurability;
+    }
+    // Stand-in for ArmorComponent (ArmorComponent.cs:13-462): only the one
+    // member ArmorDurabilityCounter reads.
+    internal sealed class ArmorComponent
+    {
+        public Repairable Repairable;
+    }
     internal class Item
     {
         public Item Parent;
         public bool MergedWithParent;
+        // Settable in place of a real per-item ArmorComponent lookup
+        // (Item.GetItemComponent<T>, read through GetItemComponentsInChildrenNonAlloc
+        // below); ThrowOnComponentRead stands in for a fault reading it.
+        public ArmorComponent Component
+        {
+            get => ThrowOnComponentRead ? throw new InvalidOperationException("injected armor component read failure") : _component;
+            set => _component = value;
+        }
+        private ArmorComponent _component;
+        public bool ThrowOnComponentRead;
         public bool IsChildOf(Item ancestor)
         { for (Item p = Parent; p != null; p = p.Parent) if (ReferenceEquals(p, ancestor)) return true; return false; }
         // Native ItemExtensions.GetRootItem follows only merged parents. A mag
@@ -195,18 +220,26 @@ namespace EFT.InventoryLogic
         // Auto-property natively (InventoryController.cs:168).
         public EFT.Inventory Inventory = new();
         public int ExaminesBeforeThrow = -1;
+        // Lets a check observe the scratch lists at the moment of the throw.
+        public static Action BeforeExamineThrow;
         private int _examines;
+        // Settable in place of the real ArenaReachPatches gate (ArenaSession.IsActive
+        // && Settings.UseItemsAnywhere.Value): drives the widened branch of
+        // IsAtReachablePlace below exactly like the real postfix does.
+        public bool ArenaWidenReach;
+
         // Mirrors the local body's controller: the base helper
-        // (InventoryController.cs:882-907) over the static, mutable
-        // Inventory.FastAccessSlots, each container's slots before its grids
+        // (InventoryController.cs:887-907) over an arbitrary equipment-slot
+        // array, each container's slots before its grids
         // (CompoundItem.cs:144-157), DIRECT children only, appending to the
         // caller's list without clearing it; plus the PlayerOwnerInventoryController
         // override that skips an unsearched SearchableItem container
-        // (Player.cs:22345-22360). UnknownItem is not modeled: an `is ThrowWeap`
-        // match already excludes it.
-        public void GetReachableItemsOfTypeNonAlloc<TItem>(IList<TItem> list, Predicate<TItem> predicate = null) where TItem : Item
+        // (Player.cs:22345-22360) for ANY slot array passed through this same
+        // virtual call, backpack included. UnknownItem is not modeled: an
+        // `is ThrowWeap`/`is Magazine` match already excludes it.
+        public void GetAcceptableItemsNonAlloc<TItem>(EquipmentSlot[] equipmentSlots, IList<TItem> list, Predicate<TItem> predicate = null) where TItem : Item
         {
-            foreach (var slotName in EFT.Inventory.FastAccessSlots)
+            foreach (var slotName in equipmentSlots)
             {
                 if (Inventory.Equipment.GetSlot(slotName).ContainedItem is not CompoundItem container || container.Unsearched) continue;
                 foreach (Slot slot in container.Slots)
@@ -216,13 +249,43 @@ namespace EFT.InventoryLogic
                         if (item is TItem b && (predicate == null || predicate(b))) list.Add(b);
             }
         }
+        // Static Inventory.FastAccessSlots (Pockets, TacticalVest): the exact
+        // query the native reload button, ammo selector and inventory UI call
+        // (InventoryController.cs:882-884).
+        public void GetReachableItemsOfTypeNonAlloc<TItem>(IList<TItem> list, Predicate<TItem> predicate = null) where TItem : Item
+            => GetAcceptableItemsNonAlloc(EFT.Inventory.FastAccessSlots, list, predicate);
         public bool Examined(Item item)
         {
             if (ExaminesBeforeThrow >= 0 && _examines++ >= ExaminesBeforeThrow)
+            {
+                BeforeExamineThrow?.Invoke();
                 throw new InvalidOperationException("injected examine failure");
+            }
             return item is not ThrowWeap grenade || grenade.IsExamined;
         }
         public void ResetExamineFault() { ExaminesBeforeThrow = -1; _examines = 0; }
+
+        // Models InventoryController.IsAtReachablePlace (InventoryController.cs:448-464):
+        // natively a FULL recursive walk of Pockets/TacticalVest (nested pouches
+        // included — unlike the one-level query above), gated on Examined; here
+        // simplified to the two slots this project's items ever occupy (no
+        // weapon/holster/scabbard fixtures exist in these tests). With
+        // ArenaWidenReach on, ArenaReachPatches.ReachableAnywherePatch turns a
+        // native false into true for any worn, examined item anywhere in
+        // Equipment — modeled the same way, over the whole equipment tree.
+        public bool IsAtReachablePlace(Item item)
+        {
+            if (item?.Parent == null) return false;
+            bool native = IsWithin(item, EquipmentSlot.Pockets) || IsWithin(item, EquipmentSlot.TacticalVest);
+            if (native) return Examined(item);
+            if (!ArenaWidenReach) return false;
+            return item.IsChildOf(Inventory.Equipment) && Examined(item);
+        }
+        private bool IsWithin(Item item, EquipmentSlot slot)
+        {
+            Item container = Inventory.Equipment.GetSlot(slot).ContainedItem;
+            return container != null && item.IsChildOf(container);
+        }
     }
     internal sealed class InventoryEquipment : CompoundItem
     {
@@ -231,6 +294,27 @@ namespace EFT.InventoryLogic
         public Slot GetSlot(EquipmentSlot slot) => _slots[slot];
         public T Put<T>(EquipmentSlot slot, T item) where T : Item
         { GetSlot(slot).ContainedItem = item; item.Parent = this; return item; }
+    }
+    internal static class ItemExtensions
+    {
+        // Stand-in for Item.GetItemComponentsInChildrenNonAlloc<ArmorComponent>
+        // (ItemExtensions.cs:366-392): the item's own component first, then its
+        // children (slots before grids, matching the queries above) regardless
+        // of merge state. Real armor plates and helmet mods (visors, ...) sit
+        // behind merged Slots; nothing in this project's fixtures ever puts an
+        // ArmorComponent behind a Grid, so onlyMerged is accepted (to match the
+        // real signature the production code calls) but not modeled.
+        public static void GetItemComponentsInChildrenNonAlloc(this Item item, List<ArmorComponent> list, bool onlyMerged = true)
+        {
+            if (item == null) return;
+            if (item.Component != null) list.Add(item.Component);
+            if (item is not CompoundItem compound) return;
+            foreach (Slot slot in compound.Slots)
+                slot.ContainedItem?.GetItemComponentsInChildrenNonAlloc(list, onlyMerged);
+            foreach (Grid grid in compound.Grids)
+                foreach (Item child in grid.Items)
+                    child.GetItemComponentsInChildrenNonAlloc(list, onlyMerged);
+        }
     }
 }
 namespace ArenaMode
@@ -262,6 +346,22 @@ namespace ArenaMode.Session
             ExactChecks++;
             return IsActive && ReferenceEquals(game, ExactGame) && ReferenceEquals(world, ExactWorld);
         }
+    }
+}
+namespace ArenaMode.Kits
+{
+    // Stand-in for the real ArenaBackpackReload (ArenaMode.Client/Kits/ArenaBackpackReload.cs),
+    // which this project cannot link: it pulls in Harmony/SPT.Reflection.Patching
+    // to transpile three native methods, none of which this offline harness
+    // exercises. MagazineInventoryCounter only ever calls its one read-only,
+    // allocation-free query — AppendsBackpackFor — so that is all this models,
+    // as a directly settable flag instead of the real Wanted() gate chain
+    // (ArenaSession.IsActive, Settings.UseItemsAnywhere, live singletons, exact
+    // local body/raid identity).
+    internal static class ArenaBackpackReload
+    {
+        public static bool AppendsBackpack;
+        internal static bool AppendsBackpackFor(EFT.InventoryLogic.InventoryController controller) => AppendsBackpack;
     }
 }
 namespace ArenaMode.Respawn { internal static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
@@ -380,5 +480,4 @@ namespace ArenaMode.Hud.InfoPanels
         public void Dispose() => Disposed++;
     }
     internal static class LooseAmmoCounter { public static int ResetCalls; public static void Reset() => ResetCalls++; }
-    internal static class ArmorDurabilityCounter { public static int ResetCalls; public static void Reset() => ResetCalls++; }
 }

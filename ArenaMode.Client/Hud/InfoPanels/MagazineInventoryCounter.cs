@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ArenaMode.Kits;
 using EFT;
 using EFT.InventoryLogic;
 
@@ -10,12 +11,17 @@ namespace ArenaMode.Hud.InfoPanels
         {
             public int FullCount;
             public int PartialCount;
-            public int BackpackLoadedCount;
         }
+
+        // Same equipment-slot array shape GetAcceptableItemsNonAlloc expects
+        // (InventoryController.cs:887); a one-element static array so the
+        // backpack query below allocates nothing per call.
+        private static readonly EquipmentSlot[] BackpackSlot = { EquipmentSlot.Backpack };
 
         // Reused across calls instead of allocating a fresh List every refresh tick; only ever
         // touched from the main thread (Unity's Update loop), so a static scratch buffer is safe.
         private static readonly List<Magazine> _magazineScratch = new List<Magazine>();
+        private static readonly List<Magazine> _backpackScratch = new List<Magazine>();
 
         public static bool TryGetSpareMagSummary(Player player, Weapon weapon, out SpareMagSummary summary)
         {
@@ -23,13 +29,18 @@ namespace ArenaMode.Hud.InfoPanels
             finally { Reset(); }
         }
 
-        internal static void Reset() => _magazineScratch.Clear();
+        internal static void Reset()
+        {
+            _magazineScratch.Clear();
+            _backpackScratch.Clear();
+        }
 
         private static bool CollectSummary(Player player, Weapon weapon, out SpareMagSummary summary)
         {
             summary = default;
 
-            if (player?.Inventory?.Equipment == null || weapon == null)
+            InventoryController controller = player?.InventoryController;
+            if (controller?.Inventory?.Equipment == null || weapon == null)
             {
                 return false;
             }
@@ -40,32 +51,52 @@ namespace ArenaMode.Hud.InfoPanels
                 return false;
             }
 
-            InventoryEquipment equipment = player.Inventory.Equipment;
-            Item backpack = equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem;
-            Item pockets = equipment.GetSlot(EquipmentSlot.Pockets).ContainedItem;
-            // Includes armored rigs (AVS/TV-110 etc.). ArmorVest is a separate
-            // slot, absent from native Inventory.FastAccessSlots; do not confuse
-            // its optional custom grids with a TacticalVest's quick-reload grids.
-            Item tacticalVest = equipment.GetSlot(EquipmentSlot.TacticalVest).ContainedItem;
-
+            // The exact candidate set the reload button offers, in the exact
+            // order it builds it: FirearmHandsInputTranslator.ReloadExternalMagazine
+            // (_decompiled/EFT/FirearmHandsInputTranslator.cs:1206-1207) calls this
+            // very query — never a patched copy of it (AGENTS.md: "do not detour
+            // constructed generic inventory queries on Mono", BACKPACK-RELOAD-REVIEW.md)
+            // — with the one predicate the game applies before ranking candidates:
+            // mag.Count > 0. On the local body this resolves to
+            // PlayerOwnerInventoryController's override (Player.cs:22345-22360),
+            // which additionally skips a rig/pockets container the search
+            // controller has not marked searched yet, one level deep
+            // (InventoryController.cs:882-907: Inventory.FastAccessSlots' DIRECT
+            // children only, nested pouches are never reached this way). The
+            // actual pick then also requires ItemManipulator.CheckMoveIgnoringTargetItem
+            // to succeed (ItemManipulator.cs:1296), which is not reproduced here —
+            // for DISPLAY the coarser rules below (compatible, not the loaded
+            // magazine) are what decide the bucket a spare lands in.
             _magazineScratch.Clear();
-            CollectMagazines(equipment, _magazineScratch);
+            controller.GetReachableItemsOfTypeNonAlloc(_magazineScratch, magazine => magazine.Count > 0);
+
+            // Arena's own second source, appended exactly when the reload path
+            // would append it (ArenaBackpackReload, BACKPACK-RELOAD-REVIEW.md):
+            // the backpack's direct children, one level deep like the query
+            // above — nested pouches inside the backpack are not loadable
+            // either, so they are never counted here or anywhere else in this
+            // file. Collected into its own scratch buffer and merged by
+            // reference so a magazine already found through the native query
+            // (impossible for a real item, since it would need two parents at
+            // once, but cheap to guard) is never counted twice.
+            if (ArenaBackpackReload.AppendsBackpackFor(controller))
+            {
+                _backpackScratch.Clear();
+                controller.GetAcceptableItemsNonAlloc(BackpackSlot, _backpackScratch, magazine => magazine.Count > 0);
+                for (int i = 0; i < _backpackScratch.Count; i++)
+                {
+                    Magazine candidate = _backpackScratch[i];
+                    if (!ContainsReference(_magazineScratch, candidate))
+                    {
+                        _magazineScratch.Add(candidate);
+                    }
+                }
+            }
 
             for (int i = 0; i < _magazineScratch.Count; i++)
             {
                 Magazine magazine = _magazineScratch[i];
                 if (!IsSpareLoadedMagazine(magazine, magazineSlot))
-                {
-                    continue;
-                }
-
-                if (backpack != null && magazine.IsChildOf(backpack))
-                {
-                    summary.BackpackLoadedCount++;
-                    continue;
-                }
-
-                if (!IsInQuickReloadArea(magazine, pockets, tacticalVest))
                 {
                     continue;
                 }
@@ -83,12 +114,11 @@ namespace ArenaMode.Hud.InfoPanels
             return true;
         }
 
-        private static bool IsInQuickReloadArea(Magazine magazine, Item pockets, Item tacticalVest)
-        {
-            return (pockets != null && magazine.IsChildOf(pockets))
-                   || (tacticalVest != null && magazine.IsChildOf(tacticalVest));
-        }
-
+        // Count > 0 is already the native predicate above; what is left is the
+        // display-relevant part of "would this actually go into the gun":
+        // compatible with ITS magazine slot, and not already inserted
+        // somewhere (GetRootItem follows only a merged parent, which an
+        // inserted magazine is — in this weapon or another one carried).
         private static bool IsSpareLoadedMagazine(Magazine magazine, Slot magazineSlot)
         {
             if (magazine == null || magazine.Count <= 0)
@@ -104,54 +134,17 @@ namespace ArenaMode.Hud.InfoPanels
             return magazineSlot.CanAccept(magazine);
         }
 
-        private static void CollectMagazines(CompoundItem item, List<Magazine> result)
+        private static bool ContainsReference(List<Magazine> list, Magazine item)
         {
-            if (item?.Grids != null)
+            for (int i = 0; i < list.Count; i++)
             {
-                for (int g = 0; g < item.Grids.Length; g++)
+                if (ReferenceEquals(list[i], item))
                 {
-                    Grid grid = item.Grids[g];
-                    if (grid?.Items == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (Item gridItem in grid.Items)
-                    {
-                        if (gridItem is Magazine magazine)
-                        {
-                            result.Add(magazine);
-                        }
-                        else if (gridItem is CompoundItem compoundItem)
-                        {
-                            CollectMagazines(compoundItem, result);
-                        }
-                    }
+                    return true;
                 }
             }
 
-            if (item?.Slots == null)
-            {
-                return;
-            }
-
-            for (int s = 0; s < item.Slots.Length; s++)
-            {
-                Item slotItem = item.Slots[s].ContainedItem;
-                if (slotItem == null)
-                {
-                    continue;
-                }
-
-                if (slotItem is Magazine magazine)
-                {
-                    result.Add(magazine);
-                }
-                else if (slotItem is CompoundItem compoundItem)
-                {
-                    CollectMagazines(compoundItem, result);
-                }
-            }
+            return false;
         }
     }
 }

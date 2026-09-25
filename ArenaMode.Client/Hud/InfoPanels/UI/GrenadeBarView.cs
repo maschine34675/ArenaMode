@@ -8,18 +8,25 @@ namespace ArenaMode.Hud.InfoPanels.UI
     // slot per grenade kind, packed from the right edge with frag outermost,
     // then flash, then smoke. An empty kind takes no room.
     //
-    // The number is what the native quick throw can take (see
-    // GrenadeInventoryCounter: vanilla rig/pockets top level; the installed
-    // UseItemsAnywhere widens that to the backpack's top level). Grenades
-    // carried outside that set, e.g. in a nested pouch, are appended dimmed as
-    // "+N", and a kind that is only carried there shows "0 +N" with a dimmed
-    // icon: "you have these, but G's candidate list holds none". The counter
-    // documents the one TopPriorityGrenade exception to that reading.
+    // The number is "usable": every carried grenade of that kind
+    // GrenadeInventoryCounter finds reachable — native rig/pockets recursion
+    // (nested pouches included) always, widened to the backpack (top level or
+    // nested) inside the arena when Settings.UseItemsAnywhere is on
+    // (ArenaMode.Client/Kits/ArenaReachPatches.cs). The icon dims when none of
+    // that kind is on the native tap-G candidate list, which stays rig/pockets
+    // top level only regardless of the setting: "usable by number key, but G
+    // itself won't draw one". That is the one place tap-G and this row can
+    // disagree — GRENADE-PICK-REVIEW.md documents the TopPriorityGrenade
+    // exception that can otherwise leave G unable to throw even a dimmed-in
+    // kind until a fresh grenade is drawn.
     internal sealed class GrenadeBarView
     {
         // Same height as the magazine row, so both groups share its midline.
         private const float RowHeight = 30f;
         private const float ContentInset = 8f;
+        // Fixed inset from the panel's own edge to this row's pivot (see the
+        // constructor); never scales, unlike everything drawn inside it.
+        private const float RootInset = 8f;
         private const float SlotSlack = 4f;
         private const float IconSize = 22f;
         private const float CountTextLeft = 27f;
@@ -29,8 +36,7 @@ namespace ArenaMode.Hud.InfoPanels.UI
         private readonly RectTransform[] _slots = new RectTransform[3];
         private readonly Image[] _icons = new Image[3];
         private readonly TextMeshProUGUI[] _counts = new TextMeshProUGUI[3];
-        private readonly int[] _shownReady = { -1, -1, -1 };
-        private readonly int[] _shownStored = { -1, -1, -1 };
+        private readonly int[] _shownUsable = { -1, -1, -1 };
         private readonly float[] _widths = new float[3];
         private readonly bool[] _visible = new bool[3];
         private readonly float[] _rightInsets = new float[3];
@@ -50,8 +56,14 @@ namespace ArenaMode.Hud.InfoPanels.UI
             _root = rowObject.AddComponent<RectTransform>();
             _root.anchorMin = new Vector2(0f, 1f);
             _root.anchorMax = new Vector2(1f, 1f);
-            _root.pivot = new Vector2(0.5f, 1f);
-            _root.anchoredPosition = new Vector2(0f, topOffset);
+            // Pivot on the RIGHT edge, not centered: ApplyScale shrinks this
+            // row toward that edge, so grenades stay pinned to the row's
+            // right content edge at any scale (ReserveRowLayout.FitScale).
+            // anchoredPosition.x compensates for the pivot move so the drawn
+            // right edge stays RootInset from the panel edge regardless of
+            // scale, exactly where the centered pivot put it before.
+            _root.pivot = new Vector2(1f, 1f);
+            _root.anchoredPosition = new Vector2(-RootInset, topOffset);
             _root.sizeDelta = new Vector2(-16f, RowHeight);
 
             for (int i = 0; i < 3; i++)
@@ -79,13 +91,16 @@ namespace ArenaMode.Hud.InfoPanels.UI
         // nothing is shown.
         public float GroupWidth { get; private set; }
 
-        // The reserve row, or the row below it when the magazines leave too
-        // little room (WeaponInfoPanel decides).
-        public void PlaceOnRow(float topOffset)
+        // Shrinks the whole row (icons, text and its own 8 px content inset)
+        // toward its right edge so it never overlaps the magazine group; see
+        // ReserveRowLayout.FitScale for the derivation and WeaponInfoPanel for
+        // the caller. Skips the write once applied, matching the idle-work
+        // style elsewhere in this panel (commit 92cbc5c).
+        public void ApplyScale(float scale)
         {
-            if (_root.anchoredPosition.y != topOffset)
+            if (_root.localScale.x != scale)
             {
-                _root.anchoredPosition = new Vector2(0f, topOffset);
+                _root.localScale = new Vector3(scale, scale, 1f);
             }
         }
 
@@ -94,9 +109,8 @@ namespace ArenaMode.Hud.InfoPanels.UI
             for (int i = 0; i < 3; i++)
             {
                 var kind = (GrenadeKind)i;
-                int ready = summary.Ready(kind);
-                int stored = summary.Stored(kind);
-                _visible[i] = ready > 0 || stored > 0;
+                int usable = summary.Usable(kind);
+                _visible[i] = usable > 0;
                 _slots[i].gameObject.SetActive(_visible[i]);
                 if (!_visible[i])
                 {
@@ -107,19 +121,16 @@ namespace ArenaMode.Hud.InfoPanels.UI
                 Sprite sprite = EmbeddedIcons.Get(IconFiles[i]);
                 _icons[i].sprite = sprite;
                 _icons[i].enabled = sprite != null;
-                // Dimmed when G's candidate list holds none of this kind.
-                _icons[i].color = ready > 0 ? Color.white : new Color(1f, 1f, 1f, 0.45f);
+                // Dimmed when none of this kind is on G's own candidate list,
+                // even though it is still usable through a bound number key.
+                _icons[i].color = summary.OnG(kind) > 0 ? Color.white : new Color(1f, 1f, 1f, 0.45f);
 
-                if (ready != _shownReady[i] || stored != _shownStored[i])
+                if (usable != _shownUsable[i])
                 {
-                    _counts[i].text = stored > 0
-                        ? $"{ready}<alpha=#80> +{stored}"
-                        : ready.ToString();
-                    _shownReady[i] = ready;
-                    _shownStored[i] = stored;
-                    int glyphs = Digits(ready) + (stored > 0 ? 2 + Digits(stored) : 0);
+                    _counts[i].text = usable.ToString();
+                    _shownUsable[i] = usable;
                     _widths[i] = ReserveRowLayout.SlotWidth(
-                        CountTextLeft, PanelStyle.MeasureTextWidth(_counts[i]), glyphs, CountFontSize);
+                        CountTextLeft, PanelStyle.MeasureTextWidth(_counts[i]), Digits(usable), CountFontSize);
                 }
 
                 PanelStyle.ApplyTextColor(_counts[i], color);
@@ -157,8 +168,7 @@ namespace ArenaMode.Hud.InfoPanels.UI
         private void ForgetShown(int i)
         {
             _counts[i].text = string.Empty;
-            _shownReady[i] = -1;
-            _shownStored[i] = -1;
+            _shownUsable[i] = -1;
         }
 
         private static int Digits(int value) => value.ToString().Length;

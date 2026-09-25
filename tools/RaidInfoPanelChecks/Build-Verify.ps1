@@ -15,7 +15,10 @@ if ((Get-FileHash -LiteralPath $arenaManifest.ClientPath -Algorithm SHA256).Hash
 }
 $arenaImport = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'SOURCE-IMPORT.json') -Raw | ConvertFrom-Json
 $arenaExpected = @{}
-foreach ($arenaEntry in $arenaImport.files | Where-Object { $_.unchanged -eq $true }) {
+# A retired entry (armor_base.png, the 15 armor_zone_*.png and mag_backpack.png,
+# 2026-09-25: HUD minimal reserve) keeps its source path and hash as provenance
+# but is no longer embedded, so it is excluded here and checked separately below.
+foreach ($arenaEntry in $arenaImport.files | Where-Object { $_.unchanged -eq $true -and -not $_.retired }) {
     $arenaName = 'ArenaMode.Hud.InfoPanels.Icons.' + [IO.Path]::GetFileName($arenaEntry.target)
     if ($arenaExpected.ContainsKey($arenaName)) { throw "Duplicate imported resource: $arenaName" }
     $arenaExpected[$arenaName] = $arenaEntry.sourceSha256
@@ -23,7 +26,13 @@ foreach ($arenaEntry in $arenaImport.files | Where-Object { $_.unchanged -eq $tr
         throw "Imported sprite changed without updating its provenance: $arenaName"
     }
 }
-if ($arenaExpected.Count -ne 26) { throw 'The original 26 runtime icons must all be accounted for.' }
+if ($arenaExpected.Count -ne 9) { throw 'The 9 still-embedded imported icons must all be accounted for.' }
+
+$arenaRetired = @{}
+foreach ($arenaEntry in $arenaImport.files | Where-Object { $_.retired }) {
+    $arenaRetired['ArenaMode.Hud.InfoPanels.Icons.' + [IO.Path]::GetFileName($arenaEntry.target)] = $arenaEntry.retired
+}
+if ($arenaRetired.Count -ne 17) { throw 'The 17 retired imported icons must all be accounted for.' }
 
 # Icons authored inside ArenaMode after the import have their own record, so the
 # import provenance above stays exactly as strict. A name may appear in only one
@@ -51,6 +60,9 @@ try {
         $arenaResource = $arenaMetadata.GetManifestResource($arenaHandle)
         $arenaName = $arenaMetadata.GetString($arenaResource.Name)
         if (-not $arenaName.StartsWith('ArenaMode.Hud.InfoPanels.Icons.')) { continue }
+        if ($arenaRetired.ContainsKey($arenaName)) {
+            throw "Retired icon still embedded ($($arenaRetired[$arenaName])): $arenaName"
+        }
         if (-not $arenaExpected.ContainsKey($arenaName) -or -not $arenaResource.Implementation.IsNil) {
             throw "Unexpected or non-embedded panel resource: $arenaName"
         }
@@ -86,5 +98,5 @@ try {
     }
 }
 finally { $arenaPe.Dispose(); $arenaStream.Dispose() }
-Write-Output "Verified 26 embedded source-identical icons, $arenaAuthoredCount Arena-authored icons, one Arena plugin and no standalone dependency. Manifest: $ManifestPath"
+Write-Output "Verified 9 embedded source-identical icons, $arenaAuthoredCount Arena-authored icons, 17 retired icons absent, one Arena plugin and no standalone dependency. Manifest: $ManifestPath"
 Write-Output 'ARENA_INFO_PANEL_BUILD_VERIFIED'

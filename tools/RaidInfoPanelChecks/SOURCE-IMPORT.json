@@ -10,7 +10,8 @@
     {
       "source": "ArmorZoneReference.cs",
       "sourceSha256": "CEF582215C93180FA0EA4818A8618390200D7588634ABC7C8DB075483B9853A3",
-      "target": "ArenaMode.Client/Hud/InfoPanels/ArmorZoneReference.cs"
+      "target": "ArenaMode.Client/Hud/InfoPanels/ArmorZoneReference.cs",
+      "deleted": "2026-09-25: HUD minimal reserve removed the 19-zone paper doll; see ArmorDurabilityCounter.cs. Kept as import provenance only, not read by Build-Verify.ps1 (that check is icon-only, keyed on 'unchanged'/'retired')."
     },
     {
       "source": "BodyStatusCounter.cs",
@@ -45,7 +46,8 @@
     {
       "source": "UI/ArmorPuppetView.cs",
       "sourceSha256": "50CCC54C1D30F4FF8CA170752099007D6B0BB95C8E0E866B982F8AB29D2E1343",
-      "target": "ArenaMode.Client/Hud/InfoPanels/UI/ArmorPuppetView.cs"
+      "target": "ArenaMode.Client/Hud/InfoPanels/UI/ArmorPuppetView.cs",
+      "deleted": "2026-09-25: HUD minimal reserve removed the 19-zone paper doll; see ArmorDurabilityCounter.cs. Kept as import provenance only, not read by Build-Verify.ps1 (that check is icon-only, keyed on 'unchanged'/'retired')."
     },
     {
       "source": "UI/EmbeddedIcons.cs",
@@ -91,103 +93,120 @@
       "source": "Icons/armor_base.png",
       "sourceSha256": "45FCF5A55C5BE536B423A42DCA8760CEFE881F2C21EECF65654323FA9975D744",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_base.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_arm_fore_left.png",
       "sourceSha256": "A018C7191144F09E6BE08F3F266CD9351E710B0E375D4B27C7F73FBEF7198C9E",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_fore_left.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_arm_fore_right.png",
       "sourceSha256": "2D9BB9A469268DBF48FCCDBAE588766A6254DBCA5533C8013DE35AB427DA3184",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_fore_right.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_arm_upper_left.png",
       "sourceSha256": "9E1F5D4890D89E9ED3AE076AB0BF23299A7C7BB8FAC6BFE40B8580868BDF449F",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_upper_left.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_arm_upper_right.png",
       "sourceSha256": "AE62482D5594D3D8E27A8748CBEC9AAA8DB2B15B10A8B862A04A176E60A67D64",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_arm_upper_right.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_calf_left.png",
       "sourceSha256": "D2473798922BB6D3D75694F3429A565403571BBFC033C5BA2DADB255B3DDD678",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_calf_left.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_calf_right.png",
       "sourceSha256": "5120B66482CFECE74D6B1C11A0091D9D9F0E76BD801BB3D954A1F16567932C00",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_calf_right.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_head.png",
       "sourceSha256": "6438B09AB2949DF262815689373794066734F8FA9E919FCE2B5AD0D5EF64B1DE",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_head.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_pelvis.png",
       "sourceSha256": "DA7656889D83643FED033D31F51902CA6E943C02E11EA9286FFBFE1691E7B70B",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_pelvis.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_side_left.png",
       "sourceSha256": "0F104FFFCC49AF219E44009EC0C66A71D14BD6D0C1F0DD1739C0276F30849531",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_side_left.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_side_right.png",
       "sourceSha256": "E9A70B79ED37F0A7072618F368D25396205C4DCF1FF7508E15123A1E7439CC53",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_side_right.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_stomach.png",
       "sourceSha256": "58AFB1F37D3D2477DE11E8E1764DDA55BC66A2F86ED6D19235ABB374A5F01B2F",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_stomach.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_thigh_left.png",
       "sourceSha256": "FF3CF298CF308F9465A87B8618EEA669F46B6C3FF869548D286E4CA5BF1E5D30",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_thigh_left.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_thigh_right.png",
       "sourceSha256": "CF20B421FFC686453138682770587BA85A67BCBE6E10C952068A70649785D298",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_thigh_right.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_thorax.png",
       "sourceSha256": "37DDDE0476AD802DB984D1FE7C6514E0AEEC47139CD6FD75E19EB89EB70D4BAF",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_thorax.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/armor_zone_throat.png",
       "sourceSha256": "CF9166C90DCD0A52BD10848AB2B80A30D32360C784E709FE16261B803B638881",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_zone_throat.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve retired the 19-zone paper doll (ArmorPuppetView removed); replaced by armor_body.png/armor_helmet.png (ARENA-ICONS.json)"
     },
     {
       "source": "Icons/mag_backpack.png",
       "sourceSha256": "7D2285648FF1AB5114327DE58A6A226DA2C506CA8002232B45659CF34EE15AB4",
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/mag_backpack.png",
-      "unchanged": true
+      "unchanged": true,
+      "retired": "2026-09-25: HUD minimal reserve folded backpack spare magazines into the full/partial counts; the separate backpack bucket and its icon are gone"
     },
     {
       "source": "Icons/mag_full.png",

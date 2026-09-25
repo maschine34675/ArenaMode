@@ -31,7 +31,6 @@ namespace ArenaMode.Hud.InfoPanels.UI
 
         public static Sprite MagFull => Get("mag_full.png");
         public static Sprite MagPartial => Get("mag_partial.png");
-        public static Sprite MagBackpack => Get("mag_backpack.png");
 
         public static Sprite Get(string fileName)
         {
