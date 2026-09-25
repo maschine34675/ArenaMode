@@ -1,11 +1,43 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-23. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-25. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **HUD reduziert, Reserven nur noch nutzbar gezählt (2026-09-25):** Nutzerwunsch
+  nach dem Spielen: Rüstungsanzeige minimal, keine eigenen Rucksackzähler für
+  Magazine/Granaten, Magazine und Granaten in einer Zeile. Umsetzung `fbfa647`
+  (Branch `feature/hud-minimal-reserve`, auf master vorgespult). Statuspanel
+  250x94 statt 202: HP/Gewicht, darunter Weste % und Helm % (Summe je
+  ArmorComponent, Warnfarbe bei `ArmorWarningPercent`), dann Blutungen/Brüche.
+  Magazine zählen genau die Nachladekandidaten (Rig/Taschen direkt plus
+  Rucksack direkt, wenn `ArenaBackpackReload` sie anhängt); verschachtelte
+  Taschen zählen nicht mehr. Granaten: eine Zahl je Art über
+  `IsAtReachablePlace` (inkl. Arena-Reichweite); Symbol gedimmt, wenn G selbst
+  keine dieser Art erreicht. Lose Patronen unverändert (Rucksack-Patronen sind
+  nicht ladbar). Keine zweite Zeile mehr; zu volle Zeile skaliert auf Faktor
+  >= 0,6. Details und Prüfumfang: `RAID-INFO-PANELS-REVIEW.md`, letzter
+  Abschnitt. Offline 326 Prüfungen/34 Fehlerkontrollen, fünf Review-Linsen plus
+  zweite Runde ohne offenes P0-P2, Build 0 Fehler/4 bekannte CS8632, Build-Verify
+  grün (9 importierte + 5 eigene Icons, 17 stillgelegte fehlen). Nur Client
+  eingespielt: SHA256
+  `C3C6AC9A2398AE8E40BE96AAB8875AD6A0C7E17EFDD5EBDEDDDC5FF70FE0A051`, vorher
+  `0DE9A41D...` gesichert; 110 geschützte Dateien (andere Plugins, Arena-Assets,
+  Servermod) unverändert. Beleg
+  `artifacts/hud-minimal-delivery/adbfb187d05d4c69bba0c240e6556396/receipt.json`.
+  GPU-Sichtprüfung durch diese Session (Nutzer gab den Host frei), EFT per
+  `gpu-run restart` neu gestartet, 22/22 identisch geladen; Equator-Deathmatch,
+  HK-416A5-Kit: Status 440/440, 17,9 kg, Weste 100 %, Helm 100 % (Inventar:
+  Zhuk 225/225, 6B47 45/45); fünf volle Magazine und zwei RGD-5 in einer Zeile.
+  Ein Magazin und eine Granate in den Rucksack gezogen: weiter 5 und 2. Zweite
+  Granate ebenfalls in den Rucksack: 2 gedimmt, nativer G-Schnellslot leer.
+  Keine ArenaMode-Warnung im Log. Nicht geprüft: Skalierung einer übervollen
+  Zeile, Schrotflinte mit Rucksack-Patronen, Warnfarbe nach Treffern,
+  verschachtelte Taschen, UseItemsAnywhere aus, R aus dem Rucksack in diesem
+  Build (am 21.09. für den Nachladepfad abgenommen). Server unverändert.
 
 - **M60-Aufnahme: Ursache bestätigt, temporärer Untersuchungsstatus (2026-09-23):**
   Umsetzung `5d31353` auf master; nur Client lokal/GPU unter exklusiven
