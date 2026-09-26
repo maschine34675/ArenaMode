@@ -20,6 +20,18 @@ current. User-facing communication is normally German.
   endgültige Warnungen erst bei Ablauf. Details/Native-Testgrenze im PICKUPS-REVIEW.
   Nächster GPU-Test: Factory neu starten, bei anfangs 0/6 innerhalb des Fensters
   einige Meter bewegen; vorhandene Pickups dürfen nicht wandern oder duplizieren.
+  Umsetzung `2326bbe`, auf master vorgespult. Pickup-Harness 255 Prüfungen,
+  30 Quelltextverträge und 18 kompilierte Fehlerkontrollen; erweiterter
+  Health/Bot-Objective-Harness 374 Prüfungen und 10 Fehlerkontrollen grün.
+  Unabhängige Review ohne offene P0-P2-Befunde; Abschlussdiagnose unterscheidet
+  ausdrücklich einen noch nicht bereiten Körper vom eigentlichen Pfadfehler.
+  Client-Build 0 Fehler, vier bekannte CS8632-Warnungen. Nur Client lokal und
+  GPU-Host 192.168.178.114 eingespielt, SHA256
+  `F34C153665F9C750D3FD842321D2B441D14408164337CE0D7B8AC0532692059B`;
+  Server, Redeploy.Core und BigBrainCompat auf beiden Rechnern unverändert.
+  Beleg: `PICKUP-PLACEMENT-DEPLOYMENT-20260926.json`. GPU-Spiel war im Hauptmenü
+  und wurde nicht neu gestartet; vor dem Test EFT neu starten. Dies ist noch
+  keine native Abnahme der Factory-Platzierung oder ihrer Wiederholung.
 
 - **HUD reduziert, Reserven nur noch nutzbar gezählt (2026-09-25):** Nutzerwunsch
   nach dem Spielen: Rüstungsanzeige minimal, keine eigenen Rucksackzähler für
