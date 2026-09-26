@@ -1,11 +1,25 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-25. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-26. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Pickup-Platzierung wiederholt fehlende Punkte begrenzt (2026-09-26):**
+  Reaktion auf Factory-Log 25.09. 18:54:41 mit 0/6 nach einmaliger Prüfung.
+  Insgesamt 15 Spielsekunden ab Live-Phase, höchstens ein vollständiger Versuch
+  pro Sekunde mit aktuellem geerdetem Spieleranker; nach Fristende kein Versuch.
+  Bereits platzierte IDs/Marker, Waffenladevorgänge und Cooldowns bleiben bestehen.
+  Respawn/Waffenwechsel/Pause warten ab; vorhandene Phasen-/Kontext-Guards gelten
+  weiterhin. NavMesh, Boden, Freiraum, Areal und Abstände werden nicht gelockert.
+  Symmetrische 3m-Abstände bei mindestens einem rotierenden Punkt verhindern
+  Kollisionen mit später erholten festen Custom-Punkten. Pro Versuch Info mit
+  Spieler/Anker, Alternativen, Geometrieproben und allen Fehlerhäufigkeiten;
+  endgültige Warnungen erst bei Ablauf. Details/Native-Testgrenze im PICKUPS-REVIEW.
+  Nächster GPU-Test: Factory neu starten, bei anfangs 0/6 innerhalb des Fensters
+  einige Meter bewegen; vorhandene Pickups dürfen nicht wandern oder duplizieren.
 
 - **HUD reduziert, Reserven nur noch nutzbar gezählt (2026-09-25):** Nutzerwunsch
   nach dem Spielen: Rüstungsanzeige minimal, keine eigenen Rucksackzähler für

@@ -84,24 +84,53 @@ penned player spawn near Main Gate.
 | additional | 4.73, 0.01, -35.10 | 68ac9245-633b-4287-a999-2c3028fa8d45 |
 | additional | 23.83, -2.604, -30.66 | 90da8fb3-422a-46cd-b540-648cde8ee9f3 |
 
-All five types share this pool. Each point shuffles its candidates using a private
+All six types share this pool. Each point shuffles its candidates using a private
 RNG, keeps its identity/type/kit/cooldown, and chooses the first safe floor at least
 3m from already placed pickups. Final floors determine separation. Exhausted
-candidates skip only that pickup with a reason. A round's selected position stays
+candidates leave that pickup pending during the bounded placement window below.
+A round's selected position stays
 fixed through cooldowns and deaths; Deathmatch rounds resample, continuous TDM
 resamples next match. Layout input stays frozen and unmodified. Random selection
 can repeat a previous position; it does not guarantee a different spot every time.
 
 Sources: native `SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json`
 and corresponding `factory4_night/base.json`. At the first live phase the runtime
-waits up to 15 gameplay seconds for a grounded local NavMesh anchor. Points must
+allows up to 15 gameplay seconds for anchor acquisition and missing-point placement.
+It checks readiness every 0.25 seconds; a full placement pass is limited to once
+per second and always gets a fresh grounded local NavMesh anchor. Respawn, weapon
+swap and a paused game postpone attempts without extending the gameplay deadline.
+The deadline is checked before starting another pass, including when an anchor
+first becomes available after expiry. Only missing point IDs are retried; created
+entries, cooldowns, weapon preparation and positions never reset on a retry.
+Phase/round/raid/settings changes retain the existing cleanup and disable latch.
+Points must
 pass nearby navigation, level floor, pedestal clearance, complete native path and
-active-area inset/path checks. Invalid points log a reason and are skipped without
-aborting the match. Built-in prototypes alone try up to 32 nearby candidates on
+active-area inset/path checks. Still-invalid points are skipped at the deadline
+without aborting the match. Built-in prototypes alone try up to 32 nearby candidates on
 0.5/1/1.5/2m rings if the original point fails. Every candidate passes the same
 checks; the final sampled floor must stay within 2m horizontally and 0.5m in
 height of the original. The first safe floor and original refusal are logged.
 Custom `Pickups.json` points never use this fallback. Final geometry/rendering/navigation require a native raid.
+
+Fixed custom points are visited before rotating points on each pass. Either side
+being rotating requires 3m separation: a fixed point recovering later can remain
+unplaced if a previously successful rotating point now occupies its space. We do
+not move that successful point; fixed/fixed layouts keep their authored spacing.
+Late-created points retain the normal leave/reenter requirement for actors already
+inside their collection radius.
+
+Each full pass logs actor/anchor coordinates, the number of top-level alternatives
+actually tried, raw geometry probe count (including nearby fallbacks), and counts
+of every rejection reason. Distance/level fallback limits and pickup spacing are
+also counted. Intermediate failures are Info summaries, not final skip warnings.
+One final summary distinguishes success from deadline exhaustion; missing points
+report their last complete pass diagnostics rather than only its last candidate.
+The 2026-09-25 18:54:41 Factory log showed 0/6 from the previous one-shot pass;
+the exact disconnected origin was not recorded, so that native cause remains an
+inference. Offline tests cover total/partial recovery, moved anchor, timeout,
+throttling, pause, respawn readiness, preserved weapon/cooldown state, spacing,
+late-spawn contact, cancellation and diagnostic counts. Native recovery in that
+specific Factory situation still requires a GPU test.
 
 ## Layouts and authoring
 

@@ -53,12 +53,14 @@ namespace UnityEngine.AI
         public static bool SampleOk=true,PathOk=true;
         public static NavMeshPathStatus Status=NavMeshPathStatus.PathComplete;
         public static Func<Vector3,Vector3> Sample=p=>p;
+        public static Func<Vector3,Vector3,bool> AllowPath;
+        public static Vector3 LastPathStart;
         public static Vector3[] Corners;
         public static int Samples,Paths;
         public static bool SamplePosition(Vector3 p,out NavMeshHit hit,float distance,int mask)
         { Samples++; hit=new(){position=Sample(p)}; return SampleOk; }
         public static bool CalculatePath(Vector3 a,Vector3 b,int mask,NavMeshPath path)
-        { Paths++;path.status=Status;path.corners=Corners??[a,b];return PathOk; }
+        { Paths++;LastPathStart=a;path.status=Status;path.corners=Corners??[a,b];return PathOk&&(AllowPath?.Invoke(a,b)??true); }
     }
 }
 namespace Comfort.Common { public static class Singleton<T> { public static T Instance; public static bool Instantiated=>Instance!=null; } }

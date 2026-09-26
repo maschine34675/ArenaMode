@@ -25,7 +25,7 @@ internal static partial class ArenaPickupRuntime
         internal ArenaPickupState State = new();
         internal ArenaPickupView View;
         internal ArenaWeaponPickup.Handle Weapon;
-        internal bool Preparing, NeedsEntry = true;
+        internal bool Preparing, Rotating, NeedsEntry = true;
         internal readonly HashSet<Player> MustLeave = new();
     }
     private sealed class ActorSample
@@ -42,6 +42,8 @@ internal static partial class ArenaPickupRuntime
     private static bool _live, _faulted, _placementPending, _builtInLayout;
     private static int _round;
     private static float _nextScan, _placementDeadline, _nextPlacement;
+    private static int _placementAttempts;
+    private static readonly Dictionary<string, string> PlacementFailures = new(StringComparer.Ordinal);
     private static readonly List<Entry> Entries = new();
     private static readonly System.Random PositionRandom = new(); // Never change Unity's shared RNG state.
     private static readonly Dictionary<Player, ActorSample> Actors = new();
@@ -127,15 +129,21 @@ internal static partial class ArenaPickupRuntime
                 _placementDeadline = Time.time + 15f;
                 _nextPlacement = 0;
             }
-            if (_placementPending && Time.time >= _nextPlacement)
+            if (_placementPending && Time.timeScale > 0f)
             {
-                _nextPlacement = Time.time + .25f;
-                if (ArenaPickupGeometry.TryAnchor(_world, out var anchor))
-                { _placementPending = false; BeginRound(anchor); }
-                else if (Time.time >= _placementDeadline)
+                // The window bounds placement as well as anchor acquisition.
+                // A valid anchor on a disconnected island is not a successful setup.
+                if (Time.time >= _placementDeadline) FinishPlacement("15s placement window expired");
+                else if (Time.time >= _nextPlacement)
                 {
-                    _placementPending = false;
-                    Plugin.ModLogger.LogWarning("Arena pickups skipped this round: no grounded local navigation anchor within 15 seconds.");
+                    _nextPlacement = Time.time + .25f;
+                    if (!ArenaRespawnDriver.IsRespawnInProgress && !WeaponSwapService.IsSwapping
+                        && ArenaPickupGeometry.TryAnchor(_world, out var anchor))
+                    {
+                        _nextPlacement = Time.time + 1f;
+                        PlaceMissing(anchor);
+                        if (Entries.Count == _layout.Points.Count) FinishPlacement("complete");
+                    }
                 }
             }
             foreach (var entry in Entries)
@@ -178,37 +186,64 @@ internal static partial class ArenaPickupRuntime
             + $"Source={(_builtInLayout ? "built-in" : "Pickups.json")}; weapons=[{string.Join(", ", weapons)}]. Frozen for this match.");
     }
 
-    private static void BeginRound(Vector3 anchor)
+    private static void PlaceMissing(Vector3 anchor)
     {
         if (_layout == null) return;
+        _placementAttempts++;
+        var total = new ArenaPickupGeometry.PlacementDiagnostics();
+        int candidates = 0;
         // Reserve legacy fixed custom points first; rotation must not displace
         // authored positions or change the spacing of existing fixed layouts.
         foreach (var definition in _layout.Points.OrderBy(point => (point.Alternatives?.Count ?? 0) > 0 ? 1 : 0))
         {
+            // Preserve successful markers, pending weapon loads and cooldowns.
+            if (Entries.Any(placedEntry => placedEntry.Definition.Id == definition.Id)) continue;
             bool rotating = (definition.Alternatives?.Count ?? 0) > 0;
             bool placed = false;
-            string lastReason = "no candidates";
+            int alternatives = 0;
+            var diagnostics = new ArenaPickupGeometry.PlacementDiagnostics();
             foreach (var point in ArenaPickupLayouts.Candidates(definition, PositionRandom))
             {
+                alternatives++; candidates++;
                 var requested = new Vector3(point.X, point.Y, point.Z);
                 if (!ArenaPickupGeometry.TryPlacePoint(requested, anchor, _builtInLayout,
-                    out var floor, out var reason, out var relocated))
-                { lastReason = reason; continue; }
-                if (rotating && Entries.Any(other => (other.Floor - floor).sqrMagnitude < 9f))
-                { lastReason = "another pickup is within 3m"; continue; }
+                    out var floor, out var reason, out var relocated, diagnostics)) continue;
+                // A fixed point recovering on a later attempt must not overlap a
+                // previously placed rotating point. Fixed/fixed authoring stays exact.
+                if (Entries.Any(other => (rotating || other.Rotating) && (other.Floor - floor).sqrMagnitude < 9f))
+                { diagnostics.Refused("another pickup is within 3m"); continue; }
                 if (relocated)
                     Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
-                var entry = new Entry { Definition = point, Floor = floor };
+                var entry = new Entry { Definition = point, Floor = floor, Rotating = rotating };
                 Entries.Add(entry);
                 entry.View = new ArenaPickupView(point, floor);
                 if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
                 Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' selected ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}) for round {_round}; {(definition.Alternatives?.Count ?? 0) + 1} candidates."));
                 placed = true;
+                PlacementFailures.Remove(definition.Id);
                 break;
             }
-            if (!placed) Plugin.ModLogger.LogWarning($"Arena pickup '{definition.Id}' skipped: all candidates refused; last reason: {lastReason}");
+            total.Merge(diagnostics);
+            if (!placed) PlacementFailures[definition.Id] = FormattableString.Invariant(
+                $"anchor=({anchor.x:F3}, {anchor.y:F3}, {anchor.z:F3}); alternatives={alternatives}; geometryProbes={diagnostics.Probes}; refusals=[{diagnostics}]");
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed; damage 20s, shield 220/30s, health up to 75HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
+        var actor = _world.MainPlayer.Position;
+        Plugin.ModLogger.LogInfo(FormattableString.Invariant(
+            $"Arena pickup placement attempt {_placementAttempts}: round {_round}; actor=({actor.x:F3}, {actor.y:F3}, {actor.z:F3}); anchor=({anchor.x:F3}, {anchor.y:F3}, {anchor.z:F3}); placed={Entries.Count}/{_layout.Points.Count}; alternatives={candidates}; geometryProbes={total.Probes}; refusals=[{total}]."));
+    }
+
+    private static void FinishPlacement(string outcome)
+    {
+        _placementPending = false;
+        if (_placementAttempts == 0)
+            Plugin.ModLogger.LogWarning("Arena pickups skipped this round: no ready grounded local navigation anchor within 15 seconds (body must be outside respawn/weapon swap).");
+        foreach (var definition in _layout.Points)
+        {
+            if (Entries.Any(entry => entry.Definition.Id == definition.Id)) continue;
+            if (PlacementFailures.TryGetValue(definition.Id, out var failure))
+                Plugin.ModLogger.LogWarning($"Arena pickup '{definition.Id}' skipped after {_placementAttempts} placement attempts; last attempt: {failure}.");
+        }
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed ({outcome}, {_placementAttempts} attempts); damage 20s, shield 220/30s, health up to 75HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
         Plugin.ModLogger.LogInfo($"Arena pickup bot routing: {(BotObjectivesAvailable && ArenaPickupSettings.BotsCollectPowerups.Value ? "available via BigBrain companion" : "inactive; passive collection only if enabled")}.");
     }
 
@@ -388,6 +423,7 @@ internal static partial class ArenaPickupRuntime
     private static void ClearRound()
     {
         unchecked { Generation++; }
+        _placementAttempts = 0; PlacementFailures.Clear();
         _live = false;
         ArenaPowerups.Reset();
         foreach (var entry in Entries)

@@ -76,7 +76,11 @@ try {
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
     Run-Pickup 'production' $pickupSource
     $faults = @(
-        @{Name='overlapping-pickups';File='ArenaPickupRuntime.cs';Find='Entries.Any(other => (other.Floor - floor).sqrMagnitude < 9f)';Replace='false';Failure='final pickup floors cannot overlap within three metres'},
+        @{Name='overlapping-pickups';File='ArenaPickupRuntime.cs';Find='Entries.Any(other => (rotating || other.Rotating) && (other.Floor - floor).sqrMagnitude < 9f)';Replace='false';Failure='final pickup floors cannot overlap within three metres'},
+        @{Name='single-placement-pass';File='ArenaPickupRuntime.cs';Find='if (Entries.Count == _layout.Points.Count) FinishPlacement("complete");';Replace='FinishPlacement("complete");';Failure='failed placement recovers using fresh moved anchor'},
+        @{Name='replace-successful-entry';File='ArenaPickupRuntime.cs';Find='if (Entries.Any(placedEntry => placedEntry.Definition.Id == definition.Id)) continue;';Replace='';Failure='partial retries preserve successful entry state and weapon load'},
+        @{Name='retry-flood';File='ArenaPickupRuntime.cs';Find='_nextPlacement = Time.time + 1f;';Replace='_nextPlacement = Time.time;';Failure='full placement retries are throttled to one second'},
+        @{Name='late-fixed-overlap';File='ArenaPickupRuntime.cs';Find='(rotating || other.Rotating)';Replace='rotating';Failure='late fixed point cannot overlap an already placed rotating point'},
         @{Name='custom-relocates';File='ArenaPickupGeometry.cs';Find='if (!allowNearby) return false;';Replace='';Failure='custom positions never try nearby alternatives'},
         @{Name='unbounded-final-snap';File='ArenaPickupGeometry.cs';Find='delta.x * delta.x + delta.z * delta.z > RelocationRadius * RelocationRadius + .0001f';Replace='false';Failure='final navigation snap outside two metre radius rejected'},
         @{Name='token-alias';File='ArenaPickupState.cs';Find='reservation != _reservation';Replace='false';Failure='foreign token cannot settle'},

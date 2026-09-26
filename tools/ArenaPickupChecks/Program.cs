@@ -47,6 +47,7 @@ internal static partial class Program
         ArenaHudVisibility.IsBattleUiActive=true;KitCatalog.Kits=[new(){Id="spartan"}];
         Time.time=0;Time.unscaledTime=0;Time.timeScale=1;
         NavMesh.SampleOk=true;NavMesh.PathOk=true;NavMesh.Status=NavMeshPathStatus.PathComplete;
+        NavMesh.AllowPath=null;NavMesh.LastPathStart=default;
         NavMesh.Sample=p=>p;NavMesh.Samples=NavMesh.Paths=0;NavMesh.Corners=null;Physics.Overlaps=[];Physics.Capsule=null;
         Physics.Rays=(from,dir,distance)=>dir.y<-.9f?[new(){collider=new Collider(),point=from-Vector3.up*.65f,normal=Vector3.up,distance=.65f}]:[];
         ArenaPickupView.Created.Clear();ArenaPickupView.ThrowOnTick=false;ArenaWeaponPickup.Created.Clear();ArenaWeaponPickup.PrepareNull=false;
@@ -332,10 +333,86 @@ internal static partial class Program
             foreach(var p in candidates) Check(bots.Any(b=>Math.Abs((float)b["Position"]["x"]-p.X)<.0001f&&Math.Abs((float)b["Position"]["y"]-p.Y)<.0001f&&Math.Abs((float)b["Position"]["z"]-p.Z)<.0001f),"Factory candidate matches installed native Bot-only marker");
         }
     }
+    private static void PlacementRetries()
+    {
+        Fixture();NavMesh.AllowPath=(from,to)=>from.x < -5;Step();
+        Check(ArenaPickupView.Created.Count==0&&NavMesh.Paths==1,"unreachable live anchor leaves placement pending");
+        int paths=NavMesh.Paths;
+        Move(_local,-8,seconds:.2f);Step(.2f);
+        Check(NavMesh.Paths==paths,"full placement retries are throttled to one second");
+        Step(.7f);
+        Check(ArenaPickupView.Created.Count==1&&NavMesh.LastPathStart.x==-8,"failed placement recovers using fresh moved anchor");
+        Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("attempt 1:")&&s.Contains("anchor=(-3.000")&&s.Contains("geometryProbes=1")&&s.Contains("no complete native path from the local actor=1")),"attempt diagnostics include anchor and actual refusal counts");
+        Step(2);Check(Plugin.ModLogger.Lines.Count(s=>s.Contains("points placed"))==1,"successful retry reports completion only once");
+
+        Fixture(ArenaPickupKind.Weapon);var mixed=FileFor(Point(ArenaPickupKind.Weapon));
+        var later=Point();later.Id="later";later.X=10;mixed.Layouts[0].Points.Add(later);
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(mixed));
+        NavMesh.AllowPath=(from,to)=>to.x<5;Step();Step();
+        var view=ArenaPickupView.Created.Single();var state=State();var weapon=ArenaWeaponPickup.Created.Single();
+        Move(_local,0);weapon.Settle(true);float cooldown=state.ReadyAt;
+        Step(1.1f);
+        Check(ArenaPickupView.Created.Count==1&&ReferenceEquals(State(),state)&&state.Phase==ArenaPickupPhase.Cooldown
+            &&state.ReadyAt==cooldown&&!view.Disposed&&ArenaWeaponPickup.Created.Count==1,"partial retries preserve successful entry state and weapon load");
+        NavMesh.AllowPath=null;Move(_local,10,seconds:1.1f);
+        Check(ArenaPickupView.Created.Count==2&&ReferenceEquals(State(),state)&&state.ReadyAt==cooldown,"partial recovery adds only the missing point");
+        Check(ArenaPowerups.Grants.Count==0,"delayed point under actor requires leave and reenter");
+        Move(_local,12);Move(_local,10);Check(ArenaPowerups.Grants.Count==1,"delayed point works after deliberate reentry");
+
+        Fixture();var lateFixed=FileFor();var rotating=Point(ArenaPickupKind.Shield);rotating.Id="rotating";rotating.X=1;
+        rotating.Alternatives=[new(){X=1.5f}];lateFixed.Layouts[0].Points.Add(rotating);
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(lateFixed));
+        NavMesh.AllowPath=(from,to)=>to.x!=0;Step();var early=ArenaPickupView.Created.Single();
+        NavMesh.AllowPath=null;Step(1.1f);
+        Check(ArenaPickupView.Created.Count==1&&early.Point.Id=="rotating"&&!early.Disposed,"late fixed point cannot overlap an already placed rotating point");
+
+        Fixture();NavMesh.PathOk=false;Step();
+        for(int i=0;i<14;i++)Step(1);
+        int attempts=Plugin.ModLogger.Lines.Count(s=>s.Contains("placement attempt "));
+        paths=NavMesh.Paths;Step(2);NavMesh.PathOk=true;Step(2);
+        Check(attempts==15&&NavMesh.Paths==paths&&ArenaPickupView.Created.Count==0,"unreachable placement has bounded attempts and cannot revive after deadline");
+        Check(Plugin.ModLogger.Lines.Count(s=>s.Contains("skipped after"))==1&&Plugin.ModLogger.Lines.Count(s=>s.Contains("points placed"))==1,"exhausted placement reports final refusal once");
+        Check(!Plugin.ModLogger.Lines.Any(s=>s.Contains("navigation anchor within")),"failed paths are not misreported as missing anchor");
+
+        Fixture();_local.MovementContext.IsGrounded=false;Step();_local.MovementContext.IsGrounded=true;Step(16);
+        Check(NavMesh.Paths==0&&ArenaPickupView.Created.Count==0,"anchor first available after deadline cannot place pickups");
+        Fixture();NavMesh.PathOk=false;Step();paths=NavMesh.Paths;Time.timeScale=0;Step(1);
+        Check(NavMesh.Paths==paths,"paused game never performs new placement probes");
+        Time.timeScale=1;NavMesh.PathOk=true;Step(.1f);Check(ArenaPickupView.Created.Count==1,"unpaused retry uses remaining gameplay window");
+        Fixture();ArenaRespawnDriver.IsRespawnInProgress=true;Step();Check(NavMesh.Paths==0,"replacement in progress postpones placement");
+        ArenaRespawnDriver.IsRespawnInProgress=false;WeaponSwapService.IsSwapping=true;Step(.3f);Check(NavMesh.Paths==0,"weapon swap postpones placement");
+        WeaponSwapService.IsSwapping=false;Step(.3f);Check(ArenaPickupView.Created.Count==1,"ready body resumes pending placement");
+
+        foreach(string change in new[]{"phase","disable","inactive","world","match","stopping","round"})
+        {
+            Fixture();NavMesh.PathOk=false;Step();NavMesh.PathOk=true;
+            switch(change)
+            {
+                case "phase":Dm.AssistScoringOpen=false;break;
+                case "disable":ArenaPickupSettings.Enabled.Value=false;break;
+                case "inactive":ArenaSession.IsActive=false;break;
+                case "world":Singleton<GameWorld>.Instance=new();break;
+                case "match":ArenaMatchService.Current=null;break;
+                case "stopping":_game.Status=GameStatus.Stopping;break;
+                case "round":Dm.Round.Number++;Dm.AssistScoringOpen=false;break;
+            }
+            Step(2);Check(ArenaPickupView.Created.Count==0,"pending placement canceled by "+change);
+        }
+        Fixture();NavMesh.PathOk=false;Step();Step(16);Dm.AssistScoringOpen=false;Step();Dm.Round.Number++;
+        Dm.AssistScoringOpen=true;NavMesh.PathOk=true;Step();
+        Check(ArenaPickupView.Created.Count==1&&Plugin.ModLogger.Lines.Any(s=>s.Contains("attempt 1: round 2")),"new round receives fresh retry window and attempt counter");
+
+        Fixture();var diagnostics=new ArenaPickupGeometry.PlacementDiagnostics();
+        Physics.Capsule=(p,b,r)=>p.x==0&&p.z==0?[new Collider()]:[];NavMesh.PathOk=false;
+        Check(!ArenaPickupGeometry.TryPlacePoint(new(),_local.Position,true,out _,out _,out _,diagnostics),"diagnostic probes retain unsafe placement rejection");
+        Check(diagnostics.Probes==33&&diagnostics.ToString().Contains("pedestal clearance obstructed=1")
+            &&diagnostics.ToString().Contains("no complete native path from the local actor=32"),"geometry diagnostics count every actual fallback failure not just the last candidate");
+    }
+
     public static int Main(string[] args)
     {
         try {
-            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();
+            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();
 #if PICKUP_OBJECTIVES
             ObjectiveCases();
 #endif

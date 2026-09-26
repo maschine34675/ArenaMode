@@ -2,6 +2,8 @@ using ArenaMode.Areas;
 using ArenaMode.Shared;
 using EFT;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -16,13 +18,38 @@ internal static class ArenaPickupGeometry
     private const int HitCapacity = 32;
     private static readonly RaycastHit[] Hits = new RaycastHit[HitCapacity];
 
+    internal sealed class PlacementDiagnostics
+    {
+        internal int Probes;
+        private readonly Dictionary<string, int> _refusals = new(StringComparer.Ordinal);
+        internal void Refused(string reason)
+        {
+            reason = reason ?? "unknown";
+            _refusals.TryGetValue(reason, out int count);
+            _refusals[reason] = count + 1;
+        }
+        internal void Merge(PlacementDiagnostics other)
+        {
+            Probes += other.Probes;
+            foreach (var pair in other._refusals)
+            {
+                _refusals.TryGetValue(pair.Key, out int count);
+                _refusals[pair.Key] = count + pair.Value;
+            }
+        }
+        public override string ToString() => string.Join(", ", _refusals.OrderBy(pair => pair.Key)
+            .Select(pair => pair.Key + "=" + pair.Value));
+    }
+
     // Only unsurveyed built-in prototypes may move. Custom layouts remain exact.
     // Every candidate runs the original floor, clearance, contour and path checks.
     internal static bool TryPlacePoint(Vector3 requested, Vector3 anchor, bool allowNearby,
-        out Vector3 floor, out string reason, out bool relocated)
+        out Vector3 floor, out string reason, out bool relocated, PlacementDiagnostics diagnostics = null)
     {
         relocated = false;
+        if (diagnostics != null) diagnostics.Probes++;
         if (TryPlace(requested, anchor, out floor, out reason)) return true;
+        diagnostics?.Refused(reason);
         if (!allowNearby) return false;
         string originalReason = reason;
         for (int ring = 1; ring <= 4; ring++)
@@ -31,12 +58,15 @@ internal static class ArenaPickupGeometry
             double angle = direction * Math.PI / 4d;
             float radius = ring * .5f;
             var candidate = requested + new Vector3((float)Math.Cos(angle) * radius, 0, (float)Math.Sin(angle) * radius);
-            if (!TryPlace(candidate, anchor, out var alternative, out _)) continue;
+            if (diagnostics != null) diagnostics.Probes++;
+            if (!TryPlace(candidate, anchor, out var alternative, out var refusal))
+            { diagnostics?.Refused(refusal); continue; }
             var delta = alternative - requested;
             // NavMesh sampling may move an additional .75m; bound the FINAL floor,
             // not just the candidate, and never relocate onto another level.
             if (delta.x * delta.x + delta.z * delta.z > RelocationRadius * RelocationRadius + .0001f
-                || Math.Abs(delta.y) > .5f) continue;
+                || Math.Abs(delta.y) > .5f)
+            { diagnostics?.Refused("relocation exceeds distance or level bound"); continue; }
             floor = alternative; reason = originalReason; relocated = true;
             return true;
         }
