@@ -17,13 +17,13 @@ The dated HANDOFF and deployment receipt bind final delivery and pending GPU wor
 
 2026-09-23 extension: `Health` and optional deliberate bot collection are specified
 in `PICKUP-OBJECTIVES-REVIEW.md`. Factory now has six pickups from the same eight
-candidate positions. Historical five-point counts below describe the earlier build.
+candidate positions. Healing increased from 75 to 150 HP on 2026-09-26.
 
 | Pickup | Effect | Returns after |
 |---|---|---|
 | Double Damage (pink) | Twice the post-armor health damage from non-launcher firearm bullets for 20 gameplay seconds | 30 seconds |
 | Shield (blue) | Separate pool of 220 impact points; expires after at most 30 gameplay seconds | 30 seconds |
-| Health (white cross) | Up to 75 HP on surviving damaged parts; wounds and native maxima remain | 20 seconds |
+| Health (white cross) | Up to 150 HP on surviving damaged parts; wounds and native maxima remain | 20 seconds |
 | Jump Boots (green) | 100% more jump height for 30 gameplay seconds, including the existing double jump; no extra jump credit | 30 seconds |
 | Infinite Ammo (orange) | Loaded magazine firearms consume no cartridges for 10 gameplay seconds; no magazine reload needed | 45 seconds |
 | Weapon (gold) | Pickup-only M60E6 FDE copied from `retzrestdfg`, with attachments and 100 M993 rounds; no spare magazines or other equipment | 45 seconds |
@@ -65,7 +65,7 @@ effects; re-enabling applies next match.
 
 ## Factory position pool (2026-09-21)
 
-Built-in layouts cover full **Factory day/night** only. Each round selects five
+Built-in layouts cover full **Factory day/night** only. Each round selects six
 positions from eight candidates: one pickup of each kind, not eight pickups.
 The original four positions below remain in the pool; the user accepted their
 placement. Four additional positions come from identical native Bot-only markers
@@ -328,7 +328,7 @@ HANDOFF and deployment record contain exact counts, evidence and build IDs.
 
 Pending user checks (restart EFT only after delivery):
 
-1. Full Factory day/night, Deathmatch and TDM: log should report 5 configured points
+1. Full Factory day/night, Deathmatch and TDM: log should report 6 configured points
    and placed count/reasons. Find markers, check floor position/readable labels,
    bobbing/spinning weapon and no navigation obstruction.
 2. Collect buffs, verify timers/shield balance, expiry/death reset. Both bot sides

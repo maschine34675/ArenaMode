@@ -10,7 +10,7 @@ internal enum ArenaHealingResult { Declined, Applied, Indeterminate }
 /// <summary>HP only; native wounds, blacked parts and reduced maxima survive.</summary>
 internal static class ArenaHealthPickup
 {
-    internal const float Amount = 75f;
+    internal const float Amount = 150f;
     // Stabilize vital parts first, then abdomen and limbs. Never heal Common.
     private static readonly EBodyPart[] Parts = { EBodyPart.Head, EBodyPart.Chest,
         EBodyPart.Stomach, EBodyPart.LeftLeg, EBodyPart.RightLeg, EBodyPart.LeftArm, EBodyPart.RightArm };
@@ -60,7 +60,7 @@ internal static class ArenaHealthPickup
                 attempted = true;
                 // Spend requested budget, not net observed HP: a synchronous
                 // callback may deal damage or heal too, and must not grant us
-                // another 75 HP worth of native calls.
+                // another full budget worth of native calls.
                 budget -= amount;
                 Exception failure = null;
                 try { health.ChangeHealth(part, amount, DamageHelper.Existence); }

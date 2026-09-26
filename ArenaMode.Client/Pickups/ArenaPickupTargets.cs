@@ -45,7 +45,7 @@ internal static partial class ArenaPickupRuntime
         var effects = ArenaPowerups.Read(player);
         return entry.Definition.Kind switch
         {
-            ArenaPickupKind.Health => ArenaHealthPickup.Missing(player) >= 15f ? Math.Min(75f, ArenaHealthPickup.Missing(player)) * 1.5f : 0,
+            ArenaPickupKind.Health => ArenaHealthPickup.Missing(player) >= 15f ? Math.Min(ArenaHealthPickup.Amount, ArenaHealthPickup.Missing(player)) * 1.5f : 0,
             ArenaPickupKind.DoubleDamage => effects.DamageSeconds <= 3f ? 90f : 0,
             ArenaPickupKind.Shield => effects.ShieldPoints < 110f || effects.ShieldSeconds <= 3f ? 70f : 0,
             _ => 0

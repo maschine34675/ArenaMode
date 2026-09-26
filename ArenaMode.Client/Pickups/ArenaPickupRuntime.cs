@@ -243,7 +243,7 @@ internal static partial class ArenaPickupRuntime
             if (PlacementFailures.TryGetValue(definition.Id, out var failure))
                 Plugin.ModLogger.LogWarning($"Arena pickup '{definition.Id}' skipped after {_placementAttempts} placement attempts; last attempt: {failure}.");
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed ({outcome}, {_placementAttempts} attempts); damage 20s, shield 220/30s, health up to 75HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
+        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed ({outcome}, {_placementAttempts} attempts); damage 20s, shield 220/30s, health up to {ArenaHealthPickup.Amount:0}HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
         Plugin.ModLogger.LogInfo($"Arena pickup bot routing: {(BotObjectivesAvailable && ArenaPickupSettings.BotsCollectPowerups.Value ? "available via BigBrain companion" : "inactive; passive collection only if enabled")}.");
     }
 

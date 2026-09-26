@@ -21,7 +21,7 @@ internal sealed class ArenaPickupView : IDisposable
     internal ArenaPickupView(ArenaPickupPoint point, Vector3 floor)
     {
         _floor = floor; _yaw = point.Yaw;
-        _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", ArenaPickupKind.JumpBoots => "JUMP BOOTS", ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO", ArenaPickupKind.Health => "HEALTH +75", _ => "WEAPON" };
+        _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", ArenaPickupKind.JumpBoots => "JUMP BOOTS", ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO", ArenaPickupKind.Health => $"HEALTH +{ArenaHealthPickup.Amount:0}", _ => "WEAPON" };
         Color color = point.Kind switch
         {
             ArenaPickupKind.DoubleDamage => new Color(1f, .25f, .7f),

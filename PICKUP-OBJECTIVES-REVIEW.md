@@ -14,7 +14,7 @@ same eight-position pool: the added health point returns after **20 gameplay
 seconds**. Custom `Pickups.json` still replaces built-ins and is never rewritten;
 add an explicitly authored `Health` point to use healing in a custom layout.
 
-The white cross/beacon restores up to **75 HP total**, prioritizing head, thorax,
+The white cross/beacon restores up to **150 HP total** (doubled on 2026-09-26), prioritizing head, thorax,
 stomach, legs, then arms. Each surviving damaged part is capped at its current
 native maximum, including reductions from prior surgery. Destroyed or zero-HP
 parts stay unchanged. Bleeding, fractures, pain, toxins, energy and hydration are
@@ -31,7 +31,7 @@ Assist damage history is unchanged (its capture ignores positive health deltas).
 
 `ChangeHealth` can invoke synchronous listeners after mutating HP. The adapter
 captures physical health ownership and generation, rechecks before every part,
-and debits requested rather than net HP from the 75-point budget. Confirmed
+and debits requested rather than net HP from the 150-point budget. Confirmed
 partial healing consumes once; an attempted but unconfirmed mutation retires
 the appearance instead of granting it again. The outer collection scan returns
 immediately if a callback changes generation, preserving a replacement round.
@@ -52,7 +52,8 @@ Targets come only from actually available placed appearances, never raw layout
 coordinates. They carry generation, appearance, physical health owner and point
 identity, and honor fresh-spawn/leave-before-reentry requirements. Bots seek:
 
-- Health when at least 15 healable HP are missing.
+- Health when at least 15 healable HP are missing; its benefit is capped at the
+  same 150 HP as the pickup, rather than a separately maintained value.
 - Double Damage when at most three seconds remain (or none is active).
 - Shield when fewer than 110 impact points or at most three seconds remain.
 
@@ -109,7 +110,7 @@ profile restoration. Exact delivery/test status belongs in the dated handoff.
 
 Native acceptance: restart EFT with both matching DLLs; Factory day/night DM and
 TDM should log six placed points or explain a refused position. Walk through the
-white cross while damaged, confirm at most 75 HP, remaining bleeding/fracture,
+white cross while damaged, confirm at most 150 HP, remaining bleeding/fracture,
 unchanged blacked parts, the 20s cooldown and no consumption at full health.
 Observe bots taking available useful health/DD/shield, returning to combat on
 contact, and yielding after a failed path. Test closed doors, a stolen target,

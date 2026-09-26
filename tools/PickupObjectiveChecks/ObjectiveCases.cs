@@ -18,8 +18,8 @@ internal static partial class Program
     private static void HealthCases()
     {
         HealthReady();Damage(EBodyPart.Head,10,35);Damage(EBodyPart.Chest,10,85);Damage(EBodyPart.Stomach,5);
-        Check(ArenaHealthPickup.Apply(_local,out var healed)==ArenaHealingResult.Applied&&healed==75,"health budget is 75 total");
-        Check(_local.ActiveHealthController.GetBodyPartHealth(EBodyPart.Head).Current==35&&_local.ActiveHealthController.GetBodyPartHealth(EBodyPart.Chest).Current==60,"vital parts heal first within native maxima");
+        Check(ArenaHealthPickup.Apply(_local,out var healed)==ArenaHealingResult.Applied&&healed==150,"health budget is 150 total");
+        Check(_local.ActiveHealthController.GetBodyPartHealth(EBodyPart.Head).Current==35&&_local.ActiveHealthController.GetBodyPartHealth(EBodyPart.Chest).Current==85&&_local.ActiveHealthController.GetBodyPartHealth(EBodyPart.Stomach).Current==55,"vital parts heal first within native maxima");
         Check(_local.ActiveHealthController.Effects.SetEquals(["Bleeding","Fracture"]),"health pickup does not cure wounds");
         HealthReady();Damage(EBodyPart.LeftArm,0);Damage(EBodyPart.RightArm,1);_local.ActiveHealthController.Destroyed.Add(EBodyPart.RightArm);
         Check(ArenaHealthPickup.Missing(_local)==0&&ArenaHealthPickup.Apply(_local,out healed)==ArenaHealingResult.Declined,"destroyed and zero HP parts are not restored");
@@ -50,7 +50,7 @@ internal static partial class Program
         HealthReady();Damage(EBodyPart.Head,10,35);Damage(EBodyPart.Chest,10);Damage(EBodyPart.Stomach,10);
         _local.ActiveHealthController.Changed=(part,delta)=>{var v=_local.ActiveHealthController.Parts[part];v.Current-=delta/2;_local.ActiveHealthController.Parts[part]=v;};
         ArenaHealthPickup.Apply(_local,out healed);
-        Check(_local.ActiveHealthController.Requested==75&&healed==37.5f,"callback damage cannot increase requested heal budget");
+        Check(_local.ActiveHealthController.Requested==150&&healed==75f,"callback damage cannot increase requested heal budget");
     }
 
     private static BotOwner AiReady(ArenaPickupKind kind=ArenaPickupKind.DoubleDamage)
@@ -94,6 +94,11 @@ internal static partial class Program
         {bot=AiReady(kind);Check(!ArenaPickupObjective.TryAcquire(bot,new(),out _),"local only or unneeded health never targeted");}
         bot=AiReady(ArenaPickupKind.Health);bot.GetPlayer.ActiveHealthController.Parts[EBodyPart.Chest]=new(){Current=40,Maximum=100};Acquire(bot);
         Move(bot.GetPlayer,0);Check(State().Phase==ArenaPickupPhase.Cooldown,"injured bot can collect health");
+        bot=AiReady(ArenaPickupKind.Health);
+        bot.GetPlayer.ActiveHealthController.Parts[EBodyPart.Chest]=new(){Current=10,Maximum=100};
+        bot.GetPlayer.ActiveHealthController.Parts[EBodyPart.Stomach]=new(){Current=10,Maximum=100};
+        var healthTargets=new List<ArenaPickupTarget>();ArenaPickupRuntime.GetBotTargets(bot.GetPlayer,healthTargets);
+        Check(healthTargets.Count==1&&healthTargets[0].Utility==225f,"bot values the full 150 HP benefit");
         bot=AiReady(ArenaPickupKind.Health);bot.GetPlayer.ActiveHealthController.Parts[EBodyPart.Chest]=new(){Current=40,Maximum=100};lease=Acquire(bot);
         bot.GetPlayer.ActiveHealthController.Parts[EBodyPart.Chest]=new(){Current=100,Maximum=100};ArenaPickupObjective.Prune();
         bot.GetPlayer.ActiveHealthController.Parts[EBodyPart.Chest]=new(){Current=40,Maximum=100};

@@ -29,7 +29,8 @@ function Invoke-PickupObjective([string]$name,[string]$client,[string]$companion
 }
 Invoke-PickupObjective 'production' $source $compat
 $faults=@(
-    @{Name='unbounded-heal';File='ArenaHealthPickup.cs';Find='internal const float Amount = 75f;';Replace='internal const float Amount = 150f;';Reject='health budget is 75 total'},
+    @{Name='unbounded-heal';File='ArenaHealthPickup.cs';Find='internal const float Amount = 150f;';Replace='internal const float Amount = 300f;';Reject='health budget is 150 total'},
+    @{Name='stale-health-utility';File='ArenaPickupTargets.cs';Find='Math.Min(ArenaHealthPickup.Amount, ArenaHealthPickup.Missing(player))';Replace='Math.Min(75f, ArenaHealthPickup.Missing(player))';Reject='bot values the full 150 HP benefit'},
     @{Name='destroyed-heal';File='ArenaHealthPickup.cs';Find='!health.IsBodyPartDestroyed(part)';Replace='true';Reject='destroyed and zero HP parts are not restored'},
     @{Name='stale-health-scan';File='ArenaPickupRuntime.cs';Find='if (generation != Generation) return;';Replace='';Reject='old healing scan preserves replacement generation'},
     @{Name='ignore-combat';File='ArenaPickupObjective.cs';Find='enemy.IsVisible ||';Replace='false ||';Reject='visible enemy blocks pickup travel'},
