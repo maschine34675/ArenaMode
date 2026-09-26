@@ -7,6 +7,28 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Score-Vergleich und 150-HP-Pickup (2026-09-26):** Screenshot
+  `../Screenshot-2026-09-23-170642.png` zeigte eine allein umgebrochene
+  Rivalenpunktzahl. `c90c7a4` trennt den Vergleich vom Matchstatus und reserviert
+  in einer gemeinsamen unteren Zeile die gemessene Zahlenbreite; nur der Name
+  kann gekürzt werden. Panelhöhe 84 und alle Offsets unverändert. Ohne Vergleich
+  (TDM) bleiben zwei Statuszeilen möglich. `f7b446f` verdoppelt Health von 75 auf
+  150 HP; Anzeige, Hilfetext, Log und Botbewertung lesen denselben Wert. Native
+  Maxima, zerstörte Teile, Wunden und 20s-Cooldown unverändert.
+  Factory hat unverändert acht gemeinsame Ausgangspositionen für Tag/Nacht und
+  sechs Pickups pro Runde; kein Custom-Pickups.json auf lokal/GPU vorhanden.
+  Health/Bot-Objective-Harness: 375 Prüfungen, 11 kompilierte Fehlerkontrollen;
+  Pickup-Harness: 255 Prüfungen, 30 Quelltextverträge, 18 Fehlerkontrollen grün.
+  Unabhängige adversariale Review ohne offene P0-P2, TMP-Breitenmessung gegen
+  installierte Assembly geprüft. Client-Build 0 Fehler/vier bekannte CS8632.
+  Beide Commits auf master; nur Client lokal und GPU 192.168.178.114 eingespielt,
+  SHA256 `9767F43EACC007C0414597E05C82E322020D427F96BDA89582122091A66B33BC`.
+  Server, Redeploy.Core und BigBrainCompat unverändert. Beleg:
+  `SCORE-HEALTH-DEPLOYMENT-20260926.json`. Kein EFT-Neustart oder Raidtest in
+  dieser Änderung: nach Neustart lange Namen/große Punktzahlen, Tactical/TDM
+  sowie tatsächlichen Heilgewinn prüfen. Siehe UNIFIED-UI-REVIEW und
+  PICKUP-OBJECTIVES-REVIEW für Darstellung bzw. unveränderte Heilungsgrenzen.
+
 - **Pickup-Platzierung wiederholt fehlende Punkte begrenzt (2026-09-26):**
   Reaktion auf Factory-Log 25.09. 18:54:41 mit 0/6 nach einmaliger Prüfung.
   Insgesamt 15 Spielsekunden ab Live-Phase, höchstens ein vollständiger Versuch
