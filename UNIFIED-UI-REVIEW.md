@@ -1,5 +1,20 @@
 # Einheitlicher Arena-Look — 2026-09-22
 
+## Score-Vergleich ohne verwaiste Punktzahl (2026-09-26)
+
+Der Screenshot `Screenshot-2026-09-23-170642.png` zeigt, wie beim langen
+Rivalennamen die Punktzahl allein in die nächste Zeile umbrechen konnte.
+Der Vergleich hat jetzt eine eigene untere Zeile innerhalb der unveränderten
+84 HUD-Einheiten Panelhöhe. Name und Punktzahl sind getrennte, gemeinsam
+zentrierte TMP-Felder ohne Wortumbruch; die gemessene Breite der Zahl wird zuerst
+reserviert, nur der Name erhält bei Platzmangel eine Ellipse. Matchstatus und
+Streak/Zeit behalten die volle Breite darüber (13–16 pt, einzeilig).
+Tactical-Vergleich und Warten-Text nutzen die untere Zeile zentriert; Team DM
+behält seine Teamzahlen in der Statuszeile und zeigt keinen Rivalenvergleich.
+Ohne Vergleich kann die Statuszeile weiterhin beide unteren Zeilen nutzen.
+Keine Änderung an Scores, Datenbereinigung, Offsets oder angehängten HUD-Panels.
+Native Pixelprüfung mit langem Namen, großen Scores und Tactical/TDM steht aus.
+
 Gewünschte Richtung: **dezenter Arena-Stil**, ohne weitere Einstellungsflut.
 Die Änderung betrifft ausschließlich die Darstellung. Gespeicherte Positionen,
 Offsets, Sichtbarkeit, eigene Statusfarben und alle Spielregeln bleiben bestehen.

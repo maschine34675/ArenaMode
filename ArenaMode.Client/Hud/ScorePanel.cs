@@ -20,6 +20,8 @@ internal sealed class ScorePanel
     private RectTransform _root;
     private TextMeshProUGUI _mainLine;
     private TextMeshProUGUI _subLine;
+    private TextMeshProUGUI _comparisonLine;
+    private TextMeshProUGUI _rivalScore;
     private float _nextRefreshAt;
     private int _assistPoints;
     private float _assistUntil;
@@ -56,14 +58,32 @@ internal sealed class ScorePanel
 
         _subLine = HudStyle.CreateText(_root, "Sub", 16f, TextAlignmentOptions.Top);
         _subLine.color = ArenaUiTheme.Muted;
-        _subLine.enableWordWrapping = true;
+        _subLine.enableAutoSizing = true;
+        _subLine.fontSizeMin = 13f;
+        _subLine.fontSizeMax = 16f;
         var subRect = _subLine.rectTransform;
         subRect.anchorMin = new Vector2(0f, 1f);
         subRect.anchorMax = new Vector2(1f, 1f);
         subRect.pivot = new Vector2(0.5f, 1f);
         subRect.anchoredPosition = new Vector2(0f, -42f);
-        subRect.sizeDelta = new Vector2(-32f, 38f);
+        subRect.sizeDelta = new Vector2(-32f, 19f);
         _subLine.overflowMode = TextOverflowModes.Ellipsis;
+
+        // Keep the comparison on its own row. The rival name may ellipsize,
+        // but the independently sized score must never wrap or disappear with it.
+        _comparisonLine = HudStyle.CreateText(_root, "Comparison", 16f, TextAlignmentOptions.Top);
+        _comparisonLine.color = ArenaUiTheme.Muted;
+        _comparisonLine.overflowMode = TextOverflowModes.Ellipsis;
+        _rivalScore = HudStyle.CreateText(_root, "Rival score", 16f, TextAlignmentOptions.TopLeft);
+        _rivalScore.color = new Color32(255, 107, 107, 255);
+        _rivalScore.richText = false;
+        foreach (var text in new[] { _comparisonLine, _rivalScore })
+        {
+            var rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -62f);
+            rect.sizeDelta = new Vector2(0f, 19f);
+        }
     }
 
     public void Tick(ArenaMatch match)
@@ -95,13 +115,36 @@ internal sealed class ScorePanel
             : string.Empty;
         var modeLine = match.Mode?.HudStatusLine;
         var modePart = string.IsNullOrEmpty(modeLine) ? string.Empty : $"   {modeLine}";
-        var comparison = Comparison(match);
-        var comparisonPart = string.IsNullOrEmpty(comparison) ? string.Empty : $"   {comparison}";
-        _subLine.text = $"{streakPart}{minutes:00}:{seconds:00}{modePart}{comparisonPart}";
+        _subLine.text = $"{streakPart}{minutes:00}:{seconds:00}{modePart}";
+        _comparisonLine.text = Comparison(match, out var rivalScore) ?? string.Empty;
+        _rivalScore.text = rivalScore ?? string.Empty;
+        LayoutComparison();
     }
 
-    private static string Comparison(ArenaMatch match)
+    private void LayoutComparison()
     {
+        bool hasComparison = !string.IsNullOrEmpty(_comparisonLine.text);
+        _subLine.enableWordWrapping = !hasComparison;
+        _subLine.rectTransform.sizeDelta = new Vector2(-32f, hasComparison ? 19f : 38f);
+        float width = Mathf.Max(0f, _root.rect.width - 32f);
+        float scoreWidth = string.IsNullOrEmpty(_rivalScore.text) ? 0f
+            : Mathf.Min(width, _rivalScore.GetPreferredValues(_rivalScore.text, Mathf.Infinity, Mathf.Infinity).x + 2f);
+        float gap = scoreWidth > 0f ? 8f : 0f;
+        float nameWidth = scoreWidth > 0f
+            ? Mathf.Min(Mathf.Max(0f, width - scoreWidth - gap),
+                _comparisonLine.GetPreferredValues(_comparisonLine.text, Mathf.Infinity, Mathf.Infinity).x + 2f)
+            : width;
+        float total = nameWidth + gap + scoreWidth;
+        _comparisonLine.alignment = scoreWidth > 0f ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.Top;
+        _comparisonLine.rectTransform.sizeDelta = new Vector2(nameWidth, 19f);
+        _comparisonLine.rectTransform.anchoredPosition = new Vector2((nameWidth - total) * .5f, -62f);
+        _rivalScore.rectTransform.sizeDelta = new Vector2(scoreWidth, 19f);
+        _rivalScore.rectTransform.anchoredPosition = new Vector2((total - scoreWidth) * .5f, -62f);
+    }
+
+    private static string Comparison(ArenaMatch match, out string rivalScore)
+    {
+        rivalScore = null;
         if (match?.Scoreboard == null)
             return null;
 
@@ -118,8 +161,9 @@ internal sealed class ScorePanel
         }
 
         ArenaScoreboardEntry leader = match.Scoreboard.Leader(ArenaScoreboardSide.Opponent);
+        if (leader != null) rivalScore = $"{leader.Score:n0}";
         return leader == null
             ? "Waiting for opponents"
-            : $"Rival {leader.DisplayName} <color=#FF6B6B>{leader.Score:n0}</color>";
+            : $"Rival {leader.DisplayName}";
     }
 }
