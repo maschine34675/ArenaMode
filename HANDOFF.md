@@ -7,6 +7,30 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bot-Anlaufen, Richtungswechsel und Gewichtsträgheit (2026-09-28):**
+  `22f3b3d` auf master. Nutzer hat das vorherige Bot-Such-/Kampftempo positiv
+  getestet; diese zusätzlichen Änderungen benötigen noch eine eigene Raid-Abnahme.
+  Nur exakt zugeordnete, aktive Arena-Bots am Boden: native Beschleunigungswerte
+  x1,5, Walk-Trägheit nach Gewichtskorrektur x0,6, normalisierter Trägheitswert
+  x0,5. Verbleibende positive Gewichtsnachteile werden zur Hälfte zur nativen
+  Nullgewichts-Basis zurückgeführt, aber nur wenn diese die Bewegung verbessert.
+  Native Nullwerte bleiben erhalten; insbesondere wird eine bereits auf null
+  gefallene Sprintbeschleunigung nicht wiederhergestellt. Inventargewicht,
+  Ausdauer, Skills, globale Kurven, Spieler und normale Raids bleiben unverändert.
+  Keine weiteren Einstellungen: `BotMovementEnabled` schaltet mit. Vorhandene
+  Kollisions-/Türbedingungen, Bewegungsgrenzen und SAIN-Aktionshoheit bleiben.
+  Details und Testfälle: `BOT-AGILITY-REVIEW.md`.
+  Offline: 309 Agility-, 131 Motion-, 43 SAIN-Bindungs- und 149 Tempo-Prüfungen
+  grün (632 insgesamt), 22 kompilierte Fehlerkontrollen. Zehn native Lesestellen
+  in vier Methoden gegen die installierte EFT-DLL geprüft; zwei unabhängige
+  Reviews ohne offene P0-P2. Client-Build: 0 Fehler, vier bekannte CS8632.
+  Nur Client lokal und auf GPU-Host 192.168.178.114 eingespielt, SHA256
+  `FD8FD7A039E313596CDC01715799343475B733FD8E87E1FDA7E7BC24FB53AF6B`.
+  Server, Redeploy.Core und BigBrainCompat auf beiden Rechnern unverändert;
+  Beleg `BOT-AGILITY-DEPLOYMENT-20260928.json`. Vor dem Test EFT neu starten.
+  Native Animationen, Verhalten an engen Ecken/Türen, tatsächlicher Gewichtseffekt
+  und Leistung bei voller Besetzung sind noch nicht im Spiel abgenommen.
+
 - **Bot-Such- und Kampftempo (2026-09-28):** `ba22ab4` auf master, separater
   Laufzeitadapter für die installierte SAIN 4.5.1.0. Die drei freigegebenen
   Punkte: unnötigen Such-Wartetail nach beendetem Nachladen auf 0,5s sichere
