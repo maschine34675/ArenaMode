@@ -99,6 +99,9 @@ internal static class ArenaBotMovement
             && ReferenceEquals(body, actual) && ReferenceEquals(owner, actualOwner);
     }
 
+    internal static bool TryGetLiveBot(MovementContext context, out Player body, out BotOwner owner)
+        => TryBot(context, out body, out owner, out _);
+
     internal static MotionLease Begin(MovementContext context, ref Vector3 motion, float deltaTime)
     {
         MotionLease lease = null;

@@ -120,3 +120,12 @@ The shared `IsLiveBot` entry point reuses the existing exact admission above.
 Motion now summarizes boosted/corner-limited/step-limited calls at most once per
 60 gameplay seconds/world. Counts overlap and do not measure actual travel speed.
 Additional source-linked tests check admission reuse and diagnostic cadence.
+
+## 2026-09-28: starts, direction blending and remaining weight inertia
+
+After user acceptance of the preceding tempo change, `ArenaBotAgility` adds
+per-consumer acceleration/direction tuning and reduced weight-related locomotion
+inertia. See `BOT-AGILITY-REVIEW.md` for baseline math, native zero-value limits,
+scoped operand substitution and acceptance. Native displacement/collision limits
+are not relaxed. Bot overweight thresholds were already 9000–10000 kg; this work
+does not raise them or modify inventory, stored Physical fields or shared curves.
