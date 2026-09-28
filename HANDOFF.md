@@ -1,11 +1,37 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-26. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-28. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Bot-Such- und Kampftempo (2026-09-28):** `ba22ab4` auf master, separater
+  Laufzeitadapter für die installierte SAIN 4.5.1.0. Die drei freigegebenen
+  Punkte: unnötigen Such-Wartetail nach beendetem Nachladen auf 0,5s sichere
+  Beobachtung verkürzen; Sprint auf vollständigen vorhandenen Suchrouten mit
+  >=4m bis zur nächsten Ecke und >=8m Restweg bevorzugen; positive native
+  `DogFightMove`-Strafewerte unter 0,7 auf 0,7 anheben. Native Nachlade-/Heil- und
+  Gefahrhandlungen, Türen, Navigation und echte Sprintbedingungen bleiben
+  bestehen. Kein SAIN-Preset verändert, keine zusätzlichen F12-Regler;
+  `BotMovementEnabled` schaltet mit. Fremde PFT-/Arena-Pursuit-Aktionen bleiben
+  unberührt. Displacement-Maximum 1,5 und Schrittgrenze 0,3m unverändert.
+  Minute-Diagnosen unterscheiden Tempo-Eingaben von tatsächlich geboosteten,
+  eckenbegrenzten und schrittbegrenzten Bewegungsaufrufen. Sie messen kein
+  tatsächlich erreichtes Lauftempo. Details: `BOT-TEMPO-REVIEW.md`.
+  Offline: 149 Tempo-, 131 Motion-, 43 SAIN-Bindungs- und 104 TDM-Suchprüfungen
+  grün (427 insgesamt), dazu 19 kompilierte Fehlerkontrollen; installierte
+  SAIN-/EFT-Verträge geprüft. Unabhängige adversariale Review ohne offene P0-P2;
+  gefundenen mutativen Flash-Getter durch reines Lesen von `_isFlashed` ersetzt.
+  Client-Build: 0 Fehler, vier bekannte CS8632. Nur Client lokal und auf
+  GPU-Host 192.168.178.114 eingespielt, SHA256
+  `2C35467D13242387B28FDAE413BB37C0DF51DC5F432AA2608DCB8A124B85DA2D`.
+  Server, Redeploy.Core und BigBrainCompat auf beiden Rechnern unverändert;
+  Beleg `BOT-TEMPO-DEPLOYMENT-20260928.json`. Kein EFT-Neustart/Raidtest durch
+  diese Sitzung: vor Abnahme EFT neu starten. Native Wirkung, SAIN-Aktionsabdeckung
+  und Leistung bei voller Besetzung bleiben offen; besonders lange Suchwege,
+  Nachladen, enge Türen/Ecken und Tactical/PFT nach dem Spielertod vergleichen.
 
 - **Score-Vergleich und 150-HP-Pickup (2026-09-26):** Screenshot
   `../Screenshot-2026-09-23-170642.png` zeigte eine allein umgebrochene

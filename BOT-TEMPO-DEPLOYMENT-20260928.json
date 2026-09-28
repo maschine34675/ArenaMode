@@ -1,0 +1,32 @@
+{
+  "SourceCommit": "ba22ab4183881bb0c03e860bf36c1fb15298ad15",
+  "CompletedUtc": "2026-09-28T14:37:03.6808947Z",
+  "Artifacts": [
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\5acb400a09e54acc9c25c9d7ae2b0fbf\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\bot-tempo-deploy\\4ed35508821b4e3d834dee491ef4ade3\\0-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "9767F43EACC007C0414597E05C82E322020D427F96BDA89582122091A66B33BC",
+      "Sha256": "2C35467D13242387B28FDAE413BB37C0DF51DC5F432AA2608DCB8A124B85DA2D"
+    },
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\5acb400a09e54acc9c25c9d7ae2b0fbf\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\bot-tempo-deploy\\4ed35508821b4e3d834dee491ef4ade3\\1-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "9767F43EACC007C0414597E05C82E322020D427F96BDA89582122091A66B33BC",
+      "Sha256": "2C35467D13242387B28FDAE413BB37C0DF51DC5F432AA2608DCB8A124B85DA2D"
+    }
+  ],
+  "Untouched": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1",
+    "\\\\192.168.178.114\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "42246A592933D18D0D01DD6848ABAFA2EEC0B22B6483451D2111DAB76651C660",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "LiveGpuTested": false,
+  "Limitation": "Disk delivery verified under exclusive file locks. No claim about loaded EFT modules, native paths, visuals or profile acceptance. A running EFT process needs a restart for testing."
+}
