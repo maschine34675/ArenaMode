@@ -105,8 +105,18 @@ Harmony execution, navigation quality or visual speed. User-run GPU checks:
 3. Check no extra fall/climb/prone/platform movement, no standing-bot drift and
    no new obstruction loops. At low FPS, a smaller bonus is intentional.
 4. Run a normal PMC raid: no bot boost or Arena movement diagnostic should occur.
-   The first successfully boosted motion logs the requested factors once per raid;
+   The first eligible motion observation logs the requested factors once per raid;
    it is activation evidence, not a measured traversal-speed result.
 
 Only the client needs updating/restarting. Server, Core, profiles, map contours,
 spawn points and third-party configurations are unchanged.
+
+## 2026-09-28: separate SAIN tempo adapter and bounded diagnostics
+
+`ArenaBotTempo` adds the approved search/reload-tail/combat-strafe behavior under
+the same master switch; see `BOT-TEMPO-REVIEW.md` for exact ownership, thresholds
+and exclusions. This does not relax the motion factor, corner or step limits.
+The shared `IsLiveBot` entry point reuses the existing exact admission above.
+Motion now summarizes boosted/corner-limited/step-limited calls at most once per
+60 gameplay seconds/world. Counts overlap and do not measure actual travel speed.
+Additional source-linked tests check admission reuse and diagnostic cadence.

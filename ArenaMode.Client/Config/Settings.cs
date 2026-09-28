@@ -409,7 +409,8 @@ public static class Settings
 
         BotMovementEnabled = config.Bind("Bot movement", "BotMovementEnabled", true,
             "Boost grounded Arena bots on both teams, including PitFireTeam followers. " +
-            "Does not change the local player, ordinary raids, AI decisions or weapon animations.");
+            "Also enables supported SAIN search sprint, shorter completed-reload wait and faster combat strafe. " +
+            "Does not change the local player, ordinary raids, presets or weapon animations.");
         BotWalkSpeedMult = config.Bind("Bot movement", "BotWalkSpeedMult", 1.25f,
             new ConfigDescription("Arena bot walk/strafe displacement multiplier. " +
                 "Preserves native slowdowns; the bonus fades near native path corners and is suppressed during door handling or large low-FPS steps. 1 = no boost.",

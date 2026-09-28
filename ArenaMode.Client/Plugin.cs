@@ -97,6 +97,7 @@ public class Plugin : BaseUnityPlugin
         Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
         Movement.ArenaBotMovement.Enable();
+        Bots.ArenaBotTempo.Enable();
         Movement.ArenaDoubleJump.Enable();
         Movement.ArenaAirControl.Enable();
         Movement.ArenaHandlingPatches.Enable();
@@ -155,6 +156,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
         Bots.TdmSearchTempo.Shutdown();
+        Bots.ArenaBotTempo.Shutdown();
         Notifications.ArenaProgressNotifications.Shutdown();
         Diagnostics.ArenaPreviewDiagnostics.Shutdown();
         Hud.ArenaHud.Detach();

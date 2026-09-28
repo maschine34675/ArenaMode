@@ -53,7 +53,7 @@ internal static class Program
             ArenaBotMovement.Enable();
             Assert(ModulePatch.Target?.Name == nameof(MovementContext.DirectApplyMotion), "exact native motion hook registered");
             Assert(ModulePatch.PrefixHook != null && ModulePatch.FinalizerHook != null, "native hook has prefix and exception finalizer");
-            Scope(); Motion(); Lifetime(); NativeDispatch();
+            Scope(); Motion(); Lifetime(); NativeDispatch(); Diagnostics();
             Console.WriteLine($"BOT_MOVEMENT_BEHAVIOR_PASSED ({_assertions} assertions)");
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); Environment.ExitCode = 1; }
@@ -218,5 +218,24 @@ internal static class Program
         Assert(ReferenceEquals(returned, original) && original != null && rig.Controller.Value == 4, "native exception retained and cap restored");
         rig.Context.FailNative = false; args = new object[] { rig.Context, motion, .02f, null }; ModulePatch.PrefixHook.Invoke(null, args);
         Assert(args[3] != null, "native exception releases movement lease"); ModulePatch.FinalizerHook.Invoke(null, new object[] { null, args[3] });
+    }
+    private static void Diagnostics()
+    {
+        var rig = new Rig(); Time.time = 100;
+        ArenaMode.Plugin.ModLogger.Lines.Clear();
+        void Tick(Vector3 motion) => ArenaBotMovement.End(ArenaBotMovement.Begin(rig.Context, ref motion, .02f));
+        Assert(ArenaBotMovement.IsLiveBot(rig.Bot) && !ArenaBotMovement.IsLiveBot(new BotOwner()), "shared exact body admission");
+        Tick(new(.1f, 0, 0));
+        Assert(ArenaMode.Plugin.ModLogger.Lines.Count == 1, "first movement observation logged once");
+        rig.Bot.Mover.HasPathAndNoComplete = true; rig.Bot.Mover.CurrentCornerPoint = new(.5f, 0, 0);
+        Tick(new(.1f, 0, 0));
+        rig.Bot.Mover.HasPathAndNoComplete = false; Tick(new(.31f, 0, 0));
+        Assert(ArenaMode.Plugin.ModLogger.Lines.Count == 1, "limits do not spam per frame");
+        Time.time = 160; Tick(new(.1f, 0, 0));
+        var line = ArenaMode.Plugin.ModLogger.Lines.Last();
+        Assert(ArenaMode.Plugin.ModLogger.Lines.Count == 2 && line.Contains("boostedCalls=2")
+            && line.Contains("cornerLimitedCalls=1") && line.Contains("stepLimitedCalls=1"), "bounded diagnostic counts actual limits");
+        ArenaSession.IsActive = false; Time.time = 230; Tick(new(.1f, 0, 0));
+        Assert(ArenaMode.Plugin.ModLogger.Lines.Count == 2 && !ArenaBotMovement.IsLiveBot(rig.Bot), "no normal raid diagnostics or tempo admission");
     }
 }

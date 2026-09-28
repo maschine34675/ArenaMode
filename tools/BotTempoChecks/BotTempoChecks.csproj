@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><LangVersion>latest</LangVersion>
+    <AssemblyName>SAIN</AssemblyName><AssemblyVersion>4.5.1.0</AssemblyVersion>
+    <TempoSource Condition="'$(TempoSource)' == ''">../../ArenaMode.Client/Bots/ArenaBotTempo.cs</TempoSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(TempoSource)" Link="Production/ArenaBotTempo.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaBotMovement.cs" Link="Production/ArenaBotMovement.cs" />
+  </ItemGroup>
+</Project>

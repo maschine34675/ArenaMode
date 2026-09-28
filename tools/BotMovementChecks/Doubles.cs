@@ -24,7 +24,7 @@ namespace UnityEngine
         public override bool Equals(object obj) => obj is Vector3 v && this == v;
         public override int GetHashCode() => HashCode.Combine(x, y, z);
     }
-    public static class Time { public static float timeScale = 1; }
+    public static class Time { public static float timeScale = 1, time; }
 }
 
 public interface ICharacterController { float SpeedLimit { get; set; } }
