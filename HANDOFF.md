@@ -7,6 +7,41 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Customs-Areale vereinheitlicht und Konturen erneuert (2026-09-28):**
+  Quellstand `b3aae91`. Die drei unveränderten Exporte von heute sind als
+  Factory Center (40 Eckpunkte), Factory Side (32) und Customs Yard (28)
+  eingebunden. Pro Areal nur ein Menüeintrag, jeweils unabhängiges TDM 2v2–5v5;
+  keine getrennte Fest-/Teamvariante mehr, weiterhin keine Höhenbegrenzung.
+  Beide bisherigen Varianten waren TDM; andere Modi wurden nicht freigeschaltet.
+  Neue Geometrie-IDs verhindern eine Mischung alter/neuer Begrenzungen zwischen
+  Client und Server. Bekannte gespeicherte Center-/Side-Auswahlen werden gezielt
+  migriert; alte IDs bleiben im Netzwerk ungültig.
+  Center behält seine Teamstarts. Bei Side entfällt ein jetzt zu wandnaher
+  Botpunkt. Yard erhält wie vom Nutzer freigegeben 20 zusätzliche Startkandidaten:
+  je Fraktion 2 Spieler- und 8 Bot-Alternativen um native Bodenanker, mit neuen IDs
+  und korrekter Zone/Core-Zuordnung im privaten Raid-Klon. Originalmarker und
+  globale Daten bleiben unverändert. Native Navigation, vollständige Wege innerhalb
+  der Kontur, Belegung und erforderliche Teamgröße entscheiden weiterhin über
+  die tatsächliche Freigabe; keine unsicheren Ersatzspawns bei Fehlschlägen.
+  Einzelheiten, Provenienz und Testfälle: `CUSTOMS-AREAS-REVIEW.md`.
+  Alle vier ausführbaren Prüfgruppen unter `tools/CustomsAreaRefreshChecks` grün:
+  exakte Konturen/Spawns mit Fehlerkontrollen, komplette Server-Suite
+  (789 bestanden, 1 separater APBS-Labortest übersprungen, 0 Fehler),
+  Konfigurationsmigration/Menü/Vorschau/Team-Laufzeit und isolierter gepaarter
+  Release-Build. Unabhängige adversariale Review ohne offene P0–P2.
+  Client und Server lokal sowie auf GPU-Host 192.168.178.114 gemeinsam eingespielt;
+  vier exklusive Zieldateisperren vor dem ersten Schreibzugriff, Backups und
+  anschließend Hashvergleich. Redeploy.Core/BigBrainCompat unverändert.
+  Client SHA256 `1E119FC58D8508556D75F6C56E72312C78C48CA3BBF484EB8F07D7AB0B741C31`,
+  Server SHA256 `53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB`.
+  Beleg: `CUSTOMS-AREAS-DEPLOYMENT-20260928.json`.
+  **EFT und SPT-Server vor dem Test neu starten.** Keine native Raid-Abnahme in
+  dieser Sitzung: alle drei Vorschauen, 2v2/5v5 möglichst mit beiden Fraktionen,
+  Respawns und geschütztes Verlassen prüfen. Insbesondere Yard-Boden/Hindernisse
+  und Erreichbarkeit der neuen Kandidaten müssen im Spiel bestätigt werden.
+  Die native Error-Level-Meldung über 20 ergänzte SpawnPointMarker ist bei Yard
+  erwartet; konkrete Readiness-/Pfadfehler dagegen vollständig festhalten.
+
 - **Bot-Anlaufen, Richtungswechsel und Gewichtsträgheit (2026-09-28):**
   `22f3b3d` auf master. Nutzer hat das vorherige Bot-Such-/Kampftempo positiv
   getestet; diese zusätzlichen Änderungen benötigen noch eine eigene Raid-Abnahme.
