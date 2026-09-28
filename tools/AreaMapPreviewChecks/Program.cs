@@ -50,7 +50,7 @@ try
     var concave=new ArenaAreaBounds(new[]{new ArenaAreaVertex(0,0),new ArenaAreaVertex(100,0),new ArenaAreaVertex(100,100),
         new ArenaAreaVertex(60,100),new ArenaAreaVertex(60,40),new ArenaAreaVertex(40,40),new ArenaAreaVertex(40,100),new ArenaAreaVertex(0,100)},0,12,false);
     var texture=new Texture2D(2,2,TextureFormat.RGBA32,false);
-    foreach(var bounds in new[]{concave,ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds,selected})
+    foreach(var bounds in new[]{concave,ArenaAreaCatalog.CustomsFactoryCenterTeams.Bounds,selected})
         foreach(var (width,height) in new[]{(600f,400f),(300f,200f),(900f,320f)})
             foreach(bool overview in new[]{false,true})
             {
@@ -114,7 +114,7 @@ try
     UObject.DestroyImmediate(blank.gameObject);UObject.DestroyImmediate(texture);
 
     var east=State(ArenaAreaCatalog.CustomsFactoryEastPolygonId);
-    var center=State(ArenaAreaCatalog.CustomsFactoryCenterPolygonId);
+    var center=State(ArenaAreaCatalog.CustomsFactoryCenterTeamsId);
     var whole=ArenaAreaSelectionState.Create("factory4_day","deathmatch",false,"full-map",4);
     var unavailable=ArenaAreaSelectionState.Create("bigmap","tactical",false,east.SelectedId,4);
     var screen=NewScreen(1920,1080);
@@ -147,7 +147,7 @@ try
     overviewButton.onClick.Invoke();
     Need(detail.interactable&&!overviewButton.interactable,"OVERVIEW-TOGGLE","Overview changes camera only.");
     var greyEdges=boundaryGraphic.SubmitMesh().Vertices.Where(v=>v.Color==new Color(.7f,.7f,.65f,.6f)).ToArray();
-    Need(greyEdges.Length==4*ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds.Outline.Count,"OVERVIEW-OTHERS",
+    Need(greyEdges.Length==4*(ArenaAreaCatalog.CustomsFactoryCenterTeams.Bounds.Outline.Count+ArenaAreaCatalog.CustomsYard.Bounds.Outline.Count),"OVERVIEW-OTHERS",
         "Overview omits the retired rectangle and shows center contour once; team-start variant must not duplicate its identical outline.");
     for(int i=0;i<greyEdges.Length;i+=4)
         Near(Distance(greyEdges[i].Position,greyEdges[i+3].Position),1.25f,"OVERVIEW-OTHERS","Other-area edge width",.002f);
@@ -160,7 +160,7 @@ try
         &&!detail.interactable&&overviewButton.interactable,"AREA-SWITCH","Area changes reuse resources but reset detail crop.");
     Need(!boundaryGraphic.SubmitMesh().Vertices.Any(v=>v.Color==new Color(.7f,.7f,.65f,.6f)),"DETAIL-OTHERS",
         "Detail view must not overlay neighboring area boundaries.");
-    Need(firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="CUSTOMS — Factory Center (contour)"),"AREA-TITLE","Selected area title follows the offered selection.");
+    Need(firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="CUSTOMS — Factory Center"),"AREA-TITLE","Selected area title follows the offered selection.");
     var rootRect=(RectTransform)firstRoot.transform;var viewportRect=(RectTransform)viewport.transform;
     Near(rootRect.rect.width,640,"RESIZE","1920-wide root width");Near(rootRect.rect.height,590,"RESIZE","1080-high root height");
     ((RectTransform)screen.transform).sizeDelta=new Vector2(1600,900);preview.Refresh(center);

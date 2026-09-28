@@ -12,7 +12,7 @@ internal static partial class Program
     private static void CheckNativeAreas()
     {
         const string full = ArenaAreaCatalog.FullMapId, south = ArenaAreaCatalog.FactorySouthId,
-            center = ArenaAreaCatalog.CustomsFactoryCenterId, contour = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+            center = ArenaAreaCatalog.CustomsFactoryCenterId, contour = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         const string day = ArenaMapCatalog.FactoryDayId, night = ArenaMapCatalog.FactoryNightId,
             customs = ArenaMapCatalog.CustomsId;
         var factory = ArenaAreaSelectionState.Create(day, "teamdeathmatch", false, full, 7);
@@ -28,7 +28,7 @@ internal static partial class Program
         foreach (string saved in new[] { null, "", full, south, center, contour, "unknown-area" })
         {
             var custom = ArenaAreaSelectionState.Create(customs, "teamdeathmatch", false, saved, 12);
-            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { contour, ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId })
+            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { contour, ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId })
                 && custom.SelectedId == contour && custom.Summary.Contains("2v2"),
                 "Customs offers three surveyed areas and migrates retired/invalid selections to the fixed contour");
             var nights = ArenaAreaSelectionState.Create(night, "teamdeathmatch", false, saved, 5);

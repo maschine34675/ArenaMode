@@ -26,7 +26,9 @@ internal static partial class Program
         typeof(ArenaServerClient).GetField("_initialStateReconciled", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, true);
         typeof(ArenaServerClient).GetField("_ordinaryRaidConfirmed", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, false);
         Settings.GameMode.Value = "teamdeathmatch";
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        Settings.AreaTeamSize.Value = 2;
+        ArenaAreaInitialSpawnPatch.IsReady = true;
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         ArenaAreaRuntime.Reset();
         ArenaAreaNavigationPatches.IsReady = ArenaAreaLoadPatch.IsReady = ArenaAreaSpawnPointsPatch.IsReady = true;
         RequestHandler.Get = route => route == Protocol.StatusRoute ? "{\"state\":\"Idle\"}" : "{\"version\":\"test\"}";
@@ -35,7 +37,7 @@ internal static partial class Program
             if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
             var sent = JObject.Parse(body);
             return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["areaId"] = sent["areaId"], ["deathmatchHostility"] = sent["deathmatchHostility"],
-                ["participants"] = sent["participants"], ["participantBosses"] = false }.ToString();
+                ["participants"] = sent["participants"], ["participantBosses"] = false, ["areaTeamSize"] = sent["areaTeamSize"] }.ToString();
         };
     }
 
@@ -47,7 +49,7 @@ internal static partial class Program
             RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
                 ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["areaId"] = wrongArea }.ToString()
                 : "{\"disarmed\":true,\"state\":\"Idle\"}";
-            Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false, ArenaAreaCatalog.CustomsFactoryCenterPolygonId),
+            Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false, ArenaAreaCatalog.CustomsFactoryCenterTeamsId, 2),
                 "bounded start rejects missing, downgraded, future or differently cased area acknowledgement");
             Assert(ArenaServerClient.HasPendingArm && Protocol.IsLifecycleRequestId(ArenaServerClient.PendingArmToken),
                 "area acknowledgement mismatch retains exact snapshot cancellation identity");
@@ -60,41 +62,41 @@ internal static partial class Program
         var request = Request(map: ArenaMapCatalog.CustomsId);
         Assert(Start(request, out var task) && task == null, "supported area starts through the actual local-start prefix");
         var sent = JObject.Parse(RequestHandler.LastPostBody);
-        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterPolygonId
+        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterTeamsId
             && sent["map"].Value<string>() == ArenaMapCatalog.CustomsId && sent["mode"].Value<string>() == "teamdeathmatch",
             "exact area, map and normalized mode are sent together");
-        Assert(ArenaAreaRuntime.ArmCalls == 1 && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon)
+        Assert(ArenaAreaRuntime.ArmCalls == 1 && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterTeams)
             && ArenaAreaRuntime.Token == sent["requestId"].Value<string>()
             && Protocol.IsNativeStartIdentity(request.serverId, ArenaAreaRuntime.Token),
             "only acknowledged area is armed with the same exact native-start token");
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
-        Assert(ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon),
+        Assert(ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterTeams),
             "changing F12 after negotiation cannot rewrite the captured area");
 
         ConfigureAreaNegotiation();
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         Select(ArenaMapCatalog.CustomsId);
         request = Request(map: ArenaMapCatalog.CustomsId);
         Assert(Start(request, out task) && task == null
-            && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon)
+            && ReferenceEquals(ArenaAreaRuntime.ArmedArea, ArenaAreaCatalog.CustomsFactoryCenterTeams)
             && !ArenaAreaRuntime.ArmedArea.Bounds.LimitsHeight,
             "Actual local start arms the selected height-unlimited contour");
         sent = JObject.Parse(RequestHandler.LastPostBody);
-        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterPolygonId
+        Assert(sent["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterTeamsId
             && ArenaAreaRuntime.Token == sent["requestId"].Value<string>()
             && Protocol.IsNativeStartIdentity(request.serverId, ArenaAreaRuntime.Token),
             "The new contour uses the same exact acknowledged identity on both halves");
 
         foreach (string wrongArea in new[] { ArenaAreaCatalog.CustomsFactoryCenterId,
-                     ArenaAreaCatalog.FullMapId, "customs-factory-center-polygon-v2",
-                     ArenaAreaCatalog.CustomsFactoryCenterPolygonId.ToUpperInvariant() })
+                     ArenaAreaCatalog.FullMapId, "customs-factory-center-polygon-v1",
+                     ArenaAreaCatalog.CustomsFactoryCenterTeamsId.ToUpperInvariant() })
         {
             ConfigureAreaNegotiation();
             RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
                 ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["areaId"] = wrongArea }.ToString()
                 : "{\"disarmed\":true,\"state\":\"Idle\"}";
             Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false,
-                    ArenaAreaCatalog.CustomsFactoryCenterPolygonId) && ArenaAreaRuntime.ArmCalls == 0,
+                    ArenaAreaCatalog.CustomsFactoryCenterTeamsId, 2) && ArenaAreaRuntime.ArmCalls == 0,
                 "A contour cannot downgrade to the old rectangle or accept another version in a server reply");
             Assert(ArenaServerClient.PostRaidCancel(startFailed: true) && !ArenaServerClient.HasPendingArm,
                 "Contour negotiation mismatch preserves exact-token recovery");

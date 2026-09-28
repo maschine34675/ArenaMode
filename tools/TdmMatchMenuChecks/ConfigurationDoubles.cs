@@ -23,7 +23,7 @@ namespace BepInEx.Configuration
     public class AcceptableValueList<T>(params T[] values) : IAcceptableValue
     {
         public bool IsValid(object value) => value is T typed && values.Contains(typed);
-        public object Clamp(object value) => IsValid(value) ? value : values[0];
+        public virtual object Clamp(object value) => IsValid(value) ? value : values[0];
     }
     public class ConfigDescription(string description, IAcceptableValue acceptable = null)
     { public string Description = description; public IAcceptableValue AcceptableValues = acceptable; }

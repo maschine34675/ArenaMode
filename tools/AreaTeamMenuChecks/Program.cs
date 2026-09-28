@@ -8,7 +8,6 @@ void Need(bool value,string reason){if(!value)throw new Exception(reason);checks
 ArenaAreaSelectionState State(string id,int size=2,string map=ArenaMapCatalog.CustomsId)
     =>ArenaAreaSelectionState.Create(map,"teamdeathmatch",false,id,7,size);
 const string teams=ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
-const string contour=ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
 var screen=new GameObject("native screen");
 var view=new ArenaAreaSelectionView();
 int calls=0,selected=2;
@@ -44,8 +43,8 @@ accept=false;Size(3).onClick.Invoke();
 Need(calls==2&&selected==5&&!Size(3).transform.Children.Single(t=>t.gameObject.name=="Selected").gameObject.activeSelf,
     "refused size change does not create a selected marker");
 var retired=Size(4).onClick.Snapshot();
-view.Refresh(State(contour),false);
-Need(Buttons().Length==3,"fixed contour removes size row entirely");
+view.Refresh(State(ArenaAreaCatalog.FullMapId,2,ArenaMapCatalog.FactoryDayId),false);
+Need(Buttons().Length==1,"whole map removes area size row entirely");
 foreach(var callback in retired)callback();
 Need(calls==2,"retired row callback cannot affect replacement legacy state");
 view.Refresh(State(teams,99),false);

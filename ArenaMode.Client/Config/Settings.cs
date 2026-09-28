@@ -896,13 +896,12 @@ public static class Settings
             new ConfigDescription(
                 "Experimental bounded arena. Full-map preserves normal TDM settings. " +
                 "Customs requires a surveyed area for independent TDM; full-map Customs is unavailable. " +
-                "Factory Center (contour) fixes teams at 2v2. Customs contour (team starts) and Factory Side (team starts) allow 2v2 to 5v5. " +
+                "Each Customs area has opposing faction starts and a selectable team size. " +
                 "All surveyed outlines have side walls only, with no height restriction. The old rectangle test areas are retired. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +
                 "Selected before loading; changes during a raid apply next match. " +
                 "Other modes ignore this setting. The area must pass its live navigation checks.",
-                new AcceptableValueList<string>(ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
-                    ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId)));
+                new AreaSelectionValues()));
 
         AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,
             new ConfigDescription("Players per faction, including your PMC, for Customs areas with opposing team starts. " +
@@ -1366,4 +1365,24 @@ public static class Settings
         // The fixed catalog prevents a remotely edited allowlist from exposing
         // an unsupported normal map. Factory night is the day tile's time variant.
         => ArenaMapCatalog.AllowlistContains(Maps?.Value, locationId);
+}
+
+/// <summary>Upgrade exact saved preferences only; retired wire identities remain invalid.</summary>
+internal sealed class AreaSelectionValues : AcceptableValueList<string>
+{
+    internal AreaSelectionValues() : base(ArenaAreaCatalog.FullMapId,
+        ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId,
+        ArenaAreaCatalog.CustomsYardId) { }
+    public override object Clamp(object value)
+    {
+        if (value is string id)
+            value = id switch
+            {
+                "customs-factory-center-polygon-v1" or "customs-factory-center-teams-v1"
+                    => ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
+                "customs-factory-east-polygon-v1" => ArenaAreaCatalog.CustomsFactoryEastPolygonId,
+                _ => id,
+            };
+        return base.Clamp(value);
+    }
 }

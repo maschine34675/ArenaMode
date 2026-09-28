@@ -19,7 +19,7 @@ namespace ArenaMode.Tests;
 public sealed partial class ArenaAreaServerTests
 {
     private const string Customs = ArenaMapCatalog.CustomsId;
-    private const string CustomsArea = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+    private const string CustomsArea = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
     private static readonly JsonSerializerOptions CustomsJsonOptions = new()
     {
         Converters = { new JsonStringEnumConverter(), new StringToMongoIdConverter(), new ListOrTConverterFactory() },
@@ -41,6 +41,8 @@ public sealed partial class ArenaAreaServerTests
             yield return [CustomsArea, map, Mode, false];
         yield return [ArenaAreaCatalog.FactorySouthId, Customs, Mode, false];
         yield return [ArenaAreaCatalog.CustomsFactoryCenterId, Customs, Mode, false];
+        yield return [ArenaAreaCatalog.CustomsFactoryCenterPolygonId, Customs, Mode, false];
+        yield return ["customs-factory-center-teams-v1", Customs, Mode, false];
         yield return ["customs-factory-center-v2", Customs, Mode, false];
         yield return [CustomsArea.ToUpperInvariant(), Customs, Mode, false];
     }
@@ -52,7 +54,7 @@ public sealed partial class ArenaAreaServerTests
     {
         var (router, saves, original, cloner) = CustomsRouter();
         var request = new ArenaRaidStartRequest
-            { Map = map, Mode = mode, AreaId = area, PitFireTeamTeam = pft, RequestId = Token };
+            { Map = map, Mode = mode, AreaId = area, PitFireTeamTeam = pft, RequestId = Token, AreaTeamSize = AreaSize };
 
         using var fresh = JsonDocument.Parse(await InvokeStart(router, request));
         Assert.False(fresh.RootElement.GetProperty("armed").GetBoolean());
@@ -62,9 +64,9 @@ public sealed partial class ArenaAreaServerTests
         Assert.Same(original, saves.GetProfile(Session));
         Assert.Equal(ArenaSessionState.Idle, Sessions.GetStatus(Session).state);
         Assert.False(Sessions.IsExternalProfileWriteProtected(Session));
-        Assert.False(Sessions.BeginArmPreparation(Session, map, mode, pft, Token, area));
+        Assert.False(Sessions.BeginArmPreparation(Session, map, mode, pft, Token, area, AreaSize));
         Assert.Equal(ArenaSessionState.Idle, Sessions.GetStatus(Session).state);
-        Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, Token, area));
+        Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, Token, area, AreaSize));
         Assert.Equal(ArenaSessionState.Idle, Sessions.GetStatus(Session).state);
 
         // A real stored clone makes order observable: an invalid request must
@@ -77,8 +79,8 @@ public sealed partial class ArenaAreaServerTests
         Assert.Same(original, saves.GetProfile(Session));
         Assert.Equal(ArenaSessionState.Idle, Sessions.GetStatus(Session).state);
 
-        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: Area);
-        Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, areaId: area));
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: Area, areaTeamSize: AreaSize);
+        Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, areaId: area, areaTeamSize: AreaSize));
         Assert.Equal(Token, Sessions.GetArmToken(Session));
         Assert.Equal(Area, Sessions.GetAreaId(Session));
         using var armed = JsonDocument.Parse(await InvokeStart(router, request));
@@ -93,7 +95,7 @@ public sealed partial class ArenaAreaServerTests
     {
         var (router, saves, original, cloner) = CustomsRouter();
         var request = new ArenaRaidStartRequest
-            { Map = Customs, Mode = Mode, RequestId = Token, AreaId = CustomsArea };
+            { Map = Customs, Mode = Mode, RequestId = Token, AreaId = CustomsArea, AreaTeamSize = AreaSize };
         using var first = JsonDocument.Parse(await InvokeStart(router, request));
         Assert.True(first.RootElement.GetProperty("armed").GetBoolean());
         Assert.True(first.RootElement.GetProperty("snapshotTaken").GetBoolean());
@@ -152,7 +154,7 @@ public sealed partial class ArenaAreaServerTests
         if (missing) ArenaContext.Config.Maps.Remove(Customs);
         else ArenaContext.Config.Maps[Customs].Enabled = false;
         using var response = JsonDocument.Parse(await InvokeStart(router, new ArenaRaidStartRequest
-            { Map = Customs, Mode = Mode, RequestId = Token, AreaId = CustomsArea }));
+            { Map = Customs, Mode = Mode, RequestId = Token, AreaId = CustomsArea, AreaTeamSize = AreaSize }));
         Assert.False(response.RootElement.GetProperty("armed").GetBoolean());
         Assert.Contains("not enabled", response.RootElement.GetProperty("reason").GetString());
         Assert.Equal(0, cloner.Calls);
@@ -167,7 +169,7 @@ public sealed partial class ArenaAreaServerTests
     [InlineData("wrong-map")]
     public void CustomsReadinessRejectsTamperedNativeResultsWithoutLosingFailedStartRecovery(string tamper)
     {
-        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea);
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
         var location = CustomsLocation();
@@ -199,7 +201,7 @@ public sealed partial class ArenaAreaServerTests
         }
         GenerateLocationAndLootPatch.Postfix(Session, Customs, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
-        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea);
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
         GenerateLocationAndLootPatch.Postfix(Session, Customs, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
         Start(Customs);
@@ -220,12 +222,12 @@ public sealed partial class ArenaAreaServerTests
             foreach (var point in location.SpawnPointParams!.Where(point => point.Categories!.Contains("Player")))
                 point.Sides = ["Usec"];
         }
-        else location.SpawnPointParams = location.SpawnPointParams!.Where(point => point.Id != "cb3").ToList();
+        else location.SpawnPointParams = location.SpawnPointParams!.Where(point => point.Id != TestBearBot2).ToList();
         string before = JsonSerializer.Serialize(location);
         Assert.Throws<InvalidOperationException>(() => ArenaLocationMutator.Mutate(
-            location, ArenaContext.Config.Maps[Customs], ArenaContext.Config, Mode, CustomsArea));
+            location, ArenaContext.Config.Maps[Customs], ArenaContext.Config, Mode, CustomsArea, AreaSize));
         Assert.Equal(before, JsonSerializer.Serialize(location));
-        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea);
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
         GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.Equal(before, JsonSerializer.Serialize(location));
@@ -244,16 +246,16 @@ public sealed partial class ArenaAreaServerTests
         var original = JsonSerializer.Deserialize<LocationBase>(File.ReadAllText(path), CustomsJsonOptions)!;
         string before = JsonSerializer.Serialize(original, CustomsJsonOptions);
         var clone = JsonSerializer.Deserialize<LocationBase>(before, CustomsJsonOptions)!;
-        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea);
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
         GenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
         Assert.True(Sessions.ValidateAreaResponse(Session, clone, out var reason), reason);
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
 
         var points = clone.SpawnPointParams!.ToArray();
-        Assert.Equal(28, points.Length);
+        Assert.Equal(29, points.Length);
         Assert.True(original.SpawnPointParams!.Count() > points.Length);
-        Assert.All(points, point => Assert.True(ArenaAreaCatalog.CustomsFactoryCenterPolygon.AllowsSpawn(
+        Assert.All(points, point => Assert.True(ArenaAreaCatalog.CustomsFactoryCenterTeams.AllowsSpawn(
             point.Position!.Value.X, point.Position.Value.Y, point.Position.Value.Z)));
         var bots = points.Where(point => point.Categories!.Any(category => category is "Bot" or "BotPmc")
                 && !string.IsNullOrWhiteSpace(point.BotZoneName))
@@ -268,7 +270,7 @@ public sealed partial class ArenaAreaServerTests
             var players = points.Where(point => point.Categories!.Contains("Player")
                     && point.Sides!.Any(side => side is "All" or "Pmc" || side == faction))
                 .Select(point => point.Position!.Value).Distinct().ToArray();
-            Assert.Equal(17, players.Length);
+            Assert.Equal(18, players.Length);
             foreach (var player in players)
             {
                 Assert.True(players.Any(other => CustomsDistance(player, other) >= 40),
@@ -324,16 +326,9 @@ public sealed partial class ArenaAreaServerTests
         return Math.Sqrt(x * x + y * y + z * z);
     }
 
-    private static LocationBase CustomsLocation() => new()
-    {
-        Id = Customs, Waves = [], BossLocationSpawn = [],
-        SpawnPointParams =
-        [
-            CustomsPoint("cp1", 335, 1, -90, "Player"), CustomsPoint("cp2", 400, 1, -120, "Player"),
-            CustomsPoint("cb1", 345, 1, -100, "Bot"), CustomsPoint("cb2", 365, 1, -110, "BotPmc"),
-            CustomsPoint("cb3", 410, 1, -110, "Bot"), CustomsPoint("outside", 0, 1, 0, "Coop"),
-        ],
-    };
+    // Reuse the fixed, independent native team fixture rather than obsolete
+    // arbitrary fixed-2v2 IDs; these tests do not require an installed database.
+    private static LocationBase CustomsLocation() => Location();
 
     private static SpawnPointParam CustomsPoint(string id, float x, float y, float z, string category)
         => new()

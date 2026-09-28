@@ -2,7 +2,7 @@ param([string]$SptRoot = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
 $eastRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $eastProject = Join-Path $PSScriptRoot 'CustomsEastAreaChecks.csproj'
-$eastFixture = Join-Path $PSScriptRoot 'Fixtures\area-draft-20260913-090513-276a2a3d6c424846bd202992faf489b4.json'
+$eastFixture = Join-Path $PSScriptRoot '..\CustomsAreaRefreshChecks\Fixtures\area-draft-20260928-172225-67f3ee0cd11d4aaaac29c63eee0e7769.json'
 $eastDatabase = Join-Path $SptRoot 'SPT_Runtime\SPT_Data\database\locations\bigmap\base.json'
 $eastRun = Join-Path $PSScriptRoot ('artifacts\' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $eastRun -Force | Out-Null
@@ -32,17 +32,17 @@ try {
     & dotnet $eastBaseline $eastFixture $eastDatabase
     if ($LASTEXITCODE -ne 0) { throw 'Baseline production checks failed.' }
 
-    $eastCatalog = Get-Content -LiteralPath (Join-Path $eastRepo 'ArenaMode.Shared\ArenaAreaCatalog.cs') -Raw
+    $eastCatalog = (Get-Content -LiteralPath (Join-Path $eastRepo 'ArenaMode.Shared\ArenaAreaCatalog.cs') -Raw).Replace("`r`n","`n")
     $eastState = Get-Content -LiteralPath (Join-Path $eastRepo 'ArenaMode.Client\Session\ArenaAreaSelectionState.cs') -Raw
     $eastFaults = @(
-        @{ Name='vertex-drift'; Target='catalog'; Old='new ArenaAreaVertex(494.5332f, -104.145111f)'; New='new ArenaAreaVertex(495.5332f, -104.145111f)'; Marker='EXACT-GEOMETRY' },
-        @{ Name='height-clamp'; Target='catalog'; Old='}, 0f, 12f, limitsHeight: false), 0.5f, 3f, 5, teamStarts:'; New='}, 0f, 12f, limitsHeight: true), 0.5f, 3f, 5, teamStarts:'; Marker='UNLIMITED-HEIGHT' },
+        @{ Name='vertex-drift'; Target='catalog'; Old='new ArenaAreaVertex(656.139343f, -45.62339f)'; New='new ArenaAreaVertex(657.139343f, -45.62339f)'; Marker='EXACT-GEOMETRY' },
+        @{ Name='height-clamp'; Target='catalog'; Old="new ArenaAreaVertex(671.3696f, -48.25674f),`n        }, 0f, 12f, limitsHeight: false)"; New="new ArenaAreaVertex(671.3696f, -48.25674f),`n        }, 0f, 12f, limitsHeight: true)"; Marker='UNLIMITED-HEIGHT' },
         @{ Name='mode-bypass'; Target='catalog'; Old='if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))'; New='if (pitFireTeam)'; Marker='REJECT-MODES' },
-        @{ Name='menu-missing'; Target='state'; Old='        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side (team starts)"),'; New=''; Marker='MENU-AREA' },
+        @{ Name='menu-missing'; Target='state'; Old='        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side"),'; New=''; Marker='MENU-AREA' },
         @{ Name='missing-native-start'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"00000000-0000-0000-0000-000000000001"'; Marker='START-BOT' },
         @{ Name='wrong-native-category'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"0327c5d1-cc7f-432f-92dc-f95fb4719f1b"'; Marker='START-BOT' },
         @{ Name='opposing-too-close'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"ae0c5e1d-71cc-44a2-86ae-4c45e224a1ff"'; Marker='START-OPPOSING' },
-        @{ Name='retired-area-admitted'; Target='catalog'; Old='var candidate = id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon'; New='var candidate = id == FactorySouthId ? FactorySouth : id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon'; Marker='RETIRED-AREA' },
+        @{ Name='retired-area-admitted'; Target='catalog'; Old='var candidate = id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams'; New='var candidate = id == FactorySouthId ? FactorySouth : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams'; Marker='RETIRED-AREA' },
         @{ Name='team-picker-center-only'; Target='state'; Old='HasTeamSizeChoice = SelectedArea?.TeamStarts != null;'; New='HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;'; Marker='MENU-TEAM-SIZE' }
     )
     foreach ($eastFault in $eastFaults) {

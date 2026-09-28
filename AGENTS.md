@@ -47,13 +47,16 @@ Bot locomotion has independent Arena-only walk/sprint controls. Read
 BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN door
 guard; preserve exact live body identity, native collision and finalizer cleanup.
 Normalized movement targets alone do not provide the displacement bonus.
-The Customs Center and Factory Side team-start presets add independent TDM 2v2–5v5,
-with exact per-raid team-size negotiation and reserved faction starts/respawns.
-The surveyed Center contour remains fixed 2v2; the old Center rectangle and
-Factory South prototype IDs are retired and rejected at arm admission.
-Factory Side retains the earlier `customs-factory-east-polygon-v1` ID, but now
-requires the explicit area team size on both ends. See AREA-TEAM-SETUP-REVIEW.md and the
-dated HANDOFF.md for implementation, delivery and pending user GPU acceptance.
+Customs offers three unified surveyed areas: Factory Center, Factory Side and
+Customs Yard, all independent TDM 2v2–5v5 with reserved faction starts/respawns.
+The September 28 contours use new versioned IDs; all earlier area IDs remain
+invalid on the wire. Config migration preserves exact recognized preferences
+only. Yard adds twenty private per-raid spawn records around two native ground
+anchors using NEW IDs (native FixParams does not change existing marker zones).
+Never repair extras during final response validation or mutate native donor rows.
+All areas retain unlimited height and fail-closed live navigation/occupancy checks.
+See CUSTOMS-AREAS-REVIEW.md and AREA-TEAM-SETUP-REVIEW.md; database candidate
+capacity and offline checks are not GPU acceptance of the new Yard offsets.
 
 Read this before changing anything. Most of it was learned the expensive way.
 

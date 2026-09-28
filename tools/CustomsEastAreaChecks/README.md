@@ -1,3 +1,12 @@
+# Current Factory Side check (2026-09-28)
+
+This harness now checks the refined 32-corner September 28 fixture under
+`../CustomsAreaRefreshChecks/Fixtures/`, wire ID `customs-factory-side-polygon-v2`.
+The old USEC bot marker `e06b071c-db66-4823-93ea-ea24471eb829` no longer clears
+the boundary: 34 native candidates (20 PMC/14 bot), opening pools 5/7 USEC and
+5/6 BEAR. See `../../CUSTOMS-AREAS-REVIEW.md`. The original fixture is retained
+for provenance; the older evidence below does not describe current geometry.
+
 # Second Customs contour: Factory Side team starts
 
 The production preset `customs-factory-east-polygon-v1` promotes the user's

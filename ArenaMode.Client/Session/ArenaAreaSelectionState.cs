@@ -26,9 +26,9 @@ internal sealed class ArenaAreaSelectionState
     private static readonly ArenaAreaOption[] Candidates =
     {
         new(ArenaAreaCatalog.FullMapId, "Whole map"),
-        new(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "Factory Center (contour)", ArenaAreaCatalog.CustomsFactoryCenterPolygon.MaxTeamSize),
-        new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Customs contour (team starts)"),
-        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side (team starts)"),
+        new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Factory Center"),
+        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side"),
+        new(ArenaAreaCatalog.CustomsYardId, "Customs Yard"),
     };
 
     private ArenaAreaSelectionState(ArenaAreaOption[] options, string requestedArea, string map, string mode, bool pitFireTeam, int teamSize, int areaTeamSize)

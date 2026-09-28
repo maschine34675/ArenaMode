@@ -1,6 +1,15 @@
 # Customs team starts and selectable team sizes
 
-## Current additions (2026-09-13)
+## Current selection (2026-09-28)
+
+The three September 28 drafts replace the earlier selection with Factory Center,
+Factory Side and Customs Yard. Each has one menu entry and explicit 2v2–5v5
+starts. There is no separate fixed-2v2 Center variant. New geometry has new wire
+identities; exact old saved preferences migrate only in client configuration.
+Read `CUSTOMS-AREAS-REVIEW.md` for the current contour provenance, native marker
+survey, Yard additions and acceptance boundary. The following evidence is historical.
+
+## Historical additions (2026-09-13)
 
 Factory Side (formerly displayed as Factory East) now uses the same opposing
 team-start and enemy-aware respawn framework at 2v2–5v5. Its stable ID remains

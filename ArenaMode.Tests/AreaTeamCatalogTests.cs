@@ -5,13 +5,17 @@ namespace ArenaMode.Tests;
 public sealed class AreaTeamCatalogTests
 {
     [Fact]
-    public void NewIdentityKeepsSurveyGeometryWhileLegacyPresetsStayAtTwo()
+    public void UnifiedCenterHasNewSurveyIdentityWhileRetiredGeometryStaysHistorical()
     {
         var area = ArenaAreaCatalog.CustomsFactoryCenterTeams;
-        Assert.Equal("customs-factory-center-teams-v1", area.Id);
+        Assert.Equal("customs-factory-center-polygon-v2", area.Id);
         Assert.Equal(5, area.MaxTeamSize);
         Assert.NotNull(area.TeamStarts);
-        Assert.Equal(ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds.Outline, area.Bounds.Outline);
+        Assert.Equal(40, area.Bounds.Outline.Count);
+        Assert.False(ArenaAreaCatalog.CustomsFactoryCenterPolygon.Bounds.Outline.SequenceEqual(area.Bounds.Outline));
+        Assert.True(ArenaAreaCatalog.TryResolve(area.Id, area.MapId, "teamdeathmatch", false,
+            out var resolved, out var reason), reason);
+        Assert.Same(area, resolved);
         Assert.False(area.Bounds.LimitsHeight);
         Assert.True(area.IsExcludedSpawn("6e771bc5-ce82-4ab8-88e2-d50dedf4e34e"));
         foreach (var legacy in new[] { ArenaAreaCatalog.FactorySouth, ArenaAreaCatalog.CustomsFactoryCenter,
@@ -37,7 +41,7 @@ public sealed class AreaTeamCatalogTests
     [InlineData(6, false)]
     public void NewPresetRequiresAnExplicitSupportedSize(int? requested, bool expected)
     {
-        foreach (var area in new[] { ArenaAreaCatalog.CustomsFactoryCenterTeams, ArenaAreaCatalog.CustomsFactoryEastPolygon })
+        foreach (var area in new[] { ArenaAreaCatalog.CustomsFactoryCenterTeams, ArenaAreaCatalog.CustomsFactoryEastPolygon, ArenaAreaCatalog.CustomsYard })
         {
             Assert.Equal(5, area.MaxTeamSize);
             Assert.NotNull(area.TeamStarts);
@@ -51,6 +55,9 @@ public sealed class AreaTeamCatalogTests
     [Theory]
     [InlineData(ArenaAreaCatalog.FactorySouthId, ArenaMapCatalog.FactoryDayId)]
     [InlineData(ArenaAreaCatalog.CustomsFactoryCenterId, ArenaMapCatalog.CustomsId)]
+    [InlineData(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, ArenaMapCatalog.CustomsId)]
+    [InlineData("customs-factory-center-teams-v1", ArenaMapCatalog.CustomsId)]
+    [InlineData("customs-factory-east-polygon-v1", ArenaMapCatalog.CustomsId)]
     public void HistoricalGeometryDoesNotKeepRetiredIdsPlayable(string retired, string map)
     {
         Assert.False(ArenaAreaCatalog.TryResolve(retired, map, "teamdeathmatch", false, out _, out _));

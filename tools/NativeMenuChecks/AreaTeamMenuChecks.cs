@@ -30,7 +30,7 @@ internal static partial class Program
     private static void CheckAreaTeamMenu()
     {
         const string teams = ArenaAreaCatalog.CustomsFactoryCenterTeamsId, map = ArenaMapCatalog.CustomsId;
-        foreach (string selectedArea in new[] { teams, ArenaAreaCatalog.CustomsFactoryEastPolygonId })
+        foreach (string selectedArea in new[] { teams, ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId })
         foreach (int size in new[] { 2, 3, 4, 5 })
         {
             ConfigureAreaTeams(size, selectedArea);
@@ -81,7 +81,7 @@ internal static partial class Program
         Assert(!ArenaMenuSelection.TrySelectAreaTeamSize(current,ArenaMapCatalog.FactoryDayId,teams,4), "stale map rejected");
         Settings.TeamDeathmatchArea.Value=ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
         Assert(!ArenaMenuSelection.TrySelectAreaTeamSize(current,map,teams,4), "stale team-area row rejected");
-        Assert(!ArenaMenuSelection.AreaSelection(map).HasTeamSizeChoice, "legacy area never gains size row");
+        Assert(ArenaMenuSelection.AreaSelection(map).SelectedId == teams && Settings.TeamDeathmatchArea.Value == ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "retired area is only a menu proposal until explicitly saved");
         Settings.TeamDeathmatchArea.Value=teams;
         Settings.RefuseAreaWrite=true;
         Assert(!ArenaMenuSelection.TrySelectAreaTeamSize(current,map,teams,4) && Settings.AreaTeamSize.Value==2, "failed setting write cannot paint accepted size");
@@ -98,8 +98,9 @@ internal static partial class Program
         int starts=RequestHandler.StartCount;
         Assert(!Start(Request(map:map),out var missing) && missing.IsFaulted && RequestHandler.StartCount==starts,
             "new area requires initial placement hook before server arm");
-        ConfigureAreaNegotiation(); Select(map);
-        Assert(Start(Request(map:map),out var legacy) && legacy==null && ArenaAreaRuntime.TeamSize==0,
+        ConfigureAreaNegotiation(); Settings.TeamDeathmatchArea.Value=ArenaAreaCatalog.FullMapId;
+        Select(ArenaMapCatalog.FactoryDayId); ArenaAreaInitialSpawnPatch.IsReady=false;
+        Assert(Start(Request(map:ArenaMapCatalog.FactoryDayId),out var legacy) && legacy==null && ArenaAreaRuntime.TeamSize==0,
             "missing new placement hook leaves legacy area negotiation unchanged");
         Assert(JObject.Parse(RequestHandler.LastPostBody)["areaTeamSize"]==null, "legacy request omits override field");
         ArenaAreaInitialSpawnPatch.IsReady=true;

@@ -156,18 +156,19 @@ public sealed class CustomsContourTests
     }
 
     [SkippableFact]
-    public void CustomsContourInstalledDatabaseKeepsSeventeenPmcElevenBotPositionsAndSafeSpacing()
+    public void CustomsContourInstalledDatabaseKeepsEighteenPmcElevenBotPositionsAndSafeSpacing()
     {
         var database = Environment.GetEnvironmentVariable("SPT_DATABASE")
                        ?? @"D:\SPT41\SPT_Runtime\SPT_Data\database";
         string path = Path.Combine(database, "locations", ArenaMapCatalog.CustomsId, "base.json");
         Skip.IfNot(File.Exists(path), "Installed Customs database fixture is unavailable.");
+        var Area = ArenaAreaCatalog.CustomsFactoryCenterTeams;
         var original = JsonSerializer.Deserialize<LocationBase>(File.ReadAllText(path), JsonOptions)!;
         string before = JsonSerializer.Serialize(original, JsonOptions);
         var clone = JsonSerializer.Deserialize<LocationBase>(before, JsonOptions)!;
         var config = new ArenaModeConfig();
-        ArenaLocationMutator.Mutate(clone, config.Maps[Area.MapId], config, "teamdeathmatch", Area.Id);
-        ArenaLocationMutator.ValidateAreaSpawns(clone, "teamdeathmatch", Area.Id);
+        ArenaLocationMutator.Mutate(clone, config.Maps[Area.MapId], config, "teamdeathmatch", Area.Id, 2);
+        ArenaLocationMutator.ValidateAreaSpawns(clone, "teamdeathmatch", Area.Id, 2);
         var points = clone.SpawnPointParams!.ToArray();
         Assert.DoesNotContain(points, point => point.Id == SniperId);
         var sniper = Assert.Single(original.SpawnPointParams!, point => point.Id == SniperId);
@@ -186,7 +187,7 @@ public sealed class CustomsContourTests
             var players = points.Where(point => point.Categories!.Contains("Player")
                     && point.Sides!.Any(side => side is "All" or "Pmc" || side == faction))
                 .Select(point => point.Position!.Value).Distinct().ToArray();
-            Assert.Equal(17, players.Length);
+            Assert.Equal(18, players.Length);
             foreach (var player in players)
             {
                 Assert.True(players.Any(other => Distance(player, other) >= 40),
@@ -221,7 +222,7 @@ public sealed partial class ArenaAreaServerTests
     {
         var (router, saves, original, cloner) = CustomsRouter();
         var request = new ArenaRaidStartRequest
-            { Map = Customs, Mode = Mode, RequestId = Token, AreaId = ArenaAreaCatalog.CustomsFactoryCenterPolygonId };
+            { Map = Customs, Mode = Mode, RequestId = Token, AreaId = ArenaAreaCatalog.CustomsFactoryCenterTeamsId, AreaTeamSize = AreaSize };
         using var armed = JsonDocument.Parse(await InvokeStart(router, request));
         Assert.True(armed.RootElement.GetProperty("armed").GetBoolean());
         Assert.Equal(request.AreaId, armed.RootElement.GetProperty("areaId").GetString());
@@ -231,7 +232,7 @@ public sealed partial class ArenaAreaServerTests
         {
             request with { AreaId = ArenaAreaCatalog.CustomsFactoryCenterId },
             request with { AreaId = ArenaAreaCatalog.FullMapId },
-            request with { AreaId = "customs-factory-center-polygon-v2" },
+            request with { AreaId = "customs-factory-center-polygon-v1" },
             request with { AreaId = request.AreaId.ToUpperInvariant() },
             request with { Map = Map },
             request with { Mode = "tactical" },
@@ -263,7 +264,7 @@ public sealed partial class ArenaAreaServerTests
         using var rejected = JsonDocument.Parse(await InvokeStart(router, new ArenaRaidStartRequest
         {
             Map = map, Mode = mode, PitFireTeamTeam = pft, RequestId = Token,
-            AreaId = ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
+            AreaId = ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
         }));
         Assert.False(rejected.RootElement.GetProperty("armed").GetBoolean());
         Assert.Equal(0, cloner.Calls);
@@ -278,7 +279,7 @@ public sealed partial class ArenaAreaServerTests
     [InlineData("duplicate")]
     public void CustomsContourFinalSpawnCheckRejectsLateTamperingWithoutReleasingTheRaid(string tamper)
     {
-        const string contour = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        const string contour = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         const string sniperId = "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e";
         var location = CustomsLocation();
         location.SpawnPointParams = location.SpawnPointParams!.Concat(new[]
@@ -290,7 +291,7 @@ public sealed partial class ArenaAreaServerTests
         string before = JsonSerializer.Serialize(location);
         GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.Equal(before, JsonSerializer.Serialize(location)); // no ordinary-raid mutation
-        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: contour);
+        Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: contour, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
         GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var reason), reason);

@@ -369,8 +369,9 @@ public static class ArenaAreaCatalog
     public const string FactorySouthId = "factory-south-v1";
     public const string CustomsFactoryCenterId = "customs-factory-center-v1";
     public const string CustomsFactoryCenterPolygonId = "customs-factory-center-polygon-v1";
-    public const string CustomsFactoryCenterTeamsId = "customs-factory-center-teams-v1";
-    public const string CustomsFactoryEastPolygonId = "customs-factory-east-polygon-v1";
+    public const string CustomsFactoryCenterTeamsId = "customs-factory-center-polygon-v2";
+    public const string CustomsFactoryEastPolygonId = "customs-factory-side-polygon-v2";
+    public const string CustomsYardId = "customs-yard-polygon-v1";
     public const float SpawnInset = 0.75f;
     public const float NavigationInset = 0.4f;
 
@@ -417,48 +418,194 @@ public static class ArenaAreaCatalog
         }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 2,
         new[] { "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e" });
 
-    // Separate protocol identity: the old surveyed contour remains fixed 2v2.
+    // Unified Center: exact 20260928-172827 survey, geometry SHA256
+    // c42302b34f4406624c9fec27b96bc4a68b5906f5d1d310f52fc9b75d8099f3e1.
+    // The earlier fixed/team variants are retired at wire admission.
     public static readonly ArenaAreaDefinition CustomsFactoryCenterTeams = new ArenaAreaDefinition(
-        CustomsFactoryCenterTeamsId, "Customs contour — team starts", ArenaMapCatalog.CustomsId,
-        CustomsFactoryCenterPolygon.Bounds, 0.5f, 3f, 5,
+        CustomsFactoryCenterTeamsId, "Customs Factory Center", ArenaMapCatalog.CustomsId,
+        new ArenaAreaBounds(new[]
+        {
+            new ArenaAreaVertex(480.774139f, -20.654253f),
+            new ArenaAreaVertex(414.180725f, -12.1899605f),
+            new ArenaAreaVertex(379.439484f, -7.41137457f),
+            new ArenaAreaVertex(376.1238f, -9.193539f),
+            new ArenaAreaVertex(372.434937f, -10.7678471f),
+            new ArenaAreaVertex(363.2147f, -9.386149f),
+            new ArenaAreaVertex(355.809753f, -8.451146f),
+            new ArenaAreaVertex(350.111267f, -3.189417f),
+            new ArenaAreaVertex(333.3773f, -1.31976f),
+            new ArenaAreaVertex(330.186371f, -1.39980423f),
+            new ArenaAreaVertex(326.5494f, -2.8858285f),
+            new ArenaAreaVertex(320.6984f, -41.18651f),
+            new ArenaAreaVertex(317.594025f, -63.037674f),
+            new ArenaAreaVertex(311.787872f, -104.613548f),
+            new ArenaAreaVertex(313.250458f, -108.957359f),
+            new ArenaAreaVertex(315.3602f, -111.791275f),
+            new ArenaAreaVertex(322.4152f, -116.8172f),
+            new ArenaAreaVertex(330.7475f, -116.722656f),
+            new ArenaAreaVertex(329.7196f, -117.91555f),
+            new ArenaAreaVertex(328.191742f, -122.978386f),
+            new ArenaAreaVertex(331.880951f, -127.067513f),
+            new ArenaAreaVertex(333.402466f, -128.276382f),
+            new ArenaAreaVertex(359.154846f, -130.950912f),
+            new ArenaAreaVertex(362.325531f, -132.227341f),
+            new ArenaAreaVertex(366.1151f, -133.235336f),
+            new ArenaAreaVertex(378.5905f, -134.8532f),
+            new ArenaAreaVertex(410.830139f, -138.955154f),
+            new ArenaAreaVertex(464.603851f, -145.668182f),
+            new ArenaAreaVertex(466.24353f, -133.054871f),
+            new ArenaAreaVertex(468.678375f, -128.774658f),
+            new ArenaAreaVertex(475.5854f, -125.119453f),
+            new ArenaAreaVertex(482.701752f, -119.993156f),
+            new ArenaAreaVertex(485.6603f, -117.228752f),
+            new ArenaAreaVertex(488.035675f, -114.122948f),
+            new ArenaAreaVertex(490.391174f, -110.380127f),
+            new ArenaAreaVertex(492.2905f, -106.930893f),
+            new ArenaAreaVertex(493.916168f, -102.950264f),
+            new ArenaAreaVertex(504.7133f, -34.5102234f),
+            new ArenaAreaVertex(505.7819f, -27.6242523f),
+            new ArenaAreaVertex(507.326019f, -24.4577465f),
+        }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 5,
         new[] { "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e" }, new ArenaTeamStarts(
             new[] { "2051eb7b-3ae8-49b8-adcb-c13f0ddc7972", "f8fa00b6-4941-4c21-b10b-77ff30b0c382" },
             new[] { "046309a0-3d13-48c4-a3e6-9bb509ac339d", "570f30b0-d2da-4f91-9270-45783c7c6a88", "75558193-c46a-490f-aa68-15650a803d6f", "785e4aeb-03eb-45f8-a521-2a870204a7d3", "cffefb6b-e763-4386-9625-8c002b16d4f3" },
             new[] { "2cb9950d-20ec-484e-919c-5489bb7abd5c", "4d2e6d0c-078c-4918-8227-8df098a47a39", "582b9ea6-4404-4af1-8443-da3db48fcaad", "6d8626ec-449b-4d63-a066-38e802756ec9", "b54ce786-74b8-41b1-889f-0fe62c36d8e0" },
             new[] { "13adbe1b-21b0-4422-90a9-eab3ee8313fb", "295048b1-140d-47c3-85f8-ab5bdaaafa67", "75c4714c-1d9f-411a-8a42-e9d5ee16a77a", "dd28bf37-44a2-4407-a30b-2b0e9ed732eb", "e880fea7-94e8-440f-874b-fd131ac2d998" }));
 
-    // User survey 20260913-090513, geometry SHA256
-    // bddf25bdaec03bce8a140cbd7fe0dd73ddc58ef58672ca5ce30078f1f1a7ad1e.
-    // Adjacent factory grounds (native ZoneFactorySide). Positive world X projects
-    // left in the calibrated map; use the native zone name, not a compass guess.
-    // Preserve every measured XZ vertex; draft heights are hints, not limits.
-    // The native sniper marker and checkpoint spawns are outside this contour.
-    // Exact starts were surveyed from the installed native marker database. The
-    // original ID remains compatible because old fixed-team null/0 requests are
-    // rejected by TryResolveTeamSize, and old servers reject new 2..5 overrides.
-    // Live carving and complete in-area navigation still decide raid readiness.
+    // Exact user survey 20260928-172225, geometry SHA256
+    // 7e2e907252db8f5f9bd5058c569b139577d7aedfc164f7c7b303839a69b7644c.
+    // New wire identity rejects clients still using the earlier outline. Keep
+    // the historical field name for source consumers, not as a protocol alias.
+    // Positive world X projects left; Factory Side uses the native zone name.
     public static readonly ArenaAreaDefinition CustomsFactoryEastPolygon = new ArenaAreaDefinition(
-        CustomsFactoryEastPolygonId, "Customs Factory Side — team starts", ArenaMapCatalog.CustomsId,
+        CustomsFactoryEastPolygonId, "Customs Factory Side", ArenaMapCatalog.CustomsId,
         new ArenaAreaBounds(new[]
         {
-            new ArenaAreaVertex(494.5332f, -104.145111f),
-            new ArenaAreaVertex(491.2321f, -110.743347f),
-            new ArenaAreaVertex(485.52002f, -119.189484f),
-            new ArenaAreaVertex(479.8096f, -123.66256f),
-            new ArenaAreaVertex(475.6268f, -126.166672f),
-            new ArenaAreaVertex(468.341431f, -130.243744f),
-            new ArenaAreaVertex(466.07547f, -145.328766f),
-            new ArenaAreaVertex(648.5004f, -167.768631f),
-            new ArenaAreaVertex(655.292847f, -166.976868f),
-            new ArenaAreaVertex(670.6625f, -48.0239f),
-            new ArenaAreaVertex(507.023682f, -25.097086f),
+            new ArenaAreaVertex(656.139343f, -45.62339f),
+            new ArenaAreaVertex(652.390259f, -45.3716965f),
+            new ArenaAreaVertex(638.6182f, -42.615036f),
+            new ArenaAreaVertex(617.0731f, -39.4651f),
+            new ArenaAreaVertex(581.060669f, -34.5355453f),
+            new ArenaAreaVertex(536.45f, -28.5260582f),
+            new ArenaAreaVertex(508.286f, -24.5994377f),
+            new ArenaAreaVertex(506.456635f, -28.4905624f),
+            new ArenaAreaVertex(499.766663f, -72.41972f),
+            new ArenaAreaVertex(494.48114f, -104.261581f),
+            new ArenaAreaVertex(492.764923f, -108.0333f),
+            new ArenaAreaVertex(490.67627f, -111.62117f),
+            new ArenaAreaVertex(488.2538f, -115.341141f),
+            new ArenaAreaVertex(485.701233f, -118.5592f),
+            new ArenaAreaVertex(482.2324f, -121.620949f),
+            new ArenaAreaVertex(475.916656f, -126.164787f),
+            new ArenaAreaVertex(468.456421f, -129.8445f),
+            new ArenaAreaVertex(467.5111f, -133.1111f),
+            new ArenaAreaVertex(465.583923f, -145.825562f),
+            new ArenaAreaVertex(496.156738f, -149.6608f),
+            new ArenaAreaVertex(562.981f, -158.225479f),
+            new ArenaAreaVertex(634.7771f, -166.869736f),
+            new ArenaAreaVertex(646.5289f, -167.732224f),
+            new ArenaAreaVertex(650.6966f, -167.644424f),
+            new ArenaAreaVertex(652.7254f, -167.675308f),
+            new ArenaAreaVertex(655.0999f, -167.322479f),
+            new ArenaAreaVertex(656.7311f, -167.479279f),
+            new ArenaAreaVertex(656.3319f, -162.741516f),
+            new ArenaAreaVertex(656.0348f, -158.648331f),
+            new ArenaAreaVertex(663.7906f, -100.600174f),
+            new ArenaAreaVertex(669.462769f, -58.2416344f),
+            new ArenaAreaVertex(671.3696f, -48.25674f),
         }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 5, teamStarts: new ArenaTeamStarts(
             // USEC: map-left sector, native PMC alternatives near X615.
             new[] { "4d676699-1243-452b-b4d7-3353616854fb", "5a551a12-ca0e-41af-9845-270ffce6808a", "8878252a-9516-4f33-a54d-56f9705098b6", "c11f719c-3491-4a60-901e-cf20832b432e", "d7bae537-f5a0-416d-9849-d939cc3575f4" },
-            new[] { "4fa5e11e-daa0-4594-88ef-d43e87d19f94", "6524d251-5c63-43ae-a7db-ec131b06c33e", "ae0f2712-f51f-4576-943e-aec0c9c3d0b3", "b82d5efc-aa51-41fc-8ac2-9a243920ae7a", "caa78aec-ecbd-4420-9e7b-54f7435de639", "da7e6945-c403-4e9a-9f40-33e0d526264a", "e06b071c-db66-4823-93ea-ea24471eb829", "ecf6b9e8-d95e-4697-85ca-3503aaabea04" },
+            new[] { "4fa5e11e-daa0-4594-88ef-d43e87d19f94", "6524d251-5c63-43ae-a7db-ec131b06c33e", "ae0f2712-f51f-4576-943e-aec0c9c3d0b3", "b82d5efc-aa51-41fc-8ac2-9a243920ae7a", "caa78aec-ecbd-4420-9e7b-54f7435de639", "da7e6945-c403-4e9a-9f40-33e0d526264a", "ecf6b9e8-d95e-4697-85ca-3503aaabea04" },
             // BEAR: map-right sector, native PMC alternatives near X570.
             new[] { "105e161c-c1ad-4004-8c02-f3c95164a75e", "3b128730-ba41-4ac8-9c08-517655a787dd", "89fe6e6f-7ebc-458e-8297-621824d1d6ac", "8bae21f5-6d20-4368-a820-0a05730f81ad", "c70da15f-6bc8-4dda-b666-e4163754bcd5" },
             new[] { "01a445b0-4545-48da-9ce6-6d0190869360", "15fb12c7-625d-4665-9fb6-2774905743ca", "37a06e76-55b5-4a82-a26f-049a41e78c2e", "545760c5-2ab7-43af-bdb3-864b20706af3", "e508eac2-6cae-490b-89cc-4b2e6db5bcb0", "fa37fe1f-0927-4c2a-8d82-917f50cdd47f" }));
+
+    // Exact user survey 20260928-173324; native ZoneCustoms courtyard.
+    // Geometry SHA256 ccf8e459ddbbfea567a3d49dd31a69a2f7cb22cc485242d60b63c944682f8c3b.
+    // Two compact candidate formations derived from native ground anchors.
+    // Their scene clearance/connectivity must still pass the live checks.
+    public static readonly ArenaAreaDefinition CustomsYard = new ArenaAreaDefinition(
+        CustomsYardId, "Customs Yard", ArenaMapCatalog.CustomsId,
+        new ArenaAreaBounds(new[]
+        {
+            new ArenaAreaVertex(-157.857864f, -33.0622368f),
+            new ArenaAreaVertex(-179.480118f, -21.1656284f),
+            new ArenaAreaVertex(-183.429337f, -19.6527061f),
+            new ArenaAreaVertex(-187.48082f, -20.07306f),
+            new ArenaAreaVertex(-209.462921f, -30.4629726f),
+            new ArenaAreaVertex(-212.065979f, -34.18947f),
+            new ArenaAreaVertex(-216.393631f, -36.1204643f),
+            new ArenaAreaVertex(-221.061768f, -35.3956642f),
+            new ArenaAreaVertex(-224.238251f, -37.3490372f),
+            new ArenaAreaVertex(-226.190018f, -40.64308f),
+            new ArenaAreaVertex(-226.576431f, -56.29533f),
+            new ArenaAreaVertex(-227.372391f, -64.89289f),
+            new ArenaAreaVertex(-228.349518f, -90.11953f),
+            new ArenaAreaVertex(-229.899155f, -145.315353f),
+            new ArenaAreaVertex(-230.46756f, -160.495377f),
+            new ArenaAreaVertex(-230.90567f, -184.935516f),
+            new ArenaAreaVertex(-228.963318f, -188.153168f),
+            new ArenaAreaVertex(-220.473282f, -188.710175f),
+            new ArenaAreaVertex(-201.054565f, -189.978363f),
+            new ArenaAreaVertex(-161.672836f, -191.890717f),
+            new ArenaAreaVertex(-155.3688f, -192.211319f),
+            new ArenaAreaVertex(-154.216156f, -156.130814f),
+            new ArenaAreaVertex(-153.723663f, -121.276749f),
+            new ArenaAreaVertex(-153.020264f, -75.8379059f),
+            new ArenaAreaVertex(-152.27092f, -52.01178f),
+            new ArenaAreaVertex(-153.111221f, -46.64779f),
+            new ArenaAreaVertex(-153.016388f, -39.0447121f),
+            new ArenaAreaVertex(-154.859177f, -35.7736664f),
+        }, 0f, 12f, limitsHeight: false), 0.5f, 3f, 5, teamStarts: new ArenaTeamStarts(
+            new[] { "9bde6412-a3d8-566d-919a-153ff1f328dd", "d1a539c6-50eb-5c54-afc4-4464b2b3fa8b" },
+            new[] { "9ccb87c2-4d70-5da0-af13-d423f6dfba8d", "3ed2dd78-69d2-5b0c-827d-fd6f1d636214", "3bf4fa37-e21f-5e62-8a61-04873b9b43a4", "50521378-ff8f-56b5-8be0-240aba209514", "b9713176-1481-53eb-aa79-ed173f4e388d", "318c7c45-8aad-57cf-9213-7993544d15b0", "118fc856-33dc-511f-8c65-aea9ce4db4b1", "5d67bea5-0f29-5017-9191-7c25ff900a76" },
+            new[] { "bbc9f3d1-8918-5da5-a7aa-c64bdbb3e64c", "45c53e98-06a7-5bad-b12b-302e823d1d57" },
+            new[] { "06145194-2a3d-50bb-b06c-b2638d469d16", "ec42fdf5-3b8d-5c2e-a4d5-f36a6e647ad2", "6cdfea2a-2190-5614-8bfa-6f19a08a59d4", "3db5f8a5-ef12-50c6-86f1-f5578d4ca3a0", "88039b43-f3bd-56c2-b051-091a1937bade", "a1987c27-d8a8-5cc9-9bf8-63199d0702e1", "d0e218aa-fd77-5d4d-bc28-66bc9beb031a", "3eba0f2a-55e6-52ca-88af-70c2967b3d01" }));
+
+    public static readonly IReadOnlyList<ArenaAreaSpawnAddition> CustomsYardSpawns = Array.AsReadOnly(new[]
+    {
+        new ArenaAreaSpawnAddition("9bde6412-a3d8-566d-919a-153ff1f328dd", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 0f, -2f, true),
+        new ArenaAreaSpawnAddition("d1a539c6-50eb-5c54-afc4-4464b2b3fa8b", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 0f, 2f, true),
+        new ArenaAreaSpawnAddition("9ccb87c2-4d70-5da0-af13-d423f6dfba8d", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), -4f, -4f, false),
+        new ArenaAreaSpawnAddition("3ed2dd78-69d2-5b0c-827d-fd6f1d636214", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 0f, -4f, false),
+        new ArenaAreaSpawnAddition("3bf4fa37-e21f-5e62-8a61-04873b9b43a4", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 4f, -4f, false),
+        new ArenaAreaSpawnAddition("50521378-ff8f-56b5-8be0-240aba209514", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), -4f, 0f, false),
+        new ArenaAreaSpawnAddition("b9713176-1481-53eb-aa79-ed173f4e388d", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 4f, 0f, false),
+        new ArenaAreaSpawnAddition("318c7c45-8aad-57cf-9213-7993544d15b0", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), -4f, 4f, false),
+        new ArenaAreaSpawnAddition("118fc856-33dc-511f-8c65-aea9ce4db4b1", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 0f, 6f, false),
+        new ArenaAreaSpawnAddition("5d67bea5-0f29-5017-9191-7c25ff900a76", "f2d2c753-7e4c-4055-83da-b1c2693d4552",
+            new ArenaAreaPoint(-204.84001f, 1.0786875f, -133.961f), 4f, 4f, false),
+        new ArenaAreaSpawnAddition("bbc9f3d1-8918-5da5-a7aa-c64bdbb3e64c", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 0f, -2f, true),
+        new ArenaAreaSpawnAddition("45c53e98-06a7-5bad-b12b-302e823d1d57", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 0f, 2f, true),
+        new ArenaAreaSpawnAddition("06145194-2a3d-50bb-b06c-b2638d469d16", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), -4f, -4f, false),
+        new ArenaAreaSpawnAddition("ec42fdf5-3b8d-5c2e-a4d5-f36a6e647ad2", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 0f, -4f, false),
+        new ArenaAreaSpawnAddition("6cdfea2a-2190-5614-8bfa-6f19a08a59d4", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 4f, -4f, false),
+        new ArenaAreaSpawnAddition("3db5f8a5-ef12-50c6-86f1-f5578d4ca3a0", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), -4f, 0f, false),
+        new ArenaAreaSpawnAddition("88039b43-f3bd-56c2-b051-091a1937bade", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 4f, 0f, false),
+        new ArenaAreaSpawnAddition("a1987c27-d8a8-5cc9-9bf8-63199d0702e1", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), -4f, 4f, false),
+        new ArenaAreaSpawnAddition("d0e218aa-fd77-5d4d-bc28-66bc9beb031a", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 0f, 6f, false),
+        new ArenaAreaSpawnAddition("3eba0f2a-55e6-52ca-88af-70c2967b3d01", "7f751d14-f03f-406c-94d9-1600aa068835",
+            new ArenaAreaPoint(-170.24002f, 1.063748f, -46.462997f), 4f, 4f, false),
+    });
 
     /// <summary>Zero denotes the unchanged full-map/legacy protocol, never an inferred new-area choice.</summary>
     public static bool TryResolveTeamSize(ArenaAreaDefinition? area, int? requested, out int selected, out string? reason)
@@ -498,9 +645,9 @@ public static class ArenaAreaCatalog
             { reason = "Customs currently requires an experimental Team Deathmatch area."; return false; }
             return true;
         }
-        var candidate = id == CustomsFactoryCenterPolygonId ? CustomsFactoryCenterPolygon
-            : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams
-            : id == CustomsFactoryEastPolygonId ? CustomsFactoryEastPolygon : null;
+        var candidate = id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams
+            : id == CustomsFactoryEastPolygonId ? CustomsFactoryEastPolygon
+            : id == CustomsYardId ? CustomsYard : null;
         if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
         if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
@@ -536,5 +683,22 @@ public sealed class ArenaTeamStarts
                 throw new ArgumentException("Start identities must be non-empty and unique.");
         if (result.Count == 0) throw new ArgumentException("A start side must not be empty.");
         return result;
+    }
+}
+
+/// <summary>Immutable extra marker; source anchor is checked before adapting the per-raid clone.</summary>
+public sealed class ArenaAreaSpawnAddition
+{
+    public string Id { get; }
+    public string SourceId { get; }
+    public ArenaAreaPoint SourcePosition { get; }
+    public ArenaAreaPoint Position { get; }
+    public bool Player { get; }
+    public const string Zone = "ZoneCustoms";
+    public ArenaAreaSpawnAddition(string id, string sourceId, ArenaAreaPoint source, float offsetX, float offsetZ, bool player)
+    {
+        Id = id; SourceId = sourceId; SourcePosition = source;
+        Position = new ArenaAreaPoint(source.X + offsetX, source.Y, source.Z + offsetZ);
+        Player = player;
     }
 }

@@ -18,7 +18,16 @@ public sealed partial class ArenaAreaServerTests : IDisposable
     private const string Map = ArenaMapCatalog.FactoryDayId;
     private const string BoundedMap = ArenaMapCatalog.CustomsId;
     private const string Mode = "teamdeathmatch";
-    private const string Area = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+    private const string Area = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+    private const int AreaSize = 2;
+    // Fixed native IDs/coordinates, deliberately not derived from the production
+    // team-start sets: admission changes must not silently rewrite this fixture.
+    private const string TestUsecPlayer = "2051eb7b-3ae8-49b8-adcb-c13f0ddc7972";
+    private const string TestBearPlayer = "2cb9950d-20ec-484e-919c-5489bb7abd5c";
+    private const string TestUsecBot1 = "046309a0-3d13-48c4-a3e6-9bb509ac339d";
+    private const string TestUsecBot2 = "570f30b0-d2da-4f91-9270-45783c7c6a88";
+    private const string TestBearBot1 = "13adbe1b-21b0-4422-90a9-eab3ee8313fb";
+    private const string TestBearBot2 = "295048b1-140d-47c3-85f8-ab5bdaaafa67";
     private const string Token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private static readonly MongoId Session = new("0123456789abcdef01234567");
     private static readonly MongoId Other = new("89abcdef0123456701234567");
@@ -64,34 +73,36 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         Assert.True(Sessions.TryReplayArmedRequest(Session, wholeMap, Mode, false, Token,
             out var replay, ArenaAreaCatalog.FullMapId));
         Assert.Equal(Token, replay);
-        Assert.False(Sessions.TryReplayArmedRequest(Session, wholeMap, Mode, false, Token, out _, Area));
+        Assert.False(Sessions.TryReplayArmedRequest(Session, wholeMap, Mode, false, Token, out _, Area, AreaSize));
     }
 
     [Fact]
     public void FrozenAreaDoesNotReplayAsFullMapOrAnotherLogicalRequest()
     {
-        Assert.True(Sessions.BeginArmPreparation(Session, BoundedMap, Mode, false, Token, Area));
+        Assert.True(Sessions.BeginArmPreparation(Session, BoundedMap, Mode, false, Token, Area, AreaSize));
         Assert.Equal(Area, Sessions.GetAreaId(Session));
-        Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false, Token, out _, Area));
+        Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false, Token, out _, Area, AreaSize));
         Assert.True(Sessions.CompleteArmPreparation(Session));
         Assert.True(Sessions.TryReplayArmedRequest(Session, BoundedMap.ToUpperInvariant(), Mode.ToUpperInvariant(),
-            false, Token, out var replay, Area));
+            false, Token, out var replay, Area, AreaSize));
         Assert.Equal(Token, replay);
         Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false, Token, out _));
         Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false, Token, out _, "factory-south-v2"));
         Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false,
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", out _, Area));
-        Assert.False(Sessions.TryReplayArmedRequest(Other, BoundedMap, Mode, false, Token, out _, Area));
-        Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, true, Token, out _, Area));
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", out _, Area, AreaSize));
+        Assert.False(Sessions.TryReplayArmedRequest(Other, BoundedMap, Mode, false, Token, out _, Area, AreaSize));
+        Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, true, Token, out _, Area, AreaSize));
         Start(BoundedMap);
         Assert.Equal(Area, Sessions.GetAreaId(Session));
-        Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false, Token, out _, Area));
+        Assert.False(Sessions.TryReplayArmedRequest(Session, BoundedMap, Mode, false, Token, out _, Area, AreaSize));
     }
 
     [Theory]
     [InlineData("factory-south-v2", BoundedMap, Mode, false)]
     [InlineData(ArenaAreaCatalog.FactorySouthId, ArenaMapCatalog.FactoryDayId, Mode, false)]
     [InlineData(ArenaAreaCatalog.CustomsFactoryCenterId, BoundedMap, Mode, false)]
+    [InlineData(ArenaAreaCatalog.CustomsFactoryCenterPolygonId, BoundedMap, Mode, false)]
+    [InlineData("customs-factory-center-teams-v1", BoundedMap, Mode, false)]
     [InlineData(Area, "factory4_night", Mode, false)]
     [InlineData(Area, "laboratory", Mode, false)]
     [InlineData(Area, BoundedMap, "tactical", false)]
@@ -100,11 +111,11 @@ public sealed partial class ArenaAreaServerTests : IDisposable
     public void InvalidAreaCannotPublishPreparationOrReplaceAnExistingArm(
         string area, string map, string mode, bool pft)
     {
-        Assert.False(Sessions.BeginArmPreparation(Session, map, mode, pft, Token, area));
+        Assert.False(Sessions.BeginArmPreparation(Session, map, mode, pft, Token, area, AreaSize));
         Assert.Equal(ArenaSessionState.Idle, Sessions.GetStatus(Session).state);
         Assert.Equal(ArenaAreaCatalog.FullMapId, Sessions.GetAreaId(Session));
-        Sessions.Arm(Session, BoundedMap, Mode, armToken: Token, areaId: Area);
-        Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, areaId: area));
+        Sessions.Arm(Session, BoundedMap, Mode, armToken: Token, areaId: Area, areaTeamSize: AreaSize);
+        Assert.Throws<ArgumentException>(() => Sessions.Arm(Session, map, mode, pft, areaId: area, areaTeamSize: AreaSize));
         Assert.Equal(Token, Sessions.GetArmToken(Session));
         Assert.Equal(Area, Sessions.GetAreaId(Session));
     }
@@ -116,7 +127,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
     [InlineData("native-end")]
     public void AreaIsReleasedOnlyWhenItsLifecycleReachesIdle(string path)
     {
-        Assert.True(Sessions.BeginArmPreparation(Session, BoundedMap, Mode, false, Token, Area));
+        Assert.True(Sessions.BeginArmPreparation(Session, BoundedMap, Mode, false, Token, Area, AreaSize));
         if (path == "preparing") Sessions.CancelArmPreparation(Session);
         else if (path == "idle") Sessions.MarkIdle(Session);
         else
@@ -156,8 +167,8 @@ public sealed partial class ArenaAreaServerTests : IDisposable
     public async Task RouteReplayAndStatusEchoTheFrozenAreaAndRejectDowngrade()
     {
         var router = RouterWithSnapshot();
-        Sessions.Arm(Session, BoundedMap, Mode, armToken: Token, areaId: Area);
-        var request = new ArenaRaidStartRequest { Map = BoundedMap, Mode = Mode, RequestId = Token, AreaId = Area };
+        Sessions.Arm(Session, BoundedMap, Mode, armToken: Token, areaId: Area, areaTeamSize: AreaSize);
+        var request = new ArenaRaidStartRequest { Map = BoundedMap, Mode = Mode, RequestId = Token, AreaId = Area, AreaTeamSize = AreaSize };
         using var replay = JsonDocument.Parse(await InvokeStart(router, request));
         Assert.True(replay.RootElement.GetProperty("armed").GetBoolean());
         Assert.True(replay.RootElement.GetProperty("replayed").GetBoolean());
@@ -181,7 +192,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         ArmAndStart();
         GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, clone);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
-        Assert.Equal(new[] { "p1", "p2", "b1", "b2", "b3", "inside-unknown" },
+        Assert.Equal(new[] { TestUsecPlayer, TestBearPlayer, TestUsecBot1, TestUsecBot2, TestBearBot1, TestBearBot2, "inside-boss", "inside-unknown" },
             clone.SpawnPointParams!.Select(point => point.Id));
         Assert.True(Sessions.ValidateAreaLocation(Session, out var reason), reason);
         Assert.True(Sessions.TryGetStashedCloneMode(clone, out var mode));
@@ -195,7 +206,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         var aliased = Location();
         var markerList = aliased.SpawnPointParams;
         string markersBefore = JsonSerializer.Serialize(markerList);
-        ArenaLocationMutator.Mutate(aliased, new(), new(), Mode, Area);
+        ArenaLocationMutator.Mutate(aliased, new(), new(), Mode, Area, AreaSize);
         Assert.NotSame(markerList, aliased.SpawnPointParams);
         Assert.Equal(markersBefore, JsonSerializer.Serialize(markerList));
         Assert.Same(markerList!.First(), aliased.SpawnPointParams!.First());
@@ -205,7 +216,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         Sessions.MarkIdle(Session);
         GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, original);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
-        Sessions.Arm(Session, BoundedMap, Mode, areaId: Area);
+        Sessions.Arm(Session, BoundedMap, Mode, areaId: Area, areaTeamSize: AreaSize);
         GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, original);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
     }
@@ -253,14 +264,14 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         var location = Location();
         var points = location.SpawnPointParams!.ToList();
         if (failure == "empty") points.Clear();
-        if (failure == "no-bots") points.RemoveAll(point => point.Id!.StartsWith("b"));
-        if (failure == "no-players") points.RemoveAll(point => point.Id!.StartsWith("p"));
+        if (failure == "no-bots") points.RemoveAll(point => point.Categories!.Any(category => category is "Bot" or "BotPmc" or "Boss"));
+        if (failure == "no-players") points.RemoveAll(point => point.Categories!.Contains("Player"));
         if (failure == "wrong-side") foreach (var point in points) point.Sides = ["Savage"];
-        if (failure == "duplicate-position") points.Single(point => point.Id == "p2").Position = points[0].Position;
-        if (failure == "duplicate-id") points.Single(point => point.Id == "p2").Id = "p1";
+        if (failure == "duplicate-position") points.Single(point => point.Id == TestBearPlayer).Position = points[0].Position;
+        if (failure == "duplicate-id") points.Single(point => point.Id == TestBearPlayer).Id = TestUsecPlayer;
         location.SpawnPointParams = points;
         string before = JsonSerializer.Serialize(location);
-        Assert.Throws<InvalidOperationException>(() => ArenaLocationMutator.Mutate(location, new(), new(), Mode, Area));
+        Assert.Throws<InvalidOperationException>(() => ArenaLocationMutator.Mutate(location, new(), new(), Mode, Area, AreaSize));
         Assert.Equal(before, JsonSerializer.Serialize(location));
 
         string nativeEnd = ArmAndStart();
@@ -331,7 +342,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
 
     private string ArmAndStart()
     {
-        Sessions.Arm(Session, BoundedMap, Mode, armToken: Token, areaId: Area);
+        Sessions.Arm(Session, BoundedMap, Mode, armToken: Token, areaId: Area, areaTeamSize: AreaSize);
         return Start(BoundedMap);
     }
 
@@ -378,13 +389,18 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         BossLocationSpawn = [],
         SpawnPointParams =
         [
-            Point("p1", 335, 0, -85, "Player"), Point("p2", 465, 0, -65, "Player"),
-            Point("b1", 360, 0, -105, "Bot"), Point("b2", 405, 0, -60, "BotPmc"),
-            Point("b3", 450, 0, -100, "Boss"), Point("inside-unknown", 380, 0, -50, "ModCategory"),
+            CustomsPoint(TestUsecPlayer, 317.338f, 1.128f, -78.756f, "Player"),
+            CustomsPoint(TestBearPlayer, 478f, 2.7f, -83.14f, "Player"),
+            CustomsPoint(TestUsecBot1, 363.140869f, 1.32006574f, -109.224533f, "BotPmc"),
+            CustomsPoint(TestUsecBot2, 327.3948f, 1.52012908f, -102.241684f, "BotPmc"),
+            CustomsPoint(TestBearBot1, 391.856567f, 1.50502157f, -86.1867752f, "Bot"),
+            CustomsPoint(TestBearBot2, 471.196716f, 2.6568923f, -54.2984543f, "Bot"),
+            Point("inside-boss", 450, 0, -100, "Boss"),
+            Point("inside-unknown", 380, 0, -50, "ModCategory"),
             Point("out-player", 80, 0, 0, "Player"), Point("out-bot", 80, 0, 0, "Bot"),
             Point("out-coop", 80, 0, 0, "Coop"), Point("out-group", 80, 0, 0, "Group"),
             Point("out-unknown", 80, 0, 0, "ModCategory"), Point("outside-low", 0, -400, 0, "Player"),
-            Point("outside-high", 0, 500, 0, "Bot"), Point("wall-inset", 464.7143f, 0, -145.724579f, "Bot"),
+            Point("outside-high", 0, 500, 0, "Bot"), Point("wall-inset", 464.603851f, 0, -145.668182f, "Bot"),
             new SpawnPointParam { Id = "missing-position", Categories = ["Bot"] },
         ],
     };

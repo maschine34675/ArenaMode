@@ -227,6 +227,10 @@ public static class ArenaLocationMutator
         // Group and unknown mod categories. Never alter the marker objects or
         // their flags: later ordinary raids may share those records upstream.
         var source = (location.SpawnPointParams ?? []).ToList();
+        if (area.Id == ArenaAreaCatalog.CustomsYardId
+            && source.Any(point => point != null && ArenaAreaCatalog.CustomsYardSpawns.Any(s => s.Id == point.Id)
+                && (point.Position is not { } p || !area.AllowsSpawn(p.X, p.Y, p.Z, point.Id))))
+            throw new InvalidOperationException("Customs Yard extra identity collides with an invalid marker.");
         var allowed = source.Where(point =>
             point != null && !string.IsNullOrWhiteSpace(point.Id)
             && point.Position is { } p && area.AllowsSpawn(p.X, p.Y, p.Z, point.Id)).ToList();
@@ -234,6 +238,9 @@ public static class ArenaLocationMutator
             throw new InvalidOperationException($"Arena area '{area.Id}' received an outside or invalid spawn after filtering.");
         if (allowed.Select(point => point.Id).Distinct(StringComparer.Ordinal).Count() != allowed.Count)
             throw new InvalidOperationException($"Arena area '{area.Id}' contains duplicate spawn identities.");
+
+        if (area.Id == ArenaAreaCatalog.CustomsYardId)
+            AddOrValidateYardStarts(area, allowed, requireAlreadyContained);
 
         if (area.TeamStarts != null)
         {
@@ -265,6 +272,47 @@ public static class ArenaLocationMutator
                 + $"(USEC {usecCount}/2, BEAR {bearCount}/2, bots {botCount}/{requiredBots}).");
 
         return allowed;
+    }
+
+    private static void AddOrValidateYardStarts(ArenaAreaDefinition area, List<SpawnPointParam> points, bool validateOnly)
+    {
+        // New IDs make EFT create proper zone-owned markers; FixParams on an
+        // existing scene PMC marker does NOT update its BotZone. Never edit a
+        // native marker (or any nested collider data that may alias upstream).
+        var additions = new List<SpawnPointParam>();
+        foreach (var spec in ArenaAreaCatalog.CustomsYardSpawns)
+        {
+            var anchor = points.SingleOrDefault(p => p.Id == spec.SourceId);
+            var source = spec.SourcePosition;
+            if (anchor?.Position is not { } position
+                || Math.Abs(position.X - source.X) > .01f || Math.Abs(position.Y - source.Y) > .01f
+                || Math.Abs(position.Z - source.Z) > .01f || anchor.ColliderParams == null
+                || anchor.CorePointId != 3 || anchor.BotZoneName != ArenaAreaSpawnAddition.Zone
+                || !HasKnownCategories(anchor) || !(HasNativeCategory(anchor, "Bot") || HasNativeCategory(anchor, "BotPmc")))
+                throw new InvalidOperationException("Customs Yard start anchor changed or disappeared: " + spec.SourceId);
+            if (!area.AllowsSpawn(spec.Position.X, spec.Position.Y, spec.Position.Z, spec.Id))
+                throw new InvalidOperationException("Customs Yard extra start is outside its contour: " + spec.Id);
+
+            var expected = System.Text.Json.JsonSerializer.Deserialize<SpawnPointParam>(
+                System.Text.Json.JsonSerializer.Serialize(anchor))! with
+            {
+                Id = spec.Id,
+                Position = new Vector3(spec.Position.X, spec.Position.Y, spec.Position.Z),
+                Categories = [spec.Player ? "Player" : "BotPmc"],
+                Sides = ["Pmc"],
+                BotZoneName = ArenaAreaSpawnAddition.Zone,
+            };
+            var existing = points.SingleOrDefault(p => p.Id == spec.Id);
+            if (existing != null)
+            {
+                if (System.Text.Json.JsonSerializer.Serialize(existing) != System.Text.Json.JsonSerializer.Serialize(expected))
+                    throw new InvalidOperationException("Customs Yard extra start changed: " + spec.Id);
+            }
+            else if (validateOnly)
+                throw new InvalidOperationException("Customs Yard extra start missing: " + spec.Id);
+            else additions.Add(expected);
+        }
+        points.AddRange(additions);
     }
 
     private static void ValidateTeamStarts(ArenaAreaDefinition area, int selectedSize, List<SpawnPointParam> allowed)

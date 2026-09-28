@@ -18,8 +18,7 @@ public sealed partial class ArenaAreaServerTests
         foreach (int? size in new int?[] { null, 0, -1, 1, 6, int.MinValue, int.MaxValue })
             yield return [TeamArea, Customs, Mode, false, size];
         yield return [ArenaAreaCatalog.CustomsFactoryCenterPolygonId, Customs, Mode, false, 2];
-        yield return [CustomsArea, Customs, Mode, false, 2];
-        yield return [Area, Map, Mode, false, 2];
+        yield return ["customs-factory-center-teams-v1", Customs, Mode, false, 2];
         yield return [null, Map, Mode, false, 2];
         yield return [TeamArea, Customs, "tactical", false, 2];
         yield return [TeamArea, Customs, Mode, true, 2];
@@ -149,10 +148,10 @@ public sealed partial class ArenaAreaServerTests
     }
 
     [Fact]
-    public async Task AreaTeamLegacyOmissionAndExplicitZeroRemainEquivalent()
+    public async Task FullMapLegacyOmissionAndExplicitZeroRemainEquivalent()
     {
         var (router, _, _, cloner) = CustomsRouter();
-        var request = new ArenaRaidStartRequest { Map = Customs, Mode = Mode, RequestId = Token, AreaId = Area };
+        var request = new ArenaRaidStartRequest { Map = Map, Mode = Mode, RequestId = Token, AreaId = ArenaAreaCatalog.FullMapId };
         using var first = JsonDocument.Parse(await InvokeStart(router, request));
         Assert.True(first.RootElement.GetProperty("armed").GetBoolean());
         Assert.Equal(0, first.RootElement.GetProperty("areaTeamSize").GetInt32());
@@ -191,7 +190,7 @@ public sealed partial class ArenaAreaServerTests
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: TeamArea, areaTeamSize: size);
         string nativeEnd = Start(Customs);
         GenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
-        Assert.Equal(28, clone.SpawnPointParams!.Count());
+        Assert.Equal(29, clone.SpawnPointParams!.Count());
         Assert.Equal(expected, clone.SpawnPointParams);
         Assert.True(Sessions.ValidateAreaResponse(Session, clone, out var reason), reason);
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
@@ -336,7 +335,7 @@ public sealed partial class ArenaAreaServerTests
             }
         ArenaLocationMutator.Mutate(location, new(), new(), Mode, TeamArea, 5);
         ArenaLocationMutator.ValidateAreaSpawns(location, Mode, TeamArea, 5);
-        Assert.Equal(28, location.SpawnPointParams!.Count());
+        Assert.Equal(29, location.SpawnPointParams!.Count());
     }
 
     private static LocationBase ReadAreaTeamLocation()

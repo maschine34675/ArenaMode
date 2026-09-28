@@ -12,7 +12,7 @@ internal static class Program
     private static int _checks;
     private const string Day = ArenaMapCatalog.FactoryDayId, Night = ArenaMapCatalog.FactoryNightId;
     private const string Customs = ArenaMapCatalog.CustomsId, Full = ArenaAreaCatalog.FullMapId;
-    private const string South = ArenaAreaCatalog.FactorySouthId, Center = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+    private const string South = ArenaAreaCatalog.FactorySouthId, Center = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
 
     private static void Assert(bool condition, string message)
     { _checks++; if (!condition) throw new InvalidOperationException("ASSERT: " + message); }

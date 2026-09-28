@@ -272,7 +272,7 @@ internal static class Program
         try
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
-            Need(ReadPoints().Length==28&&ReadPoints().Count(Bot)==11,"installed Customs corpus retains 28 markers and 11 bot points");
+            Need(ReadPoints().Length==29&&ReadPoints().Count(Bot)==11,"refined Customs Center corpus retains 29 markers and 11 bot points");
             InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;

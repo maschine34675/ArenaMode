@@ -18,7 +18,7 @@ internal static partial class Program
             "Customs-only server permits solo entry into picker but does not offer PFT an unusable map");
         Assert(!ArenaMenuSelection.IsMapAvailable(map), "Customs must stay unselectable before choosing its mode and area");
         Settings.GameMode.Value = "teamdeathmatch";
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         Select(map);
         Assert(ArenaMenuSelection.IsMapAvailable(map), "Exact Customs preset and TDM enable the configured map");
 
@@ -53,14 +53,14 @@ internal static partial class Program
 
         foreach (string mode in new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch" })
         foreach (string area in new[] { null, "", ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId, ArenaAreaCatalog.CustomsFactoryCenterId,
-                     "customs-factory-center-v2", ArenaAreaCatalog.CustomsFactoryCenterPolygonId })
+                     "customs-factory-center-v2", ArenaAreaCatalog.CustomsFactoryCenterTeamsId })
         {
             ConfigureAreaNegotiation();
             Select(map);
             Settings.GameMode.Value = mode;
             Settings.TeamDeathmatchArea.Value = area;
             int starts = RequestHandler.StartCount;
-            bool expected = mode == "teamdeathmatch" && area == ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+            bool expected = mode == "teamdeathmatch" && area == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
             Assert(ArenaMenuSelection.IsMapAvailable(map) == expected, "Customs menu admission follows exact mode/area contract");
             bool accepted = Start(Request(map: map), out var task);
             Assert(accepted == expected, "Actual final local-start prefix matches Customs admission");
@@ -68,14 +68,14 @@ internal static partial class Program
                 Assert(task.IsFaulted && starts == RequestHandler.StartCount && ArenaAreaRuntime.ArmCalls == 0,
                     "Invalid Customs start never reaches profile snapshot announcement or runtime arming");
             else
-                Assert(ArenaAreaRuntime.ArmedArea == ArenaAreaCatalog.CustomsFactoryCenterPolygon
+                Assert(ArenaAreaRuntime.ArmedArea == ArenaAreaCatalog.CustomsFactoryCenterTeams
                     && JObject.Parse(RequestHandler.LastPostBody)["areaId"].Value<string>() == area,
                     "Accepted Customs request freezes the same exact server/client area");
         }
 
         ConfigureAreaNegotiation();
         Select(map);
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         ArenaMenuSelection.ConfigureEligibility(() => new ArenaMenuSelection.Eligibility(true, true, ""), null);
         int beforeTeam = RequestHandler.StartCount;
         Assert(!ArenaMenuSelection.IsMapAvailable(map) && !Start(Request(map: map), out var denied)

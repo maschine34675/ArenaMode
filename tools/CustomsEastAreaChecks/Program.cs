@@ -18,7 +18,7 @@ try
 {
     if (args.Length != 2) throw new ArgumentException("Usage: CustomsEastAreaChecks <draft fixture> <native bigmap/base.json>");
     var draftBytes = File.ReadAllBytes(args[0]);
-    Need(Convert.ToHexString(SHA256.HashData(draftBytes)) == "2F5046F1E1C739D292B3B300C1D0686BFDE420718D4600AFB9E2CEE6EC33A7A0",
+    Need(Convert.ToHexString(SHA256.HashData(draftBytes)) == "5FD9673C5F99656841CF85EE9164EB84E9EE7779DD726757BF1FA81157EE0AC6",
         "DRAFT-HASH", "Original user draft bytes changed.");
     using var document = JsonDocument.Parse(draftBytes);
     var draft = document.RootElement;
@@ -27,21 +27,21 @@ try
         .Select(p => new ArenaAreaVertex(p.GetProperty("x").GetSingle(), p.GetProperty("z").GetSingle())).ToArray();
     Need(draft.GetProperty("schemaVersion").GetInt32() == 1 && draft.GetProperty("kind").GetString() == "ArenaMode.AreaDraft"
         && draft.GetProperty("draftOnly").GetBoolean(), "DRAFT-KIND", "Unexpected source contract.");
-    const string geometryHash = "bddf25bdaec03bce8a140cbd7fe0dd73ddc58ef58672ca5ce30078f1f1a7ad1e";
+    const string geometryHash = "7e2e907252db8f5f9bd5058c569b139577d7aedfc164f7c7b303839a69b7644c";
     Need(draft.GetProperty("geometrySha256").GetString() == geometryHash
         && Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(geometry))))
             .Equals(geometryHash, StringComparison.OrdinalIgnoreCase), "GEOMETRY-HASH", "Captured geometry fingerprint does not match.");
 
     var area = ArenaAreaCatalog.CustomsFactoryEastPolygon;
-    Need(area.Id == "customs-factory-east-polygon-v1" && area.Id == ArenaAreaCatalog.CustomsFactoryEastPolygonId,
+    Need(area.Id == "customs-factory-side-polygon-v2" && area.Id == ArenaAreaCatalog.CustomsFactoryEastPolygonId,
         "PROTOCOL-ID", "Use an explicit new protocol ID.");
     Need(area.MapId == "bigmap" && geometry.GetProperty("mapId").GetString() == area.MapId,
         "MAP-ID", "New contour belongs to Customs only.");
     Need(area.MaxTeamSize == 5 && geometry.GetProperty("maxTeamSize").GetInt32() == 2 && area.TeamStarts != null,
         "TEAM-STARTS", "The unchanged original survey is upgraded through explicit surveyed 2v2..5v5 team starts.");
-    Need(area.DisplayName == "Customs Factory Side — team starts", "AREA-NAME", "Use the native zone name, not unverified world-X compass orientation.");
+    Need(area.DisplayName == "Customs Factory Side", "AREA-NAME", "Use the native zone name, not unverified world-X compass orientation.");
     Need(!area.Bounds.LimitsHeight, "UNLIMITED-HEIGHT", "Draft height hints must not become actor/spawn limits.");
-    Need(area.Bounds.Outline.Count == vertices.Length && vertices.Length == 11, "EXACT-GEOMETRY", "Measured outline count changed.");
+    Need(area.Bounds.Outline.Count == vertices.Length && vertices.Length == 32, "EXACT-GEOMETRY", "Measured outline count changed.");
     for (int i = 0; i < vertices.Length; i++)
     {
         var expected = vertices[i]; var actual = area.Bounds.Outline[i];
@@ -49,8 +49,8 @@ try
         Need(area.Bounds.Contains(expected.X, 2000f, expected.Z), "BOUNDARY", "Boundary must belong to unrestricted-height polygon.");
         Need(!area.AllowsSpawn(expected.X, 1f, expected.Z), "SPAWN-INSET", "A boundary vertex cannot be a spawn footpoint.");
     }
-    Need(area.Bounds.MinX == 466.07547f && area.Bounds.MaxX == 670.6625f
-        && area.Bounds.MinZ == -167.768631f && area.Bounds.MaxZ == -25.097086f,
+    Need(area.Bounds.MinX == 465.583923f && area.Bounds.MaxX == 671.3696f
+        && area.Bounds.MinZ == -167.732224f && area.Bounds.MaxZ == -24.5994377f,
         "EXTENTS", "Published geographic extents changed.");
     for (int xi = 0; xi <= 18; xi++)
         for (int zi = 0; zi <= 16; zi++)
@@ -111,8 +111,7 @@ try
     var menu = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, area.Id, 12);
     Need(menu.Available && menu.SelectedId == area.Id && menu.MapId == "bigmap" && ReferenceEquals(menu.SelectedArea, area),
         "MENU-AREA", "Offered selection and preview must refer to the exact new definition.");
-    Need(menu.Options.Select(o => o.Id).SequenceEqual(new[] { "customs-factory-center-polygon-v1",
-        "customs-factory-center-teams-v1", area.Id }), "MENU-ORDER", "New option must not replace or reorder existing Customs choices.");
+    Need(menu.Options.Select(o => o.Id).SequenceEqual(new[] { ArenaAreaCatalog.CustomsFactoryCenterTeamsId, area.Id, ArenaAreaCatalog.CustomsYardId }), "MENU-ORDER", "Exactly one option per current contour.");
     Need(menu.Summary == "2v2 - opposing team starts" && menu.HasTeamSizeChoice
         && menu.TeamSizeOptions.SequenceEqual(new[] { 2, 3, 4, 5 }),
         "MENU-TEAM-SIZE", "Full-map size 12 cannot leak into explicit bounded sizes.");
@@ -122,7 +121,7 @@ try
         Need(selectedMenu.SelectedTeamSize == size && selectedMenu.Summary == $"{size}v{size} - opposing team starts",
             "MENU-TEAM-SIZE", "Menu must use this area's requested count, not the full-map setting.");
     }
-    foreach (var definition in new[] { ArenaAreaCatalog.CustomsFactoryCenterPolygon, ArenaAreaCatalog.CustomsFactoryCenterTeams })
+    foreach (var definition in new[] { ArenaAreaCatalog.CustomsFactoryCenterTeams, ArenaAreaCatalog.CustomsYard })
     {
         var old = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, definition.Id, 8, 4);
         Need(old.SelectedId == definition.Id && ReferenceEquals(old.SelectedArea, definition), "LEGACY-AREA", "Existing saved area or preview changed.");
@@ -132,7 +131,7 @@ try
         "LEGACY-AREA", "Existing protocol identities or capacities changed.");
     foreach (var (id, map, replacement) in new[] {
         (ArenaAreaCatalog.FactorySouthId, "factory4_day", ArenaAreaCatalog.FullMapId),
-        (ArenaAreaCatalog.CustomsFactoryCenterId, "bigmap", ArenaAreaCatalog.CustomsFactoryCenterPolygonId) })
+        (ArenaAreaCatalog.CustomsFactoryCenterId, "bigmap", ArenaAreaCatalog.CustomsFactoryCenterTeamsId) })
     {
         Need(!ArenaAreaCatalog.TryResolve(id, map, "teamdeathmatch", false, out _, out _),
             "RETIRED-AREA", "Retired prototype must be rejected by the shared arm resolver.");
@@ -150,8 +149,8 @@ try
         Need(!unavailable.Available && unavailable.SelectedId == null && unavailable.SelectedArea == null,
             "PREVIEW-UNAVAILABLE", "No offered choice means no geometry preview.");
     var invalid = ArenaAreaSelectionState.Create("bigmap", "teamdeathmatch", false, "unpublished-draft", 8);
-    Need(invalid.SelectedId == ArenaAreaCatalog.CustomsFactoryCenterPolygonId
-        && ReferenceEquals(invalid.SelectedArea, ArenaAreaCatalog.CustomsFactoryCenterPolygon), "PREVIEW-PROPOSAL", "Preview must follow offered proposal, not rejected draft ID.");
+    Need(invalid.SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId
+        && ReferenceEquals(invalid.SelectedArea, ArenaAreaCatalog.CustomsFactoryCenterTeams), "PREVIEW-PROPOSAL", "Preview must follow offered proposal, not rejected draft ID.");
 
     using var nativeDocument = JsonDocument.Parse(File.ReadAllBytes(args[1]));
     var entries = nativeDocument.RootElement.GetProperty("SpawnPointParams").EnumerateArray().Select(ReadEntry).ToArray();
@@ -162,7 +161,7 @@ try
     var players = allowed.Where(e => Player(e,"Usec") && Player(e,"Bear")).ToArray();
     var bots = allowed.Where(e => Bot(e) && !ArenaBotSpawnPolicy.IsExcludedPoint(area.MapId,e.Id)
         && !ArenaBotSpawnPolicy.IsExcludedZone(area.MapId,e.Zone)).ToArray();
-    Need(allowed.Length == 35 && players.Length == 20 && bots.Length == 15,
+    Need(allowed.Length == 34 && players.Length == 20 && bots.Length == 14,
         "SPAWN-CORPUS", "Reviewed Customs candidate counts changed; inspect the new database before rebinding this survey.");
     Need(players.Length >= 2 && bots.Length >= area.MaxTeamSize*2-1, "STATIC-CAPACITY", "Insufficient distinct candidates even before live path validation.");
     Need(allowed.Select(e => (e.X,e.Y,e.Z)).Distinct().Count() == allowed.Length, "SPAWN-POSITIONS", "Allowed markers repeat physical positions.");
@@ -182,7 +181,7 @@ try
         var selectedBots = entries.Where(e => area.TeamStarts.Allows(usec, false, e.Id)).ToArray();
         Need(selectedPlayers.Length == 5 && selectedPlayers.All(e => players.Contains(e)),
             "START-PMC", "Every selected PMC identity must exist, permit both factions and lie inside the measured contour.");
-        Need(selectedBots.Length == (usec ? 8 : 6) && selectedBots.All(e => bots.Contains(e)),
+        Need(selectedBots.Length == (usec ? 7 : 6) && selectedBots.All(e => bots.Contains(e)),
             "START-BOT", "Every selected bot identity must exist, have Bot/BotPmc and a native zone, and pass all filters.");
         var sector = selectedPlayers.Concat(selectedBots).ToArray();
         Need(sector.Select(e => (e.X,e.Y,e.Z)).Distinct().Count() == sector.Length,
