@@ -7,6 +7,29 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Kill-Totenkopf und entfernter HS-Text (2026-09-29):**
+  Implementierung `838e909`, finaler sauberer Client-Build `e1d8975` (letzter
+  Commit präzisiert nur eine Fehlerkontrolle). Bestätigte, wertbare eigene Kills
+  zeigen das vorhandene Arena-Totenkopf-Asset zusätzlich zum Trefferkreuz:
+  0,15 s halten, 0,65 s ausblenden, unterhalb des Fadenkreuzes. Eigene Lebensdauer,
+  bestehender Hitmarker-Schalter, keine neue Einstellung. Killfeed ohne erzeugten
+  `HS`-Text; das separate Kopftreffer-Icon bleibt. Keine Spiel-/Profiländerung.
+  Details: `KILL-SKULL-REVIEW.md`. 160 Asset-/UI-Assertions, zehn kompilierte
+  Fehlerkontrollen und Killfeed-Prüfungen bestanden, unabhängige Review ohne
+  offene P0-P2. Client lokal und auf beiden GPU-Hosts (.114 und .109) eingespielt;
+  Server/Core/BigBrainCompat unverändert. Client SHA256
+  `7BFADE51FFB2ABF1DE5FBEEA8EA927A10DD28C1A7939BB14D5C8A2E8BDAAA3BA`.
+  Beleg: `KILL-SKULL-DEPLOYMENT-20260929.json`.
+  Mit UiBridge 0.7.3 auf Host 2 autonom einen echten Equator-Deathmatch gespielt:
+  3 eigene Kills (2 Kopf, 1 Brust), native Skull-Ereignisbindung/Asset/Ausblenden
+  und Killfeed-Text/Icon-Zustand geprüft. 24/24 geladene Builds abgeglichen.
+  Keine Error-Level-Zeilen; vollständiger Profilvergleich unterscheidet nur
+  zwei Verwaltungs-Zeitstempel. Testhilfen aus, Handles freigegeben, Hauptmenü.
+  **Keine Pixel-Abnahme des 0,8-s-Totenkopfs:** Screenshot kam zu spät;
+  Größe/Position/Lesbarkeit noch kurz visuell bestätigen. Bericht und Grenzen:
+  `GPU-KILL-SKULL-RESULTS-20260929.md`. Die ältere UI-Gesamtabnahme unten wird
+  dadurch nicht ersetzt; F9/Scrollen/Tactical wurden hier nicht getestet.
+
 - **EFT-Arena-Grafiken für Killfeed/F9-Scoreboard (2026-09-29):**
   Quellstand `b65bf86`. 17 Originalgrafiken aus dem vom Nutzer bereitgestellten
   Arena-Export eingebettet. Killfeed mit Waffen-/Todesursachensymbol und separatem
