@@ -7,6 +7,27 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **HUD-/Avatar-Nachbesserung (2026-09-29):** `2dfc1e7`. Nutzer hat die bisherige
+  Totenkopf-Darstellung akzeptiert; jetzt +42 statt -42 HUD-Einheiten, also über
+  dem Fadenkreuz. Arena-Kartenauswahl ohne Avatar unten rechts, nachfolgende
+  Bestätigungs-/Ladebildschirme behalten ihren Modellbesitzer. Vorhandenes
+  Blutstropfen-Icon bei tatsächlichem Light-/HeavyBleeding-Tod nun rot und ohne
+  geerbtes Headshot-Badge; Punkte/Kill-Zuordnung unverändert. Keine neuen Assets.
+  193 UI-Assertions/12 Fehlerkontrollen, Preview-Suite mit 144 Host-Lifecycle-
+  Assertions/7 Fehlerkontrollen, native Hook-Kompilierung und Release-Build grün;
+  zwei unabhängige Reviews ohne offene P0-P2. Lokal und auf GPU-Host 1 direkt
+  eingespielt; Host 2 während fremder Sitzung nicht angefasst, anschließend neuen
+  Disk- und geladenen ArenaMode-Build dort lesend bestätigt. Client SHA256
+  `05A017E181049D48EC0332D19EFB88FE08727630C2EFA7CCA5DE2B552B5DE303`.
+  UiBridge-0.7.3-Menütest auf Host 1 visuell bestanden: Karte ohne Modell,
+  Bestätigung mit Modell, Rückweg erneut ohne Modell; Charakterauswahl sowie
+  PMC-/Scav-Navigation funktionieren. Kein Raid, kein erneuter nativer Blutungstod.
+  Keine Preview-Fehler; ein Mikrofonfehler schon beim Spielstart. ArenaMapPort-
+  Build parallel abweichend und überlappende Zusatzkartenlabels in PMC/Scav als
+  separater Nebenbefund dokumentiert. Host 1 im Hauptmenü, Steuerung frei.
+  Details: `HUD-BLEED-POLISH-REVIEW.md` und
+  `HUD-BLEED-POLISH-DEPLOYMENT-20260929.json`.
+
 - **Kill-Totenkopf und entfernter HS-Text (2026-09-29):**
   Implementierung `838e909`, finaler sauberer Client-Build `e1d8975` (letzter
   Commit präzisiert nur eine Fehlerkontrolle). Bestätigte, wertbare eigene Kills

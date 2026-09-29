@@ -1,0 +1,53 @@
+{
+  "SourceCommit": "2dfc1e7dd802134c98d988669538c3d293083179",
+  "CompletedUtc": "2026-09-29T16:46:54.276002Z",
+  "Artifacts": [
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\e17e9adf1291462b82cc73a91f0f2b2e\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\hud-bleed-polish-deploy\\59c5814367a5454cb00f72f4c40df084\\0-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "7BFADE51FFB2ABF1DE5FBEEA8EA927A10DD28C1A7939BB14D5C8A2E8BDAAA3BA",
+      "Sha256": "05A017E181049D48EC0332D19EFB88FE08727630C2EFA7CCA5DE2B552B5DE303"
+    },
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\e17e9adf1291462b82cc73a91f0f2b2e\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\hud-bleed-polish-deploy\\59c5814367a5454cb00f72f4c40df084\\1-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "7BFADE51FFB2ABF1DE5FBEEA8EA927A10DD28C1A7939BB14D5C8A2E8BDAAA3BA",
+      "Sha256": "05A017E181049D48EC0332D19EFB88FE08727630C2EFA7CCA5DE2B552B5DE303"
+    }
+  ],
+  "Untouched": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "72E6BC7B6983FFD53FD906651CD9D3434F23614E5BBE2679A664EE57D804C8D1",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "\\\\192.168.178.114\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB"
+  },
+  "LiveGpuTested": true,
+  "Limitation": "Native menu screenshots verified on host1; no new raid validation of skull placement or bleed-out icon. Host2 was busy and never directly deployed or controlled by this task; its matching disk and loaded ArenaMode build were observed later.",
+  "NativeVerification": {
+    "Report": "HUD-BLEED-POLISH-REVIEW.md",
+    "Host": "192.168.178.114",
+    "Instance": "3344be26",
+    "Profile": "SPT-GPU-1",
+    "UiBridgeVersion": "0.7.3+419df3c2ef81f2582a3d205b4b2af98b80b35712",
+    "ArenaModeLoadedBuildMatches": true,
+    "MenuScreenshotsVerified": true,
+    "RaidStarted": false,
+    "PreviewErrors": 0,
+    "OtherError": "Unity microphone initialization before menu test",
+    "ReturnedToMainMenu": true
+  },
+  "Host2ReadOnlyObservation": {
+    "Destination": "\\\\192.168.178.109\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+    "Sha256": "05A017E181049D48EC0332D19EFB88FE08727630C2EFA7CCA5DE2B552B5DE303",
+    "Instance": "758abafb",
+    "ArenaModeLoadedBuildMatches": true,
+    "DirectDeployment": false,
+    "OtherSessionActive": true
+  }
+}
