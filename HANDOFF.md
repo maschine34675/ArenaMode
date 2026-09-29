@@ -1,11 +1,39 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-28. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-29. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **EFT-Arena-Grafiken für Killfeed/F9-Scoreboard (2026-09-29):**
+  Quellstand `b65bf86`. 17 Originalgrafiken aus dem vom Nutzer bereitgestellten
+  Arena-Export eingebettet. Killfeed mit Waffen-/Todesursachensymbol und separatem
+  Kopftreffer-Icon; vollständige Namen, Rollen, Entfernungen, Teamfarben und
+  vorhandene Positionsregler bleiben erhalten. F9-Tabelle mit Teamleisten,
+  abwechselnden Zeilenflächen, K/D/A/HS-Icons, eigener Zeilenmarkierung und
+  dynamischer Höhe für lange Namen. Kompaktes oberes Score-Panel unverändert.
+  Keine Änderungen an Ranking, Assists, Punkten, Profil oder Eingabehoheit.
+  Originaldateien mit SHA256/Provenienz unter `ArenaMode.Client/Assets/Ui`;
+  keine freie Weiterverteilungslizenz festgestellt, für private Installation.
+  Vor öffentlicher Veröffentlichung Rechte prüfen; nicht der Codelizenz zuordnen.
+  Details und native Testfälle: `ARENA-UI-ASSETS-REVIEW.md`.
+  143 Produktions-/Ressourcenprüfungen plus sieben kompilierte Fehlerkontrollen,
+  bisherige Killfeed-Checks einschließlich Fehlerkontrollen, breite HUD-/Menü-/
+  Tactical-Regressionsprüfungen und Server-Suite grün (789 bestanden, 1 separater
+  APBS-Labortest übersprungen, 0 Fehler). Isolierter Client-Release-Build erfolgreich;
+  vier bestehende CS8632-Warnungen. Eingebettete PNGs/Herkunftsdokumente auch in
+  der echten Client-DLL per Hash geprüft. Unabhängige Review ohne offene P0–P2.
+  Client lokal und auf GPU-Host 192.168.178.114 eingespielt; beide Zieldateien vor
+  dem ersten Schreibzugriff exklusiv geöffnet, Backups und Hashvergleich.
+  Server, Redeploy.Core und BigBrainCompat auf beiden Rechnern unverändert.
+  Client SHA256 `ABBDA5A958640218E9F4EB3BCAD1689822BCEBE1D299B76B783A670C1B0C2F5E`.
+  Beleg: `ARENA-UI-ASSETS-DEPLOYMENT-20260929.json`.
+  **EFT vor dem Test neu starten.** Keine native Raid-/Pixel-Abnahme: lange Namen,
+  Teamfarben, sechs wiederverwendete Killfeed-Zeilen, F9/Scrollen/Esc und Tactical
+  über einen Rundenwechsel samt Kaufmenü prüfen. Die Offline-Vorschauen unter
+  `artifacts` verwenden angenäherte Schriftmetriken und sind keine EFT-Screenshots.
 
 - **Customs-Areale vereinheitlicht und Konturen erneuert (2026-09-28):**
   Quellstand `b3aae91`. Die drei unveränderten Exporte von heute sind als
