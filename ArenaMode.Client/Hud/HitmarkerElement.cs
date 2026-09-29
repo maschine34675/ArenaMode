@@ -64,7 +64,7 @@ internal sealed class HitmarkerElement
         var skullRect = (RectTransform)skullGo.transform;
         skullRect.SetParent(hudRoot, false);
         skullRect.anchorMin = skullRect.anchorMax = new Vector2(0.5f, 0.5f);
-        skullRect.anchoredPosition = new Vector2(0f, -42f);
+        skullRect.anchoredPosition = new Vector2(0f, 42f);
         skullRect.sizeDelta = new Vector2(32f, 32f);
         _killGroup = skullGo.GetComponent<CanvasGroup>();
         _killGroup.alpha = 0f;

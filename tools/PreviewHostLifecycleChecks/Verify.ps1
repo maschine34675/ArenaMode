@@ -66,7 +66,10 @@ if ($attachFlush.Count -ne 1) { throw 'Expected exactly one pending-hide drain i
 $queueMethod = Get-Method $flow 'private static void QueueHostHide('
 $queueAssignment = [regex]::Matches($queueMethod, '_pendingHostHide\s*=\s*[^;]+;')
 if ($queueAssignment.Count -ne 1) { throw 'Expected exactly one pending-hide assignment inside QueueHostHide.' }
+$mapMethod = Get-Method $flow 'public static void HideForMap('
 $mutations = @(
+    @{ Name = 'map-disposes-owner'; Source = $flow; Target = 'flow'; Old = $mapMethod; New = $mapMethod.Replace('Suspend();', 'Reset();') },
+    @{ Name = 'map-leaves-preview-visible'; Source = $flow; Target = 'flow'; Old = $mapMethod; New = $mapMethod.Replace('Suspend();', '') },
     @{ Name = 'inline-host-callback'; Source = $flow; Target = 'flow'; Old = $queueAssignment[0].Value; New = 'SuspendHost(host, generation, false);' },
     @{ Name = 'skip-pre-attach-flush'; Source = $flow; Target = 'flow'; Old = $attachMethod; New = $attachMethod.Replace($attachFlush[0].Value, '') },
     @{ Name = 'erase-current-native-request'; Source = $flow; Target = 'flow'; Old = $attachMethod; New = $attachMethod.Replace($attachFlush[0].Value, 'FlushPendingHide();') },

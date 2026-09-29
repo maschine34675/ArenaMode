@@ -29,7 +29,11 @@ native flag restoration, stale callbacks, unavailable view/world fallback,
 load-deferred exactly-once release, unselection, foreign settings/hosts, teammate
 visuals and reset ownership. Loading re-show also checks subsequent local requests,
 account ownership, teammate switch/back and exact drag subscription cleanup.
-The five compiled negative controls restore inline callback cleanup, remove the
+Map selection hides but retains the owner across first entry, accept/loading
+return and repeated shows; foreign settings cannot hide it, late native requests
+are revoked, and subsequent offline/accept screens still reuse the same body.
+The seven compiled negative controls dispose the map owner or leave it visible,
+restore inline callback cleanup, remove the
 pre-attachment flush, erase the current native request while draining the hide,
 admit reentrant inactive Close, and remove native object availability checks.
 Every control must reach an

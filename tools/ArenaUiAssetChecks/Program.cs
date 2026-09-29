@@ -51,6 +51,29 @@ Need(text.text.Contains(capture.KillerName)&&text.text.Contains(capture.VictimNa
 Need(text.MeasuredWidth==436f,"icon rail preserves original text width");
 Need(Texture2D.LoadCalls==loadCount,"push reuses textures");
 Preview.WriteFeed(root,Path.Combine(Path.GetDirectoryName(args.Length>0?args[0]:"artifacts/ui-assets-scoreboard.svg")!,"killfeed.svg"));
+foreach(var bleeding in new[]{"LightBleeding","HeavyBleeding"})
+{
+ // Native LastBodyPart and Weapon can still describe an earlier headshot.
+ capture.DamageKind=bleeding;capture.Headshot=true;capture.WeaponClass="sniperRifle";
+ for(int i=0;i<6;i++)feed.Push(capture);
+ foreach(var row in pool)
+ {
+  var images=row.gameObject.GetComponentsInChildren<Image>();
+  var method=images.Single(i=>i.gameObject.name=="Kill method");
+  Need(method.enabled&&method.sprite.texture.name.EndsWith("bleeding.png")&&method.color==ArenaUiTheme.Danger,"bleed death uses red blood drop");
+  Need(!images.Single(i=>i.gameObject.name=="Headshot").enabled,"bleed death suppresses retained headshot");
+ }
+ Need(capture.Headshot,"bleed presentation leaves combat metadata unchanged");
+}
+capture.DamageKind="Bullet";
+for(int i=0;i<6;i++)feed.Push(capture);
+foreach(var row in pool)
+{
+ var images=row.gameObject.GetComponentsInChildren<Image>();
+ var method=images.Single(i=>i.gameObject.name=="Kill method");
+ Need(method.sprite.texture.name.EndsWith("sniper.png")&&method.color==Color.white&&images.Single(i=>i.gameObject.name=="Headshot").enabled,"pooled bleed resets to normal headshot");
+}
+Need(Texture2D.LoadCalls==loadCount,"bleed presentation reuses existing textures");
 ArenaMode.Config.Settings.KillfeedOffsetX.Value=31;feed.Tick();Need(((RectTransform)reused.transform.parent).anchoredPosition.x==55,"offset moves complete feed");
 Time.unscaledTime=5.25f;feed.Tick();Need(pool.All(g=>Math.Abs(g.alpha-.5f)<.001f),"pooled icon and text share fade");
 Time.unscaledTime=6.1f;feed.Tick();Need(pool.All(g=>!g.gameObject.activeSelf),"all expired rows hidden");

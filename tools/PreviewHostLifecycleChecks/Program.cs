@@ -16,6 +16,7 @@ internal static class Program
         {
             CallbackDefersStructuralWork();
             PreCloseDetachesBeforeHierarchyMutation();
+            MapHidesButRetainsOwnedPreview();
             FastSameHostRestoresBeforeResnapshot();
             LoadingSameFrameReshowRetainsLocalIdentity();
             OlderGenerationCannotUnsetNewHost();
@@ -137,11 +138,59 @@ internal static class Program
         widget.Root.SetActive(false);
         Check(Lifecycle.ForbiddenAttempts == 0, "normal Close has no callbacks performing structural work");
         Check(fixture.Preview.IsAvailable, "pre-close retains reusable mannequin");
-        var next = new GameObject("map");
+        var next = new GameObject("offline setup");
         ArenaPreviewFlow.ShowCompact(next.transform, fixture.Settings);
         Check(fixture.Preview.View.transform.parent == next.transform, "retained mannequin reused by next compact screen");
         ArenaPreviewFlow.BeforeScreenClose(next.transform);
         Check(fixture.Preview.View.transform.parent == null, "exact host pre-close also detaches");
+    }
+    private static void MapHidesButRetainsOwnedPreview()
+    {
+        var fixture = new Fixture();
+        ArenaPreviewFlow.HideForMap(fixture.Settings);
+        Check(!fixture.Preview.View.activeSelf && fixture.Preview.View.transform.parent == null,
+            "map hides freshly transferred preview");
+        Check(fixture.Preview.IsAvailable && fixture.Preview.Releases == 0,
+            "map keeps owned body for subsequent screens");
+
+        var widget = fixture.Accept();
+        var oldCallback = widget.Model.GetComponent<ArenaPreviewHostLifetime>().OnHidden;
+        ArenaPreviewFlow.HideForMap(new RaidSettings());
+        Check(fixture.Preview.View.transform.parent == widget.Raw.transform,
+            "foreign map settings cannot hide current owner");
+        widget.Root.SetActive(false); // Queued fallback hide before map Show.
+        ArenaPreviewFlow.HideForMap(fixture.Settings);
+        Check(!fixture.Preview.View.activeSelf && fixture.Preview.View.transform.parent == null,
+            "map suspends previous accept surface");
+        widget.CheckNative(true, "map restores preceding native flags");
+        widget.Root.SetActive(true);
+        Check(!ArenaPreviewFlow.TryShowAccept(widget.Model), "map revokes stale accept request");
+        ArenaPreviewFlow.HideForMap(fixture.Settings);
+        Check(fixture.Preview.IsAvailable && fixture.Preview.Releases == 0,
+            "repeated map show retains owner");
+
+        var next = fixture.Accept();
+        oldCallback(); fixture.Tick();
+        Check(fixture.Preview.View.transform.parent == next.Raw.transform,
+            "map-cleared pending hide cannot detach subsequent preview");
+        Check(fixture.Preview.Releases == 0, "accept after map reuses original body");
+
+        var loading = fixture.Loading();
+        ArenaPreviewFlow.HideForMap(fixture.Settings);
+        Check(!ArenaPreviewFlow.TryShowLoading(loading.Screen), "map revokes stale loading request");
+        Check(!ArenaPreviewFlow.IsLocalLoadingPlayer(loading.Screen, new RaidPlayer { AccountId = "local" }),
+            "map clears loading account ownership");
+        Check(loading.Raw.enabled && loading.Camera.enabled, "map restores loading native image");
+        var offline = new GameObject("offline setup");
+        ArenaPreviewFlow.ShowCompact(offline.transform, fixture.Settings);
+        Check(fixture.Preview.View.transform.parent == offline.transform,
+            "offline setup still receives retained preview after map");
+        ArenaMenuSelection.Selected = null;
+        ArenaPreviewFlow.HideForMap(fixture.Settings);
+        Check(fixture.Preview.View.transform.parent == offline.transform,
+            "unselected map cannot mutate prior preview");
+        fixture.Tick();
+        Check(fixture.Preview.Releases == 1, "usual selection guard releases retained map flow");
     }
     private static void FastSameHostRestoresBeforeResnapshot()
     {

@@ -49,7 +49,7 @@ internal static class ArenaPreviewFlowPatch
         [PatchPostfix]
         private static void Postfix(MatchMakerSelectionLocationScreen __instance,
             MatchMakerSelectionLocationScreen.SelectionLocationScreenController controller)
-            => ArenaPreviewFlow.ShowCompact(__instance.transform, controller.RaidSettings);
+            => ArenaPreviewFlow.HideForMap(controller.RaidSettings);
     }
 
     private sealed class OfflineShowPatch : ModulePatch

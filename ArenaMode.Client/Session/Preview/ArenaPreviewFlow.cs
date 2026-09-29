@@ -46,6 +46,17 @@ internal static class ArenaPreviewFlow
     private static bool Matches(RaidSettings settings)
         => State.Matches(settings, IsSelected);
 
+    public static void HideForMap(RaidSettings settings)
+    {
+        if (!Matches(settings)) return;
+        _acceptPreview = null;
+        _loadingScreen = null;
+        _localAccountId = null;
+        // Retain the owned body for subsequent setup screens, but leave the
+        // location selector clear. Suspend also drains any previous host surface.
+        Suspend();
+    }
+
     public static void ShowCompact(Transform host, RaidSettings settings)
     {
         if (!Matches(settings)) return;

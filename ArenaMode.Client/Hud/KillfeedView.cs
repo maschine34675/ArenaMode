@@ -122,9 +122,14 @@ internal sealed class KillfeedView
         line.Text.text = KillfeedText.Format(kill,
             TeamHtmlColor(Settings.FriendlyTracerColor.Value),
             TeamHtmlColor(Settings.OpponentTracerColor.Value));
-        line.Method.sprite = _assets.Sprite(KillfeedIcon.Select(kill));
+        var method = KillfeedIcon.Select(kill);
+        var bledOut = method == ArenaUiIcon.Bleeding;
+        line.Method.sprite = _assets.Sprite(method);
         line.Method.enabled = line.Method.sprite != null;
-        line.Headshot.sprite = kill.Headshot ? _assets.Sprite(ArenaUiIcon.Headshot) : null;
+        line.Method.color = bledOut ? ArenaUiTheme.Danger : Color.white;
+        // A delayed bleed keeps native LastBodyPart from the preceding hit.
+        // Keep scoring metadata intact, but never depict that as a lethal headshot.
+        line.Headshot.sprite = kill.Headshot && !bledOut ? _assets.Sprite(ArenaUiIcon.Headshot) : null;
         line.Headshot.enabled = line.Headshot.sprite != null;
         // Measure actual font metrics and wrapped lines, not a fixed character
         // count or row height. The explicit width also works for an inactive
