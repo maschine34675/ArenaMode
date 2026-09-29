@@ -57,6 +57,37 @@ Time.unscaledTime=6.1f;feed.Tick();Need(pool.All(g=>!g.gameObject.activeSelf),"a
 var borrowed=root.GetComponentsInChildren<Image>().First(i=>i.sprite!=null).sprite;
 Object.Destroy(root);Object.EndFrame();Need(borrowed.Destroyed&&borrowed.texture.Destroyed,"canvas destruction releases owned assets");
 
+// Actual hitmarker class, not a duplicate timing model. Skull must outlive a
+// faded crosshair and must not be reset by ordinary damage or other kills.
+Time.unscaledTime=10f;
+var hitRoot=new GameObject("hud",typeof(RectTransform));var marker=new HitmarkerElement();marker.Create((RectTransform)hitRoot.transform);
+var skull=hitRoot.GetComponentsInChildren<Image>().Single(i=>i.gameObject.name=="ArenaKillSkull");
+var skullGroup=skull.GetComponent<CanvasGroup>();
+var cross=hitRoot.GetComponentsInChildren<CanvasGroup>().Single(g=>g.gameObject.name=="ArenaHitmarker");
+Need(skull.transform.parent==cross.transform.parent,"skull is independent sibling of crosshair");
+Need(skullGroup.alpha==0&&!skullGroup.interactable&&!skullGroup.blocksRaycasts&&!skull.raycastTarget&&skull.preserveAspect,"skull starts hidden and passive");
+Need(skull.sprite.texture.name.EndsWith("kill.png"),"skull uses embedded Arena kill asset");
+var confirmed=new ArenaKill{KilledByLocal=true,AwardEligible=true,ScoreEligible=true};
+marker.Show(new(){Kill=true});marker.Tick();
+Need(skullGroup.alpha==0,"damage callback cannot invent a confirmed skull");
+int skullLoads=Texture2D.LoadCalls;marker.ShowKill(confirmed);marker.Tick();
+Need(skullGroup.alpha==1&&cross.alpha>0,"confirmed kill adds skull without replacing crosshair");
+Time.unscaledTime=10.1f;marker.Show(new());marker.Tick();
+Need(skullGroup.alpha==1&&cross.transform.localScale==Vector3.one,"ordinary hit preserves skull and clears old crosshair pulse");
+Time.unscaledTime=10.7f;marker.Tick();
+Need(cross.alpha==0&&skullGroup.alpha>0,"skull survives expired crosshair");
+float beforeRejected=skullGroup.alpha;
+foreach(var rejected in new ArenaKill[]{null,new(),new(){KilledByLocal=true,LocalIsVictim=true,ScoreEligible=true,AwardEligible=true},new(){KilledByLocal=true,ScoreEligible=true},new(){KilledByLocal=true,AwardEligible=true,ScoreEligible=false},new(){ScoreEligible=true,AwardEligible=true}})
+{marker.ShowKill(rejected);marker.Tick();Need(Math.Abs(skullGroup.alpha-beforeRejected)<.0001f,"nonlocal self or ineligible kill does not refresh skull");}
+Time.unscaledTime=10.81f;marker.Tick();Need(skullGroup.alpha==0,"skull expires independently");
+marker.ShowKill(confirmed);Need(skullGroup.alpha==1&&Texture2D.LoadCalls==skullLoads,"next kill reuses cached skull");
+var skullSprite=skull.sprite;Object.Destroy(hitRoot);Object.EndFrame();
+Need(skullSprite.Destroyed&&skullSprite.texture.Destroyed,"hitmarker canvas releases skull sprite and texture");
+var fallbackRoot=new GameObject("fallback hud",typeof(RectTransform));var fallbackMarker=new HitmarkerElement();Texture2D.FailNextDecode=true;fallbackMarker.Create((RectTransform)fallbackRoot.transform);
+fallbackMarker.ShowKill(confirmed);fallbackMarker.Show(new());fallbackMarker.Tick();
+Need(!fallbackRoot.GetComponentsInChildren<Image>().Single(i=>i.gameObject.name=="ArenaKillSkull").enabled&&fallbackRoot.GetComponentsInChildren<CanvasGroup>().Single(g=>g.gameObject.name=="ArenaHitmarker").alpha==1,"missing skull retains procedural crosshair");
+Object.Destroy(fallbackRoot);Object.EndFrame();
+
 using var table=new ArenaScoreboardPresentation(new GUIStyle(),new GUIStyle());
 var rows=new[]{new ArenaScoreboardEntry {DisplayName="Player with a very long readable display name",RoleLabel="PMC USEC",Side=ArenaScoreboardSide.Friendly,IsLocal=true,IsActive=true,Kills=23,Deaths=4,Assists=7,Headshots=12,Score=20450},
  new ArenaScoreboardEntry {DisplayName="Opponent",RoleLabel="PMC BEAR",Side=ArenaScoreboardSide.Opponent,Kills=3,Deaths=6,Assists=2,Headshots=1,Score=950}};

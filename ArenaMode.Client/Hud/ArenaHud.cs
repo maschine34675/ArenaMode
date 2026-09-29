@@ -150,6 +150,9 @@ internal static class ArenaHud
 
     private static void OnKill(ArenaKill kill)
     {
+        // Independent of the killfeed toggle and its other-player filter.
+        if (Settings.ShowHitmarker.Value)
+            _hitmarker?.ShowKill(kill);
         if (_killfeed == null || !Settings.ShowKillfeed.Value)
             return;
 

@@ -15,12 +15,11 @@ internal static class KillfeedText
             + $"<color={victimColor}>{Literal(kill.VictimName)}</color>";
         var roles = $"{Literal(kill.KillerRoleLabel)} ➔ {Literal(kill.VictimRoleLabel)}";
         var weapon = string.IsNullOrWhiteSpace(kill.WeaponName) ? string.Empty : $" · {Literal(kill.WeaponName)}";
-        var headshot = kill.Headshot ? " · <color=#FF8585>HS</color>" : string.Empty;
         // Every kill direction includes distance. A cleaned-up aggressor can no
         // longer supply a position; distinguish that from a genuine close kill.
         var distance = kill.DistanceKnown && kill.Distance >= 0f && !float.IsInfinity(kill.Distance)
             ? $"{Math.Round(kill.Distance)} m" : "? m";
-        return $"{names}\n<size=14><color=#D5DAE0>{roles} · {distance}{weapon}{headshot}</color></size>";
+        return $"{names}\n<size=14><color=#D5DAE0>{roles} · {distance}{weapon}</color></size>";
     }
 
     private static string Literal(string value)

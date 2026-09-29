@@ -21,6 +21,7 @@ if ($arenaExit -eq 0 -or ($arenaOutput -join "`n").Contains('error CS') -or
 }
 Write-Output 'REJECTED_SOURCE_FAULT: missing-local-attacker'
 foreach ($arenaControl in @(
+    @('duplicate-headshot-text', '{distance}{weapon}</color>', '{distance}{weapon}{(kill.Headshot ? " HS" : "")}</color>', 'local-kill leaves headshot to the dedicated icon'),
     @('local-only-distance', 'kill.DistanceKnown &&', 'kill.KilledByLocal && kill.DistanceKnown &&', 'local-death includes measured distance'),
     @('unknown-distance-as-measured', 'kill.DistanceKnown && ', '', 'local-kill labels unconfirmed distance as unknown'),
     @('opponent-painted-friendly', 'ArenaTracerSide.Opponent => opponentColor', 'ArenaTracerSide.Opponent => friendlyColor', 'solo-local-kill colors both identities by team'),

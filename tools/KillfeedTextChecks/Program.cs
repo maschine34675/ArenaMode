@@ -34,7 +34,8 @@ foreach (var scenario in new[] { "local-kill", "local-death", "other-kill" })
         scenario + " keeps attacker before victim");
     Check(!headline.Contains("HK 416A5"), scenario + " leaves weapon metadata below identities");
     Check(details.Contains("USEC") && details.Contains("BEAR"), scenario + " retains both roles");
-    Check(details.Contains("HK 416A5") && details.Contains("HS"), scenario + " retains weapon and headshot");
+    Check(details.Contains("HK 416A5"), scenario + " retains weapon");
+    Check(!details.Contains("HS"), scenario + " leaves headshot to the dedicated icon");
     Check(details.Contains("42 m"), scenario + " includes measured distance");
     Check(!formatted.Contains("…") && !formatted.Contains("..."), scenario + " does not shorten names");
 }
@@ -69,6 +70,9 @@ Check(!escaped.Contains("<size=99>") && escaped.Contains("‹size=99›Attacker"
 Check(!escaped.Contains("Victim</color></color>") && escaped.Contains("Victim‹/color›"), "victim stays literal");
 Check(!escaped.Contains("<sprite=2>") && !escaped.Contains("<b>Role"), "weapon and roles stay literal");
 Check(!Format(new ArenaKill()).Contains(" ·  · "), "missing optional metadata leaves no empty separators");
+Check(Format(new ArenaKill{KillerName="HS_Player",WeaponName="HS weapon",Headshot=true}).Contains("HS_Player")
+    && Format(new ArenaKill{KillerName="HS_Player",WeaponName="HS weapon",Headshot=true}).Contains("HS weapon"),
+    "headshot marker removal does not rewrite literal names or weapons");
 
 void CheckTeams(string scenario, string killer, string victim, string expectedKiller, string expectedVictim,
     bool localKill = false, bool localDeath = false, ArenaRole role = ArenaRole.Pmc)

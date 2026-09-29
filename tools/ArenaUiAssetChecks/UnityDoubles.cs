@@ -47,6 +47,8 @@ namespace UnityEngine
     public class MonoBehaviour:Component{}
     public class Transform:Component
     {
+        public Vector3 localScale = Vector3.one;
+        public Quaternion localRotation;
         public Transform parent;
         public readonly List<Transform> Children=new();
         public void SetParent(Transform target,bool world)
@@ -72,12 +74,18 @@ namespace UnityEngine
     }
     public readonly record struct Vector2(float x,float y)
     { public static Vector2 zero=>new(0,0);public static Vector2 one=>new(1,1); }
-    public readonly record struct Vector3(float x,float y,float z);
+    public readonly record struct Vector3(float x,float y,float z) { public static Vector3 one=>new(1,1,1); }
+    public readonly record struct Quaternion(float Degrees)
+    {
+        public static Quaternion Euler(float x,float y,float z)=>new(z);
+        public static Vector2 operator *(Quaternion rotation,Vector2 point)
+        {float radians=rotation.Degrees*MathF.PI/180f;return new(point.x*MathF.Cos(radians)-point.y*MathF.Sin(radians),point.x*MathF.Sin(radians)+point.y*MathF.Cos(radians));}
+    }
     public record struct Rect(float x,float y,float width,float height)
     { public float xMin=>x;public float xMax=>x+width;public float yMin=>y;public float yMax=>y+height; }
     public record struct Color(float r,float g,float b,float a)
     { public static Color white=>new(1,1,1,1); public static Color Lerp(Color a,Color b,float t)=>new(a.r+(b.r-a.r)*t,a.g+(b.g-a.g)*t,a.b+(b.b-a.b)*t,a.a+(b.a-a.a)*t); }
-    public static class Mathf { public const float Infinity=float.PositiveInfinity; public static float Sqrt(float value)=>MathF.Sqrt(value); public static float Max(float a,float b)=>MathF.Max(a,b); public static float Min(float a,float b)=>MathF.Min(a,b); public static float Ceil(float a)=>MathF.Ceiling(a); public static float Clamp01(float a)=>Math.Clamp(a,0f,1f); }
+    public static class Mathf { public const float Infinity=float.PositiveInfinity; public static float Sin(float value)=>MathF.Sin(value); public static float Abs(float value)=>MathF.Abs(value); public static float Sqrt(float value)=>MathF.Sqrt(value); public static float Max(float a,float b)=>MathF.Max(a,b); public static float Min(float a,float b)=>MathF.Min(a,b); public static float Ceil(float a)=>MathF.Ceiling(a); public static float Clamp01(float a)=>Math.Clamp(a,0f,1f); }
     public class CanvasRenderer:Component{}
     public class CanvasGroup:Component
     { public float alpha=1f;public bool interactable=true,blocksRaycasts=true; }
@@ -162,6 +170,7 @@ namespace UnityEngine.UI
     }
     public class MaskableGraphic:Graphic{}
     public class Image:MaskableGraphic { public Sprite sprite; public bool preserveAspect,enabled=true; }
+    public class Outline:UnityEngine.Component { public UnityEngine.Color effectColor; public UnityEngine.Vector2 effectDistance; }
     public class RectMask2D:UnityEngine.Component{}
     public struct Navigation { public enum Mode { None } public Mode mode; }
     public class Selectable:UnityEngine.Component { public enum Transition { None,ColorTint } public Transition transition; }

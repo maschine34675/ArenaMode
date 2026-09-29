@@ -25,7 +25,10 @@ foreach($fault in @(
  @('stale-headshot','KillfeedView.cs','FeedSource','line.Headshot.enabled = line.Headshot.sprite != null;','line.Headshot.enabled = true;','pooled headshot is cleared'),
  @('lost-text-width','KillfeedView.cs','FeedSource','FeedWidth - IconRail - 2f * HorizontalPadding','FeedWidth - 2f * HorizontalPadding','icon rail preserves original text width'),
  @('wrong-assist-count','ArenaScoreboardPresentation.cs','TableSource','row.Assists.ToString()','row.Deaths.ToString()','K D A HS score order retained'),
- @('global-tint-leak','ArenaScoreboardPresentation.cs','TableSource','finally { GUI.color = previous; }','finally { }','global tint restored')
+ @('global-tint-leak','ArenaScoreboardPresentation.cs','TableSource','finally { GUI.color = previous; }','finally { }','global tint restored'),
+ @('skull-on-other-kill','HitmarkerElement.cs','HitmarkerSource','|| !kill.KilledByLocal || kill.LocalIsVictim','|| kill.LocalIsVictim','nonlocal self or ineligible kill does not refresh skull'),
+ @('skull-on-damage','HitmarkerElement.cs','HitmarkerSource','_shownAt = Time.unscaledTime;','_shownAt = Time.unscaledTime; _killShownAt = Time.unscaledTime;','damage callback cannot invent a confirmed skull'),
+ @('skull-never-expires','HitmarkerElement.cs','HitmarkerSource','KillSeconds = 0.8f','KillSeconds = 80f','skull expires independently')
 )) {
  $text=[IO.File]::ReadAllText((Join-Path $repo ('ArenaMode.Client/Hud/'+$fault[1])))
  if(!$text.Contains($fault[3])){throw ('Missing fault anchor '+$fault[0])}
