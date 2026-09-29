@@ -32,6 +32,10 @@ public sealed class ArenaKill
     /// <summary>Localized short weapon name; null when unknown.</summary>
     public string WeaponName;
 
+    /// <summary>Native class and final death cause, for icons only; never inferred from localized names.</summary>
+    public string WeaponClass;
+    public string DamageKind;
+
     public float Distance;
 
     /// <summary>True only when both positions yielded a finite distance at kill capture.</summary>

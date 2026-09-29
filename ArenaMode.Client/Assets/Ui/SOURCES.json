@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "source": "User-provided Escape from Tarkov Arena UI extraction",
+  "exportManifestSha256": "2D19F2C7E8C08E607FCD7E2761F7247869988C86E877AEC18FA58EB25970533C",
+  "exportedAt": "2026-09-29T12:35:45.601141+02:00",
+  "rights": "Original game artwork; no redistribution licence established. Not MIT/CC0.",
+  "modification": "PNG files copied byte-for-byte. Team panel is desaturated only in the private runtime texture to permit player-relative colour tint.",
+  "assets": [
+    {
+      "file": "kill.png",
+      "sha256": "C5137F655C8C8878B2985D0B6A25F4C379BD6F327862046587297018F8715DD3",
+      "exportPath": "kda/kill.png",
+      "nativeName": "lasthero_observer_kill",
+      "nativeSource": {
+        "root": "arena",
+        "file": "sharedassets1.assets"
+      },
+      "pathId": 3134,
+      "pixelSize": [
+        20,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "death.png",
+      "sha256": "C99BF6E79709658616C1415DEC0D84D18044A32CCF1D5F56895ADB77F0E8D776",
+      "exportPath": "kda/death.png",
+      "nativeName": "lasthero_observer_death",
+      "nativeSource": {
+        "root": "arena",
+        "file": "sharedassets1.assets"
+      },
+      "pathId": 5395,
+      "pixelSize": [
+        20,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "assist.png",
+      "sha256": "ED1C949F31631C8AB52012CFC0E1EB374B81B48D27D5F20C2FBC3D4D9944FD0C",
+      "exportPath": "kda/assist.png",
+      "nativeName": "lasthero_observer_assist",
+      "nativeSource": {
+        "root": "arena",
+        "file": "sharedassets1.assets"
+      },
+      "pathId": 6121,
+      "pixelSize": [
+        20,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "headshot.png",
+      "sha256": "509618F02D5B15CF05407B65CB6291C850BD6FD46F391C0BB1B45CDD249E1C09",
+      "exportPath": "killfeed/method_icon_0.png",
+      "nativeName": "Notification_BattleUI_Killpg_Method_Icons_Small_0",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8358,
+      "pixelSize": [
+        20,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "assault-rifle.png",
+      "sha256": "EC9CF586CDE29FAEB46E24B27FF4EE3C9FA7B3380DDEA46545B510E6B1AD1666",
+      "exportPath": "killfeed/weapon_icon_5.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_5",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8286,
+      "pixelSize": [
+        42,
+        14
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "carbine.png",
+      "sha256": "A6E3D403FA5F0F3375948F534E7566451C26712509FF8CF21CB4CC5601DD0330",
+      "exportPath": "killfeed/weapon_icon_9.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_9",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8416,
+      "pixelSize": [
+        40,
+        18
+      ],
+      "exportConfidence": "medium"
+    },
+    {
+      "file": "sniper.png",
+      "sha256": "8A044F6D9305ABC51E7A2597B2E148E475685300EFE0CA0F46A0386232A52377",
+      "exportPath": "killfeed/weapon_icon_0.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_0",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 5831,
+      "pixelSize": [
+        43,
+        11
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "marksman.png",
+      "sha256": "1E153CF63E4857652CD48845C12CDF44AE66E68C4F6827EB7DF42EE2A1AD9074",
+      "exportPath": "killfeed/weapon_icon_10.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_10",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 5801,
+      "pixelSize": [
+        40,
+        10
+      ],
+      "exportConfidence": "medium"
+    },
+    {
+      "file": "machinegun.png",
+      "sha256": "EBC73B691950DE8C0DBB6983AFBCC49D4114E9A839B2EE01EC86E39B4A1C4A73",
+      "exportPath": "killfeed/weapon_icon_1.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_1",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 5680,
+      "pixelSize": [
+        37,
+        16
+      ],
+      "exportConfidence": "medium"
+    },
+    {
+      "file": "shotgun.png",
+      "sha256": "A0EBA61D0EDCDAF0C6118982D6677F1F30734042EB837AB8EFCDFE2D5B279B3F",
+      "exportPath": "killfeed/weapon_icon_2.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_2",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8339,
+      "pixelSize": [
+        39,
+        16
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "pistol.png",
+      "sha256": "CD98EBC12281F3111480F396046B63FECAFCA0176468BF309DDD40C4C95C7380",
+      "exportPath": "killfeed/weapon_icon_6.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_6",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8194,
+      "pixelSize": [
+        22,
+        15
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "smg.png",
+      "sha256": "AF7198F9D8AE49F44F3B52C496DAEBBF31695E787C70B997A9C07E170458BC1F",
+      "exportPath": "killfeed/weapon_icon_7.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_7",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8318,
+      "pixelSize": [
+        25,
+        18
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "grenade.png",
+      "sha256": "F2CCB771451F356873E8BC747A09D6129F34AA55C1E606D148F6FBF1A041563D",
+      "exportPath": "killfeed/weapon_icon_4.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_4",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8233,
+      "pixelSize": [
+        21,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "melee.png",
+      "sha256": "4F75296F5F90858D5ABECED5E4CE4441E66D6AD08607755F8CC28BC7CC26C819",
+      "exportPath": "killfeed/weapon_icon_8.png",
+      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_8",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 5729,
+      "pixelSize": [
+        23,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "bleeding.png",
+      "sha256": "35843BAC2912BFF6DED271B748A5EBBE03FA393D95BD341135BB93E22749659D",
+      "exportPath": "killfeed/method_icon_4.png",
+      "nativeName": "Notification_BattleUI_Killpg_Method_Icons_Small_4",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8216,
+      "pixelSize": [
+        20,
+        20
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "fire.png",
+      "sha256": "57B157B1770B8B8252393F7098FBD7D16D30D0512A39DE9E9A7F82FA48748FB9",
+      "exportPath": "killfeed/death_icon_2.png",
+      "nativeName": "Notification_BattleUI_Killog_deaths_2",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 8215,
+      "pixelSize": [
+        13,
+        18
+      ],
+      "exportConfidence": "high"
+    },
+    {
+      "file": "team-panel.png",
+      "sha256": "CA110F82E322FEFCC439CE1A36353A9C0A0D500831D577759FFDC547E64BA206",
+      "exportPath": "scoreboard/roundstats_scorebg_0.png",
+      "nativeName": "RoundStats_Results_ScoreBackgound_0",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 5761,
+      "pixelSize": [
+        688,
+        107
+      ],
+      "exportConfidence": "high"
+    }
+  ]
+}

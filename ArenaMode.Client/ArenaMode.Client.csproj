@@ -47,6 +47,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- User-provided original game UI art: see Assets/Ui/SOURCES.json and NOTICE.md.
+         This is not part of the freely licensed author-generated icon collection. -->
+    <EmbeddedResource Include="Assets\Ui\*.png;Assets\Ui\NOTICE.md;Assets\Ui\SOURCES.json">
+      <LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Static selection maps work without DynamicMaps. Ship the separate map
          licence and provenance alongside, and inside, the client assembly. -->
     <EmbeddedResource Include="Assets\MapPreviews\**\*.png;Assets\MapPreviews\**\*.md;Assets\MapPreviews\**\*.json">

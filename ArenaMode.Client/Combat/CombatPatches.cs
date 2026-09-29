@@ -149,6 +149,9 @@ internal static class CombatPatches
                     return;
 
                 string weaponName = null;
+                string weaponClass = null;
+                try { weaponClass = (damageInfo.Weapon as Weapon)?.WeapClass; }
+                catch (Exception) { } // Optional presentation must never suppress a captured kill.
                 try
                 {
                     weaponName = damageInfo.Weapon?.ShortName?.Localized();
@@ -199,6 +202,8 @@ internal static class CombatPatches
                     Distance = distance,
                     DistanceKnown = distanceKnown,
                     WeaponName = weaponName,
+                    WeaponClass = weaponClass,
+                    DamageKind = lethalDamageType.ToString(),
                     Time = Time.time,
                 };
 

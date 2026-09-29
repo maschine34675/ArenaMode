@@ -50,6 +50,7 @@ internal sealed class ArenaPanel : MonoBehaviour
     private GUIStyle _buttonStyle;
     private GUIStyle _toggleStyle;
     private ArenaWindowSkin _skin;
+    private ArenaScoreboardPresentation _scoreboardView;
 
     private void OnDisable()
     {
@@ -61,7 +62,7 @@ internal sealed class ArenaPanel : MonoBehaviour
     private void OnDestroy()
     {
         try { OnDisable(); }
-        finally { _skin?.Dispose(); _skin = null; }
+        finally { _scoreboardView?.Dispose(); _scoreboardView = null; _skin?.Dispose(); _skin = null; }
     }
 
     private void SetCursor(bool show) => CursorVote.Set(this, show);
@@ -443,43 +444,11 @@ internal sealed class ArenaPanel : MonoBehaviour
         IReadOnlyList<ArenaScoreboardEntry> rows,
         GUIStyle sideStyle)
     {
-        GUILayout.Label(heading, sideStyle ?? _tableHeaderStyle);
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("NAME", _tableHeaderStyle, GUILayout.MinWidth(220f), GUILayout.ExpandWidth(true));
-        GUILayout.Label("ROLE", _tableHeaderStyle, GUILayout.Width(105f));
-        GUILayout.Label("STATE", _tableHeaderStyle, GUILayout.Width(55f));
-        GUILayout.Label("K", _tableHeaderStyle, GUILayout.Width(35f));
-        GUILayout.Label("D", _tableHeaderStyle, GUILayout.Width(35f));
-        GUILayout.Label("A", _tableHeaderStyle, GUILayout.Width(35f));
-        GUILayout.Label("HS", _tableHeaderStyle, GUILayout.Width(35f));
-        GUILayout.Label("SCORE", _tableHeaderStyle, GUILayout.Width(95f));
-        GUILayout.EndHorizontal();
-
-        if (rows == null || rows.Count == 0)
-        {
-            GUILayout.Label("Waiting for roster...", _mutedStyle);
-            return;
-        }
-
-        foreach (ArenaScoreboardEntry row in rows)
-        {
-            GUIStyle style = row.IsLocal
-                ? _friendlyRowStyle
-                : sideStyle ?? (row.Side == ArenaScoreboardSide.Friendly
-                    ? _friendlyRowStyle
-                    : _opponentRowStyle);
-            string name = row.IsLocal ? row.DisplayName + "  (YOU)" : row.DisplayName;
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(name, style, GUILayout.MinWidth(220f), GUILayout.ExpandWidth(true));
-            GUILayout.Label(row.RoleLabel, style, GUILayout.Width(105f));
-            GUILayout.Label(row.IsActive ? "LIVE" : "OUT", row.IsActive ? style : _mutedStyle, GUILayout.Width(55f));
-            GUILayout.Label(row.Kills.ToString(), style, GUILayout.Width(35f));
-            GUILayout.Label(row.Deaths.ToString(), style, GUILayout.Width(35f));
-            GUILayout.Label(row.Assists.ToString(), style, GUILayout.Width(35f));
-            GUILayout.Label(row.Headshots.ToString(), style, GUILayout.Width(35f));
-            GUILayout.Label(row.Score.ToString("n0"), style, GUILayout.Width(95f));
-            GUILayout.EndHorizontal();
-        }
+        var friendly = ArenaFriendlyMarkerPolicy.Color(Effects.ArenaTracerPalette.Resolve(Settings.FriendlyTracerColor.Value));
+        var opponent = ArenaFriendlyMarkerPolicy.Color(Effects.ArenaTracerPalette.Resolve(Settings.OpponentTracerColor.Value));
+        var tint = ReferenceEquals(sideStyle, _friendlyRowStyle) ? friendly
+            : ReferenceEquals(sideStyle, _opponentRowStyle) ? opponent : ArenaUiTheme.Accent;
+        _scoreboardView.Draw(heading, rows, tint, friendly, opponent, _windowRect.width - 66f);
     }
 
     private void DrawRoundBlock(RoundsMode rounds)
@@ -534,6 +503,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         _mutedStyle = _skin.Label(12, ArenaUiTheme.Muted);
         _buttonStyle = _skin.Button();
         _toggleStyle = _skin.Toggle();
+        _scoreboardView = new ArenaScoreboardPresentation(_bodyStyle, _tableHeaderStyle);
 
         _stylesReady = true;
     }

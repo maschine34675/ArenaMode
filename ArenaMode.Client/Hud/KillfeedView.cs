@@ -18,10 +18,11 @@ internal sealed class KillfeedView
     private const int MaxLines = 6;
     private const float LineSeconds = 6f;
     private const float FadeSeconds = 1.5f;
-    private const float FeedWidth = 460f;
+    private const float FeedWidth = 520f;
+    private const float IconRail = 60f;
     private const float HorizontalPadding = 12f;
     private const float VerticalPadding = 6f;
-    private const float MinLineHeight = 32f;
+    private const float MinLineHeight = 56f;
     private const float LineGap = 4f;
 
     private static Vector2 Position => new Vector2(
@@ -32,12 +33,15 @@ internal sealed class KillfeedView
         public RectTransform Root;
         public CanvasGroup Group;
         public TextMeshProUGUI Text;
+        public Image Method;
+        public Image Headshot;
         public float ShownAt;
     }
 
     private readonly Line[] _pool = new Line[MaxLines];
     private readonly List<Line> _live = new List<Line>(MaxLines);
     private RectTransform _root;
+    private ArenaUiAssets _assets;
 
     public void Create(RectTransform hudRoot)
     {
@@ -48,6 +52,10 @@ internal sealed class KillfeedView
         _root.anchorMin = _root.anchorMax = _root.pivot = new Vector2(0f, 1f);
         _root.anchoredPosition = Position;
         _root.sizeDelta = new Vector2(FeedWidth, 0f);
+        _assets = go.AddComponent<ArenaUiAssetOwner>().Assets;
+        // Bounded one-time loads, never create textures at combat-event rate.
+        foreach (ArenaUiIcon icon in System.Enum.GetValues(typeof(ArenaUiIcon)))
+            if (icon != ArenaUiIcon.TeamPanel) _assets.Sprite(icon);
 
         for (var i = 0; i < MaxLines; i++)
         {
@@ -60,9 +68,17 @@ internal sealed class KillfeedView
             // Background and text share the pooled line's fade and lifetime.
             // Create TMP while the hierarchy is active, then hide the finished row.
             var backdrop = lineGo.AddComponent<Image>();
-            backdrop.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .90f);
+            backdrop.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .94f);
             backdrop.raycastTarget = false;
             ArenaUiTheme.Rule(rect, "Feed edge", ArenaUiTheme.Edge);
+            var rail = ArenaUiTheme.Fill(rect, "Icon rail", ArenaUiTheme.WithAlpha(ArenaUiTheme.Raised, .9f));
+            rail.rectTransform.SetAsLastSibling();
+            rail.rectTransform.anchorMax = new Vector2(0f, 1f);
+            rail.rectTransform.offsetMin = Vector2.zero;
+            rail.rectTransform.offsetMax = new Vector2(IconRail - 4f, 0f);
+            var method = CreateIcon(rect, "Kill method", new Vector2(28f, -22f), new Vector2(44f, 22f));
+            var headshot = CreateIcon(rect, "Headshot", new Vector2(28f, -46f), new Vector2(18f, 18f));
+            headshot.color = ArenaUiTheme.Headshot;
             var group = lineGo.GetComponent<CanvasGroup>();
             group.interactable = false;
             group.blocksRaycasts = false;
@@ -75,7 +91,7 @@ internal sealed class KillfeedView
             var textRect = text.rectTransform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(HorizontalPadding, VerticalPadding);
+            textRect.offsetMin = new Vector2(IconRail + HorizontalPadding, VerticalPadding);
             textRect.offsetMax = new Vector2(-HorizontalPadding, -VerticalPadding);
 
             lineGo.SetActive(false);
@@ -84,6 +100,8 @@ internal sealed class KillfeedView
                 Root = rect,
                 Group = group,
                 Text = text,
+                Method = method,
+                Headshot = headshot,
             };
         }
     }
@@ -104,10 +122,14 @@ internal sealed class KillfeedView
         line.Text.text = KillfeedText.Format(kill,
             TeamHtmlColor(Settings.FriendlyTracerColor.Value),
             TeamHtmlColor(Settings.OpponentTracerColor.Value));
+        line.Method.sprite = _assets.Sprite(KillfeedIcon.Select(kill));
+        line.Method.enabled = line.Method.sprite != null;
+        line.Headshot.sprite = kill.Headshot ? _assets.Sprite(ArenaUiIcon.Headshot) : null;
+        line.Headshot.enabled = line.Headshot.sprite != null;
         // Measure actual font metrics and wrapped lines, not a fixed character
         // count or row height. The explicit width also works for an inactive
         // pooled row; its TMP component was initialized while active in Create.
-        var preferred = line.Text.GetPreferredValues(FeedWidth - 2f * HorizontalPadding, Mathf.Infinity);
+        var preferred = line.Text.GetPreferredValues(FeedWidth - IconRail - 2f * HorizontalPadding, Mathf.Infinity);
         line.Root.sizeDelta = new Vector2(FeedWidth,
             Mathf.Max(MinLineHeight, Mathf.Ceil(preferred.y) + 2f * VerticalPadding));
         line.ShownAt = Time.unscaledTime;
@@ -115,6 +137,22 @@ internal sealed class KillfeedView
         line.Root.gameObject.SetActive(true);
         _live.Add(line);
         Relayout();
+    }
+
+    private static Image CreateIcon(RectTransform parent, string name, Vector2 position, Vector2 size)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        var rect = (RectTransform)go.transform;
+        rect.SetParent(parent, false);
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(.5f, .5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        var icon = go.GetComponent<Image>();
+        icon.preserveAspect = true;
+        icon.color = Color.white;
+        icon.raycastTarget = false;
+        return icon;
     }
 
     // Tracers use HDR RGB values; normalize their hue like the friendly marker

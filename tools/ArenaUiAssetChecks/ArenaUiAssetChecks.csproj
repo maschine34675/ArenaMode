@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><NoWarn>CS0649</NoWarn>
+  <AssetSource Condition="'$(AssetSource)' == ''">../../ArenaMode.Client/Hud/ArenaUiAssets.cs</AssetSource>
+  <IconSource Condition="'$(IconSource)' == ''">../../ArenaMode.Client/Hud/KillfeedIcon.cs</IconSource>
+  <FeedSource Condition="'$(FeedSource)' == ''">../../ArenaMode.Client/Hud/KillfeedView.cs</FeedSource>
+  <TableSource Condition="'$(TableSource)' == ''">../../ArenaMode.Client/Hud/ArenaScoreboardPresentation.cs</TableSource>
+ </PropertyGroup>
+ <ItemGroup>
+  <Compile Include="$(AssetSource)" Link="Assets.cs" />
+  <Compile Include="$(IconSource)" Link="Icon.cs" />
+  <Compile Include="$(FeedSource)" Link="Feed.cs" />
+  <Compile Include="$(TableSource)" Link="Table.cs" />
+  <Compile Include="../../ArenaMode.Client/Hud/KillfeedText.cs" Link="Text.cs" />
+  <Compile Include="../../ArenaMode.Client/Hud/ArenaUiTheme.cs" Link="Theme.cs" />
+  <Compile Include="../../ArenaMode.Client/Hud/ArenaFriendlyMarkerPolicy.cs" Link="MarkerPolicy.cs" />
+  <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Teams.cs" />
+  <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Color.cs" />
+  <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Kill.cs" />
+  <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Rules.cs" />
+  <EmbeddedResource Include="../../ArenaMode.Client/Assets/Ui/*.png"><LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName></EmbeddedResource>
+ </ItemGroup>
+</Project>
