@@ -173,3 +173,23 @@ Patch-Bindung möglich ist. Diese eng erkannte Laufzeitgrenze wird als nicht
 verfügbar ausgewiesen, nicht als bestandene native Bindung. Der tatsächliche
 Client kompiliert gegen die installierten EFT-/SPT-Bibliotheken; ein neuer
 EFT-Start und die Anzeige im Raid bleiben getrennte Abnahmeschritte.
+
+Auslieferung: sauberer Implementierungscommit `8ff8551`, isolierter Build
+`artifacts/double-jump-build/6e49de9f08df4019ace8350c1d46955b/manifest.json`.
+Am 2026-09-30 um 07:46 UTC lokal und auf beiden GPU-Hosts .114/.109 erneuert;
+alle drei Zieldateien vor dem Schreiben exklusiv gesperrt und gesichert,
+anschließend vollständige SHA256-Gleichheit überprüft:
+`3CAE4334A0052D2CE2BB38E68604B7ED742C0435096DAEE0A61DAEF19D8D56D7`.
+Neun Begleitdateien (Server/Core/BigBrain an allen drei Installationen)
+unverändert. Maschinen meldeten zuvor über gpu-run kein laufendes Spiel und
+keinen Server. Kein fremder Prozess beendet, kein Spiel gestartet. Beleg und
+Backup-Pfade: `BARBED-FEED-DEPLOYMENT-20260930.json`.
+Zusätzliches unabhängiges Testreview ohne offene P0–P2; die Grenzen der
+Offline-Simulation und der nicht verfügbaren Desktop-Harmony-Probe bestätigt.
+
+Nächster nativer Test: Labyrinth-Arena, direkter tödlicher Drahtkontakt eines
+Teilnehmers → eine rote Drahtzeile ohne Täter/Waffe/Distanz/Headshot; erneuter
+Tod nach Respawn → erneut eine Zeile. Danach gewöhnlichen Schusskill prüfen:
+Waffen-Icon und gegebenenfalls Headshot-Badge müssen wieder neutral erscheinen.
+Keine neuen Punkte, Assists, Kill-Ansagen oder Totenköpfe allein durch den
+Umwelttod; tatsächliche nachträgliche Blutung bleibt ein Blutstropfen.

@@ -18,6 +18,16 @@ current. User-facing communication is normally German.
   Neues Originalasset mit Hash/Provenienz, weiterhin keine freie
   Weiterverteilungslizenz festgestellt. Details und Testgrenzen:
   `HUD-BLEED-POLISH-REVIEW.md`, Abschnitt Stacheldraht.
+  Implementierung `8ff8551`; 103 Capture-/237 UI-/108 Text-Assertions plus
+  zugehörige Fehlerkontrollen grün, unabhängiges Produktions-/Testreview ohne
+  offene P0–P2. Sauberer Client-Release-Build lokal und auf beiden GPU-Hosts
+  (.114/.109) unter exklusiven Dateisperren eingespielt. SHA256
+  `3CAE4334A0052D2CE2BB38E68604B7ED742C0435096DAEE0A61DAEF19D8D56D7`.
+  Server/Core/BigBrain unverändert; Beleg `BARBED-FEED-DEPLOYMENT-20260930.json`.
+  Kein Spielstart/Raid durch diese Änderung: nativer Drahttod und sichtbare
+  Anzeige im Labyrinth noch offen. Die zusätzliche Desktop-HarmonyX-Probe
+  scheitert schon vor Hook-Bindung an einer CLR-Initialisierung; keine native
+  Bindungsabnahme behauptet. Beim nächsten EFT-Start wird der neue Client geladen.
 
 - **HUD-/Avatar-Nachbesserung (2026-09-29):** `2dfc1e7`. Nutzer hat die bisherige
   Totenkopf-Darstellung akzeptiert; jetzt +42 statt -42 HUD-Einheiten, also über
