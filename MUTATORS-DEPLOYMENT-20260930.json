@@ -1,0 +1,33 @@
+{
+  "SourceCommit": "2ff47229de76b5cc7b89a9fe76353c048e6cf8a7",
+  "CompletedUtc": "2026-09-30T11:46:02.2236758Z",
+  "Artifacts": [
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\e942056624b44543a7feb17797491db0\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\mutators-deploy\\f309d0fefc714144a4f5a0f6da1fcb72\\0-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "8B1D65D8B075DA78DED7C9A336C0392173A52A8A47C57921D572A022DA600CB7",
+      "Sha256": "A2CF4757A74E5BF679FE075ECFEB2054183B1FF3105BAAA730774CB32480A9E7"
+    },
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\e942056624b44543a7feb17797491db0\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\mutators-deploy\\f309d0fefc714144a4f5a0f6da1fcb72\\1-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "8B1D65D8B075DA78DED7C9A336C0392173A52A8A47C57921D572A022DA600CB7",
+      "Sha256": "A2CF4757A74E5BF679FE075ECFEB2054183B1FF3105BAAA730774CB32480A9E7"
+    }
+  ],
+  "Untouched": {
+    "\\\\192.168.178.114\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "A304C7EFFB2C6117D8607F5CF04075DA3ABB0DB4E02FEA9EF3F24CCBFDD14C2A",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "A304C7EFFB2C6117D8607F5CF04075DA3ABB0DB4E02FEA9EF3F24CCBFDD14C2A",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB",
+    "\\\\192.168.178.114\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "LiveGpuTested": false,
+  "RemoteDelivery": "Direct delivery to host1 only. Host2 is left to existing external synchronization; no loaded-code claim.",
+  "Limitation": "Client disk delivery verified under exclusive file locks. Server/Core/BigBrain unchanged. No claim about loaded EFT modules, native visuals or profile acceptance. Restart EFT before testing."
+}

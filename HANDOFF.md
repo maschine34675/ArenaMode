@@ -14,6 +14,15 @@ current. User-facing communication is normally German.
   keine neuen Defaults oder Gameplayänderungen. N/A erklärt Abhängigkeiten;
   Arm-/Raid-Sperre und Callback-Bereinigung bleiben erhalten.
   Details und Prüffolge: `MUTATORS-MENU-REVIEW.md`.
+  Umsetzung `2ff4722`; 179 Menü-Assertions und 14 kompilierte Fehlerkontrollen
+  bestanden, unabhängiges Review ohne konkrete offene P0-P2. Isolierter Build
+  ohne Fehler, lokal und auf GPU-Host 1 eingespielt; Server/Core/BigBrain unberührt.
+  SHA256 `A2CF4757A74E5BF679FE075ECFEB2054183B1FF3105BAAA730774CB32480A9E7`;
+  Beleg `MUTATORS-DEPLOYMENT-20260930.json`. Native 1080p-Menüprüfung auf Host 1
+  erfolgreich: Schalter/F12-Werte, Modusverfügbarkeit, Abschirmung, Close,
+  Außenklick, Escape/Wiederöffnen und normaler PMC-Kontrollschirm.
+  Kein Raid; Testwerte zurückgesetzt, Spiel/Server wieder beendet.
+  Bericht/Grenzen: `GPU-MUTATORS-RESULTS-20260930.md`.
 
 - **Neue Standardwerte (2026-09-30):** Auf Nutzerwunsch HitmarkerVolume und
   AnnouncerVolume jeweils 0,7; BotWalkSpeedMult und BotSprintSpeedMult jeweils
