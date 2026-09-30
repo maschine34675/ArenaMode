@@ -409,7 +409,7 @@ public static class Settings
         SpawnProtectionSeconds = config.Bind(
             "Respawn",
             "SpawnProtectionSeconds",
-            3f,
+            4f,
             "Invulnerability after an arena respawn (0 = disabled).");
 
         DisableLabyrinthSpawnTraps = config.Bind(
@@ -441,7 +441,7 @@ public static class Settings
             "Allow a deliberate native vault/climb input during an Arena jump when the obstacle and hands checks permit it.");
         AirControlEnabled = config.Bind("Movement", "AirControlEnabled", true,
             "Allow gentle WASD steering during local Arena jumps and falls. Preserves native horizontal speed, gravity and collision; no extra impulse from a stationary jump.");
-        AirControlDegreesPerSecond = config.Bind("Movement", "AirControlDegreesPerSecond", 60f,
+        AirControlDegreesPerSecond = config.Bind("Movement", "AirControlDegreesPerSecond", 80f,
             new ConfigDescription("Maximum horizontal turn rate in degrees per second while airborne; 0 keeps native direction. Changes apply live. Long frame steps are capped for safety.",
                 new AcceptableValueRange<float>(0f, 180f)));
         AirHipFireEnabled = config.Bind("Movement", "AirHipFireEnabled", true,
@@ -452,11 +452,11 @@ public static class Settings
             "Also enables supported SAIN search sprint, shorter completed-reload wait and faster combat strafe. " +
             "Includes faster starts/direction blending and reduced weight-related locomotion inertia. " +
             "Does not change the local player, ordinary raids, presets or weapon animations.");
-        BotWalkSpeedMult = config.Bind("Bot movement", "BotWalkSpeedMult", 1.25f,
+        BotWalkSpeedMult = config.Bind("Bot movement", "BotWalkSpeedMult", 1.5f,
             new ConfigDescription("Arena bot walk/strafe displacement multiplier. " +
                 "Preserves native slowdowns; the bonus fades near native path corners and is suppressed during door handling or large low-FPS steps. 1 = no boost.",
                 new AcceptableValueRange<float>(1f, 1.5f)));
-        BotSprintSpeedMult = config.Bind("Bot movement", "BotSprintSpeedMult", 1.3f,
+        BotSprintSpeedMult = config.Bind("Bot movement", "BotSprintSpeedMult", 1.5f,
             new ConfigDescription("Arena bot sprint displacement multiplier. " +
                 "Only affects a sprint the AI already chose; does not force sprint or add stamina. Safety limits can reduce the bonus. 1 = no boost.",
                 new AcceptableValueRange<float>(1f, 1.5f)));
@@ -1246,7 +1246,7 @@ public static class Settings
         KillfeedOtherKills = config.Bind(
             "HUD",
             "KillfeedOtherKills",
-            false,
+            true,
             "Also show bot-vs-bot kills in the killfeed.");
 
         KillfeedOffsetX = config.Bind(
@@ -1285,7 +1285,7 @@ public static class Settings
             "Replaceable PCM16 mono WAVs in BepInEx/plugins/ArenaMode/hitmarkers/; see AUDIO-LICENSES.md.");
 
         HitmarkerVolume = config.Bind(
-            "Audio", "HitmarkerVolume", 0.5f,
+            "Audio", "HitmarkerVolume", 0.7f,
             new ConfigDescription("Hitmarker sound volume, independent of Interface and announcer volume. " +
                 "Still respects overall game volume and mute; changes apply immediately.",
                 new AcceptableValueRange<float>(0f, 1f)));
@@ -1300,7 +1300,7 @@ public static class Settings
         AnnouncerVolume = config.Bind(
             "Audio",
             "AnnouncerVolume",
-            0.8f,
+            0.7f,
             new ConfigDescription("Announcer volume, independent of Interface volume by default. " +
                 "Still respects the game's overall volume and mute.", new AcceptableValueRange<float>(0f, 1f)));
 
@@ -1370,7 +1370,7 @@ public static class Settings
         VisibleLaserBrightness = config.Bind(
             "Effects",
             "VisibleLaserBrightness",
-            2f,
+            3f,
             new ConfigDescription(
                 "Arena visible weapon laser intensity minimum relative to the original prefab (1 = no Arena boost). " +
                 "An existing larger intensity, including BrightLasers, is preserved rather than multiplied again. " +
@@ -1380,7 +1380,7 @@ public static class Settings
         VisibleLaserBeamBrightness = config.Bind(
             "Effects",
             "VisibleLaserBeamBrightness",
-            2f,
+            3f,
             new ConfigDescription(
                 "Arena visible laser BEAM brightness minimum relative to the original material (1 = no extra beam boost). " +
                 "Brightens the full beam without further brightening its impact point or spot light. " +
@@ -1403,7 +1403,7 @@ public static class Settings
         RagdollImpulseScale = config.Bind(
             "Effects",
             "RagdollImpulseScale",
-            3f,
+            5f,
             new ConfigDescription(
                 "Fatal-shot ragdoll impulse multiplier (1 = vanilla, punchy deaths above).",
                 new AcceptableValueRange<float>(1f, 10f)));

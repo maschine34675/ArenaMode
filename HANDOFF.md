@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Neue Standardwerte (2026-09-30):** Auf Nutzerwunsch HitmarkerVolume und
+  AnnouncerVolume jeweils 0,7; BotWalkSpeedMult und BotSprintSpeedMult jeweils
+  1,5; VisibleLaserBrightness und VisibleLaserBeamBrightness jeweils 3;
+  RagdollImpulseScale 5; KillfeedOtherKills true; AirControlDegreesPerSecond 80;
+  SpawnProtectionSeconds 4. Nur Bind-Defaults geändert, keine Migration oder
+  Überschreibung gespeicherter Einstellungen. Neue Konfigurationen und das
+  Zurücksetzen auf Standard verwenden diese Werte. Bereiche, Mechanik und
+  gespeicherte Nutzer-/Testkonfigurationen bleiben unverändert.
+
 - **Salven-Schadenszahlen und Killcam pro Modus (2026-09-30):**
   `99a91f2`: Option `HUD / CombineDamageNumbers` standardmäßig aus, über F12
   und das bestehende HUD-Panel schaltbar. Treffer desselben physischen Körpers
