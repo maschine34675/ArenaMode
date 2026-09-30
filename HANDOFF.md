@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Inline-Mutatoren (2026-09-30, ersetzt die Popup-Darstellung unten):**
+  `d0a602e`: alle acht Schalter dauerhaft rechts, ON mit grünem Chip/Streifen,
+  OFF/N/A grau. Karteninfos kurz oben rechts; bei Customs kompakte Arealkarte
+  darüber mit weiterhin bedienbarem AREA/OVERVIEW. Native Zeit-/Wetterwahl und
+  Navigation bleiben frei, gewöhnliche PMC-Karteninfos werden wiederhergestellt.
+  188 Menü-Assertions + 14 Fehlerkontrollen, 4393 Karten-Assertions + 5
+  Fehlerkontrollen und isolierter Build bestanden; unabhängiges Review ohne
+  offene konkrete P0–P2. Client lokal und Host 1 eingespielt, SHA256
+  `3388B737E8129A7F735C8CA4C8E8A5D6847A0695385F18844993E10B5C7004FD`.
+  Server/Core/BigBrain unverändert. Native 1080p-Menüprüfung erfolgreich,
+  inklusive Farbwechsel/F12-Wert, Factory-Zeitwahl, Customs und PMC-Restaurierung.
+  Kein Raid; Testwerte restauriert, Spiel/Server wieder aus.
+  `GPU-INLINE-MUTATORS-RESULTS-20260930.md` und
+  `INLINE-MUTATORS-DEPLOYMENT-20260930.json` enthalten Belege/Grenzen.
+
 - **Mutatoren-Menü (2026-09-30):** MUTATORS ersetzt den einzelnen Killcam-Button
   im Kartenmenü. Acht bestehende F12-Optionen in kompakter Ansicht: Double jump,
   Air control, Airborne hip fire, Backpack items, Killcam, Pickups, Colored tracers,
