@@ -38,8 +38,13 @@ current. User-facing communication is normally German.
   SHA256 `1E4BD4313D820CC1C401424225DB22DB6BFC47419C000A93CE4CA544D2AFCBBF`;
   `BURST-KILLCAM-DEPLOYMENT-20260930.json`. Server/Core und vorhandener
   Molotov-BigBrain-Companion unverändert.
-  **Host 2 (.109) nicht angefasst:** dort laufen Spiel/Server einer anderen
-  Sitzung mit Client `f3183a2` (Disk-SHA `7D52E5E6C2B5C15340DE4324DD5944AF126417402368C973097BFF91E881A483`).
+  **Host 2 (.109) beim Deployment nicht angefasst:** dort lief eine andere
+  Sitzung mit Client `f3183a2`. Die bestehende externe Synchronisierung und ein
+  anschließender Neustart dieser Sitzung haben danach den neuen Client geladen:
+  Disk-SHA identisch zu oben, UiBridge-Instanz `c692bb08`, Start 11:27:33,
+  meldet alle 24 maschine-Plugins als VM = Host-Disk = geladen identisch.
+  Nur lesend geprüft; kein Eingriff in deren Steuerung und keine daraus
+  abgeleitete Gameplay-/Killcam-Abnahme.
   Kein Spielstart oder Raid für diese Änderung; sichtbare Salven, native
   Menüposition, Replay/Skip/Kamerarückgabe und PFT-Rundenwechsel noch im Spiel
   prüfen. EFT vor dem Test neu starten. Fremde Worktrees/Branches und die

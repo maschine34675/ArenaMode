@@ -29,5 +29,14 @@
   },
   "LiveGpuTested": false,
   "SkippedHost": "192.168.178.109: server/game active in another session, left untouched",
-  "Limitation": "Client disk delivery verified under exclusive file locks. Server/Core/BigBrain unchanged. No claim about loaded EFT modules, native visuals or profile acceptance. Restart EFT before testing."
+  "Limitation": "Client disk delivery verified under exclusive file locks. Server/Core/BigBrain unchanged. No claim about loaded EFT modules, native visuals or profile acceptance. Restart EFT before testing.",
+  "Host2ObservedAfterExternalSync": {
+    "ObservedUtc": "2026-09-30T09:29:38.2320161Z",
+    "ClientSha256": "1E4BD4313D820CC1C401424225DB22DB6BFC47419C000A93CE4CA544D2AFCBBF",
+    "UiBridgeInstance": "c692bb08",
+    "GameStartedLocal": "2026-09-30 11:27:33 Europe/Berlin",
+    "LoadedMatchesDisk": true,
+    "Evidence": "Read-only UiBridge 0.7.3 status reports all 24 maschine plugins identical across VM build, host disk and loaded. External session restarted; this task sent no input or restart command.",
+    "NativeAcceptance": false
+  }
 }
