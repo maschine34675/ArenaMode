@@ -47,6 +47,7 @@ internal static class Program
         Check(!ArenaFireRuntime.HoldsBody(replacement,world),"successor not owner");
         var airborne=Throw(replacement);ArenaFireRuntime.Enabled.Value=false;ArenaFireRuntime.Tick();
         Check(airborne.Retired&&airborne.TimerStopped,"disable retires pending native projectile");Check(ArenaFireView.Alive==0,"disable clears visuals");
+        Check(((HashSet<Player>)typeof(ArenaFireRuntime).GetField("Ticked",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null)).Count==0,"disable clears transient victim references");
         float before=bot.Taken;Time.time=3;ArenaFireRuntime.Tick();Near(bot.Taken,before,"disable clears damage");
         ArenaFireRuntime.Enabled.Value=true;ArenaFireRuntime.Tick();Check(!Explode(Throw(replacement)),"new throw after enable");
         mode.AssistScoringOpen=false;ArenaFireRuntime.Tick();Check(ArenaFireView.Alive==0,"intermission extinguishes");Check(Explode(Throw(replacement)),"intermission no conversion");

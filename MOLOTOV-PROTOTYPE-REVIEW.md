@@ -63,8 +63,8 @@ timer, explosion and destruction; `Player.cs` grenade creation and attributed
 damage; `ActiveHealthController.cs` environment multipliers; native mover and
 BigBrain action switching; installed SAIN door/avoid-threat behavior.
 
-`tools/MolotovChecks/Verify.ps1`: 56 assertions against linked production runtime,
-geometry, policy and bot layer, plus seven compiled negative controls. Includes
+`tools/MolotovChecks/Verify.ps1`: 57 assertions against linked production runtime,
+geometry, policy and bot layer, plus eight compiled negative controls. Includes
 ordinary-raid isolation, exact throw ownership, posthumous attribution, overlap,
 pause/hitch behavior, floor/wall bounds, teardown retry, lifecycle release, door
 ownership, bounded route selection and lease rollover. Unity/native boundaries

@@ -17,6 +17,14 @@ current. User-facing communication is normally German.
   Offlinetests/Review, Grenzen und Prüffolge: `MOLOTOV-PROTOTYPE-REVIEW.md`.
   Auslieferung und native Abnahme werden getrennt protokolliert; ein erfolgreicher
   Build allein bestätigt weder das Feuerbild noch das Botverhalten.
+  Prototyp `79eb2ab`, Testbuild `bfdf327` enthält aktuellen Hauptbranch `50b7bc9`.
+  Drei echte Equator-Würfe auf Host 1: Feuer/Eigenschaden/Respawn sowie Botkontakt,
+  beobachteter Fluchtlayer mit Bewegung und Rückgabe an SAIN bestätigt. F12 wieder
+  aus, Godmode aus, native Ressourcen leer, Profilvergleich mit dokumentierten
+  normalen Hideout-/Serialisierungsdifferenzen. Grafik noch grober Platzhalter;
+  kein gegnerischer Feuerkill und kein PFT-/TDM-Test. Bericht:
+  `GPU-MOLOTOV-RESULTS-20260930.md`. Finale zusätzliche Reset-Bereinigung besitzt
+  57 Assertions/acht Fehlerkontrollen und unabhängige Review.
 
 - **Stacheldraht im Killfeed (2026-09-30):** Direkte native `Barbed`-Tode
   ohne Angreifer bekommen einen eigenen HUD-Eintrag mit Opfer/Teamfarbe,

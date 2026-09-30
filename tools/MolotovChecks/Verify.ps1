@@ -33,7 +33,8 @@ $faults = @(
     @{name='thrower'; file=$runtime; find='Player = fire.Source.Bridge'; replacement='Player = null'; fail='attributed exact fire scope'},
     @{name='floor'; file=$policy; find='Math.Abs(dy) <= .6f'; replacement='true'; fail='upper floor safe'},
     @{name='environment-multiplier'; file=$policy; find='amount * maximum / total / environmentMultiplier'; replacement='amount * maximum / total'; fail='normalized first damage tick'},
-    @{name='cancelled-retry'; file=$runtime; find='!source.Cancelled && Current()'; replacement='Current()'; fail='cancelled projectile cannot ignite in new round'}
+    @{name='cancelled-retry'; file=$runtime; find='!source.Cancelled && Current()'; replacement='Current()'; fail='cancelled projectile cannot ignite in new round'},
+    @{name='victim-retention'; file=$runtime; find='Victims.Clear(); Ticked.Clear();'; replacement='Victims.Clear();'; fail='disable clears transient victim references'}
 )
 foreach ($fault in $faults) {
     $source = [IO.File]::ReadAllText($fault.file)
@@ -44,4 +45,4 @@ foreach ($fault in $faults) {
     else { Run-Check $fault.name $runtime $copy $fault.fail }
 }
 Run-Check 'production-final' $runtime $policy
-Write-Output "ARENA_MOLOTOV_CHECKS_PASSED; seven compiled negative controls; evidence $stage"
+Write-Output "ARENA_MOLOTOV_CHECKS_PASSED; eight compiled negative controls; evidence $stage"

@@ -257,7 +257,7 @@ internal static class ArenaFireRuntime
         // real explosive just because cleanup threw. Retry on the next Tick.
         Retired.Clear();
         foreach (var fire in Fires) fire.Dispose();
-        Fires.Clear(); Victims.Clear();
+        Fires.Clear(); Victims.Clear(); Ticked.Clear();
         // Retain old sources for delayed native/SAIN hit callbacks while the same world exists.
         Prune();
         _match = null; _round = 0; _nextDamage = 0;

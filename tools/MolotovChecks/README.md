@@ -8,8 +8,8 @@ pwsh -NoProfile -File tools/MolotovChecks/Build-Staged.ps1
 ```
 
 The first command links the real fire policy/runtime/geometry and BigBrain escape
-layer against explicit Unity/EFT boundary doubles. It runs 56 assertions and
-seven separately compiled mutants, each required to fail its intended assertion.
+layer against explicit Unity/EFT boundary doubles. It runs 57 assertions and
+eight separately compiled mutants, each required to fail its intended assertion.
 No installed files are changed. Logs and mutant builds go to ignored `artifacts`.
 Physics geometry, animator, Harmony dispatch, audio and actual bot movement still
 require native acceptance; see `MOLOTOV-PROTOTYPE-REVIEW.md`.
