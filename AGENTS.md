@@ -361,8 +361,10 @@ Tactical mode are in and lightly tested.
 
 Open:
 
-- **M8 polish** — KillcamReplay short arena replay (the compat exists but only skips),
-  README, release packaging. Never bundle ABPS/APBS/SAIN DLLs.
+- **M8 polish** — optional per-mode KillcamReplay is implemented; see
+  `KILLCAM-MODES-REVIEW.md` for frozen menu selection, camera ownership and
+  pending native acceptance. README and release packaging remain separate.
+  Never bundle ABPS/APBS/SAIN DLLs.
 - **Tactical** needs a longer playtest; only the first rounds have been played.
 - **Performance** is now measured, not guessed: see LONG-RAID-REVIEW-2026-09-16.md,
   which supersedes the 2026-09-05 report. Over 27 minutes all mods together grow

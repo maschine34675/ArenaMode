@@ -7,6 +7,44 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Salven-Schadenszahlen und Killcam pro Modus (2026-09-30):**
+  `99a91f2`: Option `HUD / CombineDamageNumbers` standardmäßig aus, über F12
+  und das bestehende HUD-Panel schaltbar. Treffer desselben physischen Körpers
+  innerhalb 0,25 s ergeben eine stabil platzierte Summe; HP/Rüstung getrennt,
+  Rohereignisse, Marker/Sounds, Punkte und Assists unverändert. Siehe
+  `BURST-DAMAGE-REVIEW.md`.
+  `b6fb823`: Kartenmenü `KILLCAM: ON/OFF` für jeden Modus separat
+  (Einschalten = 3 s, F12 weiterhin 0–10 s). Benötigt aktive KillcamReplay-Mod;
+  ohne sie N/A. Wahl beim Arm eingefroren. Respawn wartet auf Vorlauf, Playback
+  und tatsächliche Kamerarückgabe, ohne zusätzliche feste Pause. Tactical/PFT
+  behält seine Rundenregeln; lange Replays verbrauchen nicht vorzeitig das
+  geschützte Respawnfenster. Tote Körper verlieren nur ihre störenden visuellen
+  Gesundheitseffekte. Details: `KILLCAM-MODES-REVIEW.md`.
+  `57a45f9` repariert veraltete Harness-Annahmen ohne Gameplayänderung;
+  siehe `TEST-HARNESS-MAINTENANCE-20260930.md`.
+  Gezielte Prüfungen: Burst 225/11, Replay 170/8, Menü 121/12, visuelle Scope
+  80/9 (Assertions/kompilierte Fehlerkontrollen), alle grün. Breite Regression:
+  Deathmatch 163, TDM-Resultat/Exit 227, TeamGiveUp 618/16, TDM-Runtime 332/28
+  plus BurstIntegration 21/8, PFT 276, TeamArenaExpansion 849 bestanden.
+  Beleg `artifacts/arena-killcam-integration/cfd0c0a2048547c1819c192050504a86/`.
+  Unabhängiges Review fand Layoutkollision, tote Gesundheitsdarstellung und
+  langes PFT-Replay; behoben und nachgeprüft, keine offenen P0–P2.
+  **Gemeinsamer Auslieferungsstand `de25153`:** Der parallel schon eingespielte
+  Molotov-Quellstand `f3183a2` wurde konfliktfrei übernommen, damit sein Prototyp
+  erhalten bleibt. Erneutes unabhängiges Integrationsreview sowie Burst 225/11,
+  Molotov 57/8 und AssistCapture 130/5 mit 39 nativen IL-Verträgen grün.
+  Sauberer Client-Build (vier bestehende Nullable-Warnungen, keine Fehler),
+  lokal und auf GPU-Host 1 (.114) unter exklusiven Dateisperren eingespielt.
+  SHA256 `1E4BD4313D820CC1C401424225DB22DB6BFC47419C000A93CE4CA544D2AFCBBF`;
+  `BURST-KILLCAM-DEPLOYMENT-20260930.json`. Server/Core und vorhandener
+  Molotov-BigBrain-Companion unverändert.
+  **Host 2 (.109) nicht angefasst:** dort laufen Spiel/Server einer anderen
+  Sitzung mit Client `f3183a2` (Disk-SHA `7D52E5E6C2B5C15340DE4324DD5944AF126417402368C973097BFF91E881A483`).
+  Kein Spielstart oder Raid für diese Änderung; sichtbare Salven, native
+  Menüposition, Replay/Skip/Kamerarückgabe und PFT-Rundenwechsel noch im Spiel
+  prüfen. EFT vor dem Test neu starten. Fremde Worktrees/Branches und die
+  laufende zweite GPU-Sitzung bleiben erhalten.
+
 - **Brandgranaten-Prototyp (2026-09-30, eigener Branch):**
   `feature/molotov-prototype`, isoliert in `../ArenaMode-molotov`.
   F12 `Arena incendiary prototype / Enabled` standardmäßig aus; wandelt nur
