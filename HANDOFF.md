@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Thumbnail-/Marker-Revision (2026-09-30, aktueller Client):** `a8b8dd1`.
+  Keine Kartenbeschreibung mehr, dafür natives Thumbnail; Customs behält seine
+  Arealvorschau. Oberes Feld immer 320 Referenzpixel hoch, Mutatoren fest bei
+  Y=508. BAY 5/EQUATOR im Arena-Kartenscreen ohne Präfix, goldene eigene Labels
+  mit dunklem Auswahl-Gold. Bay 5 oben im Hafen, Equator südöstlich Interchange;
+  native Daten/IDs/Events unverändert, Präsentation beim Verlassen restauriert.
+  191 Menü-Assertions +14 Fehlerkontrollen, 4419 Karten-Assertions +5
+  Fehlerkontrollen, unabhängiges Review und isolierter Build bestanden.
+  Client lokal/Host 1 eingespielt, SHA256
+  `1E7A0EE9D8584B15038961B60FBCFCB1093312646A09EAA50AE70E5D3E5E036D`;
+  Server/Core/BigBrain unverändert. **Noch keine native Abnahme dieser Revision:**
+  Windows-MCP auf Host 1 war nicht erreichbar; Disk-Zugriff funktionierte.
+  Keine Prozesse/Testwerte verändert. Nächste Prüffolge und Grenze:
+  `GPU-MAP-PRESENTATION-TEST-20260930.md`; Auslieferungsbeleg
+  `MAP-PRESENTATION-DEPLOYMENT-20260930.json`.
+
 - **Inline-Mutatoren (2026-09-30, ersetzt die Popup-Darstellung unten):**
   `d0a602e`: alle acht Schalter dauerhaft rechts, ON mit grünem Chip/Streifen,
   OFF/N/A grau. Karteninfos kurz oben rechts; bei Customs kompakte Arealkarte
