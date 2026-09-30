@@ -421,20 +421,28 @@ internal static class Program
     private static bool HasFrozenArmCall(string source)
         => Regex.Matches(source, @"ArenaSession\.MarkArmed\s*\(").Count == 1
            && Regex.Matches(source,
-            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*\)").Count == 1;
+            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*,\s*participants\s*,\s*ArenaServerClient\.PendingParticipantBosses\s*\)").Count == 1;
 
     private static void CheckFrozenArmContract()
     {
-        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch );"),
-            "frozen mode and Deathmatch rules are required independent of formatting");
+        // Participant admission now freezes the negotiated population and boss
+        // reservation alongside the mode/rules. Require that exact live call;
+        // accepting an arbitrary suffix would hide a mutable or omitted value.
+        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch,\n participants, ArenaServerClient.PendingParticipantBosses );"),
+            "frozen mode, Deathmatch rules and negotiated population are required independent of formatting");
         foreach (string call in new[]
                  {
                      "ArenaSession.MarkArmed(settings.location, requestedMode)",
-                     "ArenaSession.MarkArmed(settings.location, Settings.SelectedGameModeId, deathmatch)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, null)",
-                     "ArenaSession.MarkArmed(otherLocation, requestedMode, deathmatch)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch); ArenaSession.MarkArmed(settings.location, requestedMode, null)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch); ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch)"
+                     "ArenaSession.MarkArmed(settings.location, Settings.SelectedGameModeId, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, null, participants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(otherLocation, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses); ArenaSession.MarkArmed(settings.location, requestedMode, null, participants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses); ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, otherParticipants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, null)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, ArenaServerClient.PendingParticipantBosses, participants)"
                  })
             Assert(!HasFrozenArmCall(call), "missing, mutable, foreign or duplicate arm contract is rejected: " + call);
     }

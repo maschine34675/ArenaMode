@@ -14,7 +14,7 @@ function Slice([string] $text, [string] $start, [string] $end) {
     if ($first -lt 0 -or $last -le $first) { throw 'Production method extraction boundary missing' }
     return $text.Substring($first, $last - $first)
 }
-function Run-Extracted([string] $text, [string] $name) {
+function Get-Extracted([string] $text) {
     $pair = Slice $text '    private static async void SpawnPair(' '    private static bool TryCaptureSpawnLease('
     $faction = Slice $text '    internal static int SpawnFactionBot(' '    private static bool HasRequestedFaction('
     $guard = Slice $text '    private static bool IsRequestStillCurrent(' '    private static Vector3? GetPlayerPosition('
@@ -31,8 +31,11 @@ $faction
 $guard
 }
 "@
+    return $extracted
+}
+function Run-Extracted([string] $text, [string] $name) {
     $path = Join-Path $scratch ($name + '.cs')
-    [IO.File]::WriteAllText($path, $extracted)
+    [IO.File]::WriteAllText($path, $text)
     $previous = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
@@ -42,7 +45,8 @@ $guard
     finally { $ErrorActionPreference = $previous }
 }
 
-$positive = Run-Extracted $source 'production'
+$extracted = Get-Extracted $source
+$positive = Run-Extracted $extracted 'production'
 if ($positive.Exit -ne 0 -or !$positive.Output.Contains('ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED')) {
     throw ('Production burst integration failed: ' + $positive.Output)
 }
@@ -72,10 +76,13 @@ if (!$BaselineOnly) {
            Failure = 'expired native callback is individually retired without cancelling dispatched work' }
     )
     foreach ($fault in $faults) {
-        if (($source.Split(@($fault.Find), [StringSplitOptions]::None).Count - 1) -ne 1) {
+        # Only the exact extracted production methods are compiled here. The
+        # later solo-population path has similar guards but is outside this
+        # test; never mutate it or count its anchors as a TDM fault target.
+        if (($extracted.Split(@($fault.Find), [StringSplitOptions]::None).Count - 1) -ne 1) {
             throw ('Fault anchor is not unique: ' + $fault.Name)
         }
-        $negative = Run-Extracted ($source.Replace($fault.Find, $fault.Replace)) $fault.Name
+        $negative = Run-Extracted ($extracted.Replace($fault.Find, $fault.Replace)) $fault.Name
         if ($negative.Exit -eq 0 -or !$negative.Output.Contains($fault.Failure)) {
             throw ('Fault missed intended integration assertion: ' + $fault.Name + [Environment]::NewLine + $negative.Output)
         }

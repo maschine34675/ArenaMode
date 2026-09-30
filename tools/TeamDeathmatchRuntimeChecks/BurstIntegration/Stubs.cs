@@ -134,7 +134,7 @@ namespace ArenaMode.Bots
     {
         internal static int CountUsable(BotZone zone, Vector3? position) => 1;
         internal static List<ISpawnPoint> PickPoints(BotZone zone, Vector3? position, int count, ref int cursor,
-            out int preferred, out int distant)
+            out int preferred, out int distant, bool grouped = false)
         { preferred = 1; distant = 0; return new() { new SpawnPoint() }; }
     }
     internal static partial class BurstSpawnService

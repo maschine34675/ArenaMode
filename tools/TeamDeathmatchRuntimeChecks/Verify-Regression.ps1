@@ -46,7 +46,9 @@ $cases = @(
     @{
         Name = 'human-slot'; Path = $population; Property = 'PopulationSource';
         Find = '=> TeamSize - (usec == LocalUsec ? 1 : 0);'; Replace = '=> TeamSize;';
-        Failure = 'human capacity: local faction has exactly N minus one bots'
+        # The negotiated-total case now runs first and catches the same lost
+        # reserved human slot before the legacy-team-size capacity case.
+        Failure = 'frozen full-map total overrides legacy team setting, includes human, stays equal after F12 edit'
     },
     @{
         Name = 'friendly-native-admission'; Path = $relations; Property = 'RelationsSource';

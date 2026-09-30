@@ -21,6 +21,10 @@ function Invoke-Baseline {
     }
     $output | Write-Output
 }
+# ReportKill's team branch now contains the assist-cleanup block. Balance its
+# nested braces so this scope ends at the team branch, never at the adjacent
+# solo Deathmatch branch that carries the same local-death notification.
+$tdmKillScope = '(?s)if\s*\(Mode is TeamDeathmatchMode teams\)\s*\{(?<body>(?>[^{}]+|\{(?<depth>)|\}(?<-depth>))*)(?(depth)(?!))\}'
 $mutants = @(
     @{ Name = 'missing-forfeit'; Source = $modePath; Property = 'ModeSource';
        From = '_match.Scoreboard.ReportOpponentForfeitKill();'; To = '/* missing original give-up team score */';
@@ -42,7 +46,8 @@ $mutants = @(
        From = '|| !ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)'; To = '';
        Failure = 'historical profile/new body alias cannot borrow visual affiliation' },
     @{ Name = 'staging-kill-event'; Source = $matchPath; Property = 'MatchSource';
-       From = 'if (!teams.TryBeginScoredEvent()) return;'; To = '';
+       Within = $tdmKillScope;
+       From = 'if (!teams.TryBeginScoredEvent())'; To = 'if (false)';
        Failure = 'assembling callbacks cannot change scores, deaths, awards or kill events' },
     @{ Name = 'staging-death-score'; Source = $matchPath; Property = 'MatchSource';
        From = 'Mode is TeamDeathmatchMode teams && !teams.TryRecordLocalDeath()';
@@ -52,7 +57,7 @@ $mutants = @(
        From = '_localDeathCounted || !TryBeginScoredEvent()'; To = '!TryBeginScoredEvent()';
        Failure = 'final local kill and driver death count exactly once in either native event order' },
     @{ Name = 'kill-first-local-death'; Source = $matchPath; Property = 'MatchSource';
-       Within = '(?s)if\s*\(Mode is TeamDeathmatchMode teams\)\s*\{(?<body>[^{}]*)\}';
+       Within = $tdmKillScope;
        From = 'if (kill.LocalIsVictim) ReportLocalDeath();'; To = '';
        Failure = 'final local kill and driver death count exactly once in either native event order' },
     @{ Name = 'terminal-respawn-board'; Source = $matchPath; Property = 'MatchSource';
@@ -81,7 +86,8 @@ foreach ($mutant in $mutants) {
     if ($mutant.ContainsKey('Within')) {
         # The same death notification also exists in unified solo Deathmatch.
         # Bound this fault to the named TDM branch, never to the first occurrence.
-        # A changed/nested or ambiguous branch fails closed for manual review.
+        # An unbalanced or ambiguous branch fails closed for manual review;
+        # the exact fault anchor must still occur once inside the whole branch.
         $scopes = [regex]::Matches($source, $mutant.Within)
         if ($scopes.Count -ne 1 -or !$scopes[0].Groups['body'].Success) {
             throw "Mutation scope must occur exactly once: $($mutant.Name)"
