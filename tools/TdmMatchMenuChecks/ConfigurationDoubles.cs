@@ -1,6 +1,12 @@
 // External configuration/session surfaces. No actual game or config file is changed.
 public enum BotDifficulty { easy, normal, hard, impossible }
-namespace UnityEngine { public enum KeyCode { F6, F7, F8, F9, F10, LeftControl, Backspace } }
+namespace UnityEngine { public enum KeyCode { F6, F7, F8, F9, F10, LeftControl, LeftAlt, Backspace } }
+namespace ArenaMode.Pickups
+{
+    internal enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots, InfiniteAmmo, Health }
+    internal static class ArenaPickupWeapons { internal const string M60Id = "pickup-m60-retzrestdfg"; }
+    internal static class ArenaHealthPickup { internal const float Amount = 150f; }
+}
 namespace ArenaMode.Session
 {
     public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; }

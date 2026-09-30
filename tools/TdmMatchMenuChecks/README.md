@@ -9,10 +9,16 @@ Checks cover the actual 50-kill/600-second defaults and F12 ranges, accepted and
 rejected persistence, independent zero limits, hidden non-TDM/PFT controls,
 live armed/active guards, exact custom F12 labels with no invented selection,
 same-mode refresh, real button callbacks, preserved non-TDM layout, the existing
-360x488 panel footprint, and close/reopen listener ownership. Eight deliberate
+360x488 panel footprint, and close/reopen listener ownership. Fourteen deliberate
 source faults must compile and fail their corresponding behavioral assertions.
 All compiler mutations and output evidence go to ignored repo `artifacts/`;
 production files are not rewritten. The final run restores production inputs.
+
+The mutators extension also links the real pickup settings and popup/adapter.
+It covers all eight existing feature switches, shared F12 values, movement
+master and mode/dependency restrictions, arm/active locks before UI refresh,
+manual saving, unchanged laser brightness, click-away/close and stale callbacks.
+Killcam lives inside this popup and keeps its existing per-mode semantics.
 
 The rules occupy the old fact-row region only for independent Team DM. The mode
 panel still ends at reference Y=656; the untouched area panel begins at Y=668.

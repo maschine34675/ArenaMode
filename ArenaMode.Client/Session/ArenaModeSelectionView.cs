@@ -29,8 +29,8 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _subtitle;
     private GameObject _restrictionNote;
     private ArenaModeSelectionState _selection;
-    private Button _killcamButton;
-    private TextMeshProUGUI _killcamLabel;
+    private Button _mutatorsButton;
+    private readonly ArenaMutatorsView _mutators = new();
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selection?.SelectedMode;
@@ -106,9 +106,9 @@ internal sealed class ArenaModeSelectionView
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
-        if (_killcamButton != null) Safe(() => _killcamButton.onClick.RemoveAllListeners());
-        _killcamButton = null;
-        _killcamLabel = null;
+        Safe(_mutators.Close);
+        if (_mutatorsButton != null) Safe(() => _mutatorsButton.onClick.RemoveAllListeners());
+        _mutatorsButton = null;
         _markers.Clear();
         var root = _root;
         _root = null;
@@ -148,7 +148,8 @@ internal sealed class ArenaModeSelectionView
         CreateRule(266f, typography);
         var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 281f, 22f);
         heading.color = Dim(typography, .65f);
-        CreateKillcamRow(template);
+        CreateMutatorsButton(template);
+        _mutators.Create(screen, _root, template, typography, Refresh);
         _rules = CreateFact("RULES", typography, 312f);
         _respawn = CreateFact("RESPAWN", typography, 352f);
         _equipment = CreateFact("EQUIPMENT", typography, 392f);
@@ -249,59 +250,45 @@ internal sealed class ArenaModeSelectionView
         if (mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
         _equipment.text = _selection.TacticalOnly ? "PMC entry gear" : mode.Equipment;
-        RefreshKillcam();
+        _mutatorsButton.interactable = !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid;
+        _mutators.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         RefreshTdmRules();
     }
 
-    private void CreateKillcamRow(Button template)
+    private void CreateMutatorsButton(Button template)
     {
         var owner = _root;
-        _killcamButton = UnityEngine.Object.Instantiate(template, owner.transform, false);
-        _killcamButton.name = "Arena Killcam";
-        _killcamButton.onClick = new Button.ButtonClickedEvent();
-        _killcamButton.transform.localScale = Vector3.one;
+        _mutatorsButton = UnityEngine.Object.Instantiate(template, owner.transform, false);
+        _mutatorsButton.name = "Arena Mutators open";
+        _mutatorsButton.onClick = new Button.ButtonClickedEvent();
+        _mutatorsButton.transform.localScale = Vector3.one;
         // Share the heading's unused right half; do not push the area panel or
         // native navigation down. The rule rows start below this 26-unit control.
-        SetRect((RectTransform)_killcamButton.transform, 196f, 276f, 144f, 26f);
-        var layout = _killcamButton.GetComponent<LayoutElement>();
+        SetRect((RectTransform)_mutatorsButton.transform, 196f, 276f, 144f, 26f);
+        var layout = _mutatorsButton.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
-        _killcamLabel = _killcamButton.GetComponentInChildren<TextMeshProUGUI>(true)
-            ?? throw new InvalidOperationException("The native killcam-row label is missing.");
-        _killcamLabel.fontSize = 14f;
-        _killcamLabel.enableWordWrapping = false;
-        _killcamLabel.alignment = TextAlignmentOptions.Center;
-        _killcamLabel.raycastTarget = false;
-        SetRect(_killcamLabel.rectTransform, 0f, 0f, 144f, 26f);
-        Hud.ArenaUiTheme.StyleButton(_killcamButton, _killcamLabel);
-        var navigation = _killcamButton.navigation;
+        var label = _mutatorsButton.GetComponentInChildren<TextMeshProUGUI>(true)
+            ?? throw new InvalidOperationException("The native mutators label is missing.");
+        label.text = "MUTATORS";
+        label.fontSize = 14f;
+        label.enableWordWrapping = false;
+        label.alignment = TextAlignmentOptions.Center;
+        label.raycastTarget = false;
+        SetRect(label.rectTransform, 0f, 0f, 144f, 26f);
+        Hud.ArenaUiTheme.StyleButton(_mutatorsButton, label);
+        var tooltip = _mutatorsButton.GetComponent<HoverTooltipArea>();
+        if (tooltip != null) { tooltip.SetMessageText("Choose Arena features.", rawText: true); tooltip.SetUnlockStatus(true); }
+        var navigation = _mutatorsButton.navigation;
         navigation.mode = Navigation.Mode.None;
-        _killcamButton.navigation = navigation;
-        _killcamButton.onClick.AddListener(() =>
+        _mutatorsButton.navigation = navigation;
+        _mutatorsButton.onClick.AddListener(() =>
         {
             if (!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy
-                || _selection == null || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid
-                || !Spectator.KillcamReplayCompat.CanPlay(out _)) return;
-            Settings.TrySelectKillcam(_selection.SelectedMode, Settings.GetReplaySeconds(_selection.SelectedMode) <= 0f);
+                || _selection == null || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) return;
             Refresh();
+            _mutators.Show();
         });
-        _killcamButton.gameObject.SetActive(true);
-    }
-
-    private void RefreshKillcam()
-    {
-        if (_killcamButton == null || _selection == null) return;
-        bool available = Spectator.KillcamReplayCompat.CanPlay(out string reason);
-        bool enabled = Settings.GetReplaySeconds(_selection.SelectedMode) > 0f;
-        _killcamLabel.text = !available ? "KILLCAM: N/A" : enabled ? "KILLCAM: ON" : "KILLCAM: OFF";
-        _killcamButton.interactable = available && !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid;
-        var tooltip = _killcamButton.GetComponent<HoverTooltipArea>();
-        if (tooltip != null)
-        {
-            tooltip.SetMessageText(available
-                ? "Death replay for this mode. Respawn waits until playback ends or is skipped. Tactical still waits for the next round."
-                : reason, rawText: true);
-            tooltip.SetUnlockStatus(available);
-        }
+        _mutatorsButton.gameObject.SetActive(true);
     }
 
     private void RefreshTdmRules()

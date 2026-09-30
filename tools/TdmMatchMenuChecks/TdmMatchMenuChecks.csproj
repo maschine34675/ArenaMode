@@ -6,8 +6,13 @@
     <ProductionRulesView Condition="'$(ProductionRulesView)' == ''">../../ArenaMode.Client/Session/ArenaTdmMatchRulesView.cs</ProductionRulesView>
     <ProductionModeView Condition="'$(ProductionModeView)' == ''">../../ArenaMode.Client/Session/ArenaModeSelectionView.cs</ProductionModeView>
     <ProductionSettings Condition="'$(ProductionSettings)' == ''">../../ArenaMode.Client/Config/Settings.cs</ProductionSettings>
+    <ProductionMutatorsView Condition="'$(ProductionMutatorsView)' == ''">../../ArenaMode.Client/Session/ArenaMutatorsView.cs</ProductionMutatorsView>
+    <ProductionMutatorSelection Condition="'$(ProductionMutatorSelection)' == ''">../../ArenaMode.Client/Session/ArenaMutatorSelection.cs</ProductionMutatorSelection>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(ProductionMutatorsView)" Link="Production/ArenaMutatorsView.cs" />
+    <Compile Include="$(ProductionMutatorSelection)" Link="Production/ArenaMutatorSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Pickups/ArenaPickupSettings.cs" Link="Production/ArenaPickupSettings.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
     <Compile Include="../../ArenaMode.Client/Hud/ArenaUiTheme.cs" Link="Production/ArenaUiTheme.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />

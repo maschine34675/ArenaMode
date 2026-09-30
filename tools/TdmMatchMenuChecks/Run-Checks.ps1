@@ -57,9 +57,15 @@ $arenaFaults = @(
     @('killcam-current-mode', 'ArenaMode.Client/Config/Settings.cs',
       'var entry = ReplayEntry(mode);', 'var entry = ReplayEntry("deathmatch");',
       'ProductionSettings', 'native killcam button persists current mode gungame'),
-    @('killcam-retired-callback', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
-      "!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy`n                || _selection == null", 'owner == null || _selection == null',
-      'ProductionModeView', 'retired killcam callback cannot mutate reopened panel')
+    @('killcam-retired-callback', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
+      '!Owns(generation) || !_rows.Contains(row) || _dispatching', '_dispatching',
+      'ProductionMutatorsView', 'retired killcam callback cannot mutate reopened panel'),
+    @('mutator-live-lock', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
+      'if (Locked || UnavailableReason(id) != null)', 'if (UnavailableReason(id) != null)',
+      'ProductionMutatorSelection', 'live lock prevents mutator writes even before menu refresh'),
+    @('mutator-mode-gate', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
+      'if (Locked || UnavailableReason(id) != null)', 'if (Locked || (id != ArenaMutator.Pickups && UnavailableReason(id) != null))',
+      'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback')
 )
 try {
     foreach ($arenaFault in $arenaFaults) {
@@ -84,7 +90,8 @@ finally {
 $arenaRun = Invoke-MenuCheck 'production-final'
 if ($arenaRun.Code -ne 0 -or -not $arenaRun.Output.Contains('TDM_MATCH_MENU_CHECKS_PASSED')) { throw $arenaRun.Output }
 $arenaHashes = @('ArenaMode.Client\Config\Settings.cs', 'ArenaMode.Client\Session\ArenaModeSelectionView.cs',
-    'ArenaMode.Client\Session\ArenaTdmMatchRulesState.cs', 'ArenaMode.Client\Session\ArenaTdmMatchRulesView.cs') |
+    'ArenaMode.Client\Session\ArenaTdmMatchRulesState.cs', 'ArenaMode.Client\Session\ArenaTdmMatchRulesView.cs',
+    'ArenaMode.Client\Session\ArenaMutatorSelection.cs', 'ArenaMode.Client\Session\ArenaMutatorsView.cs') |
     ForEach-Object { [pscustomobject]@{ Path = $_; SHA256 = (Get-FileHash -LiteralPath (Join-Path $arenaRepo $_) -Algorithm SHA256).Hash } }
 $arenaHashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $arenaEvidence 'production-sources.json')
 Write-Output $arenaRun.Output

@@ -7,6 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Mutatoren-Menü (2026-09-30):** MUTATORS ersetzt den einzelnen Killcam-Button
+  im Kartenmenü. Acht bestehende F12-Optionen in kompakter Ansicht: Double jump,
+  Air control, Airborne hip fire, Backpack items, Killcam, Pickups, Colored tracers,
+  Team laser colors. Gleiche gespeicherte Werte, Killcam weiter pro Modus;
+  keine neuen Defaults oder Gameplayänderungen. N/A erklärt Abhängigkeiten;
+  Arm-/Raid-Sperre und Callback-Bereinigung bleiben erhalten.
+  Details und Prüffolge: `MUTATORS-MENU-REVIEW.md`.
+
 - **Neue Standardwerte (2026-09-30):** Auf Nutzerwunsch HitmarkerVolume und
   AnnouncerVolume jeweils 0,7; BotWalkSpeedMult und BotSprintSpeedMult jeweils
   1,5; VisibleLaserBrightness und VisibleLaserBeamBrightness jeweils 3;

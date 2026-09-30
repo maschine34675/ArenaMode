@@ -8,7 +8,8 @@ oder fremder Quellcode wird gebündelt.
 
 ## Auswahl und Lebensdauer
 
-Im Kartenauswahlbildschirm steht rechts neben MATCH RULES ein Killcam-Schalter.
+Im Kartenauswahlbildschirm öffnet MUTATORS rechts neben MATCH RULES die
+Feature-Auswahl mit dem Killcam-Schalter (siehe `MUTATORS-MENU-REVIEW.md`).
 Die Wahl wird getrennt für Deathmatch, Gun Game, Team Deathmatch und Tactical
 gespeichert. Einschalten wählt drei Sekunden Replay, Ausschalten null; die
 jeweilige F12-Einstellung `ReplaySeconds` erlaubt weiterhin 0–10 Sekunden.
