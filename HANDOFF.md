@@ -15,6 +15,13 @@ current. User-facing communication is normally German.
   Überschreibung gespeicherter Einstellungen. Neue Konfigurationen und das
   Zurücksetzen auf Standard verwenden diese Werte. Bereiche, Mechanik und
   gespeicherte Nutzer-/Testkonfigurationen bleiben unverändert.
+  Umsetzung `0312f78`; Menü-/Konfigurationsharness 121 Assertions bestanden,
+  unabhängiges Review ohne Befund und isolierter Release-Build erfolgreich.
+  Client lokal eingespielt, SHA256
+  `8B1D65D8B075DA78DED7C9A336C0392173A52A8A47C57921D572A022DA600CB7`.
+  Server/Core/BigBrain unverändert. Keine direkten GPU-Schreibzugriffe;
+  externe Synchronisierung übernimmt, deren Abschluss ist hier nicht geprüft.
+  Kein neuer Ingame-Test. Beleg: `DEFAULTS-DEPLOYMENT-20260930.json`.
 
 - **Salven-Schadenszahlen und Killcam pro Modus (2026-09-30):**
   `99a91f2`: Option `HUD / CombineDamageNumbers` standardmäßig aus, über F12

@@ -1,0 +1,22 @@
+{
+  "SourceCommit": "0312f78b5a5bc7c98d1d20f34d305add921a2461",
+  "CompletedUtc": "2026-09-30T09:36:52.7386912Z",
+  "Artifacts": [
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\d24417af12d04a1d894d0248e93af47c\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\defaults-deploy\\d682c4a6363f4a9d9f213219a0abc88d\\0-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "1E4BD4313D820CC1C401424225DB22DB6BFC47419C000A93CE4CA544D2AFCBBF",
+      "Sha256": "8B1D65D8B075DA78DED7C9A336C0392173A52A8A47C57921D572A022DA600CB7"
+    }
+  ],
+  "Untouched": {
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "A304C7EFFB2C6117D8607F5CF04075DA3ABB0DB4E02FEA9EF3F24CCBFDD14C2A",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "LiveGpuTested": false,
+  "RemoteDelivery": "No direct GPU writes; existing external synchronization is responsible for propagation. Remote disk and loaded modules not verified.",
+  "Limitation": "Client disk delivery verified under exclusive file locks. Server/Core/BigBrain unchanged. No claim about loaded EFT modules, native visuals or profile acceptance. Restart EFT before testing."
+}
