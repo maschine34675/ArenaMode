@@ -35,6 +35,7 @@ internal static class Program
     private static void Reset(IArenaMode mode = null)
     {
         ArenaAdministrativeDeathGate.Reset();
+        ArenaMode.Combat.Fire.ArenaFireRuntime.Owner = ArenaMode.Combat.Fire.ArenaFireRuntime.Victim = null;
         ArenaHitHistory.Reset();
         TeamDeathmatchRelations.Affiliations.Clear();
         _world = new GameWorld();
@@ -91,6 +92,19 @@ internal static class Program
     private static void Sources()
     {
         Reset(); Hit(ownerless: true); Unattributed("ownerless source");
+        Reset(); Hit(type: EDamageType.Flame); Unattributed("unowned environment fire");
+        foreach (bool freeForAll in new[] { false, true })
+        {
+            Reset(new RoundsMode { FreeForAll = freeForAll });
+            var original = _local;
+            _local = Body("local", true); _world.MainPlayer = _local; _game.LocalPlayer = _local;
+            ArenaMode.Combat.Fire.ArenaFireRuntime.Owner = original;
+            ArenaMode.Combat.Fire.ArenaFireRuntime.Victim = _victim;
+            Hit(source: original, type: EDamageType.Flame);
+            var fire = _match.Damage.Single();
+            Assert(fire.AttackerIsLocal && fire.AttackerBodyId == ArenaHitHistory.BodyId(original),
+                "owned fire retains local contribution after respawn " + freeForAll);
+        }
         foreach (var type in new[] { EDamageType.LightBleeding, EDamageType.HeavyBleeding, EDamageType.Fall, EDamageType.Undefined, EDamageType.Medicine, EDamageType.Landmine })
         {
             Reset(); Hit(type: type); Unattributed("unproven source " + type);

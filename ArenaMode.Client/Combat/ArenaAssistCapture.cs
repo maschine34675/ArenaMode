@@ -112,7 +112,7 @@ internal static class ArenaAssistCapture
             VictimBodyId = damage.VictimBodyId, Damage = damage.Damage,
             AttackerBodyId = ArenaHitHistory.BodyId(attacker),
             AttackerProfileId = attacker.ProfileId,
-            AttackerIsLocal = ReferenceEquals(attacker, local),
+            AttackerIsLocal = ReferenceEquals(attacker, local) || Fire.ArenaFireRuntime.OwnsDamage(victim, attacker, info.DamageType),
             AttackerIsFriendly = friendly
         };
     }
@@ -122,7 +122,8 @@ internal static class ArenaAssistCapture
     {
         attacker = source as Player;
         friendly = null;
-        if (!ArenaCombatAwards.IsCombatDamage(damageType.ToString())
+        if ((!ArenaCombatAwards.IsCombatDamage(damageType.ToString())
+                && !Fire.ArenaFireRuntime.OwnsDamage(victim, source, damageType))
             || ReferenceEquals(attacker, null) || ReferenceEquals(attacker, victim)
             || string.IsNullOrEmpty(attacker.ProfileId)
             || string.Equals(attacker.ProfileId, victim.ProfileId, StringComparison.Ordinal)) return false;
@@ -148,17 +149,19 @@ internal static class ArenaAssistCapture
             // Non-team modes have no retained affiliation registry. A dead body
             // may remain the exact current registered identity; a replacement
             // under the same profile ID must never inherit its contributions.
-            if (!IsRegistered(world, attacker, requireAlive: false)) return false;
+            if (!IsRegistered(world, attacker, requireAlive: false)
+                && !Fire.ArenaFireRuntime.OwnsDamage(victim, source, damageType)) return false;
             if (mode is RoundsMode rounds)
             {
-                if (!rounds.FreeForAll && !ReferenceEquals(attacker, local)
+                if (!rounds.FreeForAll && !ReferenceEquals(attacker, local) && !Fire.ArenaFireRuntime.OwnsDamage(victim, source, damageType)
                     && !ReferenceEquals(victim, local)) return false;
             }
             else if (mode is GunGameMode)
             {
                 // Gun Game has no frozen DeathmatchOptions. Use actual exact-body
                 // group hostility, never a live F12 setting from another mode.
-                if (!GunGameOpponents(local, attacker, victim)) return false;
+                if (!GunGameOpponents(local, attacker, victim)
+                    && !(Fire.ArenaFireRuntime.OwnsDamage(victim, source, damageType) && ExplicitEnemy(victim, local))) return false;
             }
             else return false;
         }

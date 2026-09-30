@@ -100,6 +100,12 @@ public sealed class Plugin : BaseUnityPlugin
                 || brains.Any(brain => !pickupLayer.CustomLayerBrains.Contains(brain)))
                 throw new InvalidOperationException("BigBrain did not retain the Arena pickup layer registration.");
             RuntimeEnabled = true;
+            int fireLayerId = BrainManager.AddCustomLayer(typeof(ArenaFireEscapeLayer), brains, 79);
+            if (!BrainManager.CustomLayersReadOnly.TryGetValue(fireLayerId, out var fireLayer)
+                || fireLayer.customLayerType != typeof(ArenaFireEscapeLayer) || fireLayer.customLayerPriority != 79
+                || brains.Any(brain => !fireLayer.CustomLayerBrains.Contains(brain)))
+                throw new InvalidOperationException("BigBrain did not retain the Arena ground fire escape layer.");
+            Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = true;
             Pickups.ArenaPickupRuntime.BotObjectivesAvailable = true;
             Logger.LogInfo($"Arena pickup layer {pickupLayerId} registered at priority {PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
             Logger.LogInfo(
@@ -122,6 +128,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         RuntimeEnabled = false;
+        Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = false;
         Pickups.ArenaPickupRuntime.BotObjectivesAvailable = false;
         ArenaPickupObjective.ResetClaims();
         if (_consumerRegistered)

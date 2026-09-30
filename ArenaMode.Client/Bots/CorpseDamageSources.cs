@@ -154,7 +154,8 @@ internal static class CorpseDamageSources
 
         try
         {
-            return UnfinishedTripwire(profileId, world)
+            return Combat.Fire.ArenaFireRuntime.HoldsSource(profileId, world)
+                ?? UnfinishedTripwire(profileId, world)
                 ?? LiveThrowable(profileId, world)
                 ?? ShotInFlight(profileId, world);
         }

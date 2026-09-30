@@ -120,6 +120,7 @@
     <Reference Include="UnityEngine.IMGUIModule" />
     <Reference Include="UnityEngine.InputLegacyModule" />
     <Reference Include="UnityEngine.PhysicsModule" />
+    <Reference Include="UnityEngine.ParticleSystemModule" />
     <Reference Include="UnityEngine.UI" />
     <Reference Include="UnityEngine.UIModule" />
     <Reference Include="UnityEngine.UnityWebRequestModule" />

@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Brandgranaten-Prototyp (2026-09-30, eigener Branch):**
+  `feature/molotov-prototype`, isoliert in `../ArenaMode-molotov`.
+  F12 `Arena incendiary prototype / Enabled` standardmäßig aus; wandelt nur
+  eigene RGD-5 während Live-Arena mit passendem BigBrain-Companion um.
+  Sechs Sekunden begrenztes Bodenfeuer, 80 Basis-HP/s ohne Stapeln,
+  Werfer-/Assist-Zuordnung und eigener Bot-Fluchtlayer. Vorläufig vorhandenes
+  Granatenmodell, prozedurale Flammen/Knistergeräusch; kein Server-Update.
+  Offlinetests/Review, Grenzen und Prüffolge: `MOLOTOV-PROTOTYPE-REVIEW.md`.
+  Auslieferung und native Abnahme werden getrennt protokolliert; ein erfolgreicher
+  Build allein bestätigt weder das Feuerbild noch das Botverhalten.
+  Prototyp `79eb2ab`, Testbuild `bfdf327` enthält aktuellen Hauptbranch `50b7bc9`.
+  Drei echte Equator-Würfe auf Host 1: Feuer/Eigenschaden/Respawn sowie Botkontakt,
+  beobachteter Fluchtlayer mit Bewegung und Rückgabe an SAIN bestätigt. F12 wieder
+  aus, Godmode aus, native Ressourcen leer, Profilvergleich mit dokumentierten
+  normalen Hideout-/Serialisierungsdifferenzen. Grafik noch grober Platzhalter;
+  kein gegnerischer Feuerkill und kein PFT-/TDM-Test. Bericht:
+  `GPU-MOLOTOV-RESULTS-20260930.md`. Finale zusätzliche Reset-Bereinigung besitzt
+  57 Assertions/acht Fehlerkontrollen und unabhängige Review.
+
 - **Stacheldraht im Killfeed (2026-09-30):** Direkte native `Barbed`-Tode
   ohne Angreifer bekommen einen eigenen HUD-Eintrag mit Opfer/Teamfarbe,
   rotem Arena-Stacheldraht-Icon und `BARBED WIRE`. EFT löscht hier den letzten

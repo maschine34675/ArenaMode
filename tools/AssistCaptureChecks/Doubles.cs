@@ -14,7 +14,7 @@ namespace Comfort.Common
 }
 namespace EFT
 {
-    public enum EDamageType { Bullet, GrenadeFragment, Explosion, Blunt, Landmine, LightBleeding, HeavyBleeding, Fall, Undefined, Melee, Medicine }
+    public enum EDamageType { Bullet, GrenadeFragment, Explosion, Blunt, Landmine, LightBleeding, HeavyBleeding, Fall, Undefined, Melee, Medicine, Flame }
     public enum EPlayerSide { Usec, Bear }
     public enum GameStatus { Started, Stopped }
     public interface IPlayer { string ProfileId { get; } }
@@ -137,5 +137,14 @@ namespace ArenaMode
     {
         internal readonly List<string> Lines = new();
         internal void LogWarning(string message) => Lines.Add(message);
+    }
+}
+namespace ArenaMode.Combat.Fire
+{
+    internal static class ArenaFireRuntime
+    {
+        internal static EFT.Player Victim, Owner;
+        internal static bool OwnsDamage(EFT.Player victim, EFT.IPlayer source, EFT.EDamageType type)
+            => type.ToString() == "Flame" && Owner != null && ReferenceEquals(victim, Victim) && ReferenceEquals(source, Owner);
     }
 }
