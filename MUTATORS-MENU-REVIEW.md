@@ -1,8 +1,10 @@
 # Mutatoren im Kartenmenü
 
-Stand: 30.09.2026. Der bisherige Killcam-Schalter neben MATCH RULES wird durch
-MUTATORS ersetzt. Eine zentrierte Ansicht im bestehenden Arena-Stil enthält
-acht Schalter, ohne neue Zahlenregler oder eine zweite Konfiguration.
+Stand: 30.09.2026, Inline-Revision. Die acht Mutatoren stehen dauerhaft in der
+rechten Bildschirmspalte, ohne Öffnen-Button oder Popup. Eigene Controls im
+Arena-Stil zeigen aktive Optionen mit grünem ON, Farbchip und Seitenstreifen;
+OFF bleibt grau, nicht verfügbare Optionen zeigen N/A mit Begründung.
+Es gibt keine neuen Zahlenregler oder eine zweite Konfiguration.
 
 | Schalter | Bestehende Einstellung | Einschränkung |
 |---|---|---|
@@ -29,12 +31,21 @@ wenn eine Abhängigkeit fehlt. Die Pickup-Beschreibung verspricht keine Punkte
 auf Karten ohne Layout. Die gesamte Bedienung ist ab Arm bzw. im Raid gesperrt.
 Es werden keine Spielmechanik- oder Profilpfade verändert.
 
-Das Popup liegt über dem Kartenbildschirm; der Hintergrund fängt Klicks ab.
-CLOSE oder ein Klick außerhalb schließt es. Escape behält die native Navigation
-zum vorherigen Bildschirm; dessen vorhandenes Close räumt beide Ansichten auf.
+Rechts oben stehen Kartenname und eine auf höchstens 160 Zeichen gekürzte
+Beschreibung. Die irreführenden Vanilla-Raidstatistiken und das große Banner
+werden nur in Arena verborgen. Customs ersetzt diese Zusammenfassung durch
+eine kompakte Arealkarte mit AREA/OVERVIEW; die Mutatoren rücken darunter.
+Zeit-/Wetterwahl, Next und Ready bleiben native Controls an ihrem bisherigen Platz.
+Die gemeinsame rechte Spalte skaliert bei geringerer Bildschirmhöhe mit.
+Escape behält die native Navigation zum vorherigen Bildschirm; Close räumt alle
+eigenen Ansichten auf. Die originalen CanvasGroup-Werte werden exakt restauriert,
+auch beim Initialisierungsfehler. Der Preview besitzt nur die Sichtbarkeit der
+neuen Zusammenfassung, nicht zusätzlich dieselbe native Infobox.
 Keine globale Eingabesubskription. Jede Ansicht besitzt ihre eigenen Listener;
 Generation, Zeilenidentität, aktive Hierarchie und Arm-Zustand werden nochmals
 im Callback geprüft. Der bestehende Modus-/Areal-Panelplatz bleibt unverändert.
+Farbchip und Streifen sind unabhängig von Button-Hover/Disabled-Tints; keine
+geklonten nativen Animationen können ihren aktiven Zustand übermalen.
 
 ## Prüfung
 
@@ -51,8 +62,9 @@ Build, Auslieferung und eine eventuelle native UI-Prüfung werden mit Commit und
 Hash im HANDOFF dokumentiert; Offline-Prüfungen zertifizieren kein Raycasting,
 Schriftbild oder Gameplay.
 
-Native Prüffolge: Arena > Kartenauswahl > MUTATORS; acht lesbare Zeilen, ON/OFF
-mit F12 vergleichen, Killcam pro Modus und Laser/Pickup-N/A prüfen; Close,
-Außenklick, Escape und Wiederöffnen ohne Reste. Keine neue Raid-Abnahme nötig,
+Native Prüffolge: Arena > Kartenauswahl; acht sofort sichtbare Schalter, ON/OFF
+und Farbwechsel mit F12 vergleichen, Killcam pro Modus und Laser/Pickup-N/A
+prüfen; Factory-Zeitwahl und Customs-Preview ohne Überlappungen, Escape und
+gewöhnlichen PMC-Bildschirm auf vollständige Restaurierung prüfen. Keine neue Raid-Abnahme nötig,
 um die unveränderten Gameplaypfade zu beschreiben; deren Funktion ist mit diesem
 Menütest aber nicht erneut bestätigt.

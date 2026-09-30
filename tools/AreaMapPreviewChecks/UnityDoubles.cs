@@ -46,6 +46,7 @@ namespace UnityEngine
     }
     public class Transform:Component
     {
+        public Vector3 localScale = new(1,1,1);
         public Transform parent;
         public readonly List<Transform> Children=new();
         public void SetParent(Transform target,bool world)
@@ -189,7 +190,7 @@ namespace TMPro
     {
         public string text;public object font,fontSharedMaterial;public float fontSize;
         public FontStyles fontStyle;
-        public bool enableWordWrapping;
+        public bool enableWordWrapping, richText;
         public TextOverflowModes overflowMode;
         public TextAlignmentOptions alignment;
     }

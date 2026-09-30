@@ -32,7 +32,8 @@ namespace UnityEngine
         public void SetAsLastSibling(){}
         public void SetAsFirstSibling(){}
     }
-    public class RectTransform:Transform { public Vector2 anchorMin,anchorMax,pivot,anchoredPosition,sizeDelta,offsetMin,offsetMax; }
+    public class RectTransform:Transform { public Vector2 anchorMin,anchorMax,pivot,anchoredPosition,sizeDelta,offsetMin,offsetMax; public Rect rect => new(sizeDelta.x,sizeDelta.y); }
+    public readonly record struct Rect(float width,float height);
     public readonly record struct Vector2(float x,float y) { public static Vector2 zero=>new(0,0); public static Vector2 one=>new(1,1); }
     public readonly record struct Vector3(float x,float y,float z) { public static Vector3 one=>new(1,1,1); }
     public struct Color(float red,float green,float blue,float alpha)

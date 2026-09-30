@@ -8,7 +8,7 @@ oder fremder Quellcode wird gebündelt.
 
 ## Auswahl und Lebensdauer
 
-Im Kartenauswahlbildschirm öffnet MUTATORS rechts neben MATCH RULES die
+Im Kartenauswahlbildschirm steht rechts dauerhaft die MUTATORS-
 Feature-Auswahl mit dem Killcam-Schalter (siehe `MUTATORS-MENU-REVIEW.md`).
 Die Wahl wird getrennt für Deathmatch, Gun Game, Team Deathmatch und Tactical
 gespeichert. Einschalten wählt drei Sekunden Replay, Ausschalten null; die
@@ -18,7 +18,7 @@ Deathmatch/Gun Game/Team Deathmatch bleiben standardmäßig aus; Tactical behäl
 seinen bisherigen Standard von drei Sekunden und vorhandene Konfigurationen.
 
 Ohne verfügbare und aktivierte KillcamReplay-Mod zeigt der Schalter N/A und
-erklärt den Grund im Tooltip. `KillAndDamageInfo` deaktiviert dort DeathReplay
+erklärt den Grund unter dem Schalter. `KillAndDamageInfo` deaktiviert dort DeathReplay
 ebenfalls. Kein Schreiben in die fremde Konfiguration und keine Serverroute.
 Die wirksame Dauer wird beim erfolgreichen Arena-Arm eingefroren und bei
 Abbruch, Ablehnung oder Raidende gelöscht. F12-Änderungen im laufenden Match

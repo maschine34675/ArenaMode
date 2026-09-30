@@ -8,6 +8,8 @@ $previewBoundFiles = @(
     'ArenaMode.Client\Session\Maps\ArenaAreaMapProjection.cs',
     'ArenaMode.Client\Session\Maps\ArenaAreaMapGraphic.cs',
     'ArenaMode.Client\Session\Maps\ArenaAreaMapPreview.cs',
+    'ArenaMode.Client\Session\ArenaCompactMapInfo.cs',
+    'ArenaMode.Client\Session\ArenaMapPanelLayout.cs',
     'ArenaMode.Client\Session\ArenaAreaSelectionState.cs',
     'ArenaMode.Shared\ArenaAreaCatalog.cs',
     'ArenaMode.Client\Assets\MapPreviews\customs-ground.png',

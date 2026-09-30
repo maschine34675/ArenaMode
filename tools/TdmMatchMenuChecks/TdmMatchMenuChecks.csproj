@@ -10,6 +10,7 @@
     <ProductionMutatorSelection Condition="'$(ProductionMutatorSelection)' == ''">../../ArenaMode.Client/Session/ArenaMutatorSelection.cs</ProductionMutatorSelection>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaMapPanelLayout.cs" Link="Production/ArenaMapPanelLayout.cs" />
     <Compile Include="$(ProductionMutatorsView)" Link="Production/ArenaMutatorsView.cs" />
     <Compile Include="$(ProductionMutatorSelection)" Link="Production/ArenaMutatorSelection.cs" />
     <Compile Include="../../ArenaMode.Client/Pickups/ArenaPickupSettings.cs" Link="Production/ArenaPickupSettings.cs" />

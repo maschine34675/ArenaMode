@@ -29,11 +29,11 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _subtitle;
     private GameObject _restrictionNote;
     private ArenaModeSelectionState _selection;
-    private Button _mutatorsButton;
     private readonly ArenaMutatorsView _mutators = new();
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selection?.SelectedMode;
+    internal void LayoutMutators(bool areaPreview) => _mutators.Layout(areaPreview);
 
     internal void Synchronize(string selectedMode, bool tacticalOnly)
     {
@@ -84,8 +84,8 @@ internal sealed class ArenaModeSelectionView
         {
             Create(screen, template._elementTemplate, template._currentValueText ?? nativeText);
             _selection.CommitInitialSelection();
-            Refresh();
             _root.SetActive(true);
+            Refresh();
         }
         catch
         {
@@ -107,8 +107,6 @@ internal sealed class ArenaModeSelectionView
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
         Safe(_mutators.Close);
-        if (_mutatorsButton != null) Safe(() => _mutatorsButton.onClick.RemoveAllListeners());
-        _mutatorsButton = null;
         _markers.Clear();
         var root = _root;
         _root = null;
@@ -148,8 +146,7 @@ internal sealed class ArenaModeSelectionView
         CreateRule(266f, typography);
         var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 281f, 22f);
         heading.color = Dim(typography, .65f);
-        CreateMutatorsButton(template);
-        _mutators.Create(screen, _root, template, typography, Refresh);
+        _mutators.Create(screen, _root, typography, Refresh);
         _rules = CreateFact("RULES", typography, 312f);
         _respawn = CreateFact("RESPAWN", typography, 352f);
         _equipment = CreateFact("EQUIPMENT", typography, 392f);
@@ -250,45 +247,8 @@ internal sealed class ArenaModeSelectionView
         if (mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
         _equipment.text = _selection.TacticalOnly ? "PMC entry gear" : mode.Equipment;
-        _mutatorsButton.interactable = !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid;
         _mutators.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         RefreshTdmRules();
-    }
-
-    private void CreateMutatorsButton(Button template)
-    {
-        var owner = _root;
-        _mutatorsButton = UnityEngine.Object.Instantiate(template, owner.transform, false);
-        _mutatorsButton.name = "Arena Mutators open";
-        _mutatorsButton.onClick = new Button.ButtonClickedEvent();
-        _mutatorsButton.transform.localScale = Vector3.one;
-        // Share the heading's unused right half; do not push the area panel or
-        // native navigation down. The rule rows start below this 26-unit control.
-        SetRect((RectTransform)_mutatorsButton.transform, 196f, 276f, 144f, 26f);
-        var layout = _mutatorsButton.GetComponent<LayoutElement>();
-        if (layout != null) layout.ignoreLayout = true;
-        var label = _mutatorsButton.GetComponentInChildren<TextMeshProUGUI>(true)
-            ?? throw new InvalidOperationException("The native mutators label is missing.");
-        label.text = "MUTATORS";
-        label.fontSize = 14f;
-        label.enableWordWrapping = false;
-        label.alignment = TextAlignmentOptions.Center;
-        label.raycastTarget = false;
-        SetRect(label.rectTransform, 0f, 0f, 144f, 26f);
-        Hud.ArenaUiTheme.StyleButton(_mutatorsButton, label);
-        var tooltip = _mutatorsButton.GetComponent<HoverTooltipArea>();
-        if (tooltip != null) { tooltip.SetMessageText("Choose Arena features.", rawText: true); tooltip.SetUnlockStatus(true); }
-        var navigation = _mutatorsButton.navigation;
-        navigation.mode = Navigation.Mode.None;
-        _mutatorsButton.navigation = navigation;
-        _mutatorsButton.onClick.AddListener(() =>
-        {
-            if (!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy
-                || _selection == null || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) return;
-            Refresh();
-            _mutators.Show();
-        });
-        _mutatorsButton.gameObject.SetActive(true);
     }
 
     private void RefreshTdmRules()

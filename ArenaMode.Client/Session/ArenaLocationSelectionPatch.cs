@@ -28,6 +28,7 @@ internal static class ArenaLocationSelectionPatch
         public readonly ArenaModeSelectionView Modes = new();
         public readonly ArenaAreaSelectionView Areas = new();
         public readonly Maps.ArenaAreaMapPreview Preview = new();
+        public readonly ArenaCompactMapInfo Info = new();
         public readonly List<(string MapId, ArenaConditionalMapView View)> ConditionalMaps = new();
         public ArenaMapMenuUpdater Updater;
         public object Generation;
@@ -46,13 +47,16 @@ internal static class ArenaLocationSelectionPatch
             var participants = ArenaParticipantSelectionState.Create(areas, eligibility.IsTeam,
                 ArenaParticipantSettings.Get(areas.MapId, areas.ModeId));
             Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam, participants);
+            Info.Refresh(screen.SelectedLocation?.LocalizedName, screen._infoPanel?._description?.text);
             Preview.Refresh(areas);
+            Modes.LayoutMutators(Preview.Root != null && Preview.Root.activeSelf);
         }
 
         public void Restore()
         {
             Generation = null;
             Preview.Close();
+            Info.Close();
             if (Updater != null)
             {
                 Updater.Tick = null;
@@ -182,13 +186,16 @@ internal static class ArenaLocationSelectionPatch
                     if (accepted) state.Refresh(__instance);
                     return accepted;
                 });
-                state.Preview.Show(__instance.transform, __instance._infoPanel?.gameObject,
+                state.Info.Show(__instance.transform, __instance._infoPanel?.gameObject,
+                    __instance._acceptButton?._headerLabel);
+                state.Preview.Show(__instance.transform, state.Info.Root,
                     __instance._acceptButton?._headerLabel);
                 state.Refresh(__instance);
             }
             catch (System.Exception ex)
             {
                 state.Preview.Close();
+                state.Info.Close();
                 state.Modes.Close();
                 state.Areas.Close();
                 // The native map screen remains fully usable if our optional

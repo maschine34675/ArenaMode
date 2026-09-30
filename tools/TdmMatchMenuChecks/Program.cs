@@ -120,7 +120,8 @@ Need(!lying.TrySelectKills(25) && !lying.TrySelectTime(300), "success callback m
 // The actual mode view creates, synchronizes, displays and tears down the child.
 Settings.TeamDeathmatchKillLimit.Value = 50;
 Settings.TeamDeathmatchTimeLimitSeconds.Value = 600;
-var screen = new GameObject("native map screen");
+var screen = new GameObject("native map screen", typeof(RectTransform));
+((RectTransform)screen.transform).sizeDelta = new Vector2(1920f,1080f);
 var view = new ArenaModeSelectionView();
 void Show(string mode = "teamdeathmatch", bool team = false)
     => view.Show(screen.transform, null, mode, team, Settings.TrySelectGameMode);
@@ -131,7 +132,7 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-Need(Buttons().Length == 31 && RuleRoot().activeInHierarchy, "four modes, nine TDM, seventeen Deathmatch rule buttons and the mutators opener exist");
+Need(Buttons().Length == 30 && RuleRoot().activeInHierarchy, "four modes, nine TDM and seventeen Deathmatch rule buttons exist without a mutators opener");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
 Need(!Label("RULES label").gameObject.activeSelf && !Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM rules replace ordinary fact rows rather than overlapping them");
@@ -196,17 +197,19 @@ view.Synchronize("teamdeathmatch", false);
 foreach (var callback in dmRetired) callback();
 Need(Settings.DeathmatchRounds.Value == 3, "hidden Deathmatch callbacks cannot change other mode");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
-Button MutatorsOpen() => Buttons().Single(x => x.name == "Arena Mutators open");
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
 GameObject MutatorsRoot() => screen.transform.Children.Single(x => x.name == "Arena Mutators").gameObject;
 Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
-string KillcamText() => KillcamButton().GetComponentInChildren<TextMeshProUGUI>(true).text;
-var cameraRect = (RectTransform)MutatorsOpen().transform;
-Need(cameraRect.anchoredPosition.x >= 190 && cameraRect.anchoredPosition.x + cameraRect.sizeDelta.x <= 340
-    && -cameraRect.anchoredPosition.y + cameraRect.sizeDelta.y <= 303,
-    "mutators opener fits beside heading without invading match rules or map navigation");
-Need(!MutatorsRoot().activeSelf, "mutators start closed");
-MutatorsOpen().onClick.Invoke();
+string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
+string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
+Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 8, "inline panel has eight switches, no backdrop or close buttons");
+var mutatorRect = (RectTransform)MutatorsRoot().transform;
+Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-328)
+    && mutatorRect.sizeDelta == new Vector2(600,408), "inline panel fits below compact info on the right");
+view.LayoutMutators(true);
+Need(mutatorRect.anchoredPosition == new Vector2(-56,-508), "Customs preview has a separate upper slot");
+view.LayoutMutators(false);
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
@@ -235,7 +238,6 @@ foreach (bool armed in new[] { true, false })
 ArenaSession.ArmedForNextRaid = ArenaSession.IsActive = false;
 ArenaMode.Spectator.KillcamReplayCompat.Available = false;
 view.Synchronize("gungame", false);
-MutatorsOpen().onClick.Invoke();
 KillcamButton().onClick.Invoke();
 Need(KillcamText() == "KILLCAM: N/A" && !KillcamButton().interactable && Settings.GunGameReplaySeconds.Value == 7f,
     "unavailable mod is explicit and cannot change preference");
@@ -255,7 +257,6 @@ Need(retiredKillcam.onClick.Snapshot().Length == 0, "close removes killcam callb
 Need(retiredButton.onClick.Snapshot().Length == 0, "close removes child listeners");
 Settings.GameMode.Value = "teamdeathmatch";
 Show();
-MutatorsOpen().onClick.Invoke();
 foreach (var callback in staleKillcamActions) callback();
 Need(Settings.TeamDeathmatchReplaySeconds.Value == 0f, "retired killcam callback cannot mutate reopened panel");
 foreach (var callback in retired) callback();
@@ -277,9 +278,9 @@ foreach (var (id, entry) in preferencePairs)
     int mutatorSaves = config.Saves;
     MutatorButton(id).onClick.Invoke();
     Need(entry.Value != before && config.Saves > mutatorSaves, "mutator persists original F12 entry: " + id);
-    entry.Value = before; // Simulated F12 change while popup remains open.
+    entry.Value = before; // Simulated F12 change while panel remains visible.
     view.Synchronize("teamdeathmatch", false);
-    Need(MutatorButton(id).GetComponentInChildren<TextMeshProUGUI>(true).text.EndsWith(before ? ": ON" : ": OFF"),
+    Need(MutatorStatus(id) == (before ? "ON" : "OFF"),
         "F12 changes refresh mutators without rebuilding: " + id);
 }
 config.SaveOnConfigSet = false;
@@ -329,7 +330,7 @@ view.Synchronize("teamdeathmatch", false);
 foreach (bool armed in new[] { false, true })
 {
     ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
-    // Recheck lock in the callback, BEFORE the regular refresh hides the popup.
+    // Recheck lock in the callback, BEFORE the regular refresh hides the panel.
     foreach (var (id, entry) in preferencePairs)
     {
         bool before = entry.Value;
@@ -337,24 +338,20 @@ foreach (bool armed in new[] { false, true })
         Need(entry.Value == before, "live lock prevents mutator writes even before menu refresh: " + id);
     }
     view.Synchronize("teamdeathmatch", false);
-    MutatorsOpen().onClick.Invoke();
-    Need(!MutatorsRoot().activeSelf, "armed/active refresh closes popup and blocks reopening");
+    Need(!MutatorsRoot().activeSelf, "armed/active refresh hides inline mutators");
     ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
-    MutatorsOpen().onClick.Invoke();
+    view.Synchronize("teamdeathmatch", false);
 }
-foreach (string name in new[] { "Arena Mutators close", "Arena Mutators backdrop" })
-{
-    screen.GetComponentsInChildren<Button>(true).Single(b => b.name == name).onClick.Invoke();
-    bool before = Settings.DoubleJumpEnabled.Value;
-    MutatorButton(ArenaMutator.DoubleJump).onClick.Invoke();
-    Need(!MutatorsRoot().activeSelf && Settings.DoubleJumpEnabled.Value == before, "closed mutators reject hidden callbacks");
-    MutatorsOpen().onClick.Invoke();
-}
+view.Root.SetActive(false);
+bool hiddenBefore = Settings.DoubleJumpEnabled.Value;
+MutatorButton(ArenaMutator.DoubleJump).onClick.Invoke();
+Need(Settings.DoubleJumpEnabled.Value == hiddenBefore, "hidden owner rejects mutator callbacks");
+view.Root.SetActive(true);
 Settings.DoubleJumpEnabled.RejectWrites = true;
 bool doubleBefore = Settings.DoubleJumpEnabled.Value;
 MutatorButton(ArenaMutator.DoubleJump).onClick.Invoke();
 Need(Settings.DoubleJumpEnabled.Value == doubleBefore
-    && MutatorButton(ArenaMutator.DoubleJump).GetComponentInChildren<TextMeshProUGUI>(true).text.EndsWith(doubleBefore ? ": ON" : ": OFF"),
+    && MutatorStatus(ArenaMutator.DoubleJump) == (doubleBefore ? "ON" : "OFF"),
     "rejected setting writes display actual state");
 Settings.DoubleJumpEnabled.RejectWrites = false;
 Settings.DoubleJumpEnabled.ThrowWrites = true;
@@ -364,12 +361,31 @@ Settings.DoubleJumpEnabled.ThrowWrites = false;
 var stalePopup = screen.GetComponentsInChildren<Button>(true).Where(b => b.name.StartsWith("Arena Mutator")).ToArray();
 var stalePopupActions = stalePopup.SelectMany(b => b.onClick.Snapshot()).ToArray();
 view.Close();
-Need(stalePopup.All(b => b.onClick.Snapshot().Length == 0), "close removes all popup and opener listeners");
-Show(); MutatorsOpen().onClick.Invoke();
+Need(stalePopup.All(b => b.onClick.Snapshot().Length == 0), "close removes all inline mutator listeners");
+Show();
 var beforeStale = preferencePairs.Select(p => p.Item2.Value).ToArray();
 foreach (var callback in stalePopupActions) callback();
 Need(MutatorsRoot().activeSelf && beforeStale.SequenceEqual(preferencePairs.Select(p => p.Item2.Value)),
-    "retired mutator controls cannot modify or close a reopened popup");
+    "retired mutator controls cannot modify or close a reopened panel");
+Settings.DoubleJumpEnabled.Value = true;
+view.Synchronize("teamdeathmatch", false);
+Image StateMarker() => MutatorsRoot().GetComponentsInChildren<Image>(true).Single(i => i.name == "Mutator marker DoubleJump");
+Need(StateMarker().color.Equals(ArenaMode.Hud.ArenaUiTheme.Positive)
+    && !ReferenceEquals(MutatorButton(ArenaMutator.DoubleJump).targetGraphic, StateMarker()),
+    "active marker is green and independent of button hover tint");
+MutatorButton(ArenaMutator.DoubleJump).onClick.Invoke();
+Need(!StateMarker().color.Equals(ArenaMode.Hud.ArenaUiTheme.Positive) && MutatorStatus(ArenaMutator.DoubleJump) == "OFF",
+    "off marker differs visibly from enabled marker");
+foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new Vector2(1280,720) })
+{
+    ((RectTransform)screen.transform).sizeDelta = size;
+    view.LayoutMutators(true);
+    var current = (RectTransform)MutatorsRoot().transform;
+    Need(-current.anchoredPosition.y + current.sizeDelta.y * current.localScale.y < size.y * .9f,
+        "right column leaves bottom native navigation clear at supported canvas sizes");
+    Need(size.x + current.anchoredPosition.x - current.sizeDelta.x * current.localScale.x > size.x * .65f,
+        "right column stays beyond the central map and time strip");
+}
 view.Close();
 Need(view.Root == null && screen.transform.Children.Count == 0, "close destroys all owned view roots");
 foreach (string legacy in new[] { "endless", "rounds" })

@@ -14,11 +14,11 @@ source faults must compile and fail their corresponding behavioral assertions.
 All compiler mutations and output evidence go to ignored repo `artifacts/`;
 production files are not rewritten. The final run restores production inputs.
 
-The mutators extension also links the real pickup settings and popup/adapter.
+The mutators extension also links the real pickup settings and inline view/adapter.
 It covers all eight existing feature switches, shared F12 values, movement
 master and mode/dependency restrictions, arm/active locks before UI refresh,
-manual saving, unchanged laser brightness, click-away/close and stale callbacks.
-Killcam lives inside this popup and keeps its existing per-mode semantics.
+manual saving, unchanged laser brightness, inline state colors, close and stale callbacks.
+Killcam lives in this always-visible right column and keeps its existing per-mode semantics.
 
 The rules occupy the old fact-row region only for independent Team DM. The mode
 panel still ends at reference Y=656; the untouched area panel begins at Y=668.

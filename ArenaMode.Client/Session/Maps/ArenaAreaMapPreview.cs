@@ -165,23 +165,18 @@ internal sealed class ArenaAreaMapPreview
 
     private void Layout()
     {
-        var screenRect = _screen as RectTransform;
-        float screenWidth = screenRect != null && screenRect.rect.width > 0 ? screenRect.rect.width : 1920f;
-        float screenHeight = screenRect != null && screenRect.rect.height > 0 ? screenRect.rect.height : 1080f;
-        float width = Math.Min(640f, Math.Max(360f, screenWidth - 1176f));
-        float height = Math.Min(590f, Math.Max(300f, screenHeight - 448f));
+        float width = ArenaMapPanelLayout.Width(_screen);
+        float height = ArenaMapPanelLayout.PreviewHeight;
+        ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen, ArenaMapPanelLayout.InfoTop, height);
         if (_width == width && _height == height) return;
         _width = width; _height = height;
-        var root = (RectTransform)_root.transform;
-        root.anchorMin = root.anchorMax = root.pivot = new Vector2(1f, 1f);
-        root.anchoredPosition = new Vector2(-56f, -168f);
-        root.sizeDelta = new Vector2(width, height);
-        Place(_title.rectTransform, 20f, 16f, width - 40f, 30f);
-        Place((RectTransform)_detailButton.transform, 20f, 52f, 104f, 28f);
-        Place((RectTransform)_overviewButton.transform, 132f, 52f, 140f, 28f);
-        Place(_viewport, 16f, 92f, width - 32f, height - 180f);
-        Place(_caption.rectTransform, 20f, height - 80f, width - 40f, 26f);
-        Place(_credit.rectTransform, 20f, height - 46f, width - 40f, 36f);
+        Place(_title.rectTransform, 20f, 12f, width - 40f, 28f);
+        Place((RectTransform)_detailButton.transform, 20f, 44f, 104f, 26f);
+        Place((RectTransform)_overviewButton.transform, 132f, 44f, 140f, 26f);
+        Place(_viewport, 16f, 80f, width - 32f, height - 144f);
+        Place(_caption.rectTransform, 20f, height - 58f, width - 40f, 20f);
+        _caption.fontSize = 12f;
+        Place(_credit.rectTransform, 20f, height - 36f, width - 40f, 30f);
     }
 
     private void HideNativeInfo()

@@ -162,10 +162,11 @@ try
         "Detail view must not overlay neighboring area boundaries.");
     Need(firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="CUSTOMS — Factory Center"),"AREA-TITLE","Selected area title follows the offered selection.");
     var rootRect=(RectTransform)firstRoot.transform;var viewportRect=(RectTransform)viewport.transform;
-    Near(rootRect.rect.width,640,"RESIZE","1920-wide root width");Near(rootRect.rect.height,590,"RESIZE","1080-high root height");
+    Near(rootRect.rect.width,600,"RESIZE","1920-wide root width");Near(rootRect.rect.height,320,"RESIZE","Compact preview height");
     ((RectTransform)screen.transform).sizeDelta=new Vector2(1600,900);preview.Refresh(center);
-    Near(rootRect.rect.width,424,"RESIZE","Resized root width");Near(rootRect.rect.height,452,"RESIZE","Resized root height");
-    Near(viewportRect.rect.width,392,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,272,"RESIZE","Resized viewport height");
+    Near(rootRect.rect.width,600,"RESIZE","Resized logical root width");Near(rootRect.rect.height,320,"RESIZE","Resized logical root height");
+    Near(rootRect.localScale.y,900f/1080f,"RESIZE","Smaller canvas scales complete right column");
+    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,176,"RESIZE","Resized viewport height");
     var resizedMesh=mapGraphic.SubmitMesh();Need(resizedMesh.Vertices.Count>4&&resizedMesh.Vertices.All(v=>float.IsFinite(v.Position.x)&&float.IsFinite(v.Position.y)),
         "RESIZE","Mesh must recompute against resized UI geometry.");
     foreach(var fallback in new[]{whole,unavailable,null})
@@ -220,6 +221,32 @@ try
     // Native active state can change independently; do not reactivate it.
     native.SetActive(false);preview.Show(screen.transform,native,typography);preview.Refresh(east);preview.Close();UObject.EndFrame();
     Need(!native.activeSelf,"NATIVE-ACTIVE","Preview must never own native GameObject activation.");native.SetActive(true);
+
+    // Exercise both production owners together: the summary leases native info,
+    // the preview leases the summary. Map switches must not reveal vanilla info.
+    var compact=new ArenaCompactMapInfo();
+    compact.Show(screen.transform,native,typography);
+    compact.Refresh("Factory","A short map description.");
+    var summaryRoot=compact.Root;
+    Need(native.activeSelf&&nativeGroup.alpha==0&&!nativeGroup.blocksRaycasts,"SUMMARY-HIDE","Compact summary hides original info without deactivating its owner.");
+    Need(summaryRoot.GetComponentsInChildren<TMP_Text>().All(t=>!t.richText&&!t.raycastTarget),"SUMMARY-TEXT","Localized strings cannot inject markup or intercept input.");
+    Need(summaryRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="Factory"),"SUMMARY-TEXT","Selected map name remains visible.");
+    var shortened=ArenaCompactMapInfo.ShortDescription(string.Join("\n",Enumerable.Repeat("Long native map description",20)));
+    Need(shortened.Length<=160&&shortened.EndsWith("…")&&!shortened.Contains('\n'),"SUMMARY-TEXT","Native prose is compact and limited to a single short paragraph.");
+    preview.Show(screen.transform,summaryRoot,typography);preview.Refresh(east);
+    Need(summaryRoot.GetComponent<CanvasGroup>()?.alpha==0&&nativeGroup.alpha==0,"SUMMARY-PREVIEW","Customs hides only the summary; original native info stays hidden.");
+    preview.Refresh(whole);
+    Need(summaryRoot.GetComponent<CanvasGroup>()?.alpha==1&&nativeGroup.alpha==0,"SUMMARY-FALLBACK","Leaving Customs restores the compact summary, not vanilla info.");
+    preview.Refresh(east);preview.Close();
+    Need(summaryRoot.GetComponent<CanvasGroup>()==null&&nativeGroup.alpha==0,"SUMMARY-OWNERSHIP","Preview close releases only its summary lease.");
+    compact.Close();
+    Need(nativeGroup.alpha==.37f&&!nativeGroup.interactable&&nativeGroup.blocksRaycasts,"SUMMARY-RESTORE","Arena exit restores all original native CanvasGroup values.");
+    compact.Show(screen.transform,addedNative,typography);compact.Close();
+    Need(addedNative.GetComponent<CanvasGroup>()==null,"SUMMARY-SAME-FRAME","Owned native group is removed before same-frame reopen.");
+    compact.Show(screen.transform,addedNative,typography);UObject.EndFrame();
+    Need(compact.Root.activeInHierarchy&&addedNative.GetComponent<CanvasGroup>()?.alpha==0,"SUMMARY-SAME-FRAME","A fresh summary survives old deferred root disposal.");
+    addedNative.SetActive(false);compact.Close();UObject.EndFrame();
+    Need(!addedNative.activeSelf&&addedNative.GetComponent<CanvasGroup>()==null,"SUMMARY-NATIVE-ACTIVE","Closing does not reactivate independently hidden native panels.");
 
     int warningStart=Plugin.ModLogger.Warnings.Count,loadStart=Texture2D.LoadCalls;
     Texture2D.FailNextDecode=true;

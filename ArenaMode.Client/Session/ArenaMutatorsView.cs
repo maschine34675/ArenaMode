@@ -9,109 +9,113 @@ using UnityEngine.UI;
 
 namespace ArenaMode.Session;
 
-/// <summary>Screen-owned, click-away panel. Native screen navigation keeps its lifetime.</summary>
+/// <summary>Always-visible, screen-owned feature panel; no modal or global input hook.</summary>
 internal sealed class ArenaMutatorsView
 {
     private sealed class Row
     {
         internal ArenaMutator Id;
         internal Button Button;
-        internal TextMeshProUGUI Label, Description;
+        internal TextMeshProUGUI Label, Status, Description;
+        internal Image Marker, Chip;
     }
     private readonly ArenaMutatorSelection _selection = new();
     private readonly List<Row> _rows = new();
-    private readonly List<Button> _buttons = new();
     private GameObject _root, _owner;
-    private TextMeshProUGUI _subtitle;
+    private Transform _screen;
+    private TextMeshProUGUI _subtitle, _note;
     private Action _changed;
-    private bool _dispatching;
+    private bool _dispatching, _preview;
 
-    internal void Create(Transform screen, GameObject owner, Button template, TMP_Text typography, Action changed)
+    internal void Create(Transform screen, GameObject owner, TMP_Text typography, Action changed)
     {
         Close();
-        _owner = owner;
-        _changed = changed;
+        _owner = owner; _screen = screen; _changed = changed;
         try
         {
-            _root = new GameObject("Arena Mutators", typeof(RectTransform));
+            _root = new GameObject("Arena Mutators", typeof(RectTransform), typeof(Image));
             _root.SetActive(false);
             _root.transform.SetParent(screen, false);
-            Stretch((RectTransform)_root.transform);
-            var backdrop = new GameObject("Arena Mutators backdrop", typeof(RectTransform), typeof(Image), typeof(Button));
-            backdrop.transform.SetParent(_root.transform, false);
-            Stretch((RectTransform)backdrop.transform);
-            backdrop.GetComponent<Image>().color = new Color(0f, 0f, 0f, .65f);
-            backdrop.GetComponent<Image>().raycastTarget = true;
-            var dismiss = backdrop.GetComponent<Button>();
-            dismiss.targetGraphic = backdrop.GetComponent<Image>();
-            dismiss.transition = Selectable.Transition.None;
-            dismiss.interactable = true;
-            _buttons.Add(dismiss);
+            _root.GetComponent<Image>().color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .96f);
+            _root.GetComponent<Image>().raycastTarget = false;
+            ArenaUiTheme.Decorate((RectTransform)_root.transform);
+            Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);
+            _subtitle = Text(_root.transform, typography, "Mutator legend", "Green: ON   /   Grey: OFF   /   N/A: unavailable", 13f, 20f, 48f, 420f, 24f);
             var generation = _root;
-            dismiss.onClick.AddListener(() => { if (Owns(generation)) Hide(); });
-
-            var panel = new GameObject("Arena Mutators panel", typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(_root.transform, false);
-            var rect = (RectTransform)panel.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
-            rect.sizeDelta = new Vector2(760f, 510f);
-            panel.GetComponent<Image>().color = ArenaUiTheme.Surface;
-            panel.GetComponent<Image>().raycastTarget = true;
-            ArenaUiTheme.Decorate(rect);
-            Text(panel.transform, typography, "Title", "MUTATORS", 26f, 24f, 18f, 510f, 34f);
-            _subtitle = Text(panel.transform, typography, "Mode", string.Empty, 14f, 24f, 55f, 690f, 25f);
-            Text(panel.transform, typography, "Movement heading", "MOVEMENT & EQUIPMENT", 14f, 24f, 96f, 340f, 24f);
-            Text(panel.transform, typography, "Effects heading", "MATCH & EFFECTS", 14f, 396f, 96f, 340f, 24f);
             for (int index = 0; index < 8; index++)
             {
                 var id = (ArenaMutator)index;
-                float left = index < 4 ? 24f : 396f;
-                float top = 128f + (index % 4) * 78f;
-                var button = MakeButton(panel.transform, template, "Arena Mutator " + id, left, top, 340f, 32f);
-                var label = button.GetComponentInChildren<TextMeshProUGUI>(true);
+                // Fresh controls deliberately avoid native prefab label animations.
+                var go = new GameObject("Arena Mutator " + id, typeof(RectTransform), typeof(Image), typeof(Button));
+                go.transform.SetParent(_root.transform, false);
+                var button = go.GetComponent<Button>();
+                go.GetComponent<Image>().color = ArenaUiTheme.Raised;
+                go.GetComponent<Image>().raycastTarget = true;
+                button.targetGraphic = go.GetComponent<Image>();
+                var label = Text(go.transform, typography, "Mutator title " + id,
+                    ArenaMutatorSelection.Title(id), 15f, 12f, 0f, 200f, 32f);
+                ArenaUiTheme.StyleButton(button, label);
+                var navigation = button.navigation; navigation.mode = Navigation.Mode.None; button.navigation = navigation;
+                var marker = new GameObject("Mutator marker " + id, typeof(RectTransform), typeof(Image));
+                marker.transform.SetParent(go.transform, false);
+                Rect((RectTransform)marker.transform, 0f, 0f, 3f, 32f);
+                marker.GetComponent<Image>().raycastTarget = false;
+                var chip = new GameObject("Mutator chip " + id, typeof(RectTransform), typeof(Image));
+                chip.transform.SetParent(go.transform, false);
+                chip.GetComponent<Image>().raycastTarget = false;
                 var row = new Row { Id = id, Button = button, Label = label,
-                    Description = Text(panel.transform, typography, "Mutator detail " + id,
-                        string.Empty, 13f, left + 8f, top + 33f, 324f, 38f) };
+                    Marker = marker.GetComponent<Image>(), Chip = chip.GetComponent<Image>(),
+                    Status = Text(go.transform, typography, "Mutator status " + id, "", 14f, 220f, 0f, 52f, 32f),
+                    Description = Text(_root.transform, typography, "Mutator detail " + id, "", 13f, 0f, 0f, 272f, 34f) };
+                row.Status.alignment = TextAlignmentOptions.Center;
                 _rows.Add(row);
                 button.onClick.AddListener(() => Toggle(generation, row));
             }
-            Text(panel.transform, typography, "Saved note",
-                "Saved immediately. Same settings as F12.\nKillcam: this mode only. Other switches: all Arena modes.",
-                13f, 24f, 451f, 540f, 42f);
-            var close = MakeButton(panel.transform, template, "Arena Mutators close", 610f, 456f, 126f, 32f);
-            close.GetComponentInChildren<TextMeshProUGUI>(true).text = "CLOSE";
-            close.onClick.AddListener(() => { if (Owns(generation)) Hide(); });
+            _note = Text(_root.transform, typography, "Mutators saved note",
+                "Same settings as F12. Killcam: this mode only.\nOther switches apply to all Arena modes.",
+                13f, 20f, 370f, 600f, 30f);
+            Layout(false);
         }
         catch { Close(); throw; }
     }
 
-    internal void Show()
+    internal void Layout(bool preview)
     {
-        if (_root == null || _owner == null || !_owner.activeInHierarchy || _selection.Locked) return;
-        _root.transform.SetAsLastSibling();
-        _root.SetActive(true);
-        Refresh();
+        _preview = preview;
+        if (_root == null) return;
+        ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
+            ArenaMapPanelLayout.MutatorsTop(_preview), ArenaMapPanelLayout.MutatorsHeight);
+        float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
+        _subtitle.rectTransform.sizeDelta = new Vector2(width - 40f, 24f);
+        _note.rectTransform.sizeDelta = new Vector2(width - 40f, 30f);
+        for (int index = 0; index < _rows.Count; index++)
+        {
+            var row = _rows[index];
+            float left = 20f + (index < 4 ? 0f : cell + 20f), top = 84f + (index % 4) * 70f;
+            Rect((RectTransform)row.Button.transform, left, top, cell, 32f);
+            Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 32f);
+            Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 32f);
+            Rect((RectTransform)row.Chip.transform, cell - 55f, 4f, 50f, 24f);
+            Rect(row.Description.rectTransform, left + 8f, top + 34f, cell - 16f, 34f);
+        }
     }
 
     internal void Synchronize(string mode, bool team)
     {
         _selection.Synchronize(mode, team);
-        if (_selection.Locked || _owner == null || !_owner.activeInHierarchy) Hide();
-        Refresh();
-    }
-
-    private void Refresh()
-    {
         if (_root == null) return;
-        _subtitle.text = _selection.Mode.ToUpperInvariant() + " / ARENA FEATURES";
+        _root.SetActive(_owner != null && _owner.activeInHierarchy && !_selection.Locked);
+        Layout(_preview);
         foreach (var row in _rows)
         {
             string reason = _selection.UnavailableReason(row.Id);
-            row.Label.text = ArenaMutatorSelection.Title(row.Id) + ": "
-                + (reason != null ? "N/A" : _selection.Enabled(row.Id) ? "ON" : "OFF");
+            bool on = reason == null && _selection.Enabled(row.Id);
+            row.Status.text = reason != null ? "N/A" : on ? "ON" : "OFF";
             row.Button.interactable = reason == null && !_selection.Locked;
-            row.Label.color = reason != null ? ArenaUiTheme.Muted
-                : _selection.Enabled(row.Id) ? ArenaUiTheme.Positive : ArenaUiTheme.Text;
+            row.Label.color = reason != null ? ArenaUiTheme.Muted : ArenaUiTheme.Text;
+            row.Status.color = on ? ArenaUiTheme.Positive : ArenaUiTheme.Muted;
+            row.Marker.color = on ? ArenaUiTheme.Positive : ArenaUiTheme.WithAlpha(ArenaUiTheme.Muted, .35f);
+            row.Chip.color = on ? new Color(.08f, .25f, .16f, 1f) : ArenaUiTheme.Surface;
             row.Description.text = reason ?? ArenaMutatorSelection.Description(row.Id);
         }
     }
@@ -121,14 +125,12 @@ internal sealed class ArenaMutatorsView
 
     private void Toggle(GameObject generation, Row row)
     {
-        // Old dispatch-stack callbacks must not target a new screen's configuration.
         if (!Owns(generation) || !_rows.Contains(row) || _dispatching) return;
         _dispatching = true;
         try
         {
             bool accepted = _selection.TryToggle(row.Id);
             if (!Owns(generation)) return;
-            Refresh();
             _changed?.Invoke();
             if (accepted && Singleton<GUISounds>.Instantiated)
                 Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.MenuDropdownSelect);
@@ -137,49 +139,14 @@ internal sealed class ArenaMutatorsView
         finally { if (ReferenceEquals(generation, _root)) _dispatching = false; }
     }
 
-    private void Hide() { if (_root != null) _root.SetActive(false); }
-
     internal void Close()
     {
-        foreach (var button in _buttons) if (button != null) button.onClick.RemoveAllListeners();
-        _buttons.Clear();
+        foreach (var row in _rows) if (row.Button != null) row.Button.onClick.RemoveAllListeners();
         _rows.Clear();
-        _owner = null;
-        _changed = null;
-        _subtitle = null;
-        _dispatching = false;
-        var root = _root;
-        _root = null;
+        _owner = null; _screen = null; _changed = null; _subtitle = _note = null;
+        _dispatching = _preview = false;
+        var root = _root; _root = null;
         if (root != null) { root.SetActive(false); UnityEngine.Object.Destroy(root); }
-    }
-
-    private Button MakeButton(Transform parent, Button template, string name, float left, float top, float width, float height)
-    {
-        var button = UnityEngine.Object.Instantiate(template, parent, false);
-        _buttons.Add(button);
-        button.name = name;
-        button.onClick = new Button.ButtonClickedEvent();
-        button.transform.localScale = Vector3.one;
-        Rect((RectTransform)button.transform, left, top, width, height);
-        var layout = button.GetComponent<LayoutElement>();
-        if (layout != null) layout.ignoreLayout = true;
-        var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
-            ?? throw new InvalidOperationException("Native mutator row label missing.");
-        label.fontSize = 16f;
-        label.enableWordWrapping = false;
-        label.overflowMode = TextOverflowModes.Ellipsis;
-        label.alignment = TextAlignmentOptions.MidlineLeft;
-        label.raycastTarget = false;
-        Rect(label.rectTransform, 10f, 0f, width - 20f, height);
-        ArenaUiTheme.StyleButton(button, label);
-        var tooltip = button.GetComponent<HoverTooltipArea>();
-        if (tooltip != null) { tooltip.SetMessageText(string.Empty, rawText: true); tooltip.SetUnlockStatus(true); }
-        var navigation = button.navigation;
-        navigation.mode = Navigation.Mode.None;
-        button.navigation = navigation;
-        button.interactable = true;
-        button.gameObject.SetActive(true);
-        return button;
     }
 
     private static TextMeshProUGUI Text(Transform parent, TMP_Text source, string name, string value,
@@ -190,13 +157,10 @@ internal sealed class ArenaMutatorsView
         var text = go.GetComponent<TextMeshProUGUI>();
         text.font = source?.font ?? TMP_Settings.defaultFontAsset;
         if (source != null) { text.fontSharedMaterial = source.fontSharedMaterial; text.characterSpacing = source.characterSpacing; }
-        text.text = value;
-        text.fontSize = size;
-        text.fontStyle = FontStyles.Normal;
-        text.color = size >= 20f ? ArenaUiTheme.Text : ArenaUiTheme.Muted;
+        text.text = value; text.fontSize = size; text.fontStyle = FontStyles.Normal;
+        text.color = size >= 15f ? ArenaUiTheme.Text : ArenaUiTheme.Muted;
         text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.enableWordWrapping = true;
-        text.raycastTarget = false;
+        text.enableWordWrapping = size < 15f; text.raycastTarget = false;
         text.overflowMode = TextOverflowModes.Ellipsis;
         Rect(text.rectTransform, left, top, width, height);
         return text;
@@ -207,11 +171,5 @@ internal sealed class ArenaMutatorsView
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = new Vector2(left, -top);
         rect.sizeDelta = new Vector2(width, height);
-    }
-
-    private static void Stretch(RectTransform rect)
-    {
-        rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
-        rect.offsetMin = rect.offsetMax = Vector2.zero;
     }
 }
