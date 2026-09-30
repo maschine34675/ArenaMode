@@ -64,6 +64,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
         Pickups.ArenaPowerups.Enable();
+        Combat.Fire.ArenaFireRuntime.Enable(Config);
         Pickups.ArenaInfiniteAmmo.Enable();
         Pickups.ArenaPickupExaminationPatch.EnablePatch();
         Movement.ArenaLegInjuryPatches.Enable();
@@ -137,6 +138,7 @@ public class Plugin : BaseUnityPlugin
         Movement.VaultingTuning.Restore();
         Movement.FastDeployPatches.Restore();
         Pickups.ArenaPickupRuntime.Reset();
+        Combat.Fire.ArenaFireRuntime.Reset();
         DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();

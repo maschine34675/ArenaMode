@@ -154,7 +154,8 @@ internal static class CombatPatches
                 catch (Exception) { } // Optional presentation must never suppress a captured kill.
                 try
                 {
-                    weaponName = damageInfo.Weapon?.ShortName?.Localized();
+                    weaponName = Fire.ArenaFireRuntime.OwnsDamage(__instance, aggressor, lethalDamageType)
+                        ? "Incendiary" : damageInfo.Weapon?.ShortName?.Localized();
                 }
                 catch (Exception)
                 {
@@ -188,7 +189,7 @@ internal static class CombatPatches
                     VictimRoleLabel = RoleClassifier.Label(__instance),
                     KilledByLocal = localId != null && aggressor.ProfileId == localId,
                     LocalIsVictim = localIsVictim,
-                    Headshot = bodyPart == EBodyPart.Head,
+                    Headshot = bodyPart == EBodyPart.Head && !Fire.ArenaFireRuntime.OwnsDamage(__instance, aggressor, lethalDamageType),
                     KillerBodyId = ArenaHitHistory.BodyId(aggressor),
                     VictimBodyId = ArenaHitHistory.BodyId(__instance),
                     ScoreEligible = !TeamDeathmatchRelations.Enabled
@@ -219,7 +220,8 @@ internal static class CombatPatches
 
     private static bool IsAwardEligible(ArenaMatch match, Player victim, IPlayer aggressor, EDamageType lethalType)
     {
-        if (!ArenaCombatAwards.IsCombatDamage(lethalType.ToString()) || match.Mode.IsComplete) return false;
+        if ((!ArenaCombatAwards.IsCombatDamage(lethalType.ToString())
+            && !Fire.ArenaFireRuntime.OwnsDamage(victim, aggressor, lethalType)) || match.Mode.IsComplete) return false;
         if (TeamDeathmatchRelations.Enabled)
             return TeamDeathmatchRelations.AreOpponents(victim, aggressor);
         if (match.Mode is TacticalMode tactical) return tactical.IsOpposingAwardKill(victim, aggressor);
@@ -473,7 +475,7 @@ internal static class CombatPatches
                 {
                     BodyDamage = __result,
                     ArmorDamage = damageInfo.DidArmorDamage,
-                    Headshot = bodyPart == EBodyPart.Head,
+                    Headshot = bodyPart == EBodyPart.Head && !Fire.ArenaFireRuntime.OwnsDamage(victim, attacker, damageInfo.DamageType),
                     Kill = victim.HealthController != null && !victim.HealthController.IsAlive,
                     AudioEligible = __state && (PositiveFinite(__result) || PositiveFinite(damageInfo.DidArmorDamage)),
                     ArmorOnly = (damageInfo.DidArmorDamage > 0.01f && __result <= 0.01f)

@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Brandgranaten-Prototyp (2026-09-30, eigener Branch):**
+  `feature/molotov-prototype`, isoliert in `../ArenaMode-molotov`.
+  F12 `Arena incendiary prototype / Enabled` standardmäßig aus; wandelt nur
+  eigene RGD-5 während Live-Arena mit passendem BigBrain-Companion um.
+  Sechs Sekunden begrenztes Bodenfeuer, 80 Basis-HP/s ohne Stapeln,
+  Werfer-/Assist-Zuordnung und eigener Bot-Fluchtlayer. Vorläufig vorhandenes
+  Granatenmodell, prozedurale Flammen/Knistergeräusch; kein Server-Update.
+  Offlinetests/Review, Grenzen und Prüffolge: `MOLOTOV-PROTOTYPE-REVIEW.md`.
+  Auslieferung und native Abnahme werden getrennt protokolliert; ein erfolgreicher
+  Build allein bestätigt weder das Feuerbild noch das Botverhalten.
+
 - **HUD-/Avatar-Nachbesserung (2026-09-29):** `2dfc1e7`. Nutzer hat die bisherige
   Totenkopf-Darstellung akzeptiert; jetzt +42 statt -42 HUD-Einheiten, also über
   dem Fadenkreuz. Arena-Kartenauswahl ohne Avatar unten rechts, nachfolgende

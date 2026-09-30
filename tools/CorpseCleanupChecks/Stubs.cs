@@ -472,3 +472,14 @@ namespace ArenaMode.Diagnostics
         public static void Record(string profileId, int sweep) => Recorded.Add(profileId);
     }
 }
+namespace ArenaMode.Combat.Fire
+{
+    internal static class ArenaFireRuntime
+    {
+        internal static EFT.Player HeldBody;
+        internal static string HoldsSource(string profile, EFT.GameWorld world)
+            => HeldBody != null && HeldBody.ProfileId == profile ? "Arena fire" : null;
+        internal static bool HoldsBody(EFT.Player body, EFT.GameWorld world)
+            => HeldBody != null && ReferenceEquals(body, HeldBody);
+    }
+}

@@ -956,7 +956,8 @@ internal static class CorpseCleanupService
                 // The one resolution that does not go through the registry
                 // lazily. See this method's own doc and
                 // CorpseDamageSources.ShotStillInFlightFromBody.
-                if (CorpseDamageSources.ShotStillInFlightFromBody(player, world))
+                if (CorpseDamageSources.ShotStillInFlightFromBody(player, world)
+                    || Combat.Fire.ArenaFireRuntime.HoldsBody(player, world))
                 {
                     if (!state.HeldAsSource)
                     {

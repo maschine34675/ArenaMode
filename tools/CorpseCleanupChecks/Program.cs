@@ -21,6 +21,7 @@ void Check(bool condition, string message)
 (GameWorld World, Corpse Body, InventoryEquipment Gear) Setup()
 {
     CorpseCleanupService.Reset();
+    ArenaMode.Combat.Fire.ArenaFireRuntime.HeldBody = null;
     Settings.MaxCorpses.Value = 1;
     Settings.StripCorpseGear.Value = true;
     Settings.ReleaseTrimmedCorpses.Value = true;
@@ -723,6 +724,20 @@ foreach (var unreadable in new[] { "no-processor", "no-list", "no-calculator", "
     Sweep();
     Check(Released(world, leftRegistry),
         "and it releases once that shot has landed AND its own quiet period has elapsed, with nothing left to distinguish it from the live player's own fire");
+}
+
+// A timed fire freezes the original bridge too, after its grenade is gone.
+{
+    var (world, _, _) = Setup();
+    var older = AddBody(world, world.MainPlayer.ProfileId);
+    var newer = AddBody(world, world.MainPlayer.ProfileId);
+    world.RegisterEverExisted(world.MainPlayer.ProfileId, Owner(newer));
+    ArenaMode.Combat.Fire.ArenaFireRuntime.HeldBody = Owner(older);
+    CorpseCleanupService.ClearAllSoon("fire test"); CorpseCleanupService.Tick(); Sweep();
+    Check(Kept(world, older), "exact fire owner retained after registry replacement");
+    ArenaMode.Combat.Fire.ArenaFireRuntime.HeldBody = null;
+    Sweep(); Check(Kept(world, older), "fire owner has a quiet period after last flame");
+    Sweep(); Check(Released(world, older), "fire owner releases after quiet period");
 }
 
 // The reference, not the profile id, is what matters: a shot fired by a
