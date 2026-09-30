@@ -11,6 +11,7 @@ internal static class KillfeedIcon
         {
             case "GrenadeFragment": return ArenaUiIcon.Grenade;
             case "Melee": return ArenaUiIcon.Melee;
+            case "Barbed": return ArenaUiIcon.BarbedWire;
             case "LightBleeding": case "HeavyBleeding": return ArenaUiIcon.Bleeding;
             case "Flame": return ArenaUiIcon.Fire;
             // LastDamageInfo may still refer to the earlier attacker and weapon.

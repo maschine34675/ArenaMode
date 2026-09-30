@@ -22,7 +22,8 @@ namespace ArenaMode.Combat;
 /// Kill capture, damage feed and the ragdoll punch. All hooks verified against
 /// the 4.1 decompile and the proven CombatLog/KillAndDamageInfo patches:
 /// OnBeenKilledByAggressor fires on the VICTIM instance (base declaration
-/// catches every offline death — LocalPlayer's override chains to base),
+/// catches credited offline deaths — LocalPlayer's override chains to base),
+/// while uncredited barbed-wire deaths use a separate presentation-only hook.
 /// ApplyDamage runs on the victim's health controller with the attacker bridge
 /// in DamageInfo.
 /// </summary>
@@ -35,6 +36,7 @@ internal static class CombatPatches
     public static void Enable()
     {
         new KillCapturePatch().Enable();
+        new ArenaBarbedDeathPatch().Enable();
         new TeamStagingShotPatch().Enable();
         new TeamStagingPlayerDamagePatch().Enable();
         new TeamStagingExplosionArmorPatch().Enable();
@@ -50,6 +52,7 @@ internal static class CombatPatches
     public static void ResetRaidState()
     {
         SeenVictims.Clear();
+        ArenaBarbedDeathPatch.Reset();
         _reportedAudioObservationFailure = false;
         ArenaHitHistory.Reset();
         ArenaShotAwardHooks.Reset();

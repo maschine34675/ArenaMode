@@ -277,6 +277,22 @@
         107
       ],
       "exportConfidence": "high"
+    },
+    {
+      "file": "barbed-wire.png",
+      "sha256": "FEDF4B3994F366F1523D5BD9E227F072F38C046EAD14A813BCF91966C11C6CB1",
+      "exportPath": "killfeed/death_icon_1.png",
+      "nativeName": "Notification_BattleUI_Killog_deaths_1",
+      "nativeSource": {
+        "root": "arena",
+        "file": "resources.assets"
+      },
+      "pathId": 5698,
+      "pixelSize": [
+        21,
+        18
+      ],
+      "exportConfidence": "high"
     }
   ]
 }

@@ -115,3 +115,81 @@ Artefaktverzeichnis. Bildhashes: Map-Ersteintritt
 `EBD3CEE5C3EA21D2B6202FED997E7E42CC583959B6CD0CD1B804C617AF7376A8`,
 Accept `8F1BFC9DED7763F957E8E4003376FCC8B07A2F08BB19940C426C846B3F06F044`,
 Map-Rückkehr `75B328EC443D5C85D18A8A570F55D763C027AF7E382514ACF5010387E0FE56EB`.
+
+## Stacheldraht-Erweiterung, 2026-09-30
+
+Nutzerwunsch: analog zur Blutung Stacheldraht als Todesursache kenntlich machen,
+besonders im Labyrinth. Native Belege im lokalen SPT-4.1-Decompile:
+`BodyPartCollider.ProceedBarb` erzeugt `EDamageType.Barbed` ohne `Player`;
+`Player.ApplyDamageInfo` setzt `LastAggressor = player?.iPlayer` vor der
+HP-Änderung. `Player.OnDead` ruft `OnBeenKilledByAggressor` nur bei nichtleerem
+Angreifer auf. Eine reine Icon-Zuordnung erreicht den gewöhnlichen Drahttod
+deshalb nicht.
+
+Ein separater `Player.OnDead`-Hook zeigt nur echte, unzugeordnete Barbed-Tode
+im aktiven Arena-Match. Der Prefix hält das noch laufende Match fest; ein Tod,
+der selbst das Match beendet, wird nicht allein wegen des späteren Complete-
+Status verworfen. Der Postfix prüft dieselbe Matchinstanz, tot gemeldeten Körper,
+leeren nativen Angreifer, Profil-ID und den administrativen Todesfilter.
+Harmony liest das geschützte native Feld `LastAggressor` über Feldinjektion.
+Eine eigene `ConditionalWeakTable<Player,...>` verhindert Duplikate pro Körper;
+neu gespawnte Körper derselben Profil-ID bleiben unabhängig. Raid-Reset leert
+diese Tabelle. Der Score-/Assist-Dedupe wird nie beansprucht.
+
+Die reine `ArenaBarbedDeath`-Nachricht geht direkt an den passenden HUD-Killfeed,
+nicht an `ArenaEvents`, `ReportKill`, Announcer, Treffer-/Killmarker oder Ranking.
+Der Eintrag enthält nur den Opfernamen mit bestehender Teamfarbe und die
+Metadaten `Rolle · BARBED WIRE`; keine erfundene Waffe, Entfernung oder Täter.
+Beide vorhandenen Killfeed-Schalter werden berücksichtigt. Gewöhnliche Raids,
+technische Tötungen, lebende Körper und andere Todesursachen bleiben unverändert.
+Ein modseitig trotzdem zugeordneter Barbed-Kill verwendet nur die ergänzte
+Icon-Zuordnung im bisherigen Killpfad. Für beide Wege wird ein geerbtes
+Headshot-Badge unterdrückt. Direkter Blutungstod bleibt Blutung; die frühere
+Schadensquelle wird nicht erraten.
+
+Neues eingebettetes Asset `barbed-wire.png`, 21 × 18, byteidentisch zu
+`D:\ArenaMapPort\work\extract\arena-ui\killfeed\death_icon_1.png`:
+SHA256 `FEDF4B3994F366F1523D5BD9E227F072F38C046EAD14A813BCF91966C11C6CB1`.
+Native Ressource `Notification_BattleUI_Killog_deaths_1`, PathID 5698;
+Provenienz in `Assets/Ui/SOURCES.json`. Dieselbe private Asset-/Lizenzgrenze
+wie die übrigen Arena-Grafiken; nicht durch die Codelizenz freigegeben.
+
+Unabhängiges Produktionsreview: keine offenen P0–P2. Der geschützte Feldzugriff
+und der Zeitpunkt der Matchabschlussprüfung wurden dabei ausdrücklich geprüft.
+Offline-Nachweise und Auslieferung werden unten ergänzt. Ein echter Drahttod
+im Labyrinth und die native Pixel-Darstellung sind noch im Spiel zu bestätigen;
+die Offline-Doubles zertifizieren weder die Unity-Laufzeit noch die Karte.
+
+Offline-Abnahme: 103 Capture-/HUD-Filter-Assertions und zwei kompilierte
+Fehlerkontrollen bestanden; 237 Asset-/Pooling-/HUD-Assertions und vierzehn
+Fehlerkontrollen bestanden; vorhandene Killfeed-Textsuite mit 108 Assertions
+und sechs Fehlerkontrollen ebenfalls grün. Nativer Client-Release-Build mit
+null Fehlern und vier vorhandenen Nullable-Warnungen. Root-Wiederholung:
+`artifacts/barbed-death-checks/4388dfb663ac493b8636e609e750c8e1` und
+`artifacts/ui-asset-checks/7a8611e3f8604d24abced48cb95b7557`.
+Eine zusätzliche echte HarmonyX-Probe außerhalb des Spiels scheitert unter
+.NET 10 schon in `AccessTools..cctor` / `MethodInvoker.GetHandler`, bevor
+Patch-Bindung möglich ist. Diese eng erkannte Laufzeitgrenze wird als nicht
+verfügbar ausgewiesen, nicht als bestandene native Bindung. Der tatsächliche
+Client kompiliert gegen die installierten EFT-/SPT-Bibliotheken; ein neuer
+EFT-Start und die Anzeige im Raid bleiben getrennte Abnahmeschritte.
+
+Auslieferung: sauberer Implementierungscommit `8ff8551`, isolierter Build
+`artifacts/double-jump-build/6e49de9f08df4019ace8350c1d46955b/manifest.json`.
+Am 2026-09-30 um 07:46 UTC lokal und auf beiden GPU-Hosts .114/.109 erneuert;
+alle drei Zieldateien vor dem Schreiben exklusiv gesperrt und gesichert,
+anschließend vollständige SHA256-Gleichheit überprüft:
+`3CAE4334A0052D2CE2BB38E68604B7ED742C0435096DAEE0A61DAEF19D8D56D7`.
+Neun Begleitdateien (Server/Core/BigBrain an allen drei Installationen)
+unverändert. Maschinen meldeten zuvor über gpu-run kein laufendes Spiel und
+keinen Server. Kein fremder Prozess beendet, kein Spiel gestartet. Beleg und
+Backup-Pfade: `BARBED-FEED-DEPLOYMENT-20260930.json`.
+Zusätzliches unabhängiges Testreview ohne offene P0–P2; die Grenzen der
+Offline-Simulation und der nicht verfügbaren Desktop-Harmony-Probe bestätigt.
+
+Nächster nativer Test: Labyrinth-Arena, direkter tödlicher Drahtkontakt eines
+Teilnehmers → eine rote Drahtzeile ohne Täter/Waffe/Distanz/Headshot; erneuter
+Tod nach Respawn → erneut eine Zeile. Danach gewöhnlichen Schusskill prüfen:
+Waffen-Icon und gegebenenfalls Headshot-Badge müssen wieder neutral erscheinen.
+Keine neuen Punkte, Assists, Kill-Ansagen oder Totenköpfe allein durch den
+Umwelttod; tatsächliche nachträgliche Blutung bleibt ein Blutstropfen.

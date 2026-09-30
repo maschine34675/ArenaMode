@@ -7,9 +7,9 @@ pwsh -NoProfile -File tools/ArenaUiAssetChecks/Verify.ps1
 pwsh -NoProfile -File tools/ArenaUiAssetChecks/Verify-Integration.ps1
 ```
 
-The first runner verifies all 17 asset SHA256 values, compiles the production
+The first runner verifies all 18 asset SHA256 values, compiles the production
 loader, icon policy, pooled killfeed, hitmarker and scoreboard presentation against narrow
-Unity/TMP/IMGUI doubles, and rejects twelve compiled regressions. It restores and
+Unity/TMP/IMGUI doubles, and rejects fourteen compiled regressions. It restores and
 reruns the unmodified inputs after the negative controls. It writes isolated
 logs and illustrative SVGs under `artifacts/ui-asset-checks/<id>`.
 
@@ -24,3 +24,6 @@ Native acceptance cases and asset distribution restrictions are documented in
 Both native bleeding causes are checked with retained prior headshot metadata;
 all pooled rows must clear that decoration and restore neutral weapon colour on
 their next direct bullet kill. Combat metadata is not modified by presentation.
+Barbed-wire notices reuse the same pooled rows but carry no attacker, weapon or
+distance. Their native icon, escaped victim text, cleared headshot, and return
+to ordinary kill presentation are exercised separately from death capture.

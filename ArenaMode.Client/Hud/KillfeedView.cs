@@ -107,6 +107,16 @@ internal sealed class KillfeedView
     }
 
     public void Push(ArenaKill kill)
+        => Push(KillfeedText.Format(kill,
+            TeamHtmlColor(Settings.FriendlyTracerColor.Value),
+            TeamHtmlColor(Settings.OpponentTracerColor.Value)), KillfeedIcon.Select(kill), kill.Headshot);
+
+    internal void PushBarbedDeath(ArenaBarbedDeath death)
+        => Push(KillfeedText.FormatBarbedDeath(death,
+            TeamHtmlColor(Settings.FriendlyTracerColor.Value),
+            TeamHtmlColor(Settings.OpponentTracerColor.Value)), ArenaUiIcon.BarbedWire, false);
+
+    private void Push(string text, ArenaUiIcon method, bool headshot)
     {
         Line line;
         if (_live.Count < MaxLines)
@@ -119,17 +129,14 @@ internal sealed class KillfeedView
             _live.RemoveAt(0);
         }
 
-        line.Text.text = KillfeedText.Format(kill,
-            TeamHtmlColor(Settings.FriendlyTracerColor.Value),
-            TeamHtmlColor(Settings.OpponentTracerColor.Value));
-        var method = KillfeedIcon.Select(kill);
-        var bledOut = method == ArenaUiIcon.Bleeding;
+        line.Text.text = text;
+        var hazard = method == ArenaUiIcon.Bleeding || method == ArenaUiIcon.BarbedWire;
         line.Method.sprite = _assets.Sprite(method);
         line.Method.enabled = line.Method.sprite != null;
-        line.Method.color = bledOut ? ArenaUiTheme.Danger : Color.white;
+        line.Method.color = hazard ? ArenaUiTheme.Danger : Color.white;
         // A delayed bleed keeps native LastBodyPart from the preceding hit.
         // Keep scoring metadata intact, but never depict that as a lethal headshot.
-        line.Headshot.sprite = kill.Headshot && !bledOut ? _assets.Sprite(ArenaUiIcon.Headshot) : null;
+        line.Headshot.sprite = headshot && !hazard ? _assets.Sprite(ArenaUiIcon.Headshot) : null;
         line.Headshot.enabled = line.Headshot.sprite != null;
         // Measure actual font metrics and wrapped lines, not a fixed character
         // count or row height. The explicit width also works for an inactive

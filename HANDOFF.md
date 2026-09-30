@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-29. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-30. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
@@ -17,6 +17,28 @@ current. User-facing communication is normally German.
   Offlinetests/Review, Grenzen und Prüffolge: `MOLOTOV-PROTOTYPE-REVIEW.md`.
   Auslieferung und native Abnahme werden getrennt protokolliert; ein erfolgreicher
   Build allein bestätigt weder das Feuerbild noch das Botverhalten.
+
+- **Stacheldraht im Killfeed (2026-09-30):** Direkte native `Barbed`-Tode
+  ohne Angreifer bekommen einen eigenen HUD-Eintrag mit Opfer/Teamfarbe,
+  rotem Arena-Stacheldraht-Icon und `BARBED WIRE`. EFT löscht hier den letzten
+  Angreifer; der bisherige Kill-Callback läuft deshalb nicht. Separater,
+  Arena-begrenzter `Player.OnDead`-Postfix mit Matchidentität und schwacher
+  Körper-Deduplizierung; kein künstlicher Kill, keine Punkte/Assists/Ansage
+  oder Totenkopf. Killfeed-Schalter bleiben wirksam. Ein späterer tatsächlicher
+  Blutungstod bleibt ein Blutstropfen, kein rückwirkend vermuteter Drahttod.
+  Neues Originalasset mit Hash/Provenienz, weiterhin keine freie
+  Weiterverteilungslizenz festgestellt. Details und Testgrenzen:
+  `HUD-BLEED-POLISH-REVIEW.md`, Abschnitt Stacheldraht.
+  Implementierung `8ff8551`; 103 Capture-/237 UI-/108 Text-Assertions plus
+  zugehörige Fehlerkontrollen grün, unabhängiges Produktions-/Testreview ohne
+  offene P0–P2. Sauberer Client-Release-Build lokal und auf beiden GPU-Hosts
+  (.114/.109) unter exklusiven Dateisperren eingespielt. SHA256
+  `3CAE4334A0052D2CE2BB38E68604B7ED742C0435096DAEE0A61DAEF19D8D56D7`.
+  Server/Core/BigBrain unverändert; Beleg `BARBED-FEED-DEPLOYMENT-20260930.json`.
+  Kein Spielstart/Raid durch diese Änderung: nativer Drahttod und sichtbare
+  Anzeige im Labyrinth noch offen. Die zusätzliche Desktop-HarmonyX-Probe
+  scheitert schon vor Hook-Bindung an einer CLR-Initialisierung; keine native
+  Bindungsabnahme behauptet. Beim nächsten EFT-Start wird der neue Client geladen.
 
 - **HUD-/Avatar-Nachbesserung (2026-09-29):** `2dfc1e7`. Nutzer hat die bisherige
   Totenkopf-Darstellung akzeptiert; jetzt +42 statt -42 HUD-Einheiten, also über

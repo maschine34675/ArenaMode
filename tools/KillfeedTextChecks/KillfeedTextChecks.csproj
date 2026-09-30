@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="$(KillfeedTextSource)" Link="Production/KillfeedText.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaBarbedDeath.cs" Link="Production/ArenaBarbedDeath.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Production/ArenaTracerTeams.cs" />
   </ItemGroup>
