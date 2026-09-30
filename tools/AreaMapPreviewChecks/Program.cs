@@ -226,13 +226,23 @@ try
     // the preview leases the summary. Map switches must not reveal vanilla info.
     var compact=new ArenaCompactMapInfo();
     compact.Show(screen.transform,native,typography);
-    compact.Refresh("Factory","A short map description.");
+    var borrowedBanner=new Sprite();
+    compact.Refresh("Factory",borrowedBanner);
     var summaryRoot=compact.Root;
     Need(native.activeSelf&&nativeGroup.alpha==0&&!nativeGroup.blocksRaycasts,"SUMMARY-HIDE","Compact summary hides original info without deactivating its owner.");
     Need(summaryRoot.GetComponentsInChildren<TMP_Text>().All(t=>!t.richText&&!t.raycastTarget),"SUMMARY-TEXT","Localized strings cannot inject markup or intercept input.");
     Need(summaryRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="Factory"),"SUMMARY-TEXT","Selected map name remains visible.");
-    var shortened=ArenaCompactMapInfo.ShortDescription(string.Join("\n",Enumerable.Repeat("Long native map description",20)));
-    Need(shortened.Length<=160&&shortened.EndsWith("…")&&!shortened.Contains('\n'),"SUMMARY-TEXT","Native prose is compact and limited to a single short paragraph.");
+    var thumbnail=summaryRoot.GetComponentsInChildren<Image>().Single(i=>i.gameObject.name=="Arena map thumbnail");
+    Need(ReferenceEquals(thumbnail.sprite,borrowedBanner)&&thumbnail.preserveAspect&&!thumbnail.raycastTarget,"THUMBNAIL","Card borrows the native banner without stretching or intercepting input.");
+    Need(summaryRoot.GetComponentsInChildren<TMP_Text>().Length==1,"THUMBNAIL","Only the map title remains; no description or vanilla statistics.");
+    Near(((RectTransform)summaryRoot.transform).rect.height,rootRect.rect.height,"FIXED-SLOT","Thumbnail and Customs preview reserve identical height");
+    compact.Refresh("Bay 5",null);
+    Need(thumbnail.sprite==null&&!thumbnail.gameObject.activeSelf,"THUMBNAIL","Pending native banner reset hides the old thumbnail.");
+    compact.Refresh("Bay 5",borrowedBanner);
+    Need(thumbnail.gameObject.activeSelf&&thumbnail.sprite==borrowedBanner,"THUMBNAIL","Late native banner assignment appears on refresh.");
+    compact.Refresh(null,borrowedBanner);
+    Need(thumbnail.sprite==null&&!thumbnail.gameObject.activeSelf,"THUMBNAIL","Deselection cannot display the last map's stale banner.");
+    compact.Refresh("Factory",borrowedBanner);
     preview.Show(screen.transform,summaryRoot,typography);preview.Refresh(east);
     Need(summaryRoot.GetComponent<CanvasGroup>()?.alpha==0&&nativeGroup.alpha==0,"SUMMARY-PREVIEW","Customs hides only the summary; original native info stays hidden.");
     preview.Refresh(whole);
@@ -240,6 +250,7 @@ try
     preview.Refresh(east);preview.Close();
     Need(summaryRoot.GetComponent<CanvasGroup>()==null&&nativeGroup.alpha==0,"SUMMARY-OWNERSHIP","Preview close releases only its summary lease.");
     compact.Close();
+    Need(!borrowedBanner.Destroyed&&!borrowedBanner.DestroyQueued&&thumbnail.sprite==null,"BORROWED-SPRITE","Closing releases references but never destroys the native sprite.");
     Need(nativeGroup.alpha==.37f&&!nativeGroup.interactable&&nativeGroup.blocksRaycasts,"SUMMARY-RESTORE","Arena exit restores all original native CanvasGroup values.");
     compact.Show(screen.transform,addedNative,typography);compact.Close();
     Need(addedNative.GetComponent<CanvasGroup>()==null,"SUMMARY-SAME-FRAME","Owned native group is removed before same-frame reopen.");
@@ -247,6 +258,38 @@ try
     Need(compact.Root.activeInHierarchy&&addedNative.GetComponent<CanvasGroup>()?.alpha==0,"SUMMARY-SAME-FRAME","A fresh summary survives old deferred root disposal.");
     addedNative.SetActive(false);compact.Close();UObject.EndFrame();
     Need(!addedNative.activeSelf&&addedNative.GetComponent<CanvasGroup>()==null,"SUMMARY-NATIVE-ACTIVE","Closing does not reactivate independently hidden native panels.");
+
+    // Real presentation logic, external TMP/layout surfaces. No native map data
+    // or event wiring is involved; both leases must exactly restore their rows.
+    foreach(var id in new[]{ArenaMapCatalog.Bay5Id,ArenaMapCatalog.EquatorId})
+    {
+        var row=Child(screen,"native optional map",typeof(RectTransform));
+        var rowRect=(RectTransform)row.transform;
+        rowRect.anchorMin=new Vector2(.15f,.83f);rowRect.anchorMax=new Vector2(.16f,.84f);rowRect.anchoredPosition=new Vector2(2,3);
+        var header=Child(row,"native header",typeof(RectTransform),typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+        var size=Child(row,"native sizing",typeof(RectTransform),typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+        header.text="ARENA: ORIGINAL";size.text="native size";header.fontSize=25;header.raycastTarget=true;
+        bool selectedMarker=false;
+        var marker=ArenaPortedMapPresentation.Create(id,rowRect,header,size,()=>selectedMarker);
+        var gold=row.GetComponentsInChildren<TextMeshProUGUI>().Single(t=>t.gameObject.name.StartsWith("Arena ported map label"));
+        var expected=id==ArenaMapCatalog.Bay5Id?"BAY 5":"EQUATOR";
+        Need(gold.text==expected&&size.text==expected&&!header.enabled,"PORTED-LABEL","Ported names drop their prefix and native width follows short text.");
+        Need(gold.color==ArenaPortedMapPresentation.Gold&&gold.raycastTarget==header.raycastTarget,"PORTED-LABEL","Gold is independent of native text tint while preserving a native header hit surface.");
+        Need(gold.GetComponent<LayoutElement>().ignoreLayout,"PORTED-LABEL","New text does not add a second element to native layout calculation.");
+        Need(rowRect.anchorMin==rowRect.anchorMax&&rowRect.anchoredPosition==Vector2.zero,"PORTED-POSITION","New anchors retain native normalized positioning semantics.");
+        Need(id==ArenaMapCatalog.Bay5Id?rowRect.anchorMin.y>.75f:rowRect.anchorMin.x>.66f&&rowRect.anchorMin.y<.36f,
+            "PORTED-POSITION","Bay 5 moves north; Equator sits immediately south-east of native Interchange.");
+        header.color=new Color(0,0,0,1);marker.Refresh();
+        Need(gold.color==ArenaPortedMapPresentation.Gold,"PORTED-COLOR","Native text animation cannot overwrite own gold label.");
+        selectedMarker=true;marker.Refresh();
+        Need(gold.color.r<ArenaPortedMapPresentation.Gold.r,"PORTED-COLOR","Selected label uses a darker gold on native light selection background.");
+        marker.Close();UObject.EndFrame();
+        Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)&&rowRect.anchoredPosition==new Vector2(2,3),"PORTED-RESTORE","Original native geometry is restored exactly.");
+        Need(header.enabled&&header.text=="ARENA: ORIGINAL"&&size.text=="native size"&&gold.Destroyed,"PORTED-RESTORE","Original labels restored; own label released.");
+        marker.Close();
+        Need(ArenaPortedMapPresentation.Create("factory4_day",rowRect,header,size,()=>false)==null,"PORTED-SCOPE","Ordinary map rows remain untouched.");
+        UObject.DestroyImmediate(row);
+    }
 
     int warningStart=Plugin.ModLogger.Warnings.Count,loadStart=Texture2D.LoadCalls;
     Texture2D.FailNextDecode=true;

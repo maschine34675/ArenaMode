@@ -33,7 +33,6 @@ internal sealed class ArenaModeSelectionView
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selection?.SelectedMode;
-    internal void LayoutMutators(bool areaPreview) => _mutators.Layout(areaPreview);
 
     internal void Synchronize(string selectedMode, bool tacticalOnly)
     {

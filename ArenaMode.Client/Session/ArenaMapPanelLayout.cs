@@ -6,7 +6,7 @@ namespace ArenaMode.Session;
 /// <summary>One right-column geometry for map details, area preview and mutators.</summary>
 internal static class ArenaMapPanelLayout
 {
-    internal const float InfoTop = 168f, InfoHeight = 140f, PreviewHeight = 320f;
+    internal const float InfoTop = 168f, InfoHeight = 320f, PreviewHeight = InfoHeight;
     internal const float MutatorsHeight = 408f;
 
     internal static float Scale(Transform screen)
@@ -32,5 +32,5 @@ internal static class ArenaMapPanelLayout
         root.localScale = new Vector3(scale, scale, 1f);
     }
 
-    internal static float MutatorsTop(bool preview) => InfoTop + (preview ? PreviewHeight : InfoHeight) + 20f;
+    internal const float MutatorsTop = InfoTop + InfoHeight + 20f;
 }

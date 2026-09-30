@@ -25,7 +25,7 @@ internal sealed class ArenaMutatorsView
     private Transform _screen;
     private TextMeshProUGUI _subtitle, _note;
     private Action _changed;
-    private bool _dispatching, _preview;
+    private bool _dispatching;
 
     internal void Create(Transform screen, GameObject owner, TMP_Text typography, Action changed)
     {
@@ -74,17 +74,16 @@ internal sealed class ArenaMutatorsView
             _note = Text(_root.transform, typography, "Mutators saved note",
                 "Same settings as F12. Killcam: this mode only.\nOther switches apply to all Arena modes.",
                 13f, 20f, 370f, 600f, 30f);
-            Layout(false);
+            Layout();
         }
         catch { Close(); throw; }
     }
 
-    internal void Layout(bool preview)
+    private void Layout()
     {
-        _preview = preview;
         if (_root == null) return;
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
-            ArenaMapPanelLayout.MutatorsTop(_preview), ArenaMapPanelLayout.MutatorsHeight);
+            ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
         _subtitle.rectTransform.sizeDelta = new Vector2(width - 40f, 24f);
         _note.rectTransform.sizeDelta = new Vector2(width - 40f, 30f);
@@ -105,7 +104,7 @@ internal sealed class ArenaMutatorsView
         _selection.Synchronize(mode, team);
         if (_root == null) return;
         _root.SetActive(_owner != null && _owner.activeInHierarchy && !_selection.Locked);
-        Layout(_preview);
+        Layout();
         foreach (var row in _rows)
         {
             string reason = _selection.UnavailableReason(row.Id);
@@ -144,7 +143,7 @@ internal sealed class ArenaMutatorsView
         foreach (var row in _rows) if (row.Button != null) row.Button.onClick.RemoveAllListeners();
         _rows.Clear();
         _owner = null; _screen = null; _changed = null; _subtitle = _note = null;
-        _dispatching = _preview = false;
+        _dispatching = false;
         var root = _root; _root = null;
         if (root != null) { root.SetActive(false); UnityEngine.Object.Destroy(root); }
     }

@@ -29,12 +29,14 @@ internal static class ArenaLocationSelectionPatch
         public readonly ArenaAreaSelectionView Areas = new();
         public readonly Maps.ArenaAreaMapPreview Preview = new();
         public readonly ArenaCompactMapInfo Info = new();
+        public readonly List<ArenaPortedMapPresentation> PortedMaps = new();
         public readonly List<(string MapId, ArenaConditionalMapView View)> ConditionalMaps = new();
         public ArenaMapMenuUpdater Updater;
         public object Generation;
 
         public void Refresh(MatchMakerSelectionLocationScreen screen)
         {
+            foreach (var presentation in PortedMaps) presentation.Refresh();
             var eligibility = ArenaMenuSelection.CurrentModeEligibility;
             Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
             foreach (var row in ConditionalMaps)
@@ -47,14 +49,16 @@ internal static class ArenaLocationSelectionPatch
             var participants = ArenaParticipantSelectionState.Create(areas, eligibility.IsTeam,
                 ArenaParticipantSettings.Get(areas.MapId, areas.ModeId));
             Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam, participants);
-            Info.Refresh(screen.SelectedLocation?.LocalizedName, screen._infoPanel?._description?.text);
+            Info.Refresh(ArenaPortedMapPresentation.DisplayName(screen.SelectedLocation?.Id,
+                screen.SelectedLocation?.LocalizedName), screen._infoPanel?._banner?.sprite);
             Preview.Refresh(areas);
-            Modes.LayoutMutators(Preview.Root != null && Preview.Root.activeSelf);
         }
 
         public void Restore()
         {
             Generation = null;
+            foreach (var presentation in PortedMaps) presentation.Close();
+            PortedMaps.Clear();
             Preview.Close();
             Info.Close();
             if (Updater != null)
@@ -326,6 +330,17 @@ internal static class ArenaLocationSelectionPatch
                 || onSelected.Method.Name != nameof(MatchMakerSelectionLocationScreen.OnLocationSelected)
                 || onSelected.Method.DeclaringType != typeof(MatchMakerSelectionLocationScreen)
                 || !IsArena(screen)) return;
+
+            try
+            {
+                var toggle = __instance._spawnableToggle;
+                var presentation = ArenaPortedMapPresentation.Create(location.Id,
+                    __instance.transform as RectTransform, toggle?._headerLabel, toggle?._sizeLabel,
+                    () => toggle != null && toggle.Toggle != null && toggle.Toggle.IsToggled);
+                if (presentation != null) States.GetOrCreateValue(screen).PortedMaps.Add(presentation);
+            }
+            catch (System.Exception ex)
+            { Plugin.ModLogger.LogWarning($"Arena map marker presentation unavailable: {ex.Message}"); }
 
             var row = new ArenaConditionalMapView(__instance.gameObject.activeSelf,
                 visible => { if (__instance != null) __instance.gameObject.SetActive(visible); },

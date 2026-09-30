@@ -5,12 +5,13 @@ using UnityEngine.UI;
 
 namespace ArenaMode.Session;
 
-/// <summary>Own summary instead of misleading vanilla raid statistics. No native layout/input writes.</summary>
+/// <summary>Fixed-height card borrowing the native thumbnail, without description or raid statistics.</summary>
 internal sealed class ArenaCompactMapInfo
 {
     private GameObject _root;
     private Transform _screen;
-    private TextMeshProUGUI _title, _description;
+    private TextMeshProUGUI _title;
+    private Image _thumbnail;
     private CanvasGroup _nativeGroup;
     private bool _addedGroup, _interactable, _blocksRaycasts;
     private float _alpha;
@@ -30,8 +31,12 @@ internal sealed class ArenaCompactMapInfo
             image.raycastTarget = false;
             ArenaUiTheme.Decorate((RectTransform)_root.transform);
             _title = Text("Arena map name", typography, 23f);
-            _description = Text("Arena map description", typography, 15f);
-            _description.enableWordWrapping = true;
+            var thumbnail = new GameObject("Arena map thumbnail", typeof(RectTransform), typeof(Image));
+            thumbnail.transform.SetParent(_root.transform, false);
+            _thumbnail = thumbnail.GetComponent<Image>();
+            _thumbnail.raycastTarget = false;
+            _thumbnail.preserveAspect = true;
+            _thumbnail.color = Color.white;
             // One owner hides the original. Customs preview hides OUR summary,
             // never the same native CanvasGroup, so restore leases cannot conflict.
             if (nativeInfo != null)
@@ -50,25 +55,18 @@ internal sealed class ArenaCompactMapInfo
         catch { Close(); throw; }
     }
 
-    internal void Refresh(string name, string description)
+    internal void Refresh(string name, Sprite thumbnail)
     {
         if (_root == null) return;
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen, ArenaMapPanelLayout.InfoTop, ArenaMapPanelLayout.InfoHeight);
         float width = ArenaMapPanelLayout.Width(_screen) - 40f;
         Place(_title.rectTransform, 18f, width, 30f);
-        Place(_description.rectTransform, 57f, width, 66f);
+        Place(_thumbnail.rectTransform, 64f, width, ArenaMapPanelLayout.InfoHeight - 80f);
         _title.text = string.IsNullOrWhiteSpace(name) ? "SELECT A MAP" : name;
-        _description.text = string.IsNullOrWhiteSpace(name) ? "Choose a map. Match rules and mutators apply to your Arena match."
-            : ShortDescription(description);
-    }
-
-    internal static string ShortDescription(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return "Configure your Arena match on this map.";
-        text = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
-        if (text.Length <= 160) return text;
-        int end = text.LastIndexOf(' ', 156, 40);
-        return text.Substring(0, end >= 116 ? end : 156).TrimEnd() + "…";
+        // The native asynchronous banner loader remains its sole owner. Polling
+        // also picks up delayed assignment/reset, without retaining a stale map.
+        _thumbnail.sprite = string.IsNullOrWhiteSpace(name) ? null : thumbnail;
+        _thumbnail.gameObject.SetActive(_thumbnail.sprite != null);
     }
 
     internal void Close()
@@ -82,7 +80,8 @@ internal sealed class ArenaCompactMapInfo
         }
         _nativeGroup = null; _addedGroup = false;
         var root = _root; _root = null; _screen = null;
-        _title = _description = null;
+        if (_thumbnail != null) _thumbnail.sprite = null; // borrowed, never destroyed
+        _title = null; _thumbnail = null;
         if (root != null) { root.SetActive(false); UnityEngine.Object.Destroy(root); }
     }
 

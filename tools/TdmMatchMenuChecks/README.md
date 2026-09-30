@@ -19,6 +19,8 @@ It covers all eight existing feature switches, shared F12 values, movement
 master and mode/dependency restrictions, arm/active locks before UI refresh,
 manual saving, unchanged laser brightness, inline state colors, close and stale callbacks.
 Killcam lives in this always-visible right column and keeps its existing per-mode semantics.
+The panel reserves the same 320-pixel image slot in every mode; map/preview
+selection no longer controls its vertical position.
 
 The rules occupy the old fact-row region only for independent Team DM. The mode
 panel still ends at reference Y=656; the untouched area panel begins at Y=668.

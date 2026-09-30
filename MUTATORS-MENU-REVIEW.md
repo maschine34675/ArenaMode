@@ -31,10 +31,13 @@ wenn eine Abhängigkeit fehlt. Die Pickup-Beschreibung verspricht keine Punkte
 auf Karten ohne Layout. Die gesamte Bedienung ist ab Arm bzw. im Raid gesperrt.
 Es werden keine Spielmechanik- oder Profilpfade verändert.
 
-Rechts oben stehen Kartenname und eine auf höchstens 160 Zeichen gekürzte
-Beschreibung. Die irreführenden Vanilla-Raidstatistiken und das große Banner
-werden nur in Arena verborgen. Customs ersetzt diese Zusammenfassung durch
-eine kompakte Arealkarte mit AREA/OVERVIEW; die Mutatoren rücken darunter.
+Rechts oben stehen Kartenname und natives Thumbnail ohne Beschreibung oder
+Vanilla-Raidstatistiken. Das Thumbnail übernimmt die asynchron geladene native
+Sprite-Referenz, bewahrt deren Seitenverhältnis und besitzt/zerstört das Asset
+nicht. Bei ausstehendem Bild oder fehlender Kartenauswahl bleibt die Bildfläche
+leer, statt das vorige Thumbnail zu zeigen. Customs zeigt dort seine Arealkarte
+mit AREA/OVERVIEW. Beide Ansichten reservieren dieselben 320 Referenzpixel Höhe;
+die Mutatoren bleiben unabhängig von Karte und Modus fest auf Y=508.
 Zeit-/Wetterwahl, Next und Ready bleiben native Controls an ihrem bisherigen Platz.
 Die gemeinsame rechte Spalte skaliert bei geringerer Bildschirmhöhe mit.
 Escape behält die native Navigation zum vorherigen Bildschirm; Close räumt alle
@@ -46,6 +49,18 @@ Generation, Zeilenidentität, aktive Hierarchie und Arm-Zustand werden nochmals
 im Callback geprüft. Der bestehende Modus-/Areal-Panelplatz bleibt unverändert.
 Farbchip und Streifen sind unabhängig von Button-Hover/Disabled-Tints; keine
 geklonten nativen Animationen können ihren aktiven Zustand übermalen.
+
+Die portierten Marker BAY 5 und EQUATOR stehen nur im Arena-Kartenscreen ohne
+Präfix und in Gold. Ausgewählt verwenden sie dunkleres Gold auf dem hellen
+nativen Auswahlhintergrund. Ein eigenes TMP-Label schützt vor nativen
+Textfarb-Animationen; der ursprüngliche Toggle, seine Animation und seine
+Ereignisse bleiben erhalten. Die native Breitenberechnung bekommt den kurzen
+Text. Normierte Markerpositionen: Bay 5 (0,47 / 0,82), Equator (0,70 / 0,29),
+letzteres südöstlich von Interchange (0,66 / 0,36). Das ist ausschließlich eine
+lokale Ansichtsänderung, keine geografische Aussage über die portierten Arenen.
+Beim Verlassen werden Originaltexte, Header-Sichtbarkeit und Markerpositionen
+restauriert. Location-Datenbank, IDs, Allowlist und normale PMC-Menüs bleiben
+unverändert. Derselbe lokale Kurzname steht auch über dem Thumbnail.
 
 ## Prüfung
 

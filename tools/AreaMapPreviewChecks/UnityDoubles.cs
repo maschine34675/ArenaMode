@@ -111,6 +111,7 @@ namespace UnityEngine
         }
     }
     public class Texture:Object{}
+    public class Sprite:Object{}
     public enum TextureFormat { RGBA32 }
     public enum FilterMode { Bilinear }
     public enum TextureWrapMode { Clamp }
@@ -149,6 +150,7 @@ namespace UnityEngine.UI
     }
     public class Graphic:UnityEngine.Component
     {
+        public bool enabled = true;
         public UnityEngine.Color RendererTint;
         public void CrossFadeColor(UnityEngine.Color color,float duration,bool ignoreTimeScale,bool useAlpha) => RendererTint=color;
         public bool raycastTarget=true;public UnityEngine.Color color;
@@ -161,7 +163,8 @@ namespace UnityEngine.UI
         public void SetVerticesDirty()=>DirtyCount++;
     }
     public class MaskableGraphic:Graphic{}
-    public class Image:MaskableGraphic{}
+    public class Image:MaskableGraphic { public UnityEngine.Sprite sprite; public bool preserveAspect; }
+    public class LayoutElement:UnityEngine.Component { public bool ignoreLayout; }
     public class RectMask2D:UnityEngine.Component{}
     public struct Navigation { public enum Mode { None } public Mode mode; }
     public class Selectable:UnityEngine.Component { public enum Transition { None,ColorTint } public Transition transition; }
@@ -184,11 +187,11 @@ namespace UnityEngine.UI
 namespace TMPro
 {
     public enum FontStyles { Normal }
-    public enum TextOverflowModes { Ellipsis }
+    public enum TextOverflowModes { Ellipsis,Overflow }
     public enum TextAlignmentOptions { MidlineLeft,Midline }
     public class TMP_Text:UnityEngine.UI.MaskableGraphic
     {
-        public string text;public object font,fontSharedMaterial;public float fontSize;
+        public string text;public object font,fontSharedMaterial;public float fontSize,characterSpacing;
         public FontStyles fontStyle;
         public bool enableWordWrapping, richText;
         public TextOverflowModes overflowMode;

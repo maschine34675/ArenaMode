@@ -205,14 +205,12 @@ string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
 Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 8, "inline panel has eight switches, no backdrop or close buttons");
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
-Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-328)
-    && mutatorRect.sizeDelta == new Vector2(600,408), "inline panel fits below compact info on the right");
-view.LayoutMutators(true);
-Need(mutatorRect.anchoredPosition == new Vector2(-56,-508), "Customs preview has a separate upper slot");
-view.LayoutMutators(false);
+Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
+    && mutatorRect.sizeDelta == new Vector2(600,408), "inline panel always reserves the full thumbnail or Customs preview slot");
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
+    Need(mutatorRect.anchoredPosition == new Vector2(-56,-508), "mode changes never move the mutator panel");
     bool wasEnabled = Settings.GetReplaySeconds(mode) > 0f;
     Need(KillcamButton().interactable && KillcamText() == (wasEnabled ? "KILLCAM: ON" : "KILLCAM: OFF"),
         "per-mode killcam label reflects saved state " + mode);
@@ -379,7 +377,7 @@ Need(!StateMarker().color.Equals(ArenaMode.Hud.ArenaUiTheme.Positive) && Mutator
 foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new Vector2(1280,720) })
 {
     ((RectTransform)screen.transform).sizeDelta = size;
-    view.LayoutMutators(true);
+    view.Synchronize("deathmatch", false);
     var current = (RectTransform)MutatorsRoot().transform;
     Need(-current.anchoredPosition.y + current.sizeDelta.y * current.localScale.y < size.y * .9f,
         "right column leaves bottom native navigation clear at supported canvas sizes");
