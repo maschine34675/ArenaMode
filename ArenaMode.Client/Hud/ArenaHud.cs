@@ -164,6 +164,13 @@ internal static class ArenaHud
 
     private static void OnCallout(string label) => _callout?.Show(label);
 
+    internal static void ShowBarbedDeath(ArenaMatch match, ArenaBarbedDeath death)
+    {
+        if (!ReferenceEquals(_match, match) || _killfeed == null || !Settings.ShowKillfeed.Value
+            || (!death.LocalIsVictim && !Settings.KillfeedOtherKills.Value)) return;
+        _killfeed.PushBarbedDeath(death);
+    }
+
     private static void OnAssist(ArenaAssist assist)
     {
         if (assist.IsLocal) _score?.ShowAssist(assist.Points);

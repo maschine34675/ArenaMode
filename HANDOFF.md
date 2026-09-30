@@ -1,11 +1,23 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-29. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-09-30. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Stacheldraht im Killfeed (2026-09-30):** Direkte native `Barbed`-Tode
+  ohne Angreifer bekommen einen eigenen HUD-Eintrag mit Opfer/Teamfarbe,
+  rotem Arena-Stacheldraht-Icon und `BARBED WIRE`. EFT löscht hier den letzten
+  Angreifer; der bisherige Kill-Callback läuft deshalb nicht. Separater,
+  Arena-begrenzter `Player.OnDead`-Postfix mit Matchidentität und schwacher
+  Körper-Deduplizierung; kein künstlicher Kill, keine Punkte/Assists/Ansage
+  oder Totenkopf. Killfeed-Schalter bleiben wirksam. Ein späterer tatsächlicher
+  Blutungstod bleibt ein Blutstropfen, kein rückwirkend vermuteter Drahttod.
+  Neues Originalasset mit Hash/Provenienz, weiterhin keine freie
+  Weiterverteilungslizenz festgestellt. Details und Testgrenzen:
+  `HUD-BLEED-POLISH-REVIEW.md`, Abschnitt Stacheldraht.
 
 - **HUD-/Avatar-Nachbesserung (2026-09-29):** `2dfc1e7`. Nutzer hat die bisherige
   Totenkopf-Darstellung akzeptiert; jetzt +42 statt -42 HUD-Einheiten, also über

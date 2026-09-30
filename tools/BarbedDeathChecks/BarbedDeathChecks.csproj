@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+  <EnableDefaultCompileItems>false</EnableDefaultCompileItems><NoWarn>CS0649</NoWarn>
+  <SptRoot Condition="'$(SptRoot)' == ''">../../../..</SptRoot>
+  <CaptureSource Condition="'$(CaptureSource)' == ''">../../ArenaMode.Client/Combat/ArenaBarbedDeathPatch.cs</CaptureSource>
+  <DefineConstants Condition="'$(UseRealHarmony)' == 'true'">$(DefineConstants);REAL_HARMONY_PROBE</DefineConstants>
+ </PropertyGroup>
+ <ItemGroup>
+  <Compile Include="Program.cs" /><Compile Include="BoundaryDoubles.cs" />
+  <Compile Include="$(CaptureSource)" Link="Production/Capture.cs" />
+  <Compile Include="$(HudAdapterSource)" Link="Production/HudAdapter.cs" />
+  <Compile Include="../../ArenaMode.Client/Combat/ArenaBarbedDeath.cs" Link="Production/Notice.cs" />
+  <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/AdministrativeGate.cs" />
+  <Compile Include="../../../_decompiled/EFT/EDamageType.cs" Link="Native/EDamageType.cs" />
+ </ItemGroup>
+ <ItemGroup Condition="'$(UseRealHarmony)' == 'true'">
+  <Reference Include="0Harmony"><HintPath>$(SptRoot)/BepInEx/core/0Harmony.dll</HintPath></Reference>
+  <Reference Include="MonoMod.RuntimeDetour"><HintPath>$(SptRoot)/BepInEx/core/MonoMod.RuntimeDetour.dll</HintPath></Reference>
+  <Reference Include="MonoMod.Utils"><HintPath>$(SptRoot)/BepInEx/core/MonoMod.Utils.dll</HintPath></Reference>
+  <Reference Include="Mono.Cecil"><HintPath>$(SptRoot)/BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+ </ItemGroup>
+</Project>

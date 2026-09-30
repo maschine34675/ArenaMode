@@ -9,7 +9,7 @@ namespace ArenaMode.Hud;
 internal enum ArenaUiIcon
 {
     Kill, Death, Assist, Headshot, AssaultRifle, Carbine, Sniper, Marksman,
-    Machinegun, Shotgun, Pistol, Smg, Grenade, Melee, Bleeding, Fire, TeamPanel,
+    Machinegun, Shotgun, Pistol, Smg, Grenade, Melee, Bleeding, Fire, TeamPanel, BarbedWire,
 }
 
 /// <summary>Private, bounded, cached textures. Original EFT Arena files are documented separately.</summary>
@@ -38,6 +38,7 @@ internal sealed class ArenaUiAssets : IDisposable
         ArenaUiIcon.Grenade => new Spec("grenade.png", 21, 20),
         ArenaUiIcon.Melee => new Spec("melee.png", 23, 20),
         ArenaUiIcon.Bleeding => new Spec("bleeding.png", 20, 20),
+        ArenaUiIcon.BarbedWire => new Spec("barbed-wire.png", 21, 18),
         ArenaUiIcon.Fire => new Spec("fire.png", 13, 18),
         ArenaUiIcon.TeamPanel => new Spec("team-panel.png", 688, 107),
         _ => throw new ArgumentOutOfRangeException(nameof(icon)),
