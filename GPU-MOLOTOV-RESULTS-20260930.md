@@ -92,3 +92,21 @@ halten. 57 Produktions-Assertions und acht gezielte kompilierte Fehlerkontrollen
 bestanden; fokussierte unabhängige Review ohne offene P0–P2. Diese letzte einzelne
 Bereinigungszeile ist durch Desktopchecks geprüft, noch nicht durch einen zweiten
 nativen Wurf. Der endgültige Auslieferungsbeleg wird separat aktualisiert.
+
+## Endgültige Auslieferung
+
+Sauberer Release-Build `f3183a2`, einschließlich dieser zusätzlichen
+Reset-Bereinigung, erneut lokal und auf Host 1 eingespielt. Server/Core unverändert,
+Host 2 nicht angefasst. EFT auf Host 1 vorher regulär beendet und für den nächsten
+Test beendet gelassen; kein neuer Prozess mit diesem letzten Build gestartet.
+
+| Datei | SHA256 |
+|---|---|
+| Client | `7D52E5E6C2B5C15340DE4324DD5944AF126417402368C973097BFF91E881A483` |
+| Companion | `A304C7EFFB2C6117D8607F5CF04075DA3ABB0DB4E02FEA9EF3F24CCBFDD14C2A` |
+
+`MOLOTOV-DEPLOYMENT-20260930.json` ist der endgültige Datenträger-Beleg; der obige
+native Lauf bleibt ausdrücklich dem vorherigen Build `bfdf327` zugeordnet.
+Code liegt im separaten Branch `feature/molotov-prototype`, Hauptcheckout bleibt
+unverändert. Vor einem künftigen Build aus dem Hauptbranch zuerst übernehmen,
+sonst würde jener ältere Client den Prototyp wieder ersetzen.
