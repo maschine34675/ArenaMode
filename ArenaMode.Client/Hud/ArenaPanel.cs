@@ -296,6 +296,8 @@ internal sealed class ArenaPanel : MonoBehaviour
                 Settings.ShowHitmarker.Value, " Hitmarker", _toggleStyle);
             Settings.ShowDamageNumbers.Value = GUILayout.Toggle(
                 Settings.ShowDamageNumbers.Value, " Damage numbers", _toggleStyle);
+            Settings.CombineDamageNumbers.Value = GUILayout.Toggle(
+                Settings.CombineDamageNumbers.Value, " Combine burst damage", _toggleStyle);
 
             GUILayout.Space(6);
             if (!(match.Mode is TeamDeathmatchMode))

@@ -474,6 +474,7 @@ internal static class CombatPatches
 
                 var damage = new ArenaDamage
                 {
+                    VictimBodyId = victim.GetInstanceID(),
                     BodyDamage = __result,
                     ArmorDamage = damageInfo.DidArmorDamage,
                     Headshot = bodyPart == EBodyPart.Head,

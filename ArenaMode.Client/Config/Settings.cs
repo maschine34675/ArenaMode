@@ -93,6 +93,7 @@ public static class Settings
     public static ConfigEntry<bool> KillfeedOtherKills { get; private set; }
     public static ConfigEntry<bool> ShowHitmarker { get; private set; }
     public static ConfigEntry<bool> ShowDamageNumbers { get; private set; }
+    public static ConfigEntry<bool> CombineDamageNumbers { get; private set; }
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
@@ -1230,6 +1231,10 @@ public static class Settings
             "DamageNumbers",
             true,
             "Floating damage numbers at the hit position.");
+
+        CombineDamageNumbers = config.Bind("HUD", "CombineDamageNumbers", false,
+            "Add hits on the same target within 0.25 seconds to one floating number. " +
+            "Body and armor damage stay separate. Presentation only; applies immediately.");
 
         HitmarkerSounds = config.Bind(
             "Audio", "HitmarkerSounds", true,
