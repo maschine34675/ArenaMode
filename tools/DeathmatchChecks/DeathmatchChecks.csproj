@@ -9,6 +9,7 @@
     <ModeSource Condition="'$(ModeSource)' == ''">../../ArenaMode.Client/Modes/RoundsMode.cs</ModeSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
     <Compile Include="$(RulesSource)" Link="Production/DeathmatchRules.cs" />
     <Compile Include="$(ModeSource)" Link="Production/RoundsMode.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ReplayWaitSource Condition="'$(ReplayWaitSource)' == ''">../../ArenaMode.Client/Respawn/ArenaReplayWaitPolicy.cs</ReplayWaitSource>
+    <ReplayHoldSource Condition="'$(ReplayHoldSource)' == ''">../../ArenaMode.Client/Respawn/ArenaDeathReplayHold.cs</ReplayHoldSource>
+    <ReplayCompatSource Condition="'$(ReplayCompatSource)' == ''">../../ArenaMode.Client/Spectator/KillcamReplayCompat.cs</ReplayCompatSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" /><Compile Include="BoundaryDoubles.cs" />
+    <Compile Include="$(ReplayWaitSource)" Link="Production/ArenaReplayWaitPolicy.cs" />
+    <Compile Include="$(ReplayHoldSource)" Link="Production/ArenaDeathReplayHold.cs" />
+    <Compile Include="$(ReplayCompatSource)" Link="Production/KillcamReplayCompat.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Spectator/SpectatorPolicy.cs" Link="Production/SpectatorPolicy.cs" />
+  </ItemGroup>
+</Project>

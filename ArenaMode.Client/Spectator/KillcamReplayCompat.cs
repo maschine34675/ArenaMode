@@ -22,6 +22,27 @@ internal static class KillcamReplayCompat
     private static PropertyInfo _isPlayingProperty;
     private static PropertyInfo _readyForStopProperty;
     private static MethodInfo _extraDelayMethod;
+    private static PropertyInfo _deathReplayActiveProperty;
+
+    internal static bool CanPlay(out string reason)
+    {
+        Resolve();
+        reason = null;
+        if (!_present) { reason = "Requires the KillcamReplay mod."; return false; }
+        if (_problem != null) { reason = "KillcamReplay compatibility could not be verified."; return false; }
+        try
+        {
+            if (_deathReplayActiveProperty?.PropertyType != typeof(bool))
+            { reason = "Update KillcamReplay: its enabled-state API is unavailable."; return false; }
+            if (!(bool)_deathReplayActiveProperty.GetValue(null))
+            { reason = "Enable DeathReplay in KillcamReplay; KillAndDamageInfo also disables it."; return false; }
+            if (_replayControllerField.GetValue(null) == null)
+            { reason = "KillcamReplay is not ready."; return false; }
+            return true;
+        }
+        catch (Exception)
+        { reason = "KillcamReplay availability could not be read."; return false; }
+    }
 
     internal static bool ReplayMayRun
     {
@@ -31,6 +52,11 @@ internal static class KillcamReplayCompat
             return !_present || _problem == null;
         }
     }
+
+    // Rebind must not start its replacement deadline while a slow-motion replay
+    // still owns the dead body. Unknown ownership is never a release either.
+    internal static bool CameraReleased
+        => ReadState(out _, out _) is OptionalCameraOwnerState.Absent or OptionalCameraOwnerState.Idle;
 
     internal static void Reset()
     {
@@ -42,6 +68,7 @@ internal static class KillcamReplayCompat
         _isPlayingProperty = null;
         _readyForStopProperty = null;
         _extraDelayMethod = null;
+        _deathReplayActiveProperty = null;
     }
 
     internal static OptionalCameraOwnerState ReadState(out float maximumRemainingSeconds, out string problem)
@@ -70,9 +97,12 @@ internal static class KillcamReplayCompat
                 return OptionalCameraOwnerState.Idle;
 
             object delay = _extraDelayMethod.Invoke(null, null);
-            maximumRemainingSeconds = delay is float seconds && !float.IsNaN(seconds)
-                ? Math.Max(0f, seconds)
-                : 0f;
+            if (delay is not float seconds || float.IsNaN(seconds) || float.IsInfinity(seconds) || seconds < 0f)
+            {
+                problem = "KillcamReplay returned an invalid replay bound";
+                return OptionalCameraOwnerState.Incompatible;
+            }
+            maximumRemainingSeconds = seconds;
             return OptionalCameraOwnerState.Busy;
         }
         catch (Exception ex)
@@ -106,6 +136,8 @@ internal static class KillcamReplayCompat
             _replayControllerField = pluginType.GetField(
                 "ReplayCtrl",
                 BindingFlags.Public | BindingFlags.Static);
+            _deathReplayActiveProperty = pluginType.GetProperty(
+                "DeathReplayActive", BindingFlags.Public | BindingFlags.Static);
             _pendingKillerField = controllerType.GetField(
                 "PendingReplayKiller",
                 BindingFlags.Public | BindingFlags.Static);

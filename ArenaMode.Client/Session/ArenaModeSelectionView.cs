@@ -29,6 +29,8 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _subtitle;
     private GameObject _restrictionNote;
     private ArenaModeSelectionState _selection;
+    private Button _killcamButton;
+    private TextMeshProUGUI _killcamLabel;
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selection?.SelectedMode;
@@ -104,6 +106,9 @@ internal sealed class ArenaModeSelectionView
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
+        if (_killcamButton != null) Safe(() => _killcamButton.onClick.RemoveAllListeners());
+        _killcamButton = null;
+        _killcamLabel = null;
         _markers.Clear();
         var root = _root;
         _root = null;
@@ -143,6 +148,7 @@ internal sealed class ArenaModeSelectionView
         CreateRule(266f, typography);
         var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 281f, 22f);
         heading.color = Dim(typography, .65f);
+        CreateKillcamRow(template);
         _rules = CreateFact("RULES", typography, 312f);
         _respawn = CreateFact("RESPAWN", typography, 352f);
         _equipment = CreateFact("EQUIPMENT", typography, 392f);
@@ -240,8 +246,62 @@ internal sealed class ArenaModeSelectionView
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
                     ? "TACTICAL / 5v5 (PFT)" : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value;
         _respawn.text = mode.Respawn;
+        if (mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
+            && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
         _equipment.text = _selection.TacticalOnly ? "PMC entry gear" : mode.Equipment;
+        RefreshKillcam();
         RefreshTdmRules();
+    }
+
+    private void CreateKillcamRow(Button template)
+    {
+        var owner = _root;
+        _killcamButton = UnityEngine.Object.Instantiate(template, owner.transform, false);
+        _killcamButton.name = "Arena Killcam";
+        _killcamButton.onClick = new Button.ButtonClickedEvent();
+        _killcamButton.transform.localScale = Vector3.one;
+        // Share the heading's unused right half; do not push the area panel or
+        // native navigation down. The rule rows start below this 26-unit control.
+        SetRect((RectTransform)_killcamButton.transform, 196f, 276f, 144f, 26f);
+        var layout = _killcamButton.GetComponent<LayoutElement>();
+        if (layout != null) layout.ignoreLayout = true;
+        _killcamLabel = _killcamButton.GetComponentInChildren<TextMeshProUGUI>(true)
+            ?? throw new InvalidOperationException("The native killcam-row label is missing.");
+        _killcamLabel.fontSize = 14f;
+        _killcamLabel.enableWordWrapping = false;
+        _killcamLabel.alignment = TextAlignmentOptions.Center;
+        _killcamLabel.raycastTarget = false;
+        SetRect(_killcamLabel.rectTransform, 0f, 0f, 144f, 26f);
+        Hud.ArenaUiTheme.StyleButton(_killcamButton, _killcamLabel);
+        var navigation = _killcamButton.navigation;
+        navigation.mode = Navigation.Mode.None;
+        _killcamButton.navigation = navigation;
+        _killcamButton.onClick.AddListener(() =>
+        {
+            if (!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy
+                || _selection == null || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid
+                || !Spectator.KillcamReplayCompat.CanPlay(out _)) return;
+            Settings.TrySelectKillcam(_selection.SelectedMode, Settings.GetReplaySeconds(_selection.SelectedMode) <= 0f);
+            Refresh();
+        });
+        _killcamButton.gameObject.SetActive(true);
+    }
+
+    private void RefreshKillcam()
+    {
+        if (_killcamButton == null || _selection == null) return;
+        bool available = Spectator.KillcamReplayCompat.CanPlay(out string reason);
+        bool enabled = Settings.GetReplaySeconds(_selection.SelectedMode) > 0f;
+        _killcamLabel.text = !available ? "KILLCAM: N/A" : enabled ? "KILLCAM: ON" : "KILLCAM: OFF";
+        _killcamButton.interactable = available && !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid;
+        var tooltip = _killcamButton.GetComponent<HoverTooltipArea>();
+        if (tooltip != null)
+        {
+            tooltip.SetMessageText(available
+                ? "Death replay for this mode. Respawn waits until playback ends or is skipped. Tactical still waits for the next round."
+                : reason, rawText: true);
+            tooltip.SetUnlockStatus(available);
+        }
     }
 
     private void RefreshTdmRules()

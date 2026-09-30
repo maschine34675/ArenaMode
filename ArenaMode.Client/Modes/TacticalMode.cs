@@ -3,6 +3,7 @@ using ArenaMode.Combat;
 using ArenaMode.Compat;
 using ArenaMode.Config;
 using ArenaMode.Kits;
+using ArenaMode.Session;
 using ArenaMode.Spectator;
 using EFT;
 using System;
@@ -308,7 +309,7 @@ public sealed partial class TacticalMode : IArenaMode
     public float DeathReplaySeconds
         => _teamArena && !ArenaSpectatorService.OptionalKillcamReplayMayRun
             ? 0f
-            : Settings.TacticalReplaySeconds.Value;
+            : Session.ArenaReplaySelection.Seconds;
 
     /// <summary>
     /// Held from the moment the player goes down until the next round starts.
@@ -2101,10 +2102,16 @@ public sealed partial class TacticalMode : IArenaMode
             return;
         }
 
+        bool localDead = _playerDown || _boundLocalPlayer?.HealthController?.IsAlive == false;
+        // Native slow motion + tail can outlast the 45-second replacement
+        // budget. Keep this earlier step until camera cleanup; the death hold
+        // owns the bounded replay wait and protected abort for unsafe states.
+        if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamReplayCompat.CameraReleased)
+            return;
+
         Plugin.ModLogger.LogInfo(
             $"Tactical team Arena round {RoundNumber}: all nine old bot bodies left active registries.");
 
-        bool localDead = _playerDown || _boundLocalPlayer?.HealthController?.IsAlive == false;
         if (!localDead)
         {
             if (!TryValidateCurrentTeamLeaderBody(

@@ -94,6 +94,9 @@ public static class Settings
     public static ConfigEntry<bool> ShowHitmarker { get; private set; }
     public static ConfigEntry<bool> ShowDamageNumbers { get; private set; }
     public static ConfigEntry<bool> CombineDamageNumbers { get; private set; }
+    public static ConfigEntry<float> DeathmatchReplaySeconds { get; private set; }
+    public static ConfigEntry<float> GunGameReplaySeconds { get; private set; }
+    public static ConfigEntry<float> TeamDeathmatchReplaySeconds { get; private set; }
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
@@ -223,6 +226,36 @@ public static class Settings
         => new DeathmatchOptions(DeathmatchRounds.Value, DeathmatchKills.Value, DeathmatchSeconds.Value,
             DeathmatchFreeForAll.Value, RoundIntermissionSeconds.Value, RoundRespawn.Value);
 
+    private static ConfigEntry<float> ReplayEntry(string mode)
+        => ArenaModeCatalog.NormalizeId(mode) switch
+        {
+            ArenaModeCatalog.GunGameId => GunGameReplaySeconds,
+            ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchReplaySeconds,
+            ArenaModeCatalog.TacticalId => TacticalReplaySeconds,
+            _ => DeathmatchReplaySeconds,
+        };
+
+    internal static float GetReplaySeconds(string mode)
+    {
+        float value = ReplayEntry(mode)?.Value ?? 0f;
+        return float.IsNaN(value) || float.IsInfinity(value) ? 0f : Math.Max(0f, Math.Min(10f, value));
+    }
+
+    internal static bool TrySelectKillcam(string mode, bool enabled)
+    {
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
+        var entry = ReplayEntry(mode);
+        if (entry == null) return false;
+        float seconds = enabled ? 3f : 0f;
+        try { entry.Value = seconds; }
+        catch (Exception ex)
+        { Plugin.ModLogger?.LogWarning($"Arena killcam selection failed: {ex.Message}"); return false; }
+        if (entry.Value != seconds) return false;
+        try { if (File?.SaveOnConfigSet == false) File.Save(); }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena killcam save failed: {ex.Message}"); }
+        return true; // Presentation/respawn timing is client-owned; no server settings traffic.
+    }
+
     internal static bool TrySelectDeathmatchRule(int row, int value)
     {
         if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
@@ -299,6 +332,12 @@ public static class Settings
         // Limits are client-owned. No route/protocol change or settings report.
         return true;
     }
+
+    private static ConfigEntry<float> BindReplay(ConfigFile config, string section)
+        => config.Bind(section, "ReplaySeconds", 0f, new ConfigDescription(
+            "Recorded seconds shown after death; 0 keeps instant respawn. Requires enabled KillcamReplay. " +
+            "Respawn waits for actual playback, slow motion and live tail. Frozen when the raid is armed.",
+            new AcceptableValueRange<float>(0f, 10f)));
 
     public static void Init(ConfigFile config)
     {
@@ -1073,10 +1112,14 @@ public static class Settings
             "ReplaySeconds",
             3f,
             new ConfigDescription(
-                "Seconds of KillcamReplay after you go down. This is the one mode " +
-                "with room for it — everywhere else you respawn before it could " +
-                "play. 0 switches it off. Needs the KillcamReplay mod installed.",
+                "Recorded seconds shown after you go down; 0 disables killcam. " +
+                "Requires enabled KillcamReplay. Respawn waits for playback, slow motion and live tail. " +
+                "Frozen when the raid is armed; Tactical still waits for the next round.",
                 new AcceptableValueRange<float>(0f, 10f)));
+
+        DeathmatchReplaySeconds = BindReplay(config, "Deathmatch");
+        GunGameReplaySeconds = BindReplay(config, "Gun Game");
+        TeamDeathmatchReplaySeconds = BindReplay(config, "Team Deathmatch");
 
         TacticalTeamRoundsToWin = config.Bind(
             "Tactical Team",

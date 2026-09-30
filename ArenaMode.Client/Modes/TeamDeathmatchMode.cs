@@ -45,7 +45,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     public string DisplayName => "Team Deathmatch";
     public bool IsComplete => _failure != null || HasResult;
     internal bool AssistScoringOpen => !_ended && !IsComplete && IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Live;
-    public float DeathReplaySeconds => 0f;
+    public float DeathReplaySeconds => Session.ArenaReplaySelection.Seconds;
     public bool HoldRespawn => Areas.ArenaAreaRuntime.IsPending || HasResult;
     public bool ControlsOwnSpawns => true;
     public int TeamSize => _population?.TeamSize ?? 5;

@@ -8,6 +8,7 @@
     <ProductionSettings Condition="'$(ProductionSettings)' == ''">../../ArenaMode.Client/Config/Settings.cs</ProductionSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
     <Compile Include="../../ArenaMode.Client/Hud/ArenaUiTheme.cs" Link="Production/ArenaUiTheme.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaDeathmatchRulesState.cs" Link="DeathmatchState.cs" />

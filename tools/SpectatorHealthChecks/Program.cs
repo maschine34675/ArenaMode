@@ -13,6 +13,9 @@ internal static class Program
         LifetimeAndIdentity();
         InvalidAndUnavailableHealth();
         ChangesDuringNativeRead();
+#if REPLAY_EFFECTS_SCOPE_CHECKS
+        _assertions += ReplayEffectsScopeChecks.Run();
+#endif
         Console.WriteLine($"ARENA_SPECTATOR_HEALTH_CHECKS_PASSED ({_assertions} assertions)");
     }
 

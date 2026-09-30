@@ -11,6 +11,7 @@
     <RelationsSource Condition="'$(RelationsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TeamDeathmatchRelations.cs</RelationsSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
     <Compile Remove="BurstIntegration/**/*.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
     <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />

@@ -53,7 +53,13 @@ $arenaFaults = @(
       'ProductionModeView', 'retired mode row cannot modify reopened panel'),
     @('panel-growth' , 'ArenaMode.Client\Session\ArenaTdmMatchRulesView.cs',
       '20f, 307f, Width, 124f', '20f, 307f, Width, 240f',
-      'ProductionRulesView', 'rules remain below heading and inside original mode panel')
+      'ProductionRulesView', 'rules remain below heading and inside original mode panel'),
+    @('killcam-current-mode', 'ArenaMode.Client/Config/Settings.cs',
+      'var entry = ReplayEntry(mode);', 'var entry = ReplayEntry("deathmatch");',
+      'ProductionSettings', 'native killcam button persists current mode gungame'),
+    @('killcam-retired-callback', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      "!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy`n                || _selection == null", 'owner == null || _selection == null',
+      'ProductionModeView', 'retired killcam callback cannot mutate reopened panel')
 )
 try {
     foreach ($arenaFault in $arenaFaults) {
@@ -64,7 +70,7 @@ try {
         $arenaMutant = Join-Path $arenaEvidence ($arenaFault[0] + '.cs')
         [IO.File]::WriteAllText($arenaMutant, $arenaSource.Replace($arenaFault[2], $arenaFault[3]))
         $arenaRun = Invoke-MenuCheck $arenaFault[0] ('-p:' + $arenaFault[4] + '=' + $arenaMutant)
-        if ($arenaRun.Code -eq 0 -or -not $arenaRun.Output.Contains($arenaFault[5])) { throw $arenaRun.Output }
+        if ($arenaRun.Code -eq 0 -or $arenaRun.Output.Contains('error CS') -or -not $arenaRun.Output.Contains($arenaFault[5])) { throw $arenaRun.Output }
         Write-Output "NEGATIVE CONTROL PASSED: $($arenaFault[0])"
     }
 }

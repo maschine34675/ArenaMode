@@ -5,9 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <ReadoutSource Condition="'$(ReadoutSource)' == ''">../../ArenaMode.Client/Spectator/SpectatorHealthReadout.cs</ReadoutSource>
+    <DefineConstants Condition="'$(ReplayContextSource)' != ''">$(DefineConstants);REPLAY_EFFECTS_SCOPE_CHECKS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ReadoutSource)" Link="Production/SpectatorHealthReadout.cs" />
     <Compile Include="../../ArenaMode.Client/Spectator/ArenaSpectatorRequest.cs" Link="Production/ArenaSpectatorRequest.cs" />
+    <Compile Include="$(ReplayContextSource)" Link="Production/ReplayEffectsScope.cs" Condition="'$(ReplayContextSource)' != ''" />
   </ItemGroup>
 </Project>

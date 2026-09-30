@@ -19,3 +19,29 @@ The existing bottom-center banner retains its 560-pixel maximum width and lower 
 GPU handoff: in protected Tactical 5v5, die and let the replay finish; observe both ally and opponent bots, switch targets with LMB/RMB, watch HP change after damage/healing, and verify the banner disappears during round end and local respawn. Confirm readability at the user's resolution/UI scale. Missing/invalid data must never show the previous bot's HP.
 
 Independent verification on 2026-09-05 re-ran 49 assertions and all six mutation controls. Source review checked the native total-health API, service/frozen-body binding, invalid-data handling and unchanged camera/input lifecycle with no unresolved findings. The client Release build passed against installed assemblies and its deployed DLL matched by SHA256. Existing protected-team, PFT, Team Deathmatch, alarm, tracer and announcer checks also passed. These are offline results; the GPU handoff above remains outstanding.
+
+## Replay visual-effects scope (2026-09-30)
+
+The runner additionally extracts the unchanged method text of production
+`SpectatorHealthEffects.HasExactReplayContext` into its narrow executable fixture.
+It admits cleanup only during an active Arena raid with a frozen enabled replay,
+the exact started LocalGame/GameWorld pair and its exact dead local body in both
+registries, and confirmed pending/playing/cleanup ownership by KillcamReplay.
+Thirty-one assertions reject ordinary/disabled/stopped contexts, living or
+destroyed bodies, missing health, body replacement in either registry, stale
+native identities, and absent/idle/unreadable replay state. Three compiled
+negative controls remove ordinary-raid, world-body, or busy-camera guards and
+must fail their named runtime assertions; compile failures do not count.
+
+The PFT cleanup entry retains its original protected-team gate. The replay entry
+reuses the same bounded two-pass visual cleanup, including the exact
+EffectsController-bound-body check, without acquiring a spectator camera or
+mutating actual health. Native `EffectsController.cs:1230` binds `player` to the
+camera controller's body, `:48` is the visual accumulator removal path, and
+`:1488` only starts death fade/blur. KillcamReplay suppresses that death handler;
+it does not clear concussion/blood accumulators itself.
+
+Verification: 80 assertions and nine mutation controls passed on 2026-09-30.
+The new tests execute the admission method, not Unity's visual components. A
+native replay after concussion/blood effects and an ordinary-raid comparison
+remain the acceptance checks for pixels and restored respawn visuals.

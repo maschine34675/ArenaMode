@@ -66,7 +66,9 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Plugin.ModLogger.LogInfo(
             PitFireTeamCompat.HasFrozenTeamRoster
                 ? $"Arena death #{DeathsThisSession} — held for Tactical round transition."
-                : $"Arena death #{DeathsThisSession} — instant respawn.");
+                : ArenaSession.ReplaySeconds > 0f
+                    ? $"Arena death #{DeathsThisSession} — respawn after optional killcam."
+                    : $"Arena death #{DeathsThisSession} — instant respawn.");
 
         ArenaEvents.RaisePlayerDied(deadPlayer);
         game.StartCoroutine(FixOwnCorpseRenders(deadPlayer));
@@ -85,9 +87,21 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         // player is handed — picking first would hand them the loadout they had
         // when they died.
         //
-        // The mode is re-read every frame rather than captured: it is a per-raid
-        // object, and holding a reference across a wait of unknown length is how
-        // a mode that ended keeps a player dead.
+        // Bind this exact match/body, then recheck its identity every frame.
+        // Replay ownership and the mode hold run concurrently; neither may
+        // release an old continuation into a later match or a new living body.
+        ArenaDeathReplayHold replayHold = null;
+        if (ArenaSession.ReplaySeconds > 0f)
+        {
+            replayHold = new ArenaDeathReplayHold(game, deadPlayer, raidEpoch);
+            yield return replayHold.Wait();
+            if (!replayHold.CanRespawn)
+            {
+                EndPipelineUse(raidEpoch);
+                yield break;
+            }
+        }
+        // Keep the no-replay path and its coroutine timing unchanged.
         while (Modes.ArenaMatchService.Current?.Mode?.HoldRespawn == true
                && IsSameActiveRaid(game, raidEpoch)
                && !StandDown)
@@ -170,6 +184,18 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         // covers a mid-raid kit switch via F12.
         yield return KitBundlePreloader.Preload(kit);
         long preloadedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        // Preload can yield after the first release. Revalidate both mode and
+        // optional camera ownership before any native owner is destroyed.
+        if (replayHold != null)
+        {
+            yield return replayHold.Wait();
+            if (!replayHold.CanRespawn)
+            {
+                EndPipelineUse(raidEpoch);
+                yield break;
+            }
+        }
 
         // A final kill or time limit can land while kit bundles are loading.
         // Keep death interception alive, but never start a new body replacement

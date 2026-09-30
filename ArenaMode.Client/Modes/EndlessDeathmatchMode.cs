@@ -21,7 +21,7 @@ public sealed class EndlessDeathmatchMode : IArenaMode
     public bool IsComplete => false;
 
     /// <summary>Instant respawn leaves no room for one.</summary>
-    public float DeathReplaySeconds => 0f;
+    public float DeathReplaySeconds => Session.ArenaReplaySelection.Seconds;
 
     /// <summary>Death costs nothing here — you are back before the body lands.</summary>
     public bool HoldRespawn => false;

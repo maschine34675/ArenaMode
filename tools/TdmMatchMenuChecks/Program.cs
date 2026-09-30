@@ -38,6 +38,10 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
     Need((Luminance(foreground) + .05f) / (Luminance(ArenaMode.Hud.ArenaUiTheme.Raised) + .05f) >= 4.5f,
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
+Need(!Settings.CombineDamageNumbers.Value, "burst damage remains opt-in");
+Need(Settings.GetReplaySeconds("deathmatch") == 0f && Settings.GetReplaySeconds("gungame") == 0f
+    && Settings.GetReplaySeconds("teamdeathmatch") == 0f && Settings.GetReplaySeconds("tactical") == 3f,
+    "killcam keeps instant modes off and Tactical legacy default on");
 Need(Settings.TeamDeathmatchKillLimit.Value == 50 && Settings.TeamDeathmatchTimeLimitSeconds.Value == 600,
     "production defaults are 50 team kills and ten minutes");
 var killsRange = (AcceptableValueRange<int>)Settings.TeamDeathmatchKillLimit.Description.AcceptableValues;
@@ -126,7 +130,7 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-Need(Buttons().Length == 30 && RuleRoot().activeInHierarchy, "four modes, nine TDM and seventeen Deathmatch rule buttons exist");
+Need(Buttons().Length == 31 && RuleRoot().activeInHierarchy, "four modes, nine TDM, seventeen Deathmatch rule buttons and the killcam choice exist");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
 Need(!Label("RULES label").gameObject.activeSelf && !Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM rules replace ordinary fact rows rather than overlapping them");
@@ -191,12 +195,61 @@ view.Synchronize("teamdeathmatch", false);
 foreach (var callback in dmRetired) callback();
 Need(Settings.DeathmatchRounds.Value == 3, "hidden Deathmatch callbacks cannot change other mode");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
+Button KillcamButton() => Buttons().Single(x => x.name == "Arena Killcam");
+string KillcamText() => KillcamButton().GetComponentInChildren<TextMeshProUGUI>(true).text;
+var cameraRect = (RectTransform)KillcamButton().transform;
+Need(cameraRect.anchoredPosition.x >= 190 && cameraRect.anchoredPosition.x + cameraRect.sizeDelta.x <= 340
+    && -cameraRect.anchoredPosition.y + cameraRect.sizeDelta.y <= 303,
+    "killcam control fits beside heading without invading match rules or map navigation");
+foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
+{
+    view.Synchronize(mode, mode == "tactical");
+    bool wasEnabled = Settings.GetReplaySeconds(mode) > 0f;
+    Need(KillcamButton().interactable && KillcamText() == (wasEnabled ? "KILLCAM: ON" : "KILLCAM: OFF"),
+        "per-mode killcam label reflects saved state " + mode);
+    KillcamButton().onClick.Invoke();
+    Need((Settings.GetReplaySeconds(mode) > 0f) != wasEnabled, "native killcam button persists current mode " + mode);
+    KillcamButton().onClick.Invoke();
+    Need((Settings.GetReplaySeconds(mode) > 0f) == wasEnabled, "native killcam toggle restores only current mode " + mode);
+}
+view.Synchronize("gungame", false);
+KillcamButton().onClick.Invoke();
+ArenaReplaySelection.Capture(Settings.GetReplaySeconds("gungame"), true);
+Settings.GunGameReplaySeconds.Value = 7f;
+Need(ArenaReplaySelection.Seconds == 3f, "armed replay duration is independent of later F12 changes");
+ArenaReplaySelection.Clear();
+foreach (bool armed in new[] { true, false })
+{
+    ArenaSession.ArmedForNextRaid = armed; ArenaSession.IsActive = !armed;
+    view.Synchronize("gungame", false);
+    KillcamButton().onClick.Invoke();
+    Need(!KillcamButton().interactable && Settings.GunGameReplaySeconds.Value == 7f
+        && !Settings.TrySelectKillcam("gungame", false), "armed and active killcam writes are rejected");
+}
+ArenaSession.ArmedForNextRaid = ArenaSession.IsActive = false;
+ArenaMode.Spectator.KillcamReplayCompat.Available = false;
+view.Synchronize("gungame", false);
+KillcamButton().onClick.Invoke();
+Need(KillcamText() == "KILLCAM: N/A" && !KillcamButton().interactable && Settings.GunGameReplaySeconds.Value == 7f,
+    "unavailable mod is explicit and cannot change preference");
+ArenaMode.Spectator.KillcamReplayCompat.Available = true;
+view.Synchronize("gungame", false);
+Need(KillcamText() == "KILLCAM: ON" && Label("RESPAWN value").text == "After killcam",
+    "available replay refreshes actual respawn description");
+Need(Settings.GetReplaySeconds("deathmatch") == 0f && Settings.GetReplaySeconds("teamdeathmatch") == 0f
+    && Settings.GetReplaySeconds("tactical") == 3f, "selecting one mode leaves the other replay choices untouched");
+var retiredKillcam = KillcamButton();
+var staleKillcamActions = retiredKillcam.onClick.Snapshot();
+view.Synchronize("teamdeathmatch", false);
 var retiredButton = KillButton(100);
 var retired = retiredButton.onClick.Snapshot();
 view.Close();
+Need(retiredKillcam.onClick.Snapshot().Length == 0, "close removes killcam callback");
 Need(retiredButton.onClick.Snapshot().Length == 0, "close removes child listeners");
 Settings.GameMode.Value = "teamdeathmatch";
 Show();
+foreach (var callback in staleKillcamActions) callback();
+Need(Settings.TeamDeathmatchReplaySeconds.Value == 0f, "retired killcam callback cannot mutate reopened panel");
 foreach (var callback in retired) callback();
 foreach (var callback in staleMode) callback();
 Need(Settings.GameMode.Value == "teamdeathmatch", "retired mode row cannot modify reopened panel");

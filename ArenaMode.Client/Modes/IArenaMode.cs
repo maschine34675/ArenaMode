@@ -27,11 +27,10 @@ public interface IArenaMode
     /// <summary>
     /// How many seconds of death replay this mode wants, or 0 for none.
     ///
-    /// Zero everywhere the player respawns instantly: a replay would play over a
-    /// live body already standing somewhere else. A mode that makes death COST
-    /// something — a wait for the next round — is the one place a replay has
-    /// room, and it says so here. Read through ArenaSession.ReplaySeconds, which
-    /// is the surface KillcamReplay reflects on.
+    /// Selected separately for each mode in the map menu and frozen at arming.
+    /// The death driver waits for actual optional replay ownership to end before
+    /// replacing the body. Read through ArenaSession.ReplaySeconds, the stable
+    /// surface reflected by KillcamReplay; zero retains the previous timing.
     /// </summary>
     float DeathReplaySeconds { get; }
 

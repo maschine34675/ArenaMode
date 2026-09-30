@@ -56,3 +56,13 @@ namespace BepInEx.Configuration
         public void Save() { Saves++; if (ThrowSave) throw new InvalidOperationException("fixture disk failure"); }
     }
 }
+
+namespace ArenaMode.Spectator
+{
+    internal static class KillcamReplayCompat
+    {
+        internal static bool Available = true;
+        internal static bool CanPlay(out string reason)
+        { reason = Available ? null : "Requires the KillcamReplay mod."; return Available; }
+    }
+}

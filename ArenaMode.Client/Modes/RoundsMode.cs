@@ -60,7 +60,7 @@ public sealed partial class RoundsMode : IArenaMode
     public bool Continuous => _options.Continuous;
     public event Action<RoundState> OnRoundEnded;
     public event Action<int> OnRoundStarted;
-    public float DeathReplaySeconds => 0f;
+    public float DeathReplaySeconds => Session.ArenaReplaySelection.Seconds;
     public bool HoldRespawn => HasResult;
     // Terminal results also suppress the ambient population, whose admission
     // path asks this property rather than assuming only custom spawners use it.

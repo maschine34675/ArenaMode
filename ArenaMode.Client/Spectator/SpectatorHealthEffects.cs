@@ -1,5 +1,6 @@
 using ArenaMode.Compat;
 using ArenaMode.Session;
+using Comfort.Common;
 using EFT;
 using EFT.CameraControl;
 using HarmonyLib;
@@ -52,6 +53,35 @@ internal static class SpectatorHealthEffects
     }
 
     internal static void ClearForDeadLocal(Player expectedDeadPlayer, bool force = false)
+        => ClearForDeadLocal(expectedDeadPlayer, force, replayGame: null);
+
+    /// <summary>
+    /// Replay-only entrance for non-PFT modes. A waiting respawn supplies the
+    /// exact native game and corpse; no spectator lease or camera ownership is
+    /// created. Ordinary raids and idle optional cameras remain untouched.
+    /// </summary>
+    internal static void ClearForDeathReplay(LocalGame game, Player expectedDeadPlayer)
+    {
+        if (!HasExactReplayContext(game, expectedDeadPlayer))
+            return;
+        ClearForDeadLocal(expectedDeadPlayer, force: false, replayGame: game);
+    }
+
+    internal static bool HasExactReplayContext(LocalGame game, Player expectedDeadPlayer)
+    {
+        if (!ArenaSession.IsActive || ArenaReplaySelection.Seconds <= 0f
+            || game == null || game.Status != GameStatus.Started
+            || expectedDeadPlayer == null || !expectedDeadPlayer.IsYourPlayer
+            || expectedDeadPlayer.HealthController?.IsAlive != false
+            || !ReferenceEquals(game.LocalPlayer, expectedDeadPlayer))
+            return false;
+        var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
+        return world != null && ArenaSession.IsExactActiveRaid(game, world)
+            && ReferenceEquals(world.MainPlayer, expectedDeadPlayer)
+            && KillcamReplayCompat.ReadState(out _, out _) == OptionalCameraOwnerState.Busy;
+    }
+
+    private static void ClearForDeadLocal(Player expectedDeadPlayer, bool force, LocalGame replayGame)
     {
         // One synchronous pass handles effects already present at death. A second
         // pass on the next spectator tick closes event-ordering races before
@@ -73,7 +103,11 @@ internal static class SpectatorHealthEffects
 
         try
         {
-            if (TryClearForDeadLocal(expectedDeadPlayer, out string problem))
+            string problem;
+            bool cleared = replayGame == null
+                ? TryClearForDeadLocal(expectedDeadPlayer, out problem)
+                : TryClearForDeathReplay(replayGame, expectedDeadPlayer, out problem);
+            if (cleared)
             {
                 return;
             }
@@ -94,6 +128,23 @@ internal static class SpectatorHealthEffects
             problem = "the protected team Arena gates were no longer active";
             return false;
         }
+
+        return TryClearVisualState(expectedDeadPlayer, out problem);
+    }
+
+    private static bool TryClearForDeathReplay(LocalGame game, Player expectedDeadPlayer, out string problem)
+    {
+        if (!HasExactReplayContext(game, expectedDeadPlayer))
+        {
+            problem = "the exact dead-player Arena replay was no longer active";
+            return false;
+        }
+        return TryClearVisualState(expectedDeadPlayer, out problem);
+    }
+
+    private static bool TryClearVisualState(Player expectedDeadPlayer, out string problem)
+    {
+        problem = null;
 
         if (ReferenceEquals(expectedDeadPlayer, null)
             || expectedDeadPlayer == null

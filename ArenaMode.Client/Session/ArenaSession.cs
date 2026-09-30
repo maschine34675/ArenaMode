@@ -120,6 +120,7 @@ public static class ArenaSession
         Participants = participants;
         ParticipantBosses = participantBosses;
         DeathmatchSelection = deathmatch;
+        ArenaReplaySelection.Capture(Settings.GetReplaySeconds(mode), Spectator.KillcamReplayCompat.CanPlay(out _));
         unchecked { ArmEpoch++; }
         ArmedForNextRaid = true;
         ArmedMap = map;
@@ -138,6 +139,7 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         DeathmatchSelection = null;
+        ArenaReplaySelection.Clear();
         ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
@@ -210,6 +212,7 @@ public static class ArenaSession
             ArmedMode = null;
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ArenaReplaySelection.Clear();
             ClearParticipants();
             ActiveMode = null;
             LastRaidWasArena = false;
@@ -239,6 +242,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ArenaReplaySelection.Clear();
             ClearParticipants();
             PitFireTeamCompat.Clear("Fika raid rejected");
             ArenaServerClient.PostRaidCancel();
@@ -252,6 +256,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ArenaReplaySelection.Clear();
             ClearParticipants();
             PitFireTeamCompat.Clear("armed map did not match started raid");
             ArenaServerClient.PostRaidCancel();
@@ -269,6 +274,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
             DeathmatchSelection = null;
+            ArenaReplaySelection.Clear();
             ClearParticipants();
             _rejectedServerRaidPendingEnd = true;
             LastRaidWasArena = true;
@@ -412,6 +418,7 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         DeathmatchSelection = null;
+        ArenaReplaySelection.Clear();
         ActiveMode = null;
 
         // Defensive: an aborted load between the countdown patch and its restore
