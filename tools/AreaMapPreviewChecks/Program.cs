@@ -273,7 +273,8 @@ try
         var marker=ArenaPortedMapPresentation.Create(id,rowRect,header,size,()=>selectedMarker);
         var gold=row.GetComponentsInChildren<TextMeshProUGUI>().Single(t=>t.gameObject.name.StartsWith("Arena ported map label"));
         var expected=id==ArenaMapCatalog.Bay5Id?"BAY 5":"EQUATOR";
-        Need(gold.text==expected&&size.text==expected&&!header.enabled,"PORTED-LABEL","Ported names drop their prefix and native width follows short text.");
+        Need(gold.text==expected&&size.text==expected&&header.enabled&&header.GetComponent<CanvasGroup>()?.alpha==0,
+            "PORTED-LABEL","Hidden native TMP stays enabled for preferred-size layout; short text sizes the entire toggle.");
         Need(gold.color==ArenaPortedMapPresentation.Gold&&gold.raycastTarget==header.raycastTarget,"PORTED-LABEL","Gold is independent of native text tint while preserving a native header hit surface.");
         Need(gold.GetComponent<LayoutElement>().ignoreLayout,"PORTED-LABEL","New text does not add a second element to native layout calculation.");
         Need(rowRect.anchorMin==rowRect.anchorMax&&rowRect.anchoredPosition==Vector2.zero,"PORTED-POSITION","New anchors retain native normalized positioning semantics.");
@@ -285,7 +286,13 @@ try
         Need(gold.color.r<ArenaPortedMapPresentation.Gold.r,"PORTED-COLOR","Selected label uses a darker gold on native light selection background.");
         marker.Close();UObject.EndFrame();
         Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)&&rowRect.anchoredPosition==new Vector2(2,3),"PORTED-RESTORE","Original native geometry is restored exactly.");
-        Need(header.enabled&&header.text=="ARENA: ORIGINAL"&&size.text=="native size"&&gold.Destroyed,"PORTED-RESTORE","Original labels restored; own label released.");
+        Need(header.enabled&&header.GetComponent<CanvasGroup>()==null&&header.text=="ARENA: ORIGINAL"&&size.text=="native size"&&gold.Destroyed,"PORTED-RESTORE","Original labels restored; own label and visibility group released.");
+        var existingHeaderGroup=header.gameObject.AddComponent<CanvasGroup>();
+        existingHeaderGroup.alpha=.6f;existingHeaderGroup.interactable=false;existingHeaderGroup.blocksRaycasts=true;
+        marker=ArenaPortedMapPresentation.Create(id,rowRect,header,size,()=>false);
+        marker.Close();
+        Need(header.GetComponent<CanvasGroup>()==existingHeaderGroup&&existingHeaderGroup.alpha==.6f&&!existingHeaderGroup.interactable&&existingHeaderGroup.blocksRaycasts,
+            "PORTED-RESTORE","Existing native visibility/input values restored exactly.");
         marker.Close();
         Need(ArenaPortedMapPresentation.Create("factory4_day",rowRect,header,size,()=>false)==null,"PORTED-SCOPE","Ordinary map rows remain untouched.");
         UObject.DestroyImmediate(row);

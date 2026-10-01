@@ -55,7 +55,12 @@ Präfix und in Gold. Ausgewählt verwenden sie dunkleres Gold auf dem hellen
 nativen Auswahlhintergrund. Ein eigenes TMP-Label schützt vor nativen
 Textfarb-Animationen; der ursprüngliche Toggle, seine Animation und seine
 Ereignisse bleiben erhalten. Die native Breitenberechnung bekommt den kurzen
-Text. Normierte Markerpositionen: Bay 5 (0,47 / 0,82), Equator (0,70 / 0,29),
+Text. Seit 2026-10-01 bleibt das originale TMP dafür eingeschaltet: eine lokale
+CanvasGroup blendet nur seine Darstellung aus. Das vorherige Abschalten der
+Komponente hatte die native Klickfläche auf GPU 1 bei Bay 5 auf 54 × 5 Pixel
+zusammenfallen lassen. Eine vorhandene CanvasGroup wird exakt restauriert;
+nur eine eigens hinzugefügte wird beim Verlassen entfernt.
+Normierte Markerpositionen: Bay 5 (0,47 / 0,82), Equator (0,70 / 0,29),
 letzteres südöstlich von Interchange (0,66 / 0,36). Das ist ausschließlich eine
 lokale Ansichtsänderung, keine geografische Aussage über die portierten Arenen.
 Beim Verlassen werden Originaltexte, Header-Sichtbarkeit und Markerpositionen

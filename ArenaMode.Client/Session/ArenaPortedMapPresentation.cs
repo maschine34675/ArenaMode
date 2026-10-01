@@ -16,6 +16,9 @@ internal sealed class ArenaPortedMapPresentation
     private Vector2 _anchorMin, _anchorMax, _position, _target;
     private string _headerText, _sizeText, _name;
     private bool _headerEnabled;
+    private CanvasGroup _headerGroup;
+    private bool _addedGroup, _groupInteractable, _groupBlocksRaycasts;
+    private float _groupAlpha;
     internal static readonly Color Gold = new(.95f, .76f, .35f, 1f);
     private static readonly Color SelectedGold = new(.38f, .25f, .06f, 1f);
 
@@ -53,6 +56,18 @@ internal sealed class ArenaPortedMapPresentation
             // Pointer events still bubble to the same native toggle; no new handler.
             view._label.raycastTarget = header.raycastTarget;
             view._label.enabled = view._headerEnabled;
+            // Disabling TMP also removes its preferred dimensions from native
+            // layout, collapsing the toggle/background to an almost empty strip.
+            // Hide only its rendering/input; keep its native layout participation.
+            view._headerGroup = header.GetComponent<CanvasGroup>();
+            view._addedGroup = view._headerGroup == null;
+            if (view._addedGroup) view._headerGroup = header.gameObject.AddComponent<CanvasGroup>();
+            view._groupAlpha = view._headerGroup.alpha;
+            view._groupInteractable = view._headerGroup.interactable;
+            view._groupBlocksRaycasts = view._headerGroup.blocksRaycasts;
+            view._headerGroup.alpha = 0f;
+            view._headerGroup.interactable = false;
+            view._headerGroup.blocksRaycasts = false;
             view.Refresh();
             return view;
         }
@@ -65,7 +80,6 @@ internal sealed class ArenaPortedMapPresentation
         _rect.anchorMin = _rect.anchorMax = _target;
         _rect.anchoredPosition = Vector2.zero;
         _header.text = _name;
-        _header.enabled = false;
         if (_size != null) _size.text = _name;
         _label.text = _name;
         _label.fontSize = _header.fontSize;
@@ -85,6 +99,14 @@ internal sealed class ArenaPortedMapPresentation
         { _rect.anchorMin = _anchorMin; _rect.anchorMax = _anchorMax; _rect.anchoredPosition = _position; }
         if (_header != null) { _header.text = _headerText; _header.enabled = _headerEnabled; }
         if (_size != null) _size.text = _sizeText;
+        if (_headerGroup != null)
+        {
+            _headerGroup.alpha = _groupAlpha;
+            _headerGroup.interactable = _groupInteractable;
+            _headerGroup.blocksRaycasts = _groupBlocksRaycasts;
+            if (_addedGroup) UnityEngine.Object.DestroyImmediate(_headerGroup);
+        }
+        _headerGroup = null; _addedGroup = false;
         var label = _label; _label = null;
         _rect = null; _header = _size = null; _selected = null;
         if (label != null) { label.gameObject.SetActive(false); UnityEngine.Object.Destroy(label.gameObject); }
