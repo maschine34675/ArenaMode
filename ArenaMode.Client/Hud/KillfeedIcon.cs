@@ -6,8 +6,14 @@ namespace ArenaMode.Hud;
 internal static class KillfeedIcon
 {
     internal static ArenaUiIcon Select(ArenaKill kill)
+        => SelectKind(kill.DamageKind, kill.WeaponClass);
+
+    internal static ArenaUiIcon SelectDeath(ArenaUncreditedDeath death)
+        => SelectKind(death.DamageKind, null);
+
+    private static ArenaUiIcon SelectKind(string damageKind, string weaponClass)
     {
-        switch (kill.DamageKind)
+        switch (damageKind)
         {
             case "GrenadeFragment": return ArenaUiIcon.Grenade;
             case "Melee": return ArenaUiIcon.Melee;
@@ -17,7 +23,7 @@ internal static class KillfeedIcon
             // LastDamageInfo may still refer to the earlier attacker and weapon.
             // Only the final bullet death can use that captured weapon class.
             case "Bullet":
-                switch (kill.WeaponClass)
+                switch (weaponClass)
                 {
                     case "assaultRifle": return ArenaUiIcon.AssaultRifle;
                     case "assaultCarbine": return ArenaUiIcon.Carbine;

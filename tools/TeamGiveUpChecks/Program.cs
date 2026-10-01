@@ -40,6 +40,8 @@ internal static partial class Program
             LiveKitRespawn.IsInitialSwapPending = false;
             ArenaGiveUp.Reset();
             ArenaAdministrativeDeathGate.Reset();
+            ArenaUncreditedDeathPatch.Calls = 0;
+            ArenaUncreditedDeathPatch.AllAfterDeathAndLease = true;
             ArenaTracerTeams.Reset();
             TeamDeathmatchRelations.Reset();
             ArenaRespawnDriver.IsRespawnInProgress = false;
@@ -148,6 +150,8 @@ internal static partial class Program
                 ArenaGiveUp.Request();
                 var enemies = raid.Match.Scoreboard.Totals(ArenaScoreboardSide.Opponent);
                 Check(!original.HealthController.IsAlive, "give-up killed current life");
+                Check(ArenaUncreditedDeathPatch.Calls == life && ArenaUncreditedDeathPatch.AllAfterDeathAndLease,
+                    "one death notice per life after native death and administrative lease");
                 Check(enemies.Kills == life && enemies.Score == life * ScoreRules.PointsFor(ArenaRole.Pmc),
                     "give-up grants exactly one opposing PMC kill and base points");
                 Check(raid.Match.Deaths == life && raid.Match.Kills == 0 && raid.Match.Score == 0,
@@ -204,6 +208,7 @@ internal static partial class Program
             Check(raid.Local.HealthController.IsAlive && raid.Match.Deaths == 0
                 && raid.Match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills == 0,
                 "suppressed/throwing native kill cannot score");
+            Check(ArenaUncreditedDeathPatch.Calls == 0, "failed native kill cannot display a death notice");
             ArenaGiveUp.Request();
             Check(raid.Local.HealthController.KillCalls == 1, "failed native kill still respects original cooldown");
             raid.Local.HealthController.SuppressKill = raid.Local.HealthController.ThrowOnKill = false;

@@ -18,16 +18,16 @@ namespace HarmonyLib
 #endif
 
 // Only native/HUD boundaries are doubled. Capture, notice DTO, administrative
-// leases and the exact extracted ShowBarbedDeath method are production code.
+// leases and the exact extracted ShowUncreditedDeath method are production code.
 namespace EFT
 {
-    public interface IPlayer { }
+    public interface IPlayer { string ProfileId { get; } }
     public sealed class Health { public bool IsAlive; }
     public class Player : IPlayer
     {
         protected IPlayer LastAggressor;
         public Health HealthController = new();
-        public string ProfileId = "bot-profile";
+        public string ProfileId { get; set; } = "bot-profile";
         public bool IsYourPlayer;
         public string DisplayName = "Victim";
         public string RoleLabel = "BEAR";
@@ -88,9 +88,9 @@ namespace ArenaMode.Hud
 {
     internal sealed class FeedBoundary
     {
-        internal readonly List<ArenaBarbedDeath> Rows = new();
+        internal readonly List<ArenaUncreditedDeath> Rows = new();
         internal bool ThrowOnPush;
-        internal void PushBarbedDeath(ArenaBarbedDeath death)
+        internal void PushUncreditedDeath(ArenaUncreditedDeath death)
         {
             if (ThrowOnPush) throw new InvalidOperationException("HUD boundary failed");
             Rows.Add(death);

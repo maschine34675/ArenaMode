@@ -74,8 +74,8 @@ foreach(var row in pool)
  Need(method.sprite.texture.name.EndsWith("sniper.png")&&method.color==Color.white&&images.Single(i=>i.gameObject.name=="Headshot").enabled,"pooled bleed resets to normal headshot");
 }
 Need(Texture2D.LoadCalls==loadCount,"bleed presentation reuses existing textures");
-var wireDeath=new ArenaBarbedDeath{VictimName="Wire_<b>victim</b>",VictimRoleLabel="BEAR",VictimProfileId="wire-bot"};
-for(int i=0;i<6;i++)feed.PushBarbedDeath(wireDeath);
+var wireDeath=new ArenaUncreditedDeath{VictimName="Wire_<b>victim</b>",VictimRoleLabel="BEAR",VictimProfileId="wire-bot",DamageKind="Barbed"};
+for(int i=0;i<6;i++)feed.PushUncreditedDeath(wireDeath);
 foreach(var row in pool)
 {
  var images=row.gameObject.GetComponentsInChildren<Image>();
@@ -99,6 +99,20 @@ foreach(var row in pool)
  var method=images.Single(i=>i.gameObject.name=="Kill method");
  Need(method.sprite.texture.name.EndsWith("sniper.png")&&method.color==Color.white&&images.Single(i=>i.gameObject.name=="Headshot").enabled,"pooled wire resets to normal headshot");
  Need(!row.gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>().Single().text.Contains("BARBED WIRE"),"pooled wire text replaced on normal kill");
+}
+foreach(var cause in new[]{"Undefined","GrenadeFragment","GiveUp"})
+{
+ var death=new ArenaUncreditedDeath{VictimName="Local",VictimRoleLabel="PMC",LocalIsVictim=true,DamageKind=cause};
+ for(int i=0;i<6;i++)feed.PushUncreditedDeath(death);
+ foreach(var row in pool)
+ {
+  var images=row.gameObject.GetComponentsInChildren<Image>();
+  var method=images.Single(i=>i.gameObject.name=="Kill method");
+  Need(method.enabled&&method.sprite.texture.name.EndsWith(cause=="GrenadeFragment"?"grenade.png":"kill.png"),"local death uses cause or skull icon");
+  Need(!images.Single(i=>i.gameObject.name=="Headshot").enabled,"local death clears pooled headshot");
+  var notice=row.gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>().Single().text;
+  Need(notice.Contains("Local")&&!notice.Contains("➔")&&!notice.Contains("42 m"),"local death does not invent attacker or range");
+ }
 }
 ArenaMode.Config.Settings.KillfeedOffsetX.Value=31;feed.Tick();Need(((RectTransform)reused.transform.parent).anchoredPosition.x==55,"offset moves complete feed");
 Time.unscaledTime=5.25f;feed.Tick();Need(pool.All(g=>Math.Abs(g.alpha-.5f)<.001f),"pooled icon and text share fade");

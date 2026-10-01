@@ -36,7 +36,7 @@ internal static class CombatPatches
     public static void Enable()
     {
         new KillCapturePatch().Enable();
-        new ArenaBarbedDeathPatch().Enable();
+        new ArenaUncreditedDeathPatch().Enable();
         new TeamStagingShotPatch().Enable();
         new TeamStagingPlayerDamagePatch().Enable();
         new TeamStagingExplosionArmorPatch().Enable();
@@ -52,7 +52,7 @@ internal static class CombatPatches
     public static void ResetRaidState()
     {
         SeenVictims.Clear();
-        ArenaBarbedDeathPatch.Reset();
+        ArenaUncreditedDeathPatch.Reset();
         _reportedAudioObservationFailure = false;
         ArenaHitHistory.Reset();
         ArenaShotAwardHooks.Reset();

@@ -20,7 +20,7 @@
   <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Teams.cs" />
   <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Color.cs" />
   <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Kill.cs" />
-  <Compile Include="../../ArenaMode.Client/Combat/ArenaBarbedDeath.cs" Link="BarbedDeath.cs" />
+  <Compile Include="../../ArenaMode.Client/Combat/ArenaUncreditedDeath.cs" Link="BarbedDeath.cs" />
   <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Rules.cs" />
   <EmbeddedResource Include="../../ArenaMode.Client/Assets/Ui/*.png"><LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName></EmbeddedResource>
  </ItemGroup>

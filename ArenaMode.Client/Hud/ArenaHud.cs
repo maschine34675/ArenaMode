@@ -164,11 +164,11 @@ internal static class ArenaHud
 
     private static void OnCallout(string label) => _callout?.Show(label);
 
-    internal static void ShowBarbedDeath(ArenaMatch match, ArenaBarbedDeath death)
+    internal static void ShowUncreditedDeath(ArenaMatch match, ArenaUncreditedDeath death)
     {
         if (!ReferenceEquals(_match, match) || _killfeed == null || !Settings.ShowKillfeed.Value
             || (!death.LocalIsVictim && !Settings.KillfeedOtherKills.Value)) return;
-        _killfeed.PushBarbedDeath(death);
+        _killfeed.PushUncreditedDeath(death);
     }
 
     private static void OnAssist(ArenaAssist assist)

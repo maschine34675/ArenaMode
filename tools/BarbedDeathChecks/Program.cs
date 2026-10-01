@@ -21,7 +21,7 @@ internal static class Program
     { ProfileId = id, IsYourPlayer = local, DisplayName = local ? "Local" : "Victim", RoleLabel = local ? "PMC" : "BEAR" };
     private static ArenaMatch Reset()
     {
-        ArenaBarbedDeathPatch.Reset();
+        ArenaUncreditedDeathPatch.Reset();
         ArenaAdministrativeDeathGate.Reset();
         ArenaSession.IsActive = true;
         Settings.ShowKillfeed.Value = Settings.KillfeedOtherKills.Value = true;
@@ -34,9 +34,9 @@ internal static class Program
     }
     private static void Death(Player body, EDamageType cause = EDamageType.Barbed, Action between = null)
     {
-        ArenaBarbedDeathPatch.Prefix(cause, out var state);
+        ArenaUncreditedDeathPatch.Prefix(cause, out var state);
         between?.Invoke();
-        ArenaBarbedDeathPatch.Postfix(body, cause, state, body?.ReadAggressorForDriver());
+        ArenaUncreditedDeathPatch.Postfix(body, cause, state, body?.ReadAggressorForDriver());
     }
     private static void NoNotice(string label, Action setup, Player body = null, EDamageType cause = EDamageType.Barbed)
     {
@@ -46,17 +46,17 @@ internal static class Program
     }
     private static void HookContract()
     {
-        var target = (MethodBase)typeof(ArenaBarbedDeathPatch).GetMethod("GetTargetMethod", BindingFlags.NonPublic | BindingFlags.Instance)
-            .Invoke(new ArenaBarbedDeathPatch(), null);
+        var target = (MethodBase)typeof(ArenaUncreditedDeathPatch).GetMethod("GetTargetMethod", BindingFlags.NonPublic | BindingFlags.Instance)
+            .Invoke(new ArenaUncreditedDeathPatch(), null);
         Check(target == typeof(Player).GetMethod(nameof(Player.OnDead)), "hook resolves declared Player.OnDead");
         var field = typeof(Player).GetField("LastAggressor", BindingFlags.NonPublic | BindingFlags.Instance);
         Check(field.IsFamily && field.FieldType == typeof(IPlayer), "native-shaped protected IPlayer field");
-        var postfix = typeof(ArenaBarbedDeathPatch).GetMethod("Postfix", BindingFlags.NonPublic | BindingFlags.Static);
+        var postfix = typeof(ArenaUncreditedDeathPatch).GetMethod("Postfix", BindingFlags.NonPublic | BindingFlags.Static);
         Check(postfix.GetParameters().Single(p => p.Name == "___LastAggressor").ParameterType == field.FieldType,
             "Harmony triple-underscore field injection has exact native type");
-        var fields = typeof(ArenaBarbedDeath).GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+        var fields = typeof(ArenaUncreditedDeath).GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
             .Select(f => f.Name).OrderBy(x => x).ToArray();
-        Check(fields.SequenceEqual(new[] { "LocalIsVictim", "VictimName", "VictimProfileId", "VictimRoleLabel" }),
+        Check(fields.SequenceEqual(new[] { "DamageKind", "LocalIsVictim", "VictimName", "VictimProfileId", "VictimRoleLabel" }),
             "presentation DTO carries no attacker score assist or award");
     }
     private static void CaptureChecks()
@@ -82,7 +82,7 @@ internal static class Program
         Check(Plugin.ModLogger.Warnings.Count == 0, "duplicate body does not enter failure path");
         Death(Body(dead.ProfileId));
         Check(_feed.Rows.Count == 2, "fresh respawn body with same profile displayed");
-        ArenaBarbedDeathPatch.Reset(); Death(dead);
+        ArenaUncreditedDeathPatch.Reset(); Death(dead);
         Check(_feed.Rows.Count == 3, "raid reset discards physical-body dedupe");
 
         Reset(); dead = Body(); dead.SetAggressor(Body("attacker")); Death(dead);
@@ -104,7 +104,7 @@ internal static class Program
         Check(_feed.Rows.Count == 0, "match replacement during native death rejects stale notice");
         Reset(); Death(Body(), between: () => ArenaMatchService.Current = null);
         Check(_feed.Rows.Count == 0, "match removal during native death rejects stale notice");
-        Reset(); ArenaBarbedDeathPatch.Postfix(Body(), EDamageType.Barbed, null, null);
+        Reset(); ArenaUncreditedDeathPatch.Postfix(Body(), EDamageType.Barbed, null, null);
         Check(_feed.Rows.Count == 0, "missing prefix state rejected");
     }
     private static void HudChecks()
@@ -126,6 +126,54 @@ internal static class Program
         Reset(); _feed.ThrowOnPush = true; Death(Body());
         Check(_feed.Rows.Count == 0 && Plugin.ModLogger.Warnings.Count == 1, "HUD exception contained and logged");
     }
+    private static void LocalDeathChecks()
+    {
+        foreach (var cause in Enum.GetValues<EDamageType>())
+        {
+            foreach (bool self in new[] { false, true })
+            {
+                Reset(); Settings.KillfeedOtherKills.Value = false;
+                var body = Body("local-profile", true);
+                if (self) body.SetAggressor(body);
+                Death(body, cause);
+                Check(_feed.Rows.Count == 1 && _feed.Rows[0].DamageKind == cause.ToString()
+                    && _feed.Rows[0].LocalIsVictim, "local null/self death " + cause);
+                Death(body, cause);
+                Check(_feed.Rows.Count == 1, "one row per local body " + cause);
+                var fresh = Body(body.ProfileId, true);
+                Death(fresh, cause);
+                Check(_feed.Rows.Count == 2, "same-profile respawn can die again " + cause);
+            }
+            NoNotice("credited local death excluded " + cause, () => { }, CreditedLocal(), cause);
+        }
+        NoNotice("ordinary local death untouched", () => ArenaSession.IsActive = false, Body("local", true), EDamageType.Undefined);
+        var match = Reset(); var dead = Body("local", true);
+        using (ArenaAdministrativeDeathGate.Enter(dead.ProfileId))
+        {
+            Death(dead, EDamageType.Undefined);
+            ArenaUncreditedDeathPatch.ReportGiveUp(dead, match);
+        }
+        Check(_feed.Rows.Count == 0, "local administrative kills stay hidden even for explicit notice");
+        ArenaUncreditedDeathPatch.ReportGiveUp(dead, match);
+        ArenaUncreditedDeathPatch.ReportGiveUp(dead, match);
+        Check(_feed.Rows.Count == 1 && _feed.Rows[0].DamageKind == "GiveUp", "successful give-up has one explicit row");
+        Death(dead, EDamageType.Undefined);
+        Check(_feed.Rows.Count == 1, "late OnDead cannot duplicate give-up notice");
+        match = Reset(); dead = Body("local", true); dead.HealthController.IsAlive = true;
+        ArenaUncreditedDeathPatch.ReportGiveUp(dead, match);
+        Check(_feed.Rows.Count == 0, "unsuccessful give-up remains invisible");
+        dead.HealthController.IsAlive = false;
+        ArenaUncreditedDeathPatch.ReportGiveUp(dead, new ArenaMatch());
+        Check(_feed.Rows.Count == 0, "stale give-up match remains invisible");
+        ArenaUncreditedDeathPatch.ReportGiveUp(Body(), match);
+        Check(_feed.Rows.Count == 0, "give-up cannot display another actor");
+        match = Reset(); Death(Body("local", true), EDamageType.Fall, () => match.Mode.IsComplete = true);
+        Check(_feed.Rows.Count == 1, "terminal local death survives match completion in native subscriber");
+    }
+    private static Player CreditedLocal()
+    {
+        var body = Body("local", true); body.SetAggressor(Body("opponent")); return body;
+    }
     private static void HarmonyProbe()
     {
 #if REAL_HARMONY_PROBE
@@ -133,8 +181,8 @@ internal static class Program
         var target = typeof(Player).GetMethod(nameof(Player.OnDead));
         var harmony = new Harmony("ArenaMode.BarbedDeathChecks.ProtectedField");
         harmony.Patch(target,
-            new HarmonyMethod(typeof(ArenaBarbedDeathPatch).GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static)),
-            new HarmonyMethod(typeof(ArenaBarbedDeathPatch).GetMethod("Postfix", BindingFlags.NonPublic | BindingFlags.Static)));
+            new HarmonyMethod(typeof(ArenaUncreditedDeathPatch).GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static)),
+            new HarmonyMethod(typeof(ArenaUncreditedDeathPatch).GetMethod("Postfix", BindingFlags.NonPublic | BindingFlags.Static)));
         var body = Body(); body.OnDead(EDamageType.Barbed);
         Check(_feed.Rows.Count == 1 && body.NativeDeathCalls == 1, "real Harmony calls prefix original postfix");
         body = Body(); body.SetAggressor(Body("attacker")); body.OnDead(EDamageType.Barbed);
@@ -153,7 +201,7 @@ internal static class Program
         try
         {
             if (args.Contains("--probe-harmony")) { HarmonyProbe(); return 0; }
-            HookContract(); CaptureChecks(); HudChecks();
+            HookContract(); CaptureChecks(); HudChecks(); LocalDeathChecks();
             Console.WriteLine($"BARBED DEATH CONTRACTS PASSED ({_checks} assertions)");
             return 0;
         }

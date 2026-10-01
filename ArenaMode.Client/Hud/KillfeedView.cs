@@ -111,10 +111,10 @@ internal sealed class KillfeedView
             TeamHtmlColor(Settings.FriendlyTracerColor.Value),
             TeamHtmlColor(Settings.OpponentTracerColor.Value)), KillfeedIcon.Select(kill), kill.Headshot);
 
-    internal void PushBarbedDeath(ArenaBarbedDeath death)
-        => Push(KillfeedText.FormatBarbedDeath(death,
+    internal void PushUncreditedDeath(ArenaUncreditedDeath death)
+        => Push(KillfeedText.FormatUncreditedDeath(death,
             TeamHtmlColor(Settings.FriendlyTracerColor.Value),
-            TeamHtmlColor(Settings.OpponentTracerColor.Value)), ArenaUiIcon.BarbedWire, false);
+            TeamHtmlColor(Settings.OpponentTracerColor.Value)), KillfeedIcon.SelectDeath(death), false);
 
     private void Push(string text, ArenaUiIcon method, bool headshot)
     {

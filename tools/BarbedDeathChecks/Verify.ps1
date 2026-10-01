@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $run = Join-Path $repo ('artifacts/barbed-death-checks/' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($run)
-$capturePath = Join-Path $repo 'ArenaMode.Client/Combat/ArenaBarbedDeathPatch.cs'
+$capturePath = Join-Path $repo 'ArenaMode.Client/Combat/ArenaUncreditedDeathPatch.cs'
 $hudPath = Join-Path $repo 'ArenaMode.Client/Hud/ArenaHud.cs'
 $capture = [IO.File]::ReadAllText($capturePath)
 $hud = [IO.File]::ReadAllText($hudPath)
@@ -26,7 +26,7 @@ function Get-Method([string]$source, [string]$signature) {
 # Assert the production wiring and the native reason this separate UI path is
 # needed. These source-contract checks are not a simulation of native damage.
 $combat = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Combat/CombatPatches.cs'))
-if (!$combat.Contains('new ArenaBarbedDeathPatch().Enable();') -or !$combat.Contains('ArenaBarbedDeathPatch.Reset();')) {
+if (!$combat.Contains('new ArenaUncreditedDeathPatch().Enable();') -or !$combat.Contains('ArenaUncreditedDeathPatch.Reset();')) {
  throw 'Barbed capture is not enabled and reset with Arena combat patches.'
 }
 $nativePlayerPath = Join-Path $repo '../_decompiled/EFT/Player.cs'
@@ -49,7 +49,7 @@ if ($nativeDeath -notmatch 'if\s*\(LastAggressor != null\)\s*\{\s*OnBeenKilledBy
 
 $adapterPath = Join-Path $run 'HudAdapter.cs'
 $adapter = "using ArenaMode.Combat;`nusing ArenaMode.Config;`nusing ArenaMode.Modes;`nnamespace ArenaMode.Hud;`ninternal static partial class ArenaHud {`n" +
- (Get-Method $hud 'internal static void ShowBarbedDeath(') + "`n}`n"
+ (Get-Method $hud 'internal static void ShowUncreditedDeath(') + "`n}`n"
 [IO.File]::WriteAllText($adapterPath, $adapter)
 $hashes = [ordered]@{}
 foreach ($path in @($capturePath, $hudPath, $nativePlayerPath, $nativeColliderPath)) {
@@ -94,10 +94,10 @@ if ($probe.Code -eq 0 -and $probe.Text.Contains('BARBED HARMONY PROTECTED FIELD 
 [IO.File]::WriteAllText((Join-Path $run 'harmony-probe-status.txt'), $probeStatus)
 
 $mutations = @(
- @{Name='missing-body-dedupe'; Old='|| _seen.TryGetValue(__instance, out _)'; New='|| false';
-   ExtraOld='_seen.Add(__instance, new Reported());'; ExtraNew='// negative control: no presentation dedupe';
+ @{Name='missing-body-dedupe'; Old='|| _seen.TryGetValue(player, out _)'; New='|| false';
+   ExtraOld='_seen.Add(player, new Reported());'; ExtraNew='// negative control: no presentation dedupe';
    Failure='same physical death displayed once'},
- @{Name='missing-aggressor-guard'; Old='|| ___LastAggressor != null'; New=''; Failure='existing aggressor avoids duplicate credited kill notice'}
+ @{Name='missing-aggressor-guard'; Old='|| ___LastAggressor != null && (!__instance.IsYourPlayer || ___LastAggressor.ProfileId != __instance.ProfileId)'; New=''; Failure='existing aggressor avoids duplicate credited kill notice'}
 )
 foreach ($mutation in $mutations) {
  if (!$capture.Contains($mutation.Old)) { throw ('Missing negative-control anchor: ' + $mutation.Name) }

@@ -101,11 +101,14 @@ internal static class ArenaGiveUp
 
             // Raises the death event the player subscribes to, so the normal
             // death pipeline runs and the arena driver picks it up. No aggressor
-            // means no individual kill, killfeed line or combat award. In Team
+            // means no individual kill or combat award. A separate death notice
+            // can be displayed after this operation proves successful. In Team
             // DM the opponent team receives the forfeited life separately. An
             // ended/failed team match must still permit this existing escape
             // action even when its scoring reservation is no longer eligible.
             _requestInProgress = true;
+            var noticeMatch = ArenaMatchService.Current;
+            if (noticeMatch?.Mode.IsComplete == true) noticeMatch = null;
             try
             {
                 _nextAllowedAt = Time.time + CooldownSeconds;
@@ -121,6 +124,8 @@ internal static class ArenaGiveUp
                 // synchronous request even if the raid/body changed meanwhile.
                 try
                 {
+                    if (ReferenceEquals(player.ActiveHealthController, health) && !health.IsAlive)
+                        ArenaUncreditedDeathPatch.ReportGiveUp(player, noticeMatch);
                     if (scoreReserved)
                         teams.CompleteLocalGiveUp(player, ReferenceEquals(player.ActiveHealthController, health)
                             && !health.IsAlive);

@@ -138,4 +138,12 @@ CheckTeams("pft-invalid-rebind", "local", "enemy", unknownColor, unknownColor, l
 ArenaTracerTeams.Reset();
 CheckTeams("after-reset", "local", "friend", unknownColor, unknownColor);
 
+foreach (var (cause, label) in new[] { ("Fall", "FALL"), ("GrenadeFragment", "EXPLOSION"),
+    ("HeavyBleeding", "BLEEDING"), ("Barbed", "BARBED WIRE"), ("GiveUp", "GAVE UP"), ("Undefined", "DEATH") })
+{
+    var notice = KillfeedText.FormatUncreditedDeath(new ArenaUncreditedDeath
+    { VictimName = "Local<b>name</b>", VictimRoleLabel = "PMC", LocalIsVictim = true, DamageKind = cause }, friendlyColor, opponentColor);
+    Check(notice.Contains("Local‹b›name‹/b›") && notice.Contains("PMC · " + label), "local cause and escaped identity " + cause);
+    Check(!notice.Contains("➔") && !notice.Contains(" m") && !notice.Contains("HS"), "death notice does not invent attacker distance or headshot " + cause);
+}
 Console.WriteLine($"KILLFEED_TEXT_CHECKS_PASSED ({assertions} assertions; formatter and team registry, no TMP rendering)");

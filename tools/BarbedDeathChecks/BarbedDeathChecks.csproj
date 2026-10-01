@@ -3,14 +3,14 @@
   <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
   <EnableDefaultCompileItems>false</EnableDefaultCompileItems><NoWarn>CS0649</NoWarn>
   <SptRoot Condition="'$(SptRoot)' == ''">../../../..</SptRoot>
-  <CaptureSource Condition="'$(CaptureSource)' == ''">../../ArenaMode.Client/Combat/ArenaBarbedDeathPatch.cs</CaptureSource>
+  <CaptureSource Condition="'$(CaptureSource)' == ''">../../ArenaMode.Client/Combat/ArenaUncreditedDeathPatch.cs</CaptureSource>
   <DefineConstants Condition="'$(UseRealHarmony)' == 'true'">$(DefineConstants);REAL_HARMONY_PROBE</DefineConstants>
  </PropertyGroup>
  <ItemGroup>
   <Compile Include="Program.cs" /><Compile Include="BoundaryDoubles.cs" />
   <Compile Include="$(CaptureSource)" Link="Production/Capture.cs" />
   <Compile Include="$(HudAdapterSource)" Link="Production/HudAdapter.cs" />
-  <Compile Include="../../ArenaMode.Client/Combat/ArenaBarbedDeath.cs" Link="Production/Notice.cs" />
+  <Compile Include="../../ArenaMode.Client/Combat/ArenaUncreditedDeath.cs" Link="Production/Notice.cs" />
   <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/AdministrativeGate.cs" />
   <Compile Include="../../../_decompiled/EFT/EDamageType.cs" Link="Native/EDamageType.cs" />
  </ItemGroup>

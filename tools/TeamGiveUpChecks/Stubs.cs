@@ -35,6 +35,18 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Combat
 {
+    // HUD-only notice capture is checked independently by BarbedDeathChecks.
+    internal static class ArenaUncreditedDeathPatch
+    {
+        internal static int Calls;
+        internal static bool AllAfterDeathAndLease;
+        internal static void ReportGiveUp(Player player, ArenaMatch match)
+        {
+            Calls++;
+            AllAfterDeathAndLease &= !player.ActiveHealthController.IsAlive
+                && !ArenaAdministrativeDeathGate.IsActive(player.ProfileId);
+        }
+    }
     internal static class RoleClassifier
     {
         internal static string DisplayName(Player player) => player?.ProfileId;

@@ -25,12 +25,27 @@ internal static class KillfeedText
     private static string Literal(string value)
         => string.IsNullOrWhiteSpace(value) ? "?" : value.Replace('<', '‹').Replace('>', '›');
 
-    internal static string FormatBarbedDeath(ArenaBarbedDeath death, string friendlyColor, string opponentColor)
+    internal static string FormatUncreditedDeath(ArenaUncreditedDeath death, string friendlyColor, string opponentColor)
     {
         var victimColor = TeamColor(death.VictimProfileId, friendlyColor, opponentColor);
         return $"<color={victimColor}>{Literal(death.VictimName)}</color>"
-            + $"\n<size=14><color=#D5DAE0>{Literal(death.VictimRoleLabel)} · BARBED WIRE</color></size>";
+            + $"\n<size=14><color=#D5DAE0>{Literal(death.VictimRoleLabel)} · {DeathCause(death.DamageKind)}</color></size>";
     }
+
+    private static string DeathCause(string kind) => kind switch
+    {
+        "Barbed" => "BARBED WIRE",
+        "Fall" => "FALL",
+        "GrenadeFragment" or "Explosion" or "ThermobaricExplosion" => "EXPLOSION",
+        "LightBleeding" or "HeavyBleeding" => "BLEEDING",
+        "Flame" or "HotGases" => "FIRE",
+        "Landmine" => "LANDMINE",
+        "Poison" or "LethalToxin" => "POISON",
+        "Dehydration" => "DEHYDRATION",
+        "Exhaustion" => "EXHAUSTION",
+        "GiveUp" => "GAVE UP",
+        _ => "DEATH",
+    };
 
     // Push formats once during the synchronous captured-kill event. These IDs
     // come from the original Player/IPlayer, not role or faction guesses. Keep
