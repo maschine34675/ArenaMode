@@ -1,13 +1,28 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-09-30. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-01. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Thumbnail-/Marker-Revision (2026-09-30, aktueller Client):** `a8b8dd1`.
+- **Kartenbuttons / eigene Tode (2026-10-01, aktueller Client):** `a387581`
+  erhält die native TMP-Größenberechnung unter den goldenen Bay5-/Equator-Labels;
+  `8fd3e03` ergänzt reine Killfeed-Anzeigen für eigene Tode ohne fremden Angreifer
+  und erfolgreiches Aufgeben. Keine neuen Kill-Punkte/Assists. Client lokal/Host 1
+  eingespielt, SHA256 `39CA280EF8EC44D41A9281BEAC12982446D6694FADE722E1FD0F372F013173B3`.
+  Server/Core/BigBrain unverändert. Offline-Prüfungen, unabhängiger Review und
+  Build bestanden. Auf SPT-GPU-1 nativ bestätigt: komplette Klickflächen und
+  Auswahlhintergründe beider Maps, PMC-Restaurierung, eigene Todeszeile nach
+  erstem/zweitem Körper sowie GAVE UP nach Backspace. Kein Zusatzscore.
+  Zusatztest Selbstgranate wegen aktivem Brand-Prototyp und Bot-Schaden nicht
+  aussagekräftig; kein Explosion-Pass behauptet. Profilkern und Arena-Konfiguration
+  unverändert; Spiel/Server wieder aus. Bericht und Grenzen:
+  `GPU-HITAREAS-SELF-DEATHS-RESULTS-20261001.md`; Auslieferungsbeleg
+  `HITAREAS-SELF-DEATHS-DEPLOYMENT-20261001.json`.
+
+- **Thumbnail-/Marker-Revision (2026-09-30, Vorgänger):** `a8b8dd1`.
   Keine Kartenbeschreibung mehr, dafür natives Thumbnail; Customs behält seine
   Arealvorschau. Oberes Feld immer 320 Referenzpixel hoch, Mutatoren fest bei
   Y=508. BAY 5/EQUATOR im Arena-Kartenscreen ohne Präfix, goldene eigene Labels
