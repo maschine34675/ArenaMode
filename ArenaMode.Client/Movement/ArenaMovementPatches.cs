@@ -186,6 +186,8 @@ internal static class ArenaMovementPatches
                 }
             }
 
+            ArenaSurgicalWalk.LimitMotion(__instance, ref motion, deltaTime);
+
             if (!touched)
                 return;
 

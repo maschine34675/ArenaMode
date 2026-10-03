@@ -97,6 +97,7 @@ public class Plugin : BaseUnityPlugin
         LabyrinthSpawnTraps.Enable();
         Movement.ArenaWeightPatches.Enable();
         Movement.ArenaMovementPatches.Enable();
+        Movement.ArenaSurgicalWalk.Enable();
         Movement.ArenaBotMovement.Enable();
         Movement.ArenaBotAgility.Enable();
         Bots.ArenaBotTempo.Enable();
