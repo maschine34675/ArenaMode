@@ -7,7 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Mutatoren / Kartenzeiten (2026-10-03, aktueller Client):** `5fabaf6` ergänzt
+- **Solo-Tracer / Surgical Walk (2026-10-03, aktueller Client):** `4ae504a`
+  ergänzt getrennte Tracer-Opt-ins mit Standard AUS für Gun Game und Tactical
+  1v5; TDM/PFT behalten Effects/TeamTracers. `1f538d4` erlaubt CMS/Surv12-Gehen
+  für den aktuellen lokalen Arena-Spieler, höchstens 1 m/s nach Bewegungsboni.
+  Native Med-Flags und Behandlungsoperationen bleiben unverändert. Client
+  lokal/GPU-2 SHA256 `56F7DAA61B5C99A9630B274937868A3E6AF9937B53A9398060560FE6CEC3652B`.
+  GPU-2-Menü und Factory-Raid geprüft, Prozess `b68a888e`: Surgery 1 m/s,
+  Master-Off 0 m/s, nach Abschluss wieder 3,7 m/s; Abbruch gibt Waffe frei.
+  CMS-Abschluss ebenfalls bestätigt, seine Geschwindigkeit nicht separat
+  quantifiziert. Profil- und Config-Prüfung nach Raid sauber. EFT beendet,
+  bereits vorher laufender Server unverändert an. Keine Server/Core/BigBrain-
+  Änderung. Testbericht `GPU-SURGICAL-WALK-RESULTS-20261003.md`, Vertrag
+  `SURGICAL-WALK-REVIEW.md`. Separater Loghinweis zur Kill-Hitmarker-Audiodatei
+  dokumentiert, keine Error/Fatal-Zeilen.
+
+- **Mutatoren / Kartenzeiten (2026-10-03, Vorgänger):** `5fabaf6` ergänzt
   Air vault, Slide, Infinite stamina und No fall damage (zwölf Schalter insgesamt)
   sowie Deathmatch/ColoredTracers=false als eigene gespeicherte Wahl. Die
   bisherige Effects/TeamTracers-Einstellung für andere Modi bleibt erhalten.

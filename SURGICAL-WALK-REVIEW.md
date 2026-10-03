@@ -51,3 +51,8 @@ Unabhängiges Quellreview durch `surgical_movement_research`: keine offenen P0�
 Die Geschwindigkeitsbegrenzung verändert nicht die Schrittanimation; deren
 Darstellung sowie tatsächliche Behandlung unter Bewegung müssen im Spiel
 geprüft werden. Build, Deployment und native Ergebnisse werden separat erfasst.
+
+Native Factory-Abnahme am 2026-10-03: langsames Surv12-Gehen mit gemessenen
+1 m/s, Master-Off-Vergleich, erfolgreiche Surv12-/CMS-Behandlung und nativer
+manueller Abbruch bestätigt. Nach Abschluss keine Begrenzung mehr. Siehe
+`GPU-SURGICAL-WALK-RESULTS-20261003.md` für Belege und explizite Testgrenzen.

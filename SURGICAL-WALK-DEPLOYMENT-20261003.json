@@ -1,0 +1,33 @@
+{
+  "SourceCommit": "1f538d4b1210d836860886212d34a2fb25398f1a",
+  "CompletedUtc": "2026-10-03T18:54:36.7277867Z",
+  "Artifacts": [
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\48954741264644f1815e7410cbd76346\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\surgical-walk-deploy\\903ad6b702f04f6fbe5ee63a30a0def3\\0-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "6EB0A8BC6A59803ADC88C4B0ECDC1D8CA9A5F1531741B544ACCACC2E876077DE",
+      "Sha256": "56F7DAA61B5C99A9630B274937868A3E6AF9937B53A9398060560FE6CEC3652B"
+    },
+    {
+      "Kind": "Client",
+      "Source": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\double-jump-build\\48954741264644f1815e7410cbd76346\\out\\maschine-ArenaMode.Client.dll",
+      "Destination": "\\\\192.168.178.109\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.Client.dll",
+      "Backup": "D:\\SPT41\\Development\\ArenaMode\\artifacts\\surgical-walk-deploy\\903ad6b702f04f6fbe5ee63a30a0def3\\1-maschine-ArenaMode.Client.dll",
+      "BeforeSha256": "6EB0A8BC6A59803ADC88C4B0ECDC1D8CA9A5F1531741B544ACCACC2E876077DE",
+      "Sha256": "56F7DAA61B5C99A9630B274937868A3E6AF9937B53A9398060560FE6CEC3652B"
+    }
+  ],
+  "Untouched": {
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD",
+    "\\\\192.168.178.109\\c$\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "A304C7EFFB2C6117D8607F5CF04075DA3ABB0DB4E02FEA9EF3F24CCBFDD14C2A",
+    "\\\\192.168.178.109\\c$\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB",
+    "D:\\SPT41\\SPT_Runtime\\user\\mods\\ArenaMode\\maschine-ArenaMode.Server.dll": "53747DEED12904B28B1CC7262731E33FBA23EB0630597087CF689C4C484931CB",
+    "D:\\SPT41\\BepInEx\\plugins\\maschine-ArenaMode.BigBrainCompat.dll": "A304C7EFFB2C6117D8607F5CF04075DA3ABB0DB4E02FEA9EF3F24CCBFDD14C2A",
+    "\\\\192.168.178.109\\c$\\SPT41\\BepInEx\\plugins\\maschine-Redeploy.Core.dll": "673D9A106F747E5EE0A70EDE21E9DE9E5AB48E5DDE12E0B2922B2139ECDFE4DD"
+  },
+  "LiveGpuTested": true,
+  "RemoteDelivery": "Direct delivery to host2 only. Host1 is left to existing external synchronization; no loaded-code claim.",
+  "Limitation": "Client-only disk delivery verified under exclusive locks, then loaded on GPU2 and tested in native menu plus protected Factory Deathmatch. Server/Core/BigBrain unchanged. See GPU-SURGICAL-WALK-RESULTS-20261003.md for exact acceptance and limitations."
+}
