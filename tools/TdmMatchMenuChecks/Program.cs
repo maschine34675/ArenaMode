@@ -227,6 +227,29 @@ foreach (bool armed in new[] { false, true })
 }
 ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
 Settings.DeathmatchColoredTracers.Value = false; Settings.TeamTracers.Value = true;
+Need(!Settings.GunGameColoredTracers.Value && !Settings.TacticalSoloColoredTracers.Value,
+    "new Gun Game and solo Tactical preferences default off");
+foreach (var (soloMode, entry) in new[] { ("gungame", Settings.GunGameColoredTracers), ("tactical", Settings.TacticalSoloColoredTracers) })
+{
+    view.Synchronize(soloMode, false);
+    Need(MutatorStatus(ArenaMutator.Tracers) == "OFF", "solo tracer default displayed: " + soloMode);
+    MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
+    Need(entry.Value && Settings.TeamTracers.Value && !Settings.DeathmatchColoredTracers.Value,
+        "solo opt-in preserves team and DM choices: " + soloMode);
+    view.Synchronize("tactical", true);
+    MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
+    Need(!Settings.TeamTracers.Value && entry.Value, "5v5 changes only team tracers");
+    view.Synchronize(soloMode, false);
+    Need(MutatorStatus(ArenaMutator.Tracers) == "ON", "solo opt-in survives team variant roundtrip");
+    foreach (bool armed in new[] { false, true })
+    {
+        ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
+        MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
+        Need(entry.Value, "solo tracer choices locked during active or armed raid");
+    }
+    ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
+    entry.Value = false; Settings.TeamTracers.Value = true;
+}
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
@@ -434,12 +457,18 @@ foreach (bool saved in new[] { false, true })
 {
     var savedConfig = new ConfigFile();
     savedConfig.Stored["Deathmatch/ColoredTracers"] = saved;
+    savedConfig.Stored["Gun Game/ColoredTracers"] = saved;
+    savedConfig.Stored["Tactical/SoloColoredTracers"] = saved;
     savedConfig.Stored["Effects/TeamTracers"] = !saved;
     Settings.Init(savedConfig);
-    Need(Settings.TracerEntry("deathmatch").Value == saved
-        && Settings.TracerEntry("endless").Value == saved && Settings.TracerEntry("rounds").Value == saved,
+    Need(Settings.TracerEntry("deathmatch", false).Value == saved
+        && Settings.TracerEntry("endless", false).Value == saved && Settings.TracerEntry("rounds", false).Value == saved,
         "saved Deathmatch tracer choice survives configuration reload including legacy modes");
-    foreach (string mode in new[] { "teamdeathmatch", "tactical", "gungame" })
-        Need(Settings.TracerEntry(mode).Value == !saved, "other modes keep the existing saved tracer choice");
+    Need(Settings.TracerEntry("gungame", false).Value == saved
+        && Settings.TracerEntry("tactical", false).Value == saved,
+        "saved Gun Game and Tactical solo choices survive config reload");
+    Need(Settings.TracerEntry("teamdeathmatch", false).Value == !saved
+        && Settings.TracerEntry("tactical", true).Value == !saved,
+        "team variants retain the existing saved tracer choice");
 }
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

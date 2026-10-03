@@ -18,17 +18,20 @@ Es gibt keine neuen Zahlenregler oder eine zweite Konfiguration.
 | Backpack items | Kits / UseItemsAnywhere | Getragene Items und Rucksackmagazine; keine Erweiterung der Mechanik |
 | Killcam | ReplaySeconds des gewählten Modus | Aktive kompatible KillcamReplay erforderlich |
 | Pickups | Arena pickups / Enabled | Deathmatch oder unabhängiges TDM; benötigt zusätzlich ein Karten-/Areal-Layout |
-| Colored tracers | Deathmatch / ColoredTracers bzw. Effects / TeamTracers | Deathmatch separat, standardmäßig aus; aus stellt native Tracer wieder her |
+| Colored tracers | Deathmatch / ColoredTracers, Gun Game / ColoredTracers, Tactical / SoloColoredTracers bzw. Effects / TeamTracers | DM, Gun Game und Tactical 1v5 separat, standardmäßig aus; aus stellt native Tracer wieder her |
 | Team laser colors | Effects / TeamLasers | TDM oder geschütztes Tactical/PFT; Helligkeit unverändert |
 
 Die sichtbaren Schalter lesen und ändern exakt die vorhandenen ConfigEntries.
 Keine fremde Mod-Konfiguration und keine neue Serverroute. Killcam verwendet weiter TrySelectKillcam: AN setzt drei Sekunden,
 AUS null, getrennt pro Modus; die bestehende Aufnahme beim Arm bleibt erhalten.
-Tracer verwenden im Deathmatch eine eigene neue Einstellung mit Standard AUS.
-Die bestehende Effects-Einstellung bleibt für Gun Game, Tactical und TDM erhalten;
+Tracer verwenden in Deathmatch, Gun Game und Tactical 1v5 jeweils eine eigene
+Einstellung mit Standard AUS. Die bestehende Effects-Einstellung bleibt für
+Tactical 5v5 und TDM erhalten;
 gespeicherte Werte werden nicht migriert oder bei Moduswechsel überschrieben.
-Der Renderer liest dieselbe Auswahl anhand des eingefrorenen ActiveMode, erst
-nach dem IsActive-Guard. Legacy Endless/Rounds verwenden die Deathmatch-Einstellung.
+Der Renderer liest dieselbe Auswahl anhand des eingefrorenen ActiveMode und
+ArenaTracerTeams.ProtectedTeamMatch, erst nach dem IsActive-Guard. Der Teamwert
+bleibt über Rundenwechsel gültig und wird beim Matchende gelöscht; er stammt
+nicht aus der veränderbaren Menüauswahl. Legacy Endless/Rounds verwenden die Deathmatch-Einstellung.
 Alle anderen Schalter gelten Arena-weit. Änderungen werden sofort gespeichert,
 auch bei deaktiviertem SaveOnConfigSet. F12-Änderungen erscheinen im bestehenden
 0,2-s-Menürefresh; abgelehnte Schreibzugriffe zeigen den tatsächlichen Wert.

@@ -67,7 +67,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.NoFallDamage => Settings.NoFallDamage,
         ArenaMutator.Backpack => Settings.UseItemsAnywhere,
         ArenaMutator.Pickups => ArenaPickupSettings.Enabled,
-        ArenaMutator.Tracers => Settings.TracerEntry(Mode),
+        ArenaMutator.Tracers => Settings.TracerEntry(Mode, _team),
         ArenaMutator.Lasers => Settings.TeamLasers,
         _ => null
     };

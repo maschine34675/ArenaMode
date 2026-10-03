@@ -71,7 +71,7 @@ internal sealed class ArenaMutatorsView
                 button.onClick.AddListener(() => Toggle(generation, row));
             }
             _note = Text(_root.transform, typography, "Mutators saved note",
-                "Same settings as F12. Killcam: per mode. Tracers: separate for DM.\nOther switches apply to all Arena modes.",
+                "Same settings as F12. Killcam and tracers: mode-specific.\nOther switches apply to all Arena modes.",
                 13f, 20f, 434f, 600f, 30f);
             Layout();
         }

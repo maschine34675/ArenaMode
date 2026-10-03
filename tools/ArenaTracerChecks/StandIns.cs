@@ -17,7 +17,9 @@ namespace ArenaMode.Config
     {
         internal static ConfigEntry<bool> TeamTracers { get; } = new();
         internal static string RequestedMode;
-        internal static ConfigEntry<bool> TracerEntry(string mode) { RequestedMode = mode; return TeamTracers; }
+        internal static bool RequestedTeam;
+        internal static ConfigEntry<bool> TracerEntry(string mode, bool protectedTeam)
+        { RequestedMode = mode; RequestedTeam = protectedTeam; return TeamTracers; }
         internal static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; } = new();
         internal static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; } = new();
     }

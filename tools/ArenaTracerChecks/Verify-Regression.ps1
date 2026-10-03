@@ -58,12 +58,15 @@ function Invoke-NegativeCase(
     }
 }
 
-$arenaGate = 'if (!ArenaSession.IsActive || Settings.TracerEntry(ArenaSession.ActiveMode)?.Value != true)'
+$arenaGate = 'if (!ArenaSession.IsActive || Settings.TracerEntry(ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch)?.Value != true)'
 if ([regex]::Matches($patch, [regex]::Escape($arenaGate)).Count -ne 1) {
     throw 'Expected exactly one active-Arena renderer gate; refusing an ambiguous mutation.'
 }
 Invoke-NegativeCase 'ordinary-raid-leak' $color $teams ($patch.Replace($arenaGate, 'if (false)')) $matchService $tactical `
     'ordinary raid runs complete native tracer method'
+
+Invoke-NegativeCase 'lost-protected-team-selection' $color $teams ($patch.Replace('ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch', 'ArenaSession.ActiveMode, false')) $matchService $tactical `
+    'renderer selects protected team preference from frozen tracer match'
 
 $protectedPolicy = 'if (!verifiedPlayerIdentity'
 if ([regex]::Matches($teams, [regex]::Escape($protectedPolicy)).Count -ne 1) {
@@ -123,4 +126,4 @@ Invoke-NegativeCase 'faction-history-switch' $color ($teams.Replace($factionSwit
 if ($LASTEXITCODE -ne 0) {
     throw 'The unchanged production Arena tracer checks failed after mutation testing.'
 }
-Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (8 mutants rejected: Arena gate, identity, non-tracer, three lifecycle resets and two faction policies; evidence: $scratch)"
+Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (9 mutants rejected: Arena gate, frozen team selection, identity, non-tracer, three lifecycle resets and two faction policies; evidence: $scratch)"
