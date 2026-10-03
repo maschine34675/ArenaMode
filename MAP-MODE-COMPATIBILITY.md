@@ -9,7 +9,7 @@ nicht nur im Menü entfernt werden. Diese Prüfung ändert keine Freigabe.
 | Factory Tag/Nacht, Labs, Labyrinth | Deathmatch, Gun Game, Tactical, Team DM | Keine zusätzliche Modussperre |
 | Bay5, Equator | Deathmatch, Gun Game | Geprüfte Teamstarts/Respawns; Tactical zusätzlich vollständige Gegnerformation |
 | Drei Customs-Areale | Unabhängiges Team DM, 2v2–5v5 | Area-Lifecycle und Besetzung vom Teammodus entkoppeln |
-| Ganz Customs und übrige EFT-Karten | Nicht im Arena-Katalog | Eigene Kartenintegration, Spawns/Zonen, Population und Navigation prüfen |
+| Ganz Customs und übrige EFT-Karten | Nicht freigegeben | Eigene Kartenintegration, Spawns/Zonen, Population und Navigation prüfen |
 
 `ArenaMode.Shared/ArenaAreaCatalog.cs` prüft dieselbe Auswahl im Menü, beim
 Armieren, bei Wiederholung und in der Server-Vorbereitung. `ArenaAreaRuntime`

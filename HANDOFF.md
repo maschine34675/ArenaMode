@@ -1,13 +1,31 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-01. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-03. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Kartenbuttons / eigene Tode (2026-10-01, aktueller Client):** `a387581`
+- **Mutatoren / Kartenzeiten (2026-10-03, aktueller Client):** `5fabaf6` ergänzt
+  Air vault, Slide, Infinite stamina und No fall damage (zwölf Schalter insgesamt)
+  sowie Deathmatch/ColoredTracers=false als eigene gespeicherte Wahl. Die
+  bisherige Effects/TeamTracers-Einstellung für andere Modi bleibt erhalten.
+  GPU-2 zeigte einen READY-Overlap; `5a63fa9` behebt ihn ohne kleinere Schrift
+  oder Verschieben der Kartenvorschau. Client lokal/GPU-2 SHA256
+  `6EB0A8BC6A59803ADC88C4B0ECDC1D8CA9A5F1531741B544ACCACC2E876077DE`.
+  ArenaMapPort separat `aa0a8c1`/`1cb4572`: Bay5 native 12:00/00:00 inklusive
+  echter Raidzeit/Servergear, Equator-Nachtregenicon mit nativer Rückstellung.
+  Beide MapPort-DLLs über den neuen sicheren -DllOnly-Weg lokal/GPU-2 eingespielt.
+  Keine Bundles und keine Modusfreigaben geändert. Native 1080p-Menüabnahme auf
+  GPU-2 bestanden, Prozess `52a36096`, 24/24 geladene Identitäten korrekt.
+  Testwerte restauriert, Spiel/Server beendet. Kein Raid in diesem Lauf; Bay5s
+  Nachtbeleuchtung noch nicht neu visuell geprüft. Bericht, Hashes und Grenzen:
+  `GPU-MUTATORS-MAP-OPTIONS-RESULTS-20261003.md`; Ausbau aller Karten/Modi:
+  `MAP-MODE-COMPATIBILITY.md` (`f800b08`). GPU-1 war nicht erreichbar und wurde
+  nicht direkt beschrieben; Nutzer hatte GPU-2 ausdrücklich freigegeben.
+
+- **Kartenbuttons / eigene Tode (2026-10-01, Vorgänger):** `a387581`
   erhält die native TMP-Größenberechnung unter den goldenen Bay5-/Equator-Labels;
   `8fd3e03` ergänzt reine Killfeed-Anzeigen für eigene Tode ohne fremden Angreifer
   und erfolgreiches Aufgeben. Keine neuen Kill-Punkte/Assists. Client lokal/Host 1
