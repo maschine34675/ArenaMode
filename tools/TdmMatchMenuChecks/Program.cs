@@ -203,10 +203,30 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 8, "inline panel has eight switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 12, "inline panel has twelve switches, no backdrop or close buttons");
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
 Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
-    && mutatorRect.sizeDelta == new Vector2(600,408), "inline panel always reserves the full thumbnail or Customs preview slot");
+    && mutatorRect.sizeDelta == new Vector2(600,496), "inline panel always reserves the full thumbnail or Customs preview slot");
+Need(Settings.DeathmatchColoredTracers.Value == false && Settings.TeamTracers.Value,
+    "fresh Deathmatch tracer preference is off while other modes keep their default");
+Settings.TeamTracers.Value = true;
+view.Synchronize("deathmatch", false);
+Need(MutatorStatus(ArenaMutator.Tracers) == "OFF", "Deathmatch ignores the old enabled team preference");
+MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
+Need(Settings.DeathmatchColoredTracers.Value && Settings.TeamTracers.Value, "Deathmatch can explicitly enable tracers");
+view.Synchronize("teamdeathmatch", false);
+MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
+Need(!Settings.TeamTracers.Value && Settings.DeathmatchColoredTracers.Value, "team tracer toggle preserves Deathmatch preference");
+view.Synchronize("deathmatch", false);
+Need(MutatorStatus(ArenaMutator.Tracers) == "ON", "switching modes preserves explicitly enabled Deathmatch tracers");
+foreach (bool armed in new[] { false, true })
+{
+    ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
+    MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
+    Need(Settings.DeathmatchColoredTracers.Value, "Deathmatch tracer writes respect active and armed locks");
+}
+ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
+Settings.DeathmatchColoredTracers.Value = false; Settings.TeamTracers.Value = true;
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
@@ -266,6 +286,10 @@ var preferencePairs = new[] {
     (ArenaMutator.DoubleJump, Settings.DoubleJumpEnabled),
     (ArenaMutator.AirControl, Settings.AirControlEnabled),
     (ArenaMutator.AirFire, Settings.AirHipFireEnabled),
+    (ArenaMutator.AirVault, Settings.AirVaultEnabled),
+    (ArenaMutator.Slide, Settings.SlideEnabled),
+    (ArenaMutator.InfiniteStamina, Settings.InfiniteStamina),
+    (ArenaMutator.NoFallDamage, Settings.NoFallDamage),
     (ArenaMutator.Backpack, Settings.UseItemsAnywhere),
     (ArenaMutator.Pickups, ArenaMode.Pickups.ArenaPickupSettings.Enabled),
     (ArenaMutator.Tracers, Settings.TeamTracers),
@@ -316,7 +340,7 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
 view.Synchronize("teamdeathmatch", false);
 Settings.MovementEnabled.Value = false;
 view.Synchronize("teamdeathmatch", false);
-foreach (var (id, entry) in preferencePairs.Take(3))
+foreach (var (id, entry) in preferencePairs.Take(7))
 {
     bool before = entry.Value;
     MutatorButton(id).onClick.Invoke();
@@ -379,10 +403,18 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
     ((RectTransform)screen.transform).sizeDelta = size;
     view.Synchronize("deathmatch", false);
     var current = (RectTransform)MutatorsRoot().transform;
-    Need(-current.anchoredPosition.y + current.sizeDelta.y * current.localScale.y < size.y * .9f,
+    Need(-current.anchoredPosition.y + current.sizeDelta.y * current.localScale.y < size.y * .94f,
         "right column leaves bottom native navigation clear at supported canvas sizes");
     Need(size.x + current.anchoredPosition.x - current.sizeDelta.x * current.localScale.x > size.x * .65f,
         "right column stays beyond the central map and time strip");
+    foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
+    {
+        var buttonRect = (RectTransform)MutatorButton(id).transform;
+        var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
+        Need(-detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y
+            && -detail.anchoredPosition.y + detail.sizeDelta.y <= 448f,
+            "all twelve descriptions fit below their button and above the footer");
+    }
 }
 view.Close();
 Need(view.Root == null && screen.transform.Children.Count == 0, "close destroys all owned view roots");
@@ -396,5 +428,17 @@ foreach (string legacy in new[] { "endless", "rounds" })
     Need(Settings.GameMode.Value == "deathmatch" && Settings.DeathmatchRounds.Value == 0, "legacy mode normalized without new finite limit");
     Need(Settings.DeathmatchKills.Value == (legacy == "rounds" ? 37 : 0)
         && Settings.DeathmatchSeconds.Value == (legacy == "rounds" ? 240 : 0), "legacy Rounds preserves limits; Endless remains continuous");
+}
+foreach (bool saved in new[] { false, true })
+{
+    var savedConfig = new ConfigFile();
+    savedConfig.Stored["Deathmatch/ColoredTracers"] = saved;
+    savedConfig.Stored["Effects/TeamTracers"] = !saved;
+    Settings.Init(savedConfig);
+    Need(Settings.TracerEntry("deathmatch").Value == saved
+        && Settings.TracerEntry("endless").Value == saved && Settings.TracerEntry("rounds").Value == saved,
+        "saved Deathmatch tracer choice survives configuration reload including legacy modes");
+    foreach (string mode in new[] { "teamdeathmatch", "tactical", "gungame" })
+        Need(Settings.TracerEntry(mode).Value == !saved, "other modes keep the existing saved tracer choice");
 }
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

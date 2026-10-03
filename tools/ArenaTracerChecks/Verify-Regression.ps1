@@ -58,7 +58,7 @@ function Invoke-NegativeCase(
     }
 }
 
-$arenaGate = 'if (!ArenaSession.IsActive || !Settings.TeamTracers.Value)'
+$arenaGate = 'if (!ArenaSession.IsActive || Settings.TracerEntry(ArenaSession.ActiveMode)?.Value != true)'
 if ([regex]::Matches($patch, [regex]::Escape($arenaGate)).Count -ne 1) {
     throw 'Expected exactly one active-Arena renderer gate; refusing an ambiguous mutation.'
 }

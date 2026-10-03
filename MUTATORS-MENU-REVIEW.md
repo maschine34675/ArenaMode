@@ -1,6 +1,6 @@
 # Mutatoren im Kartenmenü
 
-Stand: 30.09.2026, Inline-Revision. Die acht Mutatoren stehen dauerhaft in der
+Stand: 03.10.2026, erweiterte Inline-Revision. Die zwölf Mutatoren stehen dauerhaft in der
 rechten Bildschirmspalte, ohne Öffnen-Button oder Popup. Eigene Controls im
 Arena-Stil zeigen aktive Optionen mit grünem ON, Farbchip und Seitenstreifen;
 OFF bleibt grau, nicht verfügbare Optionen zeigen N/A mit Begründung.
@@ -11,16 +11,24 @@ Es gibt keine neuen Zahlenregler oder eine zweite Konfiguration.
 | Double jump | Movement / DoubleJumpEnabled | Arena movement muss aktiv sein |
 | Air control | Movement / AirControlEnabled | Arena movement muss aktiv sein |
 | Airborne hip fire | Movement / AirHipFireEnabled | Arena movement muss aktiv sein |
+| Air vault | Movement / AirVaultEnabled | Arena movement muss aktiv sein |
+| Slide | Movement / SlideEnabled | Arena movement muss aktiv sein |
+| Infinite stamina | Movement / InfiniteStamina | Arena movement muss aktiv sein |
+| No fall damage | Movement / NoFallDamage | Arena movement muss aktiv sein |
 | Backpack items | Kits / UseItemsAnywhere | Getragene Items und Rucksackmagazine; keine Erweiterung der Mechanik |
 | Killcam | ReplaySeconds des gewählten Modus | Aktive kompatible KillcamReplay erforderlich |
 | Pickups | Arena pickups / Enabled | Deathmatch oder unabhängiges TDM; benötigt zusätzlich ein Karten-/Areal-Layout |
-| Colored tracers | Effects / TeamTracers | Aus stellt native Tracer wieder her |
+| Colored tracers | Deathmatch / ColoredTracers bzw. Effects / TeamTracers | Deathmatch separat, standardmäßig aus; aus stellt native Tracer wieder her |
 | Team laser colors | Effects / TeamLasers | TDM oder geschütztes Tactical/PFT; Helligkeit unverändert |
 
 Die sichtbaren Schalter lesen und ändern exakt die vorhandenen ConfigEntries.
-Keine Defaults oder Migration, keine fremde Mod-Konfiguration, keine neue
-Serverroute. Killcam verwendet weiter TrySelectKillcam: AN setzt drei Sekunden,
+Keine fremde Mod-Konfiguration und keine neue Serverroute. Killcam verwendet weiter TrySelectKillcam: AN setzt drei Sekunden,
 AUS null, getrennt pro Modus; die bestehende Aufnahme beim Arm bleibt erhalten.
+Tracer verwenden im Deathmatch eine eigene neue Einstellung mit Standard AUS.
+Die bestehende Effects-Einstellung bleibt für Gun Game, Tactical und TDM erhalten;
+gespeicherte Werte werden nicht migriert oder bei Moduswechsel überschrieben.
+Der Renderer liest dieselbe Auswahl anhand des eingefrorenen ActiveMode, erst
+nach dem IsActive-Guard. Legacy Endless/Rounds verwenden die Deathmatch-Einstellung.
 Alle anderen Schalter gelten Arena-weit. Änderungen werden sofort gespeichert,
 auch bei deaktiviertem SaveOnConfigSet. F12-Änderungen erscheinen im bestehenden
 0,2-s-Menürefresh; abgelehnte Schreibzugriffe zeigen den tatsächlichen Wert.
@@ -38,6 +46,9 @@ nicht. Bei ausstehendem Bild oder fehlender Kartenauswahl bleibt die Bildfläche
 leer, statt das vorige Thumbnail zu zeigen. Customs zeigt dort seine Arealkarte
 mit AREA/OVERVIEW. Beide Ansichten reservieren dieselben 320 Referenzpixel Höhe;
 die Mutatoren bleiben unabhängig von Karte und Modus fest auf Y=508.
+Die zwölf Schalter stehen in zwei Spalten mit sechs Zeilen; der Kasten ist 496
+Referenzpixel hoch und endet bei Y=1004. Beschreibungen bleiben sichtbar, kein
+Scrollen oder weiteres Popup. Der zentrale Navigationsbereich bleibt frei.
 Zeit-/Wetterwahl, Next und Ready bleiben native Controls an ihrem bisherigen Platz.
 Die gemeinsame rechte Spalte skaliert bei geringerer Bildschirmhöhe mit.
 Escape behält die native Navigation zum vorherigen Bildschirm; Close räumt alle
@@ -82,7 +93,7 @@ Build, Auslieferung und eine eventuelle native UI-Prüfung werden mit Commit und
 Hash im HANDOFF dokumentiert; Offline-Prüfungen zertifizieren kein Raycasting,
 Schriftbild oder Gameplay.
 
-Native Prüffolge: Arena > Kartenauswahl; acht sofort sichtbare Schalter, ON/OFF
+Native Prüffolge: Arena > Kartenauswahl; zwölf sofort sichtbare Schalter, ON/OFF
 und Farbwechsel mit F12 vergleichen, Killcam pro Modus und Laser/Pickup-N/A
 prüfen; Factory-Zeitwahl und Customs-Preview ohne Überlappungen, Escape und
 gewöhnlichen PMC-Bildschirm auf vollständige Restaurierung prüfen. Keine neue Raid-Abnahme nötig,

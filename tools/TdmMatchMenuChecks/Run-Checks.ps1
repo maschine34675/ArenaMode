@@ -62,7 +62,7 @@ $arenaFaults = @(
       'ProductionMutatorsView', 'retired killcam callback cannot mutate reopened panel'),
     @('mutator-live-lock', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (UnavailableReason(id) != null)',
-      'ProductionMutatorSelection', 'live lock prevents mutator writes even before menu refresh'),
+      'ProductionMutatorSelection', 'Deathmatch tracer writes respect active and armed locks'),
     @('mutator-mode-gate', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (Locked || (id != ArenaMutator.Pickups && UnavailableReason(id) != null))',
       'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback')

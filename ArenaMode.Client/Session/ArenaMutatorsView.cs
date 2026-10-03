@@ -42,9 +42,8 @@ internal sealed class ArenaMutatorsView
             Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);
             _subtitle = Text(_root.transform, typography, "Mutator legend", "Green: ON   /   Grey: OFF   /   N/A: unavailable", 13f, 20f, 48f, 420f, 24f);
             var generation = _root;
-            for (int index = 0; index < 8; index++)
+            foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
             {
-                var id = (ArenaMutator)index;
                 // Fresh controls deliberately avoid native prefab label animations.
                 var go = new GameObject("Arena Mutator " + id, typeof(RectTransform), typeof(Image), typeof(Button));
                 go.transform.SetParent(_root.transform, false);
@@ -72,8 +71,8 @@ internal sealed class ArenaMutatorsView
                 button.onClick.AddListener(() => Toggle(generation, row));
             }
             _note = Text(_root.transform, typography, "Mutators saved note",
-                "Same settings as F12. Killcam: this mode only.\nOther switches apply to all Arena modes.",
-                13f, 20f, 370f, 600f, 30f);
+                "Same settings as F12. Killcam: per mode. Tracers: separate for DM.\nOther switches apply to all Arena modes.",
+                13f, 20f, 460f, 600f, 30f);
             Layout();
         }
         catch { Close(); throw; }
@@ -90,12 +89,13 @@ internal sealed class ArenaMutatorsView
         for (int index = 0; index < _rows.Count; index++)
         {
             var row = _rows[index];
-            float left = 20f + (index < 4 ? 0f : cell + 20f), top = 84f + (index % 4) * 70f;
+            int rowsPerColumn = (_rows.Count + 1) / 2;
+            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 76f + (index % rowsPerColumn) * 62f;
             Rect((RectTransform)row.Button.transform, left, top, cell, 32f);
             Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 32f);
             Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 32f);
             Rect((RectTransform)row.Chip.transform, cell - 55f, 4f, 50f, 24f);
-            Rect(row.Description.rectTransform, left + 8f, top + 34f, cell - 16f, 34f);
+            Rect(row.Description.rectTransform, left + 8f, top + 32f, cell - 16f, 30f);
         }
     }
 

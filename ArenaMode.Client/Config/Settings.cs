@@ -110,6 +110,12 @@ public static class Settings
     public static ConfigEntry<float> ArenaLightingOutcomeSeconds { get; private set; }
     public static ConfigEntry<bool> ArenaLightingRespectExternalMods { get; private set; }
     public static ConfigEntry<bool> TeamTracers { get; private set; }
+    public static ConfigEntry<bool> DeathmatchColoredTracers { get; private set; }
+
+    // Deathmatch defaults to native tracers without rewriting an existing team-mode preference.
+    internal static ConfigEntry<bool> TracerEntry(string mode)
+        => ArenaModeCatalog.NormalizeId(mode) == ArenaModeCatalog.DeathmatchId
+            ? DeathmatchColoredTracers : TeamTracers;
     public static ConfigEntry<bool> TeamLasers { get; private set; }
     public static ConfigEntry<float> VisibleLaserBrightness { get; private set; }
     public static ConfigEntry<float> VisibleLaserBeamBrightness { get; private set; }
@@ -1358,7 +1364,11 @@ public static class Settings
             "TeamTracers",
             true,
             "Give every Arena projectile a team-colored tracer, including ammunition " +
-            "that has no tracer in ordinary raids.");
+            "that has no tracer in ordinary raids. Deathmatch uses its separate ColoredTracers setting.");
+
+        DeathmatchColoredTracers = config.Bind("Deathmatch", "ColoredTracers", false,
+            "Color every Deathmatch projectile by side. Off keeps native ammunition tracers. " +
+            "Independent of Effects / TeamTracers for the other Arena modes.");
 
         TeamLasers = config.Bind(
             "Effects",

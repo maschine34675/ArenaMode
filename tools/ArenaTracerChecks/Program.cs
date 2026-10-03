@@ -222,6 +222,12 @@ internal static class Program
             "known local shot replaces native path");
         Assert(renderer.ShotTracerCalls == 1,
             "normally tracerless local ammunition receives a tracer");
+        Assert(Settings.RequestedMode == ArenaSession.ActiveMode,
+            "renderer selects tracer preference from frozen active mode");
+        ArenaSession.ActiveMode = "deathmatch";
+        Assert(!InvokePrefix(new TracersLight(), local) && Settings.RequestedMode == "deathmatch",
+            "renderer selects Deathmatch preference when that is the active mode");
+        ArenaSession.ActiveMode = "tactical";
         AssertColor(renderer.Color, 0.25f, 1.25f, 2f,
             "local tracer uses friendly cyan");
 
@@ -359,7 +365,7 @@ internal static class Program
             "typeof(TracersLight)",
             "nameof(TracersLight.CreateTracer)",
             "new[] { typeof(Shot) }",
-            "if (!ArenaSession.IsActive || !Settings.TeamTracers.Value)",
+            "if (!ArenaSession.IsActive || Settings.TracerEntry(ArenaSession.ActiveMode)?.Value != true)",
             "ArenaTracerTeams.Classify(",
             "__instance.CreateShotTracer(shot, p0, p1)",
             "__instance.CreateGrenadeTracer(shot, p0, p1)",

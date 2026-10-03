@@ -6,7 +6,11 @@ using System;
 
 namespace ArenaMode.Session;
 
-internal enum ArenaMutator { DoubleJump, AirControl, AirFire, Backpack, Killcam, Pickups, Tracers, Lasers }
+internal enum ArenaMutator
+{
+    DoubleJump, AirControl, AirFire, AirVault, Slide, InfiniteStamina,
+    NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers
+}
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
 internal sealed class ArenaMutatorSelection
@@ -23,6 +27,10 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.DoubleJump => "DOUBLE JUMP",
         ArenaMutator.AirControl => "AIR CONTROL",
         ArenaMutator.AirFire => "AIRBORNE HIP FIRE",
+        ArenaMutator.AirVault => "AIR VAULT",
+        ArenaMutator.Slide => "SLIDE",
+        ArenaMutator.InfiniteStamina => "INFINITE STAMINA",
+        ArenaMutator.NoFallDamage => "NO FALL DAMAGE",
         ArenaMutator.Backpack => "BACKPACK ITEMS",
         ArenaMutator.Killcam => "KILLCAM",
         ArenaMutator.Pickups => "PICKUPS",
@@ -36,6 +44,10 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.DoubleJump => "One extra jump while airborne.",
         ArenaMutator.AirControl => "Steer your flight with movement input.",
         ArenaMutator.AirFire => "Fire without aiming while airborne.",
+        ArenaMutator.AirVault => "Climb reachable obstacles during a jump.",
+        ArenaMutator.Slide => "Crouch while sprinting to slide.",
+        ArenaMutator.InfiniteStamina => "Keep your stamina while moving and aiming.",
+        ArenaMutator.NoFallDamage => "Land without taking fall damage.",
         ArenaMutator.Backpack => "Use worn items and reload from backpack magazines.",
         ArenaMutator.Killcam => "This mode only. Respawn waits for replay; Tactical keeps its rounds.",
         ArenaMutator.Pickups => "Powerups and weapons on maps/areas with a pickup layout.",
@@ -44,14 +56,18 @@ internal sealed class ArenaMutatorSelection
         _ => string.Empty
     };
 
-    private static ConfigEntry<bool> Entry(ArenaMutator id) => id switch
+    private ConfigEntry<bool> Entry(ArenaMutator id) => id switch
     {
         ArenaMutator.DoubleJump => Settings.DoubleJumpEnabled,
         ArenaMutator.AirControl => Settings.AirControlEnabled,
         ArenaMutator.AirFire => Settings.AirHipFireEnabled,
+        ArenaMutator.AirVault => Settings.AirVaultEnabled,
+        ArenaMutator.Slide => Settings.SlideEnabled,
+        ArenaMutator.InfiniteStamina => Settings.InfiniteStamina,
+        ArenaMutator.NoFallDamage => Settings.NoFallDamage,
         ArenaMutator.Backpack => Settings.UseItemsAnywhere,
         ArenaMutator.Pickups => ArenaPickupSettings.Enabled,
-        ArenaMutator.Tracers => Settings.TeamTracers,
+        ArenaMutator.Tracers => Settings.TracerEntry(Mode),
         ArenaMutator.Lasers => Settings.TeamLasers,
         _ => null
     };
@@ -64,7 +80,9 @@ internal sealed class ArenaMutatorSelection
         if (id == ArenaMutator.Killcam)
             return Spectator.KillcamReplayCompat.CanPlay(out string reason) ? null : reason;
         if (Entry(id) == null) return "Setting unavailable.";
-        if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire)
+        if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire
+            || id == ArenaMutator.AirVault || id == ArenaMutator.Slide
+            || id == ArenaMutator.InfiniteStamina || id == ArenaMutator.NoFallDamage)
             && Settings.MovementEnabled?.Value != true)
             return "Requires Arena movement (F12 > Movement).";
         if (id == ArenaMutator.Pickups && (_team || (Mode != ArenaModeCatalog.DeathmatchId

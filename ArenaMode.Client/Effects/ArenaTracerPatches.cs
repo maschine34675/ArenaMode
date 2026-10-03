@@ -40,7 +40,7 @@ internal static class ArenaTracerPatches
         [PatchPrefix]
         private static bool Prefix(TracersLight __instance, Shot shot)
         {
-            if (!ArenaSession.IsActive || !Settings.TeamTracers.Value)
+            if (!ArenaSession.IsActive || Settings.TracerEntry(ArenaSession.ActiveMode)?.Value != true)
                 return true;
 
             try

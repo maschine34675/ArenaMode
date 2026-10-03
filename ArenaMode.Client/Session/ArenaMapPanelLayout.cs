@@ -7,7 +7,7 @@ namespace ArenaMode.Session;
 internal static class ArenaMapPanelLayout
 {
     internal const float InfoTop = 168f, InfoHeight = 320f, PreviewHeight = InfoHeight;
-    internal const float MutatorsHeight = 408f;
+    internal const float MutatorsHeight = 496f;
 
     internal static float Scale(Transform screen)
     {
