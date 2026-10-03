@@ -206,7 +206,7 @@ Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without
 Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 12, "inline panel has twelve switches, no backdrop or close buttons");
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
 Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
-    && mutatorRect.sizeDelta == new Vector2(600,496), "inline panel always reserves the full thumbnail or Customs preview slot");
+    && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
 Need(Settings.DeathmatchColoredTracers.Value == false && Settings.TeamTracers.Value,
     "fresh Deathmatch tracer preference is off while other modes keep their default");
 Settings.TeamTracers.Value = true;
@@ -403,7 +403,8 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
     ((RectTransform)screen.transform).sizeDelta = size;
     view.Synchronize("deathmatch", false);
     var current = (RectTransform)MutatorsRoot().transform;
-    Need(-current.anchoredPosition.y + current.sizeDelta.y * current.localScale.y < size.y * .94f,
+    // READY begins at reference Y=984 in the observed native 1080p layout.
+    Need(-current.anchoredPosition.y + current.sizeDelta.y * current.localScale.y <= 980f * size.y / 1080f + .01f,
         "right column leaves bottom native navigation clear at supported canvas sizes");
     Need(size.x + current.anchoredPosition.x - current.sizeDelta.x * current.localScale.x > size.x * .65f,
         "right column stays beyond the central map and time strip");
@@ -412,7 +413,7 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
         Need(-detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y
-            && -detail.anchoredPosition.y + detail.sizeDelta.y <= 448f,
+            && -detail.anchoredPosition.y + detail.sizeDelta.y <= 426f,
             "all twelve descriptions fit below their button and above the footer");
     }
 }

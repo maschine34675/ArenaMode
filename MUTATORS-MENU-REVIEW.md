@@ -46,8 +46,11 @@ nicht. Bei ausstehendem Bild oder fehlender Kartenauswahl bleibt die Bildfläche
 leer, statt das vorige Thumbnail zu zeigen. Customs zeigt dort seine Arealkarte
 mit AREA/OVERVIEW. Beide Ansichten reservieren dieselben 320 Referenzpixel Höhe;
 die Mutatoren bleiben unabhängig von Karte und Modus fest auf Y=508.
-Die zwölf Schalter stehen in zwei Spalten mit sechs Zeilen; der Kasten ist 496
-Referenzpixel hoch und endet bei Y=1004. Beschreibungen bleiben sichtbar, kein
+Die zwölf Schalter stehen in zwei Spalten mit sechs Zeilen; der Kasten ist 472
+Referenzpixel hoch und endet bei Y=980. Die erste GPU-2-Prüfung zeigte bei
+496 Pixeln eine Überschneidung mit der nativen READY-Fläche (ab Y=984), deshalb
+sind Buttons jetzt 28 Pixel hoch, weiterhin mit derselben Schriftgröße und
+30 Pixel Platz für zweizeilige Beschreibungen. Beschreibungen bleiben sichtbar, kein
 Scrollen oder weiteres Popup. Der zentrale Navigationsbereich bleibt frei.
 Zeit-/Wetterwahl, Next und Ready bleiben native Controls an ihrem bisherigen Platz.
 Die gemeinsame rechte Spalte skaliert bei geringerer Bildschirmhöhe mit.

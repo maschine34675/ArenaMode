@@ -40,7 +40,7 @@ internal sealed class ArenaMutatorsView
             _root.GetComponent<Image>().raycastTarget = false;
             ArenaUiTheme.Decorate((RectTransform)_root.transform);
             Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);
-            _subtitle = Text(_root.transform, typography, "Mutator legend", "Green: ON   /   Grey: OFF   /   N/A: unavailable", 13f, 20f, 48f, 420f, 24f);
+            _subtitle = Text(_root.transform, typography, "Mutator legend", "Green: ON   /   Grey: OFF   /   N/A: unavailable", 13f, 20f, 44f, 420f, 20f);
             var generation = _root;
             foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
             {
@@ -57,7 +57,7 @@ internal sealed class ArenaMutatorsView
                 var navigation = button.navigation; navigation.mode = Navigation.Mode.None; button.navigation = navigation;
                 var marker = new GameObject("Mutator marker " + id, typeof(RectTransform), typeof(Image));
                 marker.transform.SetParent(go.transform, false);
-                Rect((RectTransform)marker.transform, 0f, 0f, 3f, 32f);
+                Rect((RectTransform)marker.transform, 0f, 0f, 3f, 28f);
                 marker.GetComponent<Image>().raycastTarget = false;
                 var chip = new GameObject("Mutator chip " + id, typeof(RectTransform), typeof(Image));
                 chip.transform.SetParent(go.transform, false);
@@ -72,7 +72,7 @@ internal sealed class ArenaMutatorsView
             }
             _note = Text(_root.transform, typography, "Mutators saved note",
                 "Same settings as F12. Killcam: per mode. Tracers: separate for DM.\nOther switches apply to all Arena modes.",
-                13f, 20f, 460f, 600f, 30f);
+                13f, 20f, 434f, 600f, 30f);
             Layout();
         }
         catch { Close(); throw; }
@@ -84,18 +84,18 @@ internal sealed class ArenaMutatorsView
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
-        _subtitle.rectTransform.sizeDelta = new Vector2(width - 40f, 24f);
+        _subtitle.rectTransform.sizeDelta = new Vector2(width - 40f, 20f);
         _note.rectTransform.sizeDelta = new Vector2(width - 40f, 30f);
         for (int index = 0; index < _rows.Count; index++)
         {
             var row = _rows[index];
             int rowsPerColumn = (_rows.Count + 1) / 2;
-            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 76f + (index % rowsPerColumn) * 62f;
-            Rect((RectTransform)row.Button.transform, left, top, cell, 32f);
-            Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 32f);
-            Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 32f);
-            Rect((RectTransform)row.Chip.transform, cell - 55f, 4f, 50f, 24f);
-            Rect(row.Description.rectTransform, left + 8f, top + 32f, cell - 16f, 30f);
+            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 68f + (index % rowsPerColumn) * 60f;
+            Rect((RectTransform)row.Button.transform, left, top, cell, 28f);
+            Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 28f);
+            Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 28f);
+            Rect((RectTransform)row.Chip.transform, cell - 55f, 4f, 50f, 20f);
+            Rect(row.Description.rectTransform, left + 8f, top + 28f, cell - 16f, 30f);
         }
     }
 
