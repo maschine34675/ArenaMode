@@ -435,6 +435,7 @@ internal static class ArenaDoubleJump
             try
             {
                 Player player = __instance._controller;
+                if (ArenaBunnyhop.TryBufferJump(player)) return;
                 MovementState state = player?.CurrentManagedState;
                 // Settle an older air request before vanilla handles a new ground
                 // press. UI blocking may have delayed the landing observer; the

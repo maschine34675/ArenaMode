@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><LangVersion>latest</LangVersion>
+    <BunnyhopSource Condition="'$(BunnyhopSource)' == ''">../../ArenaMode.Client/Movement/ArenaBunnyhop.cs</BunnyhopSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(BunnyhopSource)" Link="Production/ArenaBunnyhop.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaMovementScope.cs" Link="Production/ArenaMovementScope.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaDoubleJump.cs" Link="Production/ArenaDoubleJump.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaJumpBoots.cs" Link="Production/ArenaJumpBoots.cs" />
+    <Compile Include="../../ArenaMode.Client/Pickups/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs" />
+  </ItemGroup>
+</Project>

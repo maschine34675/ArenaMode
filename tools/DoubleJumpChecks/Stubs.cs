@@ -74,6 +74,7 @@ namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public st
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
 namespace ArenaMode.Movement
 {
+    internal static class ArenaBunnyhop { internal static bool TryBufferJump(EFT.Player player) => false; }
     internal static class ArenaAirVault
     {
         internal static bool Pending;

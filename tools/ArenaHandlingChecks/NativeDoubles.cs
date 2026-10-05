@@ -175,3 +175,4 @@ namespace SPT.Reflection.Patching
     public sealed class PatchTranspilerAttribute : Attribute { }
     public sealed class PatchFinalizerAttribute : Attribute { }
 }
+namespace ArenaMode.Movement { internal static class ArenaBunnyhop { internal static void HardLanding(EFT.MovementContext c) { } } }

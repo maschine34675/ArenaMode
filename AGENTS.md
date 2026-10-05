@@ -43,6 +43,10 @@ Arena landing recovery, firearm draw/holster and deliberate airborne vault/hip
 fire are documented in AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
 native geometry/firearm restrictions, temporary-state cleanup and double-jump
 precedence; offline checks cannot certify native animator transitions.
+Optional timed Bunnyhop is documented in BUNNYHOP-REVIEW.md. Preserve actual
+controller contact, one input owner, native landing/Jump entry, collision-reduced
+momentum and single-application displacement scaling; never grant hops from the
+ground-proximity ray alone or cancel every ordinary native Fall limit.
 Bot locomotion has independent Arena-only walk/sprint controls. Read
 BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN door
 guard; preserve exact live body identity, native collision and finalizer cleanup.

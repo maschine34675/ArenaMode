@@ -30,6 +30,7 @@ internal static class ArenaAirControl
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".AirControl");
     private static ConditionalWeakTable<MovementContext, Flight> _flights = new();
     private static bool _ready, _bound, _warned;
+    internal static bool Ready => _ready;
     private static readonly MethodInfo Limit = AccessTools.DeclaredMethod(typeof(MovementState), nameof(MovementState.LimitMotion));
 
     internal static void Enable()
@@ -154,7 +155,7 @@ internal static class ArenaAirControl
     private static void SteerThenLimit(MovementState state, ref Vector3 motion, float dt)
     {
         var original = motion;
-        try { Steer(state, ref motion, dt); }
+        try { ArenaBunnyhop.ApplyCarry(state, ref motion, dt); Steer(state, ref motion, dt); }
         catch (Exception ex) { motion = original; Warn(ex); }
         // Outside our catch: native collision errors are never suppressed and
         // physical clipping is never undone. The existing speed scaler runs later.

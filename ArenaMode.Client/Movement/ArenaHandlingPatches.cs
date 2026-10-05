@@ -86,6 +86,7 @@ internal static class ArenaHandlingPatches
             if (_enabled && cause == Player.ESpeedLimit.Fall && FinitePositive(duration)
                 && ArenaMovementScope.TryGetPlayer(context, out _))
             {
+                ArenaBunnyhop.HardLanding(context);
                 float factor = Settings.LandingRecoveryMultiplier?.Value ?? 1f;
                 if (factor >= .1f && factor <= 1f) duration *= factor;
             }

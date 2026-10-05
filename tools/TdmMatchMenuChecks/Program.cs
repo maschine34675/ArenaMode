@@ -203,7 +203,7 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 12, "inline panel has twelve switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 13, "inline panel has thirteen switches, no backdrop or close buttons");
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
 Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
     && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
@@ -306,6 +306,7 @@ Need(Settings.GameMode.Value == "teamdeathmatch", "retired mode row cannot modif
 Need(Settings.TeamDeathmatchKillLimit.Value == 25, "retired row cannot modify reopened panel");
 // Exercise actual config bindings through the visible controls, not a copied policy.
 var preferencePairs = new[] {
+    (ArenaMutator.Bunnyhop, Settings.BunnyhopEnabled),
     (ArenaMutator.DoubleJump, Settings.DoubleJumpEnabled),
     (ArenaMutator.AirControl, Settings.AirControlEnabled),
     (ArenaMutator.AirFire, Settings.AirHipFireEnabled),
@@ -435,9 +436,11 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
     {
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
-        Need(-detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y
-            && -detail.anchoredPosition.y + detail.sizeDelta.y <= 426f,
-            "all twelve descriptions fit below their button and above the footer");
+        bool separate = id == ArenaMutator.Bunnyhop
+            ? detail.anchoredPosition.x >= buttonRect.anchoredPosition.x + buttonRect.sizeDelta.x
+            : -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
+        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 448f,
+            "all mutator descriptions fit outside their button and above the footer");
     }
 }
 view.Close();

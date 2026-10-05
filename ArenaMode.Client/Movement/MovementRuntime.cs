@@ -32,6 +32,7 @@ internal static class MovementRuntime
     public static void Tick()
     {
         ArenaAirVault.Tick();
+        ArenaBunnyhop.TickOwner();
         SprintAdsPatches.ClearBypassSafety();
 
         if (!ArenaSession.IsActive || !Settings.MovementEnabled.Value || !Singleton<GameWorld>.Instantiated)

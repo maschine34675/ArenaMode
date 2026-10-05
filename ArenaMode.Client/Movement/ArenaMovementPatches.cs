@@ -116,6 +116,17 @@ internal static class ArenaMovementPatches
     /// brackets SpeedLimit interleave permanently; the guard + Priority.Last stay
     /// as defense against any future third bracket.
     /// </summary>
+    internal static float MotionScale(MovementContext context)
+    {
+        var stateName = context.CurrentState != null ? context.CurrentState.Name : EPlayerState.Idle;
+        bool airborne = stateName == EPlayerState.Jump || stateName == EPlayerState.FallDown;
+        bool sprinting = stateName == EPlayerState.Sprint
+            || (airborne && context.PreviousState?.Name == EPlayerState.Sprint);
+        float scale = Settings.ExtraMotionScale.Value
+            * (sprinting ? Settings.SprintSpeedMult.Value : Settings.WalkSpeedMult.Value);
+        return !float.IsNaN(scale) && !float.IsInfinity(scale) && scale > 1f ? scale : 1f;
+    }
+
     private sealed class MotionScalePatch : ModulePatch
     {
         private static MovementContext _limitRestoreContext;
@@ -157,16 +168,7 @@ internal static class ArenaMovementPatches
             // Jump/fall frames inherit the multiplier of the state they launched
             // from so airborne momentum stays continuous (no mid-air accelerate
             // or brake on sprint jumps).
-            var stateName = __instance.CurrentState != null
-                ? __instance.CurrentState.Name
-                : EPlayerState.Idle;
-            var airborne = stateName == EPlayerState.Jump || stateName == EPlayerState.FallDown;
-            var sprinting = stateName == EPlayerState.Sprint
-                || (airborne
-                    && __instance.PreviousState != null
-                    && __instance.PreviousState.Name == EPlayerState.Sprint);
-            var scale = Settings.ExtraMotionScale.Value
-                * (sprinting ? Settings.SprintSpeedMult.Value : Settings.WalkSpeedMult.Value);
+            var scale = MotionScale(__instance);
             if (scale > 1f)
             {
                 motion.x *= scale;
@@ -187,6 +189,8 @@ internal static class ArenaMovementPatches
             }
 
             ArenaSurgicalWalk.LimitMotion(__instance, ref motion, deltaTime);
+
+            touched |= ArenaBunnyhop.CarryNeedsSpeedBracket(__instance);
 
             if (!touched)
                 return;

@@ -148,6 +148,7 @@ namespace ArenaMode.Spectator { public static class ArenaSpectatorService { publ
 namespace ArenaMode.Hud { public static class ArenaInputBlocker { public static bool Blocked; } }
 namespace ArenaMode.Movement
 {
+    internal static class ArenaBunnyhop { internal static void ApplyCarry(EFT.MovementState s, ref UnityEngine.Vector3 m, float dt) { } }
     public static class ArenaAirVault { public static bool Pending; public static bool HasPendingRequest(EFT.Player player) => Pending; }
     public class ArenaSlideController : UnityEngine.Component { public bool IsSliding; }
 }

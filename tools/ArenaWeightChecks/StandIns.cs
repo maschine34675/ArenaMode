@@ -214,6 +214,7 @@ namespace ArenaMode.Movement
         internal static void Restore() => RestoreCount++;
     }
 
+    internal static class ArenaBunnyhop { internal static void TickOwner() { } }
     internal static class ArenaMovementPatches
     {
         internal static void ResetPerRaidState()

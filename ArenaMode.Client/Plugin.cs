@@ -103,6 +103,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotTempo.Enable();
         Movement.ArenaDoubleJump.Enable();
         Movement.ArenaAirControl.Enable();
+        Movement.ArenaBunnyhop.Enable();
         Movement.ArenaHandlingPatches.Enable();
         Movement.ArenaAirVault.Enable();
         Movement.ArenaAirFire.Enable();
@@ -144,6 +145,7 @@ public class Plugin : BaseUnityPlugin
         Hud.ArenaExtractionList.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();
+        Movement.ArenaBunnyhop.Shutdown();
         Movement.ArenaAirControl.Shutdown();
         Movement.ArenaHandlingPatches.Shutdown();
         Movement.ArenaAirVault.Shutdown();

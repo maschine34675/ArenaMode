@@ -9,7 +9,7 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     DoubleJump, AirControl, AirFire, AirVault, Slide, InfiniteStamina,
-    NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers
+    NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Bunnyhop
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -25,6 +25,7 @@ internal sealed class ArenaMutatorSelection
     internal static string Title(ArenaMutator id) => id switch
     {
         ArenaMutator.DoubleJump => "DOUBLE JUMP",
+        ArenaMutator.Bunnyhop => "BUNNYHOP",
         ArenaMutator.AirControl => "AIR CONTROL",
         ArenaMutator.AirFire => "AIRBORNE HIP FIRE",
         ArenaMutator.AirVault => "AIR VAULT",
@@ -42,6 +43,7 @@ internal sealed class ArenaMutatorSelection
     internal static string Description(ArenaMutator id) => id switch
     {
         ArenaMutator.DoubleJump => "One extra jump while airborne.",
+        ArenaMutator.Bunnyhop => "Timed hops retain speed, up to +25%.",
         ArenaMutator.AirControl => "Steer your flight with movement input.",
         ArenaMutator.AirFire => "Fire without aiming while airborne.",
         ArenaMutator.AirVault => "Climb reachable obstacles during a jump.",
@@ -59,6 +61,7 @@ internal sealed class ArenaMutatorSelection
     private ConfigEntry<bool> Entry(ArenaMutator id) => id switch
     {
         ArenaMutator.DoubleJump => Settings.DoubleJumpEnabled,
+        ArenaMutator.Bunnyhop => Settings.BunnyhopEnabled,
         ArenaMutator.AirControl => Settings.AirControlEnabled,
         ArenaMutator.AirFire => Settings.AirHipFireEnabled,
         ArenaMutator.AirVault => Settings.AirVaultEnabled,
@@ -80,7 +83,7 @@ internal sealed class ArenaMutatorSelection
         if (id == ArenaMutator.Killcam)
             return Spectator.KillcamReplayCompat.CanPlay(out string reason) ? null : reason;
         if (Entry(id) == null) return "Setting unavailable.";
-        if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire
+        if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.Bunnyhop || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire
             || id == ArenaMutator.AirVault || id == ArenaMutator.Slide
             || id == ArenaMutator.InfiniteStamina || id == ArenaMutator.NoFallDamage)
             && Settings.MovementEnabled?.Value != true)

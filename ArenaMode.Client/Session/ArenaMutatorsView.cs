@@ -71,8 +71,8 @@ internal sealed class ArenaMutatorsView
                 button.onClick.AddListener(() => Toggle(generation, row));
             }
             _note = Text(_root.transform, typography, "Mutators saved note",
-                "Same settings as F12. Killcam and tracers: mode-specific.\nOther switches apply to all Arena modes.",
-                13f, 20f, 434f, 600f, 30f);
+                "Saved with F12. Killcam/tracers: per mode; other switches: all Arena modes.",
+                13f, 20f, 452f, 600f, 16f);
             Layout();
         }
         catch { Close(); throw; }
@@ -85,12 +85,23 @@ internal sealed class ArenaMutatorsView
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
         _subtitle.rectTransform.sizeDelta = new Vector2(width - 40f, 20f);
-        _note.rectTransform.sizeDelta = new Vector2(width - 40f, 30f);
+        _note.rectTransform.sizeDelta = new Vector2(width - 40f, 16f);
         for (int index = 0; index < _rows.Count; index++)
         {
             var row = _rows[index];
-            int rowsPerColumn = (_rows.Count + 1) / 2;
-            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 68f + (index % rowsPerColumn) * 60f;
+            // Six paired rows plus a compact full-width footer for Bunnyhop.
+            // Keep the accepted map/preview/READY geometry unchanged.
+            if (row.Id == ArenaMutator.Bunnyhop)
+            {
+                Rect((RectTransform)row.Button.transform, 20f, 420f, cell, 28f);
+                Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 28f);
+                Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 28f);
+                Rect((RectTransform)row.Chip.transform, cell - 55f, 4f, 50f, 20f);
+                Rect(row.Description.rectTransform, 40f + cell, 420f, cell, 28f);
+                continue;
+            }
+            int rowsPerColumn = 6;
+            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 68f + (index % rowsPerColumn) * 58f;
             Rect((RectTransform)row.Button.transform, left, top, cell, 28f);
             Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 28f);
             Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 28f);
