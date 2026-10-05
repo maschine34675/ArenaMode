@@ -4,7 +4,7 @@
 
 ## Contract
 
-`Movement / BunnyhopEnabled` defaults off and shares its value with the visible
+`Movement / BunnyhopEnabled` defaults on after user acceptance (2026-10-05) and shares its value with the visible
 `BUNNYHOP` mutator. No automatic hold-to-hop and no additional tuning sliders.
 The existing Jump binding is used (including a release binding); press/release
 again near the landing. A descending jump with a walkable native ground hit

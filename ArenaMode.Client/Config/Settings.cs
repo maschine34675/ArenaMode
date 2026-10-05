@@ -569,7 +569,7 @@ public static class Settings
             1.3f,
             new ConfigDescription("Jump height multiplier.", new AcceptableValueRange<float>(1f, 2f)));
 
-        BunnyhopEnabled = config.Bind("Movement", "BunnyhopEnabled", false,
+        BunnyhopEnabled = config.Bind("Movement", "BunnyhopEnabled", true,
             "Time a jump just before landing to chain hops and retain momentum. " +
             "6% speed gain per hop, capped at 25% above chain entry speed and 12 m/s. " +
             "Near-ground landing input takes priority over Double Jump; hard falls break the chain.");
