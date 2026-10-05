@@ -87,7 +87,10 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     private static bool Ready()
         => Current() && _body.PointOfView == EPointOfView.FirstPerson && !_body.IsInventoryOpened
             && !ArenaInputBlocker.Blocked && !_hands.IsAiming && !_hands.Blindfire && !_hands.InventoryOpened
-            && !_hands.Malfunction && _weapon.MalfState.State == Weapon.EMalfunctionState.None
+            // The controller's Malfunction flag also ends ordinary empty/chamber cycles
+            // (including revolvers) and can remain true in Idle. Only the actual weapon
+            // fault state is authoritative; native operation guards still hide repairs.
+            && _weapon.MalfState.State == Weapon.EMalfunctionState.None
             && !_hands.IsInInteractionStrictCheck()
             && !_hands.IsInReloadOperation() && !_hands.IsInSpawnOperation() && !_hands.IsInRemoveOperation()
             && (_hands.CurrentOperation is Player.FirearmController.Idling
