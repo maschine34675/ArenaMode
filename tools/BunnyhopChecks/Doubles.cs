@@ -122,7 +122,7 @@ namespace EFT
     }
     public class VaultingConfiguration { public float VaultingInputTime = 0.2f; }
     public sealed class HealthController { public bool IsAlive = true; }
-    public sealed class CharacterController { public bool isGrounded; public float height=2, radius=.3f, skinWidth=.02f; }
+    public class CharacterController { public bool isGrounded; public float height=2, radius=.3f, skinWidth=.02f; }
     public sealed class PlayerAnimator
     {
         public bool Jump;
@@ -149,7 +149,7 @@ namespace EFT
         public bool IsInventoryOpened;
         public HealthController HealthController = new();
         public Physical Physical = new();
-        public CharacterController CharacterController = new();
+        public CharacterController CharacterController = new global::SimpleCharacterController();
         public MovementContext MovementContext;
         public MovementState CurrentManagedState;
         public float _vaultingTiming;
@@ -305,3 +305,6 @@ namespace ArenaMode.Pickups
             => ReferenceEquals(player,Owner) ? State.Read(UnityEngine.Time.time) : default;
     }
 }
+
+public class SimpleCharacterController : EFT.CharacterController { public void SingleMove(UnityEngine.Vector3 motion) { } }
+

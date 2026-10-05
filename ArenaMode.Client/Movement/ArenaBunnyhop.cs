@@ -22,9 +22,9 @@ internal static class ArenaBunnyhop
         internal AbstractGame Game;
         internal JumpPlayerState Jump;
         internal Vector3 Velocity, Carry;
-        internal float BaseSpeed, Began, SampleAt, LaunchY, LandedAt = -1f, BufferedAt = -1f, DispatchAt = -1f;
+        internal float BaseSpeed, Began, SampleAt, LaunchY, LandedAt = -1f, BufferedAt = -1f, DispatchAt = -1f, ContactAt = -1f;
         internal MovementState SignalOwner;
-        internal bool LeftGround, HasCarry;
+        internal bool LeftGround, HasCarry, Sampling, SawContact;
         internal int Hops;
     }
 
@@ -50,6 +50,8 @@ internal static class ArenaBunnyhop
                 postfix: Hook(nameof(Tick)));
             Patches.Patch(AccessTools.DeclaredMethod(typeof(MovementContext), nameof(MovementContext.DirectApplyMotion)),
                 prefix: Hook(nameof(BeforeMotion)), postfix: Hook(nameof(AfterMotion)), finalizer: Hook(nameof(MotionFailed)));
+            Patches.Patch(AccessTools.DeclaredMethod(typeof(SimpleCharacterController), nameof(SimpleCharacterController.SingleMove)),
+                postfix: Hook(nameof(AfterSubstep)));
             Settings.BunnyhopEnabled.SettingChanged += Changed;
             Settings.MovementEnabled.SettingChanged += Changed;
             Settings.WalkSpeedMult.SettingChanged += Changed;
@@ -136,6 +138,19 @@ internal static class ArenaBunnyhop
     private static bool Contact(Player player)
         => player.MovementContext.IsGrounded && player.CharacterController.isGrounded;
 
+    private static bool Supported(Player player)
+        => player.MovementContext.IsGrounded && player.MovementContext.GroundHit.hasHit
+            && player.MovementContext.GroundHit.normal.y >= .65f;
+
+    // SimpleCC clears its contact bit at EACH substep. Keep physical contact
+    // only inside our exact player's successful native motion transaction.
+    private static void AfterSubstep(SimpleCharacterController __instance)
+    {
+        var f = _flight;
+        if (f?.Sampling == true && ReferenceEquals(f.Player.CharacterController, __instance)
+            && __instance.isGrounded) f.SawContact = true;
+    }
+
     // Called before DoubleJump observes the same command. Vanilla translation is
     // never suppressed: Jump/JumpLanding are native no-ops; ground Jump still runs.
     internal static bool TryBufferJump(Player player)
@@ -147,7 +162,7 @@ internal static class ArenaBunnyhop
             if (!Owns(f, context) || !ReferenceEquals(f.Player, player) || !f.LeftGround
                 || !player.Physical.CanJump || Time.time - f.SampleAt > .2f) return false;
             var state = player.CurrentManagedState;
-            bool onGround = Contact(player);
+            bool onGround = Contact(player) || (f.LandedAt >= 0f && Supported(player));
             bool landing = f.LandedAt >= 0f && Time.time - f.LandedAt <= GroundWindow;
             bool descending = ReferenceEquals(state, f.Jump) && f.Jump._jumpState == JumpPlayerState.EJumpState.Jump
                 && f.Jump._currentLiftforce.y < -.1f && Time.time - f.Began >= .12f;
@@ -175,9 +190,12 @@ internal static class ArenaBunnyhop
             { Reset(); return; }
             bool descending = state is not JumpPlayerState jump || (jump._jumpState != JumpPlayerState.EJumpState.PushingFromTheGround
                 && jump._currentLiftforce.y <= 0f);
-            if (f.DispatchAt >= 0f && (Time.time - f.DispatchAt > .25f || !Contact(f.Player)))
+            if (f.DispatchAt >= 0f && (Time.time - f.DispatchAt > .25f || !Supported(f.Player)))
             { Reset(); return; }
-            if (!Contact(f.Player)) { if (descending || !__instance.IsGrounded) f.LeftGround = true; return; }
+            if (f.LandedAt >= 0f && !Supported(f.Player)) { Reset(); return; }
+            bool physicalContact = Contact(f.Player) || (f.ContactAt >= 0f && Time.time - f.ContactAt <= .1f && Supported(f.Player));
+            if (f.LandedAt < 0f && !physicalContact)
+            { if (!__instance.IsGrounded) f.LeftGround = true; return; }
             if (!f.LeftGround || !descending) return;
             if (f.LandedAt < 0f)
             {
@@ -292,6 +310,8 @@ internal static class ArenaBunnyhop
         {
             if (!Owns(f, __instance)) { Reset(); return; }
             if (!Finite(deltaTime) || deltaTime <= 0f || deltaTime > .1f) { Reset(); return; }
+            f.Sampling = true;
+            f.SawContact = false;
             __state = new MotionSample { Flight = f, Position = __instance.TransformPosition, Dt = deltaTime };
         }
         catch (Exception ex) { Reset(); Warn(ex); }
@@ -300,10 +320,13 @@ internal static class ArenaBunnyhop
     private static void AfterMotion(MovementContext __instance, bool __runOriginal, MotionSample __state)
     {
         var f = __state.Flight;
+        if (f != null) f.Sampling = false;
         if (f == null || !ReferenceEquals(f, _flight)) return;
         try
         {
             if (!__runOriginal || !Owns(f, __instance)) { Reset(); return; }
+            if (f.SawContact && f.LeftGround && f.Jump._jumpState != JumpPlayerState.EJumpState.PushingFromTheGround
+                && f.Jump._currentLiftforce.y <= 0f) f.ContactAt = Time.time;
             var velocity = (__instance.TransformPosition - __state.Position) / __state.Dt;
             velocity.y = 0f;
             float speed = Planar(velocity);
@@ -324,6 +347,7 @@ internal static class ArenaBunnyhop
     private static float Planar(Vector3 value) => Mathf.Sqrt(value.x * value.x + value.z * value.z);
     private static Exception MotionFailed(Exception __exception, MotionSample __state)
     {
+        if (__state.Flight != null) __state.Flight.Sampling = false;
         if (__exception != null && ReferenceEquals(_flight, __state.Flight)) Reset();
         return __exception;
     }

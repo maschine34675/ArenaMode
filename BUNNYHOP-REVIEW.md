@@ -16,7 +16,13 @@ Initial flight tracking starts only on a native Idle/Move/Sprint-to-Jump entry
 with context groundedness. SimpleCC's last depenetration bit can be false at
 that entry even on a flat floor (observed on GPU-2); seeding alone grants no
 extra jump or carry. A chained hop additionally requires witnessed actual
-controller contact after leaving the ground. The
+controller contact after leaving the ground. SimpleCC resets that bit on each
+substep: an exact-controller SingleMove postfix retains a physical contact pulse
+only within a successful native DirectApplyMotion transaction. The next Tick
+can consume it for at most 100 ms. Once contact is latched, fresh native grounding
+and an upward ground hit are required throughout the pending landing/dispatch;
+the transient depenetration bit is not required again. Losing that support
+immediately cancels the request. Proximity alone cannot create a landing. The
 native landing animation finishes normally: there is no teleport, forced
 animator state, fake grounded flag or extra stamina debit. Wait at most 500 ms
 after contact for Idle/Move/Sprint, then dispatch one `Player.Jump()` and allow

@@ -19,7 +19,7 @@ $faults=@(
     @{Name='DoubleScale';From='f.Carry.x * dt / scale';To='f.Carry.x * dt';Failure='carry compensates scale exactly once'},
     @{Name='Vertical';From='motion.x = f.Carry.x * dt / scale;';To='motion.y = 0; motion.x = f.Carry.x * dt / scale;';Failure='carry preserves vertical motion'},
     @{Name='Expiry';From='f.LandedAt - f.BufferedAt > InputWindow';To='false';Failure='expired prelanding input cannot dispatch'},
-    @{Name='LostContact';From='Time.time - f.DispatchAt > .25f || !Contact(f.Player)';To='Time.time - f.DispatchAt > .25f';Failure='walking off after dispatch releases owned bool'},
+    @{Name='LostContact';From='if (f.LandedAt >= 0f && !Supported(f.Player)) { Reset(); return; }';To='';Failure='lost support before dispatch discards chain'},
     @{Name='HardFall';From='context.TransformPosition.y < _flight.LaunchY - .35f';To='false';Failure='hard landing cancels chain'},
     @{Name='AllFalls';From='context.TransformPosition.y < _flight.LaunchY - .35f';To='true';Failure='ordinary native fall slowdown does not cancel same-floor hop'},
     @{Name='CallbackSignal';From='f.SignalOwner = state; ReleaseSignal(f);';To='ReleaseSignal(f);';Failure='noise callback reset cannot leak native signal'},
