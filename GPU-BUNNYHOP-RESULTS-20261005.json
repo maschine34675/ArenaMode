@@ -1,0 +1,157 @@
+{
+  "SourceCommit": "6356befe49ec42254c0480811b7bbb45d3bab64a",
+  "Instance": "e34bb467c7544d80b606b32c5c0107f6",
+  "ClientSha256": "5674CAF6746E453246B9DB76D773526AD3A1D649E894E8B8404ED118344034FF",
+  "Tests": [
+    {
+      "Case": "final-sprint",
+      "Samples": 407,
+      "InputCommands": 4,
+      "MaxHops": 2.0,
+      "FlightSamples": 20,
+      "MaxY": 1.6,
+      "SourceSha256": "1C6FFCD6D50B05D03AF4D96A45F56253F8495D02B8E9DC00E8717F0199E1B0C9"
+    },
+    {
+      "Case": "final-walk",
+      "Samples": 345,
+      "InputCommands": 8,
+      "MaxHops": 3.0,
+      "FlightSamples": 44,
+      "MaxY": 1.8,
+      "SourceSha256": "3173122AAB36A2D39D421E93313FE7AD90F3A0E722604F7C502AF527ABF3E782"
+    },
+    {
+      "Case": "final-early",
+      "Samples": 461,
+      "InputCommands": 1,
+      "MaxHops": 0.0,
+      "FlightSamples": 5,
+      "MaxY": 2.1,
+      "SourceSha256": "95DF06414BD8498DC9BEDF22DA1FB1FEFA2EA8BFF0DD6DD414D2A93C94286D8C"
+    },
+    {
+      "Case": "final-off",
+      "Samples": 455,
+      "InputCommands": 6,
+      "MaxHops": 0,
+      "FlightSamples": 0,
+      "MaxY": 1.6,
+      "SourceSha256": "387D87A000BE26F83A6E9FA2A2B11E1EE6591544F2A8FF6A9D0805C3A4D532DF"
+    },
+    {
+      "Case": "final-respawn",
+      "Samples": 456,
+      "InputCommands": 1,
+      "MaxHops": 0.0,
+      "FlightSamples": 7,
+      "MaxY": 1.6,
+      "SourceSha256": "0A986324FE096AD0B44E698B30955F4755410AE774901E35FDBF190D716C71D7"
+    },
+    {
+      "Case": "final-respawn-retry",
+      "Samples": 449,
+      "InputCommands": 4,
+      "MaxHops": 0.0,
+      "FlightSamples": 9,
+      "MaxY": 1.8,
+      "SourceSha256": "AE0912DF0F67A631E10E2A62A0A20327A531F5015DC910E2E8E7B3100D36D979"
+    },
+    {
+      "Case": "final-respawn-reverse",
+      "Samples": 442,
+      "InputCommands": 0,
+      "MaxHops": 0.0,
+      "FlightSamples": 3,
+      "MaxY": 0.7,
+      "SourceSha256": "E34EB88595C8369399E694DE7D6A2072B2901EE26281C52B6EA625D371D73AC6"
+    },
+    {
+      "Case": "final-respawn-yard",
+      "Samples": 435,
+      "InputCommands": 7,
+      "MaxHops": 1.0,
+      "FlightSamples": 42,
+      "MaxY": 1.8,
+      "SourceSha256": "8DFB0BF24585B516E1C2079FED41DAAF2130AFE610717647F5046949D9498F51"
+    },
+    {
+      "Case": "final-master-off",
+      "Samples": 454,
+      "InputCommands": 1,
+      "MaxHops": 0,
+      "FlightSamples": 0,
+      "MaxY": 1.4,
+      "SourceSha256": "ABE0293599C7A5342A2373E3BBB5F6E5B9E457B8F14476F0F1CFAB457FC32871"
+    }
+  ],
+  "NativeHopEvents": [
+    {
+      "seq": 3041,
+      "time": "2026-10-05T11:18:00.087Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 1, carry 6.29 m/s, cap 9.01 m/s.",
+      "storedTextTruncated": false
+    },
+    {
+      "seq": 3044,
+      "time": "2026-10-05T11:18:01.174Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 2, carry 6.67 m/s, cap 9.01 m/s.",
+      "storedTextTruncated": false
+    },
+    {
+      "seq": 3089,
+      "time": "2026-10-05T11:18:14.285Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 1, carry 3.65 m/s, cap 5.48 m/s.",
+      "storedTextTruncated": false
+    },
+    {
+      "seq": 3097,
+      "time": "2026-10-05T11:18:19.216Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 1, carry 3.28 m/s, cap 4.56 m/s.",
+      "storedTextTruncated": false
+    },
+    {
+      "seq": 3101,
+      "time": "2026-10-05T11:18:20.743Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 2, carry 3.47 m/s, cap 4.56 m/s.",
+      "storedTextTruncated": false
+    },
+    {
+      "seq": 3106,
+      "time": "2026-10-05T11:18:22.271Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 3, carry 3.68 m/s, cap 4.56 m/s.",
+      "storedTextTruncated": false
+    },
+    {
+      "seq": 3414,
+      "time": "2026-10-05T11:22:26.647Z",
+      "level": "Debug",
+      "source": "maschine-ArenaMode",
+      "text": "Arena bunnyhop: hop 1, carry 4.16 m/s, cap 5.35 m/s.",
+      "storedTextTruncated": false
+    }
+  ],
+  "ErrorFatalCount": 0,
+  "LogCoverage": {
+    "From": 1,
+    "To": 3505,
+    "StoredTextTruncated": 1,
+    "Sha256": "C94CF4D483D239FA4212A0DFB9DE1D22C0D2AFFDE984F712480A7C546E091329"
+  },
+  "ProfileProtectedFieldsEqual": true,
+  "ProfileHealthOnlyTimestampChanged": true,
+  "ConfigExistingValuesUnchanged": true,
+  "BunnyhopDefaultRestored": true
+}

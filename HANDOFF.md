@@ -1,13 +1,29 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-03. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-05. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Solo-Tracer / Surgical Walk (2026-10-03, aktueller Client):** `4ae504a`
+- **Bunnyhop (2026-10-05, aktueller Client):** `93b8ba6` + native Korrekturen
+  `2d3f8f7`, `5a6b90b`, `6356bef`. Neuer Mutator BUNNYHOP, Standard AUS;
+  150-ms-Eingabepuffer, native Landung, +6 % Carry pro Hop bis +25 %/12 m/s.
+  SimpleCC-Kontakt wird über Substeps erhalten und mit DoubleJump geteilt;
+  keine Fake-Grounded-Flags oder erzwungenen Animator-Übergänge. Finaler Client
+  lokal/GPU-2 SHA256 `5674CAF6746E453246B9DB76D773526AD3A1D649E894E8B8404ED118344034FF`.
+  GPU-2 Prozess `e34bb467`: Sprint-Kette 2, Geh-Kette 3 Folgesprünge; OFF,
+  Master-OFF und erneut ein Hop nach Respawn bestätigt. 76 Assertions/13
+  Fehlerkontrollen plus Integrationssuiten, unabhängiger Review und Build grün.
+  Profilkern und bestehende Konfiguration unverändert, Bunnyhop wieder AUS,
+  Spiel/Server beendet. Server/Core/BigBrain unverändert. Bericht und explizite
+  native Grenzen: `GPU-BUNNYHOP-RESULTS-20261005.md`; Vertrag:
+  `BUNNYHOP-REVIEW.md`. Separat offen: Factory-Pickups im finalen Test vom
+  unterirdischen Startanker sämtlich übersprungen; Kill-Hitmarker-PCM-Warnung
+  weiterhin vorhanden. Keine Error/Fatal-Zeilen im finalen Log.
+
+- **Solo-Tracer / Surgical Walk (2026-10-03, Vorgänger):** `4ae504a`
   ergänzt getrennte Tracer-Opt-ins mit Standard AUS für Gun Game und Tactical
   1v5; TDM/PFT behalten Effects/TeamTracers. `1f538d4` erlaubt CMS/Surv12-Gehen
   für den aktuellen lokalen Arena-Spieler, höchstens 1 m/s nach Bewegungsboni.
