@@ -65,6 +65,7 @@ public class Plugin : BaseUnityPlugin
         Combat.CombatPatches.Enable();
         Pickups.ArenaPowerups.Enable();
         Combat.Fire.ArenaFireRuntime.Enable(Config);
+        Combat.Akimbo.ArenaAkimbo.Enable(Config);
         Pickups.ArenaInfiniteAmmo.Enable();
         Pickups.ArenaPickupExaminationPatch.EnablePatch();
         Movement.ArenaLegInjuryPatches.Enable();
@@ -122,6 +123,7 @@ public class Plugin : BaseUnityPlugin
         Spectator.ArenaSpectatorInputPatch.Enable();
         Hud.TacticalBuyPanel.ApplyInputPatch();
         gameObject.AddComponent<ArenaController>();
+        gameObject.AddComponent<Combat.Akimbo.ArenaAkimbo>();
         gameObject.AddComponent<Areas.ArenaAreaCapture>();
         gameObject.AddComponent<Pickups.ArenaPickupCapture>();
         gameObject.AddComponent<Hud.ArenaPanel>();
@@ -141,6 +143,7 @@ public class Plugin : BaseUnityPlugin
         Movement.FastDeployPatches.Restore();
         Pickups.ArenaPickupRuntime.Reset();
         Combat.Fire.ArenaFireRuntime.Reset();
+        Combat.Akimbo.ArenaAkimbo.Reset();
         DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();

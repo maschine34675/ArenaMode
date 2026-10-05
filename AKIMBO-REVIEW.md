@@ -1,0 +1,45 @@
+# Akimbo — PM development prototype
+
+Scope: explicit, default-off `Arena akimbo prototype / Active` request, while
+holding a PM pistol in a live local Arena round. Twenty gameplay seconds, no
+automatic regrant. All Arena modes are admitted solely for this development
+prototype; this does not expand the production pickup allowlist. No pickup,
+new equipment slot or persistent second item is added yet.
+
+The native firearm remains the only hands controller and inventory owner.
+Each successfully emitted ordinary PM bullet may generate one free offhand
+bullet with the same ammunition template and its own detached cartridge ID.
+Native magazine consumption, reload, malfunctions, heat, recoil and audio still
+run once. Two synchronous bullets share one native gunshot report/AI hearing
+event. Bonus ballistics use the native calculator and Arena shot-award scope;
+ordinary armor, hitmarkers, assists, team effects and kill attribution remain
+in the normal damage path. A blocked offhand muzzle suppresses only the bonus.
+
+The view constructs fresh transform/MeshRenderer objects from the held weapon
+hierarchy and shares immutable mesh/material references. No native behaviours,
+pool objects, colliders, weapon controllers or inventory items are cloned.
+Unsupported/skinned geometry fails closed. Native left-arm IK gets a temporary
+camera-left target offset after `Player.IkProcess`; native `IkApply` still solves
+the limb. Support-hand fingers are an explicit visual-prototype limitation.
+No animation assets, permanent bone markers or native controller state are
+replaced. Sprint, reload, vault, inventory, interactions, malfunctions and other
+busy states hide the replica and omit the IK override; the original animation
+has both hands again. ADS is disabled while the timed prototype is active.
+
+Exact body, hands, weapon, health, world, match, raid epoch and round identities
+bind the lifetime. Death, weapon/controller replacement, invalid match ownership,
+expiry, disabling or shutdown retire it. The config request resets to false;
+launch never resumes a saved active request. No ordinary PMC/Scav/Hideout
+modification, bot use or profile/inventory mutation is permitted.
+
+Source seams: `Player.InitiateShot`, `Player.IkProcess`, `Player.VisualPass`,
+`FirearmController.IsAiming`; actual installed-source contract verified in
+`../_decompiled`. The native projectile holds its ammo clone until pooled shot
+cleanup; never reissue after an ambiguous emission failure. No second call to
+`Shot`, `InitiateShot`, `OnMakingShot`, `OnStatisticsShot`, shared audio or shared
+right-hand muzzle effects.
+
+Offline tests exercise the real lifetime/shot-admission state. They do not certify
+Unity rendering, finger placement, animator transitions or native damage.
+Native evidence and final scope limits belong in the dated GPU report/HANDOFF.
+Pickup integration remains gated on a convincing native presentation prototype.
