@@ -34,7 +34,7 @@ static class Program
             ArenaDoubleJump.Enable(); ArenaBunnyhop.Enable();
             Enter(); Air(); Motion(6); Time.time+=.2f; Tick();
         }
-        internal void State(MovementState s) { C.CurrentState=P.CurrentManagedState=s; }
+        internal void State(MovementState s) { C.PreviousState=C.CurrentState; C.CurrentState=P.CurrentManagedState=s; }
         internal void Ground(bool g) { C.IsGrounded=P.CharacterController.isGrounded=g; }
         internal void Air() { Ground(false); J._jumpState=JumpPlayerState.EJumpState.Jump; J._currentLiftforce=new(0,-2,0); Tick(); }
         internal void Tick() { Call("Tick",C); Dj("LandingPatch","Postfix",C); }
@@ -127,6 +127,10 @@ static class Program
         f.C.GroundHit.hasHit=true; f.J._currentLiftforce.y=-2; Time.time+=.2f; f.Motion(6); f.Hop();
         Check(f.P.Physical.Debits==4 && Near(f.J._liftForce.y,8*MathF.Sqrt(2)),"next ground hop restores fresh native boots lift and one debit");
         f=new F(); f.Hop(); Redeploy.Core.Engine.RaidLifecycle.End(); Check(Near(f.Carry().x,.01f),"raid end clears carry");
+        f=new F(); f.State(new MovePlayerState(f.C)); f.C.IsGrounded=true; f.P.CharacterController.isGrounded=false;
+        f.Enter(); Check(typeof(ArenaBunnyhop).GetField("_flight",Flags).GetValue(null)!=null,"native ground takeoff seeds without transient depenetration bit");
+        f.Air(); f.Motion(6); Time.time+=.2f; f.Press(); f.C.IsGrounded=true; f.P.CharacterController.isGrounded=false; f.State(new MovePlayerState(f.C)); f.Tick();
+        Check(f.C.NativeRequests==0,"seed permission cannot substitute for physical re-landing");
         ArenaBunnyhop.Shutdown(); ArenaDoubleJump.Shutdown();
         Console.WriteLine($"ARENA_BUNNYHOP_CHECKS_PASSED ({count} assertions)");
     }

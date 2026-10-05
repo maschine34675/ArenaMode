@@ -216,8 +216,12 @@ internal static class ArenaBunnyhop
             var f = _flight;
             if (__instance.GetType() != typeof(JumpPlayerState) || !Eligible(__instance.MovementContext, out var player))
             { if (ReferenceEquals(f?.Player?.MovementContext, __instance.MovementContext)) Reset(); return; }
-            // Capture while still on real ground, before native Enter spends stamina.
-            if (!Contact(player)) { Reset(); return; }
+            // Native ground Jump has already been admitted. SimpleCC's contact
+            // bit describes its LAST depenetration substep and may be false at
+            // Enter even on a flat floor. Seed from native ground locomotion;
+            // a chain still requires the separately witnessed physical landing.
+            if (!__instance.MovementContext.IsGrounded || !GroundState(__instance.MovementContext.PreviousState as MovementState))
+            { Reset(); return; }
             bool chained = Owns(f, __instance.MovementContext) && f.LeftGround && f.BufferedAt >= 0f
                 && f.LandedAt >= 0f && (f.DispatchAt >= 0f ? Time.time - f.DispatchAt <= .25f
                     : Time.time - f.LandedAt <= TransitionWindow) && f.BaseSpeed >= 1f;

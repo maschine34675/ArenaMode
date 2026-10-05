@@ -159,7 +159,7 @@ namespace EFT
     }
     public class MovementContext
     {
-        public MovementState CurrentState, OverridenState, OverridenControlsState;
+        public MovementState CurrentState, PreviousState, OverridenState, OverridenControlsState;
         public bool CanWalk=true, IsStationaryWeaponInHands, IsAxesIgnored;
         public int BlindFire;
         public object Platform;

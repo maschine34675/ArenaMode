@@ -12,7 +12,11 @@ within 0.45 m and within the next 150 ms may reserve that input. It takes
 precedence over DoubleJump only there; other airborne inputs still DoubleJump.
 A late ground input may join the chain within 120 ms of actual contact.
 
-Both context groundedness and actual controller contact are required. The
+Initial flight tracking starts only on a native Idle/Move/Sprint-to-Jump entry
+with context groundedness. SimpleCC's last depenetration bit can be false at
+that entry even on a flat floor (observed on GPU-2); seeding alone grants no
+extra jump or carry. A chained hop additionally requires witnessed actual
+controller contact after leaving the ground. The
 native landing animation finishes normally: there is no teleport, forced
 animator state, fake grounded flag or extra stamina debit. Wait at most 500 ms
 after contact for Idle/Move/Sprint, then dispatch one `Player.Jump()` and allow
