@@ -7,7 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Bunnyhop (2026-10-05, aktueller Client):** `93b8ba6` + native Korrekturen
+- **Movement-Master im Menü (2026-10-05, aktueller Client):** `f2e5a88`
+  setzt Bunnyhop standardmäßig AN; `d30e3b0` ergänzt FAST MOVEMENT als direkten
+  Schalter für `Movement / Enabled`. AUS deaktiviert alle lokalen Movement-Boni
+  und -Fähigkeiten gemeinsam, ohne Einzelwerte/Multiplikatoren zu ändern;
+  Bot-Movement bleibt unabhängig. Vierzehn Mutatoren, `91a90ef` kürzt nach
+  GPU-Sichtprüfung die Hilfetexte. Client lokal/GPU-2 SHA256
+  `DF5B3A97F044E96CE54E27464A8DB26463CC475B2B2C459010A0BEA5A2EEE9C0`.
+  846 Menü-Assertions, 14 Fehlerkontrollen, Review und isolierter Build grün.
+  Finales GPU-2-Menü (`afffd8bb`) mit 24/24 Identitäten geprüft: OFF/N/A/ON,
+  lesbare Texte, Factory-Preview und freie Navigation. Kurzer Factory-Raid auf
+  `d30e3b0` bestätigt bestehenden Master-Guard; finale Änderung nur Texte.
+  Profilkern/Konfiguration unverändert, Bunnyhop AN, Spiel/Server beendet.
+  Server/Core/BigBrain unverändert. Bericht und explizite Prüfgrenzen:
+  `GPU-MOVEMENT-MASTER-RESULTS-20261005.md`.
+
+- **Bunnyhop (2026-10-05, Vorgänger):** `93b8ba6` + native Korrekturen
   `2d3f8f7`, `5a6b90b`, `6356bef`. Neuer Mutator BUNNYHOP, Standard AUS;
   150-ms-Eingabepuffer, native Landung, +6 % Carry pro Hop bis +25 %/12 m/s.
   SimpleCC-Kontakt wird über Substeps erhalten und mit DoubleJump geteilt;
