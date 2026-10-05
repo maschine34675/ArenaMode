@@ -7,7 +7,30 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Akimbo-PM-Prototyp (2026-10-05, aktueller Client):** `3c16748`, ausdrücklich
+- **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
+  `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12
+  `Combat / AkimboEnabled`, Standard AUS; dauerhaft gespeicherter Schalter,
+  automatisch auf die gehaltene Pistole einschließlich Automatik/Handrevolver.
+  Gleichzeitige Geschosse, gemeinsames Magazin/Reload/Audio/Rückstoß, kostenloses
+  Bonusgeschoss; kein echtes abwechselndes Schießen und kein Pickup. Bindet nach
+  Waffen-/Magazinwechsel und Respawn neu, beendet sich außerhalb einer gültigen
+  lokalen Arena. Echte Waffenstörung sperrt, natives Controller-Flag allein nicht.
+  Grobe linke Stützhand bleibt akzeptierte Grenze. 15 Mutatoren passen sichtbar
+  neben Factory-Thumbnail/Navigation. 2086 Akimbo-/946 Menü-Assertions,
+  11+14 Fehlerkontrollen, unabhängige Reviews und isolierter Build bestanden.
+  GPU-2 prüft Glock 17, automatische Glock 18C, Magazinmodellwechsel, Lifecycle;
+  finalen Revolverleerstand/Reload und gewöhnlichen PMC mit aktiviertem Schalter.
+  Einzelne Tests laufen auf dokumentierten Vorstufen, nicht jede Waffe/Animation
+  ist zertifiziert. Client lokal/GPU-2 SHA256
+  `28947B729CEE2F8DDA5FF61D6F1B97823561C21BAFB81070C25170777563D9E2`.
+  Finale Instanz `4201422c`, 24/24 Identitäten; Server/Core/BigBrain unverändert.
+  Arena-Profilkern vor normalem Kontrollraid unverändert belegt; dessen separate
+  native Kosten danach durch explizite Testfixture-Wiederherstellung zurückgesetzt.
+  Arena-Konfiguration restauriert, Akimbo AUS, Spiel/Server beendet. Final kein
+  Error/Fatal; zwei frühere BotFirstAid-Exit-NRE separat dokumentiert, nicht gelöst.
+  Vertrag `AKIMBO-REVIEW.md`, Details `GPU-AKIMBO-MUTATOR-RESULTS-20261005.md`.
+
+- **Akimbo-PM-Prototyp (2026-10-05, Vorgänger):** `3c16748`, ausdrücklich
   standardmäßig AUS, noch kein Pickup. F12 `Arena akimbo prototype / Active`
   während einer laufenden Arena mit gehaltener PM: 20 Spielsekunden, sichtbare
   Kopie und ein natives Bonusgeschoss pro Schuss; gemeinsamer Abzug/Magazin/
