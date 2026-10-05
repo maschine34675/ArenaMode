@@ -65,6 +65,8 @@ Referenzpixel hoch und endet bei Y=980. Die erste GPU-2-Prüfung zeigte bei
 sind Buttons jetzt 26 Pixel hoch, weiterhin mit derselben Schriftgröße und
 28 Pixel Platz für zweizeilige Beschreibungen. Beschreibungen bleiben sichtbar, kein
 Scrollen oder weiteres Popup. Der zentrale Navigationsbereich bleibt frei.
+Die GPU-Prüfung zeigte abgeschnittene Langtexte; die kurzen Hilfetexte sind
+deshalb auf eine Zeile gekürzt, ohne Schriftgröße oder Kastenposition zu ändern.
 Zeit-/Wetterwahl, Next und Ready bleiben native Controls an ihrem bisherigen Platz.
 Die gemeinsame rechte Spalte skaliert bei geringerer Bildschirmhöhe mit.
 Escape behält die native Navigation zum vorherigen Bildschirm; Close räumt alle

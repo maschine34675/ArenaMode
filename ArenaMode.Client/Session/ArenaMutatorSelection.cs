@@ -43,20 +43,20 @@ internal sealed class ArenaMutatorSelection
 
     internal static string Description(ArenaMutator id) => id switch
     {
-        ArenaMutator.FastMovement => "Master switch for movement speed and abilities.",
+        ArenaMutator.FastMovement => "Movement speed and abilities.",
         ArenaMutator.DoubleJump => "One extra jump while airborne.",
         ArenaMutator.Bunnyhop => "Timed hops retain speed, up to +25%.",
         ArenaMutator.AirControl => "Steer your flight with movement input.",
         ArenaMutator.AirFire => "Fire without aiming while airborne.",
-        ArenaMutator.AirVault => "Climb reachable obstacles during a jump.",
+        ArenaMutator.AirVault => "Climb mid-jump within reach.",
         ArenaMutator.Slide => "Crouch while sprinting to slide.",
-        ArenaMutator.InfiniteStamina => "Keep your stamina while moving and aiming.",
+        ArenaMutator.InfiniteStamina => "Unlimited movement/aiming stamina.",
         ArenaMutator.NoFallDamage => "Land without taking fall damage.",
-        ArenaMutator.Backpack => "Use worn items and reload from backpack magazines.",
-        ArenaMutator.Killcam => "This mode only. Respawn waits for replay; Tactical keeps its rounds.",
-        ArenaMutator.Pickups => "Powerups and weapons on maps/areas with a pickup layout.",
-        ArenaMutator.Tracers => "Color all bullets by side. Off restores native tracers.",
-        ArenaMutator.Lasers => "Team colors for visible lasers. Brightness stays unchanged.",
+        ArenaMutator.Backpack => "Use items and magazines in backpack.",
+        ArenaMutator.Killcam => "This mode: replay before respawn.",
+        ArenaMutator.Pickups => "DM/Team DM, where layouts exist.",
+        ArenaMutator.Tracers => "Side colors; OFF uses native tracers.",
+        ArenaMutator.Lasers => "Team colors; brightness unchanged.",
         _ => string.Empty
     };
 
@@ -90,7 +90,7 @@ internal sealed class ArenaMutatorSelection
             || id == ArenaMutator.AirVault || id == ArenaMutator.Slide
             || id == ArenaMutator.InfiniteStamina || id == ArenaMutator.NoFallDamage)
             && Settings.MovementEnabled?.Value != true)
-            return "Enable FAST MOVEMENT to use this ability.";
+            return "Requires FAST MOVEMENT.";
         if (id == ArenaMutator.Pickups && (_team || (Mode != ArenaModeCatalog.DeathmatchId
             && Mode != ArenaModeCatalog.TeamDeathmatchId)))
             return "Available in Deathmatch and Team DM.";
