@@ -89,6 +89,13 @@ static class Program
         Call("AfterSubstep",new SimpleCharacterController{isGrounded=true});
         f.C.DirectApplyMotion(new(.12f,0,0),.02f); Call("AfterMotion",f.C,true,contactSample[2]);
         f.C.IsGrounded=true; f.Tick(); f.Dispatch(); Check(f.C.NativeRequests==0,"another controller cannot grant contact");
+        f=new F(); f.Press(); Time.time+=.14f; contactSample=[f.C,.02f,null]; Call("BeforeMotion",contactSample);
+        f.P.CharacterController.isGrounded=true; Call("AfterSubstep",f.P.CharacterController);
+        f.P.CharacterController.isGrounded=false; f.C.DirectApplyMotion(new(.12f,0,0),.02f);
+        Call("AfterMotion",f.C,true,contactSample[2]); Time.time+=.03f; f.C.IsGrounded=true;
+        f.Tick(); f.Dispatch(); Check(f.C.NativeRequests==1,"input window uses impact time not delayed observer");
+        f=new F(); f.Press(); f.Ground(true); f.C.GroundHit.hasHit=false; f.State(new MovePlayerState(f.C)); f.Tick();
+        Check(f.C.NativeRequests==0,"first contact also requires supported dispatch");
         f=new F(); f.Press(); f.Land(.2f); f.Dispatch(); Check(f.C.NativeRequests==0,"expired prelanding input cannot dispatch");
         f=new F(); f.Press(); Time.time+=.1f; f.Press(); f.Land(.1f); f.Dispatch(); Check(f.C.NativeRequests==0,"repeated input cannot extend buffer");
         f=new F(); f.Motion(6); f.Land(0); Time.time+=.1f; f.State(new JumpLandingState(f.C)); Check(f.Press(),"fresh ground press may chain"); f.Dispatch(); Check(f.C.NativeRequests==1,"fresh ground press dispatches");
@@ -139,8 +146,22 @@ static class Program
         Check(f.P.Physical.Debits==3 && Near(f.J._liftForce.y,8*MathF.Sqrt(2*.8f)),"chained hop doublejump pays once and does not compound boots");
         input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
         Check(f.P.Physical.Debits==3,"no second doublejump within hop");
+        // Spend that flight's DJ, then land on a physical substep that the last
+        // substep clears. The next native hop must have exactly one fresh DJ.
+        f.C.GroundHit.hasHit=true; f.J._currentLiftforce.y=-2; Time.time+=.2f; f.Motion(6); f.Press();
+        contactSample=[f.C,.02f,null]; Call("BeforeMotion",contactSample);
+        f.P.CharacterController.isGrounded=true; Call("AfterSubstep",f.P.CharacterController);
+        f.P.CharacterController.isGrounded=false; f.C.DirectApplyMotion(new(.12f,0,0),.02f);
+        f.C.IsGrounded=true; Check(!ArenaBunnyhop.HasRecentPhysicalContact(f.C),"uncommitted contact cannot renew credit");
+        Call("AfterMotion",f.C,true,contactSample[2]);
+        Check(ArenaBunnyhop.HasRecentPhysicalContact(f.C),"committed physical pulse is shared");
+        f.Tick(); f.Dispatch(); f.Enter(); f.Air(); f.C.GroundHit.hasHit=false;
+        input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        Check(f.P.Physical.Debits==5,"pulse-only landing renews doublejump for next hop");
+        input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        Check(f.P.Physical.Debits==5,"shared pulse cannot grant repeated doublejump");
         f.C.GroundHit.hasHit=true; f.J._currentLiftforce.y=-2; Time.time+=.2f; f.Motion(6); f.Hop();
-        Check(f.P.Physical.Debits==4 && Near(f.J._liftForce.y,8*MathF.Sqrt(2)),"next ground hop restores fresh native boots lift and one debit");
+        Check(f.P.Physical.Debits==6 && Near(f.J._liftForce.y,8*MathF.Sqrt(2)),"next ground hop restores fresh native boots lift and one debit");
         f=new F(); f.Hop(); Redeploy.Core.Engine.RaidLifecycle.End(); Check(Near(f.Carry().x,.01f),"raid end clears carry");
         f=new F(); f.State(new MovePlayerState(f.C)); f.C.IsGrounded=true; f.P.CharacterController.isGrounded=false;
         f.Enter(); Check(typeof(ArenaBunnyhop).GetField("_flight",Flags).GetValue(null)!=null,"native ground takeoff seeds without transient depenetration bit");

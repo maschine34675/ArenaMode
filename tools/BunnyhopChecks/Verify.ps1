@@ -14,6 +14,8 @@ $r=Run 'Baseline'
 if($r.Code -ne 0 -or !$r.Text.Contains('ARENA_BUNNYHOP_CHECKS_PASSED')) { throw $r.Text }
 Write-Output $r.Text
 $faults=@(
+    @{Name='PulseTime';From='pulse ? f.ContactAt : Time.time';To='Time.time';Failure='input window uses impact time not delayed observer'},
+    @{Name='DispatchSupport';From='!GroundState(state) || !Supported(f.Player)';To='!GroundState(state)';Failure='first contact also requires supported dispatch'},
     @{Name='Proximity';From='player.MovementContext.IsGrounded && player.CharacterController.isGrounded';To='player.MovementContext.IsGrounded';Failure='proximity alone never hops'},
     @{Name='Compounding';From='next.BaseSpeed = f.BaseSpeed;';To='next.BaseSpeed = f.BaseSpeed * Gain;';Failure='chain cap cannot compound beyond base'},
     @{Name='DoubleScale';From='f.Carry.x * dt / scale';To='f.Carry.x * dt';Failure='carry compensates scale exactly once'},

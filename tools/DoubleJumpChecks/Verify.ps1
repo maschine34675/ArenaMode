@@ -64,7 +64,7 @@ try {
     Test-Mutant 'falling-state-excluded' ' || state.GetType() == typeof(FallDown)' '' 'walking off edge receives one deliberate impulse and debit'
     Test-Mutant 'fresh-falling-body-denied' 'SetCredit(new Credit { Player = player, Context = context, World = world, Game = game });' 'SetCredit(new Credit { Player = player, Context = context, World = world, Game = game, Spent = !context.IsGrounded });' 'fresh falling body needs no preceding observed ground jump'
     Test-Mutant 'state-transition-refills-credit' 'credit.StateRevision++;' 'credit.StateRevision++; credit.Spent = false;' 'Jump FallDown transitions cannot replenish airborne credit'
-    Test-Mutant 'physical-ground-contact-removed' '&& credit.Player.CharacterController.isGrounded && landedState' '&& landedState' 'ground proximity ray alone cannot replenish credit'
+    Test-Mutant 'physical-ground-contact-removed' '&& (credit.Player.CharacterController.isGrounded || ArenaBunnyhop.HasRecentPhysicalContact(__instance)) && landedState' '&& landedState' 'ground proximity ray alone cannot replenish credit'
     Test-Mutant 'upward-contact-refills-credit' '&& jump._currentLiftforce.y <= 0f' '' 'upward native controller contact cannot replenish credit'
     Test-Mutant 'genuine-landing-reset-removed' 'if (credit.Airborne && __instance.IsGrounded' 'if (false && credit.Airborne && __instance.IsGrounded' 'genuine landing restores the reused jump credit'
     Test-Mutant 'ground-toggle-always-spent' 'credit.Spent = credit.Airborne || !credit.Context.IsGrounded' 'credit.Spent = true || credit.Airborne || !credit.Context.IsGrounded' 'grounded setting toggle preserves next airborne credit'

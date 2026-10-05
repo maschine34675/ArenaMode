@@ -409,7 +409,7 @@ internal static class ArenaDoubleJump
                 // controller contact and reject the push/upward phase, so a low
                 // jump's transient near-ground signal cannot mint another credit.
                 if (credit.Airborne && __instance.IsGrounded && credit.Player.CharacterController != null
-                    && credit.Player.CharacterController.isGrounded && landedState
+                    && (credit.Player.CharacterController.isGrounded || ArenaBunnyhop.HasRecentPhysicalContact(__instance)) && landedState
                     && !__instance.PlayerAnimatorGetIsVaulting() && !ArenaAirVault.HasPendingRequest(credit.Player))
                 {
                     CancelNativeRequest(credit);

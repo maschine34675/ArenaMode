@@ -23,6 +23,10 @@ can consume it for at most 100 ms. Once contact is latched, fresh native groundi
 and an upward ground hit are required throughout the pending landing/dispatch;
 the transient depenetration bit is not required again. Losing that support
 immediately cancels the request. Proximity alone cannot create a landing. The
+physical timestamp also defines the buffer window, independent of observer delay.
+DoubleJump shares this committed contact witness to renew its single credit;
+upward/pushing states, stale/foreign samples and an unfinished move are excluded.
+The
 native landing animation finishes normally: there is no teleport, forced
 animator state, fake grounded flag or extra stamina debit. Wait at most 500 ms
 after contact for Idle/Move/Sprint, then dispatch one `Player.Jump()` and allow

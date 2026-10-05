@@ -142,6 +142,20 @@ internal static class ArenaBunnyhop
         => player.MovementContext.IsGrounded && player.MovementContext.GroundHit.hasHit
             && player.MovementContext.GroundHit.normal.y >= .65f;
 
+    // Shared with DoubleJump: only committed physical contact, never the
+    // proximity ray alone. A fresh native entry replaces this entire witness.
+    internal static bool HasRecentPhysicalContact(MovementContext context)
+    {
+        var f = _flight;
+        if (f == null || f.Sampling || !f.LeftGround || !Owns(f, context)
+            || f.ContactAt < 0f || Time.time < f.ContactAt || Time.time - f.ContactAt > .1f
+            || !Supported(f.Player)) return false;
+        var state = f.Player.CurrentManagedState;
+        return GroundState(state) || state?.GetType() == typeof(JumpLandingState)
+            || (ReferenceEquals(state, f.Jump) && f.Jump._jumpState != JumpPlayerState.EJumpState.PushingFromTheGround
+                && f.Jump._currentLiftforce.y <= 0f);
+    }
+
     // SimpleCC clears its contact bit at EACH substep. Keep physical contact
     // only inside our exact player's successful native motion transaction.
     private static void AfterSubstep(SimpleCharacterController __instance)
@@ -193,13 +207,14 @@ internal static class ArenaBunnyhop
             if (f.DispatchAt >= 0f && (Time.time - f.DispatchAt > .25f || !Supported(f.Player)))
             { Reset(); return; }
             if (f.LandedAt >= 0f && !Supported(f.Player)) { Reset(); return; }
-            bool physicalContact = Contact(f.Player) || (f.ContactAt >= 0f && Time.time - f.ContactAt <= .1f && Supported(f.Player));
+            bool pulse = HasRecentPhysicalContact(__instance);
+            bool physicalContact = Contact(f.Player) || pulse;
             if (f.LandedAt < 0f && !physicalContact)
             { if (!__instance.IsGrounded) f.LeftGround = true; return; }
             if (!f.LeftGround || !descending) return;
             if (f.LandedAt < 0f)
             {
-                f.LandedAt = Time.time;
+                f.LandedAt = pulse ? f.ContactAt : Time.time;
                 if (f.BufferedAt >= 0f && f.LandedAt - f.BufferedAt > InputWindow) f.BufferedAt = -1f;
             }
             if ((f.DispatchAt < 0f && Time.time - f.LandedAt > TransitionWindow)
@@ -210,7 +225,7 @@ internal static class ArenaBunnyhop
                 if (Time.time - f.DispatchAt > .25f) Reset();
                 return;
             }
-            if (f.BufferedAt < 0f || !GroundState(state) || !f.Player.Physical.CanJump
+            if (f.BufferedAt < 0f || !GroundState(state) || !Supported(f.Player) || !f.Player.Physical.CanJump
                 || __instance.PlayerAnimator.IsJumpSetted()) return;
             f.DispatchAt = Time.time;
             f.SignalOwner = state;
