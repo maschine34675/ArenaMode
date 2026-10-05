@@ -1,10 +1,10 @@
 using ArenaMode.Areas;
+using ArenaMode.Config;
 using ArenaMode.Hud;
 using ArenaMode.Modes;
 using ArenaMode.Respawn;
 using ArenaMode.Session;
 using ArenaMode.Spectator;
-using BepInEx.Configuration;
 using Comfort.Common;
 using EFT;
 using EFT.CameraControl;
@@ -18,11 +18,11 @@ using UnityEngine;
 
 namespace ArenaMode.Combat.Akimbo;
 
-/// <summary>Deliberately opt-in visual/ballistic experiment, not a second native hands controller.</summary>
+/// <summary>Local pistol mutator; the native firearm remains the sole hands/inventory owner.</summary>
 internal sealed class ArenaAkimbo : MonoBehaviour
 {
-    internal static ConfigEntry<bool> Active;
-    private static AkimboLease _lease;
+    private static readonly AkimboBindings Bindings = new();
+    private static AkimboLease _lease => Bindings.Lease;
     private static AkimboView _view;
     private static Player _body;
     private static Player.FirearmController _hands;
@@ -32,19 +32,15 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     private static AccessTools.FieldRef<Player, LimbIK[]> Limbs;
     internal static int BonusShots, BlockedShots;
 
-    internal static void Enable(ConfigFile config)
+    internal static void Enable()
     {
-        Active = config.Bind("Arena akimbo prototype", "Active", false,
-            "Development prototype: activate while holding the PM pistol in a live Arena round for 20 seconds of hipfire-only akimbo. One real magazine/reload; the offhand bonus bullet is free. Replica hides during sprint/reload/interactions. Ends on death, weapon change or round end; automatically returns to false. No pickup yet.");
-        // This is a one-shot request, never a persisted automatic grant on game launch.
-        if (Active.Value) Active.Value = false;
         try
         {
             Limbs = AccessTools.FieldRefAccess<Player, LimbIK[]>("_limbs");
             new PosePatch().Enable(); new VisualPatch().Enable(); new ShotPatch().Enable(); new AimPatch().Enable();
             _available = true;
         }
-        catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena akimbo prototype unavailable: " + ex.GetBaseException().Message); }
+        catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena akimbo unavailable: " + ex.GetBaseException().Message); }
     }
 
     private static bool Context(out Player body, out ArenaMatch match, out GameWorld world)
@@ -72,10 +68,19 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     private static int Round(ArenaMatch match) => match.Mode switch
     { RoundsMode dm => dm.Round.Number, TacticalMode tactical => tactical.RoundNumber, _ => 1 };
 
+    private static AkimboOwner Owner(Player body, ArenaMatch match, GameWorld world)
+    {
+        var hands = body.HandsController as Player.FirearmController;
+        return new AkimboOwner(body, hands, hands?.Item, body.HealthController, world, match,
+            hands?.HandsHierarchy?.GetTransform(ECharacterWeaponBones.Weapon_root), ArenaSession.ArmEpoch, Round(match));
+    }
+    private static bool Supported(Weapon weapon) => weapon != null && AkimboEligibility.Supports(
+        weapon is Pistol || weapon is Revolver, weapon.GetTemplate<WeaponTemplate>().weapClass,
+        weapon.IsFlareGun, weapon.IsGrenadeLauncher);
+
     private static bool Current()
-        => Active?.Value == true && _lease != null && Context(out var body, out var match, out var world)
-            && _lease.Current(body, body.HandsController, (body.HandsController as Player.FirearmController)?.Item,
-                body.HealthController, world, match, ArenaSession.ArmEpoch, Round(match), Time.time, true)
+        => Settings.AkimboEnabled?.Value == true && _lease != null && Context(out var body, out var match, out var world)
+            && _lease.Current(Owner(body, match, world), true)
             && _view?.Matches(_hands) == true;
 
     private static bool Ready()
@@ -93,32 +98,50 @@ internal sealed class ArenaAkimbo : MonoBehaviour
 
     private void Update()
     {
+        AkimboOwner candidate = default;
+        AkimboView pendingView = null;
         try
         {
+            if (Settings.AkimboEnabled?.Value != true)
+            { Reset("disabled"); return; }
+            if (!Context(out var body, out var match, out var world))
+            {
+                Release("outside live round");
+                // Preserve a failed owner through temporary busy/respawn transitions,
+                // but never retain scene bodies after the Arena session has ended.
+                if (!ArenaSession.IsActive) Bindings.Clear();
+                return;
+            }
+            candidate = Owner(body, match, world);
+            if (_lease != null && !_lease.Current(candidate, true)) Release("owner changed");
             if (_lease != null)
             {
-                if (!Current()) { Reset("expired or owner changed"); return; }
+                if (_view?.Matches(_hands) != true) throw new InvalidOperationException("Owned pistol view changed");
                 if (!Ready()) _view.Pose(Vector3.zero, false);
                 return;
             }
-            if (Active?.Value != true) return;
-            if (!Context(out var body, out var match, out var world)
+            if (!Bindings.MayAttach(candidate)
                 || body.HandsController is not Player.FirearmController hands || hands.GetType() != typeof(Player.FirearmController)
-                || hands.Item?.TemplateId != AkimboLease.SupportedPistol || body.PointOfView != EPointOfView.FirstPerson
+                || !Supported(hands.Item) || body.PointOfView != EPointOfView.FirstPerson
                 || hands.IsInReloadOperation() || hands.IsInSpawnOperation() || hands.IsInRemoveOperation()
-                || body.IsSprintEnabled || body.IsInventoryOpened || body.LeftHandController?.IsUsing == true)
-            { Reset("requires the held PM pistol in a live Arena round"); return; }
+                || hands.IsInInteractionStrictCheck() || ArenaInputBlocker.Blocked
+                || body.IsSprintEnabled || body.IsInventoryOpened || body.LeftHandController?.IsUsing == true) return;
             var limbs = Limbs(body);
-            if (limbs == null || limbs.Length < 2 || limbs[0]?.solver == null) { Reset("left arm solver unavailable"); return; }
+            if (limbs == null || limbs.Length < 2 || limbs[0]?.solver == null)
+                throw new InvalidOperationException("Left arm solver unavailable");
+            pendingView = new AkimboView(hands);
+            // Publish only a complete view whose exact native owner is still current.
+            if (!Context(out var currentBody, out var currentMatch, out var currentWorld)
+                || !candidate.Matches(Owner(currentBody, currentMatch, currentWorld)) || Bindings.Attach(candidate) == null)
+                return;
+            _view = pendingView; pendingView = null;
             _body = body; _hands = hands; _weapon = hands.Item;
-            _lease = new AkimboLease(body, hands, _weapon, body.HealthController, world, match,
-                ArenaSession.ArmEpoch, Round(match), Time.time);
-            _view = new AkimboView(hands);
             BonusShots = BlockedShots = 0;
             hands.IsAiming = false;
-            Plugin.ModLogger.LogInfo($"Arena akimbo started: PM, {AkimboLease.Duration:0}s, {_view.RendererCount} owned mesh renderers; one native magazine/reload, free offhand bonus bullet.");
+            Plugin.ModLogger.LogInfo($"Arena akimbo bound: {_weapon.TemplateId}, {_view.RendererCount} owned mesh renderers; simultaneous shots, shared native magazine/reload.");
         }
-        catch (Exception ex) { Fail(ex); }
+        catch (Exception ex) { Fail(ex, candidate); }
+        finally { pendingView?.Dispose(); }
     }
 
     private static Vector3 Offset() => -CameraManager.Instance.Camera.transform.right * .30f;
@@ -154,6 +177,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         if (!sourceValid) return;
         // Recompute the replica from the current pose, not an old frame's muzzle.
         _view.Pose(Offset(), true);
+        _view.UseFireport(hands.CurrentFireport.Original);
         Vector3 origin = _view.Fireport.position;
         int mask = (int)LayersMaskController.HighPolyWithTerrainMask;
         bool clear = Finite(origin) && Finite(shotPosition) && Finite(shotDirection) && shotDirection.sqrMagnitude > .9f
@@ -183,19 +207,26 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     private static bool Finite(Vector3 value) => !(float.IsNaN(value.x) || float.IsInfinity(value.x)
         || float.IsNaN(value.y) || float.IsInfinity(value.y) || float.IsNaN(value.z) || float.IsInfinity(value.z));
 
-    internal static void Reset(string reason = "shutdown")
+    private static void Release(string reason)
     {
-        bool had = _lease != null || Active?.Value == true;
-        _lease?.Retire(); _lease = null;
+        bool had = _lease != null || _view != null;
+        Bindings.Release();
         _view?.Dispose(); _view = null;
         _body = null; _hands = null; _weapon = null; _visualFrame = -10;
-        if (Active?.Value == true) Active.Value = false;
         if (had) Plugin.ModLogger.LogInfo($"Arena akimbo stopped: {reason}; bonus shots={BonusShots}, obstructed={BlockedShots}.");
     }
-    private static void Fail(Exception ex)
+    internal static void Reset(string reason = "shutdown")
     {
-        Plugin.ModLogger.LogWarning("Arena akimbo prototype disabled: " + ex.GetBaseException().Message);
-        Reset("failed closed");
+        Release(reason);
+        Bindings.Clear();
+    }
+    private static void Fail(Exception ex, AkimboOwner candidate = default)
+    {
+        if (!candidate.Valid && _lease != null) candidate = _lease.Owner;
+        if (candidate.Valid) Bindings.Reject(candidate);
+        else _available = false; // Unknown/global failure: one warning, never a per-frame retry loop.
+        Plugin.ModLogger.LogWarning("Arena akimbo suspended for this owner: " + ex.GetBaseException().Message);
+        Release("failed closed"); // Saved mutator preference is never changed by runtime cleanup.
     }
     private void OnDestroy() => Reset();
 

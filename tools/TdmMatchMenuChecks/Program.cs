@@ -203,7 +203,17 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 14, "inline panel has fourteen switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 15, "inline panel has fifteen switches, no backdrop or close buttons");
+Need(!Settings.AkimboEnabled.Value, "akimbo remains an explicit opt-in");
+foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" })
+{
+    view.Synchronize(mode, mode == "tactical");
+    Need(MutatorButton(ArenaMutator.Akimbo).interactable && MutatorStatus(ArenaMutator.Akimbo) == "OFF",
+        "akimbo available across Arena modes " + mode);
+    MutatorButton(ArenaMutator.Akimbo).onClick.Invoke();
+    Need(Settings.AkimboEnabled.Value && MutatorStatus(ArenaMutator.Akimbo) == "ON", "akimbo button persists original config entry");
+    MutatorButton(ArenaMutator.Akimbo).onClick.Invoke();
+}
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
 Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
     && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
@@ -307,6 +317,7 @@ Need(Settings.TeamDeathmatchKillLimit.Value == 25, "retired row cannot modify re
 // Exercise actual config bindings through the visible controls, not a copied policy.
 var preferencePairs = new[] {
     (ArenaMutator.FastMovement, Settings.MovementEnabled),
+    (ArenaMutator.Akimbo, Settings.AkimboEnabled),
     (ArenaMutator.Bunnyhop, Settings.BunnyhopEnabled),
     (ArenaMutator.DoubleJump, Settings.DoubleJumpEnabled),
     (ArenaMutator.AirControl, Settings.AirControlEnabled),
@@ -381,7 +392,8 @@ foreach (var (id, entry) in preferencePairs.Where(p => movementAbilities.Contain
         "movement master gates mutator without changing saved preference: " + id);
 }
 Need(MutatorButton(ArenaMutator.Backpack).interactable && MutatorButton(ArenaMutator.Pickups).interactable
-    && MutatorButton(ArenaMutator.Tracers).interactable, "movement master leaves other mutators usable");
+    && MutatorButton(ArenaMutator.Tracers).interactable && MutatorButton(ArenaMutator.Akimbo).interactable,
+    "movement master leaves other mutators usable");
 MutatorButton(ArenaMutator.FastMovement).onClick.Invoke();
 Need(Settings.MovementEnabled.Value && MutatorStatus(ArenaMutator.FastMovement) == "ON",
     "master can re-enable movement through the same menu control");

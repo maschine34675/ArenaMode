@@ -9,7 +9,7 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
-    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -38,25 +38,27 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Pickups => "PICKUPS",
         ArenaMutator.Tracers => "COLORED TRACERS",
         ArenaMutator.Lasers => "TEAM LASER COLORS",
+        ArenaMutator.Akimbo => "AKIMBO PISTOLS",
         _ => string.Empty
     };
 
     internal static string Description(ArenaMutator id) => id switch
     {
         ArenaMutator.FastMovement => "Movement speed and abilities.",
-        ArenaMutator.DoubleJump => "One extra jump while airborne.",
-        ArenaMutator.Bunnyhop => "Timed hops retain speed, up to +25%.",
-        ArenaMutator.AirControl => "Steer your flight with movement input.",
-        ArenaMutator.AirFire => "Fire without aiming while airborne.",
+        ArenaMutator.DoubleJump => "One extra jump in the air.",
+        ArenaMutator.Bunnyhop => "Timed hops: up to +25% speed.",
+        ArenaMutator.AirControl => "Steer while airborne.",
+        ArenaMutator.AirFire => "Hip fire while airborne.",
         ArenaMutator.AirVault => "Climb mid-jump within reach.",
-        ArenaMutator.Slide => "Crouch while sprinting to slide.",
-        ArenaMutator.InfiniteStamina => "Unlimited movement/aiming stamina.",
+        ArenaMutator.Slide => "Crouch during a sprint.",
+        ArenaMutator.InfiniteStamina => "Unlimited movement/aim stamina.",
         ArenaMutator.NoFallDamage => "Land without taking fall damage.",
-        ArenaMutator.Backpack => "Use items and magazines in backpack.",
-        ArenaMutator.Killcam => "This mode: replay before respawn.",
-        ArenaMutator.Pickups => "DM/Team DM, where layouts exist.",
-        ArenaMutator.Tracers => "Side colors; OFF uses native tracers.",
-        ArenaMutator.Lasers => "Team colors; brightness unchanged.",
+        ArenaMutator.Backpack => "Use backpack items/magazines.",
+        ArenaMutator.Killcam => "Replay before respawn.",
+        ArenaMutator.Pickups => "DM/Team DM with pickup layouts.",
+        ArenaMutator.Tracers => "Side colors for every bullet.",
+        ArenaMutator.Lasers => "Team colors; same brightness.",
+        ArenaMutator.Akimbo => "Dual pistols; shared magazine.",
         _ => string.Empty
     };
 
@@ -75,6 +77,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Pickups => ArenaPickupSettings.Enabled,
         ArenaMutator.Tracers => Settings.TracerEntry(Mode, _team),
         ArenaMutator.Lasers => Settings.TeamLasers,
+        ArenaMutator.Akimbo => Settings.AkimboEnabled,
         _ => null
     };
 

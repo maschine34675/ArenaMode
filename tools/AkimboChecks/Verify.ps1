@@ -5,8 +5,13 @@ New-Item -ItemType Directory -Path $evidence -Force | Out-Null
 $project = Join-Path $PSScriptRoot 'AkimboChecks.csproj'
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Combat\Akimbo\AkimboLease.cs'))
 $faults = @(
-  @('body', 'ReferenceEquals(body, _body)', 'true', 'replacement identity rejected 0'),
-  @('expiry', 'now < _until', 'now <= _until', 'deadline exclusive'),
+  @('body', 'ReferenceEquals(_body, other._body)', 'true', 'replacement identity rejected 0'),
+  @('model', 'ReferenceEquals(_model, other._model)', 'true', 'replacement identity rejected 6'),
+  @('failure-retry', '&& !_rejected.Matches(owner)', '', 'failed owner is not retried each frame'),
+  @('duplicate-binding', 'Lease == null && owner.Valid', 'owner.Valid', 'stable owner never builds a second binding'),
+  @('revolver-class', '&& string.Equals(weaponClass, "pistol", StringComparison.Ordinal)', '', 'non-handgun revolver category excluded: shotgun'),
+  @('flare', '&& !flare', '', 'flare pistol excluded'),
+  @('launcher', '&& !launcher', '', 'launcher excluded'),
   @('original', '|| !runOriginal', '', 'all shot guards required 29'),
   @('busy', '|| !ready', '', 'all shot guards required 27'),
   @('nested', '|| _emitting', '', 'nested bonus rejected')

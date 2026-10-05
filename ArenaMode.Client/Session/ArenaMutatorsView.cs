@@ -89,15 +89,15 @@ internal sealed class ArenaMutatorsView
         for (int index = 0; index < _rows.Count; index++)
         {
             var row = _rows[index];
-            // Seven paired rows include the movement master and all abilities.
-            // Keep the accepted map/preview/READY geometry unchanged.
-            int rowsPerColumn = 7;
-            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 68f + (index % rowsPerColumn) * 54f;
+            // Fit the extra pistol mutator without moving the preview or READY.
+            int rowsPerColumn = (_rows.Count + 1) / 2;
+            float pitch = (448f - 68f) / rowsPerColumn;
+            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 68f + (index % rowsPerColumn) * pitch;
             Rect((RectTransform)row.Button.transform, left, top, cell, 26f);
             Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 26f);
             Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 26f);
             Rect((RectTransform)row.Chip.transform, cell - 55f, 3f, 50f, 20f);
-            Rect(row.Description.rectTransform, left + 8f, top + 26f, cell - 16f, 28f);
+            Rect(row.Description.rectTransform, left + 8f, top + 26f, cell - 16f, pitch - 26f);
         }
     }
 

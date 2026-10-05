@@ -65,6 +65,7 @@ public static class Settings
     public static ConfigEntry<bool> InstantSearch { get; private set; }
     public static ConfigEntry<bool> AutoQuickSlots { get; private set; }
     public static ConfigEntry<bool> UseItemsAnywhere { get; private set; }
+    public static ConfigEntry<bool> AkimboEnabled { get; private set; }
     public static ConfigEntry<bool> EmptySecureContainer { get; private set; }
     public static ConfigEntry<bool> BotLoadBoost { get; private set; }
     public static ConfigEntry<float> BotLoadBoostBudget { get; private set; }
@@ -573,6 +574,12 @@ public static class Settings
             "Time a jump just before landing to chain hops and retain momentum. " +
             "6% speed gain per hop, capped at 25% above chain entry speed and 12 m/s. " +
             "Near-ground landing input takes priority over Double Jump; hard falls break the chain.");
+
+        AkimboEnabled = config.Bind("Combat", "AkimboEnabled", false,
+            "Automatically clone the held pistol in Arena, including automatic pistols and handgun revolvers. " +
+            "Both fire simultaneously from one trigger; one native magazine/reload, free bonus ammunition. " +
+            "Hipfire only. Replica hides during reload/sprint/interactions. Flares and launchers are excluded. " +
+            "Applies to the local player only; resumes on pistol draw and respawn. Experimental hand pose.");
 
         DoubleJumpEnabled = config.Bind(
             "Movement",

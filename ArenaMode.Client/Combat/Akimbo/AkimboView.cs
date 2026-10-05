@@ -11,6 +11,7 @@ internal sealed class AkimboView : IDisposable
 {
     private readonly List<(Transform Source, Transform Copy)> _nodes = new();
     private readonly List<(MeshRenderer Source, MeshRenderer Copy)> _renderers = new();
+    private readonly Dictionary<Transform, Transform> _copies = new();
     private readonly Transform _source;
     private GameObject _root, _flash;
     private Material _flashMaterial;
@@ -25,7 +26,7 @@ internal sealed class AkimboView : IDisposable
         if (_source == null || firearm.CurrentFireport?.Original == null) throw new InvalidOperationException("Weapon hierarchy missing");
         try
         {
-            _root = new GameObject("Arena Akimbo PM replica");
+            _root = new GameObject("Arena Akimbo pistol replica");
             _root.SetActive(false);
             Clone(_source, _root.transform, firearm.CurrentFireport.Original);
             if (_renderers.Count == 0 || Fireport == null) throw new InvalidOperationException("No supported pistol meshes/fireport");
@@ -51,10 +52,11 @@ internal sealed class AkimboView : IDisposable
     {
         if (_nodes.Count >= 512) throw new InvalidOperationException("Pistol hierarchy too large");
         _nodes.Add((source, target));
+        _copies.Add(source, target);
         target.gameObject.layer = source.gameObject.layer;
         if (ReferenceEquals(source, fireport)) Fireport = target;
         if (source.GetComponent<SkinnedMeshRenderer>() != null)
-            throw new InvalidOperationException("Skinned weapon geometry is outside the initial PM prototype");
+            throw new InvalidOperationException("Unsupported skinned pistol geometry");
         var original = source.GetComponent<MeshRenderer>();
         var filter = source.GetComponent<MeshFilter>();
         if (original != null && filter?.sharedMesh != null)
@@ -80,6 +82,15 @@ internal sealed class AkimboView : IDisposable
     internal bool Matches(Player.FirearmController firearm)
         => _root != null && _source != null && Fireport != null
             && ReferenceEquals(_source, firearm.HandsHierarchy?.GetTransform(ECharacterWeaponBones.Weapon_root));
+
+    internal void UseFireport(Transform source)
+    {
+        if (source == null || !_copies.TryGetValue(source, out var copy) || copy == null)
+            throw new InvalidOperationException("Pistol muzzle is outside the owned model");
+        Fireport = copy;
+        _flash.transform.SetParent(Fireport, false);
+        _flash.transform.localPosition = Vector3.zero;
+    }
 
     internal void Pose(Vector3 offset, bool visible)
     {
@@ -110,6 +121,6 @@ internal sealed class AkimboView : IDisposable
         if (_root != null) { _root.SetActive(false); UnityEngine.Object.Destroy(_root); }
         if (_flashMaterial != null) UnityEngine.Object.Destroy(_flashMaterial);
         _root = _flash = null; _flashMaterial = null; Fireport = null;
-        _nodes.Clear(); _renderers.Clear();
+        _nodes.Clear(); _renderers.Clear(); _copies.Clear();
     }
 }
