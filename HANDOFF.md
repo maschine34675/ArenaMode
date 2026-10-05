@@ -7,7 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Movement-Master im Menü (2026-10-05, aktueller Client):** `f2e5a88`
+- **Akimbo-PM-Prototyp (2026-10-05, aktueller Client):** `3c16748`, ausdrücklich
+  standardmäßig AUS, noch kein Pickup. F12 `Arena akimbo prototype / Active`
+  während einer laufenden Arena mit gehaltener PM: 20 Spielsekunden, sichtbare
+  Kopie und ein natives Bonusgeschoss pro Schuss; gemeinsamer Abzug/Magazin/
+  Reload, Bonusmunition kostenlos, ADS gesperrt. Kopie pausiert bei Interaktionen;
+  Tod, Waffenwechsel, Runden-/Raidende oder AUS räumen auf. Keine zweite native
+  HandsController-Instanz oder persistente Waffe. Client lokal/GPU-2 SHA256
+  `656FBCEA0B75E88A7889359F223CD6672E28C594836609F3B33F97DD2E4BD6A7`.
+  66 Assertions, fünf negative Kontrollen, isolierter Build und unabhängiges
+  Review bestanden. GPU-2 `5e8928ac` bestätigt Darstellung, Bonus-Emission,
+  Reload/Inventar/Sprint/ADS und Cleanup einschließlich Respawn. Linke Finger
+  bleiben sichtbar eine grobe Stützhandpose; Zusatzschaden nicht separat vom
+  Originaltreffer isoliert, kein Anspruch auf fertiges Dual-Wield. Profilkern
+  unverändert, Testkonfiguration restauriert, Spiel/Server beendet. Server/Core/
+  BigBrain unverändert. Vor Pickup/weiteren Waffen erst PM-Griff und gewünschtes
+  Schuss-/Munitionsverhalten ausarbeiten. Vertrag `AKIMBO-REVIEW.md`, Abnahme und
+  explizite Grenzen `GPU-AKIMBO-RESULTS-20261005.md`.
+
+- **Movement-Master im Menü (2026-10-05, Vorgänger):** `f2e5a88`
   setzt Bunnyhop standardmäßig AN; `d30e3b0` ergänzt FAST MOVEMENT als direkten
   Schalter für `Movement / Enabled`. AUS deaktiviert alle lokalen Movement-Boni
   und -Fähigkeiten gemeinsam, ohne Einzelwerte/Multiplikatoren zu ändern;

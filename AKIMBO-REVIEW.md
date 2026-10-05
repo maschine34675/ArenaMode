@@ -43,3 +43,12 @@ Offline tests exercise the real lifetime/shot-admission state. They do not certi
 Unity rendering, finger placement, animator transitions or native damage.
 Native evidence and final scope limits belong in the dated GPU report/HANDOFF.
 Pickup integration remains gated on a convincing native presentation prototype.
+
+Native first-stage result (2026-10-05): `3c16748` has passed a bounded PM test
+on GPU-2, including two visible pistols, bonus projectile emission, reload,
+inventory, sprint, ADS suppression and lifetime cleanup. This accepts the rough
+presentation experiment only: the left support-hand fingers still do not form a
+correct firing grip, two bullets share one magazine/audio/recoil cycle, and no
+independent offhand reload exists. See `GPU-AKIMBO-RESULTS-20261005.md` for evidence
+and untested cases. Next work should calibrate a PM-specific left grip and choose
+the final trigger/ammunition behaviour before expanding to other guns or pickups.
