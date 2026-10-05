@@ -29,13 +29,15 @@ replaced. Sprint, reload, vault, inventory, interactions, malfunctions and other
 busy states hide the replica and omit the IK override; the original animation
 has both hands again. ADS is disabled while a valid Akimbo binding is active.
 
-Exact body, hands, weapon, weapon-model root, health, world, match, raid epoch
+Exact body, hands, weapon, current magazine (including absence), weapon-model root, health, world, match, raid epoch
 and round identities bind each lifetime. Death, weapon/controller replacement,
 invalid match ownership, disabling or shutdown retire it. A new eligible owner
 can bind automatically. A failed owner is quarantined across temporary context
 gaps; it is retried only after owner replacement or explicit OFF→ON. Partial
 views are disposed before publication. Ordinary busy animation states hide the
-existing view instead of rebuilding it. The current native fireport is remapped
+existing view instead of rebuilding it. A changed magazine retires the old view;
+rebinding waits for native reload completion and copies the replacement model.
+The current native fireport is remapped
 to its owned mesh copy before emission. No ordinary PMC/Scav/Hideout
 modification, bot use or profile/inventory mutation is permitted.
 

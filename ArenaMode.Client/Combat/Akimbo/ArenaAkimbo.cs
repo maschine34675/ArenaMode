@@ -72,7 +72,8 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     {
         var hands = body.HandsController as Player.FirearmController;
         return new AkimboOwner(body, hands, hands?.Item, body.HealthController, world, match,
-            hands?.HandsHierarchy?.GetTransform(ECharacterWeaponBones.Weapon_root), ArenaSession.ArmEpoch, Round(match));
+            hands?.HandsHierarchy?.GetTransform(ECharacterWeaponBones.Weapon_root), hands?.Item?.GetCurrentMagazine(),
+            ArenaSession.ArmEpoch, Round(match));
     }
     private static bool Supported(Weapon weapon) => weapon != null && AkimboEligibility.Supports(
         weapon is Pistol || weapon is Revolver, weapon.GetTemplate<WeaponTemplate>().weapClass,

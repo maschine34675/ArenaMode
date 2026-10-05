@@ -7,6 +7,7 @@ $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Combat\Akimb
 $faults = @(
   @('body', 'ReferenceEquals(_body, other._body)', 'true', 'replacement identity rejected 0'),
   @('model', 'ReferenceEquals(_model, other._model)', 'true', 'replacement identity rejected 6'),
+  @('magazine', 'ReferenceEquals(_magazine, other._magazine)', 'true', 'replacement identity rejected 7'),
   @('failure-retry', '&& !_rejected.Matches(owner)', '', 'failed owner is not retried each frame'),
   @('duplicate-binding', 'Lease == null && owner.Valid', 'owner.Valid', 'stable owner never builds a second binding'),
   @('revolver-class', '&& string.Equals(weaponClass, "pistol", StringComparison.Ordinal)', '', 'non-handgun revolver category excluded: shotgun'),

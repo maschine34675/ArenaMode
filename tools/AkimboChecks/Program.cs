@@ -2,11 +2,11 @@ using ArenaMode.Combat.Akimbo;
 
 int checks = 0;
 void Need(bool value, string reason) { checks++; if (!value) throw new Exception(reason); }
-var ids = Enumerable.Range(0, 7).Select(_ => new object()).ToArray();
+var ids = Enumerable.Range(0, 8).Select(_ => new object()).ToArray();
 AkimboOwner Owner(object[] identities = null, int epoch = 7, int round = 2)
 {
     var v = identities ?? ids;
-    return new(v[0], v[1], v[2], v[3], v[4], v[5], v[6], epoch, round);
+    return new(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], epoch, round);
 }
 AkimboLease New() => new(Owner());
 bool Current(AkimboLease lease, object[] identities = null, int epoch = 7, int round = 2, bool live = true)
@@ -24,6 +24,10 @@ Need(!Current(state, live: false), "ordinary raid or invalid live scope rejected
 Need(!Current(state, epoch: 8), "new raid rejected");
 Need(!Current(state, round: 3), "new round rejected");
 Need(!new AkimboLease(default).Current(default, true), "invalid owner cannot become current");
+var withoutMagazine = ids.ToArray(); withoutMagazine[7] = null;
+var emptyGun = new AkimboLease(Owner(withoutMagazine));
+Need(Current(emptyGun, withoutMagazine), "a chambered pistol without a magazine remains usable");
+Need(!Current(emptyGun), "inserting a magazine rebuilds an empty-gun view");
 for (int mask = 0; mask < 32; mask++)
 {
     var lease = New();

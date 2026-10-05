@@ -5,13 +5,13 @@ namespace ArenaMode.Combat.Akimbo;
 /// <summary>Exact physical ownership; a profile ID is never a replacement-body identity.</summary>
 internal readonly struct AkimboOwner
 {
-    private readonly object _body, _hands, _weapon, _health, _world, _match, _model;
+    private readonly object _body, _hands, _weapon, _health, _world, _match, _model, _magazine;
     private readonly int _epoch, _round;
     internal AkimboOwner(object body, object hands, object weapon, object health, object world, object match,
-        object model, int epoch, int round)
+        object model, object magazine, int epoch, int round)
     {
         _body = body; _hands = hands; _weapon = weapon; _health = health; _world = world; _match = match;
-        _model = model; _epoch = epoch; _round = round;
+        _model = model; _magazine = magazine; _epoch = epoch; _round = round;
     }
     internal bool Valid => _body != null && _hands != null && _weapon != null && _health != null
         && _world != null && _match != null && _model != null;
@@ -19,7 +19,8 @@ internal readonly struct AkimboOwner
         && ReferenceEquals(_body, other._body) && ReferenceEquals(_hands, other._hands)
         && ReferenceEquals(_weapon, other._weapon) && ReferenceEquals(_health, other._health)
         && ReferenceEquals(_world, other._world) && ReferenceEquals(_match, other._match)
-        && ReferenceEquals(_model, other._model) && _epoch == other._epoch && _round == other._round;
+        && ReferenceEquals(_model, other._model) && ReferenceEquals(_magazine, other._magazine)
+        && _epoch == other._epoch && _round == other._round;
 }
 
 internal static class AkimboEligibility
