@@ -203,7 +203,7 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 13, "inline panel has thirteen switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 14, "inline panel has fourteen switches, no backdrop or close buttons");
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
 Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
     && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
@@ -306,6 +306,7 @@ Need(Settings.GameMode.Value == "teamdeathmatch", "retired mode row cannot modif
 Need(Settings.TeamDeathmatchKillLimit.Value == 25, "retired row cannot modify reopened panel");
 // Exercise actual config bindings through the visible controls, not a copied policy.
 var preferencePairs = new[] {
+    (ArenaMutator.FastMovement, Settings.MovementEnabled),
     (ArenaMutator.Bunnyhop, Settings.BunnyhopEnabled),
     (ArenaMutator.DoubleJump, Settings.DoubleJumpEnabled),
     (ArenaMutator.AirControl, Settings.AirControlEnabled),
@@ -362,17 +363,35 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
     }
 }
 view.Synchronize("teamdeathmatch", false);
-Settings.MovementEnabled.Value = false;
-view.Synchronize("teamdeathmatch", false);
-foreach (var (id, entry) in preferencePairs.Take(7))
+var movementAbilities = new[] { ArenaMutator.DoubleJump, ArenaMutator.Bunnyhop, ArenaMutator.AirControl,
+    ArenaMutator.AirFire, ArenaMutator.AirVault, ArenaMutator.Slide, ArenaMutator.InfiniteStamina, ArenaMutator.NoFallDamage };
+var savedPreferences = preferencePairs.Skip(1).Select(p => p.Item2.Value).ToArray();
+var savedWalk = Settings.WalkSpeedMult.Value;
+var savedSprint = Settings.SprintSpeedMult.Value;
+var savedJump = Settings.JumpHeightMult.Value;
+var savedBots = Settings.BotMovementEnabled.Value;
+MutatorButton(ArenaMutator.FastMovement).onClick.Invoke();
+Need(!Settings.MovementEnabled.Value && MutatorStatus(ArenaMutator.FastMovement) == "OFF"
+    && MutatorButton(ArenaMutator.FastMovement).interactable, "master stays usable after switching movement off");
+foreach (var (id, entry) in preferencePairs.Where(p => movementAbilities.Contains(p.Item1)))
 {
     bool before = entry.Value;
     MutatorButton(id).onClick.Invoke();
-    Need(!MutatorButton(id).interactable && entry.Value == before,
+    Need(!MutatorButton(id).interactable && MutatorStatus(id) == "N/A" && entry.Value == before,
         "movement master gates mutator without changing saved preference: " + id);
 }
-Settings.MovementEnabled.Value = true;
-view.Synchronize("teamdeathmatch", false);
+Need(MutatorButton(ArenaMutator.Backpack).interactable && MutatorButton(ArenaMutator.Pickups).interactable
+    && MutatorButton(ArenaMutator.Tracers).interactable, "movement master leaves other mutators usable");
+MutatorButton(ArenaMutator.FastMovement).onClick.Invoke();
+Need(Settings.MovementEnabled.Value && MutatorStatus(ArenaMutator.FastMovement) == "ON",
+    "master can re-enable movement through the same menu control");
+Need(savedPreferences.SequenceEqual(preferencePairs.Skip(1).Select(p => p.Item2.Value))
+    && savedWalk == Settings.WalkSpeedMult.Value && savedSprint == Settings.SprintSpeedMult.Value
+    && savedJump == Settings.JumpHeightMult.Value && savedBots == Settings.BotMovementEnabled.Value,
+    "master roundtrip preserves individual preferences, movement multipliers and bot setting");
+foreach (var (id, entry) in preferencePairs.Where(p => movementAbilities.Contains(p.Item1)))
+    Need(MutatorButton(id).interactable && MutatorStatus(id) == (entry.Value ? "ON" : "OFF"),
+        "master re-enable restores saved ability display: " + id);
 foreach (bool armed in new[] { false, true })
 {
     ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
@@ -436,11 +455,19 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
     {
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
-        bool separate = id == ArenaMutator.Bunnyhop
-            ? detail.anchoredPosition.x >= buttonRect.anchoredPosition.x + buttonRect.sizeDelta.x
-            : -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
+        bool separate = -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
         Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 448f,
             "all mutator descriptions fit outside their button and above the footer");
+        foreach (ArenaMutator other in Enum.GetValues(typeof(ArenaMutator)))
+        {
+            if (other == id) continue;
+            var otherRect = (RectTransform)MutatorButton(other).transform;
+            bool horizontalGap = detail.anchoredPosition.x >= otherRect.anchoredPosition.x + otherRect.sizeDelta.x
+                || detail.anchoredPosition.x + detail.sizeDelta.x <= otherRect.anchoredPosition.x;
+            bool verticalGap = -detail.anchoredPosition.y >= -otherRect.anchoredPosition.y + otherRect.sizeDelta.y
+                || -detail.anchoredPosition.y + detail.sizeDelta.y <= -otherRect.anchoredPosition.y;
+            Need(horizontalGap || verticalGap, "mutator descriptions never overlap another button");
+        }
     }
 }
 view.Close();

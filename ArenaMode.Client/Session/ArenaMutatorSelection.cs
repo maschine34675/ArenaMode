@@ -8,8 +8,8 @@ namespace ArenaMode.Session;
 
 internal enum ArenaMutator
 {
-    DoubleJump, AirControl, AirFire, AirVault, Slide, InfiniteStamina,
-    NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Bunnyhop
+    FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -24,6 +24,7 @@ internal sealed class ArenaMutatorSelection
 
     internal static string Title(ArenaMutator id) => id switch
     {
+        ArenaMutator.FastMovement => "FAST MOVEMENT",
         ArenaMutator.DoubleJump => "DOUBLE JUMP",
         ArenaMutator.Bunnyhop => "BUNNYHOP",
         ArenaMutator.AirControl => "AIR CONTROL",
@@ -42,6 +43,7 @@ internal sealed class ArenaMutatorSelection
 
     internal static string Description(ArenaMutator id) => id switch
     {
+        ArenaMutator.FastMovement => "Master switch for movement speed and abilities.",
         ArenaMutator.DoubleJump => "One extra jump while airborne.",
         ArenaMutator.Bunnyhop => "Timed hops retain speed, up to +25%.",
         ArenaMutator.AirControl => "Steer your flight with movement input.",
@@ -60,6 +62,7 @@ internal sealed class ArenaMutatorSelection
 
     private ConfigEntry<bool> Entry(ArenaMutator id) => id switch
     {
+        ArenaMutator.FastMovement => Settings.MovementEnabled,
         ArenaMutator.DoubleJump => Settings.DoubleJumpEnabled,
         ArenaMutator.Bunnyhop => Settings.BunnyhopEnabled,
         ArenaMutator.AirControl => Settings.AirControlEnabled,
@@ -87,7 +90,7 @@ internal sealed class ArenaMutatorSelection
             || id == ArenaMutator.AirVault || id == ArenaMutator.Slide
             || id == ArenaMutator.InfiniteStamina || id == ArenaMutator.NoFallDamage)
             && Settings.MovementEnabled?.Value != true)
-            return "Requires Arena movement (F12 > Movement).";
+            return "Enable FAST MOVEMENT to use this ability.";
         if (id == ArenaMutator.Pickups && (_team || (Mode != ArenaModeCatalog.DeathmatchId
             && Mode != ArenaModeCatalog.TeamDeathmatchId)))
             return "Available in Deathmatch and Team DM.";
