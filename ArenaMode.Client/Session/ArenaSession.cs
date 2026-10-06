@@ -44,6 +44,33 @@ public static class ArenaSession
     /// </summary>
     internal static string GunGameLadderSelection { get; private set; }
 
+    /// <summary>
+    /// Zombie's own-gear option (item 4, 2026-10-06 follow-up) as it stood at
+    /// arming — frozen the same moment and for the same reason
+    /// GunGameLadderSelection is: the loading-screen kit preload and the
+    /// raid-start kit swap both decide what to do before IsActive can latch,
+    /// so an F12 edit made while the map loads must not desync the preload
+    /// from what the live raid actually does. False outside an arena raid.
+    /// </summary>
+    internal static bool ZombieOwnGearSelection { get; private set; }
+
+    /// <summary>
+    /// True when ZombieOwnGearSelection applies to the raid currently ARMING
+    /// (ArmedMode) — used by the loading-screen kit-preload skip, which runs
+    /// before IsActive/ActiveMode can have latched (see AGENTS.md's loading-
+    /// time exception list).
+    /// </summary>
+    internal static bool ZombieOwnGearArmed
+        => Modes.ZombieOwnGearGate.IsSelectedFor(ArmedMode, ZombieOwnGearSelection);
+
+    /// <summary>
+    /// True when ZombieOwnGearSelection applies to the ACTIVE raid
+    /// (ActiveMode) — used by every live-raid check (secure container,
+    /// respawn, the wave-intermission refill).
+    /// </summary>
+    internal static bool ZombieOwnGearActive
+        => Modes.ZombieOwnGearGate.IsSelectedFor(ActiveMode, ZombieOwnGearSelection);
+
     internal static Modes.DeathmatchOptions DeathmatchSelection { get; private set; }
 
     /// <summary>Exact server-acknowledged total, including the human while dead.</summary>
@@ -126,6 +153,7 @@ public static class ArenaSession
         ArmedMap = map;
         ArmedMode = mode;
         GunGameLadderSelection = Settings.GunGameLadder.Value;
+        ZombieOwnGearSelection = Settings.ZombieOwnGear.Value;
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
     }
 
@@ -138,6 +166,7 @@ public static class ArenaSession
         ArmedForNextRaid = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
+        ZombieOwnGearSelection = false;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
         ClearParticipants();
@@ -211,6 +240,7 @@ public static class ArenaSession
             ArmedMap = null;
             ArmedMode = null;
             GunGameLadderSelection = null;
+            ZombieOwnGearSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -241,6 +271,7 @@ public static class ArenaSession
         {
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
+            ZombieOwnGearSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -255,6 +286,7 @@ public static class ArenaSession
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
+            ZombieOwnGearSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -273,6 +305,7 @@ public static class ArenaSession
         {
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
+            ZombieOwnGearSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -333,12 +366,39 @@ public static class ArenaSession
         // Replacing that body would strand all four followers on a dead leader,
         // so protected 5v5 keeps that exact PMC body for the opening round and
         // preserves the entry loadout for guarded between-round replacement.
-        // Solo Arena retains the existing raid-start swap verbatim.
+        // Solo Arena retains the existing raid-start swap verbatim. Zombie's
+        // own-gear option (item 4, 2026-10-06 follow-up) is the same idea for
+        // solo play: it protects the player's real equipment exactly the way
+        // protected 5v5 protects a PMC's, just through its own
+        // ZombieOwnGearLoadout snapshot rather than PitFireTeam's roster — see
+        // that class's own doc comment.
         if (PitFireTeamCompat.HasFrozenTeamRoster)
         {
             Plugin.ModLogger.LogInfo(
                 "Arena 5v5: skipped the raid-start kit/body swap; PitFireTeam remains bound to the original PMC. "
                 + "The secure container stays as it is, shown and usable.");
+        }
+        else if (ZombieOwnGearActive)
+        {
+            string captureProblem = null;
+            bool captured = currentGame is LocalGame zombieGame
+                && Kits.ZombieOwnGearLoadout.TryCaptureEntryLoadout(zombieGame.Profile, out captureProblem);
+
+            if (captured)
+            {
+                Plugin.ModLogger.LogInfo(
+                    "Arena Zombie own gear: skipped the raid-start kit swap; the entry loadout is protected in "
+                    + "process memory, the same way Tactical's protected 5v5 protects it. The secure container "
+                    + "stays as it is, shown and usable.");
+            }
+            else
+            {
+                string why = captureProblem ?? "no active LocalGame";
+                Plugin.ModLogger.LogError(
+                    $"Arena Zombie own gear could not capture the entry loadout ({why}); standing the raid down.");
+                Modes.ArenaMatchService.ScheduleFailedStartAbort(
+                    "Zombie own gear could not capture the entry loadout");
+            }
         }
         else if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
         {
@@ -423,6 +483,7 @@ public static class ArenaSession
         _rejectedServerRaidPendingEnd = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
+        ZombieOwnGearSelection = false;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
         ActiveMode = null;

@@ -43,6 +43,14 @@ namespace ArenaMode.Kits;
 /// the slot was hidden over contents that were still there and still bound to
 /// the quick slots — usable by key, invisible on screen, which is how it was
 /// reported.
+///
+/// The same argument applies, for the same reason, to Zombie's own-gear option
+/// (item 4, 2026-10-06 follow-up, ArenaSession.ZombieOwnGearActive): it issues
+/// no kit either, protects the player's real equipment through
+/// ZombieOwnGearLoadout's own TeamArenaLoadoutSnapshot instance instead of
+/// PitFireTeam's roster, and the container is never emptied for the same
+/// reason — no medical ladder to outclass, and the player's own real supplies
+/// would otherwise be destroyed one frame after the latch.
 /// </summary>
 internal static class ArenaSecureContainer
 {
@@ -61,7 +69,13 @@ internal static class ArenaSecureContainer
     internal static bool LeavesContentsAtHome
         => ArenaSession.IsActive
            && Settings.EmptySecureContainer.Value
-           && !PitFireTeamCompat.HasFrozenTeamRoster;
+           && !PitFireTeamCompat.HasFrozenTeamRoster
+           // Zombie's own-gear option (item 4): same reasoning as the frozen
+           // PitFireTeam roster check above — own gear has no medical ladder
+           // for a pouch of Grizzlies to outclass, and emptying the container
+           // would destroy the player's own real supplies. See
+           // ZombieOwnGearLoadout's own doc comment.
+           && !ArenaSession.ZombieOwnGearActive;
 
     public static void Reset()
     {
