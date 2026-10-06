@@ -431,14 +431,19 @@ test (prefer SPT-GPU-2) must confirm, in order:
    onward, use the zombie body/animator (not a PMC model), and land roughly
    in the 25-70 m ring around the player rather than clustering at a map's
    bot-zone spawn points.
+   *Confirmed 2026-10-06 (raid 1, `1e76582`): 8 infected spawned within 7 s,
+   zombie bodies (`UsedSimplifiedSkeleton=true`), 25-70 m ring, BotZone.*
 2. **No `InfectedLayersStrategy` exception.** No `ArgumentOutOfRangeException`
    from `GetZombieModeByDifficulty` (would mean an `impossible`-difficulty
    infected reached the native constructor) and no NRE from
    `AddBackupProfiles`/the crowd spawner (would mean hook 1's repair or hook
    4's skip did not actually install this build).
+   *Confirmed 2026-10-06 (raids 1 and 2): no Error lines in either raid.*
 3. **No teleport oddity.** A freshly spawned zombie should hold its spawn
    point, not visibly snap or relocate right after arriving — confirms hook
    5 is actually suppressing `TeleportBotNearToTarget`.
+   *2026-10-06: the first-raid note in the section below lists this item as
+   passed; the results document records no separate observation of it.*
 4. **Native melee/shooting behaviour lands.** `normal` infected close and
    melee; any `hard` infected (if `ShooterPercent > 0`) draw and fire a PM
    pistol at range, per the native brain's own difficulty table. The first
@@ -448,26 +453,62 @@ test (prefer SPT-GPU-2) must confirm, in order:
    SAIN's global prefix" below for the fix and what the NEXT raid must show
    (an actual health drop, a melee kill in the killfeed, the
    `ZombieMeleePatch`/`ZombieMeleeDiagnostics` log lines).
+   *Melee half confirmed 2026-10-06 (raid 2, `0c6fab3`): first native swing
+   14:12:25 at 0.7 m via the HarmonyX reverse patch, first landed hit
+   14:12:25.8, player health dropped, killfeed "ZOMBIE -> USEC . 1 m .
+   Infectious strike", 2618 swings / 178 hits over the raid. The ranged half
+   (`ShooterPercent > 0`) is still untested.*
 5. **The wave HUD counts down and the wave ends.** `HudStatusLine` shows
    `WAVE n | m LEFT` decrementing as zombies die, reaches `WAVE n+1 IN Xs`
    during intermission, and actually advances to wave `n+1`'s first spawn.
+   *Partly confirmed 2026-10-06: the HUD showed "WAVE 1 | 8 LEFT | 00:13" in
+   raid 1 and counted down per kill in raid 2 ("WAVE 2 | 10 LEFT" after two
+   kills), and later waves followed the 10 s pause; a wave ending through kills
+   was NOT seen (the watchdog ended every wave).*
 6. **Player death/respawn does not stall the wave.** Dying and instantly
    respawning (Zombie's `HoldRespawn = false`) must not pause or reset wave
    progression — infected should keep dying/spawning through the respawn.
+   *Confirmed 2026-10-06 (raid 2): death #1 at 14:12:48, respawn pipeline
+   0.20 s, 4 s spawn protection, the wave kept running (HUD "1 DEATHS ... WAVE
+   1 | 8 LEFT").*
 7. **The flag restores after the raid.** Leave the Zombie raid, then start
    an ORDINARY (non-Zombie) raid on the same game session without
    restarting: the BepInEx log must show no `"Arena zombie native bridge"`
    lines for that second raid, and no infected should appear in it.
+   *Confirmed 2026-10-06: the flag read `false` after raids 1 and 2; the
+   control raid at 14:16:40 (ordinary PMC, Factory, straight after raid 2)
+   logged no Zombie/bridge lines and no errors, its bots ran SAIN's Combat
+   Layer.*
 8. **Performance notes to record.** Frame time/ms over the raid's length,
    peak concurrent bot count (compare against the configured `MaxAlive`),
    and corpse count over time (confirms `ActiveMinDistanceMeters()`'s zero
    exemption is actually letting the overflow pass trim zombie corpses
    instead of leaving them all exempt near the player).
+   *Partly confirmed 2026-10-06 (raid 2, 12 zombies): 120 fps (8.3 ms mean),
+   RAM 11.2 GB, managed 2.3 GB. Not yet measured: MaxAlive 40-56, corpse count
+   over time, any raid longer than 3.9 min.*
 
 Also worth exercising once wave 1 is confirmed: triggering the stuck-wave
 watchdog live (strand one infected somewhere unreachable and wait past
 `StuckWaveTimeoutSeconds`) and a `StuckWaveTimeoutSeconds = 0` control raid
 to confirm the watchdog can indeed be disabled on request.
+*2026-10-06: the watchdog fired under real conditions (raid 1 waves 1-4 after
+100 s; raid 2 at 14:14:03 and 14:16:05) but only because the tester did not
+kill the wave, not on a stranded infected; neither the stranded-zombie case
+nor the `StuckWaveTimeoutSeconds = 0` control has been run.*
+
+Open items after the two GPU-2 raids of 2026-10-06 (details in
+`GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`):
+
+- **Watchdog semantics.** 100 s without the wave ending is too short for real
+  players: a running wave is cleared in the middle of the fight. Proposal: count
+  the timer only while no infected has died for 100 s (progress instead of
+  duration), or raise the default to 240 s. Then re-run a raid in which a wave
+  ends through kills.
+- A second `Activate()` per raid with no known caller (see "Double-Activate").
+- Performance and corpses at `MaxAlive` 40-56.
+- Ranged infected (`ShooterPercent > 0`), Labs/Labyrinth, the boss zombie and
+  PitFireTeam remain out of scope for now.
 
 ## Native melee is suppressed by SAIN's global prefix
 

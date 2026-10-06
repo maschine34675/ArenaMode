@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-05. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-06. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
@@ -35,10 +35,27 @@ current. User-facing communication is normally German.
   nach dem Lauf als abwesend bestätigt) meldet 828 bestanden, 2 übersprungen
   (vorbestehend, umgebungsabhängig, nicht Zombie-bezogen), 0 fehlgeschlagen,
   830 gesamt; `dotnet build ArenaMode.Server`/`ArenaMode.Client -c Release`
-  mit derselben No-Deploy-Property je 0 Fehler. **NICHTS davon ist bisher
-  deployt oder im Spiel getestet** — dieser Eintrag beschreibt ausschließlich
-  den Offline-Stand in diesem Worktree; der Orchestrator deployt und testet
-  im Anschluss separat und ergänzt das Ergebnis hier.
+  mit derselben No-Deploy-Property je 0 Fehler.
+  **Deployt und auf SPT-GPU-2 getestet (2026-10-06):** Client-DLL aus `1e76582`
+  (SHA256 `1ee4c51ffeeb8cc997bdd38fd8793f091f57e326ef08ab670a9242205d38eb18`)
+  und Server-DLL (SHA256
+  `0a826e8b3016cbce6a9abe910c46281040d4f4d4e77ebbcb464b7b3c1aea850b`;
+  Server-Quellen seit `1e76582` unverändert, gilt auch für Raid 2) in die
+  Spiegel-Installation `D:\SPT41` kopiert, Syncthing lieferte sie in 15-20 s auf
+  Host 2. Raid 1 (12:52-13:11, `1e76582`): alles außer dem Nahkampf bestanden,
+  kein einziger Treffer. Befund: SAINs globaler `RunToEnemyUpdate`-Prefix
+  unterdrückt den nativen Nahkampf (Fix `445269c`..`0c6fab3`, siehe unten).
+  Raid 2 (14:11-14:16, Client-DLL aus `0c6fab3`, SHA256
+  `231f3be155298aa04ed1531b2efeead24a5d229c065472978437cda30770f4bd`, EFT per
+  `gpu-run restart` neu gestartet, 24/24 geladene maschine-Plugins identisch):
+  erster nativer Schwung 14:12:25, erster Treffer 14:12:25.8, ein Spielertod mit
+  Instant-Respawn (0,20 s), drei Kopfschuss-Kills per Testhook (Score 450),
+  Raidende „2618 native melee swing(s) attempted, 178 landed hit(s)“, keine
+  Error-Zeilen. Kontrollraid (normaler PMC, Factory, 14:16:40): keine
+  Zombie-Zeilen, Flag `false`, normale Heilung. Offen: Wachhund-Semantik (100 s
+  räumen eine laufende Welle mitten im Kampf ab), zweites `Activate()` ohne
+  bekannten Aufrufer, Performance bei MaxAlive 40-56, Schützenanteil. Details,
+  Grenzen und nächste Schritte: `GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`.
   Offene Spieltest-Fragen (Reihenfolge und Details in
   `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Known limitations and GPU playtest
   checklist"): Spawnen zeigt das Zombie-Modell und landet im 25-70-m-Ring;
@@ -85,7 +102,8 @@ current. User-facing communication is normally German.
   unverändert. Offline nach allen drei Commits: 833 bestanden, 2
   übersprungen, 0 fehlgeschlagen, 835 gesamt; Client-Build 0 Fehler;
   No-Deploy-Sentinel vor/nach jedem Schritt abwesend bestätigt. **Dieser Fix
-  ist bisher NICHT im Spiel getestet** — der nächste GPU-Raid muss zeigen:
+  war zum Zeitpunkt dieses Absatzes noch NICHT im Spiel getestet (in Raid 2
+  bestätigt, siehe oben)** — der nächste GPU-Raid sollte zeigen:
   Spieler-HP sinkt im Nahkampf, ein Zombie-Nahkampf-Kill erscheint im
   Killfeed, keine neuen Error-Zeilen, die `LogPathChoiceOnce`-Zeile
   bestätigt, welcher Pfad (Reverse-Patch oder Fallback) tatsächlich lief.
