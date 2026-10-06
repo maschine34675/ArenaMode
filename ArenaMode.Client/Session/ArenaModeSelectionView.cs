@@ -248,7 +248,13 @@ internal sealed class ArenaModeSelectionView
         _respawn.text = mode.Respawn;
         if (mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
-        _equipment.text = _selection.TacticalOnly ? "PMC entry gear" : mode.Equipment;
+        // Same special-case line protected 5v5's TacticalOnly branch already
+        // uses, extended for Zombie's own-gear option (item 4): both show the
+        // real-equipment fact text instead of the catalog's default "Arena
+        // kits" once the player has chosen to bring their own gear.
+        _equipment.text = _selection.TacticalOnly ? "PMC entry gear"
+            : mode.Id == ArenaModeCatalog.ZombieId && Settings.ZombieOwnGear.Value ? "Own gear"
+            : mode.Equipment;
         _mutators.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         RefreshTdmRules();
     }
