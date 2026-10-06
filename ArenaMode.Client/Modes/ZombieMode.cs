@@ -18,11 +18,12 @@ namespace ArenaMode.Modes;
 /// settings once, drives the pure ZombieWavePolicy every Tick with the real
 /// clock and the real alive/pending counts, and translates a policy "spawn
 /// one now" into a ZombieRoleMix draw and a ZombieSpawnService.TryRequest
-/// call. ZombieSpawnService is Stage C's seam (see its own doc comment) —
-/// in THIS stage every request it is asked to make is honestly refused, so a
-/// zombie raid runs with the wave clock ticking and the HUD counting down a
-/// wave that never actually produces a bot. That is expected until Stage C
-/// lands; it is not a bug in this file.
+/// call, using ZombieSpawnService's own TryMapRole/TryMapDifficulty for the
+/// string-&gt;native-enum step. ZombieSpawnService is wired for real (Stage C:
+/// BurstSpawnService.SpawnInfected, plus ZombieNativeEventBridge's native
+/// Halloween-event hooks) — see its own doc comment for exactly how a
+/// spawned zombie becomes aware of the player even when the native bridge
+/// could not arm this raid.
 /// </summary>
 public sealed class ZombieMode : IArenaMode
 {
@@ -153,7 +154,8 @@ public sealed class ZombieMode : IArenaMode
         for (int i = 0; i < result.SpawnNow; i++)
         {
             var draw = ZombieRoleMix.Next(_rng, _shooterPercent);
-            if (TryMapRole(draw.Role, out var role) && TryMapDifficulty(draw.Difficulty, out var difficulty))
+            if (ZombieSpawnService.TryMapRole(draw.Role, out var role)
+                && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty))
                 ZombieSpawnService.TryRequest(role, difficulty);
         }
 
@@ -199,32 +201,4 @@ public sealed class ZombieMode : IArenaMode
            && Singleton<AbstractGame>.Instantiated && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
            && Singleton<GameWorld>.Instantiated && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
            && ArenaSession.IsExactActiveRaid(_game, _world);
-
-    private static bool TryMapRole(string role, out WildSpawnType type)
-    {
-        switch (role)
-        {
-            case ZombieRoleMix.InfectedAssault: type = WildSpawnType.infectedAssault; return true;
-            case ZombieRoleMix.InfectedPmc: type = WildSpawnType.infectedPmc; return true;
-            case ZombieRoleMix.InfectedCivil: type = WildSpawnType.infectedCivil; return true;
-            case ZombieRoleMix.InfectedLaborant: type = WildSpawnType.infectedLaborant; return true;
-            default:
-                type = default;
-                Plugin.ModLogger.LogWarning($"Zombie: unknown role mix draw '{role}' — spawn request skipped.");
-                return false;
-        }
-    }
-
-    private static bool TryMapDifficulty(string difficulty, out BotDifficulty value)
-    {
-        switch (difficulty)
-        {
-            case ZombieRoleMix.Normal: value = BotDifficulty.normal; return true;
-            case ZombieRoleMix.Hard: value = BotDifficulty.hard; return true;
-            default:
-                value = default;
-                Plugin.ModLogger.LogWarning($"Zombie: unknown difficulty draw '{difficulty}' — spawn request skipped.");
-                return false;
-        }
-    }
 }
