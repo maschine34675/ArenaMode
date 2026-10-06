@@ -1,71 +1,263 @@
 using ArenaMode.Modes;
+using Comfort.Common;
 using EFT;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Seam between ZombieMode's pure wave policy and the real native spawn
-/// path.
+/// Seam between ZombieMode's pure wave policy and the real native spawn path.
 ///
-/// STAGE B (this file): every member here honestly reports "nothing is wired
-/// yet" — TryRequest always refuses, the counters always read zero,
-/// NudgeIdleZombies and RegisterBackupTargets are no-ops — and the one
-/// warning below is logged once per raid so that is visible instead of
-/// silently assumed. No method here may claim behavior it does not have.
+/// STAGE C (this file): every member is wired for real.
 ///
-/// STAGE C fills these bodies with: the real BurstSpawnService entry point
-/// for an arbitrary Savage role/difficulty (reusing SpawnPair's internals,
-/// one point per profile, the existing 25-70 m ring); the native infection-
-/// event bridge (Harmony patches on BotsEventsController.Activate/Dispose
-/// and the static BotHalloweenWithZombies.GetProfilesOnStart/
-/// AddBackupProfiles — see the orchestrator's decision 3, which this stage
-/// deliberately does not implement); and the AddPointToSearch nudge for
-/// idle zombies. When Stage C wires a body, it must also correct this doc
-/// comment and IsReady — a comment that disagrees with the code is a bug
-/// (see AGENTS.md).
+/// TryRequest asks BurstSpawnService.SpawnInfected for one native Savage bot
+/// of the requested infected role/difficulty. On arrival, OnZombieArrived
+/// gives the bot's group the same awareness ArenaHostility.ReportPlayer gives
+/// any other Arena bot, plus the exact BotsGroup.AddPointToSearch(..., 1000f,
+/// ...) call the native pursuit system makes on a call
+/// (InfectedLayersStrategy.Call, decompile-verified) — so a freshly spawned
+/// zombie starts hunting immediately whether or not ZombieNativeEventBridge
+/// could arm the native Halloween event this raid (see that class's own doc
+/// comment for its fail-closed path). CountAliveInfected and NudgeIdleZombies
+/// read BotsController.Bots.BotOwners directly, the same registry
+/// BurstSpawnService's own TryCountAliveBots reads via a different handle
+/// (spawner._bots.BotOwners — the same underlying BotsList either way).
+///
+/// Pending-request bookkeeping is a SEPARATE ledger from BurstSpawnService's
+/// ambient RecentPmcInjections/RecentScavInjections (SpawnInfected does
+/// internally share RecentScavInjections for ITS OWN correctness — harmless,
+/// see its own doc comment). ZombieWavePolicy needs "requests accepted but
+/// not yet confirmed alive or dead" as an input ZombieMode can read every
+/// Tick, and BurstSpawnService's ledgers are private to that class. The
+/// pattern — a list of request timestamps, aged out after a timeout — mirrors
+/// BurstSpawnService.CountPending/InFlightSeconds.
+///
+/// TryMapRole/TryMapDifficulty are the one place the (string) ZombieRoleMix/
+/// ZombieProfilePlan vocabulary turns into native WildSpawnType/BotDifficulty
+/// values; ZombieMode's per-tick draws and ZombieNativeEventBridge's opening
+/// profile list both call these same two methods, so the mapping table exists
+/// exactly once.
 /// </summary>
 internal static class ZombieSpawnService
 {
-    private static bool _warned;
+    /// <summary>
+    /// How long a dispatched request may go unconfirmed before this ledger
+    /// stops counting it as pending. Mirrors BurstSpawnService.InFlightSeconds:
+    /// profile generation is a server round trip, and a request that silently
+    /// fails after SpawnInfected returned true (no profiles came back, the
+    /// zone emptied out, etc.) must not permanently inflate Pending and starve
+    /// the wave of every further spawn.
+    /// </summary>
+    private const float PendingTimeoutSeconds = 20f;
 
-    /// <summary>True once Stage C's native wiring is live. Always false in this stage.</summary>
-    internal static bool IsReady => false;
+    private static readonly List<float> PendingRequests = new List<float>(8);
 
-    /// <summary>Spawn requests accepted but not yet confirmed alive or dead. Always 0 in this stage.</summary>
-    internal static int Pending => 0;
+    /// <summary>True: Stage C's native spawn path (BurstSpawnService.SpawnInfected) is wired.</summary>
+    internal static bool IsReady => true;
+
+    /// <summary>Spawn requests accepted but not yet confirmed alive or dead.</summary>
+    internal static int Pending
+    {
+        get
+        {
+            AgeOutPending();
+            return PendingRequests.Count;
+        }
+    }
 
     /// <summary>Called by ZombieMode at both OnMatchStart and OnMatchEnd (idempotent).</summary>
-    internal static void Reset() => _warned = false;
+    internal static void Reset() => PendingRequests.Clear();
 
-    /// <summary>Always refuses: nothing can be spawned until Stage C wires the native path.</summary>
+    /// <summary>
+    /// Asks BurstSpawnService for one native infected bot. False means nothing
+    /// was dispatched (bad role/difficulty, no zone, or no active raid) —
+    /// SpawnInfected already logged its own reason, so nothing is duplicated
+    /// here.
+    /// </summary>
     internal static bool TryRequest(WildSpawnType role, BotDifficulty difficulty)
     {
-        WarnOnce();
-        return false;
+        bool dispatched = BurstSpawnService.SpawnInfected(role, difficulty, OnZombieArrived);
+        if (dispatched)
+            PendingRequests.Add(Time.time);
+        return dispatched;
     }
 
-    /// <summary>Always 0: nothing is spawned yet in this stage, so nothing can be alive.</summary>
+    /// <summary>
+    /// Infected BotOwners whose health controller is alive — the same counting
+    /// style as BurstSpawnService.TryCountAliveBots, excluding nothing else
+    /// (decision 4: Zombie has no PitFireTeam-style exclusion to make).
+    /// </summary>
     internal static int CountAliveInfected()
     {
-        WarnOnce();
-        return 0;
+        try
+        {
+            var owners = Singleton<IBotGame>.Instantiated
+                ? Singleton<IBotGame>.Instance?.BotsController?.Bots?.BotOwners
+                : null;
+            if (owners == null)
+                return 0;
+
+            int alive = 0;
+            foreach (var bot in owners)
+            {
+                if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
+                    continue;
+
+                var role = bot.Profile?.Info?.Settings?.Role;
+                if (role.HasValue && role.Value.IsInfected())
+                    alive++;
+            }
+
+            return alive;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie alive count failed: {ex.Message}");
+            return 0;
+        }
     }
 
-    /// <summary>No-op in this stage: there are no bots to nudge toward the player yet.</summary>
-    internal static void NudgeIdleZombies(Vector3 playerPosition) => WarnOnce();
-
-    /// <summary>No-op in this stage: nothing registers with the native backup loader yet.</summary>
-    internal static void RegisterBackupTargets(IReadOnlyList<ZombieProfilePlan.Entry> targets) => WarnOnce();
-
-    private static void WarnOnce()
+    /// <summary>
+    /// Repeats the native pursuit's own AddPointToSearch call for every
+    /// infected bot that currently has no enemy, so a zombie that never got a
+    /// sighting — the native bridge did not arm this raid, or it simply had no
+    /// line of sight yet — is nudged toward the player every
+    /// NudgeIntervalSeconds instead of patrolling forever (decision 4).
+    /// </summary>
+    internal static void NudgeIdleZombies(Vector3 playerPosition)
     {
-        if (_warned)
+        try
+        {
+            var owners = Singleton<IBotGame>.Instantiated
+                ? Singleton<IBotGame>.Instance?.BotsController?.Bots?.BotOwners
+                : null;
+            if (owners == null)
+                return;
+
+            foreach (var bot in owners)
+            {
+                if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
+                    continue;
+
+                var role = bot.Profile?.Info?.Settings?.Role;
+                if (!role.HasValue || !role.Value.IsInfected())
+                    continue;
+
+                if (bot.Memory != null && bot.Memory.HaveEnemy)
+                    continue;
+
+                bot.BotsGroup?.AddPointToSearch(playerPosition, 1000f, bot);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie idle nudge failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Registers ZombieMode's own backup targets with the native backup loader
+    /// (BotSpawner.AddToTargetBackup), in place of the native AddBackupProfiles
+    /// call this mode's bridge skips (decision 3d; see
+    /// ZombieNativeEventBridge).
+    /// </summary>
+    internal static void RegisterBackupTargets(IReadOnlyList<ZombieProfilePlan.Entry> targets)
+    {
+        if (targets == null || targets.Count == 0)
             return;
 
-        _warned = true;
-        Plugin.ModLogger.LogWarning(
-            "Zombie mode: the native spawn path is not wired yet (Stage C) — waves will not produce any bots this raid.");
+        try
+        {
+            var spawner = Singleton<IBotGame>.Instantiated
+                ? Singleton<IBotGame>.Instance?.BotsController?.BotSpawner
+                : null;
+            if (spawner == null)
+                return;
+
+            foreach (var entry in targets)
+            {
+                if (TryMapRole(entry.Role, out var role) && TryMapDifficulty(entry.Difficulty, out var difficulty))
+                    spawner.AddToTargetBackup(difficulty, role, entry.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie backup target registration failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// On arrival: the same group-awareness steps ArenaHostility.ReportPlayer
+    /// takes, plus the exact BotsGroup.AddPointToSearch(..., 1000f, ...) call
+    /// the native pursuit system makes on a call (InfectedLayersStrategy.Call,
+    /// decompile-verified) — so a freshly spawned zombie starts hunting
+    /// immediately, with or without the native bridge armed (decision 4).
+    /// </summary>
+    private static void OnZombieArrived(BotOwner bot)
+    {
+        try
+        {
+            if (PendingRequests.Count > 0)
+                PendingRequests.RemoveAt(0);
+
+            if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
+                return;
+
+            var player = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;
+            if (player == null || player.HealthController == null || !player.HealthController.IsAlive)
+                return;
+
+            ArenaHostility.ReportPlayerTo(bot.BotsGroup, player);
+            bot.BotsGroup?.AddPointToSearch(player.Position, 1000f, bot);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie arrival awareness failed: {ex.Message}");
+        }
+    }
+
+    private static void AgeOutPending()
+    {
+        var cutoff = Time.time - PendingTimeoutSeconds;
+        for (var i = PendingRequests.Count - 1; i >= 0; i--)
+        {
+            if (PendingRequests[i] < cutoff)
+                PendingRequests.RemoveAt(i);
+        }
+    }
+
+    /// <summary>The one place ZombieRoleMix's role strings turn into WildSpawnType.
+    /// Shared by ZombieMode's per-tick draws, RegisterBackupTargets above, and
+    /// ZombieNativeEventBridge's opening-profile list.</summary>
+    internal static bool TryMapRole(string role, out WildSpawnType type)
+    {
+        switch (role)
+        {
+            case ZombieRoleMix.InfectedAssault: type = WildSpawnType.infectedAssault; return true;
+            case ZombieRoleMix.InfectedPmc: type = WildSpawnType.infectedPmc; return true;
+            case ZombieRoleMix.InfectedCivil: type = WildSpawnType.infectedCivil; return true;
+            case ZombieRoleMix.InfectedLaborant: type = WildSpawnType.infectedLaborant; return true;
+            default:
+                type = default;
+                Plugin.ModLogger.LogWarning($"Zombie: unknown role mix entry '{role}' — request skipped.");
+                return false;
+        }
+    }
+
+    /// <summary>The one place ZombieRoleMix's difficulty strings turn into BotDifficulty.
+    /// Shared the same way as TryMapRole above.</summary>
+    internal static bool TryMapDifficulty(string difficulty, out BotDifficulty value)
+    {
+        switch (difficulty)
+        {
+            case ZombieRoleMix.Normal: value = BotDifficulty.normal; return true;
+            case ZombieRoleMix.Hard: value = BotDifficulty.hard; return true;
+            default:
+                value = default;
+                Plugin.ModLogger.LogWarning($"Zombie: unknown difficulty entry '{difficulty}' — request skipped.");
+                return false;
+        }
     }
 }
