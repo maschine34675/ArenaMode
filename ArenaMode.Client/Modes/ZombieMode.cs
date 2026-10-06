@@ -195,9 +195,18 @@ public sealed class ZombieMode : IArenaMode
             for (int i = 0; i < result.SpawnNow; i++)
             {
                 var draw = ZombieRoleMix.Next(_rng, _shooterPercent);
-                if (ZombieSpawnService.TryMapRole(draw.Role, out var role)
-                    && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty))
-                    ZombieSpawnService.TryRequest(role, difficulty);
+                bool dispatched = ZombieSpawnService.TryMapRole(draw.Role, out var role)
+                    && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty)
+                    && ZombieSpawnService.TryRequest(role, difficulty);
+
+                // Evaluate committed this wave slot optimistically, before
+                // this dispatch attempt ran. A permanently failing dispatch
+                // (bad draw, or TryRequest's own native-side rejection) must
+                // not still count as "spawned" — undo the commit so the
+                // wave does not silently reach "everything spawned" with
+                // fewer real zombies than configured.
+                if (!dispatched)
+                    ZombieWavePolicy.ReportFailedDispatch(ref _waveState);
             }
         }
 

@@ -198,6 +198,67 @@ public sealed class ZombieWavePolicyTests
     }
 
     [Fact]
+    public void APermanentlyFailingDispatchDoesNotCountAsSpawnedOrSilentlyEmptyTheWave()
+    {
+        // The bug this guards (zombie-wave-optimistic-slot-commit):
+        // Evaluate commits a wave slot (SpawnedThisWave++) the instant it
+        // DECIDES to spawn, before the caller has even attempted the real
+        // dispatch. Simulating a dispatch that always fails (alive and
+        // pending both stay 0 forever, mirroring ZombieSpawnService.
+        // TryRequest returning false every time) without ever calling
+        // ReportFailedDispatch would let the wave reach "everything
+        // spawned, nothing alive" and silently clear with zero real
+        // zombies ever dispatched.
+        var config = Config(maxAlive: 20, start: 5, growth: 0, intermission: 10f, interval: 1f);
+        var state = ZombieWavePolicy.Initial();
+        float now = 0f;
+
+        for (int i = 0; i < 50; i++)
+        {
+            var result = ZombieWavePolicy.Evaluate(ref state, config, now, alive: 0, pending: 0);
+            if (result.SpawnNow > 0)
+                ZombieWavePolicy.ReportFailedDispatch(ref state); // every dispatch fails
+
+            Assert.Equal(ZombieWavePolicy.Phase.Wave, result.Phase); // never silently clears
+            now += 1f;
+        }
+    }
+
+    [Fact]
+    public void OnlyConfirmedDispatchesCountTowardTheWaveWhenSomeFail()
+    {
+        // Mixed success/failure: only confirmed dispatches may ever reduce
+        // "remaining". Every other spawn attempt in this run fails and must
+        // be retried, not written off.
+        var config = Config(maxAlive: 20, start: 3, growth: 0, intermission: 10f, interval: 1f);
+        var state = ZombieWavePolicy.Initial();
+        float now = 0f;
+        int confirmed = 0;
+        bool failNext = true; // alternate fail/succeed
+
+        for (int i = 0; i < 50 && confirmed < 3; i++)
+        {
+            var result = ZombieWavePolicy.Evaluate(ref state, config, now, alive: 0, pending: 0);
+            if (result.SpawnNow > 0)
+            {
+                if (failNext)
+                    ZombieWavePolicy.ReportFailedDispatch(ref state);
+                else
+                    confirmed++;
+                failNext = !failNext;
+            }
+
+            now += 1f;
+        }
+
+        Assert.Equal(3, confirmed);
+        // Still open for business — exactly 3 real dispatches were needed to
+        // clear a 3-zombie wave, no fewer, despite the interleaved failures.
+        var afterWaveDone = ZombieWavePolicy.Evaluate(ref state, config, now, alive: 0, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Intermission, afterWaveDone.Phase);
+    }
+
+    [Fact]
     public void StatusTextMatchesTheDocumentedHudFormat()
     {
         var config = Config(maxAlive: 20, start: 8, growth: 4, intermission: 10f, interval: 100f);

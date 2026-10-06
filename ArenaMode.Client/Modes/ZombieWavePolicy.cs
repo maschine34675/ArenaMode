@@ -124,6 +124,28 @@ internal static class ZombieWavePolicy
     internal static int WaveSize(Config config, int waveNumber)
         => Math.Max(1, config.WaveStartSize) + Math.Max(0, config.WaveGrowth) * Math.Max(0, waveNumber - 1);
 
+    /// <summary>
+    /// Call exactly once per SpawnNow==1 that the caller actually tried and
+    /// failed to turn into a real dispatch (ZombieSpawnService.TryRequest
+    /// returned false). Evaluate below commits the wave slot
+    /// (SpawnedThisWave++) the instant it DECIDES to spawn, before the
+    /// caller has even attempted the real native dispatch — optimistic by
+    /// design, so a slow-but-successful dispatch is never double-counted.
+    /// But a dispatch that permanently fails (no usable spawn point under
+    /// map/geometry contention — BurstSpawnService's own documented failure
+    /// mode) would otherwise still count as "spawned", letting
+    /// remainingToSpawn reach 0 and the wave silently "clear" with fewer
+    /// real zombies than configured, in the worst case none at all. This
+    /// undoes exactly that one optimistic increment, so the slot is retried
+    /// on the wave's normal pacing cadence (NextSpawnAt was already
+    /// advanced by Evaluate either way) instead of being lost.
+    /// </summary>
+    internal static void ReportFailedDispatch(ref State state)
+    {
+        if (state.SpawnedThisWave > 0)
+            state.SpawnedThisWave--;
+    }
+
     internal static Result Evaluate(ref State state, Config config, float now, int alive, int pending)
     {
         if (float.IsNaN(now) || float.IsInfinity(now))
