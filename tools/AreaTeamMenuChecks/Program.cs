@@ -23,7 +23,15 @@ Button[] Buttons()=>view.Root.GetComponentsInChildren<Button>(true);
 Button Size(int size)=>Buttons().Single(b=>b.name=="Arena Team Size "+size);
 Need(Buttons().Length==7,"three area rows and four team buttons are materialized");
 var rootRect=(RectTransform)view.Root.transform;
-Need(-rootRect.anchoredPosition.y>=668&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=916,
+// 710/958: both +42 over their pre-Zombie values (668/916) for the fifth
+// mode row (Zombie). UpdateLayout places this panel at ModePanelTop (168)
+// + the non-Deathmatch ModePanelHeight (488->530) + 12 = 710, and the
+// ceiling tracks the panel (c7de967 had raised it 892->916 for a fourth
+// area row), so it moves by the same row height. The harness's tallest
+// layout (three area rows + four size buttons = 214 high) now ends at
+// 924; the measured native READY area starts at Y=984
+// (MUTATORS-MENU-REVIEW.md), so even the ceiling stays above it.
+Need(-rootRect.anchoredPosition.y>=710&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=958,
     "largest supported panel remains below mode panel and above native bottom controls");
 foreach(var button in Buttons())
 {
@@ -63,11 +71,14 @@ view.Refresh(State(ArenaAreaCatalog.FullMapId,map:ArenaMapCatalog.FactoryDayId),
 Need(Buttons().Length==1,"whole map Factory is its only supported area choice");
 view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "deathmatch", false,
     ArenaAreaCatalog.FullMapId, 5), false);
-Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 734,
+// 776 = ModePanelTop (168) + the Deathmatch ModePanelHeight (554->596, +42
+// for the fifth mode row) + 12; was 734 pre-Zombie.
+Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 776,
     "Deathmatch area panel clears four rules rows with twelve pixel gap");
 view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "gungame", false,
     ArenaAreaCatalog.FullMapId, 5), false);
-Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 668,
+// 710: the non-Deathmatch top derived at the first bound above (was 668).
+Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 710,
     "same-area mode change updates layout cache and restores compact position");
 view.Close();
 Console.WriteLine($"ARENA_TEAM_AREA_VIEW_CHECKS_PASSED ({checks} assertions)");
