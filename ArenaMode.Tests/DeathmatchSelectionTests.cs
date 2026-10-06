@@ -35,6 +35,7 @@ public sealed class DeathmatchSelectionTests
     [InlineData("tactical")]
     [InlineData("gungame")]
     [InlineData("teamdeathmatch")]
+    [InlineData("zombie")]
     [InlineData(null)]
     public void OtherModesRequireOmissionAndRetainLegacyPolicy(string? mode)
     {

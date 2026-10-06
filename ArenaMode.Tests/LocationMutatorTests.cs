@@ -106,6 +106,134 @@ public class LocationMutatorTests
         Assert.Equal(templateSnapshot, JsonSerializer.Serialize(location, JsonOptions));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ZombieSuppressesEveryAmbientSpawnTrack(bool abps)
+    {
+        // Same quiet contract as Team Deathmatch (OwnsEntirePopulation covers
+        // both) plus the native infection event, asserted separately below.
+        var location = FreshLocation();
+        location.Waves = [new Wave { SpawnPoints = "BotZone", SlotsMin = 1, SlotsMax = 5 }];
+        location.BossLocationSpawn =
+        [
+            new BossLocationSpawn { BossName = "pmcUSEC", BossChance = 100 },
+            new BossLocationSpawn { BossName = "pmcBEAR", BossChance = 100 },
+            new BossLocationSpawn { BossName = "bossTagilla", BossChance = 100 },
+        ];
+        location.BotLocationModifier = new BotLocationModifier
+        {
+            NonWaveSpawnBotsLimitPerPlayer = 20,
+            NonWaveSpawnBotsLimitPerPlayerPvE = 20,
+        };
+        location.NewSpawn = true;
+        location.OfflineNewSpawn = true;
+        var templateSnapshot = JsonSerializer.Serialize(location, JsonOptions);
+        var clone = JsonSerializer.Deserialize<LocationBase>(templateSnapshot, JsonOptions)!;
+        var config = new ArenaModeConfig { RaidTimeMinutes = 20 };
+        var map = new ArenaMapConfig { DisableBosses = false, PmcWaveIntervalSeconds = 60 };
+        WithAbps(abps, () => ArenaLocationMutator.Mutate(clone, map, config, "ZOMBIE"));
+
+        Assert.True(ArenaLocationMutator.IsQuietMap("zombie"));
+        Assert.Empty(clone.Waves!);
+        Assert.Empty(clone.BossLocationSpawn!);
+        Assert.Equal(1200, clone.BotStart);
+        Assert.Equal(0, clone.BotStop);
+        Assert.Equal(0, clone.BotSpawnCountStep);
+        Assert.Equal(0, clone.BotSpawnTimeOnMin);
+        Assert.Equal(0, clone.BotSpawnTimeOnMax);
+        Assert.Equal(1200, clone.BotSpawnTimeOffMin);
+        Assert.Equal(1200, clone.BotSpawnTimeOffMax);
+        Assert.False(clone.NewSpawn);
+        Assert.False(clone.OfflineNewSpawn);
+        Assert.Equal(0, clone.BotLocationModifier!.NonWaveSpawnBotsLimitPerPlayer);
+        Assert.Equal(0, clone.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE);
+        Assert.Equal(templateSnapshot, JsonSerializer.Serialize(location, JsonOptions));
+    }
+
+    [Theory]
+    [InlineData(null, 1.0)]
+    [InlineData(0.0, 1.0)]
+    [InlineData(0.5, 0.5)]
+    public void ZombieEnablesTheNativeInfectionEventOnTheClone(double? mapLookCoeff, double expectedLookCoeff)
+    {
+        var location = FreshLocation();
+        if (mapLookCoeff.HasValue)
+            location.Events = new LocationEvents { Halloween2024 = new Halloween2024 { InfectedLookCoeff = mapLookCoeff } };
+        var beforeHadEventsBlock = location.Events != null;
+
+        WithAbps(false, () => ArenaLocationMutator.Mutate(location,
+            new ArenaMapConfig { DisableBosses = true, PmcWaveIntervalSeconds = 0 },
+            new ArenaModeConfig { RaidTimeMinutes = 20 }, "zombie"));
+
+        // A template with no Events/Halloween2024 object at all (Factory's own
+        // base.json has one — InfectedLookCoeff 0.5 — but a map could omit it)
+        // gets one CREATED, never left null.
+        var halloween = location.Events?.Halloween2024;
+        Assert.NotNull(halloween);
+        if (!beforeHadEventsBlock)
+            Assert.NotNull(location.Events);
+
+        Assert.Equal(100, halloween!.InfectionPercentage);
+        Assert.Equal(100, halloween.MinInfectionPercentage);
+        Assert.Equal(0, halloween.MaxCrowdAttackSpawnLimit);
+        Assert.Equal(0, halloween.CrowdsLimit);
+        Assert.Equal(3600, halloween.CrowdCooldownPerPlayerSec);
+        Assert.Equal(25, halloween.MinSpawnDistToPlayer);
+        Assert.Equal(400, halloween.TargetPointSearchRadiusLimit);
+        Assert.Equal(400, halloween.ZombieCallRadiusLimit);
+        Assert.Equal(50, halloween.ZombieCallDeltaRadius);
+        Assert.Equal(1, halloween.ZombieCallPeriodSec);
+        // Never written as 0 (native facts: 0 blinds every infected outright) —
+        // a missing OR zeroed map value floors to the native baseline instead.
+        Assert.Equal(expectedLookCoeff, halloween.InfectedLookCoeff);
+        var param = Assert.Single(halloween.CrowdAttackSpawnParams!);
+        Assert.Equal("infectedAssault", param.Role);
+        Assert.Equal("normal", param.Difficulty);
+        Assert.Equal(1, param.Weight);
+    }
+
+    [Fact]
+    public void ZombieKeepsAMapsExistingCrowdAttackSpawnParamsAndLookCoeff()
+    {
+        var location = FreshLocation();
+        location.Events = new LocationEvents
+        {
+            Halloween2024 = new Halloween2024
+            {
+                InfectedLookCoeff = 0.5,
+                CrowdAttackSpawnParams = [new CrowdAttackSpawnParam { Role = "infectedPmc", Difficulty = "hard", Weight = 3 }],
+            },
+        };
+
+        WithAbps(false, () => ArenaLocationMutator.Mutate(location, new ArenaMapConfig(), new ArenaModeConfig(), "zombie"));
+
+        var halloween = location.Events!.Halloween2024!;
+        Assert.Equal(0.5, halloween.InfectedLookCoeff);
+        var param = Assert.Single(halloween.CrowdAttackSpawnParams!);
+        Assert.Equal("infectedPmc", param.Role);
+        Assert.Equal("hard", param.Difficulty);
+        Assert.Equal(3, param.Weight);
+    }
+
+    [Theory]
+    [InlineData(24, 15)]
+    [InlineData(100, 120)]
+    public void ZombieRaisesTheCloneBotCaps(int mapBotMax, int mapMaxBotPerZone)
+    {
+        // BotSpawner's native point-selection code reads MaxBotPerZone, so a
+        // map whose configured caps are already generous must never be
+        // LOWERED back down to the minimum — only raised when it falls short.
+        var location = FreshLocation();
+        WithAbps(false, () => ArenaLocationMutator.Mutate(location,
+            new ArenaMapConfig { BotMax = mapBotMax, MaxBotPerZone = mapMaxBotPerZone },
+            new ArenaModeConfig(), "zombie"));
+
+        Assert.Equal(Math.Max(mapBotMax, 60), location.BotMax);
+        Assert.Equal(Math.Max(mapBotMax, 60), location.BotMaxPvE);
+        Assert.Equal(Math.Max(mapMaxBotPerZone, 60), location.MaxBotPerZone);
+    }
+
     [Fact]
     public void ThePopulationPolicyAgreesWithTheModesItNames()
     {
@@ -115,17 +243,24 @@ public class LocationMutatorTests
         // this pins the meaning as well as the spelling.
         Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation(ArenaPopulationPolicy.TeamDeathmatch));
         Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation(ArenaPopulationPolicy.Tactical));
+        Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation(ArenaPopulationPolicy.Zombie));
         Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation("TEAMDEATHMATCH"));
+        Assert.True(ArenaPopulationPolicy.OwnsEntirePopulation("ZOMBIE"));
         foreach (var loud in new[] { "endless", "rounds", "gungame", "", null })
             Assert.False(ArenaPopulationPolicy.OwnsEntirePopulation(loud));
 
         // The preload skip is NARROWER than that: Team Deathmatch is the only
         // mode that also throws the pre-generated PMC pool away, so it is the
-        // only one that loses nothing by never fetching it.
+        // only one that loses nothing by never fetching it. Zombie also owns
+        // its population but is deliberately excluded too — see the policy's
+        // doc comment on SkipsProfilePreload for why its case differs from
+        // Team Deathmatch's.
         Assert.True(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap",
             ArenaPopulationPolicy.TeamDeathmatch, "BIGMAP"));
         Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap",
             ArenaPopulationPolicy.Tactical, "bigmap"));
+        Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(true, "bigmap",
+            ArenaPopulationPolicy.Zombie, "bigmap"));
 
         // Everything else about the gate, one refusal at a time.
         Assert.False(ArenaPopulationPolicy.SkipsProfilePreload(false, "bigmap", "teamdeathmatch", "bigmap"));
@@ -186,6 +321,7 @@ public class LocationMutatorTests
     [InlineData("rounds", false)]
     [InlineData("gungame", false)]
     [InlineData("tactical", true)]
+    [InlineData("zombie", true)]
     public void ExistingModesKeepTheirAmbientSpawnPolicy(string? mode, bool quiet)
     {
         var location = FreshLocation();
