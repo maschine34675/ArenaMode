@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Loot;
+using ArenaMode.Modes;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
@@ -64,12 +65,49 @@ namespace ArenaMode.Bots;
 /// respawns near it and the profile protection reads it). An older body of
 /// the player's own releases exactly like anybody else's, once nothing still
 /// needs it — see MayRelease's own-corpse branch and IsNewestOwnCorpse.
+///
+/// The overflow pass's own "near the player" exemption (MinDistanceMeters)
+/// assumes kills are spread across the map and the player keeps moving — see
+/// ActiveMinDistanceMeters for why Zombie mode, a horde converging on a
+/// largely stationary player, is the opposite case and gets that exemption
+/// dropped to zero instead.
 /// </summary>
 internal static class CorpseCleanupService
 {
     private const float CadenceSeconds = 5f;
     private const float MinDistanceMeters = 15f;
     private const int KeepOwnCorpses = 1;
+
+    /// <summary>
+    /// Zombie's own "near the player" distance exemption: 0, not 15.
+    ///
+    /// MinDistanceMeters was designed for a map-spanning PMC raid, where a
+    /// kill near the player's CURRENT spot is recent and a kill far away is
+    /// old — the 15m bubble is a small, temporary exclusion while the player
+    /// keeps moving through the map. Zombie mode's entire premise is the
+    /// opposite: InfectedAttackLayer's melee range is 4m and its Shooting
+    /// engagement range is 15m (decompile-verified), and the design expects
+    /// the player to hold a position and fight an incoming horde rather than
+    /// roam — exactly the geometry that keeps every freshly dead zombie
+    /// inside the ordinary 15m exemption indefinitely, since ZombieSpawnService
+    /// also pulls every idle infected toward wherever the player currently
+    /// is (NudgeIdleZombies) rather than spreading kills across the map. For
+    /// this mode "near the player" is not a proxy for "still relevant" the
+    /// way it is in every other mode — if anything it is the opposite, since
+    /// the oldest bodies accumulate exactly where the fight is happening and
+    /// never reach the overflow/trim pass below. Zero removes the exemption
+    /// entirely for Zombie, letting the overflow count (oldest corpse first,
+    /// LootList is append-ordered) decide what to trim instead, which every
+    /// other safeguard in this sweep (ragdoll-settled check, open-loot-window
+    /// check, held-interactable check) already protects independently of
+    /// distance.
+    /// </summary>
+    private const float ZombieMinDistanceMeters = 0f;
+
+    private static float ActiveMinDistanceMeters()
+        => string.Equals(ArenaSession.ActiveMode, ArenaModeCatalog.ZombieId, StringComparison.Ordinal)
+            ? ZombieMinDistanceMeters
+            : MinDistanceMeters;
 
     /// <summary>
     /// How many bodies one sweep may take out of the scene.
@@ -377,6 +415,7 @@ internal static class CorpseCleanupService
             var clearEverything = Time.time < _fullClearUntil;
             var overflow = clearEverything ? corpses.Count : corpses.Count - maxCorpses;
             var trimmed = 0;
+            var minDistanceMeters = ActiveMinDistanceMeters();
 
             if (overflow > 0)
             {
@@ -418,7 +457,7 @@ internal static class CorpseCleanupService
 
                     if (!clearEverything
                         && corpse.transform != null
-                        && Vector3.Distance(mainPlayer.Position, corpse.transform.position) < MinDistanceMeters)
+                        && Vector3.Distance(mainPlayer.Position, corpse.transform.position) < minDistanceMeters)
                     {
                         continue;
                     }
