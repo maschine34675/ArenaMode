@@ -238,10 +238,20 @@ current. User-facing communication is normally German.
   ist tragend (`CORPSE-CLEANUP-REVIEW.md`), also braucht es ein eigenes Review und
   einen Messraid. **v2** (Equipment-Wahl im linken Panel, Announcer-Mutator,
   Commits `f79efc4`..`d302fd7`) ist gebaut und als Client-DLL mit SHA256
-  `<wird vom Orchestrator nachgetragen>` auf dem Host ausgeliefert und wird als
-  Nächstes im Kartenmenü geprüft (Checkliste: `ZOMBIE-MODE-REVIEW.md`, "GPU
-  playtest checklist for v2"); der Satz weiter oben, v2 sei noch nicht im Spiel
-  getestet, gilt bis zu dieser Prüfung weiter.
+  `0B765EA6878B256CB32E580BF111488911118A246086503D9DC510AA50E4125B` lokal und
+  per Syncthing auf Host 2 ausgeliefert (EFT neu gestartet, 24/24 identisch) und am
+  06.10. um 22:07-22:11 auf GPU-2 nativ geprüft: linke Zeile „EQUIPMENT: Own gear"
+  mit den Knöpfen „Arena kits | Own gear" unter den Fakten der ZOMBIES-Zeile,
+  Klick schreibt `Zombie / OwnGear` (true → false → true belegt); bei DEATHMATCH
+  ist die Zeile ausgeblendet (dort stehen wie bisher die Deathmatch-Regeln);
+  Mutator-Panel mit 16 Zeilen, **ANNOUNCER** zeigt bei Zombie OFF, bei Deathmatch
+  ON, kein OWN GEAR mehr rechts; keine Überlappungen (Screenshot gesichtet). Kurzer
+  Zombie-Raid: Log „Arena announcer attached: mode=zombie, enabled=False", keine
+  Error-Zeilen. Nicht geprüft: hörbarer Announcer in einem Deathmatch-Raid
+  (Standard ON, nur per Mutator-Anzeige und Offline-Tabelle belegt). Kleiner
+  Nachtrag offen: die Fußzeile des Mutator-Panels nennt noch „Killcam/tracers:
+  per mode", der Announcer fehlt dort. Der Satz weiter oben, v2 sei noch nicht im
+  Spiel getestet, ist damit überholt.
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12
