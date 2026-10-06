@@ -79,9 +79,21 @@ public sealed class ZombieMode : IArenaMode
     // now", never a fresh draw taken here. See ZombieLoadoutRefill's own doc
     // comment for exactly how that is handed to LiveKitRespawn.AtRoundBreak
     // without touching KitCatalog.KitProvider for anything but the width of
-    // that one call.
+    // that one call. Stays null and unread when _ownGear is true below: own
+    // gear never raises OnKitApplied (it is not a kit — see
+    // LiveKitRespawn.SwapRoutine's own doc comment on that exclusion).
     private ZombieRefillPolicy.State _refillState;
     private KitDefinition _currentKit;
+
+    // Item 4 ("own protected gear"), frozen at OnMatchStart like _config and
+    // _shooterPercent above: whether this raid restores the player's real
+    // entry loadout (ArenaSession.ZombieOwnGearActive) instead of drawing
+    // Arena kits. Read once here rather than live every tick for the same
+    // reason _config is frozen — ArenaSession.ZombieOwnGearSelection itself
+    // cannot change mid-raid anyway (frozen at arm), but caching it keeps
+    // this class's own "frozen settings" convention consistent and avoids a
+    // property-chain read on every refill decision.
+    private bool _ownGear;
 
     // Cached from the latest Tick for HudStatusLine, which must stay cheap —
     // ScorePanel reads it up to four times a second.
@@ -161,6 +173,7 @@ public sealed class ZombieMode : IArenaMode
             StuckWaveTimeoutSeconds = Settings.ZombieStuckWaveTimeoutSeconds.Value,
         };
         _shooterPercent = shooterPercent;
+        _ownGear = ArenaSession.ZombieOwnGearActive;
 
         _rng = new System.Random();
         _waveState = ZombieWavePolicy.Initial();
@@ -271,12 +284,27 @@ public sealed class ZombieMode : IArenaMode
             if (refill.ShouldAttempt)
             {
                 int clearedWave = _waveNumber;
-                bool started = ZombieLoadoutRefill.TryRefill(
-                    _game,
-                    _currentKit,
-                    clearedWave,
-                    Settings.SpawnProtectionSeconds.Value,
-                    () => IsCurrentRaid() && _phase == ZombieWavePolicy.Phase.Intermission);
+                Func<bool> stillInThisIntermission =
+                    () => IsCurrentRaid() && _phase == ZombieWavePolicy.Phase.Intermission;
+
+                // Item 4 ("own protected gear"): the WHEN (ZombieRefillPolicy,
+                // just evaluated above) is identical either way — only the HOW
+                // differs, between re-applying the player's current random kit
+                // (ZombieLoadoutRefill.TryRefill) and restoring the protected
+                // entry loadout (TryRefillOwnGear). See ZombieLoadoutRefill's
+                // own doc comments for both.
+                bool started = _ownGear
+                    ? ZombieLoadoutRefill.TryRefillOwnGear(
+                        _game,
+                        clearedWave,
+                        Settings.SpawnProtectionSeconds.Value,
+                        stillInThisIntermission)
+                    : ZombieLoadoutRefill.TryRefill(
+                        _game,
+                        _currentKit,
+                        clearedWave,
+                        Settings.SpawnProtectionSeconds.Value,
+                        stillInThisIntermission);
 
                 if (started)
                     ZombieRefillPolicy.ReportStarted(ref _refillState);

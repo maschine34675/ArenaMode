@@ -100,4 +100,70 @@ internal static class ZombieLoadoutRefill
             KitCatalog.KitProvider = previousProvider;
         }
     }
+
+    /// <summary>
+    /// The own-gear (item 4) sibling of <see cref="TryRefill"/>: re-applies
+    /// the player's protected ENTRY LOADOUT instead of a kit, through
+    /// <see cref="LiveKitRespawn.AtRoundBreakOwnGear"/> — the same live,
+    /// in-place body swap TryRefill's AtRoundBreak call uses, just committing
+    /// ZombieOwnGearLoadout's restore instead of a KitDefinition. Writes no
+    /// new inventory-mutation code of its own, same as TryRefill. Returns
+    /// whether the refill actually started, for ZombieRefillPolicy's own
+    /// started/not-started bookkeeping — identical contract to TryRefill.
+    /// </summary>
+    internal static bool TryRefillOwnGear(
+        LocalGame game,
+        int clearedWaveNumber,
+        float protectionSeconds,
+        Func<bool> stillWanted)
+    {
+        if (!ZombieOwnGearLoadout.IsActive)
+        {
+            // Nothing captured this raid (e.g. the raid-start capture itself
+            // failed and already aborted the match) — not an error here,
+            // just nothing to restore.
+            return false;
+        }
+
+        try
+        {
+            // Captured by the EquipmentStrategy closure below and read again
+            // in the onComplete callback — logging there, not inside the
+            // closure, matches TryRefill's own pattern: only report success
+            // once LiveKitRespawn itself confirms the whole swap landed, not
+            // merely that this one step inside it ran.
+            int restoredEpoch = 0;
+            return LiveKitRespawn.AtRoundBreakOwnGear(
+                game,
+                (profile, dead) =>
+                {
+                    AutoQuickSlots.SettleBeforeReissue(profile);
+
+                    if (!ZombieOwnGearLoadout.TryRestore(profile, out restoredEpoch, out string reason, out var nextRuntimeMap))
+                    {
+                        throw new InvalidOperationException(
+                            $"Zombie own-gear refill could not restore the entry loadout: {reason}");
+                    }
+
+                    AutoQuickSlots.NoteItemsReissued(nextRuntimeMap);
+                },
+                protectionSeconds,
+                stillWanted,
+                success =>
+                {
+                    if (success)
+                    {
+                        Plugin.ModLogger.LogInfo(
+                            $"Zombie refill after wave {clearedWaveNumber}: own-gear entry loadout re-applied (epoch {restoredEpoch}).");
+                    }
+                    // A reported failure is already logged by LiveKitRespawn
+                    // itself — no second line needed here, same as TryRefill.
+                });
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Zombie own-gear refill after wave {clearedWaveNumber} failed: {ex.Message}");
+            return false;
+        }
+    }
 }

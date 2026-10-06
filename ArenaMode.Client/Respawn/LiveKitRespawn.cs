@@ -76,7 +76,8 @@ internal static class LiveKitRespawn
             "raid-start kit swap",
             () => !Modes.ArenaMatchResult.HasResult(Modes.ArenaMatchService.Current?.Mode),
             null,
-            raidEpoch));
+            raidEpoch,
+            equipmentOverride: null));
         }
         finally
         {
@@ -136,7 +137,72 @@ internal static class LiveKitRespawn
             "round respawn",
             stillWanted,
             onComplete,
-            raidEpoch));
+            raidEpoch,
+            equipmentOverride: null));
+        return true;
+    }
+
+    /// <summary>
+    /// Zombie's own-gear option (item 4): the SAME live, in-place body swap
+    /// AtRoundBreak uses between rounds/waves, but committing the protected
+    /// entry-loadout restore (ZombieOwnGearLoadout.TryRestore, via
+    /// <paramref name="equipmentStrategy"/>) instead of applying a
+    /// KitDefinition — AtRoundBreak itself hard-refuses when
+    /// KitCatalog.GetSelectedKit() returns null, so own-gear mode needs this
+    /// sibling rather than a parameter on AtRoundBreak. Every other guarantee
+    /// (hands-check, one-pipeline-at-a-time lease, spawn selection, failure
+    /// recovery) is the identical SwapRoutine code AtRoundBreak itself runs —
+    /// writes no new inventory-mutation code, reuses the existing live swap.
+    ///
+    /// Returns whether the refill was actually started, exactly like
+    /// AtRoundBreak; the caller reports the outcome (true = the player is
+    /// standing in a new body with the entry loadout restored).
+    /// </summary>
+    public static bool AtRoundBreakOwnGear(
+        LocalGame game,
+        Action<EFT.Profile, LocalPlayer> equipmentStrategy,
+        float protectionSeconds,
+        Func<bool> stillWanted,
+        Action<bool> onComplete)
+    {
+        if (equipmentStrategy == null)
+            return false;
+
+        int raidEpoch = ArenaRespawnDriver.CaptureRaidEpoch();
+        if (!ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
+            || game.LocalPlayer == null
+            || ArenaRespawnDriver.IsRespawnInProgress
+            || ArenaRespawnDriver.StandDown)
+            return false;
+
+        if (game.LocalPlayer.HealthController == null || !game.LocalPlayer.HealthController.IsAlive)
+            return false;
+
+        var here = game.LocalPlayer.Position;
+        var spawn = new ArenaSpawnSelector(
+            new InfilSpawnSelector(new NearPositionSpawnSelector(() => here, () => 25f)),
+            () => here,
+            Config.Settings.RespawnMinDistance.Value);
+
+        var protection = new SpawnProtectionOptions
+        {
+            DurationSeconds = protectionSeconds,
+            // A scoreboard is not a fight: drawing a weapon must not end it.
+            EndEarlyOnWeapon = false,
+            StowAutoDrawnWeapon = false,
+            ShowToasts = false,
+        };
+
+        game.StartCoroutine(SwapRoutine(
+            game,
+            null,
+            spawn,
+            protection,
+            "own-gear refill",
+            stillWanted,
+            onComplete,
+            raidEpoch,
+            equipmentOverride: equipmentStrategy));
         return true;
     }
 
@@ -148,7 +214,8 @@ internal static class LiveKitRespawn
         string what,
         Func<bool> stillWanted,
         Action<bool> onComplete,
-        int raidEpoch)
+        int raidEpoch,
+        Action<EFT.Profile, LocalPlayer> equipmentOverride)
     {
         while (Areas.ArenaAreaRuntime.IsPending
                && ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
@@ -187,8 +254,11 @@ internal static class LiveKitRespawn
         }
 
         // Kit items never existed in this raid — their bundles/pools must be loaded
-        // BEFORE the pipeline, or the replacement's weapon auto-draw NREs.
-        yield return KitBundlePreloader.Preload(kit);
+        // BEFORE the pipeline, or the replacement's weapon auto-draw NREs. Own-gear
+        // mode (kit == null, equipmentOverride set) has nothing to preload: every
+        // item is already in the raid.
+        if (kit != null)
+            yield return KitBundlePreloader.Preload(kit);
 
         // Everything above yields, and a lot can happen in those frames — most
         // of all dying, which hands the body to the death driver and starts ITS
@@ -247,7 +317,8 @@ internal static class LiveKitRespawn
             // Resolved here, not by the caller: for the raid-start swap "where
             // the player is" means where they are NOW, after the waits above.
             SpawnSelector = preparedSpawn,
-            EquipmentStrategy = (profile, dead) => KitBuilder.ApplyToProfile(profile, dead, kit, requireCorpse: false),
+            EquipmentStrategy = equipmentOverride
+                ?? ((profile, dead) => KitBuilder.ApplyToProfile(profile, dead, kit, requireCorpse: false)),
             HealthPercent = 100f,
             Protection = protection,
         };
@@ -286,8 +357,19 @@ internal static class LiveKitRespawn
             Plugin.ModLogger.LogWarning($"Arena: destroying pre-swap body failed: {ex.Message}");
         }
 
-        Plugin.ModLogger.LogInfo($"Arena {what} complete: {kit.Name}.");
-        ArenaEvents.RaiseKitApplied(kit);
+        // Own-gear mode (kit == null) never raises OnKitApplied: it is not a
+        // kit, and ZombieMode's own doc comment on that subscription already
+        // documents this exact exclusion (matching TeamArenaLoadoutSnapshot's
+        // protected-team restore, which does not raise it either).
+        if (kit != null)
+        {
+            Plugin.ModLogger.LogInfo($"Arena {what} complete: {kit.Name}.");
+            ArenaEvents.RaiseKitApplied(kit);
+        }
+        else
+        {
+            Plugin.ModLogger.LogInfo($"Arena {what} complete.");
+        }
         Report(onComplete, true);
     }
 
