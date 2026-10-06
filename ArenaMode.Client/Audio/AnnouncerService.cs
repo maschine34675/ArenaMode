@@ -214,7 +214,13 @@ internal static class AnnouncerService
         match.OnCallout += OnCallout;
         match.OnAnnouncerCue += OnAnnouncerCue;
         ArenaAnnouncementDirector.Attach(match);
-        Plugin.ModLogger.LogInfo($"Arena announcer attached: enabled={Settings.AnnouncerEnabled.Value}, "
+        // "enabled" is the item-2 per-mode gate (master AND this match's own
+        // mode entry — see Settings.IsAnnouncerEnabledFor), not only the
+        // master switch; tools/AnnouncerChecks pins both the "enabled=" field
+        // name and the "Arena announcer attached:" prefix, never the master
+        // value in isolation.
+        Plugin.ModLogger.LogInfo($"Arena announcer attached: mode={match.Mode?.Id}, "
+            + $"enabled={Settings.IsAnnouncerEnabledFor(match.Mode?.Id)}, "
             + $"volume={Number(Settings.AnnouncerVolume.Value)}, ready={ReadyCount()}, loading={_loading}.");
     }
 
@@ -256,7 +262,7 @@ internal static class AnnouncerService
             Skip(key, "listener_paused");
             return;
         }
-        if (!Settings.AnnouncerEnabled.Value || Settings.AnnouncerVolume.Value <= 0f)
+        if (!Settings.IsAnnouncerEnabledFor(_match?.Mode?.Id) || Settings.AnnouncerVolume.Value <= 0f)
         {
             Receive(key, out _);
             return;
@@ -476,9 +482,10 @@ internal static class AnnouncerService
         _clutchArmed = false;
         // Fresh mode state must invalidate pending status before it can drain.
         ArenaAnnouncementDirector.Tick();
-        ArenaAnnouncerOutput.Tick(_match != null && Settings.AnnouncerEnabled.Value
+        bool enabledForMode = _match != null && Settings.IsAnnouncerEnabledFor(_match.Mode?.Id);
+        ArenaAnnouncerOutput.Tick(enabledForMode
             && Settings.AnnouncerVolume.Value > 0f && !Settings.AnnouncerUseUiVolume.Value, Settings.AnnouncerVolume.Value);
-        if (_match != null && (!Settings.AnnouncerEnabled.Value || Settings.AnnouncerVolume.Value <= 0f))
+        if (_match != null && (!enabledForMode || Settings.AnnouncerVolume.Value <= 0f))
         {
             CancelPendingResult("announcer muted");
             return;
@@ -548,7 +555,7 @@ internal static class AnnouncerService
     private static bool Receive(string key, out float clipLengthSeconds)
     {
         clipLengthSeconds = 0f;
-        if (!Settings.AnnouncerEnabled.Value)
+        if (!Settings.IsAnnouncerEnabledFor(_match?.Mode?.Id))
         {
             Skip(key, "disabled");
             return false;

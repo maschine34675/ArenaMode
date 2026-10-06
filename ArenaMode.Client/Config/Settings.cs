@@ -102,6 +102,11 @@ public static class Settings
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
+    public static ConfigEntry<bool> DeathmatchAnnouncerEnabled { get; private set; }
+    public static ConfigEntry<bool> GunGameAnnouncerEnabled { get; private set; }
+    public static ConfigEntry<bool> TacticalAnnouncerEnabled { get; private set; }
+    public static ConfigEntry<bool> TeamDeathmatchAnnouncerEnabled { get; private set; }
+    public static ConfigEntry<bool> ZombieAnnouncerEnabled { get; private set; }
     public static ConfigEntry<bool> HitmarkerSounds { get; private set; }
     public static ConfigEntry<float> HitmarkerVolume { get; private set; }
     public static ConfigEntry<bool> MuteLabyrinthAlarm { get; private set; }
@@ -284,6 +289,39 @@ public static class Settings
     }
 
     /// <summary>
+    /// Backing per-mode entry for item 2 of the 2026-10-06 follow-up
+    /// ("announcer mutator"), dispatched the same way <see cref="ReplayEntry"/>
+    /// dispatches Killcam. Unlike Killcam (a float "seconds" entry) and the
+    /// equipment choice (offered for only one mode today), every mode maps to
+    /// a real bool entry here — there is no "unavailable" case — so
+    /// <see cref="Session.ArenaMutatorSelection"/> can read/write this
+    /// directly through its generic Entry()/Enabled()/TryToggle() path, the
+    /// same way it already does for <see cref="TracerEntry"/>.
+    /// </summary>
+    internal static ConfigEntry<bool> AnnouncerEntry(string mode)
+        => ArenaModeCatalog.NormalizeId(mode) switch
+        {
+            ArenaModeCatalog.GunGameId => GunGameAnnouncerEnabled,
+            ArenaModeCatalog.TacticalId => TacticalAnnouncerEnabled,
+            ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchAnnouncerEnabled,
+            ArenaModeCatalog.ZombieId => ZombieAnnouncerEnabled,
+            _ => DeathmatchAnnouncerEnabled,
+        };
+
+    /// <summary>
+    /// The actual gate <c>AnnouncerService</c> reads at every one of its
+    /// several call sites (attach-time log line, callout submission, the
+    /// queued-result drain in Tick, Receive): the per-mode entry AND the
+    /// pre-existing global master switch, combined through the single pure
+    /// decision in <see cref="Modes.ArenaAnnouncerGate.IsEnabled"/> so none of
+    /// those sites can ever disagree about whether this match's announcer may
+    /// speak. A null/unmapped mode normalizes to Deathmatch's entry via
+    /// <see cref="AnnouncerEntry"/>, never throws.
+    /// </summary>
+    internal static bool IsAnnouncerEnabledFor(string mode)
+        => Modes.ArenaAnnouncerGate.IsEnabled(AnnouncerEnabled.Value, AnnouncerEntry(mode)?.Value == true);
+
+    /// <summary>
     /// Backing entry for item 1 of the 2026-10-06 follow-up ("own gear to the
     /// left")'s left-panel equipment-choice row, dispatched by mode the same
     /// way <see cref="ReplayEntry"/> dispatches Killcam. Null for any mode
@@ -405,6 +443,25 @@ public static class Settings
             "Recorded seconds shown after death; 0 keeps instant respawn. Requires enabled KillcamReplay. " +
             "Respawn waits for actual playback, slow motion and live tail. Frozen when the raid is armed.",
             new AcceptableValueRange<float>(0f, 10f)));
+
+    /// <summary>
+    /// Item 2 of the 2026-10-06 follow-up ("announcer mutator"), bound once per
+    /// mode the same way <see cref="BindReplay"/> binds Killcam — same key
+    /// ("Announcer") under a distinct per-mode section, so it cannot collide
+    /// with the pre-existing global "Audio"/"Announcer" entry
+    /// (<see cref="AnnouncerEnabled"/>), which this does NOT replace: that
+    /// switch stays the master gate (see <see cref="IsAnnouncerEnabledFor"/>).
+    /// <paramref name="defaultValue"/> always comes from
+    /// <see cref="Modes.ArenaAnnouncerGate.DefaultEnabled"/> so the bound
+    /// default can never drift from the table ArenaMode.Tests exercises.
+    /// </summary>
+    private static ConfigEntry<bool> BindAnnouncer(ConfigFile config, string section, bool defaultValue)
+        => config.Bind(section, "Announcer", defaultValue,
+            "Per-mode gate for the Arena announcer (stingers, round/match cues). The global " +
+            "Audio/Announcer switch above stays a master gate: both it and this must be on for " +
+            "this mode's announcer to speak; AnnouncerVolume stays global too. Frozen like the " +
+            "other per-mode mutators while the raid is active or armed. HUD text callouts " +
+            "(e.g. WAVE n) are a separate system and are unaffected by either switch.");
 
     public static void Init(ConfigFile config)
     {
@@ -1469,6 +1526,21 @@ public static class Settings
             "Audio", "AnnouncerUseUiVolume", false,
             "Off: use the dedicated Arena output controlled by AnnouncerVolume and overall game volume. " +
             "On: restore the legacy Interface-volume output for compatibility.");
+
+        // Item 2 of the 2026-10-06 follow-up ("announcer mutator"): per-mode
+        // gate layered on top of the master Announcer switch above. Defaults
+        // come from ArenaAnnouncerGate.DefaultEnabled so this table can never
+        // drift from the one ArenaMode.Tests exercises.
+        DeathmatchAnnouncerEnabled = BindAnnouncer(config, "Deathmatch",
+            Modes.ArenaAnnouncerGate.DefaultEnabled(ArenaModeCatalog.DeathmatchId));
+        GunGameAnnouncerEnabled = BindAnnouncer(config, "Gun Game",
+            Modes.ArenaAnnouncerGate.DefaultEnabled(ArenaModeCatalog.GunGameId));
+        TacticalAnnouncerEnabled = BindAnnouncer(config, "Tactical",
+            Modes.ArenaAnnouncerGate.DefaultEnabled(ArenaModeCatalog.TacticalId));
+        TeamDeathmatchAnnouncerEnabled = BindAnnouncer(config, "Team Deathmatch",
+            Modes.ArenaAnnouncerGate.DefaultEnabled(ArenaModeCatalog.TeamDeathmatchId));
+        ZombieAnnouncerEnabled = BindAnnouncer(config, "Zombie",
+            Modes.ArenaAnnouncerGate.DefaultEnabled(ArenaModeCatalog.ZombieId));
 
         MuteLabyrinthAlarm = config.Bind(
             "Audio", "MuteLabyrinthAlarm", true,

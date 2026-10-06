@@ -9,7 +9,7 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
-    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -39,6 +39,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Tracers => "COLORED TRACERS",
         ArenaMutator.Lasers => "TEAM LASER COLORS",
         ArenaMutator.Akimbo => "AKIMBO PISTOLS",
+        ArenaMutator.Announcer => "ANNOUNCER",
         _ => string.Empty
     };
 
@@ -59,6 +60,11 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Tracers => "Side colors for every bullet.",
         ArenaMutator.Lasers => "Team colors; same brightness.",
         ArenaMutator.Akimbo => "Dual pistols; shared magazine.",
+        // Per-mode, like Killcam/Tracers: toggles the CURRENTLY SELECTED
+        // mode's own switch, not the global master (see Settings.
+        // AnnouncerEntry/IsAnnouncerEnabledFor). Zombie starts OFF, every
+        // other mode starts ON.
+        ArenaMutator.Announcer => "Arena announcer stingers and cues.",
         _ => string.Empty
     };
 
@@ -78,6 +84,11 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Tracers => Settings.TracerEntry(Mode, _team),
         ArenaMutator.Lasers => Settings.TeamLasers,
         ArenaMutator.Akimbo => Settings.AkimboEnabled,
+        // Every mode maps to a real entry (see Settings.AnnouncerEntry), so
+        // unlike Killcam/the retired OwnGear row this needs no special case
+        // in Enabled()/TryToggle() below — the generic bool-entry path
+        // already used for Tracers/Lasers/Akimbo handles it as-is.
+        ArenaMutator.Announcer => Settings.AnnouncerEntry(Mode),
         _ => null
     };
 
