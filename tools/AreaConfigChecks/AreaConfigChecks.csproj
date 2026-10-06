@@ -24,5 +24,6 @@
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DeathmatchRules.cs" Link="Production/DeathmatchRules.cs" />
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Production/ArenaTracerColor.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerGate.cs" Link="Production/ArenaAnnouncerGate.cs" />
   </ItemGroup>
 </Project>

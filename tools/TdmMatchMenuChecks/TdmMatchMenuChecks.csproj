@@ -34,5 +34,6 @@
     <Compile Include="../../ArenaMode.Client/Modes/ArenaEquipmentChoice.cs" Link="Production/ArenaEquipmentChoice.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaEquipmentChoiceState.cs" Link="Production/ArenaEquipmentChoiceState.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaEquipmentChoiceView.cs" Link="Production/ArenaEquipmentChoiceView.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerGate.cs" Link="Production/ArenaAnnouncerGate.cs" />
   </ItemGroup>
 </Project>

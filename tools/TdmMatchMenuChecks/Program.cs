@@ -43,6 +43,25 @@ Need(!Settings.CombineDamageNumbers.Value, "burst damage remains opt-in");
 Need(Settings.GetReplaySeconds("deathmatch") == 0f && Settings.GetReplaySeconds("gungame") == 0f
     && Settings.GetReplaySeconds("teamdeathmatch") == 0f && Settings.GetReplaySeconds("tactical") == 3f,
     "killcam keeps instant modes off and Tactical legacy default on");
+// Item 2 of the 2026-10-06 follow-up ("announcer mutator"): fresh per-mode
+// defaults (Zombie off, everyone else on) and the dispatch that picks them.
+Need(Settings.DeathmatchAnnouncerEnabled.Value && Settings.GunGameAnnouncerEnabled.Value
+    && Settings.TacticalAnnouncerEnabled.Value && Settings.TeamDeathmatchAnnouncerEnabled.Value
+    && !Settings.ZombieAnnouncerEnabled.Value,
+    "announcer defaults on everywhere except Zombie");
+Need(ReferenceEquals(Settings.AnnouncerEntry("deathmatch"), Settings.DeathmatchAnnouncerEnabled)
+    && ReferenceEquals(Settings.AnnouncerEntry("gungame"), Settings.GunGameAnnouncerEnabled)
+    && ReferenceEquals(Settings.AnnouncerEntry("tactical"), Settings.TacticalAnnouncerEnabled)
+    && ReferenceEquals(Settings.AnnouncerEntry("teamdeathmatch"), Settings.TeamDeathmatchAnnouncerEnabled)
+    && ReferenceEquals(Settings.AnnouncerEntry("zombie"), Settings.ZombieAnnouncerEnabled)
+    && ReferenceEquals(Settings.AnnouncerEntry("bogus"), Settings.DeathmatchAnnouncerEnabled),
+    "announcer per-mode dispatch picks the exact bound entry, unmapped mode normalizes to Deathmatch");
+Need(Settings.IsAnnouncerEnabledFor("deathmatch") && !Settings.IsAnnouncerEnabledFor("zombie"),
+    "the combined per-mode gate matches the per-mode table while the master switch is on");
+Settings.AnnouncerEnabled.Value = false;
+Need(!Settings.IsAnnouncerEnabledFor("deathmatch") && !Settings.IsAnnouncerEnabledFor("zombie"),
+    "the master switch still gates a mode whose own per-mode default is on");
+Settings.AnnouncerEnabled.Value = true;
 Need(Settings.TeamDeathmatchKillLimit.Value == 50 && Settings.TeamDeathmatchTimeLimitSeconds.Value == 600,
     "production defaults are 50 team kills and ten minutes");
 var killsRange = (AcceptableValueRange<int>)Settings.TeamDeathmatchKillLimit.Description.AcceptableValues;
@@ -262,7 +281,9 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 15, "inline panel has fifteen switches, no backdrop or close buttons");
+// Item 2 of the 2026-10-06 follow-up ("announcer mutator") added Announcer
+// back to 16 after item 1 ("own gear to the left") removed OwnGear (16->15).
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 16, "inline panel has sixteen switches, no backdrop or close buttons");
 Need(!Settings.AkimboEnabled.Value, "akimbo remains an explicit opt-in");
 foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" })
 {
@@ -388,7 +409,12 @@ var preferencePairs = new[] {
     (ArenaMutator.Backpack, Settings.UseItemsAnywhere),
     (ArenaMutator.Pickups, ArenaMode.Pickups.ArenaPickupSettings.Enabled),
     (ArenaMutator.Tracers, Settings.TeamTracers),
-    (ArenaMutator.Lasers, Settings.TeamLasers) };
+    (ArenaMutator.Lasers, Settings.TeamLasers),
+    // Item 2 of the 2026-10-06 follow-up ("announcer mutator"): per-mode like
+    // Tracers, toggled through the exact same generic Entry()/TryToggle()
+    // path — view is synchronized to "teamdeathmatch" here, so its own entry
+    // is TeamDeathmatchAnnouncerEnabled (see Settings.AnnouncerEntry).
+    (ArenaMutator.Announcer, Settings.TeamDeathmatchAnnouncerEnabled) };
 foreach (var (id, entry) in preferencePairs)
 {
     bool before = entry.Value;

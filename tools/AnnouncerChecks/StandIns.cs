@@ -31,16 +31,35 @@ namespace ArenaMode.Config
         public static Entry<bool> AnnouncerEnabled { get; } = new() { Value = true };
         public static Entry<float> AnnouncerVolume { get; } = new() { Value = 0.37f };
         public static Entry<bool> AnnouncerUseUiVolume { get; } = new() { Value = true };
+
+        // Item 2 of the 2026-10-06 follow-up ("announcer mutator"): minimal
+        // stand-in for the real per-mode gate (Config.Settings.
+        // IsAnnouncerEnabledFor/Modes.ArenaAnnouncerGate). The real per-mode
+        // default table and dispatch live in production and are exercised by
+        // ArenaMode.Tests and tools/TdmMatchMenuChecks instead — this harness
+        // only links AnnouncerService.cs itself, so it hardcodes "zombie" as
+        // the one muted id, enough to prove AnnouncerService's own read sites
+        // actually call a per-mode gate rather than only the master switch.
+        public static bool IsAnnouncerEnabledFor(string mode)
+            => AnnouncerEnabled.Value && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase);
     }
 }
 
 namespace ArenaMode.Modes
 {
+    // Minimal stand-in for the production IArenaMode surface; AnnouncerService
+    // only ever reads ArenaMatch.Mode.Id.
+    internal sealed class AnnouncerModeStub
+    {
+        public string Id { get; set; } = "deathmatch";
+    }
+
     internal sealed class ArenaMatch
     {
         // Most recovery tests describe isolated events; timing tests explicitly
         // disable this spacing and drive the production queue's clock themselves.
         internal static bool SpaceEvents = true;
+        public AnnouncerModeStub Mode { get; set; } = new();
         public event Action<string> OnCallout;
         public event Action<ArenaAnnouncerCue> OnAnnouncerCue;
         public void Callout(string label)
