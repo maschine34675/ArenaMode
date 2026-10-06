@@ -138,6 +138,22 @@ internal static class ZombieNativeEventBridge
     private static bool? _savedFlag;
 
     /// <summary>
+    /// The <see cref="GameWorld"/> that was current when <see cref="_savedFlag"/>
+    /// was captured, so a repeat <c>Activate()</c> call that finds
+    /// <see cref="_savedFlag"/> already set can tell apart two situations
+    /// that otherwise look identical (see "Double-Activate" in
+    /// ZOMBIE-MODE-REVIEW.md for the full argument and the 2026-10-06 GPU
+    /// raid that observed this): the SAME raid's own loading sequence
+    /// re-running <c>BotsEventsController.Activate()</c> (harmless — AGENTS.md
+    /// documents <see cref="GameWorld"/> as fresh per raid and the one
+    /// reliable per-raid identity this early, before <c>ArenaSession.IsActive</c>
+    /// can have latched), versus a genuinely DIFFERENT, earlier raid whose
+    /// restore is overdue (noteworthy — logged as a warning, same as before).
+    /// Cleared alongside <see cref="_savedFlag"/> in <see cref="RestoreFlag"/>.
+    /// </summary>
+    private static GameWorld _savedFlagGameWorld;
+
+    /// <summary>
     /// Diagnostics only (nothing else reads this yet): null until hook 1 is
     /// attempted for an armed Zombie raid, then true/false for whether the
     /// repair succeeded and the native event is actually armed this raid.
@@ -226,6 +242,7 @@ internal static class ZombieNativeEventBridge
         finally
         {
             _savedFlag = null;
+            _savedFlagGameWorld = null;
             NativeEventArmed = null;
         }
     }
@@ -250,6 +267,10 @@ internal static class ZombieNativeEventBridge
 
     private static string CurrentLoadingMap()
         => Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance?.LocationId : null;
+
+    /// <summary>See <see cref="_savedFlagGameWorld"/>'s own doc comment for why this is the identity check.</summary>
+    private static GameWorld CurrentGameWorldOrNull()
+        => Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
 
     /// <summary>
     /// Null (never touches the flag) unless the controller's own BotSpawner
@@ -354,13 +375,48 @@ internal static class ZombieNativeEventBridge
                     // Never overwrite the TRUE original a second time, or
                     // restoring later would set the flag to what THIS raid saw
                     // rather than what it genuinely was before any of this.
-                    Plugin.ModLogger.LogWarning(
-                        "Arena zombie native bridge: Activate() fired again before the previous raid's flag "
-                        + "was restored — leaving the saved original value alone.");
+                    //
+                    // Which of two very different situations this is cannot be
+                    // told from the flag alone — see _savedFlagGameWorld's own
+                    // doc comment — so compare GameWorld identity: the GPU raid
+                    // of 2026-10-06 observed this fire 77ms after the first
+                    // "armed" line, in a window far too short for a whole new
+                    // raid (new scene, new GameWorld) to have loaded, which
+                    // means the SAME GameWorld's own loading sequence ran
+                    // BotsEventsController.Activate() a second time. Decompile
+                    // tracing (TarkovApplication.LocalGameMatching ->
+                    // LocalGameCreate -> LocalGame.Run -> vmethod_1 ->
+                    // BotsController.Init -> EventsController.Activate) found
+                    // exactly one call site at every one of those links inside
+                    // Assembly-CSharp, so the repeat happens OUTSIDE that native
+                    // chain — most likely an SPT-side or another installed
+                    // mod's own patch re-running part of raid loading. That
+                    // root cause is not pinned down yet; what IS established is
+                    // that it is harmless here (the originally-saved value is
+                    // kept either way, and still restored exactly once), so a
+                    // same-GameWorld repeat is informational, not a warning.
+                    bool sameRaid = _savedFlagGameWorld != null
+                        && ReferenceEquals(_savedFlagGameWorld, CurrentGameWorldOrNull());
+
+                    if (sameRaid)
+                    {
+                        Plugin.ModLogger.LogInfo(
+                            "Arena zombie native bridge: BotsEventsController.Activate() ran a second time for "
+                            + "this same raid's GameWorld before its flag could be restored — harmless, the "
+                            + "originally-saved value is kept and will still be restored exactly once at raid "
+                            + "end (root cause not yet pinned down; see this hook's own doc comment).");
+                    }
+                    else
+                    {
+                        Plugin.ModLogger.LogWarning(
+                            "Arena zombie native bridge: Activate() fired again before a DIFFERENT, earlier "
+                            + "raid's flag was restored — leaving the saved original value alone.");
+                    }
                 }
                 else
                 {
                     _savedFlag = BotInternalSettingsController.Core.ACTIVE_HALLOWEEN_ZOMBIES_EVENT;
+                    _savedFlagGameWorld = CurrentGameWorldOrNull();
                 }
 
                 if (!TryRepairSpawner(__instance.BotHalloweenWithZombies))
