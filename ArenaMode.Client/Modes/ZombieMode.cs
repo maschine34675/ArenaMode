@@ -1,6 +1,9 @@
 using ArenaMode.Bots;
 using ArenaMode.Combat;
 using ArenaMode.Config;
+using ArenaMode.Events;
+using ArenaMode.Kits;
+using ArenaMode.Respawn;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
@@ -28,6 +31,15 @@ namespace ArenaMode.Modes;
 public sealed class ZombieMode : IArenaMode
 {
     private const float NudgeIntervalSeconds = 5f;
+
+    // Item 3 ("refill between waves"): bounded retry ceiling for
+    // ZombieRefillPolicy — only real attempts (AtRoundBreak returning
+    // false) consume this budget, and the instant-respawn pipeline the
+    // player might be mid-way through when a wave clears measures ~0.2s on
+    // the GPU host (GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md), so this
+    // generous margin at the 0.1s evaluate cadence never meaningfully
+    // shortens the default 10s intermission.
+    private const int RefillMaxAttempts = 20;
 
     // ZombieWavePolicy.Evaluate + the alive/pending recount it needs do not
     // have to run every single rendered frame to keep the wave's own pacing
@@ -59,6 +71,17 @@ public sealed class ZombieMode : IArenaMode
     private int _zombiesKilled;
     private float _nextNudgeAt;
     private float _nextWaveEvaluateAt;
+
+    // Item 3 ("refill between waves", random-kit mode). _currentKit is kept
+    // current by OnKitApplied below — raised after the raid-start swap,
+    // every mid-wave death respawn (random draw, same as v0 today) and this
+    // refill itself — so it is always "whatever the player is wearing right
+    // now", never a fresh draw taken here. See ZombieLoadoutRefill's own doc
+    // comment for exactly how that is handed to LiveKitRespawn.AtRoundBreak
+    // without touching KitCatalog.KitProvider for anything but the width of
+    // that one call.
+    private ZombieRefillPolicy.State _refillState;
+    private KitDefinition _currentKit;
 
     // Cached from the latest Tick for HudStatusLine, which must stay cheap —
     // ScorePanel reads it up to four times a second.
@@ -141,6 +164,8 @@ public sealed class ZombieMode : IArenaMode
 
         _rng = new System.Random();
         _waveState = ZombieWavePolicy.Initial();
+        _refillState = ZombieRefillPolicy.Initial();
+        _currentKit = null;
         _lastAnnouncedWave = 0;
         _zombiesKilled = 0;
         _nextNudgeAt = 0f;
@@ -148,6 +173,14 @@ public sealed class ZombieMode : IArenaMode
         _phase = _waveState.Phase;
         _waveNumber = _waveState.WaveNumber;
         _waveStatusText = $"WAVE {_waveNumber} | {_config.WaveStartSize} LEFT";
+
+        // Tracks "the kit the player currently has" for the intermission
+        // refill below — see ZombieLoadoutRefill's own doc comment. Must be
+        // subscribed before Respawn.LiveKitRespawn.AtRaidStart runs so the
+        // very first life's kit is captured too; ArenaSession.OnRaidStarted
+        // calls Modes.ArenaMatchService.StartMatch (which calls this method)
+        // strictly BEFORE its own AtRaidStart call, so this is in time.
+        ArenaEvents.OnKitApplied += OnKitApplied;
 
         ZombieSpawnService.Reset();
         // countPerPair scales with WaveStartSize (see its own doc comment):
@@ -221,6 +254,35 @@ public sealed class ZombieMode : IArenaMode
                 if (!dispatched)
                     ZombieWavePolicy.ReportFailedDispatch(ref _waveState);
             }
+
+            // Item 3 ("refill between waves", random-kit mode): decide WHEN
+            // purely from the wave phase this call already computed, plus
+            // the player's real eligibility right now. ZombieRefillPolicy
+            // itself detects the Wave->Intermission edge and the "exactly
+            // once" rule; this is just the Unity-facing signal it needs.
+            bool playerEligible = _local != null
+                && _local.HealthController != null
+                && _local.HealthController.IsAlive
+                && !ArenaRespawnDriver.IsRespawnInProgress
+                && !ArenaRespawnDriver.StandDown;
+
+            var refillConfig = new ZombieRefillPolicy.Config { MaxAttempts = RefillMaxAttempts };
+            var refill = ZombieRefillPolicy.Evaluate(ref _refillState, refillConfig, _phase, playerEligible);
+            if (refill.ShouldAttempt)
+            {
+                int clearedWave = _waveNumber;
+                bool started = ZombieLoadoutRefill.TryRefill(
+                    _game,
+                    _currentKit,
+                    clearedWave,
+                    Settings.SpawnProtectionSeconds.Value,
+                    () => IsCurrentRaid() && _phase == ZombieWavePolicy.Phase.Intermission);
+
+                if (started)
+                    ZombieRefillPolicy.ReportStarted(ref _refillState);
+                else
+                    ZombieRefillPolicy.ReportNotStarted(ref _refillState);
+            }
         }
 
         if (now >= _nextNudgeAt)
@@ -254,9 +316,22 @@ public sealed class ZombieMode : IArenaMode
         _localId = player.ProfileId;
     }
 
+    /// <summary>
+    /// Keeps _currentKit as "whatever the player is wearing right now":
+    /// raised after the raid-start swap, every mid-wave death respawn
+    /// (random draw, unaffected by this feature) and this mode's own
+    /// intermission refill. ArenaEvents.OnKitApplied is already scoped to
+    /// the raid it fired for (LiveKitRespawn/ArenaRespawnDriver only raise
+    /// it once their own "same active raid" check passes), and this handler
+    /// is unsubscribed in OnMatchEnd, so a later raid's kit swaps can never
+    /// reach a stale ZombieMode instance.
+    /// </summary>
+    private void OnKitApplied(KitDefinition kit) => _currentKit = kit;
+
     public void OnMatchEnd()
     {
         _ended = true;
+        ArenaEvents.OnKitApplied -= OnKitApplied;
         ZombieSpawnService.Reset();
         ZombieMeleePatch.Reset();
 
