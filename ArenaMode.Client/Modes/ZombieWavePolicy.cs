@@ -22,7 +22,11 @@ namespace ArenaMode.Modes;
 /// the second term keeps the tail of a wave from ever asking for more than
 /// the wave actually still has left, once MaxAlive is no longer the binding
 /// constraint. A wave ends only once everything in it has been spawned AND
-/// nothing from it is alive any more; only then does Intermission begin.
+/// nothing from it is alive any more; only then does Intermission begin —
+/// except for the StuckWaveTimeoutSeconds watchdog (Config/State/Result),
+/// which force-clears a wave whose tail has stayed "everything spawned, at
+/// least one still alive" past that ceiling, since nothing else in this mode
+/// recovers from a single unreachable infected.
 /// </summary>
 internal static class ZombieWavePolicy
 {
@@ -36,6 +40,19 @@ internal static class ZombieWavePolicy
         internal int WaveGrowth;
         internal float IntermissionSeconds;
         internal float SpawnIntervalSeconds;
+
+        /// <summary>
+        /// Safety net for a wave's last infected getting wedged in geometry or
+        /// stranded on an unreachable NavMesh island: once nothing is left to
+        /// spawn for the current wave and at least one infected has stayed
+        /// alive this long since that happened, Evaluate signals
+        /// Result.ForceRetireStuckInfected and clears the wave anyway, rather
+        /// than leaving Phase stuck at Wave — and the whole endless-wave mode
+        /// with it — for the rest of the raid. 0 or negative disables the
+        /// watchdog entirely (the wave then waits for every infected to die
+        /// naturally, with no recovery if one cannot reach the player).
+        /// </summary>
+        internal float StuckWaveTimeoutSeconds;
     }
 
     /// <summary>Mutable per-match state. Default-constructed is NOT a valid start — use <see cref="Initial"/>.</summary>
@@ -52,6 +69,16 @@ internal static class ZombieWavePolicy
 
         /// <summary>When the current Intermission ends, meaningful only during Intermission.</summary>
         internal float PhaseEndsAt;
+
+        /// <summary>
+        /// NaN unless the current wave has nothing left to spawn while at
+        /// least one infected is still alive, in which case this is the
+        /// `now` the tail state was FIRST observed — the stuck-wave
+        /// watchdog's clock starts here, not at wave start. Reset to NaN the
+        /// moment that tail state is no longer true (more spawning resumed,
+        /// the wave cleared normally, or the watchdog force-cleared it).
+        /// </summary>
+        internal float StuckAliveSince;
     }
 
     internal struct Result
@@ -71,6 +98,15 @@ internal static class ZombieWavePolicy
         /// suffix: ZombieMode.HudStatusLine appends that from ArenaMatch.Elapsed, which this pure class
         /// has no access to.</summary>
         internal string StatusText;
+
+        /// <summary>
+        /// True exactly once, on the call where the stuck-wave watchdog fired:
+        /// the wave was force-cleared with at least one infected still
+        /// reported alive. The caller (ZombieMode) must administratively
+        /// retire whatever is still alive right now (ZombieSpawnService),
+        /// since this pure class has no bot identities to act on itself.
+        /// </summary>
+        internal bool ForceRetireStuckInfected;
     }
 
     /// <summary>Wave 1, nothing spawned yet, eligible to spawn immediately.</summary>
@@ -81,6 +117,7 @@ internal static class ZombieWavePolicy
         SpawnedThisWave = 0,
         NextSpawnAt = float.NegativeInfinity,
         PhaseEndsAt = 0f,
+        StuckAliveSince = float.NaN,
     };
 
     /// <summary>Wave n's size: WaveStartSize + WaveGrowth * (n - 1), n &gt;= 1.</summary>
@@ -110,21 +147,56 @@ internal static class ZombieWavePolicy
                 // the wave is cleared, not merely "thinned out".
                 state.Phase = Phase.Intermission;
                 state.PhaseEndsAt = now + intermissionSeconds;
+                state.StuckAliveSince = float.NaN;
                 // Symmetric with the Intermission branch below: a zero-length
                 // intermission must advance straight through to the next wave
                 // (and spawn its first zombie) in this same call, not wait a
                 // whole extra Tick for the transition to be noticed.
                 return Evaluate(ref state, config, now, alive, pending);
             }
+
+            // Tail of the wave: nothing left to request, but at least one of
+            // it has not died. Unlike every other state here, this one has no
+            // other exit — remainingToSpawn stays 0 for the rest of the wave,
+            // so without a ceiling, a single alive-but-unreachable infected
+            // (wedged in geometry, stranded off a connected NavMesh island —
+            // AGENTS.md documents exactly this class of problem) would freeze
+            // Phase at Wave, and the whole endless-wave mode with it, for the
+            // rest of the raid.
+            if (remainingToSpawn == 0 && alive > 0)
+            {
+                if (float.IsNaN(state.StuckAliveSince))
+                    state.StuckAliveSince = now;
+
+                float stuckTimeout = config.StuckWaveTimeoutSeconds;
+                if (stuckTimeout > 0f && now - state.StuckAliveSince >= stuckTimeout)
+                {
+                    // This class owns no bot identities to retire itself —
+                    // it only signals ForceRetireStuckInfected so the caller
+                    // (ZombieMode) can administratively kill whatever is
+                    // still alive right now (ZombieSpawnService), then this
+                    // call proceeds exactly like the ordinary "nothing left
+                    // alive" clear above, with alive forced to 0 from here on
+                    // (the caller is about to make that true for real).
+                    state.Phase = Phase.Intermission;
+                    state.PhaseEndsAt = now + intermissionSeconds;
+                    state.StuckAliveSince = float.NaN;
+                    var forced = Evaluate(ref state, config, now, 0, pending);
+                    forced.ForceRetireStuckInfected = true;
+                    return forced;
+                }
+            }
             else
             {
-                int target = Math.Min(maxAlive, remainingToSpawn + alive);
-                if (remainingToSpawn > 0 && alive + pending < target && now >= state.NextSpawnAt)
-                {
-                    spawnNow = 1;
-                    state.SpawnedThisWave++;
-                    state.NextSpawnAt = now + spawnInterval;
-                }
+                state.StuckAliveSince = float.NaN;
+            }
+
+            int target = Math.Min(maxAlive, remainingToSpawn + alive);
+            if (remainingToSpawn > 0 && alive + pending < target && now >= state.NextSpawnAt)
+            {
+                spawnNow = 1;
+                state.SpawnedThisWave++;
+                state.NextSpawnAt = now + spawnInterval;
             }
         }
         else // Intermission
@@ -135,6 +207,7 @@ internal static class ZombieWavePolicy
                 state.Phase = Phase.Wave;
                 state.SpawnedThisWave = 0;
                 state.NextSpawnAt = now;
+                state.StuckAliveSince = float.NaN;
                 // Re-evaluate as the new wave in the SAME call: a zero-length
                 // intermission must spawn immediately rather than waiting a
                 // whole extra Tick for the transition to be noticed.

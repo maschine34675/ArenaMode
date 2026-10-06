@@ -1,3 +1,4 @@
+using ArenaMode.Combat;
 using ArenaMode.Modes;
 using Comfort.Common;
 using EFT;
@@ -52,7 +53,28 @@ internal static class ZombieSpawnService
     /// </summary>
     private const float PendingTimeoutSeconds = 20f;
 
-    private static readonly List<float> PendingRequests = new List<float>(8);
+    /// <summary>
+    /// One ledger entry per dispatched-but-unconfirmed request, keyed by an
+    /// id unique for this raid rather than tracked as a bare timestamp list.
+    /// OnZombieArrived removes the entry whose id matches the arriving bot's
+    /// own request, never just PendingRequests[0] — a request can resolve
+    /// out of dispatch order (BurstSpawnService.SpawnPair is async per
+    /// request), and popping an arbitrary FIFO slot would attribute one
+    /// request's arrival to a different one's age.
+    /// </summary>
+    private readonly struct PendingEntry
+    {
+        internal readonly int RequestId;
+        internal readonly float DispatchedAt;
+        internal PendingEntry(int requestId, float dispatchedAt)
+        {
+            RequestId = requestId;
+            DispatchedAt = dispatchedAt;
+        }
+    }
+
+    private static readonly List<PendingEntry> PendingRequests = new List<PendingEntry>(8);
+    private static int _nextRequestId;
 
     /// <summary>True: Stage C's native spawn path (BurstSpawnService.SpawnInfected) is wired.</summary>
     internal static bool IsReady => true;
@@ -78,9 +100,10 @@ internal static class ZombieSpawnService
     /// </summary>
     internal static bool TryRequest(WildSpawnType role, BotDifficulty difficulty)
     {
-        bool dispatched = BurstSpawnService.SpawnInfected(role, difficulty, OnZombieArrived);
+        int requestId = unchecked(++_nextRequestId);
+        bool dispatched = BurstSpawnService.SpawnInfected(role, difficulty, bot => OnZombieArrived(requestId, bot));
         if (dispatched)
-            PendingRequests.Add(Time.time);
+            PendingRequests.Add(new PendingEntry(requestId, Time.time));
         return dispatched;
     }
 
@@ -195,12 +218,18 @@ internal static class ZombieSpawnService
     /// decompile-verified) — so a freshly spawned zombie starts hunting
     /// immediately, with or without the native bridge armed (decision 4).
     /// </summary>
-    private static void OnZombieArrived(BotOwner bot)
+    private static void OnZombieArrived(int requestId, BotOwner bot)
     {
         try
         {
-            if (PendingRequests.Count > 0)
-                PendingRequests.RemoveAt(0);
+            for (int i = 0; i < PendingRequests.Count; i++)
+            {
+                if (PendingRequests[i].RequestId == requestId)
+                {
+                    PendingRequests.RemoveAt(i);
+                    break;
+                }
+            }
 
             if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
                 return;
@@ -223,8 +252,67 @@ internal static class ZombieSpawnService
         var cutoff = Time.time - PendingTimeoutSeconds;
         for (var i = PendingRequests.Count - 1; i >= 0; i--)
         {
-            if (PendingRequests[i] < cutoff)
+            if (PendingRequests[i].DispatchedAt < cutoff)
                 PendingRequests.RemoveAt(i);
+        }
+    }
+
+    /// <summary>
+    /// Administratively kills every currently alive infected bot. Called only
+    /// when ZombieWavePolicy's stuck-wave watchdog fires
+    /// (Result.ForceRetireStuckInfected) — i.e. every infected in the current
+    /// wave has already been requested and at least one of them has stayed
+    /// alive, unreachable or otherwise stuck, past
+    /// Settings.ZombieStuckWaveTimeoutSeconds (a bot wedged in geometry or
+    /// stranded off a connected NavMesh island — AGENTS.md documents exactly
+    /// this failure class). Without this, the policy's own force-clear would
+    /// move Phase to Intermission while the stuck body kept existing and kept
+    /// counting toward CountAliveInfected forever. Mirrors BurstSpawnService.
+    /// RetireStaleSpawn's administrative-kill pattern exactly: gated through
+    /// ArenaAdministrativeDeathGate so the retirement is never scored as a
+    /// player kill or an assist.
+    /// </summary>
+    internal static void RetireAllAliveInfected()
+    {
+        try
+        {
+            var owners = Singleton<IBotGame>.Instantiated
+                ? Singleton<IBotGame>.Instance?.BotsController?.Bots?.BotOwners
+                : null;
+            if (owners == null)
+                return;
+
+            var stuck = new List<BotOwner>();
+            foreach (var bot in owners)
+            {
+                if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
+                    continue;
+
+                var role = bot.Profile?.Info?.Settings?.Role;
+                if (role.HasValue && role.Value.IsInfected())
+                    stuck.Add(bot);
+            }
+
+            foreach (var bot in stuck)
+            {
+                try
+                {
+                    using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
+                        bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
+                    Plugin.ModLogger.LogWarning(
+                        "Arena zombie wave watchdog: administratively retired an infected that stayed alive "
+                        + "past the stuck-wave timeout.");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.ModLogger.LogWarning(
+                        $"Arena zombie wave watchdog: could not retire a stuck infected: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie wave watchdog retirement failed: {ex.Message}");
         }
     }
 

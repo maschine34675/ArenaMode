@@ -5,7 +5,7 @@ namespace ArenaMode.Tests;
 public sealed class ZombieWavePolicyTests
 {
     private static ZombieWavePolicy.Config Config(int maxAlive = 20, int start = 8, int growth = 4,
-        float intermission = 10f, float interval = 1f)
+        float intermission = 10f, float interval = 1f, float stuckWaveTimeout = 0f)
         => new ZombieWavePolicy.Config
         {
             MaxAlive = maxAlive,
@@ -13,6 +13,7 @@ public sealed class ZombieWavePolicyTests
             WaveGrowth = growth,
             IntermissionSeconds = intermission,
             SpawnIntervalSeconds = interval,
+            StuckWaveTimeoutSeconds = stuckWaveTimeout,
         };
 
     [Fact]
@@ -137,6 +138,63 @@ public sealed class ZombieWavePolicyTests
         Assert.Equal(ZombieWavePolicy.Phase.Wave, result.Phase);
         Assert.Equal(2, result.WaveNumber);
         Assert.Equal(1, result.SpawnNow);
+    }
+
+    [Fact]
+    public void AnAliveButPermanentlyUnreachableInfectedWouldFreezeTheWaveWithNoWatchdog()
+    {
+        // The bug this guards (wave-softlock-stuck-zombie): with the watchdog
+        // disabled (stuckWaveTimeout: 0, the default), a single infected that
+        // never dies — wedged in geometry, stranded off a connected NavMesh
+        // island — leaves remainingToSpawn at 0 and alive pinned at 1
+        // forever. Nothing ends the wave. Driving the clock for a simulated
+        // half hour must still show Phase stuck at Wave with no spawn
+        // requested, confirming this test would catch a regression that
+        // removed the watchdog entirely.
+        var config = Config(maxAlive: 20, start: 1, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 0f);
+        var state = ZombieWavePolicy.Initial();
+        var first = ZombieWavePolicy.Evaluate(ref state, config, now: 0f, alive: 0, pending: 0);
+        Assert.Equal(1, first.SpawnNow);
+
+        Assert.Equal(ZombieWavePolicy.Phase.Wave,
+            ZombieWavePolicy.Evaluate(ref state, config, now: 1800f, alive: 1, pending: 0).Phase);
+    }
+
+    [Fact]
+    public void TheStuckWaveWatchdogForceClearsAndSignalsAdministrativeRetirement()
+    {
+        // Same unreachable-infected setup as above, but with the watchdog
+        // enabled: once the tail state ("nothing left to spawn, still alive")
+        // has persisted for StuckWaveTimeoutSeconds, the wave must clear
+        // anyway and the caller must be told to retire whatever is alive.
+        var config = Config(maxAlive: 20, start: 1, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 90f);
+        var state = ZombieWavePolicy.Initial();
+        ZombieWavePolicy.Evaluate(ref state, config, now: 0f, alive: 0, pending: 0); // spawns the only zombie
+
+        // Stuck tail begins now (alive=1, nothing left to spawn). Short of
+        // the ceiling: must NOT force-clear yet.
+        var stillWaiting = ZombieWavePolicy.Evaluate(ref state, config, now: 10f, alive: 1, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillWaiting.Phase);
+        Assert.False(stillWaiting.ForceRetireStuckInfected);
+
+        // A plain "nothing alive" dip before the ceiling must not arm the
+        // watchdog permanently either — confirm the timer actually resets.
+        var briefDip = ZombieWavePolicy.Evaluate(ref state, config, now: 20f, alive: 0, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Intermission, briefDip.Phase);
+        Assert.False(briefDip.ForceRetireStuckInfected);
+
+        // Re-arm for the real assertion: a fresh wave, stuck again, driven
+        // past the 90s ceiling with the clock alone (alive pinned at 1 the
+        // whole time, exactly the "unreachable infected" scenario).
+        var next = ZombieWavePolicy.Evaluate(ref state, config, now: 30f, alive: 0, pending: 0); // wave 2 starts + spawns
+        Assert.Equal(2, next.WaveNumber);
+        var stillStuck = ZombieWavePolicy.Evaluate(ref state, config, now: 40f, alive: 1, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillStuck.Phase);
+
+        var forced = ZombieWavePolicy.Evaluate(ref state, config, now: 40f + 90f, alive: 1, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Intermission, forced.Phase);
+        Assert.True(forced.ForceRetireStuckInfected);
+        Assert.Equal(2, forced.WaveNumber); // still reports the wave that was force-cleared
     }
 
     [Fact]
