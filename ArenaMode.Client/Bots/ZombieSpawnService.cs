@@ -314,6 +314,14 @@ internal static class ZombieSpawnService
     /// RetireStaleSpawn's administrative-kill pattern exactly: gated through
     /// ArenaAdministrativeDeathGate so the retirement is never scored as a
     /// player kill or an assist.
+    ///
+    /// Logs ONE summary line for the whole retirement, not one per bot: the
+    /// bigger-waves defaults (item 2 of the 2026-10-06 follow-up) raise the
+    /// tail this can retire from at most WaveStartSize=8 (always &lt;
+    /// MaxAlive) to up to MaxAlive=20 alive at once, so a per-bot line on the
+    /// success path would burst up to 20 LogWarning calls in a single frame
+    /// for an ordinary, expected watchdog firing. The per-bot LogWarning
+    /// stays on the (rare, genuinely exceptional) failure-to-retire path.
     /// </summary>
     internal static void RetireAllAliveInfected()
     {
@@ -336,21 +344,27 @@ internal static class ZombieSpawnService
                     stuck.Add(bot);
             }
 
+            int retired = 0;
             foreach (var bot in stuck)
             {
                 try
                 {
                     using (ArenaAdministrativeDeathGate.Enter(bot.ProfileId))
                         bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
-                    Plugin.ModLogger.LogWarning(
-                        "Arena zombie wave watchdog: administratively retired an infected that stayed alive "
-                        + "past the stuck-wave timeout.");
+                    retired++;
                 }
                 catch (Exception ex)
                 {
                     Plugin.ModLogger.LogWarning(
                         $"Arena zombie wave watchdog: could not retire a stuck infected: {ex.Message}");
                 }
+            }
+
+            if (retired > 0)
+            {
+                Plugin.ModLogger.LogWarning(
+                    $"Arena zombie wave watchdog: administratively retired {retired} infected that stayed "
+                    + "alive past the stuck-wave timeout.");
             }
         }
         catch (Exception ex)
