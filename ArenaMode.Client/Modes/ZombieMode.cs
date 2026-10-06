@@ -29,6 +29,17 @@ public sealed class ZombieMode : IArenaMode
 {
     private const float NudgeIntervalSeconds = 5f;
 
+    // ZombieWavePolicy.Evaluate + the alive/pending recount it needs do not
+    // have to run every single rendered frame to keep the wave's own pacing
+    // (SpawnIntervalSeconds floors at 0.01s and is compared against Time.time
+    // state the policy itself owns): polling this often instead of every
+    // frame cuts a per-tick BotOwners scan and HUD string rebuild down by an
+    // order of magnitude or more at a high frame rate, matching the cadence
+    // every comparable scanning service in this codebase already uses
+    // (BurstSpawnService.Tick, ArenaHostility.Tick, CorpseCleanupService.Tick
+    // — and ScorePanel itself only reads HudStatusLine this often).
+    private const float WaveEvaluateIntervalSeconds = 0.1f;
+
     private ArenaMatch _match;
     private LocalGame _game;
     private GameWorld _world;
@@ -47,6 +58,7 @@ public sealed class ZombieMode : IArenaMode
     private int _lastAnnouncedWave;
     private int _zombiesKilled;
     private float _nextNudgeAt;
+    private float _nextWaveEvaluateAt;
 
     // Cached from the latest Tick for HudStatusLine, which must stay cheap —
     // ScorePanel reads it up to four times a second.
@@ -103,21 +115,36 @@ public sealed class ZombieMode : IArenaMode
         if (!IsCurrentRaid() || string.IsNullOrWhiteSpace(_localId) || _local?.ProfileId != _localId)
             throw new InvalidOperationException("Zombie requires the exact active local raid and player identity.");
 
+        // WaveStartSize/ShooterPercent: read the exact same snapshot the
+        // native opening-wave preload used (ZombieNativeEventBridge, hook 3),
+        // when one exists, rather than reading Settings a second time here —
+        // a supported mid-loading F12 edit must not desync the two. Falls
+        // back to a live read only when that hook never captured one this
+        // raid (it failed to install, or this raid somehow started without
+        // IsArmedZombieLoading ever being true for it).
+        if (!ZombieNativeEventBridge.TryGetOpeningSnapshot(out int waveStartSize, out int shooterPercent))
+        {
+            waveStartSize = Settings.ZombieWaveStartSize.Value;
+            shooterPercent = Settings.ZombieShooterPercent.Value;
+        }
+
         _config = new ZombieWavePolicy.Config
         {
             MaxAlive = Settings.ZombieMaxAlive.Value,
-            WaveStartSize = Settings.ZombieWaveStartSize.Value,
+            WaveStartSize = waveStartSize,
             WaveGrowth = Settings.ZombieWaveGrowth.Value,
             IntermissionSeconds = Settings.ZombieIntermissionSeconds.Value,
             SpawnIntervalSeconds = Settings.ZombieSpawnIntervalSeconds.Value,
+            StuckWaveTimeoutSeconds = Settings.ZombieStuckWaveTimeoutSeconds.Value,
         };
-        _shooterPercent = Settings.ZombieShooterPercent.Value;
+        _shooterPercent = shooterPercent;
 
         _rng = new System.Random();
         _waveState = ZombieWavePolicy.Initial();
         _lastAnnouncedWave = 0;
         _zombiesKilled = 0;
         _nextNudgeAt = 0f;
+        _nextWaveEvaluateAt = 0f;
         _phase = _waveState.Phase;
         _waveNumber = _waveState.WaveNumber;
         _waveStatusText = $"WAVE {_waveNumber} | {_config.WaveStartSize} LEFT";
@@ -137,26 +164,41 @@ public sealed class ZombieMode : IArenaMode
             return;
 
         float now = Time.time;
-        int alive = ZombieSpawnService.CountAliveInfected();
-        int pending = ZombieSpawnService.Pending;
-        var result = ZombieWavePolicy.Evaluate(ref _waveState, _config, now, alive, pending);
 
-        _phase = result.Phase;
-        _waveNumber = result.WaveNumber;
-        _waveStatusText = result.StatusText;
-
-        if (_phase == ZombieWavePolicy.Phase.Wave && _waveNumber != _lastAnnouncedWave)
+        if (now >= _nextWaveEvaluateAt)
         {
-            _lastAnnouncedWave = _waveNumber;
-            _match?.ReportTextCallout($"WAVE {_waveNumber}");
-        }
+            _nextWaveEvaluateAt = now + WaveEvaluateIntervalSeconds;
 
-        for (int i = 0; i < result.SpawnNow; i++)
-        {
-            var draw = ZombieRoleMix.Next(_rng, _shooterPercent);
-            if (ZombieSpawnService.TryMapRole(draw.Role, out var role)
-                && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty))
-                ZombieSpawnService.TryRequest(role, difficulty);
+            int alive = ZombieSpawnService.CountAliveInfected();
+            int pending = ZombieSpawnService.Pending;
+            var result = ZombieWavePolicy.Evaluate(ref _waveState, _config, now, alive, pending);
+
+            _phase = result.Phase;
+            _waveNumber = result.WaveNumber;
+            _waveStatusText = result.StatusText;
+
+            if (_phase == ZombieWavePolicy.Phase.Wave && _waveNumber != _lastAnnouncedWave)
+            {
+                _lastAnnouncedWave = _waveNumber;
+                _match?.ReportTextCallout($"WAVE {_waveNumber}");
+            }
+
+            if (result.ForceRetireStuckInfected)
+            {
+                Plugin.ModLogger.LogWarning(
+                    $"Zombie: wave {result.WaveNumber} did not clear within "
+                    + $"{_config.StuckWaveTimeoutSeconds:0.#}s of its last spawn — administratively "
+                    + "retiring whatever infected is still alive.");
+                ZombieSpawnService.RetireAllAliveInfected();
+            }
+
+            for (int i = 0; i < result.SpawnNow; i++)
+            {
+                var draw = ZombieRoleMix.Next(_rng, _shooterPercent);
+                if (ZombieSpawnService.TryMapRole(draw.Role, out var role)
+                    && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty))
+                    ZombieSpawnService.TryRequest(role, difficulty);
+            }
         }
 
         if (now >= _nextNudgeAt)

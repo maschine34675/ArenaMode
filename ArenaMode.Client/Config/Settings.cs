@@ -171,6 +171,7 @@ public static class Settings
     public static ConfigEntry<int> ZombieIntermissionSeconds { get; private set; }
     public static ConfigEntry<float> ZombieSpawnIntervalSeconds { get; private set; }
     public static ConfigEntry<int> ZombieShooterPercent { get; private set; }
+    public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
     public static ConfigEntry<bool> ZombieColoredTracers { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
@@ -1009,8 +1010,22 @@ public static class Settings
         ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 20,
             new ConfigDescription(
                 "Infected allowed alive at once, across the whole raid. Also raises the native bot " +
-                "cap to at least this + 2 (ArenaBotCapPatch). Frozen at match start.",
-                new AcceptableValueRange<int>(4, 60)));
+                "cap to at least this + 2 (ArenaBotCapPatch). The ceiling is 56, not 60: the server " +
+                "clone's own BotMax/MaxBotPerZone floor (ZombieLocationSettings.MinimumBotCap) is a " +
+                "fixed 60, and the client cap must stay under that or the engine's own per-zone point " +
+                "throttling would start silently dropping spawns below what this value asks for. " +
+                "Frozen at match start.",
+                new AcceptableValueRange<int>(4, 56)));
+
+        ZombieStuckWaveTimeoutSeconds = config.Bind("Zombie", "StuckWaveTimeoutSeconds", 100f,
+            new ConfigDescription(
+                "Safety net for a wave's last infected getting wedged in geometry or stranded on an " +
+                "unreachable NavMesh island: once every infected in the current wave has been requested " +
+                "and at least one is still alive this long after the last one stopped spawning, the " +
+                "survivor(s) are administratively retired and the wave clears anyway. 0 disables the " +
+                "watchdog (the wave then waits for every infected to die naturally, with no recovery if " +
+                "one cannot reach the player). Frozen at match start.",
+                new AcceptableValueRange<float>(0f, 600f)));
 
         ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 8,
             new ConfigDescription(
