@@ -1025,32 +1025,44 @@ a refill firing after EVERY cleared wave, not just the first.**
 Offline (`dotnet test ArenaMode.Tests`, no-deploy sentinel confirmed absent
 before and after): **852 passed, 2 skipped (pre-existing, environment-gated,
 unrelated to Zombie), 0 failed, 854 total** — re-confirmed for this document.
+After the saturated-wave watchdog fix (`39e193d`/`acd57ff`, three new
+`ZombieWavePolicyTests`): 857 total, 855 passed, 2 skipped.
 Clean Release builds of `ArenaMode.Client` and `ArenaMode.Server` with the same
 no-deploy properties: 0 errors. `ZombieWavePolicyTests.cs`,
 `ZombieRefillPolicyTests.cs`, `ZombieOwnGearGateTests.cs` and
 `ZombieProfilePlanTests.cs` carry the new coverage; all remain pure/
 production-linked with no EFT/Unity dependency.
 
-### Updated GPU playtest checklist (next raid)
+### GPU playtest checklist for v1 (played 2026-10-06 evening)
 
-None of v1 has been seen live. Per `AGENTS.md`, "for anything client-side,
-verification is still a raid" — everything above is decompile cross-checking,
-offline tests and clean builds only. The next raid (prefer SPT-GPU-2) must
-confirm, in order:
+v1 was played on SPT-GPU-2 on 2026-10-06 evening in three raids: A (`cf100ab`,
+random kit, still the old wave values 8/4/1), B (`cf100ab`, OwnGear, 30/+10/0.75)
+and C (`acd57ff`, OwnGear, after the saturated-wave watchdog fix). Details:
+`GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`, section "v1 (06.10.2026 abends)".
+Per `AGENTS.md`, "for anything client-side, verification is still a raid", so
+the status of each item below is what a raid showed, not what the offline tests
+say. The checklist, in order, with its status:
 
 1. **Watchdog stays quiet while the player is actively killing.** Fight a wave
    down through kills at a pace slower than `StuckWaveTimeoutSeconds` between
    individual kills; the watchdog must NOT force-clear it. Then stop killing
    entirely for `StuckWaveTimeoutSeconds` with infected still alive and confirm
    it still fires (the watchdog is not disabled, only re-armed by progress).
+   *Confirmed 2026-10-06 (raid A): four kills over more than 100 s drew no
+   warning; it fired 18:03:06, 100 s after the last kill.*
 2. **A wave actually ends through kills**, not the watchdog — the first time
    this mode has shown that live (both GPU-2 raids on 2026-10-06 had every wave
    end via the watchdog instead).
+   *Not confirmed 2026-10-06: every wave that ended in raids A and C ended
+   through the watchdog, raid B had no kills.*
 3. **A 30-zombie wave 1 keeps feeding at `MaxAlive = 20`** with no visible
    stall: alive count ramps to 20 quickly and a kill is followed by a fresh
    spawn within about `SpawnIntervalSeconds`, not a multi-second
    `BotProfileClient` synchronous-miss pause. No `ArgumentOutOfRangeException`
    or profile-starvation warning.
+   *Partly confirmed 2026-10-06 (raids B, C): 20 alive in about 15 s, no Error
+   lines; a kill followed by a fresh spawn was not seen (raid B had no kills,
+   raid C's last 10 spawned only after the watchdog retired the 20).*
 4. **The intermission refill restores magazines/meds/grenades after wave 1**,
    both modes: (a) random-kit — consume some ammo/meds/grenades during wave 1,
    survive to the intermission, confirm the log line `"Zombie refill after
@@ -1059,6 +1071,10 @@ confirm, in order:
    repeat for wave 2's intermission and confirm the SAME refill fires again
    (this is exactly what `1203438` fixes — the prior build would have silently
    stopped refilling after wave 1).
+   *Partly confirmed 2026-10-06: (a) after wave 1 in random-kit mode (raid A:
+   magazine 17/30 -> 30/30 +1, health and hydration full, kills kept, no death
+   counted, but the player was moved about 81 m) and in own-gear mode (raid C,
+   epoch 1); (b) a refill after wave 2 was NOT seen.*
 5. **Own gear end to end.** Arm Zombie with `OwnGear` on (F12 or the new OWN
    GEAR mutator row); confirm the map screen's EQUIPMENT fact shows "Own gear";
    start a raid and confirm the BepInEx log shows the raid-start kit swap was
@@ -1069,8 +1085,16 @@ confirm, in order:
    N)."` with ammo/meds/grenades topped up; end the raid and confirm the
    profile afterward is identical to before arming (the sacred-profile
    guarantee, same as every other mode).
+   *Partly confirmed 2026-10-06 (raids B, C): preload, kit swap and container
+   emptying skipped, four own-gear respawns in 0.07-0.19 s with identical
+   equipment, refill "re-applied (epoch 1)", profile identical before/after
+   raid B; only a bayonet/empty-Gamma loadout was tested (so no ammo/meds/
+   grenades top-up), the map screen's "Own gear" fact was not recorded.*
 6. **Regression check.** A normal (OwnGear off) Zombie raid and an ordinary
    non-Zombie raid are both completely unaffected by all of v1.
+   *Partly confirmed 2026-10-06: raid A is an OwnGear-off Zombie raid and the
+   flag read `false` after every raid; no ordinary non-Zombie control raid was
+   run after v1.*
 
 Also still open from the v0 checklist and not yet retried: performance/corpses
 at `MaxAlive` 40-56, a deliberately stranded infected for the watchdog itself,

@@ -145,13 +145,29 @@ current. User-facing communication is normally German.
   selbst, nach demselben Muster wie `TeamDeathmatchMode.Tick`. Offline danach
   852 bestanden, 2 vorbestehende Skips, 0 fehlgeschlagen, 854 gesamt;
   No-Deploy-Sentinel vor/nach jedem Lauf abwesend bestätigt; Client-/
-  Server-Build je 0 Fehler. **v1 ist noch nicht im Spiel getestet** — der
-  nächste GPU-Raid muss zeigen: der Wachhund bleibt still, solange getötet
-  wird; eine Welle endet tatsächlich durch Kills; eine 30er-Welle füllt bei
-  `MaxAlive` 20 ohne Stau nach; die Pausen-Auffüllung wirkt nach JEDER
-  Welle, nicht nur der ersten; Own Gear hält Ausrüstung über Tod/Pause/
-  Containernutzung und das Profil ist nach dem Raid unverändert. Details,
-  Testliste und offene Punkte: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v1
+  Server-Build je 0 Fehler.
+  **v1 im Spiel getestet (SPT-GPU-2, 2026-10-06 abends, drei Raids):** Raid A
+  (`cf100ab`, Zufallskit, noch Wellenwerte 8/4/1): vier verteilte Kopfschuss-
+  Kills, der Wachhund blieb still und feuerte erst 100 s nach dem letzten Kill,
+  danach Nachfüllen nach Welle 1 (Magazin voll, Kills erhalten, keine Tode,
+  Spieler an einen Spawnpunkt versetzt). Raid B (`cf100ab`, OwnGear, 30/+10/0,75):
+  Own Gear hält die Ausrüstung über vier Tode (Respawn 0,07-0,19 s), Profil
+  vor/nach identisch (nur Bajonett-Testloadout), 119,6 fps bei 20 Zombies — aber
+  der Wachhund feuerte nie: er wurde nur bei vollständig gespawnter Welle scharf,
+  die 30er-Welle blieb bei MaxAlive 20 gesättigt (20 lebend, 10 offen). Fix
+  `39e193d`/`acd57ff` (scharf bei Sättigung oder komplett gespawnt; bei Rest
+  bleibt die Welle in Phase Wave und spawnt sofort weiter), in Raid C
+  (`acd57ff`, OwnGear) bestätigt: Wachhund 18:29:50 und 18:31:38, Own-Gear-
+  Nachfüllen nach Welle 1, Welle 2 = 40. Ausgeliefert zuletzt die Client-DLL aus
+  `acd57ff`, SHA256 `fdff66da1ce6f4be4573b25580e39bd2006bb30af815254f324cc61f562765c5`
+  (Server unverändert). Host-2-Einstellungen danach: OwnGear `false`, die drei
+  Wellenwerte bleiben auf den neuen Standards 30/10/0,75 (BepInEx behält
+  gespeicherte Werte: auf einer bestehenden Installation greifen neue Standards
+  erst nach Zurücksetzen in F12 oder Löschen der cfg-Einträge). Weiter offen:
+  Wellenende durch eigene Kills, Nachfüllen nach Welle 2, Own Gear mit echtem
+  Loadout, In-Place-Nachfüllen statt Versetzen. Details:
+  `GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`, Abschnitt "v1 (06.10.2026
+  abends)"; Checkliste mit Stand in `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v1
   (2026-10-06 evening)".
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
