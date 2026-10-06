@@ -384,13 +384,52 @@ internal static class ArenaMatchService
                     _lastScoreboardProblem = null;
                 return;
             }
-            // Zombie owns its entire population and has no opposing roster to
-            // show (every bot is hostile only to the player) — the same reason
-            // TDM/Tactical return early above, just without a per-mode roster
-            // of their own to build instead. Skipping this avoids a per-bot
-            // actor allocation every 0.25s for a board nothing reads.
             if (match?.Mode is ZombieMode)
+            {
+                // Zombie owns its entire population and has no opposing roster to
+                // show (every bot is hostile only to the player) — the same reason
+                // TDM/Tactical return early above, just without a per-mode roster
+                // of their own to build instead. An UNCONDITIONAL early return
+                // here, though, would mean every killed infected's permanent
+                // ArenaScoreboardEntry (CombatPatches.KillCapturePatch captures
+                // every Arena kill unconditionally, independent of mode; see
+                // ArenaMatch.ReportKill -> ArenaScoreboard.ReportKill/Resolve)
+                // keeps IsCurrentRoster=true forever: that flag is only ever
+                // reset inside THIS method's own roster-rebuild loop below, and
+                // ArenaScoreboard.TrimOrdinaryHistory — built exactly because
+                // "endless modes can create thousands of one-life bot
+                // identities" — has that same loop as its one and only call
+                // site. Skipping it here would silently defeat that bound for
+                // the whole endless raid, in the one mode most likely to hit it.
+                // Sync against an EMPTY opponent/friendly list instead of
+                // returning — no per-bot actor snapshot, so this stays as
+                // cheap as the return it replaces — purely so the rebuild loop
+                // can reset IsCurrentRoster for anything that is not the local
+                // player and TrimOrdinaryHistory can actually reclaim it.
+                var zombieWorld = Comfort.Common.Singleton<GameWorld>.Instantiated
+                    ? Comfort.Common.Singleton<GameWorld>.Instance
+                    : null;
+                var zombieLocalPlayer = zombieWorld?.MainPlayer;
+                if (ReferenceEquals(zombieLocalPlayer, null) || zombieLocalPlayer == null)
+                    return;
+
+                ArenaScoreboardActor zombieLocal = SnapshotActor(zombieLocalPlayer);
+                if (zombieLocal == null)
+                    return;
+
+                if (!match.Scoreboard.TrySynchronizeRoster(
+                        1, zombieLocal, Array.Empty<ArenaScoreboardActor>(), Array.Empty<ArenaScoreboardActor>(),
+                        out var zombieProblem))
+                {
+                    NoteScoreboardProblem(zombieProblem);
+                }
+                else
+                {
+                    _lastScoreboardProblem = null;
+                }
+
                 return;
+            }
 
             var world = Comfort.Common.Singleton<GameWorld>.Instantiated
                 ? Comfort.Common.Singleton<GameWorld>.Instance
