@@ -47,6 +47,9 @@
     <Compile Include="..\ArenaMode.Client\Kits\KitModels.cs" Link="ClientRules\KitModels.cs" />
     <Compile Include="..\ArenaMode.Client\Kits\KitPreloadPlan.cs" Link="ClientRules\KitPreloadPlan.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\SoloTacticalRoundStartPolicy.cs" Link="ClientRules\SoloTacticalRoundStartPolicy.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\ZombieWavePolicy.cs" Link="ClientRules\ZombieWavePolicy.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\ZombieRoleMix.cs" Link="ClientRules\ZombieRoleMix.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\ZombieProfilePlan.cs" Link="ClientRules\ZombieProfilePlan.cs" />
   </ItemGroup>
 
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets

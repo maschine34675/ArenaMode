@@ -41,6 +41,10 @@ public sealed class KitPreloadPlanTests
         Assert.Same(baseKit, KitPreloadPlan.OpeningKit("endless", false, () => baseKit, Never("gun game"), Never("tactical")));
         Assert.Same(baseKit, KitPreloadPlan.OpeningKit("rounds", false, () => baseKit, Never("gun game"), Never("tactical")));
         Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.TeamDeathmatch, false, () => baseKit, Never("gun game"), Never("tactical")));
+        // Zombie's equipment is "Arena kits" (ArenaModeCatalog's definition),
+        // the same base-kit/random-draw path Deathmatch and Team DM use — it
+        // falls through the switch rather than needing its own case.
+        Assert.Same(baseKit, KitPreloadPlan.OpeningKit(ArenaPopulationPolicy.Zombie, false, () => baseKit, Never("gun game"), Never("tactical")));
         Assert.Same(rung, KitPreloadPlan.OpeningKit(KitPreloadPlan.GunGameModeId, false, Never("base"), () => rung, Never("tactical")));
         Assert.Same(rung, KitPreloadPlan.OpeningKit("GUNGAME", false, Never("base"), () => rung, Never("tactical")));
 
@@ -64,7 +68,7 @@ public sealed class KitPreloadPlanTests
         // The base-kit supplier DRAWS the raid's random kit. A raid that keeps
         // the PMC's entry loadout must not burn that draw, so no supplier may
         // be asked at all.
-        foreach (var mode in new[] { ArenaPopulationPolicy.Tactical, "TACTICAL", KitPreloadPlan.GunGameModeId, "endless", "teamdeathmatch" })
+        foreach (var mode in new[] { ArenaPopulationPolicy.Tactical, "TACTICAL", KitPreloadPlan.GunGameModeId, "endless", "teamdeathmatch", ArenaPopulationPolicy.Zombie })
             Assert.Null(KitPreloadPlan.OpeningKit(mode, true, Never("base"), Never("gun game"), Never("tactical")));
     }
 
