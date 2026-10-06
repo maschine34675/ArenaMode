@@ -117,3 +117,34 @@ prüfen; Factory-Zeitwahl und Customs-Preview ohne Überlappungen, Escape und
 gewöhnlichen PMC-Bildschirm auf vollständige Restaurierung prüfen. Keine neue Raid-Abnahme nötig,
 um die unveränderten Gameplaypfade zu beschreiben; deren Funktion ist mit diesem
 Menütest aber nicht erneut bestätigt.
+
+## Nachtrag 2026-10-06 (nachts): ANNOUNCER dazu, OWN GEAR raus
+
+Nach dem Stand oben (05.10.2026) kam im selben Zombie-Nachtrag ein neuer
+Mutator hinzu und einer wieder heraus, beide ohne `ArenaMutatorsView`-Code-
+Änderung — die Ansicht baut ihre Zeilen generisch aus `Enum.GetValues
+(typeof(ArenaMutator))`, siehe ZOMBIE-MODE-REVIEW.md, Abschnitt "v2
+(2026-10-06 night)" für die volle Begründung:
+
+- **ANNOUNCER** (`ArenaMutator.Announcer`) schaltet den Arena-Announcer PRO
+  MODUS, genau wie Killcam pro Modus läuft: Standard AUS bei Zombies, AN bei
+  den vier anderen Modi, über je eine eigene `ConfigEntry<bool>` pro
+  Modus-Sektion (`Settings.AnnouncerEntry`/`BindAnnouncer`). Dasselbe
+  ON/OFF-Aussehen wie jeder bestehende Schalter oben, bei Arm eingefroren
+  (`ArenaSession.AnnouncerEnabledSelection`). Der bestehende globale
+  Audio/Announcer-Hauptschalter bleibt unverändert LIVE und wirkt weiter als
+  Mastergate über alle fünf Modi; Lautstärke bleibt ebenfalls global.
+  HUD-Textdurchsagen ("WAVE n") sind kein Announcer und bleiben unverändert.
+- **OWN GEAR** stand nie als Zeile in der Tabelle oben: Es kam erst nach dem
+  05.10.2026-Stand dieses Dokuments als eigener Mutator (`ArenaMutator.
+  OwnGear`) hinzu und wurde noch in derselben Nachtrag-Sitzung wieder
+  entfernt, bevor es je hier dokumentiert wurde. Die Zombie-Eigenausrüstung
+  ist jetzt eine Zeile im LINKEN Modus-Panel (EQUIPMENT-Fakt-Slot, nur für
+  Zombie sichtbar), nicht mehr im rechten Mutatoren-Panel; siehe
+  ZOMBIE-MODE-REVIEW.md für die Verfügbarkeitstabelle.
+- Die Zählung "vierzehn" oben war schon vor diesem Nachtrag veraltet
+  (Pickups/Tracer/Laser/Akimbo kamen seither dazu, ohne dass dieses Dokument
+  nachgezogen wurde) und wird hier nicht nachträglich korrigiert — das ist
+  vorbestehende, von diesem Nachtrag unabhängige Technik-Schuld. Die
+  aktuelle Zahl laut ZOMBIE-MODE-REVIEW.md: 15 Mutatoren nach Entfernung von
+  OWN GEAR, 16 nach Hinzufügen von ANNOUNCER. Noch nicht im Spiel bestätigt.

@@ -1420,3 +1420,150 @@ confirmed byte-unchanged by the script's own hash checks, final positive run
 green — `ARENA_ANNOUNCER_REGRESSION_VERIFIED`. `tools/TdmMatchMenuChecks`
 (`dotnet run`, links the real `Settings.cs`): unchanged at 1064 assertions —
 this fix added no new menu-facing surface for it to cover.
+
+## v2 (2026-10-06 night): equipment choice in the left panel, per-mode announcer
+
+Consolidated reference for the night's two user-requested changes (the same
+evening's own-gear/wave work above is v1; this is the user's follow-up after
+playing v1). The full narrative — design reasoning, every call site touched,
+every fault control's exact mechanism — is already written above as
+`### 2026-10-06 follow-up, item 1 ("own gear to the left") — Stage A`,
+`### 2026-10-06 follow-up, item 2 ("announcer mutator") — Stage B` and
+`### 2026-10-06 follow-up, item 2 — ANN-1 fix (frozen at arm)`, all still
+nested under the `## v1` heading because they were written before this
+section existed; this section does not restate that narrative, only
+collects it into the table/checklist shape the task asked for. Commits,
+oldest first: `f79efc4` `3080683` `11c97e0` `ab2ed91` (item 1) `2f1df78`
+`f82c187` `a32dda3` `2124f17` (item 2) `091c5f9` (ANN-1 fix).
+
+### Equipment-choice availability table
+
+`Modes.ArenaEquipmentChoice.IsOfferedFor(mode)` is the single source of
+truth; both the left-panel row and the EQUIPMENT fact text read only this
+table, never a mode-id literal of their own.
+
+| Mode | Offered today? | What shows in the left panel |
+|---|---|---|
+| Zombie | **yes** | `ArenaEquipmentChoiceView` row ("Arena kits" / "Own gear") replaces the EQUIPMENT fact, drives `Settings.ZombieOwnGear` |
+| Deathmatch | no | plain EQUIPMENT fact ("Arena kits"); table entry is the only change needed later |
+| Gun Game | no | plain EQUIPMENT fact |
+| Team Deathmatch | no | plain EQUIPMENT fact |
+| Tactical | no (has its own mechanism) | plain EQUIPMENT fact; the automatic protected-team own-gear path is untouched and gets no row here |
+
+### Frozen plumbing
+
+- **Equipment choice.** Unchanged from v1: `ArenaSession.ZombieOwnGearSelection`
+  freezes `Settings.ZombieOwnGear.Value` at `MarkArmed`, reset at the same six
+  sites as before. Only the write path moved, from
+  `ArenaMutatorSelection.TryToggle` to the mode-dispatched
+  `Settings.TrySelectEquipmentChoice`, onto the exact same `ConfigEntry`, the
+  exact same `ArenaSession.IsActive||ArmedForNextRaid` lock and the exact same
+  `File.Save()` fallback.
+- **Announcer.** Shipped WITHOUT a frozen capture on day one (the live
+  `_match.Mode.Id` read was argued safe because the mode id cannot drift —
+  true, but irrelevant to the per-mode `ConfigEntry`'s *value* changing via a
+  live F12 edit, which bypasses `TryToggle`'s lock entirely). Caught in
+  same-day review as ANN-1 and fixed: `ArenaSession.AnnouncerEnabledSelection`
+  now freezes `Settings.GetAnnouncerPerModeEnabled(mode)` at `MarkArmed`,
+  reset at the same six sites `ZombieOwnGearSelection` resets at.
+  `AnnouncerService.IsEnabledForLiveMatch()` ANDs that frozen value with the
+  still-LIVE `Settings.AnnouncerEnabled` master switch (deliberately not
+  frozen — it is the kill switch the task asked to keep global and immediate)
+  through the same pure `ArenaAnnouncerGate.IsEnabled`. All four of
+  `AnnouncerService`'s read sites (the attach-time log line, `SubmitCallout`,
+  both `Tick` checks, `Receive`) call this one helper now, so they cannot
+  disagree with each other.
+
+### Announcer per-mode default table
+
+`Modes.ArenaAnnouncerGate.DefaultEnabled(mode)` is one negative comparison
+(Zombie → false, everything else → true), so a sixth mode added later
+defaults to announcer ON without anyone having to remember to list it.
+
+| Mode | Default | Backing `ConfigEntry` |
+|---|---|---|
+| Zombie | **OFF** | `Zombie / Announcer` (`ZombieAnnouncerEnabled`) |
+| Deathmatch | ON | `Deathmatch / Announcer` (`DeathmatchAnnouncerEnabled`) |
+| Gun Game | ON | `Gun Game / Announcer` (`GunGameAnnouncerEnabled`) |
+| Tactical | ON | `Tactical / Announcer` (`TacticalAnnouncerEnabled`) |
+| Team Deathmatch | ON | `Team Deathmatch / Announcer` (`TeamDeathmatchAnnouncerEnabled`) |
+
+The pre-existing global `Settings.AnnouncerEnabled` ("Audio" / "Announcer")
+is unchanged and stays the master gate over all five rows above; volume
+(`AnnouncerVolume`/`AnnouncerUseUiVolume`) stays global too. HUD text
+callouts (e.g. "WAVE n") are a separate event chain and are untouched by any
+of this.
+
+### Tests and fault controls
+
+Offline totals progressed 857 (end of v1) → 866 (Stage A, +9
+`ArenaEquipmentChoiceTests`) → 872 (Stage B, +6 `ArenaAnnouncerGateTests`) →
+872 unchanged (ANN-1 fix — `ArenaSession`'s own capture/reset wiring is
+Unity-only and cannot be unit-tested, same as `ZombieOwnGearSelection`'s
+capture never having its own xunit test). Final: 870 passed, 2 pre-existing
+skips, 0 failed, 872 total; no-deploy sentinel confirmed absent before and
+after every run; `ArenaMode.Client`/`ArenaMode.Server` Release builds 0
+errors throughout.
+
+Fault controls actually run (inject/red/restore/green), summarized from the
+full detail above:
+
+- `ArenaEquipmentChoice.IsOfferedFor` forced to `true` for every mode → 3
+  tests red → reverted, green.
+- `ArenaEquipmentChoiceState.Visible`'s `!_tacticalOnly` guard dropped → 1
+  test red → reverted, green.
+- `ArenaAnnouncerGate.DefaultEnabled`'s `OrdinalIgnoreCase` swapped to
+  `Ordinal` → `ZombieDefaultsOffEveryOtherModeDefaultsOn` red → reverted,
+  green.
+- `ArenaAnnouncerGateTests`' `[Theory]` truth table exercises all four
+  `IsEnabled(master, perMode)` rows directly.
+- ANN-1: `AnnouncerService.IsEnabledForLiveMatch()` reverted to the pre-fix
+  live `Settings.IsAnnouncerEnabledFor(_match?.Mode?.Id)` read via
+  `tools/AnnouncerChecks`' `-p:AnnouncerServiceSource` override → the two new
+  `VerifyPerModeGate` assertions (Zombie armed ON must play despite its own
+  live default being off; Team Deathmatch armed OFF must stay silent despite
+  its own live default being on) failed exactly as expected → reverted to
+  the real fixed source, green (315 assertions, up from 313).
+
+Offline tool totals at the end of this work: `tools/TdmMatchMenuChecks`
+1064 assertions (`dotnet run` and its `Run-Checks.ps1` mutation harness, 14/14
+negative controls); `tools/AnnouncerChecks` 315 assertions plus
+`Verify-Regression.ps1`'s full historical mutation suite all still failing at
+their expected boundary; `tools/AreaConfigChecks` 178 assertions. Two
+pre-existing, unrelated offline-tool build breaks found while verifying the
+above (`tools/ParticipantMenuChecks`, `tools/RoleLabelChecks`) were spun off
+rather than fixed here; two more of the same bug class
+(`tools/AreaTeamMenuChecks`, and `tools/ParticipantMenuChecks`'s own stale
+ceiling) were fixed by a different, parallel session on this shared branch
+the same night (`e73351b`, `c4ba796`, `2739263`, `0e05208`) — confirmed via
+`git diff --stat` that none of those four commits touch any file this v2
+work changed.
+
+### GPU playtest checklist for v2 (not yet played)
+
+Per `AGENTS.md`, "for anything client-side, verification is still a raid" —
+every item below is still open; nothing in this list has been confirmed in
+a running game yet. The 56-concurrent-zombie performance measurement raid is
+tracked separately (see "State" above / the handoff) and is not part of
+this checklist.
+
+1. **Left-panel equipment-choice row** is visible in the Zombie mode panel,
+   shows "Arena kits"/"Own gear", and actually toggles
+   `Settings.ZombieOwnGear` (persisted, reflected in the EQUIPMENT fact text,
+   frozen once armed — an F12 edit mid-arm must not move the live raid).
+2. The same row is **N/A/hidden for every other mode** (Deathmatch, Gun
+   Game, Team Deathmatch) and Tactical in particular shows its ordinary
+   plain EQUIPMENT fact with its automatic protected-team behaviour
+   completely unaffected.
+3. **Mutators panel shows 16 rows**, `ANNOUNCER` among them, laid out in the
+   same two-column shape as before (no visible OWN GEAR row left there).
+4. **A Zombie raid stays silent** on the announcer (no stingers/match cues)
+   under the per-mode default, with the global Audio/Announcer master switch
+   left on; toggling the master switch off and back on around that same raid
+   still works as an immediate kill switch.
+5. **A Deathmatch (or other non-Zombie) raid is audible** on the announcer
+   under its per-mode default, with the same master switch on.
+6. **Killcam is unchanged**: its per-mode seconds setting, menu row and
+   recording behaviour show no regression from either change above.
+7. **Regression**: an ordinary non-Arena raid and a Zombie raid with
+   `OwnGear` off behave exactly as before this night's work.

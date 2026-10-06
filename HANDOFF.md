@@ -169,6 +169,52 @@ current. User-facing communication is normally German.
   `GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`, Abschnitt "v1 (06.10.2026
   abends)"; Checkliste mit Stand in `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v1
   (2026-10-06 evening)".
+  **v2 (2026-10-06 nachts, Equipment-Choice ins linke Panel + ANNOUNCER-
+  Mutator, neun weitere Commits auf `091c5f9`: `f79efc4` `3080683` `11c97e0`
+  `ab2ed91` `2f1df78` `f82c187` `a32dda3` `2124f17` `091c5f9`):** Nutzerwunsch
+  nach dem v1-Playtest, OWN GEAR aus dem rechten Mutatoren-Panel ins LINKE
+  Modus-Panel zu verschieben (als Equipment-Wahl, die später für die meisten
+  Modi gelten soll), plus ein neuer Mutator ANNOUNCER. (1) `Modes.
+  ArenaEquipmentChoice` ist eine reine Pro-Modus-Verfügbarkeitstabelle (heute
+  bietet nur Zombie eine Wahl an); die neue Zeile sitzt jetzt im
+  EQUIPMENT-Fakt-Slot des linken Panels (`ArenaEquipmentChoiceView`/`-State`)
+  und ersetzt dort den reinen Fakttext, sobald ein Modus eine Wahl anbietet —
+  alle anderen Modi (inklusive Tactical, dessen eigener automatischer
+  Own-Gear-Pfad unverändert bleibt) zeigen weiter nur den Fakt.
+  `ArenaMutator.OwnGear` ist entfernt (wieder 15 Mutatoren); derselbe
+  `Settings.ZombieOwnGear`-ConfigEntry, dieselbe Arm-Sperre und derselbe
+  eingefrorene `ArenaSession.ZombieOwnGearSelection`-Capture/Reset-Vertrag
+  bleiben unverändert — nur der Schreibpfad wechselt zu `Settings.
+  TrySelectEquipmentChoice`. (2) Neuer Mutator **ANNOUNCER**
+  (`ArenaMutator.Announcer`, wieder 16 Mutatoren): schaltet den
+  Arena-Announcer PRO MODUS wie Killcam — Standard AUS bei Zombies, AN bei
+  den anderen vier Modi, je ein neues `ConfigEntry<bool>` pro Modus-Sektion
+  über `Settings.BindAnnouncer`; der bestehende globale Audio/Announcer-
+  Hauptschalter bleibt unverändert als Mastergate, Lautstärke bleibt global.
+  HUD-Textdurchsagen ("WAVE n") sind kein Announcer und bleiben unverändert.
+  Review-Fund noch am selben Tag (ANN-1, `091c5f9`): der Pro-Modus-Wert wurde
+  live statt eingefroren gelesen, anders als bei jedem Geschwister-Setting
+  (Killcam, GunGameLadderSelection, ZombieOwnGearSelection) — ein F12-Eingriff
+  mitten im laufenden Raid hätte sofort gewirkt. Fix: neues `ArenaSession.
+  AnnouncerEnabledSelection`, beim Armen eingefroren und an denselben sechs
+  Stellen zurückgesetzt wie `ZombieOwnGearSelection`; alle vier Lesestellen in
+  `AnnouncerService` laufen jetzt über einen gemeinsamen
+  `IsEnabledForLiveMatch()`-Helfer. Offline danach 870 bestanden, 2
+  vorbestehende Skips, 0 fehlgeschlagen, 872 gesamt; No-Deploy-Sentinel
+  vor/nach jedem Lauf abwesend bestätigt; Client-/Server-Build je 0 Fehler.
+  Vier weitere Commits auf demselben Branch (`e73351b`, `c4ba796`, `2739263`,
+  `0e05208`) stammen aus einer anderen, parallel laufenden Sitzung im selben
+  Worktree und beheben vorbestehende, von diesem Nachtrag unabhängige
+  Offline-Tool-Build-Brüche (AreaTeamMenuChecks-Panelgrenzen, RoleLabelChecks-
+  Stand-in, ParticipantMenuChecks-Ceiling/Theme-Link) — per `git diff --stat`
+  bestätigt, dass dieser Nachtrag keine der betroffenen Dateien berührt.
+  **v2 wurde zum Zeitpunkt dieses Absatzes noch NICHT im Spiel getestet** —
+  offen für den nächsten GPU-Raid: die neue Equipment-Choice-Zeile im linken
+  Panel sichtbar und für Zombie umschaltbar, N/A/versteckt für alle anderen
+  Modi; das Mutatoren-Panel zeigt 16 Zeilen inklusive ANNOUNCER; ein
+  Zombie-Raid bleibt beim Announcer still, ein Deathmatch-Raid bleibt
+  hörbar; Killcam unverändert. Details: `ZOMBIE-MODE-REVIEW.md`, Abschnitt
+  "v2 (2026-10-06 night)".
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12
