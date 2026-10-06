@@ -714,6 +714,50 @@ single frame. Changed to one `LogInfo` summary line
 `LogWarning` stays, but only on the genuinely exceptional failure-to-retire
 path. Log-shape only, no behaviour change.
 
+**Saturated waves arm the watchdog too (2026-10-06, same day).** The
+progress fix above still only ARMED once `remainingToSpawn == 0` — the wave
+fully spawned. A GPU raid the same day (18:04-18:10, wave 1 of 30 after
+`7588923` raised `WaveStartSize` to 30 with `MaxAlive` unchanged at 20) hit
+exactly the gap that leaves open: 20 infected alive, 10 still to spawn, a
+player who could not land a kill, no infected death for over four minutes —
+and the watchdog never fired at all, because the wave was never "fully
+spawned". In v0 the same kind of stall resolved after 100s, only because
+`WaveStartSize` (8) sat below `MaxAlive`, so every wave reached the
+fully-spawned tail while still comfortably under the cap; the bigger-wave
+change below is what exposed this. The real failure condition was never
+"fully spawned", it is SATURATED: no spawn is possible right now, either
+because everything has already been requested, or because `alive + pending`
+already fills the policy's own target
+(`min(MaxAlive, remainingToSpawn + alive)`, the same formula the ordinary
+continuous-refill spawn decision already used) — both are the same failure
+from the watchdog's point of view, since only an infected death can free the
+room for the next spawn. `ZombieWavePolicy.Evaluate` now arms/re-arms on
+saturation, using the exact same progress-not-duration clock as before. A
+firing while `remainingToSpawn > 0` clears only the alive infected and stays
+in `Phase.Wave` — the wave is not over, only unstuck — so the remainder
+resumes spawning in the very same call, exactly as an ordinary death would
+have let it; only a firing at the fully-spawned tail still ends the wave as
+before. A wave still filling up (`alive + pending` below target) is never
+saturated and must never arm this.
+
+**Fault control.** Three new tests, each with an injected fault that turns
+it red before the corresponding fix and green after it is restored:
+(a) `TheStuckWaveWatchdogArmsWhenTheWaveIsSaturatedEvenWithSpawnsStillLeft`
+reproduces the GPU raid directly (30-wave, `MaxAlive` 20, 20 alive/10 left,
+zero deaths) — reverting the arming condition from `saturated` back to the
+old `remainingToSpawn == 0` alone made it fail (the 90s ceiling crossed with
+`ForceRetireStuckInfected` never turning true). (b)
+`TheStuckWaveWatchdogKeepsResettingWhileSaturatedAndInfectedKeepDying` reuses
+the masked-death pattern (one infected dies the same call a different one
+arrives, so `alive` never visibly dips) but for the mid-wave/capped case —
+reverting the re-arm condition from `NaN || anyDeathSinceLastCall` back to
+`NaN`-only made it fail inside the loop, because nothing else resets the
+clock while the wave stays pinned at the cap. (c)
+`AWaveStillFillingUpDoesNotArmTheWatchdogEvenForALongTime` sits at 5/30
+alive (`MaxAlive` 20) for 1000s with no deaths and confirms the watchdog
+never arms and the wave keeps trying to spawn — the boundary the `saturated`
+condition must respect.
+
 ### 2. Continuous, much bigger waves
 
 **New defaults (`Settings.cs`, section `"Zombie"`):**

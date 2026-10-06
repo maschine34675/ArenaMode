@@ -303,14 +303,17 @@ internal static class ZombieSpawnService
     /// <summary>
     /// Administratively kills every currently alive infected bot. Called only
     /// when ZombieWavePolicy's stuck-wave watchdog fires
-    /// (Result.ForceRetireStuckInfected) — i.e. every infected in the current
-    /// wave has already been requested and at least one of them has stayed
-    /// alive, unreachable or otherwise stuck, past
+    /// (Result.ForceRetireStuckInfected) — i.e. the wave is SATURATED (either
+    /// every infected in it has already been requested, or alive+pending
+    /// already fills what it may ask for right now — see ZombieWavePolicy's
+    /// own doc comment, "Saturated waves arm the watchdog too") and at least
+    /// one infected has stayed alive, unreachable or otherwise stuck, past
     /// Settings.ZombieStuckWaveTimeoutSeconds (a bot wedged in geometry or
     /// stranded off a connected NavMesh island — AGENTS.md documents exactly
     /// this failure class). Without this, the policy's own force-clear would
-    /// move Phase to Intermission while the stuck body kept existing and kept
-    /// counting toward CountAliveInfected forever. Mirrors BurstSpawnService.
+    /// leave the stuck body existing and counting toward CountAliveInfected
+    /// forever — ending the wave if it was the fully-spawned tail, or simply
+    /// freezing it short of MaxAlive otherwise. Mirrors BurstSpawnService.
     /// RetireStaleSpawn's administrative-kill pattern exactly: gated through
     /// ArenaAdministrativeDeathGate so the retirement is never scored as a
     /// player kill or an assist.

@@ -244,9 +244,16 @@ public sealed class ZombieMode : IArenaMode
 
             if (result.ForceRetireStuckInfected)
             {
+                // "did not clear" is no longer always literal (see
+                // ZombieWavePolicy's own doc comment, "Saturated waves arm
+                // the watchdog too"): a saturated MID-wave firing retires
+                // the stuck survivor(s) and lets the wave's remainder keep
+                // spawning, rather than ending the wave outright. Phase
+                // still tells the difference for anyone reading the log
+                // alongside the next status line.
                 Plugin.ModLogger.LogWarning(
-                    $"Zombie: wave {result.WaveNumber} did not clear within "
-                    + $"{_config.StuckWaveTimeoutSeconds:0.#}s of its last spawn — administratively "
+                    $"Zombie: wave {result.WaveNumber} made no progress (no infected death) for "
+                    + $"{_config.StuckWaveTimeoutSeconds:0.#}s while saturated — administratively "
                     + "retiring whatever infected is still alive.");
                 ZombieSpawnService.RetireAllAliveInfected();
             }
