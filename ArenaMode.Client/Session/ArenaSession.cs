@@ -405,6 +405,12 @@ public static class ArenaSession
         // was cleared abnormally. Self-noops when nothing was boosted.
         Combat.ArenaSkills.Restore();
 
+        // Also outside the guard: safety net for ZombieNativeEventBridge's own
+        // Dispose postfix, which normally restores the native Halloween-event
+        // flag at BotsController.StopGettingInfo. Idempotent — a no-op once
+        // that postfix (or an earlier call to this same method) already ran.
+        Bots.ZombieNativeEventBridge.RestoreFlag();
+
         // Also outside the guard, and a no-op when there is none: whatever the
         // loading screen warmed for this raid dies with the raid's pools.
         Kits.KitBundlePreloader.DiscardRaidStart("raid ended");

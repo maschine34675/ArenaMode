@@ -96,4 +96,30 @@ public static class ArenaPopulationPolicy
            && !string.IsNullOrEmpty(loadingMap)
            && string.Equals(armedMap, loadingMap, StringComparison.OrdinalIgnoreCase)
            && string.Equals(armedMode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Whether the raid currently loading is the exact Zombie raid armed for it —
+    /// the gate the client's native-event bridge uses for its four Harmony hooks
+    /// (BotsEventsController.Activate/Dispose and the static
+    /// BotHalloweenWithZombies.GetProfilesOnStart/AddBackupProfiles).
+    ///
+    /// All three non-Dispose hooks fire inside LocalGame.vmethod_1 — the same
+    /// loading phase ArenaProfilePreloadPatch's own doc comment documents as its
+    /// loading-time exception, well before IsActive can latch (decompile-verified:
+    /// vmethod_1 constructs BotProfileClient, conditionally calls
+    /// BotHalloweenWithZombies.GetProfilesOnStart(), then calls
+    /// BotsController.Init(), which constructs BotsEventsController and calls its
+    /// Activate() — all before OnGameStarted). Same shape as
+    /// <see cref="SkipsProfilePreload"/> above, deliberately kept as a separate
+    /// function rather than reused: that one answers "may the generic
+    /// assault/marksman/PMC preload be skipped" for Team Deathmatch only, a
+    /// different question the native-event bridge has no stake in (see
+    /// SkipsProfilePreload's own doc comment for why Zombie is excluded from it).
+    /// </summary>
+    public static bool IsArmedZombieLoading(bool armedForNextRaid, string? armedMap, string? armedMode, string? loadingMap)
+        => armedForNextRaid
+           && !string.IsNullOrEmpty(armedMap)
+           && !string.IsNullOrEmpty(loadingMap)
+           && string.Equals(armedMap, loadingMap, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(armedMode, Zombie, StringComparison.OrdinalIgnoreCase);
 }

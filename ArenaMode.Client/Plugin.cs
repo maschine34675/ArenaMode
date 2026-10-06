@@ -84,6 +84,7 @@ public class Plugin : BaseUnityPlugin
         Bots.TdmSearchTempo.Enable();
         Bots.ArenaBotDifficultyClockPatch.EnablePatch();
         Bots.ArenaProfilePreloadPatch.EnablePatch();
+        Bots.ZombieNativeEventBridge.EnablePatch();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
         Areas.ArenaAreaInitialSpawnPatch.EnablePatch();

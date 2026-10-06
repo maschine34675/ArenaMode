@@ -271,6 +271,32 @@ public class LocationMutatorTests
     }
 
     [Fact]
+    public void TheNativeEventBridgeGateMatchesTheExactArmedZombieRaid()
+    {
+        // ZombieNativeEventBridge's four Harmony hooks (client-side, not
+        // directly testable here — see AGENTS.md) all gate on this one pure
+        // function. Confirm it fires for the exact armed Zombie raid...
+        Assert.True(ArenaPopulationPolicy.IsArmedZombieLoading(true, "bigmap",
+            ArenaPopulationPolicy.Zombie, "BIGMAP"));
+
+        // ...and nothing else, including the other population-owning modes:
+        // this gate is Zombie-specific, unlike SkipsProfilePreload's own
+        // Team-Deathmatch-specific gate above.
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(true, "bigmap",
+            ArenaPopulationPolicy.TeamDeathmatch, "bigmap"));
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(true, "bigmap",
+            ArenaPopulationPolicy.Tactical, "bigmap"));
+
+        // Everything else about the gate, one refusal at a time — same shape
+        // as SkipsProfilePreload's own refusals above.
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(false, "bigmap", "zombie", "bigmap"));
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(true, "factory4_day", "zombie", "bigmap"));
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(true, null, "zombie", "bigmap"));
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(true, "bigmap", "zombie", null));
+        Assert.False(ArenaPopulationPolicy.IsArmedZombieLoading(true, "bigmap", "endless", "bigmap"));
+    }
+
+    [Fact]
     public void ALoudModeDropsTheBossesItDisabledButKeepsItsPmcs()
     {
         var location = FreshLocation();
