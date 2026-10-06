@@ -1200,3 +1200,133 @@ before this stage started.
 capture/6-reset-site contract is untouched — it reads `Settings.ZombieOwnGear`
 directly, not the new UI, and the new write path
 (`Settings.TrySelectEquipmentChoice`) writes that exact same `ConfigEntry`.
+
+### 2026-10-06 follow-up, item 2 ("announcer mutator") — Stage B
+
+After item 1 moved own gear out of the mutators panel, the user asked for a
+new mutator toggling the Arena announcer (stingers, round/match cues — never
+the HUD's own "WAVE n" text callouts, a completely separate event chain, see
+`ArenaAnnouncerGate`'s doc comment) PER MODE, the same way Killcam is per
+mode: default OFF for Zombie, default ON for every other mode, frozen at arm
+like the other per-mode mutators.
+
+`ArenaMutator.Announcer` is back to 16 values. Followed the Killcam
+PER-MODE-DISPATCH shape (`Settings.AnnouncerEntry(mode)`, mirroring
+`ReplayEntry`/`TracerEntry`), not Killcam's SPECIAL-CASE shape: unlike Killcam
+(a float "seconds" entry) and the retired OwnGear/equipment-choice row
+(offered for only one mode), every mode maps to a real bool entry here, so
+`ArenaMutatorSelection`'s existing generic `Entry()`/`Enabled()`/`TryToggle()`
+path — already used for Tracers/Lasers/Akimbo — needed no special case at
+all, only one more switch arm in `Entry()`.
+
+Two independent switches, per the task's own design hint ("keep volume
+global and make the enable per mode; the global switch, if any, remains a
+master gate"): the pre-existing single global `Settings.AnnouncerEnabled`
+("Audio"/"Announcer") is UNCHANGED and stays the master kill switch for
+every mode; `AnnouncerVolume`/`AnnouncerUseUiVolume` stay global too, exactly
+as asked. Five new per-mode `ConfigEntry<bool>` ("Announcer" key under each
+mode's own section — Deathmatch/Gun Game/Tactical/Team Deathmatch/Zombie —
+so none collides with the global "Audio"/"Announcer" key), bound through a
+new `Settings.BindAnnouncer(config, section, defaultValue)` helper mirroring
+`BindReplay`, with every default pulled from the single pure table
+`Modes.ArenaAnnouncerGate.DefaultEnabled(mode)` so the bound defaults can
+never drift from what `ArenaAnnouncerGateTests` actually exercises (Zombie
+false, everyone else true — one negated comparison, not five positive ones).
+`Settings.AnnouncerEntry(mode)` dispatches to the right one of the five.
+`Settings.IsAnnouncerEnabledFor(mode)` is the ONE place that ANDs the master
+and the per-mode value together (`ArenaAnnouncerGate.IsEnabled`), because
+Stage A's own research for this follow-up had flagged exactly this risk:
+"all these call sites must agree on which mode they are gating for the
+CURRENT match" — `AnnouncerService` has four-plus read sites (the attach-time
+log line, `SubmitCallout`, both checks inside `Tick`, `Receive`) that used to
+read the bare global switch; all four now call the one gate function instead
+of repeating the `&&`, so they cannot disagree with each other even if a
+future edit touches only one of them.
+
+No `ArenaSession` frozen capture (unlike `ZombieOwnGearSelection`/
+`GunGameLadderSelection`'s 1-set/6-reset-site pattern) — per Stage A's own
+handoff note, this is deliberately the SIMPLER shape: `AnnouncerService`
+already keeps its own `_match` field, and `Attach()` already runs strictly
+AFTER `ArenaSession.ActiveMode` latches (from `ArenaMatchService`'s raid-start
+handler), so a live read of `_match.Mode.Id` can never observe a mode
+different from the one the running raid actually armed — the mode itself is
+already immutable for a match's whole life (`ArenaMatch.Mode` has no
+setter). The WRITE side still freezes exactly like every other per-mode
+mutator: `ArenaMutatorSelection.TryToggle` refuses every write while
+`ArenaSession.IsActive||ArmedForNextRaid`, the same lock Killcam and the
+equipment choice use — no new lock plumbing needed.
+
+The attach-time log line (`"Arena announcer attached: ..."`, the exact
+literal `tools/AnnouncerChecks` pins) now reports the COMBINED per-mode gate
+under the same `enabled=` field name the existing check asserts, plus a new
+`mode=` field; `AnnouncerVolume` stays untouched there.
+
+Pure tests: `ArenaAnnouncerGateTests.cs` (6 tests: the per-mode default
+table, a defensive null/empty-mode case, and all four truth-table rows of
+the master+per-mode AND via `[Theory]`). `tools/TdmMatchMenuChecks` gained:
+the panel button count pin (15→16, "fifteen"→"sixteen"), direct assertions on
+the five fresh per-mode defaults and the `AnnouncerEntry` dispatch (including
+an unmapped-mode case normalizing to Deathmatch), the combined-gate master
+override check, and `ArenaMutator.Announcer` added to the existing
+`preferencePairs` round-trip array — which means it is now ALSO automatically
+covered by every generic loop that already walks that array (F12 refresh,
+save-without-auto-save, live active/armed lock, stale-popup-cannot-reopen,
+description/layout non-overlap over `Enum.GetValues`). `tools/AnnouncerChecks`
+gained a new integration check (`VerifyPerModeGate`, linking the real
+`AnnouncerService.cs`): a Zombie-mode match stays silent on a callout even
+with the master switch on, a non-Zombie match still plays with that exact
+same master switch, and the master switch still silences a mode whose own
+per-mode default is on — proving the WIRING at the real read sites, not just
+the pure table.
+
+**Fault control:** none needed beyond the `[Theory]` truth table itself,
+which already exercises every one of `ArenaAnnouncerGate.IsEnabled`'s four
+input combinations directly (an AND swapped for an OR, or either operand
+dropped, fails at least one of the four rows). A deliberate
+`StringComparison.Ordinal` swap in `DefaultEnabled` (mirroring
+`ZombieOwnGearGate`'s own fault control) was tried and reverted: `"ZOMBIE"`
+(uppercase) stopped comparing equal, so `ZombieDefaultsOffEveryOtherModeDefaultsOn`
+failed exactly as expected; reverted, full suite green.
+
+Three csproj files link the real `ArenaMode.Client/Config/Settings.cs` (or,
+for `ArenaMutatorSelection.cs`, the real file directly) as production-linked
+test sources and therefore needed `ArenaAnnouncerGate.cs` added to their own
+`<Compile Include>` list once `Settings.cs` started calling it as real code
+(not just inside a doc-comment `<see cref>`, which never breaks a build):
+`tools/TdmMatchMenuChecks` and `tools/AreaConfigChecks`. Found by actually
+building each tool that links `Settings.cs`, not by inspection — `tools/
+AreaConfigChecks` built clean before this stage (confirmed: Stage A's own
+`Modes.ArenaEquipmentChoice` reference lives only in a doc comment, so it
+never needed this) and failed with six `CS0234`s immediately after this
+stage's `Settings.cs` edit, until fixed; re-verified green afterward (178
+assertions, real BepInEx bind/save/reload). Two OTHER tools whose csproj
+files happen to contain the substring "Settings.cs" (`tools/
+ParticipantMenuChecks` → `ArenaParticipantSettings.cs`, `tools/
+RaidInfoPanelChecks` → `InfoPanelSettings.cs`) do not link the real
+`Config/Settings.cs` at all and needed no change; confirmed by building both
+(`RaidInfoPanelChecks` green at 326 assertions, `ParticipantMenuChecks`
+unaffected by this stage's diff in either direction).
+
+**Pre-existing, unrelated build breaks found while checking the above (not
+caused by this stage, not fixed here):** `tools/ParticipantMenuChecks` fails
+on a missing `Hud` name in `ArenaAreaSelectionView.cs` (CS0103); `tools/
+RoleLabelChecks` fails on a missing `WildSpawnTypeExtension` name in
+`RoleClassifier.cs` (CS0103). Both confirmed via `git diff --stat HEAD` on
+the implicated files returning empty — this stage's diff touches neither.
+Same bug CLASS Stage A already found and spun off separately
+(`tools/AreaTeamMenuChecks`, task_38d68c2f): an offline tool's own csproj
+drifted out of sync with a production file it links, independent of
+anything either follow-up item changed.
+
+Offline (`dotnet test ArenaMode.Tests`, no-deploy sentinel confirmed absent
+before and after): **870 passed, 2 skipped (pre-existing, environment-gated,
+unrelated), 0 failed, 872 total** (+6 over Stage A's 866, all in the new
+`ArenaAnnouncerGateTests.cs`). Clean Release builds of `ArenaMode.Client` and
+`ArenaMode.Server` with the same no-deploy properties: 0 errors, 0 new
+warnings. `tools/TdmMatchMenuChecks` (`dotnet run`): 1064 assertions, up from
+963; its `Run-Checks.ps1` mutation harness: 1064 assertions + 14/14 negative
+controls, still all green (none of this stage's edits touch any of the 14
+mutated fragments). `tools/AnnouncerChecks` (`dotnet run`, links the real
+`AnnouncerService.cs`): 313 assertions. `tools/AreaConfigChecks` (`dotnet
+run`, real BepInEx bind/save/reload against `D:\SPT41`'s installed
+assembly): 178 assertions.
