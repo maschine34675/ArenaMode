@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Modes;
+using ArenaMode.Session;
 using Comfort.Common;
 using EFT.UI;
 using System;
@@ -198,6 +199,20 @@ internal static class AnnouncerService
         => loadEpoch == _loadEpoch
            && string.Equals(_pluginDirectory, pluginDirectory, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// The item-2 per-mode gate for the CURRENTLY ARMED/ACTIVE match: the
+    /// live master switch ANDed with the per-mode half frozen once at arm
+    /// (<see cref="ArenaSession.AnnouncerEnabledSelection"/>), never the live
+    /// per-mode <c>ConfigEntry</c> (<see cref="Settings.IsAnnouncerEnabledFor"/>,
+    /// menu-display only). Every live-match read site below calls this one
+    /// function instead of repeating the AND, so none of them can drift —
+    /// see <see cref="ArenaAnnouncerGate"/>'s own doc comment for why a live
+    /// per-mode read here was ANN-1, a real bug this follow-up shipped and
+    /// fixed the same day.
+    /// </summary>
+    private static bool IsEnabledForLiveMatch()
+        => ArenaAnnouncerGate.IsEnabled(Settings.AnnouncerEnabled.Value, ArenaSession.AnnouncerEnabledSelection);
+
     public static void Attach(ArenaMatch match)
     {
         Detach();
@@ -214,13 +229,13 @@ internal static class AnnouncerService
         match.OnCallout += OnCallout;
         match.OnAnnouncerCue += OnAnnouncerCue;
         ArenaAnnouncementDirector.Attach(match);
-        // "enabled" is the item-2 per-mode gate (master AND this match's own
-        // mode entry — see Settings.IsAnnouncerEnabledFor), not only the
+        // "enabled" is the item-2 per-mode gate (master AND the frozen
+        // per-mode selection — see IsEnabledForLiveMatch), not only the
         // master switch; tools/AnnouncerChecks pins both the "enabled=" field
         // name and the "Arena announcer attached:" prefix, never the master
         // value in isolation.
         Plugin.ModLogger.LogInfo($"Arena announcer attached: mode={match.Mode?.Id}, "
-            + $"enabled={Settings.IsAnnouncerEnabledFor(match.Mode?.Id)}, "
+            + $"enabled={IsEnabledForLiveMatch()}, "
             + $"volume={Number(Settings.AnnouncerVolume.Value)}, ready={ReadyCount()}, loading={_loading}.");
     }
 
@@ -262,7 +277,7 @@ internal static class AnnouncerService
             Skip(key, "listener_paused");
             return;
         }
-        if (!Settings.IsAnnouncerEnabledFor(_match?.Mode?.Id) || Settings.AnnouncerVolume.Value <= 0f)
+        if (!IsEnabledForLiveMatch() || Settings.AnnouncerVolume.Value <= 0f)
         {
             Receive(key, out _);
             return;
@@ -482,7 +497,7 @@ internal static class AnnouncerService
         _clutchArmed = false;
         // Fresh mode state must invalidate pending status before it can drain.
         ArenaAnnouncementDirector.Tick();
-        bool enabledForMode = _match != null && Settings.IsAnnouncerEnabledFor(_match.Mode?.Id);
+        bool enabledForMode = _match != null && IsEnabledForLiveMatch();
         ArenaAnnouncerOutput.Tick(enabledForMode
             && Settings.AnnouncerVolume.Value > 0f && !Settings.AnnouncerUseUiVolume.Value, Settings.AnnouncerVolume.Value);
         if (_match != null && (!enabledForMode || Settings.AnnouncerVolume.Value <= 0f))
@@ -555,7 +570,7 @@ internal static class AnnouncerService
     private static bool Receive(string key, out float clipLengthSeconds)
     {
         clipLengthSeconds = 0f;
-        if (!Settings.IsAnnouncerEnabledFor(_match?.Mode?.Id))
+        if (!IsEnabledForLiveMatch())
         {
             Skip(key, "disabled");
             return false;

@@ -32,16 +32,35 @@ namespace ArenaMode.Config
         public static Entry<float> AnnouncerVolume { get; } = new() { Value = 0.37f };
         public static Entry<bool> AnnouncerUseUiVolume { get; } = new() { Value = true };
 
-        // Item 2 of the 2026-10-06 follow-up ("announcer mutator"): minimal
-        // stand-in for the real per-mode gate (Config.Settings.
-        // IsAnnouncerEnabledFor/Modes.ArenaAnnouncerGate). The real per-mode
-        // default table and dispatch live in production and are exercised by
-        // ArenaMode.Tests and tools/TdmMatchMenuChecks instead — this harness
-        // only links AnnouncerService.cs itself, so it hardcodes "zombie" as
-        // the one muted id, enough to prove AnnouncerService's own read sites
-        // actually call a per-mode gate rather than only the master switch.
+        // Kept for parity with the real menu-display-only method of the same
+        // name (Config.Settings.IsAnnouncerEnabledFor) referenced from
+        // AnnouncerService.cs's own doc comments. ANN-1 (the 2026-10-06
+        // follow-up's own review) is exactly that AnnouncerService must NOT
+        // call this for a live match any more — production reads
+        // ArenaSession.AnnouncerEnabledSelection instead (see that stand-in
+        // below) — so nothing in this harness calls this one either; it only
+        // has to exist for the cref to resolve.
         public static bool IsAnnouncerEnabledFor(string mode)
             => AnnouncerEnabled.Value && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+namespace ArenaMode.Session
+{
+    // ANN-1's fix (item 2 of the 2026-10-06 follow-up, caught in review the
+    // same day): the per-mode half of the announcer gate, frozen once at arm
+    // in production (ArenaSession.MarkArmed, from Settings.
+    // GetAnnouncerPerModeEnabled) and read by every one of AnnouncerService's
+    // live-match call sites instead of the live per-mode ConfigEntry. This
+    // harness does not link the real ArenaSession.cs (Unity/EFT-only types —
+    // see AGENTS.md's "client-side verification is still a raid"), so
+    // AnnouncerModeChecks.cs sets this field directly to simulate that one
+    // capture, deliberately independent of whatever mode id the attached
+    // ArenaMatch carries — proving AnnouncerService consults THIS, never the
+    // match's own Mode.Id, is the entire point of ANN-1's regression check.
+    internal static class ArenaSession
+    {
+        public static bool AnnouncerEnabledSelection = true;
     }
 }
 
@@ -52,6 +71,17 @@ namespace ArenaMode.Modes
     internal sealed class AnnouncerModeStub
     {
         public string Id { get; set; } = "deathmatch";
+    }
+
+    // Minimal stand-in for the real ArenaMode.Modes.ArenaAnnouncerGate (its own
+    // file is not linked here — DefaultEnabled pulls in ArenaPopulationPolicy,
+    // which this harness has no other use for). AnnouncerService.
+    // IsEnabledForLiveMatch only calls IsEnabled, the one-line AND the real
+    // gate also reduces to; see that production file for the full reasoning
+    // (ANN-1, the 2026-10-06 follow-up's own review).
+    internal static class ArenaAnnouncerGate
+    {
+        public static bool IsEnabled(bool masterEnabled, bool perModeEnabled) => masterEnabled && perModeEnabled;
     }
 
     internal sealed class ArenaMatch

@@ -24,20 +24,33 @@ namespace ArenaMode.Modes;
 /// deliberate: Stage A's own research for this follow-up flagged "all these
 /// call sites must agree on which mode they are gating for the CURRENT match"
 /// as a risk, and a single pure function used everywhere cannot disagree with
-/// itself. See <see cref="Config.Settings.IsAnnouncerEnabledFor"/>, the one
-/// caller of <see cref="IsEnabled"/>.
+/// itself.
 ///
-/// No <c>ArenaSession</c> frozen capture is needed here, unlike
-/// <c>ZombieOwnGearSelection</c>/<c>GunGameLadderSelection</c>:
-/// <c>AnnouncerService</c> already keeps its own <c>_match</c> field, and
-/// <c>Attach()</c> already runs AFTER <c>ArenaSession.ActiveMode</c> latches
-/// (from <c>ArenaMatchService</c>'s raid-start handler), so a live read of
-/// <c>_match.Mode.Id</c> can never observe a mode different from the one the
-/// running raid actually armed — the mode itself is already immutable for the
-/// life of a match (<c>ArenaMatch.Mode</c> has no setter). The WRITE side
-/// still freezes like every other per-mode mutator: <c>ArenaMutatorSelection.
-/// TryToggle</c> refuses every write while <c>ArenaSession.IsActive||
-/// ArmedForNextRaid</c>, the exact lock Killcam and the equipment choice use.
+/// <c>_match.Mode.Id</c> itself cannot drift mid-match (<c>ArenaMatch.Mode</c>
+/// has no setter, and <c>Attach()</c> only ever runs after <c>ArenaSession.
+/// ActiveMode</c> latches), but that alone does not protect the per-mode
+/// ENTRY VALUE behind that id from changing mid-match via a live F12 edit —
+/// an earlier version of this file argued otherwise and shipped that bug
+/// (ANN-1, caught in review the same day this follow-up landed). Every
+/// sibling per-mode setting in this codebase freezes its config value once at
+/// arm (Killcam's seconds into <c>ArenaReplaySelection</c>, Zombie's own-gear
+/// choice into <c>ZombieOwnGearSelection</c>), and this one now does too:
+/// <c>AnnouncerService</c> calls <see cref="IsEnabled"/> with <see
+/// cref="Session.ArenaSession.AnnouncerEnabledSelection"/> — the per-mode half
+/// frozen at <c>ArenaSession.MarkArmed</c> — as the per-mode argument, and the
+/// live <see cref="Config.Settings.AnnouncerEnabled"/> master switch as the
+/// other, so a mid-raid F12 edit to the per-mode entry can no longer reach an
+/// already-armed/active match while the live master switch still can (by the
+/// follow-up's own design: "the global switch, if any, remains a master
+/// gate"). <see cref="Config.Settings.IsAnnouncerEnabledFor"/> keeps using the
+/// LIVE per-mode entry and stays the menu-time display path only.
+///
+/// The WRITE side still freezes like every other per-mode mutator the other
+/// way too: <c>ArenaMutatorSelection.TryToggle</c> refuses every write while
+/// <c>ArenaSession.IsActive||ArmedForNextRaid</c>, the exact lock Killcam and
+/// the equipment choice use — this file's fix closes the READ side that lock
+/// alone could not: F12 writes the <c>ConfigEntry</c> directly and never goes
+/// through <c>TryToggle</c>.
 /// </summary>
 internal static class ArenaAnnouncerGate
 {

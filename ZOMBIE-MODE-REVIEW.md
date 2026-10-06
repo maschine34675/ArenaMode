@@ -1243,18 +1243,22 @@ read the bare global switch; all four now call the one gate function instead
 of repeating the `&&`, so they cannot disagree with each other even if a
 future edit touches only one of them.
 
-No `ArenaSession` frozen capture (unlike `ZombieOwnGearSelection`/
-`GunGameLadderSelection`'s 1-set/6-reset-site pattern) — per Stage A's own
-handoff note, this is deliberately the SIMPLER shape: `AnnouncerService`
-already keeps its own `_match` field, and `Attach()` already runs strictly
-AFTER `ArenaSession.ActiveMode` latches (from `ArenaMatchService`'s raid-start
-handler), so a live read of `_match.Mode.Id` can never observe a mode
-different from the one the running raid actually armed — the mode itself is
-already immutable for a match's whole life (`ArenaMatch.Mode` has no
-setter). The WRITE side still freezes exactly like every other per-mode
-mutator: `ArenaMutatorSelection.TryToggle` refuses every write while
-`ArenaSession.IsActive||ArmedForNextRaid`, the same lock Killcam and the
-equipment choice use — no new lock plumbing needed.
+**(Superseded the same day — see "ANN-1 fix" below.)** No `ArenaSession`
+frozen capture (unlike `ZombieOwnGearSelection`/`GunGameLadderSelection`'s
+1-set/6-reset-site pattern) — per Stage A's own handoff note, this is
+deliberately the SIMPLER shape: `AnnouncerService` already keeps its own
+`_match` field, and `Attach()` already runs strictly AFTER `ArenaSession.
+ActiveMode` latches (from `ArenaMatchService`'s raid-start handler), so a live
+read of `_match.Mode.Id` can never observe a mode different from the one the
+running raid actually armed — the mode itself is already immutable for a
+match's whole life (`ArenaMatch.Mode` has no setter). The WRITE side still
+freezes exactly like every other per-mode mutator: `ArenaMutatorSelection.
+TryToggle` refuses every write while `ArenaSession.IsActive||ArmedForNextRaid`,
+the same lock Killcam and the equipment choice use — no new lock plumbing
+needed. **This was wrong**: it shows the mode id cannot drift, never that the
+per-mode `ConfigEntry`'s VALUE cannot change mid-match via a live F12 edit,
+which bypasses `TryToggle`'s lock entirely. `AnnouncerService` now reads a real
+frozen `ArenaSession.AnnouncerEnabledSelection` instead.
 
 The attach-time log line (`"Arena announcer attached: ..."`, the exact
 literal `tools/AnnouncerChecks` pins) now reports the COMBINED per-mode gate
@@ -1330,3 +1334,89 @@ mutated fragments). `tools/AnnouncerChecks` (`dotnet run`, links the real
 `AnnouncerService.cs`): 313 assertions. `tools/AreaConfigChecks` (`dotnet
 run`, real BepInEx bind/save/reload against `D:\SPT41`'s installed
 assembly): 178 assertions.
+
+### 2026-10-06 follow-up, item 2 — ANN-1 fix (frozen at arm)
+
+Review of Stage B found a real P1 the same day it landed: the paragraph above
+("No `ArenaSession` frozen capture ... deliberately the SIMPLER shape") was
+wrong, and the code it described the bug it argued around. `_match.Mode.Id`
+cannot drift mid-match, exactly as argued — but that argument never addressed
+the per-mode `ConfigEntry`'s VALUE changing mid-match via a live BepInEx F12
+edit, which bypasses `ArenaMutatorSelection.TryToggle`'s armed/active lock
+entirely (F12 writes the `ConfigEntry.Value` directly). `Settings.
+IsAnnouncerEnabledFor(mode)` was being called fresh at every one of
+`AnnouncerService`'s four-plus live-match read sites for the whole life of a
+match, so an F12 edit made mid-raid — to either the per-mode entry or, as a
+day-one `BindAnnouncer` description claimed without it being true, "frozen...
+while the raid is active or armed" — reached a running match immediately.
+Every sibling per-mode setting in this codebase (Killcam's seconds,
+`GunGameLadderSelection`, `ZombieOwnGearSelection`) was deliberately engineered
+specifically to close this exact class of bug; Announcer's per-mode half
+shipped without it.
+
+Fix: `ArenaSession.AnnouncerEnabledSelection` (new `bool` property, the same
+1-set/6-reset-site shape as `ZombieOwnGearSelection`) is captured once in
+`MarkArmed` from a new raw-value getter, `Settings.GetAnnouncerPerModeEnabled
+(mode)` (the per-mode entry alone, no master switch — mirrors `GetReplaySeconds`
+feeding `ArenaReplaySelection.Capture`), and reset to `false` at the same six
+sites `ZombieOwnGearSelection` resets at (`ClearArmed`; the ordinary-raid,
+Fika-rejected, armed-map-mismatch and server-rejected branches of
+`OnRaidStarted`; `OnRaidEnded`). `AnnouncerService` gained one private helper,
+`IsEnabledForLiveMatch()`, ANDing the live master switch
+(`Settings.AnnouncerEnabled.Value`, per the follow-up's own design: "the
+global switch, if any, remains a master gate" — deliberately NOT frozen, so
+F12 can still silence/unsilence any mode's announcer mid-raid as a real kill
+switch) with the frozen `AnnouncerEnabledSelection`, through the same
+`ArenaAnnouncerGate.IsEnabled` pure function as before. All four read sites
+(attach-time log line, `SubmitCallout`, `Tick`, `Receive`) now call that one
+helper instead of `Settings.IsAnnouncerEnabledFor` directly; that method
+itself is unchanged and stays available for menu-time display (the same role
+`GetReplaySeconds`/`ZombieOwnGear.Value` already play), with its doc comment
+corrected to say so. `ArenaAnnouncerGate.cs`'s own doc comment — the one that
+argued no capture was needed — is corrected to explain the real design instead
+of the disproven one.
+
+Fault control (inject/red/restore/green, via `tools/AnnouncerChecks`'
+`-p:AnnouncerServiceSource=<mutant>` override — the same mechanism `Verify-
+Regression.ps1` already uses for every other `AnnouncerService.cs` mutation):
+`IsEnabledForLiveMatch()`'s body swapped back to the pre-fix
+`Settings.IsAnnouncerEnabledFor(_match?.Mode?.Id)` (a live, `Mode.Id`-keyed
+read, identical in shape to the bug this fix closes). Two new assertions in
+`VerifyPerModeGate` — a Zombie match armed with the per-mode switch ON must
+play despite Zombie's live default being off, and a Team Deathmatch match
+armed OFF must stay silent despite its live default being on — fail exactly
+as expected against that mutant (red: `ARENA_ANNOUNCER_CHECKS_FAILED: ANN-1: a
+Zombie match armed with the per-mode switch on must play, even though
+Zombie's own live default is off.`); reverted to the real fixed source, full
+suite green again (green: 315 assertions, up from 313).
+
+`tools/AnnouncerChecks/StandIns.cs` gained a minimal `ArenaMode.Session.
+ArenaSession` stand-in (`AnnouncerEnabledSelection`, settable directly — this
+harness does not and cannot link the real `ArenaSession.cs`, which is
+Unity/EFT-only; see AGENTS.md's "client-side verification is still a raid")
+and a minimal `ArenaMode.Modes.ArenaAnnouncerGate` stand-in (`IsEnabled` only
+— the real file's `DefaultEnabled` half pulls in `ArenaPopulationPolicy`,
+which this harness has no other use for). `AnnouncerModeChecks.cs`'s
+`VerifyPerModeGate` now sets `ArenaSession.AnnouncerEnabledSelection` directly
+before each `Attach`, simulating the one capture `MarkArmed` would have made,
+instead of deriving the expected mute/play outcome from the attached match's
+own `Mode.Id` the way the old fake `Settings.IsAnnouncerEnabledFor` did —
+which is also how the two new assertions above prove the fix is real: they
+deliberately arm a mode AGAINST its own live default and show the frozen
+value, not the mode id, wins.
+
+Offline (`dotnet test ArenaMode.Tests`, no-deploy sentinel confirmed absent
+before and after): unchanged at 870 passed, 2 skipped, 0 failed, 872 total —
+`ArenaSession.cs`'s own capture/reset wiring cannot be unit-tested outside the
+game (same reason `ZombieOwnGearSelection`'s capture never got its own xunit
+test either; `ArenaAnnouncerGateTests.cs`'s pure truth table is unchanged and
+still green). Clean Release builds of `ArenaMode.Client` and `ArenaMode.Server`
+with the same no-deploy properties: 0 errors, 0 new warnings. `tools/
+AnnouncerChecks` (`dotnet run`, links the real `AnnouncerService.cs`): 315
+assertions, up from 313. `tools/AnnouncerChecks/Verify-Regression.ps1` (the
+full historical mutation suite plus the two new assertions above): all
+negative cases still fail at their expected boundary, production sources
+confirmed byte-unchanged by the script's own hash checks, final positive run
+green — `ARENA_ANNOUNCER_REGRESSION_VERIFIED`. `tools/TdmMatchMenuChecks`
+(`dotnet run`, links the real `Settings.cs`): unchanged at 1064 assertions —
+this fix added no new menu-facing surface for it to cover.

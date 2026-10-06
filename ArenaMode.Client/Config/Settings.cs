@@ -309,17 +309,38 @@ public static class Settings
         };
 
     /// <summary>
-    /// The actual gate <c>AnnouncerService</c> reads at every one of its
-    /// several call sites (attach-time log line, callout submission, the
-    /// queued-result drain in Tick, Receive): the per-mode entry AND the
-    /// pre-existing global master switch, combined through the single pure
-    /// decision in <see cref="Modes.ArenaAnnouncerGate.IsEnabled"/> so none of
-    /// those sites can ever disagree about whether this match's announcer may
-    /// speak. A null/unmapped mode normalizes to Deathmatch's entry via
-    /// <see cref="AnnouncerEntry"/>, never throws.
+    /// The live, unfrozen master-AND-per-mode decision, combined through the
+    /// single pure function in <see cref="Modes.ArenaAnnouncerGate.IsEnabled"/>.
+    /// Menu-time display only now (the same role <see cref="GetReplaySeconds"/>
+    /// and <c>ZombieOwnGear.Value</c> already play) — <c>AnnouncerService</c>'s
+    /// own live-match call sites (attach-time log line, callout submission,
+    /// the queued-result drain in Tick, Receive) do NOT call this any more.
+    /// They read <see cref="Session.ArenaSession.AnnouncerEnabledSelection"/>,
+    /// the per-mode half frozen once at arm (captured from
+    /// <see cref="GetAnnouncerPerModeEnabled"/>, exactly like
+    /// <c>GunGameLadderSelection</c>/<c>ZombieOwnGearSelection</c>), and
+    /// re-combine it with the live master switch themselves — see that
+    /// property's own doc comment for why a live call here would have let a
+    /// mid-raid F12 edit desync an already-armed/active match (ANN-1, the
+    /// 2026-10-06 follow-up's own review). A null/unmapped mode normalizes to
+    /// Deathmatch's entry via <see cref="AnnouncerEntry"/>, never throws.
     /// </summary>
     internal static bool IsAnnouncerEnabledFor(string mode)
         => Modes.ArenaAnnouncerGate.IsEnabled(AnnouncerEnabled.Value, AnnouncerEntry(mode)?.Value == true);
+
+    /// <summary>
+    /// The per-mode entry's raw value ALONE — no master switch — the half of
+    /// <see cref="IsAnnouncerEnabledFor"/> that <see cref="Session.
+    /// ArenaSession"/> freezes once at arm into <c>AnnouncerEnabledSelection</c>.
+    /// Exists only for that one freeze, the same role <see cref="GetReplaySeconds"/>
+    /// plays for <c>ArenaReplaySelection.Capture</c>. The master switch is
+    /// deliberately excluded: the 2026-10-06 follow-up's own design keeps it a
+    /// live kill switch ("the global switch, if any, remains a master gate"),
+    /// so freezing it alongside the per-mode half would silence that design —
+    /// <c>AnnouncerService</c> reads <see cref="AnnouncerEnabled"/> live and
+    /// ANDs it with the frozen snapshot at each call site instead.
+    /// </summary>
+    internal static bool GetAnnouncerPerModeEnabled(string mode) => AnnouncerEntry(mode)?.Value == true;
 
     /// <summary>
     /// Backing entry for item 1 of the 2026-10-06 follow-up ("own gear to the
@@ -450,7 +471,7 @@ public static class Settings
     /// ("Announcer") under a distinct per-mode section, so it cannot collide
     /// with the pre-existing global "Audio"/"Announcer" entry
     /// (<see cref="AnnouncerEnabled"/>), which this does NOT replace: that
-    /// switch stays the master gate (see <see cref="IsAnnouncerEnabledFor"/>).
+    /// switch stays the master gate (see <see cref="Modes.ArenaAnnouncerGate.IsEnabled"/>).
     /// <paramref name="defaultValue"/> always comes from
     /// <see cref="Modes.ArenaAnnouncerGate.DefaultEnabled"/> so the bound
     /// default can never drift from the table ArenaMode.Tests exercises.

@@ -71,6 +71,30 @@ public static class ArenaSession
     internal static bool ZombieOwnGearActive
         => Modes.ZombieOwnGearGate.IsSelectedFor(ActiveMode, ZombieOwnGearSelection);
 
+    /// <summary>
+    /// The announcer's per-mode switch (item 2 of the 2026-10-06 follow-up,
+    /// ANN-1's fix) as it stood at arming — frozen the same moment and
+    /// largely for the same reason <see cref="GunGameLadderSelection"/>/
+    /// <see cref="ZombieOwnGearSelection"/> are. Those two only have to
+    /// survive the loading screen before the live raid's own
+    /// <see cref="ActiveMode"/>/<see cref="IsActive"/> take over; this one
+    /// does not stop mattering there — <c>AnnouncerService</c> reads it for
+    /// the entire life of a match (every kill, every round cue), so freezing
+    /// it only up to raid start would not be enough: a mid-raid F12 edit to
+    /// the per-mode entry must not retroactively start or stop stingers
+    /// either. <c>AnnouncerService</c> therefore reads THIS, never
+    /// <see cref="Config.Settings.IsAnnouncerEnabledFor"/>, at every one of
+    /// its live-match call sites (that method's own doc comment is now
+    /// menu-display-only). The pre-existing global Audio/Announcer master
+    /// switch (<see cref="Config.Settings.AnnouncerEnabled"/>) is
+    /// deliberately excluded from this snapshot and stays live: the
+    /// follow-up's own design keeps it a master gate regardless of framing,
+    /// so <c>AnnouncerService</c> still reads it live and ANDs it with this
+    /// frozen per-mode half at each call site (<see cref="Modes.
+    /// ArenaAnnouncerGate.IsEnabled"/>). False outside an arena raid.
+    /// </summary>
+    internal static bool AnnouncerEnabledSelection { get; private set; }
+
     internal static Modes.DeathmatchOptions DeathmatchSelection { get; private set; }
 
     /// <summary>Exact server-acknowledged total, including the human while dead.</summary>
@@ -154,6 +178,7 @@ public static class ArenaSession
         ArmedMode = mode;
         GunGameLadderSelection = Settings.GunGameLadder.Value;
         ZombieOwnGearSelection = Settings.ZombieOwnGear.Value;
+        AnnouncerEnabledSelection = Settings.GetAnnouncerPerModeEnabled(mode);
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
     }
 
@@ -167,6 +192,7 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
+        AnnouncerEnabledSelection = false;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
         ClearParticipants();
@@ -241,6 +267,7 @@ public static class ArenaSession
             ArmedMode = null;
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            AnnouncerEnabledSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -272,6 +299,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            AnnouncerEnabledSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -287,6 +315,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            AnnouncerEnabledSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -306,6 +335,7 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            AnnouncerEnabledSelection = false;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -484,6 +514,7 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
+        AnnouncerEnabledSelection = false;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
         ActiveMode = null;
