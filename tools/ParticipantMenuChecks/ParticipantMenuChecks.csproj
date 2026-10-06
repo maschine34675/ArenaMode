@@ -14,6 +14,7 @@
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="$(ProductionParticipantSettingsSource)" Link="Production/ArenaParticipantSettings.cs" />
     <Compile Include="$(ProductionAreaViewSource)" Link="Production/ArenaAreaSelectionView.cs" />
+    <Compile Include="../../ArenaMode.Client/Hud/ArenaUiTheme.cs" Link="Production/ArenaUiTheme.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaParticipantSelectionState.cs" Link="Production/ArenaParticipantSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
