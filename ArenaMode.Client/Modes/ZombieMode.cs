@@ -245,6 +245,15 @@ public sealed class ZombieMode : IArenaMode
     {
         _ended = true;
         ZombieSpawnService.Reset();
+
+        // No richer existing match-end summary to fold this into (unlike
+        // GunGameMode's own tier/wins line) — one line here is what
+        // ZombieMeleePatch's own fix design asks for: confirm from the log
+        // alone, without reading raw swing/hit counters by hand, whether a
+        // GPU raid's zombies actually swung and landed hits at all.
+        var (swings, hits) = ZombieMeleeDiagnostics.ConsumeTotals();
+        Plugin.ModLogger.LogInfo(
+            $"Zombie match ended: {swings} native melee swing(s) attempted, {hits} landed hit(s) this raid.");
     }
 
     private bool IsCurrentRaid()

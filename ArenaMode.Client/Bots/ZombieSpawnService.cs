@@ -245,6 +245,18 @@ internal static class ZombieSpawnService
         {
             Plugin.ModLogger.LogWarning($"Arena zombie arrival awareness failed: {ex.Message}");
         }
+
+        // Separate try/catch: diagnostics must never cancel the awareness
+        // steps above even if they themselves fail (ZombieMeleeDiagnostics
+        // already fails closed internally too — belt and suspenders).
+        try
+        {
+            ZombieMeleeDiagnostics.OnZombieArrived(bot);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie melee diagnostics subscribe failed: {ex.Message}");
+        }
     }
 
     private static void AgeOutPending()
