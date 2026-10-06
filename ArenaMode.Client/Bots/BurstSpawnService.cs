@@ -863,6 +863,77 @@ internal static class BurstSpawnService
     }
 
     /// <summary>
+    /// One native Savage bot of an arbitrary infected role/difficulty, for Zombie
+    /// mode's endless wave spawner (see ZombieSpawnService). Built on SpawnPair's
+    /// internals exactly like the ambient burst and SpawnSquad do: the same
+    /// 25-70 m point ring (<see cref="BurstSpawnPointSelector"/>), the same
+    /// SpawnBotsInZoneOnPositions dispatch, and — because <c>isPmc</c> is false —
+    /// the same scav in-flight ledger (RecentScavInjections) SpawnPair already
+    /// uses for its own correctness. Sharing that ledger with the ambient scav
+    /// path costs nothing: Zombie sets ControlsOwnSpawns, which makes Tick()
+    /// (the ledger's only OTHER reader/writer) return before it ever touches the
+    /// spawner while a Zombie raid is live (see ManualControl above), so nothing
+    /// else observes or races these entries. ZombieSpawnService keeps its own,
+    /// separate "pending" count for the wave policy — see its doc comment.
+    ///
+    /// Rejects at the door, with a logged reason, rather than letting a bad draw
+    /// reach the native brain:
+    /// - Only the four GENERIC infected roles ZombieRoleMix ever draws are
+    ///   accepted. WildSpawnTypeExtension.IsInfected(role) is ALSO true for a
+    ///   fifth role, infectedTagilla, but that one is a pure BOSS (orchestrator's
+    ///   native facts, decompile-verified) that needs BotBossSpawn's SetBoss
+    ///   initialization the way SpawnManagedBot's bossTagillaAgro/bossKillaAgro
+    ///   branch provides; this entry point does not, so it must never accept it.
+    /// - Only normal and hard difficulties are accepted. InfectedLayersStrategy's
+    ///   constructor (decompile-verified, InfectedLayersStrategy.cs:149-158)
+    ///   throws ArgumentOutOfRangeException for BotDifficulty.impossible; easy is
+    ///   technically safe (GetZombieModeByDifficulty returns Slow) but outside
+    ///   the v0 role mix by design — see ZombieRoleMix's own doc comment.
+    /// </summary>
+    internal static bool SpawnInfected(WildSpawnType role, BotDifficulty difficulty, Action<BotOwner> onArrival)
+    {
+        if (role != WildSpawnType.infectedAssault && role != WildSpawnType.infectedPmc
+            && role != WildSpawnType.infectedCivil && role != WildSpawnType.infectedLaborant)
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Arena zombie spawn: {role} is not one of the four generic infected roles Zombie mode drives — request rejected.");
+            return false;
+        }
+
+        if (difficulty != BotDifficulty.normal && difficulty != BotDifficulty.hard)
+        {
+            Plugin.ModLogger.LogWarning(
+                $"Arena zombie spawn: {difficulty} is not a supported infected difficulty in this mode (only normal/hard) — request rejected.");
+            return false;
+        }
+
+        try
+        {
+            if (!Singleton<GameWorld>.Instantiated || !(Singleton<IBotGame>.Instance is { } botGame))
+                return false;
+
+            var spawner = botGame.BotsController?.BotSpawner;
+            if (spawner == null)
+                return false;
+
+            var zone = PickZone(spawner, 1);
+            if (zone == null)
+            {
+                Plugin.ModLogger.LogWarning("Arena zombie spawn: no bot zone — request dropped.");
+                return false;
+            }
+
+            SpawnPair(spawner, zone, role, difficulty, isPmc: false, count: 1, observer: onArrival);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Arena zombie spawn of {role} failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// One explicit PMC faction request, with no impact on the ambient/Tactical
     /// alternation. The caller reserves its keyed ticket BEFORE calling this:
     /// warmed profile/pool tasks may deliver a body synchronously. A positive
