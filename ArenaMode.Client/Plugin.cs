@@ -85,6 +85,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotDifficultyClockPatch.EnablePatch();
         Bots.ArenaProfilePreloadPatch.EnablePatch();
         Bots.ZombieNativeEventBridge.EnablePatch();
+        Bots.ZombieMeleePatch.EnablePatch();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
         Areas.ArenaAreaInitialSpawnPatch.EnablePatch();

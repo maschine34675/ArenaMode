@@ -184,7 +184,13 @@ internal static class ZombieNativeEventBridge
         return false;
     }
 
-    private static bool IsActiveZombieRaid()
+    /// <summary>
+    /// Internal (not private) so <c>ZombieMeleePatch</c> can reuse the exact
+    /// same live-raid gate instead of duplicating it — the same "one gate,
+    /// shared" convention <c>TryMapRole</c>/<c>TryMapDifficulty</c> already
+    /// follow in <c>ZombieSpawnService</c>.
+    /// </summary>
+    internal static bool IsActiveZombieRaid()
         => ArenaSession.IsActive
            && string.Equals(ArenaSession.ActiveMode, ArenaModeCatalog.ZombieId, StringComparison.Ordinal);
 
