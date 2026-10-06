@@ -132,15 +132,23 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-Need(Buttons().Length == 30 && RuleRoot().activeInHierarchy, "four modes, nine TDM and seventeen Deathmatch rule buttons exist without a mutators opener");
+// 5 modes (Deathmatch/Gun Game/Tactical/Team DM/Zombie) + 9 TDM + 17 Deathmatch
+// + 2 equipment-choice buttons; the equipment-choice row (item 1 of the
+// 2026-10-06 follow-up) is built unconditionally in Create() just like the
+// TDM/Deathmatch rules rows, only its own visibility differs by mode.
+Need(Buttons().Length == 33 && RuleRoot().activeInHierarchy, "five modes, nine TDM, seventeen Deathmatch and two equipment-choice buttons exist without a mutators opener");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
 Need(!Label("RULES label").gameObject.activeSelf && !Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM rules replace ordinary fact rows rather than overlapping them");
 var panel = (RectTransform)view.Root.transform;
-Need(panel.sizeDelta == new Vector2(360, 488) && panel.anchoredPosition == new Vector2(56, -168),
+// 530/-168: the non-Deathmatch panel height and top offset, both +42 over
+// their pre-Zombie values for the fifth mode row (see ArenaModeCatalog's
+// ModePanelHeight/ModePanelTop and ArenaModeSelectionView.Create's own
+// "every top offset below is +42" comment).
+Need(panel.sizeDelta == new Vector2(360, 530) && panel.anchoredPosition == new Vector2(56, -168),
     "mode panel footprint does not grow toward area or native bottom buttons");
 var ruleRect = (RectTransform)RuleRoot().transform;
-Need(-ruleRect.anchoredPosition.y >= 303 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 488,
+Need(-ruleRect.anchoredPosition.y >= 345 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 530,
     "rules remain below heading and inside original mode panel");
 foreach (var button in Buttons().Where(x => x.name.StartsWith("Arena TDM")))
 {
@@ -171,14 +179,14 @@ KillButton(50).onClick.Invoke();
 Need(!RuleRoot().activeSelf && Label("RULES label").gameObject.activeSelf
     && Settings.TeamDeathmatchKillLimit.Value == 25, "other mode restores facts and rejects hidden rule events");
 view.Synchronize("tactical", true);
-Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 488
+Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 530
     && Label("EQUIPMENT value").text == "PMC entry gear", "PFT layout and entry equipment preserved");
 view.Synchronize("deathmatch", false);
 var dmRoot = view.Root.transform.Children.Single(x => x.name == "Arena Deathmatch Match Rules").gameObject;
 Button Dm(int row, int value) => Buttons().Single(x => x.name == "Arena Deathmatch " + row + " " + value);
 Need(dmRoot.activeSelf && !RuleRoot().activeSelf && !Label("RULES label").gameObject.activeSelf,
     "Deathmatch rules replace facts and TDM controls");
-Need(((RectTransform)view.Root.transform).sizeDelta.y == 554, "Deathmatch panel contains all four rule rows");
+Need(((RectTransform)view.Root.transform).sizeDelta.y == 596, "Deathmatch panel contains all four rule rows");
 Dm(1,20).onClick.Invoke(); Dm(0,3).onClick.Invoke(); Dm(3,1).onClick.Invoke();
 Need(Settings.DeathmatchRounds.Value == 3 && Settings.DeathmatchKills.Value == 20
     && !Settings.DeathmatchFreeForAll.Value && Marked(Dm(0,3)) && Marked(Dm(3,1)), "actual Deathmatch controls persist rules and markers");
@@ -196,6 +204,57 @@ var dmRetired = Dm(0,5).onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);
 foreach (var callback in dmRetired) callback();
 Need(Settings.DeathmatchRounds.Value == 3, "hidden Deathmatch callbacks cannot change other mode");
+
+// Item 1 of the 2026-10-06 follow-up ("own gear to the left"): the equipment
+// choice row now lives in the LEFT mode panel (ArenaEquipmentChoiceView),
+// replacing the plain EQUIPMENT fact while visible. Today only Zombie offers
+// it; every other mode keeps the plain fact, same HIDE-when-inapplicable
+// convention as the TDM/Deathmatch rules rows.
+Button EquipmentChoiceButton(bool ownGear) =>
+    Buttons().Single(x => x.name == "Arena Equipment Choice " + (ownGear ? "OwnGear" : "ArenaKits"));
+GameObject EquipmentChoiceRoot() =>
+    view.Root.transform.Children.Single(x => x.name == "Arena Equipment Choice").gameObject;
+Settings.ZombieOwnGear.Value = false;
+foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" })
+{
+    view.Synchronize(mode, mode == "tactical");
+    Need(!EquipmentChoiceRoot().activeSelf, "equipment choice stays hidden for mode " + mode);
+    // Deathmatch/Team DM already hide the plain EQUIPMENT fact for their own,
+    // unrelated reason (their own rules sub-view replaces every fact row);
+    // only Gun Game and Tactical have no rules sub-view, so only they prove
+    // the plain fact is what reappears instead of the new choice row.
+    if (mode is "gungame" or "tactical")
+        Need(Label("EQUIPMENT label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
+            "the plain EQUIPMENT fact remains for mode " + mode);
+    EquipmentChoiceButton(true).onClick.Invoke();
+    Need(!Settings.ZombieOwnGear.Value, "a hidden equipment choice row cannot change the setting on mode " + mode);
+}
+view.Synchronize("zombie", false);
+Need(EquipmentChoiceRoot().activeSelf && !Label("EQUIPMENT label").gameObject.activeSelf
+    && !Label("EQUIPMENT value").gameObject.activeSelf,
+    "Zombie shows the equipment choice row and hides the plain fact");
+Need(Label("Equipment choice label").text == "EQUIPMENT: Arena kits" && Marked(EquipmentChoiceButton(false))
+    && !Marked(EquipmentChoiceButton(true)), "Arena kits is the persisted default, marked and labelled");
+EquipmentChoiceButton(true).onClick.Invoke();
+Need(Settings.ZombieOwnGear.Value && Label("Equipment choice label").text == "EQUIPMENT: Own gear"
+    && Marked(EquipmentChoiceButton(true)) && !Marked(EquipmentChoiceButton(false)),
+    "real equipment choice control persists own gear and the marker/label follow it");
+view.Synchronize("deathmatch", false);
+Need(Label("EQUIPMENT value").text == "Arena kits", "leaving Zombie restores the plain fact for Deathmatch");
+view.Synchronize("zombie", false);
+Need(Label("EQUIPMENT value").text == "Own gear",
+    "the hidden EQUIPMENT fact value keeps tracking the choice even while replaced by the row");
+ArenaSession.ArmedForNextRaid = true;
+view.Synchronize("zombie", false);
+EquipmentChoiceButton(false).onClick.Invoke();
+Need(!EquipmentChoiceButton(false).interactable && !EquipmentChoiceButton(true).interactable
+    && Settings.ZombieOwnGear.Value && EquipmentChoiceRoot().activeSelf,
+    "armed equipment choice row stays visible but frozen, same as DM/TDM rules");
+ArenaSession.ArmedForNextRaid = false;
+view.Synchronize("zombie", false);
+EquipmentChoiceButton(false).onClick.Invoke();
+Need(!Settings.ZombieOwnGear.Value && Marked(EquipmentChoiceButton(false)),
+    "unarmed equipment choice row can restore Arena kits through the real control");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
 GameObject MutatorsRoot() => screen.transform.Children.Single(x => x.name == "Arena Mutators").gameObject;

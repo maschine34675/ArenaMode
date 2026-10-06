@@ -52,7 +52,9 @@ $arenaFaults = @(
       "!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy`n                || !_buttons.Contains(button)", 'owner == null',
       'ProductionModeView', 'retired mode row cannot modify reopened panel'),
     @('panel-growth' , 'ArenaMode.Client\Session\ArenaTdmMatchRulesView.cs',
-      '20f, 307f, Width, 124f', '20f, 307f, Width, 240f',
+      # 349f: the post-Zombie top offset (was 307f pre-Zombie; see
+      # ArenaModeSelectionView's "every top offset below is +42" comment).
+      '20f, 349f, Width, 124f', '20f, 349f, Width, 240f',
       'ProductionRulesView', 'rules remain below heading and inside original mode panel'),
     @('killcam-current-mode', 'ArenaMode.Client/Config/Settings.cs',
       'var entry = ReplayEntry(mode);', 'var entry = ReplayEntry("deathmatch");',

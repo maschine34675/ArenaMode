@@ -31,5 +31,8 @@
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Production/ArenaTracerColor.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaEquipmentChoice.cs" Link="Production/ArenaEquipmentChoice.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaEquipmentChoiceState.cs" Link="Production/ArenaEquipmentChoiceState.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaEquipmentChoiceView.cs" Link="Production/ArenaEquipmentChoiceView.cs" />
   </ItemGroup>
 </Project>
