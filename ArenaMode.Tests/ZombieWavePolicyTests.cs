@@ -395,6 +395,156 @@ public sealed class ZombieWavePolicyTests
     }
 
     [Fact]
+    public void TheStuckWaveWatchdogArmsWhenTheWaveIsSaturatedEvenWithSpawnsStillLeft()
+    {
+        // Fault control (a) for the 2026-10-06 GPU finding: wave 1 of 30,
+        // MaxAlive 20, a player who could not land a kill. 20 zombies alive,
+        // 10 left to spawn, no infected death for over four minutes — and
+        // the watchdog never fired, because the OLD arming condition
+        // required remainingToSpawn == 0 (fully spawned), which this wave
+        // never reached. Proving the fix: revert the arming condition from
+        // `saturated` (remainingToSpawn == 0 || alive + pending >= target)
+        // back to the old `remainingToSpawn == 0` alone, and this test goes
+        // red — the 90s ceiling below is crossed with the wave still capped
+        // at 20/30 and ForceRetireStuckInfected never turns true (confirmed
+        // by hand before this commit; restored, full suite green again).
+        var config = Config(maxAlive: 20, start: 30, growth: 0, intermission: 10f, interval: 0.1f, stuckWaveTimeout: 90f);
+        var state = ZombieWavePolicy.Initial();
+        int alive = 0;
+        float now = 0f;
+
+        // Ramp up to the MaxAlive cap (20 of the 30 spawned and promptly
+        // confirmed alive; 10 left in the wave).
+        for (int i = 0; i < 400 && alive < 20; i++)
+        {
+            var r = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+            if (r.SpawnNow > 0)
+                alive += r.SpawnNow;
+            now += 0.05f;
+        }
+        Assert.Equal(20, alive);
+
+        // Saturated: pinned at MaxAlive, 10 of the 30 still to spawn, nobody
+        // dying. Must arm but not fire yet.
+        var saturated = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, saturated.Phase);
+        Assert.Equal(0, saturated.SpawnNow); // still capped, no room
+        Assert.False(saturated.ForceRetireStuckInfected);
+
+        // Short of the 90s ceiling: must not fire yet.
+        now += 60f;
+        var stillWaiting = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillWaiting.Phase);
+        Assert.False(stillWaiting.ForceRetireStuckInfected);
+
+        // Past the 90s ceiling with zero deaths the whole time: fires,
+        // clears the alive infected, and — because 10 of the 30 are still
+        // owed — the wave's remainder resumes spawning in this SAME call
+        // rather than ending the wave outright.
+        now += 31f;
+        var forced = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+        Assert.True(forced.ForceRetireStuckInfected);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, forced.Phase);
+        Assert.Equal(1, forced.SpawnNow);
+    }
+
+    [Fact]
+    public void TheStuckWaveWatchdogKeepsResettingWhileSaturatedAndInfectedKeepDying()
+    {
+        // Fault control (b): companion to the saturation-arming test above.
+        // Uses the SAME masked-death pattern as
+        // AMaskedDeathCoincidingWithALateArrivalStillResetsTheStuckTimer
+        // (one infected dies and a different, already-in-flight one is
+        // confirmed arrived in the very same call, so the raw `alive` count
+        // never visibly dips below the MaxAlive cap) but for the mid-wave/
+        // capped saturation case instead of the fully-spawned tail —
+        // deliberately so that alive+pending never drops below `target`
+        // either, meaning the ONLY possible reset path is the
+        // arrivedTotal-based anyDeathSinceLastCall check, not a transient
+        // "briefly unsaturated" dip. Reverting the re-arm condition from
+        // `NaN || anyDeathSinceLastCall` back to `NaN`-only makes this test
+        // fail (red) inside the loop below (the clock stays armed from the
+        // FIRST saturated call, since it is never reset to NaN by anything
+        // else while the wave stays pinned at the cap, and 120s of masked
+        // deaths crosses the 100s ceiling on the third cycle); confirmed by
+        // hand before this commit, restored, full suite green again.
+        var config = Config(maxAlive: 3, start: 50, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 100f);
+        var state = ZombieWavePolicy.Initial();
+        float now = 0f;
+        int alive = 0;
+        int arrivedTotal = 0;
+
+        // Fill to the MaxAlive cap (3 of the 50 spawned and confirmed; 47
+        // left, so remainingToSpawn stays > 0 for the rest of this test —
+        // this is the mid-wave saturation case, never the fully-spawned
+        // tail).
+        for (int i = 0; i < 3; i++)
+        {
+            var r = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+            Assert.Equal(1, r.SpawnNow);
+            now += 0.01f;
+            alive += 1;
+            arrivedTotal += 1;
+        }
+
+        // Saturated: capped at MaxAlive with 47 still to spawn.
+        var saturatedBegins = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, saturatedBegins.Phase);
+        Assert.False(saturatedBegins.ForceRetireStuckInfected);
+
+        // Three masked death+replacement events, 40s apart (120s in total):
+        // `alive` stays pinned at the MaxAlive cap (3) throughout — never
+        // dipping — while arrivedTotal climbs by 1 each time.
+        for (int cycle = 0; cycle < 3; cycle++)
+        {
+            now += 40f;
+            arrivedTotal += 1; // alive itself never changes across this call
+            var afterMaskedDeath = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+            Assert.Equal(ZombieWavePolicy.Phase.Wave, afterMaskedDeath.Phase);
+            Assert.False(afterMaskedDeath.ForceRetireStuckInfected);
+        }
+
+        // No further death: the SAME 100s ceiling still applies, measured
+        // from the LAST masked death above (120s after saturation began —
+        // already past the 100s ceiling if it had never reset).
+        now += 99f;
+        var stillOk = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillOk.Phase);
+        Assert.False(stillOk.ForceRetireStuckInfected);
+
+        // Past it: fires. The wave is not done (47-ish left), so it must
+        // still be Phase.Wave, not Intermission.
+        now += 2f;
+        var forced = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.True(forced.ForceRetireStuckInfected);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, forced.Phase);
+    }
+
+    [Fact]
+    public void AWaveStillFillingUpDoesNotArmTheWatchdogEvenForALongTime()
+    {
+        // Fault control (c): alive+pending below the policy's own target —
+        // ramping up toward MaxAlive, or a wave whose own size never reaches
+        // MaxAlive — must never arm the clock, no matter how much wall-clock
+        // time passes. This is the boundary the saturation condition must
+        // respect: "saturated" is `remainingToSpawn == 0 || alive + pending
+        // >= target`, never merely "a long time has passed".
+        var config = Config(maxAlive: 20, start: 30, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 50f);
+        var state = ZombieWavePolicy.Initial();
+
+        ZombieWavePolicy.Evaluate(ref state, config, now: 0f, alive: 0, pending: 0); // spawns #1
+
+        // Sit at 5 alive (far short of MaxAlive 20) for 1000s — twenty times
+        // the 50s ceiling — with no deaths and no watchdog firing.
+        var stillFilling = ZombieWavePolicy.Evaluate(ref state, config, now: 1000f, alive: 5, pending: 0);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillFilling.Phase);
+        Assert.False(stillFilling.ForceRetireStuckInfected);
+        // And it is actively trying to spawn more, confirming this is
+        // "filling", not accidentally stuck or capped.
+        Assert.Equal(1, stillFilling.SpawnNow);
+    }
+
+    [Fact]
     public void AMaskedDeathCoincidingWithALateArrivalStillResetsTheStuckTimer()
     {
         // The specific robustness case behind choosing the arrivedTotal-
