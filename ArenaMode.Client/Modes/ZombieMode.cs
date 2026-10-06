@@ -150,7 +150,14 @@ public sealed class ZombieMode : IArenaMode
         _waveStatusText = $"WAVE {_waveNumber} | {_config.WaveStartSize} LEFT";
 
         ZombieSpawnService.Reset();
-        ZombieSpawnService.RegisterBackupTargets(ZombieProfilePlan.BackupTargets(_shooterPercent));
+        // countPerPair scales with WaveStartSize (see its own doc comment):
+        // the fixed MinimumBackupCount=4 default left the native backup
+        // cache for the heaviest-weighted role (infectedAssault, 50%) far
+        // below a 30+ wave 1's own consumption, serializing most of it
+        // through BotProfileClient's synchronous miss path (research note
+        // "spawnThrottles").
+        ZombieSpawnService.RegisterBackupTargets(
+            ZombieProfilePlan.BackupTargets(_shooterPercent, ZombieProfilePlan.BackupCountForWaveStartSize(_config.WaveStartSize)));
         // So this raid's own log states which path (reverse patch/fallback)
         // actually drives its melee, and so a fallback failure gets its own
         // rate-limited warning rather than staying silenced by a previous

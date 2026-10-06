@@ -30,6 +30,83 @@ public sealed class ZombieWavePolicyTests
     }
 
     [Fact]
+    public void DefaultWaveSizingMatchesTheRequestedBiggerWaveDefaults()
+    {
+        // Settings.cs defaults as of 2026-10-06 (item 2, "bigger waves"):
+        // WaveStartSize 30, WaveGrowth 10. This is the sizing formula's own
+        // arithmetic at exactly those numbers, independent of the Settings/
+        // BepInEx binding (which this pure-policy test project cannot load —
+        // see ArenaMode.Tests.csproj's own header comment).
+        var config = Config(start: 30, growth: 10);
+        Assert.Equal(30, ZombieWavePolicy.WaveSize(config, 1));
+        Assert.Equal(40, ZombieWavePolicy.WaveSize(config, 2));
+        Assert.Equal(50, ZombieWavePolicy.WaveSize(config, 3));
+        Assert.Equal(30 + 10 * 9, ZombieWavePolicy.WaveSize(config, 10));
+    }
+
+    [Fact]
+    public void ThirtyZombieWaveFillsToMaxAliveThenRefillsOnePerIntervalAsAliveDrops()
+    {
+        // Item 2 ("bigger waves"): within a wave, many more zombies spawn —
+        // not necessarily all at once, but without any pause — bounded by
+        // MaxAlive. New defaults: WaveStartSize 30, WaveGrowth 10,
+        // SpawnIntervalSeconds 0.75; MaxAlive unchanged at 20.
+        var config = Config(maxAlive: 20, start: 30, growth: 10, intermission: 10f, interval: 0.75f);
+        var state = ZombieWavePolicy.Initial();
+        int alive = 0, spawnedTotal = 0;
+        float now = 0f;
+
+        // Ramp-up: every spawn is confirmed alive promptly (the realistic
+        // case — BurstSpawnService's own round trip is well inside 0.75s —
+        // so alive itself climbs to the cap, not merely pending).
+        for (int i = 0; i < 400 && alive < 20; i++)
+        {
+            var result = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+            if (result.SpawnNow > 0)
+            {
+                spawnedTotal += result.SpawnNow;
+                alive += result.SpawnNow;
+            }
+            now += 0.1f;
+        }
+
+        Assert.Equal(20, alive);
+        Assert.Equal(20, spawnedTotal); // exactly MaxAlive so far; 10 of the 30 still to come
+
+        // At the cap, with the wave far from exhausted: no further spawn,
+        // and critically no pause of the raid (Phase stays Wave, no
+        // force-retire) — MaxAlive is a performance ceiling, not a stop.
+        var atCap = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+        Assert.Equal(0, atCap.SpawnNow);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, atCap.Phase);
+        Assert.False(atCap.ForceRetireStuckInfected);
+
+        // Each of the remaining 10 kills must be refilled within one
+        // SpawnIntervalSeconds, continuously, with no pause, until the
+        // wave's full 30 have gone out.
+        for (int death = 0; death < 10; death++)
+        {
+            alive -= 1;
+            bool refilled = false;
+            for (int tick = 0; tick < 20 && !refilled; tick++)
+            {
+                now += 0.1f;
+                var result = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0);
+                if (result.SpawnNow > 0)
+                {
+                    spawnedTotal += result.SpawnNow;
+                    alive += result.SpawnNow;
+                    refilled = true;
+                }
+            }
+            Assert.True(refilled, $"Expected a refill within {config.SpawnIntervalSeconds}s of kill #{death}.");
+        }
+
+        Assert.Equal(30, spawnedTotal);
+        Assert.Equal(20, alive);
+    }
+
+    [Fact]
     public void SpawningStopsAtTheConfiguredMaxAliveEvenWithManyLeftToSpawn()
     {
         // 100-strong wave, but only 5 may ever be alive/pending at once. The

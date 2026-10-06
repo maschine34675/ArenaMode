@@ -1021,22 +1021,30 @@ public static class Settings
             new ConfigDescription(
                 "Safety net for a wave's last infected getting wedged in geometry or stranded on an " +
                 "unreachable NavMesh island: once every infected in the current wave has been requested " +
-                "and at least one is still alive this long after the last one stopped spawning, the " +
-                "survivor(s) are administratively retired and the wave clears anyway. 0 disables the " +
-                "watchdog (the wave then waits for every infected to die naturally, with no recovery if " +
-                "one cannot reach the player). Frozen at match start.",
+                "and no infected has died for this long, the survivor(s) are administratively retired and " +
+                "the wave clears anyway. This measures PROGRESS, not mere duration: any infected death " +
+                "restarts the clock, so a wave the player is still actively (if slowly) clearing is never " +
+                "cleared out from under them — only a tail with no deaths at all for the whole ceiling is " +
+                "\"stuck\" (changed 2026-10-06 after a GPU raid showed the old wall-clock-since-tail-start " +
+                "version ending a wave mid-fight). 0 disables the watchdog (the wave then waits for every " +
+                "infected to die naturally, with no recovery if one cannot reach the player). Frozen at " +
+                "match start.",
                 new AcceptableValueRange<float>(0f, 600f)));
 
-        ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 8,
+        ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 30,
             new ConfigDescription(
-                "Infected in wave 1. Frozen at match start.",
-                new AcceptableValueRange<int>(1, 100)));
+                "Infected in wave 1. Raised from the v0 default of 8 (2026-10-06): within a wave, many " +
+                "more infected spawn — not necessarily all at once, but without any pause, bounded by " +
+                "MaxAlive — so the raid stays busy rather than trickling in a handful at a time. Frozen " +
+                "at match start.",
+                new AcceptableValueRange<int>(1, 200)));
 
-        ZombieWaveGrowth = config.Bind("Zombie", "WaveGrowth", 4,
+        ZombieWaveGrowth = config.Bind("Zombie", "WaveGrowth", 10,
             new ConfigDescription(
                 "Extra infected each wave adds over the last: wave n = WaveStartSize + WaveGrowth * (n - 1). " +
-                "Frozen at match start.",
-                new AcceptableValueRange<int>(0, 50)));
+                "Raised from the v0 default of 4 (2026-10-06) to match the larger WaveStartSize. Frozen at " +
+                "match start.",
+                new AcceptableValueRange<int>(0, 100)));
 
         ZombieIntermissionSeconds = config.Bind("Zombie", "IntermissionSeconds", 10,
             new ConfigDescription(
@@ -1044,10 +1052,12 @@ public static class Settings
                 "and the next one starting. Frozen at match start.",
                 new AcceptableValueRange<int>(0, 60)));
 
-        ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 1f,
+        ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 0.75f,
             new ConfigDescription(
-                "Seconds between individual infected spawn requests while a wave is filling up to MaxAlive. " +
-                "Frozen at match start.",
+                "Seconds between individual infected spawn requests while a wave is filling up to MaxAlive " +
+                "or refilling a gap a kill just opened. Lowered from the v0 default of 1.0s (2026-10-06) so " +
+                "a bigger wave (see WaveStartSize) reaches MaxAlive faster and refills kills with less of a " +
+                "gap. Frozen at match start.",
                 new AcceptableValueRange<float>(0.2f, 10f)));
 
         ZombieShooterPercent = config.Bind("Zombie", "ShooterPercent", 0,

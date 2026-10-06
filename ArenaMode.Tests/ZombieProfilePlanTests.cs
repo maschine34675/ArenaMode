@@ -84,4 +84,43 @@ public sealed class ZombieProfilePlanTests
             Assert.Contains(withShooter, e => e.Role == role && e.Difficulty == ZombieRoleMix.Hard);
         }
     }
+
+    [Fact]
+    public void BackupCountScalesWithTheHeaviestRoleShareOfWaveStartSize()
+    {
+        // infectedAssault is 50/100 of ZombieRoleMix.Weights (the heaviest
+        // share) — the whole point of scaling is to keep that role's cache
+        // ahead of a big wave 1, not merely above the flat floor.
+        // New default: WaveStartSize 30 -> ceil(30 * 0.5) = 15.
+        Assert.Equal(15, ZombieProfilePlan.BackupCountForWaveStartSize(30));
+
+        // Below the old flat floor: still clamps up to MinimumBackupCount.
+        Assert.Equal(ZombieProfilePlan.MinimumBackupCount, ZombieProfilePlan.BackupCountForWaveStartSize(0));
+        Assert.Equal(ZombieProfilePlan.MinimumBackupCount, ZombieProfilePlan.BackupCountForWaveStartSize(1));
+
+        // Top of the configured WaveStartSize range (200): ceil(200*0.5)=100,
+        // exactly at the ceiling — must clamp AT MaxBackupCountPerPair, not
+        // beyond it.
+        Assert.Equal(ZombieProfilePlan.MaxBackupCountPerPair, ZombieProfilePlan.BackupCountForWaveStartSize(200));
+        Assert.Equal(100, ZombieProfilePlan.BackupCountForWaveStartSize(200));
+
+        // Monotonic: a bigger wave 1 never asks for a SMALLER backup target.
+        int previous = ZombieProfilePlan.MinimumBackupCount;
+        foreach (int size in new[] { 1, 8, 30, 60, 100, 150, 200 })
+        {
+            int count = ZombieProfilePlan.BackupCountForWaveStartSize(size);
+            Assert.True(count >= previous);
+            previous = count;
+        }
+    }
+
+    [Fact]
+    public void BackupCountForWaveStartSizeIsNeverBelowMinimumOrAboveTheCeiling()
+    {
+        foreach (int size in new[] { -5, 0, 7, 30, 200, 1000 })
+        {
+            int count = ZombieProfilePlan.BackupCountForWaveStartSize(size);
+            Assert.InRange(count, ZombieProfilePlan.MinimumBackupCount, ZombieProfilePlan.MaxBackupCountPerPair);
+        }
+    }
 }

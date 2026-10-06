@@ -49,6 +49,20 @@ internal static class ZombieProfilePlan
     internal const int MinimumBackupCount = 4;
 
     /// <summary>
+    /// Ceiling for <see cref="BackupCountForWaveStartSize"/>: EFT's own
+    /// per-row cap on a single CountTypeBotWave profile request
+    /// (<c>Core.LOCAL_BOTS_COUNT</c>, decompile-verified — the same constant
+    /// that caps each entry of <see cref="OpeningProfiles"/>' native preload
+    /// list). A backup target is a client-side in-memory count
+    /// (BotSpawner.AddToTargetBackup), not itself bound by that native
+    /// per-request cap, but there is no reason to ever ask for more than one
+    /// request's worth of standing backup for a single (role, difficulty)
+    /// pair, so an extreme WaveStartSize (up to 200, see Settings.cs) cannot
+    /// scale this unbounded.
+    /// </summary>
+    internal const int MaxBackupCountPerPair = 100;
+
+    /// <summary>
     /// The opening wave's roles at their chosen difficulties, collapsed to one
     /// entry per distinct (role, difficulty) pair so the native preload warms
     /// exactly the opening wave's composition and nothing more.
@@ -96,6 +110,37 @@ internal static class ZombieProfilePlan
         }
 
         return entries;
+    }
+
+    /// <summary>
+    /// The backup target per (role, difficulty) pair that keeps the native
+    /// backup cache (BotProfileBackuploader) from running dry partway
+    /// through wave 1 for the heaviest-weighted role, scaled to the actual
+    /// opening wave size instead of the fixed MinimumBackupCount floor alone.
+    ///
+    /// The research behind this (see HANDOFF/the orchestrator's note): with
+    /// infectedAssault weighted 50% of ZombieRoleMix's table, a 30-strong
+    /// wave 1 draws ~15 of that one role alone; BotProfileBackuploader only
+    /// tops its cache up once the deficit against the registered target
+    /// exceeds 3, one outstanding fetch at a time (decompile-verified,
+    /// BotProfileBackuploader.cs). A target left at the old flat
+    /// MinimumBackupCount=4 would empty almost immediately into
+    /// BotProfileClient.CreateProfile's synchronous 3-profile-at-a-time miss
+    /// path, visibly stalling spawns even though ZombieWavePolicy itself
+    /// never pauses (the "no pause" requirement). Scaling by the heaviest
+    /// weight share and applying that SAME count to every pair (not a
+    /// per-role split) errs generous for the lighter roles — a few unused
+    /// cached profiles, never a few too few — which is the safe direction
+    /// here. Floored to MinimumBackupCount (so a tiny WaveStartSize still
+    /// clears the loader's own ">3" top-up trigger) and ceilinged to
+    /// MaxBackupCountPerPair.
+    /// </summary>
+    internal static int BackupCountForWaveStartSize(int waveStartSize)
+    {
+        waveStartSize = Math.Max(0, waveStartSize);
+        double heaviestShare = ZombieRoleMix.Weights.Max(w => w.Weight) / (double)ZombieRoleMix.TotalWeight;
+        int scaled = (int)Math.Ceiling(waveStartSize * heaviestShare);
+        return Math.Clamp(scaled, MinimumBackupCount, MaxBackupCountPerPair);
     }
 
     /// <summary>
