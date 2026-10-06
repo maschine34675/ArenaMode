@@ -172,6 +172,7 @@ public static class Settings
     public static ConfigEntry<float> ZombieSpawnIntervalSeconds { get; private set; }
     public static ConfigEntry<int> ZombieShooterPercent { get; private set; }
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
+    public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
     public static ConfigEntry<bool> ZombieColoredTracers { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
@@ -1067,6 +1068,17 @@ public static class Settings
                 "Never easy (too slow to matter) or impossible (the native brain throws on construction). " +
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
+
+        ZombieOwnGear = config.Bind("Zombie", "OwnGear", false,
+            "Bring your own protected equipment instead of a random Arena kit -- item 4 of the " +
+            "2026-10-06 follow-up, mirroring how protected 5v5 (PitFireTeam) protects a PMC's entry " +
+            "loadout for solo Zombie play: the raid-start kit swap and the loading-screen kit preload " +
+            "are both skipped, every death respawns with the entry loadout restored instead of a fresh " +
+            "kit, the wave-intermission ammo/consumable refill restores that same entry loadout, and " +
+            "the secure container is left alone (not emptied) exactly like EmptySecureContainer already " +
+            "skips for a frozen PitFireTeam roster. Also shown as the ZOMBIES row's EQUIPMENT mutator " +
+            "('Own gear' instead of 'Arena kits') and in the map screen's own mutator panel. Frozen at " +
+            "match start, like the other Zombie mode choices.");
 
         RoundKillTarget = config.Bind(
             "Match",
