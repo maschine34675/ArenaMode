@@ -59,10 +59,15 @@ namespace ArenaMode.Bots;
 /// the ORIGINAL patched method at all. If the reverse patch cannot be
 /// prepared, <see cref="FallbackRunToEnemyUpdate"/> is a hand-written,
 /// line-cited copy of the same decompiled body instead; either way the path
-/// actually in use is logged once (<see cref="LogPathChoiceOnce"/>), and if
-/// even the fallback is somehow unreachable the prefix stays inert (returns
-/// true — vanilla/SAIN-suppressed behaviour, exactly today's state) rather
-/// than leaving the node half-driven.
+/// actually in use is logged once PER RAID (<see cref="LogPathChoiceOnce"/>,
+/// latch cleared by <see cref="Reset"/> from `ZombieMode`'s own match
+/// boundaries — a later raid that silently falls back must say so in ITS
+/// OWN log window, not just the first raid this process ever ran one in).
+/// <see cref="RunOriginal"/> reports back whether it actually drove the node
+/// — if BOTH the reverse patch and the fallback fail on a given tick, the
+/// prefix returns true (vanilla/SAIN-suppressed behaviour, exactly today's
+/// state, for that tick only) rather than claiming to have handled the node
+/// while nothing actually ran.
 ///
 /// Registered next to <see cref="ZombieNativeEventBridge"/> in Plugin.Awake,
 /// same `TryEnable`-and-fail-closed convention. The Harmony instance that
@@ -81,6 +86,7 @@ internal static class ZombieMeleePatch
     private static bool _reversePatchAttempted;
     private static bool _reversePatchDead;
     private static bool _loggedPathChoice;
+    private static bool _loggedFallbackFailure;
 
     internal static void EnablePatch()
     {
@@ -108,7 +114,13 @@ internal static class ZombieMeleePatch
         /// ZombieMeleeGate says to drive it; returns true (vanilla/SAIN
         /// runs, unchanged) otherwise — including every non-Zombie raid and
         /// every non-infected bot, so this can never make a normal raid
-        /// anything but bit-identical (AGENTS.md).
+        /// anything but bit-identical (AGENTS.md). Also returns true when the
+        /// gate passes but <see cref="RunOriginal"/> reports it drove nothing
+        /// (both the reverse patch and the fallback failed this tick): the
+        /// node must still end up either fully vanilla-driven or fully
+        /// driven by this patch, never half of each (fixes F1 from the
+        /// implementation review — the prior version always returned false
+        /// here, silently no-opping the node once both internal paths broke).
         /// </summary>
         [PatchPrefix]
         private static bool Prefix(OneMeleeAttackNode __instance)
@@ -133,8 +145,13 @@ internal static class ZombieMeleePatch
                         ZombieNativeEventBridge.IsActiveZombieRaid(), isInfected, meleeEquipped, canChangeToMelee))
                     return true;
 
-                if (__instance.DoorOpen() == DoorInteractionStatus.CanRun)
-                    RunOriginal(melee);
+                // DoorOpen() != CanRun mirrors the native two-line body
+                // exactly (it also does nothing in that case) — only a
+                // failed RunOriginal (door WAS open, this patch tried to
+                // drive the node, and nothing actually ran) must fall back
+                // to vanilla/SAIN-suppressed behaviour for this tick.
+                if (__instance.DoorOpen() == DoorInteractionStatus.CanRun && !RunOriginal(melee))
+                    return true;
 
                 return false;
             }
@@ -153,38 +170,70 @@ internal static class ZombieMeleePatch
     /// through the reverse patch when one could be prepared, the hand-written
     /// fallback otherwise. Never throws: a failure inside either path is
     /// caught and demotes to the other/no-op rather than ever propagating
-    /// into the Harmony prefix above.
+    /// into the Harmony prefix above. Returns whether anything was actually
+    /// driven — false only when BOTH the reverse patch and the fallback
+    /// failed this call, so <see cref="MeleeAttackNodePatch.Prefix"/> can
+    /// fall back to vanilla/SAIN-suppressed behaviour for this tick instead
+    /// of silently doing nothing while still reporting the node as handled
+    /// (F1 from the implementation review — see this class's own doc
+    /// comment for the full fail-closed contract this restores).
     /// </summary>
-    private static void RunOriginal(BotMeleeWeaponData melee)
+    private static bool RunOriginal(BotMeleeWeaponData melee)
     {
+        bool usedReversePatch = false;
         if (TryEnsureReversePatch())
         {
             try
             {
                 _reversePatchedOriginal(melee);
-                return;
+                usedReversePatch = true;
             }
             catch (Exception ex)
             {
                 // A throwing reverse-patched body is treated as permanently
-                // broken for the rest of this raid (and process — nothing
-                // about the native method changes mid-process) rather than
-                // retried every call: fall back for good, once, and say so.
+                // broken for the rest of this PROCESS (not just this raid —
+                // nothing about the native method's IL changes mid-process,
+                // so retrying on the next raid would only repeat the same
+                // throw) rather than retried every call: fall back for good,
+                // once, and say so. Which path actually ends up driving this
+                // tick is logged below, by the single call site that knows
+                // the final outcome, not here.
                 _reversePatchDead = true;
                 Plugin.ModLogger.LogWarning(
                     $"Arena zombie melee: the reverse-patched RunToEnemyUpdate threw ({ex.Message}) — switching "
-                    + "to the hand-written fallback for the rest of this raid.");
-                LogPathChoiceOnce(usingReversePatch: false);
+                    + "to the hand-written fallback for the rest of this process.");
             }
+        }
+
+        if (usedReversePatch)
+        {
+            LogPathChoiceOnce(usingReversePatch: true);
+            return true;
         }
 
         try
         {
             FallbackRunToEnemyUpdate(melee);
+            LogPathChoiceOnce(usingReversePatch: false);
+            return true;
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogWarning($"Arena zombie melee: the fallback RunToEnemyUpdate threw ({ex.Message}).");
+            // Rate-limited to once per raid (F2 from the implementation
+            // review), the same way the reverse-patch failure above is
+            // rate-limited to once per process: a systematic fallback bug
+            // would otherwise log on every melee tick for every infected bot
+            // for the rest of the raid. _loggedFallbackFailure is cleared by
+            // Reset() at the next raid's own boundary, so a second raid
+            // still gets its own warning if the problem persists.
+            if (!_loggedFallbackFailure)
+            {
+                _loggedFallbackFailure = true;
+                Plugin.ModLogger.LogWarning(
+                    $"Arena zombie melee: the fallback RunToEnemyUpdate threw ({ex.Message}) — this tick, and any "
+                    + "further one that also throws this raid, falls back to vanilla/SAIN-suppressed behaviour.");
+            }
+            return false;
         }
     }
 
@@ -193,7 +242,14 @@ internal static class ZombieMeleePatch
     /// false (caller uses the fallback) without retrying every call once
     /// preparation has failed or a prepared delegate has thrown — repeating
     /// a failing reflection/IL operation every melee tick would turn one
-    /// startup problem into a per-frame cost.
+    /// startup problem into a per-frame cost. Logs WHY preparation failed,
+    /// if it did, once ever (a reflection/IL failure here is deterministic
+    /// for the life of this process). Logging WHICH path ends up driving a
+    /// given raid is <see cref="RunOriginal"/>'s job via
+    /// <see cref="LogPathChoiceOnce"/> instead — not this method's — so that
+    /// a later raid still announces "fallback" even though THIS method
+    /// returned false on its very first, early-exit line with nothing new
+    /// to say (F3 from the implementation review).
     /// </summary>
     private static bool TryEnsureReversePatch()
     {
@@ -215,7 +271,6 @@ internal static class ZombieMeleePatch
             var patched = ReversePatchHarmony.CreateReversePatcher(original, new HarmonyMethod(standin))
                 .Patch(HarmonyReversePatchType.Original);
             _reversePatchedOriginal = (Func<BotMeleeWeaponData, bool>)patched.CreateDelegate(typeof(Func<BotMeleeWeaponData, bool>));
-            LogPathChoiceOnce(usingReversePatch: true);
             return true;
         }
         catch (Exception ex)
@@ -224,7 +279,6 @@ internal static class ZombieMeleePatch
             Plugin.ModLogger.LogWarning(
                 $"Arena zombie melee: HarmonyX reverse patch unavailable ({ex.Message}) — using the hand-written "
                 + "fallback copy of BotMeleeWeaponData.RunToEnemyUpdate instead (decompile lines 132-208).");
-            LogPathChoiceOnce(usingReversePatch: false);
             return false;
         }
     }
@@ -240,6 +294,30 @@ internal static class ZombieMeleePatch
             : "Arena zombie melee: driving infected RunToEnemyUpdate through the hand-written fallback "
               + "reimplementation (decompile BotMeleeWeaponData.cs:132-208) — the HarmonyX reverse patch could "
               + "not be prepared.");
+    }
+
+    /// <summary>
+    /// Called from ZombieMode.OnMatchStart/OnMatchEnd — the same per-raid
+    /// boundary ZombieSpawnService.Reset()/ZombieMeleeDiagnostics.
+    /// ConsumeTotals() already use — so each Zombie raid's own log window
+    /// states which path actually drove its melee (<see cref="_loggedPathChoice"/>)
+    /// and gets its own chance at the rate-limited fallback-failure warning
+    /// (<see cref="_loggedFallbackFailure"/>), instead of only the first
+    /// raid this process ever ran one in (F3 from the implementation
+    /// review).
+    ///
+    /// Deliberately does NOT clear <see cref="_reversePatchDead"/>,
+    /// <see cref="_reversePatchAttempted"/> or
+    /// <see cref="_reversePatchedOriginal"/>: nothing about the native
+    /// method's IL, or this process's reflection state, changes between
+    /// raids, so a reverse patch that failed to prepare — or whose delegate
+    /// threw once — would fail identically on a second attempt. Retrying it
+    /// would only repeat the same preparation cost for the same outcome.
+    /// </summary>
+    internal static void Reset()
+    {
+        _loggedPathChoice = false;
+        _loggedFallbackFailure = false;
     }
 
     /// <summary>

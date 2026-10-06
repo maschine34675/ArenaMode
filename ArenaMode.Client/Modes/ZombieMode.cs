@@ -151,6 +151,11 @@ public sealed class ZombieMode : IArenaMode
 
         ZombieSpawnService.Reset();
         ZombieSpawnService.RegisterBackupTargets(ZombieProfilePlan.BackupTargets(_shooterPercent));
+        // So this raid's own log states which path (reverse patch/fallback)
+        // actually drives its melee, and so a fallback failure gets its own
+        // rate-limited warning rather than staying silenced by a previous
+        // raid's — see ZombieMeleePatch.Reset()'s own doc comment.
+        ZombieMeleePatch.Reset();
 
         Plugin.ModLogger.LogInfo(
             $"Zombie match started: wave 1 of {_config.WaveStartSize}, +{_config.WaveGrowth}/wave, "
@@ -245,6 +250,7 @@ public sealed class ZombieMode : IArenaMode
     {
         _ended = true;
         ZombieSpawnService.Reset();
+        ZombieMeleePatch.Reset();
 
         // No richer existing match-end summary to fold this into (unlike
         // GunGameMode's own tier/wins line) — one line here is what
