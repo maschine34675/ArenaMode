@@ -142,18 +142,21 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
             CreateRow(template, typography, index, 84f + index * 42f);
 
-        CreateRule(266f, typography);
-        var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 281f, 22f);
+        // Every top offset below is +42 from its pre-Zombie value: one row
+        // height for the fifth mode row added above (see ArenaModeCatalog's
+        // Definitions and ModePanelHeight, which grew by the same amount).
+        CreateRule(308f, typography);
+        var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 323f, 22f);
         heading.color = Dim(typography, .65f);
         _mutators.Create(screen, _root, typography, Refresh);
-        _rules = CreateFact("RULES", typography, 312f);
-        _respawn = CreateFact("RESPAWN", typography, 352f);
-        _equipment = CreateFact("EQUIPMENT", typography, 392f);
+        _rules = CreateFact("RULES", typography, 354f);
+        _respawn = CreateFact("RESPAWN", typography, 394f);
+        _equipment = CreateFact("EQUIPMENT", typography, 434f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
         _dmRulesView.Show(_root.transform, template, typography, _dmRules);
 
         var note = CreateText("Team restriction", typography,
-            "5v5 requires PitFireTeam + 4 teammates.", 14f, 440f, 44f);
+            "5v5 requires PitFireTeam + 4 teammates.", 14f, 482f, 44f);
         note.color = Dim(typography, .75f);
         _restrictionNote = note.gameObject;
         _restrictionNote.SetActive(_selection.SelectedMode == ArenaModeCatalog.TacticalId);

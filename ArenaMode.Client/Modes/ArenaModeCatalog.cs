@@ -42,6 +42,12 @@ internal static class ArenaModeCatalog
     // ArenaPopulationPolicy would compile and quietly turn both off.
     public const string TacticalId = ArenaPopulationPolicy.Tactical;
     public const string TeamDeathmatchId = ArenaPopulationPolicy.TeamDeathmatch;
+    // Same reasoning as TacticalId/TeamDeathmatchId above: taken from the
+    // shared population policy, which this id also controls (Zombie owns its
+    // entire population and turns on the native infection event), so a rename
+    // here that did not reach ArenaPopulationPolicy would compile and quietly
+    // stop closing the server's quiet clone for it.
+    public const string ZombieId = ArenaPopulationPolicy.Zombie;
 
     private static readonly IReadOnlyList<ArenaModeDefinition> Definitions =
         Array.AsReadOnly(new[]
@@ -58,10 +64,17 @@ internal static class ArenaModeCatalog
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
                 "USEC versus BEAR teams with instant respawns. No companions required.",
                 "USEC vs BEAR", "Instant", "Arena kits"),
+            new ArenaModeDefinition(ZombieId, "ZOMBIES",
+                "Endless waves of the infected.",
+                "Survive wave after wave; they only get bigger",
+                "Instant respawn, the wave keeps coming", "Arena kits"),
         });
 
     internal const float ModePanelTop = 168f;
-    internal static float ModePanelHeight(string mode) => NormalizeId(mode) == DeathmatchId ? 554f : 488f;
+    // +42 for the fifth mode row (Zombie) added below the existing four; every
+    // mode panel grows by one row height, not only the one with the most rows
+    // of its own rules sub-view (Deathmatch).
+    internal static float ModePanelHeight(string mode) => NormalizeId(mode) == DeathmatchId ? 596f : 530f;
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;
 

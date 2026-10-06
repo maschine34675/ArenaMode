@@ -16,6 +16,7 @@ internal static class ModeRegistry
             [ArenaModeCatalog.GunGameId] = () => new GunGameMode(),
             [ArenaModeCatalog.TacticalId] = () => new TacticalMode(),
             [ArenaModeCatalog.TeamDeathmatchId] = () => new TeamDeathmatchMode(),
+            [ArenaModeCatalog.ZombieId] = () => new ZombieMode(),
         };
 
     public const string DefaultId = ArenaModeCatalog.DeathmatchId;

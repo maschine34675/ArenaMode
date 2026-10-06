@@ -123,6 +123,7 @@ public static class Settings
             ArenaModeCatalog.DeathmatchId => DeathmatchColoredTracers,
             ArenaModeCatalog.GunGameId => GunGameColoredTracers,
             ArenaModeCatalog.TacticalId when !protectedTeam => TacticalSoloColoredTracers,
+            ArenaModeCatalog.ZombieId => ZombieColoredTracers,
             _ => TeamTracers
         };
     public static ConfigEntry<bool> TeamLasers { get; private set; }
@@ -164,6 +165,14 @@ public static class Settings
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchKillLimit { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchTimeLimitSeconds { get; private set; }
+    public static ConfigEntry<int> ZombieMaxAlive { get; private set; }
+    public static ConfigEntry<int> ZombieWaveStartSize { get; private set; }
+    public static ConfigEntry<int> ZombieWaveGrowth { get; private set; }
+    public static ConfigEntry<int> ZombieIntermissionSeconds { get; private set; }
+    public static ConfigEntry<float> ZombieSpawnIntervalSeconds { get; private set; }
+    public static ConfigEntry<int> ZombieShooterPercent { get; private set; }
+    public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
+    public static ConfigEntry<bool> ZombieColoredTracers { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
     public static ConfigEntry<bool> AreaCaptureEnabled { get; private set; }
@@ -247,6 +256,7 @@ public static class Settings
             ArenaModeCatalog.GunGameId => GunGameReplaySeconds,
             ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchReplaySeconds,
             ArenaModeCatalog.TacticalId => TacticalReplaySeconds,
+            ArenaModeCatalog.ZombieId => ZombieReplaySeconds,
             _ => DeathmatchReplaySeconds,
         };
 
@@ -946,14 +956,16 @@ public static class Settings
                 "deathmatch: individual kills with optional finite or endless rounds. " +
                 "gungame: climb a ladder of weapons, one rung per kill. " +
                 "tactical: buy a loadout, fight one squad, and sit the round out if you fall. " +
-                "teamdeathmatch: equal USEC and BEAR teams with instant respawns and Arena kits.",
+                "teamdeathmatch: equal USEC and BEAR teams with instant respawns and Arena kits. " +
+                "zombie: endless waves of the infected, with instant respawns and Arena kits.",
                 new AcceptableValueList<string>(
                     ArenaModeCatalog.DeathmatchId,
                     ArenaModeCatalog.EndlessId,
                     ArenaModeCatalog.RoundsId,
                     ArenaModeCatalog.GunGameId,
                     ArenaModeCatalog.TacticalId,
-                    ArenaModeCatalog.TeamDeathmatchId)));
+                    ArenaModeCatalog.TeamDeathmatchId,
+                    ArenaModeCatalog.ZombieId)));
 
         TeamDeathmatchArea = config.Bind(
             "Team Deathmatch",
@@ -993,6 +1005,43 @@ public static class Settings
             new ConfigDescription("Independent Team Deathmatch duration after both teams are ready and the countdown ends (0 = unlimited). " +
                 "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
                 new AcceptableValueRange<int>(0, 7200)));
+
+        ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 20,
+            new ConfigDescription(
+                "Infected allowed alive at once, across the whole raid. Also raises the native bot " +
+                "cap to at least this + 2 (ArenaBotCapPatch). Frozen at match start.",
+                new AcceptableValueRange<int>(4, 60)));
+
+        ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 8,
+            new ConfigDescription(
+                "Infected in wave 1. Frozen at match start.",
+                new AcceptableValueRange<int>(1, 100)));
+
+        ZombieWaveGrowth = config.Bind("Zombie", "WaveGrowth", 4,
+            new ConfigDescription(
+                "Extra infected each wave adds over the last: wave n = WaveStartSize + WaveGrowth * (n - 1). " +
+                "Frozen at match start.",
+                new AcceptableValueRange<int>(0, 50)));
+
+        ZombieIntermissionSeconds = config.Bind("Zombie", "IntermissionSeconds", 10,
+            new ConfigDescription(
+                "Pause between a cleared wave (everything in it spawned, nothing from it still alive) " +
+                "and the next one starting. Frozen at match start.",
+                new AcceptableValueRange<int>(0, 60)));
+
+        ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 1f,
+            new ConfigDescription(
+                "Seconds between individual infected spawn requests while a wave is filling up to MaxAlive. " +
+                "Frozen at match start.",
+                new AcceptableValueRange<float>(0.2f, 10f)));
+
+        ZombieShooterPercent = config.Bind("Zombie", "ShooterPercent", 0,
+            new ConfigDescription(
+                "Percent chance each spawned infected is the hard/Shooting variant (PM pistol) instead of " +
+                "normal/Fast melee. 0 keeps every infected melee; 100 makes every infected a shooter. " +
+                "Never easy (too slow to matter) or impossible (the native brain throws on construction). " +
+                "Frozen at match start.",
+                new AcceptableValueRange<int>(0, 100)));
 
         RoundKillTarget = config.Bind(
             "Match",
@@ -1146,6 +1195,7 @@ public static class Settings
         DeathmatchReplaySeconds = BindReplay(config, "Deathmatch");
         GunGameReplaySeconds = BindReplay(config, "Gun Game");
         TeamDeathmatchReplaySeconds = BindReplay(config, "Team Deathmatch");
+        ZombieReplaySeconds = BindReplay(config, "Zombie");
 
         TacticalTeamRoundsToWin = config.Bind(
             "Tactical Team",
@@ -1397,6 +1447,10 @@ public static class Settings
         TacticalSoloColoredTracers = config.Bind("Tactical", "SoloColoredTracers", false,
             "Color every Tactical 1v5 projectile by side. Off keeps native ammunition tracers. " +
             "Tactical 5v5 uses Effects / TeamTracers.");
+
+        ZombieColoredTracers = config.Bind("Zombie", "ColoredTracers", false,
+            "Color every Zombie projectile by side. Off keeps native ammunition tracers. " +
+            "Independent of the other modes' tracer settings and of Effects / TeamLasers, which Zombie does not use.");
 
         TeamLasers = config.Bind(
             "Effects",

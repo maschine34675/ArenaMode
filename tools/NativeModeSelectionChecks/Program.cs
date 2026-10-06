@@ -39,7 +39,7 @@ internal static class Program
 
     private static void CatalogContract()
     {
-        var expected = new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" };
+        var expected = new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" };
         Assert(ArenaModeCatalog.All.Select(mode => mode.Id).SequenceEqual(expected),
             "the picker exposes the four stable registry ids in the intended order");
         Assert(ArenaModeCatalog.All.All(mode => !string.IsNullOrWhiteSpace(mode.Label)
@@ -176,7 +176,11 @@ internal static class Program
             Assert(!state.CanSelectIndex(invalid) && !state.TrySelectIndex(invalid)
                    && writes.Count == writesBefore,
                 "an out-of-range index is rejected before any write");
-            AssertSelection(state, "teamdeathmatch");
+            // The loop above ends on the catalog's LAST entry, whatever that
+            // is — currently zombie (the fifth row). Asserting the literal id
+            // here on purpose: a silent catalog reorder should fail this test
+            // loudly rather than have it quietly track whichever id is last.
+            AssertSelection(state, "zombie");
         }
     }
 

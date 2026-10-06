@@ -2,7 +2,7 @@ using ArenaMode.Modes;
 using ArenaMode.Session;
 int checks = 0;
 void Check(bool b, string why) { if (!b) throw new Exception(why); checks++; }
-Check(ArenaModeCatalog.All.Count == 4 && ArenaModeCatalog.All[0].Id == "deathmatch", "one Deathmatch entry replaces both legacy entries");
+Check(ArenaModeCatalog.All.Count == 5 && ArenaModeCatalog.All[0].Id == "deathmatch", "one Deathmatch entry replaces both legacy entries");
 foreach (var alias in new[] { "endless", "rounds", " ROUNDS ", " ENDLESS " }) {
  string saved = alias;
  var mode = new ArenaModeSelectionState(saved, false, x => { saved = x; return true; });
@@ -24,7 +24,7 @@ for (int r = 0; r < 4; r++) foreach (int v in ArenaDeathmatchRulesState.Choices[
 Check(writes == before, "locked writes never reach settings");
 locked = false; accept = false;
 Check(!state.Select(1,50) && values[1] == 0, "rejected write cannot move selection marker");
-foreach (var other in new[] { "tactical", "gungame", "teamdeathmatch" }) {
+foreach (var other in new[] { "tactical", "gungame", "teamdeathmatch", "zombie" }) {
  state.Synchronize(other, false); Check(!state.Visible && !state.Select(1,20), "other modes cannot edit Deathmatch controls");
 }
 state.Synchronize("deathmatch", true);

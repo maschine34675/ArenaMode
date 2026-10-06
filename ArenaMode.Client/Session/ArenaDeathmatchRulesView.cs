@@ -36,7 +36,9 @@ internal sealed class ArenaDeathmatchRulesView
             _root = new GameObject("Arena Deathmatch Match Rules", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
-            SetRect((RectTransform)_root.transform, 20f, 307f, Width, 234f);
+            // +42 from the pre-Zombie 307f: one row height for the fifth mode
+            // row added above in ArenaModeSelectionView (see its comment).
+            SetRect((RectTransform)_root.transform, 20f, 349f, Width, 234f);
             for (int row = 0; row < 4; row++)
             {
                 _labels.Add(CreateText("Deathmatch rule " + row, typography, row * 51f));
