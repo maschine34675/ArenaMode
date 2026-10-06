@@ -7,6 +7,52 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Zombie-Modus-Prototyp (2026-10-06, Branch feature/zombie-prototype, Worktree ArenaMode-zombie):**
+  15 Commits auf `29f670c`: neun Ursprungs-Commits (`7275289` Population/
+  Hostility/LocationMutator, `2ac377d` Server-Tests, `604a76d` Katalog/
+  Settings/Menü, `5392e8e` reine Wellen-/Rollen-/Profilplan-Regeln, `3df7977`
+  ZombieMode + nativer Spawn-Naht, `a3dc746` BurstSpawnService.SpawnInfected,
+  `f16ed39` ZombieSpawnService verdrahtet, `6ed6ecf` ZombieNativeEventBridge,
+  `f45bae0` Rollen-/Schwierigkeits-Mapping) plus sechs Review-Fix-Commits
+  (`cb2f76e` Flag-Leck geschlossen + Teleport unterdrückt, `c038b1a`
+  Stuck-Wave-Watchdog + Pending-Ledger per Identität, `cc008d2` Watchdog
+  verdrahtet + Tick gedrosselt + Opening-Snapshot eingefroren, `4b89c52`
+  Scoreboard trimmt wieder, `d00cd17` Corpse-Cleanup-Ausnahme auf 0 für
+  Zombie, `f35dfb5` optimistischer Wellen-Slot erst nach echtem Dispatch).
+  Fünfter Arena-Modus **ZOMBIES**: solo, endlose Wellen aus EFTs eigenem
+  Halloween-2024-Infizierten-Event gegen den lokalen Spieler, Instant-Respawn,
+  Arena-Kits, kein PitFireTeam, kein Loot. Der Server reaktiviert das native
+  Event nur für den exakt bewaffneten Raid (`ZombieLocationSettings.Apply`
+  auf dem Clone); der Client treibt Wellen/Rolle/Schwierigkeit selbst
+  (`ZombieMode`/`ZombieWavePolicy`/`ZombieRoleMix`/`ZombieProfilePlan`/
+  `ZombieSpawnService`) und reaktiviert den nativen Spawn-/Verfolgungscode
+  über fünf eigenständige Harmony-Hooks (`ZombieNativeEventBridge`),
+  einschließlich eines Watchdogs gegen eine feststeckende Welle und
+  drei unabhängiger Wiederherstellungspfade für das native Flag nach jedem
+  Raid. Vertrag und vollständige native Belege: `ZOMBIE-MODE-REVIEW.md`.
+  Offline grün in diesem Worktree: `dotnet test ArenaMode.Tests` mit dem
+  No-Deploy-Sentinel (`artifacts/zombie-nodeploy/must-not-exist`, vor und
+  nach dem Lauf als abwesend bestätigt) meldet 828 bestanden, 2 übersprungen
+  (vorbestehend, umgebungsabhängig, nicht Zombie-bezogen), 0 fehlgeschlagen,
+  830 gesamt; `dotnet build ArenaMode.Server`/`ArenaMode.Client -c Release`
+  mit derselben No-Deploy-Property je 0 Fehler. **NICHTS davon ist bisher
+  deployt oder im Spiel getestet** — dieser Eintrag beschreibt ausschließlich
+  den Offline-Stand in diesem Worktree; der Orchestrator deployt und testet
+  im Anschluss separat und ergänzt das Ergebnis hier.
+  Offene Spieltest-Fragen (Reihenfolge und Details in
+  `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Known limitations and GPU playtest
+  checklist"): Spawnen zeigt das Zombie-Modell und landet im 25-70-m-Ring;
+  keine `InfectedLayersStrategy`-Exception und keine NRE aus
+  `AddBackupProfiles`; kein sichtbarer Teleport-Sprung direkt nach dem Spawn;
+  natives Nahkampf-/Schussverhalten je Schwierigkeit greift; das Wellen-HUD
+  zählt korrekt runter, Intermission folgt, die Welle endet; Spielertod/
+  Respawn hält die Wellenprogression nicht an; das native Flag ist nach dem
+  Raid zurückgesetzt (ein folgender gewöhnlicher Raid zeigt keine
+  Zombie-Logzeilen und keine Infizierten); Performance über die Zeit
+  (Frame-Zeit, Bot-Zahl, Leichenzahl); zusätzlich der Stuck-Wave-Watchdog
+  selbst unter echten Bedingungen (ein absichtlich gestrandeter Zombie nach
+  `StuckWaveTimeoutSeconds`).
+
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12
   `Combat / AkimboEnabled`, Standard AUS; dauerhaft gespeicherter Schalter,
