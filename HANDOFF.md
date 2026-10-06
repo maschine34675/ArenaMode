@@ -8,7 +8,7 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - **Zombie-Modus-Prototyp (2026-10-06, Branch feature/zombie-prototype, Worktree ArenaMode-zombie):**
-  15 Commits auf `29f670c`: neun Ursprungs-Commits (`7275289` Population/
+  21 Commits auf `29f670c`: neun Ursprungs-Commits (`7275289` Population/
   Hostility/LocationMutator, `2ac377d` Server-Tests, `604a76d` Katalog/
   Settings/Menü, `5392e8e` reine Wellen-/Rollen-/Profilplan-Regeln, `3df7977`
   ZombieMode + nativer Spawn-Naht, `a3dc746` BurstSpawnService.SpawnInfected,
@@ -69,10 +69,10 @@ current. User-facing communication is normally German.
   (Frame-Zeit, Bot-Zahl, Leichenzahl); zusätzlich der Stuck-Wave-Watchdog
   selbst unter echten Bedingungen (ein absichtlich gestrandeter Zombie nach
   `StuckWaveTimeoutSeconds`).
-  **Erster GPU-Raid (SPT-GPU-2, 2026-10-06 12:52-13:20, Build `1e76582`):**
+  **Erster GPU-Raid (SPT-GPU-2, 2026-10-06 12:52-13:11, Build `1e76582`):**
   alles außer dem Nahkampf bestanden — Spawns, Zombie-Modelle, Messer in der
   Hand, Verfolgung, HUD, Stuck-Wave-Watchdog, keine Error-Zeilen — aber KEIN
-  Zombie hat dem Spieler in 25 Minuten Schaden zugefügt. Ursache
+  Zombie hat dem Spieler in 19 Minuten Schaden zugefügt. Ursache
   (Live-Inspektion + Decompile, Details in `ZOMBIE-MODE-REVIEW.md`,
   Abschnitt "Native melee is suppressed by SAIN's global prefix"): SAINs
   eigener `RunToEnemyUpdate`-Prefix endet mit einem bedingungslosen

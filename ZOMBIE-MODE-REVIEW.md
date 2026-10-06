@@ -512,7 +512,7 @@ Open items after the two GPU-2 raids of 2026-10-06 (details in
 
 ## Native melee is suppressed by SAIN's global prefix
 
-**What the first GPU raid found (SPT-GPU-2, 2026-10-06 12:52-13:20, build
+**What the first GPU raid found (SPT-GPU-2, 2026-10-06 12:52-13:11, build
 `1e76582`).** Every item on the checklist above except #4's melee half
 passed: 8 infected spawned within 7s with zombie bodies
 (`UsedSimplifiedSkeleton=true`), knives in hand
@@ -521,7 +521,7 @@ passed: 8 infected spawned within 7s with zombie bodies
 `Melee.KnifeController` set), they closed to melee range within ~40s, the
 HUD counted waves down, the stuck-wave watchdog retired them after 100s and
 the next wave followed, and no Error log line appeared anywhere. But **no
-zombie ever damaged the player in 25 minutes** — health stayed full the
+zombie ever damaged the player in 19 minutes** — health stayed full the
 whole raid.
 
 **Evidence (live inspection of a zombie standing 0.79m from the player,
