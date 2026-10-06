@@ -55,6 +55,7 @@
     <Compile Include="..\ArenaMode.Client\Bots\ZombieMeleeGate.cs" Link="ClientRules\ZombieMeleeGate.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\ArenaEquipmentChoice.cs" Link="ClientRules\ArenaEquipmentChoice.cs" />
     <Compile Include="..\ArenaMode.Client\Session\ArenaEquipmentChoiceState.cs" Link="ClientRules\ArenaEquipmentChoiceState.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\ArenaAnnouncerGate.cs" Link="ClientRules\ArenaAnnouncerGate.cs" />
   </ItemGroup>
 
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets
