@@ -171,6 +171,13 @@ public static class ArenaLocationMutator
         if (!participants.HasValue)
             MutateBossSpawns(location, map, raidSeconds, quiet || map.DisableBosses, quiet, spawnZones);
 
+        // Zombie-only: turn on the native infection event block and raise the
+        // caps the native point-selection code reads, on top of the quiet
+        // branch every OwnsEntirePopulation mode already took above. See
+        // ZombieLocationSettings for why each field has the value it has.
+        if (string.Equals(mode, ArenaPopulationPolicy.Zombie, StringComparison.OrdinalIgnoreCase))
+            ZombieLocationSettings.Apply(location);
+
         if (config.StripLoot)
             location.Loot = [];
 

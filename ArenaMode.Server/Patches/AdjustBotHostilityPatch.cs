@@ -47,6 +47,30 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
             return;
         }
 
+        if (string.Equals(mode, ArenaPopulationPolicy.Zombie, StringComparison.OrdinalIgnoreCase))
+        {
+            // Deliberately untouched. Verified against the installed server
+            // database (SPT_Data/database/bots/types/infectedassault.json,
+            // difficulty.normal.Mind — the other three generic infected types
+            // match): DEFAULT_BEAR_BEHAVIOUR, DEFAULT_USEC_BEHAVIOUR AND
+            // DEFAULT_SAVAGE_BEHAVIOUR are all "AlwaysEnemies" already, and
+            // FRIENDLY_BOT_TYPES lists every infected role (including
+            // infectedTagilla) as friendly to the others. That is exactly the
+            // relation v0 wants — hostile to every player side, friendly to
+            // one another — with no AdditionalHostilitySettings entry at all.
+            // Falling into the generic branch below would apply whatever
+            // ArenaContext.Config.HostilityMode says instead: "ffa" in
+            // particular sets SavageEnemyChance to 100 and
+            // SavagePlayerBehaviour to AlwaysEnemies for every Savage-side
+            // entry, which would make every zombie (side Savage, per the
+            // infected*.json profiles) an enemy of every OTHER zombie too —
+            // the one relation this mode must never produce. Returning here,
+            // before that branch runs, is what keeps the clone's hostility
+            // settings vanilla regardless of the server's configured mode.
+            ArenaContext.Logger?.Info("[ArenaMode] Arena hostility left vanilla (zombie: native infected Mind settings already apply).");
+            return;
+        }
+
         var settings = location.BotLocationModifier?.AdditionalHostilitySettings;
         if (settings == null)
             return;

@@ -7,13 +7,17 @@ namespace ArenaMode.Shared;
 /// <summary>
 /// Which arena modes own their entire bot population, and what follows from it.
 ///
-/// Two modes count the bodies they spawned and nothing else: Team Deathmatch
-/// reserves equal faction slots, Tactical counts one round's squad. For those
-/// the server empties the location clone's waves, silences its boss spawns and
-/// closes ABPS's spawn window, so no bot can arrive that the mode did not ask
-/// for. Deathmatch (including legacy Endless/Rounds ids) and Gun Game spawn
-/// spawn scavs, from ABPS's pump or from the generated wave plan, and must keep
-/// every role they might draw.
+/// Three modes count the bodies they spawned and nothing else: Team Deathmatch
+/// reserves equal faction slots, Tactical counts one round's squad, Zombie
+/// counts its own endless-wave infected. For those the server empties the
+/// location clone's waves, silences its boss spawns and closes ABPS's spawn
+/// window, so no bot can arrive that the mode did not ask for. Zombie
+/// additionally turns the clone's native infection event on (see
+/// ArenaLocationMutator/ZombieLocationSettings) — that part is unique to it,
+/// but owning its population is the same rule as the other two. Deathmatch
+/// (including legacy Endless/Rounds ids) and Gun Game spawn scavs, from ABPS's
+/// pump or from the generated wave plan, and must keep every role they might
+/// draw.
 ///
 /// The rule used to live in the server's location mutator alone, until the
 /// client needed it too; it is linked into both halves so the two cannot
@@ -28,6 +32,7 @@ public static class ArenaPopulationPolicy
 {
     public const string TeamDeathmatch = "teamdeathmatch";
     public const string Tactical = "tactical";
+    public const string Zombie = "zombie";
 
     /// <summary>
     /// True when the mode spawns every bot itself and an ambient pump, a
@@ -35,7 +40,8 @@ public static class ArenaPopulationPolicy
     /// </summary>
     public static bool OwnsEntirePopulation(string? mode)
         => string.Equals(mode, Tactical, StringComparison.OrdinalIgnoreCase)
-           || string.Equals(mode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase);
+           || string.Equals(mode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(mode, Zombie, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Whether the raid being loaded may skip the client's raid-start profile
@@ -65,6 +71,24 @@ public static class ArenaPopulationPolicy
     /// (the other is the loading-screen kit preload,
     /// KitBundlePreloader.BeginRaidStart), and both are recorded in AGENTS.md
     /// beside the rule they bend.
+    ///
+    /// Zombie deliberately does NOT get this skip, even though it also owns
+    /// its population and also empties Waves/BossLocationSpawn on the clone.
+    /// What ArenaProfilePreloadPatch clears is the GENERIC assault/marksman/PMC
+    /// pairs that BotProfileClient/NonWavesSpawnScenario preload regardless of
+    /// the clone's own Waves — Team Deathmatch can throw those away only
+    /// because its difficulty clock (ArenaBotDifficultyClockPatch) deletes the
+    /// matching pool entries anyway, so nothing is lost. Zombie has no such
+    /// clock, and the real cost this mode's own 498-profile native preload
+    /// would add is an entirely different native path
+    /// (BotHalloweenWithZombies.GetProfilesOnStart, decompile-verified) that a
+    /// dedicated client-side prefix replaces directly — see the zombie client
+    /// stage's native event bridge. Clearing the generic pairs here as well
+    /// would save nothing Zombie uses and would risk the same kind of silent
+    /// bot-side breakage Tactical is excluded to avoid. If a GPU raid later
+    /// shows the generic preload is still a measurable cost for Zombie, add it
+    /// here with its own evidence — do not assume it transfers from Team
+    /// Deathmatch's case.
     /// </summary>
     public static bool SkipsProfilePreload(bool armedForNextRaid, string? armedMap, string? armedMode, string? loadingMap)
         => armedForNextRaid
