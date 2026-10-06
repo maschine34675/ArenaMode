@@ -107,6 +107,52 @@ current. User-facing communication is normally German.
   Spieler-HP sinkt im Nahkampf, ein Zombie-Nahkampf-Kill erscheint im
   Killfeed, keine neuen Error-Zeilen, die `LogPathChoiceOnce`-Zeile
   bestätigt, welcher Pfad (Reverse-Patch oder Fallback) tatsächlich lief.
+  **v1 (2026-10-06 abends, elf weitere Commits auf `b235068`: `452d87a`
+  `7588923` `7bdd868` `66fb9aa` `a54201a` `40503d1` `3a16528` `a6879df`
+  `1203438` `3c0a528` `c088b5d`):** Umsetzung der vier Nutzerwünsche nach dem
+  Playtest ("funktioniert gut"). (1) Wachhund-Semantik geändert: der Timer
+  läuft jetzt nur noch, solange kein Infizierter stirbt (Fortschritt statt
+  Dauer je Welle), Einstellungsname/Standard (100 s) unverändert, nur die
+  Beschreibung korrigiert; neuer monotoner Zähler
+  `ZombieSpawnService.ConfirmedArrivals` füttert `ZombieWavePolicy.Evaluate`.
+  (2) Deutlich größere, pausenlos nachfüllende Wellen: `WaveStartSize` 8→30,
+  `WaveGrowth` 4→10, `SpawnIntervalSeconds` 1,0→0,75 (`MaxAlive` bleibt bei 20,
+  Bereich 4-56); dabei den einen echten Stau-Risikofaktor gefunden und
+  behoben — `ZombieProfilePlan.BackupCountForWaveStartSize` skaliert den
+  nativen Backup-Cache mit der Wellengröße, sonst hätte eine 30er-Welle den
+  festen Cache von 4 fast sofort leergezogen und wäre in
+  `BotProfileClient`s synchronen Fallback gelaufen. (3) Munition/Verbrauchs-
+  güter werden zwischen den Wellen aufgefüllt, ohne neue Inventar-Mutations-
+  code zu schreiben: `ZombieRefillPolicy` (reine WANN-Entscheidung, genau
+  einmal je Wellenende, nur solange der Spieler lebt und nicht mitten im
+  Respawn) plus `ZombieLoadoutRefill` (WIE), das den bestehenden Live-Kit-
+  Pfad `LiveKitRespawn.AtRoundBreak` wiederverwendet (denselben, den Gun
+  Game/Tactical schon zwischen Runden nutzen) — akzeptierte Nebenwirkung:
+  das stellt auch Rüstungs-/Waffenhaltbarkeit wieder her. (4) Neue Option
+  **OWN GEAR** (`Settings.ZombieOwnGear`, Standard aus, F12 und neue
+  Mutator-Zeile im Kartenmenü): eigenes, geschütztes Gear statt Zufalls-Kits,
+  exakt über Tacticals vorhandenen `TeamArenaLoadoutSnapshot`-Mechanismus
+  (Einfrieren beim Armen, Erfassen der Eintritts-Ausrüstung, Überspringen von
+  Kit-Tausch/Ladebild-Preload/Containerleerung, Wiederherstellung bei jedem
+  Tod und bei der Wellen-Pause-Auffüllung). Review-Fund und Fix noch am
+  selben Abend (`1203438`): `ZombieMode._local` wurde nie erneuert, wenn der
+  Kit-Tausch oder die eigene Pausen-Auffüllung selbst den Live-Körper
+  tauschte (nicht nur ein echter Tod) — Unitys `MonoBehaviour`-Gleichheit
+  ließ die zwischengespeicherte Referenz auf den zerstörten Körper fortan
+  für immer `!= null` lesen wie `null`, lautlos, ohne Logzeile. Dadurch
+  füllte die Pausen-Auffüllung höchstens einmal pro Raid statt einmal je
+  Welle auf. Fix: `_local` pollt jetzt `_world.MainPlayer` und heilt sich
+  selbst, nach demselben Muster wie `TeamDeathmatchMode.Tick`. Offline danach
+  852 bestanden, 2 vorbestehende Skips, 0 fehlgeschlagen, 854 gesamt;
+  No-Deploy-Sentinel vor/nach jedem Lauf abwesend bestätigt; Client-/
+  Server-Build je 0 Fehler. **v1 ist noch nicht im Spiel getestet** — der
+  nächste GPU-Raid muss zeigen: der Wachhund bleibt still, solange getötet
+  wird; eine Welle endet tatsächlich durch Kills; eine 30er-Welle füllt bei
+  `MaxAlive` 20 ohne Stau nach; die Pausen-Auffüllung wirkt nach JEDER
+  Welle, nicht nur der ersten; Own Gear hält Ausrüstung über Tod/Pause/
+  Containernutzung und das Profil ist nach dem Raid unverändert. Details,
+  Testliste und offene Punkte: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v1
+  (2026-10-06 evening)".
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12

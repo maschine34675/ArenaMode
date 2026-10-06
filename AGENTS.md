@@ -366,6 +366,26 @@ copies the original IL into a patch-chain-free `MethodInfo` SAIN's prefix
 never sees. See `ZombieMeleePatch` and ZOMBIE-MODE-REVIEW.md, "Native melee
 is suppressed by SAIN's global prefix".
 
+**A cached live-body reference goes stale, silently, for any body swap that
+is not the one event you listen for.** `ZombieMode._local` was refreshed only
+by the real death-respawn event (`OnLocalRespawn`), but the raid-start kit
+swap AND the wave-intermission refill's own live-body swap
+(`LiveKitRespawn.AtRaidStart`/`AtRoundBreak`/`AtRoundBreakOwnGear`, all
+through the shared `SwapRoutine`) replace the live body too and destroy the
+old one WITHOUT raising that event. `EFT.Player : MonoBehaviour`, so Unity's
+overridden `==`/`!=` makes `_local != null` read false forever for the
+destroyed body on the very next tick — no exception, no log line, just a
+feature (the wave-intermission refill) that silently stops firing after its
+first live-body swap. A desktop-CLR xunit test cannot reproduce this; it is
+Unity-specific object identity, not a logic bug a pure test layer can see.
+The fix is to poll the authoritative source (`_world.MainPlayer`) and heal
+the cached reference when it changes, guarded on `!ArenaRespawnDriver.
+IsRespawnInProgress` so the heal fires only once a replacement body is fully
+wired — `TeamDeathmatchMode.Tick` already did this for its own cached
+reference; `ZombieMode.Tick` now does too. Any new per-mode code that caches
+a live `Player`/`BotOwner` reference across ticks must self-heal the same
+way, not just subscribe to the one event that happens to be named for it.
+
 **Do not detour constructed generic inventory queries on Mono.** Patching
 `GetReachableItemsOfTypeNonAlloc<Magazine>` also replaced Ammo and ThrowWeap
 calls with the Magazine wrapper. The original scanner then threw

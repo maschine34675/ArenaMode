@@ -642,3 +642,393 @@ still saved exactly once per unrestored window, and `RestoreFlag` still
 clears it (and the new `_savedFlagGameWorld`) together, from whichever of
 `Dispose()`/`ArenaSession.OnRaidEnded`/the next raid's own `Activate()`
 reaches it first.
+
+## v1 (2026-10-06 evening): progress-based watchdog, continuous waves, refill, own gear
+
+Driven by the user's own post-playtest feedback on v0 ("funktioniert gut") — four
+requests, implemented as four stages on `feature/zombie-prototype` plus one
+same-evening review-fix pass. Commits, oldest first:
+`452d87a` `7588923` `7bdd868` `66fb9aa` `a54201a` `40503d1` `3a16528` `a6879df`
+`1203438` `3c0a528` `c088b5d`.
+
+### 1. Watchdog: progress, not duration
+
+**Problem (found in the first GPU raid, see "Native melee..." above).**
+`StuckAliveSince` was a pure wall-clock timer from the moment the tail state
+("everything of the wave spawned, at least one still alive") began, never reset
+by a kill in between — so a wave the player was steadily clearing one infected at
+a time still got force-cleared once total tail duration crossed
+`StuckWaveTimeoutSeconds`, exactly as raids 1 and 2 showed.
+
+**New semantics.** "Stuck" now means "fully spawned AND no infected has died for
+`StuckWaveTimeoutSeconds`" — matching the setting's own name. The clock restarts
+on every infected death, not merely once at tail entry. The setting itself is
+unchanged: name, 100 s default, 0-600 s range; only its description in
+`Settings.cs` was reworded to document the progress-based semantics.
+
+**How a death is detected (and why not through the kill/scoring pipeline).**
+`ZombieSpawnService.ConfirmedArrivals` (`Bots/ZombieSpawnService.cs`) is a new
+monotonic lifetime counter, incremented in `OnZombieArrived` immediately after
+the bot-alive check — deliberately before the player-alive early return, so it
+can never undercount relative to `CountAliveInfected`'s own definition during
+Zombie's instant-respawn window. `ZombieWavePolicy.Evaluate` (`Modes/
+ZombieWavePolicy.cs`) gained a sixth parameter, `int arrivedTotal = 0` (defaulted
+so every pre-existing non-watchdog call/test is unaffected), nets it against the
+previous call's baseline (`State.LastArrivedTotal`) to get
+`arrivedSinceLastCall`, and only then asks whether `alive` fell short of what new
+arrivals alone would explain — a raw "did alive drop" check is not enough by
+itself, because a request dispatched before the tail began can resolve into a
+confirmed arrival during the tail (alive rising for a reason unrelated to
+dying), and a death and a late arrival can land in the same call and net to zero
+visible change. Every self-recursive call inside `Evaluate` forwards the SAME
+`arrivedTotal` it received rather than letting it default, so a synthetic
+re-entrant call can never corrupt the real baseline. `ZombieMode.Tick` reads
+`ZombieSpawnService.ConfirmedArrivals` each wave-evaluation tick and passes it
+through.
+
+Two designs were weighed for the death signal itself (see `ZombieWavePolicy`'s
+own doc comment, "How a death is detected, and why not the obvious way"): wiring
+it through the existing kill-capture/scoring pipeline (`ZombieMode.OnKill`), or
+deriving it purely from alive/arrived counts inside the pure policy layer.
+Chosen: the latter — `ArenaKill` is only raised when EFT names a credited
+aggressor, and an infected that dies with none identified (environmental damage,
+a fall) is routed to `ArenaUncreditedDeathPatch`, which explicitly skips any
+non-local-player victim, so that class of death would silently fail to reset the
+watchdog if wired through `OnKill`. Staying inside the pure layer also keeps the
+watchdog independent of any future change to scoring/kill-feed filtering.
+
+**Fault control.** Reverted the tail-branch re-arm condition from
+`if (NaN || anyDeathSinceLastCall)` back to the old `if (NaN)`-only check;
+`TheStuckWaveWatchdogDoesNotFireWhileInfectedKeepDying`,
+`TheStuckWaveWatchdogStillFiresWhenDeathsActuallyStop` and
+`AMaskedDeathCoincidingWithALateArrivalStillResetsTheStuckTimer` all failed
+(red) with the exact expected symptom — the watchdog firing early because a
+death never restarted the clock; restored, full suite green again.
+
+**Review fix, same evening (`c088b5d`).** The bigger-wave defaults below made a
+watchdog-cleared tail able to hold the full `MaxAlive = 20` at once (vs. at most
+`WaveStartSize = 8` under the old defaults), so one firing of
+`RetireAllAliveInfected` could burst up to 20 per-bot `LogWarning` lines in a
+single frame. Changed to one `LogInfo` summary line
+("administratively retired N infected…") after the loop; the per-bot
+`LogWarning` stays, but only on the genuinely exceptional failure-to-retire
+path. Log-shape only, no behaviour change.
+
+### 2. Continuous, much bigger waves
+
+**New defaults (`Settings.cs`, section `"Zombie"`):**
+
+| Setting | Old | New | Range |
+|---|---|---|---|
+| `WaveStartSize` | 8 | **30** | 1-200 (was 1-100) |
+| `WaveGrowth` | 4 | **10** | 0-100 (was 0-50) |
+| `SpawnIntervalSeconds` | 1.0 | **0.75** | 0.2-10 (unchanged) |
+| `MaxAlive` | 20 | 20 (unchanged, as decided) | 4-56 (unchanged) |
+
+`ZombieWavePolicy.Evaluate`'s continuous-refill math already implemented "many
+more zombies, not necessarily at once, but without pause, bounded by `MaxAlive`"
+with no formula change needed: `target = min(MaxAlive, remainingToSpawn +
+alive)`; one spawn request goes out every `SpawnIntervalSeconds` while
+`alive + pending < target`. Raising the defaults alone was enough to deliver
+item 2 of the request.
+
+**The one real throttle risk a bigger wave 1 exposes.**
+`ZombieProfilePlan.BackupTargets` was registered with the native backup loader
+(`BotProfileBackuploader`) at a flat `MinimumBackupCount = 4` regardless of wave
+size. With `infectedAssault` weighted 50% of the role mix, a 30-strong wave 1
+draws roughly 15 of that role alone against a cache of 4; `BotProfileBackuploader`
+only tops up once its deficit exceeds 3, one outstanding fetch at a time
+(decompile-verified), so the cache would empty almost immediately into
+`BotProfileClient.CreateProfile`'s synchronous 3-profile-at-a-time miss path —
+visibly stalling spawns even though `ZombieWavePolicy` itself never pauses.
+`ZombieProfilePlan.BackupCountForWaveStartSize(int waveStartSize)` scales the
+per-(role, difficulty) backup target by the heaviest role weight's share of
+`waveStartSize`, floored at `MinimumBackupCount` and ceilinged at
+`MaxBackupCountPerPair` (a new `const int = 100`, i.e. `Core.LOCAL_BOTS_COUNT`,
+the same native per-request cap the opening preload already respects by
+construction). `ZombieMode.OnMatchStart` now calls
+`ZombieProfilePlan.BackupTargets(_shooterPercent,
+ZombieProfilePlan.BackupCountForWaveStartSize(_config.WaveStartSize))` instead
+of the old implicit-default call.
+
+**Opening preload.** `ZombieNativeEventBridge`'s `GetProfilesOnStart` hook
+already covers at least `MaxAlive` for wave 1 by construction — it sizes to the
+full `WaveStartSize`, and the new `30 > 20` holds with room to spare (the old
+`8 < 20` did not need to, and now does not need to either).
+
+**Tests added:** `WaveSize`'s arithmetic at the new defaults; a 30-zombie wave
+at `MaxAlive = 20` ramping to exactly 20 alive and then refilling one per
+`SpawnIntervalSeconds` as each kill opens a slot, continuously, until all 30
+have gone out; `BackupCountForWaveStartSize`'s scaling, floor, ceiling and
+monotonicity.
+
+### 3. Refill between waves (ammo, meds, grenades)
+
+Implemented as two layers, per `AGENTS.md`'s pattern elsewhere in this mode:
+
+- **`ZombieRefillPolicy`** (`Modes/ZombieRefillPolicy.cs`) — pure, EFT/Unity-free
+  WHEN layer, linked into `ArenaMode.Tests`. Fires exactly once per
+  `Wave`→`Intermission` transition (edge-detected from the `Phase` the caller
+  already reads every `WaveEvaluateIntervalSeconds`), only while the caller
+  reports the player eligible (alive, not mid-death/respawn). A transiently
+  ineligible player is not a permanent skip — Zombie's instant-respawn pipeline
+  can still be finishing exactly when the wave's last infected dies (~0.2 s on
+  the GPU host, per the GPU results document) — so the same intermission keeps
+  asking on later calls, bounded by a retry budget (`RefillMaxAttempts = 20` in
+  `ZombieMode`, a private const, at the existing 0.1 s evaluate cadence ≈ 2 s of
+  real-attempt headroom) that only real attempts (a reported "did not start")
+  consume; an ineligible tick costs nothing. `ReportStarted` resolves the
+  intermission for good, mirroring `ZombieWavePolicy`'s own optimistic-commit
+  convention (dispatched == resolved).
+- **`ZombieLoadoutRefill`** (`Modes/ZombieLoadoutRefill.cs`) — the thin EFT-facing
+  adapter. Writes **no new inventory-mutation code**: it re-applies the
+  player's loadout through the SAME live-body respawn path Gun Game/Tactical
+  already use between rounds.
+  - **Random-kit mode:** `TryRefill` re-applies the player's CURRENT
+    `KitDefinition` through `Respawn.LiveKitRespawn.AtRoundBreak` — the exact
+    path `TacticalMode.StartRound` already uses between rounds. Zombie sets no
+    `KitCatalog.KitProvider`, so `AtRoundBreak`'s internal `GetSelectedKit()`
+    would otherwise hand back a fresh random draw; `ZombieMode` tracks "the kit
+    currently applied" via the existing `ArenaEvents.OnKitApplied` event
+    (subscribed in `OnMatchStart`, unsubscribed in `OnMatchEnd`) and
+    `ZombieLoadoutRefill` installs that kit as a one-shot `KitProvider` for the
+    exact width of `AtRoundBreak`'s single synchronous kit-capture call, then
+    restores whatever was there before. A later ordinary mid-wave death respawn
+    is unaffected and still draws a fresh random kit exactly as v0 does.
+  - **Own-gear mode (item 4):** `TryRefillOwnGear` is `TryRefill`'s sibling —
+    restores `ZombieOwnGearLoadout`'s captured entry loadout through a new
+    `LiveKitRespawn.AtRoundBreakOwnGear` (which needed `AtRoundBreak`'s shared
+    `SwapRoutine` machinery to grow an optional `equipmentOverride` delegate,
+    since the kit-only `AtRoundBreak` hard-refuses when
+    `KitCatalog.GetSelectedKit()` returns null and had no parameter for
+    substituting a `TeamArenaLoadoutSnapshot`-style restore).
+  - Both log exactly one Info line per successful refill, only from the
+    `onComplete` callback once the whole swap is confirmed (not merely the one
+    `EquipmentStrategy` step inside it):
+    `"Zombie refill after wave {n}: kit '{name}' re-applied."` (random-kit) or
+    `"Zombie refill after wave {n}: own-gear entry loadout re-applied (epoch {N})."`
+    (own-gear). `TryRefill`/`TryRefillOwnGear` never throw into `Tick` — caught,
+    logged once via `LogWarning`, reported as "did not start" so the policy's
+    retry budget handles it.
+  - `ZombieMode.Tick` computes `playerEligible` from `HealthController.IsAlive`
+    plus `!ArenaRespawnDriver.{IsRespawnInProgress, StandDown}` and branches the
+    refill call on the frozen `_ownGear` field; `ZombieRefillPolicy` itself (the
+    WHEN) needed no change between the two modes.
+
+**Accepted superset, documented, not fixed.** Re-applying a kit (or the entry
+loadout) through `LiveKitRespawn.AtRoundBreak`/`AtRoundBreakOwnGear` also
+restores armor/weapon **durability** and performs `AtRoundBreak`'s own short
+`NearPositionSpawnSelector` relocation — both are accepted supersets of "just
+refill ammo/consumables" inherited from reusing this already-tested path as-is,
+rather than writing a bespoke in-place inventory edit. `ZombieLoadoutRefill`'s
+own class doc comment argues this explicitly.
+
+**Doc-comment correction (`3c0a528`, review).** The class doc comment had
+claimed a failed restore is "a fatal, raid-ending abort" for both callers of the
+underlying `TeamArenaLoadoutSnapshot` primitive. True for
+`ArenaRespawnDriver.RespawnOwnGearPlayer` (a death respawn —
+`AbortOwnGearRespawn` sets `StandDown` and schedules an abort), but **not** for
+`ZombieLoadoutRefill.TryRefillOwnGear`: the `InvalidOperationException` it
+throws from inside the `EquipmentStrategy` closure on a failed `TryRestore` is
+caught by `RespawnEngine.RunRespawn`'s own failure callback and handled by
+`LiveKitRespawn.SwapRoutine`'s ordinary non-fatal recovery (`RecoverOldBody` +
+reporting "did not start") — that one resupply is skipped and the raid
+continues on the player's current body. The comment now states the asymmetry
+explicitly: a poisoned snapshot keeps silently failing every later
+intermission's refill through the non-fatal path until the player's next real
+death hits the same poisoned snapshot through the OTHER caller, which then IS
+fatal.
+
+**Fault controls (`7bdd868`):** dropping `playerEligible` from
+`ShouldAttempt`'s expression failed `RetriesOnLaterTicksWhilePlayerIsIneligible
+ThenFiresOnceEligible` and `TheRefillPolicyNeverFiresWhileThePlayerIsIneligible`
+exactly as expected; making `ReportStarted` a no-op failed
+`FiresExactlyOnceOnEnteringIntermissionWhilePlayerIsEligible` and
+`TheRefillPolicyDoesNotRefireAfterAlreadyStartedThisIntermission` exactly as
+expected. Both restored, full suite green again.
+
+### 4. Own gear: bring your own protected equipment
+
+As an alternative to random Arena kits, the player can keep their own
+equipment, protected exactly the way Tactical's protected PitFireTeam path
+protects a PMC's entry loadout — reusing that mechanism rather than writing new
+profile-protection code.
+
+- **Setting.** `Settings.ZombieOwnGear` (bool, default `false`, section
+  `"Zombie"`) — a new F12 toggle.
+- **Gate.** `ZombieOwnGearGate.IsSelectedFor(mode, ownGearSelection)`
+  (`Modes/ZombieOwnGearGate.cs`) is the one pure place comparing the frozen F12
+  value against `ArenaPopulationPolicy.Zombie` (`OrdinalIgnoreCase`, matching
+  `KitPreloadPlan`'s own mode-comparison convention) — no EFT/Unity types, so it
+  links directly into `ArenaMode.Tests` like `ZombieWavePolicy`/`ZombieRoleMix`/
+  `ZombieMeleeGate`. Used identically for the loading-screen check
+  (`ZombieOwnGearArmed`, against `ArmedMode`) and the live-raid check
+  (`ZombieOwnGearActive`, against `ActiveMode`), so the two can never disagree.
+- **Frozen at arm.** `ArenaSession.ZombieOwnGearSelection` freezes
+  `Settings.ZombieOwnGear.Value` the exact moment `GunGameLadderSelection`
+  already freezes its own F12 setting (`MarkArmed`) — a mid-loading F12 edit
+  must not desync the loading-screen preload from what the live raid actually
+  does. Cleared alongside `GunGameLadderSelection` on every
+  arming-cleared/raid-rejected/raid-ended path.
+- **Entry-loadout snapshot.** `ZombieOwnGearLoadout` (`Kits/
+  ZombieOwnGearLoadout.cs`) wraps the EXISTING
+  `TeamArenaLoadoutSnapshot` capture/arm/prepare/commit primitive Tactical's
+  protected-team path already uses and tests — one snapshot per raid, one
+  strictly increasing epoch per restore. Unlike Tactical's multi-frame
+  round-transition staging (needed because `PitFireTeam`'s round-transition can
+  hold the respawn pipeline open across several frames while four teammates
+  reassemble), every Zombie restore arms, prepares AND commits in one
+  synchronous call, because Zombie has no such hold (`HoldRespawn = false`, no
+  round-transition state machine) — the dead/old body's `Profile` is still
+  exactly the one `TryCaptureEntryLoadout` saw at the point `RespawnEngine`
+  invokes `EquipmentStrategy` (confirmed against the decompiled
+  `RespawnEngine.RunRespawn`'s own call ordering). A failed prepare or commit
+  permanently poisons the snapshot's restore gate by design (same contract
+  Tactical already lives with); both later callers treat that as fatal for a
+  death respawn (see the doc-comment correction above for the refill's own,
+  non-fatal, exception).
+- **Raid start.** `ArenaSession.OnRaidStarted`'s kit-swap block gets an
+  own-gear branch alongside the existing PitFireTeam one: captures the entry
+  loadout (`ZombieOwnGearLoadout.TryCaptureEntryLoadout`) instead of calling
+  `LiveKitRespawn.AtRaidStart`, and schedules a failed-start abort if the
+  capture itself fails, mirroring how a rejected raid-start token is already
+  handled at this same call site — never silently falling through to a random
+  kit.
+- **Loading-screen preload skipped.** `KitBundlePreloader.BeginRaidStart` gets
+  an early return shaped like its existing PitFireTeam/
+  `CompatibilityTeamArenaActive` check, gated on `ZombieOwnGearArmed` (the
+  loading-time exception class `AGENTS.md` already documents for this file) —
+  a whole-catalogue preload plan would otherwise still warm pools for a raid
+  that hands out no kit at all. (Deliberately NOT routed through
+  `KitPreloadPlan.OpeningKit`'s existing `protectedTeamRaid` parameter alone,
+  because that would still let a whole-catalogue-scope plan warm the rest of
+  the catalogue — the same reason the production PitFireTeam check already
+  returns early instead of threading through that parameter.)
+- **Secure container.** `ArenaSecureContainer.LeavesContentsAtHome` gets a third
+  condition alongside `EmptySecureContainer` and `!HasFrozenTeamRoster`: own
+  gear has no medical ladder to outclass and emptying the container would
+  destroy the player's own real supplies, the same way it already would for a
+  frozen PitFireTeam roster.
+- **Death respawn.** `ArenaRespawnDriver.RespawnRoutine` gets a new branch,
+  checked FIRST — before the frozen-PitFireTeam branch and unconditionally
+  ahead of the ordinary `KitCatalog.GetSelectedKit()` call — so a random-kit
+  respawn can never reach a player who asked to keep their own gear. The new
+  `RespawnOwnGearPlayer` coroutine mirrors `RespawnProtectedTeamPlayer`'s shape
+  (same spawn protection, same failure handling via a new
+  `AbortOwnGearRespawn`).
+- **Wave-intermission refill.** Covered in section 3 above
+  (`TryRefillOwnGear`/`AtRoundBreakOwnGear`).
+- **Menu exposure.** Mirrors Tactical's equivalent the way the task asked:
+  Tactical has no literal toggle for its own-gear path (it is automatic, driven
+  by a complete PitFireTeam roster), so this reuses the SAME mutator-panel
+  mechanism that already mode-gates other per-mode options (Pickups to
+  Deathmatch/Team DM, Lasers to Team DM/Tactical 5v5) rather than inventing new
+  UI: a new `ArenaMutator.OwnGear` row ("OWN GEAR" / "Bring your own protected
+  equipment.", unavailable outside Zombie: "Available in Zombies."). No
+  `ArenaMutatorsView` code change was needed — it already builds one row per
+  `Enum.GetValues(typeof(ArenaMutator))` entry and lays out two columns of
+  `(count + 1) / 2` rows; 15→16 mutators keeps `rowsPerColumn` at 8 either way
+  (verified by arithmetic, not confirmed in-game). `ArenaModeSelectionView.
+  Refresh`'s EQUIPMENT fact text gets the same special case its `TacticalOnly`
+  branch already has ("PMC entry gear"): the ZOMBIES row shows "Own gear"
+  instead of the catalog's default "Arena kits" once `Settings.ZombieOwnGear`
+  is on.
+
+**Fault control (`a54201a`):** temporarily changed `ZombieOwnGearGate`'s
+`StringComparison.OrdinalIgnoreCase` to `StringComparison.Ordinal`;
+`TheComparisonIsCaseAndWhitespaceInsensitive` failed exactly as expected
+(an uppercase `"ZOMBIE"` mode id stopped matching); reverted, full suite green.
+
+### Review fix: the stale cached local-player reference (`1203438`)
+
+**Bug (`confirmed` by the orchestrator's own review pass after stages A-C).**
+`ZombieMode._local` was refreshed only by the real death-respawn event
+(`OnLocalRespawn`, raised from `ArenaRespawnDriver`'s three death call sites) —
+but the raid-start kit swap AND the wave-intermission refill's own live-body
+swap (`LiveKitRespawn.AtRaidStart`/`AtRoundBreak`/`AtRoundBreakOwnGear`, all
+through the shared `SwapRoutine`) replace the live body too and destroy the old
+one (`ArenaRetiredBodyEffects.TryDestroy`) WITHOUT ever raising that event.
+`EFT.Player : MonoBehaviour`, so Unity's overridden `==`/`!=` makes
+`_local != null` read false forever for the destroyed body on the very next
+tick — silently, no log line, since `ZombieRefillPolicy.Evaluate` simply stops
+returning `ShouldAttempt = true`. In random-kit mode this broke the refill from
+before wave 1 even started (`OnMatchStart` captures the pre-swap body strictly
+before `ArenaSession`'s own `AtRaidStart` call destroys it). In own-gear mode
+wave 1's refill fired correctly, but that very refill's own
+`AtRoundBreakOwnGear` call then invalidated `_local` for every later
+intermission. Net effect either way: at most one resupply for the whole raid
+instead of one per cleared wave — exactly the "zwischen den Wellen" behaviour
+the user asked for, silently only half-delivered.
+
+**Fix.** Mirrors `TeamDeathmatchMode.Tick`'s already-established pattern for
+this exact class of staleness: poll `_world.MainPlayer` and heal `_local` (via
+the existing `OnLocalRespawn`) when it has changed, guarded on
+`!ArenaRespawnDriver.IsRespawnInProgress` so the heal only fires once a
+replacement body is fully wired, never mid-swap (that flag spans the whole
+`LiveKitRespawn.SwapRoutine` pipeline too, via the shared
+`BeginPipelineUse`/`EndPipelineUse`). Placed right before computing
+`playerEligible`, inside the existing 0.1 s wave-evaluate throttle.
+
+No new unit test: the bug is Unity-specific (`MonoBehaviour`'s overridden
+null-equality on a destroyed object), which a desktop-CLR xunit test cannot
+reproduce — the same "client-side, verification is still a raid" limitation
+this document's own "Known test-coverage gap" note and `AGENTS.md` already
+document for `ZombieMode.Tick`'s EFT-facing glue. **The next GPU raid must show
+a refill firing after EVERY cleared wave, not just the first.**
+
+### Test totals after v1
+
+Offline (`dotnet test ArenaMode.Tests`, no-deploy sentinel confirmed absent
+before and after): **852 passed, 2 skipped (pre-existing, environment-gated,
+unrelated to Zombie), 0 failed, 854 total** — re-confirmed for this document.
+Clean Release builds of `ArenaMode.Client` and `ArenaMode.Server` with the same
+no-deploy properties: 0 errors. `ZombieWavePolicyTests.cs`,
+`ZombieRefillPolicyTests.cs`, `ZombieOwnGearGateTests.cs` and
+`ZombieProfilePlanTests.cs` carry the new coverage; all remain pure/
+production-linked with no EFT/Unity dependency.
+
+### Updated GPU playtest checklist (next raid)
+
+None of v1 has been seen live. Per `AGENTS.md`, "for anything client-side,
+verification is still a raid" — everything above is decompile cross-checking,
+offline tests and clean builds only. The next raid (prefer SPT-GPU-2) must
+confirm, in order:
+
+1. **Watchdog stays quiet while the player is actively killing.** Fight a wave
+   down through kills at a pace slower than `StuckWaveTimeoutSeconds` between
+   individual kills; the watchdog must NOT force-clear it. Then stop killing
+   entirely for `StuckWaveTimeoutSeconds` with infected still alive and confirm
+   it still fires (the watchdog is not disabled, only re-armed by progress).
+2. **A wave actually ends through kills**, not the watchdog — the first time
+   this mode has shown that live (both GPU-2 raids on 2026-10-06 had every wave
+   end via the watchdog instead).
+3. **A 30-zombie wave 1 keeps feeding at `MaxAlive = 20`** with no visible
+   stall: alive count ramps to 20 quickly and a kill is followed by a fresh
+   spawn within about `SpawnIntervalSeconds`, not a multi-second
+   `BotProfileClient` synchronous-miss pause. No `ArgumentOutOfRangeException`
+   or profile-starvation warning.
+4. **The intermission refill restores magazines/meds/grenades after wave 1**,
+   both modes: (a) random-kit — consume some ammo/meds/grenades during wave 1,
+   survive to the intermission, confirm the log line `"Zombie refill after
+   wave 1: kit '...' re-applied."` and that the inventory is topped up (and
+   that durability/position also changed, per the accepted superset); (b)
+   repeat for wave 2's intermission and confirm the SAME refill fires again
+   (this is exactly what `1203438` fixes — the prior build would have silently
+   stopped refilling after wave 1).
+5. **Own gear end to end.** Arm Zombie with `OwnGear` on (F12 or the new OWN
+   GEAR mutator row); confirm the map screen's EQUIPMENT fact shows "Own gear";
+   start a raid and confirm the BepInEx log shows the raid-start kit swap was
+   skipped and the secure container was NOT emptied; die once and confirm the
+   respawn restores the real loadout (log: "Arena Zombie own-gear respawn
+   completed (epoch 1)…"); survive to an intermission and confirm the log line
+   `"Zombie refill after wave N: own-gear entry loadout re-applied (epoch
+   N)."` with ammo/meds/grenades topped up; end the raid and confirm the
+   profile afterward is identical to before arming (the sacred-profile
+   guarantee, same as every other mode).
+6. **Regression check.** A normal (OwnGear off) Zombie raid and an ordinary
+   non-Zombie raid are both completely unaffected by all of v1.
+
+Also still open from the v0 checklist and not yet retried: performance/corpses
+at `MaxAlive` 40-56, a deliberately stranded infected for the watchdog itself,
+`ShooterPercent > 0` (ranged infected), the second `Activate()`'s caller, Labs/
+Labyrinth, the boss zombie, PitFireTeam.
