@@ -102,7 +102,13 @@ internal static class Program
         void Bounds()
         {
             var panel = (RectTransform)view.Root.transform;
-            Need(-panel.anchoredPosition.y + panel.sizeDelta.y <= 916, "native participants panel clears bottom controls");
+            // 958: +42 over the pre-Zombie 916 for the fifth mode row, the same
+            // shift AreaTeamMenuChecks applies. UpdateLayout places this panel at
+            // ModePanelTop (168) + ModePanelHeight (Deathmatch 554->596) + 12, so
+            // the ceiling tracks the panel. Measured maximum over this matrix:
+            // 928 (Deathmatch top 776 + 152); the native READY area starts at
+            // Y=984 (MUTATORS-MENU-REVIEW.md), so even the ceiling stays above it.
+            Need(-panel.anchoredPosition.y + panel.sizeDelta.y <= 958, "native participants panel clears bottom controls");
             foreach (var b in Buttons())
             {
                 var r = (RectTransform)b.transform;
