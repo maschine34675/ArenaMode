@@ -40,11 +40,31 @@ namespace ArenaMode.Kits;
 /// restore gate (<c>TeamArenaLoadoutRestoreGate</c> — by design, the same
 /// contract Tactical's protected team path already lives with: see its
 /// CompletePrepare/CompleteCommit, which move straight to Poisoned on any
-/// failure). Every later restore this raid then fails too. Both callers
-/// treat that the same way Tactical's protected-team respawn already does —
-/// a fatal, raid-ending abort — because the alternative (silently falling
-/// back to a random kit, or to nothing) would hand out or destroy the
-/// player's own real gear.
+/// failure). Every later restore this raid then fails too, but the two
+/// callers do NOT treat that failure the same way — an asymmetry, not an
+/// oversight:
+///
+/// <list type="bullet">
+/// <item><description><c>ArenaRespawnDriver.RespawnOwnGearPlayer</c> (a
+/// death respawn) is fatal: <c>AbortOwnGearRespawn</c> sets
+/// <c>ArenaRespawnDriver.StandDown</c> and schedules a raid-ending abort,
+/// exactly like Tactical's protected-team respawn, because a death respawn
+/// has no body left to fall back to.</description></item>
+/// <item><description><c>ZombieLoadoutRefill.TryRefillOwnGear</c> (the
+/// wave-intermission refill, item 3) degrades gracefully instead: the
+/// <see cref="InvalidOperationException"/> it throws from inside the
+/// <c>EquipmentStrategy</c> closure on a failed <see cref="TryRestore"/> is
+/// caught by <c>RespawnEngine.RunRespawn</c>'s own failure callback, which
+/// <c>LiveKitRespawn.SwapRoutine</c> turns into its ordinary non-fatal
+/// recovery (<c>RecoverOldBody</c> + reporting "did not start") — that one
+/// resupply is skipped and the raid continues on the player's current,
+/// unchanged body. The error is logged once per attempt
+/// (<c>ZombieLoadoutRefill</c>'s own catch, plus <c>LiveKitRespawn</c>'s own
+/// "Arena own-gear refill failed: ..." line); nothing else distinguishes a
+/// poisoned snapshot from any other transient refill failure until the
+/// player's NEXT real death reaches the same poisoned snapshot through the
+/// OTHER caller, which then IS fatal.</description></item>
+/// </list>
 /// </summary>
 internal static class ZombieOwnGearLoadout
 {
