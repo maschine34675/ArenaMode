@@ -53,6 +53,8 @@
     <Compile Include="..\ArenaMode.Client\Modes\ZombieRefillPolicy.cs" Link="ClientRules\ZombieRefillPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\ZombieOwnGearGate.cs" Link="ClientRules\ZombieOwnGearGate.cs" />
     <Compile Include="..\ArenaMode.Client\Bots\ZombieMeleeGate.cs" Link="ClientRules\ZombieMeleeGate.cs" />
+    <Compile Include="..\ArenaMode.Client\Modes\ArenaEquipmentChoice.cs" Link="ClientRules\ArenaEquipmentChoice.cs" />
+    <Compile Include="..\ArenaMode.Client\Session\ArenaEquipmentChoiceState.cs" Link="ClientRules\ArenaEquipmentChoiceState.cs" />
   </ItemGroup>
 
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets
