@@ -215,6 +215,33 @@ current. User-facing communication is normally German.
   Zombie-Raid bleibt beim Announcer still, ein Deathmatch-Raid bleibt
   hörbar; Killcam unverändert. Details: `ZOMBIE-MODE-REVIEW.md`, Abschnitt
   "v2 (2026-10-06 night)".
+  **Performance-Messung mit 56 gleichzeitigen Zombies (SPT-GPU-2, 2026-10-06
+  20:07-20:17, Build `acd57ff`, v1-Client):** gemessen, der Punkt "Performance bei
+  MaxAlive 40-56" oben ist damit beantwortet. Auf dem Host liefen die eigenen
+  Nutzer-Einstellungen (MaxAlive 56, Spawnintervall 0,2 s, Schützenanteil 20 %,
+  OwnGear an, Godmode). 56 Zombies am Spieler kosten 17,2 ms (58 fps, Profiler
+  offen) gegenüber 8,4 ms (119,7 fps) bei 20, rund 0,25 ms je zusätzlichem Zombie.
+  Instrumentiert sind ≈ 7,3 ms: ArenaMode nur 0,48, dazu BigBrain 0,85, SAIN 0,67,
+  PitFireTeam 0,43, Waypoints 0,13 und EFTs eigene Hooks 4,6; die übrigen ~10 ms
+  sind Rendering, Animation, Physik und Audio von 56 Körpern plus Leichen und mit
+  dem heutigen Werkzeug nicht aufzulösen (die Summe ist wegen verschachtelter
+  Zeilen eine Obergrenze, siehe Vorbehalt im Ergebnisdokument). Zahlen und
+  Tabellen: `GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`, Abschnitt
+  "Performance-Messung mit 56 gleichzeitigen Zombies"; Kandidatenliste mit Nutzen
+  und Risiko: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Performance at 56 concurrent
+  infected (measured 2026-10-06)". Oberster Kandidat ist der Leichenabbau im
+  Zombie-Modus: Der Wachhund räumt bis zu 56 Körper auf einmal ab,
+  `CorpseCleanupService` gibt aber nur 8 je 5-s-Sweep frei, sodass ~35 s lang bis
+  zu 60 tote Körper durch `Player.ComplexUpdate` laufen (~0,65 ms/Frame plus
+  Ragdoll und Animator); ein höheres Freigabelimit oder eine frühere Freigabe nur
+  für Infizierte brächte grob 1-2 ms bei Abräumungen, aber die Freigabereihenfolge
+  ist tragend (`CORPSE-CLEANUP-REVIEW.md`), also braucht es ein eigenes Review und
+  einen Messraid. **v2** (Equipment-Wahl im linken Panel, Announcer-Mutator,
+  Commits `f79efc4`..`d302fd7`) ist gebaut und als Client-DLL mit SHA256
+  `<wird vom Orchestrator nachgetragen>` auf dem Host ausgeliefert und wird als
+  Nächstes im Kartenmenü geprüft (Checkliste: `ZOMBIE-MODE-REVIEW.md`, "GPU
+  playtest checklist for v2"); der Satz weiter oben, v2 sei noch nicht im Spiel
+  getestet, gilt bis zu dieser Prüfung weiter.
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12

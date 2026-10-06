@@ -487,6 +487,9 @@ test (prefer SPT-GPU-2) must confirm, in order:
    *Partly confirmed 2026-10-06 (raid 2, 12 zombies): 120 fps (8.3 ms mean),
    RAM 11.2 GB, managed 2.3 GB. Not yet measured: MaxAlive 40-56, corpse count
    over time, any raid longer than 3.9 min.*
+   *MaxAlive 56 was measured later the same evening (17.2 ms at 56 alive, 8.4 ms at
+   20): see "Performance at 56 concurrent infected (measured 2026-10-06)" at the
+   end of this document. The corpse count over time is still not measured.*
 
 Also worth exercising once wave 1 is confirmed: triggering the stuck-wave
 watchdog live (strand one infected somewhere unreachable and wait past
@@ -1567,3 +1570,198 @@ this checklist.
    recording behaviour show no regression from either change above.
 7. **Regression**: an ordinary non-Arena raid and a Zombie raid with
    `OwnGear` off behave exactly as before this night's work.
+
+## Performance at 56 concurrent infected (measured 2026-10-06)
+
+The first measurement of the mode at its ceiling: SPT-GPU-2 (Ryzen 7 9800X3D, RTX
+4070 Ti, 1920x1080), build `acd57ff` (the v1 client, before v2), 20:07-20:17. The
+host ran the user's own settings, not the defaults: MaxAlive 56, WaveStartSize 56
+(80 for the measurement), +10 per wave, spawn interval 0.2 s, shooter share 20 %,
+OwnGear on (user loadout, MP7A1), godmode on so the player is a standing target.
+ModProfiler's overlay was open from 20:09:19 with a 30 s AutoExport. Every number
+below is from `GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`, "Performance-Messung mit 56
+gleichzeitigen Zombies", which holds the full tables.
+
+Headline: 17.2 ms (58.2 fps, p95 18.1 ms) with 56 alive and about 80 corpses, the
+profiler open; the same run settled at 8.4 ms (119.7 fps) with 20 alive and the
+profiler closed, equal to the v1 raid. That is roughly **0.25 ms per additional
+infected at the player** (0.21-0.27 across the three samples taken with the horde
+at the player, against the 8.4 ms reference; 0.15 in the first sample, 12 s after
+the start, while the horde was still 13-18 m away). The 20-infected reference appears
+to sit at the 120 fps limit (p95 8.3 ms against a mean of 8.4 ms), so the slope is
+more likely a lower bound than an upper one. No error lines in the raid.
+
+### The measured budget
+
+ModProfiler 30 s delta window 20:12:19-20:12:49, 56 alive, about 80 corpses from two
+watchdog clear-outs, ms per frame:
+
+| Row | ms/frame | Share of 17.2 ms | Whose | Largest items |
+|---|---:|---:|---|---|
+| EFT (vanilla, instrumented) | 4.60 | 27 % | EFT | `DoWorldTick` 1.70; `Player.ComplexUpdate` 1.30 at 116.6 calls (56 alive + ~60 dead bodies); `BotOwner.UpdateManual` 0.88; `AICoreController.Update` 0.71 |
+| DrakiaXYZ-BigBrain | 0.85 | 5 % | third party | `BotAgentUpdatePatch` 0.70 (56 agents); `BotBaseBrainUpdatePatch` 0.15 |
+| SAIN | 0.67 | 4 % | third party | `WorldTickPatch` 0.35; `DirectionDataJob` 0.15; small per-bot hooks, although SAIN controls no infected |
+| maschine-ArenaMode | 0.48 | 2.8 % | **ours** | `ArenaController.Update` 0.225 (all Arena services); `MeleeAttackNodePatch` ~0.12; `BurstSpawnService.SpawnPair` 3 ms per spawn, only while spawning |
+| PitAlex-PitFireTeam | 0.43 | 2.5 % | third party | three per-bot prefixes: `HostileNonCombatActiveLayerFilter` 0.26, `FollowerWeaponSelector` 0.065, `LootPatrol` 0.03 |
+| DrakiaXYZ-Waypoints | 0.13 | 0.8 % | third party | `FindPath` prefix |
+| **Instrumented total** | **~7.3** | **42 %** | | the listed rows add to 7.16; the remaining rows are each below 0.06 |
+| **Not instrumented** | **~10** | **58 %** | engine | rendering and animation of 56 bodies plus corpses, physics (CharacterController), audio, Unity internals |
+
+How to read it. The profiler's counters only advance while its window is open, and
+the delta columns are the last 30 s, not a raid average (see
+`LONG-RAID-REVIEW-2026-09-16.md`, "How the numbers were obtained"). Its
+instrumentation costs about 0.17 µs per measured call, which is roughly 0.02 ms of
+the 1.30 ms `ComplexUpdate` row. Rows are inclusive, so the total is an upper bound:
+`ComplexUpdate` is a nested row in ModProfiler (the README says it must not be added
+to a total by hand), and BigBrain's `BotAgentUpdatePatch` replaces
+`AICoreAgent<BotLogicDecision>.Update`, which `AICoreController.Update` calls once
+per agent, so its 0.70 ms very probably sits inside the vanilla row's 0.71 ms (the
+two are equal at 56 calls each). This was not re-derived from the CSV export. The
+consequence is that the ~10 ms remainder is a lower bound, and that more than half
+of the frame is outside what the profile can see.
+
+### What is ArenaMode's, and what is not
+
+- **Ours, directly: 0.48 ms, 2.8 % of the frame**, about 9 µs per infected per
+  frame. Nothing in it is a candidate worth touching on its own.
+- **Ours by policy:** how many infected exist (`MaxAlive`, spawn pace, shooter
+  share), how long their bodies stay in the scene (corpse cleanup), and when the
+  collector runs (`GcThresholdMonitor`). The cost of those decisions lands in
+  EFT's rows and in the uninstrumented remainder, not in ours.
+- **Not ours, in third-party mods: 2.1 ms** (BigBrain 0.85, SAIN 0.67, PitFireTeam
+  0.43, Waypoints 0.13). They hook every bot, so they run for every infected whether
+  or not they control it. On a bare install this share is absent.
+- **Not ours, EFT's own per-bot work: about 1.6 ms** (`BotOwner.UpdateManual` and
+  `AICoreController.Update`, ~28 µs per infected) plus the world tick.
+
+### Optimisation candidates, ordered
+
+Ordered by how directly the numbers support the change and how much of it is ours to
+change. None of them is implemented; each needs a measured raid, as the corpse and
+pool work before it did.
+
+**(a) Corpse handling in Zombie mode. The only item with a measured number and an
+Arena-owned lever.**
+- Evidence: `Player.ComplexUpdate` ran 116.6 times per frame for 56 live bodies, so
+  about 60 dead ones were still being updated. 1.30 ms / 116.6 = 11.1 µs per call; if
+  a dead body cost the same, the 60 corpses are ~0.65 ms per frame (an upper
+  estimate, a dead body is probably cheaper), plus their ragdoll and animator, which
+  nothing measures.
+- Why they linger: the stuck-wave watchdog retires up to 56 bodies at once
+  (`ZombieSpawnService.RetireAllAliveInfected` kills them through
+  `ArenaAdministrativeDeathGate`). `CorpseCleanupService` hides everything beyond
+  `MaxCorpses` (default 10) at its next 5 s sweep, but a hidden body is still a
+  complete, active player object (CORPSE-CLEANUP-REVIEW.md, "Why hiding was not
+  enough"), and the release is capped at `MaxReleasesPerSweep = 8`. Releasing 56
+  bodies therefore takes seven sweeps, about 35 s. The 15 m "near the player"
+  exemption is not the cause: it is already 0 for Zombie.
+- Option: raise the per-sweep release cap for Zombie only (8 to a few times that, or
+  scaled to the backlog), and/or release infected bodies at the first sweep after
+  they are hidden instead of queueing them. Zombie mode has no loot, so a body has
+  nothing to preserve and nothing is lost by releasing it earlier. A watchdog
+  retirement could in principle remove the body outright instead of killing it; that
+  is a different native path and is not evaluated here.
+- Payoff: roughly 1-2 ms during a clear-out for the ~35 s it now takes to drain,
+  nothing at steady state. At steady state kills arrive at the player's kill rate,
+  well below the 1.6 bodies per second the cap sustains, so the queue stays short;
+  the pile in this measurement exists because the tester did not shoot.
+- Risk: real. The cap exists because a release walks every bot group and tears
+  down a player hierarchy, and a burst of 50 is the frame spike it was written
+  against (`MaxReleasesPerSweep` doc, CORPSE-CLEANUP-REVIEW.md, "Bounded work per
+  sweep"). The release order is load-bearing (AI knowledge cleared before the
+  dead-body record, DynamicMaps markers, pending aggressors, damage-source quiet
+  period, open loot window); a larger cap changes the burst size, not the order, but
+  the cost of one release has never been measured. It needs its own review and a
+  measured raid before it ships.
+
+**(b) Third-party per-bot hooks. Not ours: document only.** PitFireTeam's three
+prefixes cost 0.43 ms (`HostileNonCombatActiveLayerFilter` alone 0.26 ms, ~4.6 µs per
+infected per frame); SAIN's `WorldTickPatch` costs 0.35 ms and its per-bot hooks the
+rest of 0.67 ms although it controls no infected; BigBrain's agent loop is the AI
+work itself (0.70 ms, ~12.5 µs per agent, equal to the vanilla
+`AICoreController.Update` row it very probably runs inside), and Waypoints'
+`FindPath` prefix 0.13 ms. Payoff to us: none we can take; a user with a smaller
+mod stack gets about 2 ms back. Do not patch around another mod's prefix to claim
+it: SAIN's `RunToEnemyUpdate` prefix is the reason the native melee needed a reverse
+patch in the first place (see "Native melee is suppressed by SAIN's global
+prefix").
+
+**(c) An AI update LOD for infected far from the player.**
+- Idea: beyond about 40 m, skip every other `BotOwner.UpdateManual` / agent frame.
+  EFT's own `BotStandBy` is the precedent (distance-based, gated by a bot's
+  `Mind.CAN_STAND_BY`, and `UpdateManual` skips its whole body while it is paused),
+  but a paused infected stops walking, so it is not usable as it stands for a horde
+  that has to keep approaching.
+- Payoff: an upper bound of about 1 ms. `UpdateManual` plus `AICoreController.Update`
+  is 1.59 ms at 56; halving it for every infected is ~0.8 ms, plus the nested hooks
+  (PitFireTeam, our melee patch) that would be skipped with it. The expected payoff
+  is well below that: the first sample, 12 s after the start, already had the horde at
+  13-18 m, so infected beyond 40 m exist only in the first seconds after each spawn,
+  and at steady state almost none are far away.
+- Risk: medium. It interacts with BigBrain's `AICoreAgent.Update` prefix (ours would
+  have to order against a prefix that replaces the method) and with timers the native
+  code assumes tick every frame (`_nextGetGoalTime`, the 0.1 s melee cadence,
+  `Memory.ManualUpdate(Time.deltaTime)`, pursuit timers). It needs a measured
+  prototype before anything else, and it must never touch an infected inside melee or
+  Shooting range.
+
+**(d) Audio: throttle `BotTalk.Say` to the nearest few infected.**
+- Evidence: `InfectedAttackLayer.ManualUpdate` and `InfectedPatrolLayer.ManualUpdate`
+  each call `BotTalk.Say(..., sayImmediately: true)` after `DropNextSayPeriod()` every
+  `Random(1, 3)` s, so 56 infected issue about 28 phrases per second on average. The
+  call is not instrumented; its cost sits in the uninstrumented remainder.
+- Option: an Arena-gated prefix (Zombie mode, infected roles) that lets only the
+  nearest N bots speak.
+- Payoff: unknown, since nothing here measures audio; the audible gain (56 voices,
+  each speaking every one to three seconds, is mostly noise to the player) may matter
+  more than the milliseconds. Risk: low for
+  correctness, medium for feel; read `BotTalk.Say` first for state it updates.
+
+**(e) Spawn bursts.** `BurstSpawnService.SpawnPair` costs about 3 ms per spawn, in
+the point selection. At a 0.2 s interval that is one 3 ms spike on a 12-14 ms frame
+every ~12 frames for the ~11 s a 56-strong wave takes to fill, i.e. frames of roughly
+15-17 ms at a wave start; averaged over frames it is ~0.25 ms. The first sample's
+p95 (18.7 ms against a 13.8 ms mean, a 4.9 ms spread against 0.9-3.2 ms in the later
+samples) fits it. Acceptable as it is. Spreading the point selection over frames
+would remove the spikes without changing the average, but `BurstSpawnService` is
+shared with the ambient burst pump and Team Deathmatch placement, so any change must
+be Zombie-gated.
+
+**(f) GC.** The heap reached 4.0 GB at raid minute 2.8 (the profiler's allocation
+rate was 6.45 MB/s in the spawn phase; the managed figures in the frame table, 1.46
+GB at 20:07:41 to 4.0 GB, imply a mean above 16 MB/s, and the two were not reconciled
+to one quantity). `GcThresholdMonitor` armed at 4 GB and switched at the next death,
+minute 4.2 at 4.69 GB, after which the heap fell to 2.97 GB. It works as designed
+(GC-THRESHOLD-REVIEW.md); at 56 infected the 4 GB default is simply reached in under
+three minutes, against roughly nine at the ~7 MB/s a Labyrinth Deathmatch allocates.
+A lower default for Zombie (3 GB, say) would lower the peak by the difference; the
+overshoot while waiting for a death (0.69 GB here) stays. Risk: the incremental
+collector spends up to its 3 ms slice inside frames, and what that costs at this heap
+size is not measured: the 17.2 ms sample was taken after the switch with the overlay
+open and 80 corpses, so it cannot separate the collector, the overlay and the corpse
+backlog. Measure before changing a default.
+
+**(g) Rendering: not measurable with the current tooling.** There is no CPU/GPU
+split, and ModProfiler times managed methods only, so Unity's skinning, Animator and
+PhysX work is invisible to it; extending its curated `EFT (vanilla)` list (the set
+behind `Profiling/VanillaEngineMethods`) to EFT's own body and animation entry points
+would narrow the ~10 ms but not close it. If the user
+wants more than 56, the next step is a Unity profiler or frame-debugger capture on
+the GPU host, not guesses.
+
+### The 4..56 range of MaxAlive, and what raising it would need
+
+`Zombie / MaxAlive` accepts 4 to 56. The ceiling is bound by two things: the server
+clone's `ZombieLocationSettings.MinimumBotCap` is a fixed 60 (`BotMax`, `BotMaxPvE`,
+`MaxBotPerZone`, raised with `Math.Max`; below it BotSpawner's point selection
+throttles spawn positions and silently drops spawns), and the client cap
+`ArenaBotCapPatch` sets is `MaxAlive + 2`, so 56 gives 58, which must stay under 60.
+The server never learns `MaxAlive`, which is why the floor is a constant. Raising
+the ceiling would take: the range in `Settings.ZombieMaxAlive`; a larger
+`MinimumBotCap` (or `MaxAlive` carried in the raid-start payload so the server can
+derive it); both DLLs shipped together, because a client with a higher ceiling on an
+old server drops spawns silently; and a check of the opening-wave profile preload
+(`ZombieProfilePlan.MaxBackupCountPerPair`, 100). The cost side is the limit in
+practice: extrapolating 0.25 ms per infected linearly, 80 would be about 23 ms
+(~43 fps) on this host, and that is before (a) and (c). Raise the ceiling only after
+those and a CPU/GPU capture.

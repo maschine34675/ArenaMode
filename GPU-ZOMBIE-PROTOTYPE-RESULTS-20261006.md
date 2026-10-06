@@ -286,3 +286,150 @@ bekannte Serialisierungsunterschiede (Dogtag-Felder, `StackObjectsCount` am Scab
 - Schützenanteil 0 %; nur Factory; längster Raid 6 min; kein PitFireTeam.
 - Die Subagenten signierten mehrere v1-Commits (`452d87a`..`cf100ab`) mit „Claude
   Sonnet 5“.
+
+## Performance-Messung mit 56 gleichzeitigen Zombies (06.10.2026 20:07–20:17)
+
+Beantwortet den offenen Punkt "Performance und Leichen bei MaxAlive 40–56"
+(Nächste Schritte 3 oben; Checkliste Punkt 8 in `ZOMBIE-MODE-REVIEW.md`). Ein Raid
+auf SPT-GPU-2 (AMD Ryzen 7 9800X3D, RTX 4070 Ti, 1920x1080, EFT 0.16.9.5), Build
+`acd57ff` (Client-DLL wie Raid C oben, also v1 vor dem v2-Nachtrag), 20:07–20:17.
+Die Zahlen stammen aus `uibridge_status` (300-Frame-Fenster) und aus den
+30-s-Delta-Fenstern des ModProfiler-Overlays; die Einordnung am Ende ist eine
+Auslegung dieser Zahlen, keine weitere Messung.
+
+**Einstellungen auf dem Host.** Es liefen die eigenen Werte des Nutzers (per Sync),
+nicht die Standardwerte 20 / 30 / +10 / 0,75 s / 0 %: MaxAlive 56, WaveStartSize 56
+(für die Messung auf 80 gesetzt, danach zurück auf 56), +10 je Welle,
+SpawnIntervalSeconds 0,2, ShooterPercent 20, OwnGear an (Nutzer-Loadout MP7A1),
+Godmode an (der Spieler ist ein stehendes Ziel). ModProfiler-Overlay ab 20:09:19
+offen, AutoExport alle 30 s (vom Nutzer bereits so gesetzt).
+
+### Frame-Zeiten (`uibridge_status`, 300-Frame-Fenster)
+
+| Zeitpunkt | lebende Zombies | fps | Mittel ms | p95 ms | RAM / managed |
+|---|---|---|---|---|---|
+| 20:07:41 (12 s nach Start, Zombies 13–18 m entfernt) | 56 | 72,6 | 13,8 | 18,7 | 10,0 GB / 1,46 GB |
+| 20:08:03 (Zombies am Spieler, 0,6 m) | 56 | 55,5 | 18,0 | 21,2 | 10,4 GB / 1,60 GB |
+| 20:08:40 | 56 | 62,2 | 16,1 | 17,9 | 11,0 GB / 1,84 GB |
+| 20:12:5x (Profiler offen, Welle 2) | 56 | 58,2 | 17,2 | 18,1 | 14,4 GB / 2,39 GB |
+| 20:15:5x (Profiler zu, nach Wachhund) | 20 | 119,7 | 8,4 | 8,3 | 14,4 GB / 2,42 GB |
+
+Vergleich v1-Raid (20 Zombies, kein Profiler): 119,6 fps, 8,4 ms. Daraus: rund
+0,25 ms je zusätzlichem Zombie am Spieler; 56 Zombies kosten etwa 9–10 ms mehr als
+20.
+
+### ModProfiler, 30-s-Delta-Fenster 20:12:19–20:12:49
+
+56 lebende Zombies und rund 80 Leichen aus zwei Wachhund-Abräumungen; alle Werte
+in ms pro Frame.
+
+**Lesehinweis** (nach `LONG-RAID-REVIEW-2026-09-16.md`, "How the numbers were
+obtained"):
+
+- Die Zähler laufen nur, solange das Profiler-Fenster offen ist (hier ab 20:09:19);
+  die Delta-Spalten zeigen das jeweils letzte 30-s-Intervall, nicht den Raid-Schnitt.
+  Als Nenner zählen die gemessenen Frames (`WebOverlayPlugin.Update`), nicht die
+  Aufrufsumme einer Mod.
+- Die Instrumentierung kostet rund 0,17 µs je gemessenem Aufruf. Bei 116,6
+  `Player.ComplexUpdate`-Aufrufen je Frame sind das etwa 0,02 ms der 1,30 ms dieser
+  Zeile; Zeilen in der Nähe von 0,17 µs je Aufruf sind Messung, nicht Arbeit.
+- Das Overlay selbst kostet Zeit; offen war es nur bei Stichprobe 4 der Frame-Tabelle
+  (die Stichproben 1–3 liegen vor 20:09:19).
+
+| Mod / Gruppe | ms/Frame | Aufschlüsselung |
+|---|---|---|
+| EFT (vanilla, instrumentiert) | 4,60 | `GameWorld.DoWorldTick` 1,70; `Player.ComplexUpdate` 1,30 bei 116,6 Aufrufen/Frame (56 lebende + ~60 Leichen laufen noch durch `ComplexUpdate`); `BotOwner.UpdateManual` 0,88 (56 Aufrufe); `AICoreController.Update` 0,71 (56 Agenten) |
+| DrakiaXYZ-BigBrain | 0,85 | `BotAgentUpdatePatch` 0,70 (ersetzt die native Agentenschleife, 56×); `BotBaseBrainUpdatePatch` 0,15 |
+| SAIN | 0,67 | `WorldTickPatch` 0,35; `DirectionDataJob` 0,15; Rest Kleinkram je Bot (obwohl SAIN keinen Zombie steuert) |
+| maschine-ArenaMode | 0,48 | `ArenaController.Update` 0,225 (alle Arena-Dienste); `MeleeAttackNodePatch` ~0,12 (Reverse-Patch-Körper inklusive NavMesh-Pfad); `BurstSpawnService.SpawnPair` 3 ms je Spawn (nur beim Spawnen) |
+| PitAlex-PitFireTeam | 0,43 | drei Prefixe je Bot und Frame: `HostileNonCombatActiveLayerFilter` 0,26, `FollowerWeaponSelector` 0,065, `LootPatrol` 0,03 (fremder Mod, läuft für jeden Zombie mit) |
+| DrakiaXYZ-Waypoints | 0,13 | `FindPath`-Prefix |
+| übrige Zeilen | je < 0,06 | |
+| **Summe instrumentiert** | **≈ 7,3** | von 17,2 ms |
+
+Die größten Einzelzeilen, nach Kosten sortiert (µs je Aufruf abgeleitet aus ms ÷
+Aufrufe je Frame, wo das Protokoll die Aufrufzahl nennt):
+
+| Methode | Besitzer | ms/Frame | Aufrufe/Frame | µs/Aufruf |
+|---|---|---|---|---|
+| `GameWorld.DoWorldTick` | EFT | 1,70 | — | — |
+| `Player.ComplexUpdate` | EFT | 1,30 | 116,6 | 11,1 |
+| `BotOwner.UpdateManual` | EFT | 0,88 | 56 | 15,7 |
+| `AICoreController.Update` | EFT | 0,71 | 56 Agenten | 12,7 |
+| `BotAgentUpdatePatch` | BigBrain | 0,70 | 56 | 12,5 |
+| `WorldTickPatch` | SAIN | 0,35 | — | — |
+| `HostileNonCombatActiveLayerFilter` | PitFireTeam | 0,26 | 56 | 4,6 |
+| `ArenaController.Update` | ArenaMode | 0,225 | — | — |
+| `DirectionDataJob` | SAIN | 0,15 | — | — |
+| `BotBaseBrainUpdatePatch` | BigBrain | 0,15 | — | — |
+| `FindPath`-Prefix | Waypoints | 0,13 | — | — |
+| `MeleeAttackNodePatch` | ArenaMode | ~0,12 | — | — |
+| `FollowerWeaponSelector` | PitFireTeam | 0,065 | 56 | 1,2 |
+| `LootPatrol` | PitFireTeam | 0,03 | 56 | 0,54 |
+
+Die Summe der instrumentierten Zeilen beträgt ≈ 7,3 ms von 17,2 ms; der Rest (~10 ms)
+ist nicht instrumentiert: Rendering und Animation von 56 Körpern plus Leichen,
+Physik (CharacterController), Audio (56 Zombie-Stimmen alle 1–3 s) und Unity-Interna.
+
+**Vorbehalt zur Summe (nicht gegen den CSV-Export nachgerechnet).** Die ≈ 7,3 ms
+addieren die Zeilen so, wie sie notiert wurden. ModProfiler misst aber inklusiv, und
+zwei Verschachtelungen lassen sich aus README und Quelltext ablesen:
+
+1. `Player.ComplexUpdate` ist laut ModProfiler-README eine verschachtelte Zeile (sie
+   steckt in `DoWorldTick` beziehungsweise `DoOtherWorldTick`) und darf nicht von Hand
+   zu einer Summe addiert werden. Ob die 4,60 ms die Gruppensumme des Overlays sind
+   (dann steht das hier nicht notierte `DoOtherWorldTick` für die 1,30) oder die
+   Handsumme der vier genannten Zeilen (1,70 + 1,30 + 0,88 + 0,71 = 4,59), ist offen.
+2. BigBrains `BotAgentUpdatePatch` ersetzt `AICoreAgent<BotLogicDecision>.Update`,
+   das `AICoreController.Update` je Agent aufruft (`AICoreController.cs:53` im
+   Dekompilat). Die 0,70 ms stecken damit sehr wahrscheinlich schon in den 0,71 ms der
+   vanilla Zeile (beide bei 56 Aufrufen), und auch `MeleeAttackNodePatch` sowie die
+   PitFireTeam-Prefixe laufen vermutlich innerhalb des Agenten-Updates.
+
+Folge: Die ≈ 7,3 ms sind eine Obergrenze der instrumentierten Arbeit, die ~10 ms Rest
+eine Untergrenze. Die Aussage, dass mehr als die Hälfte der Frame-Zeit außerhalb
+dessen liegt, was das Profil sieht, ändert sich dadurch nicht.
+
+### Heap
+
+Heap 4,0 GB bei Raidminute 2,8 (Allokationsrate 6,45 MB/s in der Spawnphase) → die
+GC-Schwelle (`GcThresholdMonitor`, Standard 4 GB) war gewappnet, das Umschalten
+geschah beim nächsten Tod (Minute 4,2, 4,69 GB), danach 2,97 GB. Aus der
+Frame-Tabelle (managed 1,46 GB um 20:07:41, 4,0 GB bei Minute 2,8, also gegen
+20:10:17) ergäbe sich im Mittel gut 16 MB/s; die 6,45 MB/s gelten für die
+Spawnphase. Beide Werte wurden nicht auf dieselbe Messgröße zurückgeführt.
+
+### Beobachtungen
+
+- Die Wachhund-Abräumung erzeugt 56 Leichen auf einmal; CorpseCleanup gibt nur 8 je
+  5 s frei, sodass ~35 s lang bis zu 60 tote Körper durch `Player.ComplexUpdate`
+  laufen (~0,65 ms/Frame) plus Ragdoll und Animator.
+- Mit 20 lebenden Zombies, geschlossenem Profiler und nach der Abräumung liegt die
+  Frame-Zeit wieder bei 8,4 ms, exakt auf dem Wert des v1-Raids ohne Profiler.
+- Keine Error-Zeilen im Raid.
+
+### Einordnung
+
+56 gleichzeitige Infizierte am Spieler kosten gegenüber 20 grob 9–10 ms je Frame,
+also rund 0,25 ms je zusätzlichem Zombie (0,21–0,27 in den Stichproben 2–4, in denen
+die Zombies am Spieler stehen, jeweils gegen die 8,4 ms der 20er-Referenz; 0,15 in
+der ersten, als sie noch 13–18 m entfernt anliefen). Die 20er-Referenz liegt mit
+119,7 fps bei p95 8,3 ms vermutlich am 120-fps-Limit; die Steigung ist dann eher eine
+Untergrenze. Von den 17,2 ms entfallen laut Profil rund 7,3 ms auf instrumentierte
+Methoden: ArenaMode 0,48 ms (2,8 %), BigBrain 0,85, SAIN 0,67, PitFireTeam 0,43,
+Waypoints 0,13 und EFTs eigene instrumentierte Hooks 4,6 ms. Der Eigenanteil des
+Modus ist damit klein; mehr als ein Viertel der Mod-Zeit (2,1 ms) gehört fremden Mods,
+die jeden Bot anfassen, auch wenn sie keinen Zombie steuern. Der nicht instrumentierte
+Rest (~10 ms, nach dem Vorbehalt eher mehr) ist Rendering, Animation, Physik und Audio
+von 56 Körpern plus Leichen; er ist mit dem heutigen Werkzeug nicht aufzulösen, weil
+es keine CPU/GPU-Trennung gibt. Die einzige klar benennbare, vom Modus selbst
+verursachte Größe sind die toten Körper nach einer Wachhund-Abräumung (~35 s lang bis
+zu 60 Leichen in `Player.ComplexUpdate`). Kandidatenliste mit Nutzen und Risiko je
+Punkt: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Performance at 56 concurrent infected
+(measured 2026-10-06)".
+
+Grenzen der Messung: ein Raid und ein 30-s-Fenster; stehender Spieler mit Godmode,
+alle Zombies drängen am Spieler und laufen im Nahkampfpfad; 20 % Schützen
+(`ShooterPercent` 20) und Nutzer-Gear sind Teil der Messung; das Profiler-Overlay war
+nur bei Stichprobe 4 offen; die Leichenzahl wurde nur als "~80" im Delta-Fenster
+geschätzt, nicht über die Zeit gemessen.
