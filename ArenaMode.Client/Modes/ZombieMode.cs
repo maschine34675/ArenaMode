@@ -176,7 +176,8 @@ public sealed class ZombieMode : IArenaMode
 
             int alive = ZombieSpawnService.CountAliveInfected();
             int pending = ZombieSpawnService.Pending;
-            var result = ZombieWavePolicy.Evaluate(ref _waveState, _config, now, alive, pending);
+            int arrivedTotal = ZombieSpawnService.ConfirmedArrivals;
+            var result = ZombieWavePolicy.Evaluate(ref _waveState, _config, now, alive, pending, arrivedTotal);
 
             _phase = result.Phase;
             _waveNumber = result.WaveNumber;

@@ -198,6 +198,175 @@ public sealed class ZombieWavePolicyTests
     }
 
     [Fact]
+    public void TheStuckWaveWatchdogDoesNotFireWhileInfectedKeepDying()
+    {
+        // Item 1 fix, fault control: this guards exactly the 2026-10-06 GPU
+        // finding — the ORIGINAL watchdog measured wall-clock time since the
+        // tail state began, so a wave the player was steadily (if slowly)
+        // clearing still got force-cleared once total tail duration crossed
+        // StuckWaveTimeoutSeconds, even though an infected kept dying the
+        // whole time. Reverting ZombieWavePolicy.Evaluate's tail branch from
+        // `if (float.IsNaN(state.StuckAliveSince) || anyDeathSinceLastCall)`
+        // back to `if (float.IsNaN(state.StuckAliveSince))` alone (the
+        // pre-fix condition) makes this test fail at the 120s mark below —
+        // confirmed by hand before this commit (see the commit message for
+        // the red/green pair), matching AGENTS.md's fault-control convention.
+        var config = Config(maxAlive: 20, start: 3, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 100f);
+        var state = ZombieWavePolicy.Initial();
+        float now = 0f;
+        int alive = 0;
+        int arrivedTotal = 0;
+
+        // Spawn and promptly confirm all three (realistic — see the
+        // continuous-refill test above for why immediate confirmation is the
+        // representative case).
+        for (int i = 0; i < 3; i++)
+        {
+            var r = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+            Assert.Equal(1, r.SpawnNow);
+            now += 0.01f;
+            alive += 1;
+            arrivedTotal += 1;
+        }
+
+        // Tail state begins here (remainingToSpawn=0, alive=3).
+        var tailBegins = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, tailBegins.Phase);
+        Assert.False(tailBegins.ForceRetireStuckInfected);
+
+        // Death #1, 40s later (well under the 100s ceiling).
+        now += 40f;
+        alive -= 1;
+        var afterDeath1 = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, afterDeath1.Phase);
+        Assert.False(afterDeath1.ForceRetireStuckInfected);
+
+        // Death #2, another 40s later (80s since tail began — would already
+        // exceed the 100s ceiling measured from tail START if one more 40s
+        // step follows with no death, proving this is actually exercising
+        // the restart, not just a longer-than-100s total that never trips).
+        now += 40f;
+        alive -= 1;
+        var afterDeath2 = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, afterDeath2.Phase);
+        Assert.False(afterDeath2.ForceRetireStuckInfected);
+
+        // No death this time: 40s after death #2 (120s since tail START,
+        // already past the 100s ceiling if it had never been reset) — must
+        // still NOT fire, because only 40s have passed since the LAST death.
+        now += 40f;
+        var stillOk = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillOk.Phase);
+        Assert.False(stillOk.ForceRetireStuckInfected);
+
+        // 90s after death #2 (still under the 100s ceiling measured from
+        // the last death).
+        now += 50f;
+        var stillOk2 = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillOk2.Phase);
+        Assert.False(stillOk2.ForceRetireStuckInfected);
+
+        // Finally the last infected dies for real: the wave clears
+        // naturally, never via the watchdog.
+        now += 1f;
+        alive = 0;
+        var cleared = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Intermission, cleared.Phase);
+        Assert.False(cleared.ForceRetireStuckInfected);
+    }
+
+    [Fact]
+    public void TheStuckWaveWatchdogStillFiresWhenDeathsActuallyStop()
+    {
+        // Companion to the test above: the progress-based reset must not
+        // disable the watchdog outright — once deaths genuinely stop, the
+        // SAME configured ceiling still fires, confirmed from the moment of
+        // the LAST death rather than from tail entry.
+        var config = Config(maxAlive: 20, start: 2, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 50f);
+        var state = ZombieWavePolicy.Initial();
+        float now = 0f;
+        int alive = 0;
+        int arrivedTotal = 0;
+
+        for (int i = 0; i < 2; i++)
+        {
+            ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+            now += 0.01f;
+            alive += 1;
+            arrivedTotal += 1;
+        }
+
+        // Tail begins (alive=2). One death resets the clock once more.
+        ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        now += 10f;
+        alive -= 1;
+        var afterLastDeath = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, afterLastDeath.Phase);
+        Assert.False(afterLastDeath.ForceRetireStuckInfected);
+
+        // No further deaths. Short of the ceiling measured from THAT death.
+        now += 49f;
+        var notYet = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, notYet.Phase);
+        Assert.False(notYet.ForceRetireStuckInfected);
+
+        // Past it: the watchdog fires.
+        now += 1f;
+        var forced = ZombieWavePolicy.Evaluate(ref state, config, now, alive, pending: 0, arrivedTotal);
+        Assert.Equal(ZombieWavePolicy.Phase.Intermission, forced.Phase);
+        Assert.True(forced.ForceRetireStuckInfected);
+    }
+
+    [Fact]
+    public void AMaskedDeathCoincidingWithALateArrivalStillResetsTheStuckTimer()
+    {
+        // The specific robustness case behind choosing the arrivedTotal-
+        // based design over a naive "did alive drop" check (see
+        // ZombieWavePolicy's own doc comment, "Why a raw alive-count drop is
+        // not enough by itself"): a request dispatched BEFORE the tail began
+        // resolves into a confirmed arrival DURING the tail at the exact
+        // same moment a different infected dies, so the raw `alive` count
+        // does not change at all across the two calls even though a real
+        // death happened. A naive alive-delta watchdog would miss this
+        // entirely; this one must not.
+        var config = Config(maxAlive: 20, start: 2, growth: 0, intermission: 10f, interval: 0f, stuckWaveTimeout: 50f);
+        var state = ZombieWavePolicy.Initial();
+
+        // Spawn #1, confirm it immediately.
+        ZombieWavePolicy.Evaluate(ref state, config, now: 0f, alive: 0, pending: 0, arrivedTotal: 0);
+        // Spawn #2 (now both requested; #2 is left PENDING, not yet alive).
+        ZombieWavePolicy.Evaluate(ref state, config, now: 0.01f, alive: 1, pending: 0, arrivedTotal: 1);
+
+        // Tail begins at t=1.0 with #2 still only pending (not yet arrived):
+        // alive=1, pending=1, arrivedTotal=1 (only #1 confirmed so far).
+        var tailBegins = ZombieWavePolicy.Evaluate(ref state, config, now: 1.0f, alive: 1, pending: 1, arrivedTotal: 1);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, tailBegins.Phase);
+
+        // 19s pass with no change: still well short of the 50s ceiling.
+        var stillWaiting = ZombieWavePolicy.Evaluate(ref state, config, now: 20.0f, alive: 1, pending: 1, arrivedTotal: 1);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillWaiting.Phase);
+        Assert.False(stillWaiting.ForceRetireStuckInfected);
+
+        // The masked event: #1 dies AND #2 (the late-pending one) arrives
+        // alive, in the same call. Net `alive` is unchanged (1 -> 1).
+        var masked = ZombieWavePolicy.Evaluate(ref state, config, now: 20.1f, alive: 1, pending: 0, arrivedTotal: 2);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, masked.Phase);
+        Assert.False(masked.ForceRetireStuckInfected);
+
+        // 30.9s after the masked event (51s after the ORIGINAL tail start at
+        // t=1.0 — past the 50s ceiling if it had never been reset). Must
+        // NOT fire: the real reset point was t=20.1, not t=1.0.
+        var stillOk = ZombieWavePolicy.Evaluate(ref state, config, now: 51.0f, alive: 1, pending: 0, arrivedTotal: 2);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, stillOk.Phase);
+        Assert.False(stillOk.ForceRetireStuckInfected);
+
+        // 50s after the masked event with no further death: fires now.
+        var forced = ZombieWavePolicy.Evaluate(ref state, config, now: 70.1f, alive: 1, pending: 0, arrivedTotal: 2);
+        Assert.Equal(ZombieWavePolicy.Phase.Intermission, forced.Phase);
+        Assert.True(forced.ForceRetireStuckInfected);
+    }
+
+    [Fact]
     public void APermanentlyFailingDispatchDoesNotCountAsSpawnedOrSilentlyEmptyTheWave()
     {
         // The bug this guards (zombie-wave-optimistic-slot-commit):

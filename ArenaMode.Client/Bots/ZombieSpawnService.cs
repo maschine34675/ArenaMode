@@ -75,6 +75,7 @@ internal static class ZombieSpawnService
 
     private static readonly List<PendingEntry> PendingRequests = new List<PendingEntry>(8);
     private static int _nextRequestId;
+    private static int _confirmedArrivals;
 
     /// <summary>True: Stage C's native spawn path (BurstSpawnService.SpawnInfected) is wired.</summary>
     internal static bool IsReady => true;
@@ -89,8 +90,27 @@ internal static class ZombieSpawnService
         }
     }
 
+    /// <summary>
+    /// Monotonic lifetime count of infected bots confirmed alive on arrival
+    /// this raid (incremented in OnZombieArrived the moment a dispatched
+    /// bot's own HealthController reports it alive — the exact same fact
+    /// CountAliveInfected checks, deliberately independent of whether the
+    /// player is alive right now, see OnZombieArrived's own comment). Never
+    /// decremented; ZombieMode.Tick diffs it every evaluation and feeds the
+    /// delta into ZombieWavePolicy.Evaluate's arrivedTotal parameter, so the
+    /// stuck-wave watchdog can net a genuine infected death apart from alive
+    /// merely rising because a request dispatched earlier resolved late (see
+    /// that parameter's own doc comment). Reset alongside everything else in
+    /// Reset().
+    /// </summary>
+    internal static int ConfirmedArrivals => _confirmedArrivals;
+
     /// <summary>Called by ZombieMode at both OnMatchStart and OnMatchEnd (idempotent).</summary>
-    internal static void Reset() => PendingRequests.Clear();
+    internal static void Reset()
+    {
+        PendingRequests.Clear();
+        _confirmedArrivals = 0;
+    }
 
     /// <summary>
     /// Asks BurstSpawnService for one native infected bot. False means nothing
@@ -233,6 +253,17 @@ internal static class ZombieSpawnService
 
             if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
                 return;
+
+            // Counted here, independent of the player-awareness steps below:
+            // ZombieWavePolicy's stuck-wave watchdog (see its own doc
+            // comment, "Why a raw alive-count drop is not enough by itself")
+            // needs this to stay in lockstep with CountAliveInfected()'s own
+            // "bot alive" definition, not with whether the player happens to
+            // be alive right now — frequently false for a moment during
+            // Zombie's instant-respawn window — which would otherwise
+            // undercount an arrival and let a real infected death that lands
+            // in the same tick hide behind it.
+            _confirmedArrivals++;
 
             var player = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;
             if (player == null || player.HealthController == null || !player.HealthController.IsAlive)

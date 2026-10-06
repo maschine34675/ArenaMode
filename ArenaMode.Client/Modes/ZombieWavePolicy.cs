@@ -21,12 +21,72 @@ namespace ArenaMode.Modes;
 /// min(MaxAlive, zombies of this wave not yet spawned + currently alive) —
 /// the second term keeps the tail of a wave from ever asking for more than
 /// the wave actually still has left, once MaxAlive is no longer the binding
-/// constraint. A wave ends only once everything in it has been spawned AND
-/// nothing from it is alive any more; only then does Intermission begin —
-/// except for the StuckWaveTimeoutSeconds watchdog (Config/State/Result),
-/// which force-clears a wave whose tail has stayed "everything spawned, at
-/// least one still alive" past that ceiling, since nothing else in this mode
-/// recovers from a single unreachable infected.
+/// constraint. This is already a CONTINUOUS refill: nothing here waits for
+/// the whole wave to clear before asking for more — as zombies die, alive
+/// drops, the min() term above rises back toward MaxAlive, and the next
+/// SpawnIntervalSeconds tick asks for a replacement, so a 30+ wave at
+/// MaxAlive 20 fills to 20 and then refills one at a time with no pause,
+/// exactly as fast as the player can create room (see
+/// ZombieWavePolicyTests.ThirtyZombieWaveFillsToMaxAliveThenRefillsOnePerIntervalAsAliveDrops).
+/// A wave ends only once everything in it has been spawned AND nothing from
+/// it is alive any more; only then does Intermission begin — except for the
+/// StuckWaveTimeoutSeconds watchdog (Config/State/Result), which force-clears
+/// a wave whose tail has stayed "everything spawned, at least one still
+/// alive" with NO infected death for that long, since nothing else in this
+/// mode recovers from a single unreachable infected.
+///
+/// <para><b>Watchdog progress, not duration (2026-10-06 GPU finding).</b> The
+/// first GPU raid's watchdog cleared a wave the player was still actively
+/// fighting: the original design measured the ceiling as wall-clock time
+/// since the tail state began, so a player steadily killing one infected
+/// every 20s for 6 minutes would still get force-cleared at 100s even though
+/// the wave was never actually stuck. The fix: the timer restarts on every
+/// call where <c>Evaluate</c> observes an infected death since the previous
+/// call, not merely once at tail entry — "stuck" now means "fully spawned
+/// AND no infected has died for StuckWaveTimeoutSeconds", matching the
+/// setting's own name.</para>
+///
+/// <para><b>How a death is detected, and why not the obvious way.</b> Two
+/// designs were weighed (see the orchestrator's research note):
+/// (a) feed the signal from the kill-capture/scoring pipeline this mode
+/// already receives (<see cref="ZombieMode.OnKill"/>, wired to every
+/// <c>ArenaKill</c> via <c>ArenaMatch.ReportKill</c>), or (b) derive it here,
+/// purely from the <c>alive</c>/<c>arrivedTotal</c> counts <c>Evaluate</c>
+/// already takes every call. (b) was chosen. <c>ArenaKill</c> is only raised
+/// when EFT can name a credited aggressor
+/// (<c>CombatPatches</c>' death postfix requires one); an infected that dies
+/// with none identified — environmental damage, a fall — is routed instead to
+/// <c>ArenaUncreditedDeathPatch</c>, which explicitly skips any victim that
+/// is not the local player
+/// (<c>!__instance.IsYourPlayer &amp;&amp; damageType != EDamageType.Barbed</c>
+/// returns early there) — so that class of infected death produces NO event
+/// anywhere, not even presentation, and would silently fail to reset this
+/// exact watchdog. Staying inside this pure layer also means a future change
+/// to scoring/kill-feed filtering (assist eligibility, FFA blocking,
+/// <c>ArenaAdministrativeDeathGate</c>'s own exclusions) can never silently
+/// change watchdog behaviour — the two concerns are independent on purpose.
+/// Design (b) reads only what <see cref="ZombieSpawnService.CountAliveInfected"/>
+/// and <see cref="ZombieSpawnService.ConfirmedArrivals"/> already track, both
+/// keyed on the same "bot's own HealthController.IsAlive" fact, with no
+/// dependency on who or what killed it.</para>
+///
+/// <para><b>Why a raw alive-count drop is not enough by itself.</b> Call
+/// <c>Evaluate</c> every tick with a live snapshot, not a delta — exactly as
+/// <c>alive</c>/<c>pending</c> already work. A request dispatched BEFORE the
+/// tail state began can still resolve into a confirmed arrival DURING the
+/// tail (BurstSpawnService.SpawnPair is async), so <c>alive</c> can rise for
+/// a reason that has nothing to do with anything dying, and a death and a
+/// late arrival can land in the very same call and net to zero visible
+/// change in <c>alive</c> at all. <c>Evaluate</c> therefore also takes
+/// <paramref name="arrivedTotal"/>, a monotonic lifetime count of confirmed
+/// arrivals the caller maintains (<see cref="ZombieSpawnService.ConfirmedArrivals"/>),
+/// and nets out exactly the arrivals that happened since the PREVIOUS call
+/// before asking whether <c>alive</c> fell short of what that alone would
+/// explain. See
+/// ZombieWavePolicyTests.AMaskedDeathCoincidingWithALateArrivalStillResetsTheStuckTimer
+/// for the case this specifically guards: one infected dies the exact same
+/// call a different, already-in-flight one arrives, <c>alive</c> stays
+/// numerically unchanged, and the watchdog must still see progress.</para>
 /// </summary>
 internal static class ZombieWavePolicy
 {
@@ -44,13 +104,19 @@ internal static class ZombieWavePolicy
         /// <summary>
         /// Safety net for a wave's last infected getting wedged in geometry or
         /// stranded on an unreachable NavMesh island: once nothing is left to
-        /// spawn for the current wave and at least one infected has stayed
-        /// alive this long since that happened, Evaluate signals
-        /// Result.ForceRetireStuckInfected and clears the wave anyway, rather
-        /// than leaving Phase stuck at Wave — and the whole endless-wave mode
-        /// with it — for the rest of the raid. 0 or negative disables the
-        /// watchdog entirely (the wave then waits for every infected to die
-        /// naturally, with no recovery if one cannot reach the player).
+        /// spawn for the current wave and no infected has died for this long,
+        /// Evaluate signals Result.ForceRetireStuckInfected and clears the
+        /// wave anyway, rather than leaving Phase stuck at Wave — and the
+        /// whole endless-wave mode with it — for the rest of the raid. The
+        /// clock measures PROGRESS, not merely duration: it restarts on every
+        /// infected death, so a wave the player is still actively (if slowly)
+        /// clearing is never force-cleared out from under them — only a tail
+        /// where nothing has died for the whole ceiling is "stuck" (fixed
+        /// 2026-10-06 after the first GPU raid cleared a wave mid-fight; see
+        /// this class's own doc comment, "Watchdog progress, not duration").
+        /// 0 or negative disables the watchdog entirely (the wave then waits
+        /// for every infected to die naturally, with no recovery if one
+        /// cannot reach the player).
         /// </summary>
         internal float StuckWaveTimeoutSeconds;
     }
@@ -73,12 +139,38 @@ internal static class ZombieWavePolicy
         /// <summary>
         /// NaN unless the current wave has nothing left to spawn while at
         /// least one infected is still alive, in which case this is the
-        /// `now` the tail state was FIRST observed — the stuck-wave
-        /// watchdog's clock starts here, not at wave start. Reset to NaN the
-        /// moment that tail state is no longer true (more spawning resumed,
-        /// the wave cleared normally, or the watchdog force-cleared it).
+        /// `now` the tail state was most recently (re)armed — the stuck-wave
+        /// watchdog's clock counts from here, not from wave start. Set to
+        /// `now` the FIRST time the tail state is observed, and again every
+        /// time Evaluate detects an infected death since the previous call
+        /// (AnyDeathSinceLastCall, computed from LastAlive/LastArrivedTotal
+        /// below) — "stuck" means no death has reset this for
+        /// StuckWaveTimeoutSeconds, not merely that the tail has lasted that
+        /// long. Reset to NaN the moment the tail state is no longer true
+        /// (more spawning resumed, the wave cleared normally, or the watchdog
+        /// force-cleared it).
         /// </summary>
         internal float StuckAliveSince;
+
+        /// <summary>
+        /// `alive` as observed on the PREVIOUS Evaluate call (0 before the
+        /// first). Paired with <see cref="LastArrivedTotal"/> to compute
+        /// whether an infected died since that call: see this class's own
+        /// doc comment, "Why a raw alive-count drop is not enough by
+        /// itself". Updated on every call, including the self-recursive
+        /// ones below, so a fresh wave or a forced retirement never leaves
+        /// it stale.
+        /// </summary>
+        internal int LastAlive;
+
+        /// <summary>
+        /// The caller's <c>arrivedTotal</c> (see Evaluate's own parameter doc)
+        /// as observed on the PREVIOUS call. The two LastAlive/LastArrivedTotal
+        /// fields together are a pure, self-contained "did anything die"
+        /// detector: no EFT/Unity types, no dependency on the kill-feed or
+        /// scoring pipeline.
+        /// </summary>
+        internal int LastArrivedTotal;
     }
 
     internal struct Result
@@ -118,6 +210,8 @@ internal static class ZombieWavePolicy
         NextSpawnAt = float.NegativeInfinity,
         PhaseEndsAt = 0f,
         StuckAliveSince = float.NaN,
+        LastAlive = 0,
+        LastArrivedTotal = 0,
     };
 
     /// <summary>Wave n's size: WaveStartSize + WaveGrowth * (n - 1), n &gt;= 1.</summary>
@@ -146,16 +240,43 @@ internal static class ZombieWavePolicy
             state.SpawnedThisWave--;
     }
 
-    internal static Result Evaluate(ref State state, Config config, float now, int alive, int pending)
+    /// <param name="arrivedTotal">
+    /// Monotonic lifetime count of infected confirmed alive on arrival this
+    /// raid (<see cref="ZombieSpawnService.ConfirmedArrivals"/>). Defaults to
+    /// 0 for callers (mostly tests) that never exercise the stuck-wave
+    /// watchdog's death-progress tracking — every OTHER behaviour of this
+    /// method is unaffected by it. A real caller (ZombieMode.Tick) must pass
+    /// its live reading every call, and every self-recursive call below
+    /// forwards the SAME value it received rather than letting it default,
+    /// since defaulting mid-recursion would wrongly zero out
+    /// State.LastArrivedTotal's baseline for every future call this raid.
+    /// </param>
+    internal static Result Evaluate(ref State state, Config config, float now, int alive, int pending, int arrivedTotal = 0)
     {
         if (float.IsNaN(now) || float.IsInfinity(now))
             throw new ArgumentOutOfRangeException(nameof(now));
 
         alive = Math.Max(0, alive);
         pending = Math.Max(0, pending);
+        arrivedTotal = Math.Max(0, arrivedTotal);
         int maxAlive = Math.Max(1, config.MaxAlive);
         float intermissionSeconds = Math.Max(0f, config.IntermissionSeconds);
         float spawnInterval = Math.Max(0.01f, config.SpawnIntervalSeconds);
+
+        // Watchdog progress signal (consulted only in the tail branch below,
+        // but computed unconditionally so State.LastAlive/LastArrivedTotal
+        // stay current for whichever call next needs them — including the
+        // self-recursive ones, which pass the SAME alive/arrivedTotal they
+        // received and so recompute this as a harmless, idempotent no-op).
+        // arrivedSinceLastCall nets out confirmed arrivals that happened
+        // since the PREVIOUS call before asking whether alive fell short of
+        // what that alone would explain — see this class's own doc comment,
+        // "Why a raw alive-count drop is not enough by itself".
+        int arrivedSinceLastCall = Math.Max(0, arrivedTotal - state.LastArrivedTotal);
+        int expectedAliveFromProgress = state.LastAlive + arrivedSinceLastCall;
+        bool anyDeathSinceLastCall = alive < expectedAliveFromProgress;
+        state.LastAlive = alive;
+        state.LastArrivedTotal = arrivedTotal;
 
         int spawnNow = 0;
         int waveSize = WaveSize(config, state.WaveNumber);
@@ -173,8 +294,12 @@ internal static class ZombieWavePolicy
                 // Symmetric with the Intermission branch below: a zero-length
                 // intermission must advance straight through to the next wave
                 // (and spawn its first zombie) in this same call, not wait a
-                // whole extra Tick for the transition to be noticed.
-                return Evaluate(ref state, config, now, alive, pending);
+                // whole extra Tick for the transition to be noticed. Forward
+                // arrivedTotal UNCHANGED — this is the same logical call, not
+                // a new observation, and defaulting it would wrongly re-zero
+                // State.LastArrivedTotal's baseline (see Evaluate's own
+                // parameter doc).
+                return Evaluate(ref state, config, now, alive, pending, arrivedTotal);
             }
 
             // Tail of the wave: nothing left to request, but at least one of
@@ -187,7 +312,12 @@ internal static class ZombieWavePolicy
             // rest of the raid.
             if (remainingToSpawn == 0 && alive > 0)
             {
-                if (float.IsNaN(state.StuckAliveSince))
+                // Arm (first time the tail is observed) OR re-arm (an
+                // infected died since the previous call — progress, not mere
+                // duration; see this class's own doc comment, "Watchdog
+                // progress, not duration"). Either way the ceiling counts
+                // from NOW, not from whenever the tail originally began.
+                if (float.IsNaN(state.StuckAliveSince) || anyDeathSinceLastCall)
                     state.StuckAliveSince = now;
 
                 float stuckTimeout = config.StuckWaveTimeoutSeconds;
@@ -200,10 +330,15 @@ internal static class ZombieWavePolicy
                     // call proceeds exactly like the ordinary "nothing left
                     // alive" clear above, with alive forced to 0 from here on
                     // (the caller is about to make that true for real).
+                    // arrivedTotal is forwarded UNCHANGED (not the synthetic
+                    // alive=0): the recursive call's own progress tracking
+                    // must still measure against the REAL arrival count, not
+                    // a value that never happened, even though its Result is
+                    // computed with alive forced to 0.
                     state.Phase = Phase.Intermission;
                     state.PhaseEndsAt = now + intermissionSeconds;
                     state.StuckAliveSince = float.NaN;
-                    var forced = Evaluate(ref state, config, now, 0, pending);
+                    var forced = Evaluate(ref state, config, now, 0, pending, arrivedTotal);
                     forced.ForceRetireStuckInfected = true;
                     return forced;
                 }
@@ -232,8 +367,10 @@ internal static class ZombieWavePolicy
                 state.StuckAliveSince = float.NaN;
                 // Re-evaluate as the new wave in the SAME call: a zero-length
                 // intermission must spawn immediately rather than waiting a
-                // whole extra Tick for the transition to be noticed.
-                return Evaluate(ref state, config, now, alive, pending);
+                // whole extra Tick for the transition to be noticed. Forward
+                // arrivedTotal unchanged (same reasoning as the other two
+                // self-recursive calls above).
+                return Evaluate(ref state, config, now, alive, pending, arrivedTotal);
             }
         }
 
