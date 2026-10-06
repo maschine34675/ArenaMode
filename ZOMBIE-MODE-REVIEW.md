@@ -962,21 +962,59 @@ profile-protection code.
   `AbortOwnGearRespawn`).
 - **Wave-intermission refill.** Covered in section 3 above
   (`TryRefillOwnGear`/`AtRoundBreakOwnGear`).
-- **Menu exposure.** Mirrors Tactical's equivalent the way the task asked:
-  Tactical has no literal toggle for its own-gear path (it is automatic, driven
-  by a complete PitFireTeam roster), so this reuses the SAME mutator-panel
-  mechanism that already mode-gates other per-mode options (Pickups to
-  Deathmatch/Team DM, Lasers to Team DM/Tactical 5v5) rather than inventing new
-  UI: a new `ArenaMutator.OwnGear` row ("OWN GEAR" / "Bring your own protected
-  equipment.", unavailable outside Zombie: "Available in Zombies."). No
-  `ArenaMutatorsView` code change was needed — it already builds one row per
-  `Enum.GetValues(typeof(ArenaMutator))` entry and lays out two columns of
-  `(count + 1) / 2` rows; 15→16 mutators keeps `rowsPerColumn` at 8 either way
-  (verified by arithmetic, not confirmed in-game). `ArenaModeSelectionView.
-  Refresh`'s EQUIPMENT fact text gets the same special case its `TacticalOnly`
-  branch already has ("PMC entry gear"): the ZOMBIES row shows "Own gear"
-  instead of the catalog's default "Arena kits" once `Settings.ZombieOwnGear`
-  is on.
+- **Menu exposure (superseded 2026-10-06, item 1 of the follow-up — "own gear
+  to the left").** The UI described below shipped in v1 and has since moved;
+  kept here for history, see the paragraph after it for the current location.
+  ~~Mirrors Tactical's equivalent the way the task asked: Tactical has no
+  literal toggle for its own-gear path (it is automatic, driven by a complete
+  PitFireTeam roster), so this reuses the SAME mutator-panel mechanism that
+  already mode-gates other per-mode options (Pickups to Deathmatch/Team DM,
+  Lasers to Team DM/Tactical 5v5) rather than inventing new UI: a new
+  `ArenaMutator.OwnGear` row ("OWN GEAR" / "Bring your own protected
+  equipment.", unavailable outside Zombie: "Available in Zombies.").~~ No
+  `ArenaMutatorsView` code change was needed at the time — it already builds
+  one row per `Enum.GetValues(typeof(ArenaMutator))` entry and lays out two
+  columns of `(count + 1) / 2` rows; 15→16 mutators kept `rowsPerColumn` at 8
+  either way (verified by arithmetic, not confirmed in-game).
+  ~~`ArenaModeSelectionView.Refresh`'s EQUIPMENT fact text gets the same
+  special case its `TacticalOnly` branch already has ("PMC entry gear"): the
+  ZOMBIES row shows "Own gear" instead of the catalog's default "Arena kits"
+  once `Settings.ZombieOwnGear` is on.~~
+
+  **Current location (2026-10-06 follow-up, item 1 — "own gear to the
+  left").** The task asked for this to move into the LEFT mode panel as an
+  equipment choice that will later exist for most modes, not stay a Zombie-
+  only mutator-panel row. `ArenaMutator.OwnGear` is REMOVED (back to 15
+  mutators, `ArenaMutatorsView` untouched again). The row is now
+  `ArenaEquipmentChoiceView`/`ArenaEquipmentChoiceState`
+  (`ArenaMode.Client/Session/`), driven by a pure per-mode availability table,
+  `Modes.ArenaEquipmentChoice` (`ArenaMode.Client/Modes/ArenaEquipmentChoice.cs`
+  — dependency-free like `ZombieOwnGearGate`, links into `ArenaMode.Tests`):
+  `IsOfferedFor(mode)` is true only for Zombie today, so Deathmatch/Gun Game
+  later is one more comparison, not new UI. It sits in the EQUIPMENT fact's
+  own panel slot (top=434) and replaces that fact — never alongside it — for
+  any mode the table offers a choice to; every other mode (including
+  Tactical, whose own protected-team own-gear semantics stay completely
+  untouched) keeps the plain fact, the same HIDE-when-inapplicable convention
+  the TDM/Deathmatch rules rows already use (not the mutators panel's
+  "grey out + N/A" convention). The write path moved from
+  `ArenaMutatorSelection.TryToggle` to `Settings.TrySelectEquipmentChoice`
+  (mode-dispatched like `TrySelectKillcam`/`ReplayEntry`), but still hits the
+  exact same `Settings.ZombieOwnGear` ConfigEntry, the exact same
+  `ArenaSession.IsActive||ArmedForNextRaid` lock, and the exact same
+  `File.Save()`-when-`SaveOnConfigSet`-is-false fallback the mutator-panel
+  toggle had — `ArenaSession.ZombieOwnGearSelection`'s frozen-at-arm capture in
+  `MarkArmed` and its six reset sites are unchanged, because they read that
+  same ConfigEntry, not the new UI. `ArenaModeSelectionView.Refresh`'s
+  EQUIPMENT fact text now reads `Modes.ArenaEquipmentChoice.IsOfferedFor` plus
+  `Settings.GetEquipmentChoiceOwnGear(mode)` instead of a Zombie-only literal,
+  so it stays correct for a future mode automatically. Pure state tests:
+  `ArenaEquipmentChoiceTests.cs` (fault-controlled: `IsOfferedFor` forced to
+  `true` for every mode, and the state's `!_tacticalOnly` guard dropped — both
+  confirmed red, both reverted and confirmed green). `tools/TdmMatchMenuChecks`
+  gained inline production-linked coverage of the real row (hidden for every
+  mode but Zombie, real control persists `Settings.ZombieOwnGear`, frozen
+  during arm, EQUIPMENT fact text stays in sync even while hidden).
 
 **Fault control (`a54201a`):** temporarily changed `ZombieOwnGearGate`'s
 `StringComparison.OrdinalIgnoreCase` to `StringComparison.Ordinal`;
@@ -1100,3 +1138,65 @@ Also still open from the v0 checklist and not yet retried: performance/corpses
 at `MaxAlive` 40-56, a deliberately stranded infected for the watchdog itself,
 `ShooterPercent > 0` (ranged infected), the second `Activate()`'s caller, Labs/
 Labyrinth, the boss zombie, PitFireTeam.
+
+### 2026-10-06 follow-up, item 1 ("own gear to the left") — Stage A
+
+After playing v1, the user asked for the OWN GEAR switch to move out of the
+right-hand mutators panel into the LEFT mode panel as a mode-independent
+equipment choice (later offered to most modes; Tactical's own automatic
+protected-team own-gear path is untouched). See the "Menu exposure" bullet
+above (now superseded) for the full before/after and the new abstraction
+(`Modes.ArenaEquipmentChoice`, `Session.ArenaEquipmentChoiceState/View`).
+Announcer-per-mode (item 2 of the same follow-up) and the 56-zombie
+performance measurement (item 3) are separate work, not part of this stage.
+
+Offline (`dotnet test ArenaMode.Tests`, no-deploy sentinel confirmed absent
+before and after): **864 passed, 2 skipped (pre-existing, environment-gated,
+unrelated), 0 failed, 866 total** (+9 over v1's 857, all in the new
+`ArenaEquipmentChoiceTests.cs`). Clean Release builds of `ArenaMode.Client`
+and `ArenaMode.Server` with the same no-deploy properties: 0 errors (new
+`CS8618` nullability warning on `ArenaEquipmentChoiceState`'s constructor-set
+`_mode` field, pre-existing warning class, not a new error).
+
+Fault control (pure state tests, inject/red/restore/green):
+
+- `ArenaEquipmentChoice.IsOfferedFor` forced to return `true` unconditionally:
+  `OnlyZombieOffersAChoiceToday`, `AMissingModeIsNeverOffered` and
+  `ChoiceIsOnlyVisibleForZombie` failed exactly as expected (3 red); reverted,
+  full suite green (866 total).
+- `ArenaEquipmentChoiceState.Visible`'s `!_tacticalOnly` guard dropped:
+  `ProtectedTeamNeverShowsTheRowEvenIfATableEntryExistedForIt` failed exactly
+  as expected (1 red); reverted, full suite green.
+
+`tools/TdmMatchMenuChecks` (the harness that exercises the real
+`ArenaModeSelectionView`/`ArenaMutatorsView` against production Settings)
+needed both: (a) new inline coverage for the real equipment-choice row
+(hidden for every mode but Zombie — with gungame/tactical additionally
+proving the plain EQUIPMENT fact reappears, since deathmatch/teamdeathmatch
+already hide every fact for their own unrelated rules-sub-view reason — real
+control persists `Settings.ZombieOwnGear`, frozen during arm, EQUIPMENT fact
+text tracks the choice even while the fact itself is replaced by the row);
+and (b) **a pre-existing, unrelated fix**: three literals (`Buttons().Length
+== 30`, panel `sizeDelta.y == 488/554`, a rule-rect bound, and a
+`Run-Checks.ps1` mutation anchor `20f, 307f, Width, 124f`) were already stale
+before this task — `604a76d` ("Add zombie mode to the catalog...") grew the
+mode panel by one row (+42: 488→530, 554→596, 307f→349f) without updating
+this harness, so it was failing on its own before any of this stage's edits.
+Fixed as part of touching this file anyway; both `dotnet run` (963
+assertions) and `Run-Checks.ps1` (963 assertions + 14/14 negative controls)
+are green. `tools/DeathmatchMenuChecks/Verify.ps1` chains six tools plus two
+`Run-Checks.ps1` harnesses; five of the six run standalone-green
+(DeathmatchMenuChecks, NativeModeSelectionChecks, NativeMenuChecks,
+TeamGiveUpChecks, TdmMatchMenuChecks) but `tools/AreaTeamMenuChecks` fails on
+its own, untouched by this stage's diff, on the exact same pre-existing
+panel-height-literal class of bug (a different hardcoded bound, `>=668` /
+`<=916`, sized for the pre-Zombie panel). Spun off as a separate task rather
+than fixed here, since it is unrelated to item 1 and was already broken
+before this stage started.
+
+`ArenaMutator` is back to 15 values (`OwnGear` removed); no
+`ArenaMutatorsView` code changed (it already builds its rows generically from
+`Enum.GetValues`). `ArenaSession.ZombieOwnGearSelection`'s frozen-at-arm
+capture/6-reset-site contract is untouched — it reads `Settings.ZombieOwnGear`
+directly, not the new UI, and the new write path
+(`Settings.TrySelectEquipmentChoice`) writes that exact same `ConfigEntry`.
