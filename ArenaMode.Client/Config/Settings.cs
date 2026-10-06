@@ -283,6 +283,46 @@ public static class Settings
         return true; // Presentation/respawn timing is client-owned; no server settings traffic.
     }
 
+    /// <summary>
+    /// Backing entry for item 1 of the 2026-10-06 follow-up ("own gear to the
+    /// left")'s left-panel equipment-choice row, dispatched by mode the same
+    /// way <see cref="ReplayEntry"/> dispatches Killcam. Null for any mode
+    /// <see cref="Modes.ArenaEquipmentChoice.IsOfferedFor"/> does not offer a
+    /// choice for (today: every mode except Zombie) — adding Deathmatch/Gun
+    /// Game later is one more switch arm plus a new bound entry, not a new
+    /// read/write path.
+    /// </summary>
+    private static ConfigEntry<bool> EquipmentChoiceEntry(string mode)
+        => ArenaModeCatalog.NormalizeId(mode) switch
+        {
+            ArenaModeCatalog.ZombieId => ZombieOwnGear,
+            _ => null,
+        };
+
+    internal static bool GetEquipmentChoiceOwnGear(string mode) => EquipmentChoiceEntry(mode)?.Value == true;
+
+    /// <summary>
+    /// Same ConfigEntry, same <c>ArenaSession.IsActive||ArmedForNextRaid</c>
+    /// lock and the same File.Save()-when-SaveOnConfigSet-is-false fallback
+    /// <see cref="ArenaMutatorSelection.TryToggle"/> used before this setting's
+    /// write path moved out of the mutators panel and into the left mode
+    /// panel's own row — only the caller (<see cref="Session.
+    /// ArenaEquipmentChoiceView"/> instead of the mutators panel) changed.
+    /// </summary>
+    internal static bool TrySelectEquipmentChoice(string mode, bool ownGear)
+    {
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
+        var entry = EquipmentChoiceEntry(mode);
+        if (entry == null) return false;
+        try { entry.Value = ownGear; }
+        catch (Exception ex)
+        { Plugin.ModLogger?.LogWarning($"Arena equipment choice selection failed: {ex.Message}"); return false; }
+        if (entry.Value != ownGear) return false;
+        try { if (File?.SaveOnConfigSet == false) File.Save(); }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena equipment choice save failed: {ex.Message}"); }
+        return true;
+    }
+
     internal static bool TrySelectDeathmatchRule(int row, int value)
     {
         if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
@@ -1081,8 +1121,11 @@ public static class Settings
             "are both skipped, every death respawns with the entry loadout restored instead of a fresh " +
             "kit, the wave-intermission ammo/consumable refill restores that same entry loadout, and " +
             "the secure container is left alone (not emptied) exactly like EmptySecureContainer already " +
-            "skips for a frozen PitFireTeam roster. Also shown as the ZOMBIES row's EQUIPMENT mutator " +
-            "('Own gear' instead of 'Arena kits') and in the map screen's own mutator panel. Frozen at " +
+            "skips for a frozen PitFireTeam roster. Also shown as the ZOMBIES row's EQUIPMENT fact " +
+            "('Own gear' instead of 'Arena kits') and, since item 1 of the 2026-10-06 follow-up ('own " +
+            "gear to the left'), as the LEFT mode panel's own EQUIPMENT choice row (moved out of the " +
+            "right-hand mutators panel, which never grows a per-mode choice row again -- see " +
+            "EquipmentChoiceEntry/TrySelectEquipmentChoice and Modes.ArenaEquipmentChoice). Frozen at " +
             "match start, like the other Zombie mode choices.");
 
         RoundKillTarget = config.Bind(

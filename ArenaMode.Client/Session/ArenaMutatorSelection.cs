@@ -9,7 +9,7 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
-    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, OwnGear
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -39,7 +39,6 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Tracers => "COLORED TRACERS",
         ArenaMutator.Lasers => "TEAM LASER COLORS",
         ArenaMutator.Akimbo => "AKIMBO PISTOLS",
-        ArenaMutator.OwnGear => "OWN GEAR",
         _ => string.Empty
     };
 
@@ -60,7 +59,6 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Tracers => "Side colors for every bullet.",
         ArenaMutator.Lasers => "Team colors; same brightness.",
         ArenaMutator.Akimbo => "Dual pistols; shared magazine.",
-        ArenaMutator.OwnGear => "Bring your own protected equipment.",
         _ => string.Empty
     };
 
@@ -80,7 +78,6 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Tracers => Settings.TracerEntry(Mode, _team),
         ArenaMutator.Lasers => Settings.TeamLasers,
         ArenaMutator.Akimbo => Settings.AkimboEnabled,
-        ArenaMutator.OwnGear => Settings.ZombieOwnGear,
         _ => null
     };
 
@@ -103,8 +100,6 @@ internal sealed class ArenaMutatorSelection
         if (id == ArenaMutator.Lasers && Mode != ArenaModeCatalog.TeamDeathmatchId
             && !(Mode == ArenaModeCatalog.TacticalId && _team))
             return "Requires Team DM or Tactical 5v5 (PFT).";
-        if (id == ArenaMutator.OwnGear && Mode != ArenaModeCatalog.ZombieId)
-            return "Available in Zombies.";
         return null;
     }
 

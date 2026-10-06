@@ -18,10 +18,18 @@ internal sealed class ArenaModeSelectionView
     private readonly List<Button> _buttons = new();
     private readonly List<GameObject> _markers = new();
     private readonly List<GameObject> _factObjects = new();
+    // EQUIPMENT's own label+value objects, tracked apart from _factObjects:
+    // unlike RULES/RESPAWN (hidden only while a rules sub-view is Visible),
+    // EQUIPMENT also hides whenever _equipmentChoice.Visible (today: Zombie
+    // only) — the new choice row replaces it in the exact same panel slot
+    // rather than sitting beside it. See RefreshTdmRules.
+    private readonly List<GameObject> _equipmentFactObjects = new();
     private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
     private ArenaTdmMatchRulesState _tdmRules;
     private readonly ArenaDeathmatchRulesView _dmRulesView = new();
     private ArenaDeathmatchRulesState _dmRules;
+    private readonly ArenaEquipmentChoiceView _equipmentChoiceView = new();
+    private ArenaEquipmentChoiceState _equipmentChoice;
     private GameObject _root;
     private TextMeshProUGUI _rules;
     private TextMeshProUGUI _respawn;
@@ -79,6 +87,15 @@ internal sealed class ArenaModeSelectionView
             0 => Settings.DeathmatchRounds.Value, 1 => Settings.DeathmatchKills.Value,
             2 => Settings.DeathmatchSeconds.Value, _ => Settings.DeathmatchFreeForAll.Value ? 0 : 1 },
             Settings.TrySelectDeathmatchRule, () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
+        // Item 1 of the 2026-10-06 follow-up ("own gear to the left"): a
+        // mode-independent row driven entirely by Settings' own per-mode
+        // dispatch (today only Zombie has a backing entry) plus the pure
+        // ArenaEquipmentChoice table that decides whether it is offered at
+        // all — same lock shape as every other frozen-at-arm menu choice.
+        _equipmentChoice = new ArenaEquipmentChoiceState(
+            Settings.GetEquipmentChoiceOwnGear,
+            Settings.TrySelectEquipmentChoice,
+            () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
         try
         {
             Create(screen, template._elementTemplate, template._currentValueText ?? nativeText);
@@ -99,9 +116,12 @@ internal sealed class ArenaModeSelectionView
         _selection = null;
         _tdmRules = null;
         _dmRules = null;
+        _equipmentChoice = null;
         Safe(_dmRulesView.Close);
         Safe(_tdmRulesView.Close);
+        Safe(_equipmentChoiceView.Close);
         _factObjects.Clear();
+        _equipmentFactObjects.Clear();
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
@@ -149,11 +169,12 @@ internal sealed class ArenaModeSelectionView
         var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 323f, 22f);
         heading.color = Dim(typography, .65f);
         _mutators.Create(screen, _root, typography, Refresh);
-        _rules = CreateFact("RULES", typography, 354f);
-        _respawn = CreateFact("RESPAWN", typography, 394f);
-        _equipment = CreateFact("EQUIPMENT", typography, 434f);
+        _rules = CreateFact("RULES", typography, 354f, _factObjects);
+        _respawn = CreateFact("RESPAWN", typography, 394f, _factObjects);
+        _equipment = CreateFact("EQUIPMENT", typography, 434f, _equipmentFactObjects);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
         _dmRulesView.Show(_root.transform, template, typography, _dmRules);
+        _equipmentChoiceView.Show(_root.transform, template, typography, _equipmentChoice);
 
         var note = CreateText("Team restriction", typography,
             "5v5 requires PitFireTeam + 4 teammates.", 14f, 482f, 44f);
@@ -249,11 +270,14 @@ internal sealed class ArenaModeSelectionView
         if (mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
         // Same special-case line protected 5v5's TacticalOnly branch already
-        // uses, extended for Zombie's own-gear option (item 4): both show the
-        // real-equipment fact text instead of the catalog's default "Arena
-        // kits" once the player has chosen to bring their own gear.
+        // uses, generalized for item 1 of the 2026-10-06 follow-up ("own gear
+        // to the left"): reads the pure table plus Settings' own per-mode
+        // dispatch instead of a Zombie-only literal, so a future mode added to
+        // ArenaEquipmentChoice needs no edit here. Self-contained (does not
+        // depend on _equipmentChoice.Synchronize having run yet this frame).
         _equipment.text = _selection.TacticalOnly ? "PMC entry gear"
-            : mode.Id == ArenaModeCatalog.ZombieId && Settings.ZombieOwnGear.Value ? "Own gear"
+            : Modes.ArenaEquipmentChoice.IsOfferedFor(mode.Id) && Settings.GetEquipmentChoiceOwnGear(mode.Id)
+                ? Modes.ArenaEquipmentChoice.OwnGearLabel
             : mode.Equipment;
         _mutators.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         RefreshTdmRules();
@@ -264,21 +288,25 @@ internal sealed class ArenaModeSelectionView
         if (_selection == null || _tdmRules == null) return;
         _tdmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _dmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
-        foreach (var fact in _factObjects) fact.SetActive(!_tdmRules.Visible && !_dmRules.Visible);
+        _equipmentChoice.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
+        bool rulesVisible = _tdmRules.Visible || _dmRules.Visible;
+        foreach (var fact in _factObjects) fact.SetActive(!rulesVisible);
+        foreach (var fact in _equipmentFactObjects) fact.SetActive(!rulesVisible && !_equipmentChoice.Visible);
         _dmRulesView.Refresh();
         _tdmRulesView.Refresh();
+        _equipmentChoiceView.Refresh();
     }
 
     private float PanelHeight => ArenaModeCatalog.ModePanelHeight(_selection?.SelectedMode);
 
-    private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top)
+    private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top, List<GameObject> target)
     {
         var key = CreateText(label + " label", typography, label, 14f, top, 30f);
-        _factObjects.Add(key.gameObject);
+        target.Add(key.gameObject);
         key.rectTransform.sizeDelta = new Vector2(98f, 30f);
         key.color = Dim(typography, .65f);
         var value = CreateText(label + " value", typography, string.Empty, 17f, top, 30f);
-        _factObjects.Add(value.gameObject);
+        target.Add(value.gameObject);
         SetRect(value.rectTransform, 122f, top, PanelWidth - 142f, 30f);
         return value;
     }
