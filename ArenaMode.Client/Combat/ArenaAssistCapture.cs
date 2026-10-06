@@ -48,6 +48,7 @@ internal static class ArenaAssistCapture
             TacticalMode tactical => tactical.AssistScoringOpen,
             TeamDeathmatchMode teams => teams.AssistScoringOpen,
             GunGameMode gunGame => gunGame.AssistScoringOpen,
+            ZombieMode zombie => zombie.AssistScoringOpen,
             _ => false
         });
 
@@ -162,6 +163,16 @@ internal static class ArenaAssistCapture
                 // group hostility, never a live F12 setting from another mode.
                 if (!GunGameOpponents(local, attacker, victim)
                     && !(Fire.ArenaFireRuntime.OwnsDamage(victim, source, damageType) && ExplicitEnemy(victim, local))) return false;
+            }
+            else if (mode is ZombieMode)
+            {
+                // Infected are friendly to each other and hostile only to the
+                // player (native Mind settings, verified live against
+                // SPT_Data/database/bots/types/infected*.json — see Stage A's
+                // handoff). There is no bot-vs-bot combat to attribute here and
+                // no PitFireTeam companion in v0, so only the local player's own
+                // damage (direct or self-thrown fire) is ever a contribution.
+                if (!ReferenceEquals(attacker, local) && !Fire.ArenaFireRuntime.OwnsDamage(victim, source, damageType)) return false;
             }
             else return false;
         }

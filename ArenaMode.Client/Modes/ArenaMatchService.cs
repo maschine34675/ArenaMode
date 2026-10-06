@@ -384,6 +384,13 @@ internal static class ArenaMatchService
                     _lastScoreboardProblem = null;
                 return;
             }
+            // Zombie owns its entire population and has no opposing roster to
+            // show (every bot is hostile only to the player) — the same reason
+            // TDM/Tactical return early above, just without a per-mode roster
+            // of their own to build instead. Skipping this avoids a per-bot
+            // actor allocation every 0.25s for a board nothing reads.
+            if (match?.Mode is ZombieMode)
+                return;
 
             var world = Comfort.Common.Singleton<GameWorld>.Instantiated
                 ? Comfort.Common.Singleton<GameWorld>.Instance

@@ -384,6 +384,15 @@ internal static class ArenaBotPatches
                 int teamSize = System.Math.Max(2, System.Math.Min(12, Config.Settings.TeamDeathmatchSize.Value));
                 cap = System.Math.Max(cap, 2 * teamSize - 1);
             }
+            else if (string.Equals(mode, Modes.ArenaModeCatalog.ZombieId, System.StringComparison.Ordinal))
+            {
+                // +2 over the configured alive target: ZombieMaxAlive bounds the
+                // wave policy's own spawn pacing, but a body lingers briefly
+                // between death and corpse cleanup/slot release, and the native
+                // cap must never be the thing that silently drops a requested
+                // spawn below what the wave policy asked for.
+                cap = System.Math.Max(cap, Config.Settings.ZombieMaxAlive.Value + 2);
+            }
             __instance._maxCount = cap;
             __instance.BotSpawner?.SetMaxBots(cap);
             __instance.ZonesLeaveController?.SetMaxBots(cap);

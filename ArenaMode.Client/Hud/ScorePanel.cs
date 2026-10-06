@@ -151,6 +151,13 @@ internal sealed class ScorePanel
         if (match.Mode is TeamDeathmatchMode)
             return null; // faction kill totals already appear in its status line
 
+        // Zombie's SynchronizeScoreboard early return (same reason as TDM/
+        // Tactical above) leaves no opponent roster for Leader() to find — a
+        // permanent "Waiting for opponents" line would be misleading. The
+        // wave/remaining count already appears in its own status line.
+        if (match.Mode is ZombieMode)
+            return null;
+
         if (match.Mode is TacticalMode tactical)
         {
             var friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);

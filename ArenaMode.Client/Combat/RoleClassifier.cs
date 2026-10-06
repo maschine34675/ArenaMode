@@ -84,6 +84,13 @@ internal static class RoleClassifier
             case WildSpawnType.sectantPriest:
             case WildSpawnType.sectactPriestEvent: return "Cultist Priest";
             case WildSpawnType.shooterBTR: return "BTR Gunner";
+            // The four generic Halloween-2024 infected roles Zombie mode uses,
+            // plus the pure-boss fifth (infectedTagilla, not used in v0 but
+            // still IsInfected — labelling it ZOMBIE too costs nothing and
+            // avoids a surprise "infectedTagilla" string if it ever shows up).
+            // Bucket deliberately stays Other (WildSpawnTypeExtension.IsInfected,
+            // decompile-verified): these are not treated as bosses/followers.
+            case var role when WildSpawnTypeExtension.IsInfected(role): return "ZOMBIE";
         }
 
         var bucket = Bucket(player);
