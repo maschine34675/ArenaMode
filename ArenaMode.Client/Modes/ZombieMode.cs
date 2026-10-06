@@ -268,6 +268,33 @@ public sealed class ZombieMode : IArenaMode
                     ZombieWavePolicy.ReportFailedDispatch(ref _waveState);
             }
 
+            // Self-heal _local before computing playerEligible below.
+            // _local is otherwise only refreshed by the real death-respawn
+            // event (OnLocalRespawn, raised from ArenaRespawnDriver's three
+            // death call sites) — but the raid-start kit swap AND this very
+            // refill's own live-body swap (LiveKitRespawn.AtRaidStart /
+            // AtRoundBreak / AtRoundBreakOwnGear, all through the shared
+            // SwapRoutine) replace the live body too, and destroy the old
+            // one (ArenaRetiredBodyEffects.TryDestroy) WITHOUT ever raising
+            // that event. Because EFT.Player : MonoBehaviour, Unity's
+            // overridden ==/!= make a cached reference to that destroyed
+            // body read as "not null" never again, so an unhealed _local
+            // would make playerEligible below false forever — silently, no
+            // log line — after the very first kit swap or refill of the
+            // raid. TeamDeathmatchMode.Tick already carries this exact
+            // fix (poll _world.MainPlayer, heal on change); mirrored here.
+            // Guarded on !IsRespawnInProgress because that flag (via
+            // ArenaRespawnDriver.BeginPipelineUse/EndPipelineUse, which
+            // LiveKitRespawn.SwapRoutine also uses) stays true for the
+            // whole swap, so the heal only ever fires once the replacement
+            // body is fully wired — never mid-swap, matching TDM's guard.
+            Player currentPlayer = _world?.MainPlayer;
+            if (!ArenaRespawnDriver.IsRespawnInProgress
+                && currentPlayer != null && !ReferenceEquals(currentPlayer, _local))
+            {
+                OnLocalRespawn(currentPlayer);
+            }
+
             // Item 3 ("refill between waves", random-kit mode): decide WHEN
             // purely from the wave phase this call already computed, plus
             // the player's real eligibility right now. ZombieRefillPolicy
