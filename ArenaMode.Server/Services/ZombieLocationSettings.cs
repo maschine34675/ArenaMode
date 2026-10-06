@@ -50,9 +50,22 @@ public static class ZombieLocationSettings
 
     // TeleportBotNearToTarget (InfectedLayersStrategy.cs:115-147) is a no-op
     // while this is 0 — which is the case with no Halloween config at all.
-    // 25m keeps that native close-range teleport-to-target behaviour active
-    // once the event is on, matching the range a zombie should be closing
-    // from rather than the native crowd-spawn's own spacing rule.
+    // Normally moot for Arena's own zombies: ZombieNativeEventBridge's fifth
+    // Harmony hook (client stage) suppresses this native ctor-time teleport
+    // outright for every bot spawned during a live Zombie raid, because
+    // decompile verification showed it is NOT the close-range "move toward
+    // the player" behaviour the old comment here assumed — with no
+    // established pursuit yet (true for every opening-wave spawn, and for the
+    // whole raid whenever the native event never armed), GetNearestPursuitCenter
+    // falls back to the bot's own just-assigned spawn position, which
+    // collapses the teleport's direction vector to zero and makes it relocate
+    // the bot to a semi-random cover point near ITS OWN spawn instead —
+    // defeating BurstSpawnService.SpawnInfected's documented 25-70m ring, not
+    // honouring it. 25 is kept anyway as the sane fallback for the one case
+    // the client hook cannot cover — that Harmony patch failing to install on
+    // a future game build (TryEnable fails open) — so the native teleport, if
+    // it ever does run, still keeps roughly the ring's own spacing rather than
+    // whatever the engine's own default would be.
     public const double MinSpawnDistToPlayer = 25;
 
     // InfectedTargetLayer.ShallUseNow (InfectedTargetLayer.cs:81-97) refuses
@@ -93,7 +106,13 @@ public static class ZombieLocationSettings
     // a bot Arena's own director places outside the normal wave/boss path,
     // well before ZombieMaxAlive (Arena's own alive cap, client stage
     // decision 5) is ever reached. BotMax/BotMaxPvE are raised the same way
-    // so the generic alive-cap route agrees with the per-zone one.
+    // so the generic alive-cap route agrees with the per-zone one. Fixed at
+    // 60 rather than derived from ZombieMaxAlive (the server never learns
+    // that value — ArenaServerClient's raid-start payload carries no
+    // Zombie-specific tuning): Settings.ZombieMaxAlive's own AcceptableValueRange
+    // ceiling is kept at 56, not 60, specifically so the client-side cap it
+    // feeds (ArenaBotCapPatch: ZombieMaxAlive + 2, up to 58) always stays
+    // under this fixed floor instead of occasionally exceeding it.
     public const int MinimumBotCap = 60;
 
     /// <summary>

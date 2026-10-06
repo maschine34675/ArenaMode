@@ -876,6 +876,16 @@ internal static class BurstSpawnService
     /// else observes or races these entries. ZombieSpawnService keeps its own,
     /// separate "pending" count for the wave policy — see its doc comment.
     ///
+    /// The placement this method hands to the engine is the actual resting spot
+    /// only because ZombieNativeEventBridge's fifth Harmony hook suppresses
+    /// InfectedLayersStrategy's own ctor-time teleport outright. That native
+    /// brain constructor runs unconditionally the moment the engine activates
+    /// the body this call dispatches, and — decompile-verified — collapses to a
+    /// semi-random relocation near the bot's OWN spawn whenever no pursuit is
+    /// active yet (true for every bot this method ever spawns before its first
+    /// sighting), which would otherwise defeat the ring above. See that hook's
+    /// own doc comment for the full chain.
+    ///
     /// Rejects at the door, with a logged reason, rather than letting a bad draw
     /// reach the native brain:
     /// - Only the four GENERIC infected roles ZombieRoleMix ever draws are
