@@ -354,6 +354,18 @@ them, not as an interface it implements may spell them (`IAssetPool.ExpandPool`
 misspells `objectsCount` as `objectsCoun`; Harmony binds by name against the method it
 actually patched). See `POOL-PREWARM-REVIEW.md`, "The Harmony recipe".
 
+**SAIN's `RunToEnemyUpdate` prefix returns `false` for every bot SAIN does
+not own.** Its trailing, unconditional `return false;` skips Harmony's
+call to the ORIGINAL method for any excluded bot — all four generic
+infected roles included — so a Zombie-mode infected's native melee swing
+never ran (25 minutes, zero player damage, first GPU raid 2026-10-06).
+Never patch SAIN or race its patch order; instead patch one call site up
+(`OneMeleeAttackNode.UpdateNodeByBrain`) and drive the real native body
+through a Harmony reverse patch (`Harmony.CreateReversePatcher`), which
+copies the original IL into a patch-chain-free `MethodInfo` SAIN's prefix
+never sees. See `ZombieMeleePatch` and ZOMBIE-MODE-REVIEW.md, "Native melee
+is suppressed by SAIN's global prefix".
+
 **Do not detour constructed generic inventory queries on Mono.** Patching
 `GetReachableItemsOfTypeNonAlloc<Magazine>` also replaced Ammo and ThrowWeap
 calls with the Magazine wrapper. The original scanner then threw

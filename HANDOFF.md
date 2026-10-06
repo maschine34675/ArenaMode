@@ -52,6 +52,43 @@ current. User-facing communication is normally German.
   (Frame-Zeit, Bot-Zahl, Leichenzahl); zusätzlich der Stuck-Wave-Watchdog
   selbst unter echten Bedingungen (ein absichtlich gestrandeter Zombie nach
   `StuckWaveTimeoutSeconds`).
+  **Erster GPU-Raid (SPT-GPU-2, 2026-10-06 12:52-13:20, Build `1e76582`):**
+  alles außer dem Nahkampf bestanden — Spawns, Zombie-Modelle, Messer in der
+  Hand, Verfolgung, HUD, Stuck-Wave-Watchdog, keine Error-Zeilen — aber KEIN
+  Zombie hat dem Spieler in 25 Minuten Schaden zugefügt. Ursache
+  (Live-Inspektion + Decompile, Details in `ZOMBIE-MODE-REVIEW.md`,
+  Abschnitt "Native melee is suppressed by SAIN's global prefix"): SAINs
+  eigener `RunToEnemyUpdate`-Prefix endet mit einem bedingungslosen
+  `return false;` für jeden Bot, den SAIN nicht führt — alle vier
+  Infizierten-Rollen eingeschlossen — wodurch der native Nahkampf-Body nie
+  läuft. Fix (dieser Worktree, Commits `445269c`/`f4b0569`/`c7b4dee` auf
+  `29f670c`): ein neuer Prefix auf `OneMeleeAttackNode.UpdateNodeByBrain`
+  (`ZombieMeleePatch`) treibt den echten nativen `RunToEnemyUpdate`-Body
+  über einen HarmonyX-Reverse-Patch (`Harmony.CreateReversePatcher`,
+  bestätigt im installierten `0Harmony.dll` 2.9.0.0) — SAINs Prefix wird
+  dadurch nie konsultiert; eine handgeschriebene, zeilenzitierte
+  Fallback-Reimplementierung greift, falls der Reverse-Patch zur Laufzeit
+  nicht vorbereitet werden kann. Die reine Gate-Entscheidung
+  (`ZombieMeleeGate.ShouldDrive`) ist wie `ZombieWavePolicy` EFT/Unity-frei
+  und getestet (5 neue Tests, Fault-Controls pro Bedingung).
+  `ZombieMeleeDiagnostics` loggt die ersten 3 nativen Schwünge/Treffer pro
+  Raid an Info sowie eine Summe am Raidende (`ZombieMode.OnMatchEnd`).
+  Nebenbefund behoben: `Activate()` feuerte 77ms nach der ersten
+  "armed"-Zeile ein zweites Mal INNERHALB desselben Raids
+  (`BotsEventsController.Activate` — Decompile-Verfolgung fand genau eine
+  Aufrufstelle je Kettenglied in Assembly-CSharp, die Ursache liegt also
+  außerhalb dieser Kette, vermutlich ein SPT- oder Fremdmod-Patch; nicht
+  abschließend lokalisiert). Harmlos, aber bisher als Warning geloggt;
+  `ActivatePatch` unterscheidet jetzt per `GameWorld`-Identität zwischen
+  demselben Raid (jetzt Info) und einem echten, anderen gestecktgebliebenen
+  Flag (weiterhin Warning) — die Wiederherstellungs-Semantik selbst bleibt
+  unverändert. Offline nach allen drei Commits: 833 bestanden, 2
+  übersprungen, 0 fehlgeschlagen, 835 gesamt; Client-Build 0 Fehler;
+  No-Deploy-Sentinel vor/nach jedem Schritt abwesend bestätigt. **Dieser Fix
+  ist bisher NICHT im Spiel getestet** — der nächste GPU-Raid muss zeigen:
+  Spieler-HP sinkt im Nahkampf, ein Zombie-Nahkampf-Kill erscheint im
+  Killfeed, keine neuen Error-Zeilen, die `LogPathChoiceOnce`-Zeile
+  bestätigt, welcher Pfad (Reverse-Patch oder Fallback) tatsächlich lief.
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12

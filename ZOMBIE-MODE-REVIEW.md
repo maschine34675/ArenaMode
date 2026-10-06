@@ -441,7 +441,13 @@ test (prefer SPT-GPU-2) must confirm, in order:
    5 is actually suppressing `TeleportBotNearToTarget`.
 4. **Native melee/shooting behaviour lands.** `normal` infected close and
    melee; any `hard` infected (if `ShooterPercent > 0`) draw and fire a PM
-   pistol at range, per the native brain's own difficulty table.
+   pistol at range, per the native brain's own difficulty table. The first
+   GPU raid (2026-10-06) passed every item on this list EXCEPT this one —
+   zombies closed and swung but never landed a hit, root-caused to SAIN's
+   own global `RunToEnemyUpdate` prefix; see "Native melee is suppressed by
+   SAIN's global prefix" below for the fix and what the NEXT raid must show
+   (an actual health drop, a melee kill in the killfeed, the
+   `ZombieMeleePatch`/`ZombieMeleeDiagnostics` log lines).
 5. **The wave HUD counts down and the wave ends.** `HudStatusLine` shows
    `WAVE n | m LEFT` decrementing as zombies die, reaches `WAVE n+1 IN Xs`
    during intermission, and actually advances to wave `n+1`'s first spawn.
@@ -462,3 +468,136 @@ Also worth exercising once wave 1 is confirmed: triggering the stuck-wave
 watchdog live (strand one infected somewhere unreachable and wait past
 `StuckWaveTimeoutSeconds`) and a `StuckWaveTimeoutSeconds = 0` control raid
 to confirm the watchdog can indeed be disabled on request.
+
+## Native melee is suppressed by SAIN's global prefix
+
+**What the first GPU raid found (SPT-GPU-2, 2026-10-06 12:52-13:20, build
+`1e76582`).** Every item on the checklist above except #4's melee half
+passed: 8 infected spawned within 7s with zombie bodies
+(`UsedSimplifiedSkeleton=true`), knives in hand
+(`Player.HandsController is Player+KnifeController`,
+`BotWeaponManager.IsMelee=true`, `Melee.MeleeWeaponEquipped=true`,
+`Melee.KnifeController` set), they closed to melee range within ~40s, the
+HUD counted waves down, the stuck-wave watchdog retired them after 100s and
+the next wave followed, and no Error log line appeared anywhere. But **no
+zombie ever damaged the player in 25 minutes** — health stayed full the
+whole raid.
+
+**Evidence (live inspection of a zombie standing 0.79m from the player,
+agent `LastReason = "atk2"` — `InfectedAttackLayer`'s `oneMeleeAttack`
+decision):**
+
+- `BotDoorOpener`: `_lastFrameDoorInteractionStatus=CanRun`,
+  `NearDoor=false`, `Interacting=false`, `_currentDoorLink=null`;
+  `Mover.CurrentState=Default` — so
+  `OneMeleeAttackNode.UpdateNodeByBrain`'s own `DoorOpen() == CanRun` gate
+  passes every time.
+- `GoalEnemy`: `Distance=0.79`, `IsVisible=true`,
+  `PersonalLastSeenTime` within 1s of `Time.time`, `CanShoot=false`.
+  `Physical.CanMeleeHit=true`, `StateIsSuitableForHandInput=true`,
+  `KnifeController.CurrentOperation=Idling`.
+- `BotMeleeWeaponData._nextTryHitTime == 0.0` the whole time,
+  `LastTimeEnemyHit == -100000`, `ShallEndRun=false`: the native
+  `RunToEnemyUpdate` (../_decompiled/BotMeleeWeaponData.cs:132-208) never
+  executed its body — lines 165-169 would have set `_nextTryHitTime` on the
+  very first call.
+- `AICoreController._errorsPrinted == 0`: no exception was swallowed by the
+  agent loop (AICoreController.cs:49-63) — this is not a crash, it is a
+  skip.
+- **Root cause.** SAIN (installed; its exclusion list — fetched from the
+  server into the static `BotSpawnController.StrictExclusionList` — names
+  `infectedAssault`/`infectedCivil`/`infectedLaborant`/`infectedPmc`/
+  `infectedTagilla` by role, SAINServerMod/Generators/DefaultBotTypes.cs:
+  102-109) patches `BotMeleeWeaponData.RunToEnemyUpdate` with a PREFIX
+  (SAIN-master/SAIN/Patches/FixPatches.cs, `RunToEnemyUpdatePatch`):
+  <code>if (SAINEnableClass.GetSAIN(profileId, out bot) &amp;&amp;
+  bot.SAINLayersActive) { ...SAIN's own version...; return false; } return
+  false;</code> — the trailing, UNCONDITIONAL `return false;` is reached for
+  every bot `GetSAIN` returns false for, which is every excluded bot (SAIN
+  never adds it to its own `_enabledBots` set —
+  SAIN/Plugin/SAINEnableClass.cs:23-68,257-272), which is every infected bot
+  in this mode. Harmony's own call to the ORIGINAL method is what that
+  `return false;` skips — so the native body never runs, and neither does
+  SAIN's replacement branch (gated on `SAINLayersActive`, which an excluded
+  bot never has).
+- **Native chain that must run for a swing**, confirmed end to end against
+  the decompile: `OneMeleeAttackNode.UpdateNodeByBrain`
+  (OneMeleeAttackNode.cs:10-16: `if (DoorOpen()==CanRun)
+  _owner.WeaponManager.Melee.RunToEnemyUpdate();`) → `RunToEnemyUpdate`
+  (faces the body part, sprints, every `TRY_HIT_PERIOD_FALSE=0.1s` calls
+  `TryHit` — BotMeleeWeaponData.cs:276-290: `MeleeWeaponEquipped &&
+  enemy.IsVisible && Time.time-PersonalLastSeenTime<0.2 &&
+  KnifeController!=null` → `KnifeController.MakeKnifeKick()` — then path
+  handling via `CanRunToEnemyToHit`/`GoToByWay`/`StopMove`).
+  `MakeKnifeKick` on the simplified skeleton sets the animator triggers and
+  the knife-collider hit window comes from the zombie animation events
+  (Player.cs:18590-18610,17776-17777).
+
+**The fix (`ZombieMeleePatch`, `ArenaMode.Client/Bots/ZombieMeleePatch.cs`).**
+Does not patch SAIN (never touch a competing mod — AGENTS.md licence
+rules) and does not try to out-race SAIN's own prefix by patch-registration
+ORDER (rejected by design: fragile across Harmony/BepInEx load order). A
+new prefix on `OneMeleeAttackNode.UpdateNodeByBrain` itself — one call site
+entirely outside `BotMeleeWeaponData`, so SAIN's patch on the melee method
+is never even reached — reproduces that node's own two-line body, but
+drives the TRUE native `RunToEnemyUpdate` body through a HarmonyX reverse
+patch (`Harmony.CreateReversePatcher`, confirmed present via Mono.Cecil
+metadata inspection of the installed `0Harmony.dll`, version `2.9.0.0`,
+which copies the original method's IL into a brand-new, patch-chain-free
+`MethodInfo` — SAIN's prefix is never consulted, because nothing calls
+through the original PATCHED method at all). A hand-written, line-cited
+fallback reimplementation
+(`ZombieMeleePatch.FallbackRunToEnemyUpdate`) covers the case where the
+reverse patch cannot be prepared at runtime; either path is logged once,
+and if even the fallback is unreachable the prefix stays inert (returns
+true — today's vanilla/SAIN-suppressed behaviour) rather than half-driving
+the node. The gating decision (exact Zombie raid + infected role + the bot
+can actually melee right now) is `ZombieMeleeGate.ShouldDrive`, a pure
+function with no EFT/Unity types, tested the same way as
+`ZombieWavePolicy`/`ZombieRoleMix`/`ZombieProfilePlan`.
+
+Cheap diagnostics (`ZombieMeleeDiagnostics`) log the first 3 native swings
+and first 3 landed hits per raid at Info from
+`ZombieSpawnService.OnZombieArrived`'s own per-bot subscription, and
+`ZombieMode.OnMatchEnd` reports the raid's totals in one line.
+
+**What the NEXT GPU raid must show** to confirm the fix: the player's
+health actually drops while a zombie is in melee range; a zombie death from
+melee appears in the killfeed/score as an ordinary `ZOMBIE` kill; no new
+Error/Exception log lines; and the Info line from `LogPathChoiceOnce`
+('...driving infected RunToEnemyUpdate through a HarmonyX reverse patch...'
+or '...through the hand-written fallback...') confirms which path actually
+ran, plus the per-raid swing/hit counts from `ZombieMeleeDiagnostics` and
+`ZombieMode`'s own end-of-raid summary line.
+
+## Double-Activate
+
+The same GPU raid's log showed `ZombieNativeEventBridge` log
+"Activate() fired again before the previous raid's flag was restored —
+leaving the saved original value alone" 77ms after its own first "armed"
+line, in the SAME raid (`BotsEventsController.Activate` apparently ran
+twice during one raid's loading). Decompile tracing of every link in the
+native chain that reaches it —
+`TarkovApplication.LocalGameMatching` → `LocalGameCreate` →
+`LocalGame.Run` → `BaseLocalGame.vmethod_1` → `BotsController.Init` →
+`BotsEventsController.Activate` — found exactly ONE call site at every
+single link inside `Assembly-CSharp`. That rules out a native, vanilla
+double-call for an ordinary raid start; the repeat happens OUTSIDE that
+chain, most plausibly an SPT-side or another installed mod's own Harmony
+patch re-running part of raid loading. The exact caller is not pinned down
+in this pass; a stack trace captured the next time the Info line below
+fires would settle it, but that is left for whoever next needs the answer
+rather than chased further here.
+
+What the evidence DOES establish is that this exact repeat is harmless: the
+77ms gap is far too short for a whole new raid (new scene, new `GameWorld`)
+to have loaded, so it is the SAME raid's own `GameWorld` reactivating — and
+that is exactly the identity check `ActivatePatch` now uses (see
+`ZombieNativeEventBridge._savedFlagGameWorld`'s own doc comment) to log Info
+instead of Warning for a same-`GameWorld` repeat, while a genuinely
+different, earlier raid's stuck flag still logs the original Warning. The
+restore semantics themselves are completely unchanged: `_savedFlag` is
+still saved exactly once per unrestored window, and `RestoreFlag` still
+clears it (and the new `_savedFlagGameWorld`) together, from whichever of
+`Dispose()`/`ArenaSession.OnRaidEnded`/the next raid's own `Activate()`
+reaches it first.
