@@ -10,7 +10,7 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Session
 {
-    internal static class ArenaSession { public static bool IsActive; }
+    internal static partial class ArenaSession { public static bool IsActive; }
 }
 namespace ArenaMode.Modes
 {

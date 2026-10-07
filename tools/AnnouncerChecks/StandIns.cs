@@ -58,7 +58,7 @@ namespace ArenaMode.Session
     // capture, deliberately independent of whatever mode id the attached
     // ArenaMatch carries — proving AnnouncerService consults THIS, never the
     // match's own Mode.Id, is the entire point of ANN-1's regression check.
-    internal static class ArenaSession
+    internal static partial class ArenaSession
     {
         public static bool AnnouncerEnabledSelection = true;
     }
