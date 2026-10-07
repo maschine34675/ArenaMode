@@ -409,7 +409,8 @@ namespace ArenaMode.Config
         public static Setting<bool> ReleaseTrimmedCorpses = new() { Value = true };
     }
 }
-namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive; } }
+namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive; public static string ActiveMode; } }
+namespace ArenaMode.Modes { public static class ArenaModeCatalog { public const string ZombieId = "zombie"; } }
 namespace ArenaMode.Loot
 {
     public static class OpenLootTracker

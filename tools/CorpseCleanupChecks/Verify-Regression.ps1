@@ -125,9 +125,16 @@ $arenaMutants = @(
     # finding) holds every LeftRegistry own corpse for at least one sweep
     # regardless, shot-in-flight or not. What the dropped check still changes
     # is whether the shot-in-flight hold is ever entered (and logged) at all.
+    # Anchored on the call alone, not the enclosing `if`: since
+    # 79eb2ab (2026-09-30) added the ArenaFireRuntime.HoldsBody `||` clause,
+    # the `if` is no longer a single condition. Replacing just the call with
+    # `false` leaves `|| Combat.Fire.ArenaFireRuntime.HoldsBody(...)` in
+    # place and reproduces the original single-condition mutant exactly in
+    # every test that reaches it, because ArenaFireRuntime.HeldBody is reset
+    # to null in Setup() and so HoldsBody is already false there too.
     @{ Name = 'ignores-an-own-bodys-own-shot-in-flight';
-       From = 'if (CorpseDamageSources.ShotStillInFlightFromBody(player, world))';
-       To = 'if (false)';
+       From = 'CorpseDamageSources.ShotStillInFlightFromBody(player, world)';
+       To = 'false';
        Failure = 'the shot-in-flight hold is said, distinct from the ordinary damage-source hold line' },
     # The DamageSourceQuietSeconds bridge for the LeftRegistry branch itself
     # (2026-09-18 review pass, minor finding): a shot landing (leaving the
@@ -138,6 +145,7 @@ $arenaMutants = @(
        From = 'return Time.time - state.ShotQuietSince >= DamageSourceQuietSeconds;';
        To = 'return true;';
        Failure = 'the first reading that finds the older own corpse has left the registry, with nothing in flight, starts its quiet period rather than releasing it on its own' },
+    @{ Name = 'zombie-exemption-not-zero'; From = 'private const float ZombieMinDistanceMeters = 0f;'; To = 'private const float ZombieMinDistanceMeters = 15f;'; Failure = "Zombie mode's zero-distance exemption trims a body standing at the player's position" },
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
     # The damage-source guard: the call site, the measured tripwire rule (a

@@ -26,6 +26,7 @@ void Check(bool condition, string message)
     Settings.StripCorpseGear.Value = true;
     Settings.ReleaseTrimmedCorpses.Value = true;
     ArenaSession.IsActive = true;
+    ArenaSession.ActiveMode = null;
     ArenaMode.Compat.PitFireTeamCompat.TeamProfile = null;
     ArenaMode.Loot.OpenLootTracker.Open = null;
     Plugin.ModLogger.Warnings.Clear();
@@ -197,6 +198,20 @@ foreach (var excluded in new[] { "normal", "disabled", "budget-off", "ragdoll", 
     CorpseCleanupService.Tick();
     Check(slot.ContainedItem != null && slot.Returns == 0 && body.ItemOwner.Attempts == 0,
         "exclusion preserves all gear without invoking removal: " + excluded);
+}
+
+// Zombie's own zero-distance exemption (already shipped, d00cd17): the "near"
+// case above holds a body standing at the player's position in every other
+// mode, but ActiveMinDistanceMeters() returns 0 instead of 15 while
+// ArenaSession.ActiveMode is Zombie, so the same body is trimmed there.
+{
+    var (world, body, gear) = Setup();
+    var slot = Add(body, gear, "Headwear");
+    ArenaSession.ActiveMode = "zombie";
+    body.transform.position = world.MainPlayer.Position;
+    CorpseCleanupService.Tick();
+    Check(slot.ContainedItem == null && slot.Returns == 1,
+        "Zombie mode's zero-distance exemption trims a body standing at the player's position");
 }
 
 // A round start clears the field. Each case is its own positive control: the
