@@ -1,0 +1,4 @@
+# Preserve licensed source text and manifest hashes on Windows checkouts.
+*.txt -text
+*.wav -text
+SOURCES.json -text
