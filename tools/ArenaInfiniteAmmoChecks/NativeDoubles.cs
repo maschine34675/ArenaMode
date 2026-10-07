@@ -1,6 +1,12 @@
 // Explicit boundary models, not an EFT/Unity execution. The actual adapters and
 // timer policy are source-linked; installed IL contracts pin the native seams.
 using System.Reflection;
+namespace ArenaMode.Combat.Akimbo { internal static class ArenaAkimbo {
+    internal static bool Allowed, Reserved;
+    internal static bool FreeShot(EFT.Player.FirearmController.FireOperationBase op)=>Allowed&&!Reserved;
+    internal static bool ReserveFreeShot(EFT.Player.FirearmController.FireOperationBase op, EFT.InventoryLogic.Ammo ammo)
+    { if(!FreeShot(op))return false; Reserved=true;return true; }
+} }
 namespace Comfort.Common { public static class Singleton<T> { public static T Instance; public static bool Instantiated=>Instance!=null; } }
 namespace BepInEx.Configuration { public class ConfigEntry<T>(T value) { public T Value=value; } }
 namespace ArenaMode.Config { public static class Settings { public static BepInEx.Configuration.ConfigEntry<bool> UseItemsAnywhere=new(true); } }

@@ -35,7 +35,7 @@ internal static class ArenaInfiniteAmmo
     {
         var player = op?.Player;
         return Enabled && player != null && !player.IsAI && player.IsYourPlayer
-            && ArenaPowerups.Read(player).AmmoSeconds > 0f
+            && (ArenaPowerups.Read(player).AmmoSeconds > 0f || Combat.Akimbo.ArenaAkimbo.FreeShot(op))
             && ReferenceEquals(player.HandsController, op.Controller)
             && ReferenceEquals(op.Controller?.CurrentOperation, op)
             && ReferenceEquals(op.Weapon, op.Controller.Item);
@@ -50,7 +50,13 @@ internal static class ArenaInfiniteAmmo
             || weapon.ReloadMode == Weapon.EReloadMode.OnlyBarrel || weapon.Chambers == null
             || weapon.Chambers.Length > 1) return false;
         magazine = weapon.GetCurrentMagazine();
-        if (magazine == null || magazine is CylinderMagazine || !magazine.IsAmmoCompatible(weapon.Chambers)) return false;
+        if (magazine == null)
+        {
+            // Akimbo also pairs a lone chambered cartridge after magazine removal.
+            // The timed powerup keeps its original loaded-magazine-only contract.
+            if (!weapon.HasChambers || !Combat.Akimbo.ArenaAkimbo.FreeShot(op)) return false;
+        }
+        else if (magazine is CylinderMagazine || !magazine.IsAmmoCompatible(weapon.Chambers)) return false;
         ammo = weapon.HasChambers ? weapon.Chambers[0].ContainedItem as Ammo : magazine.Cartridges.Last as Ammo;
         return ammo != null && !ammo.IsUsed && ammo.StackObjectsCount > 0
             && !ammo.GetTemplate<AmmoTemplate>().HasGrenaderComponent;
@@ -72,7 +78,7 @@ internal static class ArenaInfiniteAmmo
                     || !Source(__instance, out var magazine, out var source)
                     || !Singleton<ItemFactory>.Instantiated) return true;
                 var weapon = __instance.Weapon;
-                int chambers = weapon.ChamberAmmoCount, rounds = magazine.Count;
+                int chambers = weapon.ChamberAmmoCount, rounds = magazine?.Count ?? 0;
                 // Native Ammo.Clone makes a detached cartridge with the SAME loaded
                 // template. Only that disposable shot item is marked spent. The real
                 // chamber/magazine, mixed-ammo order and item identities stay intact.
@@ -83,7 +89,9 @@ internal static class ArenaInfiniteAmmo
                 if (!Eligible(__instance) || !ReferenceEquals(__instance.Weapon, weapon)
                     || !Source(__instance, out var currentMagazine, out var currentAmmo)
                     || !ReferenceEquals(currentMagazine, magazine) || !ReferenceEquals(currentAmmo, source)
-                    || weapon.ChamberAmmoCount != chambers || magazine.Count != rounds) return true;
+                    || weapon.ChamberAmmoCount != chambers || (magazine?.Count ?? 0) != rounds) return true;
+                if (Combat.Akimbo.ArenaAkimbo.FreeShot(__instance)
+                    && !Combat.Akimbo.ArenaAkimbo.ReserveFreeShot(__instance, shot)) return true;
                 __result = new ShotOperation.SingleShotData
                 {
                     AmmoToFire = shot,

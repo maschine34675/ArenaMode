@@ -707,7 +707,7 @@ public static class Settings
 
         AkimboEnabled = config.Bind("Combat", "AkimboEnabled", false,
             "Automatically clone the held pistol in Arena, including automatic pistols and handgun revolvers. " +
-            "Both fire simultaneously from one trigger; one native magazine/reload, free bonus ammunition. " +
+            "One shot per trigger, alternating right and left; two shots per loaded cartridge, shared magazine/reload. " +
             "Hipfire only. Replica hides during reload/sprint/interactions. Flares and launchers are excluded. " +
             "Applies to the local player only; resumes on pistol draw and respawn. Experimental hand pose.");
 

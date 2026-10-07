@@ -16,6 +16,7 @@ internal sealed class AkimboView : IDisposable
     private GameObject _root, _flash;
     private Material _flashMaterial;
     private float _flashUntil;
+    private float _holdUntil, _kickUntil;
     internal bool Visible { get; private set; }
     internal Transform Fireport { get; private set; }
     internal int RendererCount => _renderers.Count;
@@ -97,15 +98,21 @@ internal sealed class AkimboView : IDisposable
         if (_root == null) return;
         Visible = visible;
         _root.SetActive(visible);
-        if (!visible) return;
+        if (!visible) { _holdUntil = _flashUntil = _kickUntil = 0f; return; }
         _root.transform.SetPositionAndRotation(_source.position + offset, _source.rotation);
+        float kick = Mathf.Clamp01((_kickUntil - Time.time) / .10f);
+        _root.transform.position -= _source.forward * (.035f * kick);
+        _root.transform.rotation *= Quaternion.Euler(-7f * kick, 0f, 0f);
         _root.transform.localScale = _source.lossyScale;
         for (int i = 1; i < _nodes.Count; i++)
         {
             var pair = _nodes[i];
             if (pair.Source == null) throw new InvalidOperationException("Pistol hierarchy changed");
-            pair.Copy.localPosition = pair.Source.localPosition;
-            pair.Copy.localRotation = pair.Source.localRotation;
+            if (Time.time >= _holdUntil)
+            {
+                pair.Copy.localPosition = pair.Source.localPosition;
+                pair.Copy.localRotation = pair.Source.localRotation;
+            }
             pair.Copy.localScale = pair.Source.localScale;
             pair.Copy.gameObject.SetActive(pair.Source.gameObject.activeSelf);
         }
@@ -114,7 +121,8 @@ internal sealed class AkimboView : IDisposable
         _flash.SetActive(Time.time < _flashUntil);
     }
 
-    internal void Flash() => _flashUntil = Time.time + .055f;
+    internal void HoldUntil(float until) => _holdUntil = until;
+    internal void Flash() { _holdUntil = 0f; _flashUntil = Time.time + .055f; _kickUntil = Time.time + .10f; }
     public void Dispose()
     {
         Visible = false;

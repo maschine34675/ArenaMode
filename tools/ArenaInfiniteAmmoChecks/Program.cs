@@ -12,6 +12,7 @@ static class Program
     static void Check(bool ok,string why){n++;if(!ok)throw new Exception("ASSERT: "+why);}
     static void Fresh(bool chamberless=false)
     {
+        ArenaMode.Combat.Akimbo.ArenaAkimbo.Allowed=ArenaMode.Combat.Akimbo.ArenaAkimbo.Reserved=false;
         ArenaSession.IsActive=true;ArenaSession.ArmEpoch++;ArenaPowerups.Live=true;ArenaPowerups.Now=100;
         ArenaPowerups.State=new();ArenaPowerups.State.GrantAmmo(100,10);player=new();ArenaPowerups.Owner=player;
         Singleton<ItemFactory>.Instance=new();Ammo.OnClone=null;Ammo.ThrowOnClone=Ammo.ReturnSelf=false;
@@ -60,6 +61,15 @@ static class Program
                 ()=>op.Weapon=op.Controller.Item=new Revolver{Magazine=op.Weapon.Magazine,Chambers=op.Weapon.Chambers},
                 ()=>op.Weapon=op.Controller.Item=new RocketLauncher{Magazine=op.Weapon.Magazine,Chambers=op.Weapon.Chambers}})
             {Fresh();special();Check(Fire().Native,"special weapons remain explicitly native");}
+            foreach(bool inserted in new[]{true,false})
+            {
+                Fresh(); ArenaPowerups.Now=110;
+                if(!inserted)op.Weapon.Magazine=null;
+                ArenaMode.Combat.Akimbo.ArenaAkimbo.Allowed=true;
+                var free=Fire(); Check(!free.Native && ReferenceEquals(op.Weapon.Chambers[0].ContainedItem,source)
+                    && !source.IsUsed,"akimbo reserves free loaded chamber without consuming it");
+                Check(ArenaMode.Combat.Akimbo.ArenaAkimbo.Reserved && Fire().Native,"akimbo second half resumes native consumption");
+            }
             Console.WriteLine($"ARENA_INFINITE_AMMO_BEHAVIOR_PASSED: {n} assertions; source-linked adapter, explicit native doubles");return 0;
         }catch(Exception ex){Console.Error.WriteLine(ex.GetBaseException());return 1;}
     }

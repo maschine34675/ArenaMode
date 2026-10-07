@@ -36,7 +36,7 @@ try {
     $faults=if($isAmmo){@(
         @('spent-source','shot.IsUsed = true;','source.IsUsed = true; shot.IsUsed = true;','loaded gun bypasses only consumption'),
         @('zero-mag-counter','AmmoCountInMagAfterShot = rounds','AmmoCountInMagAfterShot = 0','native counters retain magazine rounds'),
-        @('expiry-removed','&& ArenaPowerups.Read(player).AmmoSeconds > 0f','','exact expiry restores native consumption'),
+        @('expiry-removed','&& (ArenaPowerups.Read(player).AmmoSeconds > 0f || Combat.Akimbo.ArenaAkimbo.FreeShot(op))','','exact expiry restores native consumption'),
         @('hands-identity-removed','&& ReferenceEquals(player.HandsController, op.Controller)','','unsupported or foreign scope uses native consumption')
     )}else{@(
         @('ordinary-leak','!ArenaSession.IsActive','false','ordinary helper preserves original scan'),

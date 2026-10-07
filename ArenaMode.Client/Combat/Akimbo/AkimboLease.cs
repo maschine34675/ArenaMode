@@ -30,12 +30,29 @@ internal static class AkimboEligibility
             && !flare && !launcher;
 }
 
+/// <summary>Credit survives visual redraw/OFF. Reserve at ammo preparation so canceled
+/// animations cannot repeatedly manufacture the free half of a loaded cartridge.</summary>
+internal sealed class AkimboPairCredit
+{
+    internal bool NextLeft { get; private set; }
+    internal bool ReserveFree()
+    {
+        if (NextLeft) return false;
+        NextLeft = true;
+        return true;
+    }
+    internal void CompletePaid() => NextLeft = false;
+}
+
 /// <summary>No timer: the preference lasts, this particular body's weapon binding does not.</summary>
 internal sealed class AkimboLease
 {
     internal readonly AkimboOwner Owner;
+    internal readonly AkimboPairCredit Credit;
+    internal bool NextLeft => Credit.NextLeft;
     private bool _emitting, _retired;
-    internal AkimboLease(AkimboOwner owner) { Owner = owner; _retired = !owner.Valid; }
+    internal AkimboLease(AkimboOwner owner, AkimboPairCredit credit = null)
+    { Owner = owner; Credit = credit ?? new(); _retired = !owner.Valid; }
     internal bool Current(AkimboOwner owner, bool live) => !_retired && live && Owner.Matches(owner);
     internal bool BeginShot(bool current, bool runOriginal, bool ready, bool sourceValid, bool muzzleClear)
     {
@@ -44,6 +61,10 @@ internal sealed class AkimboLease
         return true;
     }
     internal void EndShot() => _emitting = false;
+    internal void CompleteShot(bool ranOriginal, bool free)
+    {
+        if (!_retired && _emitting && ranOriginal && !free) Credit.CompletePaid();
+    }
     internal void Retire() => _retired = true;
 }
 
@@ -53,11 +74,11 @@ internal sealed class AkimboBindings
     private AkimboOwner _rejected;
     internal AkimboLease Lease { get; private set; }
     internal bool MayAttach(AkimboOwner owner) => Lease == null && owner.Valid && !_rejected.Matches(owner);
-    internal AkimboLease Attach(AkimboOwner owner)
+    internal AkimboLease Attach(AkimboOwner owner, AkimboPairCredit credit = null)
     {
         if (!MayAttach(owner)) return null;
         _rejected = default;
-        return Lease = new AkimboLease(owner);
+        return Lease = new AkimboLease(owner, credit);
     }
     internal void Release() { Lease?.Retire(); Lease = null; }
     internal void Reject(AkimboOwner owner) { Release(); _rejected = owner; }

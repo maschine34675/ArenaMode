@@ -15,7 +15,11 @@ $faults = @(
   @('launcher', '&& !launcher', '', 'launcher excluded'),
   @('original', '|| !runOriginal', '', 'all shot guards required 29'),
   @('busy', '|| !ready', '', 'all shot guards required 27'),
-  @('nested', '|| _emitting', '', 'nested bonus rejected')
+  @('nested', '|| _emitting', '', 'nested bonus rejected'),
+  @('reserve', 'if (NextLeft) return false;', '', 'free reservation cannot repeat before paid half'),
+  @('paid', '&& !free', '', 'free shot cannot repeat indefinitely'),
+  @('original-credit', '&& ranOriginal', '', 'skipped original cannot settle paid credit'),
+  @('credit-redraw', 'Credit = credit ?? new();', 'Credit = new();', 'seven loaded rounds yield fourteen alternating shots')
 )
 try {
   $output = (& dotnet run --project $project -c Release 2>&1 | Out-String)
@@ -34,4 +38,23 @@ try {
 } finally { & dotnet build $project -c Release -t:Rebuild --nologo -v:quiet; if ($LASTEXITCODE -ne 0) { throw 'Restore failed' } }
 & dotnet run --project $project -c Release --no-build
 if ($LASTEXITCODE -ne 0) { throw 'Final production run failed' }
+$cylinderProject=Join-Path $PSScriptRoot 'Cylinder/CylinderChecks.csproj'
+$cylinderSource=[IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Combat/Akimbo/AkimboAmmo.cs'))
+try {
+  $result=(& dotnet run --project $cylinderProject -c Release 2>&1 | Out-String)
+  if($LASTEXITCODE -ne 0 -or !$result.Contains('AKIMBO_CYLINDER_CHECKS_PASSED')){throw $result}
+  Write-Output $result.Trim()
+  foreach($fault in @(
+    @('native-source','clone.StackObjectsCount = 1; clone.IsUsed = true;','source.IsUsed = true; clone.StackObjectsCount = 1; clone.IsUsed = true;','free cylinder retains native source and index'),
+    @('foreign-shell','!ReferenceEquals(_firing.Firearms, __instance)','false','foreign firearm visual untouched'),
+    @('hammer','op.FirearmsAnimator.SetDoubleAction(Convert.ToSingle(op.Weapon.CylinderHammerClosed));','op.Weapon.CylinderHammerClosed = true; op.FirearmsAnimator.SetDoubleAction(Convert.ToSingle(op.Weapon.CylinderHammerClosed));','free chamber completion retains hammer selection')
+  )) {
+    if(!$cylinderSource.Contains($fault[1])){throw 'Cylinder mutation anchor missing'}
+    $path=Join-Path $evidence ($fault[0]+'.cs')
+    [IO.File]::WriteAllText($path,$cylinderSource.Replace($fault[1],$fault[2]))
+    $result=(& dotnet run --project $cylinderProject -c Release "-p:CylinderSource=$path" 2>&1 | Out-String)
+    if($LASTEXITCODE -eq 0 -or $result.Contains('error CS') -or !$result.Contains($fault[3])){throw $result}
+    Write-Output "NEGATIVE_CONTROL_PASSED $($fault[0])"
+  }
+} finally { & dotnet build $cylinderProject -c Release -t:Rebuild --nologo -v:quiet; if($LASTEXITCODE -ne 0){throw 'Cylinder restore failed'} }
 Write-Output 'AKIMBO_REGRESSION_PASSED'

@@ -5,18 +5,50 @@ map screen. Automatically binds the currently held local Arena handgun across
 draws, respawns and rounds. Native Pistol/Revolver types also require weapon
 class `pistol`; flare guns and launchers are excluded. This admits automatic
 pistols and handgun revolvers, but not shotgun revolvers or pistol-named SMGs.
-All Arena modes are admitted; ordinary raids and bots are excluded. No pickup,
-new equipment slot or persistent second item is added. No timer. The saved
+Deathmatch, Gun Game, Tactical and TDM are admitted; the newly added Zombies
+mode is not in this allowlist. Ordinary raids and bots are excluded. No pickup,
+new equipment slot or persistent second item is added. No powerup expiry. The saved
 preference survives cleanup; the old transient prototype request is not migrated.
 
 The native firearm remains the only hands controller and inventory owner.
-Each successfully emitted ordinary pistol bullet may generate one free offhand
-bullet with the same ammunition template and its own detached cartridge ID.
-Native magazine consumption, reload, malfunctions, heat, recoil and audio still
-run once. Two synchronous bullets share one native gunshot report/AI hearing
-event. Bonus ballistics use the native calculator and Arena shot-award scope;
-ordinary armor, hitmarkers, assists, team effects and kill attribution remain
-in the normal damage path. A blocked offhand muzzle suppresses only the bonus.
+User decision 2026-10-07: **one projectile per trigger, alternating right/left,
+two shots per loaded cartridge** (7 loaded rounds -> 14 shots). No timer or
+automatic second projectile. Right uses a detached disposable ammunition clone;
+left consumes the retained original. Magazine pistols reuse the existing
+non-consuming SingleShotData seam in ArenaInfiniteAmmo, including a separate
+Akimbo-only allowance for a lone loaded chamber without a magazine. The timed
+infinite-ammo powerup retains its original loaded-magazine-only contract.
+
+Credit is reserved at native ammunition preparation and belongs to the physical
+weapon through a weak-key table, independently of view lifetime. Redraw, reload,
+OFF/ON or interrupted preparation cannot repeatedly grant the same free half.
+A successfully executed paid shot clears that credit, even if its obstructed
+left muzzle has to fall back to unchanged native right geometry. Dry-fire,
+veto and a retired owner's callback do not settle credit. Free clones are
+identified by reference, not by global phase at the later animation event.
+
+Revolver FireCylinderMagOperation.PrepareShot has a separate branch: a free
+shot publishes a disposable clone without consuming the chamber, advancing the
+cylinder or adding a spent shell. Native firing/animation completion remains.
+A weak-key receipt scopes only the corresponding OnFireEvent shell-model move;
+the real still-loaded cartridge is never moved into the spent-shell port. This
+receipt completes an already prepared operation even if the mutator is toggled
+before its native fire animation event. Reset/finalizer remove it.
+
+Left InitiateShot arguments preserve the native FOV/back-offset correction and
+converge on the original spread ray at 50m. Native origin -> left origin, camera
+-> left origin, left origin -> visible muzzle and both endpoint occupancies must
+be clear. Invalid geometry falls back to the untouched native right shot.
+The native shot, statistics, damage, recoil, heat and sound execute once. There
+is no direct BallisticsCalculator.Shoot call or second shot-award scope here.
+The exact left invocation suppresses only its own Firearms.PlayShotEffects;
+nested invocations mask that scope and a finalizer restores it.
+
+The left view holds descendant pose briefly on a right shot and adds its own
+short kick/flash on a left shot. This is not a second native animator: the native
+right slide/root recoil still runs on each shot, and support-hand grip remains
+a presentation limitation. The native first-person sound remains one report
+per trigger; its outer native Shot call retains the original right-side position.
 
 The view constructs fresh transform/MeshRenderer objects from the held weapon
 hierarchy and shares immutable mesh/material references. No native behaviours,
@@ -31,7 +63,7 @@ has both hands again. ADS is disabled while a valid Akimbo binding is active.
 Readiness uses the actual weapon MalfState, not FirearmController.Malfunction:
 the latter also latches on ordinary empty/chamber-cycle events, including
 revolvers, and can remain true while the weapon is healthy and idle. Native
-repair/reload operations remain excluded; a bonus still requires an actual
+repair/reload operations remain excluded; alternation still requires an actual
 successful native shot from the current firing operation.
 
 Exact body, hands, weapon, current magazine (including absence), weapon-model root, health, world, match, raid epoch

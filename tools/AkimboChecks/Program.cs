@@ -75,4 +75,27 @@ Need(!AkimboEligibility.Supports(true, "pistol", false, true), "launcher exclude
 Need(!AkimboEligibility.Supports(false, "pistol", false, false), "native handgun type required");
 foreach (string weaponClass in new[] { "shotgun", "grenadeLauncher", "smg", "assaultRifle", "", null })
     Need(!AkimboEligibility.Supports(true, weaponClass, false, false), "non-handgun revolver category excluded: " + weaponClass);
+var credit = new AkimboPairCredit();
+var pairLease = new AkimboLease(Owner(), credit);
+int loaded = 7, shots = 0;
+while (loaded > 0)
+{
+    bool free = !credit.NextLeft;
+    if (free) Need(credit.ReserveFree(), "reserve free half once at preparation");
+    else loaded--;
+    Need(pairLease.BeginShot(true,true,true,true,true),"pair shot admitted");
+    pairLease.CompleteShot(true,free); pairLease.EndShot(); shots++;
+    Need(shots <= 14,"free shot cannot repeat indefinitely");
+}
+Need(shots==14 && !credit.NextLeft,"seven loaded rounds yield fourteen alternating shots");
+Need(credit.ReserveFree() && !credit.ReserveFree(),"free reservation cannot repeat before paid half");
+pairLease.BeginShot(true,true,true,true,true); pairLease.CompleteShot(false,false); pairLease.EndShot();
+Need(credit.NextLeft,"skipped original cannot settle paid credit");
+pairLease.Retire();
+var rebound = new AkimboLease(Owner(),credit);
+Need(rebound.NextLeft && !credit.ReserveFree(),"redraw or off on preserves already granted free half");
+pairLease.CompleteShot(true,false);
+Need(rebound.NextLeft,"retired callback cannot clear replacement credit");
+rebound.BeginShot(true,true,true,true,true); rebound.CompleteShot(true,false); rebound.EndShot();
+Need(!credit.NextLeft,"paid fallback to right still settles logical left half");
 Console.WriteLine($"AKIMBO_CHECKS_PASSED ({checks} assertions)");
