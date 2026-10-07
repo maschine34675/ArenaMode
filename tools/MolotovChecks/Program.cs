@@ -35,11 +35,11 @@ internal static class Program
         ArenaFireRuntime.BotEscapeAvailable=false;Check(Explode(Throw(local)),"companion required");ArenaFireRuntime.BotEscapeAvailable=true;
         Check(!ArenaFireRuntime.OwnsDamage(bot,local,EDamageType.Flame),"unowned flame rejected");
         var first=Throw(local);Check(!Explode(first),"owned blast suppressed");Check(ArenaFireView.Alive==1,"fire visual created");
-        ArenaFireRuntime.Tick();Near(bot.Taken,20,"normalized first damage tick");Check(bot.Scoped&&ReferenceEquals(bot.LastSource,local),"attributed exact fire scope");
+        ArenaFireRuntime.Tick();Near(bot.Taken,25,"normalized first damage tick");Check(bot.Scoped&&ReferenceEquals(bot.LastSource,local),"attributed exact fire scope");
         Check(!ArenaFireRuntime.OwnsDamage(bot,local,EDamageType.Flame),"scope restored");
-        Time.time=.1f;Check(!Explode(Throw(local)),"second owned blast suppressed");ArenaFireRuntime.Tick();Near(bot.Taken,20,"staggered fire cannot add off-cycle damage");
-        Time.time=.26f;ArenaFireRuntime.Tick();Near(bot.Taken,40,"overlapping fire does not stack");
-        Time.time=2;ArenaFireRuntime.Tick();Near(bot.Taken,60,"hitch does not burst catch up");
+        Time.time=.1f;Check(!Explode(Throw(local)),"second owned blast suppressed");ArenaFireRuntime.Tick();Near(bot.Taken,25,"staggered fire cannot add off-cycle damage");
+        Time.time=.26f;ArenaFireRuntime.Tick();Near(bot.Taken,50,"overlapping fire does not stack");
+        Time.time=2;ArenaFireRuntime.Tick();Near(bot.Taken,75,"hitch does not burst catch up");
         Check(ArenaFireRuntime.HoldsBody(local,world),"exact corpse owner held");
         local.HealthController.IsAlive=false;world.AllAlivePlayersList.Remove(local);
         var replacement=new Player{ProfileId="local",IsYourPlayer=true,Position=new(20,0,20)};world.MainPlayer=replacement;world.AllAlivePlayersList.Add(replacement);

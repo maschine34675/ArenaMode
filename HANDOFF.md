@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Brandgranaten-Balancing (2026-10-07):** Nutzer bestätigt Funktion und sofortiges
+  Bot-Ausweichen. Grundschaden 80 → 100 HP/s (+25%, 25 pro Viertelsekundentakt).
+  Dauer, Fläche, Fluchtlogik und sonstige Regeln unverändert; kein Nachbrennen.
+  F12-Hilfetext und Log lesen den Wert aus derselben Konstante. Änderung auf dem
+  aktuellen Hauptstand, der den Molotov-Prototyp inzwischen bereits enthält.
+  Neu abgelegte unversionierte Molotov-Audios nicht angefasst. Nächster Vorschlag:
+  Feuerdarstellung und eigener Arena-Gegenstand; Details im Prototype-Review.
+  Höherer Schaden noch nicht nativ nachgetestet; keine Auslieferung aus dem alten
+  September-Prototyp-Worktree, die neuere Modusänderungen zurücksetzen könnte.
+  57 Assertions/acht Fehlerkontrollen, gestagter Client-/Companion-Build und
+  unabhängige Review grün. Noch nicht deployt; installierte DLLs unverändert.
+
 - **Zombie-Modus-Prototyp (2026-10-06, Branch feature/zombie-prototype, Worktree ArenaMode-zombie):**
   21 Commits auf `29f670c`: neun Ursprungs-Commits (`7275289` Population/
   Hostility/LocationMutator, `2ac377d` Server-Tests, `604a76d` Katalog/

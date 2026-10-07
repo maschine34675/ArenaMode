@@ -61,7 +61,7 @@ internal static class ArenaFireRuntime
     internal static void Enable(ConfigFile config)
     {
         Enabled = config.Bind("Arena incendiary prototype", "Enabled", false,
-            "Prototype: your RGD-5 throws become 6-second ground fire in live Arena only. Existing grenade model; bot grenades and ordinary raids are unchanged. 80 total HP/s; fire does not stack. Requires the matching BigBrain companion for bot escape. May be toggled between throws; disabling extinguishes owned fire and retires owned grenades safely.");
+            $"Prototype: your RGD-5 throws become 6-second ground fire in live Arena only. Existing grenade model; bot grenades and ordinary raids are unchanged. {ArenaFirePolicy.DamagePerSecond} base total HP/s; fire does not stack. Requires the matching BigBrain companion for bot escape. May be toggled between throws; disabling extinguishes owned fire and retires owned grenades safely.");
         Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
         new ThrowPatch().Enable(); new CollisionPatch().Enable(); new ExplosionPatch().Enable();
     }
@@ -120,7 +120,7 @@ internal static class ArenaFireRuntime
                     var fire = new Burn { Source = source, Cells = cells, Until = Time.time + ArenaFirePolicy.Lifetime };
                     fire.View = new ArenaFireView(cells);
                     Fires.Add(fire); Hold(source.Owner, fire.Until + 2f);
-                    Plugin.ModLogger.LogInfo($"Arena incendiary ignited: {cells.Count} floor cells at {cells[0]}; 6s, 80 HP/s.");
+                    Plugin.ModLogger.LogInfo($"Arena incendiary ignited: {cells.Count} floor cells at {cells[0]}; 6s, {ArenaFirePolicy.DamagePerSecond} base HP/s.");
                 }
                 else Plugin.ModLogger.LogInfo("Arena incendiary expired without a safe nearby floor; no blast or fire.");
             }

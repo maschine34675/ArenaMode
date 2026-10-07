@@ -13,7 +13,7 @@ An upward ground impact ignites up to roughly three metres of nearby level
 floor for six seconds. Walls, steep surfaces, separate floors and Arena bounds
 restrict the footprint. Native fuse expiry is the fallback; an airborne expiry
 without a safe nearby floor fizzles. No explosion/fragments on converted throws.
-Damage is 80 base total HP/s, in quarter-second steps, without stacking overlapping
+Damage is 100 base total HP/s, in quarter-second steps, without stacking overlapping
 fires or catching up after a hitch. Native actor damage modifiers and immunity
 remain applicable. Self-damage is possible; existing TDM friendly-fire protection
 and Tactical teammate exclusion are preserved. A respawned successor is not
@@ -27,6 +27,31 @@ and extinguish their effects. Failed projectile teardown remains suppressed and
 terminally cancelled, so retry cannot ignite fire in a later round.
 
 ## Integration and ownership
+
+### Balance follow-up — 2026-10-07
+
+The user confirmed working fire and immediate bot evacuation. Increase base
+damage from 80 to 100 HP/s (+25%): 25 total base HP per quarter-second contact
+tick. Lifetime, footprint, escape priority, ownership and friendly-fire rules
+are unchanged. No lingering burn after leaving the area is added. Config help
+and ignition diagnostics now use the damage constant so they cannot go stale.
+The September 30 native report remains evidence for the earlier 80 HP/s build;
+the changed balance needs a fresh player test. Existing focused checks retain
+fixed damage expectations and verify normalization, overlap and hitch behavior.
+
+Verification on the current main checkout: 57 linked-production assertions and
+all eight compiled negative controls passed; staged client and companion builds
+passed (four existing nullable-context warnings in shared settings, no errors).
+Independent focused review found no P0-P2. Installed binaries were hash-verified
+unchanged: this balance follow-up is committed source, not a deployment or a
+fresh native acceptance. Evidence: `artifacts/molotov-checks/
+001df8ea1ffa4bd09f14a15e3376df46` and `artifacts/double-jump-build/
+00874119d9294cf8bb1341704970e717/manifest.json`.
+
+Suggested next milestone (not implemented by this balance change): replace the
+rough fire presentation, then give the incendiary a dedicated Arena item/icon
+and kit/buy-menu identity so ordinary RGD-5 remains a separate option. Confirm
+provenance/redistribution rights before integrating the separately supplied audio.
 
 - Capture the native returned grenade after `BaseGrenadeHandsController.
   CreateAndRegisterGrenade`, checking exact hands, body, weapon and bridge.
