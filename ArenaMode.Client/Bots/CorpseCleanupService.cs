@@ -114,13 +114,14 @@ internal static class CorpseCleanupService
     /// ticking". Both are wrong. <c>Player.OnDead</c> starts
     /// <c>OnDeadCoroutine</c> (EFT/Player.cs:30218), which — one frame after
     /// death, regardless of hiding or trimming — calls
-    /// <c>GameWorld.UnregisterPlayer</c> (EFT/Player.cs:30245) and removes the
+    /// <c>GameWorld.UnregisterPlayer</c> (EFT/Player.cs:30247) and removes the
     /// body from <c>GameWorld.AllAlivePlayersList</c>
     /// (EFT/GameWorld.cs:2060-2076) before <c>SafePlayerOperation</c>
     /// (EFT/GameWorld.cs:1848-1861) — which <c>PlayerTick</c>,
     /// <c>AfterPlayerTick</c> and <c>DoOtherWorldTick</c>
-    /// (EFT/GameWorld.cs:1782-1795, 1811-1823) all go through — ever iterates
-    /// it again; <c>Player.Dispose</c>'s own call to <c>UnregisterPlayer</c>
+    /// (EFT/GameWorld.cs:1811-1823, 1826-1832, 1782-1795) all go through —
+    /// ever iterates it again; <c>Player.Dispose</c>'s own call to
+    /// <c>UnregisterPlayer</c>
     /// (EFT/Player.cs:30933) is by then the game's own idempotent repeat (the
     /// <c>RegisteredPlayers.Contains</c> guard at EFT/GameWorld.cs:2062). The
     /// 116.6 figure was 56 LIVE bodies getting <c>ComplexUpdate</c> called
