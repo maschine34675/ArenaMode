@@ -4,11 +4,14 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PickupSourceRoot Condition="'$(PickupSourceRoot)' == ''">../../ArenaMode.Client/Pickups</PickupSourceRoot>
+    <PickupAudioSource Condition="'$(PickupAudioSource)' == ''">../../ArenaMode.Client/Pickups/ArenaPickupAudio.cs</PickupAudioSource>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <Compile Include="Program.cs"/><Compile Include="Doubles.cs"/>
     <Compile Include="HealthDoubles.cs"/>
+    <Compile Include="AudioChecks.cs"/>
+    <Compile Include="$(PickupAudioSource)" Link="Production/ArenaPickupAudio.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaHealthPickup.cs" Link="Production/ArenaHealthPickup.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs"/>
     <Compile Include="../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs"/>

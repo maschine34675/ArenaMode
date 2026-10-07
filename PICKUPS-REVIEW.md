@@ -1,5 +1,22 @@
 # Arena pickups — initial prototype
 
+## Collection sound (2026-10-07)
+
+Confirmed local collections play one 600 ms CC0 cue, IENBA's **Game Pick Up**.
+See `Assets/ArenaMode/pickups/SOURCES.json` and the shipped CC0 text for provenance.
+The sound is admitted only after the current appearance reservation completes
+successfully; async weapon failure, duplicate/old callbacks and bot collections
+are silent. `ArenaPickupAudio` rechecks exact live actor ownership before output.
+The service owns a separate `ArenaMasterAudioOutput`; it cannot stop announcer
+or hitmarker sources and bypasses interface volume while honoring Master/listener
+mute. `Arena pickups / SoundVolume` defaults to 0.7; 0 mutes it. No replay queue.
+Pause stops the short tail; round/context reset destroys only owned audio and PCM.
+Missing/invalid files warn and attempt loading once per round, never each frame.
+The production runtime/audio checks exercise collection and callback lifecycle;
+real device audibility still requires a native listening test.
+
+## Existing pickup contract
+
 Accepted 2026-09-15: fixed collectible powerups and loaded weapons, automatic
 collection on approach, cooldowns and per-map/area placement. Implemented only in
 live **Deathmatch** and independent **Team Deathmatch**. Gun Game, Tactical/PFT,

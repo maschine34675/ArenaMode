@@ -1,0 +1,19 @@
+{
+  "title": "Game Pick Up",
+  "author": "IENBA",
+  "source": "https://freesound.org/people/IENBA/sounds/762911/",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "checked": "2026-10-07",
+  "licenseFile": "CC0-1.0.txt",
+  "licenseSha256": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499",
+  "suppliedFile": "762911__ienba__game-pick-up.wav",
+  "suppliedSha256": "96CCAAE87D3F19F9328E36DC7192C534D653F8844FD5794A109CA002ABEEC64A",
+  "suppliedFormat": "44.1 kHz stereo PCM16, 1.399206 seconds. User-supplied single excerpt; the public page describes an 18.994-second compilation. No claim of byte identity with the full download.",
+  "processing": "First 0.600 seconds of supplied file; average stereo channels (0.5 L + 0.5 R); 10 ms fade-out starting at 0.590 seconds, PCM16 mono 44100 Hz. Removes trailing silence; no normalization, pitch change or added effects. ffmpeg 8.1.2.",
+  "file": "collect.wav",
+  "sha256": "F2C38A1218CB974DCF1F946BFADA7ECF6CEED3B1DD5FF531807280624592710F",
+  "frames": 26460,
+  "sampleRate": 44100,
+  "channels": 1
+}

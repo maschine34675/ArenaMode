@@ -174,6 +174,7 @@ namespace ArenaMode.Pickups
     public static class ArenaPickupSettings
     {
         public static Setting<bool> Enabled=new(true),BotsCollectPowerups=new(true);
+        public static Setting<float> SoundVolume=new(.7f);
         public static Setting<string> WeaponKit=new("spartan");
     }
     internal static class ArenaPowerups

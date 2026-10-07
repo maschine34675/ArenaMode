@@ -129,6 +129,7 @@ internal static partial class ArenaPickupRuntime
                 _placementDeadline = Time.time + 15f;
                 _nextPlacement = 0;
             }
+            ArenaPickupAudio.Tick();
             if (_placementPending && Time.timeScale > 0f)
             {
                 // The window bounds placement as well as anchor acquisition.
@@ -391,6 +392,7 @@ internal static partial class ArenaPickupRuntime
             }
             if (success)
             {
+                ArenaPickupAudio.Collected(player);
                 if (!player.IsAI) Notice(entry.Definition.Kind switch
                 {
                     ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE — 20s",
@@ -422,6 +424,7 @@ internal static partial class ArenaPickupRuntime
 
     private static void ClearRound()
     {
+        ArenaPickupAudio.Reset();
         unchecked { Generation++; }
         _placementAttempts = 0; PlacementFailures.Clear();
         _live = false;

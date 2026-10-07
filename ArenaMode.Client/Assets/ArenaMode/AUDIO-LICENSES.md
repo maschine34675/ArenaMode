@@ -1,5 +1,17 @@
 # ArenaMode audio
 
+## Pickup sound (2026-10-07)
+
+`pickups/collect.wav` uses **Game Pick Up** by **IENBA**, published on
+[Freesound](https://freesound.org/people/IENBA/sounds/762911/) under **CC0 1.0**
+(source page checked 2026-10-07). Redistribution and adaptation are permitted;
+no endorsement or warranty is implied. The user supplied an already shortened
+1.399206-second excerpt of the public compilation. Arena retains its first
+0.600 seconds, averages stereo to mono PCM16/44.1 kHz and fades the final 10 ms.
+The removed section is trailing silence. No normalization or pitch change.
+Source/output hashes and processing are in [SOURCES.json](pickups/SOURCES.json);
+the unchanged [CC0 legal text](pickups/CC0-1.0.txt) ships alongside the cue.
+
 ## ElevenLabs Creator announcer pack (2026-09-12)
 
 All **46 announcer recordings** are newly supplied by the user as

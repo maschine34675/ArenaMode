@@ -416,6 +416,7 @@ internal static partial class Program
 #if PICKUP_OBJECTIVES
             ObjectiveCases();
 #endif
+            AudioChecks();
             if(args.Length==1)NativeCandidates(args[0]);Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
         catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
         finally {ArenaMatchService.Current=null;ArenaPickupRuntime.Tick();}
