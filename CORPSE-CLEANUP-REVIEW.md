@@ -824,8 +824,8 @@ this touches it.
 `pwsh -NoProfile -File tools/DynamicMapCorpseChecks/Verify.ps1` runs everything:
 the installed-contract check, 61 marker assertions with eight compiled controls,
 then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 283 assertions and
-29 source mutants (as of 2026-10-07; includes the Zombie cadence/drain and its
-own four mutants, see "Bounded work per sweep" above and
+34 source mutants (as of 2026-10-07; includes the Zombie cadence/drain and its
+own nine mutants, see "Bounded work per sweep" above and
 ZOMBIE-MODE-REVIEW.md). `CorpseDamageSources.cs` is linked as production
 source too, against fakes of the three registries it reads, so its own rules are
 mutated rather than only its call site. The release is covered by its own block
