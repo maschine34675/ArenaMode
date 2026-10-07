@@ -1864,7 +1864,7 @@ sweeps, the 15 m exemption for every mode except Zombie (which was already
 ### Tests
 
 `tools/CorpseCleanupChecks/Verify-Regression.ps1`: 283 assertions (up from
-180), 29 source mutants (up from 19), all through the production `Tick()`.
+180), 32 source mutants (up from 19), all through the production `Tick()`.
 New: Zombie cadence vs the ordinary 5 s one; the sweep frame and successive
 0.01 s-apart drain frames each releasing exactly `ZombieMaxReleasesPerFrame`
 from a six-body backlog; confirmation that nothing drains between sweeps
@@ -1877,12 +1877,27 @@ fail-closed guards (`MaxCorpses = 0`, `ReleaseTrimmedCorpses = false`, no
 resuming once lifted; and the reporting fold plus `Reset()`'s clearing of the
 carried-over accumulator. New mutants: `zombie-cadence-ignored`,
 `zombie-drain-cap-too-wide`, `zombie-drain-disabled`,
-`zombie-drain-runs-outside-zombie`.
+`zombie-drain-runs-outside-zombie`. Review pass (2026-10-07) added three
+more, each caught by one of the drain-only tests above rather than by a
+mutant that is actually rejected elsewhere in the file:
+`zombie-drain-ignores-budget-guard` (the `MaxCorpses` guard inside
+`DrainBetweenSweeps` itself, not the sweep's own copy), `zombie-drain-fold-skipped`
+(the report-line fold), and `zombie-drain-reset-leaks-accumulator`
+(`Reset()`'s own clearing of it). The reassert/sweep-gate and
+damage-source/newest-own-corpse tests do not get a matching dedicated
+mutant: they call the identical code the sweep's own release pass does, with
+no branch of their own to mutate, and `DamageSourceQuietSeconds` (2 s) is
+longer than `ZombieCadenceSeconds` (1 s), so a real sweep — which refreshes
+every per-sweep cache — always runs before a quiet timer started inside a
+drain window could finish; a regression in that shared code is still caught,
+by the pre-existing mutants for those exact lines. See
+`Verify-Regression.ps1`'s own comment for the full argument.
 `tools/DynamicMapCorpseChecks/Verify.ps1`: 61 assertions, 8 compiled
-controls, then the same 283/29 regression suite. `dotnet test
+controls, then the same 283/32 regression suite. `dotnet test
 ArenaMode.Tests` (no-deploy sentinel): 870 passed, 2 skipped (pre-existing,
 unrelated), 0 failed. `dotnet build ArenaMode.Client -c Release` (no-deploy
-sentinel): 0 errors, 0 warnings.
+sentinel): 0 errors, 4 known CS8632 (pre-existing, unrelated —
+`ArenaMode.Shared/ClientSettingsModels.cs`, untouched by this branch).
 
 ### GPU checklist (not yet run — this review makes no claim about any of it)
 

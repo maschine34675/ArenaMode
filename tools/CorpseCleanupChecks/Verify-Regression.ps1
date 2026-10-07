@@ -65,6 +65,36 @@ $arenaDrainGuarded = @'
 $arenaDrainUnconditional = @'
             DrainBetweenSweeps();
 '@
+# Drain-specific regressions (review pass, 2026-10-07): DrainBetweenSweeps'
+# OWN four guard checks and the reporting fold/Reset() clearing it feeds -
+# code this commit (6bebae4) introduced that the shared sweep path never
+# runs through. Anchored on the 12-space-indented copy of the MaxCorpses
+# guard, which is unique to DrainBetweenSweeps (Tick's own sweep-path copy
+# is indented 8 spaces, at a different call site, and is already covered by
+# every non-Zombie MaxCorpses=0 test).
+$arenaDrainBudgetGuarded = @'
+            if (maxCorpses <= 0 || !Singleton<GameWorld>.Instantiated)
+                return;
+'@
+$arenaDrainBudgetIgnored = @'
+            if (!Singleton<GameWorld>.Instantiated)
+                return;
+'@
+# The fold-then-zero block Tick() runs after its own ReleaseTrimmed call,
+# brand new in 6bebae4: folds whatever DrainBetweenSweeps already released
+# since the last working sweep into THIS sweep's own released/ownReleased
+# counts before reporting, then zeroes the accumulator. Removing it leaves
+# every drain-only release unreported (and, since trimmed/released are both
+# then 0, unlogged outright).
+$arenaDrainFoldApplied = @'
+            released += _drainReleasedSinceReport;
+            ownReleased += _drainOwnReleasedSinceReport;
+            _drainReleasedSinceReport = 0;
+            _drainOwnReleasedSinceReport = 0;
+'@
+$arenaDrainFoldRemoved = @'
+            // mutation: between-sweep releases are never folded into a report line
+'@
 $arenaMutants = @(
     @{ Name = 'missing-begin'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Begin);'; To = '// mutation: missing Begin'; Failure = 'successful cleanup has no missing Begin activity' },
     @{ Name = 'missing-completion'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);'; To = '// mutation: missing completion'; Failure = 'successful cleanup leaves no active activities' },
@@ -170,6 +200,58 @@ $arenaMutants = @(
     @{ Name = 'zombie-drain-runs-outside-zombie';
        From = $arenaDrainGuarded.Replace("`r`n", "`n"); To = $arenaDrainUnconditional.Replace("`r`n", "`n");
        Failure = 'outside Zombie, nothing releases between sweeps even once the remainder is fully eligible' },
+    # Drain-specific guards/reporting (review pass, 2026-10-07): tests (f) and
+    # (g) in the Zombie section exercise code with no sweep-path equivalent -
+    # DrainBetweenSweeps' own guard clauses and the fold/Reset() bookkeeping -
+    # so each gets its own dedicated mutant rather than relying on a mutant
+    # that is actually rejected somewhere else in the file. Anchored so each
+    # is caught by exactly the assertion it is named for, not an earlier one:
+    # verified by hand that MaxCorpses is never 0 under Zombie mode before
+    # test (f)'s own "budget-off" case, that no earlier Zombie test reads a
+    # log line's text, and that every earlier test block's own first Tick()
+    # call is a real sweep whose UNMUTATED fold already flushes any leftover
+    # drain accumulator before that block's own assertions run.
+    @{ Name = 'zombie-drain-ignores-budget-guard';
+       From = $arenaDrainBudgetGuarded.Replace("`r`n", "`n"); To = $arenaDrainBudgetIgnored.Replace("`r`n", "`n");
+       Failure = 'a guarded-off drain frame releases nothing: budget-off' },
+    @{ Name = 'zombie-drain-fold-skipped';
+       From = $arenaDrainFoldApplied.Replace("`r`n", "`n"); To = $arenaDrainFoldRemoved.Replace("`r`n", "`n");
+       Failure = "the drain's releases are folded into the next sweep's single report line, not logged per frame" },
+    @{ Name = 'zombie-drain-reset-leaks-accumulator';
+       From = '        _drainReleasedSinceReport = _drainOwnReleasedSinceReport = 0;';
+       To = '        // mutation: Reset() leaves the between-sweep accumulator uncleared';
+       Failure = "Reset() clears the previous raid's unfolded between-sweep accumulator - a fresh raid's opening sweep reports 0 carried over" },
+    # Tests (d) and (e) deliberately have no mutant of their own alongside
+    # the three above. Both exercise MayRelease's sweep-gate
+    # (`state.Sweep >= _sweep`) and its damage-source/newest-own-corpse
+    # holds THROUGH the drain path, but that is the exact same code the
+    # sweep's own release pass calls - DrainBetweenSweeps adds no branch of
+    # its own around any of it - and DamageSourceQuietSeconds (2s) is
+    # greater than ZombieCadenceSeconds (1s), so a real sweep always runs,
+    # and refreshes every per-sweep cache, before a quiet timer started
+    # inside a drain window could ever finish. Concretely: mutating the
+    # sweep-gate check (or any own-corpse/damage-source hold it guards) does
+    # change the answer a drain frame computes, but every path to an
+    # observable effect (an actual release, a changed log line) still has to
+    # cross that same 2 s quiet gate first, and the drain window this code
+    # can ever run inside is capped at one cadence (1s) by Tick() itself -
+    # verified by hand, not by a mutant that silently never gets rejected,
+    # which would be worse than no mutant. A regression in the sweep-gate or
+    # the shared holds is still caught - by the EXISTING, pre-Zombie mutants
+    # for those exact lines (e.g. 'released-in-the-hiding-sweep',
+    # 'releases-the-newest-own-body', 'releases-a-named-damage-source'),
+    # which run first and already cover every line (d) and (e) read.
+    #
+    # The same reasoning is why the _newestOwnCorpseSweep cache-invalidation
+    # line DrainBetweenSweeps now runs (review pass, 2026-10-07: a fresh own
+    # death between two drain frames of the same _sweep must not read a
+    # stale "is this still the newest" answer) has no mutant either: removing
+    # it only changes what a drain frame KNOWS, and every path from a wrong
+    # answer to a wrong RELEASE still crosses the same 2 s quiet gate a 1 s
+    # drain window can never finish - so no assertion in this suite can ever
+    # observe the difference, by the same argument as above. Confirmed
+    # fail-closed either way (the stale answer only over-protects, never
+    # releases early) and self-correcting at the very next real sweep.
     # Anchored on the generic `maxReleases` parameter, not the
     # MaxReleasesPerSweep constant it used to read directly: ReleaseTrimmed
     # now takes its cap as a parameter (2026-10-07, the Zombie drain), so the
