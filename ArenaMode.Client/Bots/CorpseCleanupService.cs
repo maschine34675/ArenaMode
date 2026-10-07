@@ -71,10 +71,64 @@ namespace ArenaMode.Bots;
 /// ActiveMinDistanceMeters for why Zombie mode, a horde converging on a
 /// largely stationary player, is the opposite case and gets that exemption
 /// dropped to zero instead.
+///
+/// Zombie mode goes further than that one exemption (2026-10-07): it also
+/// sweeps every second instead of every five (see ZombieCadenceSeconds) and
+/// drains the release itself between sweeps, up to ZombieMaxReleasesPerFrame
+/// bodies a frame, rather than only at one (see DrainBetweenSweeps). A
+/// watchdog clear-out can hide fifty-odd bodies at once, and a hidden body is
+/// still a complete, active player object — GameWorld.PlayerTick/
+/// AfterPlayerTick walk AllAlivePlayersList calling Player.ComplexUpdate on
+/// every entry, and only Player.Dispose (through GameWorld.UnregisterPlayer)
+/// takes it off that list — until it is actually released, not merely hidden.
+/// Every other mode's cadence and release cap, and the ragdoll-settled gate
+/// that keeps a body visibly falling before any of this touches it, are
+/// completely unchanged; see ZombieCadenceSeconds's own doc for the full
+/// decompile evidence and ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07): faster
+/// corpse release in Zombie mode".
 /// </summary>
 internal static class CorpseCleanupService
 {
+    /// <summary>
+    /// How often a sweep runs: reassert the hidden state, trim the overflow,
+    /// release what is due. Five seconds for every mode except Zombie — see
+    /// <see cref="ZombieCadenceSeconds"/> and <see cref="ActiveCadenceSeconds"/>.
+    /// </summary>
     private const float CadenceSeconds = 5f;
+
+    /// <summary>
+    /// Zombie's own cadence: one second, not five.
+    ///
+    /// Hiding a settled body beyond <c>MaxCorpses</c> does not stop the cost
+    /// that actually matters: <c>GameWorld.PlayerTick</c>/<c>AfterPlayerTick</c>
+    /// go through <c>SafePlayerOperation</c>, which iterates
+    /// <c>GameWorld.AllAlivePlayersList</c> (EFT/GameWorld.cs:1848-1861) and
+    /// calls <c>Player.ComplexUpdate</c> (EFT/Player.cs:29011/29023,
+    /// early-outing on <c>!IsAlive</c> but still a call per body per frame,
+    /// plus <c>AfterMainTick</c>) on every entry. A dead player is removed
+    /// from that list only by <c>GameWorld.UnregisterPlayer</c>
+    /// (EFT/GameWorld.cs:2060-2076), which <c>Player.Dispose</c> calls
+    /// (EFT/Player.cs:30247, 30933) — i.e. only on RELEASE, never on hiding.
+    /// The 2026-10-06 56-infected measurement found 116.6 <c>ComplexUpdate</c>
+    /// calls per frame against 56 live bodies, about 60 dead ones still being
+    /// ticked every frame while they waited out the ordinary 5 s cadence and
+    /// 8-per-sweep release cap (ZOMBIE-MODE-REVIEW.md, "Optimisation
+    /// candidates, ordered", item (a)). A faster cadence alone only shrinks
+    /// the WAIT between sweeps; see <see cref="ZombieMaxReleasesPerFrame"/>
+    /// and <see cref="DrainBetweenSweeps"/> for the other half, which drains
+    /// the release itself between sweeps instead of saving it for one.
+    ///
+    /// This does not touch why a body visibly FALLS before any of this: the
+    /// ragdoll gate in <see cref="TrimCorpse"/> and <see cref="MayRelease"/>
+    /// (<c>corpse.Ragdoll._isPhysicsDone</c>, which
+    /// <c>CorpseRagdoll.WorkingCycle</c>/<c>Corpse.CheckCorpseIsStill</c> only
+    /// set once every rigidbody is asleep or 15 s have passed) is unchanged
+    /// by either Zombie constant — a faster cadence only shortens how long an
+    /// already-SETTLED body waits, never how long one still falling is left
+    /// alone.
+    /// </summary>
+    private const float ZombieCadenceSeconds = 1f;
+
     private const float MinDistanceMeters = 15f;
     private const int KeepOwnCorpses = 1;
 
@@ -104,10 +158,20 @@ internal static class CorpseCleanupService
     /// </summary>
     private const float ZombieMinDistanceMeters = 0f;
 
+    /// <summary>Zombie's own mode check, shared by every Zombie-only branch below.</summary>
+    private static bool IsZombieRaid()
+        => string.Equals(ArenaSession.ActiveMode, ArenaModeCatalog.ZombieId, StringComparison.Ordinal);
+
     private static float ActiveMinDistanceMeters()
-        => string.Equals(ArenaSession.ActiveMode, ArenaModeCatalog.ZombieId, StringComparison.Ordinal)
-            ? ZombieMinDistanceMeters
-            : MinDistanceMeters;
+        => IsZombieRaid() ? ZombieMinDistanceMeters : MinDistanceMeters;
+
+    /// <summary>
+    /// <see cref="ZombieCadenceSeconds"/> for Zombie, <see cref="CadenceSeconds"/>
+    /// for every other mode. See <see cref="ZombieCadenceSeconds"/>'s own doc
+    /// for why Zombie needs its own.
+    /// </summary>
+    private static float ActiveCadenceSeconds()
+        => IsZombieRaid() ? ZombieCadenceSeconds : CadenceSeconds;
 
     /// <summary>
     /// How many bodies one sweep may take out of the scene.
@@ -123,8 +187,34 @@ internal static class CorpseCleanupService
     /// Eight per five seconds is well above the rate bodies are produced at: the
     /// 2026-09-17 measuring raid trimmed 446 bodies in 26 minutes, one every
     /// 3.5 seconds, so the queue drains rather than grows.
+    ///
+    /// Zombie mode uses a different cap entirely — see
+    /// <see cref="ZombieMaxReleasesPerFrame"/> — for both its sweep's own
+    /// release pass and the between-sweep drain.
     /// </summary>
     private const int MaxReleasesPerSweep = 8;
+
+    /// <summary>
+    /// Zombie's own per-frame release cap: used by the sweep's own release
+    /// pass AND by the between-sweep drain (<see cref="DrainBetweenSweeps"/>)
+    /// — never <see cref="MaxReleasesPerSweep"/> while
+    /// <see cref="IsZombieRaid"/> is true.
+    ///
+    /// Two, not eight: the sweep itself now runs every
+    /// <see cref="ZombieCadenceSeconds"/> (1 s) instead of every
+    /// <see cref="CadenceSeconds"/> (5 s), so the same bounded-work argument
+    /// MaxReleasesPerSweep's own doc makes keeps the total release rate in
+    /// the same range by releasing fewer bodies per frame, more often,
+    /// instead of widening the burst any one frame may do. A watchdog
+    /// clear-out (<c>ZombieSpawnService.RetireAllAliveInfected</c>) can still
+    /// hide fifty-odd bodies at once; draining two of them on every frame
+    /// instead of eight every five seconds empties the same backlog in a few
+    /// seconds rather than roughly 35 (ZOMBIE-MODE-REVIEW.md, "Optimisation
+    /// candidates, ordered", item (a)) without ever enlarging a single
+    /// frame's worth of release work beyond what the ordinary cap already
+    /// allows.
+    /// </summary>
+    private const int ZombieMaxReleasesPerFrame = 2;
 
     /// <summary>
     /// How long a requested full clear keeps overriding the ordinary budget.
@@ -281,6 +371,21 @@ internal static class CorpseCleanupService
     private static bool _reportedReleaseFailure;
 
     /// <summary>
+    /// Zombie only. What <see cref="DrainBetweenSweeps"/> has released since
+    /// the last working sweep's Report line, folded into that line's own
+    /// `released`/`ownReleased` by <see cref="Tick"/> and zeroed right after —
+    /// so the per-sweep Info line stays the one cheap read of the body
+    /// population (one line per working sweep, never one per frame) while
+    /// still accounting for every release the drain made in between. Always
+    /// zero for every non-Zombie raid, since DrainBetweenSweeps is never
+    /// called for one.
+    /// </summary>
+    private static int _drainReleasedSinceReport, _drainOwnReleasedSinceReport;
+
+    /// <summary>Same policy as <see cref="_reportedReleaseFailure"/>, for the drain's own catch.</summary>
+    private static bool _drainFailureReported;
+
+    /// <summary>
     /// One scan of <c>world.LootList</c> per sweep, not one per own corpse per
     /// call site. IsNewestOwnCorpse used to re-scan the whole list on every
     /// call, and this sweep can call it once from ReleaseTrimmed's own-corpse
@@ -301,6 +406,8 @@ internal static class CorpseCleanupService
         _fullClearUntil = 0f;
         _trimmedTotal = _releasedTotal = _ownReleasedTotal = _releaseFailures = _sweep = 0;
         _reportedReleaseFailure = false;
+        _drainReleasedSinceReport = _drainOwnReleasedSinceReport = 0;
+        _drainFailureReported = false;
         _newestOwnCorpseSweep = -1;
         _newestOwnCorpseCache = null;
         Trimmed.Clear();
@@ -386,10 +493,23 @@ internal static class CorpseCleanupService
 
     public static void Tick()
     {
-        if (!ArenaSession.IsActive || Time.time < _nextSweepAt)
+        if (!ArenaSession.IsActive)
             return;
 
-        _nextSweepAt = Time.time + CadenceSeconds;
+        if (Time.time < _nextSweepAt)
+        {
+            // Zombie only (one added ordinal string comparison; every other
+            // mode takes this early return exactly as before). Drains the
+            // release itself between sweeps instead of waiting out the rest
+            // of the cadence for the sweep's own release pass — see
+            // DrainBetweenSweeps.
+            if (IsZombieRaid())
+                DrainBetweenSweeps();
+
+            return;
+        }
+
+        _nextSweepAt = Time.time + ActiveCadenceSeconds();
 
         var maxCorpses = Settings.MaxCorpses.Value;
         if (maxCorpses <= 0 || !Singleton<GameWorld>.Instantiated)
@@ -475,7 +595,16 @@ internal static class CorpseCleanupService
             // next one. The overflow above is unaffected either way, because
             // every releasable body is already in Trimmed and so excluded from
             // the corpses list.
-            var (released, ownReleased) = ReleaseTrimmed(world, mainPlayer);
+            var maxReleases = IsZombieRaid() ? ZombieMaxReleasesPerFrame : MaxReleasesPerSweep;
+            var (released, ownReleased) = ReleaseTrimmed(world, mainPlayer, maxReleases);
+
+            // Fold in whatever DrainBetweenSweeps already released since the
+            // last working sweep line - see _drainReleasedSinceReport's own
+            // doc. Both are always zero outside Zombie.
+            released += _drainReleasedSinceReport;
+            ownReleased += _drainOwnReleasedSinceReport;
+            _drainReleasedSinceReport = 0;
+            _drainOwnReleasedSinceReport = 0;
 
             if (trimmed > 0 || released > 0)
                 Plugin.ModLogger.LogInfo(Report(clearEverything, trimmed, released, ownReleased, maxCorpses, world, mainPlayer));
@@ -483,6 +612,58 @@ internal static class CorpseCleanupService
         catch (Exception ex)
         {
             Plugin.ModLogger.LogWarning($"Arena corpse cleanup failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Zombie mode only, called from <see cref="Tick"/> on every frame that is
+    /// NOT a sweep. Releases up to <see cref="ZombieMaxReleasesPerFrame"/>
+    /// already-trimmed bodies without running a sweep: no
+    /// <see cref="ReassertTrimmed"/>, no trim pass, and <see cref="_sweep"/>
+    /// is never incremented here — so <see cref="MayRelease"/>'s
+    /// <c>state.Sweep &lt; _sweep</c> gate is exactly as strict in a drain
+    /// frame as in the sweep itself. A body hidden in the CURRENT sweep still
+    /// waits for the NEXT sweep's reassert pass before anything reachable
+    /// from here can touch it; every other MayRelease hold (damage sources,
+    /// own-corpse, loot window, aggressor, map marker, ragdoll) applies
+    /// unchanged, because this calls the exact same ReleaseTrimmed/MayRelease
+    /// path the sweep does.
+    ///
+    /// Guarded on the same conditions the sweep checks before it would call
+    /// ReleaseTrimmed at all — MaxCorpses &gt; 0, a GameWorld, a main player,
+    /// and (inside ReleaseTrimmed itself) ReleaseTrimmedCorpses/Trimmed.Count
+    /// — so turning any of them off silently turns the drain off too; there
+    /// is nothing wrong to report for any of those four.
+    ///
+    /// A throw is caught and reported once per raid, the same policy every
+    /// other fault in this file uses, and leaves nothing released for that
+    /// frame: a failed drain frame costs the backlog one frame of draining,
+    /// never a wrongly released body — the method fails safe, not open.
+    /// </summary>
+    private static void DrainBetweenSweeps()
+    {
+        try
+        {
+            var maxCorpses = Settings.MaxCorpses.Value;
+            if (maxCorpses <= 0 || !Singleton<GameWorld>.Instantiated)
+                return;
+
+            var world = Singleton<GameWorld>.Instance;
+            var mainPlayer = world.MainPlayer;
+            if (mainPlayer == null)
+                return;
+
+            var (released, ownReleased) = ReleaseTrimmed(world, mainPlayer, ZombieMaxReleasesPerFrame);
+            _drainReleasedSinceReport += released;
+            _drainOwnReleasedSinceReport += ownReleased;
+        }
+        catch (Exception ex)
+        {
+            if (!_drainFailureReported)
+            {
+                _drainFailureReported = true;
+                Plugin.ModLogger.LogWarning($"Arena corpse cleanup drain failed: {ex.Message}");
+            }
         }
     }
 
@@ -723,12 +904,19 @@ internal static class CorpseCleanupService
     }
 
     /// <summary>
-    /// Takes the bodies that are ready out of the scene. Returns how many
-    /// left in total, and how many of those were the local player's own —
-    /// read from TrimState.Own, which stays trustworthy after release for the
-    /// reason documented on that field.
+    /// Takes the bodies that are ready out of the scene, at most
+    /// <paramref name="maxReleases"/> of them. Returns how many left in
+    /// total, and how many of those were the local player's own — read from
+    /// TrimState.Own, which stays trustworthy after release for the reason
+    /// documented on that field.
+    ///
+    /// The cap is passed in rather than read from a constant because it
+    /// differs by caller: the sweep itself passes MaxReleasesPerSweep (8) for
+    /// every mode except Zombie, which passes ZombieMaxReleasesPerFrame (2)
+    /// both from its own sweep frame and from every frame DrainBetweenSweeps
+    /// calls this between sweeps — see that constant's own doc for why.
     /// </summary>
-    private static (int Released, int OwnReleased) ReleaseTrimmed(GameWorld world, Player mainPlayer)
+    private static (int Released, int OwnReleased) ReleaseTrimmed(GameWorld world, Player mainPlayer, int maxReleases)
     {
         if (!Settings.ReleaseTrimmedCorpses.Value || Trimmed.Count == 0)
             return (0, 0);
@@ -742,7 +930,7 @@ internal static class CorpseCleanupService
                 continue;
 
             (due ??= new List<Corpse>()).Add(entry.Key);
-            if (due.Count >= MaxReleasesPerSweep)
+            if (due.Count >= maxReleases)
                 break;
         }
 

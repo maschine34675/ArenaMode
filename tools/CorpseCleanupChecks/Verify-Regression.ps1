@@ -55,6 +55,16 @@ $arenaFlareBranch = @'
                     break;
 
 '@
+# Zombie cadence/drain (2026-10-07): the IsZombieRaid() guard around the
+# between-sweep drain call, and the unconditional call a dropped guard
+# would leave behind.
+$arenaDrainGuarded = @'
+            if (IsZombieRaid())
+                DrainBetweenSweeps();
+'@
+$arenaDrainUnconditional = @'
+            DrainBetweenSweeps();
+'@
 $arenaMutants = @(
     @{ Name = 'missing-begin'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Begin);'; To = '// mutation: missing Begin'; Failure = 'successful cleanup has no missing Begin activity' },
     @{ Name = 'missing-completion'; From = 'result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);'; To = '// mutation: missing completion'; Failure = 'successful cleanup leaves no active activities' },
@@ -146,7 +156,26 @@ $arenaMutants = @(
        To = 'return true;';
        Failure = 'the first reading that finds the older own corpse has left the registry, with nothing in flight, starts its quiet period rather than releasing it on its own' },
     @{ Name = 'zombie-exemption-not-zero'; From = 'private const float ZombieMinDistanceMeters = 0f;'; To = 'private const float ZombieMinDistanceMeters = 15f;'; Failure = "Zombie mode's zero-distance exemption trims a body standing at the player's position" },
-    @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= MaxReleasesPerSweep)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
+    # Zombie cadence/drain (2026-10-07): faster corpse release in Zombie
+    # mode. Three independent new knobs, three mutants.
+    @{ Name = 'zombie-cadence-ignored';
+       From = 'IsZombieRaid() ? ZombieCadenceSeconds : CadenceSeconds;'; To = 'CadenceSeconds;';
+       Failure = "Zombie's 1 s cadence trims the overflow 1.1 s after the previous sweep" },
+    @{ Name = 'zombie-drain-cap-too-wide';
+       From = 'private const int ZombieMaxReleasesPerFrame = 2;'; To = 'private const int ZombieMaxReleasesPerFrame = 64;';
+       Failure = 'the sweep frame itself releases at most ZombieMaxReleasesPerFrame bodies, not the ordinary eight' },
+    @{ Name = 'zombie-drain-disabled';
+       From = 'DrainBetweenSweeps();'; To = ';';
+       Failure = 'the first between-sweep drain frame releases two more' },
+    @{ Name = 'zombie-drain-runs-outside-zombie';
+       From = $arenaDrainGuarded.Replace("`r`n", "`n"); To = $arenaDrainUnconditional.Replace("`r`n", "`n");
+       Failure = 'outside Zombie, nothing releases between sweeps even once the remainder is fully eligible' },
+    # Anchored on the generic `maxReleases` parameter, not the
+    # MaxReleasesPerSweep constant it used to read directly: ReleaseTrimmed
+    # now takes its cap as a parameter (2026-10-07, the Zombie drain), so the
+    # sweep passes MaxReleasesPerSweep and the Zombie drain passes
+    # ZombieMaxReleasesPerFrame through the exact same line.
+    @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= maxReleases)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
     # The damage-source guard: the call site, the measured tripwire rule (a
     # tripwire leaves TripwireManager the moment it is TRIGGERED, so reading only

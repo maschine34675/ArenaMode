@@ -930,6 +930,304 @@ foreach (var fault in new[] { "retire", "dispose", "dead-body", "destroy" })
     Check(world.Removed.Count == 10, "a body with no owner to dispose is never released");
 }
 
+// ---------------------------------------------------------------------------
+// Zombie cadence/drain (2026-10-07): faster corpse release in Zombie mode.
+// Every test below runs AFTER all the ones above, so none of the existing
+// mutants' failure points move - see Verify-Regression.ps1's own comment on
+// ordering. All of it through the production Tick(), no duplicate policy.
+// ---------------------------------------------------------------------------
+
+// (a) Zombie cadence: ZombieCadenceSeconds (1 s) applies only while
+// ArenaSession.ActiveMode is "zombie"; every other mode keeps the ordinary
+// CadenceSeconds (5 s). One pre-existing body ("only") and a budget of one
+// keep the ordering unambiguous: the second body added is always the sole
+// overflow, and "only" (not "only" plus some unrelated filler) is the one
+// candidate whose trim timing this test actually measures.
+{
+    var (world, _, _) = Setup();
+    world.LootList.Clear();
+    ArenaSession.ActiveMode = "zombie";
+    var only = AddBody(world, "only");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): one body, budget one - nothing overflows.
+    Check(!CorpseCleanupService.IsSuccessfullyTrimmed(only),
+        "positive control: one body exactly fits the budget, nothing trimmed yet");
+
+    AddBody(world, "overflow");
+    Time.time += 1.1f;
+    CorpseCleanupService.Tick(); // 1.1 s later - a whole Zombie cadence has elapsed.
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(only),
+        "Zombie's 1 s cadence trims the overflow 1.1 s after the previous sweep");
+}
+{
+    var (world, _, _) = Setup();
+    world.LootList.Clear();
+    var only = AddBody(world, "only");
+    CorpseCleanupService.Tick();
+    Check(!CorpseCleanupService.IsSuccessfullyTrimmed(only),
+        "positive control: one body exactly fits the budget, nothing trimmed yet");
+
+    AddBody(world, "overflow");
+    Time.time += 1.1f;
+    CorpseCleanupService.Tick();
+    Check(!CorpseCleanupService.IsSuccessfullyTrimmed(only),
+        "outside Zombie, 1.1 s is not a whole 5 s cadence: nothing new is trimmed yet");
+
+    Time.time += 6f;
+    CorpseCleanupService.Tick();
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(only),
+        "and the overflow trims once the ordinary 5 s cadence has elapsed");
+}
+
+// (b) Zombie between-sweep drain, capped at ZombieMaxReleasesPerFrame (2)
+// per frame. Six bodies hidden together by a forced clear (bypassing the
+// trim pass's own per-body ordering, which this test has no use for),
+// released past the sweep-gate and the damage-source quiet period: the
+// sweep frame itself releases at most two, and successive drain frames
+// 0.01 s apart release exactly two more each, until the backlog is empty.
+{
+    var (world, body, _) = Setup();
+    world.LootList.Remove(body);
+    ArenaSession.ActiveMode = "zombie";
+    var extras = Enumerable.Range(1, 6).Select(i => AddBody(world, "zombie-" + i)).ToList();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): hides all six (and the filler) at once.
+    Check(extras.All(e => CorpseCleanupService.IsSuccessfullyTrimmed(e)),
+        "positive control: all six overflow bodies are hidden in one sweep");
+
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #2 (t=101): past the hiding sweep, still inside the quiet period.
+    Check(world.Removed.Count == 0,
+        "nothing releases before the damage-source quiet period has elapsed");
+
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #3 (t=102): quiet period elapsed.
+    Check(world.Removed.Count == 2,
+        "the sweep frame itself releases at most ZombieMaxReleasesPerFrame bodies, not the ordinary eight: " + world.Removed.Count);
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // first between-sweep drain frame.
+    Check(world.Removed.Count == 4,
+        "the first between-sweep drain frame releases two more: " + world.Removed.Count);
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // second between-sweep drain frame.
+    Check(world.Removed.Count == 6,
+        "the second between-sweep drain frame drains the rest: " + world.Removed.Count);
+}
+
+// (c) Outside Zombie, nothing may drain between sweeps. Ten bodies hidden
+// in one forced clear so the ordinary sweep cap (eight) leaves two fully
+// eligible bodies behind - exactly what a broken, unconditional drain would
+// leak out before the next sweep.
+{
+    var (world, body, _) = Setup();
+    world.LootList.Remove(body);
+    var extras = Enumerable.Range(1, 10).Select(i => AddBody(world, "overflow-" + i)).ToList();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): hides all ten (and the filler) at once.
+    Check(extras.All(e => CorpseCleanupService.IsSuccessfullyTrimmed(e)),
+        "positive control: all ten overflow bodies are hidden in one sweep");
+
+    Time.time += 5f;
+    CorpseCleanupService.Tick(); // sweep #2 (t=105): past the quiet period - releases at most its own eight-per-sweep cap.
+    Check(world.Removed.Count == 8,
+        "a non-Zombie sweep releases at most its own eight-per-sweep cap: " + world.Removed.Count);
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // still inside the 5 s cadence window, not a sweep.
+    Check(world.Removed.Count == 8,
+        "outside Zombie, nothing releases between sweeps even once the remainder is fully eligible: " + world.Removed.Count);
+
+    Time.time += 5f;
+    CorpseCleanupService.Tick(); // sweep #3 (t=110.01): releases the rest.
+    Check(world.Removed.Count == 10,
+        "the remainder releases on the next ordinary sweep, not before it");
+}
+
+// (d) The drain never releases a body hidden in the CURRENT sweep, no matter
+// how many frames pass within that same cadence window - the reassert
+// invariant (TrimState.Sweep) applies through the drain path exactly as it
+// does through the sweep's own release pass.
+{
+    var (world, body, gear) = Setup();
+    ArenaSession.ActiveMode = "zombie";
+    Add(body, gear, "Headwear");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): this is the body's OWN hiding sweep.
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(body), "positive control: the body is hidden this sweep");
+
+    for (var i = 0; i < 20; i++)
+    {
+        Time.time += 0.04f; // 20 * 0.04 s = 0.8 s, staying inside the 1 s cadence window.
+        CorpseCleanupService.Tick();
+        Check(Kept(world, body),
+            "the drain never releases a body hidden in the sweep that is still current, frame " + i);
+    }
+}
+
+// (e) The drain honours every MayRelease hold it shares with the sweep.
+// Damage-source hold, reusing the static-tripwire case: a body a tripwire
+// still names is not released by a between-sweep drain frame, exactly as it
+// is not released by a sweep, and releases once nothing names it and the
+// quiet period has elapsed.
+{
+    var (world, body, gear) = Setup();
+    ArenaSession.ActiveMode = "zombie";
+    Add(body, gear, "Headwear");
+    var tripwire = Tripwire(world, body.PlayerProfileID, ETripwireState.Active, isStatic: true);
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): hides the body.
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(body), "positive control: the planter's body is hidden");
+
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #2 (t=101): past the hiding sweep - the tripwire still names it.
+    Check(Kept(world, body), "a drain-eligible body a tripwire still names is kept by the sweep itself");
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // a between-sweep drain frame: still named, still held.
+    Check(Kept(world, body), "and kept by a between-sweep drain frame as well");
+
+    tripwire.TripwireState = ETripwireState.Exploded;
+    Sweep();
+    Check(Kept(world, body), "a body is not released on the first reading that finds it quiet, drain or sweep alike");
+    Sweep();
+    Check(Released(world, body), "and releases once nothing names it and the quiet period has elapsed");
+}
+
+// (e continued) The newest-own-corpse hold, through the same drain path.
+{
+    var (world, _, _) = Setup();
+    ArenaSession.ActiveMode = "zombie";
+    var older = AddBody(world, world.MainPlayer.ProfileId);
+    var newer = AddBody(world, world.MainPlayer.ProfileId);
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): a round-start clear trims both at once.
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(older) && CorpseCleanupService.IsSuccessfullyTrimmed(newer),
+        "positive control: a round-start clear trims both own bodies, oldest and newest alike");
+
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #2 (t=101): past the hiding sweep - starts the quiet period.
+    Check(Kept(world, older), "the older own corpse is not released on the sweep's first quiet reading");
+    Check(Kept(world, newer), "the newest own corpse is never released");
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // a between-sweep drain frame, same quiet reading.
+    Check(Kept(world, older), "nor by a between-sweep drain frame on that same reading");
+    Check(Kept(world, newer), "the newest own corpse is never released by a drain frame either");
+
+    Sweep();
+    Check(Released(world, older), "the older own corpse releases once its quiet period has elapsed");
+    Check(Kept(world, newer), "the newest own corpse stays kept throughout");
+}
+
+// (f) The drain fails closed/open correctly: each of the four guards the
+// sweep itself checks before it would release anything also silently turns
+// the drain off, with no warning - and releasing resumes once the guard is
+// gone. Four bodies past a forced clear, drained down to a two-body backlog
+// by the sweep's own cap, are the fully-eligible bodies each guard is tested
+// against.
+foreach (var guard in new[] { "budget-off", "release-off", "no-world", "no-player" })
+{
+    var (world, body, _) = Setup();
+    world.LootList.Remove(body);
+    var mainPlayer = world.MainPlayer;
+    ArenaSession.ActiveMode = "zombie";
+    var extras = Enumerable.Range(1, 4).Select(i => AddBody(world, "guard-" + i)).ToList();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): hides all four (and the filler) at once.
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #2 (t=101): past the hiding sweep, still inside the quiet period.
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #3 (t=102): quiet period elapsed - releases up to two, leaving two for the drain.
+    Check(world.Removed.Count == 2,
+        "positive control: the sweep's own cap leaves a fully-eligible backlog for the drain: " + guard);
+
+    switch (guard)
+    {
+        case "budget-off": Settings.MaxCorpses.Value = 0; break;
+        case "release-off": Settings.ReleaseTrimmedCorpses.Value = false; break;
+        case "no-world": Singleton<GameWorld>.Instance = null; break;
+        case "no-player": world.MainPlayer = null; break;
+    }
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // a drain frame, guarded off.
+    Check(world.Removed.Count == 2, "a guarded-off drain frame releases nothing: " + guard);
+    Check(Plugin.ModLogger.Warnings.Count == 0, "a guarded-off drain frame logs no warning: " + guard);
+
+    switch (guard)
+    {
+        case "budget-off": Settings.MaxCorpses.Value = 1; break;
+        case "release-off": Settings.ReleaseTrimmedCorpses.Value = true; break;
+        case "no-world": Singleton<GameWorld>.Instance = world; break;
+        case "no-player": world.MainPlayer = mainPlayer; break;
+    }
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // the guard is gone - draining resumes.
+    Check(world.Removed.Count == 4, "and releasing resumes once the guard is gone: " + guard);
+}
+
+// (g) Reporting: between-sweep releases are folded into the NEXT sweep's own
+// Info line - one line per working sweep, never one per frame - and Reset()
+// clears the accumulators so nothing carries over into a fresh raid.
+{
+    var (world, body, _) = Setup();
+    world.LootList.Remove(body);
+    ArenaSession.ActiveMode = "zombie";
+    var extras = Enumerable.Range(1, 4).Select(i => AddBody(world, "report-" + i)).ToList();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100)
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #2 (t=101)
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #3 (t=102): releases two via the sweep's own cap.
+    Check(world.Removed.Count == 2, "positive control: the sweep's own cap leaves a backlog: " + world.Removed.Count);
+
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // a drain frame: releases the remaining two, with no log line of its own.
+    Check(world.Removed.Count == 4, "the drain frame releases the rest: " + world.Removed.Count);
+    var infosBeforeNextSweep = Plugin.ModLogger.Infos.Count;
+
+    Time.time += 1f;
+    CorpseCleanupService.Tick(); // sweep #4 (t=103.01): nothing left to trim or release itself, but the drain's releases are still folded in and reported.
+    Check(Plugin.ModLogger.Infos.Count == infosBeforeNextSweep + 1,
+        "the drain's releases are folded into the next sweep's single report line, not logged per frame");
+    var line = Plugin.ModLogger.Infos.Last();
+    Check(line.Contains("released 2") && line.Contains("4 released in total"),
+        "the next sweep's line reports the between-sweep releases: " + line);
+}
+{
+    // Reset() clears the accumulators, not just a sweep's own fold: leave
+    // the accumulator nonzero (a drain frame that released something, with
+    // no following sweep yet to fold it away), then start a fresh raid and
+    // confirm its own opening sweep reports nothing carried over.
+    var (world, body, _) = Setup();
+    world.LootList.Remove(body);
+    ArenaSession.ActiveMode = "zombie";
+    var extras = Enumerable.Range(1, 4).Select(i => AddBody(world, "leftover-" + i)).ToList();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick();
+    Time.time += 1f;
+    CorpseCleanupService.Tick();
+    Time.time += 1f;
+    CorpseCleanupService.Tick();
+    Time.time += 0.01f;
+    CorpseCleanupService.Tick(); // a drain frame releases two more, left unfolded on purpose.
+    Check(world.Removed.Count == 4, "positive control: the drain frame left a nonzero, unfolded accumulator");
+
+    var (freshWorld, freshBody, freshGear) = Setup(); // Reset() runs here.
+    Add(freshBody, freshGear, "Headwear");
+    CorpseCleanupService.Tick(); // this raid's own opening sweep.
+    var line = Plugin.ModLogger.Infos.Last();
+    Check(line.Contains("released 0 (0 own)"),
+        "Reset() clears the previous raid's unfolded between-sweep accumulator - a fresh raid's opening sweep reports 0 carried over: " + line);
+}
+
 Console.WriteLine($"CORPSE_CLEANUP_CHECKS_PASSED ({assertions} assertions)");
 
 /// <summary>A calculator the guard does not know how to read.</summary>
