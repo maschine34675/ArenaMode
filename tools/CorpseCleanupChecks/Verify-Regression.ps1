@@ -80,6 +80,32 @@ $arenaDrainBudgetIgnored = @'
             if (!Singleton<GameWorld>.Instantiated)
                 return;
 '@
+# Same guard line, the other half: keeps the budget check, drops only the
+# GameWorld half, so this is rejected by test (f)'s "no-world" sub-case
+# rather than its "budget-off" one.
+$arenaDrainWorldGuardIgnored = @'
+            if (maxCorpses <= 0)
+                return;
+'@
+# DrainBetweenSweeps' OWN "if (mainPlayer == null) return;" is textually
+# identical to Tick()'s sweep-path copy (line ~707 vs ~559), so the From
+# anchor below includes the comment line immediately after it
+# ("// Only force IsNewestOwnCorpse..."), which only exists at the drain's
+# copy - Tick()'s own copy is followed by "_sweep++;" instead. That keeps
+# this mutant from ever touching the sweep path's guard, which the earlier,
+# pre-Zombie "no-player" exclusion case (Program.cs's first loop) already
+# exercises and would otherwise fail on first, before test (f) ever runs.
+$arenaDrainPlayerGuarded = @'
+            if (mainPlayer == null)
+                return;
+
+            // Only force IsNewestOwnCorpse to re-derive its answer when
+'@
+$arenaDrainPlayerIgnored = @'
+            // mutation: the drain never checks for a missing main player
+
+            // Only force IsNewestOwnCorpse to re-derive its answer when
+'@
 # The fold-then-zero block Tick() runs after its own ReleaseTrimmed call,
 # brand new in 6bebae4: folds whatever DrainBetweenSweeps already released
 # since the last working sweep into THIS sweep's own released/ownReleased
@@ -214,6 +240,23 @@ $arenaMutants = @(
     @{ Name = 'zombie-drain-ignores-budget-guard';
        From = $arenaDrainBudgetGuarded.Replace("`r`n", "`n"); To = $arenaDrainBudgetIgnored.Replace("`r`n", "`n");
        Failure = 'a guarded-off drain frame releases nothing: budget-off' },
+    # Review pass (2026-10-07, round 2): the budget-guard mutant above only
+    # defeats the `maxCorpses <= 0` half of DrainBetweenSweeps' own combined
+    # guard line; its `!Singleton<GameWorld>.Instantiated` half and the
+    # separate `mainPlayer == null` guard right after it had no mutant of
+    # their own, even though test (f)'s "no-world"/"no-player" cases already
+    # assert against both. Dropping either leaves `world`/`mainPlayer` null
+    # going into ReleaseTrimmed, which throws (NRE on the first MayRelease
+    # read of mainPlayer.ProfileId, or on world.MainPlayer itself) before
+    # releasing anything - caught by this method's own catch, so it is the
+    # "logs no warning" assertion that catches it, not "releases nothing"
+    # (which still holds: the throw happens before any release).
+    @{ Name = 'zombie-drain-ignores-world-guard';
+       From = $arenaDrainBudgetGuarded.Replace("`r`n", "`n"); To = $arenaDrainWorldGuardIgnored.Replace("`r`n", "`n");
+       Failure = 'a guarded-off drain frame logs no warning: no-world' },
+    @{ Name = 'zombie-drain-ignores-player-guard';
+       From = $arenaDrainPlayerGuarded.Replace("`r`n", "`n"); To = $arenaDrainPlayerIgnored.Replace("`r`n", "`n");
+       Failure = 'a guarded-off drain frame logs no warning: no-player' },
     @{ Name = 'zombie-drain-fold-skipped';
        From = $arenaDrainFoldApplied.Replace("`r`n", "`n"); To = $arenaDrainFoldRemoved.Replace("`r`n", "`n");
        Failure = "the drain's releases are folded into the next sweep's single report line, not logged per frame" },
@@ -242,16 +285,23 @@ $arenaMutants = @(
     # 'releases-the-newest-own-body', 'releases-a-named-damage-source'),
     # which run first and already cover every line (d) and (e) read.
     #
-    # The same reasoning is why the _newestOwnCorpseSweep cache-invalidation
-    # line DrainBetweenSweeps now runs (review pass, 2026-10-07: a fresh own
-    # death between two drain frames of the same _sweep must not read a
-    # stale "is this still the newest" answer) has no mutant either: removing
-    # it only changes what a drain frame KNOWS, and every path from a wrong
-    # answer to a wrong RELEASE still crosses the same 2 s quiet gate a 1 s
-    # drain window can never finish - so no assertion in this suite can ever
-    # observe the difference, by the same argument as above. Confirmed
-    # fail-closed either way (the stale answer only over-protects, never
-    # releases early) and self-correcting at the very next real sweep.
+    # The same reasoning is why DrainBetweenSweeps' _newestOwnCorpseSweep
+    # cache-invalidation check (review pass, 2026-10-07: a fresh own death
+    # between two drain frames of the same _sweep must not read a stale "is
+    # this still the newest" answer forever) has no mutant either, in either
+    # direction. Mutating its `world.LootList.Count != _newestOwnCorpseLootCount`
+    # guard to `true` only reverts to the first version of this fix (always
+    # invalidate, every drain call); mutating it to `false` only reverts to
+    # before that fix existed (never invalidate from here). Both only change
+    # what a drain frame KNOWS, and every path from a wrong answer to a wrong
+    # RELEASE still crosses the same 2 s quiet gate a 1 s drain window can
+    # never finish - so no assertion in this suite can ever observe the
+    # difference, by the same argument as above. Confirmed fail-closed either
+    # way (a stale answer only over-protects whichever corpse the cache
+    # already points at, never releases early) and self-correcting at the
+    # very next real sweep, which this file's own `_sweep`-keyed path for the
+    # SAME cache already covers (see 'released-in-the-hiding-sweep' and
+    # 'releases-the-newest-own-body').
     # Anchored on the generic `maxReleases` parameter, not the
     # MaxReleasesPerSweep constant it used to read directly: ReleaseTrimmed
     # now takes its cap as a parameter (2026-10-07, the Zombie drain), so the

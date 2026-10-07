@@ -1864,7 +1864,7 @@ sweeps, the 15 m exemption for every mode except Zombie (which was already
 ### Tests
 
 `tools/CorpseCleanupChecks/Verify-Regression.ps1`: 283 assertions (up from
-180), 32 source mutants (up from 19), all through the production `Tick()`.
+180), 34 source mutants (up from 19), all through the production `Tick()`.
 New: Zombie cadence vs the ordinary 5 s one; the sweep frame and successive
 0.01 s-apart drain frames each releasing exactly `ZombieMaxReleasesPerFrame`
 from a six-body backlog; confirmation that nothing drains between sweeps
@@ -1883,17 +1883,37 @@ mutant that is actually rejected elsewhere in the file:
 `zombie-drain-ignores-budget-guard` (the `MaxCorpses` guard inside
 `DrainBetweenSweeps` itself, not the sweep's own copy), `zombie-drain-fold-skipped`
 (the report-line fold), and `zombie-drain-reset-leaks-accumulator`
-(`Reset()`'s own clearing of it). The reassert/sweep-gate and
+(`Reset()`'s own clearing of it). A second review pass (2026-10-07) found
+`zombie-drain-ignores-budget-guard` only defeated the `MaxCorpses` half of
+`DrainBetweenSweeps`' combined guard line, leaving its
+`!Singleton<GameWorld>.Instantiated` half and the separate
+`mainPlayer == null` guard right after it without a dedicated mutant of
+their own, even though test (f)'s "no-world"/"no-player" cases already
+assert against both; added `zombie-drain-ignores-world-guard` and
+`zombie-drain-ignores-player-guard`, each rejected by test (f)'s own "a
+guarded-off drain frame logs no warning" assertion for that guard (dropping
+either leaves `world`/`mainPlayer` null going into `ReleaseTrimmed`, which
+throws before releasing anything, so the *warning* assertion catches it,
+not the *release-count* one). The reassert/sweep-gate and
 damage-source/newest-own-corpse tests do not get a matching dedicated
 mutant: they call the identical code the sweep's own release pass does, with
 no branch of their own to mutate, and `DamageSourceQuietSeconds` (2 s) is
 longer than `ZombieCadenceSeconds` (1 s), so a real sweep — which refreshes
 every per-sweep cache — always runs before a quiet timer started inside a
 drain window could finish; a regression in that shared code is still caught,
-by the pre-existing mutants for those exact lines. See
-`Verify-Regression.ps1`'s own comment for the full argument.
+by the pre-existing mutants for those exact lines. The same argument also
+covers the `_newestOwnCorpseLootCount` Count-check this same pass added to
+`DrainBetweenSweeps` (replacing the unconditional per-frame cache
+invalidation 8556419 had added, which forced a full `world.LootList` rescan
+on every one of the drain's up to ~59 calls a second regardless of whether
+anything had changed — a real cost for a check whose own fail-closed
+guarantee, and the cadence/quiet-period relationship above, mean no test in
+this suite can ever observe the difference either way): no dedicated
+mutant, by the identical reasoning, and for the identical reason 8556419
+itself needed none. See `Verify-Regression.ps1`'s own comment for the full
+argument.
 `tools/DynamicMapCorpseChecks/Verify.ps1`: 61 assertions, 8 compiled
-controls, then the same 283/32 regression suite. `dotnet test
+controls, then the same 283/34 regression suite. `dotnet test
 ArenaMode.Tests` (no-deploy sentinel): 870 passed, 2 skipped (pre-existing,
 unrelated), 0 failed. `dotnet build ArenaMode.Client -c Release` (no-deploy
 sentinel): 0 errors, 4 known CS8632 (pre-existing, unrelated —

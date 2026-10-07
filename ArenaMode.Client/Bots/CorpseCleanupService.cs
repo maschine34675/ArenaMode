@@ -403,14 +403,38 @@ internal static class CorpseCleanupService
     /// while deliberately leaving <c>_sweep</c> unchanged for up to
     /// <see cref="ZombieCadenceSeconds"/>, across many real frames, so an own
     /// death that lands between two drain frames of the SAME <c>_sweep</c>
-    /// value would otherwise read a stale answer. <see cref="DrainBetweenSweeps"/>
-    /// forces a fresh read on every call it makes (see its own doc) precisely
-    /// so this cache's "per sweep" key still means "per sweep OR per drain
-    /// frame", never "per several seconds of drain frames sharing one sweep
-    /// number".
+    /// value would otherwise read a stale answer.
+    ///
+    /// <see cref="_newestOwnCorpseLootCount"/> is the cheap half of the fix
+    /// (2026-10-07): <see cref="DrainBetweenSweeps"/> no longer forces a
+    /// rescan on every one of its up to ~59 calls per real second regardless
+    /// of whether anything changed — it forces one only when
+    /// <c>world.LootList.Count</c> has moved since the count this cache was
+    /// last actually filled at. Nothing in this file inserts into or removes
+    /// from the MIDDLE of <c>world.LootList</c> (an own death only ever
+    /// appends; <see cref="Release"/> is the only remover, via
+    /// <c>GameWorld.DestroyLoot</c>, which shrinks it), so an unchanged Count
+    /// proves no corpse — own or otherwise — was added or removed, and the
+    /// cached answer is still exactly the one a full rescan would return. A
+    /// Count that returns to its old value after an add-then-remove pair
+    /// inside one untracked window is the one case this cannot see through;
+    /// it is already covered by the existing fail-closed guarantee (a stale
+    /// answer only ever OVER-protects whichever corpse the cache already
+    /// points at — the true newest body is never even asked about, since it
+    /// is still falling and so never reaches <see cref="Trimmed"/> — see
+    /// <see cref="DrainBetweenSweeps"/>'s own doc), not a new risk.
     /// </summary>
     private static int _newestOwnCorpseSweep = -1;
     private static Corpse _newestOwnCorpseCache;
+
+    /// <summary>
+    /// <c>world.LootList.Count</c> as of the scan that last filled
+    /// <see cref="_newestOwnCorpseCache"/>, so <see cref="DrainBetweenSweeps"/>
+    /// can tell "nothing changed" from "something might have" without
+    /// rescanning the list itself. See <see cref="_newestOwnCorpseSweep"/>'s
+    /// own doc for the argument.
+    /// </summary>
+    private static int _newestOwnCorpseLootCount = -1;
 
     public static void Reset()
     {
@@ -422,6 +446,7 @@ internal static class CorpseCleanupService
         _drainFailureReported = false;
         _newestOwnCorpseSweep = -1;
         _newestOwnCorpseCache = null;
+        _newestOwnCorpseLootCount = -1;
         Trimmed.Clear();
         CorpseAggressors.Reset();
         CorpseDamageSources.Reset();
@@ -640,12 +665,23 @@ internal static class CorpseCleanupService
     /// own-corpse, loot window, aggressor, map marker, ragdoll) applies
     /// exactly as it does to the sweep's own release pass, because this
     /// calls the exact same ReleaseTrimmed/MayRelease path the sweep does —
-    /// with one deliberate exception: it forces <see cref="IsNewestOwnCorpse"/>'s
-    /// per-sweep cache to recompute on every call (see the field reset right
-    /// before ReleaseTrimmed below, and <see cref="_newestOwnCorpseSweep"/>'s
-    /// own doc), because this method spans many real frames under one
-    /// unchanged <see cref="_sweep"/> value and a fresh own death during that
-    /// window must be seen without waiting for the next real sweep.
+    /// with one deliberate exception: it keeps <see cref="IsNewestOwnCorpse"/>'s
+    /// per-sweep cache honest across the many real frames it spans under one
+    /// unchanged <see cref="_sweep"/> value, where a fresh own death would
+    /// otherwise go unseen until the next real sweep. It does this cheaply
+    /// (see the Count check right before ReleaseTrimmed below, and
+    /// <see cref="_newestOwnCorpseLootCount"/>'s own doc) rather than forcing
+    /// a full <c>world.LootList</c> rescan on every one of its calls — up to
+    /// ~59 a second — regardless of whether anything actually changed; no
+    /// test/mutant covers the difference between the two, for the same
+    /// reason <see cref="Release"/>'s 2026-10-07 fix needed none: a stale
+    /// read here only ever over-protects whichever corpse the cache already
+    /// points at (fail-closed, see this method's own closing paragraph), and
+    /// <c>DamageSourceQuietSeconds</c> (2 s) outlasts
+    /// <see cref="ZombieCadenceSeconds"/> (1 s), so the next real sweep's own
+    /// <c>_sweep</c>-keyed refresh always lands before a quiet timer started
+    /// inside a drain window could finish — no sequence of calls here can
+    /// produce an outcome a full-rescan-every-frame version would not.
     ///
     /// Guarded on the same conditions the sweep checks before it would call
     /// ReleaseTrimmed at all — MaxCorpses &gt; 0, a GameWorld, a main player,
@@ -671,19 +707,16 @@ internal static class CorpseCleanupService
             if (mainPlayer == null)
                 return;
 
-            // Force IsNewestOwnCorpse to re-derive its answer for this frame
-            // rather than reuse a cache keyed on _sweep, which this method
-            // deliberately never advances (see this method's own doc and
-            // _newestOwnCorpseSweep's). Without this, a fresh own death
-            // landing between two drain frames of the same sweep would keep
-            // reading the pre-death answer until the next real sweep —
-            // bounded and fail-closed (the old "newest" body is over-
-            // protected, never released early), but still a stale read this
-            // one invalidation avoids outright. Every MayRelease call this
-            // drain frame makes afterwards still shares one answer, exactly
-            // as the cache's own doc intends, because nothing within this
-            // single ReleaseTrimmed call appends to world.LootList.
-            _newestOwnCorpseSweep = -1;
+            // Only force IsNewestOwnCorpse to re-derive its answer when
+            // world.LootList has actually moved since the scan that filled
+            // the cache — see _newestOwnCorpseLootCount's own doc for why
+            // that is enough to prove the cached answer still matches a full
+            // rescan. Every MayRelease call this drain frame makes afterwards
+            // still shares one answer either way, exactly as the cache's own
+            // doc intends, because nothing within this single ReleaseTrimmed
+            // call appends to world.LootList.
+            if (world.LootList.Count != _newestOwnCorpseLootCount)
+                _newestOwnCorpseSweep = -1;
 
             var (released, ownReleased) = ReleaseTrimmed(world, mainPlayer, ZombieMaxReleasesPerFrame);
             _drainReleasedSinceReport += released;
@@ -1024,6 +1057,7 @@ internal static class CorpseCleanupService
 
             _newestOwnCorpseCache = newest;
             _newestOwnCorpseSweep = _sweep;
+            _newestOwnCorpseLootCount = world.LootList.Count;
         }
 
         return ReferenceEquals(_newestOwnCorpseCache, corpse);
