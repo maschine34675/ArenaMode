@@ -446,9 +446,19 @@ namespace ArenaMode.Bots
         // first statement, so a destroyed aggressor abandons the whole death.
         public static readonly List<EFT.Player> Pending = new();
         public static bool FailToRead;
-        public static void Reset() { Pending.Clear(); FailToRead = false; }
+
+        // How many times IsPendingAggressor was actually called - the harness's
+        // only way to observe whether CorpseCleanupService.QuietWindowKnownOpen
+        // skipped the expensive gauntlet (this stub is cheap either way, but
+        // the real CorpseAggressors.IsPendingAggressor it stands in for is an
+        // O(AllAlivePlayersList.Count) scan; see that pre-check's own doc).
+        public static int CallCount;
+        public static void Reset() { Pending.Clear(); FailToRead = false; CallCount = 0; }
         public static bool IsPendingAggressor(EFT.Player body, EFT.GameWorld world)
-            => FailToRead || Pending.Contains(body);
+        {
+            CallCount++;
+            return FailToRead || Pending.Contains(body);
+        }
     }
     public static class CorpseTriggerZones
     {

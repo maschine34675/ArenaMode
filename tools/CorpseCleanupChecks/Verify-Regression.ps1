@@ -127,14 +127,34 @@ $arenaMutants = @(
     @{ Name = 'existing-activity'; From = 'controller.SelectEvents(item).Any()'; To = 'false'; Failure = 'pre-existing same-item activity is preserved' },
     @{ Name = 'missing-finally'; From = $arenaPair.Replace("`r`n", "`n"); To = $arenaUnprotectedPair.Replace("`r`n", "`n"); Failure = 'tested failure boundary leaves no unpaired activity: begin' },
     @{ Name = 'pooled-instead-of-destroyed'; From = 'pool.IsStub = true;'; To = '// mutation: let the body go back into the shared player pool'; Failure = 'a released body is destroyed, never pushed back into the shared player pool' },
-    # "corpse and player remain registered" is the earliest assertion that
-    # states this property; the release block states it again by name. Since
-    # the damage-source quiet period, whose first reading is taken AT the trim,
-    # a body cannot be released in the sweep that hid it on that ground alone
-    # either - so this control defeats both, like the own/teammate pair below.
+    # Originally caught at "corpse and player remain registered", the
+    # earliest assertion that states this property, by combining the
+    # sweep-gate mutation below with defeating the damage-source quiet
+    # period too: since that period's first reading is taken AT the trim, a
+    # source-free body cannot be released in the sweep that hid it on the
+    # sweep-gate mutation ALONE either (DamageSourcesQuiet's bottom path
+    # always answers false on a first read with elapsed=0, mutated or not),
+    # so this control always needed both halves to be observable at all -
+    # the sweep-gate half, by itself, never differs from the unmutated code
+    # at the one moment (state.Sweep >= _sweep actually true) it could.
+    # F1-PERF (review pass, 2026-10-07) added QuietWindowKnownOpen, a second,
+    # independent, UNMUTATED read of the identical "elapsed since quiet"
+    # arithmetic, short-circuiting ReleaseTrimmed's loop before MayRelease
+    # (and so before either mutated line here) runs at all - for exactly the
+    # source-free, just-trimmed body this mutant's early catch relied on
+    # (TrimState.SourcesQuietSince is stamped at trim time whenever nothing
+    # names the body, making QuietWindowKnownOpen's own skip the FIRST
+    # reason this body is not released, ahead of either mutated check). The
+    # original assertion no longer observes this mutant; it is now caught
+    # exactly where 'releases-inside-the-hit-delay' below is, by its shared
+    # DamageSourcesQuiet half - a tripwire-named body's SourcesQuietSince
+    # stays NaN until the tripwire actually resolves, which QuietWindowKnownOpen
+    # cannot pre-empt (NaN never satisfies its own "known and not yet
+    # elapsed" test), so the mutated "return true;" is reached and observed
+    # there, same as before.
     @{ Name = 'released-in-the-hiding-sweep'; From = 'state.Sweep >= _sweep'; To = 'false';
        From2 = 'return Time.time - state.SourcesQuietSince >= DamageSourceQuietSeconds;'; To2 = 'return true;';
-       Failure = 'corpse and player remain registered' },
+       Failure = 'a body is not released on the first reading that finds it quiet: Wait' },
     @{ Name = 'retries-a-failed-release'; From = 'if (!state.Completed || state.ReleaseFailed || state.Protected)'; To = 'if (!state.Completed || state.Protected)'; Failure = 'a failed release is never retried, even once the fault is gone: retire' },
     # The two layers that protect a PitFireTeam body: the trim-time snapshot
     # (state.Protected, in the fast path) and the live re-read
@@ -308,6 +328,17 @@ $arenaMutants = @(
     # sweep passes MaxReleasesPerSweep and the Zombie drain passes
     # ZombieMaxReleasesPerFrame through the exact same line.
     @{ Name = 'unbounded-release-burst'; From = 'if (due.Count >= maxReleases)'; To = 'if (false)'; Failure = 'one sweep never releases more than its budget' },
+    # F1-PERF (review pass, 2026-10-07): ReleaseTrimmed's own cheap pre-check,
+    # QuietWindowKnownOpen, which skips IsPendingAggressor/DamageSourcesQuiet
+    # entirely for an entry whose quiet timer is already known and has not
+    # elapsed - see that method's own doc for why this is sound. Dropping the
+    # short-circuit (same single-line shape as the mutants around it) makes
+    # every drain/sweep frame reach IsPendingAggressor again for every
+    # not-yet-due entry, which test (h) in Program.cs's Zombie section counts
+    # via CorpseAggressors.CallCount.
+    @{ Name = 'zombie-drain-skips-no-pre-check';
+       From = 'if (QuietWindowKnownOpen(entry.Key, entry.Value, mainPlayer))'; To = 'if (false)';
+       Failure = 'the quiet pre-check skips IsPendingAggressor entirely while the timer is known and has not elapsed' },
     @{ Name = 'releases-a-pending-aggressor'; From = 'if (CorpseAggressors.IsPendingAggressor(player, world))'; To = 'if (false)'; Failure = 'a body that stopped being releasable stays: aggressor' },
     # The damage-source guard: the call site, the measured tripwire rule (a
     # tripwire leaves TripwireManager the moment it is TRIGGERED, so reading only

@@ -302,7 +302,7 @@ current. User-facing communication is normally German.
   Sweep-Zähler zu erhöhen. Jeder andere Modus bleibt exakt beim bisherigen
   5-s/8er-Verhalten; der Ragdoll-Gate (Körper fällt sichtbar zu Boden) ist
   unverändert. Offline grün in diesem Worktree:
-  `Verify-Regression.ps1` 283 Assertions/34 Mutanten,
+  `Verify-Regression.ps1` 309 Assertions/35 Mutanten,
   `DynamicMapCorpseChecks/Verify.ps1` dieselbe Suite plus 61/8,
   `dotnet test ArenaMode.Tests` (No-Deploy-Sentinel) 870 bestanden/2
   übersprungen/0 fehlgeschlagen, `dotnet build ArenaMode.Client -c Release`

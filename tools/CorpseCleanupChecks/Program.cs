@@ -1228,6 +1228,47 @@ foreach (var guard in new[] { "budget-off", "release-off", "no-world", "no-playe
         "Reset() clears the previous raid's unfolded between-sweep accumulator - a fresh raid's opening sweep reports 0 carried over: " + line);
 }
 
+// (h) Performance pre-check (review pass, 2026-10-07, F1-PERF): ReleaseTrimmed
+// must not pay for CorpseAggressors.IsPendingAggressor (an
+// O(AllAlivePlayersList.Count) scan, stubbed here but counted via
+// CorpseAggressors.CallCount) for a Trimmed entry whose damage-source quiet
+// timer is already known and has not yet elapsed - exactly the ~2 s window a
+// Zombie watchdog clear-out's whole backlog sits inside, drained up to ~59
+// times/sec by DrainBetweenSweeps. Six bodies hidden by one forced clear,
+// same shape as (b): every one is stamped quiet (TrimState.SourcesQuietSince)
+// the instant it is trimmed, so from that instant until the 2 s window
+// elapses, not one sweep or drain frame may call IsPendingAggressor for any
+// of them - and once the window elapses, it has to be called again for the
+// bodies that actually become due.
+{
+    var (world, body, _) = Setup();
+    world.LootList.Remove(body);
+    ArenaSession.ActiveMode = "zombie";
+    var extras = Enumerable.Range(1, 6).Select(i => AddBody(world, "quiet-" + i)).ToList();
+
+    CorpseCleanupService.ClearAllSoon("round start");
+    CorpseCleanupService.Tick(); // sweep #1 (t=100): hides all six at once, each stamped quiet right then.
+    Check(extras.All(e => CorpseCleanupService.IsSuccessfullyTrimmed(e)),
+        "positive control: all six bodies are hidden in one sweep");
+    Check(CorpseAggressors.CallCount == 0,
+        "the hiding sweep's own release pass never reaches IsPendingAggressor for a body it just hid");
+
+    for (var i = 0; i < 21; i++)
+    {
+        Time.time += 0.09f; // 21 * 0.09 s ~= 1.89 s, staying inside the 2 s quiet window - crosses several sweep (1 s) and drain boundaries on the way.
+        CorpseCleanupService.Tick();
+        Check(CorpseAggressors.CallCount == 0,
+            "the quiet pre-check skips IsPendingAggressor entirely while the timer is known and has not elapsed, frame " + i);
+    }
+    Check(world.Removed.Count == 0, "positive control: nothing has actually released yet");
+
+    Time.time += 1f; // past the 2 s quiet window - due at last.
+    CorpseCleanupService.Tick();
+    Check(CorpseAggressors.CallCount > 0,
+        "and the check runs again, for the bodies now actually due, once the quiet window has elapsed");
+    Check(world.Removed.Count > 0, "and they are actually released");
+}
+
 Console.WriteLine($"CORPSE_CLEANUP_CHECKS_PASSED ({assertions} assertions)");
 
 /// <summary>A calculator the guard does not know how to read.</summary>

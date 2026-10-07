@@ -792,6 +792,21 @@ pass. See ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07): faster corpse release in
 Zombie mode", for the full decompile evidence and the measured-raid context
 this responds to.
 
+**Review pass (2026-10-07, F1-PERF).** The two-per-frame cap bounds how many
+bodies a drain frame can RELEASE, but every one of the up to ~59 drain frames
+a second still used to pay the full `MayRelease` gauntlet — including
+`CorpseAggressors.IsPendingAggressor` and `DamageSourcesQuiet`'s own reads —
+for every Trimmed entry that was sweep-eligible but still inside the 2 s
+`DamageSourceQuietSeconds` window, which is every entry in exactly the
+~46-56-body backlog this feature targets, for as long as that window stays
+open. `CorpseCleanupService.QuietWindowKnownOpen` is a cheap pre-check in
+`ReleaseTrimmed`'s own loop, ahead of `MayRelease`, that skips the gauntlet
+once the quiet timer it would consult is already known and has not elapsed —
+sound because that timer can only grow more quiet, never less, while
+unchanged, so the skipped call would have answered `false` regardless. It
+never skips for an own corpse while `TrimState.LeftRegistry` is still
+undecided, so the one real reading that decides it always runs.
+
 ## Behaviour that does not change
 
 Normal raids are untouched: `Tick` still returns on `ArenaSession.IsActive`
@@ -823,9 +838,9 @@ this touches it.
 
 `pwsh -NoProfile -File tools/DynamicMapCorpseChecks/Verify.ps1` runs everything:
 the installed-contract check, 61 marker assertions with eight compiled controls,
-then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 283 assertions and
-34 source mutants (as of 2026-10-07; includes the Zombie cadence/drain and its
-own nine mutants, see "Bounded work per sweep" above and
+then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 309 assertions and
+35 source mutants (as of 2026-10-07; includes the Zombie cadence/drain and its
+own ten mutants, see "Bounded work per sweep" above and
 ZOMBIE-MODE-REVIEW.md). `CorpseDamageSources.cs` is linked as production
 source too, against fakes of the three registries it reads, so its own rules are
 mutated rather than only its call site. The release is covered by its own block

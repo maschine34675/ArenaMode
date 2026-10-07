@@ -969,6 +969,79 @@ internal static class CorpseCleanupService
     }
 
     /// <summary>
+    /// Cheap pre-check for ReleaseTrimmed's loop (review pass, 2026-10-07):
+    /// true when the quiet timer <see cref="DamageSourcesQuiet"/> would
+    /// consult is already known and has not elapsed yet, which means
+    /// DamageSourcesQuiet is guaranteed to answer false WITHOUT being called
+    /// — so MayRelease would answer false too, regardless of what
+    /// CorpseAggressors.IsPendingAggressor (an O(AllAlivePlayersList.Count)
+    /// scan) or DamageSourcesQuiet's own Describe/StillNamedInRegistry reads
+    /// (four more list scans) would say, since every one of MayRelease's
+    /// checks is AND'ed together and this one is already known to fail.
+    ///
+    /// Sound by DamageSourcesQuiet's own documented invariant: a dead body
+    /// cannot plant, throw or fire, so once a reading goes quiet nothing can
+    /// un-quiet it before the window elapses — the timestamp this reads can
+    /// only ever make the same body MORE quiet, never less, while it is
+    /// unchanged. Concretely, for the field actually in play: if quietSince
+    /// is non-NaN, a fresh call into DamageSourcesQuiet either finds no
+    /// source (leaves quietSince as-is, since it is already non-NaN, and
+    /// returns the SAME elapsed-time comparison this check already makes) or
+    /// finds one (resets quietSince to NaN and returns false) — false in
+    /// both cases, exactly what skipping already assumes. This only ever
+    /// skips a body that is NOT YET due; it never causes an early RELEASE —
+    /// every other gate in MayRelease still runs in full once this check
+    /// finds the window has elapsed or the timer is still unset.
+    ///
+    /// Picks the SAME field DamageSourcesQuiet would: ShotQuietSince once an
+    /// own corpse has left the profile-id registry (TrimState.LeftRegistry's
+    /// own doc), SourcesQuietSince otherwise — re-deriving isOwnCorpse the
+    /// identical way MayRelease does (a fresh PlayerProfileID comparison, not
+    /// the cached TrimState.Own, which a null mainPlayer at trim time could
+    /// have recorded wrong) rather than trusting a cache this method has no
+    /// other reason to read.
+    ///
+    /// NEVER skips for an own corpse while LeftRegistry is still false
+    /// (review pass, 2026-10-07, round 2) — that is not "SourcesQuietSince
+    /// governs instead", it is "LeftRegistry has not been DECIDED yet", and
+    /// LeftRegistry is only ever decided by DamageSourcesQuiet's own
+    /// StillNamedInRegistry read. TrimCorpse stamps SourcesQuietSince for
+    /// EVERY body, own or not, the instant nothing names it at trim — for a
+    /// genuine own, non-newest corpse that reading is operationally
+    /// meaningless (DamageSourcesQuiet's own doc: LeftRegistry is already
+    /// true the FIRST time such a corpse ever reaches it, so its
+    /// SourcesQuietSince-governed bottom path is "not a path real gameplay
+    /// exercises today") — but it is still non-NaN, and skipping on it
+    /// would never let that first real call happen at all, so LeftRegistry
+    /// would stay false and the correct ShotQuietSince clock would never
+    /// start. Falling through here costs nothing extra: MayRelease's own
+    /// IsNewestOwnCorpse check already short-circuits the newest own corpse
+    /// (the common repeat case) before IsPendingAggressor/DamageSourcesQuiet
+    /// are ever reached, and every other own corpse determines LeftRegistry
+    /// on its first real call, after which this check skips on ShotQuietSince
+    /// exactly as it does for anything else.
+    ///
+    /// This is exactly the scenario the v3 Zombie drain targets: a ~46-56-body
+    /// watchdog clear-out leaves every one of them sweep-eligible but still
+    /// inside the 2 s DamageSourceQuietSeconds window for about two seconds,
+    /// during which DrainBetweenSweeps calls ReleaseTrimmed up to ~59
+    /// times/sec — without this check, every one of those calls paid the full
+    /// gauntlet for every entry that was not yet due, on top of (not instead
+    /// of) the per-body ComplexUpdate cost this feature exists to shrink.
+    /// Zombie infected are never own corpses, so every one of them gets the
+    /// full benefit from the very first reading.
+    /// </summary>
+    private static bool QuietWindowKnownOpen(Corpse corpse, TrimState state, Player mainPlayer)
+    {
+        var isOwnCorpse = corpse.PlayerProfileID == mainPlayer.ProfileId;
+        if (isOwnCorpse && !state.LeftRegistry)
+            return false;
+
+        var quietSince = isOwnCorpse ? state.ShotQuietSince : state.SourcesQuietSince;
+        return !float.IsNaN(quietSince) && Time.time - quietSince < DamageSourceQuietSeconds;
+    }
+
+    /// <summary>
     /// Takes the bodies that are ready out of the scene, at most
     /// <paramref name="maxReleases"/> of them. Returns how many left in
     /// total, and how many of those were the local player's own — read from
@@ -991,6 +1064,11 @@ internal static class CorpseCleanupService
         List<Corpse> due = null;
         foreach (var entry in Trimmed)
         {
+            // Before paying for IsPendingAggressor/DamageSourcesQuiet at all -
+            // see QuietWindowKnownOpen's own doc for why this is safe.
+            if (QuietWindowKnownOpen(entry.Key, entry.Value, mainPlayer))
+                continue;
+
             if (!MayRelease(entry.Key, entry.Value, world, mainPlayer))
                 continue;
 
