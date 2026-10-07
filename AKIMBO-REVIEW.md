@@ -33,7 +33,9 @@ cylinder or adding a spent shell. Native firing/animation completion remains.
 A weak-key receipt scopes only the corresponding OnFireEvent shell-model move;
 the real still-loaded cartridge is never moved into the spent-shell port. This
 receipt completes an already prepared operation even if the mutator is toggled
-before its native fire animation event. Reset/finalizer remove it.
+before its native fire animation event. Successful firing retains it through
+OnAddAmmoInChamber to preserve the original hammer/cylinder state for the paid
+half. Reset, the next preparation or an exceptional finalizer removes it.
 
 Left InitiateShot arguments preserve the native FOV/back-offset correction and
 converge on the original spread ray at 50m. Native origin -> left origin, camera
@@ -91,7 +93,8 @@ Native evidence and final scope limits belong in the dated GPU report/HANDOFF.
 Custom skinned geometry remains unsupported; a changed child model hierarchy may
 fail closed until a weapon switch or OFF→ON. Pickup integration remains separate.
 
-Native first-stage result (2026-10-05): `3c16748` has passed a bounded PM test
+Historical simultaneous-fire prototype, superseded above (2026-10-05):
+`3c16748` passed a bounded PM test
 on GPU-2, including two visible pistols, bonus projectile emission, reload,
 inventory, sprint, ADS suppression and lifetime cleanup. This accepts the rough
 presentation experiment only: the left support-hand fingers still do not form a

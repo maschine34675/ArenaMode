@@ -3,7 +3,8 @@
 ## Collection sound (2026-10-07)
 
 Confirmed local collections play one 600 ms CC0 cue, IENBA's **Game Pick Up**.
-See `Assets/ArenaMode/pickups/SOURCES.json` and the shipped CC0 text for provenance.
+See `ArenaMode.Client/Assets/ArenaMode/pickups/SOURCES.json` and the shipped CC0
+text for provenance.
 The sound is admitted only after the current appearance reservation completes
 successfully; async weapon failure, duplicate/old callbacks and bot collections
 are silent. `ArenaPickupAudio` rechecks exact live actor ownership before output.
@@ -325,7 +326,8 @@ compiled negative control removes the error detail and must fail those checks.
   source immediately but waits for native settlement before pool cleanup. Late
   callbacks cannot revive old appearances. Ordinary loot has no such source owner.
 - Existing assists still observe actual final HP deltas. No new profile routes,
-  persistent rewards, server/Core dependencies or audio.
+  persistent rewards or server/Core dependencies. Collection audio is documented
+  separately above.
 
 ## Verification / GPU acceptance
 

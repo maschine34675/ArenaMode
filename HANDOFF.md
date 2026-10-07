@@ -1,11 +1,35 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-06. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-07. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je
+  Abzug einen nativen Schuss abwechselnd rechts/links um; zwei Schüsse pro
+  geladener Patrone. Kein verzögertes Doppelgeschoss. Der kostenlose Teil wird
+  vorab reserviert; OFF/ON, Wegstecken und Nachladen erneuern ihn nicht.
+  `9fd5558` ergänzt IENBA/CC0 nach bestätigtem lokalem Pickup, eigener Master-
+  Ausgang, `Arena pickups / SoundVolume=0.7`. `8e42a31` hält Lizenz-/Manifest-
+  Bytes stabil; `147fcad` repariert nur eine bestehende doppelte Testklasse.
+  Client und genau diese Audioassets lokal + GPU-2 deployt; Server/Core/
+  Companion unverändert, unversionierte Molotov-Audios unberührt. Geladener
+  Client `0.1.0+65b81153911bb14f686431f8c1074c17cc4b255a`, SHA256
+  `63361A5BDC19ADC7EBCCE36AB153880C63D4ECB89E8E52C564E6BC15DFCA9F46`.
+  GPU-2: PB sieben Patronen -> 14 Schüsse (7 rechts/7 links), leerer 15. Abzug
+  ohne Zusatzschuss, Reload und Paar-Erhalt über OFF/ON/Messerwechsel bestätigt.
+  Pickup-Audioaufruf/Master-Bindung und Cleanup bestätigt, keine Geräte-Hörprobe.
+  Revolver-/Dauerfeuer-Nachtest offen; zufällige Gun-Game-Rung-IDs taugen nicht
+  als feste Waffentest-Fixture. Tests, unabhängige Review und Build grün.
+  Profil: erster Vergleich enthält nur 18 explizit ergänzte StackObjectsCount=1
+  plus Energie/Wasser auf 100 (Ursache nicht isoliert); nicht als byte-identisch
+  gewertet. Der nachfolgende DM-Vergleich ist in allen sieben Schutzbereichen
+  identisch.
+  Eigene Konfigurationsänderungen zurückgesetzt, Spiel beendet, Server blieb
+  an. Keine Error-Zeilen im exportierten Testlog. Details und Grenzen:
+  `GPU-AKIMBO-ALTERNATING-RESULTS-20261007.md`. Nicht gepusht.
 
 - **Brandgranaten-Balancing (2026-10-07):** Nutzer bestätigt Funktion und sofortiges
   Bot-Ausweichen. Grundschaden 80 → 100 HP/s (+25%, 25 pro Viertelsekundentakt).
@@ -17,7 +41,8 @@ current. User-facing communication is normally German.
   Höherer Schaden noch nicht nativ nachgetestet; keine Auslieferung aus dem alten
   September-Prototyp-Worktree, die neuere Modusänderungen zurücksetzen könnte.
   57 Assertions/acht Fehlerkontrollen, gestagter Client-/Companion-Build und
-  unabhängige Review grün. Noch nicht deployt; installierte DLLs unverändert.
+  unabhängige Review grün. Inzwischen im oben genannten Akimbo-Client lokal und
+  auf GPU-2 mitdeployt; weiterhin kein eigener Nachtest des höheren Schadens.
 
 - **Zombie-Modus-Prototyp (2026-10-06, Branch feature/zombie-prototype, Worktree ArenaMode-zombie):**
   21 Commits auf `29f670c`: neun Ursprungs-Commits (`7275289` Population/
