@@ -77,15 +77,22 @@ namespace ArenaMode.Bots;
 /// drains the release itself between sweeps, up to ZombieMaxReleasesPerFrame
 /// bodies a frame, rather than only at one (see DrainBetweenSweeps). A
 /// watchdog clear-out can hide fifty-odd bodies at once, and a hidden body is
-/// still a complete, active player object — GameWorld.PlayerTick/
-/// AfterPlayerTick walk AllAlivePlayersList calling Player.ComplexUpdate on
-/// every entry, and only Player.Dispose (through GameWorld.UnregisterPlayer)
-/// takes it off that list — until it is actually released, not merely hidden.
-/// Every other mode's cadence and release cap, and the ragdoll-settled gate
-/// that keeps a body visibly falling before any of this touches it, are
-/// completely unchanged; see ZombieCadenceSeconds's own doc for the full
-/// decompile evidence and ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07): faster
-/// corpse release in Zombie mode".
+/// still a complete, active player GameObject hierarchy sitting in the scene
+/// (ragdoll, disabled-but-still-registered renderers, GameWorld.LootList,
+/// every scene search anybody runs) even though it already left the engine's
+/// per-frame player tick at death, one frame before CorpseCleanupService ever
+/// sees it (Player.OnDead starts OnDeadCoroutine, which calls
+/// GameWorld.UnregisterPlayer and so removes it from AllAlivePlayersList —
+/// see ZombieCadenceSeconds's own doc; corrected 2026-10-07, an earlier
+/// version of this paragraph claimed the opposite). What releasing it sooner
+/// buys is the same bounded-scene-growth case this class's own opening
+/// paragraphs already measured, applied to a watchdog's 56-body backlog
+/// instead of to the raid as a whole. Every other mode's cadence and release
+/// cap, and the ragdoll-settled gate that keeps a body visibly falling before
+/// any of this touches it, are completely unchanged; see
+/// ZombieCadenceSeconds's own doc for the full decompile evidence and
+/// ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07): faster corpse release in Zombie
+/// mode".
 /// </summary>
 internal static class CorpseCleanupService
 {
@@ -99,24 +106,45 @@ internal static class CorpseCleanupService
     /// <summary>
     /// Zombie's own cadence: one second, not five.
     ///
-    /// Hiding a settled body beyond <c>MaxCorpses</c> does not stop the cost
-    /// that actually matters: <c>GameWorld.PlayerTick</c>/<c>AfterPlayerTick</c>
-    /// go through <c>SafePlayerOperation</c>, which iterates
-    /// <c>GameWorld.AllAlivePlayersList</c> (EFT/GameWorld.cs:1848-1861) and
-    /// calls <c>Player.ComplexUpdate</c> (EFT/Player.cs:29011/29023,
-    /// early-outing on <c>!IsAlive</c> but still a call per body per frame,
-    /// plus <c>AfterMainTick</c>) on every entry. A dead player is removed
-    /// from that list only by <c>GameWorld.UnregisterPlayer</c>
-    /// (EFT/GameWorld.cs:2060-2076), which <c>Player.Dispose</c> calls
-    /// (EFT/Player.cs:30247, 30933) — i.e. only on RELEASE, never on hiding.
-    /// The 2026-10-06 56-infected measurement found 116.6 <c>ComplexUpdate</c>
-    /// calls per frame against 56 live bodies, about 60 dead ones still being
-    /// ticked every frame while they waited out the ordinary 5 s cadence and
-    /// 8-per-sweep release cap (ZOMBIE-MODE-REVIEW.md, "Optimisation
-    /// candidates, ordered", item (a)). A faster cadence alone only shrinks
-    /// the WAIT between sweeps; see <see cref="ZombieMaxReleasesPerFrame"/>
-    /// and <see cref="DrainBetweenSweeps"/> for the other half, which drains
-    /// the release itself between sweeps instead of saving it for one.
+    /// CORRECTION (2026-10-07): an earlier version of this comment claimed a
+    /// hidden-but-unreleased body kept paying for <c>GameWorld.PlayerTick</c>/
+    /// <c>AfterPlayerTick</c> every frame through <c>Player.ComplexUpdate</c>,
+    /// and read the 2026-10-06 measurement's 116.6 <c>ComplexUpdate</c> calls
+    /// per frame (56 live infected) as "56 live plus ~60 dead ones still
+    /// ticking". Both are wrong. <c>Player.OnDead</c> starts
+    /// <c>OnDeadCoroutine</c> (EFT/Player.cs:30218), which — one frame after
+    /// death, regardless of hiding or trimming — calls
+    /// <c>GameWorld.UnregisterPlayer</c> (EFT/Player.cs:30245) and removes the
+    /// body from <c>GameWorld.AllAlivePlayersList</c>
+    /// (EFT/GameWorld.cs:2060-2076) before <c>SafePlayerOperation</c>
+    /// (EFT/GameWorld.cs:1848-1861) — which <c>PlayerTick</c>,
+    /// <c>AfterPlayerTick</c> and <c>DoOtherWorldTick</c>
+    /// (EFT/GameWorld.cs:1782-1795, 1811-1823) all go through — ever iterates
+    /// it again; <c>Player.Dispose</c>'s own call to <c>UnregisterPlayer</c>
+    /// (EFT/Player.cs:30933) is by then the game's own idempotent repeat (the
+    /// <c>RegisteredPlayers.Contains</c> guard at EFT/GameWorld.cs:2062). The
+    /// 116.6 figure was 56 LIVE bodies getting <c>ComplexUpdate</c> called
+    /// about TWICE each per frame — once via <c>PlayerTick</c>'s call for the
+    /// body's own queue, once via <c>DoOtherWorldTick</c>'s call for the
+    /// other queue (EFT/Player.cs:28999-29013) — never once per corpse.
+    ///
+    /// What a hidden-but-unreleased body DOES still cost, and what this
+    /// faster cadence is actually for, is bounded scene growth: it remains a
+    /// complete, active player GameObject hierarchy (ragdoll, renderers
+    /// forced off but still registered with the culling system, which keeps
+    /// turning them back on — see <c>ReassertTrimmed</c>) sitting in
+    /// <c>GameWorld.LootList</c> and <c>_allPlayersEverExisted</c>, and every
+    /// scene search anybody runs pays for it — exactly what this class's own
+    /// opening paragraphs measured on 2026-09-17 (415 active LocalPlayer
+    /// objects, <c>FindObjectsOfType&lt;LocalPlayer&gt;</c> 95 -&gt; 303 ms,
+    /// Arena's respawn pipeline 0.66 -&gt; 1.66 s). A watchdog clear-out can
+    /// hide fifty-odd bodies at once; a faster cadence alone only shrinks the
+    /// WAIT between sweeps, so that backlog spends less time sitting in the
+    /// scene — see <see cref="ZombieMaxReleasesPerFrame"/> and
+    /// <see cref="DrainBetweenSweeps"/> for the other half, which drains the
+    /// release itself between sweeps instead of saving it for one. See
+    /// ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07): faster corpse release in
+    /// Zombie mode" and its 2026-10-07 correction, for the full evidence.
     ///
     /// This does not touch why a body visibly FALLS before any of this: the
     /// ragdoll gate in <see cref="TrimCorpse"/> and <see cref="MayRelease"/>
@@ -1027,9 +1055,13 @@ internal static class CorpseCleanupService
     /// during which DrainBetweenSweeps calls ReleaseTrimmed up to ~59
     /// times/sec — without this check, every one of those calls paid the full
     /// gauntlet for every entry that was not yet due, on top of (not instead
-    /// of) the per-body ComplexUpdate cost this feature exists to shrink.
-    /// Zombie infected are never own corpses, so every one of them gets the
-    /// full benefit from the very first reading.
+    /// of) the scene-footprint cost a body already carries just by staying
+    /// hidden-but-unreleased (bounded growth — see this class's own opening
+    /// paragraphs; corrected 2026-10-07, see ZombieCadenceSeconds's own doc —
+    /// not a per-frame Player.ComplexUpdate cost, which a dead body stops
+    /// paying at death, well before release). Zombie infected are never own
+    /// corpses, so every one of them gets the full benefit from the very
+    /// first reading.
     /// </summary>
     private static bool QuietWindowKnownOpen(Corpse corpse, TrimState state, Player mainPlayer)
     {

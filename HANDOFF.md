@@ -268,12 +268,16 @@ current. User-facing communication is normally German.
   und Risiko: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Performance at 56 concurrent
   infected (measured 2026-10-06)". Oberster Kandidat ist der Leichenabbau im
   Zombie-Modus: Der Wachhund räumt bis zu 56 Körper auf einmal ab,
-  `CorpseCleanupService` gibt aber nur 8 je 5-s-Sweep frei, sodass ~35 s lang bis
-  zu 60 tote Körper durch `Player.ComplexUpdate` laufen (~0,65 ms/Frame plus
-  Ragdoll und Animator); ein höheres Freigabelimit oder eine frühere Freigabe nur
-  für Infizierte brächte grob 1-2 ms bei Abräumungen, aber die Freigabereihenfolge
-  ist tragend (`CORPSE-CLEANUP-REVIEW.md`), also braucht es ein eigenes Review und
-  einen Messraid. **v2** (Equipment-Wahl im linken Panel, Announcer-Mutator,
+  `CorpseCleanupService` gibt aber nur 8 je 5-s-Sweep frei, sodass bis zu 60 tote
+  Körper ~35 s lang als vollständige, aktive Spieler-Hierarchien in der Szene
+  bleiben (Ragdoll, deaktivierte aber weiter registrierte Renderer, `LootList`,
+  jede Szenensuche — korrigiert 2026-10-07: NICHT `Player.ComplexUpdate`, das
+  eine Leiche schon einen Frame nach dem Tod verlässt, siehe
+  `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v3 (2026-10-07)"); ein höheres
+  Freigabelimit oder eine frühere Freigabe nur für Infizierte verkürzt diese
+  Verweildauer, aber die Freigabereihenfolge ist tragend
+  (`CORPSE-CLEANUP-REVIEW.md`), also braucht es ein eigenes Review und einen
+  Messraid. **v2** (Equipment-Wahl im linken Panel, Announcer-Mutator,
   Commits `f79efc4`..`d302fd7`) ist gebaut und als Client-DLL mit SHA256
   `0B765EA6878B256CB32E580BF111488911118A246086503D9DC510AA50E4125B` lokal und
   per Syncthing auf Host 2 ausgeliefert (EFT neu gestartet, 24/24 identisch) und am
@@ -307,9 +311,11 @@ current. User-facing communication is normally German.
   `dotnet test ArenaMode.Tests` (No-Deploy-Sentinel) 870 bestanden/2
   übersprungen/0 fehlgeschlagen, `dotnet build ArenaMode.Client -c Release`
   (No-Deploy-Sentinel) 0 Fehler. Noch KEIN GPU-Raid; die Prüfliste
-  (`ComplexUpdate`-Rate, Abräumdauer nach Wachhund-Clear, keine neuen
-  `ArenaDamageExceptionLog`-Meldungen, sichtbares Fallen) steht in
-  `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v3 (2026-10-07)".
+  (Leichenzahl `N corpse(s) in the world` und `player bodies X created / Y
+  pooled` aus der Sweep-Zeile, `uibridge_bots aliveOnly=false`, Abräumdauer
+  nach Wachhund-Clear, keine neuen `ArenaDamageExceptionLog`-Meldungen,
+  sichtbares Fallen, Frame-Zeit — NICHT `ComplexUpdate`-Rate, siehe Korrektur
+  2026-10-07) steht in `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v3 (2026-10-07)".
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12

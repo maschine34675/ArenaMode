@@ -773,10 +773,17 @@ trimmed 446 bodies in 26 minutes, one every 3.5 seconds.
 mode where up to 56 bodies can be hidden by one watchdog clear-out
 (`ZombieSpawnService.RetireAllAliveInfected`) — draining that at the ordinary
 rate took about 35 seconds, during which every one of those bodies was still a
-complete, active player object that `GameWorld.PlayerTick`/`AfterPlayerTick`
-ticked every frame through `AllAlivePlayersList` (only `Player.Dispose`, i.e.
-an actual release, takes a body off that list — hiding does not). Zombie mode
-now sweeps every second instead of every five
+complete, active player GameObject hierarchy sitting in the scene, in
+`GameWorld.LootList` and in every scene search anybody runs — the same
+bounded-scene-growth cost "What holds a reference to a dead body" above
+already measured, not a per-frame player-tick cost: a dead player leaves
+`AllAlivePlayersList` one frame after death (`Player.OnDead` starts
+`OnDeadCoroutine`, which calls `GameWorld.UnregisterPlayer`), well before
+hiding or trimming ever runs, so `GameWorld.PlayerTick`/`AfterPlayerTick`
+never tick it again regardless of how long release waits (corrected
+2026-10-07; an earlier version of this paragraph claimed the opposite — see
+ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07)", for the full correction). Zombie
+mode now sweeps every second instead of every five
 (`CorpseCleanupService.ZombieCadenceSeconds`) and releases at most two bodies
 a frame instead of eight every five seconds
 (`ZombieMaxReleasesPerFrame`) — the same bounded-work argument above, applied

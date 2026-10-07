@@ -338,7 +338,7 @@ obtained"):
 
 | Mod / Gruppe | ms/Frame | Aufschlüsselung |
 |---|---|---|
-| EFT (vanilla, instrumentiert) | 4,60 | `GameWorld.DoWorldTick` 1,70; `Player.ComplexUpdate` 1,30 bei 116,6 Aufrufen/Frame (56 lebende + ~60 Leichen laufen noch durch `ComplexUpdate`); `BotOwner.UpdateManual` 0,88 (56 Aufrufe); `AICoreController.Update` 0,71 (56 Agenten) |
+| EFT (vanilla, instrumentiert) | 4,60 | `GameWorld.DoWorldTick` 1,70; `Player.ComplexUpdate` 1,30 bei 116,6 Aufrufen/Frame† (56 lebende); `BotOwner.UpdateManual` 0,88 (56 Aufrufe); `AICoreController.Update` 0,71 (56 Agenten) |
 | DrakiaXYZ-BigBrain | 0,85 | `BotAgentUpdatePatch` 0,70 (ersetzt die native Agentenschleife, 56×); `BotBaseBrainUpdatePatch` 0,15 |
 | SAIN | 0,67 | `WorldTickPatch` 0,35; `DirectionDataJob` 0,15; Rest Kleinkram je Bot (obwohl SAIN keinen Zombie steuert) |
 | maschine-ArenaMode | 0,48 | `ArenaController.Update` 0,225 (alle Arena-Dienste); `MeleeAttackNodePatch` ~0,12 (Reverse-Patch-Körper inklusive NavMesh-Pfad); `BurstSpawnService.SpawnPair` 3 ms je Spawn (nur beim Spawnen) |
@@ -346,6 +346,20 @@ obtained"):
 | DrakiaXYZ-Waypoints | 0,13 | `FindPath`-Prefix |
 | übrige Zeilen | je < 0,06 | |
 | **Summe instrumentiert** | **≈ 7,3** | von 17,2 ms |
+
+† Korrigiert 2026-10-07: Diese Zeile las die 116,6 Aufrufe/Frame gegen 56
+lebende Infizierte ursprünglich als "56 lebende + ~60 Leichen laufen noch
+durch `ComplexUpdate`". Das ist falsch. Eine Leiche verlässt
+`GameWorld.AllAlivePlayersList` einen Frame nach dem Tod
+(`Player.OnDead` -> `OnDeadCoroutine` -> `GameWorld.UnregisterPlayer`), lange
+bevor `CorpseCleanupService` sie überhaupt verbirgt oder trimmt, und wird
+danach nie wieder getickt — unabhängig davon, wie lange die Freigabe dauert.
+Die 116,6 Aufrufe sind 56 LEBENDE Körper, die je rund zweimal pro Frame
+`ComplexUpdate` bekommen (einmal über `PlayerTick` für die eigene Warteschlange,
+einmal über `DoOtherWorldTick` für die andere), nicht ein Aufruf je lebendem
+Körper plus einer je Leiche. Siehe `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v3
+(2026-10-07): faster corpse release in Zombie mode", "Why (decompile
+evidence)", für den vollständigen Dekompilat-Beleg der Korrektur.
 
 Die größten Einzelzeilen, nach Kosten sortiert (µs je Aufruf abgeleitet aus ms ÷
 Aufrufe je Frame, wo das Protokoll die Aufrufzahl nennt):
@@ -402,8 +416,17 @@ Spawnphase. Beide Werte wurden nicht auf dieselbe Messgröße zurückgeführt.
 ### Beobachtungen
 
 - Die Wachhund-Abräumung erzeugt 56 Leichen auf einmal; CorpseCleanup gibt nur 8 je
-  5 s frei, sodass ~35 s lang bis zu 60 tote Körper durch `Player.ComplexUpdate`
-  laufen (~0,65 ms/Frame) plus Ragdoll und Animator.
+  5 s frei, sodass die Leichen bis zu ~35 s im Hintergrund liegen bleiben. Korrigiert
+  2026-10-07: Sie laufen dabei NICHT durch `Player.ComplexUpdate` — `Player.OnDead`
+  startet `OnDeadCoroutine` (EFT/Player.cs:30218), die einen Frame nach dem Tod
+  `GameWorld.UnregisterPlayer` aufruft (EFT/Player.cs:30247) und die Leiche aus
+  `AllAlivePlayersList` entfernt, bevor `CorpseCleanupService` sie überhaupt sieht;
+  ihre Animatoren sind schon seit `Player.OnDead` aus. Was in den ~35 s tatsächlich
+  kostet, ist das, was `CORPSE-CLEANUP-REVIEW.md` ("Why hiding was not enough") und
+  der Klassenkommentar von `CorpseCleanupService.cs` am 17.09.2026 schon gemessen
+  haben: eine vollständige, aktive Spieler-GameObject-Hierarchie je Leiche (Ragdoll
+  bis zum Einschlafen, deaktivierte aber weiter registrierte Renderer) in der Szene,
+  in `GameWorld.LootList` und in jeder Szenensuche.
 - Mit 20 lebenden Zombies, geschlossenem Profiler und nach der Abräumung liegt die
   Frame-Zeit wieder bei 8,4 ms, exakt auf dem Wert des v1-Raids ohne Profiler.
 - Keine Error-Zeilen im Raid.
@@ -423,10 +446,12 @@ die jeden Bot anfassen, auch wenn sie keinen Zombie steuern. Der nicht instrumen
 Rest (~10 ms, nach dem Vorbehalt eher mehr) ist Rendering, Animation, Physik und Audio
 von 56 Körpern plus Leichen; er ist mit dem heutigen Werkzeug nicht aufzulösen, weil
 es keine CPU/GPU-Trennung gibt. Die einzige klar benennbare, vom Modus selbst
-verursachte Größe sind die toten Körper nach einer Wachhund-Abräumung (~35 s lang bis
-zu 60 Leichen in `Player.ComplexUpdate`). Kandidatenliste mit Nutzen und Risiko je
-Punkt: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Performance at 56 concurrent infected
-(measured 2026-10-06)".
+verursachte Größe sind die toten Körper nach einer Wachhund-Abräumung — bis zu 60
+Leichen, die als vollständige, aktive Spieler-Hierarchien ~35 s lang in der Szene
+bleiben, NICHT in `Player.ComplexUpdate` (korrigiert 2026-10-07, siehe Fußnote
+oben und ZOMBIE-MODE-REVIEW.md, Abschnitt "v3 (2026-10-07)"). Kandidatenliste mit
+Nutzen und Risiko je Punkt: `ZOMBIE-MODE-REVIEW.md`, Abschnitt "Performance at 56
+concurrent infected (measured 2026-10-06)".
 
 Grenzen der Messung: ein Raid und ein 30-s-Fenster; stehender Spieler mit Godmode,
 alle Zombies drängen am Spieler und laufen im Nahkampfpfad; 20 % Schützen

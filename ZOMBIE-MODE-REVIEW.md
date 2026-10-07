@@ -1603,7 +1603,7 @@ watchdog clear-outs, ms per frame:
 
 | Row | ms/frame | Share of 17.2 ms | Whose | Largest items |
 |---|---:|---:|---|---|
-| EFT (vanilla, instrumented) | 4.60 | 27 % | EFT | `DoWorldTick` 1.70; `Player.ComplexUpdate` 1.30 at 116.6 calls (56 alive + ~60 dead bodies); `BotOwner.UpdateManual` 0.88; `AICoreController.Update` 0.71 |
+| EFT (vanilla, instrumented) | 4.60 | 27 % | EFT | `DoWorldTick` 1.70; `Player.ComplexUpdate` 1.30 at 116.6 calls† (56 alive); `BotOwner.UpdateManual` 0.88; `AICoreController.Update` 0.71 |
 | DrakiaXYZ-BigBrain | 0.85 | 5 % | third party | `BotAgentUpdatePatch` 0.70 (56 agents); `BotBaseBrainUpdatePatch` 0.15 |
 | SAIN | 0.67 | 4 % | third party | `WorldTickPatch` 0.35; `DirectionDataJob` 0.15; small per-bot hooks, although SAIN controls no infected |
 | maschine-ArenaMode | 0.48 | 2.8 % | **ours** | `ArenaController.Update` 0.225 (all Arena services); `MeleeAttackNodePatch` ~0.12; `BurstSpawnService.SpawnPair` 3 ms per spawn, only while spawning |
@@ -1611,6 +1611,17 @@ watchdog clear-outs, ms per frame:
 | DrakiaXYZ-Waypoints | 0.13 | 0.8 % | third party | `FindPath` prefix |
 | **Instrumented total** | **~7.3** | **42 %** | | the listed rows add to 7.16; the remaining rows are each below 0.06 |
 | **Not instrumented** | **~10** | **58 %** | engine | rendering and animation of 56 bodies plus corpses, physics (CharacterController), audio, Unity internals |
+
+† Corrected 2026-10-07: an earlier version of this row read 116.6 calls/frame
+against 56 live infected as "56 alive + ~60 dead bodies still updated". A dead
+body leaves `GameWorld.AllAlivePlayersList` one frame after death
+(`Player.OnDead` → `OnDeadCoroutine` → `GameWorld.UnregisterPlayer`), well
+before any hiding or trimming runs, so it is never ticked again regardless of
+how long release waits. The 116.6 figure is 56 LIVE bodies getting
+`ComplexUpdate` called about twice each per frame (once via `PlayerTick`'s
+own-queue call, once via `DoOtherWorldTick`'s other-queue call), not a
+per-corpse cost. See "v3 (2026-10-07): faster corpse release in Zombie mode"
+below for the full decompile evidence and correction.
 
 How to read it. The profiler's counters only advance while its window is open, and
 the delta columns are the last 30 s, not a raid average (see
@@ -1648,11 +1659,20 @@ pool work before it did.
 **(a) Corpse handling in Zombie mode. The only item with a measured number and an
 Arena-owned lever. Implemented 2026-10-07, pending its own GPU measurement — see
 "v3 (2026-10-07): faster corpse release in Zombie mode" below.**
-- Evidence: `Player.ComplexUpdate` ran 116.6 times per frame for 56 live bodies, so
-  about 60 dead ones were still being updated. 1.30 ms / 116.6 = 11.1 µs per call; if
-  a dead body cost the same, the 60 corpses are ~0.65 ms per frame (an upper
-  estimate, a dead body is probably cheaper), plus their ragdoll and animator, which
-  nothing measures.
+- Evidence, corrected 2026-10-07: the original entry here read `Player.ComplexUpdate`
+  running 116.6 times per frame for 56 live bodies as "about 60 dead ones were still
+  being updated" and estimated ~0.65 ms/frame for them (1.30 ms / 116.6 = 11.1 µs per
+  call). That is wrong — a dead body leaves `GameWorld.AllAlivePlayersList` one frame
+  after death (`Player.OnDead` → `OnDeadCoroutine` → `GameWorld.UnregisterPlayer`),
+  well before hiding or trimming ever runs, so `ComplexUpdate` never runs on it again;
+  the 116.6 figure is 56 LIVE bodies called about twice each per frame (`PlayerTick`'s
+  own-queue call plus `DoOtherWorldTick`'s other-queue call). What a hidden-but-
+  unreleased body DOES still cost is the bounded-scene-growth case
+  CORPSE-CLEANUP-REVIEW.md's 2026-09-17 measuring raid already made: it stays a
+  complete, active player GameObject hierarchy (ragdoll, disabled-but-still-
+  registered renderers) in `GameWorld.LootList` and every scene search anybody runs,
+  not a per-frame `ComplexUpdate` call. See "v3 (2026-10-07)" below, "Why (decompile
+  evidence)", for the full correction.
 - Why they linger: the stuck-wave watchdog retires up to 56 bodies at once
   (`ZombieSpawnService.RetireAllAliveInfected` kills them through
   `ArenaAdministrativeDeathGate`). `CorpseCleanupService` hides everything beyond
@@ -1670,12 +1690,16 @@ Arena-owned lever. Implemented 2026-10-07, pending its own GPU measurement — s
   neither a wider per-sweep cap nor an immediate release: a faster 1 s cadence, a
   SMALLER two-per-frame cap than the ordinary eight, and draining that cap between
   sweeps as well as at one — see "v3 (2026-10-07)" below for why.
-- Payoff: roughly 1-2 ms during a clear-out, now for the few seconds v3's 1 s
-  cadence and two-per-frame drain take to empty the backlog (not the ~35 s the
-  ordinary 5 s/8-per-sweep budget would have taken — see "v3 (2026-10-07)"
-  above and the GPU checklist below), nothing at steady state. At steady state
-  kills arrive at the player's kill rate, well below the 1.6 bodies per second
-  the cap sustains, so the queue stays short;
+- Payoff, corrected 2026-10-07: not a per-frame ms figure — the "roughly 1-2 ms during
+  a clear-out" this bullet used to claim rested on the wrong Evidence above and is
+  withdrawn with it. The actual payoff is the same bounded-scene-growth benefit
+  CORPSE-CLEANUP-REVIEW.md's 2026-09-17 raid measured, now applied to a watchdog
+  clear-out's 56-body backlog: it drains in the few seconds v3's 1 s cadence and
+  two-per-frame drain take to empty it (not the ~35 s the ordinary 5 s/8-per-sweep
+  budget would have taken — see "v3 (2026-10-07)" above and the GPU checklist below),
+  nothing extra at steady state. At steady state kills arrive at the player's kill
+  rate, well below the 1.6 bodies per second the cap sustains, so the queue stays
+  short;
   the pile in this measurement exists because the tester did not shoot.
 - Risk: real. The cap exists because a release walks every bot group and tears
   down a player hierarchy, and a burst of 50 is the frame spike it was written
@@ -1819,29 +1843,63 @@ untouched.
 
 ### Why (decompile evidence)
 
-The 2026-10-06 56-infected measurement (see "Performance at 56 concurrent
-infected" above) found `Player.ComplexUpdate` running 116.6 times per frame
-against 56 LIVE bodies — meaning roughly 60 DEAD ones were still being
-called every frame. That is not a guess about what hiding does: it follows
-directly from how the world ticks players at all.
-`GameWorld.PlayerTick`/`AfterPlayerTick` go through `SafePlayerOperation`,
-which iterates `GameWorld.AllAlivePlayersList` (`EFT/GameWorld.cs:1848-1861`,
-verified against `../_decompiled`) and calls `Player.ComplexUpdate`
-(`EFT/Player.cs:29011/29023` — it early-outs on `!IsAlive`, but that is still
-a call per body per frame, plus `AfterMainTick`) on every entry. A dead
-player is removed from that list only by `GameWorld.UnregisterPlayer`
-(`EFT/GameWorld.cs:2060-2076`), which `Player.Dispose` calls
-(`EFT/Player.cs:30247, 30933`) — i.e. only on an actual RELEASE.
+**Correction, 2026-10-07.** This section originally argued that a hidden
+corpse keeps costing a `Player.ComplexUpdate` call every frame until it is
+released, and read the 2026-10-06 measurement's 116.6 `ComplexUpdate` calls
+per frame (56 live infected) as "56 LIVE + ~60 DEAD ones still being called
+every frame". That argument is wrong, and the decompile says so directly —
+kept below for the record, with the correction next to it, rather than
+deleted.
+
+A dead body leaves the per-frame player tick at DEATH, not at release.
+`Player.OnDead` starts `OnDeadCoroutine` (`EFT/Player.cs:30218`), which, one
+frame later, calls `GameWorld.UnregisterPlayer(this)`
+(`EFT/Player.cs:30247`) unconditionally — no check on whether
+`CorpseCleanupService` has hidden or trimmed the body yet, because nothing in
+this mod runs before the engine's own death handling does.
+`GameWorld.UnregisterPlayer` (`EFT/GameWorld.cs:2060-2076`) removes the
+`Player` from `RegisteredPlayers`, `allAlivePlayersByID`,
+`AllAlivePlayerBridges` and — the one that matters here —
+`AllAlivePlayersList`. `GameWorld.PlayerTick`/`AfterPlayerTick`/
+`DoOtherWorldTick` (`EFT/GameWorld.cs:1811-1823`, `1826-1832`, `1782-1795`)
+all go through `SafePlayerOperation` (`EFT/GameWorld.cs:1848-1861`), which
+iterates exactly `AllAlivePlayersList` — so from one frame after death
+onward, none of them ever calls `Player.ComplexUpdate`
+(`EFT/Player.cs:29011`, reached from `UpdateTick`/`FixedUpdateTick` at
+`EFT/Player.cs:28999-29013`) on that body again. `Player.Dispose`'s own call
+to `UnregisterPlayer` (`EFT/Player.cs:30933`) is therefore a no-op repeat by
+the time it runs — the `RegisteredPlayers.Contains` guard at
+`EFT/GameWorld.cs:2062` returns immediately — not the FIRST removal the
+original argument assumed it was.
 `CorpseCleanupService.TrimCorpse`'s hiding (renderers/colliders off, the
-Player component disabled, gear stripped) never calls `Player.Dispose` and so
-never touches `AllAlivePlayersList` at all; the body is hidden from the
-PLAYER's eyes, not from the ENGINE's per-frame tick. Only the release
-(`CorpseCleanupService.Release`, through `BotsController.DestroyInfo` then
-`Player.Dispose`) does that. At the ordinary 5 s/8-per-sweep budget, draining
-a watchdog clear-out of up to 56 bodies
-(`ZombieSpawnService.RetireAllAliveInfected`) took about 35 seconds, during
-every bit of which those bodies kept costing a `ComplexUpdate` call each,
-every frame.
+Player component disabled, gear stripped) runs well after `OnDeadCoroutine`
+already unregistered the body, so it was never in a position to keep it
+ticking in the first place: the body is hidden from the PLAYER's eyes, and
+the tick it is not part of any more had nothing to do with hiding at all.
+The 116.6 figure is therefore 56 LIVE bodies, each getting `ComplexUpdate`
+called about TWICE per frame — once from `PlayerTick`'s call for the body's
+own `UpdateQueue`, once from `DoOtherWorldTick`'s call for the other queue —
+not once per live body plus once per corpse.
+
+What a hidden-but-unreleased body DOES still cost, measured and documented
+well before this section existed, is exactly what
+CORPSE-CLEANUP-REVIEW.md's "Why hiding was not enough" and this class's own
+opening paragraphs (`CorpseCleanupService.cs`) already argue from the
+2026-09-17 raid: it remains a complete, active player GameObject hierarchy —
+ragdoll rigidbodies, colliders disabled, renderers forced off but still
+registered with the culling system, which keeps turning them back on (hence
+`ReassertTrimmed`) — sitting in `GameWorld.LootList` and
+`GameWorld._allPlayersEverExisted`, and every scene search anybody runs pays
+for it: 415 active LocalPlayer objects after 23 minutes,
+`FindObjectsOfType<LocalPlayer>` 95 -> 303 ms, Arena's respawn pipeline
+0.66 -> 1.66 s. At the ordinary 5 s/8-per-sweep budget, draining a watchdog
+clear-out of up to 56 bodies (`ZombieSpawnService.RetireAllAliveInfected`)
+took about 35 seconds, during which every one of those bodies sat in the
+scene as that kind of dead weight — bounded scene growth, not a per-frame
+tick — which is the honest reason to release a Zombie clear-out's bodies in
+seconds rather than ~35: it shrinks how long that backlog is in the scene at
+all, the same case the 2026-09-17 raid already made, now applied to a
+watchdog's burst instead of to the raid as a whole.
 
 ### What does not change
 
@@ -1946,11 +2004,19 @@ sentinel): 0 errors, 4 known CS8632 (pre-existing, unrelated —
 
 ### GPU checklist (not yet run — this review makes no claim about any of it)
 
-- `ComplexUpdate` calls per frame (ModProfiler) should approach `alive count
-  + MaxCorpses` rather than `alive count + (most of a watchdog clear-out)` —
-  i.e. the ~60 lingering dead bodies from the 2026-10-06 measurement should
-  shrink toward `MaxCorpses` (default 10) within a few seconds of a clear-out,
-  not ~35.
+- WITHDRAWN (2026-10-07): "`ComplexUpdate` calls per frame should approach
+  `alive count + MaxCorpses`". A dead body is not in that count at all — it
+  leaves the per-frame player tick at death (`Player.OnDead` ->
+  `OnDeadCoroutine` -> `GameWorld.UnregisterPlayer`), not at release, so
+  `ComplexUpdate` calls/frame track only LIVE infected and say nothing about
+  the corpse backlog either way. See "Why (decompile evidence)" above for the
+  correction. The signals that DO apply, all already in the sweep's own Info
+  line (`CorpseCleanupService`) or reachable live: `N corpse(s) in the world`
+  should shrink toward `MaxCorpses` (default 10) within a few seconds of a
+  clear-out, not ~35; `player bodies X created / Y pooled` for the same
+  trend; `uibridge_bots` with `aliveOnly=false` for a live body count; the
+  wall-clock drain duration after a clear-out; and frame time, none of which
+  a per-frame tick cost was ever the right lens for.
 - After a stuck-wave watchdog clear-out, the backlog of hidden bodies should
   visibly drain within a few seconds rather than ~35 (the per-sweep-cap-times-
   cadence math predicts seconds, not tens of seconds).
