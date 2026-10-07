@@ -289,11 +289,16 @@ All in the `"Zombie"` BepInEx config section
   `TacticalId` when `tacticalOnly` is set; a selected full PFT roster
   continues to force protected Tactical and excludes every other mode,
   Zombie included.
-- **No corpse-lifetime tuning beyond the one exemption change.** The only
-  corpse-cleanup change this branch makes is dropping the "near the player"
-  distance exemption to 0 for Zombie (see the fix list below); every other
-  rule (ragdoll-settled, open-loot-window, held-interactable, own-corpse
-  handling) is untouched.
+- **No corpse-lifetime tuning beyond the one exemption change — true for v0
+  only; superseded by v3 (2026-10-07).** v0's only corpse-cleanup change was
+  dropping the "near the player" distance exemption to 0 for Zombie (see the
+  fix list below). Since v3, Zombie also sweeps at its own faster cadence and
+  drains releases between sweeps — see "v3 (2026-10-07): faster corpse
+  release in Zombie mode" below for what that changes and, more to the point
+  of this bullet, what it still does not: every `MayRelease` hold (ragdoll-
+  settled, open-loot-window, held-interactable, own-corpse handling, damage
+  sources, pending aggressor, map marker) is exactly as untouched by v3 as it
+  was by v0.
 - **No `infectedTagilla` (the boss zombie).** `WildSpawnTypeExtension.
   IsInfected` is also true for this fifth, pure-boss role, but it needs
   `BotBossSpawn`'s `SetBoss` initialization the way `SpawnManagedBot`'s
@@ -1641,7 +1646,8 @@ change. None of them is implemented; each needs a measured raid, as the corpse a
 pool work before it did.
 
 **(a) Corpse handling in Zombie mode. The only item with a measured number and an
-Arena-owned lever.**
+Arena-owned lever. Implemented 2026-10-07, pending its own GPU measurement — see
+"v3 (2026-10-07): faster corpse release in Zombie mode" below.**
 - Evidence: `Player.ComplexUpdate` ran 116.6 times per frame for 56 live bodies, so
   about 60 dead ones were still being updated. 1.30 ms / 116.6 = 11.1 µs per call; if
   a dead body cost the same, the 60 corpses are ~0.65 ms per frame (an upper
@@ -1660,7 +1666,10 @@ Arena-owned lever.**
   they are hidden instead of queueing them. Zombie mode has no loot, so a body has
   nothing to preserve and nothing is lost by releasing it earlier. A watchdog
   retirement could in principle remove the body outright instead of killing it; that
-  is a different native path and is not evaluated here.
+  is a different native path and is not evaluated here. What actually shipped is
+  neither a wider per-sweep cap nor an immediate release: a faster 1 s cadence, a
+  SMALLER two-per-frame cap than the ordinary eight, and draining that cap between
+  sweeps as well as at one — see "v3 (2026-10-07)" below for why.
 - Payoff: roughly 1-2 ms during a clear-out for the ~35 s it now takes to drain,
   nothing at steady state. At steady state kills arrive at the player's kill rate,
   well below the 1.6 bodies per second the cap sustains, so the queue stays short;
@@ -1765,3 +1774,132 @@ old server drops spawns silently; and a check of the opening-wave profile preloa
 practice: extrapolating 0.25 ms per infected linearly, 80 would be about 23 ms
 (~43 fps) on this host, and that is before (a) and (c). Raise the ceiling only after
 those and a CPU/GPU capture.
+
+## v3 (2026-10-07): faster corpse release in Zombie mode
+
+Implements optimisation candidate (a) above. Zombie mode only
+(`CorpseCleanupService.IsZombieRaid()`, the same ordinal check
+`ActiveMinDistanceMeters` already used, now shared); every other mode is
+untouched.
+
+### What changed
+
+- **Cadence: 1 s instead of 5** (`ZombieCadenceSeconds`, read through a new
+  `ActiveCadenceSeconds()` ternary parallel to `ActiveMinDistanceMeters()`).
+  The sweep still does everything it always did — reassert, trim, release —
+  just five times as often in Zombie mode.
+- **Release cap: 2 per frame instead of 8 per sweep**
+  (`ZombieMaxReleasesPerFrame`), for the sweep's OWN release pass too, not
+  only the new drain below. `ReleaseTrimmed` takes this as a parameter
+  (`maxReleases`) now instead of reading `MaxReleasesPerSweep` directly;
+  every non-Zombie call site still passes `MaxReleasesPerSweep` (8)
+  unchanged.
+- **Between-sweep drain** (`CorpseCleanupService.DrainBetweenSweeps`,
+  called from `Tick`'s per-frame early return whenever `IsZombieRaid()` is
+  true). Releases up to `ZombieMaxReleasesPerFrame` already-trimmed bodies
+  on every frame that is not itself a sweep, through the exact same
+  `ReleaseTrimmed`/`MayRelease` call the sweep uses — no `ReassertTrimmed`,
+  no trim pass, and the sweep counter (`_sweep`) is never incremented by it.
+  That last point is what keeps the reassert invariant intact: `MayRelease`'s
+  `state.Sweep < _sweep` gate is exactly as strict for a drain frame as for
+  the sweep itself, so a body hidden in the CURRENT sweep still waits for the
+  NEXT sweep's reassert pass before the drain can touch it — proven across
+  20 drain frames within one cadence window in the regression suite.
+- **Reporting.** A drain frame never logs its own line (that would turn one
+  line per sweep into one per frame); what it releases is accumulated
+  (`_drainReleasedSinceReport`/`_drainOwnReleasedSinceReport`) and folded
+  into the NEXT working sweep's existing Info line, then zeroed.
+  `CorpseCleanupService.Reset()` clears both, so nothing carries over into a
+  fresh raid. A drain frame that throws is caught and reported once per raid
+  — the same policy every other fault in this file already uses — and
+  releases nothing for that frame rather than retrying.
+
+### Why (decompile evidence)
+
+The 2026-10-06 56-infected measurement (see "Performance at 56 concurrent
+infected" above) found `Player.ComplexUpdate` running 116.6 times per frame
+against 56 LIVE bodies — meaning roughly 60 DEAD ones were still being
+called every frame. That is not a guess about what hiding does: it follows
+directly from how the world ticks players at all.
+`GameWorld.PlayerTick`/`AfterPlayerTick` go through `SafePlayerOperation`,
+which iterates `GameWorld.AllAlivePlayersList` (`EFT/GameWorld.cs:1848-1861`,
+verified against `../_decompiled`) and calls `Player.ComplexUpdate`
+(`EFT/Player.cs:29011/29023` — it early-outs on `!IsAlive`, but that is still
+a call per body per frame, plus `AfterMainTick`) on every entry. A dead
+player is removed from that list only by `GameWorld.UnregisterPlayer`
+(`EFT/GameWorld.cs:2060-2076`), which `Player.Dispose` calls
+(`EFT/Player.cs:30247, 30933`) — i.e. only on an actual RELEASE.
+`CorpseCleanupService.TrimCorpse`'s hiding (renderers/colliders off, the
+Player component disabled, gear stripped) never calls `Player.Dispose` and so
+never touches `AllAlivePlayersList` at all; the body is hidden from the
+PLAYER's eyes, not from the ENGINE's per-frame tick. Only the release
+(`CorpseCleanupService.Release`, through `BotsController.DestroyInfo` then
+`Player.Dispose`) does that. At the ordinary 5 s/8-per-sweep budget, draining
+a watchdog clear-out of up to 56 bodies
+(`ZombieSpawnService.RetireAllAliveInfected`) took about 35 seconds, during
+every bit of which those bodies kept costing a `ComplexUpdate` call each,
+every frame.
+
+### What does not change
+
+Every `MayRelease` hold applies to a drain frame exactly as it does to a
+sweep's own release pass, because both call the identical
+`ReleaseTrimmed`/`MayRelease` code — the regression suite exercises the
+damage-source hold (reusing the static-tripwire case) and the
+newest-own-corpse hold through the drain path specifically, and both still
+hold exactly as before. The ragdoll-settled gate in `TrimCorpse` and
+`MayRelease` (`corpse.Ragdoll._isPhysicsDone`, which
+`CorpseRagdoll.WorkingCycle`/`Corpse.CheckCorpseIsStill` only set once every
+rigidbody is asleep or 15 s have passed) is completely untouched by either
+Zombie constant: a body still visibly FALLS before any of this touches it —
+a faster cadence only shortens how long an already-settled, already-hidden
+body waits before release, never how long one still falling is left alone.
+Every non-Zombie mode takes one added ordinal string comparison in `Tick`'s
+per-frame early return and otherwise behaves exactly as documented in
+"Bounded work per sweep" and "Behaviour that does not change" in
+CORPSE-CLEANUP-REVIEW.md: 5 s cadence, 8-per-sweep cap, no release between
+sweeps, the 15 m exemption for every mode except Zombie (which was already
+0, unchanged by this work).
+
+### Tests
+
+`tools/CorpseCleanupChecks/Verify-Regression.ps1`: 283 assertions (up from
+180), 29 source mutants (up from 19), all through the production `Tick()`.
+New: Zombie cadence vs the ordinary 5 s one; the sweep frame and successive
+0.01 s-apart drain frames each releasing exactly `ZombieMaxReleasesPerFrame`
+from a six-body backlog; confirmation that nothing drains between sweeps
+outside Zombie even with a ten-body, sweep-cap-exceeding backlog (what an
+unconditional drain would leak out); the reassert/sweep-count invariant
+across 20 drain frames within one cadence window; the damage-source and
+newest-own-corpse holds applying to drain frames; all four of the drain's
+fail-closed guards (`MaxCorpses = 0`, `ReleaseTrimmedCorpses = false`, no
+`GameWorld`, no `MainPlayer`) releasing nothing and logging nothing, then
+resuming once lifted; and the reporting fold plus `Reset()`'s clearing of the
+carried-over accumulator. New mutants: `zombie-cadence-ignored`,
+`zombie-drain-cap-too-wide`, `zombie-drain-disabled`,
+`zombie-drain-runs-outside-zombie`.
+`tools/DynamicMapCorpseChecks/Verify.ps1`: 61 assertions, 8 compiled
+controls, then the same 283/29 regression suite. `dotnet test
+ArenaMode.Tests` (no-deploy sentinel): 870 passed, 2 skipped (pre-existing,
+unrelated), 0 failed. `dotnet build ArenaMode.Client -c Release` (no-deploy
+sentinel): 0 errors, 0 warnings.
+
+### GPU checklist (not yet run — this review makes no claim about any of it)
+
+- `ComplexUpdate` calls per frame (ModProfiler) should approach `alive count
+  + MaxCorpses` rather than `alive count + (most of a watchdog clear-out)` —
+  i.e. the ~60 lingering dead bodies from the 2026-10-06 measurement should
+  shrink toward `MaxCorpses` (default 10) within a few seconds of a clear-out,
+  not ~35.
+- After a stuck-wave watchdog clear-out, the backlog of hidden bodies should
+  visibly drain within a few seconds rather than ~35 (the per-sweep-cap-times-
+  cadence math predicts seconds, not tens of seconds).
+- No new `ArenaDamageExceptionLog` reports and no new NullReferenceExceptions
+  — the damage-source guard (`CorpseDamageSources`) is reached via the drain
+  exactly as via a sweep, and should behave identically.
+- Bodies still visibly fall before vanishing — the ragdoll-settled gate is
+  unchanged; this is the user's own explicit constraint
+  ("...dann würden die ja nicht mehr zu Boden fallen").
+- No warning spam in the BepInEx log from `DrainBetweenSweeps` — it should
+  log nothing at all in a healthy raid, and at most one warning for the whole
+  raid if something is actually wrong.

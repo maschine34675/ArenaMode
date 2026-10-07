@@ -455,6 +455,13 @@ Open:
   The own-corpse-release path itself has NOT had its own GPU raid — see
   CORPSE-CLEANUP-REVIEW.md's "What this does not claim". Do not read the GPU
   acceptance below as covering it; it predates it.
+  Zombie mode additionally sweeps at a 1 s cadence (`ZombieCadenceSeconds`)
+  instead of 5 s and drains releases between sweeps at up to two per frame
+  (`ZombieMaxReleasesPerFrame`/`DrainBetweenSweeps`) rather than waiting for
+  the next sweep's eight-per-sweep cap (2026-10-07; see
+  ZOMBIE-MODE-REVIEW.md, "v3"); every other mode's cadence, release cap and
+  `MayRelease` holds, and the ragdoll-settled gate that keeps a body visibly
+  falling, are unchanged by this.
   The `Player.ApplyDamageInfo` / `ClientGameWorld.ShotDelegate`
   exceptions the ORIGINAL (2026-09-17) trimmed-corpse release introduced are
   explained and, on `d265353` (06:27, still before the own-corpse-release

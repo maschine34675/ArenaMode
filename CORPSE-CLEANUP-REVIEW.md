@@ -769,6 +769,29 @@ without a cap the slow accumulation would be replaced by a frame spike. Eight
 per five seconds is well clear of the production rate: the measuring raid
 trimmed 446 bodies in 26 minutes, one every 3.5 seconds.
 
+**Zombie mode (2026-10-07).** Eight per five seconds was never tuned against a
+mode where up to 56 bodies can be hidden by one watchdog clear-out
+(`ZombieSpawnService.RetireAllAliveInfected`) — draining that at the ordinary
+rate took about 35 seconds, during which every one of those bodies was still a
+complete, active player object that `GameWorld.PlayerTick`/`AfterPlayerTick`
+ticked every frame through `AllAlivePlayersList` (only `Player.Dispose`, i.e.
+an actual release, takes a body off that list — hiding does not). Zombie mode
+now sweeps every second instead of every five
+(`CorpseCleanupService.ZombieCadenceSeconds`) and releases at most two bodies
+a frame instead of eight every five seconds
+(`ZombieMaxReleasesPerFrame`) — the same bounded-work argument above, applied
+more often in smaller bites rather than widened into a bigger one — AND drains
+that two-per-frame release between sweeps as well
+(`CorpseCleanupService.DrainBetweenSweeps`, called from `Tick`'s per-frame
+early return whenever the active mode is Zombie), so a backlog does not have
+to wait for the next sweep at all. The reassert/sweep-count invariant below is
+unaffected: `DrainBetweenSweeps` never runs `ReassertTrimmed`, never trims, and
+never increments the sweep counter, so a body hidden in the CURRENT sweep is
+exactly as unreleasable through the drain as through the sweep's own release
+pass. See ZOMBIE-MODE-REVIEW.md, "v3 (2026-10-07): faster corpse release in
+Zombie mode", for the full decompile evidence and the measured-raid context
+this responds to.
+
 ## Behaviour that does not change
 
 Normal raids are untouched: `Tick` still returns on `ArenaSession.IsActive`
@@ -781,12 +804,29 @@ the same flag the map-marker suppression requires. A release that throws is
 counted, reported once per raid and never retried; the trim record is
 deliberately kept so the reassert pass still stops the body reappearing.
 
+**Zombie mode (2026-10-07).** Every mode except Zombie keeps exactly this
+behaviour, unchanged: the sweep cadence stays five seconds, the release cap
+stays eight per sweep, and nothing ever drains between sweeps — `Tick`'s
+per-frame early return gains one ordinal string comparison
+(`ArenaSession.ActiveMode` against `ArenaModeCatalog.ZombieId`) and takes the
+exact same path as before whenever that comparison is false. Within Zombie
+mode, every existing `MayRelease` hold (damage sources, own-corpse, loot
+window, pending aggressor, map marker, the ragdoll-settled gate) applies to a
+between-sweep drain frame exactly as it does to the sweep's own release pass,
+because both call the same `ReleaseTrimmed`/`MayRelease` path — the drain adds
+no new way for a body to become releasable, only a way to catch up on a
+backlog of bodies that already are. The ragdoll-settled gate in particular is
+completely untouched either way: a body still visibly falls before any of
+this touches it.
+
 ## Verification and limits
 
 `pwsh -NoProfile -File tools/DynamicMapCorpseChecks/Verify.ps1` runs everything:
 the installed-contract check, 61 marker assertions with eight compiled controls,
-then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 180 assertions and
-nineteen source mutants. `CorpseDamageSources.cs` is linked as production
+then `tools/CorpseCleanupChecks/Verify-Regression.ps1` with 283 assertions and
+29 source mutants (as of 2026-10-07; includes the Zombie cadence/drain and its
+own four mutants, see "Bounded work per sweep" above and
+ZOMBIE-MODE-REVIEW.md). `CorpseDamageSources.cs` is linked as production
 source too, against fakes of the three registries it reads, so its own rules are
 mutated rather than only its call site. The release is covered by its own block
 plus these controls, each rejected at its named assertion:

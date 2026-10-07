@@ -289,6 +289,27 @@ current. User-facing communication is normally German.
   Nachtrag offen: die Fußzeile des Mutator-Panels nennt noch „Killcam/tracers:
   per mode", der Announcer fehlt dort. Der Satz weiter oben, v2 sei noch nicht im
   Spiel getestet, ist damit überholt.
+  **v3** (07.10.2026, schnellere Leichenfreigabe im Zombie-Modus, setzt den
+  oben genannten Top-Kandidaten um): `dde0370` reparierte zuerst den offline
+  Harness (fehlende Stubs für `ArenaModeCatalog.ZombieId`/`ArenaSession.
+  ActiveMode` nach `d00cd17`, plus einen unabhängig kaputten
+  Shot-in-Flight-Mutanten seit `79eb2ab`); `6bebae4` liefert die eigentliche
+  Änderung: Zombie sweept jetzt alle 1 s statt 5 s (`ZombieCadenceSeconds`)
+  und gibt zusätzlich zwischen den Sweeps frei (`DrainBetweenSweeps`), je
+  höchstens zwei Körper pro Frame (`ZombieMaxReleasesPerFrame`) statt acht
+  pro Sweep — über denselben `ReleaseTrimmed`/`MayRelease`-Pfad wie der
+  Sweep selbst, ohne eigenen Reassert- oder Trim-Durchlauf und ohne den
+  Sweep-Zähler zu erhöhen. Jeder andere Modus bleibt exakt beim bisherigen
+  5-s/8er-Verhalten; der Ragdoll-Gate (Körper fällt sichtbar zu Boden) ist
+  unverändert. Offline grün in diesem Worktree:
+  `Verify-Regression.ps1` 283 Assertions/29 Mutanten,
+  `DynamicMapCorpseChecks/Verify.ps1` dieselbe Suite plus 61/8,
+  `dotnet test ArenaMode.Tests` (No-Deploy-Sentinel) 870 bestanden/2
+  übersprungen/0 fehlgeschlagen, `dotnet build ArenaMode.Client -c Release`
+  (No-Deploy-Sentinel) 0 Fehler. Noch KEIN GPU-Raid; die Prüfliste
+  (`ComplexUpdate`-Rate, Abräumdauer nach Wachhund-Clear, keine neuen
+  `ArenaDamageExceptionLog`-Meldungen, sichtbares Fallen) steht in
+  `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v3 (2026-10-07)".
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12
