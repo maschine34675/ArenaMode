@@ -396,6 +396,18 @@ internal static class CorpseCleanupService
     /// world.LootList (that only happens on death, outside this service), so
     /// the answer cannot change between the first and a later call within the
     /// same sweep, and most sweeps never ask at all.
+    ///
+    /// That invariant assumed every call happened inside one synchronous
+    /// Tick() call, which was true before <see cref="DrainBetweenSweeps"/>
+    /// existed — a drain frame calls this (through ReleaseTrimmed/MayRelease)
+    /// while deliberately leaving <c>_sweep</c> unchanged for up to
+    /// <see cref="ZombieCadenceSeconds"/>, across many real frames, so an own
+    /// death that lands between two drain frames of the SAME <c>_sweep</c>
+    /// value would otherwise read a stale answer. <see cref="DrainBetweenSweeps"/>
+    /// forces a fresh read on every call it makes (see its own doc) precisely
+    /// so this cache's "per sweep" key still means "per sweep OR per drain
+    /// frame", never "per several seconds of drain frames sharing one sweep
+    /// number".
     /// </summary>
     private static int _newestOwnCorpseSweep = -1;
     private static Corpse _newestOwnCorpseCache;
@@ -626,8 +638,14 @@ internal static class CorpseCleanupService
     /// waits for the NEXT sweep's reassert pass before anything reachable
     /// from here can touch it; every other MayRelease hold (damage sources,
     /// own-corpse, loot window, aggressor, map marker, ragdoll) applies
-    /// unchanged, because this calls the exact same ReleaseTrimmed/MayRelease
-    /// path the sweep does.
+    /// exactly as it does to the sweep's own release pass, because this
+    /// calls the exact same ReleaseTrimmed/MayRelease path the sweep does —
+    /// with one deliberate exception: it forces <see cref="IsNewestOwnCorpse"/>'s
+    /// per-sweep cache to recompute on every call (see the field reset right
+    /// before ReleaseTrimmed below, and <see cref="_newestOwnCorpseSweep"/>'s
+    /// own doc), because this method spans many real frames under one
+    /// unchanged <see cref="_sweep"/> value and a fresh own death during that
+    /// window must be seen without waiting for the next real sweep.
     ///
     /// Guarded on the same conditions the sweep checks before it would call
     /// ReleaseTrimmed at all — MaxCorpses &gt; 0, a GameWorld, a main player,
@@ -652,6 +670,20 @@ internal static class CorpseCleanupService
             var mainPlayer = world.MainPlayer;
             if (mainPlayer == null)
                 return;
+
+            // Force IsNewestOwnCorpse to re-derive its answer for this frame
+            // rather than reuse a cache keyed on _sweep, which this method
+            // deliberately never advances (see this method's own doc and
+            // _newestOwnCorpseSweep's). Without this, a fresh own death
+            // landing between two drain frames of the same sweep would keep
+            // reading the pre-death answer until the next real sweep —
+            // bounded and fail-closed (the old "newest" body is over-
+            // protected, never released early), but still a stale read this
+            // one invalidation avoids outright. Every MayRelease call this
+            // drain frame makes afterwards still shares one answer, exactly
+            // as the cache's own doc intends, because nothing within this
+            // single ReleaseTrimmed call appends to world.LootList.
+            _newestOwnCorpseSweep = -1;
 
             var (released, ownReleased) = ReleaseTrimmed(world, mainPlayer, ZombieMaxReleasesPerFrame);
             _drainReleasedSinceReport += released;
