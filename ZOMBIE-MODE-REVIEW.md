@@ -1670,9 +1670,12 @@ Arena-owned lever. Implemented 2026-10-07, pending its own GPU measurement — s
   neither a wider per-sweep cap nor an immediate release: a faster 1 s cadence, a
   SMALLER two-per-frame cap than the ordinary eight, and draining that cap between
   sweeps as well as at one — see "v3 (2026-10-07)" below for why.
-- Payoff: roughly 1-2 ms during a clear-out for the ~35 s it now takes to drain,
-  nothing at steady state. At steady state kills arrive at the player's kill rate,
-  well below the 1.6 bodies per second the cap sustains, so the queue stays short;
+- Payoff: roughly 1-2 ms during a clear-out, now for the few seconds v3's 1 s
+  cadence and two-per-frame drain take to empty the backlog (not the ~35 s the
+  ordinary 5 s/8-per-sweep budget would have taken — see "v3 (2026-10-07)"
+  above and the GPU checklist below), nothing at steady state. At steady state
+  kills arrive at the player's kill rate, well below the 1.6 bodies per second
+  the cap sustains, so the queue stays short;
   the pile in this measurement exists because the tester did not shoot.
 - Risk: real. The cap exists because a release walks every bot group and tears
   down a player hierarchy, and a burst of 50 is the frame spike it was written
@@ -1863,8 +1866,8 @@ sweeps, the 15 m exemption for every mode except Zombie (which was already
 
 ### Tests
 
-`tools/CorpseCleanupChecks/Verify-Regression.ps1`: 283 assertions (up from
-180), 34 source mutants (up from 19), all through the production `Tick()`.
+`tools/CorpseCleanupChecks/Verify-Regression.ps1`: 309 assertions (up from
+180), 35 source mutants (up from 19), all through the production `Tick()`.
 New: Zombie cadence vs the ordinary 5 s one; the sweep frame and successive
 0.01 s-apart drain frames each releasing exactly `ZombieMaxReleasesPerFrame`
 from a six-body backlog; confirmation that nothing drains between sweeps
@@ -1912,8 +1915,30 @@ this suite can ever observe the difference either way): no dedicated
 mutant, by the identical reasoning, and for the identical reason 8556419
 itself needed none. See `Verify-Regression.ps1`'s own comment for the full
 argument.
+A third review pass (2026-10-07, F1-PERF) found that `ReleaseTrimmed`'s own
+loop paid the full `MayRelease` gauntlet — including
+`CorpseAggressors.IsPendingAggressor` (an `O(AllAlivePlayersList.Count)`
+scan) and `DamageSourcesQuiet`'s `Describe`/`StillNamedInRegistry` reads —
+for every Trimmed entry that had passed its sweep gate but was still inside
+the 2 s `DamageSourceQuietSeconds` window, on every one of the drain's up to
+~59 calls a second: exactly the ~46-56-body watchdog clear-out this whole
+change targets. `QuietWindowKnownOpen` (`CorpseCleanupService.cs`) is a
+cheap pre-check, sound by `DamageSourcesQuiet`'s own documented invariant,
+that skips the gauntlet entirely once the quiet timer it would consult is
+already known and has not elapsed — never for an own corpse while
+`TrimState.LeftRegistry` is still undecided, so the first real reading that
+decides it is never skipped. New test (h) in Program.cs's Zombie section
+counts `CorpseAggressors.CallCount` (new, Stubs.cs) across a six-body
+backlog to prove the skip actually happens while the window is open and
+that the check still runs once bodies are actually due; new mutant
+`zombie-drain-skips-no-pre-check`. The pre-existing `released-in-the-hiding-sweep`
+mutant is now caught at the same assertion `releases-inside-the-hit-delay`
+already was, rather than at its original earliest one — see
+`Verify-Regression.ps1`'s own comment on that mutant for why the pre-check
+makes its sweep-gate half permanently unobservable on its own (it always
+needed the paired `DamageSourcesQuiet` mutation to be observable at all).
 `tools/DynamicMapCorpseChecks/Verify.ps1`: 61 assertions, 8 compiled
-controls, then the same 283/34 regression suite. `dotnet test
+controls, then the same 309/35 regression suite. `dotnet test
 ArenaMode.Tests` (no-deploy sentinel): 870 passed, 2 skipped (pre-existing,
 unrelated), 0 failed. `dotnet build ArenaMode.Client -c Release` (no-deploy
 sentinel): 0 errors, 4 known CS8632 (pre-existing, unrelated —
