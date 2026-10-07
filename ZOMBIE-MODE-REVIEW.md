@@ -2002,7 +2002,7 @@ unrelated), 0 failed. `dotnet build ArenaMode.Client -c Release` (no-deploy
 sentinel): 0 errors, 4 known CS8632 (pre-existing, unrelated —
 `ArenaMode.Shared/ClientSettingsModels.cs`, untouched by this branch).
 
-### GPU checklist (not yet run — this review makes no claim about any of it)
+### GPU checklist (run 2026-10-07 — results in "GPU result" below)
 
 - WITHDRAWN (2026-10-07): "`ComplexUpdate` calls per frame should approach
   `alive count + MaxCorpses`". A dead body is not in that count at all — it
@@ -2029,3 +2029,74 @@ sentinel): 0 errors, 4 known CS8632 (pre-existing, unrelated —
 - No warning spam in the BepInEx log from `DrainBetweenSweeps` — it should
   log nothing at all in a healthy raid, and at most one warning for the whole
   raid if something is actually wrong.
+
+### GPU result (2026-10-07, SPT-GPU-2, build `43cc7c3`)
+
+Two Factory raids on SPT-GPU-2 (Ryzen 7 9800X3D / RTX 4070 Ti), client SHA256
+`736A11CE89618A6A9EFE2435D43DBD48A5ED8FFA6ECEF3A02D024F448DC47E72`, server
+unchanged (`0A826E8B…` from `1e76582`), `uibridge_status` 24/24 identical (VM
+build = host disk = loaded). Host settings were the user's own F12 values
+(mirrored by Syncthing): MaxAlive 56, WaveStartSize 56, +10 per wave, 0.2 s
+spawn interval, OwnGear on (the test profile's own gear is a bayonet),
+StuckWaveTimeoutSeconds 100, MaxCorpses 10, ReleaseTrimmedCorpses on. Godmode
+through `uibridge_hook`; the player never fired. ModProfiler 1.4.0 headless
+capture (`Capture/Headless`, exports every 30 s, session `20261007-201948`).
+
+- **Drain after a watchdog clear-out — the case this change exists for.**
+  Raid 1 (ShooterPercent 20): watchdog at 20:28:35.16 retired 36 infected,
+  46 corpses in the world. Sweep lines: 20:28:36.28 `trimmed 10`, 37.28
+  `trimmed 25`, 38.28 `trimmed 1, released 2`, 39.28 `released 10`, 40.28
+  `released 24` → 46/46 released, `10 corpse(s) in the world`, `player bodies
+  2 created / 0 pooled`: **5.1 s**. Raid 2 (ShooterPercent 0): watchdog at
+  20:33:35.83 retired 56, 57 corpses (one own body from a death before godmode
+  was switched on). 20:33:37.49 `trimmed 47` (every ragdoll had settled within
+  1.65 s), 38.48 nothing due (no line), 39.48 `released 2`, 40.47 `released
+  45` → 47/47 released, `10 corpse(s) in the world`, `player bodies 3 created
+  / 0 pooled`: **4.6 s**. Before, on build `acd57ff` (host log
+  `LogOutput-SPT-GPU-2-2026-10-06_20-05-51.log`): watchdog 20:09:28.4 with 56
+  → `trimmed 46` at 20:09:31.9, then `released 8` every five seconds and
+  `released 6` at 20:10:01.9 → 46/46 after **33.5 s**. What limited today's
+  drain was the 2 s damage-source quiet window per body, not the two-per-frame
+  cap: up to 24 releases landed inside one second.
+- **Steady state** (raid 1, where shooter infected killed other infected by
+  friendly fire at roughly one death per 5–40 s): sweep lines every second
+  (20:24:00.9, :02.9, :10.9, :13.0, :17.0, :19.0, :21.0); a body trimmed in
+  one sweep was released exactly two seconds later (`trimmed 1 … released 0`
+  at 20:24:00.916, `released 1` at 20:24:02.929) and the count returned to
+  `10 corpse(s) in the world` after every release.
+- `uibridge_bots aliveOnly=false` right after the raid-2 clear-out listed only
+  the next wave's spawns (27 registered): released bodies are gone from the
+  bot registry as well.
+- **Frame time.** 56 live infected at the player: 53.7 fps, 18.6 ms mean, p95
+  21.9 ms (`uibridge_status`; profiler window 20:33:04–20:33:34: 1592 frames
+  in 30 s = 53 fps). After the clear-out, with wave 2 spawning (27
+  registered): 113.6 fps, 8.8 ms mean, p95 10.6 ms (window 20:33:34–20:34:04:
+  2863 frames = 95 fps).
+- `ComplexUpdate`, for the record behind the withdrawn bullet above:
+  112.5–123.4 calls per frame with 56 live infected and 0–2 corpses,
+  `BotOwner.UpdateManual` 56.0 — about two calls per LIVE body, exactly the
+  corrected reading.
+- **No `Error`-level line** in the whole game session; no `Arena corpse
+  cleanup drain failed` warning; no new kind of `ArenaDamageExceptionLog`
+  report. `ACTIVE_HALLOWEEN_ZOMBIES_EVENT` read back `false` after both raids
+  (`uibridge_inspect`).
+- **Bodies still fall.** Nothing is trimmed before `_isPhysicsDone`; in raid 2
+  the first sweep that found settled bodies ran 1.65 s after the kill, and
+  the ten newest bodies stay visible regardless (MaxCorpses). A body beyond
+  that budget now disappears about 2–3 s after death (settle plus at most one
+  second of cadence) where it used to take 3–8 s; if a longer lying time is
+  ever wanted, a minimum settled age in `TrimCorpse` is the one place to add
+  it.
+- **Pre-existing, NOT introduced by v3** — both already present in the
+  2026-10-06 host log: `Arena damage exception #n: site=Player.ApplyDamageInfo
+  NullReferenceException … victim=SPT-GPU-2 human alive=False … release=no`
+  (2026-10-06: 5; 2026-10-07 raid 2: 6), an NRE inside
+  `EFT.BotMemory.GoalTargetBeingHitAction` when an infected melee hit lands on
+  the dying or dead player — unrelated to released bodies (reports #1 and #2
+  carry `release=no`); and `Arena burst spawn: no profiles for infectedAssault
+  — request dropped` (2026-10-06: 14; 2026-10-07 wave 2: 6), the
+  `infectedAssault` profile pool running dry in wave 2 (66). Both stay open.
+- Tooling notes: `uibridge_hook godmode` applies to the current player body
+  only (raid 2 counted five deaths after respawns, the first one before it was
+  switched on); `Capture/Headless` set through `uibridge_config_set` starts
+  within seconds, but the stop is applied at the next 30 s export tick.

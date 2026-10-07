@@ -772,7 +772,7 @@ trimmed 446 bodies in 26 minutes, one every 3.5 seconds.
 **Zombie mode (2026-10-07).** Eight per five seconds was never tuned against a
 mode where up to 56 bodies can be hidden by one watchdog clear-out
 (`ZombieSpawnService.RetireAllAliveInfected`) — draining that at the ordinary
-rate took about 35 seconds, during which every one of those bodies was still a
+rate took 33.5 s (host log, 2026-10-06, 46 bodies), during which every one of those bodies was still a
 complete, active player GameObject hierarchy sitting in the scene, in
 `GameWorld.LootList` and in every scene search anybody runs — the same
 bounded-scene-growth cost "What holds a reference to a dead body" above
@@ -791,7 +791,12 @@ more often in smaller bites rather than widened into a bigger one — AND drains
 that two-per-frame release between sweeps as well
 (`CorpseCleanupService.DrainBetweenSweeps`, called from `Tick`'s per-frame
 early return whenever the active mode is Zombie), so a backlog does not have
-to wait for the next sweep at all. The reassert/sweep-count invariant below is
+to wait for the next sweep at all. Measured on SPT-GPU-2 on 2026-10-07 (build
+`43cc7c3`): a 36-body watchdog clear-out was fully released 5.1 s after the
+watchdog and a 47-body one after 4.6 s, with the 2 s damage-source quiet window
+— not the two-per-frame cap — as the limiting factor (up to 24 releases inside
+one second); see GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md, "v3-Messraids". The
+reassert/sweep-count invariant below is
 unaffected: `DrainBetweenSweeps` never runs `ReassertTrimmed`, never trims, and
 never increments the sweep counter, so a body hidden in the CURRENT sweep is
 exactly as unreleasable through the drain as through the sweep's own release

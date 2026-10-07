@@ -458,3 +458,75 @@ alle Zombies drängen am Spieler und laufen im Nahkampfpfad; 20 % Schützen
 (`ShooterPercent` 20) und Nutzer-Gear sind Teil der Messung; das Profiler-Overlay war
 nur bei Stichprobe 4 offen; die Leichenzahl wurde nur als "~80" im Delta-Fenster
 geschätzt, nicht über die Zeit gemessen.
+
+## v3-Messraids: schnellere Leichenfreigabe (07.10.2026 20:21–20:36, SPT-GPU-2)
+
+Build `43cc7c3` (Client SHA256 `736A11CE89618A6A9EFE2435D43DBD48A5ED8FFA6ECEF3A02D024F448DC47E72`,
+Server unverändert `0A826E8B…` aus `1e76582`), `uibridge_status` 24/24 identisch (VM-Build =
+Host-Platte = geladen). Host-Settings (per Syncthing die F12-Werte des Nutzers): MaxAlive 56,
+WaveStartSize 56, +10/Welle, Spawn 0,2 s, OwnGear an (Testprofil trägt nur ein Bajonett),
+StuckWaveTimeout 100 s, MaxCorpses 10, ReleaseTrimmedCorpses an. Factory, Godmode über
+`uibridge_hook`, Spieler schießt nicht. ModProfiler 1.4.0 kopflos (`Capture/Headless` per
+`uibridge_config_set`, Export alle 30 s, Sitzung `20261007-201948`).
+
+### Raid 1 (ShooterPercent 20, Start 20:21:20)
+
+- Die Schützen-Zombies (PM-Pistole) töten per Querschläger andere Zombies: 55 → 36 lebende in
+  sechs Minuten, Todesursache laut `uibridge_status` „PM (t), Head". Jeder Tod zeigt den
+  Normalfall: Trim im nächsten 1-s-Sweep nach dem Ragdoll-Ende, Freigabe genau 2 s später
+  (z. B. `trimmed 1 … released 0` um 20:24:00.916, `released 1` um 20:24:02.929), danach
+  wieder „10 corpse(s) in the world". Sweep-Zeilen im 1-s-Takt (20:24:00.9, :02.9, :10.9,
+  :13.0, :17.0, :19.0, :21.0).
+- Wachhund 20:28:35.16 (100 s ohne Tod bei Sättigung): 36 Infizierte administrativ getötet,
+  46 Leichen in der Welt. Abräumkurve: 20:28:36.28 `trimmed 10` · 37.28 `trimmed 25` ·
+  38.28 `trimmed 1, released 2` · 39.28 `released 10` · 40.28 `released 24` → 46/46
+  freigegeben, 10 Leichen in der Welt, `player bodies 2 created / 0 pooled`.
+  **Abräumdauer 5,1 s.** Begrenzend war die 2-s-Ruhefrist je Körper (DamageSourceQuiet),
+  nicht die Kappe von zwei Freigaben je Frame (bis zu 24 Freigaben in einer Sekunde).
+- Danach Nachfüllen (`Arena own-gear refill complete`), Welle 2 (66) spawnt.
+
+### Raid 2 (ShooterPercent 0, Start 20:31:41)
+
+- 56 lebende am Spieler: 53,7 fps, 18,6 ms mean, p95 21,9 ms (`uibridge_status`); Profiler-
+  Fenster 20:33:04–20:33:34: 1592 Frames / 30 s = 53 fps.
+- Wachhund 20:33:35.83: 56 Infizierte administrativ getötet, 57 Leichen (56 + eine eigene;
+  der Spieler war vor dem Godmode-Einschalten einmal gestorben). Abräumkurve:
+  20:33:37.49 `trimmed 47` (alle Ragdolls nach 1,65 s ruhig) · 38.48 Sweep ohne Zeile
+  (nichts fällig) · 39.48 `released 2` · 40.47 `released 45` → 47/47 freigegeben, 10 Leichen
+  in der Welt, `player bodies 3 created / 0 pooled`. **Abräumdauer 4,6 s.**
+- Nach der Abräumung (Welle 2 spawnt, 27 Bots registriert): 113,6 fps, 8,8 ms mean, p95
+  10,6 ms; Profiler-Fenster 20:33:34–20:34:04: 2863 Frames = 95 fps.
+- `uibridge_bots aliveOnly=false` listete nach der Abräumung nur noch die neuen Spawns:
+  freigegebene Körper sind auch aus der Bot-Registratur verschwunden.
+
+### Vorher/Nachher aus den Host-Logs
+
+Alt (`acd57ff`, Host-Log `LogOutput-SPT-GPU-2-2026-10-06_20-05-51.log`): Wachhund 20:09:28.4
+mit 56 → `trimmed 46` um 20:09:31.9 (5-s-Kadenz), dann `released 8` je 5 s (36.9, 41.9,
+46.9, 51.9, 56.9) und `released 6` um 20:10:01.9 → 46/46 nach **33,5 s**.
+Neu (`43cc7c3`): 36 Körper in **5,1 s**, 47 Körper in **4,6 s**.
+
+### Was die Messung sonst zeigte
+
+- `Player.ComplexUpdate` lief mit 56 lebenden und 0–2 Leichen 112,5–123,4-mal je Frame
+  (`BotOwner.UpdateManual` 56,0): rund zwei Aufrufe je **lebendem** Körper (Update- und
+  FixedUpdate-Queue-Pfad), tote Körper sind nicht dabei — `Player.OnDeadCoroutine`
+  (EFT/Player.cs:30238–30249, gestartet in `OnDead`, :30218) ruft einen Frame nach dem Tod
+  `GameWorld.UnregisterPlayer`. Die Lesart vom 06.10. („116,6 Aufrufe = 56 lebende + ~60
+  Leichen", daraus „~0,65 ms je Frame für die Leichen") war falsch und ist in den
+  Dokumenten korrigiert. Der Nutzen der schnelleren Freigabe ist der aus
+  CORPSE-CLEANUP-REVIEW.md „Why hiding was not enough": weniger aktive Player-Objekte in der
+  Szene (Szenensuchen, Culling, LootList), nicht ein Tick-Kostenanteil.
+- Fehlerzeilen (Error) der ganzen Spielsitzung: 0. Keine Warnung „corpse cleanup drain
+  failed", keine neue Sorte `ArenaDamageExceptionLog`-Meldung.
+- `ACTIVE_HALLOWEEN_ZOMBIES_EVENT` nach beiden Raids `false` (`uibridge_inspect`).
+- Zwei **vorbestehende** Warnungen, beide schon im 06.10.-Log (also nicht durch v3):
+  `Arena damage exception #n: site=Player.ApplyDamageInfo NullReferenceException …
+  victim=SPT-GPU-2 human alive=False … release=no` (06.10.: 5×, 07.10. Raid 2: 6×) — NRE in
+  `EFT.BotMemory.GoalTargetBeingHitAction`, wenn ein Zombie-Nahkampftreffer den
+  sterbenden/toten Spieler trifft; unabhängig von freigegebenen Leichen (#1/#2 jeweils mit
+  `release=no`). Und `Arena burst spawn: no profiles for infectedAssault — request dropped`
+  (06.10.: 14×, 07.10. Welle 2: 6×) — der Profilvorrat für `infectedAssault` reicht in Welle 2
+  (66) nicht. Beide offen.
+- Godmode (`uibridge_hook`) gilt nur für den aktuellen Spielerkörper: nach einem Respawn ist
+  er aus (Raid 2: 5 Tode trotz Godmode-Anzeige).

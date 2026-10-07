@@ -310,12 +310,20 @@ current. User-facing communication is normally German.
   `DynamicMapCorpseChecks/Verify.ps1` dieselbe Suite plus 61/8,
   `dotnet test ArenaMode.Tests` (No-Deploy-Sentinel) 870 bestanden/2
   übersprungen/0 fehlgeschlagen, `dotnet build ArenaMode.Client -c Release`
-  (No-Deploy-Sentinel) 0 Fehler. Noch KEIN GPU-Raid; die Prüfliste
-  (Leichenzahl `N corpse(s) in the world` und `player bodies X created / Y
-  pooled` aus der Sweep-Zeile, `uibridge_bots aliveOnly=false`, Abräumdauer
-  nach Wachhund-Clear, keine neuen `ArenaDamageExceptionLog`-Meldungen,
-  sichtbares Fallen, Frame-Zeit — NICHT `ComplexUpdate`-Rate, siehe Korrektur
-  2026-10-07) steht in `ZOMBIE-MODE-REVIEW.md`, Abschnitt "v3 (2026-10-07)".
+  (No-Deploy-Sentinel) 0 Fehler. GPU-2-Raids 07.10. 20:21–20:36 (Client
+  `736A11CE89618A6A9EFE2435D43DBD48A5ED8FFA6ECEF3A02D024F448DC47E72` =
+  `43cc7c3`, lokal + Host 2 deployt, 24/24 identisch; Server unverändert
+  `0A826E8B…`): Wachhund-Abräumung 36 Körper in 5,1 s und 47 Körper in 4,6 s
+  vollständig freigegeben (06.10. laut Host-Log: 46 Körper in 33,5 s), Sweeps
+  im 1-s-Takt, Freigabe 2 s nach dem Trim, 56 lebende 53,7 fps → nach der
+  Abräumung 113,6 fps, 0 Error-Zeilen, Flag danach `false`. Zwei
+  vorbestehende Warnungen (auch im 06.10.-Log): `Arena damage exception`
+  (NRE in `BotMemory.GoalTargetBeingHitAction` beim Zombie-Treffer auf den
+  sterbenden Spieler) und `no profiles for infectedAssault` in Welle 2.
+  Details: `GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md`, Abschnitt
+  „v3-Messraids", und `ZOMBIE-MODE-REVIEW.md`, „v3 (2026-10-07)" → „GPU
+  result". Die Korrektur der ComplexUpdate-Lesart (`facf269`, `1e69028`)
+  steht in denselben Abschnitten.
 
 - **Akimbo-Pistolenmutator (2026-10-05, aktueller Client):** `97deb6b`,
   `f11f998`, final `fadec49`. Kartenmenü **AKIMBO PISTOLS** / F12
