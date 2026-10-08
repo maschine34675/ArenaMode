@@ -66,9 +66,13 @@ $kill = Get-TauntMethod $combat 'private sealed class KillCapturePatch'
 $observe = $kill.IndexOf('ArenaSelfGrenadeTaunt.ObserveDeath(__instance, aggressor, damageInfo, lethalDamageType);')
 $selfReturn = [regex]::Match($kill, 'if \(string\.IsNullOrEmpty\(victimId\) \|\| aggressor\.ProfileId == victimId\)\s*return;')
 Assert-Taunt ($observe -ge 0 -and $selfReturn.Success -and $observe -lt $selfReturn.Index) 'observe before unchanged score-excluding self-kill return'
-Assert-Taunt ((Get-TauntMethod $hud 'public static void Attach(').Contains('match.OnTextCallout += OnCallout;')) 'HUD attaches text-only callout'
-Assert-Taunt ((Get-TauntMethod $hud 'public static void Detach()').Contains('_match.OnTextCallout -= OnCallout;')) 'HUD detaches text-only callout'
-Assert-Taunt (!$audio.Contains('OnTextCallout')) 'announcer does not subscribe to text event'
+# 2026-10-08: ArenaHud routes the two events through two handlers (OnAwardCallout is
+# announcer-gated, OnTextCallout is not), so the taunt's text-only wiring is the
+# ungated OnTextCallout handler. The announcer must never SUBSCRIBE to the text event
+# (a doc comment that merely names it is fine).
+Assert-Taunt ((Get-TauntMethod $hud 'public static void Attach(').Contains('match.OnTextCallout += OnTextCallout;')) 'HUD attaches text-only callout'
+Assert-Taunt ((Get-TauntMethod $hud 'public static void Detach()').Contains('_match.OnTextCallout -= OnTextCallout;')) 'HUD detaches text-only callout'
+Assert-Taunt ($audio -notmatch 'OnTextCallout\s*\+=') 'announcer does not subscribe to text event'
 Assert-Taunt ((Get-TauntMethod $match 'internal void BeginAwardRound(').Contains('ArenaShotAwardHistory.Reset();')) 'existing award round epoch invalidates thrown origins'
 $observeDeath = Get-TauntMethod $taunt 'internal static void ObserveDeath('
 Assert-Taunt ($observeDeath.Contains('ReportTextCallout(Label)') -and $observeDeath.Contains('ReportAnnouncerCue(ArenaAnnouncerCue.Embarrassing)') -and !($observeDeath -match '\.ReportKill\(|\.ReportLocalDeath\(')) 'taunt dispatch adds only separate Embarrassing speech without scoring or death events'
