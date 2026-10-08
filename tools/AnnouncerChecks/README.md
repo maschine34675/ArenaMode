@@ -92,6 +92,24 @@ Coverage includes:
 - Fail-soft handling when GUISounds is unavailable or rejects a request, without
   a second output path or an exception escaping the match event.
 
+HUD callout routing (`HudCalloutChecks.cs`): the ANNOUNCER mutator also hides
+the announcer's on-screen kill/award callouts ("DOUBLE KILL", ...). `ArenaHud` is
+Unity-bound and not linked into this harness, so the proof has two halves. The
+behavioural half executes the one gate the HUD asks,
+`AnnouncerService.IsEnabledForLiveMatch()`, over the live master switch and the
+per-mode selection frozen at arm. The routing half is a source-text pin of
+`ArenaMode.Client/Hud/ArenaHud.cs`: `OnAwardCallout` must be exactly
+`if (!Audio.AnnouncerService.IsEnabledForLiveMatch()) return;` followed by
+`_callout?.Show(label);` (comments and whitespace normalised, the negation
+included), `OnTextCallout` ("WAVE n", the own-grenade taunt) must never ask the
+gate, and each event must be subscribed to and released from its own handler.
+The environment variable `ARENA_ANNOUNCER_HUD_SOURCE` points the pins at a mutant
+copy of `ArenaHud.cs`; `ARENA_ANNOUNCER_REPO_ROOT` names the repository for the
+scratch-output mutant builds. `Verify-Regression.ps1` rejects six HUD mutants,
+each at its named assertion: ungated handler (`if (false)`), inverted gate (the
+`!` dropped), gate that never fires (`&& false`), gate without its `return`, gated
+text handler, and a text callout subscribed to the gated handler.
+
 The request pump and clock are controlled; these checks perform no real waits
 for playback. Fixture audio files contain placeholder bytes, not real audio.
 Actual Ogg decoding, Unity's async context, `AudioSettings.Reset`, Harmony/game

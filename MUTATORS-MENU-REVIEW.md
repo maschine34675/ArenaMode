@@ -170,9 +170,14 @@ vom 06.10. ("HUD-Textdurchsagen sind kein Announcer und bleiben unverändert")
 gilt damit weiter. Die Zeilenbeschreibung lautet jetzt "Stingers, cues and
 kill callouts." (33 Zeichen, passt in die Beschreibungszelle). Offline belegt
 durch `tools/AnnouncerChecks` (Wahrheitstabelle des Gates plus Quelltext-Pins
-auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und drei Mutanten
-in `Verify-Regression.ps1` (ungegateter Award-Handler, gegateter Text-Handler,
-Text-Callout am Award-Handler). Nicht im Spiel gesehen.
+auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und sechs Mutanten
+in `Verify-Regression.ps1` (ungegateter, invertierter, nie auslösender und
+`return`-loser Award-Handler, gegateter Text-Handler, Text-Callout am
+Award-Handler). Der Award-Handler ist dabei als Ganzes gepinnt, nicht als
+Teilstring: das negierte Gate ist die erste Anweisung, gefolgt von `return;`
+und dann dem Aufruf von `_callout?.Show(label)`; ein weggefallenes `!`, ein
+`&& false` oder ein fehlendes `return` bricht die Zusicherung "drops a
+kill/award callout when the announcer gate is closed". Nicht im Spiel gesehen.
 
 **Legende und Fußzeile entfernt.** Die Zeile "Green: ON / Grey: OFF / N/A:
 unavailable" unter dem Titel und die Fußnote "Saved with F12. Killcam/tracers:

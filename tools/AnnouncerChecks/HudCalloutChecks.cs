@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using ArenaMode.Audio;
 using ArenaMode.Config;
 using ArenaMode.Session;
@@ -50,7 +51,11 @@ internal static partial class Program
                && award.IndexOf("IsEnabledForLiveMatch", StringComparison.Ordinal)
                   < award.IndexOf("_callout?.Show(label)", StringComparison.Ordinal),
             "ArenaHud shows kill/award callouts only after asking the announcer gate");
-        Assert(award.Contains("return;", StringComparison.Ordinal),
+        // The whole handler, not a substring: the negated gate is the FIRST
+        // statement, it returns, and the callout is the LAST statement. This is
+        // what makes an inverted gate (`!` dropped), a neutralised one
+        // (`&& false`, `|| true`) or an extra clause in front of the gate fail.
+        Assert(AwardHandlerIsExactlyGateReturnShow(award),
             "ArenaHud drops a kill/award callout when the announcer gate is closed");
         Assert(text.Contains("_callout?.Show(label)", StringComparison.Ordinal)
                && !text.Contains("IsEnabledForLiveMatch", StringComparison.Ordinal)
@@ -64,6 +69,22 @@ internal static partial class Program
             "OnTextCallout is subscribed to and released from the ungated handler");
         Assert(CountOf(hud, "IsEnabledForLiveMatch()") == 1,
             "exactly one HUD handler asks the announcer gate");
+    }
+
+    /// <summary>
+    /// True when the handler is exactly
+    /// <c>{ if (!Audio.AnnouncerService.IsEnabledForLiveMatch()) return; _callout?.Show(label); }</c>
+    /// once comments and whitespace are normalised away.
+    /// </summary>
+    internal static bool AwardHandlerIsExactlyGateReturnShow(string handler)
+    {
+        string code = Regex.Replace(handler, @"//[^\r\n]*|/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+        return Regex.IsMatch(code,
+            @"^\s*private\s+static\s+void\s+OnAwardCallout\s*\(\s*string\s+label\s*\)\s*\{"
+            + @"\s*if\s*\(\s*!\s*Audio\s*\.\s*AnnouncerService\s*\.\s*IsEnabledForLiveMatch\s*\(\s*\)\s*\)"
+            + @"\s*return\s*;"
+            + @"\s*_callout\s*\?\s*\.\s*Show\s*\(\s*label\s*\)\s*;"
+            + @"\s*\}\s*$");
     }
 
     private static int CountOf(string source, string fragment)

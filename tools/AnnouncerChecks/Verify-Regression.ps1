@@ -237,6 +237,23 @@ if ([regex]::Matches($hudSource, [regex]::Escape($hudGate)).Count -ne 1) {
 Invoke-HudNegativeCase 'hud-callout-ungated' ($hudSource.Replace($hudGate, 'if (false)')) `
     'ArenaHud shows kill/award callouts only after asking the announcer gate'
 
+# The three shapes below keep the call to the gate (so the assertion above still
+# passes) and break only its use: polarity, a neutralised condition, a dropped
+# return. The exact-handler pin must reject each of them.
+Invoke-HudNegativeCase 'hud-callout-inverted' `
+    ($hudSource.Replace($hudGate, 'if (Audio.AnnouncerService.IsEnabledForLiveMatch())')) `
+    'ArenaHud drops a kill/award callout when the announcer gate is closed'
+Invoke-HudNegativeCase 'hud-callout-gate-never-fires' `
+    ($hudSource.Replace($hudGate, 'if (!Audio.AnnouncerService.IsEnabledForLiveMatch() && false)')) `
+    'ArenaHud drops a kill/award callout when the announcer gate is closed'
+$hudGateReturn = [regex]::Escape($hudGate) + '\s*return;'
+if ([regex]::Matches($hudSource, $hudGateReturn).Count -ne 1) {
+    throw 'Expected exactly one HUD gate-and-return; refusing an ambiguous mutation.'
+}
+Invoke-HudNegativeCase 'hud-callout-no-return' `
+    ([regex]::Replace($hudSource, $hudGateReturn, 'if (!Audio.AnnouncerService.IsEnabledForLiveMatch()) { }')) `
+    'ArenaHud drops a kill/award callout when the announcer gate is closed'
+
 $hudTextHandler = 'private static void OnTextCallout(string label) => _callout?.Show(label);'
 if ([regex]::Matches($hudSource, [regex]::Escape($hudTextHandler)).Count -ne 1) {
     throw 'Expected exactly one HUD text-callout handler; refusing an ambiguous mutation.'
@@ -271,4 +288,4 @@ if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its fi
 if ($LASTEXITCODE -ne 0) { throw 'Creator metadata positive/negative checks failed.' }
 & python (Join-Path $PSScriptRoot 'verify_creator_pack.py')
 if ($LASTEXITCODE -ne 0) { throw 'Creator asset decoding, hashes or exact runtime mapping failed.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants plus three HUD callout-routing mutants rejected; production sources unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants plus six HUD callout-routing mutants rejected; production sources unchanged; evidence: $scratch)"

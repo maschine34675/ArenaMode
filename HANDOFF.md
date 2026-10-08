@@ -18,7 +18,9 @@ current. User-facing communication is normally German.
   `AnnouncerService.IsEnabledForLiveMatch()` (jetzt `internal`) wahr ist; die
   HUD-Textdurchsagen ("WAVE n", Eigen-Granaten-Stichelei) laufen über einen
   eigenen ungegateten Handler. Zeilenbeschreibung "Stingers, cues and kill
-  callouts."; Pins + drei Mutanten in `tools/AnnouncerChecks`.
+  callouts."; Pins + sechs Mutanten in `tools/AnnouncerChecks` (der Award-Handler
+  ist als Ganzes gepinnt: negiertes Gate, `return;`, dann `Show`; ein fehlendes
+  `!`, ein `&& false` oder ein fehlendes `return` fällt auf).
   (2) **Mutatoren-Panel ohne Legende und Fußzeile:** beide Texte sind weg, die
   16 Zeilen rücken auf Top 52 und nutzen den Platz bis 8 px über dem Kastenboden
   (Abstand 51,5 statt 47,5); Rechteck 600 × 472 bei Y=508 unverändert. Neue
