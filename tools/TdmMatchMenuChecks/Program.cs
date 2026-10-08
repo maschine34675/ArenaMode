@@ -304,6 +304,30 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
 Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
     && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
+// 2026-10-08 menu polish, item 2: no legend subtitle, no "saved with F12" footer.
+// The rows start 8 px under the title and the last description ends 8 px above
+// the panel bottom, in two columns of eight.
+Need(!MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Mutator legend" or "Mutators saved note"
+        || t.text.Contains("Saved with F12") || t.text.Contains("Green: ON") || t.text.Contains("Killcam/tracers")),
+    "mutator panel carries no legend or saved-with-F12 footer");
+Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name == "Title").Single().text == "MUTATORS",
+    "mutator panel keeps its title");
+{
+    var mutatorIds = Enum.GetValues(typeof(ArenaMutator)).Cast<ArenaMutator>().ToArray();
+    float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
+    RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
+        .Single(t => t.name == "Mutator detail " + id).rectTransform;
+    float pitch = (472f - 52f - 8f) / 8f;
+    Need(mutatorIds.Length == 16 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
+        && Math.Abs(RowTop(mutatorIds[8]) - 52f) < .01f,
+        "both mutator columns start 8 px below the title");
+    Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
+        "mutator rows use the reflowed pitch ((472 - 52 - 8) / 8)");
+    var lastDetail = Detail(mutatorIds[7]);
+    Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 464f) < .01f
+        && Math.Abs(lastDetail.sizeDelta.y - (pitch - 26f)) < .01f,
+        "last description ends 8 px above the panel bottom and fills the row pitch");
+}
 Need(Settings.DeathmatchColoredTracers.Value == false && Settings.TeamTracers.Value,
     "fresh Deathmatch tracer preference is off while other modes keep their default");
 Settings.TeamTracers.Value = true;
@@ -560,8 +584,11 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
         bool separate = -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
-        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 448f,
-            "all mutator descriptions fit outside their button and above the footer");
+        // 2026-10-08: the legend line and the footer note are gone, so the rows
+        // run from 8 px below the 30-px title (top 52) to 8 px above the panel
+        // bottom (472 - 8 = 464).
+        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 464f + .01f,
+            "all mutator descriptions fit outside their button and inside the panel");
         foreach (ArenaMutator other in Enum.GetValues(typeof(ArenaMutator)))
         {
             if (other == id) continue;

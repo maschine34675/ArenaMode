@@ -19,11 +19,16 @@ internal sealed class ArenaMutatorsView
         internal TextMeshProUGUI Label, Status, Description;
         internal Image Marker, Chip;
     }
+    // The 30-px title sits at top 14, so the first row starts 8 px below it;
+    // the last row's description ends the same 8 px above the panel bottom.
+    // There is no legend line and no footer note any more (2026-10-08): the
+    // ON/OFF/N/A states explain themselves and the "saved with F12" sentence
+    // was both stale and redundant.
+    private const float RowsTop = 52f, RowsBottomMargin = 8f;
     private readonly ArenaMutatorSelection _selection = new();
     private readonly List<Row> _rows = new();
     private GameObject _root, _owner;
     private Transform _screen;
-    private TextMeshProUGUI _subtitle, _note;
     private Action _changed;
     private bool _dispatching;
 
@@ -40,7 +45,6 @@ internal sealed class ArenaMutatorsView
             _root.GetComponent<Image>().raycastTarget = false;
             ArenaUiTheme.Decorate((RectTransform)_root.transform);
             Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);
-            _subtitle = Text(_root.transform, typography, "Mutator legend", "Green: ON   /   Grey: OFF   /   N/A: unavailable", 13f, 20f, 44f, 420f, 20f);
             var generation = _root;
             foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
             {
@@ -70,9 +74,6 @@ internal sealed class ArenaMutatorsView
                 _rows.Add(row);
                 button.onClick.AddListener(() => Toggle(generation, row));
             }
-            _note = Text(_root.transform, typography, "Mutators saved note",
-                "Saved with F12. Killcam/tracers: per mode; other switches: all Arena modes.",
-                13f, 20f, 452f, 600f, 16f);
             Layout();
         }
         catch { Close(); throw; }
@@ -84,15 +85,13 @@ internal sealed class ArenaMutatorsView
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
-        _subtitle.rectTransform.sizeDelta = new Vector2(width - 40f, 20f);
-        _note.rectTransform.sizeDelta = new Vector2(width - 40f, 16f);
         for (int index = 0; index < _rows.Count; index++)
         {
             var row = _rows[index];
             // Fit the extra pistol mutator without moving the preview or READY.
             int rowsPerColumn = (_rows.Count + 1) / 2;
-            float pitch = (448f - 68f) / rowsPerColumn;
-            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = 68f + (index % rowsPerColumn) * pitch;
+            float pitch = (ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn;
+            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = RowsTop + (index % rowsPerColumn) * pitch;
             Rect((RectTransform)row.Button.transform, left, top, cell, 26f);
             Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 26f);
             Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 26f);
@@ -144,7 +143,7 @@ internal sealed class ArenaMutatorsView
     {
         foreach (var row in _rows) if (row.Button != null) row.Button.onClick.RemoveAllListeners();
         _rows.Clear();
-        _owner = null; _screen = null; _changed = null; _subtitle = _note = null;
+        _owner = null; _screen = null; _changed = null;
         _dispatching = false;
         var root = _root; _root = null;
         if (root != null) { root.SetActive(false); UnityEngine.Object.Destroy(root); }

@@ -9,7 +9,7 @@ Checks cover the actual 50-kill/600-second defaults and F12 ranges, accepted and
 rejected persistence, independent zero limits, hidden non-TDM/PFT controls,
 live armed/active guards, exact custom F12 labels with no invented selection,
 same-mode refresh, real button callbacks, preserved non-TDM layout, the existing
-360x488 panel footprint, and close/reopen listener ownership. Fourteen deliberate
+360x488 panel footprint, and close/reopen listener ownership. Seventeen deliberate
 source faults must compile and fail their corresponding behavioral assertions.
 All compiler mutations and output evidence go to ignored repo `artifacts/`;
 production files are not rewritten. The final run restores production inputs.
@@ -21,6 +21,8 @@ manual saving, unchanged laser brightness, inline state colors, close and stale 
 Killcam lives in this always-visible right column and keeps its existing per-mode semantics.
 The panel reserves the same 320-pixel image slot in every mode; map/preview
 selection no longer controls its vertical position.
+Since 2026-10-08 it has no legend line and no footer note: the two columns of eight
+rows run from top 52 (8 px under the title) to 8 px above the 472-pixel panel bottom.
 
 The rules occupy the old fact-row region only for independent Team DM. The mode
 panel still ends at reference Y=656; the untouched area panel begins at Y=668.

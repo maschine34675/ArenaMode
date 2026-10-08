@@ -174,3 +174,18 @@ durch `tools/AnnouncerChecks` (Wahrheitstabelle des Gates plus Quelltext-Pins
 auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und drei Mutanten
 in `Verify-Regression.ps1` (ungegateter Award-Handler, gegateter Text-Handler,
 Text-Callout am Award-Handler). Nicht im Spiel gesehen.
+
+**Legende und Fußzeile entfernt.** Die Zeile "Green: ON / Grey: OFF / N/A:
+unavailable" unter dem Titel und die Fußnote "Saved with F12. Killcam/tracers:
+per mode; other switches: all Arena modes." sind weg (Felder, Erzeugung und
+Layout-Zeilen in `ArenaMutatorsView`). Die Zustände erklären sich über ON/OFF/
+N/A mit Farbchip und Seitenstreifen selbst, und die Fußnote war veraltet: sie
+nannte weder den Announcer noch das neue Team-only-Tracer-Verhalten (die
+in HANDOFF.md vermerkte Nachtrags-Kleinigkeit "Killcam/tracers: per mode" ist
+damit erledigt). Der Kasten bleibt 600 × 472 Referenzpixel bei Y=508 (der
+Harness pinnt Rechteck und 16 Buttons unverändert); frei gewordener Platz
+geht in die Zeilen: Titel Top 14 / Höhe 30, erste Zeile bei Top 52, Zeilenabstand
+`(MutatorsHeight - 52 - 8) / 8` = 51,5 Pixel (vorher 47,5), Beschreibungshöhe
+Abstand minus 26 (25,5), letzte Beschreibung endet 8 Pixel über dem Kastenboden
+(Y=464). TdmMatchMenuChecks pinnt den Wegfall und die Geometrie und hat drei
+neue Mutanten (Legende zurück, Zeilenanfang 68, alter Zeilenabstand).

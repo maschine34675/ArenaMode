@@ -19,6 +19,10 @@ current. User-facing communication is normally German.
   HUD-Textdurchsagen ("WAVE n", Eigen-Granaten-Stichelei) laufen über einen
   eigenen ungegateten Handler. Zeilenbeschreibung "Stingers, cues and kill
   callouts."; Pins + drei Mutanten in `tools/AnnouncerChecks`.
+  (2) **Mutatoren-Panel ohne Legende und Fußzeile:** beide Texte sind weg, die
+  16 Zeilen rücken auf Top 52 und nutzen den Platz bis 8 px über dem Kastenboden
+  (Abstand 51,5 statt 47,5); Rechteck 600 × 472 bei Y=508 unverändert. Neue
+  Geometrie-Pins und drei Mutanten in `tools/TdmMatchMenuChecks`.
   <!--MENU-POLISH-NEXT-->
 
 - **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je
@@ -304,9 +308,10 @@ current. User-facing communication is normally German.
   Zombie-Raid: Log „Arena announcer attached: mode=zombie, enabled=False", keine
   Error-Zeilen. Nicht geprüft: hörbarer Announcer in einem Deathmatch-Raid
   (Standard ON, nur per Mutator-Anzeige und Offline-Tabelle belegt). Kleiner
-  Nachtrag offen: die Fußzeile des Mutator-Panels nennt noch „Killcam/tracers:
-  per mode", der Announcer fehlt dort. Der Satz weiter oben, v2 sei noch nicht im
-  Spiel getestet, ist damit überholt.
+  Nachtrag (erledigt 2026-10-08, Branch feature/menu-polish): die Fußzeile des
+  Mutator-Panels nannte „Killcam/tracers: per mode", der Announcer fehlte dort —
+  Fußzeile und Legende sind inzwischen ganz entfernt. Der Satz weiter oben, v2 sei
+  noch nicht im Spiel getestet, ist damit überholt.
   **v3** (07.10.2026, schnellere Leichenfreigabe im Zombie-Modus, setzt den
   oben genannten Top-Kandidaten um): `dde0370` reparierte zuerst den offline
   Harness (fehlende Stubs für `ArenaModeCatalog.ZombieId`/`ArenaSession.

@@ -67,7 +67,19 @@ $arenaFaults = @(
       'ProductionMutatorSelection', 'Deathmatch tracer writes respect active and armed locks'),
     @('mutator-mode-gate', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (Locked || (id != ArenaMutator.Pickups && UnavailableReason(id) != null))',
-      'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback')
+      'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback'),
+    # Menu polish 2026-10-08, item 2: the legend line and the footer note stay
+    # gone, and the rows keep the reflowed geometry (top 52, 8 px bottom margin).
+    @('mutators-legend-restored', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
+      'Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);',
+      'Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f); Text(_root.transform, typography, "Mutator legend", "Green: ON", 13f, 20f, 44f, 420f, 20f);',
+      'ProductionMutatorsView', 'mutator panel carries no legend or saved-with-F12 footer'),
+    @('mutator-rows-top', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
+      'private const float RowsTop = 52f, RowsBottomMargin = 8f;', 'private const float RowsTop = 68f, RowsBottomMargin = 8f;',
+      'ProductionMutatorsView', 'both mutator columns start 8 px below the title'),
+    @('mutator-rows-pitch', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
+      '(ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn', '(448f - RowsTop) / rowsPerColumn',
+      'ProductionMutatorsView', 'mutator rows use the reflowed pitch')
 )
 try {
     foreach ($arenaFault in $arenaFaults) {
