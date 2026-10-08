@@ -244,9 +244,9 @@ internal static class Program
         Assert(InvokePrefix(renderer, unresolved),
             "unverified source stays native");
 
-        // Solo modes: shooters are still classified (killfeed names and friendly
-        // markers use Classify in every mode), but the tracer stays native because
-        // TracerEntry has no entry there, whatever TeamTracers says.
+        // Solo modes: shooters are still classified (killfeed names use Classify in
+        // every mode; markers classify through the mode), but the tracer stays
+        // native because TracerEntry has no entry there, whatever TeamTracers says.
         foreach (string soloMode in new[] { "deathmatch", "gungame", "zombie", "tactical" })
         {
             Reset();
@@ -256,7 +256,7 @@ internal static class Program
             Settings.TeamTracers.Value = true;
             Assert(ArenaTracerTeams.Classify("local", true) == ArenaTracerSide.Friendly
                    && ArenaTracerTeams.Classify("bot", true) == ArenaTracerSide.Opponent,
-                "solo shooters stay classified for killfeed and markers: " + soloMode);
+                "solo shooters stay classified for the killfeed: " + soloMode);
             var soloRenderer = new TracersLight();
             Assert(InvokePrefix(soloRenderer, NewShot("local", resolvedBridge: true, tracer: false))
                    && InvokePrefix(soloRenderer, NewShot("bot", resolvedBridge: true, tracer: false))
