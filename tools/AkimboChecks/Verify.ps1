@@ -57,4 +57,33 @@ try {
     Write-Output "NEGATIVE_CONTROL_PASSED $($fault[0])"
   }
 } finally { & dotnet build $cylinderProject -c Release -t:Rebuild --nologo -v:quiet; if($LASTEXITCODE -ne 0){throw 'Cylinder restore failed'} }
+$timingProject=Join-Path $PSScriptRoot 'Timing/TimingChecks.csproj'
+$cadence=[IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Combat/Akimbo/AkimboCadence.cs'))
+$presentation=[IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Combat/Akimbo/AkimboPresentation.cs'))
+try {
+  $result=(& dotnet run --project $timingProject -c Release 2>&1 | Out-String)
+  if($LASTEXITCODE -ne 0 -or !$result.Contains('AKIMBO_TIMING_CHECKS_PASSED')){throw $result}
+  Write-Output $result.Trim()
+  foreach($fault in @(
+    @('cadence-factor','CadenceSource',$cadence,'Factor = 2f','Factor = 1f','native firing timer and Unity animator double together'),
+    @('cadence-restore','CadenceSource',$cadence,'&& animator.speed == written','','foreign speed write preserved'),
+    @('cadence-finished','CadenceSource',$cadence,'ReferenceEquals(operation, _operation)','false','finished fire restores before next reload operation'),
+    @('cadence-fast','CadenceSource',$cadence,'body.ArmsUpdateMode == Player.EUpdateMode.Manual','true','unsupported fast auto mode does not halve timer alone'),
+    @('visual-both','PresentationSource',$presentation,'if (left) _left = now; else _right = now;','_left = now; _right = now;','right shot cannot kick left gun'),
+    @('visual-slide','PresentationSource',$presentation,'left == LastLeft && ','','only firing side receives native slide animation'),
+    @('visual-neutral','PresentationSource',$presentation,'!firing && ','','neutral pose only captured in idle')
+  )) {
+    if(!$fault[2].Contains($fault[3])){throw 'Timing mutation anchor missing'}
+    $path=Join-Path $evidence ($fault[0]+'.cs')
+    [IO.File]::WriteAllText($path,$fault[2].Replace($fault[3],$fault[4]))
+    $result=(& dotnet run --project $timingProject -c Release "-p:$($fault[1])=$path" 2>&1 | Out-String)
+    [IO.File]::WriteAllText((Join-Path $evidence ($fault[0]+'.log')),$result)
+    if($LASTEXITCODE -eq 0 -or $result.Contains('error CS') -or !$result.Contains($fault[5])){throw $result}
+    Write-Output "NEGATIVE_CONTROL_PASSED $($fault[0])"
+  }
+} finally { & dotnet build $timingProject -c Release -t:Rebuild --nologo -v:quiet; if($LASTEXITCODE -ne 0){throw 'Timing restore failed'} }
+& dotnet run --project $timingProject -c Release --no-build
+if($LASTEXITCODE -ne 0){throw 'Final timing production run failed'}
+& (Join-Path $PSScriptRoot 'View/Check-Mutants.ps1')
+if($LASTEXITCODE -ne 0){throw 'View lifetime checks failed'}
 Write-Output 'AKIMBO_REGRESSION_PASSED'

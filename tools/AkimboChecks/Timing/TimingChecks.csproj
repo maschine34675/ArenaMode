@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <CadenceSource Condition="'$(CadenceSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboCadence.cs</CadenceSource>
+    <PresentationSource Condition="'$(PresentationSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboPresentation.cs</PresentationSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CadenceSource)" Link="Production/AkimboCadence.cs" />
+    <Compile Include="$(PresentationSource)" Link="Production/AkimboPresentation.cs" />
+  </ItemGroup>
+</Project>

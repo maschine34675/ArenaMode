@@ -53,6 +53,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             new PosePatch().Enable(); new VisualPatch().Enable(); new ShotPatch().Enable(); new AimPatch().Enable();
             new MuzzlePatch().Enable();
             AkimboAmmo.Enable();
+            AkimboCadence.Enable();
             _available = true;
         }
         catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena akimbo unavailable: " + ex.GetBaseException().Message); }
@@ -124,6 +125,20 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     }
 
     internal static void AmmoFailed(Exception ex) => Fail(ex);
+    internal static bool OwnsHands(Player.FirearmController hands) => hands != null && ReferenceEquals(hands, _hands);
+    internal static IAnimator OwnedAnimator => _hands?.FirearmsAnimator?.Animator;
+
+    internal static bool TryCadence(out Player body, out Player.FirearmController.FireOperationBase operation)
+    {
+        body = _body; operation = _hands?.CurrentOperation as Player.FirearmController.FireOperationBase;
+        return operation != null && Ready() && _view.Visible
+            && operation.State == Player.EOperationState.Executing
+            && ReferenceEquals(operation.Player, body) && ReferenceEquals(operation.Controller, _hands)
+            && ReferenceEquals(operation.Weapon, _weapon)
+            && (operation.GetType() == typeof(Player.FirearmController.FireOperation)
+                || operation.GetType() == typeof(Player.FirearmController.FireCylinderMagOperation)
+                || operation.GetType() == typeof(Player.FirearmController.AutomaticFireOperation));
+    }
 
     internal static bool ReserveFreeShot(Player.FirearmController.FireOperationBase op, Ammo shot)
     {
@@ -138,6 +153,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         AkimboView pendingView = null;
         try
         {
+            AkimboCadence.Refresh();
             if (Settings.AkimboEnabled?.Value != true)
             { Reset("disabled"); return; }
             if (!Context(out var body, out var match, out var world))
@@ -153,7 +169,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             if (_lease != null)
             {
                 if (_view?.Matches(_hands) != true) throw new InvalidOperationException("Owned pistol view changed");
-                if (!Ready()) _view.Pose(Vector3.zero, false);
+                if (!Ready()) _view.Hide();
                 return;
             }
             if (!Bindings.MayAttach(candidate)
@@ -161,10 +177,11 @@ internal sealed class ArenaAkimbo : MonoBehaviour
                 || !Supported(hands.Item) || body.PointOfView != EPointOfView.FirstPerson
                 || hands.IsInReloadOperation() || hands.IsInSpawnOperation() || hands.IsInRemoveOperation()
                 || hands.IsInInteractionStrictCheck() || ArenaInputBlocker.Blocked
+                || hands.CurrentOperation is not Player.FirearmController.Idling
                 || body.IsSprintEnabled || body.IsInventoryOpened || body.LeftHandController?.IsUsing == true) return;
             var limbs = Limbs(body);
-            if (limbs == null || limbs.Length < 2 || limbs[0]?.solver == null)
-                throw new InvalidOperationException("Left arm solver unavailable");
+            if (limbs == null || limbs.Length < 2 || limbs[0]?.solver == null || limbs[1]?.solver == null)
+                throw new InvalidOperationException("Arm solver unavailable");
             pendingView = new AkimboView(hands);
             // Publish only a complete view whose exact native owner is still current.
             if (!Context(out var currentBody, out var currentMatch, out var currentWorld)
@@ -175,7 +192,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             _body = body; _hands = hands; _weapon = hands.Item;
             RightShots = LeftShots = BlockedShots = 0;
             hands.IsAiming = false;
-            Plugin.ModLogger.LogInfo($"Arena akimbo bound: {_weapon.TemplateId}, {_view.RendererCount} owned mesh renderers; alternating single shots, two shots per loaded cartridge.");
+            Plugin.ModLogger.LogInfo($"Arena akimbo bound: {_weapon.TemplateId}, {_view.RendererCount} owned mesh renderers; independent pistol visuals, 2x firing cadence; alternating single shots, two shots per loaded cartridge.");
         }
         catch (Exception ex) { Fail(ex, candidate); }
         finally { pendingView?.Dispose(); }
@@ -186,17 +203,24 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     private static void Pose(Player body)
     {
         if (!ReferenceEquals(body, _body) || !Ready()) return;
-        var solver = Limbs(body)[0].solver;
-        // Native IkProcess overwrites these transient targets every frame. No marker,
-        // animator, finger mapping or shared configuration is replaced.
-        solver.SetIKPosition(solver.GetIKPosition() + Offset());
+        Visual(body);
+        var limbs = Limbs(body);
+        for (int i = 0; i < 2; i++)
+        {
+            var solver = limbs[i].solver;
+            var position = solver.GetIKPosition(); var rotation = solver.GetIKRotation();
+            _view.Grip(i, ref position, ref rotation, _hands.CurrentOperation is Player.FirearmController.FireOperationBase);
+            // Native IkProcess overwrites these transient targets every frame.
+            solver.SetIKPosition(position); solver.SetIKRotation(rotation);
+        }
     }
     private static void Visual(Player body)
     {
         if (!ReferenceEquals(body, _body) || _view == null) return;
         bool ready = Ready();
-        _view.Pose(ready ? Offset() : Vector3.zero, ready);
-        if (ready) _visualFrame = Time.frameCount;
+        _view.Pose(ready ? CameraManager.Instance.Camera.transform : null, ready ? Offset() : Vector3.zero,
+            ready, _hands?.CurrentOperation is Player.FirearmController.FireOperationBase);
+        if (ready && _view.Visible) _visualFrame = Time.frameCount;
     }
 
     private static ShotScope BeforeShot(Player.FirearmController hands, IWeapon weapon, Ammo ammo,
@@ -218,7 +242,9 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         Vector3 origin = shotPosition, direction = shotDirection, visualOrigin = fireportPosition;
         if (left)
         {
-            _view.Pose(Offset(), true);
+            // Do not sample the new native fire-event pose before its admitted
+            // side is confirmed: that would animate the preceding gun as well.
+            // The frame freshness guard above already validates the visual.
             _view.UseFireport(hands.CurrentFireport.Original);
             // Preserve native AdjustShotVectors' FOV/back-offset correction. Shift
             // that corrected origin by the difference between the two visual muzzles.
@@ -250,8 +276,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         if (scope.Left) LeftShots++; else RightShots++;
         if (ReferenceEquals(scope.Lease, _lease) && Ready())
         {
-            if (scope.Left) _view.Flash();
-            else _view.HoldUntil(Time.time + .12f);
+            _view.Shot(scope.Left);
         }
         if (LeftShots + RightShots <= 8)
             Plugin.ModLogger.LogInfo($"Arena akimbo single shot: {(scope.Left ? "left" : "right")}; right={RightShots}, left={LeftShots}; one projectile, two shots per loaded cartridge.");
@@ -269,6 +294,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
 
     private static void Release(string reason)
     {
+        AkimboCadence.Reset();
         bool had = _lease != null || _view != null;
         _shot = null;
         Bindings.Release();
@@ -338,7 +364,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Firearms), nameof(Firearms.PlayShotEffects));
         [PatchPrefix] private static bool Prefix(Firearms __instance)
         {
-            try { return _shot == null || !_shot.Left || !ReferenceEquals(_shot.Firearms, __instance)
+            try { return _shot == null || _shot.Lease == null || !ReferenceEquals(_shot.Firearms, __instance)
                 || !ReferenceEquals(_shot.Hands, _hands) || !ReferenceEquals(_shot.Lease, _lease) || !Current(); }
             catch (Exception ex) { Fail(ex); return true; }
         }

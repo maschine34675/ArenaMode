@@ -43,21 +43,29 @@ converge on the original spread ray at 50m. Native origin -> left origin, camera
 be clear. Invalid geometry falls back to the untouched native right shot.
 The native shot, statistics, damage, recoil, heat and sound execute once. There
 is no direct BallisticsCalculator.Shoot call or second shot-award scope here.
-The exact left invocation suppresses only its own Firearms.PlayShotEffects;
+Each exact admitted invocation suppresses only its own Firearms.PlayShotEffects;
 nested invocations mask that scope and a finalizer restores it.
 
-The left view holds descendant pose briefly on a right shot and adds its own
-short kick/flash on a left shot. This is not a second native animator: the native
-right slide/root recoil still runs on each shot, and support-hand grip remains
-a presentation limitation. The native first-person sound remains one report
+Since 2026-10-08 both visible pistols are fresh mesh-only replicas. Native gun
+renderers are reversibly hidden with forceRenderingOff; the native animator and
+its events continue unchanged. Each replica has its own kick/return and flash;
+only the firing side samples the native slide pose. A camera-relative idle pose
+keeps the shared native gun recoil out of the resting replica. Both arm IK
+targets follow their respective replica; support-hand fingers remain a
+presentation limitation. Shared camera recoil remains native. This is not a
+second native animator. The native first-person sound remains one report
 per trigger; its outer native Shot call retains the original right-side position.
 
 The view constructs fresh transform/MeshRenderer objects from the held weapon
 hierarchy and shares immutable mesh/material references. No native behaviours,
 pool objects, colliders, weapon controllers or inventory items are cloned.
-Unsupported/skinned geometry fails closed. Native left-arm IK gets a temporary
-camera-left target offset after `Player.IkProcess`; native `IkApply` still solves
-the limb. Support-hand fingers are an explicit visual-prototype limitation.
+Unsupported/skinned geometry fails closed. Dynamic AmmoPoolObject subtrees are
+excluded entirely: cartridges and shells change native pool ownership during
+firing. Every copied node retains its direct source parent; pose and renderer
+writes require the complete original chain to the owned weapon root. Detached
+objects are never hidden or restored through a stale reference. Native arm IK
+gets temporary targets after `Player.IkProcess`; native `IkApply` still solves
+the limbs. Support-hand fingers are an explicit visual-prototype limitation.
 No animation assets, permanent bone markers or native controller state are
 replaced. Sprint, reload, vault, inventory, interactions, malfunctions and other
 busy states hide the replica and omit the IK override; the original animation
@@ -79,6 +87,31 @@ rebinding waits for native reload completion and copies the replacement model.
 The current native fireport is remapped
 to its owned mesh copy before emission. No ordinary PMC/Scav/Hideout
 modification, bot use or profile/inventory mutation is permitted.
+
+## Doubled firing cadence (2026-10-08)
+
+Only the exact bound local live Arena firing operation is accelerated: native
+FireOperation (including its revolver subclass) and AutomaticFireOperation
+receive twice the update delta. Their native input/queued-click rules remain;
+there is no automatic second trigger for single fire. Animator event timing must
+also double, because native single fire waits for OnIdleStartEvent as well as
+its cooldown. Unity hands use a compare-before-restore speed lease; it is
+released before the owned firing operation becomes Finished, on context loss,
+OFF, owner replacement, exception and disposal. Another writer's speed is
+preserved and not fought for that operation. FastAnimatorProcessor's speed setter
+is unused, so only its exact manually updated hands instance receives twice its
+Update delta instead. Unsupported animator modes keep native timing.
+
+Native evidence: Player.cs FireOperation.Start/Update/OnIdleStartEvent at
+4372/4499/4525, revolver event at 4185, automatic scheduler at 2686/2723,
+ArmsUpdate at 29064 and ArmsLateUpdate at 29104. Never multiply ArmsUpdate or
+ArmsLateUpdate: the latter also advances ballistics. No shared WeaponTemplate,
+FireRate getter, projectile time, reload operation or bot animator is modified.
+
+Production-linked Timing checks cover simultaneous timer/animator scaling,
+identity, foreign writes, state-boundary restore, FastAnimator mode and per-side
+presentation. View checks cover native renderer/pool lifetime; these doubles do
+not substitute for Unity and actual native firing tests.
 
 Source seams: `Player.InitiateShot`, `Player.IkProcess`, `Player.VisualPass`,
 `FirearmController.IsAiming`; actual installed-source contract verified in

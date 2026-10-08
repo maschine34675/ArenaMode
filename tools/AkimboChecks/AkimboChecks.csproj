@@ -4,5 +4,5 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <LeaseSource Condition="'$(LeaseSource)' == ''">../../ArenaMode.Client/Combat/Akimbo/AkimboLease.cs</LeaseSource>
   </PropertyGroup>
-  <ItemGroup><Compile Remove="Cylinder/**/*.cs"/><Compile Include="$(LeaseSource)" Link="Production/AkimboLease.cs" /></ItemGroup>
+  <ItemGroup><Compile Remove="Cylinder/**/*.cs;Timing/**/*.cs;View/**/*.cs"/><Compile Include="$(LeaseSource)" Link="Production/AkimboLease.cs" /></ItemGroup>
 </Project>
