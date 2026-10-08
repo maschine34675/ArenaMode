@@ -8,8 +8,10 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - **Menü-Politur (2026-10-08, Branch feature/menu-polish, Worktree ArenaMode-zombie):**
-  Sechs Nutzerwünsche aus der GPU-Abnahme von v2, je ein Commit in dieser
-  Reihenfolge (`git log feature/menu-polish`); nur Offline-Harnesse, nichts
+  Sechs Nutzerwünsche aus der GPU-Abnahme von v2 in fünf Commits in dieser
+  Reihenfolge (Punkt 3 und 4 teilen sich einen; `git log feature/menu-polish`),
+  danach Review-Korrekturen an Tests und Doku (strengere Pins, Zustandsautomat
+  der Beschriftung offline ausgeführt, keine Verhaltensänderung im Spiel); nur Offline-Harnesse, nichts
   gebaut/deployt, nichts im Spiel gesehen, nicht gepusht. Details je Punkt in
   `MUTATORS-MENU-REVIEW.md` (Nachtrag 2026-10-08), `NATIVE-MENU-REVIEW.md` und
   `ZOMBIE-MODE-REVIEW.md`.

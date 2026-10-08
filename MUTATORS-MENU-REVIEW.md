@@ -1,6 +1,7 @@
 # Mutatoren im Kartenmenü
 
-Stand: 05.10.2026, Movement-Hauptschalter. Die vierzehn Mutatoren stehen dauerhaft in der
+Stand: 05.10.2026, Movement-Hauptschalter. Die Mutatoren (damals vierzehn, seit
+den Nachträgen unten sechzehn) stehen dauerhaft in der
 rechten Bildschirmspalte, ohne Öffnen-Button oder Popup. Eigene Controls im
 Arena-Stil zeigen aktive Optionen mit grünem ON, Farbchip und Seitenstreifen;
 OFF bleibt grau, nicht verfügbare Optionen zeigen N/A mit Begründung.
@@ -58,11 +59,14 @@ nicht. Bei ausstehendem Bild oder fehlender Kartenauswahl bleibt die Bildfläche
 leer, statt das vorige Thumbnail zu zeigen. Customs zeigt dort seine Arealkarte
 mit AREA/OVERVIEW. Beide Ansichten reservieren dieselben 320 Referenzpixel Höhe;
 die Mutatoren bleiben unabhängig von Karte und Modus fest auf Y=508.
-Die vierzehn Schalter stehen in zwei Spalten mit sieben Zeilen; der Kasten ist 472
+Die sechzehn Schalter stehen in zwei Spalten mit acht Zeilen (am 05.10. waren es
+vierzehn in sieben Zeilen); der Kasten ist 472
 Referenzpixel hoch und endet bei Y=980. Die erste GPU-2-Prüfung zeigte bei
 496 Pixeln eine Überschneidung mit der nativen READY-Fläche (ab Y=984), deshalb
-sind Buttons jetzt 26 Pixel hoch, weiterhin mit derselben Schriftgröße und
-28 Pixel Platz für zweizeilige Beschreibungen. Beschreibungen bleiben sichtbar, kein
+sind Buttons jetzt 26 Pixel hoch, weiterhin mit derselben Schriftgröße; darunter
+hat die Beschreibung seit dem Nachtrag 2026-10-08 25,5 Pixel Platz (Zeilenabstand
+51,5 minus 26; am 05.10. waren es 28 Pixel bei sieben Zeilen, zwischen den
+Nachträgen 21,5 bei Abstand 47,5, siehe dort). Beschreibungen bleiben sichtbar, kein
 Scrollen oder weiteres Popup. Der zentrale Navigationsbereich bleibt frei.
 Die GPU-Prüfung zeigte abgeschnittene Langtexte; die kurzen Hilfetexte sind
 deshalb auf eine Zeile gekürzt, ohne Schriftgröße oder Kastenposition zu ändern.
@@ -110,7 +114,7 @@ Build, Auslieferung und eine eventuelle native UI-Prüfung werden mit Commit und
 Hash im HANDOFF dokumentiert; Offline-Prüfungen zertifizieren kein Raycasting,
 Schriftbild oder Gameplay.
 
-Native Prüffolge: Arena > Kartenauswahl; vierzehn sofort sichtbare Schalter, ON/OFF
+Native Prüffolge: Arena > Kartenauswahl; sechzehn sofort sichtbare Schalter, ON/OFF
 und Farbwechsel mit F12 vergleichen, Killcam pro Modus und Laser/Pickup-N/A
 prüfen; Factory-Zeitwahl und Customs-Preview ohne Überlappungen, Escape und
 gewöhnlichen PMC-Bildschirm auf vollständige Restaurierung prüfen. Keine neue Raid-Abnahme nötig,
@@ -143,10 +147,12 @@ Mutator hinzu und einer wieder heraus, beide ohne `ArenaMutatorsView`-Code-
   ZOMBIE-MODE-REVIEW.md für die Verfügbarkeitstabelle.
 - Die Zählung "vierzehn" oben war schon vor diesem Nachtrag veraltet
   (Pickups/Tracer/Laser/Akimbo kamen seither dazu, ohne dass dieses Dokument
-  nachgezogen wurde) und wird hier nicht nachträglich korrigiert — das ist
+  nachgezogen wurde) und wurde in diesem Nachtrag nicht korrigiert — das war
   vorbestehende, von diesem Nachtrag unabhängige Technik-Schuld. Die
   aktuelle Zahl laut ZOMBIE-MODE-REVIEW.md: 15 Mutatoren nach Entfernung von
   OWN GEAR, 16 nach Hinzufügen von ANNOUNCER. Noch nicht im Spiel bestätigt.
+  (Nachgezogen am 2026-10-08: Kopf, Geometrieabsatz und Prüffolge oben nennen
+  jetzt sechzehn Schalter in 2 × 8 Zeilen.)
 
 ## Nachtrag 2026-10-08: Menü-Politur (Branch feature/menu-polish)
 
