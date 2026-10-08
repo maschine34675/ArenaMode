@@ -306,6 +306,7 @@ internal static partial class Program
         CheckNativeAreas();
         CheckAreaTeamMenu();
         CheckParticipantNegotiation();
+        CheckSessionModeCaption();
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

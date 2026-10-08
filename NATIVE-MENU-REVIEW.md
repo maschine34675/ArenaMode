@@ -76,3 +76,57 @@ No third-party mod code, DLLs, UI bundles or new dependency were copied.
 Private visual report and original screenshots:
 `C:\Users\Administrator\Documents\Codex\2026-09-07\lies-agents-md-und-handoff-md\outputs\Arena-UI-Ueberarbeitung\`.
 Build and run logs are in the sibling `work\arena-native-menu\` directory.
+
+## 2026-10-08: "ARENA ZONE" instead of "PVE ZONE"
+
+Offline-verified only (harness plus source pins); Harmony binding and the
+rendered label were not seen in the game.
+
+The SPT locale key `ESessionMode/Pve` reads "PVE ZONE". Two native paths write it
+(decompile `D:\SPT41\Development\_decompiled`, EFT 0.16.9.5):
+
+- `EFT.UI.Screens/MatchmakerEftScreen.cs:17`, the abstract generic base of every
+  matchmaker screen: `Show(controller)` sets
+  `_subCaption.text = controller.SessionMode.LocalizedEnum()` (public field
+  `_subCaption`, line 11). `EftMatchmakerScreenController.cs:20-22` exposes only
+  `MatchmakerPlayersController` and `SessionMode`, no `RaidSettings`; each screen's
+  own controller does (`RaidSettings` at `MatchMakerSelectionLocationScreen.cs:23`,
+  `MatchMakerSideSelectionScreen.cs:34`, `MatchMakerAcceptScreen.cs:41`).
+- `EFT.UI.Matchmaker/MatchmakerTimeHasCome.cs:219`, the "DEPLOYING TO LOCATION"
+  screen, inside `Show(IEftSession, RaidSettings, MatchmakerPlayersController)`
+  (line 209).
+
+`ArenaSessionModeCaptionPatch` (new, enabled from `Plugin` right after
+`ArenaLocationSelectionPatch`) overwrites the label with the pure
+`ArenaSessionModeCaption.Resolve(true, ...)` = "ARENA ZONE" in postfixes, so the
+native text is written first and replaced after. The generic base is deliberately
+NOT patched (AGENTS.md: a patch on a method declared on a generic type is a
+trap); every target is a non-generic override or method of the concrete screen:
+
+| Screen | Patched method (decompile) | Gate |
+|---|---|---|
+| Select location | `MatchMakerSelectionLocationScreen.ShowInternal` (`:409`, finishes `Show(controller)` `:391`) | `ArenaMenuSelection.IsSelectedFor(raidSettings)` |
+| Accept (PFT team flow) | `MatchMakerAcceptScreen.Show(MatchmakerAcceptScreenController)` (`:321`) | `ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)` |
+| Deploying to location | `MatchmakerTimeHasCome.Show(TimeHasComeScreenController)` (`:204`, calls the overload at `:209`) | `!controller.IsReconnecting` and (`IsSelectedFor(controller.RaidSettings)` or `ArenaSession.ArmedForNextRaid`) |
+| Side selection | `ArenaSideSelectionPatch`: `ShowPatch.Postfix` and `SelectPatch.Postfix` (`MatchMakerSideSelectionScreen.Show` `:258`, `SetSelectedSide` `:448`) | `ArenaMenuSelection.IsSelected`, behind the PitFireTeam squad-screen early return |
+
+The deploying screen patches the controller override instead of the three-argument
+overload, because only the controller tells a reconnect to a
+running ordinary raid (`ReconnectTimeHasComeScreenController`, `:20`) apart, and
+`ArenaPreviewFlowPatch.LoadingShowPatch` already patches that same method. The
+solo Arena flow skips the offline-raid, insurance and accept screens
+(`SkipPreRaidScreensPatch`), so those, `MatchmakerMapPointsScreen` and the key
+screen are not patched. On the side screen the ARENA toggle is the native third
+(Random) toggle: switching it on shows "ARENA ZONE", any other side restores the
+native label, and a restored selection (back from the map) shows it again.
+
+Every patch is gated on the Arena flow, never throws (`Apply` catches and leaves
+the native text) and touches nothing otherwise, so normal PMC/SCAV flows are
+byte-identical. The native text a patch replaced is remembered per label
+(`ConditionalWeakTable`) so only a label this patch overwrote is ever restored.
+Offline: `tools/NativeMenuChecks` (`CaptionChecks.cs`: pure `Resolve` plus
+source-text pins of every gate, the direct-write ban and the Plugin wiring) with
+`Verify-SessionModeCaption.ps1` (ten mutants, each rejected by its named
+assertion). Not covered: Harmony resolution of the four targets (all four are
+already patched elsewhere in the mod with the same `AccessTools` calls), the
+reconnect case, and what the label looks like.

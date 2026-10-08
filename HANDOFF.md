@@ -45,7 +45,27 @@ current. User-facing communication is normally German.
   Migrationsschritt). Harness: `tools/TdmMatchMenuChecks` (Assertions ersetzt, zwei
   Mutanten) und `tools/ArenaTracerChecks` (Renderer pro Modus, Quelltext-Pins, zwei
   Mutanten).
-  <!--MENU-POLISH-NEXT-->
+  (6) **"PVE ZONE" -> "ARENA ZONE":** neues `ArenaSessionModeCaption` (reine Regel)
+  und `ArenaSessionModeCaptionPatch` (Postfixe auf
+  `MatchMakerSelectionLocationScreen.ShowInternal`,
+  `MatchMakerAcceptScreen.Show(controller)` und
+  `MatchmakerTimeHasCome.Show(controller)`, je auf den Arena-Ablauf begrenzt,
+  Reconnect ausgenommen) plus
+  die ARENA-Umschaltung im Seitenbildschirm (`ArenaSideSelectionPatch`, an und
+  zurück auf den nativen Text). Nur im Arena-Ablauf, nie werfend; normale Raids
+  unberührt. Dekompilat-Zeilen und Gründe in `NATIVE-MENU-REVIEW.md` (Abschnitt
+  2026-10-08). Quelltext-Pins und zehn Mutanten in `tools/NativeMenuChecks`
+  (`Verify-SessionModeCaption.ps1`). Harmony-Bindung und Darstellung nicht im
+  Spiel gesehen. Offene Altlasten, nicht von dieser Änderung:
+  `tools/NativeAreaHookChecks` kompiliert auf diesem Stand nicht (`ArenaCompactMapInfo`
+  und `ArenaPortedMapPresentation` werden von `ArenaLocationSelectionPatch.cs`
+  verwendet, fehlen aber im Harness) und `tools/PitFireTeamChecks` scheitert an
+  der Assertion zum Team-Arena-Körperersatz, die nur `ArenaSession.cs` liest
+  (Datei auf diesem Branch unverändert).
+  Nächster Schritt ist ein GPU-2-Lauf: Mutator-Panel ohne Legende/Fußzeile,
+  Zombie-Fakten ohne Auslassungspunkte, ANNOUNCER aus = keine "DOUBLE KILL"-
+  Einblendung, COLORED TRACERS N/A außerhalb TDM/PFT, "ARENA ZONE" auf Seiten-,
+  Karten- und Ladebildschirm.
 
 - **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je
   Abzug einen nativen Schuss abwechselnd rechts/links um; zwei Schüsse pro

@@ -84,6 +84,9 @@ internal static class ArenaSideSelectionPatch
                     arena.IsToggled = true;
                     SetDescription(__instance);
                 }
+                // A restored ARENA selection shows "ARENA ZONE" (never throws; the
+                // native base Show above has already written "PVE ZONE").
+                ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);
                 if (!eligibility.Allowed)
                     Plugin.ModLogger.LogInfo($"Arena side button disabled: {eligibility.Reason}");
                 Plugin.ModLogger.LogInfo($"Arena side button: active={arena.gameObject.activeInHierarchy}, "
@@ -198,6 +201,10 @@ internal static class ArenaSideSelectionPatch
 
             if (ArenaMenuSelection.IsSelected)
                 SetDescription(__instance);
+            // Switching the ARENA toggle on shows "ARENA ZONE"; any other side puts
+            // back the native label this patch replaced (a flow that never selected
+            // Arena has nothing to put back and is not touched).
+            ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);
         }
     }
 
