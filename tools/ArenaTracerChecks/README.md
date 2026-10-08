@@ -18,7 +18,7 @@ Colored tracers are team-only (2026-10-08), like the team laser colors: the one
 Tactical, where the renderer prefix keeps the complete native method whatever
 TeamTracers says. The harness drives the real prefix per mode (the stand-in
 `TracerEntry` mirrors that rule), checks that solo shooters are still classified
-(killfeed names and friendly markers keep using `ArenaTracerTeams.Classify`), and
+(killfeed names keep using `ArenaTracerTeams.Classify`), and
 pins the shape of the real `TracerEntry` body and the absence of the retired
 per-mode solo settings by source text. `Verify-Regression.ps1` adds two mutants:
 a renderer that treats a missing entry as enabled, and a `TracerEntry` that also

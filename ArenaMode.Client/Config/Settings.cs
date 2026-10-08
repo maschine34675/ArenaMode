@@ -126,8 +126,9 @@ public static class Settings
     /// the renderer keeps the native tracer and the mutator row shows N/A. There
     /// are no per-mode solo tracer settings any more. Solo shooters are still
     /// classified friendly/opponent by <c>ArenaTracerTeams.Classify</c>, which
-    /// the killfeed names and friendly markers keep using in every mode; only the
-    /// TRACER rendering is team-only.
+    /// the killfeed names keep using in every mode (the friendly markers have
+    /// their own classification and are not affected); only the TRACER rendering
+    /// is team-only.
     /// </summary>
     internal static ConfigEntry<bool> TracerEntry(string mode, bool protectedTeam)
         => ArenaModeCatalog.NormalizeId(mode) switch

@@ -11,12 +11,20 @@ internal enum ArenaTracerSide
 }
 
 /// <summary>
-/// Match-scoped shooter identities for team-colored tracers. Protected 5v5 uses
-/// only TacticalMode's exact frozen profile rosters; faction, role and mutable bot
-/// groups are not identities. Historical same-side IDs remain until match end so
-/// a projectile still flying during a round rebind cannot change color.
-/// Independent faction TDM registers only its admitted bot IDs and retains the
-/// same historical-side rule; unowned bodies never get a guessed team color.
+/// Match-scoped shooter identities: who counts as friendly or opponent. Two
+/// consumers read <see cref="Classify"/>. The tracer renderer
+/// (<c>ArenaTracerPatches</c>) colors tracers from it, but only in team modes
+/// (Team DM, protected Tactical 5v5; see <c>Settings.TracerEntry</c>). The killfeed
+/// (<c>Hud/KillfeedText</c>) colors NAMES from it in every mode, solo included
+/// (local player friendly, every other verified shooter an opponent), so this
+/// class is not tracer-only. (The friendly markers do not use it; they classify
+/// bodies through the mode's own <c>TryClassifyCurrentBody</c> and share only the
+/// <c>FriendlyTracerColor</c> setting.)
+/// Protected 5v5 uses only TacticalMode's exact frozen profile rosters; faction,
+/// role and mutable bot groups are not identities. Historical same-side IDs remain
+/// until match end so a projectile still flying during a round rebind cannot change
+/// color. Independent faction TDM registers only its admitted bot IDs and retains
+/// the same historical-side rule; unowned bodies never get a guessed team color.
 /// </summary>
 internal static class ArenaTracerTeams
 {
@@ -148,9 +156,9 @@ internal static class ArenaTracerTeams
 
     /// <summary>
     /// In solo Arena, any other verified player-owned shot is an opponent (the
-    /// killfeed names and friendly markers rely on that in every mode; tracers
-    /// are only RENDERED for team modes, see <c>Settings.TracerEntry</c>). In
-    /// protected 5v5, only exact frozen roster IDs are accepted.
+    /// killfeed names rely on that in every mode; tracers are only RENDERED for
+    /// team modes, see <c>Settings.TracerEntry</c>). In protected 5v5, only exact
+    /// frozen roster IDs are accepted.
     /// </summary>
     internal static ArenaTracerSide Classify(
         string profileId,

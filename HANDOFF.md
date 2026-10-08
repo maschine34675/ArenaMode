@@ -50,8 +50,9 @@ current. User-facing communication is normally German.
   und `ZombieColoredTracers` sind entfernt; `Settings.TracerEntry` liefert
   `Effects/TeamTracers` nur für Team DM und geschütztes Tactical 5v5, sonst null
   (Renderer nativ, Mutator-Zeile N/A mit dem Laser-Grund, Beschreibung "Team colors
-  for every bullet."). Die Laserfarben waren schon team-only, unverändert. Killfeed-Namen und
-  Freund-Markierungen nutzen weiter `ArenaTracerTeams.Classify` in jedem Modus. Die
+  for every bullet."). Die Laserfarben waren schon team-only, unverändert. Die Killfeed-Namen
+  nutzen weiter `ArenaTracerTeams.Classify` in jedem Modus (die Freund-Markierungen
+  klassifizieren Ã¼ber den Modus selbst und sind nicht berÃ¼hrt). Die
   gespeicherte cfg behält die vier Schlüssel als verwaiste Einträge (harmlos, kein
   Migrationsschritt). Harness: `tools/TdmMatchMenuChecks` (Assertions ersetzt, zwei
   Mutanten) und `tools/ArenaTracerChecks` (Renderer pro Modus, Quelltext-Pins, zwei

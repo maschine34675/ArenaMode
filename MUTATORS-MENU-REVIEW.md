@@ -23,8 +23,12 @@ Es gibt keine neuen Zahlenregler oder eine zweite Konfiguration.
 | Pickups | Arena pickups / Enabled | Deathmatch oder unabhängiges TDM; benötigt zusätzlich ein Karten-/Areal-Layout |
 | Colored tracers | Effects / TeamTracers | Seit 2026-10-08 nur TDM und geschütztes Tactical 5v5/PFT (wie die Laserfarben), sonst N/A; aus stellt native Tracer wieder her. Die frühere Pro-Modus-Wahl für Deathmatch, Gun Game, Tactical 1v5 und Zombie ist entfernt |
 | Team laser colors | Effects / TeamLasers | TDM oder geschütztes Tactical/PFT; Helligkeit unverändert |
+| Akimbo | Combat / AkimboEnabled | Standard AUS; verdoppelt die gehaltene Pistole, gemeinsames Magazin (später dazugekommen, siehe AKIMBO-REVIEW.md) |
+| Announcer | `<Modus> / Announcer`, pro Modus | Standard AN, nur Zombie AUS; schaltet Stinger, Rundenhinweise und seit 2026-10-08 auch die Kill-Einblendungen; der globale Hauptschalter Audio / Announcer bleibt live (Nachtrag 2026-10-06 und 2026-10-08 unten) |
 
-Die sichtbaren Schalter lesen und ändern exakt die vorhandenen ConfigEntries.
+Die Tabelle nennt alle sechzehn Schalter (die ersten vierzehn sind der Stand vom
+05.10., Akimbo und Announcer kamen später dazu). Die sichtbaren Schalter lesen
+und ändern exakt die vorhandenen ConfigEntries.
 Keine fremde Mod-Konfiguration und keine neue Serverroute. Killcam verwendet weiter TrySelectKillcam: AN setzt drei Sekunden,
 AUS null, getrennt pro Modus; die bestehende Aufnahme beim Arm bleibt erhalten.
 [Überholt seit 2026-10-08, siehe Nachtrag unten: Tracer waren bis dahin in
@@ -103,8 +107,8 @@ unverändert. Derselbe lokale Kurzname steht auch über dem Thumbnail.
 
 Der erweiterte TdmMatchMenuChecks-Harness kompiliert echte Settings,
 ArenaPickupSettings, Adapter und Unity-Ansichten gegen externe UI-/Config-
-Grenzen. Er prüft Speicherung, F12-Synchronisation, alle vier Modi inklusive
-Tactical Solo/PFT, fehlende Killcam, ausgeschalteten Movement-Master, versteckte
+Grenzen. Er prüft Speicherung, F12-Synchronisation, alle Modi (Deathmatch, Gun
+Game, Tactical Solo/PFT, Team DM, Zombie), fehlende Killcam, ausgeschalteten Movement-Master, versteckte
 und alte Callbacks, Arm-/Raid-Sperren sowie Close/Wiederöffnen. Kompilierte
 Fehlerkontrollen testen die tragenden Guards. Kein Spielprozess und keine echte
 Konfiguration werden durch diesen Harness verändert.
@@ -114,9 +118,14 @@ Build, Auslieferung und eine eventuelle native UI-Prüfung werden mit Commit und
 Hash im HANDOFF dokumentiert; Offline-Prüfungen zertifizieren kein Raycasting,
 Schriftbild oder Gameplay.
 
-Native Prüffolge: Arena > Kartenauswahl; sechzehn sofort sichtbare Schalter, ON/OFF
-und Farbwechsel mit F12 vergleichen, Killcam pro Modus und Laser/Pickup-N/A
-prüfen; Factory-Zeitwahl und Customs-Preview ohne Überlappungen, Escape und
+Native Prüffolge: Arena > Kartenauswahl; sechzehn sofort sichtbare Schalter in
+zwei Spalten ohne Legende unter dem Titel und ohne Fußzeile (die Zeilen füllen den
+Kasten bis kurz über den Boden), ON/OFF und Farbwechsel mit F12 vergleichen,
+Killcam pro Modus prüfen, Laser-, Tracer- und Pickup-N/A prüfen (Tracer und
+Laserfarben außerhalb Team DM und Tactical 5v5/PFT mit demselben Grund
+"Requires Team DM or Tactical 5v5 (PFT)."), ANNOUNCER aus = keine
+"DOUBLE KILL"-Einblendung (in Zombie ist der Standard AUS, siehe Nachtrag
+2026-10-08); Factory-Zeitwahl und Customs-Preview ohne Überlappungen, Escape und
 gewöhnlichen PMC-Bildschirm auf vollständige Restaurierung prüfen. Keine neue Raid-Abnahme nötig,
 um die unveränderten Gameplaypfade zu beschreiben; deren Funktion ist mit diesem
 Menütest aber nicht erneut bestätigt.
@@ -156,9 +165,15 @@ Mutator hinzu und einer wieder heraus, beide ohne `ArenaMutatorsView`-Code-
 
 ## Nachtrag 2026-10-08: Menü-Politur (Branch feature/menu-polish)
 
-Sechs Änderungen aus dem Nutzerfeedback nach der GPU-Abnahme von v2; dieser
-Abschnitt ergänzt den Stand oben, Zeilen und Absätze weiter oben, die dadurch
-veraltet sind, wurden an Ort und Stelle korrigiert.
+Sechs Änderungen aus dem Nutzerfeedback nach der GPU-Abnahme von v2. Drei davon
+betreffen das Mutatoren-Panel und stehen in diesem Abschnitt: ANNOUNCER blendet
+die Einblendungen aus, Legende und Fußzeile entfallen, gefärbte Tracer gelten nur
+noch in Team-Modi. Die übrigen drei stehen in ihren eigenen Dokumenten: die
+einheitlichen Modus-Texte (RULES/RESPAWN/EQUIPMENT, Zombie passt in den Kasten) in
+`MODE-SIDEBAR-REVIEW.md` und `ZOMBIE-MODE-REVIEW.md`, "ARENA ZONE" statt "PVE ZONE"
+in `NATIVE-MENU-REVIEW.md`. Dieser Abschnitt ergänzt den Stand oben; Tabelle und
+Absätze weiter oben, die dadurch veraltet sind, wurden an Ort und Stelle
+korrigiert.
 
 **ANNOUNCER blendet auch die Einblendungen aus.** Der Schalter wirkt jetzt auf
 alles, was der Announcer ausgibt: Stinger, Rundenhinweise UND den großen
@@ -235,10 +250,13 @@ Beschreibung lautet "Team colors for every bullet.". Verfügbarkeit, Sperre bei
 Arm/Raid und Speichern laufen über denselben generischen Pfad wie bisher.
 Die Laser-Zeile war schon team-only und bleibt unverändert: Tracer und Laser
 teilen jetzt dieselbe Regel (`ArenaMutatorSelection.TeamModesOnly`).
-Unverändert bleibt `ArenaTracerTeams.Classify`: Killfeed-Namensfarben und
-Freund-Markierungen laufen in jedem Modus weiter über dieselbe Klassifikation
+Unverändert bleibt `ArenaTracerTeams.Classify`: die Killfeed-Namensfarben
+(`KillfeedText`) laufen in jedem Modus weiter über dieselbe Klassifikation
 (solo: Spieler freundlich, jeder andere Schütze Gegner); nur das Zeichnen des
-Tracers ist team-only. Die gespeicherte cfg behält die vier Schlüssel als
+Tracers ist team-only. Die Freund-Markierungen (Team-Modi) benutzen eine eigene
+Klassifikation (`TryClassifyCurrentBody` der Modi) und teilen mit Killfeed und
+Tracern nur die Farbe `FriendlyTracerColor`; sie sind nicht berührt. Die
+gespeicherte cfg behält die vier Schlüssel als
 verwaiste Einträge, BepInEx ignoriert sie; es gibt keine Migration, und ein dort
 gespeichertes `true` schaltet nichts ein (im Harness mit `true` gesetzt belegt).
 Offline: `tools/TdmMatchMenuChecks` (N/A in vier Solo-Modi, ON/OFF-Speichern und
