@@ -67,7 +67,18 @@ $queueMethod = Get-Method $flow 'private static void QueueHostHide('
 $queueAssignment = [regex]::Matches($queueMethod, '_pendingHostHide\s*=\s*[^;]+;')
 if ($queueAssignment.Count -ne 1) { throw 'Expected exactly one pending-hide assignment inside QueueHostHide.' }
 $mapMethod = Get-Method $flow 'public static void HideForMap('
+$nativeLoadingMethod = Get-Method $flow 'public static void ShowNativeLoading('
+$localPlayerMethod = Get-Method $flow 'public static bool TryShowLoadingPlayer('
 $mutations = @(
+    @{ Name = 'own-local-click-loses-source'; Source = $flow; Target = 'flow'; Old = $localPlayerMethod; New = $localPlayerMethod.Replace('_ = RestoreLoading(screen);', '_shownOwnGear = null; _ = RestoreLoading(screen);') },
+    @{ Name = 'accept-ignores-equipment'; Source = $flow; Target = 'flow'; Old = 'if (UseNativeEquipment(preview.transform)) return false;'; New = '' },
+    @{ Name = 'loading-ignores-equipment'; Source = $flow; Target = 'flow'; Old = 'if (UseNativeEquipment(screen.transform)) return false;'; New = '' },
+    @{ Name = 'rejected-team-borrows-own-gear'; Source = $flow; Target = 'flow'; Old = 'return eligibility.Allowed && eligibility.IsTeam;'; New = 'return eligibility.IsTeam;' },
+    @{ Name = 'stale-arm-borrows-equipment'; Source = $flow; Target = 'flow'; Old = '&& ArenaSession.ArmEpoch != _loadingArmEpoch'; New = '' },
+    @{ Name = 'frozen-own-gear-lost'; Source = $flow; Target = 'flow'; Old = 'return ArenaSession.ZombieOwnGearArmed'; New = 'return false' },
+    @{ Name = 'native-texture-not-restored'; Source = $flow; Target = 'flow'; Old = 'if (ReferenceEquals(previous.Host, host)) Safe(previous.PrepareNativeImage);'; New = '' },
+    @{ Name = 'equipment-replaces-teammate'; Source = $flow; Target = 'flow'; Old = $nativeLoadingMethod; New = $nativeLoadingMethod.Replace('_shownOwnGear = null;', '') },
+    @{ Name = 'reshow-forgets-frozen-source'; Source = $flow; Target = 'flow'; Old = 'if (!use || !ReferenceEquals(screen, _loadingScreen)) _loadingArmEpoch = ArenaSession.ArmEpoch;'; New = '_loadingArmEpoch = ArenaSession.ArmEpoch;' },
     @{ Name = 'map-disposes-owner'; Source = $flow; Target = 'flow'; Old = $mapMethod; New = $mapMethod.Replace('Suspend();', 'Reset();') },
     @{ Name = 'map-leaves-preview-visible'; Source = $flow; Target = 'flow'; Old = $mapMethod; New = $mapMethod.Replace('Suspend();', '') },
     @{ Name = 'inline-host-callback'; Source = $flow; Target = 'flow'; Old = $queueAssignment[0].Value; New = 'SuspendHost(host, generation, false);' },

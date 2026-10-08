@@ -120,8 +120,7 @@ internal static class ArenaPreviewFlowPatch
             => AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.HandleOnPlayerClick));
         [PatchPrefix]
         private static bool Prefix(MatchmakerTimeHasCome __instance, RaidPlayer raidPlayer)
-            => !ArenaPreviewFlow.IsLocalLoadingPlayer(__instance, raidPlayer)
-               || !ArenaPreviewFlow.TryShowLoading(__instance);
+            => !ArenaPreviewFlow.TryShowLoadingPlayer(__instance, raidPlayer);
     }
 
     private sealed class ClearSelectionPatch : ModulePatch

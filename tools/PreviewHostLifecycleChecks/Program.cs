@@ -24,6 +24,10 @@ internal static class Program
             DestroyedWorldIsUnavailable();
             SelectionAndForeignHostGuards();
             ResetDropsPendingHide();
+            EquipmentChoiceFollowsActualModes();
+            EquipmentChangesRestoreNativeAndKeepPendingLoad();
+            LoadingArmFreezesEquipmentAndRejectsStaleArm();
+            TeammateAndReconnectKeepNativeEquipment();
             Console.WriteLine($"PREVIEW_HOST_LIFECYCLE_CHECKS_PASSED: {_assertions} assertions; simulated lifecycle boundary, no Unity rendering executed.");
             return 0;
         }
@@ -43,6 +47,14 @@ internal static class Program
         {
             ArenaPreviewFlow.Reset();
             ArenaSession.IsActive = false;
+            ArenaSession.ArmedForNextRaid = false;
+            ArenaSession.ArmEpoch = 0;
+            ArenaSession.ArmedMode = null;
+            ArenaSession.ZombieOwnGearSelection = false;
+            ArenaMode.Config.Settings.SelectedGameModeId = "deathmatch";
+            ArenaMode.Config.Settings.OwnGear = false;
+            ArenaMenuSelection.CurrentEligibility = new();
+            ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = false;
             Plugin.ModLogger.Warnings.Clear();
             ArenaMenuSelection.Selected = Settings;
             Preview = new(loading);
@@ -308,5 +320,146 @@ internal static class Program
         Check(current.Preview.View.transform.parent == next.Raw.transform, "pending action from reset flow cannot suspend replacement");
         Check(previous.Preview.Releases == 1, "reset releases old lifetime once");
         Check(current.Preview.Releases == 0, "new owner survives old flow reset");
+    }
+
+    private static void EquipmentChoiceFollowsActualModes()
+    {
+        foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie", " ZOMBIE " })
+        foreach (bool own in new[] { false, true })
+        foreach (bool team in new[] { false, true })
+        foreach (bool allowed in new[] { false, true })
+        {
+            var fixture = new Fixture();
+            ArenaMode.Config.Settings.SelectedGameModeId = mode;
+            ArenaMode.Config.Settings.OwnGear = own;
+            ArenaMenuSelection.CurrentEligibility = new() { Allowed = allowed, IsTeam = team };
+            bool native = mode.Trim().Equals("zombie", StringComparison.OrdinalIgnoreCase) && own
+                || mode == "tactical" && allowed && team;
+            var accept = new Widget();
+            ArenaPreviewFlow.PrepareAccept(accept.Screen, fixture.Settings);
+            Check(ArenaPreviewFlow.TryShowAccept(accept.Model) == !native,
+                $"confirmation selects actual equipment path: {mode}/{own}/{team}/{allowed}");
+            accept.CheckNative(native, "mode selection confirmation flags");
+            var loading = new LoadingWidget(fixture.Settings);
+            ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);
+            Check(ArenaPreviewFlow.TryShowLoading(loading.Screen) == !native,
+                $"loading selects actual equipment path: {mode}/{own}/{team}/{allowed}");
+            Check(loading.Raw.enabled == native && loading.Camera.enabled == native,
+                "loading native flags reflect equipment owner");
+            Check(fixture.Preview.Releases == 0, "equipment selection keeps detached renderer available");
+        }
+    }
+
+    private static void EquipmentChangesRestoreNativeAndKeepPendingLoad()
+    {
+        var fixture = new Fixture(loading: true); var accept = fixture.Accept();
+        var oldCallback = accept.Model.GetComponent<ArenaPreviewHostLifetime>().OnHidden;
+        ArenaMode.Config.Settings.SelectedGameModeId = "zombie";
+        ArenaMode.Config.Settings.OwnGear = true;
+        fixture.Tick();
+        accept.CheckNative(true, "own gear restores native confirmation");
+        Check(accept.Model.NativeUpdates == 1 && accept.Camera.Recreated == 1,
+            "own gear transition requests native visual and recreates released texture");
+        Check(!fixture.Preview.View.activeSelf && fixture.Preview.View.transform.parent == null,
+            "own gear hides representative Arena equipment");
+        Check(fixture.Preview.Releases == 0, "pending body init survives source change");
+        fixture.Preview.FinishLoad();
+        Check(fixture.Preview.Releases == 0 && !fixture.Preview.View.activeSelf,
+            "late Arena load cannot replace the native own-gear view");
+        fixture.Tick();
+        Check(accept.Model.NativeUpdates == 1, "unchanged own gear does not reload each frame");
+        ArenaMode.Config.Settings.OwnGear = false;
+        fixture.Tick();
+        accept.CheckNative(false, "Arena kits restore retained figure");
+        Check(fixture.Preview.Shows == 2, "source choice reuses the single body");
+        oldCallback(); fixture.Tick();
+        Check(fixture.Preview.View.transform.parent == accept.Raw.transform,
+            "stale callback from prior equipment source cannot hide new surface");
+        ArenaMode.Config.Settings.OwnGear = true;
+        var loading = new LoadingWidget(fixture.Settings);
+        ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);
+        Check(!ArenaPreviewFlow.TryShowLoading(loading.Screen), "own loading remains native");
+        accept.CheckNative(true, "new own-gear host restores previous provided-gear surface");
+        ArenaPreviewFlow.Reset();
+        Check(fixture.Preview.Releases == 1, "source transitions still release single renderer once");
+    }
+
+    private static void LoadingArmFreezesEquipmentAndRejectsStaleArm()
+    {
+        var fixture = new Fixture();
+        ArenaSession.ArmedForNextRaid = true;
+        ArenaSession.ArmedMode = "zombie";
+        ArenaSession.ZombieOwnGearSelection = true;
+        ArenaSession.ArmEpoch = 12;
+        var loading = fixture.Loading();
+        Check(!loading.Raw.enabled, "stale earlier arm cannot override current provided-kit selection");
+        ArenaSession.ArmEpoch++;
+        fixture.Tick();
+        Check(loading.Raw.enabled && loading.Camera.enabled && loading.Camera.Recreated == 1,
+            "new current arm switches loading to frozen own equipment");
+        Check(loading.Screen.NativeUpdates == 1, "new arm initiates one native loading update");
+        ArenaMode.Config.Settings.SelectedGameModeId = "deathmatch";
+        ArenaMode.Config.Settings.OwnGear = false;
+        fixture.Tick();
+        Check(!ArenaPreviewFlow.TryShowLoading(loading.Screen), "later F12 edit cannot replace frozen own gear");
+        Check(loading.Screen.NativeUpdates == 1, "unchanged frozen source does not retry native load");
+        ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);
+        Check(!ArenaPreviewFlow.TryShowLoading(loading.Screen), "same loading screen re-show keeps frozen source");
+        ArenaPreviewFlow.HideForMap(fixture.Settings);
+        var next = fixture.Loading();
+        Check(!next.Raw.enabled, "return from aborted load uses new menu selection, not old arm");
+        ArenaSession.ArmedMode = "tactical";
+        ArenaSession.ZombieOwnGearSelection = false;
+        ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = true;
+        ArenaSession.ArmEpoch++;
+        fixture.Tick();
+        Check(next.Raw.enabled && next.Screen.NativeUpdates == 1, "current frozen PFT roster selects own gear");
+
+        fixture = new Fixture();
+        ArenaMode.Config.Settings.SelectedGameModeId = "zombie";
+        ArenaMode.Config.Settings.OwnGear = true;
+        next = new LoadingWidget(fixture.Settings);
+        ArenaPreviewFlow.PrepareLoading(next.Screen, next.Controller);
+        Check(!ArenaPreviewFlow.TryShowLoading(next.Screen), "initial own selection uses native");
+        ArenaSession.ArmedForNextRaid = true;
+        ArenaSession.ArmedMode = "zombie";
+        ArenaSession.ZombieOwnGearSelection = false;
+        ArenaSession.ArmEpoch++;
+        fixture.Tick();
+        Check(!next.Raw.enabled && fixture.Preview.Shows == 1,
+            "frozen provided-kit decision overrides earlier own-gear menu choice");
+    }
+
+    private static void TeammateAndReconnectKeepNativeEquipment()
+    {
+        var fixture = new Fixture(); var loading = fixture.Loading();
+        ArenaPreviewFlow.ShowNativeLoading(loading.Screen);
+        ArenaMode.Config.Settings.SelectedGameModeId = "zombie";
+        ArenaMode.Config.Settings.OwnGear = true;
+        fixture.Tick();
+        ArenaMode.Config.Settings.OwnGear = false;
+        fixture.Tick();
+        Check(loading.Raw.enabled && loading.Screen.NativeUpdates == 0,
+            "equipment refresh cannot replace explicitly selected teammate visual");
+        Check(ArenaPreviewFlow.TryShowLoading(loading.Screen), "local click resumes provided-kit preview");
+        ArenaMode.Config.Settings.OwnGear = true;
+        Check(ArenaPreviewFlow.TryShowLoadingPlayer(loading.Screen, new RaidPlayer { AccountId = "local" }),
+            "own-gear local click uses native local-profile rendering");
+        Check(loading.Screen.NativeUpdates == 1 && loading.Raw.enabled,
+            "own-gear local click requests native equipment exactly once");
+        Check(!ArenaPreviewFlow.TryShowLoadingPlayer(loading.Screen, new RaidPlayer { AccountId = "someone else" }),
+            "teammate click is never intercepted as local equipment");
+        ArenaMode.Config.Settings.OwnGear = false;
+        fixture.Tick();
+        Check(!loading.Raw.enabled, "local own-gear click retains later equipment reconciliation");
+        ArenaPreviewFlow.BeforeScreenClose(loading.Root.transform);
+        loading.Controller.IsReconnecting = true;
+        ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);
+        Check(!ArenaPreviewFlow.TryShowLoading(loading.Screen), "reconnect remains native");
+        Check(!ArenaPreviewFlow.IsLocalLoadingPlayer(loading.Screen, new RaidPlayer { AccountId = "local" }),
+            "reconnect does not capture local-player clicks");
+        ArenaMode.Config.Settings.OwnGear = true;
+        fixture.Tick();
+        Check(loading.Screen.NativeUpdates == 1, "reconnect does not acquire a native refresh owner");
     }
 }

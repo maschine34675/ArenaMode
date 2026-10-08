@@ -185,9 +185,19 @@ namespace ArenaMode.Session
     public static class ArenaMenuSelection
     {
         public static EFT.RaidSettings Selected;
+        public static Eligibility CurrentEligibility = new();
+        public sealed class Eligibility { public bool Allowed = true; public bool IsTeam; }
         public static bool IsSelectedFor(EFT.RaidSettings settings) => settings != null && ReferenceEquals(settings, Selected);
     }
-    public static class ArenaSession { public static bool IsActive; }
+    public static class ArenaSession
+    {
+        public static bool IsActive;
+        public static bool ArmedForNextRaid;
+        public static int ArmEpoch;
+        public static string ArmedMode;
+        public static bool ZombieOwnGearSelection;
+        public static bool ZombieOwnGearArmed => Modes.ZombieOwnGearGate.IsSelectedFor(ArmedMode, ZombieOwnGearSelection);
+    }
     internal static class ArenaSideSelectionLayout
     {
         public static ArenaCharacterPreview Pending;
@@ -234,4 +244,25 @@ namespace ArenaMode.Session
         public void RemoveViewBoundary() { _view.DestroyHost(); }
         public void RemoveWorldBoundary() { _world.DestroyHost(); }
     }
+}
+namespace ArenaMode.Modes
+{
+    internal static class ArenaModeCatalog { public const string TacticalId = "tactical"; }
+}
+namespace ArenaMode.Shared
+{
+    internal static class ArenaPopulationPolicy { public const string Zombie = "zombie"; }
+}
+namespace ArenaMode.Config
+{
+    internal static class Settings
+    {
+        public static string SelectedGameModeId = "deathmatch";
+        public static bool OwnGear;
+        public static bool GetEquipmentChoiceOwnGear(string mode) => OwnGear;
+    }
+}
+namespace ArenaMode.Compat
+{
+    internal static class PitFireTeamCompat { public static bool HasFrozenTeamRoster; }
 }

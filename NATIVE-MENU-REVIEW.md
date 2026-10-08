@@ -1,5 +1,66 @@
 # Arena native menu settings — 2026-09-07
 
+## 2026-10-08: Confirmation and deploying equipment source
+
+`ArenaPreviewFlow` now leaves the exact local PMC preview native when the
+selected Arena variant enters with the player's own equipment: Zombies with
+`Own gear`, or Tactical with an allowed protected PitFireTeam roster. Solo
+Tactical, Deathmatch, Gun Game, Team DM and Zombies with Arena kits retain the
+owned Arena mannequin. The side-selection figure is still the Arena identity
+figure; this change concerns Confirmation and Deploying to location.
+
+Own equipment is the real native preview, not a copied or modified live profile.
+The installed decompile confirms that `MatchMakerPlayerPreview.UpdateVisual`
+reads `RaidPlayer.PlayerVisualRepresentation`, while
+`MatchmakerTimeHasCome.ShowPlayerModel(null)` reads
+`Session.Profile.GetVisualEquipmentState()`. That method's default uses
+`Inventory.Equipment.CloneVisibleItem()` (`EFT/Profile.cs`), so Arena need not
+clone `Profile`, assign its inventory, or draw a gameplay kit. The authoritative
+gameplay paths are `ArenaSession.OnRaidStarted`: frozen PitFireTeam roster first,
+then `ZombieOwnGearActive`, otherwise `LiveKitRespawn.AtRaidStart`.
+
+Provided equipment remains a **representative Arena kit**, the existing detached
+USEC/M4 or BEAR/AK mannequin. It does not promise the exact eventual weapon or
+armor: random Arena kits are drawn later/per life, Gun Game owns its ladder, and
+solo Tactical owns its later purchase choices. This change neither advances that
+selection nor changes any gameplay kit. The intended visible distinction is
+own PMC equipment versus provided Arena equipment.
+
+The choice is evaluated within the existing exact selected `RaidSettings` flow.
+Loading appears before server arming; its entry records the current `ArmEpoch`,
+so only a newer arm in that flow can replace the menu choice with frozen
+`ZombieOwnGearArmed` / the protected Tactical roster. An old arm from an aborted
+load is ignored, same-screen re-show preserves the frozen choice, and Back to
+the map permits the new menu selection. The persistent preview guard reconciles
+changes while the local avatar is visible. It restores the native image and its
+render texture before asking native code to show own gear, and can reattach the
+same Arena figure when the selection returns to provided gear. An explicit
+teammate view suspends reconciliation until another local-player request; local
+own-gear clicks use the native local-profile path and retain that distinction.
+
+There is no new renderer, profile owner or item tree. The existing pending-load
+cancellation/deferred release protocol, host generation checks, normal-raid and
+reconnect exclusions remain in force. Teammates continue to use their own native
+visuals. No async native implementation is replaced.
+
+Offline validation is production-linked: `tools/PreviewHostLifecycleChecks`
+executes the actual flow with lifecycle/native boundary doubles, including the
+real `ZombieOwnGearGate`. It covers the mode/equipment/team matrix, restoring
+native image flags and texture, pending Arena-body completion, switching back,
+stale callbacks/arms, frozen loading choices, local/teammate clicks and reconnect.
+Compiled defects must reach runtime assertion failures. The existing
+`tools/ArenaCharacterPreviewChecks` additionally checks async ownership and
+compiles the preview hooks against the installed EFT/Unity assemblies. These
+checks establish source and offline behavior only.
+
+Native acceptance still required after the final integrated DLL and EFT restart:
+compare visibly distinctive own PMC gear with provided gear on Confirmation and
+Deploying, for Zombie own/kit and Tactical solo/protected 5v5; navigate Back and
+switch choices, exercise local/teammate loading clicks, and verify ordinary
+PMC/Scav plus reconnect remain native. Confirm no blank texture, stale kit,
+duplicate drag response, late mannequin appearance or preview error. No GPU
+acceptance is claimed for this follow-up.
+
 Historical review of the first native dropdown presentation. The later visible
 sidebar and compact mode facts are documented in [MODE-SIDEBAR-REVIEW.md](MODE-SIDEBAR-REVIEW.md).
 

@@ -32,7 +32,18 @@ account ownership, teammate switch/back and exact drag subscription cleanup.
 Map selection hides but retains the owner across first entry, accept/loading
 return and repeated shows; foreign settings cannot hide it, late native requests
 are revoked, and subsequent offline/accept screens still reuse the same body.
-The seven compiled negative controls dispose the map owner or leave it visible,
+Equipment-source coverage executes the actual flow and the actual
+`ZombieOwnGearGate`: the full mode/own-gear/team-eligibility matrix, provided/own
+transitions in Confirmation and Deploying, native render-texture recreation,
+late pending-body completion, stale/current arm epochs, frozen selection across
+F12 edits and same-screen re-show, abort/back, local-player click reconciliation,
+explicit teammate selection and reconnect. Own-gear cases delegate to native
+preview boundaries; supplied cases reuse the same representative Arena body.
+
+The compiled negative controls remove confirmation/loading equipment selection,
+admit a rejected team, use an old arm, ignore frozen own gear, drop texture
+restoration, overwrite teammate views, lose frozen source on re-show or stop
+reconciliation after a local own-gear click. Existing controls dispose the map owner or leave it visible,
 restore inline callback cleanup, remove the
 pre-attachment flush, erase the current native request while draining the hide,
 admit reentrant inactive Close, and remove native object availability checks.

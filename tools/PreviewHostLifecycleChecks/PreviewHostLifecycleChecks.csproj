@@ -14,5 +14,6 @@
     <Compile Include="$(PreviewAdapterSource)" Link="Production/PreviewAdapter.cs" />
     <Compile Include="$(PreviewFlowSource)" Link="Production/ArenaPreviewFlow.cs" />
     <Compile Include="$(PreviewStateSource)" Link="Production/ArenaPreviewLifetimeState.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ZombieOwnGearGate.cs" Link="Production/ZombieOwnGearGate.cs" />
   </ItemGroup>
 </Project>

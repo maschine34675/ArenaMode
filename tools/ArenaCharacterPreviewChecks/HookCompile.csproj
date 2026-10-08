@@ -16,6 +16,7 @@
     <Compile Include="../../ArenaMode.Client/Session/ArenaCharacterPreview.cs" Link="Production/ArenaCharacterPreview.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaPreviewEquipment.cs" Link="Production/ArenaPreviewEquipment.cs" />
     <Compile Include="../../ArenaMode.Client/Session/Preview/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../../ArenaMode.Client/Modes/ZombieOwnGearGate.cs" Link="Production/ZombieOwnGearGate.cs" />
     <Reference Include="Assembly-CSharp" Private="false" />
     <Reference Include="Assembly-CSharp-firstpass" Private="false" />
     <Reference Include="AnimationSystem.Types" Private="false" />
