@@ -48,6 +48,7 @@ internal static partial class Program
             VerifyDiagnostics();
             VerifyOutputDiagnostics();
             VerifyPerModeGate();
+            VerifyHudCalloutGate();
             VerifyShutdownRace(pluginDir, context);
             VerifyRoundCues(pluginDir, context);
             ArenaMatch.SpaceEvents = false;

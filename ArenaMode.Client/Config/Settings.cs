@@ -478,11 +478,12 @@ public static class Settings
     /// </summary>
     private static ConfigEntry<bool> BindAnnouncer(ConfigFile config, string section, bool defaultValue)
         => config.Bind(section, "Announcer", defaultValue,
-            "Per-mode gate for the Arena announcer (stingers, round/match cues). The global " +
-            "Audio/Announcer switch above stays a master gate: both it and this must be on for " +
-            "this mode's announcer to speak; AnnouncerVolume stays global too. Frozen like the " +
-            "other per-mode mutators while the raid is active or armed. HUD text callouts " +
-            "(e.g. WAVE n) are a separate system and are unaffected by either switch.");
+            "Per-mode gate for the Arena announcer (stingers, round/match cues and the on-screen " +
+            "kill callouts such as DOUBLE KILL). The global Audio/Announcer switch above stays a " +
+            "master gate: both it and this must be on for this mode's announcer to speak and show " +
+            "its callouts; AnnouncerVolume stays global too. Frozen like the other per-mode " +
+            "mutators while the raid is active or armed. HUD text callouts (e.g. WAVE n) are a " +
+            "separate system and are unaffected by either switch.");
 
     public static void Init(ConfigFile config)
     {
@@ -1534,7 +1535,8 @@ public static class Settings
             "Announcer",
             true,
             "Announcer stingers (combat awards, streaks, Tactical round/match cues) — plays .ogg files from " +
-            "BepInEx/plugins/ArenaMode/sounds/. Missing sounds are skipped and logged.");
+            "BepInEx/plugins/ArenaMode/sounds/. Missing sounds are skipped and logged. " +
+            "Master switch: when off, the on-screen kill callouts (DOUBLE KILL, ...) are hidden too.");
 
         AnnouncerVolume = config.Bind(
             "Audio",

@@ -1481,6 +1481,11 @@ table, never a mode-id literal of their own.
   `AnnouncerService`'s read sites (the attach-time log line, `SubmitCallout`,
   both `Tick` checks, `Receive`) call this one helper now, so they cannot
   disagree with each other.
+  Since 2026-10-08 that helper is `internal` and `ArenaHud` asks it as well: the
+  kill/award callouts ("DOUBLE KILL", ...) show only while the gate is open, so
+  the ANNOUNCER mutator hides the on-screen text together with the stingers;
+  the `WAVE n` text callout (`ReportTextCallout`) is not announcer output and
+  keeps showing in Zombie with the announcer OFF.
 
 ### Announcer per-mode default table
 

@@ -5,10 +5,12 @@ namespace ArenaMode.Modes;
 
 /// <summary>
 /// Pure gate for item 2 of the 2026-10-06 follow-up ("announcer mutator"):
-/// whether the Arena announcer (stingers, round/match cues — NOT the HUD's own
-/// text callouts; see <c>ZombieMode.Tick</c>'s <c>ReportTextCallout</c> and
-/// <c>ArenaHud</c>, which subscribe to a completely separate event and are
-/// never touched by this gate) may speak for the CURRENTLY ATTACHED match.
+/// whether the Arena announcer (stingers, round/match cues and, since the
+/// 2026-10-08 menu polish, the HUD's kill/award callouts such as "DOUBLE
+/// KILL" — NOT the HUD's own text callouts; see <c>ZombieMode.Tick</c>'s
+/// <c>ReportTextCallout</c>, which <c>ArenaHud</c> receives over a completely
+/// separate event that is never touched by this gate) may speak, and show its
+/// on-screen text, for the CURRENTLY ATTACHED match.
 ///
 /// Two independent knobs feed it, mirroring the task's own design hint ("keep
 /// volume global and make the enable per mode; the global switch, if any,

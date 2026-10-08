@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Menü-Politur (2026-10-08, Branch feature/menu-polish, Worktree ArenaMode-zombie):**
+  Sechs Nutzerwünsche aus der GPU-Abnahme von v2, je ein Commit in dieser
+  Reihenfolge (`git log feature/menu-polish`); nur Offline-Harnesse, nichts
+  gebaut/deployt, nichts im Spiel gesehen, nicht gepusht. Details je Punkt in
+  `MUTATORS-MENU-REVIEW.md` (Nachtrag 2026-10-08), `NATIVE-MENU-REVIEW.md` und
+  `ZOMBIE-MODE-REVIEW.md`.
+  (1) **ANNOUNCER blendet die Einblendungen aus:** `ArenaHud` zeigt die
+  Kill-/Award-Durchsagen ("DOUBLE KILL", ...) nur noch, wenn
+  `AnnouncerService.IsEnabledForLiveMatch()` (jetzt `internal`) wahr ist; die
+  HUD-Textdurchsagen ("WAVE n", Eigen-Granaten-Stichelei) laufen über einen
+  eigenen ungegateten Handler. Zeilenbeschreibung "Stingers, cues and kill
+  callouts."; Pins + drei Mutanten in `tools/AnnouncerChecks`.
+  <!--MENU-POLISH-NEXT-->
+
 - **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je
   Abzug einen nativen Schuss abwechselnd rechts/links um; zwei Schüsse pro
   geladener Patrone. Kein verzögertes Doppelgeschoss. Der kostenlose Teil wird

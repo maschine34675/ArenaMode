@@ -284,6 +284,13 @@ Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without
 // Item 2 of the 2026-10-06 follow-up ("announcer mutator") added Announcer
 // back to 16 after item 1 ("own gear to the left") removed OwnGear (16->15).
 Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 16, "inline panel has sixteen switches, no backdrop or close buttons");
+// 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
+// now hides, and every description still fits the one-line description cell.
+Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
+    "ANNOUNCER description names stingers, cues and the on-screen kill callouts");
+foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
+    Need(ArenaMutatorSelection.Description(id).Length is > 0 and <= 36,
+        "mutator description fits the one-line description cell: " + id);
 Need(!Settings.AkimboEnabled.Value, "akimbo remains an explicit opt-in");
 foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" })
 {

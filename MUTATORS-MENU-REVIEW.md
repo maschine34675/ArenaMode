@@ -148,3 +148,29 @@ Mutator hinzu und einer wieder heraus, beide ohne `ArenaMutatorsView`-Code-
   vorbestehende, von diesem Nachtrag unabhängige Technik-Schuld. Die
   aktuelle Zahl laut ZOMBIE-MODE-REVIEW.md: 15 Mutatoren nach Entfernung von
   OWN GEAR, 16 nach Hinzufügen von ANNOUNCER. Noch nicht im Spiel bestätigt.
+
+## Nachtrag 2026-10-08: Menü-Politur (Branch feature/menu-polish)
+
+Sechs Änderungen aus dem Nutzerfeedback nach der GPU-Abnahme von v2; dieser
+Abschnitt ergänzt den Stand oben, Zeilen und Absätze weiter oben, die dadurch
+veraltet sind, wurden an Ort und Stelle korrigiert.
+
+**ANNOUNCER blendet auch die Einblendungen aus.** Der Schalter wirkt jetzt auf
+alles, was der Announcer ausgibt: Stinger, Rundenhinweise UND den großen
+Mitteltext der Kill-/Award-Durchsagen ("DOUBLE KILL", "KILLING SPREE",
+"SHUTDOWN", ...). `ArenaHud` hängt `ArenaMatch.OnCallout` an einen eigenen
+Handler (`OnAwardCallout`), der `CalloutElement` nur zeigt, wenn
+`AnnouncerService.IsEnabledForLiveMatch()` wahr ist — dasselbe Gate wie die
+Stinger (live Hauptschalter UND die bei Arm eingefrorene Pro-Modus-Wahl, daher
+kein Mid-Raid-Umschalten per F12 am Per-Modus-Eintrag; der Hauptschalter
+`Audio / Announcer` bleibt live und blendet den Text ebenfalls aus).
+`ArenaMatch.OnTextCallout` ("WAVE n" aus ZombieMode, die Eigen-Granaten-
+Stichelei aus `ArenaSelfGrenadeTaunt`) hat weiterhin einen eigenen, ungegateten
+Handler und erscheint unabhängig vom Announcer-Schalter; der Satz im Nachtrag
+vom 06.10. ("HUD-Textdurchsagen sind kein Announcer und bleiben unverändert")
+gilt damit weiter. Die Zeilenbeschreibung lautet jetzt "Stingers, cues and
+kill callouts." (33 Zeichen, passt in die Beschreibungszelle). Offline belegt
+durch `tools/AnnouncerChecks` (Wahrheitstabelle des Gates plus Quelltext-Pins
+auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und drei Mutanten
+in `Verify-Regression.ps1` (ungegateter Award-Handler, gegateter Text-Handler,
+Text-Callout am Award-Handler). Nicht im Spiel gesehen.

@@ -64,7 +64,9 @@ internal sealed class ArenaMutatorSelection
         // mode's own switch, not the global master (see Settings.
         // AnnouncerEntry/IsAnnouncerEnabledFor). Zombie starts OFF, every
         // other mode starts ON.
-        ArenaMutator.Announcer => "Arena announcer stingers and cues.",
+        // Stingers, round cues AND the HUD's kill/award callouts ("DOUBLE
+        // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
+        ArenaMutator.Announcer => "Stingers, cues and kill callouts.",
         _ => string.Empty
     };
 

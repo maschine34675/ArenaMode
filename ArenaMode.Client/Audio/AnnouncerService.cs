@@ -209,8 +209,15 @@ internal static class AnnouncerService
     /// see <see cref="ArenaAnnouncerGate"/>'s own doc comment for why a live
     /// per-mode read here was ANN-1, a real bug this follow-up shipped and
     /// fixed the same day.
+    ///
+    /// Internal since the 2026-10-08 menu polish: <c>ArenaHud</c> asks the
+    /// SAME gate before it shows a kill/award callout ("DOUBLE KILL", ...),
+    /// because that centred text is the announcer's on-screen half and the
+    /// ANNOUNCER mutator must hide it together with the stingers. The HUD's
+    /// own text callouts (<c>ArenaMatch.OnTextCallout</c>: "WAVE n", the
+    /// own-grenade taunt) are not announcer output and never ask this gate.
     /// </summary>
-    private static bool IsEnabledForLiveMatch()
+    internal static bool IsEnabledForLiveMatch()
         => ArenaAnnouncerGate.IsEnabled(Settings.AnnouncerEnabled.Value, ArenaSession.AnnouncerEnabledSelection);
 
     public static void Attach(ArenaMatch match)

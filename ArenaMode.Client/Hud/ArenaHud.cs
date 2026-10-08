@@ -40,8 +40,8 @@ internal static class ArenaHud
             Build(match);
             _match = match;
             match.OnKill += OnKill;
-            match.OnCallout += OnCallout;
-            match.OnTextCallout += OnCallout;
+            match.OnCallout += OnAwardCallout;
+            match.OnTextCallout += OnTextCallout;
             match.OnAssist += OnAssist;
             ArenaEvents.OnLocalDamageDealt += OnDamage;
         }
@@ -61,8 +61,8 @@ internal static class ArenaHud
         if (_match != null)
         {
             _match.OnKill -= OnKill;
-            _match.OnCallout -= OnCallout;
-            _match.OnTextCallout -= OnCallout;
+            _match.OnCallout -= OnAwardCallout;
+            _match.OnTextCallout -= OnTextCallout;
             _match.OnAssist -= OnAssist;
             ArenaEvents.OnLocalDamageDealt -= OnDamage;
             _match = null;
@@ -162,7 +162,25 @@ internal static class ArenaHud
         _killfeed.Push(kill);
     }
 
-    private static void OnCallout(string label) => _callout?.Show(label);
+    /// <summary>
+    /// Kill/award callouts ("DOUBLE KILL", "SHUTDOWN", ...) are the announcer's
+    /// on-screen half: they follow the same gate as its stingers (live master
+    /// switch AND the per-mode selection frozen at arm), so the ANNOUNCER
+    /// mutator hides the text together with the sound. tools/AnnouncerChecks
+    /// pins this routing by source text because the HUD is Unity-bound.
+    /// </summary>
+    private static void OnAwardCallout(string label)
+    {
+        if (!Audio.AnnouncerService.IsEnabledForLiveMatch())
+            return;
+        _callout?.Show(label);
+    }
+
+    /// <summary>
+    /// HUD-only text ("WAVE n", the own-grenade taunt) is not announcer output
+    /// and keeps showing whatever the announcer switch says.
+    /// </summary>
+    private static void OnTextCallout(string label) => _callout?.Show(label);
 
     internal static void ShowUncreditedDeath(ArenaMatch match, ArenaUncreditedDeath death)
     {

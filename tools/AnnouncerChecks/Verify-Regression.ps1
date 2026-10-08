@@ -12,6 +12,31 @@ $outputSourceHash = (Get-FileHash -LiteralPath $outputSourcePath -Algorithm SHA2
 $sourceHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($sourcePath)))
 $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ('ArenaAnnouncerMutation-' + [guid]::NewGuid())
 [System.IO.Directory]::CreateDirectory($scratch) | Out-Null
+# Mutant builds run from a scratch output folder, so the source pins that read
+# ArenaHud.cs (HudCalloutChecks.cs) need the repository root spelled out.
+$env:ARENA_ANNOUNCER_REPO_ROOT = $repoRoot
+$hudPath = Join-Path $repoRoot 'ArenaMode.Client\Hud\ArenaHud.cs'
+$hudSource = [System.IO.File]::ReadAllText($hudPath)
+$hudHash = (Get-FileHash -LiteralPath $hudPath -Algorithm SHA256).Hash
+
+# ArenaHud.cs is Unity-bound and not compiled into this harness; its mutants are
+# source-text copies handed to the check through ARENA_ANNOUNCER_HUD_SOURCE.
+function Invoke-HudNegativeCase([string]$name, [string]$candidate, [string]$expectedFailure) {
+    $copyPath = Join-Path $scratch ($name + '-ArenaHud.cs')
+    [System.IO.File]::WriteAllText($copyPath, $candidate)
+    $outputPath = Join-Path $scratch ($name + '-bin\')
+    $intermediatePath = Join-Path $scratch ($name + '-obj\')
+    $env:ARENA_ANNOUNCER_HUD_SOURCE = $copyPath
+    try {
+        $output = & dotnet run --project $project -c Release "-p:OutputPath=$outputPath" "-p:IntermediateOutputPath=$intermediatePath" 2>&1
+        $resultCode = $LASTEXITCODE
+    }
+    finally { Remove-Item Env:ARENA_ANNOUNCER_HUD_SOURCE -ErrorAction SilentlyContinue }
+    $output | ForEach-Object { Write-Output $_ }
+    if ($resultCode -eq 0 -or ($output -join "`n") -notmatch [regex]::Escape($expectedFailure)) {
+        throw "$name did not fail at the expected HUD routing boundary (exit $resultCode). Evidence: $scratch"
+    }
+}
 
 function Invoke-NegativeCase([string]$name, [string]$candidate, [string]$expectedFailure, [string]$property = 'AnnouncerServiceSource') {
     $copyPath = Join-Path $scratch ($name + '.cs')
@@ -205,6 +230,32 @@ Invoke-NegativeCase 'independent-ambiguous-master' ($outputSource.Replace(' || m
 Invoke-NegativeCase 'independent-hot-volume' ($outputSource.Replace('_source.volume = Volume(volume); // F12 changes', '_source.volume = 0.42f; // F12 changes')) `
     'Announcer volume updates even during a spoken phrase.' 'AnnouncerOutputSource'
 
+$hudGate = 'if (!Audio.AnnouncerService.IsEnabledForLiveMatch())'
+if ([regex]::Matches($hudSource, [regex]::Escape($hudGate)).Count -ne 1) {
+    throw 'Expected exactly one HUD announcer gate; refusing an ambiguous mutation.'
+}
+Invoke-HudNegativeCase 'hud-callout-ungated' ($hudSource.Replace($hudGate, 'if (false)')) `
+    'ArenaHud shows kill/award callouts only after asking the announcer gate'
+
+$hudTextHandler = 'private static void OnTextCallout(string label) => _callout?.Show(label);'
+if ([regex]::Matches($hudSource, [regex]::Escape($hudTextHandler)).Count -ne 1) {
+    throw 'Expected exactly one HUD text-callout handler; refusing an ambiguous mutation.'
+}
+Invoke-HudNegativeCase 'hud-text-callout-gated' `
+    ($hudSource.Replace($hudTextHandler, 'private static void OnTextCallout(string label) { if (Audio.AnnouncerService.IsEnabledForLiveMatch()) _callout?.Show(label); }')) `
+    'HUD text callouts (WAVE n, grenade taunt) never ask the announcer gate'
+
+$hudTextSubscription = 'match.OnTextCallout += OnTextCallout;'
+if ([regex]::Matches($hudSource, [regex]::Escape($hudTextSubscription)).Count -ne 1) {
+    throw 'Expected exactly one HUD text-callout subscription; refusing an ambiguous mutation.'
+}
+Invoke-HudNegativeCase 'hud-text-callout-shared-handler' `
+    ($hudSource.Replace($hudTextSubscription, 'match.OnTextCallout += OnAwardCallout;')) `
+    'OnTextCallout is subscribed to and released from the ungated handler'
+
+if ((Get-FileHash -LiteralPath $hudPath -Algorithm SHA256).Hash -ne $hudHash) {
+    throw 'Production ArenaHud.cs changed during negative verification.'
+}
 if ((Get-FileHash -LiteralPath $outputSourcePath -Algorithm SHA256).Hash -ne $outputSourceHash) {
     throw 'Production output source changed during negative verification.'
 }
@@ -220,4 +271,4 @@ if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its fi
 if ($LASTEXITCODE -ne 0) { throw 'Creator metadata positive/negative checks failed.' }
 & python (Join-Path $PSScriptRoot 'verify_creator_pack.py')
 if ($LASTEXITCODE -ne 0) { throw 'Creator asset decoding, hashes or exact runtime mapping failed.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants rejected; production sources unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants plus three HUD callout-routing mutants rejected; production sources unchanged; evidence: $scratch)"
