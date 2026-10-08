@@ -38,10 +38,10 @@ internal static partial class Program
             CheckFactoryTeamView(map, armed: true);
             CheckFactoryTeamView(map, armed: false);
         }
-        CheckFactoryPolicy();
         CheckFactoryTeamViewIsolation();
         CheckFactoryWorldIsolation();
         CheckInstalledFactoryFixture();
+        CheckFactoryPolicy();
         SetSession("laboratory", false, true);
     }
 
@@ -293,6 +293,8 @@ internal static partial class Program
             ?? @"D:\SPT41\SPT_Runtime\SPT_Data\database";
         if (!Directory.Exists(database))
         {
+            Assert(!Environment.GetCommandLineArgs().Contains("--require-factory-database"),
+                "required installed Factory database is unavailable: " + database);
             Console.WriteLine("FACTORY_INSTALLED_FIXTURE_SKIPPED (database unavailable; set SPT_DATABASE)");
             return;
         }
@@ -326,24 +328,64 @@ internal static partial class Program
                     CorePointId = 17, NextBornTime = 23.5f
                 };
             }).ToArray();
-            SetSession(map, true, false);
-            ArenaSession.ArmedMode = "tactical";
-            PitFireTeamCompat.TeamArenaActive = true;
             var original = SceneView(points);
             var originalDictionary = original._dictionary;
             var before = Snapshot(points);
-            var view = RunTeamScenePostfix(original);
             var unsafeIds = new HashSet<string>(
                 UnsafeFactoryPoints.Select(point => point.Id), StringComparer.OrdinalIgnoreCase);
-            Assert(view.Count == rawPoints.Length - unsafeIds.Count
-                && view.All(point => !unsafeIds.Contains(point.Id))
-                && points.Where(point => !unsafeIds.Contains(point.Id)).All(view.Contains),
-                map + ": installed scene view removes exactly the reported points and retains every other physical object");
-            Assert(ReferenceEquals(original._dictionary, originalDictionary) && original.Count == rawPoints.Length
-                && view.All(point => ReferenceEquals(view._dictionary[point], originalDictionary[point])),
-                map + ": installed original collection and all retained scene markers preserve identity");
+            var unsafePoints = points.Where(point => unsafeIds.Contains(point.Id)).ToArray();
+            var safePoints = points.Where(point => !unsafeIds.Contains(point.Id)).ToList();
+            foreach (bool armed in new[] { true, false })
+            {
+                SetSession(map, armed, !armed);
+                ArenaSession.ArmedMode = ArenaSession.ActiveMode = "tactical";
+                PitFireTeamCompat.TeamArenaActive = true;
+                var view = RunTeamScenePostfix(original);
+                Assert(view.Count == safePoints.Count && view.All(point => !unsafeIds.Contains(point.Id))
+                    && safePoints.All(view.Contains),
+                    map + ": installed scene view removes exactly the reported points and retains every other physical object");
+                Assert(ReferenceEquals(original._dictionary, originalDictionary) && original.Count == rawPoints.Length
+                    && view.All(point => ReferenceEquals(view._dictionary[point], originalDictionary[point])),
+                    map + ": installed original collection and all retained scene markers preserve identity");
+
+                // Both sides of TDM and Tactical opponents use this AI boundary;
+                // the PFT leader uses the collection above. Exercise each actual
+                // installed marker, including all five underground alternatives.
+                foreach (string mode in new[] { "tactical", "teamdeathmatch" })
+                {
+                    ArenaSession.ArmedMode = ArenaSession.ActiveMode = mode;
+                    foreach (var point in unsafePoints)
+                    {
+                        var batch = new List<ISpawnPoint> { point };
+                        Assert(RunAiPostfix(batch) == null,
+                            map + ": installed unsafe marker rejected at AI selection: " + point.Id);
+                        var spawner = new BotSpawner();
+                        var data = new BotCreationData();
+                        using var lease = TeamDeathmatchSpawnDispatch.Enter(spawner, data);
+                        Assert(!RunDispatchPrefix(spawner, data, batch, Floor2)
+                            && lease.WasRejected && spawner.DispatchCalls == 0 && data.Positions.Count == 0,
+                            map + ": installed unsafe marker rejected before owned " + mode + " dispatch: " + point.Id);
+                    }
+                    Assert(ReferenceEquals(RunAiPostfix(safePoints), safePoints),
+                        map + ": every other installed marker remains available to AI selection");
+                    var safeSpawner = new BotSpawner();
+                    var safeData = new BotCreationData();
+                    using var safeLease = TeamDeathmatchSpawnDispatch.Enter(safeSpawner, safeData);
+                    Assert(RunDispatchPrefix(safeSpawner, safeData, safePoints, Floor2) && !safeLease.WasRejected,
+                        map + ": every other installed marker remains available to owned " + mode + " dispatch");
+                }
+            }
+            SetSession(map, false, false);
+            ArenaSession.ArmedMode = ArenaSession.ActiveMode = "tactical";
+            PitFireTeamCompat.TeamArenaActive = true;
+            var ordinaryPoints = points.ToList();
+            Assert(ReferenceEquals(RunTeamScenePostfix(original), original)
+                && ReferenceEquals(RunAiPostfix(ordinaryPoints), ordinaryPoints)
+                && RunDispatchPrefix(ordinaryPoints, Floor2),
+                map + ": ordinary installed raid retains all original scene and bot choices");
             AssertUnchanged(original.ToList(), before, map + ": installed fixture point state remains intact");
-            Console.WriteLine($"FACTORY_INSTALLED_FIXTURE_PASSED ({map}: {rawPoints.Length} original, {view.Count} retained)");
+            Console.WriteLine($"FACTORY_INSTALLED_FIXTURE_PASSED ({map}: {rawPoints.Length} original, {safePoints.Count} retained; armed/active Tactical + TDM and ordinary isolation)");
         }
+        Console.WriteLine("FACTORY_DAY_NIGHT_SPAWN_PARITY_PASSED (six identical unsafe IDs/coordinates; all other installed markers retained)");
     }
 }

@@ -8,6 +8,17 @@ pwsh -NoProfile -File tools/LabsBotSpawnChecks/Verify-Regression.ps1
 pwsh -NoProfile -File tools/LabsBotSpawnChecks/Verify-FactoryRegression.ps1
 ```
 
+For acceptance against an installed database, require its presence explicitly:
+
+```powershell
+dotnet run --project tools/LabsBotSpawnChecks/LabsBotSpawnChecks.csproj -c Release -- --require-factory-database
+pwsh -NoProfile -File tools/LabsBotSpawnChecks/Verify-FactoryRegression.ps1 -RequireInstalledDatabase
+```
+
+`SPT_DATABASE` overrides `D:\SPT41\SPT_Runtime\SPT_Data\database`. Required mode
+fails if that directory is absent; it cannot pass by skipping the installed
+fixtures. `FACTORY_DAY_NIGHT_SPAWN_PARITY_PASSED` is emitted only after both run.
+
 This console harness compiles the actual `ArenaBotSpawnFilter`,
 `ArenaBotSpawnPatches`, `BurstSpawnPointSelector`, `ArenaTeamSpawnPointsPatch`, and
 shared `ArenaBotSpawnPolicy` sources. It invokes the
@@ -42,10 +53,11 @@ temporary mutation/build evidence stays in the printed directory.
 ## Factory exact-point coverage
 
 `FactoryChecks.cs` links the production methods instead of copying their logic.
-The complete harness passed 288 assertions on 2026-09-07, including these cases:
+The complete harness passed 533 assertions on 2026-10-08, including these cases:
 
-- Both Factory variants reject only `c671337f-e58f-4de6-a387-307d877954a3`, including
-  a Player-only marker passed through bot dispatch. Neighboring, partial, null and
+- Both Factory variants reject the six exact IDs documented in
+  `FACTORY-SPAWNS-REVIEW.md`, including a Player-only marker passed through bot
+  dispatch. Neighboring, partial, null and
   unrelated-map IDs are retained. Shared `IsRestrictedMap` stays Labs-only because
   server callers use it for whole-zone handling; Factory uses `HasPointExclusions`.
 - Whole mixed batches are denied before native accounting without changing the
@@ -60,15 +72,23 @@ The complete harness passed 288 assertions on 2026-09-07, including these cases:
   Solo, TDM, other modes/maps, stale sessions, foreign worlds/games and mismatched
   map IDs pass through. A newly armed mode takes precedence over stale active mode.
 - Installed `locations/factory4_day/base.json` and `factory4_night/base.json` each
-  contain 145 records. The target is Player-only, has no bot-zone name and matches
-  the reported courtyard position. Running the actual postfix retains all 144
-  other physical objects and leaves both original 145-entry collections unchanged.
+  contain 145 records. All six targets have matching IDs/coordinates in both
+  variants, are Player-only and have no bot-zone name. Running the actual postfix
+  retains all 139 other physical objects and leaves both original 145-entry
+  collections unchanged in armed/loading and active protected Tactical. Every
+  actual unsafe point is also rejected by AI selection and owned TDM/Tactical
+  dispatch; every other installed point passes these boundaries. Ordinary raids
+  retain their original collections, choices and point state.
   Fixtures use `SPT_DATABASE` or the local SPT runtime database; an absent database
   is explicitly reported as skipped on other hosts. Both ran on this host.
 
-`Verify-FactoryRegression.ps1` rejects six temporary production-source mutants:
-disabled point policy, disabled planner filter, unsafe capacity, leaked team view,
-stale-world admission and reversed armed-mode precedence. Every mutant must fail
+`Verify-FactoryRegression.ps1` rejects eight temporary production-source mutants:
+disabled point policy, missing Factory night classification, a night-only gap for
+one underground marker, disabled planner filter, unsafe capacity, leaked team
+view, stale-world admission and reversed armed-mode precedence. The night-only
+gap must fail the installed night collection assertion when the database is
+available; the optional database-free run detects it through the shared policy.
+Every mutant must fail
 its named behavior assertion, never merely compilation. Production source hashes
 must remain unchanged, and the script finishes with a fresh production baseline.
 

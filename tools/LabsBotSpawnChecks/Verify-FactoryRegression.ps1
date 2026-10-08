@@ -1,4 +1,7 @@
+param([switch]$RequireInstalledDatabase)
+
 $ErrorActionPreference = 'Stop'
+$appArgs = if ($RequireInstalledDatabase) { @('--', '--require-factory-database') } else { @() }
 $project = Join-Path $PSScriptRoot 'LabsBotSpawnChecks.csproj'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $scratch = Join-Path ([IO.Path]::GetTempPath()) ('ArenaFactorySpawnMutation-' + [guid]::NewGuid().ToString('N'))
@@ -17,12 +20,25 @@ foreach ($key in $sources.Keys) {
     [IO.File]::WriteAllText($snapshots[$key], $texts[$key])
 }
 
-& dotnet run --project $project -c Release
+& dotnet run --project $project -c Release @appArgs
 if ($LASTEXITCODE -ne 0) { throw 'Production Factory baseline failed before mutation checks.' }
 
 $policyPattern = '(public static bool IsExcludedPoint\([^)]*\))\s*=>[^;]+;'
 if ([regex]::Matches($texts.ProductionPolicySource, $policyPattern).Count -ne 1) { throw 'Ambiguous exact point policy mutation anchor.' }
 $pointDisabled = [regex]::Replace($texts.ProductionPolicySource, $policyPattern, '$1 => false;')
+$nightMapAnchor = '|| string.Equals(mapId, "factory4_night", StringComparison.OrdinalIgnoreCase)'
+if ([regex]::Matches($texts.ProductionPolicySource, [regex]::Escape($nightMapAnchor)).Count -ne 1) { throw 'Night map classification mutation anchor missing.' }
+$nightMapDisabled = $texts.ProductionPolicySource.Replace($nightMapAnchor, '')
+$groupId = 'c2d01ce0-e0e4-41af-8311-44dc5cf38a93'
+$pointRuleAnchor = '&& FactoryExcludedPointIds.Contains(pointId);'
+if (!$texts.ProductionPolicySource.Contains($pointRuleAnchor)) { throw 'Night-only group exclusion mutation anchor missing.' }
+$nightGroupAllowed = $texts.ProductionPolicySource.Replace($pointRuleAnchor,
+    "&& !(string.Equals(mapId, `"factory4_night`", StringComparison.OrdinalIgnoreCase) && string.Equals(pointId, `"$groupId`", StringComparison.OrdinalIgnoreCase)) $pointRuleAnchor")
+$database = [Environment]::GetEnvironmentVariable('SPT_DATABASE')
+if ($null -eq $database) { $database = 'D:\SPT41\SPT_Runtime\SPT_Data\database' }
+$nightGroupFailure = if ([IO.Directory]::Exists($database)) {
+    'factory4_night: installed scene view removes exactly the reported points and retains every other physical object'
+} else { "factory4_night: every reported unsafe marker is excluded in either casing: $groupId" }
 
 $plannerAnchor = ' || ArenaBotSpawnFilter.IsExcludedPoint(point)'
 if ([regex]::Matches($texts.ProductionPlannerSource, [regex]::Escape($plannerAnchor)).Count -ne 2) { throw 'Expected independent selection and capacity point filters.' }
@@ -45,6 +61,8 @@ $worldGuardDisabled = [regex]::Replace($texts.ProductionFilterSource, $worldPatt
 
 $mutants = @(
     @{ Name='DisabledPointPolicy'; Key='ProductionPolicySource'; Text=$pointDisabled; Failure='factory4_day armed: exact unsafe Factory point rejects complete AI batch' },
+    @{ Name='MissingNightMap'; Key='ProductionPolicySource'; Text=$nightMapDisabled; Failure='factory4_night armed: exact unsafe Factory point rejects complete AI batch' },
+    @{ Name='NightUndergroundGap'; Key='ProductionPolicySource'; Text=$nightGroupAllowed; Failure=$nightGroupFailure },
     @{ Name='DisabledPlannerFilter'; Key='ProductionPlannerSource'; Text=$plannerDisabled; Failure='factory4_day: planner skips unsafe Factory ID before physical-position dedupe and fills five safe points' },
     @{ Name='UnsafeCapacity'; Key='ProductionPlannerSource'; Text=$capacityDisabled; Failure='factory4_day: unsafe distinct position never inflates squad capacity' },
     @{ Name='LeakedTeamView'; Key='ProductionTeamPointsSource'; Text=$teamGuardDisabled; Failure='team scene view remains untouched: stale' },
@@ -59,7 +77,7 @@ foreach ($mutant in $mutants) {
         $source = if ($key -eq $mutant.Key) { $path } else { $snapshots[$key] }
         $runArgs += "-p:${key}=$source"
     }
-    $output = & dotnet @runArgs 2>&1 | Out-String
+    $output = & dotnet @runArgs @appArgs 2>&1 | Out-String
     if ($LASTEXITCODE -eq 0 -or !$output.Contains('LABS_BOT_SPAWN_CHECKS_FAILED') -or !$output.Contains($mutant.Failure)) {
         throw "Factory mutant did not fail its intended gameplay assertion: $($mutant.Name)`n$output"
     }
@@ -68,6 +86,6 @@ foreach ($mutant in $mutants) {
 foreach ($key in $sources.Keys) {
     if ((Get-FileHash -LiteralPath $sources[$key] -Algorithm SHA256).Hash -ne $hashes[$key]) { throw "Production source changed during Factory checks: $key" }
 }
-& dotnet run --project $project -c Release
+& dotnet run --project $project -c Release @appArgs
 if ($LASTEXITCODE -ne 0) { throw 'Unmodified production Factory checks failed after mutation checks.' }
 Write-Output "FACTORY_BOT_SPAWN_REGRESSION_VERIFIED ($($mutants.Count) mutants rejected; evidence: $scratch)"
