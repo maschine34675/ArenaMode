@@ -228,10 +228,17 @@ internal static class ArenaSpectatorService
             return false;
         }
 
+        if (request.Cooperative != (ArenaSession.ActiveMode == Shared.ArenaPopulationPolicy.Zombie))
+        {
+            problem = "the spectator roster shape does not match the active mode";
+            return false;
+        }
+
         if (!SpectatorPolicy.TryFreezeAllowedProfileIds(
                 request.AllowedProfileIds,
                 out string[] profileIds,
-                out problem))
+                out problem,
+                request.Cooperative))
         {
             return false;
         }
@@ -643,9 +650,10 @@ internal static class ArenaSpectatorService
             return false;
         }
 
-        if (supplied.Count != SpectatorPolicy.RequiredNonLocalTeamActors)
+        int required = SpectatorPolicy.RequiredNonLocalActors(_request.Cooperative);
+        if (supplied.Count != required)
         {
-            problem = $"the spectator target provider returned {supplied.Count}/{SpectatorPolicy.RequiredNonLocalTeamActors} fixed participants";
+            problem = $"the spectator target provider returned {supplied.Count}/{required} fixed participants";
             return false;
         }
 

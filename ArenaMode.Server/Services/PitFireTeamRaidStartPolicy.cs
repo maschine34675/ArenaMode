@@ -12,8 +12,9 @@ public static class PitFireTeamRaidStartPolicy
         if (!pitFireTeamTeamRequested)
             return null;
 
-        if (!string.Equals(arenaMode, "tactical", StringComparison.OrdinalIgnoreCase))
-            return "PitFireTeam companions are supported only in Tactical Arena.";
+        if (!string.Equals(arenaMode, "tactical", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(arenaMode, "zombie", StringComparison.OrdinalIgnoreCase))
+            return "PitFireTeam companions require Tactical or Zombies Arena.";
 
         if (persistenceProtectionReady)
             return null;

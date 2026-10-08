@@ -189,6 +189,8 @@ internal static class ArenaFireRuntime
     {
         if (!ReferenceEquals(fire.Source.Owner, victim) && _match.Mode is TacticalMode tactical
             && !tactical.IsOpposingAwardKill(victim, fire.Source.Owner)) return;
+        if (!ReferenceEquals(fire.Source.Owner, victim) && _match.Mode is ZombieMode zombie && zombie.IsTeamArena
+            && !zombie.IsOpposingAwardKill(victim, fire.Source.Owner)) return;
         var health = victim.ActiveHealthController;
         if (health == null) return;
         float total = 0;

@@ -196,10 +196,9 @@ internal static class PitFireTeamSelectionPolicy
                 $"Team Arena requires exactly four selected PitFireTeam companions (found {selected.Count}).");
         }
 
-        if (!allowPendingModeSelection
-            && !string.Equals(input.GameMode, "tactical", StringComparison.OrdinalIgnoreCase))
+        if (!allowPendingModeSelection && !SupportsMode(input.GameMode))
             return PitFireTeamSelectionDecision.Reject(
-                "PitFireTeam companions are supported only in Arena Tactical mode.");
+                "PitFireTeam companions require Tactical or Zombies Arena.");
 
         if (nativeCompanions.Length != RequiredCompanionCount
             || !selected.SetEquals(nativeCompanions))
@@ -223,6 +222,10 @@ internal static class PitFireTeamSelectionPolicy
         var roster = selected.OrderBy(id => id, StringComparer.Ordinal).ToArray();
         return PitFireTeamSelectionDecision.Team(roster, profilesByAccount);
     }
+
+    internal static bool SupportsMode(string mode)
+        => string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadIdentitySet(
         IReadOnlyList<string> values,

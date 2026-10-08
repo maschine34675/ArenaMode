@@ -122,9 +122,10 @@ internal static class ArenaModeCatalog
     }
 
     public static string ResolveSelection(string id, bool tacticalOnly)
-        => tacticalOnly ? TacticalId : NormalizeId(id);
+        => tacticalOnly && !CanSelect(id, true) ? TacticalId : NormalizeId(id);
 
     public static bool CanSelect(string id, bool tacticalOnly)
         => !tacticalOnly
-           || string.Equals(NormalizeId(id), TacticalId, StringComparison.Ordinal);
+           || string.Equals(NormalizeId(id), TacticalId, StringComparison.Ordinal)
+           || string.Equals(NormalizeId(id), ZombieId, StringComparison.Ordinal);
 }

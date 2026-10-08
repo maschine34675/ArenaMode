@@ -191,7 +191,11 @@ internal static class ZombieSpawnService
                 if (bot.Memory != null && bot.Memory.HaveEnemy)
                     continue;
 
-                bot.BotsGroup?.AddPointToSearch(playerPosition, 1000f, bot);
+                var target = NearestLiveTeammate(bot.Position);
+                if (Modes.ArenaMatchService.Current?.Mode is Modes.ZombieMode { IsTeamArena: true } && target == null)
+                    continue;
+                if (target != null) ArenaHostility.ReportPlayerTo(bot.BotsGroup, target);
+                bot.BotsGroup?.AddPointToSearch(target != null ? target.Position : playerPosition, 1000f, bot);
             }
         }
         catch (Exception ex)
@@ -265,7 +269,8 @@ internal static class ZombieSpawnService
             // in the same tick hide behind it.
             _confirmedArrivals++;
 
-            var player = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;
+            var player = NearestLiveTeammate(bot.Position)
+                ?? (Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null);
             if (player == null || player.HealthController == null || !player.HealthController.IsAlive)
                 return;
 
@@ -288,6 +293,23 @@ internal static class ZombieSpawnService
         {
             Plugin.ModLogger.LogWarning($"Arena zombie melee diagnostics subscribe failed: {ex.Message}");
         }
+    }
+
+    private static Player NearestLiveTeammate(Vector3 from)
+    {
+        if (Modes.ArenaMatchService.Current?.Mode is not Modes.ZombieMode { IsTeamArena: true } mode)
+            return null;
+        Player nearest = null;
+        float distance = float.MaxValue;
+        foreach (var member in mode.LiveTeamMembers)
+        {
+            if (member == null || member.HealthController?.IsAlive != true) continue;
+            float candidate = (member.Position - from).sqrMagnitude;
+            if (candidate >= distance) continue;
+            nearest = member;
+            distance = candidate;
+        }
+        return nearest;
     }
 
     private static void AgeOutPending()

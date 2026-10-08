@@ -107,13 +107,13 @@ public static class ZombieLocationSettings
     // well before ZombieMaxAlive (Arena's own alive cap, client stage
     // decision 5) is ever reached. BotMax/BotMaxPvE are raised the same way
     // so the generic alive-cap route agrees with the per-zone one. Fixed at
-    // 60 rather than derived from ZombieMaxAlive (the server never learns
+    // 64 rather than derived from ZombieMaxAlive (the server never learns
     // that value — ArenaServerClient's raid-start payload carries no
     // Zombie-specific tuning): Settings.ZombieMaxAlive's own AcceptableValueRange
     // ceiling is kept at 56, not 60, specifically so the client-side cap it
-    // feeds (ArenaBotCapPatch: ZombieMaxAlive + 2, up to 58) always stays
+    // feeds (ArenaBotCapPatch: ZombieMaxAlive + 2 + up to four PFT companions) stays
     // under this fixed floor instead of occasionally exceeding it.
-    public const int MinimumBotCap = 60;
+    public const int MinimumBotCap = 64; // 56 infected + four protected companions + activation headroom.
 
     /// <summary>
     /// Mutates the clone in place. Fails closed by construction: every

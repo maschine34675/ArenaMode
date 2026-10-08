@@ -43,6 +43,7 @@ internal static class ArenaTracerTeams
     private static bool _protectedTeamMatch;
     private static bool _factionTeamMatch;
     private static bool _protectedRosterValid;
+    private static bool _cooperativeTeamMatch;
     private static int _latestTeamEpoch;
 
     internal static bool ProtectedTeamMatch => _matchBound && _protectedTeamMatch;
@@ -142,6 +143,35 @@ internal static class ArenaTracerTeams
         return true;
     }
 
+    // A horde has four authenticated allies but no fixed opposing roster. Its
+    // runtime admits only actual infected bodies, separately from this binding.
+    internal static bool TryBindCooperativeWave(int epoch, string localProfileId,
+        IReadOnlyList<string> followerProfileIds, out string problem)
+    {
+        problem = null;
+        if (!_matchBound || !_protectedTeamMatch) { problem = "no protected match"; return false; }
+        _protectedRosterValid = false;
+        if (epoch <= _latestTeamEpoch || Normalize(localProfileId) != _localProfileId
+            || followerProfileIds?.Count != TeamFollowerCount)
+        { problem = "invalid cooperative wave identity"; return false; }
+        var next = new HashSet<string>(StringComparer.Ordinal) { _localProfileId };
+        if (!TryCollect(followerProfileIds, next, OpponentProfileIds, "friendly", out problem)) return false;
+        FriendlyProfileIds.UnionWith(next);
+        _latestTeamEpoch = epoch;
+        _cooperativeTeamMatch = true;
+        _protectedRosterValid = true;
+        return true;
+    }
+
+    internal static bool RegisterCooperativeInfected(string profileId)
+    {
+        string id = Normalize(profileId);
+        if (!_matchBound || !_protectedTeamMatch || !_cooperativeTeamMatch
+            || !_protectedRosterValid || id == null || FriendlyProfileIds.Contains(id)) return false;
+        OpponentProfileIds.Add(id);
+        return true;
+    }
+
     /// <summary>Only the owned faction mode admits a validated physical bot.</summary>
     internal static bool RegisterFactionActor(string profileId, bool friendly)
     {
@@ -207,6 +237,7 @@ internal static class ArenaTracerTeams
         _protectedTeamMatch = false;
         _factionTeamMatch = false;
         _protectedRosterValid = false;
+        _cooperativeTeamMatch = false;
         _latestTeamEpoch = 0;
         ArenaTracerPatches.ResetDiagnostics();
     }

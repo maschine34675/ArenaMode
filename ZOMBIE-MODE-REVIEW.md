@@ -1,8 +1,13 @@
-# Zombie Mode (v0 prototype)
+# Zombie Mode
+
+**2026-10-08 extension:** optional protected PitFireTeam survival is documented in
+`ZOMBIE-PITFIRETEAM-REVIEW.md`. Exactly four authenticated companions, own gear,
+post-death spectating, between-wave squad rebuild and terminal team wipe. The
+solo paths below are unchanged; the original v0 exclusions are historical.
 
 ## Purpose and v0 scope
 
-Zombies is Arena's fifth mode: solo, endless waves of EFT's own infected
+The original v0 introduced Arena's fifth mode: solo, endless waves of EFT's own infected
 against the local player, instant respawn, Arena kits, no PitFireTeam, no
 loot. It does not invent a zombie system — it reactivates one EFT already
 ships (the Halloween-2024 infection event) for exactly one armed raid, drives

@@ -334,7 +334,7 @@ internal static class Program
             ArenaMode.Config.Settings.OwnGear = own;
             ArenaMenuSelection.CurrentEligibility = new() { Allowed = allowed, IsTeam = team };
             bool native = mode.Trim().Equals("zombie", StringComparison.OrdinalIgnoreCase) && own
-                || mode == "tactical" && allowed && team;
+                || (mode == "tactical" || mode == "zombie") && allowed && team;
             var accept = new Widget();
             ArenaPreviewFlow.PrepareAccept(accept.Screen, fixture.Settings);
             Check(ArenaPreviewFlow.TryShowAccept(accept.Model) == !native,

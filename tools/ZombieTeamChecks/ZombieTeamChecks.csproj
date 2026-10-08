@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Modes/ZombieTeamRuntime*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../../ArenaMode.Client/Modes/ZombieMode.cs" Link="Production/ZombieMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ZombieWavePolicy.cs" Link="Production/ZombieWavePolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ZombieRefillPolicy.cs" Link="Production/ZombieRefillPolicy.cs" />
+  </ItemGroup>
+</Project>

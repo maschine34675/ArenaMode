@@ -83,6 +83,8 @@ internal static class CombatPatches
                 && teams.ShouldBlockMatchDamage(victim)) return true;
             if (ArenaMatchService.Current?.Mode is RoundsMode deathmatch
                 && deathmatch.ShouldBlockMatchDamage(victim)) return true;
+            if (ArenaMatchService.Current?.Mode is ZombieMode zombie
+                && zombie.ShouldBlockStagingDamage(victim)) return true;
 
             if (Areas.ArenaAreaRuntime.IsPending
                 && Areas.ArenaAreaRuntime.TryGetForPlayer(victim, out _)) return true;
@@ -92,6 +94,9 @@ internal static class CombatPatches
         }
         catch (Exception ex)
         {
+            if (ArenaMatchService.Current?.Mode is ZombieMode zombie
+                && zombie.FailClosedStagingGuard($"the {surface} guard could not verify a safe actor state"))
+                return true;
             var tactical = ArenaMatchService.Current?.Mode as TacticalMode;
             if (tactical?.FailClosedStagingGuard(
                     $"the {surface} guard could not verify a safe actor state") == true)
@@ -228,6 +233,7 @@ internal static class CombatPatches
         if (TeamDeathmatchRelations.Enabled)
             return TeamDeathmatchRelations.AreOpponents(victim, aggressor);
         if (match.Mode is TacticalMode tactical) return tactical.IsOpposingAwardKill(victim, aggressor);
+        if (match.Mode is ZombieMode zombie && zombie.IsTeamArena) return zombie.IsOpposingAwardKill(victim, aggressor);
         return !(match.Mode is RoundsMode rounds) || !rounds.InIntermission;
     }
 

@@ -485,5 +485,13 @@ var weakMaterial = ObserveTemporaryMaterial(); GC.Collect(); GC.WaitForPendingFi
 Check(!weakMaterial.material.IsAlive, "beam baseline holds initialized materials only weakly");
 GC.KeepAlive(weakMaterial.laser);
 
+Setup(); var zombieFixture = Fixture();
+var zombie = new ZombieMode(); zombie.CurrentBodies.Add(zombieFixture.owner);
+ArenaMatchService.Current.Mode = zombie; ArenaSession.ActiveMode = "zombie";
+Draw(zombieFixture.laser);
+Check(ColorNear(zombieFixture.laser.DrawnBeam, zombieFixture.laser.BeamMaterial.GetColor(1)) == false,
+    "authenticated Zombie ally receives team-colored beam");
+zombie.IsTeamArena = false; ArenaTeamLaserColors.Reset();
+Check(ArenaTeamLaserColors.Begin(zombieFixture.laser) == null, "solo Zombie laser remains native");
 ArenaTeamLaserColors.Reset();
 Console.WriteLine($"ARENA_TEAM_LASER_CHECKS_PASSED ({count} assertions)");

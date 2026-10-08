@@ -51,7 +51,7 @@ internal sealed class ArenaModeSelectionView
             Refresh();
             return;
         }
-        _subtitle.text = tacticalOnly ? "GAME MODE / PITFIRETEAM 5v5" : "GAME MODE";
+        _subtitle.text = tacticalOnly ? "GAME MODE / PITFIRETEAM" : "GAME MODE";
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         _restrictionNote.SetActive(tacticalOnly);
         for (var index = 0; index < _buttons.Count; index++)
@@ -60,7 +60,7 @@ internal sealed class ArenaModeSelectionView
             _buttons[index].interactable = allowed;
             var tooltip = _buttons[index].GetComponent<HoverTooltipArea>();
             if (tooltip == null) continue;
-            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical.", rawText: true);
+            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical or Zombies.", rawText: true);
             tooltip.SetUnlockStatus(allowed);
         }
         Refresh();
@@ -155,7 +155,7 @@ internal sealed class ArenaModeSelectionView
 
         var title = CreateText("Title", typography, "ARENA", 26f, 16f, 32f);
         var subtitle = CreateText("Mode heading", typography,
-            _selection.TacticalOnly ? "GAME MODE / PITFIRETEAM 5v5" : "GAME MODE", 14f, 51f, 22f);
+            _selection.TacticalOnly ? "GAME MODE / PITFIRETEAM" : "GAME MODE", 14f, 51f, 22f);
         subtitle.color = Dim(typography, .65f);
         _subtitle = subtitle;
 
@@ -177,7 +177,7 @@ internal sealed class ArenaModeSelectionView
         _equipmentChoiceView.Show(_root.transform, template, typography, _equipmentChoice);
 
         var note = CreateText("Team restriction", typography,
-            "5v5 requires PitFireTeam + 4 teammates.", 14f, 482f, 44f);
+            "Squad play requires PitFireTeam + 4 teammates.", 14f, 482f, 44f);
         note.color = Dim(typography, .75f);
         _restrictionNote = note.gameObject;
         _restrictionNote.SetActive(_selection.SelectedMode == ArenaModeCatalog.TacticalId);
@@ -214,7 +214,7 @@ internal sealed class ArenaModeSelectionView
             // (true) disables the component (decompile EFT.UI/HoverTooltipArea.cs:
             // 131-135), so an allowed row never receives pointer events and could
             // not show ArenaModeDefinition.Description anyway.
-            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical.", rawText: true);
+            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical or Zombies.", rawText: true);
             tooltip.SetUnlockStatus(allowed);
         }
         button.interactable = allowed;
@@ -268,14 +268,21 @@ internal sealed class ArenaModeSelectionView
         // 1v5", "TACTICAL / 5v5 (PFT)") and in the 5v5 note, so the facts
         // follow the one copy schema documented on ArenaModeDefinition.
         _rules.text = mode.Rules;
-        _restrictionNote.SetActive(mode.Id == ArenaModeCatalog.TacticalId);
+        bool zombieTeam = _selection.TacticalOnly && mode.Id == ArenaModeCatalog.ZombieId;
+        _restrictionNote.SetActive(mode.Id == ArenaModeCatalog.TacticalId || zombieTeam);
+        _restrictionNote.GetComponent<TextMeshProUGUI>().text = zombieTeam
+            ? "Team wipe ends the match. Squad resets between waves."
+            : "5v5 requires PitFireTeam + 4 teammates.";
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
                     ? "TACTICAL / 5v5 (PFT)" : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value;
-        _respawn.text = mode.Respawn;
-        if (mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
+            else if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.ZombieId)
+                _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
+                    ? "ZOMBIES / SQUAD (PFT)" : "ZOMBIES";
+        _respawn.text = zombieTeam ? "Next wave" : mode.Respawn;
+        if (!_selection.TacticalOnly && mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
         // Same special-case line protected 5v5's TacticalOnly branch already
         // uses, generalized for item 1 of the 2026-10-06 follow-up ("own gear

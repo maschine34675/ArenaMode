@@ -41,6 +41,17 @@ internal static class Program
 
     private static void CheckFrozenRosterPolicy()
     {
+        string[] four = { "ally1", "ally2", "ally3", "ally4" };
+        Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(four, out _, out _, cooperative: true),
+            "cooperative survival freezes exactly four companions");
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four, out _, out _),
+            "four companions cannot weaken the default Tactical nine-actor contract");
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four.Take(3), out _, out _, cooperative: true),
+            "cooperative observation rejects incomplete roster");
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four.Append("enemy"), out _, out _, cooperative: true),
+            "cooperative observation rejects extra enemy");
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(new[] { "a", "b", "a", "d" }, out _, out _, cooperative: true),
+            "cooperative observation rejects duplicate companions");
         string[] nine = Enumerable.Range(1, 9).Select(index => $"profile-{index}").ToArray();
         Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(nine, out string[] frozen, out string problem),
             "exactly nine distinct non-local actors form a valid frozen spectator roster");
@@ -1295,7 +1306,9 @@ internal static class Program
             "FrozenBodiesByProfileId.TryGetValue",
             "!ReferenceEquals(frozenBody, player)",
             "SeenProfiles.SetEquals(AllowedProfileIds)",
-            "supplied.Count != SpectatorPolicy.RequiredNonLocalTeamActors");
+            "int required = SpectatorPolicy.RequiredNonLocalActors(_request.Cooperative)",
+            "supplied.Count != required",
+            "request.Cooperative != (ArenaSession.ActiveMode == Shared.ArenaPopulationPolicy.Zombie)");
         Assert(service.IndexOf("_ownsCamera = false", StringComparison.Ordinal)
                < service.IndexOf("Application.onBeforeRender -= ApplyRenderPose", StringComparison.Ordinal),
             "synchronous teardown drops patch ownership before releasing callbacks");

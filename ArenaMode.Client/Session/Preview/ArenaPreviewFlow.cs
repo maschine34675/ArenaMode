@@ -150,13 +150,13 @@ internal static class ArenaPreviewFlow
         if (_loadingScreen != null && ArenaSession.ArmedForNextRaid
             && ArenaSession.ArmEpoch != _loadingArmEpoch)
             return ArenaSession.ZombieOwnGearArmed
-                || (ArenaSession.ArmedMode == Modes.ArenaModeCatalog.TacticalId
+                || (Compat.PitFireTeamSelectionPolicy.SupportsMode(ArenaSession.ArmedMode)
                     && Compat.PitFireTeamCompat.HasFrozenTeamRoster);
 
         var mode = Config.Settings.SelectedGameModeId;
         if (Modes.ZombieOwnGearGate.IsSelectedFor(mode, Config.Settings.GetEquipmentChoiceOwnGear(mode)))
             return true;
-        if (mode != Modes.ArenaModeCatalog.TacticalId) return false;
+        if (!Compat.PitFireTeamSelectionPolicy.SupportsMode(mode)) return false;
         var eligibility = ArenaMenuSelection.CurrentEligibility;
         return eligibility.Allowed && eligibility.IsTeam;
     }

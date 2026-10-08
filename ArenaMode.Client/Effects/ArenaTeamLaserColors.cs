@@ -131,12 +131,18 @@ internal static class ArenaTeamLaserColors
             if (!tacticalMode.TryClassifyLaserBody(owner, out bool side)) return false;
             friendly = side;
         }
+        else if (mode is ZombieMode zombieMode && zombieMode.IsTeamArena)
+        {
+            if (!zombieMode.IsCurrentFriendlyMarkerBody(owner)
+                && !ReferenceEquals(owner, world.MainPlayer)) return false;
+            friendly = true;
+        }
         else
         {
             // Solo modes have no cosmetic team recoloring. Their brightness still
             // requires the current local body or a live native AI body in this raid.
-            // Zombie is deliberately NOT in this list: lasers are excluded from
-            // v0 entirely (see the orchestrator's decision 7), so an unrecognized
+            // Solo Zombie is deliberately NOT in this list: lasers are excluded
+            // there; its protected team variant is handled above. An unrecognized
             // mode id falling through to "return false" below is the intended
             // behavior for it, not an oversight to "fix" by adding it here.
             if (mode.Id != ArenaMode.Shared.DeathmatchSelection.ModeId && mode.Id != "endless"

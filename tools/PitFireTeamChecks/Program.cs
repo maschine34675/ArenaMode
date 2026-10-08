@@ -23,7 +23,8 @@ internal static class Program
             CheckAuthoritativeIdentityPolicy();
             CheckInvalidRosterPolicy();
             CheckLiveRevalidationPolicy();
-            CheckTacticalOnlyPolicy();
+            CheckProtectedModePolicy();
+            CheckZombieRosterSafety();
             CheckPendingModeSelectionPolicy();
             CheckServerNegotiationPolicy();
             CheckRespawnEpochRacePolicy();
@@ -153,7 +154,7 @@ internal static class Program
         Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(null),
             "a missing assembly version is rejected");
 
-        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical" })
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical", "zombie" })
         {
             AssertSolo(Evaluate(PitFireTeamContractState.Compatible, mode: mode),
                 $"solo Arena mode '{mode}' remains eligible");
@@ -331,14 +332,58 @@ internal static class Program
             "runtime becoming unsupported before raid start fails final evaluation");
     }
 
-    private static void CheckTacticalOnlyPolicy()
+    private static void CheckProtectedModePolicy()
     {
-        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "", null })
+        foreach (var mode in new[] { "tactical", "TACTICAL", "zombie", "ZoMbIe" })
+        {
+            var decision = Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four.Reverse()), selected: Four, mode: mode);
+            Assert(decision.Allowed && decision.IsTeam
+                   && decision.CompanionAccountIds.SequenceEqual(Four.OrderBy(id => id, StringComparer.Ordinal))
+                   && Four.All(account => decision.CompanionProfilesByAccountId[account] == "profile-" + account),
+                $"protected mode '{mode}' retains the exact authenticated four-companion identity mapping");
+        }
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "zombies", "", null })
         {
             AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
                     native: Native(Four), selected: Four, mode: mode),
-                $"team roster in non-Tactical mode '{mode ?? "<null>"}' is rejected");
+                $"team roster outside Tactical/Zombie mode '{mode ?? "<null>"}' is rejected");
         }
+    }
+
+    private static void CheckZombieRosterSafety()
+    {
+        foreach (var contract in new[] { PitFireTeamContractState.Absent, PitFireTeamContractState.Incompatible })
+            AssertRejected(Evaluate(contract, native: Native(Four), selected: Four, mode: "zombie"),
+                "Zombie must not bypass optional-adapter authentication: " + contract);
+        foreach (int count in new[] { 1, 2, 3, 5 })
+        {
+            var companions = Enumerable.Range(1, count).Select(i => "pit-" + i).ToArray();
+            AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                    native: Native(companions), selected: companions, mode: "zombie"),
+                "Zombie rejects an incomplete or oversized companion roster: " + count);
+        }
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four, mode: "zombie", fika: true),
+            "Zombie retains the Fika exclusion");
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four, mode: "zombie", coop: true),
+            "Zombie retains the co-op exclusion");
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four.Take(3).Append("foreign").ToArray(), mode: "zombie"),
+            "Zombie cannot claim companions different from the native raid group");
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four.Take(3).Append(Four[0]).ToArray(), mode: "zombie"),
+            "Zombie rejects duplicate companion accounts");
+        AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(Four), selected: Four, mode: "zombie",
+                selectedProfiles: new[] { "one", "two", "three", "three" }),
+            "Zombie rejects duplicate stored profile identities");
+        foreach (string special in new[] { "677c4e0cc7a538c4210d4d47", "677c4e0cc7a538c4210d4d48", "677c4e0cc7a538c4210d4d49" })
+            AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                    native: Native(Four), selected: Four, mode: "zombie",
+                    selectedProfiles: new[] { "one", "two", "three", special }),
+                "Zombie rejects unsupported special companion " + special);
     }
 
     private static void CheckPendingModeSelectionPolicy()
@@ -391,7 +436,19 @@ internal static class Program
                 incompatibilityReason: null) == null,
             "team Tactical mode comparison is case-insensitive");
 
-        foreach (var nonTacticalMode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame" })
+        foreach (string zombieMode in new[] { "zombie", "ZOMBIE" })
+        {
+            Assert(PitFireTeamRaidStartPolicy.GetRejectionReason(true, zombieMode, true, null) == null,
+                "server accepts protected Zombie only with ready persistence protection: " + zombieMode);
+            Assert(PitFireTeamRaidStartPolicy.GetRejectionReason(true, zombieMode, false, "missing protection")
+                   == "missing protection",
+                "Zombie reports the exact failed persistence contract: " + zombieMode);
+            Assert(!string.IsNullOrWhiteSpace(PitFireTeamRaidStartPolicy.GetRejectionReason(true, zombieMode, false, null)),
+                "Zombie rejects an unavailable guard even without a diagnostic reason: " + zombieMode);
+            Assert(PitFireTeamRaidStartPolicy.GetRejectionReason(false, zombieMode, false, "missing protection") == null,
+                "solo Zombie remains independent of PFT persistence readiness: " + zombieMode);
+        }
+        foreach (var nonTacticalMode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "zombies", "", null })
         {
             var wrongMode = PitFireTeamRaidStartPolicy.GetRejectionReason(
                 pitFireTeamTeamRequested: true,
@@ -400,7 +457,7 @@ internal static class Program
                 incompatibilityReason: null);
             Assert(!string.IsNullOrWhiteSpace(wrongMode)
                    && wrongMode.Contains("Tactical", StringComparison.Ordinal),
-                $"server rejects a protected team flag outside Tactical mode: {nonTacticalMode}");
+                $"server rejects a protected team flag outside Tactical/Zombie modes: {nonTacticalMode}");
         }
 
         const string contractFailure = "simulated incomplete Pit persistence contract";
@@ -684,16 +741,23 @@ internal static class Program
                && sessionService.Contains("entry.NativeEndIdentity", StringComparison.Ordinal)
                && router.Contains("clientRaidStarted = Sessions?.IsClientRaidStarted", StringComparison.Ordinal),
             "the exact arm token and received native end identity are confirmed before Arena gameplay becomes active");
-        Assert(Regex.IsMatch(session,
-                @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)\s*\{[\s\S]{0,600}\}\s*else\s+if\s*\([^\)]*LocalGame\s+game\s*\)\s*\{[\s\S]{0,300}LiveKitRespawn\.AtRaidStart\s*\(\s*game\s*\)"),
+        Assert(HasInitialTeamBodyGuard(session),
             "team Arena bypasses initial player-body replacement while solo keeps it");
+        Assert(!HasInitialTeamBodyGuard(session.Replace("if (PitFireTeamCompat.HasFrozenTeamRoster)",
+                    "if (!PitFireTeamCompat.HasFrozenTeamRoster)", StringComparison.Ordinal))
+               && !HasInitialTeamBodyGuard(session.Replace("else if (ZombieOwnGearActive)",
+                    "if (ZombieOwnGearActive)", StringComparison.Ordinal))
+               && !HasInitialTeamBodyGuard(session.Replace("Respawn.LiveKitRespawn.AtRaidStart(game);", "", StringComparison.Ordinal)),
+            "initial-body guard detects a negated team gate, broken else chain and removed solo swap");
         Assert(localStart.Contains("var requestedMode = Settings.SelectedGameModeId", StringComparison.Ordinal)
                && HasFrozenArmCall(localStart)
                && session.Contains("ActiveMode = armedMode", StringComparison.Ordinal)
                && matchService.Contains("PitFireTeamCompat.TeamArenaActive", StringComparison.Ordinal)
+               && Regex.IsMatch(matchService,
+                   @"if\s*\(\s*Compat\.PitFireTeamCompat\.TeamArenaActive\s*&&\s*!string\.Equals\(modeId,\s*""tactical"",\s*StringComparison\.OrdinalIgnoreCase\)\s*&&\s*!string\.Equals\(modeId,\s*""zombie"",\s*StringComparison\.OrdinalIgnoreCase\)\s*\)")
                && matchService.Contains("modeId = \"tactical\"", StringComparison.Ordinal)
                && matchService.Contains("ModeRegistry.Create(modeId)", StringComparison.Ordinal),
-            "client freezes the server-armed mode across loading and forces Tactical for a protected team roster");
+            "client freezes the server-armed mode across loading and repairs only unsupported protected team modes");
         Assert(matchService.Contains("Current != null || TeamStartAbortPending", StringComparison.Ordinal)
                && matchService.Contains("game.Status != GameStatus.Started", StringComparison.Ordinal)
                && matchService.IndexOf("TeamStartAbortPending", StringComparison.Ordinal)
@@ -1018,14 +1082,17 @@ internal static class Program
             takeAuthorization,
             StringComparison.Ordinal);
         int soloKitSelection = respawnRoutine.IndexOf(
-            "KitCatalog.GetSelectedKit()",
+            "var kit = KitCatalog.GetSelectedKit()",
             StringComparison.Ordinal);
         Assert(stoppedRaidExit >= 0
                && frozenRosterGate > stoppedRaidExit
                && takeAuthorization > frozenRosterGate
                && protectedRespawn > takeAuthorization
                && soloKitSelection > protectedRespawn,
-            "only a live frozen roster with Tactical's one-shot lease reaches protected respawn before the untouched solo kit path");
+            "only a live frozen roster with a one-shot coordinator lease reaches protected respawn before the untouched solo kit path");
+        Assert(Regex.IsMatch(respawnRoutine,
+                @"if\s*\(ArenaSession\.ZombieOwnGearActive\s*&&\s*!PitFireTeamCompat\.HasFrozenTeamRoster\)"),
+            "solo Zombie own-gear respawn cannot bypass a frozen PFT coordinator authorization");
 
         string protectedTeamRespawn = Slice(
             respawn,
@@ -1080,8 +1147,10 @@ internal static class Program
                && authorization.Contains("_teamRespawnAuthorizationAvailable = false", StringComparison.Ordinal)
                && authorization.Contains("_teamRespawnAuthorizationConsumed = true", StringComparison.Ordinal)
                && matchService.Contains("Current?.Mode is not TacticalMode tactical", StringComparison.Ordinal)
+               && matchService.Contains("Current?.Mode is ZombieMode zombie && zombie.IsTeamArena", StringComparison.Ordinal)
+               && matchService.Contains("zombie.TryTakeTeamRespawnAuthorization(game, deadPlayer, out prepared, out teamEpoch, out reason)", StringComparison.Ordinal)
                && matchService.Contains("tactical.TryTakeTeamRespawnAuthorization(", StringComparison.Ordinal),
-            "respawn authorization is exact-body, exact-game, exact-round, exact-PFT-epoch and one-shot through Tactical only");
+            "Tactical retains exact-body/game/round/PFT-epoch one-shot authorization; only protected Zombie gains its own coordinator doorway");
         Assert(tactical.Contains("TryValidateCurrentTeamLeaderBody(player, out string bodyProblem)", StringComparison.Ordinal)
                && tactical.Contains("the current local PMC drifted before PitFireTeam leader rebind", StringComparison.Ordinal)
                && tactical.Contains("the current local PMC drifted before PitFireTeam follower adoption", StringComparison.Ordinal)
@@ -1787,6 +1856,19 @@ internal static class Program
             throw new InvalidOperationException($"Production source lost following marker: {endMarker}");
 
         return source.Substring(start, end - start);
+    }
+
+    private static bool HasInitialTeamBodyGuard(string source)
+    {
+        // The own-gear solo branch now sits between the protected team and
+        // ordinary kit branches. Match that actual exclusive chain; the former
+        // adjacent-branch expression failed when solo own gear was introduced.
+        var team = Regex.Match(source,
+            @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)\s*\{(?<body>[^{}]*)\}\s*else\s+if\s*\(\s*ZombieOwnGearActive\s*\)");
+        if (!team.Success || team.Groups["body"].Value.Contains("LiveKitRespawn", StringComparison.Ordinal))
+            return false;
+        return Regex.IsMatch(source.Substring(team.Index + team.Length),
+            @"else\s+if\s*\(Comfort\.Common\.Singleton<AbstractGame>\.Instance\s+is\s+LocalGame\s+game\)\s*\{[^{}]*Respawn\.LiveKitRespawn\.AtRaidStart\(game\);");
     }
 
     private static void Assert(bool condition, string scenario)

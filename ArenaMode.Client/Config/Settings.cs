@@ -121,8 +121,8 @@ public static class Settings
     /// <summary>
     /// Colored tracers are a team feature, exactly like <see cref="TeamLasers"/>
     /// (2026-10-08): the one <see cref="TeamTracers"/> switch applies to Team
-    /// Deathmatch and to protected Tactical 5v5 (PitFireTeam); every other mode
-    /// (Deathmatch, Gun Game, Zombie, solo Tactical) has NO entry, returns null,
+    /// Deathmatch and protected Tactical/Zombie squads (PitFireTeam); solo modes
+    /// (Deathmatch, Gun Game, Zombie, solo Tactical) have NO entry, return null,
     /// the renderer keeps the native tracer and the mutator row shows N/A. There
     /// are no per-mode solo tracer settings any more. Solo shooters are still
     /// classified friendly/opponent by <c>ArenaTracerTeams.Classify</c>, which
@@ -135,6 +135,7 @@ public static class Settings
         {
             ArenaModeCatalog.TeamDeathmatchId => TeamTracers,
             ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers,
+            ArenaModeCatalog.ZombieId when protectedTeam => TeamTracers,
             _ => null
         };
     public static ConfigEntry<bool> TeamLasers { get; private set; }
@@ -1479,7 +1480,7 @@ public static class Settings
 
         ShowFriendlyMarkers = config.Bind(
             "HUD", "ShowFriendlyMarkers", true,
-            "Show a small diamond above visible friendly bots in Team Deathmatch and protected Tactical 5v5. " +
+            "Show a small diamond above visible friendly bots in Team Deathmatch and protected PitFireTeam squads. " +
             "Uses FriendlyTracerColor; markers are hidden behind obstacles and in ordinary raids.");
 
         ShowKillfeed = config.Bind(
@@ -1620,14 +1621,14 @@ public static class Settings
             true,
             "Give every Arena projectile a team-colored tracer, including ammunition " +
             "that has no tracer in ordinary raids. Team-only, like TeamLasers: applies to Team " +
-            "Deathmatch and Tactical 5v5 (PitFireTeam). Deathmatch, Gun Game, Zombie and solo " +
+            "Deathmatch and Tactical/Zombie squads (PitFireTeam). Deathmatch, Gun Game, solo Zombie and solo " +
             "Tactical always keep the native ammunition tracers.");
 
         TeamLasers = config.Bind(
             "Effects",
             "TeamLasers",
             true,
-            "Team Deathmatch and protected Tactical 5v5: color active visible weapon lasers using FriendlyTracerColor and OpponentTracerColor. " +
+            "Team Deathmatch and protected PitFireTeam squads: color active visible weapon lasers using FriendlyTracerColor and OpponentTracerColor. " +
             "Does not switch lasers on or change infrared visibility or flashlights. Ordinary raids stay unchanged.");
 
         VisibleLaserBrightness = config.Bind(

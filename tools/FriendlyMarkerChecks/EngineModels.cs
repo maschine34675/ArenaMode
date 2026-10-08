@@ -199,6 +199,13 @@ namespace ArenaMode.Modes
         // the returned exact-body affiliation, never a historical ID lookup.
         public bool TryClassifyCurrentBody(EFT.Player p, out bool friendly) => Bodies.TryGetValue(p, out friendly);
     }
+    public class ZombieMode : IMode
+    {
+        public bool IsComplete { get; set; }
+        public bool IsTeamArena = true;
+        public readonly HashSet<EFT.Player> Bodies = new();
+        public bool IsCurrentFriendlyMarkerBody(EFT.Player player) => Bodies.Contains(player);
+    }
     public sealed partial class TacticalMode : IMode
     {
         public enum Phase { Staging, Buy, Live, Aftermath, Rebinding, Ended }

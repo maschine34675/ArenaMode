@@ -284,6 +284,34 @@ view.Synchronize("zombie", false);
 EquipmentChoiceButton(false).onClick.Invoke();
 Need(!Settings.ZombieOwnGear.Value && Marked(EquipmentChoiceButton(false)),
     "unarmed equipment choice row can restore Arena kits through the real control");
+// A protected Zombie squad always keeps PMC entry gear. Hidden/stale callbacks
+// must not rewrite the solo preference or permit a kit/body swap for its leader.
+foreach (bool ownGear in new[] { false, true })
+{
+    Settings.ZombieOwnGear.Value = ownGear;
+    view.Synchronize("zombie", false);
+    var staleEquipmentCallbacks = EquipmentChoiceButton(!ownGear).onClick.Snapshot();
+    view.Synchronize("zombie", true);
+    Need(!EquipmentChoiceRoot().activeSelf && Label("EQUIPMENT value").gameObject.activeSelf
+        && Label("EQUIPMENT value").text == "PMC entry gear",
+        "protected Zombie hides kit choices and displays entry gear independently of the solo preference");
+    Need(Label("RESPAWN value").text == "Next wave" && Label("RULES value").text == "Survive the waves",
+        "protected Zombie explains the wave-delayed return instead of solo instant respawn");
+    Need(Label("Team restriction").gameObject.activeSelf
+        && Label("Team restriction").text.Contains("Team wipe ends the match", StringComparison.Ordinal)
+        && Label("Team restriction").text.Contains("Squad resets between waves", StringComparison.Ordinal),
+        "protected Zombie states elimination and complete squad refresh semantics");
+    Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
+            == "ZOMBIES / SQUAD (PFT)",
+        "Zombie row labels the protected companion variant");
+    foreach (var callback in staleEquipmentCallbacks) callback();
+    EquipmentChoiceButton(!ownGear).onClick.Invoke();
+    Need(Settings.ZombieOwnGear.Value == ownGear,
+        "stale or direct hidden equipment callbacks cannot change the saved solo choice in team Zombie");
+    view.Synchronize("zombie", false);
+    Need(EquipmentChoiceRoot().activeSelf && Settings.ZombieOwnGear.Value == ownGear,
+        "leaving protected Zombie restores the independent solo equipment selection");
+}
 // Items 3+4 of the 2026-10-08 menu polish: whatever the view RENDERS in the three
 // MATCH RULES facts (catalog value or one of its substitutions) stays inside the
 // 218 px value column: at most three words and 18 characters, RESPAWN limited to
@@ -291,7 +319,7 @@ Need(!Settings.ZombieOwnGear.Value && Marked(EquipmentChoiceButton(false)),
 // tools/NativeModeSelectionChecks; this measures the rendered text, including the
 // view-side substitutions ("PMC entry gear", "Own gear", "After killcam").
 foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungame", false), ("tactical", false),
-    ("tactical", true), ("teamdeathmatch", false), ("zombie", false) })
+    ("tactical", true), ("teamdeathmatch", false), ("zombie", false), ("zombie", true) })
 {
     foreach (bool ownGear in schemaMode == "zombie" ? new[] { false, true } : new[] { false })
     {
@@ -305,7 +333,7 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
                     && rendered.Split(' ', StringSplitOptions.RemoveEmptyEntries).Count(t => t.Any(char.IsLetterOrDigit)) <= 3,
                 fact + " fact fits the value column without an ellipsis: " + scope + " '" + rendered + "'");
         }
-        Need(Label("RESPAWN value").text is "Instant" or "Next round" or "After killcam",
+        Need(Label("RESPAWN value").text is "Instant" or "Next round" or "Next wave" or "After killcam",
             "RESPAWN fact stays inside the known vocabulary: " + scope);
     }
 }
@@ -369,7 +397,7 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
 }
 // 2026-10-08 menu polish, item 5: colored tracers are team-only, exactly like the
 // team laser colors. Settings.TracerEntry has an entry (the one Effects/
-// TeamTracers) only for Team DM and protected Tactical 5v5; every other mode
+// TeamTracers) only for Team DM and protected Tactical/Zombie squads; every other mode
 // shows N/A with the lasers' reason and nothing can be written.
 string MutatorDetail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
     .Single(t => t.name == "Mutator detail " + id).text;
@@ -379,14 +407,14 @@ foreach (var (soloMode, soloTeam) in new[] { ("deathmatch", false), ("gungame", 
     view.Synchronize(soloMode, soloTeam);
     Need(MutatorStatus(ArenaMutator.Tracers) == "N/A" && !MutatorButton(ArenaMutator.Tracers).interactable,
         "colored tracers are N/A outside team modes: " + soloMode);
-    Need(MutatorDetail(ArenaMutator.Tracers) == "Requires Team DM or Tactical 5v5 (PFT)."
+    Need(MutatorDetail(ArenaMutator.Tracers) == ArenaMutatorSelection.TeamModesOnly
         && MutatorDetail(ArenaMutator.Tracers) == MutatorDetail(ArenaMutator.Lasers),
         "colored tracers give the lasers' team-only reason: " + soloMode);
     MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
     Need(Settings.TeamTracers.Value && MutatorStatus(ArenaMutator.Tracers) == "N/A",
         "unavailable tracers preserve the team preference on direct callback: " + soloMode);
 }
-foreach (var (teamMode, team) in new[] { ("teamdeathmatch", false), ("tactical", true) })
+foreach (var (teamMode, team) in new[] { ("teamdeathmatch", false), ("tactical", true), ("zombie", true) })
 {
     Settings.TeamTracers.Value = true;
     view.Synchronize(teamMode, team);
@@ -502,13 +530,13 @@ float pointBrightness = Settings.VisibleLaserBrightness.Value, beamBrightness = 
 MutatorButton(ArenaMutator.Lasers).onClick.Invoke();
 Need(Settings.VisibleLaserBrightness.Value == pointBrightness && Settings.VisibleLaserBeamBrightness.Value == beamBrightness,
     "laser color toggle does not alter brightness");
-foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" })
+foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" })
 {
-    foreach (bool team in mode == "tactical" ? new[] { false, true } : new[] { false })
+    foreach (bool team in mode is "tactical" or "zombie" ? new[] { false, true } : new[] { false })
     {
         view.Synchronize(mode, team);
         bool pickupAllowed = mode == "deathmatch" || mode == "teamdeathmatch";
-        bool laserAllowed = mode == "teamdeathmatch" || (mode == "tactical" && team);
+        bool laserAllowed = mode == "teamdeathmatch" || (mode is "tactical" or "zombie" && team);
         Need(MutatorButton(ArenaMutator.Pickups).interactable == pickupAllowed, "pickup availability matches runtime modes");
         Need(MutatorButton(ArenaMutator.Lasers).interactable == laserAllowed, "laser availability matches team modes");
         Need(MutatorButton(ArenaMutator.Tracers).interactable == laserAllowed,
@@ -669,10 +697,12 @@ foreach (bool saved in new[] { false, true })
     Need(Settings.TeamTracers.Value == saved, "saved team tracer choice survives configuration reload");
     Need(ReferenceEquals(Settings.TracerEntry("teamdeathmatch", false), Settings.TeamTracers)
         && ReferenceEquals(Settings.TracerEntry(" TeamDeathmatch ", false), Settings.TeamTracers)
-        && ReferenceEquals(Settings.TracerEntry("tactical", true), Settings.TeamTracers),
-        "team modes (Team DM, protected Tactical 5v5) map to the one Effects/TeamTracers entry");
+        && ReferenceEquals(Settings.TracerEntry("tactical", true), Settings.TeamTracers)
+        && ReferenceEquals(Settings.TracerEntry("zombie", true), Settings.TeamTracers)
+        && ReferenceEquals(Settings.TracerEntry(" ZOMBIE ", true), Settings.TeamTracers),
+        "team modes (Team DM, protected Tactical/Zombie) map to the one Effects/TeamTracers entry");
     foreach (var (mode, protectedTeam) in new[] { ("deathmatch", false), ("deathmatch", true), ("endless", false), ("rounds", false),
-        ("gungame", false), ("gungame", true), ("tactical", false), ("zombie", false), ("zombie", true), ("unknown", false), (null, false) })
+        ("gungame", false), ("gungame", true), ("tactical", false), ("zombie", false), ("unknown", false), (null, false) })
         Need(Settings.TracerEntry(mode, protectedTeam) == null,
             "solo modes have no tracer entry, orphaned solo keys enable nothing: " + (mode ?? "<null>") + (protectedTeam ? " (team flag)" : ""));
 }

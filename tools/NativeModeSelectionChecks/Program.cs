@@ -64,7 +64,7 @@ internal static class Program
                == ArenaModeCatalog.TacticalId,
             "a protected team resolves an old solo choice to Tactical");
         foreach (var id in expected)
-            Assert(ArenaModeCatalog.CanSelect(id, tacticalOnly: true) == (id == "tactical"),
+            Assert(ArenaModeCatalog.CanSelect(id, tacticalOnly: true) == (id is "tactical" or "zombie"),
                 $"protected-team catalog eligibility is correct for '{id}'");
     }
 
@@ -122,16 +122,37 @@ internal static class Program
 
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
         {
-            if (ArenaModeCatalog.All[index].Id == "tactical") continue;
+            if (ArenaModeCatalog.All[index].Id is "tactical" or "zombie") continue;
             Assert(!state.CanSelectIndex(index),
-                "protected team reports non-Tactical choices as unavailable");
+                "protected team reports modes without a PFT lifecycle as unavailable");
             Assert(!state.TrySelectIndex(index) && writes.Count == 1,
-                "protected team rejects a non-Tactical selection without calling the writer");
+                "protected team rejects an unsupported mode without calling the writer");
             AssertSelection(state, "tactical");
         }
         Assert(state.CanSelectIndex(IndexOf("tactical"))
                && state.TrySelectIndex(IndexOf("tactical")) && writes.Count == 1,
             "protected team can retain Tactical without rewriting settings");
+        Assert(state.CanSelectIndex(IndexOf("zombie")) && state.TrySelectIndex(IndexOf("zombie"))
+               && writes.SequenceEqual(new[] { "tactical", "zombie" }),
+            "protected team can explicitly choose Zombie and persist that exact mode");
+        AssertSelection(state, "zombie");
+        Assert(state.TrySelectIndex(IndexOf("zombie")) && writes.Count == 2,
+            "retaining protected Zombie does not rewrite the setting");
+        Assert(state.TrySelectIndex(IndexOf("tactical")) && writes.Last() == "tactical" && writes.Count == 3,
+            "protected team can switch back to Tactical without relaxing other mode gates");
+
+        int zombieWrites = 0;
+        var savedZombie = new ArenaModeSelectionState(" ZoMbIe ", true,
+            _ => { zombieWrites++; return true; });
+        savedZombie.CommitInitialSelection();
+        AssertSelection(savedZombie, "zombie");
+        Assert(zombieWrites == 0,
+            "an existing protected Zombie choice is retained without rewriting it to Tactical");
+
+        var rejectingZombie = new ArenaModeSelectionState("tactical", true, _ => false);
+        Assert(!rejectingZombie.TrySelectIndex(IndexOf("zombie")),
+            "a rejected protected Zombie write cannot claim the selection succeeded");
+        AssertSelection(rejectingZombie, "tactical");
     }
 
     private static void InitialSelectionAndFallback()
@@ -292,6 +313,10 @@ internal static class Program
         Assert(state.Synchronize(saved, true) && saved == "tactical" && writes == 1,
             "PFT repairs a forbidden F12 mode even when its displayed resolved mode was already Tactical");
         AssertSelection(state, "tactical");
+        saved = "zombie";
+        Assert(state.Synchronize(saved, true) && saved == "zombie" && writes == 1,
+            "PFT accepts a supported Zombie F12 selection without replacing it with Tactical");
+        AssertSelection(state, "zombie");
         saved = "teamdeathmatch";
         Assert(state.Synchronize(saved, false) && !state.TacticalOnly && writes == 1,
             "leaving PFT and accepting a valid F12 mode refreshes without an unnecessary settings write");

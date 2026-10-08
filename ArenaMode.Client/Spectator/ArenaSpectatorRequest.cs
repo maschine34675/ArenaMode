@@ -40,7 +40,8 @@ internal sealed class ArenaSpectatorRequest
         Player deadPlayer,
         IEnumerable<string> allowedProfileIds,
         Func<IReadOnlyList<ArenaSpectatorTarget>> targetProvider,
-        string preferredProfileId = null)
+        string preferredProfileId = null,
+        bool cooperative = false)
     {
         Epoch = epoch;
         ReadEpoch = readEpoch;
@@ -49,9 +50,11 @@ internal sealed class ArenaSpectatorRequest
         AllowedProfileIds = allowedProfileIds;
         TargetProvider = targetProvider;
         PreferredProfileId = preferredProfileId?.Trim();
+        Cooperative = cooperative;
     }
 
     public int Epoch { get; }
+    public bool Cooperative { get; }
     public Func<int> ReadEpoch { get; }
     public Func<bool> IsEligible { get; }
     public Player DeadPlayer { get; }

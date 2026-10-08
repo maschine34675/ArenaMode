@@ -65,7 +65,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         int raidEpoch = RaidEpoch.Capture();
         Plugin.ModLogger.LogInfo(
             PitFireTeamCompat.HasFrozenTeamRoster
-                ? $"Arena death #{DeathsThisSession} — held for Tactical round transition."
+                ? $"Arena death #{DeathsThisSession} — held for protected team transition."
                 : ArenaSession.ReplaySeconds > 0f
                     ? $"Arena death #{DeathsThisSession} — respawn after optional killcam."
                     : $"Arena death #{DeathsThisSession} — instant respawn.");
@@ -119,20 +119,22 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         // Zombie's own-gear option (item 4, 2026-10-06 follow-up): the same
         // idea as the frozen PitFireTeam branch just below, for solo play —
-        // restore the entry loadout instead of drawing a kit. Checked FIRST
+        // restore the entry loadout instead of drawing a kit. Frozen PFT teams
+        // are explicitly excluded: they must consume the prepared lease below.
+        // Checked FIRST for the solo path
         // (and unconditionally skips KitCatalog.GetSelectedKit() below) so a
         // random-kit respawn can never reach a player who asked to keep their
         // own gear. See ZombieOwnGearLoadout's own doc comment for why no
         // separate "prepare ahead of time" stage is needed, unlike the team
         // branch's TickTeamRetirement staging.
-        if (ArenaSession.ZombieOwnGearActive)
+        if (ArenaSession.ZombieOwnGearActive && !PitFireTeamCompat.HasFrozenTeamRoster)
         {
             yield return game.StartCoroutine(RespawnOwnGearPlayer(game, deadPlayer, corpsePosition, raidEpoch));
             yield break;
         }
 
-        // A frozen PitFireTeam roster may enter Redeploy only through Tactical's
-        // one-shot round-transition authorization. That authorization binds the
+        // A frozen PitFireTeam roster may enter Redeploy only through its mode's
+        // one-shot round/wave-transition authorization. That authorization binds the
         // exact LocalGame/dead body, epoch and fully prepared in-memory loadout;
         // a mode drift or premature hold release remains a protected abort.
         if (PitFireTeamCompat.HasFrozenTeamRoster)
@@ -148,7 +150,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
                 || prepared.RoundEpoch != teamEpoch)
             {
                 string reason = string.IsNullOrWhiteSpace(authorizationReason)
-                    ? "Tactical supplied no complete one-shot respawn authorization"
+                    ? "The protected team supplied no complete one-shot respawn authorization"
                     : authorizationReason;
                 if (prepared != null && prepared.RoundEpoch != teamEpoch)
                     reason += $" (prepared epoch {prepared.RoundEpoch}, authorized epoch {teamEpoch})";

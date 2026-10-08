@@ -129,11 +129,10 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             if (area?.TeamStarts != null && !Areas.ArenaAreaInitialSpawnPatch.IsReady)
                 throw new InvalidOperationException("Arena initial team placement is unavailable; choose a legacy area.");
             if (ArenaMenuSelection.CompatibilityTeamArenaActive
-                && !string.Equals(requestedMode, ArenaModeCatalog.TacticalId,
-                    StringComparison.Ordinal))
+                && !Compat.PitFireTeamSelectionPolicy.SupportsMode(requestedMode))
             {
                 throw new InvalidOperationException(
-                    "PitFireTeam companions require Tactical Arena at raid start.");
+                    "PitFireTeam companions require Tactical or Zombies Arena at raid start.");
             }
 
             // The mode the player actually picked, not a literal. The server

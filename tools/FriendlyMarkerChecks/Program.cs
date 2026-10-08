@@ -291,4 +291,12 @@ foreach (string invalid in new[] { "zero-output", "negative-output", "zero-width
     Render(); Check(Drawn(ui.root) == 0, "invalid output projection clears previous geometry: " + invalid);
     ui.markers.Dispose();
 }
+Reset(); ArenaSession.ActiveMode = "zombie";
+var zombieMode = new ZombieMode(); ArenaMatchService.Current.Mode = zombieMode;
+Player("local", true); var zombieAlly = Player("ally"); Player("infected");
+zombieMode.Bodies.Add(zombieAlly); ui = Markers(); Render();
+Check(Drawn(ui.root) == 1, "Zombie team admits only its proven friendly body");
+zombieMode.IsTeamArena = false; ui.markers.Tick(ArenaMatchService.Current); Render();
+Check(Drawn(ui.root) == 0, "solo Zombie keeps markers hidden");
+ui.markers.Dispose();
 Console.WriteLine($"ARENA_FRIENDLY_MARKER_CHECKS_PASSED ({checks} assertions)");

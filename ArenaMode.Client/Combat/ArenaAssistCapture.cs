@@ -145,6 +145,13 @@ internal static class ArenaAssistCapture
             if (ReferenceEquals(attacker, local) || tactical.IsOpposingAwardKill(victim, local)) friendly = true;
             else if (tactical.IsOpposingAwardKill(local, attacker)) friendly = false;
         }
+        else if (mode is ZombieMode zombieTeam && zombieTeam.IsTeamArena)
+        {
+            if (!zombieTeam.IsOpposingAwardKill(victim, attacker)) return false;
+            // Affiliation survives the thrower's death; live-marker eligibility
+            // deliberately does not, so it must never classify assist sources.
+            friendly = ReferenceEquals(attacker, local) || zombieTeam.IsOpposingAwardKill(victim, local);
+        }
         else
         {
             // Non-team modes have no retained affiliation registry. A dead body

@@ -59,18 +59,20 @@ public sealed class ZombieServerTests : IDisposable
         Assert.Equal(before, JsonSerializer.Serialize(location.BotLocationModifier.AdditionalHostilitySettings));
     }
 
-    [Fact]
-    public void ZombieResolvesFactoryWithoutAnArea()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ZombieResolvesFactoryWithoutAnArea(bool pitFireTeam)
     {
         // Zombie has no bounded area of its own in v0 (decision 1): Factory
         // must resolve as the ordinary full map, both implicitly (no id) and
         // with the explicit full-map id, exactly like every other full-map mode.
-        Assert.True(ArenaAreaCatalog.TryResolve(null, ArenaMapCatalog.FactoryDayId, "zombie", false,
+        Assert.True(ArenaAreaCatalog.TryResolve(null, ArenaMapCatalog.FactoryDayId, "zombie", pitFireTeam,
             out var impliedArea, out var impliedReason));
         Assert.Null(impliedArea);
         Assert.Null(impliedReason);
 
-        Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.FactoryDayId, "zombie", false,
+        Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.FactoryDayId, "zombie", pitFireTeam,
             out var explicitArea, out var explicitReason));
         Assert.Null(explicitArea);
         Assert.Null(explicitReason);

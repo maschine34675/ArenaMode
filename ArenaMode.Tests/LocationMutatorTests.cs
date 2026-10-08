@@ -218,6 +218,9 @@ public class LocationMutatorTests
 
     [Theory]
     [InlineData(24, 15)]
+    [InlineData(60, 60)]
+    [InlineData(62, 63)]
+    [InlineData(64, 64)]
     [InlineData(100, 120)]
     public void ZombieRaisesTheCloneBotCaps(int mapBotMax, int mapMaxBotPerZone)
     {
@@ -229,9 +232,12 @@ public class LocationMutatorTests
             new ArenaMapConfig { BotMax = mapBotMax, MaxBotPerZone = mapMaxBotPerZone },
             new ArenaModeConfig(), "zombie"));
 
-        Assert.Equal(Math.Max(mapBotMax, 60), location.BotMax);
-        Assert.Equal(Math.Max(mapBotMax, 60), location.BotMaxPvE);
-        Assert.Equal(Math.Max(mapMaxBotPerZone, 60), location.MaxBotPerZone);
+        // Maximum configured infected + four PFT companions + two release
+        // reserve slots must fit even when the native map cap is much smaller.
+        Assert.True(ZombieLocationSettings.MinimumBotCap >= 56 + 4 + 2);
+        Assert.Equal(Math.Max(mapBotMax, 64), location.BotMax);
+        Assert.Equal(Math.Max(mapBotMax, 64), location.BotMaxPvE);
+        Assert.Equal(Math.Max(mapMaxBotPerZone, 64), location.MaxBotPerZone);
     }
 
     [Fact]

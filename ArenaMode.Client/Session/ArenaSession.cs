@@ -177,7 +177,8 @@ public static class ArenaSession
         ArmedMap = map;
         ArmedMode = mode;
         GunGameLadderSelection = Settings.GunGameLadder.Value;
-        ZombieOwnGearSelection = Settings.ZombieOwnGear.Value;
+        ZombieOwnGearSelection = Settings.ZombieOwnGear.Value
+            || (mode == Shared.ArenaPopulationPolicy.Zombie && PitFireTeamCompat.HasFrozenTeamRoster);
         AnnouncerEnabledSelection = Settings.GetAnnouncerPerModeEnabled(mode);
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
     }
@@ -405,7 +406,7 @@ public static class ArenaSession
         if (PitFireTeamCompat.HasFrozenTeamRoster)
         {
             Plugin.ModLogger.LogInfo(
-                "Arena 5v5: skipped the raid-start kit/body swap; PitFireTeam remains bound to the original PMC. "
+                "Arena team: skipped the raid-start kit/body swap; PitFireTeam remains bound to the original PMC. "
                 + "The secure container stays as it is, shown and usable.");
         }
         else if (ZombieOwnGearActive)

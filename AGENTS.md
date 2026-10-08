@@ -3,7 +3,8 @@
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version
-PitFireTeam compatibility path supports protected Tactical 5v5 matches; the
+PitFireTeam compatibility path supports protected Tactical 5v5 and five-player
+Zombie survival; read ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
 accepted builds are the exact set in `ArenaMode.Shared/PitFireTeamVersions.cs`
 (0.10.0 and 0.10.3), never a range — 0.10.1/0.10.2 were never diffed.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
@@ -18,7 +19,7 @@ remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
-Zombies is solo, endless waves of EFT's own infected reactivated for exactly
+Zombies offers solo or a protected four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. See ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
 hooks, the wave policy or its stuck-wave watchdog.

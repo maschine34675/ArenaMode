@@ -22,6 +22,7 @@ internal static class Program
             CheckSoloPolicy();
             CheckFactionPolicy();
             CheckProtectedTeamPolicy();
+            CheckCooperativeWavePolicy();
             CheckRosterRejections();
             CheckPatchRegistration();
             CheckPatchRenderingAndGates();
@@ -69,6 +70,35 @@ internal static class Program
         Assert(ArenaTracerTeams.Classify(" ", verifiedPlayerIdentity: true)
                == ArenaTracerSide.Unknown,
             "empty shooter identity stays native");
+    }
+
+    private static void CheckCooperativeWavePolicy()
+    {
+        Reset();
+        var allies = new[] { "a", "b", "c", "d" };
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "horde binding needs a match");
+        ArenaTracerTeams.BeginMatch("local", false);
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "solo cannot bind a horde roster");
+        ArenaTracerTeams.BeginMatch("local", true);
+        Assert(!ArenaTracerTeams.RegisterCooperativeInfected("z1"), "infected admission waits for authenticated allies");
+        Assert(ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "four allies bind without a fixed enemy count");
+        Assert(ArenaTracerTeams.Classify("a", true) == ArenaTracerSide.Friendly, "horde ally is friendly");
+        Assert(!ArenaTracerTeams.RegisterCooperativeInfected("a"), "an ally cannot become infected by registration");
+        Assert(!ArenaTracerTeams.RegisterCooperativeInfected(" "), "blank infected identity rejected");
+        for (int i = 0; i < 56; i++)
+            Assert(ArenaTracerTeams.RegisterCooperativeInfected("z" + i), "dynamic infected roster exceeds five safely");
+        Assert(ArenaTracerTeams.Classify("z55", true) == ArenaTracerSide.Opponent, "last admitted infected is opponent");
+        Assert(ArenaTracerTeams.Classify("stranger", true) == ArenaTracerSide.Unknown, "unowned actor stays unknown");
+        Assert(ArenaTracerTeams.Classify("a", false) == ArenaTracerSide.Unknown, "identity still needs verified source");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "old wave cannot be reused");
+        Assert(ArenaTracerTeams.Classify("a", true) == ArenaTracerSide.Unknown, "bad rebind closes classification");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, "foreign", allies, out _), "foreign leader rejected");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, "local", new[] { "a", "a", "c", "d" }, out _), "duplicate ally rejected");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, "local", new[] { "z1", "b", "c", "d" }, out _), "historical infected cannot become ally");
+        Assert(ArenaTracerTeams.TryBindCooperativeWave(2, "local", new[] { "e", "f", "g", "h" }, out _), "fresh wave allies bind");
+        Assert(ArenaTracerTeams.Classify("a", true) == ArenaTracerSide.Friendly, "old projectile retains friendly identity");
+        ArenaTracerTeams.Reset();
+        Assert(!ArenaTracerTeams.RegisterCooperativeInfected("z"), "teardown closes horde registration");
     }
 
     private static void CheckFactionPolicy()
@@ -437,12 +467,12 @@ internal static class Program
         RequireAll(tracerEntry,
             "ArenaModeCatalog.TeamDeathmatchId => TeamTracers",
             "ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers",
+            "ArenaModeCatalog.ZombieId when protectedTeam => TeamTracers",
             "_ => null");
-        Assert(CountOccurrences(tracerEntry, "=> TeamTracers") == 2
+        Assert(CountOccurrences(tracerEntry, "=> TeamTracers") == 3
                && !tracerEntry.Contains("ArenaModeCatalog.DeathmatchId", StringComparison.Ordinal)
-               && !tracerEntry.Contains("GunGameId", StringComparison.Ordinal)
-               && !tracerEntry.Contains("ZombieId", StringComparison.Ordinal),
-            "TracerEntry maps only Team DM and protected Tactical 5v5 to TeamTracers");
+               && !tracerEntry.Contains("GunGameId", StringComparison.Ordinal),
+            "TracerEntry maps only Team DM and protected Tactical/Zombie to TeamTracers");
         foreach (string retired in new[] { "DeathmatchColoredTracers", "GunGameColoredTracers",
             "TacticalSoloColoredTracers", "ZombieColoredTracers", "SoloColoredTracers" })
             Assert(!settings.Contains(retired, StringComparison.Ordinal),

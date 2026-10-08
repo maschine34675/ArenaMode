@@ -17,7 +17,7 @@ namespace ArenaMode.Effects;
 /// whose shared template has Tracer=false. Ammo templates are never changed: that
 /// flag also alters bot scatter and is shared by normal raids. Colored tracers
 /// are team-only like the laser colors: <see cref="Settings.TracerEntry"/> has no
-/// entry for Deathmatch, Gun Game, Zombie or solo Tactical, so the prefix below
+/// entry for Deathmatch, Gun Game, solo Zombie or solo Tactical, so the prefix below
 /// returns the complete native method there regardless of TeamTracers. Unknown
 /// protected-5v5 identities and every non-Arena call fail open the same way.
 /// </summary>

@@ -179,8 +179,10 @@ public class PitFireTeamPersistenceGuardTests
         }
     }
 
-    [Fact]
-    public void SoloArmDoesNotProtectButTeamArmBlocksAllFiveFileMutations()
+    [Theory]
+    [InlineData("tactical")]
+    [InlineData("zombie")]
+    public void SoloArmDoesNotProtectButTeamArmBlocksAllFiveFileMutations(string mode)
     {
         ArenaSessionService? previous = GetSessions();
         var sessions = new ArenaSessionService(NoOpLogger.Create<ArenaSessionService>());
@@ -201,7 +203,7 @@ public class PitFireTeamPersistenceGuardTests
             Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
 
             // Solo Arena deliberately leaves PitFireTeam persistence alone.
-            sessions.Arm(sessionId, "factory4_day", "tactical");
+            sessions.Arm(sessionId, "factory4_day", mode);
             Assert.False(sessions.IsExternalProfileWriteProtected(sessionId));
             Assert.False(sessions.AnyExternalProfileWriteProtection());
             Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
@@ -212,7 +214,7 @@ public class PitFireTeamPersistenceGuardTests
             sessions.Arm(
                 sessionId,
                 "factory4_day",
-                "tactical",
+                mode,
                 protectPitFireTeam: true);
             Assert.True(sessions.IsExternalProfileWriteProtected(sessionId));
             Assert.True(sessions.AnyExternalProfileWriteProtection());
@@ -593,8 +595,10 @@ public class PitFireTeamPersistenceGuardTests
         }
     }
 
-    [Fact]
-    public void PreparingAndArmedStateKeepSnapshotBoundaryClosedPastLowLevelTtl()
+    [Theory]
+    [InlineData("tactical")]
+    [InlineData("zombie")]
+    public void PreparingAndArmedStateKeepSnapshotBoundaryClosedPastLowLevelTtl(string mode)
     {
         DateTime now = new(2026, 9, 1, 12, 0, 0, DateTimeKind.Utc);
         var guard = new PitFireTeamPersistenceGuard(() => now);
@@ -610,7 +614,7 @@ public class PitFireTeamPersistenceGuardTests
             Assert.True(sessions.BeginTeamArmPreparation(
                 sessionId,
                 "factory4_day",
-                "tactical",
+                mode,
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 
             now += TimeSpan.FromMinutes(14);
@@ -1460,11 +1464,13 @@ public class PitFireTeamPersistenceGuardTests
                 && patch.PatchMethod.Name == nameof(PitFireTeamDelayedInviteSideEffectPatch.MailFinalizer));
     }
 
-    [Fact]
-    public void RaidStartTeamFlagIsOptionalAndFailClosedWithoutChangingSolo()
+    [Theory]
+    [InlineData("tactical")]
+    [InlineData("zombie")]
+    public void RaidStartTeamFlagIsOptionalAndFailClosedWithoutChangingSolo(string mode)
     {
         ArenaRaidStartRequest omitted = JsonSerializer.Deserialize<ArenaRaidStartRequest>(
-            """{"map":"factory4_day","mode":"tactical"}""")!;
+            $$"""{"map":"factory4_day","mode":"{{mode}}"}""")!;
         Assert.False(omitted.PitFireTeamTeam);
         Assert.Null(PitFireTeamRaidStartPolicy.GetRejectionReason(
             omitted.PitFireTeamTeam,
@@ -1473,7 +1479,7 @@ public class PitFireTeamPersistenceGuardTests
             incompatibilityReason: "not ready"));
 
         ArenaRaidStartRequest team = JsonSerializer.Deserialize<ArenaRaidStartRequest>(
-            """{"map":"factory4_day","mode":"tactical","pitFireTeamTeam":true}""")!;
+            $$"""{"map":"factory4_day","mode":"{{mode}}","pitFireTeamTeam":true}""")!;
         Assert.True(team.PitFireTeamTeam);
         Assert.Equal(
             "contract mismatch",
@@ -1488,12 +1494,29 @@ public class PitFireTeamPersistenceGuardTests
             persistenceProtectionReady: true,
             incompatibilityReason: "ignored"));
         Assert.Contains(
-            "only in Tactical",
+            "Tactical or Zombies",
             PitFireTeamRaidStartPolicy.GetRejectionReason(
                 pitFireTeamTeamRequested: true,
                 arenaMode: "rounds",
                 persistenceProtectionReady: true,
                 incompatibilityReason: null));
+    }
+
+    [Theory]
+    [InlineData("deathmatch")]
+    [InlineData("teamdeathmatch")]
+    [InlineData("gungame")]
+    [InlineData("endless")]
+    [InlineData("rounds")]
+    [InlineData("zombies")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void ReadyPersistenceCannotEnableUnsupportedSquadModes(string? mode)
+    {
+        Assert.NotNull(PitFireTeamRaidStartPolicy.GetRejectionReason(
+            true, mode, persistenceProtectionReady: true, incompatibilityReason: null));
+        Assert.Null(PitFireTeamRaidStartPolicy.GetRejectionReason(
+            false, mode, persistenceProtectionReady: false, incompatibilityReason: "not installed"));
     }
 
     private sealed record InstalledMethodContract(

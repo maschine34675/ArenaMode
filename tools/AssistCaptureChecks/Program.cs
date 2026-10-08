@@ -306,6 +306,27 @@ internal static class Program
         Assert(_match.Forgotten.Count == 0, "normal raid cleanup untouched");
     }
 
+    private static void ZombieTeams()
+    {
+        var zombie = new ZombieMode { IsTeamArena = true };
+        Reset(zombie);
+        zombie.Teams[_local] = zombie.Teams[_attacker] = 0; zombie.Teams[_victim] = 1;
+        Hit(source: _local); Hit(source: _attacker);
+        Assert(_match.Damage.Count == 2 && _match.Damage.All(d => d.AttackerIsFriendly == true),
+            "local and follower damage contribute to an infected kill");
+        _victim.HealthController.IsAlive = false; _world.Alive.Remove(_victim.ProfileId);
+        ArenaAssistCapture.PrepareKill(_match, _victim, _attacker, EDamageType.Bullet);
+        Assert(_match.Forgotten.Count == 0, "a follower final hit preserves the local assist contribution");
+        Reset(zombie); zombie.Teams[_local] = zombie.Teams[_attacker] = 0; zombie.Teams[_victim] = 1;
+        _attacker.HealthController.IsAlive = false; _world.Alive.Remove(_attacker.ProfileId);
+        Hit(source: _attacker, type: EDamageType.GrenadeFragment);
+        Assert(_match.Damage.Single().AttackerIsFriendly == true,
+            "a dead follower's delayed grenade retains friendly assist affiliation");
+        Reset(zombie); zombie.Teams[_local] = zombie.Teams[_attacker] = zombie.Teams[_victim] = 0;
+        Hit(source: _attacker); Unattributed("friendly Zombie team damage");
+        Reset(new ZombieMode()); Hit(source: _attacker); Unattributed("solo Zombie still has no follower attribution");
+    }
+
     public static int Main(string[] args)
     {
         try
@@ -319,6 +340,7 @@ internal static class Program
             if (suite is "all" or "gungame") GunGame();
             if (suite is "all" or "lifecycle") Lifecycle();
             if (suite is "all" or "terminal") Terminal();
+            if (suite is "all" or "zombie") ZombieTeams();
             Console.WriteLine("ASSIST_CAPTURE_PRODUCTION_PASSED: " + _checks + " assertions");
             return 0;
         }

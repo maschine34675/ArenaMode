@@ -56,5 +56,9 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Compat
 {
+    internal static class PitFireTeamSelectionPolicy
+    {
+        public static bool SupportsMode(string mode) => mode is "tactical" or "zombie";
+    }
     internal static class PitFireTeamCompat { public static bool HasFrozenTeamRoster => false; }
 }

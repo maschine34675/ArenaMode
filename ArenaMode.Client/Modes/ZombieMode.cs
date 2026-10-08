@@ -14,8 +14,8 @@ namespace ArenaMode.Modes;
 
 /// <summary>
 /// Endless waves of EFT's built-in infected (Halloween 2024 leftovers)
-/// against the local player. Solo, instant respawn, Arena kits — see
-/// AGENTS.md and the orchestrator's zombie-mode design for the full picture.
+/// against the local player, or an authenticated PitFireTeam squad. Solo keeps
+/// instant respawns; protected teams survive together and restore between waves.
 ///
 /// This class is the Unity/EFT-facing shell only: it freezes the Zombie
 /// settings once, drives the pure ZombieWavePolicy every Tick with the real
@@ -94,6 +94,8 @@ public sealed class ZombieMode : IArenaMode
     // this class's own "frozen settings" convention consistent and avoids a
     // property-chain read on every refill decision.
     private bool _ownGear;
+    private ZombieTeamRuntime _team;
+    private bool _teamIntermissionRestored;
 
     // Cached from the latest Tick for HudStatusLine, which must stay cheap —
     // ScorePanel reads it up to four times a second.
@@ -104,19 +106,41 @@ public sealed class ZombieMode : IArenaMode
     public string Id => ArenaModeCatalog.ZombieId;
     public string DisplayName => "Zombies";
 
-    /// <summary>Endless: the wave count never completes the mode.</summary>
-    public bool IsComplete => false;
+    /// <summary>Solo is endless; a protected squad finishes after a wipe or unsafe transition.</summary>
+    public bool IsComplete => _team?.IsComplete == true;
 
-    public float DeathReplaySeconds => ArenaReplaySelection.Seconds;
+    public float DeathReplaySeconds => IsTeamArena && !Spectator.ArenaSpectatorService.OptionalKillcamReplayMayRun
+        ? 0f : ArenaReplaySelection.Seconds;
 
-    /// <summary>Instant respawn, exactly like Deathmatch — the waves keep coming either way.</summary>
-    public bool HoldRespawn => false;
+    /// <summary>Solo respawns instantly; a protected squad waits for the cleared-wave restore.</summary>
+    public bool HoldRespawn => _team?.HoldRespawn == true;
 
     /// <summary>Zombie owns its entire population (see ArenaPopulationPolicy); no ambient top-up.</summary>
     public bool ControlsOwnSpawns => true;
 
-    /// <summary>Gates ArenaAssistCapture (see its ScoringOpen switch) — open for the whole live raid.</summary>
-    internal bool AssistScoringOpen => IsCurrentRaid();
+    /// <summary>Team assembly/restoration/result phases do not admit combat rewards.</summary>
+    internal bool AssistScoringOpen => IsCurrentRaid() && (_team == null || _team.IsLive);
+    internal bool IsTeamArena => _team != null;
+    internal bool HasFriendlyRoster => _team?.HasFriendlyRoster == true;
+    internal System.Collections.Generic.IReadOnlyList<Player> LiveTeamMembers
+        => _team?.LiveTeamMembers ?? Array.Empty<Player>();
+    internal bool IsCurrentFriendlyMarkerBody(Player player) => _team?.IsCurrentFriendlyMarkerBody(player) == true;
+    internal bool IsOpposingAwardKill(Player victim, IPlayer attacker) => _team?.IsOpposingAwardKill(victim, attacker) == true;
+    internal bool ShouldBlockStagingDamage(Player victim) => _team?.ShouldBlockStagingDamage(victim) == true;
+    internal bool FailClosedStagingGuard(string reason) => _team?.FailClosedStagingGuard(reason) == true;
+    internal bool TrySynchronizeTeamScoreboard(out string problem)
+    {
+        problem = null;
+        return _team == null || _team.TrySynchronizeScoreboardRoster(out problem);
+    }
+    internal bool TryTakeTeamRespawnAuthorization(LocalGame game, LocalPlayer deadPlayer,
+        out TeamArenaPreparedLoadoutRestore prepared, out int epoch, out string reason)
+    {
+        prepared = null;
+        epoch = 0;
+        reason = "the active Zombie match does not own a protected team";
+        return _team != null && _team.TryTakeTeamRespawnAuthorization(game, deadPlayer, out prepared, out epoch, out reason);
+    }
 
     /// <summary>Zombies the LOCAL player has killed this raid. Not shown in HudStatusLine today;
     /// kept for a future HUD and for diagnostics (decision 4: "OnKill counts infected victims").</summary>
@@ -128,6 +152,7 @@ public sealed class ZombieMode : IArenaMode
         {
             if (!IsCurrentRaid() || _match == null)
                 return "ZOMBIES";
+            if (_team?.Status != null) return _team.Status;
 
             if (_phase == ZombieWavePolicy.Phase.Intermission)
                 return _waveStatusText;
@@ -174,6 +199,14 @@ public sealed class ZombieMode : IArenaMode
         };
         _shooterPercent = shooterPercent;
         _ownGear = ArenaSession.ZombieOwnGearActive;
+        if (Compat.PitFireTeamCompat.TeamArenaActive)
+        {
+            if (!_ownGear) throw new InvalidOperationException("Protected Zombie teams require own gear.");
+            _team = new ZombieTeamRuntime(match, _game, _world, _local);
+            // The pure solo wave director intentionally crosses a zero-length
+            // break in one call. A team must observe every cleared-wave barrier.
+            _config.IntermissionSeconds = Math.Max(0.1f, _config.IntermissionSeconds);
+        }
 
         _rng = new System.Random();
         _waveState = ZombieWavePolicy.Initial();
@@ -223,6 +256,15 @@ public sealed class ZombieMode : IArenaMode
 
         float now = Time.time;
 
+        if (_team != null && !_team.Tick())
+        {
+            // Readiness and protected rebind consume no intermission time. This
+            // also keeps the initial wave from spawning before all four arrive.
+            if (_waveState.Phase == ZombieWavePolicy.Phase.Intermission)
+                _waveState.PhaseEndsAt = now + _config.IntermissionSeconds;
+            return;
+        }
+
         if (now >= _nextWaveEvaluateAt)
         {
             _nextWaveEvaluateAt = now + WaveEvaluateIntervalSeconds;
@@ -230,6 +272,12 @@ public sealed class ZombieMode : IArenaMode
             int alive = ZombieSpawnService.CountAliveInfected();
             int pending = ZombieSpawnService.Pending;
             int arrivedTotal = ZombieSpawnService.ConfirmedArrivals;
+            // Do not retire the team underneath an already dispatched final
+            // infected. The solo director's historical timing is unchanged.
+            if (_team != null && alive == 0 && pending > 0
+                && _waveState.Phase == ZombieWavePolicy.Phase.Wave
+                && _waveState.SpawnedThisWave >= ZombieWavePolicy.WaveSize(_config, _waveState.WaveNumber))
+                return;
             var result = ZombieWavePolicy.Evaluate(ref _waveState, _config, now, alive, pending, arrivedTotal);
 
             _phase = result.Phase;
@@ -257,6 +305,14 @@ public sealed class ZombieMode : IArenaMode
                     + "retiring whatever infected is still alive.");
                 ZombieSpawnService.RetireAllAliveInfected();
             }
+
+            if (_team != null && _phase == ZombieWavePolicy.Phase.Intermission && !_teamIntermissionRestored)
+            {
+                _teamIntermissionRestored = true;
+                _team.WaveCleared();
+                return;
+            }
+            if (_phase == ZombieWavePolicy.Phase.Wave) _teamIntermissionRestored = false;
 
             for (int i = 0; i < result.SpawnNow; i++)
             {
@@ -296,7 +352,7 @@ public sealed class ZombieMode : IArenaMode
             // whole swap, so the heal only ever fires once the replacement
             // body is fully wired — never mid-swap, matching TDM's guard.
             Player currentPlayer = _world?.MainPlayer;
-            if (!ArenaRespawnDriver.IsRespawnInProgress
+            if (_team == null && !ArenaRespawnDriver.IsRespawnInProgress
                 && currentPlayer != null && !ReferenceEquals(currentPlayer, _local))
             {
                 OnLocalRespawn(currentPlayer);
@@ -314,7 +370,7 @@ public sealed class ZombieMode : IArenaMode
                 && !ArenaRespawnDriver.StandDown;
 
             var refillConfig = new ZombieRefillPolicy.Config { MaxAttempts = RefillMaxAttempts };
-            var refill = ZombieRefillPolicy.Evaluate(ref _refillState, refillConfig, _phase, playerEligible);
+            var refill = ZombieRefillPolicy.Evaluate(ref _refillState, refillConfig, _phase, playerEligible && _team == null);
             if (refill.ShouldAttempt)
             {
                 int clearedWave = _waveNumber;
@@ -366,13 +422,14 @@ public sealed class ZombieMode : IArenaMode
             _zombiesKilled++;
     }
 
-    /// <summary>No scored round/result to protect — instant respawn, same as Deathmatch.</summary>
-    public void OnLocalDeath() { }
+    /// <summary>Solo keeps its existing respawn; protected teams switch to observing surviving allies.</summary>
+    public void OnLocalDeath() => _team?.OnLocalDeath();
 
     public void OnLocalRespawn(Player player)
     {
         if (!IsCurrentRaid() || player == null)
             return;
+        if (_team != null && !_team.OnLocalRespawn(player)) return;
 
         _local = player;
         _localId = player.ProfileId;
@@ -393,6 +450,7 @@ public sealed class ZombieMode : IArenaMode
     public void OnMatchEnd()
     {
         _ended = true;
+        _team?.Dispose();
         ArenaEvents.OnKitApplied -= OnKitApplied;
         ZombieSpawnService.Reset();
         ZombieMeleePatch.Reset();

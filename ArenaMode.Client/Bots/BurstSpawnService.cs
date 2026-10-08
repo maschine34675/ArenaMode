@@ -1221,10 +1221,17 @@ internal static class BurstSpawnService
     }
 
     private static Vector3? GetPlayerPosition()
-        => Singleton<GameWorld>.Instantiated
-           && Singleton<GameWorld>.Instance.MainPlayer != null
-            ? (Vector3?)Singleton<GameWorld>.Instance.MainPlayer.Position
-            : null;
+    {
+        var local = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;
+        if (Modes.ArenaMatchService.Current?.Mode is Modes.ZombieMode { IsTeamArena: true } zombie
+            && (local == null || local.HealthController?.IsAlive != true))
+        {
+            foreach (var member in zombie.LiveTeamMembers)
+                if (member != null && member.HealthController?.IsAlive == true) return member.Position;
+            return null;
+        }
+        return local != null ? (Vector3?)local.Position : null;
+    }
 
     /// <summary>
     /// Ask the backup loader to keep PMC profiles cached, so the first PMC burst

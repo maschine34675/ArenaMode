@@ -178,7 +178,7 @@ internal static class ArenaSideSelectionPatch
 
                 // Let a complete PFT roster reach the new map-screen picker even
                 // if the previous solo raid left another mode in config. Team
-                // Arena remains Tactical-only at the strict final validation.
+                // Final validation still requires an authenticated supported team mode.
                 EnsureCompatibleMode(eligibility);
 
                 ArenaMenuSelection.Select();
@@ -212,7 +212,7 @@ internal static class ArenaSideSelectionPatch
     {
         var eligibility = ArenaMenuSelection.CurrentEligibility;
         screen._sideDescriptionText.text = eligibility.IsTeam
-            ? "<nobr>Tactical 5v5 with PitFireTeam.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>"
+            ? "<nobr>Tactical or Zombies with PitFireTeam.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>"
             : "<nobr>Solo and team arena combat.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>";
         screen.SetHealthPanelVisibility(false, true);
     }
@@ -222,12 +222,12 @@ internal static class ArenaSideSelectionPatch
         if (eligibility?.IsTeam != true)
             return;
 
-        Settings.TrySelectGameMode(ArenaModeCatalog.TacticalId);
-        if (!string.Equals(Settings.SelectedGameModeId, ArenaModeCatalog.TacticalId,
-                StringComparison.Ordinal))
+        if (!PitFireTeamSelectionPolicy.SupportsMode(Settings.SelectedGameModeId))
+            Settings.TrySelectGameMode(ArenaModeCatalog.TacticalId);
+        if (!PitFireTeamSelectionPolicy.SupportsMode(Settings.SelectedGameModeId))
         {
             throw new InvalidOperationException(
-                "PitFireTeam companions require Tactical Arena, but the mode selection could not be saved.");
+                "PitFireTeam companions require Tactical or Zombies Arena, but the mode selection could not be saved.");
         }
     }
 

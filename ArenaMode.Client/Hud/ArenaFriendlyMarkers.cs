@@ -84,7 +84,8 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
         // This watchdog is outside the render callback: zero callbacks must be
         // diagnosable too. Three samples per HUD lifetime, no per-frame log spam.
         if (ArenaSession.IsActive && _samples < 3 && Time.unscaledTime >= _nextDiagnostic
-            && (match?.Mode is TeamDeathmatchMode || match?.Mode is TacticalMode tactical && tactical.IsTeamArena))
+            && (match?.Mode is TeamDeathmatchMode || match?.Mode is TacticalMode tactical && tactical.IsTeamArena
+                || match?.Mode is ZombieMode zombie && zombie.IsTeamArena))
         {
             _samples++;
             _nextDiagnostic = Time.unscaledTime + 10f;
@@ -117,7 +118,9 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
            && !match.Mode.IsComplete
            && ((match.Mode is TeamDeathmatchMode && ArenaSession.ActiveMode == "teamdeathmatch")
                || (match.Mode is TacticalMode tactical && tactical.IsTeamArena
-                   && ArenaSession.ActiveMode == "tactical"))
+                   && ArenaSession.ActiveMode == "tactical")
+               || (match.Mode is ZombieMode zombie && zombie.IsTeamArena
+                   && ArenaSession.ActiveMode == "zombie"))
            && Singleton<GameWorld>.Instantiated && Singleton<AbstractGame>.Instantiated
            && ArenaSession.IsExactActiveRaid(Singleton<AbstractGame>.Instance, Singleton<GameWorld>.Instance);
 
@@ -225,7 +228,8 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
     private bool IsFriendly(Player player)
         => _match.Mode is TeamDeathmatchMode team
             ? team.TryClassifyCurrentBody(player, out bool friendly) && friendly
-            : _match.Mode is TacticalMode tactical && tactical.IsCurrentFriendlyMarkerBody(player);
+            : _match.Mode is TacticalMode tactical ? tactical.IsCurrentFriendlyMarkerBody(player)
+            : _match.Mode is ZombieMode zombie && zombie.IsCurrentFriendlyMarkerBody(player);
 
     private void HideAll()
     {

@@ -391,7 +391,8 @@ internal static class ArenaBotPatches
                 // between death and corpse cleanup/slot release, and the native
                 // cap must never be the thing that silently drops a requested
                 // spawn below what the wave policy asked for.
-                cap = System.Math.Max(cap, Config.Settings.ZombieMaxAlive.Value + 2);
+                cap = System.Math.Max(cap, Config.Settings.ZombieMaxAlive.Value + 2
+                    + (Compat.PitFireTeamCompat.HasFrozenTeamRoster ? 4 : 0));
             }
             __instance._maxCount = cap;
             __instance.BotSpawner?.SetMaxBots(cap);

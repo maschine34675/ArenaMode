@@ -7,6 +7,23 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Zombie + PitFireTeam survival (2026-10-08):** implemented optional four-companion
+  team mode using own gear; see `ZOMBIE-PITFIRETEAM-REVIEW.md` for the exact lifecycle
+  and native test steps. Death holds until a cleared wave, with ally-only spectator;
+  a team wipe ends protected. All four followers refresh between waves; a living PMC
+  keeps its body/current loadout and condition, while a dead PMC restores entry gear.
+  Admission/version/profile guards remain strict; solo Zombie and Tactical retain
+  their paths. Parent checks: 885 unit tests passed, 2 existing skips; Zombie runtime
+  59 assertions + 11 compiled mutants; PFT 309, lifecycle 389, mode menu 157,
+  rendered menu 1180, tracer 243, friendly markers 150, lasers 1295, assist capture
+  137, team expansion/spectator 856; preview lifecycle 676 + 16 compiled mutants.
+  Client staged build passes with the four existing CS8632 warnings; server build
+  passes. Independent reviews resolved four concrete findings; no remaining new
+  P0-P2 issue identified. Native Zombie-PFT acceptance remains pending: GPU2's
+  SPT-GPU-2 test profile has no stored PFT companions (existing files belong to
+  spt41dev); no profile/team data was modified to fabricate that precondition.
+  Deployment identity will be recorded after the source commit; no push requested.
+
 - **GPU2 follow-up acceptance (2026-10-08, later evening):** host reachable;
   EFT started/restarted with 21/21 compared plugins matching disk and loaded code.
   `GPU-FOLLOWUPS-RESULTS-20261008.md` supersedes the earlier connection limitation.

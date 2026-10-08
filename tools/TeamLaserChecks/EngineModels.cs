@@ -131,6 +131,13 @@ namespace ArenaMode.Modes
     public static class ArenaMatchService { public static ArenaMatch Current = new(); }
     public class ArenaMatch { public ModeModel Mode = new TeamDeathmatchMode(); }
     public class ModeModel { public string Id = "endless"; public bool IsComplete; }
+    public class ZombieMode : ModeModel
+    {
+        public bool IsTeamArena = true;
+        public readonly HashSet<EFT.Player> CurrentBodies = new();
+        public ZombieMode() { Id = "zombie"; }
+        public bool IsCurrentFriendlyMarkerBody(EFT.Player player) => CurrentBodies.Contains(player);
+    }
     public class TeamDeathmatchMode : ModeModel
     {
         public TeamDeathmatchMode() { Id = "teamdeathmatch"; }

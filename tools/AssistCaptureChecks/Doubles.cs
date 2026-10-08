@@ -96,6 +96,16 @@ namespace ArenaMode.Modes
     internal class RoundsMode : Mode { internal bool AssistScoringOpen = true, FreeForAll = true; }
     internal class TeamDeathmatchMode : Mode { internal bool AssistScoringOpen = true; }
     internal class GunGameMode : Mode { internal bool AssistScoringOpen = true; }
+    internal class ZombieMode : Mode
+    {
+        internal bool AssistScoringOpen = true, IsTeamArena;
+        internal readonly Dictionary<EFT.IPlayer, int> Teams = new();
+        internal bool IsOpposingAwardKill(EFT.Player victim, EFT.IPlayer attacker)
+            => AssistScoringOpen && Teams.TryGetValue(victim, out int a)
+                && Teams.TryGetValue(attacker, out int b) && a != b;
+        internal bool IsCurrentFriendlyMarkerBody(EFT.Player player)
+            => player.HealthController.IsAlive && Teams.TryGetValue(player, out int side) && side == 0;
+    }
     internal class TacticalMode : Mode
     {
         internal bool AssistScoringOpen = true;

@@ -21,7 +21,7 @@ internal sealed class ArenaMutatorSelection
     /// rule: <see cref="Settings.TracerEntry"/> returns no entry elsewhere,
     /// the laser row checks the mode itself).
     /// </summary>
-    internal const string TeamModesOnly = "Requires Team DM or Tactical 5v5 (PFT).";
+    internal const string TeamModesOnly = "Requires Team DM or a PitFireTeam squad.";
 
     internal string Mode { get; private set; }
     private bool _team;
@@ -122,7 +122,7 @@ internal sealed class ArenaMutatorSelection
             && Mode != ArenaModeCatalog.TeamDeathmatchId)))
             return "Available in Deathmatch and Team DM.";
         if (id == ArenaMutator.Lasers && Mode != ArenaModeCatalog.TeamDeathmatchId
-            && !(Mode == ArenaModeCatalog.TacticalId && _team))
+            && !((Mode == ArenaModeCatalog.TacticalId || Mode == ArenaModeCatalog.ZombieId) && _team))
             return TeamModesOnly;
         return null;
     }

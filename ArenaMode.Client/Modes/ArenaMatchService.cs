@@ -112,7 +112,8 @@ internal static class ArenaMatchService
             // a respawn mode for a protected PitFireTeam leader.
             var modeId = ArenaSession.ActiveMode;
             if (Compat.PitFireTeamCompat.TeamArenaActive
-                && !string.Equals(modeId, "tactical", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(modeId, "tactical", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(modeId, "zombie", StringComparison.OrdinalIgnoreCase))
             {
                 Plugin.ModLogger.LogError(
                     $"Arena corrected protected PitFireTeam mode drift from '{modeId ?? "<null>"}' to Tactical.");
@@ -235,8 +236,8 @@ internal static class ArenaMatchService
 
     /// <summary>
     /// Consumes the one prepared body-replacement authorization owned by the
-    /// active Tactical round. Keeping the mode cast here gives the respawn
-    /// driver one fail-closed doorway and prevents another mode from opting a
+    /// active Tactical round or protected Zombie wave. Keeping explicit mode
+    /// cases here gives the respawn driver one fail-closed doorway and prevents another mode from opting a
     /// frozen PitFireTeam leader into Redeploy by accident.
     /// </summary>
     internal static bool TryTakeTeamRespawnAuthorization(
@@ -250,14 +251,15 @@ internal static class ArenaMatchService
         teamEpoch = 0;
         reason = null;
 
-        if (Current?.Mode is not TacticalMode tactical)
-        {
-            reason = "the active Arena mode is not Tactical";
-            return false;
-        }
-
         try
         {
+            if (Current?.Mode is ZombieMode zombie && zombie.IsTeamArena)
+                return zombie.TryTakeTeamRespawnAuthorization(game, deadPlayer, out prepared, out teamEpoch, out reason);
+            if (Current?.Mode is not TacticalMode tactical)
+            {
+                reason = "the active Arena mode owns no protected team respawn";
+                return false;
+            }
             return tactical.TryTakeTeamRespawnAuthorization(
                 game,
                 deadPlayer,
@@ -269,7 +271,7 @@ internal static class ArenaMatchService
         {
             prepared = null;
             teamEpoch = 0;
-            reason = $"Tactical respawn authorization threw: {ex.GetBaseException().Message}";
+            reason = $"Protected team respawn authorization threw: {ex.GetBaseException().Message}";
             return false;
         }
     }
@@ -384,8 +386,14 @@ internal static class ArenaMatchService
                     _lastScoreboardProblem = null;
                 return;
             }
-            if (match?.Mode is ZombieMode)
+            if (match?.Mode is ZombieMode zombie)
             {
+                if (zombie.IsTeamArena)
+                {
+                    if (!zombie.TrySynchronizeTeamScoreboard(out var teamProblem)) NoteScoreboardProblem(teamProblem);
+                    else _lastScoreboardProblem = null;
+                    return;
+                }
                 // Zombie owns its entire population and has no opposing roster to
                 // show (every bot is hostile only to the player) — the same reason
                 // TDM/Tactical return early above, just without a per-mode roster
