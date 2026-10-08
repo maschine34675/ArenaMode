@@ -22,7 +22,16 @@ current. User-facing communication is normally German.
   P0-P2 issue identified. Native Zombie-PFT acceptance remains pending: GPU2's
   SPT-GPU-2 test profile has no stored PFT companions (existing files belong to
   spt41dev); no profile/team data was modified to fabricate that precondition.
-  Deployment identity will be recorded after the source commit; no push requested.
+  Source commit `4ece234ef08b9b38eb6b22e04a3d417519a059f9`; client and server both
+  report ProductVersion `0.1.0+4ece234ef08b9b38eb6b22e04a3d417519a059f9`.
+  Both DLLs installed locally and on GPU2 with matching SHA256:
+  client `0F45AC2A8742CBF01B73E2F44C0A3B874E92FB24BB83003602739067F543A0EE`;
+  server `1DEBA5FC55E382DDB5F0BD987B1C8C4FD57BB7F40D28E9B1F5DF19ECA45EC048`.
+  Delivery manifest/backups: `artifacts/zombie-pft-delivery/`. GPU2 EFT was closed;
+  its server was stopped gracefully and restarted, ready at 19:40:28 UTC. The new
+  startup confirms Arena patches and the PFT 0.10.3 persistence guard enabled.
+  No native client run followed this deployment. Server build has two existing
+  warnings (CS8620/MUD0002); Core/BigBrain/PFT/assets/config unchanged. No push.
 
 - **GPU2 follow-up acceptance (2026-10-08, later evening):** host reachable;
   EFT started/restarted with 21/21 compared plugins matching disk and loaded code.
