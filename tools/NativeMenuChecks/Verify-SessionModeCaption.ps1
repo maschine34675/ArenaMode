@@ -85,16 +85,29 @@ Invoke-CaptionMutant 'accept-negated' 'patch' `
 Invoke-CaptionMutant 'deploying-reconnect' 'patch' `
     '!controller.IsReconnecting' 'true' `
     'deploying caption excludes a reconnect to an ordinary raid'
+# The deploying gate is `!IsReconnecting && IsSelectedFor(...)` on two lines; the
+# anchor below is its second line, which only the deploying patch has (it follows
+# the line-ending `&&`).
+$deployingGate = "&&`n                    ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))"
 Invoke-CaptionMutant 'deploying-ungated' 'patch' `
-    '(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)' 'true' `
+    $deployingGate "&&`n                    true)" `
     'deploying caption is gated on the Arena flow'
-# The next two keep every substring the old pin looked for and break only the
+# The next ones keep every substring the old pin looked for and break only the
 # whole condition: a negated Arena group would show ARENA ZONE on every ordinary
 # raid's loading screen and never in Arena; `||` ungates every non-reconnect screen.
 Invoke-CaptionMutant 'deploying-gate-negated' 'patch' `
-    '(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)' `
-    '!(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)' `
+    $deployingGate "&&`n                    !ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))" `
     'deploying caption is gated on the Arena flow'
+# Round 2 (R2-L5): the arm flag is set AFTER the deploying screen is shown, so it is
+# only ever stale there. Re-adding it as a fallback, or reading it anywhere in the
+# deploying patch, must fail.
+Invoke-CaptionMutant 'deploying-arm-flag-fallback' 'patch' `
+    $deployingGate "&&`n                    (ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid))" `
+    'deploying caption is gated on the Arena flow'
+Invoke-CaptionMutant 'deploying-arm-flag-read' 'patch' `
+    'Plugin.ModLogger?.LogWarning($"Arena deploying caption left native: {ex.Message}");' `
+    'Plugin.ModLogger?.LogWarning($"Arena deploying caption left native: {ex.Message}"); bool stale = ArenaSession.ArmedForNextRaid;' `
+    'the deploying caption never trusts the arm flag'
 Invoke-CaptionMutant 'deploying-gate-or' 'patch' `
     '!controller.IsReconnecting &&' '!controller.IsReconnecting ||' `
     'deploying caption is gated on the Arena flow'
@@ -200,4 +213,4 @@ foreach ($key in $paths.Keys) {
         throw "Mutation verification changed $($paths[$key])"
     }
 }
-Write-Output "ARENA_SESSION_CAPTION_VERIFIED (33 mutants rejected: pure rule x2, location/accept/deploying gates incl. negated and operator-flipped conditions, reconnect, direct write, detached ledger, six set/restore ledger faults, side toggle x2, plugin wiring; six commented-out Plugin/Enable/side-sync statements, four Apply fail-open faults, two guarded side syncs; evidence: $scratch)"
+Write-Output "ARENA_SESSION_CAPTION_VERIFIED (35 mutants rejected: pure rule x2, location/accept/deploying gates incl. negated and operator-flipped conditions, reconnect, direct write, detached ledger, six set/restore ledger faults, side toggle x2, plugin wiring; six commented-out Plugin/Enable/side-sync statements, four Apply fail-open faults, two guarded side syncs; two arm-flag faults on the deploying screen; evidence: $scratch)"

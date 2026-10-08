@@ -42,8 +42,10 @@ line, `Plugin` call or side-screen sync is a missing one), `Apply` must hold its
 ledger call in a `try` closed by a plain `catch (Exception)` without a `throw` (it
 runs inside the side screen's own postfixes, which must never see its failure),
 and the side-screen sync must be an UNGUARDED statement (a guard on the ARENA
-toggle would silently drop the restore half).
-`Verify-SessionModeCaption.ps1` hands 33 mutated copies to the harness
+toggle would silently drop the restore half). The deploying-screen gate is the
+exact `RaidSettings` selection only: `ArenaSession.ArmedForNextRaid` is set after
+that screen is shown, so it is never consulted there (see NATIVE-MENU-REVIEW.md).
+`Verify-SessionModeCaption.ps1` hands 35 mutated copies to the harness
 (`ProductionSessionModeCaptionSource` and the `ARENA_CAPTION_*` variables); each
 must fail its named assertion. Harmony binding and the rendered label still need
 the game window.

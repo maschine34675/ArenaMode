@@ -107,13 +107,28 @@ trap); every target is a non-generic override or method of the concrete screen:
 |---|---|---|
 | Select location | `MatchMakerSelectionLocationScreen.ShowInternal` (`:409`, finishes `Show(controller)` `:391`) | `ArenaMenuSelection.IsSelectedFor(raidSettings)` |
 | Accept (every Arena flow while PitFireTeam is installed, solo or team; every flow with `SkipPreRaidScreens` off) | `MatchMakerAcceptScreen.Show(MatchmakerAcceptScreenController)` (`:321`) | `ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)` |
-| Deploying to location | `MatchmakerTimeHasCome.Show(TimeHasComeScreenController)` (`:204`, calls the overload at `:209`) | `!controller.IsReconnecting` and (`IsSelectedFor(controller.RaidSettings)` or `ArenaSession.ArmedForNextRaid`) |
+| Deploying to location | `MatchmakerTimeHasCome.Show(TimeHasComeScreenController)` (`:204`, calls the overload at `:209`) | `!controller.IsReconnecting` and `ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)` |
 | Side selection | `ArenaSideSelectionPatch`: `ShowPatch.Postfix` and `SelectPatch.Postfix` (`MatchMakerSideSelectionScreen.Show` `:258`, `SetSelectedSide` `:448`) | `ArenaMenuSelection.IsSelected`, behind the PitFireTeam squad-screen early return |
 
 The deploying screen patches the controller override instead of the three-argument
 overload, because only the controller tells a reconnect to a
 running ordinary raid (`ReconnectTimeHasComeScreenController`, `:20`) apart, and
 `ArenaPreviewFlowPatch.LoadingShowPatch` already patches that same method.
+
+The deploying gate does NOT accept `ArenaSession.ArmedForNextRaid` (the first
+draft had it as a fallback; removed in the second review round). The flag is set
+too late to help and can only mislead here: `TarkovApplication.LocalGameMatching`
+shows this screen (`TarkovApplication.cs:2525`) before `LocalGameCreate` calls
+`LocalRaidStarted` (`:2991`), the call `LocalRaidStartedPatch` arms in, so at the
+moment of `Show` a set flag is always a stale arm left by an earlier aborted load,
+and trusting it would put "ARENA ZONE" on the loading screen of an ordinary raid.
+The selection is the reliable signal: the side, location, accept and deploying
+controllers all carry one `RaidSettings` instance (`TarkovApplication._raidSettings`,
+handed to `MainMenuShowOperation` at `:2384` and to the `TimeHasComeScreenController`
+at `:2332`), so `IsSelectedFor(controller.RaidSettings)` holds on every Arena
+screen. If that identity ever failed, the cost is a native "PVE ZONE" on the
+loading screen (fail-open), not a wrong "ARENA ZONE". Two mutants pin it (the flag
+re-added as a fallback, and any read of the flag in the deploying patch).
 
 Which screens an Arena flow shows depends on `SkipPreRaidScreensPatch` (config
 `General / SkipPreRaidScreens`, default on). With it on, a solo Arena raid goes
@@ -156,9 +171,10 @@ postfix); and the side-screen sync is pinned as an unguarded statement (after th
 description statement in `SetSelectedSide`, after the `if (IsSelected) { ... }`
 block in `Show`), because a guard would keep every substring and silently drop
 the restore half. `Verify-SessionModeCaption.ps1` holds
-33 mutants (including the negated and operator-flipped deploying gate, the
+35 mutants (including the negated and operator-flipped deploying gate, the
 flipped ledger branch, a dropped remember step, a missing forget, six commented-out
-statements, four `Apply` fail-open faults and two guarded syncs), each
+statements, four `Apply` fail-open faults, two guarded syncs and two arm-flag
+faults on the deploying screen), each
 rejected by its named assertion. Not covered: Harmony resolution of the four
 targets (all four are already patched elsewhere in the mod with the same
 `AccessTools` calls), the reconnect case, and what the label looks like.

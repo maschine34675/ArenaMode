@@ -33,11 +33,21 @@ namespace ArenaMode.Session;
 /// (line 448), both ways.</item>
 /// </list>
 /// Everything is gated on the Arena flow (<see cref="ArenaMenuSelection"/> for
-/// the exact <c>RaidSettings</c> of that screen, plus <see cref="ArenaSession.
-/// ArmedForNextRaid"/> on the deploying screen) and never throws: any doubt
+/// the exact <c>RaidSettings</c> of that screen) and never throws: any doubt
 /// leaves the native text. Outside the Arena flow nothing is touched and so
 /// nothing needs restoring; only a caption this class overwrote is ever put
 /// back (side screen, toggle switched off again).
+///
+/// The deploying screen deliberately does NOT also accept <see cref="ArenaSession.
+/// ArmedForNextRaid"/>: <c>TarkovApplication.LocalGameMatching</c> shows it
+/// (decompile line 2525) before <c>LocalGameCreate</c> reaches
+/// <c>LocalRaidStarted</c> (line 2991), which is where <c>LocalRaidStartedPatch</c>
+/// arms, so a set flag at this moment can only be a stale arm left by an earlier
+/// aborted load, and trusting it would label an ordinary raid "ARENA ZONE". The
+/// menu selection is the reliable signal: the side, location, accept and
+/// deploying controllers all carry one <c>RaidSettings</c> instance
+/// (<c>TarkovApplication._raidSettings</c>, passed to <c>MainMenuShowOperation</c>
+/// and to <c>TimeHasComeScreenController</c>).
 ///
 /// Which screens the Arena flow shows depends on SkipPreRaidScreensPatch: with
 /// the default <c>SkipPreRaidScreens</c> a solo raid skips Game Settings,
@@ -138,8 +148,9 @@ internal static class ArenaSessionModeCaptionPatch
             {
                 // A reconnect to a running ordinary raid is never the Arena flow.
                 // (Operators end the line so a source mutant can flip exactly one.)
+                // ArmedForNextRaid is not consulted: it is set after this screen.
                 if (controller != null && !controller.IsReconnecting &&
-                    (ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid))
+                    ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))
                     Apply(__instance._subCaption, true);
             }
             catch (Exception ex)

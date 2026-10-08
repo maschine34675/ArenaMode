@@ -60,8 +60,15 @@ internal static partial class Program
         // The WHOLE condition, as one statement: a substring pin would accept a
         // negated group (`!(A || B)`) or a changed operator (`... || (A || B)`).
         Assert(HasGuardedApply(deploying,
-                "controller != null && !controller.IsReconnecting && (ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)"),
+                "controller != null && !controller.IsReconnecting && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)"),
             "deploying caption is gated on the Arena flow");
+        // Arming happens in LocalRaidStarted, AFTER the deploying screen is shown
+        // (TarkovApplication.LocalGameMatching 2525 vs LocalGameCreate 2991), so
+        // ArmedForNextRaid can only be a stale arm here; trusting it would label
+        // an ordinary raid after an aborted Arena load. The exact-RaidSettings
+        // selection is the gate. No part of the body may read the flag.
+        Assert(!deploying.Contains("ArmedForNextRaid", StringComparison.Ordinal),
+            "the deploying caption never trusts the arm flag, which is set after this screen and can only be stale here");
 
         foreach (string body in new[] { location, accept, deploying })
             Assert(body.Contains("catch (Exception", StringComparison.Ordinal),

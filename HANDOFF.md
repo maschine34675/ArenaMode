@@ -69,7 +69,9 @@ current. User-facing communication is normally German.
   im Harness mit einem Platzhalter-Label ausgeführt, die Gates der Postfixe sind
   als je eine vollständige `if (...) Apply(...)`-Anweisung gepinnt (alle Pins lesen
   die Quellen ohne Kommentare; `Apply` muss try/`catch (Exception)` ohne `throw`
-  behalten; der Seiten-Sync ist als ungeschützte Anweisung gepinnt); 33 Mutanten in
+  behalten; der Seiten-Sync ist als ungeschützte Anweisung gepinnt; der Lade-
+  Bildschirm vertraut `ArmedForNextRaid` nicht, das erst NACH dem Bildschirm
+  gesetzt wird und dort nur veraltet sein kann); 35 Mutanten in
   `tools/NativeMenuChecks` (`Verify-SessionModeCaption.ps1`). Bekannte Lücke: mit
   `SkipPreRaidScreens` aus zeigen Game Settings und Insurance im Arena-Ablauf
   weiter "PVE ZONE" (siehe `NATIVE-MENU-REVIEW.md`); der Annahme-Bildschirm
