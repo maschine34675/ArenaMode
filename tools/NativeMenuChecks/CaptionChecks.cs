@@ -25,6 +25,9 @@ internal static partial class Program
             Assert(ArenaSessionModeCaption.Resolve(false, native) == native,
                 "Resolve leaves the native text unchanged outside Arena: " + (native ?? "<null>"));
 
+        // The set/restore state machine behind the side-screen caption, executed.
+        CheckCaptionLedger();
+
         // Gates of the Harmony patches, by source text.
         string patch = ReadCaptionSource("ARENA_CAPTION_PATCH_SOURCE", "ArenaMode.Client", "Session", "ArenaSessionModeCaptionPatch.cs");
         string side = ReadCaptionSource("ARENA_CAPTION_SIDE_SOURCE", "ArenaMode.Client", "Session", "ArenaSideSelectionPatch.cs");
@@ -34,14 +37,14 @@ internal static partial class Program
         Assert(location.Contains("nameof(MatchMakerSelectionLocationScreen.ShowInternal)", StringComparison.Ordinal)
                && location.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the location caption is written after ShowInternal, which finishes every Show");
-        Assert(Gated(location, "if (ArenaMenuSelection.IsSelectedFor(raidSettings))", "Apply(__instance._subCaption, true)"),
+        Assert(HasGuardedApply(location, "ArenaMenuSelection.IsSelectedFor(raidSettings)"),
             "location caption is gated on the exact Arena RaidSettings");
 
         string accept = ClassBody(patch, "AcceptPatch");
         Assert(accept.Contains("typeof(MatchMakerAcceptScreen.MatchmakerAcceptScreenController)", StringComparison.Ordinal)
                && accept.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the accept caption is written after Show(MatchmakerAcceptScreenController)");
-        Assert(Gated(accept, "if (controller != null && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))", "Apply(__instance._subCaption, true)"),
+        Assert(HasGuardedApply(accept, "controller != null && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)"),
             "accept caption is gated on the exact Arena RaidSettings");
 
         string deploying = ClassBody(patch, "DeployingPatch");
@@ -50,7 +53,10 @@ internal static partial class Program
             "the deploying caption is written after Show(TimeHasComeScreenController)");
         Assert(deploying.Contains("!controller.IsReconnecting", StringComparison.Ordinal),
             "deploying caption excludes a reconnect to an ordinary raid");
-        Assert(Gated(deploying, "(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)", "Apply(__instance._subCaption, true)"),
+        // The WHOLE condition, as one statement: a substring pin would accept a
+        // negated group (`!(A || B)`) or a changed operator (`... || (A || B)`).
+        Assert(HasGuardedApply(deploying,
+                "controller != null && !controller.IsReconnecting && (ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)"),
             "deploying caption is gated on the Arena flow");
 
         foreach (string body in new[] { location, accept, deploying })
@@ -59,15 +65,19 @@ internal static partial class Program
         string patchCode = string.Join("\n", patch.Split('\n')
             .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
         Assert(CountOfText(patch, "Apply(__instance._subCaption, true)") == 3
-               && Regex.Matches(patchCode, @"\.text\s*=(?!=)").Count == 2
+               && Regex.Matches(patchCode, @"\.text\s*=(?!=)").Count == 1
                && Regex.Matches(patchCode, @"_subCaption\.text").Count == 0,
-            "the screens never write the caption directly; only Apply does, and only twice");
+            "the screens never write the caption directly; only Apply does, and only once");
+        // Apply is a thin marshal: the rules are the ledger's, executed above. What
+        // must hold here is that every caption goes through the ONE static ledger
+        // (a fresh ledger per call would forget what it replaced).
         string apply = patch.Substring(patch.IndexOf("internal static void Apply(", StringComparison.Ordinal));
         apply = apply.Substring(0, apply.IndexOf("private sealed class LocationPatch", StringComparison.Ordinal));
-        Assert(apply.Contains("NativeText.TryGetValue(caption, out string native)", StringComparison.Ordinal)
-               && apply.Contains("caption.text == ArenaSessionModeCaption.ArenaText", StringComparison.Ordinal)
-               && apply.Contains("ArenaSessionModeCaption.Resolve(false, native)", StringComparison.Ordinal),
-            "only a caption this patch replaced is ever restored");
+        Assert(Regex.Matches(patchCode, @"ArenaSessionModeCaptionLedger<").Count == 1
+               && patch.Contains("private static readonly ArenaSessionModeCaptionLedger<TextMeshProUGUI> Ledger = new();", StringComparison.Ordinal)
+               && apply.Contains("Ledger.Apply(caption, arena, label => label.text, (label, text) => label.text = text);", StringComparison.Ordinal)
+               && apply.Contains("if (caption == null)", StringComparison.Ordinal),
+            "every caption goes through the one static ledger, which restores only what it replaced");
         string enable = patch.Substring(patch.IndexOf("public static void Enable()", StringComparison.Ordinal));
         enable = enable.Substring(0, enable.IndexOf("}", StringComparison.Ordinal));
         Assert(enable.Contains("new LocationPatch().Enable();", StringComparison.Ordinal)
@@ -94,11 +104,119 @@ internal static partial class Program
             "the Show caption sync sits behind the squad-management early return");
     }
 
-    private static bool Gated(string body, string gate, string apply)
+    /// <summary>
+    /// True when the patch body holds exactly the statement
+    /// <c>if (condition) Apply(__instance._subCaption, true);</c>, comments removed
+    /// and whitespace collapsed. The condition is compared as ONE string, so a
+    /// negated group, a swapped operator or an extra clause fails the pin.
+    /// </summary>
+    private static bool HasGuardedApply(string body, string condition)
+        => NormalizeCode(body).Contains("if (" + condition + ") Apply(__instance._subCaption, true);", StringComparison.Ordinal);
+
+    private static string NormalizeCode(string source)
     {
-        int gateAt = body.IndexOf(gate, StringComparison.Ordinal);
-        int applyAt = body.IndexOf(apply, StringComparison.Ordinal);
-        return gateAt >= 0 && applyAt > gateAt;
+        string code = Regex.Replace(source, @"//[^\r\n]*|/\*.*?\*/", " ", RegexOptions.Singleline);
+        return Regex.Replace(code, @"\s+", " ").Trim();
+    }
+
+    /// <summary>A stand-in for the TMP label: text plus how often it was written.</summary>
+    private sealed class FakeCaptionLabel
+    {
+        internal string Text;
+        internal int Writes;
+        internal FakeCaptionLabel(string text) { Text = text; }
+    }
+
+    private static void LedgerApply(ArenaSessionModeCaptionLedger<FakeCaptionLabel> ledger, FakeCaptionLabel label, bool arena)
+        => ledger.Apply(label, arena, current => current.Text, (target, text) => { target.Text = text; target.Writes++; });
+
+    /// <summary>Applies and reports whether it completed without throwing.</summary>
+    private static bool LedgerApplyCompletes(ArenaSessionModeCaptionLedger<FakeCaptionLabel> ledger, FakeCaptionLabel label, bool arena)
+    {
+        try { LedgerApply(ledger, label, arena); return true; }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>
+    /// Executes the set/restore state machine behind the side-screen caption with
+    /// a stand-in label (the production ledger is compiled into this harness).
+    /// The order is deliberate: each Verify-SessionModeCaption.ps1 mutant of the
+    /// ledger trips exactly the assertion it names, and the first failure aborts.
+    /// </summary>
+    private static void CheckCaptionLedger()
+    {
+        // Ordinary flows ask for "not Arena" on every side selection and must find
+        // the native label untouched, whatever it says.
+        foreach (string native in new[] { "PVE ZONE", "PVP ZONE", "", null, "ZONA PVE" })
+        {
+            var ordinary = new ArenaSessionModeCaptionLedger<FakeCaptionLabel>();
+            var untouched = new FakeCaptionLabel(native);
+            LedgerApply(ordinary, untouched, false);
+            LedgerApply(ordinary, untouched, false);
+            Assert(untouched.Text == native && untouched.Writes == 0,
+                "an ordinary flow's caption is never touched: " + (native ?? "<null>"));
+        }
+
+        // Arena on writes ARENA ZONE once; asking again changes nothing.
+        var ledger = new ArenaSessionModeCaptionLedger<FakeCaptionLabel>();
+        var label = new FakeCaptionLabel("PVE ZONE");
+        LedgerApply(ledger, label, true);
+        Assert(label.Text == "ARENA ZONE" && label.Writes == 1, "Arena writes ARENA ZONE over the native text");
+        LedgerApply(ledger, label, true);
+        Assert(label.Text == "ARENA ZONE" && label.Writes == 1,
+            "a second Arena apply writes nothing and keeps the remembered native text");
+
+        // Off puts back exactly what EFT had written there, in any language, and
+        // only once.
+        LedgerApply(ledger, label, false);
+        Assert(label.Text == "PVE ZONE" && label.Writes == 2,
+            "switching Arena off restores exactly the native text EFT wrote");
+        LedgerApply(ledger, label, false);
+        Assert(label.Text == "PVE ZONE" && label.Writes == 2, "a restored caption is not restored again");
+        foreach (string native in new[] { "ZONA PVE", "", null, "PVE ZONE (live)" })
+        {
+            var localized = new FakeCaptionLabel(native);
+            LedgerApply(ledger, localized, true);
+            LedgerApply(ledger, localized, false);
+            Assert(localized.Text == native && localized.Writes == 2,
+                "off restores the exact native text: " + (native ?? "<null>"));
+        }
+
+        // A native Show that rewrote the label while Arena was on is never clobbered
+        // by the later off, and the ledger has forgotten the stale text by then.
+        var rewritten = new FakeCaptionLabel("PVE ZONE");
+        LedgerApply(ledger, rewritten, true);
+        rewritten.Text = "PVE ZONE (fresh)";
+        int writes = rewritten.Writes;
+        LedgerApply(ledger, rewritten, false);
+        Assert(rewritten.Text == "PVE ZONE (fresh)" && rewritten.Writes == writes,
+            "a fresh native rewrite is never clobbered by the restore");
+        rewritten.Text = "ARENA ZONE";
+        LedgerApply(ledger, rewritten, false);
+        Assert(rewritten.Text == "ARENA ZONE" && rewritten.Writes == writes,
+            "a restore forgets the remembered text, so it cannot be applied twice");
+
+        // Arming again after a native rewrite remembers the NEW native text.
+        var rearmed = new FakeCaptionLabel("PVE ZONE");
+        LedgerApply(ledger, rearmed, true);
+        rearmed.Text = "PVE ZONE v2";
+        Assert(LedgerApplyCompletes(ledger, rearmed, true) && rearmed.Text == "ARENA ZONE",
+            "arming again after a native rewrite completes and shows ARENA ZONE");
+        LedgerApply(ledger, rearmed, false);
+        Assert(rearmed.Text == "PVE ZONE v2", "arming again after a native rewrite remembers the new native text");
+
+        // Each label has its own memory; null labels are ignored.
+        var left = new FakeCaptionLabel("PVE LEFT");
+        var right = new FakeCaptionLabel("PVE RIGHT");
+        LedgerApply(ledger, left, true);
+        LedgerApply(ledger, right, true);
+        LedgerApply(ledger, left, false);
+        Assert(left.Text == "PVE LEFT" && right.Text == "ARENA ZONE",
+            "a restore touches only its own label");
+        LedgerApply(ledger, right, false);
+        Assert(right.Text == "PVE RIGHT", "each label restores its own native text");
+        Assert(LedgerApplyCompletes(ledger, null, true) && LedgerApplyCompletes(ledger, null, false),
+            "a missing label is ignored without throwing");
     }
 
     private static string ClassBody(string source, string className)

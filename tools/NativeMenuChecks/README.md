@@ -30,12 +30,14 @@ source hash did not change. Actual BepInEx log output still requires a game
 restart and a live menu session.
 
 `CaptionChecks.cs` (2026-10-08) covers the "PVE ZONE" -> "ARENA ZONE" caption on the
-Arena setup screens: the pure `ArenaSessionModeCaption.Resolve` is compiled and
-executed, and the Unity-bound Harmony patches (`ArenaSessionModeCaptionPatch`, the
-side-screen sync in `ArenaSideSelectionPatch`, the `Plugin` wiring) are pinned by
-source text: every screen's gate, the reconnect exclusion, no direct caption write
-outside `Apply`, restore only of a caption the patch replaced.
-`Verify-SessionModeCaption.ps1` hands ten mutated copies to the harness
+Arena setup screens: the pure `ArenaSessionModeCaption.Resolve` and the whole
+set/restore state machine (`ArenaSessionModeCaptionLedger`, driven here with a
+stand-in label) are compiled and executed, and the Unity-bound Harmony patches
+(`ArenaSessionModeCaptionPatch`, the side-screen sync in `ArenaSideSelectionPatch`,
+the `Plugin` wiring) are pinned by source text: every screen's gate as one complete
+`if (condition) Apply(...)` statement, the reconnect exclusion, no direct caption
+write outside `Apply`, and `Apply` delegating to the one static ledger.
+`Verify-SessionModeCaption.ps1` hands 21 mutated copies to the harness
 (`ProductionSessionModeCaptionSource` and the `ARENA_CAPTION_*` variables); each
 must fail its named assertion. Harmony binding and the rendered label still need
 the game window.

@@ -4,10 +4,11 @@ if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
 }
 
 # Menu polish 2026-10-08, item 6: "PVE ZONE" -> "ARENA ZONE" on the Arena setup
-# screens. The pure rule is mutated through ProductionSessionModeCaptionSource;
-# the Harmony patches are Unity-bound, so their source texts are mutated through
-# the ARENA_CAPTION_* variables CaptionChecks.cs reads. Every mutant must be
-# rejected by its named assertion; production sources are hash-checked afterwards.
+# screens. The pure rule and the set/restore ledger are executed by the harness
+# and mutated through ProductionSessionModeCaptionSource; the Harmony patches are
+# Unity-bound, so their source texts are mutated through the ARENA_CAPTION_*
+# variables CaptionChecks.cs reads. Every mutant must be rejected by its named
+# assertion; production sources are hash-checked afterwards.
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $project = Join-Path $PSScriptRoot 'NativeMenuChecks.csproj'
 $paths = [ordered]@{
@@ -71,8 +72,15 @@ Invoke-CaptionMutant 'resolve-always-arena' 'helper' `
 Invoke-CaptionMutant 'location-ungated' 'patch' `
     'if (ArenaMenuSelection.IsSelectedFor(raidSettings))' 'if (true)' `
     'location caption is gated on the exact Arena RaidSettings'
+Invoke-CaptionMutant 'location-negated' 'patch' `
+    'if (ArenaMenuSelection.IsSelectedFor(raidSettings))' 'if (!ArenaMenuSelection.IsSelectedFor(raidSettings))' `
+    'location caption is gated on the exact Arena RaidSettings'
 Invoke-CaptionMutant 'accept-ungated' 'patch' `
     'if (controller != null && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))' 'if (controller != null)' `
+    'accept caption is gated on the exact Arena RaidSettings'
+Invoke-CaptionMutant 'accept-negated' 'patch' `
+    'if (controller != null && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))' `
+    'if (controller != null && !ArenaMenuSelection.IsSelectedFor(controller.RaidSettings))' `
     'accept caption is gated on the exact Arena RaidSettings'
 Invoke-CaptionMutant 'deploying-reconnect' 'patch' `
     '!controller.IsReconnecting' 'true' `
@@ -80,16 +88,52 @@ Invoke-CaptionMutant 'deploying-reconnect' 'patch' `
 Invoke-CaptionMutant 'deploying-ungated' 'patch' `
     '(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)' 'true' `
     'deploying caption is gated on the Arena flow'
+# The next two keep every substring the old pin looked for and break only the
+# whole condition: a negated Arena group would show ARENA ZONE on every ordinary
+# raid's loading screen and never in Arena; `||` ungates every non-reconnect screen.
+Invoke-CaptionMutant 'deploying-gate-negated' 'patch' `
+    '(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)' `
+    '!(ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid)' `
+    'deploying caption is gated on the Arena flow'
+Invoke-CaptionMutant 'deploying-gate-or' 'patch' `
+    '!controller.IsReconnecting &&' '!controller.IsReconnecting ||' `
+    'deploying caption is gated on the Arena flow'
 Invoke-CaptionMutant 'direct-write' 'patch' `
     'Plugin.ModLogger?.LogWarning($"Arena location caption left native: {ex.Message}");' `
     'Plugin.ModLogger?.LogWarning($"Arena location caption left native: {ex.Message}"); __instance._subCaption.text = "ARENA ZONE";' `
-    'the screens never write the caption directly; only Apply does, and only twice'
-Invoke-CaptionMutant 'restore-unconditional' 'patch' `
-    'if (caption.text == ArenaSessionModeCaption.ArenaText)' 'if (true)' `
-    'only a caption this patch replaced is ever restored'
+    'the screens never write the caption directly; only Apply does, and only once'
+Invoke-CaptionMutant 'apply-detached-ledger' 'patch' `
+    'Ledger.Apply(caption, arena,' 'new ArenaSessionModeCaptionLedger<TextMeshProUGUI>().Apply(caption, arena,' `
+    'every caption goes through the one static ledger'
+
+# The set/restore state machine is executed with a stand-in label (CheckCaptionLedger),
+# so its mutants are mutations of the compiled helper, not of a source-text pin.
+Invoke-CaptionMutant 'ledger-branch-flipped' 'helper' `
+    'if (arena)' 'if (!arena)' `
+    'an ordinary flow''s caption is never touched'
+Invoke-CaptionMutant 'ledger-already-arena-rewrites' 'helper' `
+    'if (current == ArenaSessionModeCaption.ArenaText)' 'if (false)' `
+    'a second Arena apply writes nothing and keeps the remembered native text'
+Invoke-CaptionMutant 'ledger-forgets-native' 'helper' `
+    '_native.Add(label, current);' '' `
+    'switching Arena off restores exactly the native text EFT wrote'
+Invoke-CaptionMutant 'ledger-restore-unconditional' 'helper' `
+    'if (read(label) == ArenaSessionModeCaption.ArenaText)' 'if (true)' `
+    'a fresh native rewrite is never clobbered by the restore'
+Invoke-CaptionMutant 'ledger-never-forgets' 'helper' `
+    "_native.Remove(label);`n            // A fresh native Show" '// A fresh native Show' `
+    'a restore forgets the remembered text, so it cannot be applied twice'
+Invoke-CaptionMutant 'ledger-keeps-stale-slot' 'helper' `
+    "_native.Remove(label);`n            _native.Add(label, current);" '_native.Add(label, current);' `
+    'arming again after a native rewrite completes and shows ARENA ZONE'
+
 Invoke-CaptionMutant 'side-toggle-ignored' 'side' `
     'ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);' `
     'ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, true);' `
+    'side screen caption follows the ARENA toggle state in Show and SetSelectedSide' -all
+Invoke-CaptionMutant 'side-toggle-negated' 'side' `
+    'ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);' `
+    'ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, !ArenaMenuSelection.IsSelected);' `
     'side screen caption follows the ARENA toggle state in Show and SetSelectedSide' -all
 Invoke-CaptionMutant 'plugin-not-enabled' 'plugin' `
     'ArenaSessionModeCaptionPatch.Enable();' '' `
@@ -105,4 +149,4 @@ foreach ($key in $paths.Keys) {
         throw "Mutation verification changed $($paths[$key])"
     }
 }
-Write-Output "ARENA_SESSION_CAPTION_VERIFIED (10 mutants rejected: pure rule x2, location/accept/deploying gates, reconnect, direct write, unconditional restore, side toggle, plugin wiring; evidence: $scratch)"
+Write-Output "ARENA_SESSION_CAPTION_VERIFIED (21 mutants rejected: pure rule x2, location/accept/deploying gates incl. negated and operator-flipped conditions, reconnect, direct write, detached ledger, six set/restore ledger faults, side toggle x2, plugin wiring; evidence: $scratch)"

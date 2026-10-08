@@ -56,9 +56,14 @@ current. User-facing communication is normally German.
   die ARENA-Umschaltung im Seitenbildschirm (`ArenaSideSelectionPatch`, an und
   zurück auf den nativen Text). Nur im Arena-Ablauf, nie werfend; normale Raids
   unberührt. Dekompilat-Zeilen und Gründe in `NATIVE-MENU-REVIEW.md` (Abschnitt
-  2026-10-08). Quelltext-Pins und zehn Mutanten in `tools/NativeMenuChecks`
-  (`Verify-SessionModeCaption.ps1`). Harmony-Bindung und Darstellung nicht im
-  Spiel gesehen. Offene Altlasten, nicht von dieser Änderung:
+  2026-10-08). Der Setz-/Rücksetz-Automat (`ArenaSessionModeCaptionLedger`) wird
+  im Harness mit einem Platzhalter-Label ausgeführt, die Gates der Postfixe sind
+  als je eine vollständige `if (...) Apply(...)`-Anweisung gepinnt; 21 Mutanten in
+  `tools/NativeMenuChecks` (`Verify-SessionModeCaption.ps1`). Bekannte Lücke: mit
+  `SkipPreRaidScreens` aus zeigen Game Settings und Insurance im Arena-Ablauf
+  weiter "PVE ZONE" (siehe `NATIVE-MENU-REVIEW.md`); der Annahme-Bildschirm
+  gehört mit PitFireTeam zu jedem Arena-Ablauf. Harmony-Bindung und Darstellung
+  nicht im Spiel gesehen. Offene Altlasten, nicht von dieser Änderung:
   `tools/NativeAreaHookChecks` kompiliert auf diesem Stand nicht (`ArenaCompactMapInfo`
   und `ArenaPortedMapPresentation` werden von `ArenaLocationSelectionPatch.cs`
   verwendet, fehlen aber im Harness) und `tools/PitFireTeamChecks` scheitert an

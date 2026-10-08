@@ -4,7 +4,6 @@ using HarmonyLib;
 using SPT.Reflection.Patching;
 using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using TMPro;
 
 namespace ArenaMode.Session;
@@ -39,12 +38,21 @@ namespace ArenaMode.Session;
 /// leaves the native text. Outside the Arena flow nothing is touched and so
 /// nothing needs restoring; only a caption this class overwrote is ever put
 /// back (side screen, toggle switched off again).
+///
+/// Which screens the Arena flow shows depends on SkipPreRaidScreensPatch: with
+/// the default <c>SkipPreRaidScreens</c> a solo raid skips Game Settings,
+/// Insurance and Confirmation, but Confirmation (the accept screen) stays in
+/// every Arena flow while PitFireTeam is installed. Game Settings, Insurance
+/// and the other <c>MatchmakerEftScreen</c> subclasses are NOT patched: with
+/// <c>SkipPreRaidScreens</c> off they show the native "PVE ZONE" inside the
+/// Arena flow (known gap, NATIVE-MENU-REVIEW.md, section 2026-10-08).
 /// </summary>
 internal static class ArenaSessionModeCaptionPatch
 {
     // The native text of every caption this class overwrote, so switching the
-    // ARENA toggle off puts back exactly what EFT wrote (any language).
-    private static readonly ConditionalWeakTable<TextMeshProUGUI, string> NativeText = new();
+    // ARENA toggle off puts back exactly what EFT wrote (any language). The
+    // rules live in the Unity-free ledger, which tools/NativeMenuChecks runs.
+    private static readonly ArenaSessionModeCaptionLedger<TextMeshProUGUI> Ledger = new();
 
     public static void Enable()
     {
@@ -62,24 +70,10 @@ internal static class ArenaSessionModeCaptionPatch
     {
         try
         {
+            // Unity's null: a destroyed label counts as missing.
             if (caption == null)
                 return;
-            if (arena)
-            {
-                string current = caption.text;
-                if (current == ArenaSessionModeCaption.ArenaText)
-                    return;
-                NativeText.Remove(caption);
-                NativeText.Add(caption, current);
-                caption.text = ArenaSessionModeCaption.Resolve(true, current);
-            }
-            else if (NativeText.TryGetValue(caption, out string native))
-            {
-                NativeText.Remove(caption);
-                // A fresh native Show may already have rewritten the label.
-                if (caption.text == ArenaSessionModeCaption.ArenaText)
-                    caption.text = ArenaSessionModeCaption.Resolve(false, native);
-            }
+            Ledger.Apply(caption, arena, label => label.text, (label, text) => label.text = text);
         }
         catch (Exception ex)
         {
@@ -143,8 +137,9 @@ internal static class ArenaSessionModeCaptionPatch
             try
             {
                 // A reconnect to a running ordinary raid is never the Arena flow.
-                if (controller != null && !controller.IsReconnecting
-                    && (ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid))
+                // (Operators end the line so a source mutant can flip exactly one.)
+                if (controller != null && !controller.IsReconnecting &&
+                    (ArenaMenuSelection.IsSelectedFor(controller.RaidSettings) || ArenaSession.ArmedForNextRaid))
                     Apply(__instance._subCaption, true);
             }
             catch (Exception ex)
