@@ -10,6 +10,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <Compile Include="Program.cs"/><Compile Include="Doubles.cs"/>
     <Compile Include="HealthDoubles.cs"/>
+    <Compile Include="RotationCases.cs"/>
     <Compile Include="AudioChecks.cs"/>
     <Compile Include="$(PickupAudioSource)" Link="Production/ArenaPickupAudio.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaHealthPickup.cs" Link="Production/ArenaHealthPickup.cs"/>

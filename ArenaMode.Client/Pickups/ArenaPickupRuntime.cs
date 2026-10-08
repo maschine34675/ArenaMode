@@ -21,11 +21,13 @@ internal static partial class ArenaPickupRuntime
     private sealed class Entry
     {
         internal ArenaPickupPoint Definition;
+        internal ArenaPickupPoint Candidates;
         internal Vector3 Floor;
         internal ArenaPickupState State = new();
         internal ArenaPickupView View;
         internal ArenaWeaponPickup.Handle Weapon;
         internal bool Preparing, Rotating, NeedsEntry = true;
+        internal float NextRotationAt;
         internal readonly HashSet<Player> MustLeave = new();
     }
     private sealed class ActorSample
@@ -46,6 +48,7 @@ internal static partial class ArenaPickupRuntime
     private static readonly Dictionary<string, string> PlacementFailures = new(StringComparer.Ordinal);
     private static readonly List<Entry> Entries = new();
     private static readonly System.Random PositionRandom = new(); // Never change Unity's shared RNG state.
+    private const float AvailableRotationSeconds = 60f;
     private static readonly Dictionary<Player, ActorSample> Actors = new();
     internal static int Generation { get; private set; }
     internal static bool BotObjectivesAvailable { get; set; }
@@ -147,15 +150,28 @@ internal static partial class ArenaPickupRuntime
                     }
                 }
             }
+            int tickGeneration = Generation;
             foreach (var entry in Entries)
             {
                 if (entry.State.Tick(Time.time))
                 {
                     entry.NeedsEntry = true;
+                    entry.NextRotationAt = Time.time + AvailableRotationSeconds;
+                    TryRotate(entry);
                     if (entry.Definition.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
+                }
+                else if (entry.Rotating && entry.State.Phase == ArenaPickupPhase.Available && !entry.Preparing
+                    && (entry.Definition.Kind != ArenaPickupKind.Weapon || entry.Weapon?.IsAvailable == true)
+                    && Time.timeScale > 0f && Time.time >= entry.NextRotationAt)
+                {
+                    // Bounded retries also retain an available marker when all
+                    // other authored positions are obstructed or reserved.
+                    entry.NextRotationAt = Time.time + AvailableRotationSeconds;
+                    if (TryRotate(entry) && entry.Definition.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
                 }
                 if (entry.State.Phase == ArenaPickupPhase.Retired && entry.Weapon != null)
                 { entry.Weapon.Dispose(); entry.Weapon = null; }
+                if (tickGeneration != Generation) return;
                 entry.View?.Tick(entry.State, entry.Preparing, entry.Weapon?.Visual);
             }
             if (Time.time < _nextScan || Time.timeScale <= 0f) return;
@@ -215,7 +231,8 @@ internal static partial class ArenaPickupRuntime
                 { diagnostics.Refused("another pickup is within 3m"); continue; }
                 if (relocated)
                     Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
-                var entry = new Entry { Definition = point, Floor = floor, Rotating = rotating };
+                var entry = new Entry { Definition = point, Candidates = definition, Floor = floor, Rotating = rotating,
+                    NextRotationAt = Time.time + AvailableRotationSeconds };
                 Entries.Add(entry);
                 entry.View = new ArenaPickupView(point, floor);
                 if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
@@ -231,6 +248,41 @@ internal static partial class ArenaPickupRuntime
         var actor = _world.MainPlayer.Position;
         Plugin.ModLogger.LogInfo(FormattableString.Invariant(
             $"Arena pickup placement attempt {_placementAttempts}: round {_round}; actor=({actor.x:F3}, {actor.y:F3}, {actor.z:F3}); anchor=({anchor.x:F3}, {anchor.y:F3}, {anchor.z:F3}); placed={Entries.Count}/{_layout.Points.Count}; alternatives={candidates}; geometryProbes={total.Probes}; refusals=[{total}]."));
+    }
+
+    private static bool TryRotate(Entry entry)
+    {
+        if (!entry.Rotating || entry.State.Phase != ArenaPickupPhase.Available || entry.Preparing
+            || entry.Weapon?.IsPending == true || Time.timeScale <= 0f
+            || ArenaRespawnDriver.IsRespawnInProgress || WeaponSwapService.IsSwapping
+            || !ArenaPickupGeometry.TryAnchor(_world, out var anchor)) return false;
+
+        foreach (var point in ArenaPickupLayouts.Candidates(entry.Candidates, PositionRandom))
+        {
+            // Do not select the same authored position or substitute a nearby
+            // unsurveyed fallback while an existing appearance remains safe.
+            if (point.X == entry.Definition.X && point.Y == entry.Definition.Y && point.Z == entry.Definition.Z) continue;
+            if (!ArenaPickupGeometry.TryPlacePoint(new Vector3(point.X, point.Y, point.Z), anchor, false,
+                out var floor, out _, out _)) continue;
+            if ((floor - entry.Floor).sqrMagnitude < 9f
+                || Entries.Any(other => !ReferenceEquals(other, entry) && (other.Floor - floor).sqrMagnitude < 9f)) continue;
+
+            ArenaPickupView view;
+            try { view = new ArenaPickupView(point, floor); }
+            catch (Exception ex)
+            {
+                Plugin.ModLogger.LogWarning($"Arena pickup '{entry.Definition.Id}' kept its position: replacement marker failed ({ex.GetBaseException().Message}).");
+                return false;
+            }
+            if (!entry.State.Relocate()) { view.Dispose(); return false; }
+            var previous = entry.Floor;
+            entry.View?.Dispose();
+            entry.View = view; entry.Definition = point; entry.Floor = floor;
+            entry.MustLeave.Clear(); entry.NeedsEntry = true;
+            Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' rotated during round {_round}: ({previous.x:F3}, {previous.y:F3}, {previous.z:F3}) -> ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}); appearance {entry.State.Appearance}."));
+            return true;
+        }
+        return false;
     }
 
     private static void FinishPlacement(string outcome)
@@ -255,7 +307,20 @@ internal static partial class ArenaPickupRuntime
     private static void PrepareWeapon(Entry entry)
     {
         if (entry.Preparing) return;
-        entry.Weapon?.Dispose(); entry.Weapon = null;
+        int generation = Generation;
+        var previous = entry.Weapon; entry.Weapon = null;
+        try { previous?.Dispose(); }
+        catch (Exception ex)
+        {
+            // Unknown cleanup cannot justify creating another source weapon or
+            // resetting unrelated entries and actor effects.
+            entry.State.Retire();
+            Plugin.ModLogger.LogWarning($"Arena pickup '{entry.Definition.Id}' retired after source cleanup failed ({ex.GetBaseException().Message}).");
+            return;
+        }
+        // Native DestroyLoot emits synchronous removal listeners. A listener
+        // ending/replacing the round must not start an orphaned preparation.
+        if (!Owns(generation, entry)) return;
         var kit = ArenaPickupWeapons.Find(entry.Definition.KitId);
         if (kit == null)
         {
@@ -264,7 +329,6 @@ internal static partial class ArenaPickupRuntime
             return;
         }
         entry.Preparing = true;
-        int generation = Generation;
         _game.StartCoroutine(PrepareRoutine());
 
         IEnumerator PrepareRoutine()
@@ -279,6 +343,7 @@ internal static partial class ArenaPickupRuntime
                 {
                     if (!Owns(generation, entry)) { weapon?.Dispose(); return; }
                     entry.Preparing = false; entry.NeedsEntry = true;
+                    entry.NextRotationAt = Time.time + AvailableRotationSeconds;
                     entry.Weapon = weapon;
                     if (weapon == null) entry.State.Retire();
                 });
@@ -311,7 +376,7 @@ internal static partial class ArenaPickupRuntime
                 // crosses the point and must never count as immediate re-entry.
                 if (!inside && (current - entry.Floor).sqrMagnitude > 2.25f && entry.MustLeave.Remove(player)) continue;
                 if (!ready || entry.MustLeave.Contains(player) || !CanCollect(player, entry.Definition.Kind)) continue;
-                if (!Reaches(sample.Position, current, entry.Floor, !sample.Fresh && Time.time - sample.At <= .25f, out float fraction)) continue;
+                if (!Reaches(sample.Position, current, entry.Floor, !entry.NeedsEntry && !sample.Fresh && Time.time - sample.At <= .25f, out float fraction)) continue;
                 var contact = Vector3.Lerp(sample.Position, current, fraction);
                 if (!ArenaPickupGeometry.LineClear(contact + Vector3.up * .6f, entry.Floor + Vector3.up * .6f)) continue;
                 // A sampled segment can cut a corner even when the native actor

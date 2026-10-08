@@ -42,6 +42,15 @@ internal sealed class ArenaPickupState
 
     internal void Retire() { Phase = ArenaPickupPhase.Retired; ++_reservation; }
 
+    // Moving an available marker creates a new appearance without resetting its
+    // state owner or making any pending native transfer reusable.
+    internal bool Relocate()
+    {
+        if (Phase != ArenaPickupPhase.Available) return false;
+        ++_reservation;
+        return true;
+    }
+
     // Sampling a short movement segment catches fast movement without collecting
     // through a teleport, on the next floor, or along stale pre-respawn motion.
     internal static bool InReach(float fromX, float fromY, float fromZ, float toX, float toY, float toZ,

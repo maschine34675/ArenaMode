@@ -15,6 +15,14 @@ controls include the outward-sweep retry and zero-length projected ray defects
 found by this harness. Every mutant must build successfully and fail its named
 behavioral assertion; a compile failure is not a passing fault control.
 
+Live rotation checks link the actual runtime and state owner: 60-second available
+age, cooldown completion, frozen authored positions, stable six-pickup identity,
+spacing and geometry vetoes, fixed custom layouts, bounded failed retries,
+leave/reenter and preappearance movement, preparing/pending/uncertain weapons,
+source-model replacement and synchronous native-disposal round replacement.
+`PickupObjectiveChecks` additionally links the real BigBrain objective/action to
+prove old routes expire and new targets use the new appearance and position.
+
 Built-in prototype fallback is tested separately from exact custom layouts:
 unchanged valid originals, deterministic clear alternatives, all original geometry
 vetoes, at most 32 retries, final 2m radius/0.5m height bounds after NavMesh/floor

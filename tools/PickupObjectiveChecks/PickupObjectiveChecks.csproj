@@ -10,6 +10,9 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <Compile Include="../ArenaPickupChecks/Program.cs"/><Compile Include="../ArenaPickupChecks/Doubles.cs"/><Compile Include="../ArenaPickupChecks/HealthDoubles.cs"/>
+    <Compile Include="../ArenaPickupChecks/RotationCases.cs"/>
+    <Compile Include="../ArenaPickupChecks/AudioChecks.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupAudio.cs"/>
     <Compile Include="ObjectiveCases.cs"/><Compile Include="ObjectiveDoubles.cs"/>
     <Compile Include="../../ArenaMode.Client/Kits/KitModels.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupWeapons.cs"/>

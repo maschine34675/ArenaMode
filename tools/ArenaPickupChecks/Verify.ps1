@@ -76,6 +76,15 @@ try {
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
     Run-Pickup 'production' $pickupSource
     $faults = @(
+        @{Name='no-live-rotation';File='ArenaPickupRuntime.cs';Find='private const float AvailableRotationSeconds = 60f;';Replace='private const float AvailableRotationSeconds = 600f;';Failure='unclaimed pickup rotates after sixty gameplay seconds'},
+        @{Name='same-cooldown-position';File='ArenaPickupRuntime.cs';Find='                    TryRotate(entry);';Replace='';Failure='collected pickup chooses different safe spot after cooldown'},
+        @{Name='rotation-token-alias';File='ArenaPickupState.cs';Find='        ++_reservation;';Replace='';Failure='relocation invalidates the previous appearance'},
+        @{Name='rotation-overlaps';File='ArenaPickupRuntime.cs';Find='|| Entries.Any(other => !ReferenceEquals(other, entry) && (other.Floor - floor).sqrMagnitude < 9f)';Replace='';Failure='rotation retains position when only alternative overlaps a fixed pickup'},
+        @{Name='rotation-unknown-source';File='ArenaPickupRuntime.cs';Find='                    && (entry.Definition.Kind != ArenaPickupKind.Weapon || entry.Weapon?.IsAvailable == true)';Replace='';Failure='unavailable native weapon source cannot be replaced by rotation'},
+        @{Name='rotation-unsafe-fallback';File='ArenaPickupRuntime.cs';Find='new Vector3(point.X, point.Y, point.Z), anchor, false,';Replace='new Vector3(point.X, point.Y, point.Z), anchor, true,';Failure='unsafe or unavailable rotation retains old available position: clearance'},
+        @{Name='rotation-camping';File='ArenaPickupRuntime.cs';Find='entry.MustLeave.Clear(); entry.NeedsEntry = true;';Replace='entry.MustLeave.Clear();';Failure='actor standing at new spot must leave before collection'},
+        @{Name='rotation-retroactive-contact';File='ArenaPickupRuntime.cs';Find='!entry.NeedsEntry && !sample.Fresh';Replace='!sample.Fresh';Failure='relocation cannot collect a preappearance movement segment'},
+        @{Name='rotation-stale-disposal';File='ArenaPickupRuntime.cs';Find='if (tickGeneration != Generation) return;';Replace='';Failure='native disposal callback preserves replacement round and creates no orphan weapon'},
         @{Name='overlapping-pickups';File='ArenaPickupRuntime.cs';Find='Entries.Any(other => (rotating || other.Rotating) && (other.Floor - floor).sqrMagnitude < 9f)';Replace='false';Failure='final pickup floors cannot overlap within three metres'},
         @{Name='single-placement-pass';File='ArenaPickupRuntime.cs';Find='if (Entries.Count == _layout.Points.Count) FinishPlacement("complete");';Replace='FinishPlacement("complete");';Failure='failed placement recovers using fresh moved anchor'},
         @{Name='replace-successful-entry';File='ArenaPickupRuntime.cs';Find='if (Entries.Any(placedEntry => placedEntry.Definition.Id == definition.Id)) continue;';Replace='';Failure='partial retries preserve successful entry state and weapon load'},

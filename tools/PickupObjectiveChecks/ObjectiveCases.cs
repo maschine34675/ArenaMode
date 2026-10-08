@@ -153,5 +153,28 @@ internal static partial class Program
         bot=AiReady();NavMesh.PathOk=false;layer=new(bot,35);layer.IsActive();int calls=NavMesh.Paths;
         for(int i=0;i<100;i++)layer.IsActive();Check(NavMesh.Paths==calls,"failed objective scans are throttled between brain ticks");
     }
-    private static void ObjectiveCases(){HealthCases();AiCases();Console.WriteLine("PICKUP_OBJECTIVE_BEHAVIOR_PASSED");}
+    private static void AiRotationCases()
+    {
+        AiReady();RotationReady();ArenaPickupObjective.ResetClaims();
+        var bot=Bot("rotation-seeker",-10).AIData.BotOwner;Step();At(59.9f);
+        var lease=Acquire(bot);var logic=new ArenaPickupLogic(bot);logic.Update(new ArenaPickupAction(lease));
+        var target=lease.Target;At(60.1f);
+        Check(!ArenaPickupRuntime.IsTargetCurrent(bot.GetPlayer,target),"rotated appearance immediately invalidates old bot target");
+        Check(!lease.Current(),"rotation invalidates bot route before trip timeout");
+        logic.Update(new ArenaPickupAction(lease));
+        ArenaPickupObjective.Prune();
+        Check(lease.Released&&!bot.Mover.HasPathAndNoComplete,"rotation releases old native pickup route");
+        var replacement=Acquire(bot);
+        Check(replacement.Target.Position.x==10&&replacement.Target.Appearance!=target.Appearance
+            &&replacement.Target.Generation==target.Generation&&ReferenceEquals(replacement.Target.Identity,target.Identity),
+            "bot replans to new position of same pickup identity");
+        ArenaPickupObjective.ResetClaims();
+        AiReady();RotationReady();bot=Bot("camping-bot",10).AIData.BotOwner;Step();At(60.1f);
+        Check(!ArenaPickupObjective.TryAcquire(bot,new(),out _)&&ArenaPowerups.Grants.Count==0,
+            "bot already at relocated pickup must leave before seeking or collecting");
+        Move(bot.GetPlayer,12);Acquire(bot);Move(bot.GetPlayer,10);
+        Check(ArenaPowerups.Grants.Count==1,"bot collects relocated pickup after reentry");
+        Console.WriteLine("PICKUP_OBJECTIVE_ROTATION_PASSED");
+    }
+    private static void ObjectiveCases(){HealthCases();AiCases();AiRotationCases();Console.WriteLine("PICKUP_OBJECTIVE_BEHAVIOR_PASSED");}
 }

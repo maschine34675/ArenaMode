@@ -190,9 +190,9 @@ namespace ArenaMode.Pickups
     }
     internal sealed class ArenaPickupView:IDisposable
     {
-        internal static List<ArenaPickupView> Created=[];internal static bool ThrowOnTick;
+        internal static List<ArenaPickupView> Created=[];internal static bool ThrowOnTick,ThrowOnCreate;
         internal ArenaPickupPoint Point;internal Vector3 Floor;internal bool Disposed;internal ArenaPickupPhase Phase;
-        internal ArenaPickupView(ArenaPickupPoint point,Vector3 floor){Point=point;Floor=floor;Created.Add(this);}
+        internal ArenaPickupView(ArenaPickupPoint point,Vector3 floor){if(ThrowOnCreate)throw new InvalidOperationException("test marker failure");Point=point;Floor=floor;Created.Add(this);}
         internal void Tick(ArenaPickupState state,bool preparing,GameObject visual){if(ThrowOnTick)throw new InvalidOperationException("test view failure");Phase=state.Phase;}
         public void Dispose()=>Disposed=true;
     }
@@ -200,13 +200,15 @@ namespace ArenaMode.Pickups
     {
         internal static List<Handle> Created=[];internal static bool PrepareNull;
         internal static IEnumerator Prepare(GameWorld world,ArenaMode.Kits.KitDefinition kit,Vector3 p,Quaternion q,Func<bool> current,Action<Handle> done)
-        {if(PrepareNull)done(null);else {var h=new Handle{Kit=kit};Created.Add(h);done(h);}yield break;}
+        {if(PrepareNull)done(null);else {var h=new Handle{Kit=kit,Position=p};Created.Add(h);done(h);}yield break;}
         internal sealed class Handle:IDisposable
         {
             internal ArenaMode.Kits.KitDefinition Kit;
+            internal Vector3 Position;
             internal GameObject Visual=new();internal bool IsAvailable=true,IsPending,Disposed,StartResult=true;
             internal string LastRefusal="test transfer refusal";
             internal bool? ImmediateResult;internal int Attempts;internal Player Taker;internal Func<bool> Current;internal Action<bool> Callback;
+            internal Action Disposing;
             internal bool TryTake(Player player,Func<bool> current,Action<bool> done)
             {
                 Attempts++;Taker=player;Current=current;Callback=done;
@@ -215,7 +217,7 @@ namespace ArenaMode.Pickups
             }
             internal void Settle(bool success,bool ambiguous=false)
             {IsPending=false;if(success||ambiguous)IsAvailable=false;Callback?.Invoke(success);}
-            public void Dispose(){Disposed=true;IsAvailable=false;}
+            public void Dispose(){if(Disposed)return;Disposed=true;IsAvailable=false;Disposing?.Invoke();}
         }
     }
 }

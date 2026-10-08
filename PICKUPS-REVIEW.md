@@ -106,10 +106,32 @@ All six types share this pool. Each point shuffles its candidates using a privat
 RNG, keeps its identity/type/kit/cooldown, and chooses the first safe floor at least
 3m from already placed pickups. Final floors determine separation. Exhausted
 candidates leave that pickup pending during the bounded placement window below.
-A round's selected position stays
-fixed through cooldowns and deaths; Deathmatch rounds resample, continuous TDM
-resamples next match. Layout input stays frozen and unmodified. Random selection
-can repeat a previous position; it does not guarantee a different spot every time.
+Since 2026-10-08, each rotating pickup also selects another safe authored position
+when its collection cooldown completes, and after **60 gameplay seconds available
+without collection**. Its marker remains at the previous spot during cooldown.
+Each successful move keeps the entry identity, type, kit and configured cooldown,
+but advances the appearance token so existing bot objectives immediately expire
+and replan. It neither resets other pickups nor clears active powerup effects.
+Factory continues to have six pickup entries, using the same eight-position pool.
+Round starts still resample; layout input stays frozen and unmodified for the match.
+
+Live rotation requires a grounded local navigation anchor outside respawn/weapon
+swap and reruns floor, path, contour and clearance checks. It excludes the current
+authored position, floors within 3m of its previous floor, and floors within 3m of
+any other pickup (including a cooling point). Unlike initial built-in placement,
+rotation never searches nearby fallback offsets. If no alternative is safe, the
+old point remains available and another attempt occurs after 60 gameplay seconds.
+Single-position custom entries stay fixed; custom entries with `Alternatives`
+use their own frozen authored pool.
+
+Loading, pending and retired weapons never rotate. An available weapon's old
+source handle is disposed through the existing native ownership cleanup and a
+fresh source is prepared at the chosen safe floor; the 60-second timer starts when
+preparation completes. A native cleanup callback replacing the round cannot start
+an orphaned preparation or clear the replacement generation. Ambiguous transfer
+results and timeouts retain the existing retirement contract. Actors already at
+the new spot must leave and re-enter, and motion sampled before the new appearance
+cannot collect it retroactively. A marker creation failure retains the old point.
 
 Sources: native `SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json`
 and corresponding `factory4_night/base.json`. At the first live phase the runtime
@@ -359,9 +381,13 @@ Pending user checks (restart EFT only after delivery):
 3. Full weapon slots: leave weapon. Free a compatible inactive slot, leave/re-enter,
    verify a loaded usable weapon and unchanged hands. Repeat after cooldown; open
    inventory/die/exit during collection: no stuck hands, duplicates or stale model.
-4. Camp a cooling point: must leave/re-enter to collect. Cross a round boundary and
-   disable/re-enable: no old effects/objects should return unexpectedly. Verify
-   position choices can vary across rounds but never relocate during cooldown.
+4. Collect a pickup and confirm its marker moves to another safe pool position
+   after the full cooldown, with six entries retained. Leave another unclaimed
+   for 60 gameplay seconds and confirm its relocation. Stand at a destination:
+   collection requires leaving/re-entering. Pending/loading/retired weapons must
+   not move; blocked alternatives retain the previous available point. Observe
+   bots abandoning old positions and selecting the new appearance. Cross a round
+   boundary and disable/re-enable: no old effects/objects should return unexpectedly.
 5. Capture/export points, including two nearby floors/wall obstruction. Install
    reviewed layouts for next match and verify exact-area behavior. Ordinary PMC
    survey, Tactical and Gun Game must never get pickups/effects.

@@ -50,7 +50,7 @@ internal static partial class Program
         NavMesh.AllowPath=null;NavMesh.LastPathStart=default;
         NavMesh.Sample=p=>p;NavMesh.Samples=NavMesh.Paths=0;NavMesh.Corners=null;Physics.Overlaps=[];Physics.Capsule=null;
         Physics.Rays=(from,dir,distance)=>dir.y<-.9f?[new(){collider=new Collider(),point=from-Vector3.up*.65f,normal=Vector3.up,distance=.65f}]:[];
-        ArenaPickupView.Created.Clear();ArenaPickupView.ThrowOnTick=false;ArenaWeaponPickup.Created.Clear();ArenaWeaponPickup.PrepareNull=false;
+        ArenaPickupView.Created.Clear();ArenaPickupView.ThrowOnTick=false;ArenaPickupView.ThrowOnCreate=false;ArenaWeaponPickup.Created.Clear();ArenaWeaponPickup.PrepareNull=false;
         ArenaPowerups.Grants.Clear();ArenaPowerups.Resets=0;ArenaPowerups.GrantResult=true;
         _local=new(){ProfileId="local",IsYourPlayer=true,Position=new(-3,0,0)};
         _world=new(){MainPlayer=_local};_world.Add(_local);
@@ -312,7 +312,7 @@ internal static partial class Program
         Check(ArenaPickupView.Created.Count==2&&ArenaPickupView.Created.Any(v=>v.Floor.x==10),"available alternative avoids occupied floor without moving exact custom point");
         Check(ArenaPickupView.Created[0].Point.Id!="two","fixed custom points reserve their place before earlier rotating points");
         var fixedPositions=ArenaPickupView.Created.Select(v=>v.Floor.x).ToArray();Step(80);
-        Check(ArenaPickupView.Created.Select(v=>v.Floor.x).SequenceEqual(fixedPositions),"placement stays fixed during a live round");
+        Check(ArenaPickupView.Created.Select(v=>v.Floor.x).SequenceEqual(fixedPositions),"rotation retains position when only alternative overlaps a fixed pickup");
 
         Fixture();Check(ArenaPickupGeometry.BeamLength(origin)==4,"open sky beacon height capped at four metres");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=3},new(){collider=new Collider(),distance=1}];
@@ -412,7 +412,7 @@ internal static partial class Program
     public static int Main(string[] args)
     {
         try {
-            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();
+            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();
 #if PICKUP_OBJECTIVES
             ObjectiveCases();
 #endif
