@@ -49,6 +49,15 @@ unrelated untracked Molotov intake remains untouched. No push performed.
 
 ## Remaining native checks
 
+**Superseded by the same-evening GPU2 run:** see
+`GPU-FOLLOWUPS-RESULTS-20261008.md`. Connectivity, loaded identity, representative
+preview and PM(t) Akimbo movement were tested. The run found blocked pickup
+rotation; fix `1b08b84` was independently checked, deployed and natively retested
+(34 moves across six IDs, rotated M60 collection/cooldown, active sound playback,
+profile/config preservation). Current client SHA256 is
+`E673D20666AD49FEA22A16A1F73B49C6C5F17A69B862B9918A19824FB6F17E77`.
+The following paragraph records the earlier failed attempt, not current status.
+
 GPU-2 UiBridge at the configured address timed out. GPU-1 desktop/control
 connection also timed out on start; its configured share was inaccessible.
 No raid was started. There is no loaded-process hash, new screenshot, listening

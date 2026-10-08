@@ -7,7 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Akimbo/Factory/preview/pickup follow-ups (2026-10-08 evening):** source
+- **GPU2 follow-up acceptance (2026-10-08, later evening):** host reachable;
+  EFT started/restarted with 21/21 compared plugins matching disk and loaded code.
+  `GPU-FOLLOWUPS-RESULTS-20261008.md` supersedes the earlier connection limitation.
+  Representative own/provided avatars and PM(t) Akimbo movement/alternation pass;
+  APB/Manual arms/PFT and listening balance are explicitly not certified.
+  Native testing found pickup rotation starvation; fix `1b08b84` adds validated
+  two-appearance exchanges without relaxing pending weapon or placement guards.
+  Parent checks 410/33 compiled faults and 545/12 pass, independent reviews clear.
+  Final native Factory DM: 34 moves across all six IDs; rotated M60 collected and
+  equipped, cooldown rearmed safely then later moved; real audio playback observed.
+  Final client `0.1.0+1b08b84bc3390235c1d4fbc5c66afee962bf07fa`, SHA256
+  `E673D20666AD49FEA22A16A1F73B49C6C5F17A69B862B9918A19824FB6F17E77`,
+  installed locally and on GPU2. Server/Core/BigBrain/WAV unchanged from below.
+  Config byte-identical after restore; entire profile unchanged except Health and
+  Hideout bookkeeping timestamps. EFT closed normally. No push; Molotov intake
+  untouched. First Zombie preview raid logged four native BotMemory NRE warnings;
+  later DM/Gun Game and final retest had no new exception, details in report.
+
+- **Initial Akimbo/Factory/preview/pickup delivery (2026-10-08 evening):** source
   `90fbf3a`, five separate scoped commits, details and native follow-up steps in
   `FOLLOWUPS-20261008.md`. Akimbo models now register to solved hands after IK;
   own-gear variants use native confirmation/deployment equipment; pickups move
@@ -18,11 +36,11 @@ current. User-facing communication is normally German.
   `4C9F7C5961A91A8C8ED540DFC721BE05E6E1AE0F8F333DEDA88BF9BA72034B02`,
   ProductVersion `0.1.0+90fbf3aae2fa32fd7c789283db33bb9e7b36f02a`;
   pickup WAV `E0585D79CD137AC9240A01C79048490EC87F0C2D07F9B84B9BA24F5B5D5CB171`.
-  Server/Core/BigBrain DLLs unchanged. **No native acceptance or confirmed GPU
+  Server/Core/BigBrain DLLs unchanged. **At that initial attempt, no native acceptance or confirmed GPU
   mirror receipt:** GPU-2 UiBridge and GPU-1 control connection unavailable during
   attempts. No game run/profile/config changes; untracked Molotov intake left
-  untouched. Not pushed. A game restart and the bounded checks in the report are
-  still required; do not reuse the earlier stationary Akimbo acceptance for this fix.
+  untouched. Not pushed. A game restart and the bounded checks in the report
+  were still required; the later GPU2 run above records what is now verified.
 
 - **Menü-Politur (2026-10-08, Branch feature/menu-polish, Worktree ArenaMode-zombie):**
   Sechs Nutzerwünsche aus der GPU-Abnahme von v2 in fünf Commits in dieser
