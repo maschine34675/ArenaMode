@@ -1,0 +1,65 @@
+using AnimationSystem;
+using ArenaMode.Combat.Akimbo;
+using EFT;
+using FastAnimatorSystem;
+
+int checks = 0;
+void Need(bool value, string reason) { checks++; if (!value) throw new Exception(reason); }
+var unity = new UnityAnimatorWrapper(); unity.speed = 1.25f;
+var controller = new Player.FirearmController(); controller.FirearmsAnimator.Animator = unity;
+var op = new Player.FirearmController.FireOperation { Controller = controller };
+var body = new Player { ArmsAnimatorCommon = unity, ArmsUpdateMode = Player.EUpdateMode.Auto };
+ArenaAkimbo.Body = body; ArenaAkimbo.Operation = op; ArenaAkimbo.Active = true;
+AkimboCadence.Enable();
+float dt = .02f;
+AkimboCadence.Advance(op, ref dt);
+Need(dt == .04f && unity.speed == 2.5f, "native firing timer and Unity animator double together");
+Need(AkimboCadence.Refresh() && unity.speed == 2.5f, "refresh never compounds speed");
+float other = .02f;
+AkimboCadence.Advance(new Player.FirearmController.FireOperation { Controller = new() }, ref other);
+Need(other == .02f, "foreign operation remains native");
+AkimboCadence.BeforeState(new Player.ObjectInHandsOperation(), Player.EOperationState.Finished);
+Need(unity.speed == 2.5f, "foreign state cannot restore local lease");
+AkimboCadence.BeforeState(op, Player.EOperationState.Finished);
+Need(unity.speed == 1.25f, "finished fire restores before next reload operation");
+AkimboCadence.Refresh(); ArenaAkimbo.Active = false; AkimboCadence.Refresh();
+Need(unity.speed == 1.25f, "OFF or lost exact body restores native speed");
+ArenaAkimbo.Active = true; AkimboCadence.Refresh(); unity.speed = .8f;
+Need(!AkimboCadence.Refresh() && unity.speed == .8f, "foreign speed write preserved");
+Need(!AkimboCadence.Refresh() && unity.speed == .8f, "foreign write not fought on next tick");
+AkimboCadence.Reset();
+Need(unity.speed == .8f, "reset cannot overwrite foreign write");
+unity.speed = 1; AkimboCadence.Refresh();
+var replacement = new UnityAnimatorWrapper(); controller.FirearmsAnimator.Animator = replacement; body.ArmsAnimatorCommon = replacement;
+Need(AkimboCadence.Refresh() && unity.speed == 1 && replacement.speed == 2, "replacement animator restored and rebound independently");
+AkimboCadence.Reset(); Need(replacement.speed == 1, "replacement released");
+body.ArmsAnimatorCommon = unity;
+Need(!AkimboCadence.Refresh() && replacement.speed == 1, "mismatched body hands animator not touched");
+var fast = new FastAnimatorProcessor(); controller.FirearmsAnimator.Animator = fast; body.ArmsAnimatorCommon = fast;
+body.ArmsUpdateMode = Player.EUpdateMode.Manual;
+dt = .02f; AkimboCadence.Advance(op, ref dt); Need(dt == .04f, "fast animator operation doubles");
+dt = .02f; AkimboCadence.AdvanceAnimator(fast, ref dt); Need(dt == .04f, "fast animator actual time doubles");
+dt = .02f; AkimboCadence.AdvanceAnimator(new FastAnimatorProcessor(), ref dt); Need(dt == .02f, "foreign fast body animator remains native");
+body.ArmsUpdateMode = Player.EUpdateMode.Auto;
+dt = .02f; AkimboCadence.Advance(op, ref dt); Need(dt == .02f, "unsupported fast auto mode does not halve timer alone");
+dt = .02f; AkimboCadence.AdvanceAnimator(fast, ref dt); Need(dt == .02f, "fast auto mode excluded");
+body.ArmsUpdateMode = Player.EUpdateMode.Manual; ArenaAkimbo.Active = false;
+dt = .02f; AkimboCadence.AdvanceAnimator(fast, ref dt); Need(dt == .02f, "disabled cadence leaves animator native");
+ArenaAkimbo.Active = true;
+foreach (float invalid in new[] { 0, -1f, float.NaN, float.PositiveInfinity })
+{ dt = invalid; AkimboCadence.Advance(op, ref dt); Need(dt.Equals(invalid), "invalid delta unchanged"); }
+AkimboCadence.Reset();
+
+var visual = new AkimboPresentation();
+Need(visual.CaptureIdle(false, 10) && !visual.CaptureIdle(true, 10), "neutral pose only captured in idle");
+visual.Shot(false, 10);
+Need(visual.Kick(false, 10) == 1 && visual.Kick(true, 10) == 0, "right shot cannot kick left gun");
+Need(visual.Flash(false, 10) && !visual.Flash(true, 10), "right flash isolated");
+Need(visual.SampleNative(false, true, 10.01f) && !visual.SampleNative(true, true, 10.01f), "only firing side receives native slide animation");
+visual.Shot(true, 10.06f);
+Need(visual.Kick(false, 10.06f) < .5f && visual.Kick(true, 10.06f) == 1, "next shot preserves other sides independent return");
+Need(!visual.SampleNative(false, true, 10.06f) && visual.SampleNative(true, true, 10.06f), "new side switches native child sampling");
+Need(!visual.CaptureIdle(false, 10.10f) && visual.CaptureIdle(false, 10.30f), "recoil tail never becomes neutral pose");
+visual.Clear();
+Need(visual.Kick(false, 11) == 0 && visual.Kick(true, 11) == 0 && !visual.Flash(true, 11), "hide clears both visual tails");
+Console.WriteLine($"AKIMBO_TIMING_CHECKS_PASSED ({checks} assertions)");

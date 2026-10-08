@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <ViewSource Condition="'$(ViewSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboView.cs</ViewSource>
+    <PresentationSource Condition="'$(PresentationSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboPresentation.cs</PresentationSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ViewSource)" Link="Production/AkimboView.cs" />
+    <Compile Include="$(PresentationSource)" Link="Production/AkimboPresentation.cs" />
+  </ItemGroup>
+</Project>
