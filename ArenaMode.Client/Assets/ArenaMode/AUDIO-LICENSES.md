@@ -123,7 +123,10 @@ Release packages must include the whole directory with these license files,
 not just the client DLL or the OGG files alone.
 
 Restart the game after installing or replacing audio. In the F12 configuration,
-`Audio / Announcer` enables playback and `Audio / AnnouncerVolume` controls its
+`Audio / Announcer` is the master switch for playback and for the on-screen kill
+callouts (DOUBLE KILL, ...), and each mode's own `Announcer` entry (the ANNOUNCER
+mutator in the map-screen menu) gates both as well; HUD text such as "WAVE n" is
+a separate system that neither switch affects. `Audio / AnnouncerVolume` controls the
 volume independently of Tarkov's Interface slider by default. Overall game
 volume and listener mute/pause still apply. `Audio / AnnouncerUseUiVolume`
 defaults to false; set it to true only to restore the legacy Interface route
