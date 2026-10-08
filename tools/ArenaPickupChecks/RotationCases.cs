@@ -142,3 +142,165 @@ internal static partial class Program
         Console.WriteLine("ARENA_PICKUP_ROTATION_PASSED");
     }
 }
+
+internal static partial class Program
+{
+    private static void OccupiedPair(ArenaPickupKind second=ArenaPickupKind.Shield, bool delayWeapon=false,
+        ArenaPickupKind firstKind=ArenaPickupKind.DoubleDamage)
+    {
+        Fixture();
+        var first=Point(firstKind);first.Alternatives=[new(){X=10}];
+        var other=Point(second);other.Id="two";other.X=10;other.Alternatives=[new(){X=0}];
+        var layout=FileFor(first);layout.Layouts[0].Points.Add(other);
+        System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(layout));
+        KitBundlePreloader.IsPreloading=delayWeapon;
+        Step();Step();
+        Check(ArenaPickupView.Created.Count(v=>!v.Disposed)==2,"occupied fixture has two safe slots and no spare");
+    }
+
+    private static void OccupiedRotationCases()
+    {
+        OccupiedPair();var a=ActiveView();var b=ActiveView("two");var sa=State();var sb=State(1);
+        At(61);
+        Check(ActiveView().Floor.x==b.Floor.x&&ActiveView("two").Floor.x==a.Floor.x,
+            "two occupied available slots exchange without a spare position");
+        Check(a.Disposed&&b.Disposed&&ReferenceEquals(sa,State())&&ReferenceEquals(sb,State(1))
+            &&sa.Appearance==1&&sb.Appearance==1,"exchange preserves both state owners and advances each appearance once");
+        Check(ArenaPickupView.Created.Count(v=>!v.Disposed)==2&&ArenaPowerups.Grants.Count==0,
+            "exchange leaves exactly two markers and grants no effects");
+        At(62);Check(sa.Appearance==1&&sb.Appearance==1,"exchange partner cannot move twice in one rotation interval");
+        At(121);Check(ActiveView().Floor.x==a.Floor.x&&ActiveView("two").Floor.x==b.Floor.x,
+            "occupied rotation repeats at the next interval");
+
+        OccupiedPair();a=ActiveView();b=ActiveView("two");Move(_local,a.Floor.x);var deadline=State().ReadyAt;
+        Move(_local,-3);At(deadline-.01f);
+        Check(ReferenceEquals(a,ActiveView())&&ReferenceEquals(b,ActiveView("two")),"exchange never shortens collection cooldown");
+        At(deadline);Check(ReferenceEquals(a,ActiveView())&&State().Phase==ArenaPickupPhase.Available,
+            "cooldown rearm does not displace a newly available partner");
+        At(deadline+60);Check(ActiveView().Floor.x==b.Floor.x&&State().Phase==ArenaPickupPhase.Available,
+            "full cooldown eventually exchanges with a mature available occupied slot");
+
+        OccupiedPair();a=ActiveView();b=ActiveView("two");_local.Position=b.Floor;At(61);
+        Check(ArenaPowerups.Grants.Count==0,"exchange requires fresh entry for actors at the new destination");
+        Move(_local,b.Floor.x+3);Move(_local,b.Floor.x);
+        Check(ArenaPowerups.Grants.Count==1,"fresh reentry after exchange grants once");
+
+        foreach(string blocked in new[]{"cooldown","pending","retired","preparing","unknownWeapon","nativePending","path","clearance","asymmetric"})
+        {
+            OccupiedPair(blocked is "preparing" or "unknownWeapon" or "nativePending"?ArenaPickupKind.Weapon:ArenaPickupKind.Shield);
+            a=ActiveView();b=ActiveView("two");
+            switch(blocked)
+            {
+                case "cooldown":int token=State(1).Reserve(.5f);State(1).Complete(token,true,1,600);break;
+                case "pending":State(1).Reserve(60);break;
+                case "retired":State(1).Retire();break;
+                case "preparing":
+                    var entries=(System.Collections.IList)typeof(ArenaPickupRuntime).GetField("Entries",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                    entries[1].GetType().GetField("Preparing",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).SetValue(entries[1],true);break;
+                case "unknownWeapon":ArenaWeaponPickup.Created.Single().IsAvailable=false;break;
+                case "nativePending":ArenaWeaponPickup.Created.Single().IsPending=true;break;
+                case "path":NavMesh.PathOk=false;break;
+                case "clearance":Physics.Capsule=(x,y,r)=>x.x==a.Floor.x?[new Collider()]:[];break;
+                case "asymmetric":
+                    var rows=(System.Collections.IList)typeof(ArenaPickupRuntime).GetField("Entries",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                    var candidates=(ArenaPickupPoint)rows[1].GetType().GetField("Candidates",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(rows[1]);
+                    candidates.X=b.Floor.x;candidates.Alternatives=[new(){X=30}];NavMesh.AllowPath=(x,y)=>y.x!=30;break;
+            }
+            At(61);
+            Check(ReferenceEquals(a,ActiveView())&&ReferenceEquals(b,ActiveView("two")),"unsafe exchange retains both original appearances: "+blocked);
+        }
+
+        OccupiedPair();a=ActiveView();b=ActiveView("two");
+        ArenaPickupView.RefuseCreate=_=>ArenaPickupView.Created.Count>=3;At(61);
+        Check(ReferenceEquals(a,ActiveView())&&ReferenceEquals(b,ActiveView("two"))&&State().Appearance==0&&State(1).Appearance==0
+            &&ArenaPickupView.Created.Count(v=>!v.Disposed)==2,"second replacement failure leaves both originals and disposes staged first view");
+
+        OccupiedPair(ArenaPickupKind.Weapon);a=ActiveView();b=ActiveView("two");var weapon=ArenaWeaponPickup.Created.Single();At(61);
+        Check(weapon.Disposed&&ArenaWeaponPickup.Created.Count==2&&ArenaWeaponPickup.Created.Last().Position.x==a.Floor.x
+            &&ActiveView().Floor.x==b.Floor.x,"occupied weapon partner moves and replaces exactly its owned source");
+        Check(State().Appearance==1&&State(1).Appearance==1&&ArenaWeaponPickup.Created.Last().Kit.Id==weapon.Kit.Id,
+            "weapon exchange preserves kit and both reservations");
+        At(121);Check(ArenaWeaponPickup.Created.Count==3,"occupied weapon continues rotating after source preparation");
+
+        OccupiedPair(ArenaPickupKind.Weapon,delayWeapon:true);a=ActiveView();b=ActiveView("two");
+        At(58);KitBundlePreloader.IsPreloading=false;Step();At(61);
+        Check(ReferenceEquals(a,ActiveView())&&ReferenceEquals(b,ActiveView("two"))&&ArenaWeaponPickup.Created.Count==1,
+            "exchange respects a newly prepared weapon availability interval");
+        At(119);Check(ActiveView("two").Floor.x==a.Floor.x&&ArenaWeaponPickup.Created.Count==2,
+            "staggered availability cannot starve an occupied weapon exchange");
+
+        OccupiedPair(ArenaPickupKind.Weapon,delayWeapon:true,firstKind:ArenaPickupKind.Weapon);
+        a=ActiveView();b=ActiveView("two");At(60.6f);KitBundlePreloader.IsPreloading=false;At(60.7f);At(120.7f);
+        Check(ActiveView().Floor.x==b.Floor.x&&ActiveView("two").Floor.x==a.Floor.x&&ArenaWeaponPickup.Created.Count==4,
+            "partner availability accepts the exact float deadline without another minute delay");
+
+        OccupiedPair(ArenaPickupKind.Weapon);weapon=ArenaWeaponPickup.Created.Single();a=ActiveView();b=ActiveView("two");
+        Move(_local,b.Floor.x);weapon.Settle(true);Move(_local,-3);At(State(1).ReadyAt);Step(60);
+        Check(ArenaWeaponPickup.Created.Count==3&&ActiveView("two").Floor.x==a.Floor.x,
+            "consumed weapon can exchange only after its confirmed full cooldown");
+
+        OccupiedPair(ArenaPickupKind.Weapon);weapon=ArenaWeaponPickup.Created.Single();
+        weapon.Disposing=()=>{ArenaPickupRuntime.Reset();ArenaPickupRuntime.Tick();};At(61);
+        Check(ArenaPickupRuntime.IsLiveActor(_local)&&ArenaPickupView.Created.Count(v=>!v.Disposed)==2
+            &&ArenaWeaponPickup.Created.Count==2&&_game.Coroutines.Count==0,
+            "exchange source disposal callback cannot orphan or mutate replacement generation");
+
+        OccupiedPair(ArenaPickupKind.Weapon,firstKind:ArenaPickupKind.Weapon);
+        ArenaWeaponPickup.Created[1].Disposing=()=>{ArenaPickupRuntime.Reset();ArenaPickupRuntime.Tick();};At(61);
+        Check(ArenaPickupRuntime.IsLiveActor(_local)&&ArenaPickupView.Created.Count(v=>!v.Disposed)==2
+            &&ArenaWeaponPickup.Created.Count==4&&_game.Coroutines.Count==0,
+            "two weapon exchange reentry does not prepare a stale initiating weapon");
+
+        OccupiedPair(ArenaPickupKind.Weapon);int generation=ArenaPickupRuntime.Generation,resets=ArenaPowerups.Resets;
+        ArenaWeaponPickup.Created.Single().Disposing=()=>throw new InvalidOperationException("exchange cleanup failed");At(61);
+        Check(State().Phase==ArenaPickupPhase.Available&&State(1).Phase==ArenaPickupPhase.Retired
+            &&ArenaPickupRuntime.Generation==generation&&ArenaPowerups.Resets==resets&&ArenaWeaponPickup.Created.Count==1,
+            "exchange cleanup failure retires only uncertain partner without recreating source or resetting effects");
+
+        OccupiedPair();sa=State();sb=State(1);generation=ArenaPickupRuntime.Generation;
+        ArenaPickupView.RefuseCreate=_=>{ArenaPickupView.RefuseCreate=null;ArenaPickupRuntime.Reset();ArenaPickupRuntime.Tick();return false;};At(61);
+        Check(ArenaPickupRuntime.Generation!=generation&&sa.Appearance==1&&sb.Appearance==1
+            &&sa.Phase==ArenaPickupPhase.Retired&&sb.Phase==ArenaPickupPhase.Retired
+            &&ArenaPickupView.Created.Count(v=>!v.Disposed)==2,
+            "marker constructor generation change discards staged exchange without committing old state");
+
+        RotationReady();NavMesh.PathOk=false;At(61);
+        Check(Plugin.ModLogger.Lines.Any(x=>x.Contains("kept its rotation position")&&x.Contains("no complete native path")),
+            "blocked rotation explains failed native geometry");
+        int logs=Plugin.ModLogger.Lines.Count;At(62);
+        Check(Plugin.ModLogger.Lines.Count==logs,"blocked rotation diagnostics stay bounded between deadlines");
+        RotationReady();_local.MovementContext.IsGrounded=false;At(61);
+        Check(Plugin.ModLogger.Lines.Any(x=>x.Contains("ready grounded navigation anchor")),"blocked rotation explains absent actor anchor");
+
+        // All Factory sites except the SIX actually used by this fixture are
+        // obstructed; every free-destination attempt must fail. Exercise the real
+        // built-in fallback and every pickup kind, including M60, over two cycles.
+        Fixture();System.IO.File.Delete(LayoutPath);Step();Step();
+        var before=ArenaPickupView.Created.ToDictionary(v=>v.Point.Id,v=>v.Floor);
+        Physics.Capsule=(x,y,r)=>before.Values.Any(v=>(new Vector3(x.x,x.y-.4f,x.z)-v).sqrMagnitude<.01f)?[]:[new Collider()];
+        for(int cycle=1;cycle<=2;cycle++)
+        {
+            At(cycle*61);
+            var views=ArenaPickupView.Created.Where(v=>!v.Disposed).ToArray();
+            Check(views.Length==6&&views.All(v=>(v.Floor-before[v.Point.Id]).sqrMagnitude>=9),
+                "all six occupied Factory identities rotate without any spare safe slot");
+            Check(views.All(v=>views.All(other=>ReferenceEquals(v,other)||(v.Floor-other.Floor).sqrMagnitude>=9)),
+                "occupied Factory permutation preserves separation");
+            Check(Enumerable.Range(0,6).All(i=>State(i).Appearance==cycle),"each occupied appearance moves only once per interval");
+            before=views.ToDictionary(v=>v.Point.Id,v=>v.Floor);
+        }
+#if PICKUP_OBJECTIVES
+        AiReady();OccupiedPair();var seeker=Bot("exchange-seeker",-8);Step();At(59.9f);
+        var targets=new List<ArenaPickupTarget>();ArenaPickupRuntime.GetBotTargets(seeker,targets);
+        Check(targets.Count==2&&targets.All(t=>ArenaPickupRuntime.IsTargetCurrent(seeker,t)),
+            "both occupied bot targets are current before exchange");
+        At(60.1f);Check(targets.All(t=>!ArenaPickupRuntime.IsTargetCurrent(seeker,t)),
+            "exchange invalidates both bot appearance targets immediately");
+        var replacements=new List<ArenaPickupTarget>();ArenaPickupRuntime.GetBotTargets(seeker,replacements);
+        Check(replacements.Count==2&&replacements.All(t=>targets.Any(old=>ReferenceEquals(t.Identity,old.Identity)
+            &&t.Appearance!=old.Appearance&&(t.Position-old.Position).sqrMagnitude>=9)),
+            "both exchanged bot targets keep identity with new positions and appearances");
+#endif
+        Console.WriteLine("ARENA_PICKUP_OCCUPIED_ROTATION_PASSED");
+    }
+}

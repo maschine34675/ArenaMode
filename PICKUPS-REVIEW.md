@@ -118,9 +118,12 @@ Round starts still resample; layout input stays frozen and unmodified for the ma
 Live rotation requires a grounded local navigation anchor outside respawn/weapon
 swap and reruns floor, path, contour and clearance checks. It excludes the current
 authored position, floors within 3m of its previous floor, and floors within 3m of
-any other pickup (including a cooling point). Unlike initial built-in placement,
-rotation never searches nearby fallback offsets. If no alternative is safe, the
-old point remains available and another attempt occurs after 60 gameplay seconds.
+any other pickup (including a cooling point). Built-in prototypes may use the same
+bounded 2m/0.5m repair as initial placement; custom positions remain exact. If no
+free destination is safe, the runtime can exchange two available appearances as
+described below. Otherwise the old point remains available and another attempt
+occurs after 60 gameplay seconds. A bounded Info diagnostic distinguishes an
+absent grounded anchor, geometry refusals and reserved-position conflicts.
 Single-position custom entries stay fixed; custom entries with `Alternatives`
 use their own frozen authored pool.
 
@@ -132,6 +135,42 @@ an orphaned preparation or clear the replacement generation. Ambiguous transfer
 results and timeouts retain the existing retirement contract. Actors already at
 the new spot must leave and re-enter, and motion sampled before the new appearance
 cannot collect it retroactively. A marker creation failure retains the old point.
+
+### Occupied-position exchange (GPU follow-up, 2026-10-08)
+
+The first native run placed six Factory pickups but observed no rotation, including
+after collection/cooldown; initial placement repaired one authored upper position
+by 1.5m. The old build had no per-rotation refusal diagnostics, so exhaustion of
+the safe position pool is an inference, not a measured native geometry result.
+The source-linked six-valid-slot case confirms that six reserved positions can
+prevent every single-entry move, including after cooldown.
+After free-position attempts fail, the runtime may exchange two appearances whose
+frozen authored pools both permit the other's slot. Both current resolved floors
+are revalidated against native geometry/path/contour; they may drift by at most
+0.25m and must keep 3m separation from each other and every third entry. This also
+allows an already repaired built-in floor without pretending the blocked original
+coordinate became safe. No custom point gains a new authored alternative.
+
+Both states must be Available, without preparation/pending ownership; an existing
+weapon source must be positively available. Only the initiating entry on its
+confirmed cooldown-completion path may carry a consumed source awaiting replacement.
+The partner needs a full 60 seconds of actual availability since placement,
+preparation completion, cooldown rearm or its previous move. Retry deadlines do
+not determine partner eligibility, preventing two blocked retries from starving
+each other. Both replacement marker views are staged before either state changes;
+failed second construction keeps both originals. The generation and eligibility
+are checked again, then both pure appearance-token commits run synchronously.
+Each entry keeps its identity, type, kit, cooldown and state owner, and both bot
+targets expire. Both timers and fresh-entry guards reset. Owned weapon sources use
+the existing disposal/preparation path; round-changing native disposal callbacks
+cannot prepare a stale second weapon, and uncertain cleanup retires only its entry.
+
+Source-linked checks exercise a full six-slot/six-pickup permutation, delayed
+weapon readiness, cooldowns, pending/uncertain/preparing sources, reciprocal custom
+authoring, failed second marker construction, generation-changing constructors,
+two-weapon cleanup reentry, cleanup exceptions and both old bot targets. These
+remain controlled-world checks; the revised build requires the parent's native
+Factory retest before rotation is accepted in the live game.
 
 Sources: native `SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json`
 and corresponding `factory4_night/base.json`. At the first live phase the runtime

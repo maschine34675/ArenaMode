@@ -191,8 +191,9 @@ namespace ArenaMode.Pickups
     internal sealed class ArenaPickupView:IDisposable
     {
         internal static List<ArenaPickupView> Created=[];internal static bool ThrowOnTick,ThrowOnCreate;
+        internal static Func<ArenaPickupPoint,bool> RefuseCreate;
         internal ArenaPickupPoint Point;internal Vector3 Floor;internal bool Disposed;internal ArenaPickupPhase Phase;
-        internal ArenaPickupView(ArenaPickupPoint point,Vector3 floor){if(ThrowOnCreate)throw new InvalidOperationException("test marker failure");Point=point;Floor=floor;Created.Add(this);}
+        internal ArenaPickupView(ArenaPickupPoint point,Vector3 floor){if(ThrowOnCreate||RefuseCreate?.Invoke(point)==true)throw new InvalidOperationException("test marker failure");Point=point;Floor=floor;Created.Add(this);}
         internal void Tick(ArenaPickupState state,bool preparing,GameObject visual){if(ThrowOnTick)throw new InvalidOperationException("test view failure");Phase=state.Phase;}
         public void Dispose()=>Disposed=true;
     }

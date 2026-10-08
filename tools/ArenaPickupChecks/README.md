@@ -20,6 +20,12 @@ age, cooldown completion, frozen authored positions, stable six-pickup identity,
 spacing and geometry vetoes, fixed custom layouts, bounded failed retries,
 leave/reenter and preappearance movement, preparing/pending/uncertain weapons,
 source-model replacement and synchronous native-disposal round replacement.
+Occupied-position cases additionally exercise six safe slots with no spare,
+reciprocal two-appearance commit, both staged views, actual-availability timing,
+both custom-authoring directions, transferred/uncertain/pending weapon protection,
+two-weapon disposal reentry and isolated cleanup failure. No mutable scene lease or
+native source is exchanged between entries. Deliberate faults remove exchange,
+source/pending/preparing guards, reciprocal authoring and partner availability age.
 `PickupObjectiveChecks` additionally links the real BigBrain objective/action to
 prove old routes expire and new targets use the new appearance and position.
 

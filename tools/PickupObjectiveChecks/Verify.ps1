@@ -29,7 +29,7 @@ function Invoke-PickupObjective([string]$name,[string]$client,[string]$companion
 }
 Invoke-PickupObjective 'production' $source $compat
 $faults=@(
-    @{Name='rotated-target-stays-current';File='ArenaPickupTargets.cs';Find='&& entry.State.Appearance == target.Appearance';Replace='';Reject='rotated appearance immediately invalidates old bot target'},
+    @{Name='rotated-target-stays-current';File='ArenaPickupTargets.cs';Find='&& entry.State.Appearance == target.Appearance';Replace='';Reject='exchange invalidates both bot appearance targets immediately'},
     @{Name='unbounded-heal';File='ArenaHealthPickup.cs';Find='internal const float Amount = 150f;';Replace='internal const float Amount = 300f;';Reject='health budget is 150 total'},
     @{Name='stale-health-utility';File='ArenaPickupTargets.cs';Find='Math.Min(ArenaHealthPickup.Amount, ArenaHealthPickup.Missing(player))';Replace='Math.Min(75f, ArenaHealthPickup.Missing(player))';Reject='bot values the full 150 HP benefit'},
     @{Name='destroyed-heal';File='ArenaHealthPickup.cs';Find='!health.IsBodyPartDestroyed(part)';Replace='true';Reject='destroyed and zero HP parts are not restored'},

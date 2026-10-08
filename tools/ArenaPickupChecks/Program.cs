@@ -50,7 +50,7 @@ internal static partial class Program
         NavMesh.AllowPath=null;NavMesh.LastPathStart=default;
         NavMesh.Sample=p=>p;NavMesh.Samples=NavMesh.Paths=0;NavMesh.Corners=null;Physics.Overlaps=[];Physics.Capsule=null;
         Physics.Rays=(from,dir,distance)=>dir.y<-.9f?[new(){collider=new Collider(),point=from-Vector3.up*.65f,normal=Vector3.up,distance=.65f}]:[];
-        ArenaPickupView.Created.Clear();ArenaPickupView.ThrowOnTick=false;ArenaPickupView.ThrowOnCreate=false;ArenaWeaponPickup.Created.Clear();ArenaWeaponPickup.PrepareNull=false;
+        ArenaPickupView.Created.Clear();ArenaPickupView.ThrowOnTick=false;ArenaPickupView.ThrowOnCreate=false;ArenaPickupView.RefuseCreate=null;ArenaWeaponPickup.Created.Clear();ArenaWeaponPickup.PrepareNull=false;
         ArenaPowerups.Grants.Clear();ArenaPowerups.Resets=0;ArenaPowerups.GrantResult=true;
         _local=new(){ProfileId="local",IsYourPlayer=true,Position=new(-3,0,0)};
         _world=new(){MainPlayer=_local};_world.Add(_local);
@@ -412,7 +412,7 @@ internal static partial class Program
     public static int Main(string[] args)
     {
         try {
-            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();
+            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();OccupiedRotationCases();
 #if PICKUP_OBJECTIVES
             ObjectiveCases();
 #endif
