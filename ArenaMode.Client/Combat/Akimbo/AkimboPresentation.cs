@@ -18,6 +18,6 @@ internal sealed class AkimboPresentation
     internal bool Flash(bool left, float now) => now - (left ? _left : _right) < .045f;
     internal bool CaptureIdle(bool firing, float now) => !firing && now - LastShot >= .20f;
     internal bool SampleNative(bool left, bool firing, float now)
-        => left == LastLeft && (firing || now - LastShot < .10f);
+        => LastShot > float.NegativeInfinity && left == LastLeft && (firing || now - LastShot < .10f);
     internal void Clear() { _left = _right = float.NegativeInfinity; LastLeft = false; }
 }

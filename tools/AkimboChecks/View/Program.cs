@@ -104,6 +104,19 @@ Need(GameObject.All.Skip(createdBefore).All(x => x.Destroyed) && !f.Main.forceRe
 f = new Fixture(); view = new AkimboView(f.Hands); Pose(view, f);
 U.Destroy(f.Camera); view.Dispose();
 Need(!f.Root.Destroyed && !f.Main.forceRenderingOff && !f.Slide.forceRenderingOff, "camera teardown still restores living native weapon");
+// Auto animator: VisualPass happens before EmitEvents. Its new left-shot pose
+// must not leak into the previously firing right pistol before confirmation.
+f = new Fixture(); view = new AkimboView(f.Hands); Pose(view, f);
+var rightSlide = f.Camera.transform.Children.Single(x => x.name.Contains("right")).Children.Single(x => x.name == "slide");
+var leftSlide = f.Camera.transform.Children.Single(x => x.name.Contains("left")).Children.Single(x => x.name == "slide");
+view.Shot(false); view.CaptureAfterFireEvents(true);
+Next(); f.Slide.transform.localPosition = new Vector3(0, 0, -.02f);
+view.Pose(f.Camera.transform, new Vector3(-.3f, 0, 0), true, true);
+Need(rightSlide.localPosition.z == 0 && leftSlide.localPosition.z == 0, "pre-event pose never samples next shot into previous side");
+view.Shot(true); view.CaptureAfterFireEvents(true);
+view.Pose(f.Camera.transform, new Vector3(-.3f, 0, 0), true, true);
+Need(rightSlide.localPosition.z == 0 && leftSlide.localPosition.z == -.02f, "post-event sample belongs only to confirmed firing side");
+view.Dispose();
 Console.WriteLine($"AKIMBO_VIEW_CHECKS_PASSED ({checks} assertions)");
 
 sealed class Fixture

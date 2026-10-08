@@ -49,7 +49,10 @@ nested invocations mask that scope and a finalizer restores it.
 Since 2026-10-08 both visible pistols are fresh mesh-only replicas. Native gun
 renderers are reversibly hidden with forceRenderingOff; the native animator and
 its events continue unchanged. Each replica has its own kick/return and flash;
-only the firing side samples the native slide pose. A camera-relative idle pose
+only the firing side samples the native slide pose, after ArmsLateUpdate emits
+its native firing events. Auto-mode VisualPass runs before those events, so it
+must retain the last confirmed sample instead of reading the next side's pose.
+A camera-relative idle pose
 keeps the shared native gun recoil out of the resting replica. Both arm IK
 targets follow their respective replica; support-hand fingers remain a
 presentation limitation. Shared camera recoil remains native. This is not a

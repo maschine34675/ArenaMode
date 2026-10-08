@@ -188,11 +188,29 @@ internal sealed class AkimboView : IDisposable
     }
     private void CopyPose(Node node, Transform copy, bool left, bool idle, bool firing, float returning)
     {
-        bool native = idle || _animation.SampleNative(left, firing, Time.time);
-        copy.localPosition = native ? node.Source.localPosition : Vector3.Lerp(copy.localPosition, node.RestPosition, returning);
-        copy.localRotation = native ? node.Source.localRotation : Quaternion.Slerp(copy.localRotation, node.RestRotation, returning);
+        // Auto-mode VisualPass precedes native EmitEvents. Reading this frame's
+        // firing pose here would assign the next shot to the preceding side.
+        // Keep that side's last confirmed sample until the post-event seam.
+        bool keep = _animation.SampleNative(left, firing, Time.time);
+        copy.localPosition = idle ? node.Source.localPosition : keep ? copy.localPosition : Vector3.Lerp(copy.localPosition, node.RestPosition, returning);
+        copy.localRotation = idle ? node.Source.localRotation : keep ? copy.localRotation : Quaternion.Slerp(copy.localRotation, node.RestRotation, returning);
         copy.localScale = node.Source.localScale;
         copy.gameObject.SetActive(node.Source.gameObject.activeSelf);
+    }
+
+    internal void CaptureAfterFireEvents(bool firing)
+    {
+        if (!Visible) return;
+        bool left = _animation.LastLeft;
+        if (!_animation.SampleNative(left, firing, Time.time)) return;
+        for (int i = 1; i < _nodes.Count; i++)
+        {
+            var node = _nodes[i];
+            if (!Owned(node)) throw new InvalidOperationException("Pistol hierarchy changed after fire events");
+            var copy = left ? node.Left : node.Right;
+            copy.localPosition = node.Source.localPosition;
+            copy.localRotation = node.Source.localRotation;
+        }
     }
 
     internal void Grip(int index, ref Vector3 position, ref Quaternion rotation, bool firing)

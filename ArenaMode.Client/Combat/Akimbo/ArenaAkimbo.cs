@@ -51,7 +51,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         {
             Limbs = AccessTools.FieldRefAccess<Player, LimbIK[]>("_limbs");
             new PosePatch().Enable(); new VisualPatch().Enable(); new ShotPatch().Enable(); new AimPatch().Enable();
-            new MuzzlePatch().Enable();
+            new MuzzlePatch().Enable(); new AfterFireEventsPatch().Enable();
             AkimboAmmo.Enable();
             AkimboCadence.Enable();
             _available = true;
@@ -328,6 +328,20 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player), nameof(Player.VisualPass));
         [PatchPostfix] private static void Postfix(Player __instance)
         { try { Visual(__instance); } catch (Exception ex) { Fail(ex); } }
+    }
+    private sealed class AfterFireEventsPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player), nameof(Player.ArmsLateUpdate));
+        [PatchPostfix] private static void Postfix(Player __instance)
+        {
+            try
+            {
+                if (!ReferenceEquals(__instance, _body) || !Ready()) return;
+                _view.CaptureAfterFireEvents(_hands.CurrentOperation is Player.FirearmController.FireOperationBase);
+                Visual(__instance);
+            }
+            catch (Exception ex) { Fail(ex); }
+        }
     }
     private sealed class ShotPatch : ModulePatch
     {

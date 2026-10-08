@@ -8,7 +8,8 @@ $scratch = Join-Path $PSScriptRoot 'obj/adversarial-controls'
 $mutations = @(
     @{ Name = 'include-pooled-ammo'; Needle = 'if (child.GetComponent<AmmoPoolObject>() != null) continue;'; Replacement = '/* negative control: include pooled ammo */'; Failure = 'omit dynamic ammunition subtree' },
     @{ Name = 'skip-direct-parent-check'; Needle = 'if (!ReferenceEquals(node.Source.parent, node.Parent)) return false;'; Replacement = '/* negative control: ignore reparenting */'; Failure = 'moved static model rejects stale view' },
-    @{ Name = 'skip-renderer-restore'; Needle = 'mesh.Source.forceRenderingOff = mesh.WasHidden;'; Replacement = 'mesh.Source.forceRenderingOff = true;'; Failure = 'hide restores exact previously visible and hidden states' }
+    @{ Name = 'skip-renderer-restore'; Needle = 'mesh.Source.forceRenderingOff = mesh.WasHidden;'; Replacement = 'mesh.Source.forceRenderingOff = true;'; Failure = 'hide restores exact previously visible and hidden states' },
+    @{ Name = 'sample-before-fire-event'; Needle = 'keep ? copy.localPosition'; Replacement = 'keep ? node.Source.localPosition'; Failure = 'pre-event pose never samples next shot into previous side' }
 )
 foreach ($mutation in $mutations) {
     if (($original.Split([string[]]@($mutation.Needle), [StringSplitOptions]::None).Count - 1) -ne 1) {
