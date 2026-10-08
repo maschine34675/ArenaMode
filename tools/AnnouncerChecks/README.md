@@ -103,12 +103,21 @@ per-mode selection frozen at arm. The routing half is a source-text pin of
 `_callout?.Show(label);` (comments and whitespace normalised, the negation
 included), `OnTextCallout` ("WAVE n", the own-grenade taunt) must never ask the
 gate, and each event must be subscribed to and released from its own handler.
+The wiring pins read the HUD with comments removed (a commented-out subscription
+is a dropped one) and compare exact lists: `OnCallout` is subscribed once, to
+`OnAwardCallout`, and released once from it; `OnTextCallout` likewise to
+`OnTextCallout`; and the callout element is shown from exactly those two handlers,
+so a second, ungated subscription (the pre-2026-10-08 shape, or a lambda) or a
+direct `Show` elsewhere cannot sit beside the right wiring.
 The environment variable `ARENA_ANNOUNCER_HUD_SOURCE` points the pins at a mutant
 copy of `ArenaHud.cs`; `ARENA_ANNOUNCER_REPO_ROOT` names the repository for the
-scratch-output mutant builds. `Verify-Regression.ps1` rejects six HUD mutants,
+scratch-output mutant builds. `Verify-Regression.ps1` rejects thirteen HUD mutants,
 each at its named assertion: ungated handler (`if (false)`), inverted gate (the
 `!` dropped), gate that never fires (`&& false`), gate without its `return`, gated
-text handler, and a text callout subscribed to the gated handler.
+text handler, a text callout subscribed to the gated handler, and the wiring
+faults: the `OnCallout` subscription or release commented out, the `OnTextCallout`
+subscription or release commented out, an extra ungated `OnCallout` subscription
+(method group and lambda), and a direct `_callout?.Show(...)` outside the handlers.
 
 The request pump and clock are controlled; these checks perform no real waits
 for playback. Fixture audio files contain placeholder bytes, not real audio.

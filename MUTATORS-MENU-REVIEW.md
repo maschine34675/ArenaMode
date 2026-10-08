@@ -176,14 +176,29 @@ vom 06.10. ("HUD-Textdurchsagen sind kein Announcer und bleiben unverändert")
 gilt damit weiter. Die Zeilenbeschreibung lautet jetzt "Stingers, cues and
 kill callouts." (33 Zeichen, passt in die Beschreibungszelle). Offline belegt
 durch `tools/AnnouncerChecks` (Wahrheitstabelle des Gates plus Quelltext-Pins
-auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und sechs Mutanten
-in `Verify-Regression.ps1` (ungegateter, invertierter, nie auslösender und
-`return`-loser Award-Handler, gegateter Text-Handler, Text-Callout am
-Award-Handler). Der Award-Handler ist dabei als Ganzes gepinnt, nicht als
+auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und dreizehn
+Mutanten in `Verify-Regression.ps1` (ungegateter, invertierter, nie auslösender
+und `return`-loser Award-Handler, gegateter Text-Handler, Text-Callout am
+Award-Handler, dazu sieben Verdrahtungsfehler, siehe unten). Der Award-Handler
+ist dabei als Ganzes gepinnt, nicht als
 Teilstring: das negierte Gate ist die erste Anweisung, gefolgt von `return;`
 und dann dem Aufruf von `_callout?.Show(label)`; ein weggefallenes `!`, ein
 `&& false` oder ein fehlendes `return` bricht die Zusicherung "drops a
 kill/award callout when the announcer gate is closed". Nicht im Spiel gesehen.
+Die Verdrahtung ist seit der zweiten Prüfrunde ebenso streng gepinnt: die Pins
+lesen `ArenaHud.cs` ohne Kommentare (eine auskommentierte Subscription ist eine
+fehlende) und vergleichen exakte Listen statt Teilstrings — `OnCallout` wird
+genau einmal abonniert und freigegeben, und zwar am gegateten
+`OnAwardCallout`; `OnTextCallout` genau einmal am ungegateten Handler; und
+`_callout…Show(` kommt genau zweimal vor (in diesen beiden Handlern). Eine
+zweite, ungegatete Subscription (die Form vor `cc23559`, auch als Lambda) oder
+ein direktes Zeigen des Callouts an anderer Stelle würde "DOUBLE KILL" bei
+ausgeschaltetem ANNOUNCER wieder einblenden und bricht jetzt die Zusicherung
+"subscribes OnCallout exactly once and only to the gated handler" bzw. "no HUD
+statement but the two callout handlers shows the callout element". Sieben
+Mutanten (OnCallout-Abo und -Freigabe auskommentiert, OnTextCallout-Abo und
+-Freigabe auskommentiert, zweites ungegatetes Abo als Methodengruppe und als
+Lambda, direktes `Show`) sind in `Verify-Regression.ps1`.
 
 **Legende und Fußzeile entfernt.** Die Zeile "Green: ON / Grey: OFF / N/A:
 unavailable" unter dem Titel und die Fußnote "Saved with F12. Killcam/tracers:

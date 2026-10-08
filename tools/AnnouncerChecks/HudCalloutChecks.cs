@@ -19,6 +19,13 @@ internal static partial class Program
     ///      <c>ArenaMatch.OnTextCallout</c> ("WAVE n", the own-grenade taunt)
     ///      around it. Verify-Regression.ps1 mutates ArenaHud.cs through
     ///      ARENA_ANNOUNCER_HUD_SOURCE and must see each pin fail.
+    /// Every routing pin reads the HUD with comments removed
+    /// (<see cref="StripCSharpComments"/>): a commented-out subscription is a
+    /// dropped subscription, not a present one. The subscription pins are exact
+    /// lists, not substrings: the HUD must subscribe OnCallout once, to the gated
+    /// handler, and no other statement may route it (or anything else) to the
+    /// callout element, so an additional ungated subscription or a lambda cannot
+    /// slip in beside the right one.
     /// </summary>
     private static void VerifyHudCalloutGate()
     {
@@ -61,14 +68,46 @@ internal static partial class Program
                && !text.Contains("IsEnabledForLiveMatch", StringComparison.Ordinal)
                && !text.Contains("Announcer", StringComparison.Ordinal),
             "HUD text callouts (WAVE n, grenade taunt) never ask the announcer gate");
-        Assert(hud.Contains("match.OnCallout += OnAwardCallout;", StringComparison.Ordinal)
-               && hud.Contains("_match.OnCallout -= OnAwardCallout;", StringComparison.Ordinal),
+        string hudCode = StripCSharpComments(hud);
+        Assert(hudCode.Contains("match.OnCallout += OnAwardCallout;", StringComparison.Ordinal)
+               && hudCode.Contains("_match.OnCallout -= OnAwardCallout;", StringComparison.Ordinal),
             "OnCallout is subscribed to and released from the gated handler");
-        Assert(hud.Contains("match.OnTextCallout += OnTextCallout;", StringComparison.Ordinal)
-               && hud.Contains("_match.OnTextCallout -= OnTextCallout;", StringComparison.Ordinal),
+        Assert(hudCode.Contains("match.OnTextCallout += OnTextCallout;", StringComparison.Ordinal)
+               && hudCode.Contains("_match.OnTextCallout -= OnTextCallout;", StringComparison.Ordinal),
             "OnTextCallout is subscribed to and released from the ungated handler");
+        // Exact lists: the gated handler is the ONLY subscriber of OnCallout and
+        // OnTextCallout keeps its own handler. A second subscription (the pre-
+        // cc23559 shape `match.OnCallout += OnTextCallout;`, a lambda, a method
+        // group of another class) would show DOUBLE KILL with the announcer off.
+        Assert(string.Join("|", EventTargets(hudCode, "OnCallout", "+=")) == "OnAwardCallout"
+               && string.Join("|", EventTargets(hudCode, "OnCallout", "-=")) == "OnAwardCallout",
+            "ArenaHud subscribes OnCallout exactly once and only to the gated handler");
+        Assert(string.Join("|", EventTargets(hudCode, "OnTextCallout", "+=")) == "OnTextCallout"
+               && string.Join("|", EventTargets(hudCode, "OnTextCallout", "-=")) == "OnTextCallout",
+            "ArenaHud subscribes OnTextCallout exactly once and only to the ungated handler");
+        // The callout element is reachable from the two handlers and nowhere else.
+        Assert(Regex.Matches(hudCode, @"_callout\s*\??\s*\.\s*Show\s*\(").Count == 2,
+            "no HUD statement but the two callout handlers shows the callout element");
         Assert(CountOf(hud, "IsEnabledForLiveMatch()") == 1,
             "exactly one HUD handler asks the announcer gate");
+    }
+
+    /// <summary>
+    /// The right-hand sides of every <c>Event += X;</c> (or <c>-=</c>) in
+    /// <paramref name="code"/> for the event named exactly <paramref name="eventName"/>
+    /// (a longer name such as OnTextCallout never matches OnCallout), in order,
+    /// whitespace removed.
+    /// </summary>
+    private static string[] EventTargets(string code, string eventName, string op)
+        => Regex.Matches(code, @"(?<![A-Za-z0-9_])" + Regex.Escape(eventName) + @"\s*" + Regex.Escape(op) + @"\s*([^;]+);")
+            .Select(match => Regex.Replace(match.Groups[1].Value, @"\s+", string.Empty))
+            .ToArray();
+
+    /// <summary>Source text with line and block comments removed and whitespace collapsed.</summary>
+    internal static string StripCSharpComments(string source)
+    {
+        string code = Regex.Replace(source, @"//[^\r\n]*|/\*.*?\*/", " ", RegexOptions.Singleline);
+        return Regex.Replace(code, @"[ \t]+", " ");
     }
 
     /// <summary>
@@ -78,7 +117,7 @@ internal static partial class Program
     /// </summary>
     internal static bool AwardHandlerIsExactlyGateReturnShow(string handler)
     {
-        string code = Regex.Replace(handler, @"//[^\r\n]*|/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+        string code = StripCSharpComments(handler);
         return Regex.IsMatch(code,
             @"^\s*private\s+static\s+void\s+OnAwardCallout\s*\(\s*string\s+label\s*\)\s*\{"
             + @"\s*if\s*\(\s*!\s*Audio\s*\.\s*AnnouncerService\s*\.\s*IsEnabledForLiveMatch\s*\(\s*\)\s*\)"

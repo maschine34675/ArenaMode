@@ -270,6 +270,42 @@ Invoke-HudNegativeCase 'hud-text-callout-shared-handler' `
     ($hudSource.Replace($hudTextSubscription, 'match.OnTextCallout += OnAwardCallout;')) `
     'OnTextCallout is subscribed to and released from the ungated handler'
 
+# The wiring, not just the handlers (round 2, R2-L2 / R2-T2). The pins read the HUD
+# with comments removed and compare the exact subscription lists, so a commented-out
+# or dropped subscription, an additional UNGATED subscription of OnCallout (the
+# pre-cc23559 shape that showed DOUBLE KILL with the announcer off) or a direct show
+# of the callout element each fail at their named assertion.
+$hudSubscribe = 'match.OnCallout += OnAwardCallout;'
+$hudRelease = '_match.OnCallout -= OnAwardCallout;'
+$hudTextRelease = '_match.OnTextCallout -= OnTextCallout;'
+$hudKillfeedPush = '_killfeed.Push(kill);'
+foreach ($anchor in @($hudSubscribe, $hudRelease, $hudTextSubscription, $hudTextRelease, $hudKillfeedPush)) {
+    if ([regex]::Matches($hudSource, [regex]::Escape($anchor)).Count -ne 1) {
+        throw "Expected exactly one '$anchor' in ArenaHud.cs; refusing an ambiguous mutation."
+    }
+}
+Invoke-HudNegativeCase 'hud-subscription-commented-out' `
+    ($hudSource.Replace($hudSubscribe, '// ' + $hudSubscribe)) `
+    'OnCallout is subscribed to and released from the gated handler'
+Invoke-HudNegativeCase 'hud-release-commented-out' `
+    ($hudSource.Replace($hudRelease, '// ' + $hudRelease)) `
+    'OnCallout is subscribed to and released from the gated handler'
+Invoke-HudNegativeCase 'hud-text-subscription-commented-out' `
+    ($hudSource.Replace($hudTextSubscription, '// ' + $hudTextSubscription)) `
+    'OnTextCallout is subscribed to and released from the ungated handler'
+Invoke-HudNegativeCase 'hud-text-release-commented-out' `
+    ($hudSource.Replace($hudTextRelease, '// ' + $hudTextRelease)) `
+    'OnTextCallout is subscribed to and released from the ungated handler'
+Invoke-HudNegativeCase 'hud-ungated-second-subscription' `
+    ($hudSource.Replace($hudSubscribe, $hudSubscribe + ' match.OnCallout += OnTextCallout;')) `
+    'ArenaHud subscribes OnCallout exactly once and only to the gated handler'
+Invoke-HudNegativeCase 'hud-ungated-lambda-subscription' `
+    ($hudSource.Replace($hudSubscribe, $hudSubscribe + ' match.OnCallout += l => _callout?.Show(l);')) `
+    'ArenaHud subscribes OnCallout exactly once and only to the gated handler'
+Invoke-HudNegativeCase 'hud-direct-callout-show' `
+    ($hudSource.Replace($hudKillfeedPush, $hudKillfeedPush + ' _callout?.Show("KILL");')) `
+    'no HUD statement but the two callout handlers shows the callout element'
+
 if ((Get-FileHash -LiteralPath $hudPath -Algorithm SHA256).Hash -ne $hudHash) {
     throw 'Production ArenaHud.cs changed during negative verification.'
 }
@@ -288,4 +324,4 @@ if ($LASTEXITCODE -ne 0) { throw 'The unchanged production service failed its fi
 if ($LASTEXITCODE -ne 0) { throw 'Creator metadata positive/negative checks failed.' }
 & python (Join-Path $PSScriptRoot 'verify_creator_pack.py')
 if ($LASTEXITCODE -ne 0) { throw 'Creator asset decoding, hashes or exact runtime mapping failed.' }
-Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants plus six HUD callout-routing mutants rejected; production sources unchanged; evidence: $scratch)"
+Write-Output "ARENA_ANNOUNCER_REGRESSION_VERIFIED (historical recovery/output and expansion collision, priority, countdown, freshness, lifecycle and Clutch mutants plus thirteen HUD callout-routing mutants rejected (handler gating x6, subscription wiring x7); production sources unchanged; evidence: $scratch)"
