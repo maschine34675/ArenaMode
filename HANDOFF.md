@@ -34,6 +34,17 @@ current. User-facing communication is normally German.
   `EFT.UI/HoverTooltipArea.cs:131-135`). Schema-Test + fünf Mutanten in
   `tools/NativeModeSelectionChecks` (`Verify-CatalogSchema.ps1`), gerenderte
   Fakten in `tools/TdmMatchMenuChecks` (plus Mutant für den Roster-Override).
+  (5) **Gefärbte Tracer nur in Team-Modi, wie die Laserfarben:**
+  `DeathmatchColoredTracers`, `GunGameColoredTracers`, `TacticalSoloColoredTracers`
+  und `ZombieColoredTracers` sind entfernt; `Settings.TracerEntry` liefert
+  `Effects/TeamTracers` nur für Team DM und geschütztes Tactical 5v5, sonst null
+  (Renderer nativ, Mutator-Zeile N/A mit dem Laser-Grund, Beschreibung "Team colors
+  for every bullet."). Die Laserfarben waren schon team-only, unverändert. Killfeed-Namen und
+  Freund-Markierungen nutzen weiter `ArenaTracerTeams.Classify` in jedem Modus. Die
+  gespeicherte cfg behält die vier Schlüssel als verwaiste Einträge (harmlos, kein
+  Migrationsschritt). Harness: `tools/TdmMatchMenuChecks` (Assertions ersetzt, zwei
+  Mutanten) und `tools/ArenaTracerChecks` (Renderer pro Modus, Quelltext-Pins, zwei
+  Mutanten).
   <!--MENU-POLISH-NEXT-->
 
 - **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je
@@ -431,6 +442,8 @@ current. User-facing communication is normally German.
   ergänzt getrennte Tracer-Opt-ins mit Standard AUS für Gun Game und Tactical
   1v5; TDM/PFT behalten Effects/TeamTracers. `1f538d4` erlaubt CMS/Surv12-Gehen
   für den aktuellen lokalen Arena-Spieler, höchstens 1 m/s nach Bewegungsboni.
+  [Tracer-Teil überholt 2026-10-08: Gun Game/Tactical-1v5-Opt-ins entfernt, gefärbte
+  Tracer sind nur noch in TDM und geschütztem Tactical 5v5 verfügbar.]
   Native Med-Flags und Behandlungsoperationen bleiben unverändert. Client
   lokal/GPU-2 SHA256 `56F7DAA61B5C99A9630B274937868A3E6AF9937B53A9398060560FE6CEC3652B`.
   GPU-2-Menü und Factory-Raid geprüft, Prozess `b68a888e`: Surgery 1 m/s,
@@ -446,6 +459,7 @@ current. User-facing communication is normally German.
   Air vault, Slide, Infinite stamina und No fall damage (zwölf Schalter insgesamt)
   sowie Deathmatch/ColoredTracers=false als eigene gespeicherte Wahl. Die
   bisherige Effects/TeamTracers-Einstellung für andere Modi bleibt erhalten.
+  [Überholt 2026-10-08: Deathmatch/ColoredTracers ist entfernt, siehe Menü-Politur oben.]
   GPU-2 zeigte einen READY-Overlap; `5a63fa9` behebt ihn ohne kleinere Schrift
   oder Verschieben der Kartenvorschau. Client lokal/GPU-2 SHA256
   `6EB0A8BC6A59803ADC88C4B0ECDC1D8CA9A5F1531741B544ACCACC2E876077DE`.

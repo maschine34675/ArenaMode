@@ -7,6 +7,8 @@ $teamsPath = Join-Path $repoRoot 'ArenaMode.Client\Effects\ArenaTracerTeams.cs'
 $patchPath = Join-Path $repoRoot 'ArenaMode.Client\Effects\ArenaTracerPatches.cs'
 $matchServicePath = Join-Path $repoRoot 'ArenaMode.Client\Modes\ArenaMatchService.cs'
 $tacticalPath = Join-Path $repoRoot 'ArenaMode.Client\Modes\TacticalMode.cs'
+$settingsPath = Join-Path $repoRoot 'ArenaMode.Client\Config\Settings.cs'
+$settings = [System.IO.File]::ReadAllText($settingsPath)
 $color = [System.IO.File]::ReadAllText($colorPath)
 $teams = [System.IO.File]::ReadAllText($teamsPath)
 $patch = [System.IO.File]::ReadAllText($patchPath)
@@ -22,7 +24,8 @@ function Invoke-NegativeCase(
     [string]$patchSource,
     [string]$matchServiceSource,
     [string]$tacticalSource,
-    [string]$expectedFailure) {
+    [string]$expectedFailure,
+    [string]$settingsSource = '') {
     $colorCopy = Join-Path $scratch ($name + '-color.cs')
     $teamsCopy = Join-Path $scratch ($name + '-teams.cs')
     $patchCopy = Join-Path $scratch ($name + '-patch.cs')
@@ -38,6 +41,11 @@ function Invoke-NegativeCase(
     $env:ARENA_TRACER_MATCH_SERVICE_SOURCE = $matchServiceCopy
     $env:ARENA_TRACER_TACTICAL_SOURCE = $tacticalCopy
     $env:ARENA_TRACER_REPO_ROOT = $repoRoot
+    if ($settingsSource) {
+        $settingsCopy = Join-Path $scratch ($name + '-settings.cs')
+        [System.IO.File]::WriteAllText($settingsCopy, $settingsSource)
+        $env:ARENA_TRACER_SETTINGS_SOURCE = $settingsCopy
+    }
     try {
         $output = & dotnet run --project $project -c Release `
             "-p:ProductionColorSource=$colorCopy" `
@@ -51,6 +59,7 @@ function Invoke-NegativeCase(
         Remove-Item Env:ARENA_TRACER_MATCH_SERVICE_SOURCE -ErrorAction SilentlyContinue
         Remove-Item Env:ARENA_TRACER_TACTICAL_SOURCE -ErrorAction SilentlyContinue
         Remove-Item Env:ARENA_TRACER_REPO_ROOT -ErrorAction SilentlyContinue
+        Remove-Item Env:ARENA_TRACER_SETTINGS_SOURCE -ErrorAction SilentlyContinue
     }
     $output | ForEach-Object { Write-Output $_ }
     if ($resultCode -eq 0 -or ($output -join "`n") -notmatch [regex]::Escape($expectedFailure)) {
@@ -67,6 +76,24 @@ Invoke-NegativeCase 'ordinary-raid-leak' $color $teams ($patch.Replace($arenaGat
 
 Invoke-NegativeCase 'lost-protected-team-selection' $color $teams ($patch.Replace('ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch', 'ArenaSession.ActiveMode, false')) $matchService $tactical `
     'renderer selects protected team preference from frozen tracer match'
+
+# Colored tracers are team-only (2026-10-08). The renderer prefix must stay native
+# for a mode without a tracer entry, and Settings.TracerEntry must keep mapping
+# only Team DM and protected Tactical 5v5 to TeamTracers.
+$entryGate = 'Settings.TracerEntry(ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch)?.Value != true'
+if ([regex]::Matches($patch, [regex]::Escape($entryGate)).Count -ne 1) {
+    throw 'Expected exactly one tracer entry test in the renderer gate; refusing an ambiguous mutation.'
+}
+Invoke-NegativeCase 'null-entry-renders' $color $teams ($patch.Replace($entryGate, 'Settings.TracerEntry(ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch)?.Value == false')) $matchService $tactical `
+    'renderer stays native in solo mode deathmatch regardless of TeamTracers'
+
+$teamEntry = 'ArenaModeCatalog.TeamDeathmatchId => TeamTracers,'
+if ([regex]::Matches($settings, [regex]::Escape($teamEntry)).Count -ne 1) {
+    throw 'Expected exactly one Team DM tracer entry mapping; refusing an ambiguous mutation.'
+}
+Invoke-NegativeCase 'tracer-entry-solo-leak' $color $teams $patch $matchService $tactical `
+    'TracerEntry maps only Team DM and protected Tactical 5v5 to TeamTracers' `
+    ($settings.Replace($teamEntry, 'ArenaModeCatalog.DeathmatchId or ArenaModeCatalog.TeamDeathmatchId => TeamTracers,'))
 
 $protectedPolicy = 'if (!verifiedPlayerIdentity'
 if ([regex]::Matches($teams, [regex]::Escape($protectedPolicy)).Count -ne 1) {
@@ -126,4 +153,4 @@ Invoke-NegativeCase 'faction-history-switch' $color ($teams.Replace($factionSwit
 if ($LASTEXITCODE -ne 0) {
     throw 'The unchanged production Arena tracer checks failed after mutation testing.'
 }
-Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (9 mutants rejected: Arena gate, frozen team selection, identity, non-tracer, three lifecycle resets and two faction policies; evidence: $scratch)"
+Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (11 mutants rejected: Arena gate, frozen team selection, null-entry renderer, solo TracerEntry leak, identity, non-tracer, three lifecycle resets and two faction policies; evidence: $scratch)"

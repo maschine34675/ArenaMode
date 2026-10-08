@@ -15,6 +15,14 @@ internal enum ArenaMutator
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
 internal sealed class ArenaMutatorSelection
 {
+    /// <summary>
+    /// The N/A reason of the two team-only color switches, COLORED TRACERS and
+    /// TEAM LASER COLORS (both follow the same Team DM / protected Tactical 5v5
+    /// rule: <see cref="Settings.TracerEntry"/> returns no entry elsewhere,
+    /// the laser row checks the mode itself).
+    /// </summary>
+    internal const string TeamModesOnly = "Requires Team DM or Tactical 5v5 (PFT).";
+
     internal string Mode { get; private set; }
     private bool _team;
     internal bool Locked => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid;
@@ -57,10 +65,10 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Backpack => "Use backpack items/magazines.",
         ArenaMutator.Killcam => "Replay before respawn.",
         ArenaMutator.Pickups => "DM/Team DM with pickup layouts.",
-        ArenaMutator.Tracers => "Side colors for every bullet.",
+        ArenaMutator.Tracers => "Team colors for every bullet.",
         ArenaMutator.Lasers => "Team colors; same brightness.",
         ArenaMutator.Akimbo => "Dual pistols; shared magazine.",
-        // Per-mode, like Killcam/Tracers: toggles the CURRENTLY SELECTED
+        // Per-mode, like Killcam: toggles the CURRENTLY SELECTED
         // mode's own switch, not the global master (see Settings.
         // AnnouncerEntry/IsAnnouncerEnabledFor). Zombie starts OFF, every
         // other mode starts ON.
@@ -101,6 +109,9 @@ internal sealed class ArenaMutatorSelection
     {
         if (id == ArenaMutator.Killcam)
             return Spectator.KillcamReplayCompat.CanPlay(out string reason) ? null : reason;
+        // Team-only like the lasers: TracerEntry has no entry outside Team DM and
+        // protected Tactical 5v5, which is a mode restriction, not a missing setting.
+        if (id == ArenaMutator.Tracers && Entry(id) == null) return TeamModesOnly;
         if (Entry(id) == null) return "Setting unavailable.";
         if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.Bunnyhop || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire
             || id == ArenaMutator.AirVault || id == ArenaMutator.Slide
@@ -112,7 +123,7 @@ internal sealed class ArenaMutatorSelection
             return "Available in Deathmatch and Team DM.";
         if (id == ArenaMutator.Lasers && Mode != ArenaModeCatalog.TeamDeathmatchId
             && !(Mode == ArenaModeCatalog.TacticalId && _team))
-            return "Requires Team DM or Tactical 5v5 (PFT).";
+            return TeamModesOnly;
         return null;
     }
 

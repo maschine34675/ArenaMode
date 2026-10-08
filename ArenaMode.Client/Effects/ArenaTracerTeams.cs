@@ -147,7 +147,9 @@ internal static class ArenaTracerTeams
     }
 
     /// <summary>
-    /// In solo Arena, any other verified player-owned shot is an opponent. In
+    /// In solo Arena, any other verified player-owned shot is an opponent (the
+    /// killfeed names and friendly markers rely on that in every mode; tracers
+    /// are only RENDERED for team modes, see <c>Settings.TracerEntry</c>). In
     /// protected 5v5, only exact frozen roster IDs are accepted.
     /// </summary>
     internal static ArenaTracerSide Classify(

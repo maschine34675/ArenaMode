@@ -267,7 +267,7 @@ All in the `"Zombie"` BepInEx config section
 | `SpawnIntervalSeconds` | 1.0 | 0.2-10 | Seconds between individual spawn requests while filling toward `MaxAlive`. |
 | `ShooterPercent` | 0 | 0-100 | Chance each spawn is `hard`/Shooting instead of `normal`/Fast melee. |
 | `ReplaySeconds` | (shared default) | — | KillcamReplay duration, same per-mode binding every other mode uses. |
-| `ColoredTracers` | false | — | Independent of every other mode's tracer setting and of `Effects/TeamLasers`, which Zombie does not use at all. |
+| ~~`ColoredTracers`~~ | removed 2026-10-08 | — | Colored tracers are team-only now (Team DM, protected Tactical 5v5); Zombie keeps the native ammunition tracers and its mutator row shows N/A. A leftover `Zombie / ColoredTracers` line in a saved cfg is an orphan BepInEx ignores. |
 
 ## What is deliberately NOT in v0
 
@@ -2120,3 +2120,9 @@ Offline-verified only; nothing was built, deployed or seen in the game.
   see `ArenaModeDefinition` and `MODE-SIDEBAR-REVIEW.md`). The ANNOUNCER
   mutator also hides the on-screen kill callouts; Zombie keeps showing its
   `WAVE n` text with the announcer OFF (`ReportTextCallout` is HUD-only).
+- **No colored tracers.** The Zombie `ColoredTracers` setting is gone: colored
+  tracers are team-only (like `TeamLasers`, which Zombie never used), so Zombie
+  shows the native tracers and the COLORED TRACERS mutator row reads N/A
+  ("Requires Team DM or Tactical 5v5 (PFT)."). Killfeed and friendly markers are
+  unaffected. The saved cfg keeps an orphan `Zombie / ColoredTracers` key; that is
+  harmless and not migrated.

@@ -64,7 +64,7 @@ $arenaFaults = @(
       'ProductionMutatorsView', 'retired killcam callback cannot mutate reopened panel'),
     @('mutator-live-lock', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (UnavailableReason(id) != null)',
-      'ProductionMutatorSelection', 'Deathmatch tracer writes respect active and armed locks'),
+      'ProductionMutatorSelection', 'team tracer writes respect active and armed locks'),
     @('mutator-mode-gate', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (Locked || (id != ArenaMutator.Pickups && UnavailableReason(id) != null))',
       'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback'),
@@ -85,7 +85,16 @@ $arenaFaults = @(
     @('tactical-rules-roster-override', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
       '_rules.text = mode.Rules;',
       '_rules.text = mode.Id == ArenaModeCatalog.TacticalId ? "1v" + Settings.TacticalSquadSize.Value + " / Solo" : mode.Rules;',
-      'ProductionModeView', 'solo Tactical RULES shows the objective, not the roster')
+      'ProductionModeView', 'solo Tactical RULES shows the objective, not the roster'),
+    # Menu polish 2026-10-08, item 5: colored tracers are team-only like the lasers.
+    @('tracer-entry-solo-leak', 'ArenaMode.Client/Config/Settings.cs',
+      "ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers,`n            _ => null",
+      "ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers,`n            _ => TeamTracers",
+      'ProductionSettings', 'colored tracers are N/A outside team modes: deathmatch'),
+    @('tracer-team-only-reason', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
+      'if (id == ArenaMutator.Tracers && Entry(id) == null) return TeamModesOnly;',
+      'if (false) return TeamModesOnly;',
+      'ProductionMutatorSelection', "colored tracers give the lasers' team-only reason: deathmatch")
 )
 try {
     foreach ($arenaFault in $arenaFaults) {

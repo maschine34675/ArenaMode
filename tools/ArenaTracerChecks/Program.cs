@@ -204,8 +204,13 @@ internal static class Program
 
     private static void CheckPatchRenderingAndGates()
     {
+        // Colored tracers are team-only (2026-10-08): Team DM (faction match) is
+        // the renderable "solo-style" case, protected Tactical 5v5 follows below,
+        // and every solo mode must stay native regardless of TeamTracers.
         Reset();
-        ArenaTracerTeams.BeginMatch("local", protectedTeamMatch: false);
+        ArenaTracerTeams.BeginFactionMatch("local");
+        ArenaTracerTeams.RegisterFactionActor("enemy", false);
+        ArenaSession.ActiveMode = "teamdeathmatch";
         Shot local = NewShot("local", resolvedBridge: true, tracer: false);
         var renderer = new TracersLight();
         Assert(InvokePrefix(renderer, local),
@@ -222,18 +227,14 @@ internal static class Program
             "known local shot replaces native path");
         Assert(renderer.ShotTracerCalls == 1,
             "normally tracerless local ammunition receives a tracer");
-        Assert(Settings.RequestedMode == ArenaSession.ActiveMode && !Settings.RequestedTeam,
-            "renderer selects solo tracer preference from frozen active mode");
-        ArenaSession.ActiveMode = "deathmatch";
-        Assert(!InvokePrefix(new TracersLight(), local) && Settings.RequestedMode == "deathmatch",
-            "renderer selects Deathmatch preference when that is the active mode");
-        ArenaSession.ActiveMode = "tactical";
+        Assert(Settings.RequestedMode == "teamdeathmatch" && !Settings.RequestedTeam,
+            "renderer asks for the Team DM tracer entry from the frozen active mode");
         AssertColor(renderer.Color, 0.25f, 1.25f, 2f,
             "local tracer uses friendly cyan");
 
         Shot enemy = NewShot("enemy", resolvedBridge: true, tracer: false);
         Assert(!InvokePrefix(renderer, enemy),
-            "verified solo opponent replaces native path");
+            "verified Team DM opponent replaces native path");
         Assert(renderer.ShotTracerCalls == 2,
             "normally tracerless opponent ammunition receives a tracer");
         AssertColor(renderer.Color, 2f, 0.235f, 0.235f,
@@ -241,7 +242,29 @@ internal static class Program
 
         Shot unresolved = NewShot("environment", resolvedBridge: false, tracer: false);
         Assert(InvokePrefix(renderer, unresolved),
-            "unverified solo source stays native");
+            "unverified source stays native");
+
+        // Solo modes: shooters are still classified (killfeed names and friendly
+        // markers use Classify in every mode), but the tracer stays native because
+        // TracerEntry has no entry there, whatever TeamTracers says.
+        foreach (string soloMode in new[] { "deathmatch", "gungame", "zombie", "tactical" })
+        {
+            Reset();
+            ArenaTracerTeams.BeginMatch("local", protectedTeamMatch: false);
+            ArenaSession.IsActive = true;
+            ArenaSession.ActiveMode = soloMode;
+            Settings.TeamTracers.Value = true;
+            Assert(ArenaTracerTeams.Classify("local", true) == ArenaTracerSide.Friendly
+                   && ArenaTracerTeams.Classify("bot", true) == ArenaTracerSide.Opponent,
+                "solo shooters stay classified for killfeed and markers: " + soloMode);
+            var soloRenderer = new TracersLight();
+            Assert(InvokePrefix(soloRenderer, NewShot("local", resolvedBridge: true, tracer: false))
+                   && InvokePrefix(soloRenderer, NewShot("bot", resolvedBridge: true, tracer: false))
+                   && soloRenderer.ShotTracerCalls == 0 && soloRenderer.GrenadeTracerCalls == 0,
+                "renderer stays native in solo mode " + soloMode + " regardless of TeamTracers");
+            Assert(Settings.RequestedMode == soloMode && !Settings.RequestedTeam,
+                "solo renderer asked for its own mode's entry: " + soloMode);
+        }
 
         Reset();
         ArenaSession.IsActive = true;
@@ -259,10 +282,11 @@ internal static class Program
         renderer = new TracersLight();
         Shot oldFollowerFragment = NewShot("f1", resolvedBridge: true, tracer: false);
         oldFollowerFragment.FragmentIndex = 2;
-        Assert(!InvokePrefix(renderer, oldFollowerFragment),
-            "frozen follower fragment renders with its retained shot bridge");
+        bool followerStaysNative = InvokePrefix(renderer, oldFollowerFragment);
         Assert(Settings.RequestedMode == "tactical" && Settings.RequestedTeam,
             "renderer selects protected team preference from frozen tracer match");
+        Assert(!followerStaysNative,
+            "frozen follower fragment renders with its retained shot bridge");
         AssertColor(renderer.Color, 0.457f, 1.5f, 0.507f,
             "configured friendly green is used");
         Assert(!InvokePrefix(renderer, NewShot("e1", resolvedBridge: true, tracer: false)),
@@ -296,8 +320,9 @@ internal static class Program
     {
         Reset();
         ArenaSession.IsActive = true;
+        ArenaSession.ActiveMode = "teamdeathmatch";
         Settings.TeamTracers.Value = true;
-        ArenaTracerTeams.BeginMatch("local", protectedTeamMatch: false);
+        ArenaTracerTeams.BeginFactionMatch("local");
         var renderer = new TracersLight();
 
         Shot shortHistory = NewShot("local", resolvedBridge: true, tracer: false, addDefaultHistory: false);
@@ -349,8 +374,10 @@ internal static class Program
             root, "ArenaMode.Client", "Effects", "ArenaTracerPatches.cs"));
         string teams = File.ReadAllText(Path.Combine(
             root, "ArenaMode.Client", "Effects", "ArenaTracerTeams.cs"));
-        string settings = File.ReadAllText(Path.Combine(
-            root, "ArenaMode.Client", "Config", "Settings.cs"));
+        string settings = ReadContractSource(
+            root,
+            "ARENA_TRACER_SETTINGS_SOURCE",
+            "ArenaMode.Client", "Config", "Settings.cs");
         string plugin = File.ReadAllText(Path.Combine(root, "ArenaMode.Client", "Plugin.cs"));
         string matchService = ReadContractSource(
             root,
@@ -396,6 +423,30 @@ internal static class Program
             "public static ConfigEntry<ArenaTracerColor> OpponentTracerColor",
             "ArenaTracerColor.Cyan",
             "ArenaTracerColor.Red");
+        // Colored tracers are team-only like the lasers (2026-10-08): the one
+        // TeamTracers entry belongs to Team DM and protected Tactical 5v5 and the
+        // per-mode solo settings are gone. The behaviour of the real body is
+        // executed by tools/TdmMatchMenuChecks; this pins its shape for the
+        // renderer contract the StandIns mirror.
+        int entryStart = settings.IndexOf(
+            "internal static ConfigEntry<bool> TracerEntry(string mode, bool protectedTeam)",
+            StringComparison.Ordinal);
+        int entryEnd = entryStart < 0 ? -1 : settings.IndexOf("};", entryStart, StringComparison.Ordinal);
+        Assert(entryStart >= 0 && entryEnd > entryStart, "Settings.TracerEntry is still declared");
+        string tracerEntry = settings.Substring(entryStart, entryEnd - entryStart);
+        RequireAll(tracerEntry,
+            "ArenaModeCatalog.TeamDeathmatchId => TeamTracers",
+            "ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers",
+            "_ => null");
+        Assert(CountOccurrences(tracerEntry, "=> TeamTracers") == 2
+               && !tracerEntry.Contains("ArenaModeCatalog.DeathmatchId", StringComparison.Ordinal)
+               && !tracerEntry.Contains("GunGameId", StringComparison.Ordinal)
+               && !tracerEntry.Contains("ZombieId", StringComparison.Ordinal),
+            "TracerEntry maps only Team DM and protected Tactical 5v5 to TeamTracers");
+        foreach (string retired in new[] { "DeathmatchColoredTracers", "GunGameColoredTracers",
+            "TacticalSoloColoredTracers", "ZombieColoredTracers", "SoloColoredTracers" })
+            Assert(!settings.Contains(retired, StringComparison.Ordinal),
+                "retired per-mode solo tracer setting stays removed: " + retired);
         RequireAll(plugin, "Effects.ArenaTracerPatches.Enable()");
         RequireAll(matchService,
             "Effects.ArenaTracerTeams.BeginMatch(game.ProfileId, protectedTeam)",
@@ -494,6 +545,7 @@ internal static class Program
     private static void Reset()
     {
         ArenaSession.IsActive = false;
+        ArenaSession.ActiveMode = "tactical";
         Settings.TeamTracers.Value = true;
         Settings.FriendlyTracerColor.Value = ArenaTracerColor.Cyan;
         Settings.OpponentTracerColor.Value = ArenaTracerColor.Red;

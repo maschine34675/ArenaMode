@@ -20,20 +20,19 @@ Es gibt keine neuen Zahlenregler oder eine zweite Konfiguration.
 | Backpack items | Kits / UseItemsAnywhere | Getragene Items und Rucksackmagazine; keine Erweiterung der Mechanik |
 | Killcam | ReplaySeconds des gewählten Modus | Aktive kompatible KillcamReplay erforderlich |
 | Pickups | Arena pickups / Enabled | Deathmatch oder unabhängiges TDM; benötigt zusätzlich ein Karten-/Areal-Layout |
-| Colored tracers | Deathmatch / ColoredTracers, Gun Game / ColoredTracers, Tactical / SoloColoredTracers bzw. Effects / TeamTracers | DM, Gun Game und Tactical 1v5 separat, standardmäßig aus; aus stellt native Tracer wieder her |
+| Colored tracers | Effects / TeamTracers | Seit 2026-10-08 nur TDM und geschütztes Tactical 5v5/PFT (wie die Laserfarben), sonst N/A; aus stellt native Tracer wieder her. Die frühere Pro-Modus-Wahl für Deathmatch, Gun Game, Tactical 1v5 und Zombie ist entfernt |
 | Team laser colors | Effects / TeamLasers | TDM oder geschütztes Tactical/PFT; Helligkeit unverändert |
 
 Die sichtbaren Schalter lesen und ändern exakt die vorhandenen ConfigEntries.
 Keine fremde Mod-Konfiguration und keine neue Serverroute. Killcam verwendet weiter TrySelectKillcam: AN setzt drei Sekunden,
 AUS null, getrennt pro Modus; die bestehende Aufnahme beim Arm bleibt erhalten.
-Tracer verwenden in Deathmatch, Gun Game und Tactical 1v5 jeweils eine eigene
-Einstellung mit Standard AUS. Die bestehende Effects-Einstellung bleibt für
-Tactical 5v5 und TDM erhalten;
-gespeicherte Werte werden nicht migriert oder bei Moduswechsel überschrieben.
-Der Renderer liest dieselbe Auswahl anhand des eingefrorenen ActiveMode und
+[Überholt seit 2026-10-08, siehe Nachtrag unten: Tracer waren bis dahin in
+Deathmatch, Gun Game und Tactical 1v5 eine eigene Einstellung mit Standard AUS.
+Jetzt gilt nur noch Effects / TeamTracers, und nur für TDM und Tactical 5v5.]
+Der Renderer liest die Auswahl anhand des eingefrorenen ActiveMode und
 ArenaTracerTeams.ProtectedTeamMatch, erst nach dem IsActive-Guard. Der Teamwert
 bleibt über Rundenwechsel gültig und wird beim Matchende gelöscht; er stammt
-nicht aus der veränderbaren Menüauswahl. Legacy Endless/Rounds verwenden die Deathmatch-Einstellung.
+nicht aus der veränderbaren Menüauswahl. Legacy Endless/Rounds sind Deathmatch.
 Alle anderen Schalter gelten Arena-weit. Änderungen werden sofort gespeichert,
 auch bei deaktiviertem SaveOnConfigSet. F12-Änderungen erscheinen im bestehenden
 0,2-s-Menürefresh; abgelehnte Schreibzugriffe zeigen den tatsächlichen Wert.
@@ -189,3 +188,29 @@ geht in die Zeilen: Titel Top 14 / Höhe 30, erste Zeile bei Top 52, Zeilenabsta
 Abstand minus 26 (25,5), letzte Beschreibung endet 8 Pixel über dem Kastenboden
 (Y=464). TdmMatchMenuChecks pinnt den Wegfall und die Geometrie und hat drei
 neue Mutanten (Legende zurück, Zeilenanfang 68, alter Zeilenabstand).
+
+**Gefärbte Tracer nur noch in Team-Modi, wie die Laserfarben.** Die vier
+Pro-Modus-Einstellungen `Deathmatch / ColoredTracers`, `Gun Game / ColoredTracers`,
+`Tactical / SoloColoredTracers` und `Zombie / ColoredTracers` sind entfernt
+(Eigenschaften, `Bind`-Aufrufe, `TracerEntry`-Zweige). `Settings.TracerEntry(mode,
+protectedTeam)` liefert `Effects / TeamTracers` für Team DM und für Tactical mit
+`protectedTeam`, sonst null. Der Renderer-Prefix in `ArenaTracerPatches` kehrt bei
+null (`?.Value != true`) unverändert zur nativen Methode zurück, in Deathmatch,
+Gun Game, Zombie und solo Tactical bleiben also die nativen Munitionstracer.
+Die Zeile COLORED TRACERS zeigt dort N/A mit demselben Grund wie TEAM LASER COLORS
+("Requires Team DM or Tactical 5v5 (PFT)."), nie "Setting unavailable."; die
+Beschreibung lautet "Team colors for every bullet.". Verfügbarkeit, Sperre bei
+Arm/Raid und Speichern laufen über denselben generischen Pfad wie bisher.
+Die Laser-Zeile war schon team-only und bleibt unverändert: Tracer und Laser
+teilen jetzt dieselbe Regel (`ArenaMutatorSelection.TeamModesOnly`).
+Unverändert bleibt `ArenaTracerTeams.Classify`: Killfeed-Namensfarben und
+Freund-Markierungen laufen in jedem Modus weiter über dieselbe Klassifikation
+(solo: Spieler freundlich, jeder andere Schütze Gegner); nur das Zeichnen des
+Tracers ist team-only. Die gespeicherte cfg behält die vier Schlüssel als
+verwaiste Einträge, BepInEx ignoriert sie; es gibt keine Migration, und ein dort
+gespeichertes `true` schaltet nichts ein (im Harness mit `true` gesetzt belegt).
+Offline: `tools/TdmMatchMenuChecks` (N/A in vier Solo-Modi, ON/OFF-Speichern und
+Sperren in TDM und PFT, Verfügbarkeit gleich der der Laser, verwaiste Schlüssel
+wirkungslos; zwei neue Mutanten) und `tools/ArenaTracerChecks` (Renderer nativ
+in Deathmatch/Gun Game/Zombie/Tactical solo trotz TeamTracers, Quelltext-Pins
+auf `TracerEntry`; zwei neue Mutanten, 11 insgesamt).

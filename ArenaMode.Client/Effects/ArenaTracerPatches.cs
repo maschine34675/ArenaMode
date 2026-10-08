@@ -12,11 +12,14 @@ using UnityEngine;
 namespace ArenaMode.Effects;
 
 /// <summary>
-/// Reuses EFT's native HDR tracer mesh for every player-owned Arena projectile,
-/// including ammunition whose shared template has Tracer=false. Ammo templates
-/// are never changed: that flag also alters bot scatter and is shared by normal
-/// raids. Unknown protected-5v5 identities and every non-Arena call fail open to
-/// the complete native method.
+/// Reuses EFT's native HDR tracer mesh for every player-owned Arena projectile
+/// of a TEAM mode (Team Deathmatch, protected Tactical 5v5), including ammunition
+/// whose shared template has Tracer=false. Ammo templates are never changed: that
+/// flag also alters bot scatter and is shared by normal raids. Colored tracers
+/// are team-only like the laser colors: <see cref="Settings.TracerEntry"/> has no
+/// entry for Deathmatch, Gun Game, Zombie or solo Tactical, so the prefix below
+/// returns the complete native method there regardless of TeamTracers. Unknown
+/// protected-5v5 identities and every non-Arena call fail open the same way.
 /// </summary>
 internal static class ArenaTracerPatches
 {

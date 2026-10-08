@@ -117,19 +117,24 @@ public static class Settings
     public static ConfigEntry<float> ArenaLightingOutcomeSeconds { get; private set; }
     public static ConfigEntry<bool> ArenaLightingRespectExternalMods { get; private set; }
     public static ConfigEntry<bool> TeamTracers { get; private set; }
-    public static ConfigEntry<bool> DeathmatchColoredTracers { get; private set; }
-    public static ConfigEntry<bool> GunGameColoredTracers { get; private set; }
-    public static ConfigEntry<bool> TacticalSoloColoredTracers { get; private set; }
 
-    // Solo modes have independent opt-ins; never overwrite a saved team preference.
+    /// <summary>
+    /// Colored tracers are a team feature, exactly like <see cref="TeamLasers"/>
+    /// (2026-10-08): the one <see cref="TeamTracers"/> switch applies to Team
+    /// Deathmatch and to protected Tactical 5v5 (PitFireTeam); every other mode
+    /// (Deathmatch, Gun Game, Zombie, solo Tactical) has NO entry, returns null,
+    /// the renderer keeps the native tracer and the mutator row shows N/A. There
+    /// are no per-mode solo tracer settings any more. Solo shooters are still
+    /// classified friendly/opponent by <c>ArenaTracerTeams.Classify</c>, which
+    /// the killfeed names and friendly markers keep using in every mode; only the
+    /// TRACER rendering is team-only.
+    /// </summary>
     internal static ConfigEntry<bool> TracerEntry(string mode, bool protectedTeam)
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
-            ArenaModeCatalog.DeathmatchId => DeathmatchColoredTracers,
-            ArenaModeCatalog.GunGameId => GunGameColoredTracers,
-            ArenaModeCatalog.TacticalId when !protectedTeam => TacticalSoloColoredTracers,
-            ArenaModeCatalog.ZombieId => ZombieColoredTracers,
-            _ => TeamTracers
+            ArenaModeCatalog.TeamDeathmatchId => TeamTracers,
+            ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers,
+            _ => null
         };
     public static ConfigEntry<bool> TeamLasers { get; private set; }
     public static ConfigEntry<float> VisibleLaserBrightness { get; private set; }
@@ -179,7 +184,6 @@ public static class Settings
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
-    public static ConfigEntry<bool> ZombieColoredTracers { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
     public static ConfigEntry<bool> AreaCaptureEnabled { get; private set; }
@@ -296,7 +300,7 @@ public static class Settings
     /// a real bool entry here — there is no "unavailable" case — so
     /// <see cref="Session.ArenaMutatorSelection"/> can read/write this
     /// directly through its generic Entry()/Enabled()/TryToggle() path, the
-    /// same way it already does for <see cref="TracerEntry"/>.
+    /// same way it already does for <see cref="TeamLasers"/>.
     /// </summary>
     internal static ConfigEntry<bool> AnnouncerEntry(string mode)
         => ArenaModeCatalog.NormalizeId(mode) switch
@@ -1614,23 +1618,9 @@ public static class Settings
             "TeamTracers",
             true,
             "Give every Arena projectile a team-colored tracer, including ammunition " +
-            "that has no tracer in ordinary raids. Applies to Team Deathmatch and Tactical 5v5; " +
-            "Deathmatch, Gun Game and Tactical 1v5 each have a separate tracer setting.");
-
-        DeathmatchColoredTracers = config.Bind("Deathmatch", "ColoredTracers", false,
-            "Color every Deathmatch projectile by side. Off keeps native ammunition tracers. " +
-            "Independent of the other modes' tracer settings.");
-
-        GunGameColoredTracers = config.Bind("Gun Game", "ColoredTracers", false,
-            "Color every Gun Game projectile by side. Off keeps native ammunition tracers.");
-
-        TacticalSoloColoredTracers = config.Bind("Tactical", "SoloColoredTracers", false,
-            "Color every Tactical 1v5 projectile by side. Off keeps native ammunition tracers. " +
-            "Tactical 5v5 uses Effects / TeamTracers.");
-
-        ZombieColoredTracers = config.Bind("Zombie", "ColoredTracers", false,
-            "Color every Zombie projectile by side. Off keeps native ammunition tracers. " +
-            "Independent of the other modes' tracer settings and of Effects / TeamLasers, which Zombie does not use.");
+            "that has no tracer in ordinary raids. Team-only, like TeamLasers: applies to Team " +
+            "Deathmatch and Tactical 5v5 (PitFireTeam). Deathmatch, Gun Game, Zombie and solo " +
+            "Tactical always keep the native ammunition tracers.");
 
         TeamLasers = config.Bind(
             "Effects",
