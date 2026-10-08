@@ -139,6 +139,57 @@ Invoke-CaptionMutant 'plugin-not-enabled' 'plugin' `
     'ArenaSessionModeCaptionPatch.Enable();' '' `
     'Plugin enables the session caption patches'
 
+# Round 2 (R2-L1): every source-text pin reads the sources with comments removed, so
+# a COMMENTED-OUT statement must fail the pin of the statement it disables. The
+# earlier mutants delete or replace text and never comment it out.
+Invoke-CaptionMutant 'plugin-enable-commented-out' 'plugin' `
+    'ArenaSessionModeCaptionPatch.Enable();' '// ArenaSessionModeCaptionPatch.Enable();' `
+    'Plugin enables the session caption patches'
+foreach ($patchName in @('Location', 'Accept', 'Deploying')) {
+    Invoke-CaptionMutant ('enable-' + $patchName.ToLowerInvariant() + '-commented-out') 'patch' `
+        "new ${patchName}Patch().Enable();" "// new ${patchName}Patch().Enable();" `
+        'all three caption patches are enabled'
+}
+
+# Round 2 (R2-L3 / R2-T3): Apply is the cosmetic call made INSIDE the side screen's
+# own postfixes (ShowPatch.Postfix's catch clears the Arena selection; SelectPatch.Postfix
+# has no try), so it must swallow everything. Multi-line anchors: sources are LF-normalised.
+$applyLog = 'Plugin.ModLogger?.LogWarning($"Arena session caption left native: {ex.Message}");'
+$applyCatch = @('catch (Exception ex)', '        {', ('            ' + $applyLog), '        }') -join "`n"
+Invoke-CaptionMutant 'apply-catch-removed' 'patch' `
+    $applyCatch (@('finally', '        {', '        }') -join "`n") `
+    'Apply holds its ledger call in a try with a catch (Exception) and never throws'
+Invoke-CaptionMutant 'apply-catch-narrowed' 'patch' `
+    $applyCatch (@('catch (InvalidOperationException ex)', '        {', ('            ' + $applyLog), '        }') -join "`n") `
+    'Apply holds its ledger call in a try with a catch (Exception) and never throws'
+Invoke-CaptionMutant 'apply-ledger-outside-try' 'patch' `
+    (@('            Ledger.Apply(caption, arena, label => label.text, (label, text) => label.text = text);', '        }', ('        ' + $applyCatch)) -join "`n") `
+    (@('        }', ('        ' + $applyCatch), '        Ledger.Apply(caption, arena, label => label.text, (label, text) => label.text = text);') -join "`n") `
+    'Apply holds its ledger call in a try with a catch (Exception) and never throws'
+Invoke-CaptionMutant 'apply-catch-rethrows' 'patch' `
+    $applyLog 'throw;' `
+    'Apply never rethrows what its catch swallowed'
+
+# Round 2 (R2-L1 / R2-T4): the side-screen caption sync. Commented out, it must fail
+# the presence pin; wrapped in a guard it keeps every substring but drops the restore
+# half, so it must fail the unguarded-statement pin. The 12-space anchor is the
+# SetSelectedSide postfix, the 16-space anchor the Show postfix (neither contains the other).
+$syncCall = 'ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);'
+$selectSync = "`n            " + $syncCall
+$showSync = "`n                " + $syncCall
+Invoke-CaptionMutant 'side-select-sync-commented-out' 'side' `
+    $selectSync ("`n            // " + $syncCall) `
+    'side screen caption follows the ARENA toggle state in Show and SetSelectedSide'
+Invoke-CaptionMutant 'side-show-sync-commented-out' 'side' `
+    $showSync ("`n                // " + $syncCall) `
+    'side screen caption follows the ARENA toggle state in Show and SetSelectedSide'
+Invoke-CaptionMutant 'side-select-sync-guarded' 'side' `
+    $selectSync ("`n            if (ArenaMenuSelection.IsSelected) " + $syncCall) `
+    'the side screen caption sync is an unguarded statement'
+Invoke-CaptionMutant 'side-show-sync-guarded' 'side' `
+    $showSync ("`n                if (ArenaMenuSelection.IsSelected) " + $syncCall) `
+    'the side screen caption sync is an unguarded statement'
+
 Remove-Item Env:ARENA_CAPTION_REPO_ROOT -ErrorAction SilentlyContinue
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) {
@@ -149,4 +200,4 @@ foreach ($key in $paths.Keys) {
         throw "Mutation verification changed $($paths[$key])"
     }
 }
-Write-Output "ARENA_SESSION_CAPTION_VERIFIED (21 mutants rejected: pure rule x2, location/accept/deploying gates incl. negated and operator-flipped conditions, reconnect, direct write, detached ledger, six set/restore ledger faults, side toggle x2, plugin wiring; evidence: $scratch)"
+Write-Output "ARENA_SESSION_CAPTION_VERIFIED (33 mutants rejected: pure rule x2, location/accept/deploying gates incl. negated and operator-flipped conditions, reconnect, direct write, detached ledger, six set/restore ledger faults, side toggle x2, plugin wiring; six commented-out Plugin/Enable/side-sync statements, four Apply fail-open faults, two guarded side syncs; evidence: $scratch)"

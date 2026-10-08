@@ -36,8 +36,14 @@ stand-in label) are compiled and executed, and the Unity-bound Harmony patches
 (`ArenaSessionModeCaptionPatch`, the side-screen sync in `ArenaSideSelectionPatch`,
 the `Plugin` wiring) are pinned by source text: every screen's gate as one complete
 `if (condition) Apply(...)` statement, the reconnect exclusion, no direct caption
-write outside `Apply`, and `Apply` delegating to the one static ledger.
-`Verify-SessionModeCaption.ps1` hands 21 mutated copies to the harness
+write outside `Apply`, and `Apply` delegating to the one static ledger. Every
+source pin reads the sources with comments removed (a commented-out `Enable()`
+line, `Plugin` call or side-screen sync is a missing one), `Apply` must hold its
+ledger call in a `try` closed by a plain `catch (Exception)` without a `throw` (it
+runs inside the side screen's own postfixes, which must never see its failure),
+and the side-screen sync must be an UNGUARDED statement (a guard on the ARENA
+toggle would silently drop the restore half).
+`Verify-SessionModeCaption.ps1` hands 33 mutated copies to the harness
 (`ProductionSessionModeCaptionSource` and the `ARENA_CAPTION_*` variables); each
 must fail its named assertion. Harmony binding and the rendered label still need
 the game window.

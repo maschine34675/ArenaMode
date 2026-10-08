@@ -28,26 +28,30 @@ internal static partial class Program
         // The set/restore state machine behind the side-screen caption, executed.
         CheckCaptionLedger();
 
-        // Gates of the Harmony patches, by source text.
-        string patch = ReadCaptionSource("ARENA_CAPTION_PATCH_SOURCE", "ArenaMode.Client", "Session", "ArenaSessionModeCaptionPatch.cs");
-        string side = ReadCaptionSource("ARENA_CAPTION_SIDE_SOURCE", "ArenaMode.Client", "Session", "ArenaSideSelectionPatch.cs");
-        string plugin = ReadCaptionSource("ARENA_CAPTION_PLUGIN_SOURCE", "ArenaMode.Client", "Plugin.cs");
+        // Gates of the Harmony patches, by source text. EVERY pin below reads the
+        // sources with comments removed (NormalizeCode): a statement that was
+        // commented out is a statement that is gone, so a half-disabled caption
+        // feature (an Enable() line, the Plugin call, a side-screen sync) cannot
+        // end the run green on the strength of its own commented-out text.
+        string patchCode = NormalizeCode(ReadCaptionSource("ARENA_CAPTION_PATCH_SOURCE", "ArenaMode.Client", "Session", "ArenaSessionModeCaptionPatch.cs"));
+        string sideCode = NormalizeCode(ReadCaptionSource("ARENA_CAPTION_SIDE_SOURCE", "ArenaMode.Client", "Session", "ArenaSideSelectionPatch.cs"));
+        string pluginCode = NormalizeCode(ReadCaptionSource("ARENA_CAPTION_PLUGIN_SOURCE", "ArenaMode.Client", "Plugin.cs"));
 
-        string location = ClassBody(patch, "LocationPatch");
+        string location = ClassBody(patchCode, "LocationPatch");
         Assert(location.Contains("nameof(MatchMakerSelectionLocationScreen.ShowInternal)", StringComparison.Ordinal)
                && location.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the location caption is written after ShowInternal, which finishes every Show");
         Assert(HasGuardedApply(location, "ArenaMenuSelection.IsSelectedFor(raidSettings)"),
             "location caption is gated on the exact Arena RaidSettings");
 
-        string accept = ClassBody(patch, "AcceptPatch");
+        string accept = ClassBody(patchCode, "AcceptPatch");
         Assert(accept.Contains("typeof(MatchMakerAcceptScreen.MatchmakerAcceptScreenController)", StringComparison.Ordinal)
                && accept.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the accept caption is written after Show(MatchmakerAcceptScreenController)");
         Assert(HasGuardedApply(accept, "controller != null && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)"),
             "accept caption is gated on the exact Arena RaidSettings");
 
-        string deploying = ClassBody(patch, "DeployingPatch");
+        string deploying = ClassBody(patchCode, "DeployingPatch");
         Assert(deploying.Contains("typeof(MatchmakerTimeHasCome.TimeHasComeScreenController)", StringComparison.Ordinal)
                && deploying.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the deploying caption is written after Show(TimeHasComeScreenController)");
@@ -62,39 +66,62 @@ internal static partial class Program
         foreach (string body in new[] { location, accept, deploying })
             Assert(body.Contains("catch (Exception", StringComparison.Ordinal),
                 "a caption patch fails open to the native text instead of throwing");
-        string patchCode = string.Join("\n", patch.Split('\n')
-            .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
-        Assert(CountOfText(patch, "Apply(__instance._subCaption, true)") == 3
+        Assert(CountOfText(patchCode, "Apply(__instance._subCaption, true)") == 3
                && Regex.Matches(patchCode, @"\.text\s*=(?!=)").Count == 1
                && Regex.Matches(patchCode, @"_subCaption\.text").Count == 0,
             "the screens never write the caption directly; only Apply does, and only once");
         // Apply is a thin marshal: the rules are the ledger's, executed above. What
         // must hold here is that every caption goes through the ONE static ledger
         // (a fresh ledger per call would forget what it replaced).
-        string apply = patch.Substring(patch.IndexOf("internal static void Apply(", StringComparison.Ordinal));
+        string apply = patchCode.Substring(patchCode.IndexOf("internal static void Apply(", StringComparison.Ordinal));
         apply = apply.Substring(0, apply.IndexOf("private sealed class LocationPatch", StringComparison.Ordinal));
         Assert(Regex.Matches(patchCode, @"ArenaSessionModeCaptionLedger<").Count == 1
-               && patch.Contains("private static readonly ArenaSessionModeCaptionLedger<TextMeshProUGUI> Ledger = new();", StringComparison.Ordinal)
+               && patchCode.Contains("private static readonly ArenaSessionModeCaptionLedger<TextMeshProUGUI> Ledger = new();", StringComparison.Ordinal)
                && apply.Contains("Ledger.Apply(caption, arena, label => label.text, (label, text) => label.text = text);", StringComparison.Ordinal)
                && apply.Contains("if (caption == null)", StringComparison.Ordinal),
             "every caption goes through the one static ledger, which restores only what it replaced");
-        string enable = patch.Substring(patch.IndexOf("public static void Enable()", StringComparison.Ordinal));
+        // Apply is the cosmetic call that the side screen's ShowPatch.Postfix and
+        // SelectPatch.Postfix (ArenaSideSelectionPatch) make inside their own work:
+        // the first sits in a catch that clears the Arena selection and hides the
+        // ARENA toggle, the second has no try at all. So an exception must never
+        // leave Apply. Pinned as: a try that holds the ledger call, closed by a plain
+        // catch (Exception) (no when filter, no narrower type), and no throw
+        // anywhere in the method.
+        Match applyTry = Regex.Match(apply, @"\btry\s*\{");
+        Match applyCatch = Regex.Match(apply, @"\bcatch\s*\(\s*Exception(\s+\w+)?\s*\)\s*\{");
+        int applyLedger = apply.IndexOf("Ledger.Apply(", StringComparison.Ordinal);
+        Assert(applyTry.Success && applyCatch.Success && applyLedger >= 0
+               && applyTry.Index < applyLedger && applyLedger < applyCatch.Index,
+            "Apply holds its ledger call in a try with a catch (Exception) and never throws");
+        Assert(!Regex.IsMatch(apply, @"\bthrow\b"),
+            "Apply never rethrows what its catch swallowed");
+        string enable = patchCode.Substring(patchCode.IndexOf("public static void Enable()", StringComparison.Ordinal));
         enable = enable.Substring(0, enable.IndexOf("}", StringComparison.Ordinal));
         Assert(enable.Contains("new LocationPatch().Enable();", StringComparison.Ordinal)
                && enable.Contains("new AcceptPatch().Enable();", StringComparison.Ordinal)
                && enable.Contains("new DeployingPatch().Enable();", StringComparison.Ordinal),
             "all three caption patches are enabled");
-        Assert(plugin.Contains("ArenaSessionModeCaptionPatch.Enable();", StringComparison.Ordinal),
+        Assert(pluginCode.Contains("ArenaSessionModeCaptionPatch.Enable();", StringComparison.Ordinal),
             "Plugin enables the session caption patches");
 
         // The ARENA toggle on the side screen (the native third toggle): Show and
         // SetSelectedSide both sync the caption, after the PitFireTeam squad-screen
         // early return so a squad-management screen is never touched.
-        string showPatch = Slice(side, "private sealed class ShowPatch", "private sealed class ClosePatch");
-        string selectPatch = Slice(side, "private sealed class SelectPatch", "private static void SetDescription");
+        string showPatch = Slice(sideCode, "private sealed class ShowPatch", "private sealed class ClosePatch");
+        string selectPatch = Slice(sideCode, "private sealed class SelectPatch", "private static void SetDescription");
         const string sync = "ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);";
         Assert(showPatch.Contains(sync, StringComparison.Ordinal) && selectPatch.Contains(sync, StringComparison.Ordinal),
             "side screen caption follows the ARENA toggle state in Show and SetSelectedSide");
+        // The sync is an UNGUARDED statement, pinned by its neighbour: a guard such
+        // as if (ArenaMenuSelection.IsSelected) Apply(..., IsSelected) keeps every
+        // substring above and silently drops the restore half (switching ARENA off
+        // would leave "ARENA ZONE" on the ordinary side screen). In SetSelectedSide
+        // it directly follows the description statement; in Show it directly
+        // follows the closing brace of the if (IsSelected) { ... } block, i.e. it
+        // runs at the level of the try body, not inside that block.
+        Assert(selectPatch.Contains("if (ArenaMenuSelection.IsSelected) SetDescription(__instance); " + sync, StringComparison.Ordinal)
+               && showPatch.Contains("SetDescription(__instance); } " + sync, StringComparison.Ordinal),
+            "the side screen caption sync is an unguarded statement, so switching ARENA off restores the native text");
         Assert(selectPatch.IndexOf("[PatchPostfix]", StringComparison.Ordinal) is var postfix && postfix >= 0
                && selectPatch.IndexOf("IsSquadManagementScreen", postfix, StringComparison.Ordinal) is var guard && guard > postfix
                && selectPatch.IndexOf(sync, StringComparison.Ordinal) > guard,

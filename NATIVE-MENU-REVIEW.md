@@ -146,9 +146,19 @@ text in any language, a fresh native rewrite is not clobbered, re-arming after o
 remembers the new text, labels are independent), and pins by source text the
 gates of the four Harmony targets, each as ONE complete `if (condition)
 Apply(...)` statement so a negated group or a changed operator is rejected, plus
-the direct-write ban and the Plugin wiring. `Verify-SessionModeCaption.ps1` holds
-21 mutants (including the negated and operator-flipped deploying gate, the
-flipped ledger branch, a dropped remember step and a missing forget), each
+the direct-write ban and the Plugin wiring. The source pins read the files with
+comments removed, so a commented-out `Enable()` line, `Plugin` call or
+side-screen sync fails like a deleted one; `Apply` must keep its ledger call in a
+`try` with a plain `catch (Exception)` and no `throw` (it is called from the side
+screen's postfixes, where a throw would reach the `Show` catch that clears the
+Arena selection and hides the ARENA toggle, or an unprotected `SetSelectedSide`
+postfix); and the side-screen sync is pinned as an unguarded statement (after the
+description statement in `SetSelectedSide`, after the `if (IsSelected) { ... }`
+block in `Show`), because a guard would keep every substring and silently drop
+the restore half. `Verify-SessionModeCaption.ps1` holds
+33 mutants (including the negated and operator-flipped deploying gate, the
+flipped ledger branch, a dropped remember step, a missing forget, six commented-out
+statements, four `Apply` fail-open faults and two guarded syncs), each
 rejected by its named assertion. Not covered: Harmony resolution of the four
 targets (all four are already patched elsewhere in the mod with the same
 `AccessTools` calls), the reconnect case, and what the label looks like.
