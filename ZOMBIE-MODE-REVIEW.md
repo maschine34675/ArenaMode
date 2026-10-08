@@ -1507,6 +1507,14 @@ is unchanged and stays the master gate over all five rows above; volume
 callouts (e.g. "WAVE n") are a separate event chain and are untouched by any
 of this.
 
+Since 2026-10-08 the kill/award callouts ("DOUBLE KILL", "KILLING SPREE",
+"SHUTDOWN") follow the same switch (`ArenaHud` asks `IsEnabledForLiveMatch()`).
+Zombie's default is OFF, so a fresh configuration shows NO award callouts in
+Zombie, where they flashed before this change; they come back (together with the
+stingers) once the ZOMBIES row of the ANNOUNCER mutator, or `Zombie / Announcer`,
+is ON. Only the `WAVE n` text is independent of the switch. A tester who misses
+`DOUBLE KILL` in a default Zombie raid is seeing this, not a regression.
+
 ### Tests and fault controls
 
 Offline totals progressed 857 (end of v1) → 866 (Stage A, +9
@@ -2120,6 +2128,10 @@ Offline-verified only; nothing was built, deployed or seen in the game.
   see `ArenaModeDefinition` and `MODE-SIDEBAR-REVIEW.md`). The ANNOUNCER
   mutator also hides the on-screen kill callouts; Zombie keeps showing its
   `WAVE n` text with the announcer OFF (`ReportTextCallout` is HUD-only).
+  Consequence for Zombie: its announcer defaults OFF, so since this change a
+  fresh Zombie configuration shows no `DOUBLE KILL` / `KILLING SPREE` text
+  either (it flashed before); switch ANNOUNCER on for Zombie to get the
+  callouts back. See the default table above.
 - **No colored tracers.** The Zombie `ColoredTracers` setting is gone: colored
   tracers are team-only (like `TeamLasers`, which Zombie never used), so Zombie
   shows the native tracers and the COLORED TRACERS mutator row reads N/A

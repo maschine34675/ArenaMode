@@ -19,7 +19,11 @@ current. User-facing communication is normally German.
   Kill-/Award-Durchsagen ("DOUBLE KILL", ...) nur noch, wenn
   `AnnouncerService.IsEnabledForLiveMatch()` (jetzt `internal`) wahr ist; die
   HUD-Textdurchsagen ("WAVE n", Eigen-Granaten-Stichelei) laufen über einen
-  eigenen ungegateten Handler. Zeilenbeschreibung "Stingers, cues and kill
+  eigenen ungegateten Handler. Folge für Zombie (Announcer dort standardmäßig
+  AUS): eine frische cfg zeigt im Zombie-Raid keine "DOUBLE KILL"-Einblendungen
+  mehr, bis ANNOUNCER für Zombie eingeschaltet wird; "WAVE n" bleibt. Das ist
+  die erwartete Folge, keine Regression (bei der GPU-Abnahme so lesen).
+  Zeilenbeschreibung "Stingers, cues and kill
   callouts."; Pins + dreizehn Mutanten in `tools/AnnouncerChecks` (der Award-Handler
   ist als Ganzes gepinnt: negiertes Gate, `return;`, dann `Show`; ein fehlendes
   `!`, ein `&& false` oder ein fehlendes `return` fällt auf; die Verdrahtung ist

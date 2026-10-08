@@ -173,7 +173,13 @@ kein Mid-Raid-Umschalten per F12 am Per-Modus-Eintrag; der Hauptschalter
 Stichelei aus `ArenaSelfGrenadeTaunt`) hat weiterhin einen eigenen, ungegateten
 Handler und erscheint unabhängig vom Announcer-Schalter; der Satz im Nachtrag
 vom 06.10. ("HUD-Textdurchsagen sind kein Announcer und bleiben unverändert")
-gilt damit weiter. Die Zeilenbeschreibung lautet jetzt "Stingers, cues and
+gilt damit weiter. Folge für Zombie: dort ist der Announcer standardmäßig AUS
+(`ArenaAnnouncerGate.DefaultEnabled`), also zeigt eine frische cfg im
+Zombie-Raid seit dieser Änderung auch keine "DOUBLE KILL"/"KILLING SPREE"-
+Einblendungen mehr (vorher blitzten sie auf, weil nur der Ton an dem Schalter
+hing); wer sie in Zombie sehen will, schaltet ANNOUNCER für Zombie ein. Wer bei
+der GPU-Abnahme in einem Standard-Zombie-Raid keine Award-Durchsagen sieht, sieht
+diese Folge, keine Regression; "WAVE n" bleibt immer. Die Zeilenbeschreibung lautet jetzt "Stingers, cues and
 kill callouts." (33 Zeichen, passt in die Beschreibungszelle). Offline belegt
 durch `tools/AnnouncerChecks` (Wahrheitstabelle des Gates plus Quelltext-Pins
 auf das HUD-Routing, weil `ArenaHud` an Unity gebunden ist) und dreizehn

@@ -61,7 +61,13 @@ internal static class ArenaAnnouncerGate
     /// Zombie is the one mode whose endless waves have no round/match result
     /// to announce and whose constant melee audio the stingers would compete
     /// with, so it defaults OFF; every other mode keeps the previous
-    /// (always-on) behavior as its default. Expressed as a single negative
+    /// (always-on) behavior as its default. Since the 2026-10-08 menu polish the
+    /// switch also gates the on-screen kill/award callouts ("DOUBLE KILL", ...,
+    /// <c>ArenaHud</c> asks <see cref="IsEnabled"/> through
+    /// <c>AnnouncerService.IsEnabledForLiveMatch</c>), so this default is no
+    /// longer about sound alone: a fresh Zombie configuration shows no award
+    /// callouts either, until its ANNOUNCER switch is turned on. Its "WAVE n"
+    /// text callout is HUD-only and unaffected. Expressed as a single negative
     /// comparison, not five positive ones, so a sixth mode added later keeps
     /// the announcer on by default without anyone having to remember to list
     /// it — the same reasoning <see cref="ArenaPopulationPolicy"/>'s own doc
