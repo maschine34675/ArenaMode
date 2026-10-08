@@ -210,6 +210,10 @@ internal sealed class ArenaModeSelectionView
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
         {
+            // Only the LOCKED reason is a tooltip. HoverTooltipArea.SetUnlockStatus
+            // (true) disables the component (decompile EFT.UI/HoverTooltipArea.cs:
+            // 131-135), so an allowed row never receives pointer events and could
+            // not show ArenaModeDefinition.Description anyway.
             tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical.", rawText: true);
             tooltip.SetUnlockStatus(allowed);
         }
@@ -258,8 +262,12 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < _markers.Count; index++)
             _markers[index].SetActive(index == _selection.SelectedIndex);
         var mode = _selection.SelectedDefinition;
-        _rules.text = mode.Id == ArenaModeCatalog.TacticalId
-            ? (_selection.TacticalOnly ? "5v5 / PitFireTeam" : "1v" + Settings.TacticalSquadSize.Value + " / Solo") : mode.Rules;
+        // RULES is the objective straight from the catalog for every mode. The
+        // Tactical roster used to be spliced in here ("1v5 / Solo", "5v5 /
+        // PitFireTeam"); it already shows in the row label below ("TACTICAL /
+        // 1v5", "TACTICAL / 5v5 (PFT)") and in the 5v5 note, so the facts
+        // follow the one copy schema documented on ArenaModeDefinition.
+        _rules.text = mode.Rules;
         _restrictionNote.SetActive(mode.Id == ArenaModeCatalog.TacticalId);
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (int i = 0; i < _buttons.Count; i++)

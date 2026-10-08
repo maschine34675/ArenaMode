@@ -23,6 +23,17 @@ current. User-facing communication is normally German.
   16 Zeilen rücken auf Top 52 und nutzen den Platz bis 8 px über dem Kastenboden
   (Abstand 51,5 statt 47,5); Rechteck 600 × 472 bei Y=508 unverändert. Neue
   Geometrie-Pins und drei Mutanten in `tools/TdmMatchMenuChecks`.
+  (3+4) **Ein Schema für die Modus-Texte, Zombie passt in den Kasten:** RULES =
+  Ziel (höchstens drei Wörter/18 Zeichen), RESPAWN genau `Instant` oder `Next
+  round`, EQUIPMENT = Ausrüstungsquelle (drei Wörter/18 Zeichen), Beschreibung
+  ein Satz bis 80 Zeichen mit Punkt; Zombie jetzt `Survive the waves` /
+  `Instant` / `Arena kits`. Der Tactical-RULES-Override (`1v5 / Solo`) ist weg,
+  der Kader steht weiter im Zeilenlabel. Die Beschreibung bleibt ungenutzt:
+  `HoverTooltipArea.SetUnlockStatus(true)` schaltet die Komponente ab, eine
+  erlaubte Zeile zeigt also nie einen Tooltip (Dekompilat
+  `EFT.UI/HoverTooltipArea.cs:131-135`). Schema-Test + fünf Mutanten in
+  `tools/NativeModeSelectionChecks` (`Verify-CatalogSchema.ps1`), gerenderte
+  Fakten in `tools/TdmMatchMenuChecks` (plus Mutant für den Roster-Override).
   <!--MENU-POLISH-NEXT-->
 
 - **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je

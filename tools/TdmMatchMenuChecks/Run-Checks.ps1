@@ -79,7 +79,13 @@ $arenaFaults = @(
       'ProductionMutatorsView', 'both mutator columns start 8 px below the title'),
     @('mutator-rows-pitch', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
       '(ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn', '(448f - RowsTop) / rowsPerColumn',
-      'ProductionMutatorsView', 'mutator rows use the reflowed pitch')
+      'ProductionMutatorsView', 'mutator rows use the reflowed pitch'),
+    # Menu polish 2026-10-08, items 3+4: RULES is the catalog objective for
+    # every mode; the Tactical roster stays out of it (it lives in the row label).
+    @('tactical-rules-roster-override', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      '_rules.text = mode.Rules;',
+      '_rules.text = mode.Id == ArenaModeCatalog.TacticalId ? "1v" + Settings.TacticalSquadSize.Value + " / Solo" : mode.Rules;',
+      'ProductionModeView', 'solo Tactical RULES shows the objective, not the roster')
 )
 try {
     foreach ($arenaFault in $arenaFaults) {

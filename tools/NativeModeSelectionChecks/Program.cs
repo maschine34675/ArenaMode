@@ -68,6 +68,44 @@ internal static class Program
                 $"protected-team catalog eligibility is correct for '{id}'");
     }
 
+    // One copy schema for every mode (documented on ArenaModeDefinition, which
+    // this test enforces entry by entry): the MATCH RULES facts must read alike
+    // and fit the 218 px value column at 17 pt without an ellipsis.
+    // RULES  = the objective, at most three words and at most 18 characters.
+    // RESPAWN = exactly "Instant" or "Next round" (the view may substitute
+    //           "After killcam", which tools/TdmMatchMenuChecks measures).
+    // EQUIPMENT = the loadout source, at most three words, at most 18 characters.
+    // Description = one sentence, at most 80 characters, ends with a period.
+    // A word is a whitespace-separated token containing a letter or digit, so
+    // the slash in "Buy / retain kit" does not count.
+    private static int Words(string text)
+        => text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries)
+               .Count(token => token.Any(char.IsLetterOrDigit));
+
+    private static void CopySchema()
+    {
+        foreach (var mode in ArenaModeCatalog.All)
+        {
+            var id = mode.Id;
+            Assert(mode.Rules.Length > 0 && mode.Rules.Length <= 18 && Words(mode.Rules) <= 3
+                   && mode.Rules == mode.Rules.Trim(),
+                $"mode copy schema: RULES is the objective in <= 3 words and <= 18 characters: {id} '{mode.Rules}'");
+            Assert(mode.Respawn == "Instant" || mode.Respawn == "Next round",
+                $"mode copy schema: RESPAWN is exactly Instant or Next round: {id} '{mode.Respawn}'");
+            Assert(mode.Equipment.Length > 0 && mode.Equipment.Length <= 18 && Words(mode.Equipment) <= 3
+                   && mode.Equipment == mode.Equipment.Trim(),
+                $"mode copy schema: EQUIPMENT is the loadout source in <= 3 words and <= 18 characters: {id} '{mode.Equipment}'");
+            Assert(mode.Description.Length > 0 && mode.Description.Length <= 80
+                   && mode.Description.EndsWith('.') && !mode.Description.TrimEnd('.').Contains(". ")
+                   && char.IsUpper(mode.Description[0]) && mode.Description == mode.Description.Trim(),
+                $"mode copy schema: Description is one sentence of <= 80 characters ending with a period: {id} '{mode.Description}'");
+        }
+        // The Tactical roster lives in the row label, not in RULES.
+        var tactical = ArenaModeCatalog.All.Single(mode => mode.Id == ArenaModeCatalog.TacticalId);
+        Assert(!tactical.Rules.Contains("1v") && !tactical.Rules.Contains("5v5") && !tactical.Rules.Contains("Solo"),
+            "mode copy schema: Tactical RULES carries no roster");
+    }
+
     private static void ProtectedTeamSelection()
     {
         var writes = new List<string>();
@@ -267,6 +305,7 @@ internal static class Program
     public static void Main()
     {
         CatalogContract();
+        CopySchema();
         // Run the protected-team guard before bounds so its mutation fails at
         // the intended policy check, not at an incidental indexing exception.
         ProtectedTeamSelection();

@@ -33,3 +33,13 @@ in separate configurations; server deployment is suppressed through an explicit
 nonexistent `SPTUserMods` path. The script checks that production sources did not
 change, then reruns the production state and server checks. These are offline
 checks, not runtime gameplay proof.
+
+`CopySchema` (2026-10-08) enforces one copy schema on every catalog entry: RULES
+and EQUIPMENT at most three words and 18 characters, RESPAWN exactly `Instant`
+or `Next round`, the description one sentence of at most 80 characters ending
+with a period, and no roster in Tactical's RULES. The limits are what fits the
+mode panel's 218 px fact column at 17 pt. `Verify-CatalogSchema.ps1` hands five
+off-schema copies of `ArenaModeCatalog.cs` (Zombie's old long facts, a long
+RESPAWN, a long EQUIPMENT, a description without period, a roster in RULES) to
+the harness through `ProductionCatalogSource`; each must fail its named
+assertion, then the production catalog is rerun and hash-checked.

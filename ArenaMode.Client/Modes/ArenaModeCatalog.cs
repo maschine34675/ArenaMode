@@ -4,6 +4,33 @@ using System.Collections.Generic;
 
 namespace ArenaMode.Modes;
 
+/// <summary>
+/// One selectable Arena mode and the copy the map-screen picker shows for it.
+///
+/// ONE COPY SCHEMA for every mode (2026-10-08), so the three MATCH RULES facts
+/// read alike and always fit their 218 px value column at 17 pt without an
+/// ellipsis. tools/NativeModeSelectionChecks enforces it for every entry in
+/// <see cref="ArenaModeCatalog.All"/>, and tools/TdmMatchMenuChecks enforces
+/// the same limits on what the view actually renders:
+/// <list type="bullet">
+/// <item><see cref="Rules"/>: the objective, at most three words and at most
+/// 18 characters ("Most kills", "Survive the waves"). The roster ("1v5",
+/// "5v5") is not part of it: Tactical's row label already shows it.</item>
+/// <item><see cref="Respawn"/>: exactly "Instant" or "Next round". The view may
+/// show "After killcam" instead while a killcam is selected and playable.</item>
+/// <item><see cref="Equipment"/>: the loadout source, at most three words and
+/// at most 18 characters. The view may show "PMC entry gear" (protected 5v5) or
+/// <c>ArenaEquipmentChoice.OwnGearLabel</c> (own gear chosen).</item>
+/// <item><see cref="Description"/>: one sentence of at most 80 characters that
+/// ends with a period. It is not displayed today: the picker's native
+/// <c>HoverTooltipArea</c> only shows a message while its row is LOCKED
+/// (<c>SetUnlockStatus(true)</c> disables the component, decompile
+/// EFT.UI/HoverTooltipArea.cs:131-135), so an allowed row has no tooltip. It
+/// stays in the schema so a future display needs no copy pass.</item>
+/// </list>
+/// A word is a whitespace-separated token that contains a letter or digit, so
+/// the slash in "Buy / retain kit" is punctuation, not a word.
+/// </summary>
 internal sealed class ArenaModeDefinition
 {
     public ArenaModeDefinition(string id, string label, string description,
@@ -53,21 +80,20 @@ internal static class ArenaModeCatalog
         Array.AsReadOnly(new[]
         {
             new ArenaModeDefinition(DeathmatchId, "DEATHMATCH",
-                "Free-for-all or all against you, with optional rounds and kill/time limits.",
-                "Individual kills", "Instant", "Arena kits"),
+                "Free-for-all, or everyone against you, with optional rounds and limits.",
+                "Most kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(GunGameId, "GUN GAME",
-                "Advance through the weapon ladder with every kill.",
-                "Weapon progression", "Instant", "Weapon ladder"),
+                "Every kill moves you one rung up the weapon ladder.",
+                "Kill to advance", "Instant", "Weapon ladder"),
             new ArenaModeDefinition(TacticalId, "TACTICAL",
-                "Solo 1v5, or 5v5 with four PitFireTeam companions.",
-                "Elimination rounds", "Next round", "Buy / retain kit"),
+                "Round-based squad fights: solo 1v5, or 5v5 with four PitFireTeam companions.",
+                "Round elimination", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
-                "USEC versus BEAR teams with instant respawns. No companions required.",
-                "USEC vs BEAR", "Instant", "Arena kits"),
+                "USEC versus BEAR with instant respawns; no companions required.",
+                "Most team kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(ZombieId, "ZOMBIES",
-                "Endless waves of the infected.",
-                "Survive wave after wave; they only get bigger",
-                "Instant respawn, the wave keeps coming", "Arena kits"),
+                "Endless waves of infected, each bigger than the last.",
+                "Survive the waves", "Instant", "Arena kits"),
         });
 
     internal const float ModePanelTop = 168f;

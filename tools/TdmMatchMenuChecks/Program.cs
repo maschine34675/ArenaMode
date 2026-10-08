@@ -217,8 +217,18 @@ view.Synchronize("deathmatch", false); Dm(1,100).onClick.Invoke();
 Need(Settings.DeathmatchKills.Value == 50 && !Dm(1,100).interactable, "actual Deathmatch view blocks armed click");
 ArenaSession.ArmedForNextRaid = false;
 view.Synchronize("tactical", false);
-Need(Label("RULES value").text == "1v5 / Solo" && Label("Team restriction").gameObject.activeSelf,
-    "solo Tactical displays actual squad and PFT requirement");
+// 2026-10-08 menu polish: RULES is the objective for every mode ("Round
+// elimination"), no longer the roster. The roster stays visible in the row
+// label and the PFT requirement in the 5v5 note.
+Need(Label("RULES value").text == "Round elimination" && Label("Team restriction").gameObject.activeSelf,
+    "solo Tactical RULES shows the objective, not the roster, and keeps the PFT requirement note");
+string TacticalRowLabel() => Buttons().Single(x => x.name == "Arena Mode tactical").GetComponentInChildren<TextMeshProUGUI>(true).text;
+Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value,
+    "solo Tactical roster stays in the mode row label");
+view.Synchronize("tactical", true);
+Need(Label("RULES value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 (PFT)",
+    "PFT Tactical shows the same objective and the roster in the mode row label");
+view.Synchronize("tactical", false);
 var dmRetired = Dm(0,5).onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);
 foreach (var callback in dmRetired) callback();
@@ -274,6 +284,35 @@ view.Synchronize("zombie", false);
 EquipmentChoiceButton(false).onClick.Invoke();
 Need(!Settings.ZombieOwnGear.Value && Marked(EquipmentChoiceButton(false)),
     "unarmed equipment choice row can restore Arena kits through the real control");
+// Items 3+4 of the 2026-10-08 menu polish: whatever the view RENDERS in the three
+// MATCH RULES facts (catalog value or one of its substitutions) stays inside the
+// 218 px value column: at most three words and 18 characters, RESPAWN limited to
+// the known vocabulary. The catalog schema itself is enforced entry by entry in
+// tools/NativeModeSelectionChecks; this measures the rendered text, including the
+// view-side substitutions ("PMC entry gear", "Own gear", "After killcam").
+foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungame", false), ("tactical", false),
+    ("tactical", true), ("teamdeathmatch", false), ("zombie", false) })
+{
+    foreach (bool ownGear in schemaMode == "zombie" ? new[] { false, true } : new[] { false })
+    {
+        Settings.ZombieOwnGear.Value = ownGear;
+        view.Synchronize(schemaMode, schemaTeam);
+        string scope = schemaMode + (schemaTeam ? " (PFT)" : "") + (ownGear ? " own gear" : "");
+        foreach (string fact in new[] { "RULES", "RESPAWN", "EQUIPMENT" })
+        {
+            string rendered = Label(fact + " value").text;
+            Need(rendered.Length is > 0 and <= 18
+                    && rendered.Split(' ', StringSplitOptions.RemoveEmptyEntries).Count(t => t.Any(char.IsLetterOrDigit)) <= 3,
+                fact + " fact fits the value column without an ellipsis: " + scope + " '" + rendered + "'");
+        }
+        Need(Label("RESPAWN value").text is "Instant" or "Next round" or "After killcam",
+            "RESPAWN fact stays inside the known vocabulary: " + scope);
+    }
+}
+Settings.ZombieOwnGear.Value = false;
+view.Synchronize("zombie", false);
+Need(Label("RULES value").text == "Survive the waves" && Label("RESPAWN value").text == "Instant"
+    && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, Instant, Arena kits");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
 GameObject MutatorsRoot() => screen.transform.Children.Single(x => x.name == "Arena Mutators").gameObject;

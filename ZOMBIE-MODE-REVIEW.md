@@ -2105,3 +2105,18 @@ capture (`Capture/Headless`, exports every 30 s, session `20261007-201948`).
   only (raid 2 counted five deaths after respawns, the first one before it was
   switched on); `Capture/Headless` set through `uibridge_config_set` starts
   within seconds, but the stop is applied at the next 30 s export tick.
+
+## Menu polish (2026-10-08, branch feature/menu-polish)
+
+Offline-verified only; nothing was built, deployed or seen in the game.
+
+- **Zombie facts fit the box.** The MATCH RULES facts of ZOMBIES read
+  `Survive wave after wave; they only get bigger` and `Instant respawn, the
+  wave keeps coming` in a 218 px column, i.e. ellipsized on SPT-GPU-2. They are
+  now `Survive the waves` / `Instant` / `Arena kits` (`Own gear` when chosen),
+  and the description is `Endless waves of infected, each bigger than the
+  last.` All five modes follow one copy schema (RULES = objective, at most
+  three words and 18 characters; RESPAWN exactly `Instant` or `Next round`;
+  see `ArenaModeDefinition` and `MODE-SIDEBAR-REVIEW.md`). The ANNOUNCER
+  mutator also hides the on-screen kill callouts; Zombie keeps showing its
+  `WAVE n` text with the announcer OFF (`ReportTextCallout` is HUD-only).

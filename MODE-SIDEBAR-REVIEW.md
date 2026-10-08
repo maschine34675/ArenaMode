@@ -38,14 +38,33 @@ were copied. The prior native-control reference research still applies.
 
 ## Compact copy
 
+One schema for every mode (2026-10-08, documented on `ArenaModeDefinition` and
+enforced by `tools/NativeModeSelectionChecks`): RULES is the objective, at most
+three words and 18 characters; RESPAWN is exactly `Instant` or `Next round`
+(the view may show `After killcam`); EQUIPMENT is the loadout source, at most
+three words and 18 characters (the view may show `PMC entry gear` or `Own gear`);
+the description is one sentence of at most 80 characters ending with a period.
+The limits are what fits the 218 px value column at 17 pt without an ellipsis.
+
 | Mode | Rules | Respawn | Equipment |
 | --- | --- | --- | --- |
-| Endless | Deathmatch | Instant | Arena kits |
-| Rounds | Kill target / time limit | Instant | Arena kits |
-| Gun Game | Weapon progression | Instant | Weapon ladder |
-| Tactical | Elimination rounds | Next round | Buy / retain kit |
-| Team DM | USEC vs BEAR | Instant | Arena kits |
-| PFT Tactical | Elimination rounds | Next round | PMC entry gear |
+| Deathmatch | Most kills | Instant | Arena kits |
+| Gun Game | Kill to advance | Instant | Weapon ladder |
+| Tactical | Round elimination | Next round | Buy / retain kit |
+| Team DM | Most team kills | Instant | Arena kits |
+| Zombies | Survive the waves | Instant | Arena kits |
+| PFT Tactical | Round elimination | Next round | PMC entry gear |
+
+Deathmatch and Team DM replace the three fact rows with their own rules rows
+(rounds/kills/time, kill/time limit) but keep the catalog values above. The
+Tactical roster is no longer spliced into RULES: it already shows in the row
+label (`TACTICAL / 1v5`, `TACTICAL / 5v5 (PFT)`) and in the 5v5 note. The
+catalog descriptions follow the schema too but are not displayed: the native
+`HoverTooltipArea` shows a message only while its row is locked
+(`SetUnlockStatus(true)` disables the component), so an allowed row has no tooltip.
+Before 2026-10-08 this table listed Endless/Rounds rows (merged into Deathmatch
+earlier) and the old wording (`Weapon progression`, `Elimination rounds`,
+`USEC vs BEAR`).
 
 `Arena kits` covers both RandomKit and fixed SelectedKit. Solo Tactical retains
 the carried Arena kit; its ordinary buy path does not imply importing arbitrary
