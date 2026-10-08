@@ -25,8 +25,8 @@ Need(view.Matches(f.Hands), "exact source root admitted");
 Pose(view, f);
 Need(view.Visible && f.Main.forceRenderingOff && f.Slide.forceRenderingOff, "native renderers hidden only while replicas visible");
 Need(f.Ammo.VisibilityWrites == 0, "live cartridge renderer never leased or hidden");
-var ownRoots = f.Camera.transform.Children.Select(x => x.gameObject).ToArray();
-Need(ownRoots.Length == 2 && ownRoots.All(x => x.activeSelf), "two own replica roots under camera");
+var ownRoots = new[] { view.Fireport.parent.gameObject, view.RightFireport.parent.gameObject };
+Need(ownRoots.Length == 2 && ownRoots.All(x => x.activeSelf), "two independent owned replica roots");
 Need(ownRoots.All(x => x.GetComponent<MeshRenderer>().enabled), "hidden original leaves copies visible");
 Need(ownRoots.All(x => !x.transform.Children.Single(c => c.name == "attachment").GetComponent<MeshRenderer>().enabled), "preexisting external hidden state retained in replicas");
 Need(nativeObjects.All(x => !x.Destroyed), "construction and pose never destroy native objects");
@@ -107,8 +107,8 @@ Need(!f.Root.Destroyed && !f.Main.forceRenderingOff && !f.Slide.forceRenderingOf
 // Auto animator: VisualPass happens before EmitEvents. Its new left-shot pose
 // must not leak into the previously firing right pistol before confirmation.
 f = new Fixture(); view = new AkimboView(f.Hands); Pose(view, f);
-var rightSlide = f.Camera.transform.Children.Single(x => x.name.Contains("right")).Children.Single(x => x.name == "slide");
-var leftSlide = f.Camera.transform.Children.Single(x => x.name.Contains("left")).Children.Single(x => x.name == "slide");
+var rightSlide = view.RightFireport.parent.Children.Single(x => x.name == "slide");
+var leftSlide = view.Fireport.parent.Children.Single(x => x.name == "slide");
 view.Shot(false); view.CaptureAfterFireEvents(true);
 Next(); f.Slide.transform.localPosition = new Vector3(0, 0, -.02f);
 view.Pose(f.Camera.transform, new Vector3(-.3f, 0, 0), true, true);
@@ -117,6 +117,52 @@ view.Shot(true); view.CaptureAfterFireEvents(true);
 view.Pose(f.Camera.transform, new Vector3(-.3f, 0, 0), true, true);
 Need(rightSlide.localPosition.z == 0 && leftSlide.localPosition.z == -.02f, "post-event sample belongs only to confirmed firing side");
 view.Dispose();
+// Native IK targets are world-space and may be blended/clamped. The rendered
+// model must follow the actual solved hand, including later body/camera motion.
+f = new Fixture(); view = new AkimboView(f.Hands); Pose(view, f);
+var localGrip = new Vector3(.03f, -.06f, .02f);
+var gripRotation = Quaternion.Euler(7, 11, 4);
+var solved = new[] { new GameObject("left solved hand"), new GameObject("right solved hand") };
+var roots = new[] { view.Fireport.parent, view.RightFireport.parent };
+bool Near(Vector3 a, Vector3 b) => (a.Native - b.Native).Length() < .00001f;
+for (int i = 0; i < 2; i++)
+{
+    var position = f.Root.transform.TransformPoint(localGrip);
+    var rotation = f.Root.transform.rotation * gripRotation;
+    view.Grip(i, ref position, ref rotation, false);
+    solved[i].transform.SetPositionAndRotation(position + new Vector3(.15f, .01f, -.02f), rotation * Quaternion.Euler(0, 5, 0));
+    view.FollowHand(i, solved[i].transform);
+    Need(Near(roots[i].TransformPoint(localGrip), solved[i].transform.position), "rendered grip follows solved hand, not requested IK target");
+    var before = roots[i].position;
+    f.Camera.transform.position += new Vector3(.3f, 0, 0);
+    Need(Near(roots[i].position, before), "late camera translation cannot drag model away from solved hand");
+    solved[i].transform.position += new Vector3(.25f, -.01f, .1f);
+    solved[i].transform.rotation *= Quaternion.Euler(0, 15, 0);
+    Need(Near(roots[i].TransformPoint(localGrip), solved[i].transform.position), "late strafe and body rotation preserve rendered grip");
+}
+// Manual arms events can render first in the SAME frame. Pre-IK must still
+// regenerate targets rather than feed the previously solved hands back to IK.
+f.Camera.transform.position += new Vector3(.2f, 0, 0);
+view.BeginIk();
+view.Pose(f.Camera.transform, new Vector3(-.3f, 0, 0), true, false);
+Need(roots.All(x => x.parent == null), "same-frame pre-IK must detach from earlier manual fire-event presentation");
+Need(Near(roots[1].position, f.Root.transform.position), "same-frame pre-IK uses current native idle target rather than previous hand result");
+view.Shot(false); Time.frameCount++; Time.time += .01f;
+view.Pose(f.Camera.transform, new Vector3(-.3f, 0, 0), true, true);
+Need(roots.All(x => x.parent == null), "next pre-IK pose detaches replicas from previous solved hands");
+for (int i = 0; i < 2; i++)
+{
+    var position = Vector3.zero; var rotation = Quaternion.identity;
+    view.Grip(i, ref position, ref rotation, true);
+    solved[i].transform.SetPositionAndRotation(position, rotation);
+    view.FollowHand(i, solved[i].transform);
+    Need(Near(roots[i].TransformPoint(localGrip), solved[i].transform.position), "firing preserves independent grip registration");
+}
+Need(Math.Abs(roots[0].rotation.Native.X - roots[1].rotation.Native.X) > .01f, "right-only kick remains independent after hand registration");
+view.Hide(); view.FollowHand(0, solved[0].transform);
+Need(!view.Visible && roots.All(x => !x.gameObject.activeSelf), "late hand following cannot resurrect hidden visuals");
+view.Dispose();
+Need(solved.All(x => !x.Destroyed), "dispose never destroys native solved hands");
 Console.WriteLine($"AKIMBO_VIEW_CHECKS_PASSED ({checks} assertions)");
 
 sealed class Fixture

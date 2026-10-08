@@ -181,6 +181,9 @@ internal sealed class AkimboView : IDisposable
 
     private void Place(Transform target, Vector3 position, Quaternion rotation, bool left)
     {
+        // Calculate a world-space IK target independently of the previous
+        // frame's solved hand. FollowHand binds the rendered model afterwards.
+        target.SetParent(null, true);
         float kick = _animation.Kick(left, Time.time);
         target.SetPositionAndRotation(position - rotation * Vector3.forward * (.035f * kick),
             rotation * Quaternion.Euler(-7f * kick, 0, 0));
@@ -213,6 +216,10 @@ internal sealed class AkimboView : IDisposable
         }
     }
 
+    // Manual arms updates emit fire events before VisualPass; their render pose
+    // must not suppress the later, authoritative pre-IK target calculation.
+    internal void BeginIk() => _poseFrame = -1;
+
     internal void Grip(int index, ref Vector3 position, ref Quaternion rotation, bool firing)
     {
         if (!Visible) return;
@@ -226,6 +233,20 @@ internal sealed class AkimboView : IDisposable
         var target = index == 0 ? _root.transform : _rightRoot.transform;
         position = target.TransformPoint(_gripPosition[index]);
         rotation = target.rotation * _gripRotation[index];
+    }
+    internal void FollowHand(int index, Transform hand)
+    {
+        if (!Visible || !_hasGrip[index]) return;
+        if (hand == null) throw new InvalidOperationException("Solved pistol hand missing");
+        var target = index == 0 ? _root.transform : _rightRoot.transform;
+        // IK can blend or clamp an unreachable target. Render at the actual
+        // solved hand, not its requested target. Parenting our own mesh also
+        // keeps late camera/FOV/body motion from separating gun and fingers.
+        target.SetParent(null, true);
+        Quaternion rotation = hand.rotation * Quaternion.Inverse(_gripRotation[index]);
+        target.SetPositionAndRotation(hand.position - rotation * Vector3.Scale(_source.lossyScale, _gripPosition[index]), rotation);
+        target.localScale = _source.lossyScale;
+        target.SetParent(hand, true);
     }
     internal void Shot(bool left) { _animation.Shot(left, Time.time); _poseFrame = -1; }
     internal void Hide()

@@ -91,6 +91,31 @@ The current native fireport is remapped
 to its owned mesh copy before emission. No ordinary PMC/Scav/Hideout
 modification, bot use or profile/inventory mutation is permitted.
 
+## Moving-hand registration correction (2026-10-08 evening)
+
+The camera-parented replicas could separate from the solved hands while strafing:
+IK consumes world-space targets, can blend/clamp them, and later camera motion
+must not independently move the rendered pistols. The pre-IK calculation still
+provides two independent camera-relative aim/recoil targets. After native
+`VisualPass`, each own replica is registered at the actual solved
+`limbs[i].solver.bone3.transform`, using its captured grip offset and rotation,
+and parented to that hand. No native object is reparented. The next pre-IK pose
+first detaches the replicas and calculates fresh world targets.
+
+`BeginIk` invalidates the cached pose even within the same frame: local
+`UseHandsFastAnimator` selects Manual arms update, whose `ArmsLateUpdate` emits
+fire events BEFORE VisualPass/IK. Its preliminary presentation must not feed old
+solved hands back as the next IK targets. Auto mode emits afterwards. Both paths
+retain per-side child animation/flash, native shared camera recoil, doubled
+cadence and alternating free/paid cartridges. Hide/disposal still restore exact
+owned native renderer state and destroy only the two own model trees.
+
+Production-linked View checks now include blended/unreachable hand targets,
+late camera translation, strafe/body rotation, independent kick, same-frame
+Manual ordering, and disposal of attached replicas. 52 assertions, six deliberate
+faults rejected. Independent review found and verified the Manual-ordering fix.
+These transform doubles do not prove the visible result in a Unity raid.
+
 ## Doubled firing cadence (2026-10-08)
 
 Only the exact bound local live Arena firing operation is accelerated: native

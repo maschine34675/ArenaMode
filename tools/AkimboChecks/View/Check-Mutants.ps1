@@ -6,6 +6,8 @@ $original = [IO.File]::ReadAllText($viewSource)
 $scratch = Join-Path $PSScriptRoot 'obj/adversarial-controls'
 [IO.Directory]::CreateDirectory($scratch) | Out-Null
 $mutations = @(
+    @{ Name = 'stale-pre-ik'; Needle = 'internal void BeginIk() => _poseFrame = -1;'; Replacement = 'internal void BeginIk() { }'; Failure = 'same-frame pre-IK must detach' },
+    @{ Name = 'camera-drift'; Needle = 'target.SetParent(hand, true);'; Replacement = 'target.SetParent(_camera, true);'; Failure = 'late camera translation cannot drag model' },
     @{ Name = 'include-pooled-ammo'; Needle = 'if (child.GetComponent<AmmoPoolObject>() != null) continue;'; Replacement = '/* negative control: include pooled ammo */'; Failure = 'omit dynamic ammunition subtree' },
     @{ Name = 'skip-direct-parent-check'; Needle = 'if (!ReferenceEquals(node.Source.parent, node.Parent)) return false;'; Replacement = '/* negative control: ignore reparenting */'; Failure = 'moved static model rejects stale view' },
     @{ Name = 'skip-renderer-restore'; Needle = 'mesh.Source.forceRenderingOff = mesh.WasHidden;'; Replacement = 'mesh.Source.forceRenderingOff = true;'; Failure = 'hide restores exact previously visible and hidden states' },

@@ -203,6 +203,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     private static void Pose(Player body)
     {
         if (!ReferenceEquals(body, _body) || !Ready()) return;
+        _view.BeginIk();
         Visual(body);
         var limbs = Limbs(body);
         for (int i = 0; i < 2; i++)
@@ -214,12 +215,17 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             solver.SetIKPosition(position); solver.SetIKRotation(rotation);
         }
     }
-    private static void Visual(Player body)
+    private static void Visual(Player body, bool followSolvedHands = false)
     {
         if (!ReferenceEquals(body, _body) || _view == null) return;
         bool ready = Ready();
         _view.Pose(ready ? CameraManager.Instance.Camera.transform : null, ready ? Offset() : Vector3.zero,
             ready, _hands?.CurrentOperation is Player.FirearmController.FireOperationBase);
+        if (ready && followSolvedHands && _view.Visible)
+        {
+            var limbs = Limbs(body);
+            for (int i = 0; i < 2; i++) _view.FollowHand(i, limbs[i].solver.bone3.transform);
+        }
         if (ready && _view.Visible) _visualFrame = Time.frameCount;
     }
 
@@ -327,7 +333,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player), nameof(Player.VisualPass));
         [PatchPostfix] private static void Postfix(Player __instance)
-        { try { Visual(__instance); } catch (Exception ex) { Fail(ex); } }
+        { try { Visual(__instance, true); } catch (Exception ex) { Fail(ex); } }
     }
     private sealed class AfterFireEventsPatch : ModulePatch
     {
@@ -338,7 +344,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             {
                 if (!ReferenceEquals(__instance, _body) || !Ready()) return;
                 _view.CaptureAfterFireEvents(_hands.CurrentOperation is Player.FirearmController.FireOperationBase);
-                Visual(__instance);
+                Visual(__instance, true);
             }
             catch (Exception ex) { Fail(ex); }
         }
