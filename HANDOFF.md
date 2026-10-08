@@ -1,11 +1,32 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-07. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-08. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Getrennte Akimbo-Animation + doppelte Kadenz (2026-10-08):** `5bf58d7`
+  trennt beide sichtbaren Pistolen in eigene Mesh-Kopien und beschleunigt nur
+  native Schusstimer + exakten Hands-Animator gemeinsam. `5327906` übernimmt
+  Schlittenposen erst nach nativen FireEvents (Auto-VisualPass läuft davor).
+  Native Renderer werden besitzgebunden ausgeblendet/zurückgesetzt; dynamische
+  Patronenmodelle ausgeschlossen. Munition weiterhin zwei Schüsse pro Patrone,
+  ein Schuss je Abzug bei Einzelfeuer. Keine neuen Einstellungen.
+  Lokal + GPU-2 deployter/geladener Client `0.1.0+5327906…`, SHA256
+  `DE9C48C3FCBC282C8BCA67E0137BB7C42FF6E1D50A46F599DDB5A6912A40CC93`.
+  GPU-2 APS: 1 s Dauerfeuer ON 26 / OFF 13 Schüsse; getrennte Rechts-/Links-
+  Darstellung in acht Screenshots; schnelles Einzelfeuer im Mittel 68,17 ms,
+  Halten weiterhin nur ein Schuss. Acht Patronen ergaben 16 Schüsse, auch über
+  OFF/ON. Reload fertig; OFF während Auto-Feuern gab alle 17 Renderer frei und
+  stellte Animator 2 -> 1 zurück. Profil in sieben Schutzbereichen identisch.
+  Keine Errors/Arena-Warnungen. Config restauriert, Spiel geschlossen, Server
+  unverändert an. 29 Fehlerkontrollen, vier produktionsgebundene Harnesse,
+  unabhängige Reviews und gestagter Build bestanden. Revolver/FastAnimator
+  weiterhin nicht nativ nachgetestet; Messerwahl blieb in dieser Gun-Game-
+  Fixture ohne verifizierten Wechsel. Fingergriff bleibt optischer Prototyp.
+  Details: `GPU-AKIMBO-ANIMATION-RESULTS-20261008.md`. Nicht gepusht.
 
 - **Abwechselndes Akimbo + Pickup-Sound (2026-10-07):** `65b8115` setzt je
   Abzug einen nativen Schuss abwechselnd rechts/links um; zwei Schüsse pro
