@@ -7,6 +7,23 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Akimbo/Factory/preview/pickup follow-ups (2026-10-08 evening):** source
+  `90fbf3a`, five separate scoped commits, details and native follow-up steps in
+  `FOLLOWUPS-20261008.md`. Akimbo models now register to solved hands after IK;
+  own-gear variants use native confirmation/deployment equipment; pickups move
+  after cooldown and after 60 available gameplay seconds; cue WAV +12 dB without
+  clipping. Factory night already shared all six exact exclusions, verified
+  against installed day/night databases (no production change). Relevant suites
+  rerun by parent and independent reviews resolved. Local client deployed:
+  `4C9F7C5961A91A8C8ED540DFC721BE05E6E1AE0F8F333DEDA88BF9BA72034B02`,
+  ProductVersion `0.1.0+90fbf3aae2fa32fd7c789283db33bb9e7b36f02a`;
+  pickup WAV `E0585D79CD137AC9240A01C79048490EC87F0C2D07F9B84B9BA24F5B5D5CB171`.
+  Server/Core/BigBrain DLLs unchanged. **No native acceptance or confirmed GPU
+  mirror receipt:** GPU-2 UiBridge and GPU-1 control connection unavailable during
+  attempts. No game run/profile/config changes; untracked Molotov intake left
+  untouched. Not pushed. A game restart and the bounded checks in the report are
+  still required; do not reuse the earlier stationary Akimbo acceptance for this fix.
+
 - **Menü-Politur (2026-10-08, Branch feature/menu-polish, Worktree ArenaMode-zombie):**
   Sechs Nutzerwünsche aus der GPU-Abnahme von v2 in fünf Commits in dieser
   Reihenfolge (Punkt 3 und 4 teilen sich einen; `git log feature/menu-polish`),
