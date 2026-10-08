@@ -159,7 +159,8 @@ Mutator hinzu und einer wieder heraus, beide ohne `ArenaMutatorsView`-Code-
   nachgezogen wurde) und wurde in diesem Nachtrag nicht korrigiert — das war
   vorbestehende, von diesem Nachtrag unabhängige Technik-Schuld. Die
   aktuelle Zahl laut ZOMBIE-MODE-REVIEW.md: 15 Mutatoren nach Entfernung von
-  OWN GEAR, 16 nach Hinzufügen von ANNOUNCER. Noch nicht im Spiel bestätigt.
+  OWN GEAR, 16 nach Hinzufügen von ANNOUNCER. Im Spiel bestätigt am 08.10.2026
+  (GPU-2: 16 Zeilen, siehe `GPU-MENU-POLISH-RESULTS-20261008.md`).
   (Nachgezogen am 2026-10-08: Kopf, Geometrieabsatz und Prüffolge oben nennen
   jetzt sechzehn Schalter in 2 × 8 Zeilen.)
 
@@ -205,7 +206,10 @@ ist dabei als Ganzes gepinnt, nicht als
 Teilstring: das negierte Gate ist die erste Anweisung, gefolgt von `return;`
 und dann dem Aufruf von `_callout?.Show(label)`; ein weggefallenes `!`, ein
 `&& false` oder ein fehlendes `return` bricht die Zusicherung "drops a
-kill/award callout when the announcer gate is closed". Nicht im Spiel gesehen.
+kill/award callout when the announcer gate is closed". Im Spiel bestätigt (GPU-2,
+08.10.: Deathmatch mit ANNOUNCER aus, ein Kill ohne Callout, `CalloutElement._shownAt`
+blieb -10; Gegenprobe mit ANNOUNCER an: `_shownAt` 424,7 und Stinger `double_kill`;
+Protokoll `GPU-MENU-POLISH-RESULTS-20261008.md`).
 Die Verdrahtung ist seit der zweiten Prüfrunde ebenso streng gepinnt: die Pins
 lesen `ArenaHud.cs` ohne Kommentare (eine auskommentierte Subscription ist eine
 fehlende) und vergleichen exakte Listen statt Teilstrings — `OnCallout` wird
@@ -264,3 +268,13 @@ Sperren in TDM und PFT, Verfügbarkeit gleich der der Laser, verwaiste Schlüsse
 wirkungslos; zwei neue Mutanten) und `tools/ArenaTracerChecks` (Renderer nativ
 in Deathmatch/Gun Game/Zombie/Tactical solo trotz TeamTracers, Quelltext-Pins
 auf `TracerEntry`; zwei neue Mutanten, 11 insgesamt).
+
+### GPU-Abnahme 2026-10-08 (SPT-GPU-2)
+
+Alle sechs Punkte dieses Nachtrags sind im Spiel gesehen: Panel ohne Legende und
+Fußzeile (16 Zeilen ab y=560, Abstand 51,5 px, letzte Beschreibung endet 8 px über
+dem Kastenboden), COLORED TRACERS „N/A — Requires Team DM or Tactical 5v5 (PFT).“ in
+Zombie, Gun Game, Tactical 1v5 und Deathmatch und „ON — Team colors for every bullet.“
+in Team DM, ANNOUNCER-Beschreibung „Stingers, cues and kill callouts.“, Zombie OFF
+und die vier anderen ON, Kill ohne Callout bei ANNOUNCER aus. Zahlen, Logzeilen und
+Grenzen: `GPU-MENU-POLISH-RESULTS-20261008.md`.

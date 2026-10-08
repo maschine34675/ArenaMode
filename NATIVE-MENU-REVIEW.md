@@ -79,8 +79,12 @@ Build and run logs are in the sibling `work\arena-native-menu\` directory.
 
 ## 2026-10-08: "ARENA ZONE" instead of "PVE ZONE"
 
-Offline-verified only (harness plus source pins); Harmony binding and the
-rendered label were not seen in the game.
+Offline-verified (harness plus source pins) and seen on SPT-GPU-2 on 2026-10-08:
+the four Harmony targets bound without a warning and the label read "ARENA ZONE" on
+the side screen after the ARENA toggle, on the location, accept and deploying screens,
+and went back to "PVE ZONE" after switching to PMC - first on the merge build
+`7308eb1`, then again on the reviewed build `972e4de` (ledger refactor, arm flag
+dropped). Record: `GPU-MENU-POLISH-RESULTS-20261008.md`.
 
 The SPT locale key `ESessionMode/Pve` reads "PVE ZONE". Two native paths write it
 (decompile `D:\SPT41\Development\_decompiled`, EFT 0.16.9.5):
@@ -175,6 +179,6 @@ the restore half. `Verify-SessionModeCaption.ps1` holds
 flipped ledger branch, a dropped remember step, a missing forget, six commented-out
 statements, four `Apply` fail-open faults, two guarded syncs and two arm-flag
 faults on the deploying screen), each
-rejected by its named assertion. Not covered: Harmony resolution of the four
-targets (all four are already patched elsewhere in the mod with the same
-`AccessTools` calls), the reconnect case, and what the label looks like.
+rejected by its named assertion. Harmony resolution of the four targets and the
+rendered label were seen on SPT-GPU-2 on 2026-10-08 (see the head of this section).
+Still not covered: the reconnect case and the PitFireTeam path.

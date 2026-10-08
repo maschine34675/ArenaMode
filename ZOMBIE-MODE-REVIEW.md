@@ -2116,7 +2116,11 @@ capture (`Capture/Headless`, exports every 30 s, session `20261007-201948`).
 
 ## Menu polish (2026-10-08, branch feature/menu-polish)
 
-Offline-verified only; nothing was built, deployed or seen in the game.
+Offline-verified, then built, deployed and seen on SPT-GPU-2 on 2026-10-08 (merge
+build `7308eb1`, caption re-check on the reviewed build `972e4de`): the ZOMBIES facts
+read `Survive the waves` / `Instant` / the equipment row in one line, COLORED TRACERS
+shows N/A with the lasers' reason in Zombie, and the ANNOUNCER row (Zombie OFF) reads
+"Stingers, cues and kill callouts.". Record: `GPU-MENU-POLISH-RESULTS-20261008.md`.
 
 - **Zombie facts fit the box.** The MATCH RULES facts of ZOMBIES read
   `Survive wave after wave; they only get bigger` and `Instant respawn, the

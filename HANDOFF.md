@@ -11,8 +11,12 @@ current. User-facing communication is normally German.
   Sechs Nutzerwünsche aus der GPU-Abnahme von v2 in fünf Commits in dieser
   Reihenfolge (Punkt 3 und 4 teilen sich einen; `git log feature/menu-polish`),
   danach Review-Korrekturen an Tests und Doku (strengere Pins, Zustandsautomat
-  der Beschriftung offline ausgeführt, keine Verhaltensänderung im Spiel); nur Offline-Harnesse, nichts
-  gebaut/deployt, nichts im Spiel gesehen, nicht gepusht. Details je Punkt in
+  der Beschriftung offline ausgeführt, keine Verhaltensänderung im Spiel). GPU-2-Abnahme
+  08.10. 11:03–11:12 mit dem Merge-Stand `7308eb1` (Client `0A0FE617…`) und
+  Kopfzeilen-Nachprüfung 13:3x mit dem Review-Stand `972e4de` (Client
+  `209625EB0E8D5BA5737C4DF11F7FF7ABDD7D8AA2AB605EB88992759A9578C794`, lokal + Host 2
+  deployt, 21/21 identisch): alle sechs Punkte im Spiel bestätigt, Protokoll in
+  `GPU-MENU-POLISH-RESULTS-20261008.md`; nicht gepusht. Details je Punkt in
   `MUTATORS-MENU-REVIEW.md` (Nachtrag 2026-10-08), `NATIVE-MENU-REVIEW.md` und
   `ZOMBIE-MODE-REVIEW.md`.
   (1) **ANNOUNCER blendet die Einblendungen aus:** `ArenaHud` zeigt die
@@ -76,17 +80,20 @@ current. User-facing communication is normally German.
   `tools/NativeMenuChecks` (`Verify-SessionModeCaption.ps1`). Bekannte Lücke: mit
   `SkipPreRaidScreens` aus zeigen Game Settings und Insurance im Arena-Ablauf
   weiter "PVE ZONE" (siehe `NATIVE-MENU-REVIEW.md`); der Annahme-Bildschirm
-  gehört mit PitFireTeam zu jedem Arena-Ablauf. Harmony-Bindung und Darstellung
-  nicht im Spiel gesehen. Offene Altlasten, nicht von dieser Änderung:
+  gehört mit PitFireTeam zu jedem Arena-Ablauf. Harmony-Bindung und Darstellung auf
+  GPU-2 bestätigt: „ARENA ZONE“ auf Seiten- (nach dem ARENA-Toggle), Karten-, Annahme-
+  und Ladebildschirm, nach Wechsel auf PMC wieder „PVE ZONE“, keine Warnung. Offene Altlasten, nicht von dieser Änderung:
   `tools/NativeAreaHookChecks` kompiliert auf diesem Stand nicht (`ArenaCompactMapInfo`
   und `ArenaPortedMapPresentation` werden von `ArenaLocationSelectionPatch.cs`
   verwendet, fehlen aber im Harness) und `tools/PitFireTeamChecks` scheitert an
   der Assertion zum Team-Arena-Körperersatz, die nur `ArenaSession.cs` liest
   (Datei auf diesem Branch unverändert).
-  Nächster Schritt ist ein GPU-2-Lauf: Mutator-Panel ohne Legende/Fußzeile,
-  Zombie-Fakten ohne Auslassungspunkte, ANNOUNCER aus = keine "DOUBLE KILL"-
-  Einblendung, COLORED TRACERS N/A außerhalb TDM/PFT, "ARENA ZONE" auf Seiten-,
-  Karten- und Ladebildschirm.
+  GPU-2-Lauf erledigt (08.10.): Mutator-Panel ohne Legende/Fußzeile (16 Zeilen ab
+  y=560, Abstand 51,5), Zombie-/Gun-Game-/Tactical-Fakten einzeilig, ANNOUNCER aus =
+  Kill ohne Callout (`_shownAt` -10; Gegenprobe an: 424,7 mit "double_kill"),
+  COLORED TRACERS N/A in Zombie/DM/Gun Game/Tactical 1v5 und ON in Team DM, "ARENA
+  ZONE" auf allen vier Bildschirmen. Offen: Tactical 5v5/PFT-Weg, Zombie-Raid mit
+  "WAVE n", eine gefärbte Team-DM-Salve (Renderpfad unverändert).
 - **Getrennte Akimbo-Animation + doppelte Kadenz (2026-10-08):** `5bf58d7`
   trennt beide sichtbaren Pistolen in eigene Mesh-Kopien und beschleunigt nur
   native Schusstimer + exakten Hands-Animator gemeinsam. `5327906` übernimmt
