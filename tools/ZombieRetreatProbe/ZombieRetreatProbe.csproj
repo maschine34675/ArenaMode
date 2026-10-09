@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion>
+    <AssemblyName>maschine-ZombieRetreatProbe</AssemblyName><Version>0.1.0</Version>
+    <SptRoot Condition="'$(SptRoot)' == ''">D:\SPT41</SptRoot>
+    <AssemblySearchPaths>$(SptRoot)\EscapeFromTarkov_Data\Managed;$(SptRoot)\BepInEx\core;$(SptRoot)\BepInEx\plugins;$(AssemblySearchPaths)</AssemblySearchPaths>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx" Private="false"/><Reference Include="0Harmony" Private="false"/>
+    <Reference Include="Assembly-CSharp" Private="false"/><Reference Include="Comfort" Private="false"/>
+    <Reference Include="Comfort.Unity" Private="false"/><Reference Include="UnityEngine" Private="false"/>
+    <Reference Include="UnityEngine.CoreModule" Private="false"/><Reference Include="UnityEngine.AIModule" Private="false"/>
+    <Reference Include="maschine-ArenaMode.Client" Private="false"/>
+  </ItemGroup>
+</Project>
