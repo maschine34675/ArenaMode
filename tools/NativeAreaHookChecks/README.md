@@ -88,3 +88,12 @@ Each mutation must fail at its named assertion with nonzero exit. A compiler
 error or missing source is not an accepted negative result. Always rerun the
 unmodified baseline after controls. No mutation script here changes production
 files or runs automatically.
+# Map expansion follow-up — 2026-10-09
+
+The current fixture offers whole-map Customs in addition to its three bounded
+TDM choices. Bay5 supports all current modes; Equator supports all except
+Tactical because its middle cannot provide five bot markers beyond 25 m.
+PFT Tactical/Bay5/Customs and Zombie/all three maps are exercised through native
+selection, Ready and final-request validation. Missing optional-map plugins,
+failed area writes and retired IDs still fail closed. Earlier descriptions of
+Customs as bounded-only or ports as DM/Gun Game-only are historical.

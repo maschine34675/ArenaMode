@@ -166,11 +166,11 @@ internal static class ArenaMenuSelection
            && (!ArenaMapCatalog.IsOptionalMap(map)
                || BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId));
 
-    // A solo player must reach the mode picker even when only bounded Customs
-    // is configured and the previous match left a different mode in settings.
+    // Discovery must not depend on a previous saved mode. Every supported full
+    // map has a native spawn path for solo modes and the protected PFT formats;
+    // exact roster/mode eligibility remains the later selection/start guard.
     public static bool HasConfiguredMap(bool pitFireTeam)
-        => ArenaMapCatalog.AnyMapAvailable(map => IsMapConfigured(map)
-            && (!pitFireTeam || !ArenaMapCatalog.RequiresModeFilteredView(map)));
+        => ArenaMapCatalog.AnyMapAvailable(IsMapConfigured);
 
     public static bool IsMapAvailable(string map) => IsMapAvailable(map, CurrentEligibility);
 

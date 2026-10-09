@@ -80,16 +80,14 @@ internal static class Program
             "Customs click prepares its area before native non-null dereference");
         Assert(f.Screen.SelectedLocation?.Id == Customs && f.Screen.LastNativeDereference == Customs,
             "native map click reaches a non-null Customs selection");
-        Assert(Settings.TeamDeathmatchArea.Value == Center && Settings.AreaWrites == 1,
-            "one actual area transition despite preflight and setter checks");
-        Assert(NativeHooks.Trace.IndexOf("area-write:" + Center) < NativeHooks.Trace.IndexOf("native-select:" + Customs),
-            "Customs default is committed before entering native non-null branch");
-        Assert(NativeHooks.Trace.Contains("native-set:" + Customs + ":" + Center),
-            "incoming map rather than previous RaidSettings map owns setter repair");
+        Assert(Settings.TeamDeathmatchArea.Value == Full && Settings.AreaWrites == 0,
+            "valid whole-map preference survives Customs preflight without a fabricated area transition");
+        Assert(NativeHooks.Trace.Contains("native-set:" + Customs + ":" + Full),
+            "incoming Customs selection preserves valid whole-map identity");
         Assert(f.Screen.MaxSelectionDepth == 1, "Customs selection does not recurse into OnLocationSelected");
         Updater(f).Tick();
-        Assert(ArenaAreaSelectionView.Last.State.SelectedId == Center
-            && ArenaAreaSelectionView.Last.State.Summary.StartsWith("2v2"), "area renderer receives fixed bounded 2v2 state");
+        Assert(ArenaAreaSelectionView.Last.State.SelectedId == Full
+            && ArenaAreaSelectionView.Last.State.Options.Count == 4, "area renderer offers whole map and three bounded alternatives");
         Assert(f.SettingsOwner.KeyId == "unchanged", "area selection leaves unrelated raid key untouched");
     }
 
@@ -125,13 +123,14 @@ internal static class Program
     private static void FailedWritesRejectBeforeNonNullBranch()
     {
         using var f = new Fixture();
+        Settings.TeamDeathmatchArea.Value = South;
         Settings.RejectAreaWrite = true;
         int branches = f.Screen.NonNullSelectionBranches;
         SafeNative(() => f.Screen.OnLocationSelected(f.Screen.Locations[Customs]),
             "rejected Customs area write enters native null branch, not its later dereference");
         Assert(f.Screen.NonNullSelectionBranches == branches && f.Screen.SelectedLocation == null,
             "failed writer cannot enter native non-null selection branch");
-        Assert(Settings.TeamDeathmatchArea.Value == Full && !f.Screen._readyButton.gameObject.activeSelf,
+        Assert(Settings.TeamDeathmatchArea.Value == South && !f.Screen._readyButton.gameObject.activeSelf,
             "failed writer preserves area and leaves native Ready disabled");
         Settings.RejectAreaWrite = false;
         f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
@@ -149,11 +148,11 @@ internal static class Program
     {
         using var f = new Fixture(South, Day);
         f.Screen.SelectedLocation = f.Screen.Locations[Customs];
-        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Center,
+        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Full,
             "direct setter repairs area from incoming Customs despite old Factory settings");
         Settings.TeamDeathmatchArea.Value = Full;
         f.Screen.GroupRefresh();
-        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Center,
+        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Full,
             "group refresh passes through the same area repair");
         int writes = Settings.AreaWrites;
         f.Screen.SelectedLocation = null;
@@ -169,18 +168,18 @@ internal static class Program
     private static void RememberedMapAndF12Refresh()
     {
         using var f = new Fixture(Full, Customs);
-        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Center,
-            "Show prefix repairs remembered Customs before strict map filtering");
+        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Full,
+            "Show prefix preserves valid whole-map Customs before strict map filtering");
         Settings.GameMode.Value = ArenaModeCatalog.EndlessId;
         Updater(f).Tick();
-        Assert(!CustomsButton(f).gameObject.activeSelf && f.Screen.SelectedLocation == null,
-            "F12 mode away from TDM hides Customs and clears native selection");
-        Assert(!CustomsButton(f)._spawnableToggle.Toggle.IsToggled && !f.Screen._readyButton.gameObject.activeSelf,
-            "mode invalidation clears native toggle and Ready");
+        Assert(CustomsButton(f).gameObject.activeSelf && f.Screen.SelectedLocation?.Id == Customs,
+            "F12 mode away from TDM preserves supported whole-map Customs");
+        Assert(CustomsButton(f)._spawnableToggle.Toggle.IsToggled && f.Screen._readyButton.gameObject.activeSelf,
+            "supported mode switch preserves native toggle and Ready");
         Assert(ArenaModeSelectionView.Last.State.SelectedMode == ArenaModeCatalog.DeathmatchId,
             "mode view normalizes a legacy Endless F12 change to Deathmatch");
         Settings.GameMode.Value = ArenaModeCatalog.TeamDeathmatchId;
-        Settings.TeamDeathmatchArea.Value = Full;
+        Settings.TeamDeathmatchArea.Value = South;
         Updater(f).Tick();
         Assert(CustomsButton(f).gameObject.activeSelf, "F12 return to TDM rediscovers Customs without setting area");
         f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
@@ -255,17 +254,17 @@ internal static class Program
     private static void StrictStartAndTeamBoundaryStayStrict()
     {
         using var f = new Fixture(Full, Customs);
-        Settings.TeamDeathmatchArea.Value = Full;
+        Settings.TeamDeathmatchArea.Value = South;
         int writes = Settings.AreaWrites;
         var request = new LocalRaidSettings { location = Customs, playerSide = ESideType.Pmc, transitionType = ELocationTransition.Common };
         Assert(!ArenaMenuSelection.MatchesRequest(request) && Settings.AreaWrites == writes,
             "final request matching never auto-repairs stale Customs area");
         f.Team = true;
         Updater(f).Tick();
-        Assert(Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId && f.Screen.SelectedLocation == null,
-            "PFT roster refresh forces Tactical and removes Customs selection");
-        Assert(!CustomsButton(f).gameObject.activeSelf && !ArenaMenuSelection.IsMapDiscoverable(Customs),
-            "PFT cannot discover or keep bounded-only Customs");
+        Assert(Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId && f.Screen.SelectedLocation?.Id == Customs,
+            "PFT roster refresh forces Tactical and preserves supported full Customs selection");
+        Assert(CustomsButton(f).gameObject.activeSelf && ArenaMenuSelection.IsMapDiscoverable(Customs),
+            "PFT can discover whole-map Customs without receiving bounded starts");
     }
 
     private static void PftWrongF12ModeStillMaterializesMapsBeforePostfixRepair()
@@ -280,7 +279,7 @@ internal static class Program
             "PFT wrong saved mode must not prevent native map materialization before postfix mode repair");
         Assert(Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId
             && ArenaModeSelectionView.Last.State.TacticalOnly, "roster-only evidence repairs PFT mode without weakening final eligibility");
-        Assert(!CustomsButton(f).gameObject.activeSelf, "PFT still hides materialized Customs row");
+        Assert(CustomsButton(f).gameObject.activeSelf, "PFT now offers the materialized whole-map Customs row");
         f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
         Updater(f).Tick();
         Assert(f.Screen.SelectedLocation?.Id == Day && Settings.TeamDeathmatchArea.Value == Full,
@@ -320,7 +319,7 @@ internal static class Program
     private static void ProtectedZombieMapSelectionKeepsReadyAndTime()
     {
         using var f = new Fixture(mode: ArenaModeCatalog.ZombieId, team: true);
-        foreach (string map in new[] { Day, Night, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId })
+        foreach (string map in new[] { Day, Night, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId, Customs })
         {
             // Night shares Factory's day tile; the real time toggle reaches
             // SelectedLocation directly, independently of OnLocationSelected.
@@ -369,7 +368,7 @@ internal static class Program
                 && !f.Screen._conditions.Open, "unsupported PFT mode cannot select a map before mode repair: " + mode);
         }
         Settings.GameMode.Value = ArenaModeCatalog.ZombieId;
-        foreach (string map in new[] { Customs, ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
+        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
         {
             f.Screen.SelectedLocation = f.Screen.Locations[map];
             Assert(f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
@@ -424,7 +423,9 @@ internal static class Program
         Settings.TeamDeathmatchArea.Value = Full;
         Assert(callback(rendered, 12), "full-map TDM accepts valid symmetric total");
         Assert(!callback(view.Participants, 13), "full-map TDM rejects odd total");
-        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]); Updater(f).Tick();
+        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
+        Assert(ArenaAreaSelectionView.Last.Callback(Center), "explicit bounded choice succeeds after whole-map Customs");
+        Updater(f).Tick();
         Assert(!view.Participants.Available, "bounded Customs keeps existing team-size rules");
         Assert(!callback(rendered, 12), "bounded context rejects a retained full-map proposal");
         f.Screen.OnLocationSelected(f.Screen.Locations[Day]); Updater(f).Tick();
@@ -440,7 +441,7 @@ internal static class Program
         Settings.AreaTeamSize.Value = 2;
         f.Screen.ShowInternal(f.SettingsOwner);
         var callback = ArenaAreaSelectionView.Last.SizeCallback;
-        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 3
+        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 4
             && ArenaAreaSelectionView.Last.State.HasTeamSizeChoice,
             "native area adapter publishes three Customs choices and size state");
         Assert(callback(teams, 5) && Settings.AreaTeamSize.Value == 5
@@ -479,21 +480,18 @@ internal static class Program
             Assert(f.Screen.SelectedLocation?.Id == equator && ArenaMenuSelection.IsMapAvailable(equator),
                 "Equator selects full map through strict admission");
             Updater(f).Tick();
-            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Deathmatch and Gun Game",
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("Except Tactical"),
                 "Equator area hint names its actual modes");
-            foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch" })
+            foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch", "zombie" })
             {
                 Settings.GameMode.Value = mode;
                 Updater(f).Tick();
-                bool permitted = mode is "gungame" or "deathmatch";
+                bool permitted = mode != "tactical";
                 Assert(row.gameObject.activeSelf == permitted, "mode switch updates the owned Equator row");
-                if (!permitted)
-                {
-                    Assert(f.Screen.SelectedLocation == null, "unsupported mode clears remembered Equator selection");
-                    f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
-                    Assert(f.Screen.SelectedLocation == null, "direct unsupported map click fails closed");
-                }
-                else f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+                f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+                Assert(permitted ? f.Screen.SelectedLocation?.Id == equator && f.Screen._readyButton.gameObject.activeSelf
+                    : f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
+                    "Equator Ready and selection respect the five-opponent Tactical blocker");
             }
             ArenaClientConfig.Enabled = map => map != equator;
             Updater(f).Tick();
@@ -502,8 +500,8 @@ internal static class Program
             f.Screen.Close();
             ArenaClientConfig.Enabled = map => true;
             Settings.Allowlist = equator;
-            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
-                "Equator-only configuration offers solo Arena but never PFT");
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && ArenaMenuSelection.HasConfiguredMap(true),
+                "Equator-only configuration offers both solo and supported PFT formats");
         }
         finally { plugins.Clear(); }
         using var ordinary = new Fixture(arena: false, mode: "tactical");
@@ -538,26 +536,38 @@ internal static class Program
             Updater(f).Tick();
             Assert(row.gameObject.activeSelf && !equatorRow.gameObject.activeSelf && f.Screen.SelectedLocation?.Id == bay5,
                 "unavailable Equator cannot hide or deselect selected Bay5");
-            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Deathmatch and Gun Game",
-                "Bay5 area hint names its two admitted modes");
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Available in all Arena modes",
+                "Bay5 area hint names its admitted modes");
             ArenaClientConfig.Enabled = map => true;
-            foreach (string mode in new[] { "tactical", "gungame", "teamdeathmatch", "deathmatch" })
+            foreach (string mode in new[] { "tactical", "gungame", "teamdeathmatch", "deathmatch", "zombie" })
             {
                 Settings.GameMode.Value = mode;
                 Updater(f).Tick();
-                bool permitted = mode is "deathmatch" or "gungame";
-                Assert(row.gameObject.activeSelf == permitted && equatorRow.gameObject.activeSelf == permitted,
+                Assert(row.gameObject.activeSelf && equatorRow.gameObject.activeSelf == (mode != "tactical"),
                     "mode switch updates the owned Bay5 row independently alongside Equator");
-                if (!permitted)
-                {
-                    Assert(f.Screen.SelectedLocation == null && !row._spawnableToggle.Toggle.IsToggled
-                        && !f.Screen._readyButton.gameObject.activeSelf && !ArenaMenuSelection.MatchesRequest(request),
-                        "unsupported mode clears Bay5 toggle Ready and stale final request");
-                    f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
-                    Assert(f.Screen.SelectedLocation == null, "direct Bay5 click cannot bypass team-mode rejection");
-                }
-                else f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
+                f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
+                Assert(f.Screen.SelectedLocation?.Id == bay5 && f.Screen._readyButton.gameObject.activeSelf
+                    && ArenaMenuSelection.MatchesRequest(request), "every supported mode keeps Bay5 Ready and strict request");
             }
+            f.Team = true;
+            foreach (string squadMode in new[] { "tactical", "zombie" })
+            foreach (string squadMap in new[] { bay5, equator, Customs })
+            {
+                Settings.GameMode.Value = squadMode;
+                Updater(f).Tick();
+                f.Screen.OnLocationSelected(f.Screen.Locations[squadMap]);
+                bool allowed = squadMode != "tactical" || squadMap != equator;
+                Assert(allowed ? f.Screen.SelectedLocation?.Id == squadMap && f.Screen._readyButton.gameObject.activeSelf
+                    : f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
+                    "protected full-map selection respects exact capacity and exposes Ready: " + squadMap + "/" + squadMode);
+                if (allowed)
+                    Assert(ArenaMenuSelection.MatchesRequest(new LocalRaidSettings { location = squadMap,
+                        playerSide = ESideType.Pmc, transitionType = ELocationTransition.Common }),
+                        "authenticated expanded map survives final PFT request validation");
+            }
+            f.Team = false;
+            Settings.GameMode.Value = "deathmatch";
+            Updater(f).Tick();
             f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
             ArenaClientConfig.Enabled = map => map != bay5;
             Updater(f).Tick();
@@ -570,8 +580,8 @@ internal static class Program
             Assert(!row.gameObject.activeSelf && equatorRow.gameObject.activeSelf && f.Screen.SelectedLocation == null,
                 "client removal of selected Bay5 hides and deselects only its own row");
             Settings.Allowlist = bay5;
-            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
-                "Bay5-only configuration admits solo Arena and rejects PitFireTeam");
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && ArenaMenuSelection.HasConfiguredMap(true),
+                "Bay5-only configuration admits solo and supported PitFireTeam formats");
             Assert(f.Screen.ShowCalls == 1 && f.Screen.SubscriptionCount == 2,
                 "two optional row refreshes never rebuild the native screen or duplicate subscriptions");
         }

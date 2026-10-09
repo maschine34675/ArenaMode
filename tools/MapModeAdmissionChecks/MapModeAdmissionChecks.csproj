@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ProductionAreaCatalogSource Condition="'$(ProductionAreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</ProductionAreaCatalogSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionAreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs" Link="Production/ArenaBotSpawnPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/BurstSpawnPointSelector.cs" Link="Production/BurstSpawnPointSelector.cs" />
+  </ItemGroup>
+</Project>

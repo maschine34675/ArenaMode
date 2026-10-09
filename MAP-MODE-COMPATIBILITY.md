@@ -1,37 +1,42 @@
-# Karten und Modi – Stand 03.10.2026
+# Karten und Modi – Stand 09.10.2026
 
-Eine spätere Freigabe weiterer Kombinationen ist grundsätzlich möglich. Die
-aktuellen Sperren sind aber Teil gemeinsamer Client-/Server-Verträge und dürfen
-nicht nur im Menü entfernt werden. Diese Prüfung ändert keine Freigabe.
+Die gemeinsame Auswahlprüfung gilt im Menü, beim Armieren, bei Wiederholung und
+in der Server-Vorbereitung. Historische pauschale Sperren sind entfernt; konkrete
+Grenzen der Spawn- und Arealverwaltung bleiben erhalten.
 
-| Karten | Bereits erlaubt | Voraussetzung für weitere Modi |
-|---|---|---|
-| Factory Tag/Nacht, Labs, Labyrinth | Deathmatch, Gun Game, Tactical, Team DM | Keine zusätzliche Modussperre |
-| Bay5, Equator | Deathmatch, Gun Game | Geprüfte Teamstarts/Respawns; Tactical zusätzlich vollständige Gegnerformation |
-| Drei Customs-Areale | Unabhängiges Team DM, 2v2–5v5 | Area-Lifecycle und Besetzung vom Teammodus entkoppeln |
-| Ganz Customs und übrige EFT-Karten | Nicht freigegeben | Eigene Kartenintegration, Spawns/Zonen, Population und Navigation prüfen |
+| Karte | Deathmatch / Gun Game | Team DM | Tactical solo / PFT | Zombies solo / PFT |
+|---|---|---|---|---|
+| Factory Tag/Nacht, Labs, Labyrinth | Ja | Ja | Ja | Ja |
+| Bay5 | Ja | Ja | Ja | Ja |
+| Equator | Ja | Ja | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Ja |
+| Customs, ganze Karte | Ja | Ja | Ja | Ja |
+| Drei begrenzte Customs-Areale | Nein: Area-Anbindung fehlt | Ja, 2v2–5v5 | Nein: Area-Anbindung fehlt | Nein: Area-Anbindung fehlt |
 
-`ArenaMode.Shared/ArenaAreaCatalog.cs` prüft dieselbe Auswahl im Menü, beim
-Armieren, bei Wiederholung und in der Server-Vorbereitung. `ArenaAreaRuntime`
-aktiviert Wände, Navigation und Area-Respawns derzeit ausdrücklich nur in TDM;
-eine bloße Allowlist-Änderung würde diese Schutzmechanik in Einzelmodi auslassen.
-`ArenaParticipantPolicy` schließt begrenzte Areale vom Solo-Teilnehmermodell aus,
-weil diese bisher ihre Teamgröße verwenden.
+PFT setzt weiterhin die unterstützte Version, vier eingeladene Begleiter und die
+geschützte Ausrüstung voraus. Portierte Karten brauchen ArenaMapPort auf Client
+und Server; individuelle Karten-Allowlisten bleiben verbindlich. Andere EFT-Karten
+werden durch diese Änderung nicht freigegeben.
 
-`BurstSpawnPointSelector`/`BurstSpawnService` benötigen für Tactical fünf
-verschiedene gültige Gegnerpositionen, mindestens 25 m vom Spieler entfernt.
-Ein älterer Equator-Test dokumentiert nur vier entfernte Punkte vom Atrium aus;
-das ist ein Prüfhinweis, kein Nachweis für die aktuelle Szene. Insbesondere dort
-sollte eine neue Startformation vermessen werden, statt den globalen Abstand
-ungeprüft zu senken. Noch fehlende Teamabnahmen stehen in
-`BAY5-MAP-REVIEW.md` und `EQUATOR-MAP-REVIEW.md`.
+Für ganze Karten verwenden die Modi die bestehenden generischen Spawnpunkte.
+Team DM braucht dort keine vermessenen Fraktionsstarts wie die begrenzten Areale.
+Bay5 hat auch abseits der Spielerstarts genügend Punkte für den Fünfertrupp.
+Equator hat zwar genügend Punkte am ursprünglichen Spielereinstieg, aber nur vier
+mindestens 25 m entfernte Botpunkte vom Atrium (0, 0.2, 2). Ein überlebender
+PFT-Spieler bleibt beim Rundenwechsel am Ort; deshalb wäre die nächste
+Fünferformation nicht zuverlässig möglich. Die Sperre wird nicht durch einen
+kleineren globalen Sicherheitsabstand oder erfundene Startpunkte umgangen.
 
-Sinnvolle Reihenfolge: Team DM auf Bay5/Equator (Equator zunächst 2v2 als
-Voreinstellung), danach Tactical erst solo und anschließend mit PFT samt
-Rundenwechsel. Für Customs zunächst die Area-Laufzeit für DM/Gun Game
-verallgemeinern, anschließend Tactical. Große zusätzliche Karten vorzugsweise
-über vermessene kleine Areale erschließen; ganze Karten brauchen zusätzlich
-passende Such-/Bewegungsdistanzen, damit die Begegnungen nicht ausbleiben.
+`ArenaAreaRuntime` aktiviert Wände, Navigation und reservierte Area-Respawns
+ausdrücklich nur für unabhängiges Team DM. Andere Modi für die Konturen zu öffnen
+würde diese Schutzmechanik auslassen. `ArenaParticipantPolicy` trennt weiterhin
+ganze Karten mit Teilnehmerzahl von Arealen mit Teamgröße. Auf Customs bleibt die
+gespeicherte gültige Kontur erhalten; „Whole map“ ist jetzt eine echte vierte Wahl.
 
-Bay5-Zeiten und Equator-Wetter gehören zur tatsächlichen Kartenimplementierung
-in ArenaMapPort. Die zugehörigen Änderungen erweitern keine Arena-Modusfreigabe.
+Quellprüfung, Daten und Offline-Nachweise: `MAP-MODE-ACCESS-REVIEW.md`.
+Native Abnahme ist separat im aktuellen GPU-Bericht/Handoff dokumentiert; die
+Freigabematrix behauptet keinen vollständigen Dauertest aller Kombinationen.
+
+Hinweis für Testautomatisierung: Die externe UiBridge-`gpu-run raid`-Tabelle vom
+06.10.2026 kennt die neuen Freigaben noch nicht. Neue Kombinationen bis zu deren
+Aktualisierung über die echten Menübuttons auswählen; ihre alte Ablehnung ist
+keine Arena-Laufzeitsperre. Bay5-Zeiten und Equator-Wetter bleiben ArenaMapPort-Sache.

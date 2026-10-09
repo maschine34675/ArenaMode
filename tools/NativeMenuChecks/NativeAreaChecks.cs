@@ -24,26 +24,26 @@ internal static partial class Program
             "Retired South resolves to whole Factory without imposing a bounded team size");
         var pftState = ArenaAreaSelectionState.Create(day, "tactical", true, south, 7);
         Assert(pftState.SelectedId == full && pftState.Summary == "5v5 - fixed teams"
-            && pftState.ModeHint == "Tactical only - PitFireTeam", "PFT display describes protected Tactical 5v5 without bounded choices");
+            && pftState.ModeHint == "Full map - PitFireTeam squad", "PFT display describes protected Tactical 5v5 without bounded choices");
         foreach (string saved in new[] { null, "", full, south, center, contour, "unknown-area" })
         {
             var custom = ArenaAreaSelectionState.Create(customs, "teamdeathmatch", false, saved, 12);
-            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { contour, ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId })
-                && custom.SelectedId == contour && custom.Summary.Contains("2v2"),
-                "Customs offers three surveyed areas and migrates retired/invalid selections to the fixed contour");
+            Assert(custom.Options.Select(option => option.Id).SequenceEqual(new[] { full, contour, ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId })
+                && custom.SelectedId == (saved == contour ? contour : full)
+                && custom.Summary.Contains(saved == contour ? "2v2" : "12v12"),
+                "Customs offers whole map plus three surveyed areas and preserves a valid saved contour");
             var nights = ArenaAreaSelectionState.Create(night, "teamdeathmatch", false, saved, 5);
             Assert(nights.Options.Count == 1 && nights.SelectedId == full, "Night never offers Factory South");
         }
-        foreach (string mode in new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch" })
+        foreach (string mode in new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch", "zombie" })
         foreach (bool pft in new[] { false, true })
         foreach (string map in new[] { day, night, customs, "laboratory", "labyrinth", "Woods", null })
         {
             var state = ArenaAreaSelectionState.Create(map, mode, pft, center, 5);
-            bool admitted = map != null && map != "Woods" && (!pft || mode == "tactical")
-                && (map != customs || mode == "teamdeathmatch" && !pft);
+            bool admitted = map != null && map != "Woods" && (!pft || mode == "tactical" || mode == "zombie");
             Assert(state.Available == admitted, "Picker cannot create new map/mode/PFT combinations");
             foreach (var choice in state.Options)
-                Assert(ArenaAreaCatalog.TryResolve(choice.Id, map, mode, pft, out _, out _),
+                Assert(ArenaAreaCatalog.TryResolve(choice.Id, map, state.ModeId, pft, out _, out _),
                     "Every displayed area is accepted by the shared server contract");
         }
 
@@ -54,17 +54,17 @@ internal static partial class Program
         Settings.TeamDeathmatchArea.Value = full;
         var owner = Select(customs);
         int beforePosts = RequestHandler.PostCount;
-        Assert(ArenaMenuSelection.IsMapDiscoverable(customs) && !ArenaMenuSelection.IsMapAvailable(customs),
-            "Customs discovery must not require its saved area");
+        Assert(ArenaMenuSelection.IsMapDiscoverable(customs) && ArenaMenuSelection.IsMapAvailable(customs),
+            "Whole Customs is discoverable and available without a bounded area");
         Assert(Settings.TeamDeathmatchArea.Value == full && Settings.AreaChanges == 0,
             "Reading area proposals never writes settings");
-        Assert(ArenaMenuSelection.TryPrepareMapArea(owner, customs) && Settings.TeamDeathmatchArea.Value == contour,
-            "Exact Arena menu selection persists the Customs default");
+        Assert(ArenaMenuSelection.TryPrepareMapArea(owner, customs) && Settings.TeamDeathmatchArea.Value == full,
+            "Exact Arena menu selection preserves the whole-map preference");
         Assert(ArenaMenuSelection.MatchesRequest(Request(map: customs)), "Prepared Customs selection passes strict request validation");
         for (int i = 0; i < 50; i++) ArenaMenuSelection.TryPrepareMapArea(owner, customs);
-        Assert(Settings.AreaChanges == 1 && RequestHandler.PostCount == beforePosts,
+        Assert(Settings.AreaChanges == 0 && RequestHandler.PostCount == beforePosts,
             "Stable menu polling performs no repeated settings changes or raid announcements");
-        Assert(!ArenaMenuSelection.TrySelectArea(owner, customs, full) && Settings.TeamDeathmatchArea.Value == contour,
+        Assert(!ArenaMenuSelection.TrySelectArea(owner, customs, center) && Settings.TeamDeathmatchArea.Value == full,
             "An injected unsupported area click is rejected");
         Assert(ArenaMenuSelection.TrySelectArea(owner, customs, contour)
             && Settings.TeamDeathmatchArea.Value == contour
@@ -92,8 +92,9 @@ internal static partial class Program
         Settings.TeamDeathmatchArea.Value = center;
         owner.SelectedLocation.Id = customs;
         Settings.GameMode.Value = "gungame";
-        Assert(!ArenaMenuSelection.IsMapDiscoverable(customs) && !ArenaMenuSelection.TryPrepareMapArea(owner, customs),
-            "Leaving TDM makes Customs unavailable without silently changing mode");
+        Assert(ArenaMenuSelection.IsMapDiscoverable(customs) && ArenaMenuSelection.TryPrepareMapArea(owner, customs)
+            && Settings.GameMode.Value == "gungame" && Settings.TeamDeathmatchArea.Value == full,
+            "Leaving TDM keeps Customs available and selects whole map without changing mode");
         Settings.GameMode.Value = "teamdeathmatch";
         ArenaMenuSelection.ConfigureEligibility(() => new ArenaMenuSelection.Eligibility(false, false, "roster drift"), null);
         Assert(!ArenaMenuSelection.IsMapDiscoverable(day) && !ArenaMenuSelection.TryPrepareMapArea(owner, day),
@@ -103,12 +104,12 @@ internal static partial class Program
         Assert(!ArenaMenuSelection.IsMapDiscoverable(customs) && !ArenaMenuSelection.TryPrepareMapArea(owner, customs),
             "Server-disabled maps remain hidden even with a valid proposed area");
         ArenaClientConfig.Enabled = Settings.IsArenaMap;
-        Settings.TeamDeathmatchArea.Value = full;
+        Settings.TeamDeathmatchArea.Value = center;
         var invalid = Request(map: customs);
-        Assert(!ArenaMenuSelection.TryValidateAndFreezeRequest(invalid, out _) && Settings.TeamDeathmatchArea.Value == full,
+        Assert(!ArenaMenuSelection.TryValidateAndFreezeRequest(invalid, out _) && Settings.TeamDeathmatchArea.Value == center,
             "Final freeze must reject stale area without menu normalization");
         ArenaMenuSelection.EndFlow();
-        Assert(!ArenaMenuSelection.TryPrepareMapArea(owner, customs) && Settings.TeamDeathmatchArea.Value == full,
+        Assert(!ArenaMenuSelection.TryPrepareMapArea(owner, customs) && Settings.TeamDeathmatchArea.Value == center,
             "Retired ordinary settings object cannot mutate persisted area");
         ConfigureAreaNegotiation();
     }

@@ -68,14 +68,14 @@ try
             Need(ArenaAreaCatalog.TryResolve(area.Id,"bigmap","teamdeathmatch",false,out var resolved,out _)&&ReferenceEquals(resolved,area),"RESOLVE");
             Need(ArenaAreaCatalog.TryResolveTeamSize(area,size,out int selected,out _)&&selected==size,"TEAM-SIZE");
             var state=ArenaAreaSelectionState.Create("bigmap","teamdeathmatch",false,area.Id,12,size);
-            Need(state.Options.Select(o=>o.Id).SequenceEqual(ids)&&state.SelectedId==area.Id&&state.SelectedTeamSize==size,"UNIFIED-MENU");
-            Need(state.Options.Select(o=>o.Label).Distinct().Count()==3&&!state.Options.Any(o=>o.Label.Contains("team starts")||o.Label.Contains("contour")),"UNIFIED-LABELS");
+            Need(state.Options.Select(o=>o.Id).SequenceEqual(new[]{ArenaAreaCatalog.FullMapId}.Concat(ids))&&state.SelectedId==area.Id&&state.SelectedTeamSize==size,"UNIFIED-MENU");
+            Need(state.Options.Select(o=>o.Label).Distinct().Count()==4&&!state.Options.Any(o=>o.Label.Contains("team starts")||o.Label.Contains("contour")),"UNIFIED-LABELS");
         }
         foreach(string mode in new[]{"deathmatch","gungame","tactical"}) Need(!ArenaAreaCatalog.TryResolve(area.Id,"bigmap",mode,false,out _,out _),"UNSUPPORTED-MODE");
         Need(!ArenaAreaCatalog.TryResolve(area.Id,"bigmap","teamdeathmatch",true,out _,out _),"PFT-REJECTED");
         Need(!ArenaAreaCatalog.TryResolve(area.Id,"factory4_day","teamdeathmatch",false,out _,out _),"WRONG-MAP");
     }
-    foreach(string id in new[]{"customs-factory-center-polygon-v1","customs-factory-center-teams-v1","customs-factory-east-polygon-v1","customs-factory-center-v1","factory-south-v1","full-map"})
+    foreach(string id in new[]{"customs-factory-center-polygon-v1","customs-factory-center-teams-v1","customs-factory-east-polygon-v1","customs-factory-center-v1","factory-south-v1"})
         Need(!ArenaAreaCatalog.TryResolve(id,"bigmap","teamdeathmatch",false,out _,out _),"RETIRED-WIRE");
     Console.WriteLine($"CUSTOMS AREA REFRESH PRODUCTION PASSED ({checks} assertions)"); return 0;
 }

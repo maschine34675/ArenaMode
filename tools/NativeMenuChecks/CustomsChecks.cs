@@ -14,9 +14,9 @@ internal static partial class Program
         ConfigureAreaNegotiation();
         Settings.Allowlist = map;
         Settings.GameMode.Value = "endless";
-        Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
-            "Customs-only server permits solo entry into picker but does not offer PFT an unusable map");
-        Assert(!ArenaMenuSelection.IsMapAvailable(map), "Customs must stay unselectable before choosing its mode and area");
+        Assert(ArenaMenuSelection.HasConfiguredMap(false) && ArenaMenuSelection.HasConfiguredMap(true),
+            "Customs-only server permits solo and PFT entry into the picker");
+        Assert(ArenaMenuSelection.IsMapAvailable(map), "Deathmatch uses whole Customs regardless of the saved TDM contour");
         Settings.GameMode.Value = "teamdeathmatch";
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         Select(map);
@@ -32,14 +32,14 @@ internal static partial class Program
         Assert(visible && changes == 0 && clears == 0, "Valid Customs selection remains untouched");
         Settings.GameMode.Value = "gungame"; // native sidebar and F12 share this saved entry
         Refresh();
-        Assert(!visible && !selected && clears == 1 && changes == 1,
-            "Changing mode hides Customs and clears its stale native selection");
+        Assert(visible && selected && clears == 0 && changes == 0,
+            "Changing mode preserves Customs because Gun Game uses its whole map");
         Refresh();
-        Assert(changes == 1 && clears == 1, "Unchanged polling cannot toggle or clear the native row repeatedly");
+        Assert(changes == 0 && clears == 0, "Unchanged polling cannot toggle or clear the native row repeatedly");
         Settings.GameMode.Value = "teamdeathmatch";
         Refresh();
-        Assert(visible && !selected, "Returning to TDM restores its existing row without reselecting a stale map");
-        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
+        Assert(visible && selected, "Returning to TDM preserves its existing valid contour");
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterId;
         selected = true;
         Refresh();
         Assert(visible && selected && !ArenaMenuSelection.IsMapAvailable(map),
@@ -51,7 +51,7 @@ internal static partial class Program
         row.Close();
         Assert(changes == 0 && clears == 0, "A disposed view cannot change another screen or selection");
 
-        foreach (string mode in new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch" })
+        foreach (string mode in new[] { "endless", "rounds", "gungame", "tactical", "teamdeathmatch", "zombie" })
         foreach (string area in new[] { null, "", ArenaAreaCatalog.FullMapId, ArenaAreaCatalog.FactorySouthId, ArenaAreaCatalog.CustomsFactoryCenterId,
                      "customs-factory-center-v2", ArenaAreaCatalog.CustomsFactoryCenterTeamsId })
         {
@@ -60,7 +60,8 @@ internal static partial class Program
             Settings.GameMode.Value = mode;
             Settings.TeamDeathmatchArea.Value = area;
             int starts = RequestHandler.StartCount;
-            bool expected = mode == "teamdeathmatch" && area == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+            bool bounded = mode == "teamdeathmatch" && area == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+            bool expected = mode != "teamdeathmatch" || bounded || ArenaAreaCatalog.NormalizeId(area) == ArenaAreaCatalog.FullMapId;
             Assert(ArenaMenuSelection.IsMapAvailable(map) == expected, "Customs menu admission follows exact mode/area contract");
             bool accepted = Start(Request(map: map), out var task);
             Assert(accepted == expected, "Actual final local-start prefix matches Customs admission");
@@ -68,8 +69,8 @@ internal static partial class Program
                 Assert(task.IsFaulted && starts == RequestHandler.StartCount && ArenaAreaRuntime.ArmCalls == 0,
                     "Invalid Customs start never reaches profile snapshot announcement or runtime arming");
             else
-                Assert(ArenaAreaRuntime.ArmedArea == ArenaAreaCatalog.CustomsFactoryCenterTeams
-                    && JObject.Parse(RequestHandler.LastPostBody)["areaId"].Value<string>() == area,
+                Assert(ArenaAreaRuntime.ArmedArea == (bounded ? ArenaAreaCatalog.CustomsFactoryCenterTeams : null)
+                    && JObject.Parse(RequestHandler.LastPostBody)["areaId"].Value<string>() == (bounded ? area : ArenaAreaCatalog.FullMapId),
                     "Accepted Customs request freezes the same exact server/client area");
         }
 
@@ -80,7 +81,7 @@ internal static partial class Program
         int beforeTeam = RequestHandler.StartCount;
         Assert(!ArenaMenuSelection.IsMapAvailable(map) && !Start(Request(map: map), out var denied)
             && denied.IsFaulted && RequestHandler.StartCount == beforeTeam,
-            "Live PFT eligibility rejects Customs before a roster is frozen");
+            "Live PFT eligibility still rejects independent bounded TDM before a roster is frozen");
         ArenaMenuSelection.ConfigureEligibility(() => new ArenaMenuSelection.Eligibility(true, false, ""), null);
         ArenaClientConfig.Enabled = _ => false;
         Assert(!ArenaMenuSelection.IsMapAvailable(map) && !ArenaMenuSelection.HasConfiguredMap(false),

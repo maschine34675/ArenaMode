@@ -6,18 +6,18 @@ foreach ($arenaFault in @(
     @{ Name = 'MissingClientGuard'; Source = 'ArenaMode.Client/Session/ArenaMenuSelection.cs';
        Property = 'ProductionMenuSelectionSource';
        From = '|| BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId)'; To = '|| true';
-       Failure = 'server config alone never offers Equator without MapPort client' },
+       Failure = 'protected Zombie direct setter still rejects unavailable map: arena_equator' },
     @{ Name = 'MissingModeGuard'; Source = 'ArenaMode.Shared/ArenaAreaCatalog.cs'; Property = 'ProductionAreaCatalogSource';
-       From = 'if (ArenaMapCatalog.IsOptionalMap(map!) && (pitFireTeam'; To = 'if (false && (pitFireTeam';
+       From = 'if (ArenaMapCatalog.IsEquator(map!)'; To = 'if (false && ArenaMapCatalog.IsEquator(map!)';
        Failure = 'mode switch updates the owned Equator row' },
     @{ Name = 'MissingBay5ClientGuard'; Source = 'ArenaMode.Client/Session/ArenaMenuSelection.cs';
        Property = 'ProductionMenuSelectionSource';
        From = '!ArenaMapCatalog.IsOptionalMap(map)'; To = '!ArenaMapCatalog.IsEquator(map)';
-       Failure = 'server config alone never offers Bay5 without MapPort client' },
+       Failure = 'protected Zombie direct setter still rejects unavailable map: arena_bay5' },
     @{ Name = 'MissingBay5OwnedRow'; Source = 'ArenaMode.Shared/ArenaMapCatalog.cs'; Property = 'ProductionMapCatalogSource';
        From = '=> string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsOptionalMap(locationId);';
        To = '=> string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsEquator(locationId);';
-       Failure = 'mode switch updates the owned Bay5 row independently alongside Equator' }
+       Failure = 'unavailable Bay5 cannot hide or deselect selected Equator' }
 )) {
     $arenaSourcePath = Join-Path $arenaRepo $arenaFault.Source
     $arenaSource = [IO.File]::ReadAllText($arenaSourcePath)

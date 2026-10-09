@@ -56,7 +56,7 @@ internal sealed class ArenaAreaSelectionState
         ModeHint = selected == null ? string.Empty
             : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Team Deathmatch only - experimental"
             : pitFireTeam ? "Full map - PitFireTeam squad"
-            : ArenaMapCatalog.IsOptionalMap(map) ? "Deathmatch and Gun Game"
+            : ArenaMapCatalog.IsEquator(map) ? "Except Tactical: too few squad spawns"
             : "Available in all Arena modes";
     }
 

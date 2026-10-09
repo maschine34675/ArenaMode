@@ -23,6 +23,11 @@ The shared area catalog is production source. `AreaStandIns.cs` records the
 arming call only; it proves no Unity scene setup, NavMesh or live raid behavior.
 The 2026-09-07 standalone run passed 87 assertions.
 
+The October 9 map matrix additionally covers whole Customs across all solo modes,
+PFT discovery, and retaining its three surveyed TDM contours beside the new whole-map
+choice. Retired contours still fail at final start, even though the menu can offer
+a valid replacement. Whole-map selection must never implicitly become a contour.
+
 `Verify-QuietSettingsTransport.ps1` runs a temporary source mutant that restores
 `RequestHandler.GetJson` for the periodic read. The matching assertion must fail;
 the script then reruns the production checks and verifies that the production

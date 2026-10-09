@@ -35,11 +35,13 @@ try
     if(probe=="binding") {Console.WriteLine("AREA CONFIG BINDING PROBE PASSED");return 0;}
 
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,
-        ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId})
+        ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId,ArenaMapCatalog.CustomsId,
+        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id})
         foreach(var mode in ArenaModeCatalog.All)
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
-            bool allowed=mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId;
+            bool allowed=(mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId)
+                && !(ArenaMapCatalog.IsEquator(map) && mode.Id == ArenaModeCatalog.TacticalId);
             Need(team.Available==allowed,"PFT-MAP-ADMISSION",
                 $"{map}/{mode.Id}: protected squad map choices must agree with the supported team modes.");
             if(!allowed)continue;
@@ -49,9 +51,6 @@ try
             Need(team.Summary==(mode.Id==ArenaModeCatalog.ZombieId?"5-player squad":"5v5 - fixed teams"),
                 "PFT-MAP-SUMMARY","Zombie squad must not claim an opposing five-player team.");
         }
-    foreach(string map in new[]{ArenaMapCatalog.CustomsId,ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id})
-        Need(!ArenaAreaSelectionState.Create(map,ArenaModeCatalog.ZombieId,true,ArenaAreaCatalog.FullMapId,4).Available,
-            "PFT-MAP-BOUNDARY","Protected Zombies must retain bounded/ported map exclusions.");
 
     var offered=new HashSet<string>(StringComparer.Ordinal);
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,ArenaMapCatalog.LabyrinthId,
@@ -137,7 +136,7 @@ try
         Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-BIND","Actual BepInEx binding clamps obsolete saved IDs to full map.");
         var migrated=ArenaAreaSelectionState.Create(ArenaMapCatalog.CustomsId,"teamdeathmatch",false,
             Settings.TeamDeathmatchArea.Value,4,4);
-        Need(migrated.SelectedId==ArenaAreaCatalog.CustomsFactoryCenterTeamsId,"RETIRED-MENU","Customs menu proposes its supported surveyed contour after old config migration.");
+        Need(migrated.SelectedId==ArenaAreaCatalog.FullMapId,"RETIRED-MENU","Customs menu retains the valid full-map preference after old config migration.");
         Need(!ArenaAreaCatalog.TryResolve(retired,ArenaMapCatalog.CustomsId,"teamdeathmatch",false,out _,out _)
             &&!ArenaAreaCatalog.TryResolve(retired,ArenaMapCatalog.FactoryDayId,"teamdeathmatch",false,out _,out _),
             "RETIRED-PROTOCOL","Migration does not make an explicit retired arm ID valid.");

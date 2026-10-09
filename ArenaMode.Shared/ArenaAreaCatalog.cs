@@ -633,25 +633,36 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        // The imported maps have only been prepared for individual matches.
-        // Reject team starts through the same contract at menu, arm and replay.
-        if (ArenaMapCatalog.IsOptionalMap(map!) && (pitFireTeam
-            || !string.Equals(mode, "deathmatch", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(mode, "gungame", StringComparison.OrdinalIgnoreCase)))
-        { reason = "Imported Arena maps currently support Deathmatch and Gun Game only."; return false; }
+        // Full maps share the generic native zone/point planner. Bay5, Equator
+        // and Customs do not require a surveyed faction-start preset: Tactical
+        // asks for one complete opposing squad, independent TDM reserves each
+        // faction slot, and Zombies requests individual infected. Optional map
+        // presence and the authenticated PFT roster are checked by their owners.
+        // Expanding these maps does not revive legacy/unidentified wire modes
+        // whose population semantics were never admitted here. Existing native
+        // maps keep their separate legacy compatibility unchanged.
+        if (ArenaMapCatalog.RequiresModeFilteredView(map!)
+            && !string.Equals(mode, "deathmatch", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(mode, "gungame", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
+        { reason = "Select a current Arena mode for this map."; return false; }
+        // Equator's center has only four bot markers beyond the unchanged 25 m
+        // floor. Tactical needs five simultaneously, including after a surviving
+        // player's round transition; safe opening spawns alone cannot prove that.
+        if (ArenaMapCatalog.IsEquator(map!)
+            && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
+        { reason = "Equator has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
         if (id == FullMapId)
-        {
-            if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))
-            { reason = "Customs currently requires an experimental Team Deathmatch area."; return false; }
             return true;
-        }
         var candidate = id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams
             : id == CustomsFactoryEastPolygonId ? CustomsFactoryEastPolygon
             : id == CustomsYardId ? CustomsYard : null;
         if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
         if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
-        { reason = "Bounded areas currently require independent Team Deathmatch without PitFireTeam."; return false; }
+        { reason = "Bounded areas require the independent Team Deathmatch spawn and containment adapter; other modes and PitFireTeam are not supported inside these contours."; return false; }
         if (!string.Equals(map, candidate.MapId, StringComparison.OrdinalIgnoreCase))
         { reason = candidate.DisplayName + " requires map " + candidate.MapId + "."; return false; }
         area = candidate;

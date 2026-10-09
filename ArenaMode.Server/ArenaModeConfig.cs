@@ -82,10 +82,10 @@ public class ArenaModeConfig
             BurstMinAliveBots = 4,
         },
 
-        // Customs is admitted only with its versioned bounded independent TDM
-        // preset; enabling this map never enables a whole-map Arena raid.
-        // This is the native zone carried by the Factory Center bot markers,
-        // not Factory's similarly named single "BotZone".
+        // Whole-map Customs shares the generic client-owned population paths;
+        // versioned bounded areas retain their independent TDM adapter. This
+        // historical ambient-wave default is kept for existing configurations.
+        // Direct client spawning inspects all native scene zones independently.
         [ArenaMapCatalog.CustomsId] = new ArenaMapConfig
         {
             SpawnZones = "ZoneFactoryCenter",

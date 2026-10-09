@@ -98,14 +98,16 @@ public sealed partial class ArenaAreaServerTests
 {
     public static IEnumerable<object?[]> OptionalRouteCases()
     {
-        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
-            foreach (string? mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "endless", "rounds", null })
-                yield return new object?[] { map, mode, mode is "deathmatch" or "gungame" };
+        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.CustomsId })
+            foreach (string? mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie", "endless", "rounds", null })
+                yield return new object?[] { map, mode,
+                    (mode is "deathmatch" or "gungame" or "tactical" or "teamdeathmatch" or "zombie")
+                    && !(ArenaMapCatalog.IsEquator(map) && mode == "tactical") };
     }
 
     [Theory]
     [MemberData(nameof(OptionalRouteCases))]
-    public async Task OptionalMapRouteAdmitsOnlyIndividualModesAndKeepsSnapshotContract(string mapId, string? mode, bool expected)
+    public async Task ExpandedFullMapRouteKeepsConcreteBlockersAndSnapshotContract(string mapId, string? mode, bool expected)
     {
         var oldLookup = ArenaOptionalMapPolicy.FindLocation;
         try
@@ -127,7 +129,6 @@ public sealed partial class ArenaAreaServerTests
                 Assert.Equal(1, cloner.Calls);
                 Assert.Equal(Token, Sessions.GetArmToken(Session));
             }
-            Assert.False(ArenaAreaCatalog.TryResolve(null, mapId, mode, true, out _, out _));
         }
         finally { ArenaOptionalMapPolicy.FindLocation = oldLookup; }
     }

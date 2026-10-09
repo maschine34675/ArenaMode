@@ -521,7 +521,7 @@ public static class Settings
             "General",
             "Maps",
             ArenaMapCatalog.DefaultClientAllowlist,
-            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, bounded Customs, optional Equator/Bay5). " +
+            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, Customs, optional Equator/Bay5). " +
             "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
 
@@ -1100,7 +1100,7 @@ public static class Settings
             ArenaAreaCatalog.FullMapId,
             new ConfigDescription(
                 "Experimental bounded arena. Full-map preserves normal TDM settings. " +
-                "Customs requires a surveyed area for independent TDM; full-map Customs is unavailable. " +
+                "Customs offers the whole map or a surveyed area for independent TDM. " +
                 "Each Customs area has opposing faction starts and a selectable team size. " +
                 "All surveyed outlines have side walls only, with no height restriction. The old rectangle test areas are retired. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +

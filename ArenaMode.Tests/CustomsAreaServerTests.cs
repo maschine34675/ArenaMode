@@ -27,8 +27,8 @@ public sealed partial class ArenaAreaServerTests
 
     public static IEnumerable<object?[]> InvalidCustomsRequests()
     {
-        // Legacy clients may omit areaId entirely. No mode, including PFT,
-        // may turn that omission into a whole-map Customs Arena.
+        // This fixture always supplies a bounded area team-size override. That
+        // stale size must not be silently accepted for an omitted/full area.
         foreach (string? area in new[] { null, "", "  ", ArenaAreaCatalog.FullMapId })
             foreach (string? mode in new[] { null, Mode, "endless", "rounds", "gungame", "tactical" })
                 yield return [area, Customs, mode, false];
@@ -189,14 +189,16 @@ public sealed partial class ArenaAreaServerTests
     }
 
     [Fact]
-    public void CustomsMutatorRejectsWholeMapAtomicallyAndOrdinaryRaidPatchLeavesItsSourceUntouched()
+    public void CustomsWholeMapCloneRetainsAllSpawnsAndOrdinaryRaidPatchLeavesItsSourceUntouched()
     {
         var original = CustomsLocation();
         string before = JsonSerializer.Serialize(original);
         foreach (string? area in new[] { null, "", ArenaAreaCatalog.FullMapId })
         {
-            Assert.Throws<InvalidOperationException>(() => ArenaLocationMutator.Mutate(
-                original, ArenaContext.Config.Maps[Customs], ArenaContext.Config, Mode, area));
+            var clone = new SPTarkov.Server.Core.Utils.Cloners.FastCloner().Clone(original)!;
+            ArenaLocationMutator.Mutate(clone, ArenaContext.Config.Maps[Customs], ArenaContext.Config, Mode, area);
+            Assert.Equal(JsonSerializer.Serialize(original.SpawnPointParams), JsonSerializer.Serialize(clone.SpawnPointParams));
+            Assert.Empty(clone.Waves!);
             Assert.Equal(before, JsonSerializer.Serialize(original));
         }
         GenerateLocationAndLootPatch.Postfix(Session, Customs, original);
