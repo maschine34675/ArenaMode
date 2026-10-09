@@ -1,11 +1,28 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-08. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-09. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Zombie PFT map correction and native smoke (2026-10-09):** `ecc22d5` removes
+  the leftover Tactical-only area-menu guard and describes the Zombie squad as
+  five allies. Locally and on GPU2 deployed client ProductVersion
+  `0.1.0+ecc22d532124fd20b5dbd8c769dc7716f95428ac`, SHA256
+  `C2A295B57BB5A9DF86732B1F03FCD02015A23EB72E0F6C5FF42599D5A4B83CA1`;
+  server remains the `4ece234` build below. GPU2's newly added four companions
+  were invited through My Squad. Old-build missing controls reproduced; new
+  Factory day/night selection, confirmation and raid start pass. Local death,
+  ally spectator/Escape and wave 1 -> 2 with restored PMC/four fresh followers
+  pass. Protected exit preserved all 12 companion files byte-for-byte; player
+  profile changed only Health/Hideout bookkeeping timestamps. See
+  `GPU-ZOMBIE-PFT-MENU-RESULTS-20261009.md` for precise evidence and limitations.
+  Shared PFT teardown roster-observer false alarm remains a separate follow-up;
+  no gameplay no-contest or persistence loss. Offline checks 169/29/221/157 pass,
+  adversarial review clear, staged client zero errors/four existing warnings.
+  Config restored byte-identically; EFT closed, GPU2 server running. No push.
 
 - **Zombie + PitFireTeam survival (2026-10-08):** implemented optional four-companion
   team mode using own gear; see `ZOMBIE-PITFIRETEAM-REVIEW.md` for the exact lifecycle

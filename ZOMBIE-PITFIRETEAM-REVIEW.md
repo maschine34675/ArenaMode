@@ -96,9 +96,12 @@ Compiled fault injection checks the new runtime gates. Independent source review
 resolved empty-hostility, spectator-count, missing-body wipe and delayed-assist
 findings. Detailed final counts and installed build identity belong in HANDOFF.
 
-This is **not native acceptance** of Zombie+PFT. GPU2's `SPT-GPU-2` profile currently
-has no stored PFT companions. Existing stored companions belong to `spt41dev`;
-no companion data was fabricated, copied between profiles or modified for testing.
+The initial 2026-10-08 delivery had **no native acceptance**: GPU2's dedicated
+profile had no stored PFT companions. The user subsequently added four, and the
+2026-10-09 bounded native run passed initial activation, local death/spectator,
+one wave rebuild and protected exit. See `GPU-ZOMBIE-PFT-MENU-RESULTS-20261009.md`;
+its explicit limits supersede the initial lack of test prerequisites. No
+companion data was fabricated or copied between profiles for testing.
 
 For the native run use a test profile with four properly configured PFT companions:
 
@@ -118,5 +121,6 @@ For the native run use a test profile with four properly configured PFT companio
 6. Control raids: solo Zombies with kits/own gear, Tactical 5v5 and ordinary PFT.
    Also exercise maximum infected cap, closed/failed loading and a map transition.
 
-Native animation, actual follower wrapper activation, live team hostility and
-in-game profile neutrality remain unverified until this run is completed.
+The full protocol above remains broader than the successful 2026-10-09 smoke
+run: team wipe, surviving-PMC transitions, repeated rebuilds and control raids
+still require native acceptance. Do not infer those from the bounded result.
