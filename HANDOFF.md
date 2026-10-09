@@ -7,6 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Zombie voice budget and PFT fast path (2026-10-09, latest):** `ae6031a`
+  skips only PFT's redundant hostile-layer prefix for confirmed native infected;
+  `4220c05` handles native duplicate wait-layer entries without changing their
+  contents. Standby wake/custom brains/followers retain PFT. `66ab250` limits
+  repetitive zombie playback to six voices/four distant voices; nearby attack
+  and critical phrases, native/SAIN signals and other event subscribers pass.
+  Default-on immediate comparison switches: Zombie/PftFastPathEnabled and
+  Zombie/VoiceBudgetEnabled. Client `0.1.0+4220c0501c69d362dd868e2bec73a3b388bfe01f`,
+  SHA256 `96E93E67E1CAD501D6B7F6C335C9912143C0C626FECBB3A3F94CB2A111800D19`,
+  deployed locally/GPU2; restarted 21/21 plugins/Core identical. Server remains
+  `9c67ed7`, Core/SAIN/PFT/UiBridge unchanged. Unit 913/two skips, PFT 190/19 faults,
+  voices 325/19 faults and independent installed-IL/source review pass; staged
+  client zero errors/four existing warnings. Final solo 56-melee comparison has
+  >1 million PFT calls, only 223 standby fallbacks, zero errors; native attacks
+  and protected exit preserved. Voice admission confirms actual playing-source
+  observations and bounded suppression; subjective listening remains separate.
+  Same-raid settled PFT cost: off 0.33815–0.37805 ms/frame, return-on 0.04413
+  including the nested guard; no FPS/population-cap claim. Four companions were
+  invited natively, formed the exact squad, killed infected and kept fighting
+  after natural PMC death/spectator. Protected exit passed; the known roster
+  observer error immediately after native Stop(Left) recurred and remains a
+  separate teardown-diagnostic follow-up. Full profile changes only two
+  bookkeeping timestamps; all 12 PFT files unchanged, previous config values
+  restored, only two new default-on keys added. GPU2 EFT closed, server running;
+  no push, unrelated untracked Molotov assets preserved.
+  SAIN global pairs deliberately unchanged: required hearing/companion consumers
+  and lifetime prevent a verified safe Arena-owned skip. See
+  `GPU-ZOMBIE-VOICE-PFT-RESULTS-20261009.md`, `ZOMBIE-PFT-PERFORMANCE-REVIEW.md`,
+  `ZOMBIE-VOICE-BUDGET-REVIEW.md` and `ZOMBIE-SAIN-GLOBAL-REVIEW.md`.
+
 - **Zombie pending-wave fix and retreat measurement (2026-10-09, latest):**
   `5637ce7` shares the pending-arrival clearance barrier across solo/PFT and
   watchdog retirement; pending requests no longer expire into free capacity

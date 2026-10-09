@@ -15,11 +15,27 @@ Read `AGENTS.md` and `HANDOFF.md` first.
   melee and shooters. No supported-cap increase or FPS gain follows from this.
   Revisit only with evidence of a substantially different failed-path workload;
   see `ZOMBIE-RETREAT-REVIEW.md`.
-- Investigate PFT's hostile-layer filter work on generic infected with no
-  companions (roughly 0.22–0.25 inclusive ms/frame at 56 bot calls/frame in this
-  capture). Do not remove PFT hooks globally or infer pure overhead from
-  BigBrain/Arena prefixes that execute native AI internally. Population limits
-  remain unchanged until representative repeated measurements justify more.
+- PFT's redundant hostile-layer inspection now has an exact native-infected
+  fast path (`ae6031a`, corrected for repeated native wait-layer entries by
+  `4220c05`). Native wake, custom brains and followers retain PFT. Repetitive
+  voice playback now has a six/four-distance budget (`66ab250`), preserving
+  nearby attack/critical phrases and AI events. See
+  `GPU-ZOMBIE-VOICE-PFT-RESULTS-20261009.md` for source-bound native evidence
+  and comparison limits; subjective voice balance remains a listening check.
+- SAIN global infected-to-infected pair work is a potential upstream follow-up,
+  not an implemented Arena optimization. Required companion/hearing cross pairs,
+  early initialization and pending native-array jobs must survive. See
+  `ZOMBIE-SAIN-GLOBAL-REVIEW.md`; there is no verified safe owned filtering seam.
+  Measure live pair counts, empty sound-cache frequency and allocations before
+  requesting a sparse producer API. Native duplicate wait-layer growth is also
+  documented, but no native list is deduplicated or AI behavior changed here.
+  Population limits remain unchanged; inclusive parent/child profiler times
+  must not be added or treated as an FPS gain.
+- The already-known shared PFT roster-observer shutdown diagnostic recurred in
+  the final squad smoke: a living wrapper disappears immediately after native
+  `Stop(Left)`. Protected exit and complete profile/companion preservation pass.
+  A separate fix should stop live-roster observation during teardown of its
+  exact game, without weakening active-play identity or persistence guards.
 
 ## Difficulty controls in the native game menu
 
