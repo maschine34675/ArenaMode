@@ -27,7 +27,7 @@ namespace ArenaMode.Compat;
 /// reference: the external assembly is inspected only after BepInEx reports one
 /// of those exact plugins as loaded.
 /// </summary>
-internal static class PitFireTeamCompat
+internal static partial class PitFireTeamCompat
 {
     public const string PluginGuid = "xyz.pit.fireteam";
 
@@ -939,6 +939,9 @@ internal static class PitFireTeamCompat
             return false;
 
         if (!LiveTeamArena || _contractState != PitFireTeamContractState.Compatible)
+            return true;
+
+        if (ShouldDeferInitialRosterDiscovery())
             return true;
 
         // The lifecycle owns the old/new wrapper collections while rebinding.

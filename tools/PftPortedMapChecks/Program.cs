@@ -92,6 +92,7 @@ static class Program
             Check(rejected,"unsupported or mismatched plugin/assembly "+version);
         }
         assertions+=AreaHarness.Run();
+        assertions+=DiscoveryHarness.Run();
         Console.WriteLine($"PFT_PORTED_MAP_CHECKS_PASSED: {assertions} assertions; production resolver and native-hook binding, no game acceptance claimed.");
     }
 }

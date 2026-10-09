@@ -35,11 +35,12 @@ namespace EFT
         public GameStatus Status=GameStatus.Running;
         public BotsController BotsController {get;set;} =new();
     }
-    public class Player { public string ProfileId="local"; public bool IsYourPlayer=true; public GameWorld GameWorld; }
+    public class Player : UnityEngine.Object { public string ProfileId="local"; public bool IsYourPlayer=true; public GameWorld GameWorld; }
     public class Profile {public string Id; public string AccountId; public string ProfileId=>Id;}
     public class GameWorld { public string LocationId="arena_bay5"; public Player MainPlayer=new(); }
     public class BotOwner { public Profile Profile;public Player GetPlayer;public int Retired;}
 }
+namespace ArenaMode.Modes { internal static class ArenaMatchService { internal static object Current; } }
 public class BotsController {public AICoversData CoversData=new();public BotSpawner BotSpawner=new();}
 public class BotSpawner {public BotCreatorClient _botCreator;public int _inSpawnProcess;}
 public class BotCreatorClient
@@ -76,8 +77,12 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Compat
 {
-    public static class PitFireTeamCompat
+    internal static partial class PitFireTeamCompat
     {
+        internal static readonly object StateLock=new();
+        internal static EFT.Player _currentLocalPlayer;
+        internal static string _currentLocalProfileId;
+        internal static Dictionary<string,EFT.BotOwner> CurrentBodiesByAccountId=new();
         public static bool TeamArenaActive=true,IsFinalizing,RoundTransitionActive;
         public static Dictionary<string,string> CanonicalCompanionProfilesByAccountId=new();
     }

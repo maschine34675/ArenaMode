@@ -67,6 +67,21 @@ prevents deferred creation into the ended/disposed old game. It blocks stale
 creation even after reset and ignores another creator; existing runtime raw-player leases
 remain authoritative. No cancellation token is changed by this adapter.
 
+The native 91db119 Customs retest exposed one additional ordering seam: the
+per-frame PFT discovery runs before area readiness and deferred match creation.
+At 19:06:03.823 it latched a missing leader before the mode could bind him;
+area READY followed at .922, match creation at 19:06:04.014 and all four real
+follower activations at 19:06:04.561--19:06:05.548. The old latched error then
+ended the otherwise assembled team. Initial roster discovery now defers only
+while an exact current bounded area exists, no match object exists, and no
+leader reference, leader profile ID or follower body has ever been bound.
+The guard lives after the existing error/version/live checks: it never clears
+a latched error or bypasses authentication. Once the mode starts or any binding
+exists, the original physical roster checks remain mandatory. ReferenceEquals
+distinguishes an initially absent leader from a destroyed Unity leader object.
+The source-linked PFT harness tests those boundaries, including a ready area
+before match creation and destroyed/lost previously bound leaders.
+
 ## Four passes and evidence
 
 ### Failed-start integration follow-up (native 54d9f7e candidate)

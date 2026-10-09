@@ -5,10 +5,12 @@
     <AssemblyVersion>0.10.3.0</AssemblyVersion>
     <PortedSource Condition="'$(PortedSource)' == ''">../../ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs</PortedSource>
     <AreaSource Condition="'$(AreaSource)' == ''">../../ArenaMode.Client/Compat/PitFireTeamAreaSpawns.cs</AreaSource>
+    <DiscoverySource Condition="'$(DiscoverySource)' == ''">../../ArenaMode.Client/Compat/PitFireTeamCompat.Discovery.cs</DiscoverySource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(PortedSource)" Link="Production/PitFireTeamPortedMapSpawns.cs" />
     <Compile Include="$(AreaSource)" Link="Production/PitFireTeamAreaSpawns.cs" />
+    <Compile Include="$(DiscoverySource)" Link="Production/PitFireTeamCompat.Discovery.cs" />
     <Compile Include="../../ArenaMode.Shared/PitFireTeamVersions.cs" Link="Production/PitFireTeamVersions.cs" />
   </ItemGroup>
 </Project>

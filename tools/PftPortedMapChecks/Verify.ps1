@@ -5,6 +5,7 @@ if (!$OutputRoot) { $OutputRoot = Join-Path $repo ('artifacts/pft-ported-checks/
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 $ported = Get-Content (Join-Path $repo 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs') -Raw
 $area = Get-Content (Join-Path $repo 'ArenaMode.Client/Compat/PitFireTeamAreaSpawns.cs') -Raw
+$discovery = Get-Content (Join-Path $repo 'ArenaMode.Client/Compat/PitFireTeamCompat.Discovery.cs') -Raw
 $faults = @(
     @('core-unauthenticated','PortedSource','!PitFireTeamCompat.TeamArenaActive ||','false ||'),
     @('core-ordinary-map','PortedSource','if (!string.Equals(map, "arena_bay5", StringComparison.OrdinalIgnoreCase)','if (false && !string.Equals(map, "arena_bay5", StringComparison.OrdinalIgnoreCase)'),
@@ -20,14 +21,20 @@ $faults = @(
     @('area-drop-arrival-check','AreaSource','!state.Placement.Accept(owner.GetPlayer)','false'),
     @('area-drop-raw-veto','AreaSource','if (!state.Revoked && !state.Completed && Current(state.Raid)','if (true || !state.Revoked && !state.Completed && Current(state.Raid)'),
     @('area-early-release','AreaSource','return result && !state.Revoked;','state.Placement?.Dispose(); return result && !state.Revoked;'),
-    @('area-callback-counter','AreaSource','state.CounterSettled = state.Spawner._inSpawnProcess < beforeCallback;','state.CounterSettled = true;')
+    @('area-callback-counter','AreaSource','state.CounterSettled = state.Spawner._inSpawnProcess < beforeCallback;','state.CounterSettled = true;'),
+    @('discovery-never-defer','DiscoverySource','return ReferenceEquals(_currentLocalPlayer, null)','return false && ReferenceEquals(_currentLocalPlayer, null)'),
+    @('discovery-full-map','DiscoverySource','Areas.ArenaAreaRuntime.CurrentArea == null','false'),
+    @('discovery-live-match','DiscoverySource','Modes.ArenaMatchService.Current != null','false'),
+    @('discovery-destroyed-leader','DiscoverySource','ReferenceEquals(_currentLocalPlayer, null)','_currentLocalPlayer == null'),
+    @('discovery-lost-leader','DiscoverySource','string.IsNullOrEmpty(_currentLocalProfileId)','true'),
+    @('discovery-lost-body','DiscoverySource','CurrentBodiesByAccountId.Count == 0','true')
 )
 # Version guard has two independent exact checks; make this fault bypass all of
 # them so it represents a truly open contract rather than a surviving safe veto.
 $faults = @($faults | Where-Object { $_[0] -ne 'core-version' })
 foreach ($fault in $faults) {
     $name,$property,$before,$after = $fault
-    $source = if ($property -eq 'PortedSource') { $ported } else { $area }
+    $source = if ($property -eq 'PortedSource') { $ported } elseif ($property -eq 'DiscoverySource') { $discovery } else { $area }
     if (!$source.Contains($before)) { throw "Fault anchor missing: $name" }
     $file = Join-Path $OutputRoot ($name + '.cs')
     [IO.File]::WriteAllText($file, $source.Replace($before,$after))
