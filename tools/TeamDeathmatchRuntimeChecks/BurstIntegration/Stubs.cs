@@ -42,16 +42,23 @@ namespace EFT
     internal sealed class GameWorld { }
     internal interface IBotGame { BotsController BotsController { get; } }
     internal sealed class BotsController { internal BotSpawner BotSpawner = new(); }
-    internal sealed class Player { internal Vector3 Position = new(); }
+    internal sealed class Player { internal Vector3 Position = new(); internal string ProfileId = "test"; internal AiData AIData = new(); }
+    internal sealed class AiData { internal BotOwner BotOwner; }
+    internal sealed class Health { }
     internal sealed class BotOwner
     {
         internal Player GetPlayer = new();
-        internal WildSpawnType Role = WildSpawnType.pmcUSEC;
+        internal Profile Profile = new();
+        internal string ProfileId => Profile.Id;
+        internal Health HealthController = new();
+        internal WildSpawnType Role { get => Profile.Info.Settings.Role; set => Profile.Info.Settings.Role = value; }
         internal bool Retired;
+        internal BotOwner() { GetPlayer.AIData.BotOwner = this; }
     }
     internal sealed class BotZone { internal string NameZone = "test"; }
     internal sealed class Profile
     {
+        internal string Id = "test";
         internal Info Info = new();
     }
     internal sealed class Info { internal Settings Settings = new(); }
@@ -174,7 +181,7 @@ namespace ArenaMode.Bots
             Harness.AcceptedBodies++;
             if (ledger.Count > 0) ledger.RemoveAt(0);
         }
-        private static void RetireStaleSpawn(BotOwner bot, WildSpawnType role) { bot.Retired = true; }
+        private static void RetireStaleSpawn(BotOwner bot, WildSpawnType role) { if (bot != null) bot.Retired = true; }
         private static void NotifyArrivalRejected(Action callback) => callback?.Invoke();
         private static void NotifyDispatchFinished(Action<bool> callback, bool handed) => callback?.Invoke(handed);
         private static void RetrySoon() { }

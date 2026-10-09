@@ -28,8 +28,10 @@ namespace ArenaMode.Modes;
 /// MaxAlive 20 fills to 20 and then refills one at a time with no pause,
 /// exactly as fast as the player can create room (see
 /// ZombieWavePolicyTests.ThirtyZombieWaveFillsToMaxAliveThenRefillsOnePerIntervalAsAliveDrops).
-/// A wave ends only once everything in it has been spawned AND nothing from
-/// it is alive any more; only then does Intermission begin — except for the
+/// A wave ends only once every request has settled AND nothing from it is
+/// alive any more. A dispatched request still loading its body belongs to
+/// this wave, even when its earlier peers have all died. Only then does
+/// Intermission begin — except for the
 /// StuckWaveTimeoutSeconds watchdog (Config/State/Result), which force-clears
 /// whatever is alive once the wave is SATURATED (see "Saturated waves arm
 /// the watchdog too" below) with NO infected death for that long, since
@@ -216,7 +218,7 @@ internal static class ZombieWavePolicy
         internal int SpawnNow;
         internal int WaveNumber;
 
-        /// <summary>Zombies of the current wave not yet spawned, plus zombies of it still alive.</summary>
+        /// <summary>Zombies of the current wave not yet requested, still pending, or alive.</summary>
         internal int Remaining;
         internal Phase Phase;
 
@@ -328,10 +330,10 @@ internal static class ZombieWavePolicy
             // "This is already a CONTINUOUS refill".
             int target = Math.Min(maxAlive, remainingToSpawn + alive);
 
-            if (remainingToSpawn == 0 && alive <= 0)
+            if (remainingToSpawn == 0 && alive <= 0 && pending == 0)
             {
-                // Everything of this wave was spawned and none of it is alive:
-                // the wave is cleared, not merely "thinned out".
+                // Dispatch is not arrival. All requests must settle before a
+                // refill/body swap or protected team teardown can begin.
                 state.Phase = Phase.Intermission;
                 state.PhaseEndsAt = now + intermissionSeconds;
                 state.StuckAliveSince = float.NaN;
@@ -398,20 +400,11 @@ internal static class ZombieWavePolicy
                     // a value that never happened, even though its Result is
                     // computed with alive forced to 0.
                     state.StuckAliveSince = float.NaN;
-                    if (remainingToSpawn == 0)
-                    {
-                        // Tail case: nothing of the wave is left to spawn, so
-                        // clearing the alive infected ends the wave exactly
-                        // as before.
-                        state.Phase = Phase.Intermission;
-                        state.PhaseEndsAt = now + intermissionSeconds;
-                    }
-                    // Mid-wave case (remainingToSpawn > 0): stay in Phase.Wave
-                    // — the wave is NOT done, only capped. Clearing the alive
-                    // infected just frees the room the recursive call below
-                    // needs to resume spawning the remainder in this SAME
-                    // call, matching the continuous-refill behaviour the
-                    // policy already guarantees for an ordinary death.
+                    // Keep the same wave and re-evaluate its real pending
+                    // requests. The normal clearance rule above alone decides
+                    // whether retirement ended the wave: a delayed final body
+                    // still belongs to it. Mid-wave retirement instead frees
+                    // capacity to request the remainder in this same call.
                     var forced = Evaluate(ref state, config, now, 0, pending, arrivedTotal);
                     forced.ForceRetireStuckInfected = true;
                     return forced;
@@ -447,7 +440,7 @@ internal static class ZombieWavePolicy
             }
         }
 
-        int remaining = Math.Max(0, waveSize - state.SpawnedThisWave) + alive;
+        int remaining = Math.Max(0, waveSize - state.SpawnedThisWave) + alive + pending;
         float intermissionRemaining = state.Phase == Phase.Intermission ? Math.Max(0f, state.PhaseEndsAt - now) : 0f;
         string statusText = state.Phase == Phase.Wave
             ? $"WAVE {state.WaveNumber} | {remaining} LEFT"

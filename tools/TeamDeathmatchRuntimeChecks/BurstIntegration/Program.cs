@@ -118,6 +118,7 @@ internal static class Program
         Check(duplicate.Observers == 1 && !Harness.Body.Retired,
             "duplicate callback for admitted exact body cannot kill the valid actor");
         CheckInfectedTerminalAdmission();
+        CheckOwnedInfectedLifecycle();
         Console.WriteLine($"PASS: {_checks} extracted production burst preparation integration checks.");
         Console.WriteLine("ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED");
     }
@@ -183,5 +184,56 @@ internal static class Program
         Check(accepted == 1 && Harness.AcceptedBodies == 1 && !Harness.Body.Retired
             && BurstSpawnService.PendingScavReservations == 0 && activeData.Stops == 0,
             "current open Zombie wave accepts delayed infected and settles its reservation");
+    }
+
+    private static void CheckOwnedInfectedLifecycle()
+    {
+        foreach (int variant in Enumerable.Range(0, 11))
+        {
+            Harness.Reset(); Harness.DelayArrival = variant != 0;
+            Harness.ThrowNative = variant == 2;
+            ArenaMatchService.Current = new ArenaMatch { Mode = new ZombieMode() };
+            var data = new BotCreationData(); data.Profiles[0].Info.Settings.Role = WildSpawnType.infectedAssault;
+            Harness.Body.Role = WildSpawnType.infectedAssault;
+            int begun = 0, arrived = 0, rejected = 0, finished = 0;
+            bool current = true, handed = false;
+            BurstSpawnService.SpawnInfected(WildSpawnType.infectedAssault, BotDifficulty.normal,
+                _ => { arrived++; current = false; }, () => current,
+                () => { begun++; return variant != 3; },
+                value => { finished++; handed = value; }, () => rejected++);
+            Check(begun == 0 && finished == 0 && Harness.NativeCalls == 0, "owned infected waits for real preparation");
+            if (variant == 1) data.Profiles.Clear();
+            if (variant == 10) data.Profiles[0].Info.Settings.Role = WildSpawnType.pmcUSEC;
+            BotCreationData.Pending.SetResult(data);
+            if (variant is 1 or 3 or 10)
+            {
+                Check(!handed && finished == 1 && arrived == 0 && Harness.NativeCalls == 0 && data.Stops > 0
+                    && BurstSpawnService.PendingScavReservations == 0,
+                    "owned infected known predispatch failure settles false and cancels only unsubmitted work");
+                continue;
+            }
+            Check(handed && finished == 1 && begun == 1 && data.Stops == 0, "owned infected native handoff stays uncertain until callback even if call throws");
+            if (variant == 2) { Check(arrived == 0, "native exception is not an arrival"); continue; }
+            if (variant == 4) current = false;
+            if (variant == 5) Harness.Body.Role = WildSpawnType.pmcUSEC;
+            if (variant == 6) Harness.Body.GetPlayer.AIData.BotOwner = new BotOwner();
+            if (variant == 7) Harness.Body.GetPlayer.ProfileId = "different";
+            if (variant == 8) Harness.Body.Profile.Id = Harness.Body.GetPlayer.ProfileId = null;
+            if (variant == 9) Harness.Body.HealthController = null;
+            if (variant != 0) Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
+            if (variant is 4 or 5 or 6 or 7 or 8 or 9)
+            {
+                Check(arrived == 0 && rejected == 1 && Harness.Body.Retired && Harness.AcceptedBodies == 0,
+                    "closed or malformed infected arrival is retired before hostility and observer");
+                continue;
+            }
+            Check(arrived == 1 && !Harness.Body.Retired, "current owned infected reaches observer once");
+            Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
+            Check(arrived == 1 && rejected == 0 && !Harness.Body.Retired, "same owned infected duplicate does not retire the admitted body");
+            var extra = new BotOwner { Role = WildSpawnType.infectedAssault };
+            Harness.Game.BotsController.BotSpawner.Arrival(extra);
+            Check(arrived == 1 && rejected == 1 && extra.Retired && !Harness.Body.Retired,
+                "different duplicate is retired and rejected without replacing valid infected");
+        }
     }
 }

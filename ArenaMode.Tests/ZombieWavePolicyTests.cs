@@ -29,6 +29,59 @@ public sealed class ZombieWavePolicyTests
         Assert.Equal(8, ZombieWavePolicy.WaveSize(Config(start: 8, growth: 0), 50));
     }
 
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(10f)]
+    public void FinalPendingRequestKeepsItsWaveUntilItArrivesAndDies(float intermission)
+    {
+        var config = Config(start: 1, growth: 0, intermission: intermission);
+        var state = ZombieWavePolicy.Initial();
+        Assert.Equal(1, ZombieWavePolicy.Evaluate(ref state, config, 0, 0, 0).SpawnNow);
+
+        foreach (float now in new[] { .1f, 5f, 25f, 100f })
+        {
+            var waiting = ZombieWavePolicy.Evaluate(ref state, config, now, 0, 1);
+            Assert.Equal(ZombieWavePolicy.Phase.Wave, waiting.Phase);
+            Assert.Equal(1, waiting.WaveNumber);
+            Assert.Equal(1, waiting.Remaining);
+            Assert.Equal(0, waiting.SpawnNow);
+            Assert.False(waiting.ForceRetireStuckInfected);
+        }
+        var arrived = ZombieWavePolicy.Evaluate(ref state, config, 101, 1, 0, 1);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, arrived.Phase);
+        var cleared = ZombieWavePolicy.Evaluate(ref state, config, 102, 0, 0, 1);
+        Assert.Equal(intermission == 0 ? ZombieWavePolicy.Phase.Wave : ZombieWavePolicy.Phase.Intermission, cleared.Phase);
+        Assert.Equal(intermission == 0 ? 2 : 1, cleared.WaveNumber);
+    }
+
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(10f)]
+    public void WatchdogRetiresAliveBodiesWithoutForgivingPendingTail(float intermission)
+    {
+        var config = Config(start: 2, growth: 0, interval: .1f,
+            intermission: intermission, stuckWaveTimeout: 1);
+        var state = ZombieWavePolicy.Initial();
+        ZombieWavePolicy.Evaluate(ref state, config, 0, 0, 0);
+        ZombieWavePolicy.Evaluate(ref state, config, .1f, 1, 0, 1);
+        ZombieWavePolicy.Evaluate(ref state, config, .2f, 1, 1, 1);
+        var forced = ZombieWavePolicy.Evaluate(ref state, config, 2, 1, 1, 1);
+        Assert.True(forced.ForceRetireStuckInfected);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, forced.Phase);
+        Assert.Equal(1, forced.WaveNumber);
+        Assert.Equal(1, forced.Remaining);
+        Assert.Equal(0, forced.SpawnNow);
+        var waiting = ZombieWavePolicy.Evaluate(ref state, config, 30, 0, 1, 1);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, waiting.Phase);
+        Assert.False(waiting.ForceRetireStuckInfected);
+        var arrived = ZombieWavePolicy.Evaluate(ref state, config, 31, 1, 0, 2);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, arrived.Phase);
+        Assert.False(arrived.ForceRetireStuckInfected);
+        var cleared = ZombieWavePolicy.Evaluate(ref state, config, 31.1f, 0, 0, 2);
+        Assert.Equal(intermission == 0 ? 2 : 1, cleared.WaveNumber);
+        Assert.Equal(intermission == 0 ? ZombieWavePolicy.Phase.Wave : ZombieWavePolicy.Phase.Intermission, cleared.Phase);
+    }
+
     [Fact]
     public void DefaultWaveSizingMatchesTheRequestedBiggerWaveDefaults()
     {

@@ -78,7 +78,15 @@ if (!$BaselineOnly) {
            Failure = 'terminal infected callback is retired before observer and releases its reservation' },
         @{ Name = 'late-native-admission'; Find = 'if (explicitFaction && (!IsRequestStillCurrent(requestStillCurrent, role)';
            Replace = 'if (explicitFaction && (false';
-           Failure = 'expired native callback is individually retired without cancelling dispatched work' }
+           Failure = 'expired native callback is individually retired without cancelling dispatched work' },
+        @{ Name = 'infected-handoff-not-owned'; Find = 'if (ownedInfected) handedToNative = true;'; Replace = 'if (false) handedToNative = true;';
+           Failure = 'owned infected native handoff stays uncertain until callback even if call throws' },
+        @{ Name = 'infected-arrival-role-ignored'; Find = '|| bot.Profile?.Info?.Settings?.Role != role'; Replace = '|| false';
+           Failure = 'closed or malformed infected arrival is retired before hostility and observer' },
+        @{ Name = 'infected-body-identity-ignored'; Find = '|| !ReferenceEquals(bot.GetPlayer.AIData?.BotOwner, bot)'; Replace = '|| false';
+           Failure = 'closed or malformed infected arrival is retired before hostility and observer' },
+        @{ Name = 'infected-duplicate-ignored'; Find = 'if ((explicitFaction || ownedInfected) && factionArrivalSeen)'; Replace = 'if (explicitFaction && factionArrivalSeen)';
+           Failure = 'same owned infected duplicate does not retire the admitted body' }
     )
     foreach ($fault in $faults) {
         # Only the exact extracted production methods are compiled here. The

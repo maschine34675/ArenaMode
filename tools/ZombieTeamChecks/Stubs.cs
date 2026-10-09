@@ -175,12 +175,17 @@ namespace ArenaMode.Bots
     public static class ZombieSpawnService
     {
         public static int Alive, Pending, ConfirmedArrivals, Dispatched, Retired;
-        public static void Reset() { Alive=Pending=ConfirmedArrivals=Dispatched=Retired=0; }
+        public static int FailedDispatches;
+        public static bool RejectRequest;
+        public static string PendingFailure;
+        public static void Reset() { Alive=Pending=ConfirmedArrivals=Dispatched=Retired=FailedDispatches=0; RejectRequest=false;PendingFailure=null; }
+        public static int ConsumeFailedDispatches() { int result=FailedDispatches;FailedDispatches=0;return result; }
+        public static bool TryGetPendingFailure(out string reason) { reason=PendingFailure; return reason!=null; }
         public static int CountAliveInfected() => Alive;
         public static void RegisterBackupTargets(object x) { }
         public static bool TryMapRole(string s,out int r) { r=0; return true; }
         public static bool TryMapDifficulty(string s,out int r) { r=0; return true; }
-        public static bool TryRequest(int r,int d) { Dispatched++; Pending++; return true; }
+        public static bool TryRequest(int r,int d) { if(RejectRequest) return false; Dispatched++; Pending++; return true; }
         public static void RetireAllAliveInfected() { Retired+=Alive; Alive=0; }
         public static void NudgeIdleZombies(UnityEngine.Vector3 p) { }
     }

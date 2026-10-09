@@ -402,6 +402,11 @@ internal sealed partial class ZombieTeamRuntime
 
     private void FailTeamTransition(string reason) => EndSurvival(true, reason);
 
+    internal void EndNoContest(string reason)
+    {
+        if (IsCurrentRaid()) FailTeamTransition(reason);
+    }
+
     private void EndSurvival(bool noContest, string reason)
     {
         if (_disposed || _phase == TeamPhase.Ended) return;

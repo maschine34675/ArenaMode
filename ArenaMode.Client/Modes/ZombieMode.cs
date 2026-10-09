@@ -63,6 +63,7 @@ public sealed class ZombieMode : IArenaMode
     private float _soloDefeatedAt;
     private float _nextStopAttempt;
     private string _resultExitProblem;
+    private string _soloNoContestReason;
     private readonly ArenaReplayWaitPolicy _resultReplay = new();
 
     // Frozen at OnMatchStart; never re-read from Settings afterward (repo
@@ -126,8 +127,8 @@ public sealed class ZombieMode : IArenaMode
     internal bool ResultPanelReady => HasResult && _soloResultPanelReady;
     internal bool ResultOwnsCurrentRaid => HasResult && IsCurrentRaid()
         && ReferenceEquals(ArenaMatchService.Current, _match);
-    internal string ResultHeading => "SURVIVAL ENDED";
-    internal string ResultDetail => $"Wave {_waveNumber} | {_zombiesKilled} zombie kills";
+    internal string ResultHeading => _soloNoContestReason == null ? "SURVIVAL ENDED" : "NO CONTEST";
+    internal string ResultDetail => _soloNoContestReason ?? $"Wave {_waveNumber} | {_zombiesKilled} zombie kills";
     internal string ResultExitStatus => _resultExitProblem ?? (ArenaSession.ReplaySeconds > 0f
         ? "Returning to menu after the death replay…" : "Returning to menu…");
     internal bool TryRecordLocalDeath()
@@ -319,15 +320,24 @@ public sealed class ZombieMode : IArenaMode
         {
             _nextWaveEvaluateAt = now + WaveEvaluateIntervalSeconds;
 
+            if (ZombieSpawnService.TryGetPendingFailure(out string spawnFailure))
+            {
+                if (_team != null) _team.EndNoContest(spawnFailure);
+                else EndSoloNoContest(spawnFailure);
+                return;
+            }
+            // Asynchronous profile/placement failure is known before native
+            // handoff. Restore those slots before the clearance decision;
+            // unresolved native requests remain counted, never free capacity.
+            int failedDispatches = ZombieSpawnService.ConsumeFailedDispatches();
+            for (int i = 0; i < failedDispatches; i++)
+                ZombieWavePolicy.ReportFailedDispatch(ref _waveState);
+
             int alive = ZombieSpawnService.CountAliveInfected();
             int pending = ZombieSpawnService.Pending;
             int arrivedTotal = ZombieSpawnService.ConfirmedArrivals;
-            // Do not retire the team underneath an already dispatched final
-            // infected. The solo director's historical timing is unchanged.
-            if (_team != null && alive == 0 && pending > 0
-                && _waveState.Phase == ZombieWavePolicy.Phase.Wave
-                && _waveState.SpawnedThisWave >= ZombieWavePolicy.WaveSize(_config, _waveState.WaveNumber))
-                return;
+            // The shared policy owns pending-arrival barriers for both solo
+            // refill and protected team teardown, including watchdog clears.
             var result = ZombieWavePolicy.Evaluate(ref _waveState, _config, now, alive, pending, arrivedTotal);
 
             _phase = result.Phase;
@@ -503,6 +513,19 @@ public sealed class ZombieMode : IArenaMode
         if (Time.unscaledTime < _nextStopAttempt) return;
         _nextStopAttempt = Time.unscaledTime + 1f;
         TdmMatchExit.TryStop(_game, _world, _localId, ReportResultExitProblem);
+    }
+
+    private void EndSoloNoContest(string reason)
+    {
+        if (!IsCurrentRaid() || IsComplete) return;
+        _soloNoContestReason = reason;
+        _soloDefeated = true;
+        _soloResultPanelReady = true;
+        _resultExitRequested = true; // no death happened, so no replay to await
+        _soloDefeatedAt = Time.unscaledTime;
+        _match.Scoreboard.ResetAssists();
+        _match.ReportTextCallout(ResultHeading);
+        Plugin.ModLogger.LogWarning("Zombie survival ended no contest: " + reason);
     }
 
     public void OnLocalRespawn(Player player)

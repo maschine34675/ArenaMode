@@ -32,8 +32,9 @@ namespace ArenaMode.Bots;
 /// see its own doc comment). ZombieWavePolicy needs "requests accepted but
 /// not yet confirmed alive or dead" as an input ZombieMode can read every
 /// Tick, and BurstSpawnService's ledgers are private to that class. The
-/// pattern — a list of request timestamps, aged out after a timeout — mirrors
-/// BurstSpawnService.CountPending/InFlightSeconds.
+/// Requests never become free capacity merely because time passed. Preparation
+/// failures settle explicitly; ambiguous native activation ends survival after
+/// a bounded wait rather than allowing a late body into another wave.
 ///
 /// TryMapRole/TryMapDifficulty are the one place the (string) ZombieRoleMix/
 /// ZombieProfilePlan vocabulary turns into native WildSpawnType/BotDifficulty
@@ -44,14 +45,12 @@ namespace ArenaMode.Bots;
 internal static class ZombieSpawnService
 {
     /// <summary>
-    /// How long a dispatched request may go unconfirmed before this ledger
-    /// stops counting it as pending. Mirrors BurstSpawnService.InFlightSeconds:
-    /// profile generation is a server round trip, and a request that silently
-    /// fails after SpawnInfected returned true (no profiles came back, the
-    /// zone emptied out, etc.) must not permanently inflate Pending and starve
-    /// the wave of every further spawn.
+    /// Separate clocks: cold profile/pool work may take minutes, but native
+    /// activation after submission should resolve promptly. Expiry ends the
+    /// match; it never releases a slot or cancels uncertain native work.
     /// </summary>
-    private const float PendingTimeoutSeconds = 20f;
+    private const float PreparationTimeoutSeconds = 300f;
+    private const float NativeArrivalTimeoutSeconds = 60f;
 
     /// <summary>
     /// One ledger entry per dispatched-but-unconfirmed request, keyed by an
@@ -62,32 +61,55 @@ internal static class ZombieSpawnService
     /// request), and popping an arbitrary FIFO slot would attribute one
     /// request's arrival to a different one's age.
     /// </summary>
-    private readonly struct PendingEntry
+    private sealed class PendingEntry
     {
         internal readonly int RequestId;
-        internal readonly float DispatchedAt;
-        internal PendingEntry(int requestId, float dispatchedAt)
+        internal readonly int Generation;
+        internal readonly float StartedAt;
+        internal float NativeStartedAt = float.NaN;
+        internal PendingEntry(int requestId, int generation, float startedAt)
         {
             RequestId = requestId;
-            DispatchedAt = dispatchedAt;
+            Generation = generation;
+            StartedAt = startedAt;
         }
     }
 
     private static readonly List<PendingEntry> PendingRequests = new List<PendingEntry>(8);
     private static int _nextRequestId;
     private static int _confirmedArrivals;
+    private static int _generation;
+    private static int _failedDispatches;
+    private static string _pendingFailure;
 
     /// <summary>True: Stage C's native spawn path (BurstSpawnService.SpawnInfected) is wired.</summary>
     internal static bool IsReady => true;
 
     /// <summary>Spawn requests accepted but not yet confirmed alive or dead.</summary>
-    internal static int Pending
+    internal static int Pending => PendingRequests.Count;
+
+    internal static int ConsumeFailedDispatches()
     {
-        get
-        {
-            AgeOutPending();
-            return PendingRequests.Count;
-        }
+        int count = _failedDispatches;
+        _failedDispatches = 0;
+        return count;
+    }
+
+    internal static bool TryGetPendingFailure(out string reason)
+    {
+        if (_pendingFailure == null)
+            foreach (var entry in PendingRequests)
+            {
+                bool preparing = float.IsNaN(entry.NativeStartedAt);
+                float elapsed = Time.time - (preparing ? entry.StartedAt : entry.NativeStartedAt);
+                float timeout = preparing ? PreparationTimeoutSeconds : NativeArrivalTimeoutSeconds;
+                if (elapsed < timeout) continue;
+                _pendingFailure = $"infected request {entry.RequestId} {(preparing ? "preparation" : "native activation")} "
+                    + $"did not settle within {timeout:0}s; {PendingRequests.Count} reservation(s) retained";
+                break;
+            }
+        reason = _pendingFailure;
+        return reason != null;
     }
 
     /// <summary>
@@ -108,8 +130,11 @@ internal static class ZombieSpawnService
     /// <summary>Called by ZombieMode at both OnMatchStart and OnMatchEnd (idempotent).</summary>
     internal static void Reset()
     {
+        unchecked { _generation++; }
         PendingRequests.Clear();
         _confirmedArrivals = 0;
+        _failedDispatches = 0;
+        _pendingFailure = null;
     }
 
     /// <summary>
@@ -120,11 +145,46 @@ internal static class ZombieSpawnService
     /// </summary>
     internal static bool TryRequest(WildSpawnType role, BotDifficulty difficulty)
     {
+        if (_pendingFailure != null) return false;
         int requestId = unchecked(++_nextRequestId);
-        bool dispatched = BurstSpawnService.SpawnInfected(role, difficulty, bot => OnZombieArrived(requestId, bot));
-        if (dispatched)
-            PendingRequests.Add(new PendingEntry(requestId, Time.time));
+        var entry = new PendingEntry(requestId, _generation, Time.time);
+        // Register before launching: warmed preparation can arrive synchronously.
+        PendingRequests.Add(entry);
+        bool dispatched = BurstSpawnService.SpawnInfected(role, difficulty,
+            bot => OnZombieArrived(entry, bot),
+            requestCurrent: () => IsPending(entry) && !TryGetPendingFailure(out _),
+            beginNativeDispatch: () => BeginNativeDispatch(entry),
+            dispatchFinished: handed => OnDispatchFinished(entry, handed),
+            arrivalRejected: () => OnArrivalRejected(entry));
+        // A synchronous preflight rejection has no asynchronous callbacks; the
+        // caller rolls its optimistic wave slot back exactly once.
+        if (!dispatched) PendingRequests.Remove(entry);
         return dispatched;
+    }
+
+    private static bool IsPending(PendingEntry entry)
+        => entry.Generation == _generation && PendingRequests.Contains(entry);
+
+    private static bool BeginNativeDispatch(PendingEntry entry)
+    {
+        if (!IsPending(entry) || !float.IsNaN(entry.NativeStartedAt) || TryGetPendingFailure(out _)) return false;
+        entry.NativeStartedAt = Time.time;
+        return true;
+    }
+
+    private static void OnDispatchFinished(PendingEntry entry, bool handedToNative)
+    {
+        if (!IsPending(entry) || handedToNative || _pendingFailure != null) return;
+        PendingRequests.Remove(entry);
+        _failedDispatches++;
+    }
+
+    private static void OnArrivalRejected(PendingEntry entry)
+    {
+        if (entry.Generation != _generation || _pendingFailure != null) return;
+        // Rejection can mean an unexpected duplicate or unverified body. Do not
+        // infer from it that a native slot is free, even after an earlier arrival.
+        _pendingFailure = $"infected request {entry.RequestId} produced an unverified native arrival";
     }
 
     /// <summary>
@@ -242,21 +302,22 @@ internal static class ZombieSpawnService
     /// decompile-verified) — so a freshly spawned zombie starts hunting
     /// immediately, with or without the native bridge armed (decision 4).
     /// </summary>
-    private static void OnZombieArrived(int requestId, BotOwner bot)
+    private static void OnZombieArrived(PendingEntry entry, BotOwner bot)
     {
         try
         {
-            for (int i = 0; i < PendingRequests.Count; i++)
+            if (!IsPending(entry) || _pendingFailure != null) return;
+            if (bot == null || bot.HealthController == null)
             {
-                if (PendingRequests[i].RequestId == requestId)
-                {
-                    PendingRequests.RemoveAt(i);
-                    break;
-                }
-            }
-
-            if (bot == null || bot.HealthController == null || !bot.HealthController.IsAlive)
+                OnArrivalRejected(entry);
                 return;
+            }
+            PendingRequests.Remove(entry);
+            if (!bot.HealthController.IsAlive)
+            {
+                _failedDispatches++;
+                return;
+            }
 
             // Counted here, independent of the player-awareness steps below:
             // ZombieWavePolicy's stuck-wave watchdog (see its own doc
@@ -310,16 +371,6 @@ internal static class ZombieSpawnService
             distance = candidate;
         }
         return nearest;
-    }
-
-    private static void AgeOutPending()
-    {
-        var cutoff = Time.time - PendingTimeoutSeconds;
-        for (var i = PendingRequests.Count - 1; i >= 0; i--)
-        {
-            if (PendingRequests[i].DispatchedAt < cutoff)
-                PendingRequests.RemoveAt(i);
-        }
     }
 
     /// <summary>

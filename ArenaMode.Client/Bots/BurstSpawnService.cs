@@ -213,6 +213,9 @@ internal static class BurstSpawnService
         var operationGeneration = Volatile.Read(ref _operationGeneration);
         BotCreationData data = null;
         bool handedToNative = false;
+        // Only ZombieSpawnService opts into this single-request contract.
+        // Ambient and existing faction call paths retain their own ownership.
+        bool ownedInfected = role.IsInfected() && dispatchFinished != null && beginNativeDispatch != null;
         Areas.ArenaAreaRuntime.TeamSpawnLease areaSpawnLease = null;
 
         try
@@ -281,10 +284,10 @@ internal static class BurstSpawnService
             // SPT restores PMC Side during profile selection. The requested
             // role is already authoritative here; the actual body's side is
             // checked below after activation. Never repair a mismatched profile.
-            if (explicitFaction && data.Profiles.Any(profile => profile?.Info?.Settings?.Role != role))
+            if ((explicitFaction || ownedInfected) && data.Profiles.Any(profile => profile?.Info?.Settings?.Role != role))
             {
                 Plugin.ModLogger.LogWarning(
-                    $"Arena faction spawn: profile provider changed requested {role}; no bot dispatched.");
+                    $"Arena {(ownedInfected ? "zombie" : "faction")} spawn: profile provider changed requested {role}; no bot dispatched.");
                 data.StopSpawn();
                 return;
             }
@@ -412,7 +415,7 @@ internal static class BurstSpawnService
                 // Native/modded activation can repeat a callback. Once the root
                 // settled its ticket its predicate is false, so check the exact
                 // same body BEFORE that predicate or a duplicate would kill it.
-                if (explicitFaction && factionArrivalSeen)
+                if ((explicitFaction || ownedInfected) && factionArrivalSeen)
                 {
                     if (ReferenceEquals(observedFactionBody, bot))
                         return;
@@ -422,7 +425,7 @@ internal static class BurstSpawnService
                     return;
                 }
 
-                if (explicitFaction)
+                if (explicitFaction || ownedInfected)
                 {
                     factionArrivalSeen = true;
                     observedFactionBody = bot;
@@ -433,7 +436,7 @@ internal static class BurstSpawnService
                     areaSpawnLease?.Dispose();
                     ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
                     RetireStaleSpawn(bot, role);
-                    if (explicitFaction)
+                    if (explicitFaction || ownedInfected)
                         NotifyArrivalRejected(arrivalRejected);
                     return;
                 }
@@ -446,6 +449,18 @@ internal static class BurstSpawnService
                     areaSpawnLease?.Dispose();
                     ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
                     RetireStaleSpawn(bot, role);
+                    if (ownedInfected) NotifyArrivalRejected(arrivalRejected);
+                    return;
+                }
+                if (ownedInfected && (bot == null || bot.GetPlayer == null || bot.HealthController == null
+                    || bot.Profile?.Info?.Settings?.Role != role
+                    || string.IsNullOrEmpty(bot.ProfileId)
+                    || !ReferenceEquals(bot.GetPlayer.AIData?.BotOwner, bot)
+                    || !string.Equals(bot.ProfileId, bot.GetPlayer.ProfileId, StringComparison.Ordinal)))
+                {
+                    ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
+                    RetireStaleSpawn(bot, role);
+                    NotifyArrivalRejected(arrivalRejected);
                     return;
                 }
                 if (explicitFaction && (!IsRequestStillCurrent(requestStillCurrent, role)
@@ -486,7 +501,7 @@ internal static class BurstSpawnService
                 catch (Exception ex)
                 {
                     Plugin.ModLogger.LogWarning($"Arena spawn observer failed: {ex.Message}");
-                    if (explicitFaction)
+                    if (explicitFaction || ownedInfected)
                     {
                         RetireStaleSpawn(bot, role);
                         NotifyArrivalRejected(arrivalRejected);
@@ -539,6 +554,16 @@ internal static class BurstSpawnService
             }
             else
             {
+                if (ownedInfected && (!IsRequestStillCurrent(beginNativeDispatch, role)
+                    || !IsRequestStillCurrent(requestStillCurrent, role)))
+                {
+                    ReleaseReservedIfCurrent(ledger, reserved, operationGeneration);
+                    reserved = 0;
+                    return;
+                }
+                // Set before the call: warmed activation may callback inline;
+                // a thrown native call is uncertain, never a free retry slot.
+                if (ownedInfected) handedToNative = true;
                 spawner.SpawnBotsInZoneOnPositions(points, zone, data, onArrival);
             }
 
@@ -575,6 +600,12 @@ internal static class BurstSpawnService
                 {
                     Plugin.ModLogger.LogWarning($"Arena faction spawn cancellation failed: {ex.Message}");
                 }
+            }
+
+            if (ownedInfected && !handedToNative)
+            {
+                try { data?.StopSpawn(); }
+                catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena zombie spawn cancellation failed: {ex.Message}"); }
             }
 
             // True is NOT an activation acknowledgement: native activation is
@@ -907,7 +938,9 @@ internal static class BurstSpawnService
     ///   technically safe (GetZombieModeByDifficulty returns Slow) but outside
     ///   the v0 role mix by design — see ZombieRoleMix's own doc comment.
     /// </summary>
-    internal static bool SpawnInfected(WildSpawnType role, BotDifficulty difficulty, Action<BotOwner> onArrival)
+    internal static bool SpawnInfected(WildSpawnType role, BotDifficulty difficulty, Action<BotOwner> onArrival,
+        Func<bool> requestCurrent = null, Func<bool> beginNativeDispatch = null,
+        Action<bool> dispatchFinished = null, Action arrivalRejected = null)
     {
         if (role != WildSpawnType.infectedAssault && role != WildSpawnType.infectedPmc
             && role != WildSpawnType.infectedCivil && role != WildSpawnType.infectedLaborant)
@@ -945,7 +978,9 @@ internal static class BurstSpawnService
                 return false;
             SpawnPair(spawner, zone, role, difficulty, isPmc: false, count: 1, observer: onArrival,
                 requestStillCurrent: () => ReferenceEquals(Modes.ArenaMatchService.Current, match)
-                    && zombie.IsSpawnAdmissionOpen);
+                    && zombie.IsSpawnAdmissionOpen && (requestCurrent == null || requestCurrent()),
+                beginNativeDispatch: beginNativeDispatch, dispatchFinished: dispatchFinished,
+                arrivalRejected: arrivalRejected);
             return true;
         }
         catch (Exception ex)
