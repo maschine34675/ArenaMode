@@ -31,15 +31,13 @@ namespace ArenaMode.Modes;
 /// random kit — the refill would silently swap the player's gear instead of
 /// topping it up. <see cref="TryRefill"/> is handed the kit ZombieMode last
 /// saw applied (<c>ArenaEvents.OnKitApplied</c>, updated by every raid-start
-/// swap, death respawn and this same refill), and installs it as the
+/// swap and this same refill), and installs it as the
 /// provider for the EXACT width of the one synchronous call into
 /// AtRoundBreak — which captures its kit via closure on its very first line,
 /// BEFORE starting its coroutine (see LiveKitRespawn.AtRoundBreak,
 /// <c>var kit = KitCatalog.GetSelectedKit();</c>) — then restores whatever
-/// was there before. A later, ordinary mid-wave death respawn in the SAME
-/// raid is therefore completely unaffected and still draws a fresh random
-/// kit exactly as v0 does today; this method only ever touches the provider
-/// for the duration of that one call, never persists it.</para>
+/// was there before. Solo death now ends survival; this provider is used only
+/// for a living intermission refill, never persisted after that one call.</para>
 /// </summary>
 internal static class ZombieLoadoutRefill
 {

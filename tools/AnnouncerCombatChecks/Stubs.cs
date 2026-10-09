@@ -40,6 +40,12 @@ namespace ArenaMode.Modes
         public void OnMatchEnd() { }
     }
     public class TacticalMode : TestMode { public bool IsTeamArena { get; set; } }
+    public class ZombieMode : TestMode
+    {
+        public bool IsTeamArena => false;
+        public bool TryRecordLocalDeath() => !IsComplete;
+        public bool TryPublishLocalDeathKill() => true;
+    }
     public class TeamDeathmatchMode : TestMode
     {
         public bool AdmitScores = true;

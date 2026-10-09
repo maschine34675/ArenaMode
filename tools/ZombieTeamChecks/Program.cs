@@ -192,7 +192,7 @@ internal static class Program
         mode.OnMatchEnd();
 
         f=new Fixture(4,false);mode=f.Mode();Tick(mode);
-        Check(!mode.IsTeamArena && !mode.HoldRespawn && ZombieSpawnService.Dispatched==1,"solo Zombie retains immediate spawning and respawn");
+        Check(!mode.IsTeamArena && mode.HoldRespawn && !mode.IsComplete && ZombieSpawnService.Dispatched==1,"solo Zombie starts live with permanent death-respawn hold");
         ZombieSpawnService.Pending=0;ZombieSpawnService.Alive=1;Tick(mode);
         ZombieSpawnService.Pending=0;ZombieSpawnService.Alive=0;Tick(mode);
         Check(ZombieLoadoutRefill.Calls==1,"solo own-gear intermission refill remains unchanged");

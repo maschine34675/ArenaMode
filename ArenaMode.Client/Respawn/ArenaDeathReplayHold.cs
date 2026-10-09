@@ -55,6 +55,16 @@ internal sealed class ArenaDeathReplayHold
 
             if (decision == ArenaReplayWaitDecision.Unsafe)
             {
+                if (ArenaMatchResult.OwnsRaid(_match.Mode))
+                {
+                    // A terminal result must retain death interception until
+                    // its native owner is verified. The generic start-abort path
+                    // releases StandDown before checking that owner.
+                    ArenaMatchResult.ReportProblem(_match.Mode,
+                        "Killcam did not release safely: " + (problem ?? "bounded replay wait expired"));
+                    ArenaMatchResult.RequestExit(_match.Mode);
+                    yield break;
+                }
                 // The original dead native owner is still intact: use the
                 // existing protected exit, never release under unknown camera
                 // ownership or pretend StopPlayback cancels a pending replay.

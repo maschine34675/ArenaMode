@@ -17,6 +17,7 @@ function Slice([string] $text, [string] $start, [string] $end) {
 function Get-Extracted([string] $text) {
     $pair = Slice $text '    private static async void SpawnPair(' '    private static bool TryCaptureSpawnLease('
     $faction = Slice $text '    internal static int SpawnFactionBot(' '    private static bool HasRequestedFaction('
+    $infected = Slice $text '    internal static bool SpawnInfected(' '    internal static int SpawnFactionBot('
     $guard = Slice $text '    private static bool IsRequestStillCurrent(' '    private static Vector3? GetPlayerPosition('
     $extracted = @"
 using EFT;
@@ -27,6 +28,7 @@ namespace ArenaMode.Bots;
 internal static partial class BurstSpawnService
 {
 $pair
+$infected
 $faction
 $guard
 }
@@ -71,6 +73,9 @@ if (!$BaselineOnly) {
            Failure = 'successful native dispatch settles only its own request and never StopSpawn cancels it' },
         @{ Name = 'prefix-rejection-ignored'; Find = 'if (scope.WasRejected)'; Replace = 'if (false)';
            Failure = 'proven prefix rejection cancels only undispatched creation data' },
+        @{ Name = 'late-infected-admission'; Find = 'if (role.IsInfected() && !IsRequestStillCurrent(requestStillCurrent, role))';
+           Replace = 'if (false)';
+           Failure = 'terminal infected callback is retired before observer and releases its reservation' },
         @{ Name = 'late-native-admission'; Find = 'if (explicitFaction && (!IsRequestStillCurrent(requestStillCurrent, role)';
            Replace = 'if (explicitFaction && (false';
            Failure = 'expired native callback is individually retired without cancelling dispatched work' }

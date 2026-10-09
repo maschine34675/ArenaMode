@@ -441,6 +441,13 @@ internal static class BurstSpawnService
                 // Request cancellation after native dispatch cannot StopSpawn:
                 // EFT may have charged more points than it will decrement.
                 // Retire just this late/wrong body before hostility or scoring.
+                if (role.IsInfected() && !IsRequestStillCurrent(requestStillCurrent, role))
+                {
+                    areaSpawnLease?.Dispose();
+                    ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
+                    RetireStaleSpawn(bot, role);
+                    return;
+                }
                 if (explicitFaction && (!IsRequestStillCurrent(requestStillCurrent, role)
                     || !HasRequestedFaction(bot, role)))
                 {
@@ -933,7 +940,12 @@ internal static class BurstSpawnService
                 return false;
             }
 
-            SpawnPair(spawner, zone, role, difficulty, isPmc: false, count: 1, observer: onArrival);
+            var match = Modes.ArenaMatchService.Current;
+            if (match?.Mode is not Modes.ZombieMode zombie || !zombie.IsSpawnAdmissionOpen)
+                return false;
+            SpawnPair(spawner, zone, role, difficulty, isPmc: false, count: 1, observer: onArrival,
+                requestStillCurrent: () => ReferenceEquals(Modes.ArenaMatchService.Current, match)
+                    && zombie.IsSpawnAdmissionOpen);
             return true;
         }
         catch (Exception ex)

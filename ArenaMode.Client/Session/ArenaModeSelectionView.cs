@@ -282,7 +282,7 @@ internal sealed class ArenaModeSelectionView
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
                     ? "ZOMBIES / SQUAD (PFT)" : "ZOMBIES";
         _respawn.text = zombieTeam ? "Next wave" : mode.Respawn;
-        if (!_selection.TacticalOnly && mode.Id != ArenaModeCatalog.TacticalId && Settings.GetReplaySeconds(mode.Id) > 0f
+        if (!_selection.TacticalOnly && mode.Respawn == "Instant" && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
         // Same special-case line protected 5v5's TacticalOnly branch already
         // uses, generalized for item 1 of the 2026-10-06 follow-up ("own gear

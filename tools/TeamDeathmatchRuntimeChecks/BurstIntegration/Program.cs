@@ -117,7 +117,71 @@ internal static class Program
         Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
         Check(duplicate.Observers == 1 && !Harness.Body.Retired,
             "duplicate callback for admitted exact body cannot kill the valid actor");
+        CheckInfectedTerminalAdmission();
         Console.WriteLine($"PASS: {_checks} extracted production burst preparation integration checks.");
         Console.WriteLine("ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED");
+    }
+
+    private static void CheckInfectedTerminalAdmission()
+    {
+        foreach (bool afterDispatch in new[] { false, true })
+        foreach (bool matchReplaced in new[] { false, true })
+        {
+            Harness.Reset(); Harness.DelayArrival = true;
+            var mode = new ZombieMode();
+            ArenaMatchService.Current = new ArenaMatch { Mode = mode };
+            var data = new BotCreationData();
+            data.Profiles[0].Info.Settings.Role = WildSpawnType.infectedAssault;
+            Harness.Body.Role = WildSpawnType.infectedAssault;
+            int arrivals = 0;
+            Check(BurstSpawnService.SpawnInfected(WildSpawnType.infectedAssault, BotDifficulty.normal,
+                _ => arrivals++), "live Zombie mode accepts infected preparation");
+            if (afterDispatch)
+            {
+                BotCreationData.Pending.SetResult(data);
+                Check(Harness.NativeCalls == 1 && BurstSpawnService.PendingScavReservations == 1,
+                    "dispatched infected owns one outstanding reservation before delayed arrival");
+            }
+            if (matchReplaced) ArenaMatchService.Current = new ArenaMatch { Mode = new ZombieMode() };
+            else mode.IsSpawnAdmissionOpen = false;
+            if (afterDispatch)
+            {
+                Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
+                Check(arrivals == 0 && Harness.Body.Retired && Harness.AcceptedBodies == 0
+                    && Harness.ReservationReleases == 1 && BurstSpawnService.PendingScavReservations == 0
+                    && data.Stops == 0,
+                    "terminal infected callback is retired before observer and releases its reservation");
+            }
+            else
+            {
+                BotCreationData.Pending.SetResult(data);
+                Check(Harness.NativeCalls == 0 && arrivals == 0 && data.Stops == 1
+                    && BurstSpawnService.PendingScavReservations == 0,
+                    "terminal or replaced Zombie match discards awaited infected before native dispatch");
+            }
+        }
+
+        Harness.Reset();
+        var closed = new ZombieMode { IsSpawnAdmissionOpen = false };
+        ArenaMatchService.Current = new ArenaMatch { Mode = closed };
+        Check(!BurstSpawnService.SpawnInfected(WildSpawnType.infectedAssault, BotDifficulty.normal, _ => { })
+            && !Harness.Events.Contains("create"), "terminal Zombie mode refuses fresh infected requests");
+
+        // A surviving PFT squad keeps mode admission open after local death.
+        // Its real policy is verified in ZombieTeamChecks; this boundary must
+        // accept its delayed native body while that admission remains current.
+        Harness.Reset(); Harness.DelayArrival = true;
+        ArenaMatchService.Current = new ArenaMatch { Mode = new ZombieMode() };
+        var activeData = new BotCreationData();
+        activeData.Profiles[0].Info.Settings.Role = WildSpawnType.infectedCivil;
+        Harness.Body.Role = WildSpawnType.infectedCivil;
+        int accepted = 0;
+        Check(BurstSpawnService.SpawnInfected(WildSpawnType.infectedCivil, BotDifficulty.hard,
+            _ => accepted++), "live team wave retains infected admission");
+        BotCreationData.Pending.SetResult(activeData);
+        Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
+        Check(accepted == 1 && Harness.AcceptedBodies == 1 && !Harness.Body.Retired
+            && BurstSpawnService.PendingScavReservations == 0 && activeData.Stops == 0,
+            "current open Zombie wave accepts delayed infected and settles its reservation");
     }
 }

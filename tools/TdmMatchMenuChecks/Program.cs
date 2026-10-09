@@ -333,14 +333,14 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
                     && rendered.Split(' ', StringSplitOptions.RemoveEmptyEntries).Count(t => t.Any(char.IsLetterOrDigit)) <= 3,
                 fact + " fact fits the value column without an ellipsis: " + scope + " '" + rendered + "'");
         }
-        Need(Label("RESPAWN value").text is "Instant" or "Next round" or "Next wave" or "After killcam",
+        Need(Label("RESPAWN value").text is "Instant" or "Next round" or "Next wave" or "After killcam" or "None",
             "RESPAWN fact stays inside the known vocabulary: " + scope);
     }
 }
 Settings.ZombieOwnGear.Value = false;
 view.Synchronize("zombie", false);
-Need(Label("RULES value").text == "Survive the waves" && Label("RESPAWN value").text == "Instant"
-    && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, Instant, Arena kits");
+Need(Label("RULES value").text == "Survive the waves" && Label("RESPAWN value").text == "None"
+    && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, None, Arena kits");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
 GameObject MutatorsRoot() => screen.transform.Children.Single(x => x.name == "Arena Mutators").gameObject;
@@ -473,6 +473,13 @@ Need(KillcamText() == "KILLCAM: ON" && Label("RESPAWN value").text == "After kil
     "available replay refreshes actual respawn description");
 Need(Settings.GetReplaySeconds("deathmatch") == 0f && Settings.GetReplaySeconds("teamdeathmatch") == 0f
     && Settings.GetReplaySeconds("tactical") == 3f, "selecting one mode leaves the other replay choices untouched");
+Settings.ZombieReplaySeconds.Value = 3f;
+view.Synchronize("zombie", false);
+Need(KillcamText() == "KILLCAM: ON" && Label("RESPAWN value").text == "None",
+    "solo Zombie killcam does not imply a respawn");
+view.Synchronize("zombie", true);
+Need(Label("RESPAWN value").text == "Next wave", "protected Zombie team keeps next-wave respawn");
+view.Synchronize("gungame", false);
 var retiredKillcam = KillcamButton();
 var staleKillcamActions = retiredKillcam.onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);

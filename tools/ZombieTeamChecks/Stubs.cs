@@ -2,7 +2,7 @@ using EFT;
 namespace UnityEngine
 {
     public class Vector3 { }
-    public static class Time { public static float time; }
+    public static class Time { public static float time; public static float unscaledTime => time; public static float timeScale = 1f; }
     public static class Mathf { public static int FloorToInt(float n) => (int)Math.Floor(n); }
 }
 namespace Comfort.Common
@@ -12,7 +12,7 @@ namespace Comfort.Common
 namespace EFT
 {
     public enum GameStatus { Started, Stopping }
-    public enum ExitStatus { Killed, MissingInAction }
+    public enum ExitStatus { Killed, MissingInAction, Survived }
     public enum EBotState { PreActive, Active }
     public enum WildSpawnType { Pmc, Infected }
     public static class Roles { public static bool IsInfected(this WildSpawnType value) => value == WildSpawnType.Infected; }
@@ -36,8 +36,10 @@ namespace EFT
         public bool IsDead => HealthController?.IsAlive == false; public EBotState BotState = EBotState.Active;
     }
     public class AbstractGame { }
+    public class PlayerOwner { public Player Player; }
     public class LocalGame : AbstractGame
     {
+        public PlayerOwner Owner;
         public LocalPlayer LocalPlayer; public Profile Profile => LocalPlayer.Profile;
         public string ProfileId => Profile.Id; public GameStatus Status = GameStatus.Started;
         public int Stops; public bool StopThrows; public ExitStatus LastStatus;
@@ -65,7 +67,9 @@ namespace ArenaMode
         public void LogWarning(object s) => Lines.Add(s.ToString()); public void LogError(object s) => Lines.Add(s.ToString());
     }
 }
+#if !ZOMBIE_SOLO_CHECKS
 namespace ArenaMode.Combat { public class ArenaKill { public bool KilledByLocal, LocalIsVictim; public string VictimRoleLabel; } }
+#endif
 namespace ArenaMode.Config
 {
     public sealed class Entry<T> { public T Value; public Entry(T v) => Value = v; }
@@ -90,7 +94,12 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Respawn
 {
-    public static class ArenaRespawnDriver { public static bool IsRespawnInProgress, StandDown; }
+    public static class ArenaRespawnDriver
+    {
+        public static bool IsRespawnInProgress, StandDown;
+        internal static bool IsSameActiveRaid(LocalGame game, int epoch) => ArenaMode.Session.ArenaSession.Active
+            && ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, game) && game.Status == GameStatus.Started;
+    }
 }
 namespace ArenaMode.Kits
 {
@@ -116,12 +125,16 @@ namespace ArenaMode.Kits
 }
 namespace ArenaMode.Modes
 {
+#if !ZOMBIE_SOLO_CHECKS
     public interface IArenaMode { }
+#endif
     public static class ArenaModeCatalog { public const string ZombieId = "zombie"; }
     public static class ArenaReplaySelection { public static float Seconds; }
+#if !ZOMBIE_SOLO_CHECKS
     public class ArenaScoreboardActor { public string Id, Account; }
     public class Scoreboard
     {
+        public void ResetAssists() { }
         public int Epoch; public ArenaScoreboardActor[] Friends;
         public bool TrySynchronizeRoster(int n,ArenaScoreboardActor local,IReadOnlyList<ArenaScoreboardActor> friends,IReadOnlyList<ArenaScoreboardActor> enemies,out string problem)
         { Epoch=n; Friends=friends.ToArray(); problem=null; return true; }
@@ -131,11 +144,25 @@ namespace ArenaMode.Modes
         public IArenaMode Mode; public Scoreboard Scoreboard = new(); public float Elapsed => UnityEngine.Time.time;
         public List<string> Callouts = new(); public void ReportTextCallout(string t) => Callouts.Add(t);
         public void ReportTeamSurvivors(bool local,int allies,int enemies) { }
+        public void ReportLocalDeath() { if (Mode is ZombieMode zombie && zombie.TryRecordLocalDeath()) zombie.OnLocalDeath(); }
     }
+    internal static class TdmMatchExit
+    {
+        internal static bool PipelineRunning => false;
+        internal static void TryStop(LocalGame g, GameWorld w, string id, Action<string> report) => g.Stop(id, ExitStatus.Killed, "Arena", 0f);
+    }
+#endif
     public static class ArenaMatchService
     {
         public static ArenaMatch Current;
-        public static ArenaScoreboardActor SnapshotActor(Player p,string account=null) => p==null?null:new(){Id=p.ProfileId,Account=account};
+        public static int GenericAborts;
+        internal static void ScheduleFailedStartAbort(string problem) { GenericAborts++; ArenaMode.Respawn.ArenaRespawnDriver.StandDown = true; }
+        public static ArenaScoreboardActor SnapshotActor(Player p,string account=null) => p==null?null:
+#if ZOMBIE_SOLO_CHECKS
+            new(p.ProfileId, p.Profile.Nickname, "PMC", p.HealthController.IsAlive, account);
+#else
+            new(){Id=p.ProfileId,Account=account};
+#endif
     }
 }
 namespace ArenaMode.Bots
@@ -170,6 +197,15 @@ namespace ArenaMode.Effects
 }
 namespace ArenaMode.Spectator
 {
+    internal enum OptionalCameraOwnerState { Absent, Idle, Busy, Incompatible }
+    internal static class KillcamReplayCompat
+    {
+        public static bool CameraReleased=true;
+        internal static OptionalCameraOwnerState State=OptionalCameraOwnerState.Absent;
+        internal static float Remaining;
+        internal static OptionalCameraOwnerState ReadState(out float remaining, out string problem)
+        { remaining=Remaining;problem=null;return State; }
+    }
     public enum ArenaSpectatorSide { Ally }
     public class ArenaSpectatorTarget { public Player Player; public ArenaSpectatorTarget(Player p,string id,string name,ArenaSpectatorSide s) => Player=p; }
     public class ArenaSpectatorRequest
@@ -187,7 +223,6 @@ namespace ArenaMode.Spectator
 }
 namespace ArenaMode.Compat
 {
-    public static class KillcamReplayCompat { public static bool CameraReleased=true; }
     public enum PitFireTeamRoundLifecycleStage { None, AwaitingRetirement, ReadyForLeader, Profiles, Followers, FollowersReady, Failed }
     public enum PitFireTeamRoundPollDecision { Pending, Ready, Failed }
     public class PitFireTeamRoundCapability { public bool CanStartAdditionalRound=true; }

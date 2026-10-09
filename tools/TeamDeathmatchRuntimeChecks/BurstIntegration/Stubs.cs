@@ -4,7 +4,7 @@ using EFT.Game.Spawning;
 using UnityEngine;
 
 // These stand-ins expose native boundaries only. The complete production
-// SpawnFactionBot and async SpawnPair methods are compiled unchanged by Run.ps1.
+// SpawnFactionBot, SpawnInfected and async SpawnPair are compiled unchanged by Run.ps1.
 namespace UnityEngine
 {
     internal static class Time { internal static float time, realtimeSinceStartup; }
@@ -21,8 +21,14 @@ namespace Comfort.Common
 namespace EFT
 {
     internal enum EPlayerSide { Savage, Usec, Bear }
-    internal enum WildSpawnType { pmcUSEC, pmcBEAR }
-    internal enum BotDifficulty { normal }
+    internal enum WildSpawnType { pmcUSEC, pmcBEAR, infectedAssault, infectedPmc, infectedCivil, infectedLaborant }
+    internal static class WildSpawnTypeExtensions
+    {
+        internal static bool IsInfected(this WildSpawnType role)
+            => role is WildSpawnType.infectedAssault or WildSpawnType.infectedPmc
+                or WildSpawnType.infectedCivil or WildSpawnType.infectedLaborant;
+    }
+    internal enum BotDifficulty { normal, hard }
     internal sealed class BotSpawnParams { }
     internal sealed class GetProfileDataParams
     {
@@ -128,6 +134,14 @@ namespace ArenaMode.Areas
         }
     }
 }
+namespace ArenaMode.Modes
+{
+    // Mode ownership/admission is an external boundary here. ZombieSoloChecks
+    // and ZombieTeamChecks execute the real mode's solo/team policy.
+    internal sealed class ZombieMode { internal bool IsSpawnAdmissionOpen = true; }
+    internal sealed class ArenaMatch { internal object Mode; }
+    internal static class ArenaMatchService { internal static ArenaMatch Current; }
+}
 namespace ArenaMode.Bots
 {
     internal static class BurstSpawnPointSelector
@@ -150,8 +164,16 @@ namespace ArenaMode.Bots
         }
         private static bool IsSpawnLeaseCurrent(int generation, LocalGame game, GameWorld world,
             int epoch, BotsController controller, BotSpawner spawner) => Harness.LeaseCurrent;
-        private static void ReleaseReservedIfCurrent(List<float> ledger, int count, int generation) { }
-        private static void OnBotSpawned(BotOwner bot, List<float> ledger, WildSpawnType role, bool includeLifecycleIdentity) { }
+        private static void ReleaseReservedIfCurrent(List<float> ledger, int count, int generation)
+        {
+            Harness.ReservationReleases += count;
+            ledger.RemoveRange(0, Math.Min(count, ledger.Count));
+        }
+        private static void OnBotSpawned(BotOwner bot, List<float> ledger, WildSpawnType role, bool includeLifecycleIdentity)
+        {
+            Harness.AcceptedBodies++;
+            if (ledger.Count > 0) ledger.RemoveAt(0);
+        }
         private static void RetireStaleSpawn(BotOwner bot, WildSpawnType role) { bot.Retired = true; }
         private static void NotifyArrivalRejected(Action callback) => callback?.Invoke();
         private static void NotifyDispatchFinished(Action<bool> callback, bool handed) => callback?.Invoke(handed);
@@ -159,6 +181,8 @@ namespace ArenaMode.Bots
         private static bool HasRequestedFaction(BotOwner bot, WildSpawnType role) => bot.Role == role;
         private static BotZone PickZone(BotSpawner spawner, int count) => new();
         private static Vector3? GetPlayerPosition() => new Vector3();
+        internal static int PendingScavReservations => RecentScavInjections.Count;
+        internal static void ResetTestLedgers() { RecentPmcInjections.Clear(); RecentScavInjections.Clear(); }
         internal static void Direct(Func<bool> current, Func<bool> begin, Action<bool> finished)
             => SpawnPair(Harness.Game.BotsController.BotSpawner, new BotZone(), WildSpawnType.pmcUSEC,
                 BotDifficulty.normal, true, 1, explicitFaction: true, requestStillCurrent: current,
@@ -169,7 +193,7 @@ internal static class Harness
 {
     internal static readonly List<string> Events = new(), Log = new();
     internal static bool LeaseCurrent, PlacementAvailable, AcceptPlacement, DelayArrival, RejectNative, ThrowNative, NativeOwned;
-    internal static int NativeCalls, RealPlans;
+    internal static int NativeCalls, RealPlans, ReservationReleases, AcceptedBodies;
     internal static LocalGame Game;
     internal static GameWorld World;
     internal static BotOwner Body;
@@ -179,7 +203,9 @@ internal static class Harness
         Events.Clear(); Log.Clear();
         LeaseCurrent = PlacementAvailable = AcceptPlacement = true;
         DelayArrival = RejectNative = ThrowNative = NativeOwned = false;
-        NativeCalls = RealPlans = 0; LastLease = null;
+        NativeCalls = RealPlans = ReservationReleases = AcceptedBodies = 0; LastLease = null;
+        BurstSpawnService.ResetTestLedgers();
+        ArenaMode.Modes.ArenaMatchService.Current = null;
         Game = new LocalGame(); World = new GameWorld(); Body = new BotOwner();
         Comfort.Common.Singleton<AbstractGame>.Instance = Game;
         Comfort.Common.Singleton<IBotGame>.Instance = Game;

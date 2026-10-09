@@ -73,6 +73,7 @@ namespace ArenaMode.Modes
 {
     public interface IArenaMode { }
     public class OtherMode : IArenaMode { }
+    public class ZombieMode : RoundsMode { }
     public class RoundsMode : IArenaMode
     {
         public bool HasResult, ResultOwnsCurrentRaid;

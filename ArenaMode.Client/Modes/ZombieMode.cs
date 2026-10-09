@@ -15,7 +15,7 @@ namespace ArenaMode.Modes;
 /// <summary>
 /// Endless waves of EFT's built-in infected (Halloween 2024 leftovers)
 /// against the local player, or an authenticated PitFireTeam squad. Solo keeps
-/// instant respawns; protected teams survive together and restore between waves.
+/// one life; protected teams survive together and restore between waves.
 ///
 /// This class is the Unity/EFT-facing shell only: it freezes the Zombie
 /// settings once, drives the pure ZombieWavePolicy every Tick with the real
@@ -34,11 +34,8 @@ public sealed class ZombieMode : IArenaMode
 
     // Item 3 ("refill between waves"): bounded retry ceiling for
     // ZombieRefillPolicy — only real attempts (AtRoundBreak returning
-    // false) consume this budget, and the instant-respawn pipeline the
-    // player might be mid-way through when a wave clears measures ~0.2s on
-    // the GPU host (GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md), so this
-    // generous margin at the 0.1s evaluate cadence never meaningfully
-    // shortens the default 10s intermission.
+    // false) consume this budget. A live kit handover may still be settling
+    // when a wave clears; eligibility retries do not consume the budget.
     private const int RefillMaxAttempts = 20;
 
     // ZombieWavePolicy.Evaluate + the alive/pending recount it needs do not
@@ -58,6 +55,14 @@ public sealed class ZombieMode : IArenaMode
     private Player _local;
     private string _localId;
     private bool _ended;
+    private bool _soloDefeated;
+    private bool _soloDeathCounted;
+    private bool _soloDeathKillPublished;
+    private bool _resultExitRequested;
+    private float _soloDefeatedAt;
+    private float _nextStopAttempt;
+    private string _resultExitProblem;
+    private readonly ArenaReplayWaitPolicy _resultReplay = new();
 
     // Frozen at OnMatchStart; never re-read from Settings afterward (repo
     // convention — see TeamDeathmatchMode/RoundsMode for the same pattern).
@@ -74,8 +79,7 @@ public sealed class ZombieMode : IArenaMode
 
     // Item 3 ("refill between waves", random-kit mode). _currentKit is kept
     // current by OnKitApplied below — raised after the raid-start swap,
-    // every mid-wave death respawn (random draw, same as v0 today) and this
-    // refill itself — so it is always "whatever the player is wearing right
+    // this refill itself — so it is always "whatever the player is wearing right
     // now", never a fresh draw taken here. See ZombieLoadoutRefill's own doc
     // comment for exactly how that is handed to LiveKitRespawn.AtRoundBreak
     // without touching KitCatalog.KitProvider for anything but the width of
@@ -106,20 +110,50 @@ public sealed class ZombieMode : IArenaMode
     public string Id => ArenaModeCatalog.ZombieId;
     public string DisplayName => "Zombies";
 
-    /// <summary>Solo is endless; a protected squad finishes after a wipe or unsafe transition.</summary>
-    public bool IsComplete => _team?.IsComplete == true;
+    /// <summary>Solo ends on the first death; a protected squad finishes after a wipe or unsafe transition.</summary>
+    public bool IsComplete => _soloDefeated || _team?.IsComplete == true;
 
     public float DeathReplaySeconds => IsTeamArena && !Spectator.ArenaSpectatorService.OptionalKillcamReplayMayRun
         ? 0f : ArenaReplaySelection.Seconds;
 
-    /// <summary>Solo respawns instantly; a protected squad waits for the cleared-wave restore.</summary>
-    public bool HoldRespawn => _team?.HoldRespawn == true;
+    /// <summary>Solo never replaces a dead body; protected squads restore after a cleared wave.</summary>
+    public bool HoldRespawn => _team == null || _team.HoldRespawn;
+
+    internal bool HasResult => _soloDefeated;
+    internal bool ResultOwnsCurrentRaid => HasResult && IsCurrentRaid()
+        && ReferenceEquals(ArenaMatchService.Current, _match);
+    internal string ResultHeading => "SURVIVAL ENDED";
+    internal string ResultDetail => $"Wave {_waveNumber} | {_zombiesKilled} zombie kills";
+    internal string ResultExitStatus => _resultExitProblem ?? (ArenaSession.ReplaySeconds > 0f
+        ? "Returning to menu after the death replay…" : "Returning to menu…");
+    internal bool TryRecordLocalDeath()
+    {
+        if (_team != null) return true;
+        if (_soloDeathCounted || !IsCurrentRaid() || HasResult) return false;
+        _soloDeathCounted = true;
+        return true;
+    }
+    internal bool TryPublishLocalDeathKill()
+    {
+        if (_team != null || _soloDeathKillPublished || !IsCurrentRaid()) return false;
+        _soloDeathKillPublished = true;
+        return true;
+    }
+
+    internal void RequestResultExit() { if (ResultOwnsCurrentRaid) _resultExitRequested = true; }
+    internal void ReportResultExitProblem(string problem)
+    {
+        if (!ResultOwnsCurrentRaid || string.Equals(problem, _resultExitProblem, StringComparison.Ordinal)) return;
+        _resultExitProblem = problem;
+        Plugin.ModLogger.LogWarning("Zombie survival result: " + problem);
+    }
 
     /// <summary>Zombie owns its entire population (see ArenaPopulationPolicy); no ambient top-up.</summary>
     public bool ControlsOwnSpawns => true;
 
     /// <summary>Team assembly/restoration/result phases do not admit combat rewards.</summary>
-    internal bool AssistScoringOpen => IsCurrentRaid() && (_team == null || _team.IsLive);
+    internal bool AssistScoringOpen => IsCurrentRaid() && !IsComplete && (_team == null || _team.IsLive);
+    internal bool IsSpawnAdmissionOpen => IsCurrentRaid() && !IsComplete;
     internal bool IsTeamArena => _team != null;
     internal bool HasFriendlyRoster => _team?.HasFriendlyRoster == true;
     internal System.Collections.Generic.IReadOnlyList<Player> LiveTeamMembers
@@ -153,6 +187,7 @@ public sealed class ZombieMode : IArenaMode
             if (!IsCurrentRaid() || _match == null)
                 return "ZOMBIES";
             if (_team?.Status != null) return _team.Status;
+            if (HasResult) return ResultHeading + " | " + ResultDetail;
 
             if (_phase == ZombieWavePolicy.Phase.Intermission)
                 return _waveStatusText;
@@ -253,6 +288,17 @@ public sealed class ZombieMode : IArenaMode
     {
         if (!IsCurrentRaid())
             return;
+
+        // Death callbacks normally arrive synchronously. This backstop also
+        // covers a native death without an aggressor/score notification, before
+        // evaluating another wave or beginning an intermission body replacement.
+        if (_team == null && !HasResult && _world.MainPlayer?.HealthController?.IsAlive == false)
+            _match.ReportLocalDeath();
+        if (HasResult)
+        {
+            TickSoloResult();
+            return;
+        }
 
         float now = Time.time;
 
@@ -375,7 +421,7 @@ public sealed class ZombieMode : IArenaMode
             {
                 int clearedWave = _waveNumber;
                 Func<bool> stillInThisIntermission =
-                    () => IsCurrentRaid() && _phase == ZombieWavePolicy.Phase.Intermission;
+                    () => IsCurrentRaid() && !IsComplete && _phase == ZombieWavePolicy.Phase.Intermission;
 
                 // Item 4 ("own protected gear"): the WHEN (ZombieRefillPolicy,
                 // just evaluated above) is identical either way — only the HOW
@@ -414,7 +460,7 @@ public sealed class ZombieMode : IArenaMode
 
     public void OnKill(ArenaKill kill)
     {
-        if (kill == null || !IsCurrentRaid())
+        if (kill == null || !IsCurrentRaid() || IsComplete)
             return;
 
         if (kill.KilledByLocal && !kill.LocalIsVictim
@@ -422,12 +468,40 @@ public sealed class ZombieMode : IArenaMode
             _zombiesKilled++;
     }
 
-    /// <summary>Solo keeps its existing respawn; protected teams switch to observing surviving allies.</summary>
-    public void OnLocalDeath() => _team?.OnLocalDeath();
+    /// <summary>Solo finishes immediately; protected teams observe surviving allies.</summary>
+    public void OnLocalDeath()
+    {
+        if (_team != null) { _team.OnLocalDeath(); return; }
+        if (!IsCurrentRaid() || HasResult) return;
+        _soloDefeated = true;
+        _soloDefeatedAt = Time.unscaledTime;
+        _match.Scoreboard.ResetAssists();
+        _match.ReportTextCallout(ResultHeading);
+        Plugin.ModLogger.LogInfo("Zombie solo survival ended on local death; respawn held through protected exit.");
+    }
+
+    private void TickSoloResult()
+    {
+        if (!ResultOwnsCurrentRaid || TdmMatchExit.PipelineRunning) return;
+        // Let every native death listener, including optional KillcamReplay,
+        // publish its pending playback before inspecting camera ownership.
+        if (Time.unscaledTime - _soloDefeatedAt < 0.25f) return;
+        if (ArenaSession.ReplaySeconds > 0f && !_resultExitRequested)
+        {
+            var owner = Spectator.KillcamReplayCompat.ReadState(out float remaining, out string problem);
+            var decision = _resultReplay.Observe(owner, remaining, Time.time);
+            if (decision == ArenaReplayWaitDecision.Wait) return;
+            if (decision == ArenaReplayWaitDecision.Unsafe)
+                ReportResultExitProblem("Death replay did not release safely; ending survival: " + (problem ?? "bounded wait expired"));
+        }
+        if (Time.unscaledTime < _nextStopAttempt) return;
+        _nextStopAttempt = Time.unscaledTime + 1f;
+        TdmMatchExit.TryStop(_game, _world, _localId, ReportResultExitProblem);
+    }
 
     public void OnLocalRespawn(Player player)
     {
-        if (!IsCurrentRaid() || player == null)
+        if (!IsCurrentRaid() || IsComplete || player == null)
             return;
         if (_team != null && !_team.OnLocalRespawn(player)) return;
 
@@ -437,8 +511,7 @@ public sealed class ZombieMode : IArenaMode
 
     /// <summary>
     /// Keeps _currentKit as "whatever the player is wearing right now":
-    /// raised after the raid-start swap, every mid-wave death respawn
-    /// (random draw, unaffected by this feature) and this mode's own
+    /// raised after the raid-start swap and this mode's own
     /// intermission refill. ArenaEvents.OnKitApplied is already scoped to
     /// the raid it fired for (LiveKitRespawn/ArenaRespawnDriver only raise
     /// it once their own "same active raid" check passes), and this handler

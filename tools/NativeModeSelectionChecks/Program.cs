@@ -72,7 +72,7 @@ internal static class Program
     // this test enforces entry by entry): the MATCH RULES facts must read alike
     // and fit the 218 px value column at 17 pt without an ellipsis.
     // RULES  = the objective, at most three words and at most 18 characters.
-    // RESPAWN = exactly "Instant" or "Next round" (the view may substitute
+    // RESPAWN = exactly "Instant", "Next round", or "None" (the view may substitute
     //           "After killcam", which tools/TdmMatchMenuChecks measures).
     // EQUIPMENT = the loadout source, at most three words, at most 18 characters.
     // Description = one sentence, at most 80 characters, ends with a period.
@@ -90,8 +90,8 @@ internal static class Program
             Assert(mode.Rules.Length > 0 && mode.Rules.Length <= 18 && Words(mode.Rules) <= 3
                    && mode.Rules == mode.Rules.Trim(),
                 $"mode copy schema: RULES is the objective in <= 3 words and <= 18 characters: {id} '{mode.Rules}'");
-            Assert(mode.Respawn == "Instant" || mode.Respawn == "Next round",
-                $"mode copy schema: RESPAWN is exactly Instant or Next round: {id} '{mode.Respawn}'");
+            Assert(mode.Respawn == "Instant" || mode.Respawn == "Next round" || mode.Respawn == "None",
+                $"mode copy schema: RESPAWN is exactly Instant, Next round, or None: {id} '{mode.Respawn}'");
             Assert(mode.Equipment.Length > 0 && mode.Equipment.Length <= 18 && Words(mode.Equipment) <= 3
                    && mode.Equipment == mode.Equipment.Trim(),
                 $"mode copy schema: EQUIPMENT is the loadout source in <= 3 words and <= 18 characters: {id} '{mode.Equipment}'");

@@ -16,7 +16,7 @@ namespace ArenaMode.Modes;
 /// <item><see cref="Rules"/>: the objective, at most three words and at most
 /// 18 characters ("Most kills", "Survive the waves"). The roster ("1v5",
 /// "5v5") is not part of it: Tactical's row label already shows it.</item>
-/// <item><see cref="Respawn"/>: exactly "Instant" or "Next round". The view may
+/// <item><see cref="Respawn"/>: exactly "Instant", "Next round", or "None". The view may
 /// show "After killcam" instead while a killcam is selected and playable.</item>
 /// <item><see cref="Equipment"/>: the loadout source, at most three words and
 /// at most 18 characters. The view may show "PMC entry gear" (protected 5v5) or
@@ -92,8 +92,8 @@ internal static class ArenaModeCatalog
                 "USEC versus BEAR with instant respawns; no companions required.",
                 "Most team kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(ZombieId, "ZOMBIES",
-                "Endless waves of infected, each bigger than the last.",
-                "Survive the waves", "Instant", "Arena kits"),
+                "Survive endless infected waves; solo ends when you die.",
+                "Survive the waves", "None", "Arena kits"),
         });
 
     internal const float ModePanelTop = 168f;

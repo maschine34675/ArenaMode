@@ -41,13 +41,13 @@ function Invoke-SchemaMutant([string]$name, [string]$from, [string]$to, [string]
 
 # The wording the user complained about ("do not fit the box"): Zombie's old facts.
 Invoke-SchemaMutant 'rules-too-long' `
-    '"Survive the waves", "Instant", "Arena kits"' `
+    '"Survive the waves", "None", "Arena kits"' `
     '"Survive wave after wave; they only get bigger", "Instant", "Arena kits"' `
     'mode copy schema: RULES is the objective in <= 3 words and <= 18 characters: zombie'
 Invoke-SchemaMutant 'respawn-vocabulary' `
-    '"Survive the waves", "Instant", "Arena kits"' `
+    '"Survive the waves", "None", "Arena kits"' `
     '"Survive the waves", "Instant respawn, the wave keeps coming", "Arena kits"' `
-    'mode copy schema: RESPAWN is exactly Instant or Next round: zombie'
+    'mode copy schema: RESPAWN is exactly Instant, Next round, or None: zombie'
 Invoke-SchemaMutant 'equipment-too-long' `
     '"Round elimination", "Next round", "Buy / retain kit"' `
     '"Round elimination", "Next round", "Buy or retain your kit between rounds"' `

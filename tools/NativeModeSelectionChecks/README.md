@@ -35,7 +35,7 @@ change, then reruns the production state and server checks. These are offline
 checks, not runtime gameplay proof.
 
 `CopySchema` (2026-10-08) enforces one copy schema on every catalog entry: RULES
-and EQUIPMENT at most three words and 18 characters, RESPAWN exactly `Instant`
+and EQUIPMENT at most three words and 18 characters, RESPAWN exactly `Instant`, `None`
 or `Next round`, the description one sentence of at most 80 characters ending
 with a period, and no roster in Tactical's RULES. The limits are what fits the
 mode panel's 218 px fact column at 17 pt. `Verify-CatalogSchema.ps1` hands five

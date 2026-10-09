@@ -66,6 +66,8 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Plugin.ModLogger.LogInfo(
             PitFireTeamCompat.HasFrozenTeamRoster
                 ? $"Arena death #{DeathsThisSession} — held for protected team transition."
+                : Modes.ArenaMatchService.Current?.Mode is Modes.ZombieMode { IsTeamArena: false }
+                    ? $"Arena death #{DeathsThisSession} — solo survival ended; no respawn."
                 : ArenaSession.ReplaySeconds > 0f
                     ? $"Arena death #{DeathsThisSession} — respawn after optional killcam."
                     : $"Arena death #{DeathsThisSession} — instant respawn.");

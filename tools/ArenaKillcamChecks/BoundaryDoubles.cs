@@ -26,6 +26,12 @@ namespace ArenaMode.Modes
 {
     internal sealed class TestMode { internal bool HoldRespawn; }
     internal sealed class ArenaMatch { internal TestMode Mode = new(); }
+    internal static class ArenaMatchResult
+    {
+        internal static bool OwnsRaid(TestMode mode) => false;
+        internal static void ReportProblem(TestMode mode, string problem) { }
+        internal static void RequestExit(TestMode mode) { }
+    }
     internal static class ArenaMatchService
     {
         internal static ArenaMatch Current;

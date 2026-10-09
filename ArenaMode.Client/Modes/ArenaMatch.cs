@@ -71,6 +71,28 @@ public sealed class ArenaMatch
         if (kill == null)
             return;
 
+        if (Mode is ZombieMode zombie && !zombie.IsTeamArena)
+        {
+            if (kill.LocalIsVictim)
+            {
+                // Native owner death may have frozen the result first. Publish
+                // this life's final killfeed entry once in either callback order,
+                // without admitting it as another post-result score event.
+                if (zombie.TryPublishLocalDeathKill())
+                {
+                    ReportLocalDeath();
+                    RaiseSafe(() => OnKill?.Invoke(kill), nameof(OnKill));
+                }
+                ForgetAssistVictim(kill.VictimBodyId);
+                return;
+            }
+            if (zombie.IsComplete)
+            {
+                ForgetAssistVictim(kill.VictimBodyId);
+                return;
+            }
+        }
+
         if (Mode is TeamDeathmatchMode teams)
         {
             if (!teams.TryBeginScoredEvent())
@@ -132,6 +154,7 @@ public sealed class ArenaMatch
             return;
         }
         if (Mode is RoundsMode deathmatch && !deathmatch.TryRecordLocalDeath()) return;
+        if (Mode is ZombieMode zombie && !zombie.TryRecordLocalDeath()) return;
         Scoreboard.ReportLocalDeath();
         _awards.LocalDeath();
         _multiKillChain = 0;

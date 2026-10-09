@@ -1,9 +1,43 @@
 # Zombie Mode
 
+**2026-10-09 solo survival rule:** solo Zombies now ends on the player's first
+death, with no respawn for either Arena kits or protected own gear. The mode
+retains its death hold until the exact native owner can safely exit. Any selected
+killcam can finish first; its bounded ownership policy falls back to the same
+protected terminal exit. The mode menu says `RESPAWN: None`, including when
+killcam is enabled. Living intermission refills are unchanged. Historical instant
+respawn descriptions and earlier GPU results below describe the older version.
+
+The terminal latch stops wave/refill work and score admission immediately. Native
+kill-first and owner-death-first callbacks count the casualty once and publish
+the final killfeed entry once. Already pending infected requests recheck the
+captured match after profile preparation and before dispatch; a native body that
+arrives after the result is individually retired before its observer runs. Team
+survival continues to use the existing four-companion wave restoration path.
+
+The existing result adapter and `TdmMatchExit` own shutdown: no active replacement
+pipeline, exact game/world/profile and matching native owner/main body, simulation
+running, then StandDown immediately before Stop. A precommit failure retains the
+hold and retries; a committed Stop is never repeated. `ArenaDeathReplayHold` routes
+unsafe replay ownership to this terminal coordinator rather than the generic
+failed-start abort, which would release interception before proving the owner.
+Native anchors: `_decompiled/EFT/BaseLocalGame.cs:958` Stop dereferences
+`_playerOwner.Player`; `EFT/Player.cs:30096` invokes aggressor/death callbacks.
+
+`tools/ZombieSoloChecks/Verify.ps1` compiles the actual mode, match, scoreboard,
+result adapter, replay hold/policy and native exit with boundary doubles. It
+covers both loadouts and death callback orders, final killfeed dedupe, late score/
+spawn refusal, living refill, missing/mismatched owner, native replacement,
+precommit Stop failure, pause, replay cleanup/timeout and stale matches. Run the
+protected-team and extracted BurstIntegration checks alongside it. Offline checks
+are not native gameplay acceptance; the new build needs a restarted-client solo
+death run for both loadouts, killcam off/on, and profile preservation verification.
+
 **2026-10-08 extension:** optional protected PitFireTeam survival is documented in
 `ZOMBIE-PITFIRETEAM-REVIEW.md`. Exactly four authenticated companions, own gear,
 post-death spectating, between-wave squad rebuild and terminal team wipe. The
-solo paths below are unchanged; the original v0 exclusions are historical.
+team path remains separate from the 2026-10-09 solo death rule; original v0
+exclusions and instant-respawn descriptions are historical.
 
 ## Purpose and v0 scope
 

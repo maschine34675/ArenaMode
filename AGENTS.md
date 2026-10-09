@@ -21,7 +21,9 @@ Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
 Zombies offers solo or a protected four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
-spawner. See ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
+spawner. Solo has one life: death freezes survival and exits protected after any
+selected replay; only the PFT squad restores fallen members between cleared waves.
+See ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
 hooks, the wave policy or its stuck-wave watchdog.
 Map-screen participant totals include one reserved human slot. Negotiated
 Deathmatch/Gun Game owns its single-bot roster and optional Labyrinth boss slot;
