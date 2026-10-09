@@ -7,6 +7,27 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Unified rules and expanded maps (2026-10-09, latest):** `1649ccf` gives all
+  five modes the same visible description/objective/respawn/equipment schema;
+  `9c67ed7` opens Bay5 and whole Customs for all modes, Equator for all except
+  Tactical (only four sufficiently distant opponent points near the atrium).
+  The three bounded Customs areas remain TDM-only until other modes have a
+  containment/spawn adapter. Whole map is now the fourth Customs TDM choice.
+  Final client/server ProductVersion `0.1.0+9c67ed74ea032c239656599536ee645b53e9fc7a`,
+  client SHA256 `77F72EC9E932B05B3E2758C7EF15058125D8B0B7BEC35EB6F54CBC4B5FF8982D`,
+  server `C0871C34B4F1AFAAE990777E39827EDCC1BAF7A6C74401A1A0A47AD73DE49307`.
+  Deployed locally/GPU2; loaded client 21/21 matched. Native solo-mode menus,
+  Equator TDM 2v2 live/refill, Bay5 Tactical five active opponents and whole
+  Customs Zombie spawn/approach/melee pass. New PFT pairings/later rounds remain
+  untested. Whole Customs has long travel distances. One existing melee callback
+  NRE occurred 244 ms after protected Stop, not during play; exact IL/timing
+  strongly support a disposed Melee receiver, an open teardown follow-up. Profile
+  comparison changed only two Health/Hideout timestamps; all twelve PFT files
+  unchanged, config restored byte-identically. EFT closed, server running.
+  Unit suite 909 passed/two existing skips; integrated offline gates and
+  independent review pass. No push. See
+  `GPU-MODE-COPY-MAP-ACCESS-RESULTS-20261009.md` for evidence and test boundaries.
+
 - **Solo Zombie one-life rule and Factory courtyard (2026-10-09, later):**
   `e4ba7c3` excludes the four additional courtyard points beside the known
   `c671337f` marker on Factory day/night; ten exact exclusions including the five

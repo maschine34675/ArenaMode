@@ -85,6 +85,13 @@ verify map discovery/Ready, four Customs choices, whole-map totals versus bounde
 team sizes, representative newly enabled modes and protected leave. Deployment,
 loaded build identities and native results belong in the dated delivery report.
 
+Parent native checks are now recorded in
+`GPU-MODE-COPY-MAP-ACCESS-RESULTS-20261009.md`: menus, Equator TDM live/refill,
+Bay5 Tactical five active opponents and whole-Customs Zombie approach/melee.
+They are representative smoke checks, not every pairing or PFT/multi-round
+acceptance. The report preserves the distant-Customs-spawn observation and
+existing melee teardown exception instead of declaring the run error-free.
+
 ## Four implementation passes
 
 1. Traced shared selection, server clone ownership and generic native spawning;
