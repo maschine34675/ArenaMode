@@ -6,7 +6,7 @@ state directly, with no Unity stand-ins or game assembly references.
 
 The checks exercise all five stable mode ids and their selected definitions,
 index bounds, normalization, explicit initial repair, accepted/rejected writes,
-callback exceptions, and the protected Tactical-only PitFireTeam 5v5 restriction.
+callback exceptions, and the protected Tactical/Zombies PitFireTeam restriction.
 Construction must not write settings. A changed choice becomes selected only
 after its writer accepts it; a current selection does not trigger another write.
 Initial repairs remain retryable after a rejected or throwing writer and become
@@ -34,11 +34,14 @@ nonexistent `SPTUserMods` path. The script checks that production sources did no
 change, then reruns the production state and server checks. These are offline
 checks, not runtime gameplay proof.
 
-`CopySchema` (2026-10-08) enforces one copy schema on every catalog entry: RULES
+`CopySchema` (updated 2026-10-09) enforces one copy schema on every catalog entry: RULES
 and EQUIPMENT at most three words and 18 characters, RESPAWN exactly `Instant`, `None`
-or `Next round`, the description one sentence of at most 80 characters ending
-with a period, and no roster in Tactical's RULES. The limits are what fits the
-mode panel's 218 px fact column at 17 pt. `Verify-CatalogSchema.ps1` hands five
+or `Next round`, the description up to two sentences of at most 80 characters ending
+with a period, and no roster in Tactical's RULES (visibly labelled OBJECTIVE).
+The lengths are copy budgets for the 218 px fact column, not native glyph/layout
+proof. `TdmMatchMenuChecks` separately instantiates the actual view against
+Unity doubles and checks visibility and geometry for every dynamic variant.
+`Verify-CatalogSchema.ps1` hands five
 off-schema copies of `ArenaModeCatalog.cs` (Zombie's old long facts, a long
 RESPAWN, a long EQUIPMENT, a description without period, a roster in RULES) to
 the harness through `ProductionCatalogSource`; each must fail its named

@@ -12,6 +12,7 @@ namespace ArenaMode.Session;
 internal sealed class ArenaDeathmatchRulesView
 {
     private const float Width = 320f;
+    private const float RowHeight = 39f;
     private sealed class Choice
     {
         internal Button Button;
@@ -24,30 +25,30 @@ internal sealed class ArenaDeathmatchRulesView
     private ArenaDeathmatchRulesState _state;
     private readonly List<TextMeshProUGUI> _labels = new();
     private bool _dispatching;
+    private Action _onChanged;
 
-    internal void Show(Transform parent, Button template, TMP_Text typography, ArenaDeathmatchRulesState state)
+    internal void Show(Transform parent, Button template, TMP_Text typography, ArenaDeathmatchRulesState state,
+        Action onChanged = null)
     {
         Close();
         if (parent == null || template == null || state == null)
             throw new InvalidOperationException("The Arena Deathmatch rules view contract is unavailable.");
         _state = state;
+        _onChanged = onChanged;
         try
         {
             _root = new GameObject("Arena Deathmatch Match Rules", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
-            // +42 from the pre-Zombie 307f: one row height for the fifth mode
-            // row added above in ArenaModeSelectionView (see its comment).
-            SetRect((RectTransform)_root.transform, 20f, 349f, Width, 234f);
+            // Mode descriptions and all three common facts remain visible
+            // above the controls, without extending the accepted panel height.
+            SetRect((RectTransform)_root.transform, 20f, 432f, Width, 156f);
             for (int row = 0; row < 4; row++)
             {
-                _labels.Add(CreateText("Deathmatch rule " + row, typography, row * 51f));
+                _labels.Add(CreateText("Deathmatch rule " + row, typography, row * RowHeight));
                 for (int index = 0; index < ArenaDeathmatchRulesState.Choices[row].Length; index++)
                     CreateChoice(template, typography, ArenaDeathmatchRulesState.Choices[row][index], row, index);
             }
-            var note = CreateText("Deathmatch rules note", typography, 208f);
-            note.text = "For finite rounds, choose a kill or time limit.";
-            note.fontSize = 13f;
             Refresh();
         }
         catch { Close(); throw; }
@@ -68,6 +69,7 @@ internal sealed class ArenaDeathmatchRulesView
     internal void Close()
     {
         _state = null;
+        _onChanged = null;
         _dispatching = false;
         foreach (var choice in _choices)
             if (choice.Button != null) choice.Button.onClick.RemoveAllListeners();
@@ -88,7 +90,7 @@ internal sealed class ArenaDeathmatchRulesView
         button.name = "Arena Deathmatch " + row + " " + value;
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
-        SetRect((RectTransform)button.transform, index * (width + 4f), row * 51f + 21f, width, 26f);
+        SetRect((RectTransform)button.transform, index * (width + 4f), row * RowHeight + 16f, width, 22f);
         var layout = button.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
@@ -100,7 +102,7 @@ internal sealed class ArenaDeathmatchRulesView
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
         Hud.ArenaUiTheme.StyleButton(button, label);
-        SetRect(label.rectTransform, 6f, 0f, width - 10f, 26f);
+        SetRect(label.rectTransform, 6f, 0f, width - 10f, 22f);
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
         {
@@ -114,7 +116,7 @@ internal sealed class ArenaDeathmatchRulesView
         choice.Marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         choice.Marker.transform.SetParent(button.transform, false);
         choice.Marker.transform.SetAsLastSibling();
-        SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 26f);
+        SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 22f);
         var marker = choice.Marker.GetComponent<Image>();
         marker.color = Hud.ArenaUiTheme.Accent;
         marker.raycastTarget = false;
@@ -136,6 +138,7 @@ internal sealed class ArenaDeathmatchRulesView
             if (ReferenceEquals(owner, _root) && owner != null)
             {
                 Refresh();
+                if (accepted) _onChanged?.Invoke();
                 if (accepted && Singleton<GUISounds>.Instantiated)
                     Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.MenuDropdownSelect);
             }
@@ -157,14 +160,14 @@ internal sealed class ArenaDeathmatchRulesView
             text.fontStyle = typography.fontStyle;
             text.characterSpacing = typography.characterSpacing;
         }
-        text.fontSize = 14f;
+        text.fontSize = 13f;
         text.color = Hud.ArenaUiTheme.Muted;
         text.fontStyle = FontStyles.Normal;
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.raycastTarget = false;
         text.enableWordWrapping = false;
         text.overflowMode = TextOverflowModes.Ellipsis;
-        SetRect(text.rectTransform, 0f, top, Width, 18f);
+        SetRect(text.rectTransform, 0f, top, Width, 15f);
         return text;
     }
 

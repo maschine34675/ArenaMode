@@ -53,9 +53,9 @@ Invoke-SchemaMutant 'equipment-too-long' `
     '"Round elimination", "Next round", "Buy or retain your kit between rounds"' `
     'mode copy schema: EQUIPMENT is the loadout source in <= 3 words and <= 18 characters: tactical'
 Invoke-SchemaMutant 'description-without-period' `
-    '"Every kill moves you one rung up the weapon ladder."' `
-    '"Every kill moves you one rung up the weapon ladder"' `
-    'mode copy schema: Description is one sentence of <= 80 characters ending with a period: gungame'
+    '"Each kill advances your weapon. The ladder repeats."' `
+    '"Each kill advances your weapon. The ladder repeats"' `
+    'mode copy schema: Description is at most two sentences of <= 80 characters ending with a period: gungame'
 Invoke-SchemaMutant 'tactical-rules-roster' `
     '"Round elimination", "Next round"' `
     '"1v5 / Solo", "Next round"' `

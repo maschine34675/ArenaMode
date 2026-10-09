@@ -128,8 +128,8 @@ Need(!state.TrySelectKills(25) && selectedKills == 100, "refused click does not 
 accept = true;
 selectedKills = 77; selectedTime = 75;
 Need(state.KillLabel == "77" && state.TimeLabel == "1:15", "nonpreset F12 values display exactly");
-Need(ArenaTdmMatchRulesState.FormatTime(7200) == "120 min" && ArenaTdmMatchRulesState.FormatTime(0) == "Unlimited"
-    && ArenaTdmMatchRulesState.FormatKills(0) == "Unlimited", "zero and maximum labels are explicit");
+Need(ArenaTdmMatchRulesState.FormatTime(7200) == "120 min" && ArenaTdmMatchRulesState.FormatTime(0) == "Off"
+    && ArenaTdmMatchRulesState.FormatKills(0) == "Off", "zero limits use the same Off label as their buttons in every mode");
 Need(ArenaTdmMatchRulesState.FormatTime(-1) == "Unavailable" && ArenaTdmMatchRulesState.FormatKills(1001) == "Unavailable",
     "missing or invalid values are not presented as unlimited");
 var lying = new ArenaTdmMatchRulesState(() => 50, () => 600, _ => true, _ => true, () => false);
@@ -157,8 +157,8 @@ Show();
 // TDM/Deathmatch rules rows, only its own visibility differs by mode.
 Need(Buttons().Length == 33 && RuleRoot().activeInHierarchy, "five modes, nine TDM, seventeen Deathmatch and two equipment-choice buttons exist without a mutators opener");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
-Need(!Label("RULES label").gameObject.activeSelf && !Label("EQUIPMENT value").gameObject.activeSelf,
-    "TDM rules replace ordinary fact rows rather than overlapping them");
+Need(Label("OBJECTIVE label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
+    "TDM retains all common facts above its limit controls");
 var panel = (RectTransform)view.Root.transform;
 // 530/-168: the non-Deathmatch panel height and top offset, both +42 over
 // their pre-Zombie values for the fifth mode row (see ArenaModeCatalog's
@@ -167,7 +167,7 @@ var panel = (RectTransform)view.Root.transform;
 Need(panel.sizeDelta == new Vector2(360, 530) && panel.anchoredPosition == new Vector2(56, -168),
     "mode panel footprint does not grow toward area or native bottom buttons");
 var ruleRect = (RectTransform)RuleRoot().transform;
-Need(-ruleRect.anchoredPosition.y >= 345 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 530,
+Need(-ruleRect.anchoredPosition.y >= 432 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 530,
     "rules remain below heading and inside original mode panel");
 foreach (var button in Buttons().Where(x => x.name.StartsWith("Arena TDM")))
 {
@@ -195,7 +195,7 @@ Need(!KillButton(50).interactable && Settings.TeamDeathmatchKillLimit.Value == 2
 ArenaSession.ArmedForNextRaid = false;
 view.Synchronize("gungame", false);
 KillButton(50).onClick.Invoke();
-Need(!RuleRoot().activeSelf && Label("RULES label").gameObject.activeSelf
+Need(!RuleRoot().activeSelf && Label("OBJECTIVE label").gameObject.activeSelf
     && Settings.TeamDeathmatchKillLimit.Value == 25, "other mode restores facts and rejects hidden rule events");
 view.Synchronize("tactical", true);
 Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 530
@@ -203,12 +203,18 @@ Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y 
 view.Synchronize("deathmatch", false);
 var dmRoot = view.Root.transform.Children.Single(x => x.name == "Arena Deathmatch Match Rules").gameObject;
 Button Dm(int row, int value) => Buttons().Single(x => x.name == "Arena Deathmatch " + row + " " + value);
-Need(dmRoot.activeSelf && !RuleRoot().activeSelf && !Label("RULES label").gameObject.activeSelf,
-    "Deathmatch rules replace facts and TDM controls");
+Need(dmRoot.activeSelf && !RuleRoot().activeSelf && Label("OBJECTIVE label").gameObject.activeSelf,
+    "Deathmatch retains common facts above its own controls");
 Need(((RectTransform)view.Root.transform).sizeDelta.y == 596, "Deathmatch panel contains all four rule rows");
 Dm(1,20).onClick.Invoke(); Dm(0,3).onClick.Invoke(); Dm(3,1).onClick.Invoke();
 Need(Settings.DeathmatchRounds.Value == 3 && Settings.DeathmatchKills.Value == 20
     && !Settings.DeathmatchFreeForAll.Value && Marked(Dm(0,3)) && Marked(Dm(3,1)), "actual Deathmatch controls persist rules and markers");
+Need(Label("Mode description").text.StartsWith("All opponents hunt you.", StringComparison.Ordinal),
+    "opponent choice updates the visible Deathmatch description immediately");
+Dm(3,0).onClick.Invoke();
+Need(Label("Mode description").text.StartsWith("Everyone fights everyone.", StringComparison.Ordinal),
+    "FFA choice restores the visible Deathmatch description immediately");
+Dm(3,1).onClick.Invoke();
 var frozen = Settings.FreezeDeathmatchRules();
 Settings.DeathmatchKills.Value = 50;
 Need(frozen.Kills == 20 && !frozen.FreeForAll, "frozen match cannot drift with later settings");
@@ -220,14 +226,18 @@ view.Synchronize("tactical", false);
 // 2026-10-08 menu polish: RULES is the objective for every mode ("Round
 // elimination"), no longer the roster. The roster stays visible in the row
 // label and the PFT requirement in the 5v5 note.
-Need(Label("RULES value").text == "Round elimination" && Label("Team restriction").gameObject.activeSelf,
+Need(Label("OBJECTIVE value").text == "Round elimination" && Label("Mode description").gameObject.activeSelf,
     "solo Tactical RULES shows the objective, not the roster, and keeps the PFT requirement note");
+Need(Label("Mode description").text.Contains("5v5 needs PitFireTeam + 4 allies.", StringComparison.Ordinal),
+    "solo Tactical visible description names the full PFT squad requirement");
 string TacticalRowLabel() => Buttons().Single(x => x.name == "Arena Mode tactical").GetComponentInChildren<TextMeshProUGUI>(true).text;
 Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value,
     "solo Tactical roster stays in the mode row label");
 view.Synchronize("tactical", true);
-Need(Label("RULES value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 (PFT)",
+Need(Label("OBJECTIVE value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 (PFT)",
     "PFT Tactical shows the same objective and the roster in the mode row label");
+Need(Label("Mode description").text.Contains("Fallen allies return next round.", StringComparison.Ordinal),
+    "protected Tactical description explains round-delayed restoration");
 view.Synchronize("tactical", false);
 var dmRetired = Dm(0,5).onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);
@@ -248,31 +258,25 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
 {
     view.Synchronize(mode, mode == "tactical");
     Need(!EquipmentChoiceRoot().activeSelf, "equipment choice stays hidden for mode " + mode);
-    // Deathmatch/Team DM already hide the plain EQUIPMENT fact for their own,
-    // unrelated reason (their own rules sub-view replaces every fact row);
-    // only Gun Game and Tactical have no rules sub-view, so only they prove
-    // the plain fact is what reappears instead of the new choice row.
-    if (mode is "gungame" or "tactical")
-        Need(Label("EQUIPMENT label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
+    Need(Label("EQUIPMENT label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
             "the plain EQUIPMENT fact remains for mode " + mode);
     EquipmentChoiceButton(true).onClick.Invoke();
     Need(!Settings.ZombieOwnGear.Value, "a hidden equipment choice row cannot change the setting on mode " + mode);
 }
 view.Synchronize("zombie", false);
-Need(EquipmentChoiceRoot().activeSelf && !Label("EQUIPMENT label").gameObject.activeSelf
+Need(EquipmentChoiceRoot().activeSelf && Label("EQUIPMENT label").gameObject.activeSelf
     && !Label("EQUIPMENT value").gameObject.activeSelf,
-    "Zombie shows the equipment choice row and hides the plain fact");
-Need(Label("Equipment choice label").text == "EQUIPMENT: Arena kits" && Marked(EquipmentChoiceButton(false))
+    "Zombie keeps the common equipment label and substitutes only its value");
+Need(Marked(EquipmentChoiceButton(false))
     && !Marked(EquipmentChoiceButton(true)), "Arena kits is the persisted default, marked and labelled");
 EquipmentChoiceButton(true).onClick.Invoke();
-Need(Settings.ZombieOwnGear.Value && Label("Equipment choice label").text == "EQUIPMENT: Own gear"
-    && Marked(EquipmentChoiceButton(true)) && !Marked(EquipmentChoiceButton(false)),
+Need(Settings.ZombieOwnGear.Value && Marked(EquipmentChoiceButton(true)) && !Marked(EquipmentChoiceButton(false)),
     "real equipment choice control persists own gear and the marker/label follow it");
 view.Synchronize("deathmatch", false);
 Need(Label("EQUIPMENT value").text == "Arena kits", "leaving Zombie restores the plain fact for Deathmatch");
 view.Synchronize("zombie", false);
 Need(Label("EQUIPMENT value").text == "Own gear",
-    "the hidden EQUIPMENT fact value keeps tracking the choice even while replaced by the row");
+    "the hidden EQUIPMENT fact value keeps tracking the inline choice");
 ArenaSession.ArmedForNextRaid = true;
 view.Synchronize("zombie", false);
 EquipmentChoiceButton(false).onClick.Invoke();
@@ -295,12 +299,12 @@ foreach (bool ownGear in new[] { false, true })
     Need(!EquipmentChoiceRoot().activeSelf && Label("EQUIPMENT value").gameObject.activeSelf
         && Label("EQUIPMENT value").text == "PMC entry gear",
         "protected Zombie hides kit choices and displays entry gear independently of the solo preference");
-    Need(Label("RESPAWN value").text == "Next wave" && Label("RULES value").text == "Survive the waves",
-        "protected Zombie explains the wave-delayed return instead of solo instant respawn");
-    Need(Label("Team restriction").gameObject.activeSelf
-        && Label("Team restriction").text.Contains("Team wipe ends the match", StringComparison.Ordinal)
-        && Label("Team restriction").text.Contains("Squad resets between waves", StringComparison.Ordinal),
-        "protected Zombie states elimination and complete squad refresh semantics");
+    Need(Label("RESPAWN value").text == "Next wave" && Label("OBJECTIVE value").text == "Survive the waves",
+        "protected Zombie explains the cleared-wave return instead of solo terminal death");
+    Need(Label("Mode description").gameObject.activeSelf
+        && Label("Mode description").text.Contains("team wipe ends the match", StringComparison.Ordinal)
+        && Label("Mode description").text.Contains("Fallen allies return after cleared waves", StringComparison.Ordinal),
+        "protected Zombie states elimination and cleared-wave restoration semantics");
     Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
             == "ZOMBIES / SQUAD (PFT)",
         "Zombie row labels the protected companion variant");
@@ -312,12 +316,10 @@ foreach (bool ownGear in new[] { false, true })
     Need(EquipmentChoiceRoot().activeSelf && Settings.ZombieOwnGear.Value == ownGear,
         "leaving protected Zombie restores the independent solo equipment selection");
 }
-// Items 3+4 of the 2026-10-08 menu polish: whatever the view RENDERS in the three
-// MATCH RULES facts (catalog value or one of its substitutions) stays inside the
-// 218 px value column: at most three words and 18 characters, RESPAWN limited to
-// the known vocabulary. The catalog schema itself is enforced entry by entry in
-// tools/NativeModeSelectionChecks; this measures the rendered text, including the
-// view-side substitutions ("PMC entry gear", "Own gear", "After killcam").
+// 2026-10-09: inspect actual visibility and placement, not merely a hidden
+// label's string. Every variant has one description and the same common facts;
+// optional controls occupy only the dedicated value column or the area below.
+// String bounds are a copy budget, not proof of native TMP glyph layout.
 foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungame", false), ("tactical", false),
     ("tactical", true), ("teamdeathmatch", false), ("zombie", false), ("zombie", true) })
 {
@@ -326,8 +328,13 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
         Settings.ZombieOwnGear.Value = ownGear;
         view.Synchronize(schemaMode, schemaTeam);
         string scope = schemaMode + (schemaTeam ? " (PFT)" : "") + (ownGear ? " own gear" : "");
-        foreach (string fact in new[] { "RULES", "RESPAWN", "EQUIPMENT" })
+        foreach (string fact in new[] { "OBJECTIVE", "RESPAWN", "EQUIPMENT" })
         {
+            Need(Label(fact + " label").gameObject.activeInHierarchy,
+                "common fact labels are visible for every mode: " + scope + " " + fact);
+            Need(fact == "EQUIPMENT" && EquipmentChoiceRoot().activeInHierarchy
+                || Label(fact + " value").gameObject.activeInHierarchy,
+                "common fact values or their inline choice are visible for every mode: " + scope + " " + fact);
             string rendered = Label(fact + " value").text;
             Need(rendered.Length is > 0 and <= 18
                     && rendered.Split(' ', StringSplitOptions.RemoveEmptyEntries).Count(t => t.Any(char.IsLetterOrDigit)) <= 3,
@@ -335,12 +342,49 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
         }
         Need(Label("RESPAWN value").text is "Instant" or "Next round" or "Next wave" or "After killcam" or "None",
             "RESPAWN fact stays inside the known vocabulary: " + scope);
+        Need(Label("Mode description").gameObject.activeInHierarchy
+                && Label("Mode description").enableWordWrapping
+                && Label("Mode description").text.Length is > 0 and <= 80
+                && Label("Mode description").text.EndsWith('.'),
+            "every mode has an actual visible two-line description, not an unavailable tooltip: " + scope);
+        foreach (var (name, top) in new[] { ("OBJECTIVE", 330f), ("RESPAWN", 360f), ("EQUIPMENT", 390f) })
+            Need(Label(name + " label").rectTransform.anchoredPosition == new Vector2(20f, -top)
+                && Label(name + " value").rectTransform.anchoredPosition == new Vector2(122f, -top),
+                "common fact positions do not jump between modes: " + scope + " " + name);
+        var description = Label("Mode description").rectTransform;
+        Need(-description.anchoredPosition.y + description.sizeDelta.y <= 330f,
+            "description has its own space above the common facts: " + scope);
+        foreach (var child in new[] { dmRoot, RuleRoot() }.Where(x => x.activeInHierarchy))
+        {
+            var childRect = (RectTransform)child.transform;
+            Need(-childRect.anchoredPosition.y >= 420f
+                    && -childRect.anchoredPosition.y + childRect.sizeDelta.y <= ((RectTransform)view.Root.transform).sizeDelta.y,
+                "limit controls are below all common facts and inside the panel: " + scope);
+            foreach (var button in child.GetComponentsInChildren<Button>(false))
+            {
+                var buttonRect = (RectTransform)button.transform;
+                var textRect = button.GetComponentInChildren<TMP_Text>(true).rectTransform;
+                Need(-buttonRect.anchoredPosition.y >= 0
+                        && -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y <= childRect.sizeDelta.y
+                        && textRect.sizeDelta.y <= buttonRect.sizeDelta.y,
+                    "limit button and label remain inside their own row: " + scope + " " + button.name);
+            }
+        }
+        if (EquipmentChoiceRoot().activeInHierarchy)
+        {
+            var equipmentRect = (RectTransform)EquipmentChoiceRoot().transform;
+            Need(equipmentRect.anchoredPosition == Label("EQUIPMENT value").rectTransform.anchoredPosition
+                    && equipmentRect.sizeDelta == Label("EQUIPMENT value").rectTransform.sizeDelta,
+                "equipment choices occupy only the shared value column: " + scope);
+        }
     }
 }
 Settings.ZombieOwnGear.Value = false;
 view.Synchronize("zombie", false);
-Need(Label("RULES value").text == "Survive the waves" && Label("RESPAWN value").text == "None"
+Need(Label("OBJECTIVE value").text == "Survive the waves" && Label("RESPAWN value").text == "None"
     && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, None, Arena kits");
+Need(Label("Mode description").text.Contains("Your first death ends the match.", StringComparison.Ordinal),
+    "solo Zombie description exposes the terminal first-death rule");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
 GameObject MutatorsRoot() => screen.transform.Children.Single(x => x.name == "Arena Mutators").gameObject;
@@ -471,6 +515,20 @@ ArenaMode.Spectator.KillcamReplayCompat.Available = true;
 view.Synchronize("gungame", false);
 Need(KillcamText() == "KILLCAM: ON" && Label("RESPAWN value").text == "After killcam",
     "available replay refreshes actual respawn description");
+foreach (string instantMode in new[] { "deathmatch", "teamdeathmatch" })
+{
+    view.Synchronize(instantMode, false);
+    KillcamButton().onClick.Invoke();
+    Need(Label("RESPAWN value").gameObject.activeInHierarchy && Label("RESPAWN value").text == "After killcam",
+        "Deathmatch and TDM actually show replay-delayed respawn: " + instantMode);
+    ArenaMode.Spectator.KillcamReplayCompat.Available = false;
+    view.Synchronize(instantMode, false);
+    Need(Label("RESPAWN value").text == "Instant", "unavailable replay never delays the advertised respawn: " + instantMode);
+    ArenaMode.Spectator.KillcamReplayCompat.Available = true;
+    view.Synchronize(instantMode, false);
+    KillcamButton().onClick.Invoke();
+    Need(Label("RESPAWN value").text == "Instant", "disabled replay restores the advertised instant respawn: " + instantMode);
+}
 Need(Settings.GetReplaySeconds("deathmatch") == 0f && Settings.GetReplaySeconds("teamdeathmatch") == 0f
     && Settings.GetReplaySeconds("tactical") == 3f, "selecting one mode leaves the other replay choices untouched");
 Settings.ZombieReplaySeconds.Value = 3f;

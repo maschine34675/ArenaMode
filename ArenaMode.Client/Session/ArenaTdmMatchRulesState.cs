@@ -45,12 +45,12 @@ internal sealed class ArenaTdmMatchRulesState
 
     internal static string FormatKills(int value)
         => value < 0 || value > 1000 ? "Unavailable"
-            : value == 0 ? "Unlimited" : value.ToString(CultureInfo.InvariantCulture);
+            : value == 0 ? "Off" : value.ToString(CultureInfo.InvariantCulture);
 
     internal static string FormatTime(int seconds)
     {
         if (seconds < 0 || seconds > 7200) return "Unavailable";
-        if (seconds == 0) return "Unlimited";
+        if (seconds == 0) return "Off";
         return seconds % 60 == 0
             ? (seconds / 60).ToString(CultureInfo.InvariantCulture) + " min"
             : (seconds / 60).ToString(CultureInfo.InvariantCulture) + ":"

@@ -75,7 +75,7 @@ internal static class Program
     // RESPAWN = exactly "Instant", "Next round", or "None" (the view may substitute
     //           "After killcam", which tools/TdmMatchMenuChecks measures).
     // EQUIPMENT = the loadout source, at most three words, at most 18 characters.
-    // Description = one sentence, at most 80 characters, ends with a period.
+    // Description = up to two sentences, at most 80 characters, ends with a period.
     // A word is a whitespace-separated token containing a letter or digit, so
     // the slash in "Buy / retain kit" does not count.
     private static int Words(string text)
@@ -96,9 +96,9 @@ internal static class Program
                    && mode.Equipment == mode.Equipment.Trim(),
                 $"mode copy schema: EQUIPMENT is the loadout source in <= 3 words and <= 18 characters: {id} '{mode.Equipment}'");
             Assert(mode.Description.Length > 0 && mode.Description.Length <= 80
-                   && mode.Description.EndsWith('.') && !mode.Description.TrimEnd('.').Contains(". ")
+                   && mode.Description.EndsWith('.') && mode.Description.Count(c => c == '.') <= 2
                    && char.IsUpper(mode.Description[0]) && mode.Description == mode.Description.Trim(),
-                $"mode copy schema: Description is one sentence of <= 80 characters ending with a period: {id} '{mode.Description}'");
+                $"mode copy schema: Description is at most two sentences of <= 80 characters ending with a period: {id} '{mode.Description}'");
         }
         // The Tactical roster lives in the row label, not in RULES.
         var tactical = ArenaModeCatalog.All.Single(mode => mode.Id == ArenaModeCatalog.TacticalId);

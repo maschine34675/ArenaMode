@@ -7,9 +7,11 @@ namespace ArenaMode.Modes;
 /// <summary>
 /// One selectable Arena mode and the copy the map-screen picker shows for it.
 ///
-/// ONE COPY SCHEMA for every mode (2026-10-08), so the three MATCH RULES facts
-/// read alike and always fit their 218 px value column at 17 pt without an
-/// ellipsis. tools/NativeModeSelectionChecks enforces it for every entry in
+/// ONE VISIBLE COPY SCHEMA for every mode (2026-10-09), so the three mode facts
+/// read alike and have a short copy budget for their 218 px value column at
+/// 17 pt. Native font fit is verified separately. The screen shows OBJECTIVE,
+/// RESPAWN and EQUIPMENT after the description; choices sit below these facts.
+/// tools/NativeModeSelectionChecks enforces it for every entry in
 /// <see cref="ArenaModeCatalog.All"/>, and tools/TdmMatchMenuChecks enforces
 /// the same limits on what the view actually renders:
 /// <list type="bullet">
@@ -21,12 +23,9 @@ namespace ArenaMode.Modes;
 /// <item><see cref="Equipment"/>: the loadout source, at most three words and
 /// at most 18 characters. The view may show "PMC entry gear" (protected 5v5) or
 /// <c>ArenaEquipmentChoice.OwnGearLabel</c> (own gear chosen).</item>
-/// <item><see cref="Description"/>: one sentence of at most 80 characters that
-/// ends with a period. It is not displayed today: the picker's native
-/// <c>HoverTooltipArea</c> only shows a message while its row is LOCKED
-/// (<c>SetUnlockStatus(true)</c> disables the component, decompile
-/// EFT.UI/HoverTooltipArea.cs:131-135), so an allowed row has no tooltip. It
-/// stays in the schema so a future display needs no copy pass.</item>
+/// <item><see cref="Description"/>: at most 80 characters, ending with a period,
+/// rendered in a two-line block. Variant-specific wording follows the same
+/// footprint, rather than relying on an allowed row's disabled tooltip.</item>
 /// </list>
 /// A word is a whitespace-separated token that contains a letter or digit, so
 /// the slash in "Buy / retain kit" is punctuation, not a word.
@@ -80,26 +79,25 @@ internal static class ArenaModeCatalog
         Array.AsReadOnly(new[]
         {
             new ArenaModeDefinition(DeathmatchId, "DEATHMATCH",
-                "Free-for-all, or everyone against you, with optional rounds and limits.",
+                "Everyone fights everyone. Set limits to end rounds.",
                 "Most kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(GunGameId, "GUN GAME",
-                "Every kill moves you one rung up the weapon ladder.",
+                "Each kill advances your weapon. The ladder repeats.",
                 "Kill to advance", "Instant", "Weapon ladder"),
             new ArenaModeDefinition(TacticalId, "TACTICAL",
-                "Round-based squad fights: solo 1v5, or 5v5 with four PitFireTeam companions.",
+                "Eliminate the enemy squad. 5v5 needs PitFireTeam + 4 allies.",
                 "Round elimination", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
-                "USEC versus BEAR with instant respawns; no companions required.",
+                "USEC versus BEAR. The team with more kills wins.",
                 "Most team kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(ZombieId, "ZOMBIES",
-                "Survive endless infected waves; solo ends when you die.",
+                "Survive endless waves. Your first death ends the match.",
                 "Survive the waves", "None", "Arena kits"),
         });
 
     internal const float ModePanelTop = 168f;
-    // +42 for the fifth mode row (Zombie) added below the existing four; every
-    // mode panel grows by one row height, not only the one with the most rows
-    // of its own rules sub-view (Deathmatch).
+    // Keep the accepted footprint: the area/participant panel sits immediately
+    // below this one, including all four Customs choices at a 1080-unit height.
     internal static float ModePanelHeight(string mode) => NormalizeId(mode) == DeathmatchId ? 596f : 530f;
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;

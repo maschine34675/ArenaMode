@@ -36,18 +36,13 @@ internal sealed class ArenaTdmMatchRulesView
             _root = new GameObject("Arena TDM Match Rules", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
-            // +42 from the pre-Zombie 307f: one row height for the fifth mode
-            // row added above in ArenaModeSelectionView (see its comment).
-            SetRect((RectTransform)_root.transform, 20f, 349f, Width, 124f);
+            SetRect((RectTransform)_root.transform, 20f, 432f, Width, 78f);
             _kills = CreateText("TDM kill limit", typography, 0f);
-            _time = CreateText("TDM time limit", typography, 51f);
+            _time = CreateText("TDM time limit", typography, 39f);
             foreach (int value in ArenaTdmMatchRulesState.KillOptions)
                 CreateChoice(template, typography, value, false);
             foreach (int value in ArenaTdmMatchRulesState.TimeOptions)
                 CreateChoice(template, typography, value, true);
-            var note = CreateText("TDM equipment note", typography, 106f);
-            note.text = "Instant respawn / Arena kits";
-            note.fontSize = 14f;
             Refresh();
         }
         catch { Close(); throw; }
@@ -90,19 +85,19 @@ internal sealed class ArenaTdmMatchRulesView
         button.name = "Arena TDM " + (time ? "Seconds " : "Kills ") + value;
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
-        SetRect((RectTransform)button.transform, index * (width + 4f), time ? 72f : 21f, width, 26f);
+        SetRect((RectTransform)button.transform, index * (width + 4f), time ? 55f : 16f, width, 22f);
         var layout = button.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
             ?? throw new InvalidOperationException("The native TDM rules row label is missing.");
         label.text = value == 0 ? "Off" : (time ? (value / 60).ToString() : value.ToString());
-        label.fontSize = 17f;
+        label.fontSize = 14f;
         label.enableWordWrapping = false;
         label.overflowMode = TextOverflowModes.Ellipsis;
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
         Hud.ArenaUiTheme.StyleButton(button, label);
-        SetRect(label.rectTransform, 10f, 0f, width - 16f, 26f);
+        SetRect(label.rectTransform, 10f, 0f, width - 16f, 22f);
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
         {
@@ -116,7 +111,7 @@ internal sealed class ArenaTdmMatchRulesView
         choice.Marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         choice.Marker.transform.SetParent(button.transform, false);
         choice.Marker.transform.SetAsLastSibling();
-        SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 26f);
+        SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 22f);
         var marker = choice.Marker.GetComponent<Image>();
         marker.color = Hud.ArenaUiTheme.Accent;
         marker.raycastTarget = false;
@@ -159,14 +154,14 @@ internal sealed class ArenaTdmMatchRulesView
             text.fontStyle = typography.fontStyle;
             text.characterSpacing = typography.characterSpacing;
         }
-        text.fontSize = 14f;
+        text.fontSize = 13f;
         text.color = Hud.ArenaUiTheme.Muted;
         text.fontStyle = FontStyles.Normal;
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.raycastTarget = false;
         text.enableWordWrapping = false;
         text.overflowMode = TextOverflowModes.Ellipsis;
-        SetRect(text.rectTransform, 0f, top, Width, 18f);
+        SetRect(text.rectTransform, 0f, top, Width, 15f);
         return text;
     }
 

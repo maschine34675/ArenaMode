@@ -17,13 +17,6 @@ internal sealed class ArenaModeSelectionView
     private const float Inset = 20f;
     private readonly List<Button> _buttons = new();
     private readonly List<GameObject> _markers = new();
-    private readonly List<GameObject> _factObjects = new();
-    // EQUIPMENT's own label+value objects, tracked apart from _factObjects:
-    // unlike RULES/RESPAWN (hidden only while a rules sub-view is Visible),
-    // EQUIPMENT also hides whenever _equipmentChoice.Visible (today: Zombie
-    // only) — the new choice row replaces it in the exact same panel slot
-    // rather than sitting beside it. See RefreshTdmRules.
-    private readonly List<GameObject> _equipmentFactObjects = new();
     private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
     private ArenaTdmMatchRulesState _tdmRules;
     private readonly ArenaDeathmatchRulesView _dmRulesView = new();
@@ -35,7 +28,7 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _respawn;
     private TextMeshProUGUI _equipment;
     private TextMeshProUGUI _subtitle;
-    private GameObject _restrictionNote;
+    private TextMeshProUGUI _description;
     private ArenaModeSelectionState _selection;
     private readonly ArenaMutatorsView _mutators = new();
 
@@ -53,7 +46,6 @@ internal sealed class ArenaModeSelectionView
         }
         _subtitle.text = tacticalOnly ? "GAME MODE / PITFIRETEAM" : "GAME MODE";
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
-        _restrictionNote.SetActive(tacticalOnly);
         for (var index = 0; index < _buttons.Count; index++)
         {
             var allowed = _selection.CanSelectIndex(index);
@@ -120,8 +112,6 @@ internal sealed class ArenaModeSelectionView
         Safe(_dmRulesView.Close);
         Safe(_tdmRulesView.Close);
         Safe(_equipmentChoiceView.Close);
-        _factObjects.Clear();
-        _equipmentFactObjects.Clear();
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
@@ -130,7 +120,7 @@ internal sealed class ArenaModeSelectionView
         var root = _root;
         _root = null;
         _rules = _respawn = _equipment = _subtitle = null;
-        _restrictionNote = null;
+        _description = null;
         Safe(() => { if (root != null) root.SetActive(false); });
         Safe(() => { if (root != null) UnityEngine.Object.Destroy(root); });
     }
@@ -160,27 +150,19 @@ internal sealed class ArenaModeSelectionView
         _subtitle = subtitle;
 
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
-            CreateRow(template, typography, index, 84f + index * 42f);
+            CreateRow(template, typography, index, 84f + index * 36f);
 
-        // Every top offset below is +42 from its pre-Zombie value: one row
-        // height for the fifth mode row added above (see ArenaModeCatalog's
-        // Definitions and ModePanelHeight, which grew by the same amount).
-        CreateRule(308f, typography);
-        var heading = CreateText("Rules heading", typography, "MATCH RULES", 14f, 323f, 22f);
-        heading.color = Dim(typography, .65f);
+        CreateRule(274f, typography);
+        _description = CreateText("Mode description", typography, string.Empty, 14f, 284f, 42f);
+        _description.enableWordWrapping = true;
+        _description.color = Dim(typography, .75f);
         _mutators.Create(screen, _root, typography, Refresh);
-        _rules = CreateFact("RULES", typography, 354f, _factObjects);
-        _respawn = CreateFact("RESPAWN", typography, 394f, _factObjects);
-        _equipment = CreateFact("EQUIPMENT", typography, 434f, _equipmentFactObjects);
+        _rules = CreateFact("OBJECTIVE", typography, 330f);
+        _respawn = CreateFact("RESPAWN", typography, 360f);
+        _equipment = CreateFact("EQUIPMENT", typography, 390f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
-        _dmRulesView.Show(_root.transform, template, typography, _dmRules);
+        _dmRulesView.Show(_root.transform, template, typography, _dmRules, Refresh);
         _equipmentChoiceView.Show(_root.transform, template, typography, _equipmentChoice);
-
-        var note = CreateText("Team restriction", typography,
-            "Squad play requires PitFireTeam + 4 teammates.", 14f, 482f, 44f);
-        note.color = Dim(typography, .75f);
-        _restrictionNote = note.gameObject;
-        _restrictionNote.SetActive(_selection.SelectedMode == ArenaModeCatalog.TacticalId);
     }
 
     private void CreateRow(Button template, TMP_Text typography, int index, float top)
@@ -192,19 +174,19 @@ internal sealed class ArenaModeSelectionView
         button.name = "Arena Mode " + ArenaModeCatalog.All[index].Id;
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
-        SetRect((RectTransform)button.transform, Inset, top, PanelWidth - 2f * Inset, 38f);
+        SetRect((RectTransform)button.transform, Inset, top, PanelWidth - 2f * Inset, 34f);
         var layout = button.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
             ?? throw new InvalidOperationException("The native mode-row label is missing.");
         label.text = ArenaModeCatalog.All[index].Label;
-        label.fontSize = 20f;
+        label.fontSize = 19f;
         label.enableWordWrapping = false;
         label.overflowMode = TextOverflowModes.Ellipsis;
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
         Hud.ArenaUiTheme.StyleButton(button, label);
-        SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, 38f);
+        SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, 34f);
 
         var allowed = _selection.CanSelectIndex(index);
         var tooltip = button.GetComponent<HoverTooltipArea>();
@@ -225,7 +207,7 @@ internal sealed class ArenaModeSelectionView
         var marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         marker.transform.SetParent(button.transform, false);
         marker.transform.SetAsLastSibling();
-        SetRect((RectTransform)marker.transform, 0f, 0f, 3f, 38f);
+        SetRect((RectTransform)marker.transform, 0f, 0f, 3f, 34f);
         var markerImage = marker.GetComponent<Image>();
         markerImage.color = Hud.ArenaUiTheme.Accent;
         markerImage.raycastTarget = false;
@@ -262,17 +244,18 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < _markers.Count; index++)
             _markers[index].SetActive(index == _selection.SelectedIndex);
         var mode = _selection.SelectedDefinition;
-        // RULES is the objective straight from the catalog for every mode. The
-        // Tactical roster used to be spliced in here ("1v5 / Solo", "5v5 /
-        // PitFireTeam"); it already shows in the row label below ("TACTICAL /
-        // 1v5", "TACTICAL / 5v5 (PFT)") and in the 5v5 note, so the facts
-        // follow the one copy schema documented on ArenaModeDefinition.
+        // Never hide these common facts behind a mode's limit controls. The
+        // roster belongs in the mode label, and the short description explains
+        // the selected variant; neither changes the objective's meaning.
         _rules.text = mode.Rules;
         bool zombieTeam = _selection.TacticalOnly && mode.Id == ArenaModeCatalog.ZombieId;
-        _restrictionNote.SetActive(mode.Id == ArenaModeCatalog.TacticalId || zombieTeam);
-        _restrictionNote.GetComponent<TextMeshProUGUI>().text = zombieTeam
-            ? "Team wipe ends the match. Squad resets between waves."
-            : "5v5 requires PitFireTeam + 4 teammates.";
+        _description.text = zombieTeam
+            ? "Fallen allies return after cleared waves. A team wipe ends the match."
+            : mode.Id == ArenaModeCatalog.TacticalId && _selection.TacticalOnly
+                ? "Eliminate the enemy squad. Fallen allies return next round."
+            : mode.Id == ArenaModeCatalog.DeathmatchId && !Settings.DeathmatchFreeForAll.Value
+                ? "All opponents hunt you. Set limits to end rounds."
+            : mode.Description;
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
@@ -304,9 +287,9 @@ internal sealed class ArenaModeSelectionView
         _tdmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _dmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _equipmentChoice.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
-        bool rulesVisible = _tdmRules.Visible || _dmRules.Visible;
-        foreach (var fact in _factObjects) fact.SetActive(!rulesVisible);
-        foreach (var fact in _equipmentFactObjects) fact.SetActive(!rulesVisible && !_equipmentChoice.Visible);
+        // The equipment selector occupies only the value column. Its label is
+        // the same EQUIPMENT label every other mode uses, at the same height.
+        _equipment.gameObject.SetActive(!_equipmentChoice.Visible);
         _dmRulesView.Refresh();
         _tdmRulesView.Refresh();
         _equipmentChoiceView.Refresh();
@@ -314,14 +297,12 @@ internal sealed class ArenaModeSelectionView
 
     private float PanelHeight => ArenaModeCatalog.ModePanelHeight(_selection?.SelectedMode);
 
-    private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top, List<GameObject> target)
+    private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top)
     {
         var key = CreateText(label + " label", typography, label, 14f, top, 30f);
-        target.Add(key.gameObject);
         key.rectTransform.sizeDelta = new Vector2(98f, 30f);
         key.color = Dim(typography, .65f);
         var value = CreateText(label + " value", typography, string.Empty, 17f, top, 30f);
-        target.Add(value.gameObject);
         SetRect(value.rectTransform, 122f, top, PanelWidth - 142f, 30f);
         return value;
     }
