@@ -9,7 +9,7 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
-    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, FriendlyFire
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -21,7 +21,7 @@ internal sealed class ArenaMutatorSelection
     /// rule: <see cref="Settings.TracerEntry"/> returns no entry elsewhere,
     /// the laser row checks the mode itself).
     /// </summary>
-    internal const string TeamModesOnly = "Requires Team DM or a PitFireTeam squad.";
+    internal const string TeamModesOnly = "Requires Team DM or a PFT squad.";
 
     internal string Mode { get; private set; }
     private bool _team;
@@ -48,6 +48,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Lasers => "TEAM LASER COLORS",
         ArenaMutator.Akimbo => "AKIMBO PISTOLS",
         ArenaMutator.Announcer => "ANNOUNCER",
+        ArenaMutator.FriendlyFire => "FRIENDLY FIRE",
         _ => string.Empty
     };
 
@@ -75,6 +76,7 @@ internal sealed class ArenaMutatorSelection
         // Stingers, round cues AND the HUD's kill/award callouts ("DOUBLE
         // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
         ArenaMutator.Announcer => "Stingers, cues and kill callouts.",
+        ArenaMutator.FriendlyFire => "Allow damage between teammates.",
         _ => string.Empty
     };
 
@@ -99,6 +101,7 @@ internal sealed class ArenaMutatorSelection
         // in Enabled()/TryToggle() below — the generic bool-entry path
         // already used for Tracers/Lasers/Akimbo handles it as-is.
         ArenaMutator.Announcer => Settings.AnnouncerEntry(Mode),
+        ArenaMutator.FriendlyFire => Settings.FriendlyFireEntry(Mode, _team),
         _ => null
     };
 
@@ -111,7 +114,8 @@ internal sealed class ArenaMutatorSelection
             return Spectator.KillcamReplayCompat.CanPlay(out string reason) ? null : reason;
         // Team-only like the lasers: TracerEntry has no entry outside Team DM and
         // protected Tactical 5v5, which is a mode restriction, not a missing setting.
-        if (id == ArenaMutator.Tracers && Entry(id) == null) return TeamModesOnly;
+        if ((id == ArenaMutator.Tracers || id == ArenaMutator.FriendlyFire)
+            && Entry(id) == null) return TeamModesOnly;
         if (Entry(id) == null) return "Setting unavailable.";
         if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.Bunnyhop || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire
             || id == ArenaMutator.AirVault || id == ArenaMutator.Slide

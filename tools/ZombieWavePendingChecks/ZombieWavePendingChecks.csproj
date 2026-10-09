@@ -6,6 +6,7 @@
     <WaveSource Condition="'$(WaveSource)' == ''">../../ArenaMode.Client/Modes/ZombieWavePolicy.cs</WaveSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaFriendlyFireRoster.cs" Link="Production/ArenaFriendlyFireRoster.cs" />
     <Compile Remove="ServiceChecks/**" />
     <Compile Include="../ZombieTeamChecks/Stubs.cs" Link="BoundaryDoubles.cs" />
     <Compile Include="$(ModeSource)" Link="Production/ZombieMode.cs" />

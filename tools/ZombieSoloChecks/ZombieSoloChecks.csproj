@@ -8,6 +8,7 @@
     <ExitSource Condition="'$(ExitSource)' == ''">../../ArenaMode.Client/Modes/TdmMatchExit.cs</ExitSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaFriendlyFireRoster.cs" Link="Production/ArenaFriendlyFireRoster.cs" />
     <Compile Include="../ZombieTeamChecks/Stubs.cs" Link="BoundaryDoubles.cs" />
     <Compile Include="$(ModeSource)" Link="Production/ZombieMode.cs" />
     <Compile Include="$(MatchSource)" Link="Production/ArenaMatch.cs" />

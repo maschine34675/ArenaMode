@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $stage = Join-Path $repo ('artifacts/zombie-team-checks/' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($stage) | Out-Null
-$files = @('ZombieTeamRuntime.cs', 'ZombieTeamRuntime.Identity.cs', 'ZombieMode.cs', 'ZombieWavePolicy.cs', 'ZombieRefillPolicy.cs')
+$files = @('ZombieTeamRuntime.cs', 'ZombieTeamRuntime.Identity.cs', 'ZombieTeamRuntime.FriendlyFire.cs', 'ZombieMode.cs', 'ZombieWavePolicy.cs', 'ZombieRefillPolicy.cs')
 $project = @'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
@@ -13,14 +13,17 @@ function New-Case([string]$name) {
     [IO.Directory]::CreateDirectory($dir) | Out-Null
     foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $repo "ArenaMode.Client/Modes/$file") -Destination $dir }
     Copy-Item -LiteralPath (Join-Path $repo 'ArenaMode.Client/Respawn/ArenaReplayWaitPolicy.cs') -Destination $dir
+    Copy-Item -LiteralPath (Join-Path $repo 'ArenaMode.Client/Combat/ArenaFriendlyFireRoster.cs') -Destination $dir
     foreach ($file in @('Program.cs','Stubs.cs')) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination $dir }
     [IO.File]::WriteAllText((Join-Path $dir 'Checks.csproj'), $project)
     return $dir
 }
 function Run-Case([string]$dir, [bool]$mustPass) {
     $log = Join-Path $dir 'run.log'
+    $ErrorActionPreference = 'Continue'
     & dotnet run --project (Join-Path $dir 'Checks.csproj') --nologo *> $log
     $code = $LASTEXITCODE
+    $ErrorActionPreference = 'Stop'
     $content = Get-Content -LiteralPath $log -Raw
     if ($mustPass) {
         if ($code -ne 0 -or $content -notmatch 'ZOMBIE_TEAM_CHECKS_PASSED') { throw "Production failed: $log`n$content" }

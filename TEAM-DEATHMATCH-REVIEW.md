@@ -40,11 +40,13 @@ responsible for the player's death. Failed, duplicate or stale actions do not
 earn team points, and a stopped mode still permits the existing Give up escape
 action. Leaving the raid is not treated as Give up. See `tools/TeamGiveUpChecks`.
 
-Same-faction attributed bullets/explosions are blocked before health and armor
-mutations. Self-damage, environmental effects and unknown attribution retain
-their native behavior. Friendly grenade camera shake/contusion can remain:
-the separate native contusion callback has no attacker identity, and no broad
-invulnerability/visual suppression was added.
+The **Friendly Fire** mutator now defaults **on** for Team DM; this replaces its
+former unconditional same-faction damage block. Turning it off blocks admitted
+same-faction bullets/explosions before health and armor mutations, including
+attributed native grenade contusion/flash effects. The setting freezes on arming.
+Self-damage, environmental effects and unknown attribution retain native behavior.
+AI hostility and unscored same-team kills remain unchanged. Separate flash-ammo
+and flare effects stay native. See `FRIENDLY-FIRE-REVIEW.md` for the exact boundary.
 
 PFT is optional and is not used to form these teams. A selected full PFT roster
 continues to force protected Tactical; its ownership and persistence gates are

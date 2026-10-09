@@ -19,6 +19,12 @@ remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
+Team Friendly Fire is a raid-frozen mutator: Team DM and PFT Tactical default on,
+PFT Zombies off; solo is unavailable. Read FRIENDLY-FIRE-REVIEW.md before changing
+damage admission, physical team identities or attributed grenade effects. Do not
+use historical tracer IDs as authority to grant immunity to replacement bodies.
+Equator remains unavailable for Tactical and is also excluded from PFT Zombies
+because the five-person squad obstructs itself; solo Zombies stays supported.
 Zombies offers solo or a protected four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any

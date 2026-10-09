@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Combat/ArenaFriendlyFire.cs</PolicySource>
+    <RosterSource Condition="'$(RosterSource)' == ''">../../ArenaMode.Client/Combat/ArenaFriendlyFireRoster.cs</RosterSource>
+    <ExplosionSource Condition="'$(ExplosionSource)' == ''">../../ArenaMode.Client/Combat/ArenaFriendlyExplosionEffects.cs</ExplosionSource>
+    <TacticalSource Condition="'$(TacticalSource)' == ''">../../ArenaMode.Client/Modes/TacticalMode.FriendlyFire.cs</TacticalSource>
+    <ZombieSource Condition="'$(ZombieSource)' == ''">../../ArenaMode.Client/Modes/ZombieTeamRuntime.FriendlyFire.cs</ZombieSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/ArenaFriendlyFire.cs" />
+    <Compile Include="$(RosterSource)" Link="Production/ArenaFriendlyFireRoster.cs" />
+    <Compile Include="$(ExplosionSource)" Link="Production/ArenaFriendlyExplosionEffects.cs" />
+    <Compile Include="$(TacticalSource)" Link="Production/TacticalMode.FriendlyFire.cs" />
+    <Compile Include="$(ZombieSource)" Link="Production/ZombieTeamRuntime.FriendlyFire.cs" />
+  </ItemGroup>
+</Project>

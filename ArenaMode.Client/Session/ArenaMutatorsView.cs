@@ -88,7 +88,7 @@ internal sealed class ArenaMutatorsView
         for (int index = 0; index < _rows.Count; index++)
         {
             var row = _rows[index];
-            // Fit the extra pistol mutator without moving the preview or READY.
+            // Reflow added switches without moving the preview or READY.
             int rowsPerColumn = (_rows.Count + 1) / 2;
             float pitch = (ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn;
             float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = RowsTop + (index % rowsPerColumn) * pitch;

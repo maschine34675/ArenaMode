@@ -47,6 +47,7 @@ internal static class CombatPatches
         ArenaShotAwardHooks.Enable();
         ArenaSelfGrenadeTaunt.Enable();
         ArenaAssistCapture.Enable();
+        ArenaFriendlyExplosionEffects.Enable();
     }
 
     public static void ResetRaidState()
@@ -288,7 +289,7 @@ internal static class CombatPatches
         {
             __state = null;
             if (!ShouldBlockProtectedTeamMutation(__instance, "shot")
-                && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer))
+                && !ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer))
             {
                 __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: true, shotId: shotId);
                 return true;
@@ -331,7 +332,7 @@ internal static class CombatPatches
         {
             __state = null;
             if (ShouldBlockProtectedTeamMutation(__instance, "player-damage")
-                || TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer)) return false;
+                || ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer)) return false;
             __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: false);
             return true;
         }
@@ -363,7 +364,7 @@ internal static class CombatPatches
         [PatchPrefix]
         private static bool Prefix(Player __instance, DamageInfo damageInfo)
             => !ShouldBlockProtectedTeamMutation(__instance, "explosion-armor")
-               && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer);
+               && !ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer);
     }
 
     /// <summary>
@@ -384,7 +385,7 @@ internal static class CombatPatches
             ref float __result)
         {
             if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage")
-                && !TeamDeathmatchRelations.ShouldBlockFriendlyDamage(__instance?.Player, damageInfo.Player?.iPlayer))
+                && !ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance?.Player, damageInfo.Player?.iPlayer))
             {
                 damage = ArenaBleedingDamage.Adjust(__instance, damage, damageInfo.DamageType);
                 if (ArenaSession.IsActive && ArenaMatchService.Current != null

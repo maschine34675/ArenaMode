@@ -121,6 +121,13 @@ namespace ArenaMode.Bots
 }
 namespace ArenaMode.Combat
 {
+    // The damage-prefix balance fixture treats team immunity as an external
+    // decision; its exact live implementation has FriendlyFireRuntimeChecks.
+    public static class ArenaFriendlyFire
+    {
+        public static bool ShouldBlockFriendlyDamage(EFT.Player victim, EFT.Player attacker)
+            => ArenaMode.Bots.TeamDeathmatchRelations.ShouldBlockFriendlyDamage(victim, attacker);
+    }
     public static class ArenaHitHistory
     {
         public static List<float> Damage=new();

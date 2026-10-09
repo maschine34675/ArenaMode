@@ -117,6 +117,22 @@ public static class Settings
     public static ConfigEntry<float> ArenaLightingOutcomeSeconds { get; private set; }
     public static ConfigEntry<bool> ArenaLightingRespectExternalMods { get; private set; }
     public static ConfigEntry<bool> TeamTracers { get; private set; }
+    public static ConfigEntry<bool> TeamDeathmatchFriendlyFire { get; private set; }
+    public static ConfigEntry<bool> TacticalFriendlyFire { get; private set; }
+    public static ConfigEntry<bool> ZombieFriendlyFire { get; private set; }
+
+    /// <summary>Menu preference only; damage reads the snapshot taken at arming.</summary>
+    internal static ConfigEntry<bool> FriendlyFireEntry(string mode, bool protectedTeam)
+        => ArenaModeCatalog.NormalizeId(mode) switch
+        {
+            ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchFriendlyFire,
+            ArenaModeCatalog.TacticalId when protectedTeam => TacticalFriendlyFire,
+            ArenaModeCatalog.ZombieId when protectedTeam => ZombieFriendlyFire,
+            _ => null
+        };
+
+    internal static bool GetFriendlyFireEnabled(string mode, bool protectedTeam)
+        => FriendlyFireEntry(mode, protectedTeam)?.Value ?? true;
 
     /// <summary>
     /// Colored tracers are a team feature, exactly like <see cref="TeamLasers"/>
@@ -1626,6 +1642,14 @@ public static class Settings
             true,
             "Leave Arena phase lighting off while Blackout or Going Dark is installed. " +
             "Disable this only if you deliberately want both additive effects together.");
+
+        TeamDeathmatchFriendlyFire = config.Bind("Team Deathmatch", "FriendlyFire", true,
+            "Allow damage between teammates. Frozen when the next Arena raid is armed; self-damage is unchanged.");
+        TacticalFriendlyFire = config.Bind("Tactical", "FriendlyFire", true,
+            "Allow damage between teammates in PitFireTeam 5v5. Frozen at arming; solo Tactical is unchanged.");
+        ZombieFriendlyFire = config.Bind("Zombie", "FriendlyFire", false,
+            "Allow damage between the PMC and PitFireTeam companions, including companion-to-companion damage. " +
+            "Frozen at arming; solo Zombies, enemy damage and self-damage are unchanged.");
 
         TeamTracers = config.Bind(
             "Effects",

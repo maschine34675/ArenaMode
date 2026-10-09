@@ -94,6 +94,7 @@ internal static class Program
         f.AddFollowers(4,2);Check(Step(runtime),"exact four companions release initial wave");
         Check(PitFireTeamCompat.HostilityCalls==0,"empty initial infected roster is valid; no Tactical empty-hostility rejection");
         Check(runtime.LiveTeamMembers.Count==5,"live anchor includes exact five");
+        Check(runtime.ShouldBlockFriendlyDamage(f.Local,PitFireTeamCompat.Followers[0].GetPlayer),"production initial Live transition admits exact friendly damage roster");
         Check(runtime.TrySynchronizeScoreboardRoster(out _) && f.Match.Scoreboard.Friends.Length==4,"stable account scoreboard has four allies");
         Check(f.Match.Scoreboard.Friends.Select(x=>x.Account).Distinct().Count()==4,"account identity survives profile remap");
         var infected=f.AddInfected();Check(Step(runtime),"active infected hostility admitted");
@@ -127,6 +128,8 @@ internal static class Program
         Check(TeamArenaLoadoutSnapshot.Prepares==0,"living PMC never uses respawn restore transaction");
         Check(PitFireTeamCompat.Followers.All(b=>oldFollowers.All(old=>!ReferenceEquals(old,b))),"all companions rebuilt through proven body barrier");
         Check(runtime.LiveTeamMembers.Count==5 && runtime.Epoch==2,"wave two releases only with five ready");
+        Check(runtime.ShouldBlockFriendlyDamage(f.Local,oldFollowers[0].GetPlayer),"production rebound Live transition preserves historical friendly source");
+        Check(!runtime.ShouldBlockFriendlyDamage(PitFireTeamCompat.Followers[0].GetPlayer,oldFollowers[0].GetPlayer),"same follower's old grenade remains self damage after actual wave rebuild");
         Check(runtime.TrySynchronizeScoreboardRoster(out _) && f.Match.Scoreboard.Epoch==2,"scoreboard rebind epoch advances");
 
         f=new Fixture();runtime=f.Runtime();Step(runtime);f.Die();runtime.OnLocalDeath();runtime.WaveCleared();

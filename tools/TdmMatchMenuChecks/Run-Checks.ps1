@@ -78,7 +78,7 @@ $arenaFaults = @(
       'ProductionMutatorsView', 'retired killcam callback cannot mutate reopened panel'),
     @('mutator-live-lock', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (UnavailableReason(id) != null)',
-      'ProductionMutatorSelection', 'team tracer writes respect active and armed locks'),
+      'ProductionMutatorSelection', 'friendly-fire control cannot change an armed/live match'),
     @('mutator-mode-gate', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || UnavailableReason(id) != null)', 'if (Locked || (id != ArenaMutator.Pickups && UnavailableReason(id) != null))',
       'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback'),
@@ -93,7 +93,7 @@ $arenaFaults = @(
       'ProductionMutatorsView', 'both mutator columns start 8 px below the title'),
     @('mutator-rows-pitch', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
       '(ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn', '(448f - RowsTop) / rowsPerColumn',
-      'ProductionMutatorsView', 'mutator rows use the reflowed pitch'),
+      'ProductionMutatorsView', 'mutator rows reflow without moving the panel'),
     # Menu polish 2026-10-08, items 3+4: RULES is the catalog objective for
     # every mode; the Tactical roster stays out of it (it lives in the row label).
     @('tactical-rules-roster-override', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
@@ -106,9 +106,21 @@ $arenaFaults = @(
       "ArenaModeCatalog.ZombieId when protectedTeam => TeamTracers,`n            _ => TeamTracers",
       'ProductionSettings', 'colored tracers are N/A outside team modes: deathmatch'),
     @('tracer-team-only-reason', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
-      'if (id == ArenaMutator.Tracers && Entry(id) == null) return TeamModesOnly;',
+      "if ((id == ArenaMutator.Tracers || id == ArenaMutator.FriendlyFire)`n            && Entry(id) == null) return TeamModesOnly;",
       'if (false) return TeamModesOnly;',
-      'ProductionMutatorSelection', "colored tracers give the lasers' team-only reason: deathmatch")
+      'ProductionMutatorSelection', "friendly-fire switch is unavailable in solo mode: deathmatch"),
+    @('friendly-zombie-default', 'ArenaMode.Client/Config/Settings.cs',
+      'ZombieFriendlyFire = config.Bind("Zombie", "FriendlyFire", false,',
+      'ZombieFriendlyFire = config.Bind("Zombie", "FriendlyFire", true,',
+      'ProductionSettings', 'friendly fire defaults off only for PFT Zombies'),
+    @('friendly-mode-crosstalk', 'ArenaMode.Client/Config/Settings.cs',
+      'ArenaModeCatalog.TacticalId when protectedTeam => TacticalFriendlyFire,',
+      'ArenaModeCatalog.TacticalId when protectedTeam => ZombieFriendlyFire,',
+      'ProductionSettings', 'friendly-fire mode routing keeps three independent team preferences'),
+    @('friendly-solo-leak', 'ArenaMode.Client/Config/Settings.cs',
+      'ArenaModeCatalog.ZombieId when protectedTeam => ZombieFriendlyFire,',
+      'ArenaModeCatalog.ZombieId => ZombieFriendlyFire,',
+      'ProductionSettings', 'solo/unknown modes have no friendly-fire immunity preference: zombie')
 )
 try {
     foreach ($arenaFault in $arenaFaults) {

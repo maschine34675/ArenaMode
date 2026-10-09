@@ -170,6 +170,7 @@ internal sealed partial class ZombieTeamRuntime
                 if (!Effects.ArenaTracerTeams.TryBindCooperativeWave(_teamRoundEpoch,
                         _boundLocalProfileId, _boundTeamFollowerProfileIds, out string tracerProblem))
                 { FailTeamTransition("team identities could not bind presentation: " + tracerProblem); return false; }
+                BindFriendlyFireRoster();
                 _phase = TeamPhase.Live;
                 Plugin.ModLogger.LogInfo($"Zombie team wave {_teamRoundEpoch}: exact five-player team ready.");
             }

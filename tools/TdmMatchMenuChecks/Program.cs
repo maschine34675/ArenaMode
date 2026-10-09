@@ -39,6 +39,16 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
 ArenaMode.Pickups.ArenaPickupSettings.Init(config);
+Need(Settings.TeamDeathmatchFriendlyFire.Value && Settings.TacticalFriendlyFire.Value
+    && !Settings.ZombieFriendlyFire.Value, "friendly fire defaults off only for PFT Zombies");
+foreach (string soloMode in new[] { "deathmatch", "gungame", "tactical", "zombie", "unknown" })
+    Need(Settings.FriendlyFireEntry(soloMode, false) == null
+        && Settings.GetFriendlyFireEnabled(soloMode, false),
+        "solo/unknown modes have no friendly-fire immunity preference: " + soloMode);
+Need(ReferenceEquals(Settings.FriendlyFireEntry("teamdeathmatch", false), Settings.TeamDeathmatchFriendlyFire)
+    && ReferenceEquals(Settings.FriendlyFireEntry("tactical", true), Settings.TacticalFriendlyFire)
+    && ReferenceEquals(Settings.FriendlyFireEntry("zombie", true), Settings.ZombieFriendlyFire),
+    "friendly-fire mode routing keeps three independent team preferences");
 Need(!Settings.CombineDamageNumbers.Value, "burst damage remains opt-in");
 Need(Settings.GetReplaySeconds("deathmatch") == 0f && Settings.GetReplaySeconds("gungame") == 0f
     && Settings.GetReplaySeconds("teamdeathmatch") == 0f && Settings.GetReplaySeconds("tactical") == 3f,
@@ -392,9 +402,7 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-// Item 2 of the 2026-10-06 follow-up ("announcer mutator") added Announcer
-// back to 16 after item 1 ("own gear to the left") removed OwnGear (16->15).
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 16, "inline panel has sixteen switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 17, "inline panel has seventeen switches, no backdrop or close buttons");
 // 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
 // now hides, and every description still fits the one-line description cell.
 Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
@@ -417,7 +425,7 @@ Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new
     && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
 // 2026-10-08 menu polish, item 2: no legend subtitle, no "saved with F12" footer.
 // The rows start 8 px under the title and the last description ends 8 px above
-// the panel bottom, in two columns of eight.
+// the panel bottom, in columns of nine and eight.
 Need(!MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Mutator legend" or "Mutators saved note"
         || t.text.Contains("Saved with F12") || t.text.Contains("Green: ON") || t.text.Contains("Killcam/tracers")),
     "mutator panel carries no legend or saved-with-F12 footer");
@@ -428,13 +436,14 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
-    float pitch = (472f - 52f - 8f) / 8f;
-    Need(mutatorIds.Length == 16 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
-        && Math.Abs(RowTop(mutatorIds[8]) - 52f) < .01f,
+    float pitch = (472f - 52f - 8f) / 9f;
+    Need(mutatorIds.Length == 17 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
+        && Math.Abs(RowTop(mutatorIds[9]) - 52f) < .01f,
         "both mutator columns start 8 px below the title");
     Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
-        "mutator rows use the reflowed pitch ((472 - 52 - 8) / 8)");
-    var lastDetail = Detail(mutatorIds[7]);
+        "mutator rows reflow without moving the panel");
+    Need(mutatorIds.All(id => Detail(id).sizeDelta.y >= 18f), "all descriptions retain one readable line");
+    var lastDetail = Detail(mutatorIds[8]);
     Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 464f) < .01f
         && Math.Abs(lastDetail.sizeDelta.y - (pitch - 26f)) < .01f,
         "last description ends 8 px above the panel bottom and fills the row pitch");
@@ -445,6 +454,44 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
 // shows N/A with the lasers' reason and nothing can be written.
 string MutatorDetail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
     .Single(t => t.name == "Mutator detail " + id).text;
+foreach (var (mode, team, expected) in new[] {
+    ("teamdeathmatch", false, true), ("tactical", true, true), ("zombie", true, false) })
+{
+    view.Synchronize(mode, team);
+    Need(MutatorButton(ArenaMutator.FriendlyFire).interactable
+        && MutatorStatus(ArenaMutator.FriendlyFire) == (expected ? "ON" : "OFF"),
+        "friendly-fire button displays the actual per-mode default: " + mode);
+    var target = Settings.FriendlyFireEntry(mode, team);
+    MutatorButton(ArenaMutator.FriendlyFire).onClick.Invoke();
+    Need(target.Value == !expected && Settings.GetFriendlyFireEnabled(mode, team) == !expected
+        && MutatorStatus(ArenaMutator.FriendlyFire) == (!expected ? "ON" : "OFF"),
+        "visible friendly-fire control saves and displays its own preference: " + mode);
+    foreach (var other in new[] { Settings.TeamDeathmatchFriendlyFire, Settings.TacticalFriendlyFire, Settings.ZombieFriendlyFire })
+        if (!ReferenceEquals(other, target))
+            Need(other.Value == !ReferenceEquals(other, Settings.ZombieFriendlyFire),
+                "toggling one friendly-fire mode preserves other modes");
+    foreach (bool armed in new[] { false, true })
+    {
+        ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
+        MutatorButton(ArenaMutator.FriendlyFire).onClick.Invoke();
+        Need(target.Value == !expected, "friendly-fire control cannot change an armed/live match");
+    }
+    ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
+    view.Synchronize(mode, team);
+    MutatorButton(ArenaMutator.FriendlyFire).onClick.Invoke();
+    Need(target.Value == expected, "friendly-fire control restores this mode's default");
+}
+foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "zombie" })
+{
+    view.Synchronize(mode, false);
+    Need(MutatorStatus(ArenaMutator.FriendlyFire) == "N/A"
+        && !MutatorButton(ArenaMutator.FriendlyFire).interactable
+        && MutatorDetail(ArenaMutator.FriendlyFire) == ArenaMutatorSelection.TeamModesOnly,
+        "friendly-fire switch is unavailable in solo mode: " + mode);
+    MutatorButton(ArenaMutator.FriendlyFire).onClick.Invoke();
+    Need(Settings.TeamDeathmatchFriendlyFire.Value && Settings.TacticalFriendlyFire.Value
+        && !Settings.ZombieFriendlyFire.Value, "unavailable friendly-fire callback cannot alter preferences");
+}
 Settings.TeamTracers.Value = true;
 foreach (var (soloMode, soloTeam) in new[] { ("deathmatch", false), ("gungame", false), ("tactical", false), ("zombie", false) })
 {

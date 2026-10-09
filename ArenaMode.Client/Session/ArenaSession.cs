@@ -119,6 +119,12 @@ public static class ArenaSession
     /// </summary>
     internal static bool AnnouncerEnabledSelection { get; private set; }
 
+    /// <summary>
+    /// Damage policy for this exact armed raid. Mid-raid F12 changes apply only
+    /// to the next raid; missing/cleared selection never creates immunity.
+    /// </summary>
+    internal static bool FriendlyFireEnabledSelection { get; private set; } = true;
+
     internal static Modes.DeathmatchOptions DeathmatchSelection { get; private set; }
 
     /// <summary>Exact server-acknowledged total, including the human while dead.</summary>
@@ -208,7 +214,10 @@ public static class ArenaSession
         ZombieOwnGearSelection = Settings.ZombieOwnGear.Value
             || (mode == Shared.ArenaPopulationPolicy.Zombie && PitFireTeamCompat.HasFrozenTeamRoster);
         AnnouncerEnabledSelection = Settings.GetAnnouncerPerModeEnabled(mode);
+        FriendlyFireEnabledSelection = Settings.GetFriendlyFireEnabled(mode, PitFireTeamCompat.HasFrozenTeamRoster);
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
+        if (Settings.FriendlyFireEntry(mode, PitFireTeamCompat.HasFrozenTeamRoster) != null)
+            Plugin.ModLogger.LogInfo($"Arena friendly fire: {(FriendlyFireEnabledSelection ? "native damage allowed" : "teammate damage blocked")} (frozen for this raid).");
     }
 
     /// <summary>Drops a stale armed flag and tells the server to discard its snapshot.</summary>
@@ -222,6 +231,7 @@ public static class ArenaSession
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
         AnnouncerEnabledSelection = false;
+        FriendlyFireEnabledSelection = true;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
         ClearParticipants();
@@ -299,6 +309,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             AnnouncerEnabledSelection = false;
+            FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -331,6 +342,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             AnnouncerEnabledSelection = false;
+            FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -347,6 +359,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             AnnouncerEnabledSelection = false;
+            FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -367,6 +380,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             AnnouncerEnabledSelection = false;
+            FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
             ClearParticipants();
@@ -560,6 +574,7 @@ public static class ArenaSession
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
         AnnouncerEnabledSelection = false;
+        FriendlyFireEnabledSelection = true;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
         ActiveMode = null;

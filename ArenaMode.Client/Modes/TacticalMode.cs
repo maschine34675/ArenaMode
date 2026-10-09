@@ -1097,6 +1097,7 @@ public sealed partial class TacticalMode : IArenaMode
                         $"Tactical team Arena round {RoundNumber}: team tracers stayed native: {tracerProblem}.");
                 }
 
+                BindFriendlyFireRoster();
                 _phase = Phase.Live;
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
                 _preferredSpectatorProfileId = null;

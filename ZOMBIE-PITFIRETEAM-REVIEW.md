@@ -43,9 +43,17 @@ with this roster. Solo Zombies and its own-gear choice remain unchanged.
   Five confirmed deaths end the match. Lost identities or failed reconstruction
   end no contest. Missing bodies are not accepted as proof of a normal defeat.
 - Team diamonds, optional team tracers/lasers and friendly killfeed names use
-  authenticated identities. No new friendly-fire rule is introduced; this keeps
-  the existing PFT/Tactical behavior. Award and assist attribution distinguish
+  authenticated identities. The Friendly Fire mutator defaults **off** for this
+  squad, independently of Team DM and PFT Tactical; the preference freezes on
+  arming. It protects authenticated teammates without altering AI hostility or
+  self/enemy/environment damage. See `FRIENDLY-FIRE-REVIEW.md` for damage surfaces
+  and native effect limitations. Award and assist attribution distinguish
   infected from the protected team, including a dead follower's delayed grenade.
+
+Equator is excluded from PFT Zombies following the user's playtest: its narrow
+space causes the five-person squad to obstruct itself. Earlier startup proof
+does not override this gameplay restriction. Solo Zombies remains available
+there; Bay5 and the three bounded Customs areas remain available to the squad.
 
 ## Implementation boundaries
 

@@ -165,6 +165,9 @@ public sealed class ZombieMode : IArenaMode
         => _team?.LiveTeamMembers ?? Array.Empty<Player>();
     internal bool IsCurrentFriendlyMarkerBody(Player player) => _team?.IsCurrentFriendlyMarkerBody(player) == true;
     internal bool IsOpposingAwardKill(Player victim, IPlayer attacker) => _team?.IsOpposingAwardKill(victim, attacker) == true;
+    internal bool ShouldBlockFriendlyDamage(Player victim, IPlayer attacker)
+        => ReferenceEquals(ArenaMatchService.Current?.Mode, this)
+            && _team?.ShouldBlockFriendlyDamage(victim, attacker) == true;
     internal bool ShouldBlockStagingDamage(Player victim) => _team?.ShouldBlockStagingDamage(victim) == true;
     internal bool FailClosedStagingGuard(string reason) => _team?.FailClosedStagingGuard(reason) == true;
     internal bool TrySynchronizeTeamScoreboard(out string problem)
