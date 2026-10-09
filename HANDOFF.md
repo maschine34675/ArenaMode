@@ -7,6 +7,23 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Equator PFT Zombies and Friendly Fire (2026-10-09, awaiting GPU release):**
+  `d265b4a` excludes Equator only from PFT Zombies in addition to its existing
+  Tactical block; solo Zombies remains available. `100c003` adds independent
+  raid-frozen Friendly Fire preferences: Team DM/PFT Tactical ON, PFT Zombies OFF,
+  solo N/A. Health/armor and attributed native grenade effects use exact physical
+  team admission; self/enemy/environment damage and AI hostility remain native.
+  Unit 940/two skips, FF154/34 compiled faults, menu1461/27, admission530/9,
+  TDM332, Zombie62/11 plus solo85/pending49 passed; independent review clear.
+  Final client/server staged from 100c003, zero errors/four old client and two old
+  server warnings. **Not deployed or native-tested**: GPU2 was started by another
+  session at 21:07; deployment guard refused before copying anything. User asked
+  to wait. Do not interrupt that session. Renew profile/config/PFT baselines after
+  its release, then perform the prepared live OFF/ON comparison and protected-exit
+  audit. Exact artifact hashes, evidence and continuation instructions are in
+  `FRIENDLY-FIRE-TEST-STATUS-20261009.md`; runtime contract in
+  `FRIENDLY-FIRE-REVIEW.md`. Molotov assets untouched, no push.
+
 - **PFT ported maps and unified Customs areas (2026-10-09, latest):** `54d9f7e`
   fixes the installed PFT empty-cover startup dereference using an existing real
   core only in exact protected Bay5/Equator raids. Customs now requires one of
