@@ -55,7 +55,7 @@ namespace EFT
 namespace EFT.Game.Spawning
 {
     [Flags] public enum ESpawnCategoryMask { None=0,Player=1,Bot=2,Boss=4,Coop=8,Group=16,Opposite=32,BotPmc=64,All=71 }
-    public enum ESpawnCategory { Player=1,Bot=2 }
+    public enum ESpawnCategory { Player=1,Bot=2,Coop=8 }
     public interface ISpawnPoint
     {
         string Id {get;} Vector3 Position {get;} Quaternion Rotation {get;}

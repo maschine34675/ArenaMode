@@ -40,6 +40,20 @@ handover until readiness, so countdown/wave/deathmatch timers do not consume
 time while preparing the contour. The static five-per-sector proof in non-TDM
 is a spawn-corpus requirement, not an injected team size.
 
+Native follow-up on build `54d9f7e` found PFT's initial-spawn prefix changes the
+PMC request category from `Player` to `Coop`. Arena's final-priority initial
+placement therefore fell through without recording its start; readiness then
+correctly rejected the raid. The installed PFT 0.10.3 decompilation confirms this
+exact mutation (`pitTeam.Patches/SelectSpawnPointPatch.cs` under the previous
+installed-source evidence). Initial placement now recognizes `Coop` only in
+Tactical/Zombies with the frozen authenticated PFT roster. All exact loading
+game/world, profile ID, faction and spawn-collection checks still apply. Ordinary
+Coop requests, other modes and wrong identities keep the original behavior.
+The runtime harness now has 459 assertions and three additional compiled faults
+for missing Coop support, missing roster proof and missing mode restriction.
+Full rerun: 459 assertions and 22 rejected faults in
+`tools/AreaTeamRuntimeChecks/artifacts/4108b35377d1495ca4a7dd08d7f0e290`.
+
 ## Pass 3: movement, populations and handover
 
 Containment now covers every exact living AI body, including native infected,

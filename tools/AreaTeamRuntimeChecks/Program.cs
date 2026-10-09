@@ -320,13 +320,41 @@ internal static class Program
         }
     }
 
+    private static void ProtectedInitialCoopCategory()
+    {
+        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical", "zombie" })
+        foreach (bool frozen in new[] { false, true })
+        foreach (var side in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+        {
+            var system = Setup(side);
+            ArenaAreaRuntime.TestMode = mode;
+            ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = frozen;
+            bool accepted = ArenaAreaRuntime.TryInitialTeamSpawn(system, ESpawnCategory.Coop, side, "local", out var point);
+            Need(accepted == (frozen && mode is "tactical" or "zombie"),
+                "PFT Coop initial request requires exact protected format and frozen roster");
+            if (!accepted) continue;
+            Need(Area.TeamStarts.Allows(side == EPlayerSide.Usec, true, point.Id),
+                "protected Coop request still uses surveyed native PMC faction marker");
+            Need(!ArenaAreaRuntime.TryInitialTeamSpawn(system, ESpawnCategory.Coop, side, "foreign-profile", out _),
+                "protected Coop request cannot select another profile");
+            var collection = system._spawnPoints;
+            system._spawnPoints = new PointsCollection();
+            Need(!ArenaAreaRuntime.TryInitialTeamSpawn(system, ESpawnCategory.Coop, side, "local", out _),
+                "protected Coop request cannot use another spawn collection");
+            system._spawnPoints = collection;
+            ArenaAreaRuntime.Loading = false;
+            Need(!ArenaAreaRuntime.TryInitialTeamSpawn(system, ESpawnCategory.Coop, side, "local", out _),
+                "protected Coop initial placement cannot run outside matching load");
+        }
+    }
+
     public static int Main(string[] args)
     {
         try
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
             Need(ReadPoints().Length==29&&ReadPoints().Count(Bot)==11,"refined Customs Center corpus retains 29 markers and 11 bot points");
-            InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();
+            InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();ProtectedInitialCoopCategory();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;
         }

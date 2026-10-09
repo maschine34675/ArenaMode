@@ -28,7 +28,13 @@ internal static partial class ArenaAreaRuntime
         EPlayerSide side, string profileId, out ISpawnPoint selected)
     {
         selected = null;
-        if (!IsCurrentLoading() || _area.TeamStarts == null || category != ESpawnCategory.Player
+        // PFT's initial-spawn prefix changes the local request from Player to
+        // Coop when its authenticated companions are invited. This is still
+        // the same one PMC body, not a generic permission for Coop spawns.
+        bool localCategory = category == ESpawnCategory.Player
+            || category == ESpawnCategory.Coop && Compat.PitFireTeamCompat.HasFrozenTeamRoster
+                && (_mode == Modes.ArenaModeCatalog.TacticalId || _mode == Modes.ArenaModeCatalog.ZombieId);
+        if (!IsCurrentLoading() || _area.TeamStarts == null || !localCategory
             || profileId != _game.Profile.Id || side != _game.Profile.Info.Side
             || system == null || !ReferenceEquals(system._players, _world)
             || !ReferenceEquals(system._spawnPoints, _loadingCollection)) return false;

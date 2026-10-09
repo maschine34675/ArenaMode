@@ -49,6 +49,9 @@ function Test-Mutant([string]$Name,[string]$Before,[string]$After,[string]$Asser
 try {
     Assert-Production
     if(-not $ProductionOnly){
+        Test-Mutant 'pft-coop-not-recognized' 'category == ESpawnCategory.Coop && Compat.PitFireTeamCompat.HasFrozenTeamRoster' 'false && Compat.PitFireTeamCompat.HasFrozenTeamRoster' 'PFT Coop initial request requires exact protected format and frozen roster'
+        Test-Mutant 'pft-coop-roster-unchecked' 'category == ESpawnCategory.Coop && Compat.PitFireTeamCompat.HasFrozenTeamRoster' 'category == ESpawnCategory.Coop' 'PFT Coop initial request requires exact protected format and frozen roster'
+        Test-Mutant 'pft-coop-mode-unchecked' '&& (_mode == Modes.ArenaModeCatalog.TacticalId || _mode == Modes.ArenaModeCatalog.ZombieId)' '' 'PFT Coop initial request requires exact protected format and frozen roster'
         Test-Mutant 'unused-opponent-pmc-required' 'players.Length < requiredPlayers' 'players.Length < 1' 'exact roster needs no opponent PMC or surplus ally bot:'
         Test-Mutant 'surplus-allied-bot-required' 'int requiredBots = _teamSize - requiredPlayers;' 'int requiredBots = _teamSize;' 'exact roster needs no opponent PMC or surplus ally bot:'
         Test-Mutant 'required-ally-undercounted' 'int requiredBots = _teamSize - requiredPlayers;' 'int requiredBots = _teamSize - requiredPlayers - (localTeam ? 1 : 0);' 'one missing required ally rejects readiness'
