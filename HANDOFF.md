@@ -7,6 +7,29 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Zombie pending-wave fix and retreat measurement (2026-10-09, latest):**
+  `5637ce7` shares the pending-arrival clearance barrier across solo/PFT and
+  watchdog retirement; pending requests no longer expire into free capacity
+  after 20 s. Known preparation failure retries exactly once; unresolved work
+  ends protected after separate 300 s preparation / 60 s native arrival limits.
+  Client `0.1.0+5637ce7a75d30d966b6debe8ecd34b5bbd6a64ef`, SHA256
+  `8B2E3DF3E57C76136F6642DE8445928DD05B7472E5C0719C0203569E5D65CB57`,
+  deployed locally/GPU2, restarted with 21/21 matching plugins. Server remains
+  `9c67ed7` unchanged. Unit 913/two skips; pending49/service33/12 faults,
+  Burst66/13 faults, solo85 and PFT59 pass; independent review clear, staged
+  client zero errors/four existing warnings. Native one-zombie kit waves remain
+  at wave1 before the kill; two actual kills each trigger exactly one refill,
+  reach wave3, and player death ends protected without respawn. Long native
+  delays/timeouts and final-build PFT rebind remain controlled-harness coverage.
+  Temporary probe `f860fc6` measured native retreat at about 0.0036 ms/frame
+  with 56 mixed infected, including close shooting checks: no production
+  retreat optimization justified; all native planning and population limits
+  stay unchanged. Probe removed, configs byte-identical, profile only two
+  bookkeeping timestamps changed, 12 PFT files unchanged. EFT closed, server
+  running, no push, unrelated Molotov assets preserved. See
+  `GPU-ZOMBIE-WAVE-RETREAT-RESULTS-20261009.md`, `ZOMBIE-WAVE-PENDING-REVIEW.md`
+  and `ZOMBIE-RETREAT-REVIEW.md` for exact evidence and remaining limits.
+
 - **Bounded Zombie performance work (2026-10-09, latest):** `bc21205` removes
   unused optional catalogue prewarming; `415c5aa` skips confirmed friendly
   infected delayed footsteps and peaceful social searches. Native combat,

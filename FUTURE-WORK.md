@@ -7,12 +7,14 @@ Read `AGENTS.md` and `HANDOFF.md` first.
 
 ## Zombie follow-ups from the 2026-10-09 performance test
 
-- Fix solo wave-clear admission while the last spawn is still pending. A
-  one-zombie native smoke enters intermission before that zombie arrives;
-  the corresponding runtime guard currently applies only to PFT. Preserve
-  pending ownership, failed-dispatch recovery and terminal death admission;
-  add a delayed-last-spawn regression and repeat a real cleared-wave refill.
-  See `GPU-ZOMBIE-PERFORMANCE-RESULTS-20261009.md`; this predates the optimization.
+- Pending wave-clear admission fixed in `5637ce7`, including delayed requests,
+  known failure recovery and watchdogs. See `ZOMBIE-WAVE-PENDING-REVIEW.md`
+  and the subsequent `GPU-ZOMBIE-WAVE-RETREAT-RESULTS-20261009.md` for acceptance.
+- Native retreat planning measured and deliberately left unchanged: about
+  0.0036 ms/frame for all 56 infected, with close-range successful checks for
+  melee and shooters. No supported-cap increase or FPS gain follows from this.
+  Revisit only with evidence of a substantially different failed-path workload;
+  see `ZOMBIE-RETREAT-REVIEW.md`.
 - Investigate PFT's hostile-layer filter work on generic infected with no
   companions (roughly 0.22–0.25 inclusive ms/frame at 56 bot calls/frame in this
   capture). Do not remove PFT hooks globally or infer pure overhead from

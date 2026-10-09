@@ -8,7 +8,15 @@ the dated delivery report; the previous captures cannot isolate this subsystem.
 
 ## Recommendation
 
-Measure the native retreat checks before adding a permanent patch. There is a
+**Measured decision: keep native retreat planning unchanged.** The temporary
+GPU2 probe subsequently measured only 0.00356–0.00360 ms/frame for all
+`ManualUpdate` calls at 56 infected, including successful close-range checks
+for both melee and shooting infected. Across the capture, 56 retreat checks
+(54 successful) took 1.0192 ms in total; no `Fight` call was observed. These
+overlapping instrumented times are not a demonstrated saving. See
+`GPU-ZOMBIE-WAVE-RETREAT-RESULTS-20261009.md` for identities and limits.
+
+Before measurement, the source review found a
 plausible narrow opportunity while a generic infected is executing its own
 attack layer, but **not** evidence for disabling all retreat/cover processing.
 Successful retreat planning normally changes state once and then stops doing
@@ -16,11 +24,11 @@ path searches until the enemy leaves close range. The repeated expensive case
 is an unsuccessful check, retried once per second. An expensive per-frame
 admission guard could cost more than the mostly cheap original update.
 
-The most useful next step is a temporary, observational GPU-only probe of
+The measurement used a temporary, observational GPU-only probe of
 `BotDogFight.ManualUpdate`, `CheckSpaceForRetreat` and `Fight`, split by actual
 infected brain mode and current layer. Do not turn this into a performance claim
-from aggregate FPS alone. If the measured cost is negligible, retain native
-behavior rather than adding a permanent compatibility seam.
+from aggregate FPS alone. The measured cost is negligible here, so no permanent
+compatibility seam is added.
 
 ## Pass 1: native producers and actual frequency
 
@@ -160,8 +168,9 @@ seconds/frames, method calls/time, successful retreat checks, current mode,
 attack-layer fraction, actual DogFight calls and exception counts. A Finalizer
 must return the incoming exception unchanged.
 
-`CheckSpaceForRetreat` time is nested inside ManualUpdate or Fight; do not sum
-all three as disjoint CPU time. Timestamp instrumentation has an overhead
+`CheckSpaceForRetreat` can be nested inside ManualUpdate or Fight, or called
+directly by `ShallStartCauseHavePlace`; do not sum all three as disjoint CPU
+time or subtract every check from the parent. Timestamp instrumentation has an overhead
 floor; a very small result is a reason to stop, not to claim a tiny FPS gain.
 Measure both (a) approach into close melee and failed-retreat geometry and
 (b) mixed/shooting infected at close and farther range. Compare same population,
