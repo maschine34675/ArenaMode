@@ -64,6 +64,20 @@ Independent TDM retains 2v2–5v5 faction starts; DM/Gun Game negotiate total
 participants, Tactical and Zombies own their fixed/wave rosters. Read
 CUSTOMS-ALL-MODES-REVIEW.md and PFT-PORTED-MAPS-REVIEW.md for bounded PFT placement,
 deferred native follower startup and exact-world area readiness before mode clocks.
+PFT changes the local entry category to Coop; only the exact frozen squad's
+Tactical/Zombie loading request may use that category for the bounded PMC start.
+Initial roster discovery waits until the deferred bounded mode can bind its
+leader; any prior leader/profile/body history retains the strict live checks.
+Bounded duplicate IDs and raw creation leases belong to the exact native raid
+creator; never clear old-creator tombstones while delayed creation can resume.
+Protected Tactical keeps its five frozen opponent bodies until roster retirement
+because identity validation still reads them after death. Read
+TACTICAL-CORPSE-REVIEW.md before changing physical release; normal hiding/stripping
+and strict unexpected live-body loss checks remain active.
+Read PORTED-COVER-REVIEW.md for Bay5/Equator's empty-cover combat guards: retain
+real native NavMesh results, never manufacture cover points or successful paths.
+Failed starts queue their native Stop after the startup frame and revoke both
+ambient burst work and the separate managed solo population leases.
 The September 28 contours use new versioned IDs; all earlier area IDs remain
 invalid on the wire. Config migration preserves exact recognized preferences
 only. Yard adds twenty private per-raid spawn records around two native ground

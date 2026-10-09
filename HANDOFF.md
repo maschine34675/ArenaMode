@@ -7,6 +7,47 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **PFT ported maps and unified Customs areas (2026-10-09, latest):** `54d9f7e`
+  fixes the installed PFT empty-cover startup dereference using an existing real
+  core only in exact protected Bay5/Equator raids. Customs now requires one of
+  its three surveyed areas in every Arena mode; ordinary PMC is unchanged.
+  Native integration follow-ups: `27fdf80` accepts the exact PFT Coop entry,
+  `9aad58c` preserves native NavMesh behavior without absent cover-graph fallback,
+  `91db119` defers failed-start Stop and revokes pending ambient/managed spawns,
+  `e55d6a7` defers initial roster discovery until bounded mode leader binding,
+  `21b6af6` scopes duplicate/late spawn ownership per native raid creator, and
+  `f462bfb` retains five frozen Tactical opponent bodies until roster retirement.
+  Client `0.1.0+f462bfba9c4420c290674b9e0f86241528f9cf06`, SHA256
+  `F43AA3C179C371310F48882A27DF0473EDBD3CD72719A33F7D67E307B50A70E8`,
+  deployed locally/GPU2; restarted 21/21 plugins/Core identical. Server
+  `0.1.0+54d9f7edf38154cc31e3fa48be0de123c1dedb2e`, SHA256
+  `DD7738CE012E64CDE81C4B08D9F02F7723D110FF413E707F217D897E5DD19E7B`.
+  Core/PFT/SAIN/UiBridge unchanged. Staged builds zero errors (client four old
+  warnings, server two); unit 932/two existing skips. Final ported/bounded
+  harness234/24 compiled faults, cover150/25, area459/22, failed-start65/13,
+  managed-solo141/12+17 native IL contracts; parent menu/admission/PFT/Zombie
+  checks passed and independent review was clear. Tactical corpse68/16 faults,
+  cleanup309 and DynamicMaps61 passed. Native menu proof covers all
+  five Customs modes and only three areas; solo Factory Side starts nine bots
+  inside the contour. Final f462bfb GPU2: Bay5 Tactical natural round-1 victory,
+  exact round-2 rebuild and actual corpse trim/release pressure passed; then
+  Center Tactical exact 5v5 and Yard Zombies exact four companions passed in
+  the same process. Yard combat continued through PMC death/spectator and ended
+  normally on team defeat. Sampled Center/Yard bot positions stayed inside.
+  Bay5/Equator Zombie combat passed on e55d6a7 with the unchanged ported combat
+  adapter. No live errors in the audited final windows; known after-Stop roster
+  and occasional melee diagnostics remain. Full profile differs only in two
+  bookkeeping timestamps; all twelve PFT files unchanged, test settings restored.
+  GPU2 EFT closed gracefully, server running, no push. Unrelated Molotov assets
+  preserved. Forced failed-start retry and ordinary-PMC exclusion retain
+  source/harness coverage; no claim of every area/mode or long-match acceptance.
+  Equator Tactical remains deliberately blocked: five opponent points at the
+  existing minimum distance are not available from every possible surviving
+  player position. Do not remove that guard to claim the map fully accepted.
+  Details: `GPU-PFT-PORTED-CUSTOMS-RESULTS-20261009.md`,
+  `PFT-PORTED-MAPS-REVIEW.md`, `PORTED-COVER-REVIEW.md`,
+  `CUSTOMS-ALL-MODES-REVIEW.md`, `MAP-MODE-COMPATIBILITY.md`.
+
 - **Zombie voice budget and PFT fast path (2026-10-09, latest):** `ae6031a`
   skips only PFT's redundant hostile-layer prefix for confirmed native infected;
   `4220c05` handles native duplicate wait-layer entries without changing their
