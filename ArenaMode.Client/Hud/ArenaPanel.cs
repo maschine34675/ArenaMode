@@ -86,7 +86,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         // black screen would freeze input around a body that is still being
         // built. The check is edge-triggered on the whole condition, so the
         // scoreboard still shows itself once the player is standing.
-        var result = ArenaMatchResult.OwnsRaid(ArenaMatchService.Current?.Mode) && !TdmMatchExit.PipelineRunning;
+        var result = ArenaMatchResult.MayAutoOpenPanel(ArenaMatchService.Current?.Mode) && !TdmMatchExit.PipelineRunning;
         var intermission = result && IsBattleUiActive() || ArenaMatchService.Current?.Mode is RoundsMode rounds
             && rounds.InIntermission
             && rounds.IntermissionProtected

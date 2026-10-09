@@ -58,6 +58,7 @@ public sealed class ZombieMode : IArenaMode
     private bool _soloDefeated;
     private bool _soloDeathCounted;
     private bool _soloDeathKillPublished;
+    private bool _soloResultPanelReady;
     private bool _resultExitRequested;
     private float _soloDefeatedAt;
     private float _nextStopAttempt;
@@ -120,6 +121,9 @@ public sealed class ZombieMode : IArenaMode
     public bool HoldRespawn => _team == null || _team.HoldRespawn;
 
     internal bool HasResult => _soloDefeated;
+    // Presentation only: terminal ownership and the death hold are immediate.
+    // ArenaPanel reads this cached Tick decision without probing camera APIs.
+    internal bool ResultPanelReady => HasResult && _soloResultPanelReady;
     internal bool ResultOwnsCurrentRaid => HasResult && IsCurrentRaid()
         && ReferenceEquals(ArenaMatchService.Current, _match);
     internal string ResultHeading => "SURVIVAL ENDED";
@@ -474,6 +478,7 @@ public sealed class ZombieMode : IArenaMode
         if (_team != null) { _team.OnLocalDeath(); return; }
         if (!IsCurrentRaid() || HasResult) return;
         _soloDefeated = true;
+        _soloResultPanelReady = ArenaSession.ReplaySeconds <= 0f;
         _soloDefeatedAt = Time.unscaledTime;
         _match.Scoreboard.ResetAssists();
         _match.ReportTextCallout(ResultHeading);
@@ -490,6 +495,7 @@ public sealed class ZombieMode : IArenaMode
         {
             var owner = Spectator.KillcamReplayCompat.ReadState(out float remaining, out string problem);
             var decision = _resultReplay.Observe(owner, remaining, Time.time);
+            _soloResultPanelReady = decision == ArenaReplayWaitDecision.Ready;
             if (decision == ArenaReplayWaitDecision.Wait) return;
             if (decision == ArenaReplayWaitDecision.Unsafe)
                 ReportResultExitProblem("Death replay did not release safely; ending survival: " + (problem ?? "bounded wait expired"));

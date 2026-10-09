@@ -54,6 +54,7 @@ foreach (bool killFirst in new[] { false, true })
     match.ReportKill(Victim());
     Check(finalKillfeedEvents == 1, "final local killfeed entry appears once in either callback order");
     Check(ArenaMatchResult.HasResult(mode) && ArenaMatchResult.OwnsRaid(mode), "solo owns protected terminal exit");
+    Check(ArenaMatchResult.MayAutoOpenPanel(mode), "no-replay solo result may show immediately");
     Check(!mode.AssistScoringOpen && !mode.IsSpawnAdmissionOpen, "terminal closes assists and async infected admission");
     match.ReportKill(ZombieKill("late")); match.ReportLocalDeath();
     Check(match.Kills == 1 && match.Score == points && match.Deaths == 1, "late kill and duplicate death cannot change frozen result");
@@ -93,13 +94,30 @@ foreach (bool timeout in new[] { false, true })
 {
     var (mode, match, game, _) = Start(replay: 3);
     Die(game); match.ReportLocalDeath(); Tick(mode, .1f);
+    Check(ArenaMatchResult.OwnsRaid(mode) && mode.HoldRespawn && !ArenaMatchResult.MayAutoOpenPanel(mode),
+        "selected replay holds automatic result panel during native death-listener grace without delaying terminal state");
     KillcamReplayCompat.State = OptionalCameraOwnerState.Busy; KillcamReplayCompat.Remaining = 3;
     Tick(mode, .3f); Check(game.Stops == 0 && mode.HoldRespawn, "pending replay keeps dead body and terminal hold");
+    Check(!ArenaMatchResult.MayAutoOpenPanel(mode), "pending playback cannot auto-open a scoreboard over killcam");
     Tick(mode, 2); Check(game.Stops == 0, "selected replay can finish before native exit");
+    Check(!ArenaMatchResult.MayAutoOpenPanel(mode), "playing replay remains unobstructed by automatic results");
     if (!timeout) KillcamReplayCompat.State = OptionalCameraOwnerState.Idle;
+    game.Owner = null;
     Tick(mode, timeout ? 7 : .3f);
+    Check(ArenaMatchResult.MayAutoOpenPanel(mode) == !timeout,
+        "only proven replay cleanup admits automatic panel; timeout retains terminal exit without an overlay");
+    game.Owner = new() { Player = game.LocalPlayer }; Tick(mode, 1.1f);
     Check(game.Stops == 1 && mode.HoldRespawn, "replay cleanup or bounded timeout exits without respawn");
     mode.OnMatchEnd();
+}
+{
+    var (mode, match, game, _) = Start(replay: 3);
+    Die(game); match.ReportLocalDeath(); game.Owner = null;
+    Tick(mode, .3f);
+    Check(ArenaMatchResult.MayAutoOpenPanel(mode), "selected but absent replay releases automatic panel after grace");
+    mode.OnMatchEnd();
+    var ordinary = new RoundsMode { HasResult=true, ResultOwnsCurrentRaid=true };
+    Check(ArenaMatchResult.MayAutoOpenPanel(ordinary), "other terminal modes keep their existing automatic panel timing");
 }
 foreach (bool own in new[] { false, true })
 {

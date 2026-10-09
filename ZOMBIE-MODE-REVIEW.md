@@ -8,6 +8,17 @@ protected terminal exit. The mode menu says `RESPAWN: None`, including when
 killcam is enabled. Living intermission refills are unchanged. Historical instant
 respawn descriptions and earlier GPU results below describe the older version.
 
+**2026-10-09 native killcam follow-up:** automatic scoreboard opening waits until
+the solo result tick has observed replay cleanup. The terminal result, scoring
+freeze and protected death hold still begin immediately. The first native test
+showed the large result window covering an otherwise running killcam; the panel
+now reads the cached presentation decision through `MayAutoOpenPanel` rather
+than treating terminal ownership alone as permission to open. No additional
+camera reflection runs in UI updates, and other modes keep their prior timing.
+An unknown or timed-out replay never auto-opens the window over the camera;
+the protected result coordinator can still end the raid. Manual panel controls
+remain available.
+
 The terminal latch stops wave/refill work and score admission immediately. Native
 kill-first and owner-death-first callbacks count the casualty once and publish
 the final killfeed entry once. Already pending infected requests recheck the

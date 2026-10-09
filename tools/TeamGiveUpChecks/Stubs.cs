@@ -62,7 +62,7 @@ namespace ArenaMode.Modes
         public bool IsTeamArena => false;
     }
     public sealed class ZombieMode : RoundsMode
-    { public bool IsTeamArena => false; public bool TryPublishLocalDeathKill() => true; }
+    { public bool IsTeamArena => false; public bool ResultPanelReady => false; public bool TryPublishLocalDeathKill() => true; }
 
     // Non-TDM mode seam: only GiveUp's existing intermission rule is modeled.
     public class RoundsMode : IArenaMode

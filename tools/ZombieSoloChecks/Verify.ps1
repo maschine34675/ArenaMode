@@ -11,6 +11,7 @@ function Run-Case([string]$name, [string[]]$properties, [bool]$pass) {
     if ($pass) {
         if ($code -ne 0 -or $content -notmatch 'ZOMBIE_SOLO_CHECKS_PASSED') { throw "Production failed: $log`n$content" }
         Write-Host ([regex]::Match($content, 'ZOMBIE_SOLO_CHECKS_PASSED.*').Value)
+        $script:productionAssertions = [int]([regex]::Match($content, 'ZOMBIE_SOLO_CHECKS_PASSED (\d+)').Groups[1].Value)
     } elseif ($code -eq 0 -or $content -match 'error CS\d+' -or $content -notmatch 'InvalidOperationException') {
         throw "Mutant must compile and fail a runtime assertion: $log`n$content"
     }
@@ -19,6 +20,8 @@ Run-Case 'Release' @() $true
 $mutants = @(
     @{Name='respawn-released';File='ZombieMode.cs';Property='ModeSource';Old='public bool HoldRespawn => _team == null || _team.HoldRespawn;';New='public bool HoldRespawn => _team?.HoldRespawn == true;'},
     @{Name='death-not-terminal';File='ZombieMode.cs';Property='ModeSource';Old='_soloDefeated = true;';New='_soloDefeated = false;'},
+    @{Name='panel-during-replay-grace';File='ZombieMode.cs';Property='ModeSource';Old='_soloResultPanelReady = ArenaSession.ReplaySeconds <= 0f;';New='_soloResultPanelReady = true;'},
+    @{Name='panel-over-playing-replay';File='ZombieMode.cs';Property='ModeSource';Old='_soloResultPanelReady = decision == ArenaReplayWaitDecision.Ready;';New='_soloResultPanelReady = true;'},
     @{Name='duplicate-final-killfeed';File='ZombieMode.cs';Property='ModeSource';Old='_soloDeathKillPublished = true;';New='_soloDeathKillPublished = false;'},
     @{Name='duplicate-casualty';File='ZombieMode.cs';Property='ModeSource';Old='if (_soloDeathCounted || !IsCurrentRaid() || HasResult) return false;';New='if (!IsCurrentRaid()) return false;'},
     @{Name='wave-after-defeat';File='ZombieMode.cs';Property='ModeSource';Old='if (HasResult)'+"`r`n"+'        {';New='if (false)'+"`r`n"+'        {'},
@@ -39,5 +42,5 @@ foreach ($m in $mutants) {
     Run-Case $m.Name @("-p:$($m.Property)=$copy") $false
     Write-Host "Rejected compiled mutant: $($m.Name)"
 }
-[IO.File]::WriteAllText((Join-Path $stage 'manifest.json'), (@{ source = (& git -C $repo rev-parse HEAD); assertions=71; compiledMutants=$mutants.Count; passed=$true } | ConvertTo-Json))
+[IO.File]::WriteAllText((Join-Path $stage 'manifest.json'), (@{ source = (& git -C $repo rev-parse HEAD); assertions=$script:productionAssertions; compiledMutants=$mutants.Count; passed=$true } | ConvertTo-Json))
 Write-Host "ZOMBIE_SOLO_MUTATION_CHECKS_PASSED $($mutants.Count) mutants; evidence: $stage"
