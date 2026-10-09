@@ -41,6 +41,13 @@ try {
     if (($layerConstructors -join ',') -ne 'InfectedWaitLayer,InfectedFightRequestLayer,InfectedPeacefulRequestLayer,InfectedAttackLayer,InfectedTargetLayer,InfectedPatrolLayer') {
         throw 'Native infected constructor layer set changed'
     }
+    $attackToggle = Calls (Method $native 'InfectedLayersStrategy' 'SetCanAttack')
+    if (@($attackToggle | Where-Object { $_ -match '::ActivateLayer$' }).Count -ne 1 -or
+        @($attackToggle | Where-Object { $_ -match '::DeactivateLayer$' }).Count -ne 1) { throw 'Native wait-layer toggle changed' }
+    $insert = Calls (Method $native 'AICoreStrategy`1' 'method_4')
+    if (@($insert | Where-Object { $_ -match '::Insert$' }).Count -ne 1 -or
+        @($insert | Where-Object { $_ -match '::Add$' }).Count -ne 1 -or
+        @($insert | Where-Object { $_ -match '::Contains$' }).Count -ne 0) { throw 'Native duplicate layer insertion contract changed' }
     foreach ($typeName in @('InfectedWaitLayer','InfectedAttackLayer','InfectedTargetLayer','InfectedPatrolLayer','DebugLogicLayer','FightRequestLayer','PeacefulRequestLayer')) {
         $name = Method $native $typeName 'Name'
         foreach ($text in @($name.Body.Instructions | Where-Object { $_.OpCode.Name -eq 'ldstr' } | ForEach-Object Operand)) {

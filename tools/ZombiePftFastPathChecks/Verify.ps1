@@ -32,6 +32,7 @@ $mutants = @(
     @{Name='native-follower-leak';Old='owner.BotFollower?.HaveBoss == true';New='false'},
     @{Name='lost-wake';Old='if (standby != null && standby.StandByType != BotStandByType.none';New='if (false && standby != null && standby.StandByType != BotStandByType.none'},
     @{Name='custom-layer-leak';Old='proof.NativeOnly = NativeLayersOnly(layers) && _listVersion(layers) == version;';New='proof.NativeOnly = true;'},
+    @{Name='native-duplicate-limit';Old='if (layers == null || layers.Count == 0) return true;';New='if (layers == null || layers.Count == 0 || layers.Count > 7) return true;'},
     @{Name='same-count-mutation';Old='|| proof.Version != version';New=''},
     @{Name='list-replacement';Old='!ReferenceEquals(proof.List, layers) || proof.Version != version';New='proof.List == null'},
     @{Name='foreign-layer-owner';Old='|| !ReferenceEquals(first._owner, owner)';New=''},

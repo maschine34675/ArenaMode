@@ -54,8 +54,10 @@ An eligibility proof is cached per strategy in a `ConditionalWeakTable` and
 bound to the active list identity plus its mutation version. A startup-compiled
 reader avoids reflection per call; startup probes verify add and same-count
 replacement both change the installed CLR's version. Any ordinary list
-insertion/removal/replacement triggers another bounded scan (at most seven
-layers). Unknown layers and subclasses retain PFT immediately. Before replacing
+insertion/removal/replacement triggers another complete scan of the active
+list. The cost is linear in the list's current length per mutation, not per
+frame; there is no artificial total-entry cap. Unknown layers and subclasses
+retain PFT immediately. Before replacing
 an old proof, its accepted flag is cleared, so a failed revalidation cannot
 leave an accepted stale result. The list version is checked again after the
 scan. The first layer's owner is checked each call, because that is where PFT
@@ -67,25 +69,52 @@ discard cached entries and counters. No corpse/profile registry is altered.
 Counters are cumulative for the current world and logged at most once every
 30 seconds: `calls`, `skipped`, `standbyFallbacks`, `layerChecks`,
 `shapeFallbacks`, and `errors`. No per-bot/frame logging or sampling allocation
-is added. Native counter hits must establish actual detour execution.
+is added. Native counter hits establish actual detour execution.
+
+### Native duplicate wait layers
+
+The first GPU run proved the nested Harmony interception (`calls=98797`,
+`skipped=95210` at 30 seconds), but exposed the initial seven-entry guard as
+unnecessarily restrictive. After convergence, skipped calls fell even though
+all 56 bots remained alive and active. Read-only UiBridge inspection of GPU2
+instance `901f5d68` found exact `InfectedLayersStrategy` on four sampled bots
+(Bot38, Bot1, Bot24, Bot14), with 15, 15, 21 and 22 active-list entries. Two
+lists were expanded: each contained only repeated `InfectedWaitLayer` entries
+followed by the five ordinary native infected layers.
+
+The native source explains this: `BotHalloweenDistributions.UpdateCanAttack`
+runs every 10 seconds and calls `SetCanAttack(false)` for non-shooters outside
+the nearest eight infected assigned to a target. That calls `ActivateLayer(5)`;
+`AICoreStrategy.method_4` inserts without a membership check. Conversely,
+`DeactivateLayer` removes only one occurrence. The number of native entries can
+therefore grow during a long round. The corrected fast path validates every
+entry on mutation, regardless of duplicate count. It never removes, deduplicates
+or changes a layer and never changes the native distribution/attack policy.
+This also explains why a larger arbitrary cap would only postpone the loss of
+coverage. Final-build counters and timings remain the parent's acceptance work.
 
 ## Verification and limits
 
 The standalone source-linked harness exercises the actual production guard,
-installation signatures and hook argument name. It runs 183 assertions,
+installation signatures and hook argument name. It runs 190 assertions,
 including wake/no-wake states, follower roles/registries, changed current body,
 changed brain, an unknown subclass, same-count replacement, a changed list,
 changed first-layer owner, toggles, failures, world reset and bounded logging.
+The duplicate regression uses 256 references to the same native wait layer
+(261 total entries), verifies the list remains untouched and stable proof is
+cached, and detects an unknown far-end layer and same-count far-end custom
+replacement before accepting their removal/restoration.
 The fixture models foreign/native effects without copying vendor code. The
 native strategy and finalizer remain callable while only the foreign prefix
 is bypassed. This is a controlled fixture, not a Unity/Mono detour proof.
 
 `tools/ZombiePftFastPathChecks/Verify.ps1` reruns the production-linked harness,
-then compiles and rejects 18 behavioral mutants: no-op, static argument
+then compiles and rejects 19 behavioral mutants: no-op, static argument
 misbinding, ordinary-raid leakage, ignored toggle, wrong world, boss leakage,
 stale brain/body, missed native/PFT follower, lost wake, accepted custom layer,
 missed list mutation/replacement, wrong first-layer owner, cross-raid counters,
-metadata mismatch and unknown PFT version. Compilation failures do not count
+metadata mismatch, unknown PFT version and the obsolete seven-entry limit.
+Compilation failures do not count
 as successful negative controls. It runs the installed contract check and
 refuses a verification manifest if production source changed during the run.
 
@@ -93,14 +122,15 @@ refuses a verification manifest if production source changed during the run.
 static private prefix signature, hostility-before-wake-before-combat sequence,
 combat classification strings, follower method signature, wake call, exact
 native infected constructor layer set, native names/request enum, public owner
-and active-list fields, and dictionary-based live-body lookup. Verified inputs:
+and active-list fields, duplicate-prone native wait-layer insertion, and
+dictionary-based live-body lookup. Verified inputs:
 
 - PFT assembly `0.10.3.0`, SHA256
   `0F875F824215F68A47FFD9183FB0BDD92CBA72762E1702F458A0EE614CC6DBB9`.
 - `Assembly-CSharp.dll`, SHA256
   `EE25CEE1259777B38ED8B3E7841FDC2DB3C98540B1469FA539B1FF183476E436`.
 - Production `ZombiePftFastPath.cs`, SHA256
-  `AA9E459A22788B6892E9E5CFB9B3BF89FE407A76205BE35FB8AA84779B6D2402`.
+  `729829569422C0A59724D7DEFDEF65D8E752765620033C8132F422BCDE9E0F36`.
 
 Four implementation passes: (1) complete adapter, cache and guards; (2)
 domain review against installed PFT/native call order and tightening cache
@@ -109,24 +139,31 @@ test harness's source exclusion and Cecil opcode selection; (4) full source,
 reset/retention, documentation and evidence review, with no remaining local
 implementation finding. The parent owns independent review and reruns.
 
-These checks do not establish FPS improvement, the cost on Mono, actual
-Harmony interception of a prefix already called by another wrapper, or native
-gameplay. Required parent evidence is an isolated client build, a restarted
+These offline checks do not establish FPS improvement, the cost on Mono or
+native gameplay. The first GPU run has now established actual Harmony
+interception; the corrected long-list behavior still needs final-build native
+acceptance. Required parent evidence is an isolated client build, a restarted
 source-bound GPU run with nonzero `calls`/`skipped`, a comparable toggle-off/on
 measurement, and behavior checks covering infected approach/attacks and PFT
 followers. No main-project build, deployment, game action or commit was made
 by this implementation leaf. Server/Core and foreign binaries remain outside
 its ownership.
 
-Final leaf verification passed both `leaf-1.1:G1` and `leaf-1.1:G2` with
-machine-bound ledger evidence (2 met, 0 unmet, 0 abandoned). The final mutation
-manifest is in
-`tools/ZombiePftFastPathChecks/evidence/2a70cd09a4274607aeea65ef189cb1bf/manifest.json`:
-183 assertions, 18 compiled faults rejected, installed contract passed, and
-the production hash above unchanged throughout verification. Earlier exploratory
-evidence is not the final source binding. The independent review reported no
-blocking PFT implementation finding; native wrapper execution remains a parent
-acceptance gate.
+Initial leaf verification passed both gates before the parent's native test.
+That initial 183-assertion/18-fault evidence and its source hash predate the
+duplicate-list correction; they are not the final source binding. The final
+190-assertion/19-fault rerun is recorded separately below. The independent
+review reported no blocking initial implementation finding, and the parent
+requested a second review of the native-evidence-driven correction.
+
+Corrected final verification: both leaf gates passed again (2 met, 0 unmet,
+0 abandoned), 190 assertions and 19 compiled faults rejected. The manifest is
+`tools/ZombiePftFastPathChecks/evidence/1ca85efb5d6c41dabcdc89702349bb2c/manifest.json`;
+production SHA256 is the `729829...` value above and remained unchanged during
+verification. The second independent review also reported no blocking finding.
+The correction's four passes covered native duplicate evidence, exact-type and
+owner/wake preservation, long-list and compiled regression controls, and final
+diff/documentation/hash review. No other production behavior was changed.
 
 Integration API: `EnablePatch()` after plugin dependencies/config initialization,
 `TickDiagnostics()` during controller updates, and `Reset()` at raid cleanup.

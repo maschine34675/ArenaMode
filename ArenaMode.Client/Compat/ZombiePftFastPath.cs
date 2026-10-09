@@ -151,7 +151,11 @@ internal static class ZombiePftFastPath
                 return true;
             }
             var layers = brain._activeLayers;
-            if (layers == null || layers.Count == 0 || layers.Count > 7) return true;
+            if (layers == null || layers.Count == 0) return true;
+            // Native SetCanAttack(false) repeatedly activates the same wait
+            // layer without deduplication. The number of list entries is not
+            // the number of layer types and can grow over a long wave. Validate
+            // every entry only when the list changes; never change its contents.
             // PFT obtains its owner from the first usable active layer. Do not
             // substitute the brain owner for a malformed/foreign owner binding.
             if (!(layers[0] is BaseLogicLayerSimple first) || !ReferenceEquals(first._owner, owner)) return true;
