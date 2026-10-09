@@ -34,6 +34,25 @@ try
         "Real BepInEx AcceptableValueList must accept offered Factory East.");
     if(probe=="binding") {Console.WriteLine("AREA CONFIG BINDING PROBE PASSED");return 0;}
 
+    foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,
+        ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId})
+        foreach(var mode in ArenaModeCatalog.All)
+        {
+            var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
+            bool allowed=mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId;
+            Need(team.Available==allowed,"PFT-MAP-ADMISSION",
+                $"{map}/{mode.Id}: protected squad map choices must agree with the supported team modes.");
+            if(!allowed)continue;
+            Need(team.Options.Count==1&&team.SelectedId==ArenaAreaCatalog.FullMapId
+                &&Settings.TrySelectArea(team.SelectedId),"PFT-MAP-CONFIG",
+                "Protected squads must offer and persist exactly the whole map through real Settings.");
+            Need(team.Summary==(mode.Id==ArenaModeCatalog.ZombieId?"5-player squad":"5v5 - fixed teams"),
+                "PFT-MAP-SUMMARY","Zombie squad must not claim an opposing five-player team.");
+        }
+    foreach(string map in new[]{ArenaMapCatalog.CustomsId,ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id})
+        Need(!ArenaAreaSelectionState.Create(map,ArenaModeCatalog.ZombieId,true,ArenaAreaCatalog.FullMapId,4).Available,
+            "PFT-MAP-BOUNDARY","Protected Zombies must retain bounded/ported map exclusions.");
+
     var offered=new HashSet<string>(StringComparer.Ordinal);
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,ArenaMapCatalog.LabyrinthId,
         ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.CustomsId})

@@ -1,5 +1,23 @@
 # Protected Zombie survival with PitFireTeam — 2026-10-08
 
+## Map admission correction — 2026-10-09
+
+The area-menu proposal retained a Tactical-only PFT guard after the first
+delivery. A valid Zombie squad could select the mode but every map click was
+replaced with a null location. Vanilla's SelectedLocation setter then hid Ready
+and Next and closed the time panel. Use the existing ArenaModeCatalog.CanSelect
+contract at this second admission seam as well; roster authentication and map
+restrictions are unchanged. The Zombie area summary now says `5-player squad`
+instead of implying two opposing teams.
+
+The native-hook regression failed before this two-line production fix and passes
+after it. Parent reruns: native area hooks 169, rendered area view 29, real BepInEx
+area configuration 221, mode selection 157 assertions. The native hook fixture
+also checks Factory day/night, Labs/Labyrinth, group and periodic refresh,
+Tactical/Zombie switches and rejection of other PFT modes/unavailable maps.
+Independent adversarial review found no new P0-P2 issue. GPU follow-up results
+and final deployed identity are recorded separately in HANDOFF.md.
+
 ## Player contract
 
 Optional squad variant of Zombies, selected through the existing native PFT

@@ -56,8 +56,8 @@ internal static class Program
             {
                 ArenaMenuSelection.Begin(new object(), SettingsOwner);
                 ArenaMenuSelection.ConfigureEligibility(
-                    () => new(!Team || Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId,
-                        Team && Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId, "team mode mismatch"),
+                    () => new(ArenaModeCatalog.CanSelect(Settings.SelectedGameModeId, Team),
+                        Team && ArenaModeCatalog.CanSelect(Settings.SelectedGameModeId, Team), "team mode mismatch"),
                     _ => string.Empty, () => new(true, Team, string.Empty));
                 ArenaMenuSelection.Select();
             }
@@ -286,8 +286,8 @@ internal static class Program
         Assert(f.Screen.SelectedLocation?.Id == Day && Settings.TeamDeathmatchArea.Value == Full,
             "repaired PFT mode can select existing whole-map Factory");
         Assert(ArenaAreaSelectionView.Last.State.Summary.Contains("5v5")
-            && ArenaAreaSelectionView.Last.State.ModeHint.Contains("Tactical"),
-            "PFT area renderer receives actual fixed team size and Tactical restriction");
+            && ArenaAreaSelectionView.Last.State.ModeHint.Contains("PitFireTeam squad"),
+            "PFT area renderer receives actual fixed team size and protected squad hint");
         Assert(f.Screen.ShowCalls == 1 && f.Screen.SubscriptionCount == 2,
             "PFT repair does not rebuild native map rows or subscriptions");
     }
@@ -297,6 +297,7 @@ internal static class Program
         try
         {
             ArenaLocationSelectionPatch.Enable();
+            ProtectedZombieMapSelectionKeepsReadyAndTime();
             FailedWritesRejectBeforeNonNullBranch();
             CustomsClickPreparesBeforeNativeDereference();
             FactoryTimeUsesActualVariant();
@@ -314,6 +315,66 @@ internal static class Program
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+
+    private static void ProtectedZombieMapSelectionKeepsReadyAndTime()
+    {
+        using var f = new Fixture(mode: ArenaModeCatalog.ZombieId, team: true);
+        foreach (string map in new[] { Day, Night, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId })
+        {
+            // Night shares Factory's day tile; the real time toggle reaches
+            // SelectedLocation directly, independently of OnLocationSelected.
+            f.SettingsOwner.SelectedDateTime = map == Night ? EDateTime.PAST : EDateTime.CURR;
+            SafeNative(() => f.Screen.OnLocationSelected(f.Screen.Locations[map == Night ? Day : map]),
+                "protected Zombie map click safely reaches native selection: " + map);
+            Assert(f.Screen.SelectedLocation?.Id == map && f.SettingsOwner.SelectedLocation?.Id == map
+                && f.Screen._readyButton.gameObject.activeSelf && f.Screen._acceptButton.gameObject.activeSelf,
+                "protected Zombie map keeps native selection and Ready: " + map);
+            if (map is Day or Night)
+                Assert(f.Screen._conditions.Open, "protected Zombie Factory exposes native time choice: " + map);
+            SafeNative(f.Screen.GroupRefresh, "protected Zombie group refresh preserves native setter: " + map);
+            Updater(f).Tick();
+            Assert(f.Screen.SelectedLocation?.Id == map && f.Screen._readyButton.gameObject.activeSelf,
+                "protected Zombie selection survives group and periodic refresh: " + map);
+            var request = new LocalRaidSettings { location = map, playerSide = ESideType.Pmc,
+                transitionType = ELocationTransition.Common };
+            Assert(ArenaMenuSelection.MatchesRequest(request), "protected Zombie selection passes strict map request: " + map);
+            Assert(ArenaAreaSelectionView.Last.State.Summary == "5-player squad"
+                && !ArenaAreaSelectionView.Last.Participants.Available,
+                "protected Zombie area describes five allies without opposing team or editable population: " + map);
+        }
+        f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
+        foreach (EDateTime time in new[] { EDateTime.PAST, EDateTime.CURR })
+        {
+            SafeNative(() => f.Screen.UpdateSelectedTime(time), "protected Zombie Factory native time setter stays valid");
+            Assert(f.Screen.SelectedLocation?.Id == (time == EDateTime.PAST ? Night : Day)
+                && f.Screen._readyButton.gameObject.activeSelf && f.Screen._conditions.Open,
+                "protected Zombie Factory day/night retains Ready and time controls");
+        }
+        foreach (string mode in new[] { ArenaModeCatalog.TacticalId, ArenaModeCatalog.ZombieId })
+        {
+            Settings.GameMode.Value = mode;
+            Updater(f).Tick();
+            Assert(f.Screen.SelectedLocation?.Id == Day && f.Screen._readyButton.gameObject.activeSelf,
+                "protected Tactical/Zombie mode switch retains valid map selection");
+            Assert(ArenaAreaSelectionView.Last.State.Summary == (mode == ArenaModeCatalog.ZombieId
+                ? "5-player squad" : "5v5 - fixed teams"), "protected mode switch updates roster description");
+        }
+        foreach (string mode in new[] { ArenaModeCatalog.DeathmatchId, ArenaModeCatalog.GunGameId,
+            ArenaModeCatalog.TeamDeathmatchId })
+        {
+            Settings.GameMode.Value = mode;
+            f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
+            Assert(f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf
+                && !f.Screen._conditions.Open, "unsupported PFT mode cannot select a map before mode repair: " + mode);
+        }
+        Settings.GameMode.Value = ArenaModeCatalog.ZombieId;
+        foreach (string map in new[] { Customs, ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
+        {
+            f.Screen.SelectedLocation = f.Screen.Locations[map];
+            Assert(f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
+                "protected Zombie direct setter still rejects unavailable map: " + map);
+        }
     }
 
     private static void ParticipantCallbacksStayOwned()

@@ -31,6 +31,7 @@ namespace JsonType
         public sealed class Location
         {
             public string Id;
+            public string LocalizedName => Id;
             public bool Enabled = true;
             public bool Locked;
         }
@@ -48,8 +49,17 @@ namespace EFT.UI
             set { if (_value == value) return; _value = value; Changed?.Invoke(value); }
         }
     }
-    public sealed class TestSpawnableToggle { public readonly TestToggle Toggle = new(); }
-    public sealed class NativeButton : Component { public TMPro.TMP_Text _headerLabel = new(); }
+    public sealed class TestSpawnableToggle
+    {
+        public readonly TestToggle Toggle = new();
+        public TMPro.TMP_Text _headerLabel = new(), _sizeLabel = new();
+    }
+    public sealed class NativeBanner { public Sprite sprite; }
+    public sealed class NativeButton : Component
+    {
+        public TMPro.TMP_Text _headerLabel = new();
+        public NativeBanner _banner = new();
+    }
     public sealed class NativeConditions
     {
         public int CloseCalls;

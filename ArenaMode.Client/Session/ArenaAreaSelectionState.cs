@@ -50,7 +50,7 @@ internal sealed class ArenaAreaSelectionState
         Summary = selected == null ? "Select a map to choose its area."
             : HasTeamSizeChoice ? SelectedTeamSize > 0 ? $"{SelectedTeamSize}v{SelectedTeamSize} - opposing team starts" : "Select a supported team size."
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"
-            : pitFireTeam ? "5v5 - fixed teams"
+            : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "5-player squad" : "5v5 - fixed teams"
             : mode == ArenaModeCatalog.TeamDeathmatchId ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
             : "Whole map";
         ModeHint = selected == null ? string.Empty
@@ -77,7 +77,7 @@ internal sealed class ArenaAreaSelectionState
     {
         mode = ArenaModeCatalog.NormalizeId(mode);
         var choices = !ArenaMapCatalog.IsSupportedMap(map)
-            || (pitFireTeam && mode != ArenaModeCatalog.TacticalId)
+            || !ArenaModeCatalog.CanSelect(mode, pitFireTeam)
             ? Array.Empty<ArenaAreaOption>()
             : Candidates.Where(option => ArenaAreaCatalog.TryResolve(option.Id, map, mode, pitFireTeam,
                 out _, out _)).ToArray();

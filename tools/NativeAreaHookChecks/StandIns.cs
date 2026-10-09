@@ -102,6 +102,8 @@ namespace UnityEngine
         public void SetParent(Transform value, bool worldPositionStays)
         { parent?.Children.Remove(this); parent = value; parent?.Children.Add(this); }
     }
+    public class RectTransform : Transform { }
+    public class Sprite { }
     public class GameObject : Object
     {
         public readonly List<Component> Components = new();
@@ -187,6 +189,23 @@ namespace ArenaMode.Config
 namespace ArenaMode.Audio { public static class AnnouncerService { public static void EnsureLoaded() { } } }
 namespace ArenaMode.Session
 {
+    // Presentation-only seams; these never decide map or mode admission.
+    internal sealed class ArenaCompactMapInfo
+    {
+        internal UnityEngine.GameObject Root;
+        internal void Show(UnityEngine.Transform screen, UnityEngine.GameObject nativeInfo, TMPro.TMP_Text text)
+            => Root = nativeInfo;
+        internal void Refresh(string name, UnityEngine.Sprite thumbnail) { }
+        internal void Close() => Root = null;
+    }
+    internal sealed class ArenaPortedMapPresentation
+    {
+        internal static string DisplayName(string id, string fallback) => fallback;
+        internal static ArenaPortedMapPresentation Create(string id, UnityEngine.RectTransform rect,
+            TMPro.TMP_Text header, TMPro.TMP_Text size, Func<bool> selected) => null;
+        internal void Refresh() { }
+        internal void Close() { }
+    }
     internal static class ArenaSession
     {
         internal static bool IsActive, ArmedForNextRaid;

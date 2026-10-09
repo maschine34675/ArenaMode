@@ -42,6 +42,14 @@ request matching, PFT mode repair before row use, ordinary PMC/Scav flows, stale
 controller/generation callbacks and own-view cleanup without repeated native
 Show/subscriptions.
 
+Protected Zombie cases select Factory day/night, Labs and Labyrinth through the
+production hooks and assert native Ready, Factory time controls, strict request
+matching and selection retention across group/updater refreshes. They also check
+Tactical/Zombie switching, the five-player squad summary, and rejection of other
+PFT modes, bounded Customs and imported maps. The roster seam uses the production
+mode catalog; it does not authenticate real companion identities. PFT admission
+and the native four-companion roster need their own checks and GPU run.
+
 External doubles represent BepInEx setting acceptance/rejection, cached server
 map configuration, PFT eligibility, the two renderer endpoints and a small
 Unity object tree. Their bounds are intentional: this is not real Unity,

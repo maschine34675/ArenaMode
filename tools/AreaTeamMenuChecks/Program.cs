@@ -80,5 +80,14 @@ view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "gunga
 // 710: the non-Deathmatch top derived at the first bound above (was 668).
 Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 710,
     "same-area mode change updates layout cache and restores compact position");
+foreach(string mode in new[]{"zombie","tactical","zombie"})
+{
+    view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId,mode,true,
+        ArenaAreaCatalog.FullMapId,5),true);
+    Need(Buttons().Length==1,"protected squad keeps one clickable whole-map choice");
+    var summary=view.Root.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true).Single(label=>label.name=="Team size");
+    Need(summary.text==(mode=="zombie"?"5-player squad":"5v5 - fixed teams"),
+        "rendered protected squad summary follows cooperative or opposing-team mode");
+}
 view.Close();
 Console.WriteLine($"ARENA_TEAM_AREA_VIEW_CHECKS_PASSED ({checks} assertions)");
