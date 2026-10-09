@@ -22,11 +22,17 @@ internal static class PitFireTeamAreaSpawns
     private static FieldInfo _controller, _bossPlayer, _bossController, _spawnedPlayers;
     private static Pending _pending;
     private static readonly List<Arrival> Arrivals = new();
-    private static readonly HashSet<string> InitialIds = new(StringComparer.Ordinal);
-    // Weak keys retain a revoked entry while the old native continuation still
-    // holds its Profile. Do not clear this on reset: native method_1 yields
-    // before CreateBot reads the global GameWorld for raw player creation.
-    private static readonly ConditionalWeakTable<Profile, Arrival> RawLeases = new();
+    // LocalGame creates a new BotCreatorClient for each raid. Canonical PFT
+    // profile IDs (and potentially Profile objects) survive a menu-to-raid
+    // transition, so neither duplicate admission nor raw creation may be keyed
+    // globally by profile alone. Keep the old creator's revoked ledger alive
+    // while its native continuation can still resume after Task.Yield.
+    private sealed class CreatorLedger
+    {
+        internal readonly HashSet<string> InitialIds = new(StringComparer.Ordinal);
+        internal readonly ConditionalWeakTable<Profile, Arrival> RawLeases = new();
+    }
+    private static readonly ConditionalWeakTable<BotCreatorClient, CreatorLedger> CreatorLedgers = new();
 
     private sealed class Pending
     {
@@ -164,16 +170,25 @@ internal static class PitFireTeamAreaSpawns
         var state = new Arrival { Raid = raid, Profile = profile, Creator = botCreator,
             Spawner = raid.Controller.BotSpawner, Runtime = runtime };
         __state = state;
-        if (OnActivate == null || (!runtime && !InitialIds.Add(profile.ProfileId))
-            || (!runtime && RawLeases.TryGetValue(profile, out _))
-            || !ArenaAreaRuntime.TryReserveCompanionSpawn(out var pickedZone, out var point, out var placement))
+        var ledger = CreatorLedgers.GetValue(botCreator, _ => new CreatorLedger());
+        string admissionProblem = OnActivate == null ? "native companion callback is missing"
+            : !runtime && !ledger.InitialIds.Add(profile.ProfileId) ? "companion identity was already dispatched by this raid's creator"
+            : !runtime && ledger.RawLeases.TryGetValue(profile, out _) ? "companion profile already has a raw creation lease for this raid's creator"
+            : null;
+        if (admissionProblem != null)
+        {
+            Reject(state, null, admissionProblem);
+            __result = Task.FromResult(false);
+            return false;
+        }
+        if (!ArenaAreaRuntime.TryReserveCompanionSpawn(out var pickedZone, out var point, out var placement))
         {
             Reject(state, null, "no distinct safe companion marker is available");
             __result = Task.FromResult(false);
             return false;
         }
         state.Placement = placement;
-        if (!runtime) RawLeases.Add(profile, state);
+        if (!runtime) ledger.RawLeases.Add(profile, state);
         Arrivals.Add(state);
         position = new PositionNote(point.Position, point.CorePointId, false);
         zone = pickedZone;
@@ -211,7 +226,9 @@ internal static class PitFireTeamAreaSpawns
 
     private static bool CreatePrefix(BotCreatorClient __instance, Profile profile, ref Task __result)
     {
-        if (profile == null || !RawLeases.TryGetValue(profile, out var state)
+        if (__instance == null || profile == null
+            || !CreatorLedgers.TryGetValue(__instance, out var ledger)
+            || !ledger.RawLeases.TryGetValue(profile, out var state)
             || !ReferenceEquals(__instance, state.Creator)) return true;
         if (!state.Revoked && !state.Completed && Current(state.Raid)
             && state.Placement.IsCurrent) return true;
@@ -262,6 +279,8 @@ internal static class PitFireTeamAreaSpawns
     {
         _pending = null;
         foreach (var arrival in Arrivals.ToArray()) Reject(arrival, null, "raid scope ended");
-        Arrivals.Clear(); InitialIds.Clear();
+        // Do not clear creator ledgers: an ended game's delayed raw creation
+        // must remain rejected, while a new raid owns a new native creator.
+        Arrivals.Clear();
     }
 }

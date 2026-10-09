@@ -46,6 +46,14 @@ static class DiscoveryHarness
             && deferred>discovery.IndexOf("if (!LiveTeamArena ||",StringComparison.Ordinal)
             && deferred<discovery.IndexOf("the exact local PMC body was not available",StringComparison.Ordinal),
             "central discovery defers initial bind after existing error and contract gates, before physical latch");
+        int freezeBegin=source.IndexOf("public static bool TryFreezeTeamRoster(",StringComparison.Ordinal);
+        int freezeEnd=source.IndexOf("public static bool TryBindLocalPlayerBody(",freezeBegin,StringComparison.Ordinal);
+        var freeze=source[freezeBegin..freezeEnd];
+        int areaReset=freeze.IndexOf("PitFireTeamAreaSpawns.Reset();",StringComparison.Ordinal);
+        int lifecycleReset=freeze.IndexOf("PitFireTeamRoundLifecycle.Reset();",StringComparison.Ordinal);
+        Check(areaReset>freeze.IndexOf("TryMatchLiveRosterToDecision(",StringComparison.Ordinal)
+            && areaReset<lifecycleReset&&lifecycleReset<freeze.IndexOf("lock (StateLock)",StringComparison.Ordinal),
+            "new authenticated roster freeze retires old pending area placements outside state lock before round reset");
         Initial();ArenaAreaRuntime.CurrentArea=null;
         return count;
     }

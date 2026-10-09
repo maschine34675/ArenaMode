@@ -16,9 +16,9 @@ static class AreaHarness
     static Profile profile;
     static MethodInfo Method(string name)=>typeof(PitFireTeamAreaSpawns).GetMethod(name,BindingFlags.Static|BindingFlags.NonPublic);
     static void Check(bool condition,string name){assertions++;if(!condition)throw new InvalidOperationException(name);}
-    static void Fresh(bool loading=false)
+    static void Fresh(bool loading=false,bool reset=true)
     {
-        PitFireTeamAreaSpawns.Reset();
+        if(reset)PitFireTeamAreaSpawns.Reset();
         world=new(){LocationId="bigmap"};game=new(){GameWorld=world,Status=loading?GameStatus.Running:GameStatus.Started};
         controller=game.BotsController;creator=new(){_game=game};controller.BotSpawner._botCreator=creator;
         world.MainPlayer.GameWorld=world;
@@ -51,6 +51,61 @@ static class AreaHarness
     static void Arrive(object[] args,BotOwner b)=>((Action<BotOwner>)args[5])(b);
     static void Start()
     {ArenaSession.IsActive=true;game.Status=GameStatus.Started;ArenaAreaRuntime.Block=false;ArenaAreaRuntime.IsReady=true;ArenaAreaRuntime.CurrentArea=new();}
+    static void RepeatedRaids()
+    {
+        // The normal protected end keeps PFT in finalization. The next freeze
+        // now resets pending placements, but creator identity must also remain
+        // safe without that cleanup and with a reused Profile object.
+        foreach(bool reset in new[]{false,true})
+        foreach(bool reuseProfile in new[]{false,true})
+        foreach(bool arrived in new[]{false,true})
+        {
+            Fresh();
+            var oldCreator=creator;var oldController=controller;var oldWorld=world;var oldProfile=profile;
+            int oldCallbacks=0;
+            var(first,oldArgs)=Begin(_=>{oldCallbacks++;oldController.BotSpawner._inSpawnProcess--;});
+            Check(first,"first raid admitted before repeated raid check");
+            if(arrived)Arrive(oldArgs,Body());
+            game.Status=GameStatus.Stopped;
+            Fresh(reset:reset);
+            if(reuseProfile)profile=oldProfile;
+            var(second,newArgs)=Begin();
+            Check(second&&ArenaAreaRuntime.Reservations==1,
+                "same companion ID/profile accepted by new native creator with or without compatibility clear");
+            object[] newRaw={creator,profile,null};
+            Check((bool)Method("CreatePrefix").Invoke(null,newRaw),"second raid raw creation remains admitted");
+            int newCharge=controller.BotSpawner._inSpawnProcess;
+            object[] oldRaw={oldCreator,oldProfile,null};
+            Check(!(bool)Method("CreatePrefix").Invoke(null,oldRaw)&&((Task)oldRaw[2]).IsCompleted,
+                "old creator's deferred raw creation remains blocked after new raid admitted same profile");
+            Check(controller.BotSpawner._inSpawnProcess==newCharge&&oldController.BotSpawner._inSpawnProcess==0,
+                "old raw rejection settles only its own native spawner charge");
+            Arrive(newArgs,Body());
+            Check(native==1&&controller.BotSpawner._inSpawnProcess==0,"new native callback publishes and settles normally");
+            var(duplicate,duplicateArgs)=Begin();
+            Check(!duplicate&&ArenaAreaRuntime.Reservations==1&&controller.BotSpawner._inSpawnProcess==0,
+                "same creator duplicate identity rejected before another marker reservation");
+            profile=new(){Id=profile.Id,AccountId=profile.AccountId};
+            Check(!Begin().proceed&&ArenaAreaRuntime.Reservations==1&&controller.BotSpawner._inSpawnProcess==0,
+                "new profile object cannot repeat the same identity within one creator");
+            if(!arrived)
+            {
+                var foreign=Body(oldProfile,world);Arrive(oldArgs,foreign);
+                Check(oldCallbacks==0&&foreign.Retired==0&&controller.BotSpawner._inSpawnProcess==0,
+                    "old callback cannot retire or adopt a body from the next world sharing its profile");
+                var late=Body(oldProfile,oldWorld);Arrive(oldArgs,late);Arrive(oldArgs,late);
+                Check(oldCallbacks==0&&late.Retired==1&&controller.BotSpawner._inSpawnProcess==0,
+                    "old physical arrival cannot publish or disturb the next raid");
+            }
+        }
+        Fresh();var(firstSameCreator,sameArgs)=Begin();
+        Check(firstSameCreator,"same creator reset control initially admitted");
+        PitFireTeamAreaSpawns.Reset();
+        Check(!Begin().proceed&&ArenaAreaRuntime.Reservations==1&&controller.BotSpawner._inSpawnProcess==0,
+            "reset retains duplicate identity tombstone within the same native creator");
+        object[] resetRaw={creator,profile,null};
+        Check(!(bool)Method("CreatePrefix").Invoke(null,resetRaw),"reset still blocks same creator delayed raw call");
+    }
     public static int Run()
     {
         PitFireTeamAreaSpawns.Configure(typeof(AreaHarness).Assembly,new Harmony());
@@ -105,6 +160,7 @@ static class AreaHarness
         Fresh();(ok,args)=Begin(run:false);Check(ok&&ArenaAreaRuntime.Reservations==0&&args[7]==null,"earlier Harmony veto preserved");
         Fresh();profile.AccountId="foreign";(ok,args)=Begin();Check(ok&&ArenaAreaRuntime.Reservations==0,"unrelated profile untouched");
         Fresh();ArenaAreaRuntime.CurrentArea=null;(ok,args)=Begin();Check(ok&&ArenaAreaRuntime.Reservations==0,"full map untouched");
+        RepeatedRaids();
         Fresh();PitFireTeamAreaSpawns.Reset();
         Console.WriteLine($"PFT bounded native-hook harness: {assertions} assertions.");
         return assertions;

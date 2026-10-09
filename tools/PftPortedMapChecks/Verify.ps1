@@ -22,6 +22,10 @@ $faults = @(
     @('area-drop-raw-veto','AreaSource','if (!state.Revoked && !state.Completed && Current(state.Raid)','if (true || !state.Revoked && !state.Completed && Current(state.Raid)'),
     @('area-early-release','AreaSource','return result && !state.Revoked;','state.Placement?.Dispose(); return result && !state.Revoked;'),
     @('area-callback-counter','AreaSource','state.CounterSettled = state.Spawner._inSpawnProcess < beforeCallback;','state.CounterSettled = true;'),
+    @('area-global-initial-identities','AreaSource','internal readonly HashSet<string> InitialIds','internal static readonly HashSet<string> InitialIds'),
+    @('area-global-raw-profile-keys','AreaSource','internal readonly ConditionalWeakTable<Profile, Arrival> RawLeases','internal static readonly ConditionalWeakTable<Profile, Arrival> RawLeases'),
+    @('area-reset-forgets-old-creator','AreaSource','Arrivals.Clear();','CreatorLedgers.Clear(); Arrivals.Clear();'),
+    @('area-duplicate-new-profile','AreaSource','!ledger.InitialIds.Add(profile.ProfileId)','false'),
     @('discovery-never-defer','DiscoverySource','return ReferenceEquals(_currentLocalPlayer, null)','return false && ReferenceEquals(_currentLocalPlayer, null)'),
     @('discovery-full-map','DiscoverySource','Areas.ArenaAreaRuntime.CurrentArea == null','false'),
     @('discovery-live-match','DiscoverySource','Modes.ArenaMatchService.Current != null','false'),
@@ -37,7 +41,12 @@ foreach ($fault in $faults) {
     $source = if ($property -eq 'PortedSource') { $ported } elseif ($property -eq 'DiscoverySource') { $discovery } else { $area }
     if (!$source.Contains($before)) { throw "Fault anchor missing: $name" }
     $file = Join-Path $OutputRoot ($name + '.cs')
-    [IO.File]::WriteAllText($file, $source.Replace($before,$after))
+    $mutant = $source.Replace($before,$after)
+    # Static ledger fields need static access too; otherwise these faults would
+    # be rejected by the compiler rather than the repeated-raid assertions.
+    if ($name -eq 'area-global-initial-identities') { $mutant = $mutant.Replace('ledger.InitialIds','CreatorLedger.InitialIds') }
+    if ($name -eq 'area-global-raw-profile-keys') { $mutant = $mutant.Replace('ledger.RawLeases','CreatorLedger.RawLeases') }
+    [IO.File]::WriteAllText($file, $mutant)
     $log = Join-Path $OutputRoot ($name + '.log')
     $ErrorActionPreference = 'Continue'
     & dotnet run --project (Join-Path $PSScriptRoot 'PftPortedMapChecks.csproj') -c Release "-p:$property=$file" *> $log

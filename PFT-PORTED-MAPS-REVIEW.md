@@ -82,6 +82,48 @@ distinguishes an initially absent leader from a destroyed Unity leader object.
 The source-linked PFT harness tests those boundaries, including a ready area
 before match creation and destroyed/lost previously bound leaders.
 
+### Consecutive protected raids
+
+The e55d6a7 native retest reached a live 5v5 on Factory Center with all four
+companions and five opponents, then returned through protected Stop(Left).
+The next raid in the same process (Yard/Zombies) reached area READY with eight
+player and 22 bot markers but rejected all four companions at 19:22:22. The
+old message incorrectly called every admission rejection a missing marker.
+The real repeated-raid defect is the process-wide initial-profile ID set:
+protected end retains finalization state, and the next successful roster freeze
+reset only the round lifecycle, leaving those IDs already admitted. That guard
+runs before the area reservation API. The profile-only weak raw-creation table
+could likewise reject a reused Profile object from a different raid.
+
+Both ledgers now belong to an exact BotCreatorClient weak key. Native
+`LocalGame.vmethod_1` constructs a new creator per raid (`LocalGame.cs:171`);
+the same canonical companion ID or Profile can therefore start in a later raid,
+while duplicates on the current creator remain blocked. Old-creator tombstones
+survive Reset so a suspended native raw creation cannot enter an ended game.
+Successful roster reauthentication resets pending area placements immediately
+before the existing round reset, outside the compatibility state lock. Failed
+reauthentication and CancelFinalizingAfterFailedStop are unchanged. Each
+admission failure now reports its actual guard separately from missing markers.
+
+The production-linked harness covers eight combinations of explicit/no reset,
+new/reused Profile, and pending/completed old activation. It verifies the new
+creator's successful reservation/callback, old creator's raw veto and isolated
+charge, same-creator duplicate IDs even through another Profile object, retained
+duplicate protection after reset, and late old callbacks receiving either the
+old world or an unrelated new-world body. No native spawn collection, contour,
+zone, category, occupancy or path filter was loosened for this correction.
+
+Correction review completed four passes: native lifecycle evidence; exact-key
+implementation and pending cleanup; stale/duplicate/counter adversarial cases;
+independent source review and compiled negative controls. The final linked
+harness has 234 assertions (109 bounded-hook), and all 24 deliberate compiled
+faults are rejected. Replacing only the adapter source with e55d6a7 compiles but
+fails the new same-companion/new-creator regression, proving the check detects
+the observed defect. Evidence lives under
+`artifacts/pft-ported-customs-20261009/repeated-raid-faults` and
+`repeated-raid-baseline.log`. Native acceptance of the corrected second raid
+remains separate from these offline checks.
+
 ## Four passes and evidence
 
 ### Failed-start integration follow-up (native 54d9f7e candidate)

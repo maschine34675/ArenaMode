@@ -373,6 +373,11 @@ internal static partial class PitFireTeamCompat
             }
         }
 
+        // Protected raid end deliberately keeps the canonical roster while
+        // persistence finalizes. Retire the previous raid's pending placements
+        // before the next authenticated selection replaces that state; creator
+        // tombstones still veto delayed raw creation into the ended game.
+        PitFireTeamAreaSpawns.Reset();
         PitFireTeamRoundLifecycle.Reset();
 
         lock (StateLock)
