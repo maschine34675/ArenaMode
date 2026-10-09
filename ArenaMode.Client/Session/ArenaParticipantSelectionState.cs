@@ -11,8 +11,8 @@ internal sealed class ArenaParticipantSelectionState
         MapId = area?.MapId;
         ModeId = area?.ModeId;
         AreaId = area?.SelectedId;
-        Available = area?.Available == true && AreaId == ArenaAreaCatalog.FullMapId
-            && ArenaParticipantPolicy.TryResolve(MapId, ModeId, false, pitFireTeam, total, out _, out _);
+        Available = area?.Available == true
+            && ArenaParticipantPolicy.TryResolve(MapId, ModeId, area.SelectedArea != null, pitFireTeam, total, out _, out _);
         Total = total;
         Recommended = ArenaParticipantPolicy.DefaultTotal(MapId, ModeId);
         Minimum = ArenaParticipantPolicy.MinimumTotal(ModeId);

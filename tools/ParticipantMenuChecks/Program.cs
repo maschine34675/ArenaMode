@@ -126,8 +126,8 @@ internal static class Program
                 var selection = ArenaParticipantSelectionState.Create(candidate, false, count);
                 view.Refresh(candidate, false, selection);
                 Bounds();
-                bool expected = candidate.Available && candidate.SelectedId == Full
-                    && mode != "tactical" && (mode != "teamdeathmatch" || count >= 4 && count % 2 == 0);
+                bool expected = candidate.Available && mode != "tactical"
+                    && (mode != "teamdeathmatch" || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),
                     "native controls reflect count and format admission");

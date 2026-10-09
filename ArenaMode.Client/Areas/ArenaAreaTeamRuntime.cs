@@ -17,8 +17,12 @@ internal static partial class ArenaAreaRuntime
     private static ISpawnPoint _initialTeamPoint;
     private static TeamSpawnLease _playerReservation;
     private static readonly Dictionary<string, TeamSpawnLease> TeamReservations = new Dictionary<string, TeamSpawnLease>();
-    internal static int? CurrentTeamSize => IsCurrentActive() ? _teamSize : (int?)null;
-    internal static bool HasTeamStarts => IsCurrentActive() && _area.TeamStarts != null;
+    internal static int? CurrentTeamSize => HasTeamStarts ? _teamSize : (int?)null;
+    // These dynamic faction reservations belong only to independent TDM. All
+    // other modes still use the same initial PMC start/connectivity proof, but
+    // their own directors determine opponents, followers and wave capacity.
+    internal static bool HasTeamStarts => IsCurrentActive() && _area.TeamStarts != null
+        && _mode == Modes.ArenaModeCatalog.TeamDeathmatchId;
 
     internal static bool TryInitialTeamSpawn(SpawnSystem system, ESpawnCategory category,
         EPlayerSide side, string profileId, out ISpawnPoint selected)
@@ -134,18 +138,19 @@ internal static partial class ArenaAreaRuntime
         internal readonly ISpawnPoint Point;
         internal readonly Vector3 Position;
         internal readonly bool Usec;
+        private readonly bool _requireFaction;
         internal readonly float Expires;
-        internal TeamSpawnLease(string token, ISpawnPoint point, bool usec)
+        internal TeamSpawnLease(string token, ISpawnPoint point, bool usec, bool requireFaction = true)
         {
             Token = token; Point = point; PointId = point.Id; Position = point.Position;
-            Usec = usec; Expires = Time.time + 30f;
+            Usec = usec; _requireFaction = requireFaction; Expires = Time.time + (requireFaction ? 30f : 120f);
         }
-        internal bool IsCurrent => HasTeamStarts && IsReady && Token == _token && Time.time < Expires
+        internal bool IsCurrent => IsCurrentActive() && IsReady && Token == _token && Time.time < Expires
             && Point != null && Point.Id == PointId && (Point.Position - Position).sqrMagnitude < 0.0001f
             && TeamReservations.TryGetValue(PointId, out var current) && ReferenceEquals(current, this);
         internal bool Accept(Player player)
             => IsCurrent && player != null && AllowsSpawn(Point)
-               && player.Profile?.Info?.Side == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear)
+               && (!_requireFaction || player.Profile?.Info?.Side == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear))
                && (player.Position - Position).sqrMagnitude <= 4f
                && Contains(player.Position, ArenaAreaCatalog.NavigationInset)
                && TrySample(player.Position, out var sample) && CompleteConnectedPath(sample)
@@ -161,7 +166,7 @@ internal static partial class ArenaAreaRuntime
 
     internal static TeamSpawnLease ReservePlayerPosition(Vector3 position)
     {
-        if (!HasTeamStarts) return null;
+        if (!IsCurrentActive()) return null;
         if (!IsReady) throw new InvalidOperationException("The team area is not ready for a player reservation.");
         _playerReservation?.Dispose();
         _playerReservation = null;
@@ -169,14 +174,15 @@ internal static partial class ArenaAreaRuntime
             && (p.Position-position).sqrMagnitude < 0.01f && AllowsSpawn(p));
         if (point == null || !IsUnoccupied(position, _world.MainPlayer, null))
             throw new InvalidOperationException("The selected player spawn is no longer available before handover.");
-        var lease = new TeamSpawnLease(_token, point, _game.Profile.Info.Side == EPlayerSide.Usec);
+        var lease = new TeamSpawnLease(_token, point, _game.Profile.Info.Side == EPlayerSide.Usec,
+            requireFaction: HasTeamStarts);
         TeamReservations.Add(lease.PointId, lease);
         return _playerReservation = lease;
     }
 
     internal static void ReleasePlayerReservation(Player player)
     {
-        if (!HasTeamStarts || !ReferenceEquals(player, _world.MainPlayer)) return;
+        if (!IsCurrentActive() || !ReferenceEquals(player, _world.MainPlayer)) return;
         _playerReservation?.Dispose();
         _playerReservation = null;
     }

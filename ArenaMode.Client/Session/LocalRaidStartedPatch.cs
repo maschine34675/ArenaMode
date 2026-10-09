@@ -114,20 +114,20 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             var deathmatch = requestedMode == ArenaModeCatalog.DeathmatchId ? Settings.FreezeDeathmatchRules() : null;
             var hostility = deathmatch == null ? null : (deathmatch.FreeForAll
                 ? Shared.DeathmatchSelection.FreeForAll : Shared.DeathmatchSelection.AllVsPlayer);
-            var areaId = string.Equals(requestedMode, ArenaModeCatalog.TeamDeathmatchId, StringComparison.Ordinal)
-                ? Shared.ArenaAreaCatalog.NormalizeId(Settings.TeamDeathmatchArea.Value)
-                : Shared.ArenaAreaCatalog.FullMapId;
+            var areaId = Shared.ArenaAreaCatalog.NormalizeId(Settings.TeamDeathmatchArea.Value);
             if (!Shared.ArenaAreaCatalog.TryResolve(areaId, settings.location, requestedMode,
                     ArenaMenuSelection.CompatibilityTeamArenaActive, out var area, out var areaFailure))
                 throw new InvalidOperationException(areaFailure);
             if (area != null && (!Areas.ArenaAreaNavigationPatches.IsReady || !Areas.ArenaAreaLoadPatch.IsReady
                 || !Areas.ArenaAreaSpawnPointsPatch.IsReady))
-                throw new InvalidOperationException("Arena area protection is unavailable; use full-map TDM.");
-            if (!Shared.ArenaAreaCatalog.TryResolveTeamSize(area, area?.TeamStarts != null
+                throw new InvalidOperationException("Arena area protection is unavailable; restart after updating the client.");
+            if (!Shared.ArenaAreaCatalog.TryResolveTeamSize(area, requestedMode,
+                    ArenaMenuSelection.CompatibilityTeamArenaActive,
+                    area?.TeamStarts != null && requestedMode == ArenaModeCatalog.TeamDeathmatchId
                     ? Settings.AreaTeamSize?.Value : null, out var areaTeamSize, out var sizeFailure))
                 throw new InvalidOperationException(sizeFailure);
             if (area?.TeamStarts != null && !Areas.ArenaAreaInitialSpawnPatch.IsReady)
-                throw new InvalidOperationException("Arena initial team placement is unavailable; choose a legacy area.");
+                throw new InvalidOperationException("Arena initial area placement is unavailable; restart after updating the client.");
             if (ArenaMenuSelection.CompatibilityTeamArenaActive
                 && !Compat.PitFireTeamSelectionPolicy.SupportsMode(requestedMode))
             {

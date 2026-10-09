@@ -267,13 +267,66 @@ internal static class Program
             "in-place replacement preserves current body position");
     }
 
+    private static void OtherModeReservations()
+    {
+        foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "zombie" })
+        {
+            var system = Setup();
+            var start = Initial(system, EPlayerSide.Usec);
+            ArenaAreaRuntime.TestActivate(start);
+            ArenaAreaRuntime.TestMode = mode;
+            Need(!ArenaAreaRuntime.HasTeamStarts && ArenaAreaRuntime.CurrentTeamSize == null,
+                "other directors never inherit independent TDM capacity");
+            var selected = ArenaAreaRuntime.PickRespawn(start.Position, 40).position;
+            var playerLease = ArenaAreaRuntime.ReservePlayerPosition(selected);
+            Need(playerLease != null && playerLease.CanReleasePlayer,
+                "every bounded mode reserves player handover");
+            var occupant = Actor(selected, false);
+            ArenaAreaRuntime.TestWorld.AllAlivePlayersList.Add(occupant);
+            Need(!playerLease.CanReleasePlayer, "nonTDM player late occupancy rejects handover");
+            ArenaAreaRuntime.TestWorld.AllAlivePlayersList.Remove(occupant);
+            ArenaAreaRuntime.ReleasePlayerReservation(ArenaAreaRuntime.TestWorld.MainPlayer);
+            Need(!playerLease.IsCurrent, "nonTDM exact local release retires reservation");
+            Need(!ArenaAreaRuntime.TryReserveCompanionSpawn(out _, out _, out _),
+                "companion placement requires frozen authenticated roster");
+            ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = true;
+            if (mode is not ("tactical" or "zombie"))
+            {
+                Need(!ArenaAreaRuntime.TryReserveCompanionSpawn(out _, out _, out _),
+                    "frozen roster cannot enable followers in solo formats");
+                continue;
+            }
+            var leases = new List<ArenaAreaRuntime.TeamSpawnLease>();
+            for (int i = 0; i < 4; i++)
+            {
+                Need(ArenaAreaRuntime.TryReserveCompanionSpawn(out var zone, out var point, out var lease),
+                    "bounded protected format reserves all four companions");
+                Need(zone.SpawnPoints.Contains(point) && leases.All(old => D2(old.Position, point.Position) >= 2.25f),
+                    "companion pending leases never overlap");
+                Need(lease.Accept(Actor(point.Position, i % 2 == 0)),
+                    "mixed faction companion still requires exact connected arrival");
+                leases.Add(lease);
+            }
+            var first = leases[0];
+            Need(!first.Accept(Actor(first.Position + new Vector3(10, 0, 0), true)),
+                "companion far arrival refused");
+            Time.time = 119;
+            Need(first.IsCurrent, "slow companion activation retains bounded lease until deadline");
+            Time.time = 120;
+            Need(!first.IsCurrent, "companion reservation still expires");
+            Time.time = 0;
+            ArenaAreaRuntime.TestToken = Guid.NewGuid().ToString("N");
+            Need(!first.IsCurrent, "companion exact raid token protects next match");
+        }
+    }
+
     public static int Main(string[] args)
     {
         try
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
             Need(ReadPoints().Length==29&&ReadPoints().Count(Bot)==11,"refined Customs Center corpus retains 29 markers and 11 bot points");
-            InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();
+            InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;
         }

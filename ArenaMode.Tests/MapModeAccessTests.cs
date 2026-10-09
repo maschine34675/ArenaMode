@@ -10,7 +10,7 @@ public sealed class MapModeAccessTests
 {
     public static IEnumerable<object[]> SupportedCases()
     {
-        foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.CustomsId })
+        foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId })
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" })
             if (!(map == ArenaMapCatalog.EquatorId && mode == "tactical"))
                 yield return [map, mode];

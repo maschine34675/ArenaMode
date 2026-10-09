@@ -84,7 +84,7 @@ internal static class ArenaMatchService
         // synchronously inside the same RaidLifecycle event dispatch, and
         // ArenaSession.Initialize() runs before ArenaMatchService.Initialize()
         // in Plugin.Awake, so its handler already ran when this one fires.
-        if (!ArenaSession.IsActive)
+        if (!ArenaSession.IsActive || Areas.ArenaAreaRuntime.IsPending)
             return;
 
         var protectedTeam = Compat.PitFireTeamCompat.TeamArenaActive;
@@ -518,5 +518,8 @@ internal static class ArenaMatchService
         => Current?.ReportLocalDeath();
 
     private static void OnLocalRespawned(Player player)
-        => Current?.ReportLocalRespawn(player);
+    {
+        Areas.ArenaAreaRuntime.ReleasePlayerReservation(player);
+        Current?.ReportLocalRespawn(player);
+    }
 }

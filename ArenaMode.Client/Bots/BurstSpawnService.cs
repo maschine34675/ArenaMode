@@ -84,6 +84,7 @@ internal static class BurstSpawnService
 
     public static void Tick()
     {
+        if (Areas.ArenaAreaRuntime.IsPending) return;
         if (ArenaSoloPopulation.IsSelected)
         {
             ArenaSoloPopulation.Tick();

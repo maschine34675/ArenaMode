@@ -21,6 +21,30 @@ public static class ArenaSession
     private static bool _rejectedServerRaidPendingEnd;
     private static GameWorld _startedWorld;
     private static AbstractGame _startedGame;
+    private static GameWorld _pendingAreaStartWorld;
+    private static LocalGame _pendingAreaStartGame;
+
+    /// <summary>The exact area's native navigation must settle before any mode clock or kit swap starts.</summary>
+    internal static void TickAreaStart()
+    {
+        if (ReferenceEquals(_pendingAreaStartGame, null)) return;
+        var game = _pendingAreaStartGame;
+        var world = _pendingAreaStartWorld;
+        if (game == null || world == null || game.Status != GameStatus.Started
+            || !IsExactActiveRaid(game, world)
+            || !Comfort.Common.Singleton<AbstractGame>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, game)
+            || !Comfort.Common.Singleton<GameWorld>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance, world)
+            || Modes.ArenaMatchService.TeamStartAbortPending)
+        { _pendingAreaStartGame = null; _pendingAreaStartWorld = null; return; }
+        if (!Areas.ArenaAreaRuntime.IsReady) return;
+        // Clear before invoking user-facing mode code: an exception or duplicate
+        // lifecycle callback must never start this protected raid a second time.
+        _pendingAreaStartGame = null;
+        _pendingAreaStartWorld = null;
+        CompleteRaidStart(world, game);
+    }
 
     public static bool ArmedForNextRaid { get; private set; }
     public static string ArmedMap { get; private set; }
@@ -198,6 +222,8 @@ public static class ArenaSession
         ArenaReplaySelection.Clear();
         ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();
+        _pendingAreaStartGame = null;
+        _pendingAreaStartWorld = null;
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
         Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
         PitFireTeamCompat.Clear(reason);
@@ -362,6 +388,18 @@ public static class ArenaSession
             return;
         }
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
+        if (Areas.ArenaAreaRuntime.IsPending)
+        {
+            _pendingAreaStartGame = currentGame as LocalGame;
+            _pendingAreaStartWorld = world;
+            Plugin.ModLogger.LogInfo("Arena match startup held until the selected area's navigation is ready.");
+            return;
+        }
+        CompleteRaidStart(world, currentGame);
+    }
+
+    private static void CompleteRaidStart(GameWorld world, AbstractGame currentGame)
+    {
         try
         {
             NotificationManager.DisplayMessageNotification(
@@ -476,6 +514,8 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        _pendingAreaStartGame = null;
+        _pendingAreaStartWorld = null;
         ArenaPostRaidScreens.CaptureEndedRaid(_startedGame, _startedWorld);
         ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();

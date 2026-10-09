@@ -80,14 +80,14 @@ internal static class Program
             "Customs click prepares its area before native non-null dereference");
         Assert(f.Screen.SelectedLocation?.Id == Customs && f.Screen.LastNativeDereference == Customs,
             "native map click reaches a non-null Customs selection");
-        Assert(Settings.TeamDeathmatchArea.Value == Full && Settings.AreaWrites == 0,
-            "valid whole-map preference survives Customs preflight without a fabricated area transition");
-        Assert(NativeHooks.Trace.Contains("native-set:" + Customs + ":" + Full),
-            "incoming Customs selection preserves valid whole-map identity");
+        Assert(Settings.TeamDeathmatchArea.Value == Center && Settings.AreaWrites == 1,
+            "Customs preflight deliberately persists its first surveyed area before selection");
+        Assert(NativeHooks.Trace.Contains("native-set:" + Customs + ":" + Center),
+            "incoming Customs selection uses its validated bounded identity");
         Assert(f.Screen.MaxSelectionDepth == 1, "Customs selection does not recurse into OnLocationSelected");
         Updater(f).Tick();
-        Assert(ArenaAreaSelectionView.Last.State.SelectedId == Full
-            && ArenaAreaSelectionView.Last.State.Options.Count == 4, "area renderer offers whole map and three bounded alternatives");
+        Assert(ArenaAreaSelectionView.Last.State.SelectedId == Center
+            && ArenaAreaSelectionView.Last.State.Options.Count == 3, "area renderer offers only three surveyed contours");
         Assert(f.SettingsOwner.KeyId == "unchanged", "area selection leaves unrelated raid key untouched");
     }
 
@@ -148,11 +148,11 @@ internal static class Program
     {
         using var f = new Fixture(South, Day);
         f.Screen.SelectedLocation = f.Screen.Locations[Customs];
-        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Full,
+        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Center,
             "direct setter repairs area from incoming Customs despite old Factory settings");
         Settings.TeamDeathmatchArea.Value = Full;
         f.Screen.GroupRefresh();
-        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Full,
+        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Center,
             "group refresh passes through the same area repair");
         int writes = Settings.AreaWrites;
         f.Screen.SelectedLocation = null;
@@ -168,12 +168,12 @@ internal static class Program
     private static void RememberedMapAndF12Refresh()
     {
         using var f = new Fixture(Full, Customs);
-        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Full,
-            "Show prefix preserves valid whole-map Customs before strict map filtering");
+        Assert(f.Screen.SelectedLocation?.Id == Customs && Settings.TeamDeathmatchArea.Value == Center,
+            "Show prefix resolves remembered whole Customs to its first surveyed area");
         Settings.GameMode.Value = ArenaModeCatalog.EndlessId;
         Updater(f).Tick();
         Assert(CustomsButton(f).gameObject.activeSelf && f.Screen.SelectedLocation?.Id == Customs,
-            "F12 mode away from TDM preserves supported whole-map Customs");
+            "F12 mode away from TDM preserves the surveyed Customs selection");
         Assert(CustomsButton(f)._spawnableToggle.Toggle.IsToggled && f.Screen._readyButton.gameObject.activeSelf,
             "supported mode switch preserves native toggle and Ready");
         Assert(ArenaModeSelectionView.Last.State.SelectedMode == ArenaModeCatalog.DeathmatchId,
@@ -224,7 +224,7 @@ internal static class Program
 
     private static void SameScreenGenerationAndCleanup()
     {
-        using var f = new Fixture(Full, Day);
+        using var f = new Fixture(Center, Customs);
         var preview = ArenaMode.Session.Maps.ArenaAreaMapPreview.Last;
         int previewShows = preview.Shows;
         for (int i = 0; i < 20; i++) Updater(f).Tick();
@@ -239,11 +239,12 @@ internal static class Program
         Assert(!preview.Closed && preview.Shows == previewShows + 1, "same-screen reopen acquires the preview once");
         var currentUpdater = Updater(f);
         var currentArea = ArenaAreaSelectionView.Last.Callback;
-        Assert(!oldArea(Full), "same-screen old generation rejects an otherwise valid retained area callback");
+        Assert(!oldArea(Center), "same-screen old generation rejects an otherwise valid retained area callback");
         oldTick();
         Assert(currentUpdater != null && currentUpdater.Tick != null && !ArenaAreaSelectionView.Last.Closed,
             "stale updater generation must not destroy newer screen views");
-        Assert(currentArea(Full), "current supported area callback remains usable after rejected stale callbacks");
+        Assert(currentArea(Center), "current supported area callback remains usable after rejected stale callbacks");
+        Assert(!currentArea(Full), "even a current callback cannot select whole Customs");
         var callbackAfterClose = ArenaAreaSelectionView.Last.Callback;
         f.Screen.Close();
         int writes = Settings.AreaWrites;
@@ -262,9 +263,9 @@ internal static class Program
         f.Team = true;
         Updater(f).Tick();
         Assert(Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId && f.Screen.SelectedLocation?.Id == Customs,
-            "PFT roster refresh forces Tactical and preserves supported full Customs selection");
+            "PFT roster refresh forces Tactical and preserves the supported Customs area");
         Assert(CustomsButton(f).gameObject.activeSelf && ArenaMenuSelection.IsMapDiscoverable(Customs),
-            "PFT can discover whole-map Customs without receiving bounded starts");
+            "PFT can discover Customs with bounded companion starts");
     }
 
     private static void PftWrongF12ModeStillMaterializesMapsBeforePostfixRepair()
@@ -279,7 +280,7 @@ internal static class Program
             "PFT wrong saved mode must not prevent native map materialization before postfix mode repair");
         Assert(Settings.SelectedGameModeId == ArenaModeCatalog.TacticalId
             && ArenaModeSelectionView.Last.State.TacticalOnly, "roster-only evidence repairs PFT mode without weakening final eligibility");
-        Assert(CustomsButton(f).gameObject.activeSelf, "PFT now offers the materialized whole-map Customs row");
+        Assert(CustomsButton(f).gameObject.activeSelf, "PFT offers the materialized Customs row with area selection");
         f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
         Updater(f).Tick();
         Assert(f.Screen.SelectedLocation?.Id == Day && Settings.TeamDeathmatchArea.Value == Full,
@@ -441,7 +442,7 @@ internal static class Program
         Settings.AreaTeamSize.Value = 2;
         f.Screen.ShowInternal(f.SettingsOwner);
         var callback = ArenaAreaSelectionView.Last.SizeCallback;
-        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 4
+        Assert(ArenaAreaSelectionView.Last.State.Options.Count == 3
             && ArenaAreaSelectionView.Last.State.HasTeamSizeChoice,
             "native area adapter publishes three Customs choices and size state");
         Assert(callback(teams, 5) && Settings.AreaTeamSize.Value == 5

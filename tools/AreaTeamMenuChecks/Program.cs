@@ -21,7 +21,7 @@ view.Show(screen.transform,null,_=>true,(area,size)=>
 view.Refresh(State(teams),false);
 Button[] Buttons()=>view.Root.GetComponentsInChildren<Button>(true);
 Button Size(int size)=>Buttons().Single(b=>b.name=="Arena Team Size "+size);
-Need(Buttons().Length==8,"whole map, three area rows and four team buttons are materialized");
+Need(Buttons().Length==7,"three area rows and four team buttons are materialized; whole Customs is unavailable");
 var rootRect=(RectTransform)view.Root.transform;
 // 710/958: both +42 over their pre-Zombie values (668/916) for the fifth
 // mode row (Zombie). UpdateLayout places this panel at ModePanelTop (168)

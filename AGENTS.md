@@ -59,7 +59,11 @@ BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN doo
 guard; preserve exact live body identity, native collision and finalizer cleanup.
 Normalized movement targets alone do not provide the displacement bonus.
 Customs offers three unified surveyed areas: Factory Center, Factory Side and
-Customs Yard, all independent TDM 2v2–5v5 with reserved faction starts/respawns.
+Customs Yard, available in every Arena mode; whole Customs is rejected in Arena.
+Independent TDM retains 2v2–5v5 faction starts; DM/Gun Game negotiate total
+participants, Tactical and Zombies own their fixed/wave rosters. Read
+CUSTOMS-ALL-MODES-REVIEW.md and PFT-PORTED-MAPS-REVIEW.md for bounded PFT placement,
+deferred native follower startup and exact-world area readiness before mode clocks.
 The September 28 contours use new versioned IDs; all earlier area IDs remain
 invalid on the wire. Config migration preserves exact recognized preferences
 only. Yard adds twenty private per-raid spawn records around two native ground

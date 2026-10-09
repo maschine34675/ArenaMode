@@ -9,7 +9,7 @@ using UnityEngine.AI;
 namespace ArenaMode.Areas;
 
 /// <summary>
-/// Execution guards for the opt-in area's exact TDM bodies. Geometry/readiness
+/// Execution guards for the selected area's exact living bodies in every mode. Geometry/readiness
 /// belongs to ArenaAreaRuntime; no global navigation, SAIN or PFT state is edited.
 /// Goal preflight avoids native recovery for a forbidden target. The controller
 /// guards also inspect the actual accepted path: baked cover/core paths and

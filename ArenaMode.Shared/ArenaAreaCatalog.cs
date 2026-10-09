@@ -623,6 +623,19 @@ public static class ArenaAreaCatalog
         return true;
     }
 
+    /// <summary>Only independent TDM negotiates a faction size. Other modes own their roster.</summary>
+    public static bool TryResolveTeamSize(ArenaAreaDefinition? area, string? mode, bool pitFireTeam,
+        int? requested, out int selected, out string? reason)
+    {
+        if (!pitFireTeam && string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
+            return TryResolveTeamSize(area, requested, out selected, out reason);
+        selected = 0;
+        reason = null;
+        if (requested.HasValue && requested.Value != 0)
+        { reason = "Only independent Team Deathmatch accepts an area team-size override."; return false; }
+        return true;
+    }
+
     public static string NormalizeId(string? id)
         => string.IsNullOrWhiteSpace(id) || string.Equals(id, FullMapId, StringComparison.Ordinal)
             ? FullMapId : id;
@@ -633,8 +646,8 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        // Full maps share the generic native zone/point planner. Bay5, Equator
-        // and Customs do not require a surveyed faction-start preset: Tactical
+        // Full maps share the generic native zone/point planner. Bay5 and
+        // Equator do not require a surveyed faction-start preset: Tactical
         // asks for one complete opposing squad, independent TDM reserves each
         // faction slot, and Zombies requests individual infected. Optional map
         // presence and the authenticated PFT roster are checked by their owners.
@@ -655,14 +668,19 @@ public static class ArenaAreaCatalog
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
         { reason = "Equator has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
         if (id == FullMapId)
+        {
+            if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))
+            { reason = "Select one of the surveyed Customs areas; whole Customs is unavailable in Arena."; return false; }
             return true;
+        }
         var candidate = id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams
             : id == CustomsFactoryEastPolygonId ? CustomsFactoryEastPolygon
             : id == CustomsYardId ? CustomsYard : null;
         if (candidate == null)
         { reason = "Unknown or incompatible Arena area: " + id; return false; }
-        if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
-        { reason = "Bounded areas require the independent Team Deathmatch spawn and containment adapter; other modes and PitFireTeam are not supported inside these contours."; return false; }
+        if (pitFireTeam && !string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
+        { reason = "PitFireTeam requires Tactical or Zombies."; return false; }
         if (!string.Equals(map, candidate.MapId, StringComparison.OrdinalIgnoreCase))
         { reason = candidate.DisplayName + " requires map " + candidate.MapId + "."; return false; }
         area = candidate;

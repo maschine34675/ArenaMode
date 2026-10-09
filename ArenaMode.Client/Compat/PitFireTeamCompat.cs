@@ -1452,6 +1452,7 @@ internal static class PitFireTeamCompat
         }
 
         InvalidateStoredProfileCache();
+        PitFireTeamAreaSpawns.Reset();
         PitFireTeamRoundLifecycle.Reset();
 
         if (hadState)
@@ -1633,6 +1634,8 @@ internal static class PitFireTeamCompat
 
             if (!PitFireTeamGoalContext.Configure(assembly, out string goalContextProblem))
                 Plugin.ModLogger.LogWarning("Arena PFT pursuit goal handoff unavailable: " + goalContextProblem);
+            PitFireTeamPortedMapSpawns.Configure(assembly, pluginVersion, Harmony);
+            PitFireTeamAreaSpawns.Configure(assembly, Harmony);
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
             Plugin.ModLogger.LogInfo(

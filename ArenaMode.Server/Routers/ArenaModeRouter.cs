@@ -489,7 +489,8 @@ public sealed class ArenaModeRouter : StaticRouter
         string areaId = ArenaAreaCatalog.NormalizeId(request.AreaId!);
         if (!ArenaAreaCatalog.TryResolve(areaId, request.Map!, request.Mode!,
                 request.PitFireTeamTeam, out var area, out string? areaFailure)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, request.AreaTeamSize, out int areaTeamSize, out areaFailure))
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, request.Mode, request.PitFireTeamTeam,
+                request.AreaTeamSize, out int areaTeamSize, out areaFailure))
             return Json(new { armed = false, reason = areaFailure });
 
         // Validate before replay and stale-snapshot recovery. An unsupported or

@@ -95,8 +95,10 @@ try
 
     Need(ArenaAreaCatalog.TryResolve(area.Id, "BIGMAP", "TEAMDEATHMATCH", false, out var resolved, out _)
         && ReferenceEquals(area, resolved), "RESOLVE", "The same shared definition must resolve on client and server.");
-    foreach (var mode in new[] { "deathmatch", "gungame", "tactical", "endless", "rounds", "unknown", null })
+    foreach (var mode in new[] { "endless", "rounds", "unknown", null })
         Need(!ArenaAreaCatalog.TryResolve(area.Id, "bigmap", mode, false, out _, out _), "REJECT-MODES", "Unsupported bounded mode was admitted: " + mode);
+    foreach (var mode in new[] { "deathmatch", "gungame", "tactical", "zombie" })
+        Need(ArenaAreaCatalog.TryResolve(area.Id, "bigmap", mode, false, out _, out _), "ALL-MODES", "Current bounded mode was rejected: " + mode);
     foreach (var map in new[] { "factory4_day", "factory4_night", "laboratory", "labyrinth", "woods", null })
         Need(!ArenaAreaCatalog.TryResolve(area.Id, map, "teamdeathmatch", false, out _, out _), "REJECT-MAPS", "Wrong map was admitted: " + map);
     Need(!ArenaAreaCatalog.TryResolve(area.Id, "bigmap", "teamdeathmatch", true, out _, out _), "REJECT-PFT", "Independent 2v2 cannot arm with PitFireTeam.");
@@ -143,8 +145,7 @@ try
     Need(whole.SelectedId == ArenaAreaCatalog.FullMapId && whole.SelectedArea == null && whole.MapId == "factory4_day",
         "PREVIEW-FULL-MAP", "An old Customs request must not overlay a full-map Factory proposal.");
     foreach (var unavailable in new[] {
-        ArenaAreaSelectionState.Create("bigmap", "tactical", false, area.Id, 8),
-        ArenaAreaSelectionState.Create("bigmap", "tactical", true, area.Id, 8),
+        ArenaAreaSelectionState.Create("bigmap", "gungame", true, area.Id, 8),
         ArenaAreaSelectionState.Create("unknown", "teamdeathmatch", false, area.Id, 8) })
         Need(!unavailable.Available && unavailable.SelectedId == null && unavailable.SelectedArea == null,
             "PREVIEW-UNAVAILABLE", "No offered choice means no geometry preview.");

@@ -177,8 +177,7 @@ internal static class ArenaMenuSelection
     private static bool IsMapAvailable(string map, Eligibility eligibility)
         => IsMapConfigured(map) && eligibility?.Allowed == true
            && ArenaAreaCatalog.TryResolve(
-               Config.Settings.SelectedGameModeId == Modes.ArenaModeCatalog.TeamDeathmatchId
-                   ? Config.Settings.TeamDeathmatchArea?.Value : ArenaAreaCatalog.FullMapId,
+               Config.Settings.TeamDeathmatchArea?.Value,
                map, Config.Settings.SelectedGameModeId, eligibility.IsTeam, out _, out _);
 
     public static ArenaAreaSelectionState AreaSelection(string map)
@@ -264,11 +263,11 @@ internal static class ArenaMenuSelection
     private static bool HasValidAreaTeamSize(string map, Eligibility eligibility)
     {
         var mode = Config.Settings.SelectedGameModeId;
-        var id = mode == Modes.ArenaModeCatalog.TeamDeathmatchId
-            ? Config.Settings.TeamDeathmatchArea?.Value : ArenaAreaCatalog.FullMapId;
+        var id = Config.Settings.TeamDeathmatchArea?.Value;
         return ArenaAreaCatalog.TryResolve(id, map, mode, eligibility.IsTeam, out var area, out _)
-            && ArenaAreaCatalog.TryResolveTeamSize(area,
-                area?.TeamStarts != null ? Config.Settings.AreaTeamSize?.Value : null, out _, out _);
+            && ArenaAreaCatalog.TryResolveTeamSize(area, mode, eligibility.IsTeam,
+                area?.TeamStarts != null && mode == Modes.ArenaModeCatalog.TeamDeathmatchId
+                    ? Config.Settings.AreaTeamSize?.Value : null, out _, out _);
     }
 
     /// <summary>

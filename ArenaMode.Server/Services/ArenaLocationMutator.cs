@@ -225,7 +225,7 @@ public static class ArenaLocationMutator
     {
         if (!ArenaAreaCatalog.TryResolve(areaId!, location.Id, mode!, false,
                 out var area, out var failure)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out failure))
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, false, areaTeamSize, out int selectedSize, out failure))
             throw new InvalidOperationException(failure);
         if (area == null)
             return null;
@@ -251,7 +251,7 @@ public static class ArenaLocationMutator
 
         if (area.TeamStarts != null)
         {
-            ValidateTeamStarts(area, selectedSize, allowed);
+            ValidateTeamStarts(area, selectedSize == 0 ? area.MaxTeamSize : selectedSize, allowed);
             return allowed;
         }
 

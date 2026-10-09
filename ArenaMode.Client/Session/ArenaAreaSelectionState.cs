@@ -43,7 +43,8 @@ internal sealed class ArenaAreaSelectionState
         // This does not persist or arm a selection; the native adapter owns that.
         SelectedArea = selected != null && ArenaAreaCatalog.TryResolve(selected.Id, map, mode, pitFireTeam,
             out var area, out _) ? area : null;
-        HasTeamSizeChoice = SelectedArea?.TeamStarts != null;
+        HasTeamSizeChoice = SelectedArea?.TeamStarts != null && !pitFireTeam
+            && mode == ArenaModeCatalog.TeamDeathmatchId;
         SelectedTeamSize = HasTeamSizeChoice && ArenaAreaCatalog.TryResolveTeamSize(
             SelectedArea, areaTeamSize, out var validSize, out _) ? validSize : 0;
         TeamSizeOptions = Array.AsReadOnly(HasTeamSizeChoice ? Enumerable.Range(2, SelectedArea.MaxTeamSize - 1).ToArray() : Array.Empty<int>());
@@ -52,10 +53,10 @@ internal sealed class ArenaAreaSelectionState
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"
             : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "5-player squad" : "5v5 - fixed teams"
             : mode == ArenaModeCatalog.TeamDeathmatchId ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
-            : "Whole map";
+            : SelectedArea != null ? "Surveyed area - bounded spawns" : "Whole map";
         ModeHint = selected == null ? string.Empty
-            : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Team Deathmatch only - experimental"
-            : pitFireTeam ? "Full map - PitFireTeam squad"
+            : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Opposing faction starts"
+            : pitFireTeam ? "PitFireTeam squad - own equipment"
             : ArenaMapCatalog.IsEquator(map) ? "Except Tactical: too few squad spawns"
             : "Available in all Arena modes";
     }

@@ -254,8 +254,8 @@ public sealed partial class ArenaAreaServerTests
     [Theory]
     [InlineData("endless", Customs, false)]
     [InlineData("rounds", Customs, false)]
-    [InlineData("gungame", Customs, false)]
-    [InlineData("tactical", Customs, false)]
+    [InlineData("unknown", Customs, false)]
+    [InlineData("deathmatch", Customs, true)]
     [InlineData(Mode, Map, false)]
     [InlineData(Mode, Customs, true)]
     public async Task CustomsContourInvalidStartCannotTakeSnapshotOrPublishArm(string mode, string map, bool pft)

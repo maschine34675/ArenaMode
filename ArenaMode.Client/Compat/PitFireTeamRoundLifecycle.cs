@@ -3844,16 +3844,49 @@ internal static class PitFireTeamRoundLifecycle
         }
     }
 
+    internal static bool IsCurrentBoundedActivation(Profile profile, BotCreatorClient creator)
+    {
+        lock (StateLock)
+            return profile != null && _spawnLease != null && !_spawnLease.Revoked
+                && _spawnLease.ProfilesById.TryGetValue(profile.ProfileId, out var expected)
+                && ReferenceEquals(expected, profile)
+                && _spawnLease.InvocationsByProfileId.ContainsKey(profile.ProfileId)
+                && TryValidateSpawnLeaseUnsafe(_spawnLease, _spawnLease.PatchInstance, creator, out _);
+    }
+
+    internal static bool RejectBoundedActivation(Profile profile, BotOwner body, string reason)
+    {
+        lock (StateLock)
+        {
+            if (profile == null || _spawnLease == null
+                || !_spawnLease.ProfilesById.TryGetValue(profile.ProfileId, out var expected)
+                || !ReferenceEquals(expected, profile)
+                || !_spawnLease.InvocationsByProfileId.TryGetValue(profile.ProfileId, out var state)) return false;
+            if (body != null && ReferenceEquals(body.Profile, profile))
+            {
+                state.Body = body;
+                _spawnLease.ObservedBodiesByProfileId[profile.ProfileId] = body;
+            }
+            SettleSpawnCounterUnsafe(state);
+            FailUnsafe("bounded follower placement rejected: " + reason);
+            return true;
+        }
+    }
+
+    internal static void RetireBoundedFollower(BotOwner bot, BotsController controller, GameWorld world)
+        => RetireUnpublishedFollowerUnsafe(bot, controller, world);
+
     private static void RetireRevokedRuntimeBodyUnsafe(
         BotOwner bot,
         FollowerSpawnLease lease)
+        => RetireUnpublishedFollowerUnsafe(bot, lease?.Controller ?? bot?.BotsController, lease?.World);
+
+    private static void RetireUnpublishedFollowerUnsafe(BotOwner bot, BotsController controller, GameWorld world)
     {
         if (bot == null)
             return;
 
         Player player = bot.GetPlayer;
-        BotsController controller = lease?.Controller ?? bot.BotsController;
-        GameWorld world = lease?.World;
         bool publishedBySpawner = controller?.Bots?.BotOwners?.Any(candidate =>
             ReferenceEquals(candidate, bot)) == true;
 

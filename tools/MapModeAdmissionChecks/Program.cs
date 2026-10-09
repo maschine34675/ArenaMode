@@ -18,6 +18,14 @@ string[] areas = { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
 foreach (string map in maps)
 foreach (string mode in modes)
 {
+    if (map == ArenaMapCatalog.CustomsId)
+    {
+        Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out _, out _),
+            "CUSTOMS-AREA-ONLY: no full-map admission in " + mode);
+        Need(!ArenaAreaCatalog.TryResolve(null, map, mode, false, out _, out _),
+            "CUSTOMS-AREA-ONLY: omitted area cannot become a whole-map raid");
+        continue;
+    }
     if (ArenaMapCatalog.IsEquator(map) && mode == "tactical")
     {
         Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out var blocked, out var blocker)
@@ -40,27 +48,34 @@ foreach (string mode in modes)
 foreach (string map in maps)
 foreach (string mode in new[] { "tactical", "zombie" })
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out var area, out _)
-        == !(ArenaMapCatalog.IsEquator(map) && mode == "tactical") && area == null,
+        == !(map == ArenaMapCatalog.CustomsId || ArenaMapCatalog.IsEquator(map) && mode == "tactical") && area == null,
         "PFT-FULL: authenticated squad observes exact full-map capacity " + map + "/" + mode);
 
 foreach (string id in areas)
 foreach (string mode in modes)
 foreach (bool pft in new[] { false, true })
 {
-    bool admitted = mode == "teamdeathmatch" && !pft;
+    bool admitted = !pft || mode is "tactical" or "zombie";
     Need(ArenaAreaCatalog.TryResolve(id, ArenaMapCatalog.CustomsId, mode, pft, out var area, out var reason)
         == admitted, "BOUNDED-ADAPTER: " + id + "/" + mode + "/" + pft);
     if (!admitted) Need(area == null && !string.IsNullOrWhiteSpace(reason), "BLOCKER: explain unsupported bounded adapter");
     else
     {
         Need(area?.TeamStarts != null, "STARTS: bounded selection retains surveyed faction identities");
-        foreach (int size in new[] { 2, 3, 4, 5 })
-            Need(ArenaAreaCatalog.TryResolveTeamSize(area, size, out int selected, out _) && selected == size,
-                "SIZE-PRESERVED: exact 2v2..5v5 choice");
-        Need(!ArenaAreaCatalog.TryResolveTeamSize(area, 6, out _, out _), "SIZE-CEILING: no invented starts");
+        if (mode == "teamdeathmatch")
+        {
+            foreach (int size in new[] { 2, 3, 4, 5 })
+                Need(ArenaAreaCatalog.TryResolveTeamSize(area, mode, pft, size, out int selected, out _) && selected == size,
+                    "SIZE-PRESERVED: exact 2v2..5v5 choice");
+            Need(!ArenaAreaCatalog.TryResolveTeamSize(area, mode, pft, 6, out _, out _), "SIZE-CEILING: no invented starts");
+        }
+        else
+            Need(ArenaAreaCatalog.TryResolveTeamSize(area, mode, pft, null, out var size, out _) && size == 0,
+                "MODE-OWNED-ROSTER: no hidden TDM override");
     }
-    Need(!ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.CustomsId, mode, true, pft, 8, out _, out _),
-        "BOUNDED-POPULATION: no full-map total can bypass reserved starts");
+    Need(ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.CustomsId, mode, true, pft, 8, out _, out _)
+        == (!pft && mode is "deathmatch" or "gungame"),
+        "BOUNDED-POPULATION: only solo continuous modes negotiate participant totals");
 }
 foreach (string id in areas)
 foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.FactoryDayId })

@@ -105,7 +105,7 @@ public class ArenaSessionService
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out var hostilityFailure))
             throw new ArgumentException(hostilityFailure, nameof(deathmatchHostility));
         if (!ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out var areaFailure)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out areaFailure))
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, protectPitFireTeam, areaTeamSize, out int selectedSize, out areaFailure))
             throw new ArgumentException(areaFailure, nameof(areaId));
         if (!ArenaParticipantPolicy.TryResolve(map, mode!, area != null, protectPitFireTeam,
                 participants, out var selectedParticipants, out var participantFailure))
@@ -173,7 +173,7 @@ public class ArenaSessionService
         armToken = null;
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId, map, mode, protectPitFireTeam, out var area, out _)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, protectPitFireTeam, areaTeamSize, out int selectedSize, out _)
             || !ArenaParticipantPolicy.TryResolve(map!, mode!, area != null, protectPitFireTeam,
                 participants, out var selectedParticipants, out _))
             return false;
@@ -237,7 +237,7 @@ public class ArenaSessionService
         if (!Protocol.IsLifecycleRequestId(armToken)
             || !DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out _)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, protectPitFireTeam, areaTeamSize, out int selectedSize, out _)
             || !ArenaParticipantPolicy.TryResolve(map, mode!, area != null, protectPitFireTeam,
                 participants, out var selectedParticipants, out _))
             return false;

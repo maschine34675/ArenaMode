@@ -241,7 +241,7 @@ public static class ArenaServerClient
         PendingParticipantBosses = false;
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam, out var area, out _)
-            || !ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selectedSize, out _)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, pitFireTeamTeam, areaTeamSize, out int selectedSize, out _)
             || !ArenaParticipantPolicy.TryResolve(map, mode, area != null, pitFireTeamTeam,
                 participants, out _, out _))
             return false;

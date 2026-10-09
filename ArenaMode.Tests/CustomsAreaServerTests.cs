@@ -189,16 +189,16 @@ public sealed partial class ArenaAreaServerTests
     }
 
     [Fact]
-    public void CustomsWholeMapCloneRetainsAllSpawnsAndOrdinaryRaidPatchLeavesItsSourceUntouched()
+    public void CustomsWholeMapCloneIsRejectedAndOrdinaryRaidPatchLeavesItsSourceUntouched()
     {
         var original = CustomsLocation();
         string before = JsonSerializer.Serialize(original);
         foreach (string? area in new[] { null, "", ArenaAreaCatalog.FullMapId })
         {
             var clone = new SPTarkov.Server.Core.Utils.Cloners.FastCloner().Clone(original)!;
-            ArenaLocationMutator.Mutate(clone, ArenaContext.Config.Maps[Customs], ArenaContext.Config, Mode, area);
+            Assert.Throws<InvalidOperationException>(() =>
+                ArenaLocationMutator.Mutate(clone, ArenaContext.Config.Maps[Customs], ArenaContext.Config, Mode, area));
             Assert.Equal(JsonSerializer.Serialize(original.SpawnPointParams), JsonSerializer.Serialize(clone.SpawnPointParams));
-            Assert.Empty(clone.Waves!);
             Assert.Equal(before, JsonSerializer.Serialize(original));
         }
         GenerateLocationAndLootPatch.Postfix(Session, Customs, original);

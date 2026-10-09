@@ -36,6 +36,7 @@ internal static partial class ArenaAreaRuntime
     }
 
     private static ArenaAreaDefinition _area;
+    private static string _mode;
     private static string _token;
     private static LocalGame _game;
     private static GameWorld _world;
@@ -66,14 +67,18 @@ internal static partial class ArenaAreaRuntime
         if (area == null) return;
         if (!Protocol.IsLifecycleRequestId(token))
             throw new InvalidOperationException("Bounded Arena has no exact arm identity.");
-        if (!ArenaAreaCatalog.TryResolveTeamSize(area, areaTeamSize, out int selected, out var sizeProblem))
+        _mode = ArenaSession.ArmedMode;
+        if (!ArenaAreaCatalog.TryResolve(area.Id, area.MapId, _mode, Compat.PitFireTeamCompat.HasFrozenTeamRoster,
+                out var resolved, out var sizeProblem) || !ReferenceEquals(resolved, area)
+            || !ArenaAreaCatalog.TryResolveTeamSize(area, _mode, Compat.PitFireTeamCompat.HasFrozenTeamRoster,
+                areaTeamSize, out int selected, out sizeProblem))
             throw new InvalidOperationException(sizeProblem);
         _area = area;
         _teamSize = selected == 0 ? area.MaxTeamSize : selected;
         _teamStarting = area.TeamStarts != null;
         _token = token;
         _phase = Phase.Armed;
-        Plugin.ModLogger.LogInfo($"Arena area armed: {area.Id}; frozen {_teamSize}v{_teamSize}.");
+        Plugin.ModLogger.LogInfo($"Arena area armed: {area.Id}; mode={_mode}, verified start capacity {_teamSize} per faction.");
     }
 
     private static bool IsCurrentActive()
@@ -82,12 +87,12 @@ internal static partial class ArenaAreaRuntime
            && Singleton<GameWorld>.Instantiated && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
            && _game.Status == GameStatus.Started
            && ArenaSession.IsExactActiveRaid(_game, _world)
-           && ArenaSession.ActiveMode == ArenaModeCatalog.TeamDeathmatchId;
+           && ArenaSession.ActiveMode == _mode;
 
     private static bool BindLoadingGame()
     {
         if (_area == null || !ArenaSession.ArmedForNextRaid
-            || ArenaSession.ArmedMode != ArenaModeCatalog.TeamDeathmatchId
+            || ArenaSession.ArmedMode != _mode
             || !Singleton<AbstractGame>.Instantiated || !Singleton<GameWorld>.Instantiated
             || Singleton<AbstractGame>.Instance is not LocalGame game
             || game.Status != GameStatus.Running
@@ -113,7 +118,7 @@ internal static partial class ArenaAreaRuntime
     internal static LoadingLease CaptureLoading(LocalGame game)
     {
         if (_area == null || !ArenaSession.ArmedForNextRaid || game == null
-            || ArenaSession.ArmedMode != ArenaModeCatalog.TeamDeathmatchId
+            || ArenaSession.ArmedMode != _mode
             || !Singleton<AbstractGame>.Instantiated || !ReferenceEquals(Singleton<AbstractGame>.Instance, game)
             || !Singleton<GameWorld>.Instantiated || !ReferenceEquals(Singleton<GameWorld>.Instance, game.GameWorld)) return null;
         var settings = LocalGameAccessor.GetLocalRaidSettings(game);
@@ -149,7 +154,7 @@ internal static partial class ArenaAreaRuntime
 
     private static bool IsCurrentLoading()
         => _area != null && _game != null && _world != null && _phase == Phase.Loading
-           && ArenaSession.ArmedForNextRaid && ArenaSession.ArmedMode == ArenaModeCatalog.TeamDeathmatchId
+           && ArenaSession.ArmedForNextRaid && ArenaSession.ArmedMode == _mode
            && _game.Status == GameStatus.Running
            && Singleton<AbstractGame>.Instantiated && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
            && Singleton<GameWorld>.Instantiated && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
@@ -244,7 +249,7 @@ internal static partial class ArenaAreaRuntime
                     _phase = Phase.Ready;
                     Hud.ArenaInputBlocker.Request(InputOwner, false);
                     Plugin.ModLogger.LogInfo($"Arena area READY: {_area.Id}; connected player={Connected.Count(IsPlayerPoint)}, "
-                        + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, frozen {_teamSize}v{_teamSize}.");
+                        + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, mode={_mode}, start capacity {_teamSize} per faction.");
                     ArenaToasts.Show(_area.DisplayName + " — area ready");
                 }
                 else if (Time.realtimeSinceStartup >= _deadline)
@@ -386,13 +391,15 @@ internal static partial class ArenaAreaRuntime
         if (!IsReady) throw new InvalidOperationException("Bounded Arena is not ready to release a respawn.");
         var all = Connected.Where(p => IsPlayerPoint(p) && !p.SpawnBlocked && AllowsSpawn(p)).ToList();
         if (all.Count == 0) throw new InvalidOperationException("Bounded Arena has no verified player respawn; no outside fallback is permitted.");
-        if (_area.TeamStarts != null)
+        if (HasTeamStarts)
         {
             var chosen = PickTeamPoint(all, _game.Profile.Info.Side == EPlayerSide.Usec, avoid, _world.MainPlayer);
             if (chosen == null) throw new InvalidOperationException("No unoccupied connected team respawn is available.");
             Plugin.ModLogger.LogInfo($"Arena team player respawn: {chosen.Id}; nearest enemy {NearestEnemyDistance(chosen.Position, _game.Profile.Info.Side == EPlayerSide.Usec):F1}m.");
             return (chosen.Position, chosen.Rotation);
         }
+        all.RemoveAll(p => !IsUnoccupied(p.Position, _world.MainPlayer, null));
+        if (all.Count == 0) throw new InvalidOperationException("Bounded Arena has no unoccupied player respawn.");
         var distant = all.Where(p => Vector3.Distance(p.Position, avoid) >= requestedDistance).ToList();
         var selected = (distant.Count > 0 ? distant : all);
         var point = selected[UnityEngine.Random.Range(0, selected.Count)];
@@ -434,9 +441,7 @@ internal static partial class ArenaAreaRuntime
         {
             var bot = player.AIData?.BotOwner;
             if (bot == null || !ReferenceEquals(bot.GetPlayer, player)
-                || !ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)
-                || (bot.Profile?.Info?.Settings?.Role != WildSpawnType.pmcUSEC
-                    && bot.Profile?.Info?.Settings?.Role != WildSpawnType.pmcBEAR)) return false;
+                || !ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)) return false;
         }
         area = _area;
         return true;
@@ -603,7 +608,7 @@ internal static partial class ArenaAreaRuntime
         _enclosure?.Dispose();
 
         _root = null; _enclosure = null; _enclosurePlan = null;
-        _area = null; _token = null; _game = null; _world = null; _failure = null;
+        _area = null; _mode = null; _token = null; _game = null; _world = null; _failure = null;
         ResetTeamStarts();
         ResetConnectivity();
         Candidates.Clear(); Connected.Clear(); Actors.Clear();

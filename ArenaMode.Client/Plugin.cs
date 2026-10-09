@@ -146,6 +146,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        PitFireTeamAreaSpawns.Reset();
         Combat.ArenaSkills.Restore();
         Movement.VaultingTuning.Restore();
         Movement.FastDeployPatches.Restore();

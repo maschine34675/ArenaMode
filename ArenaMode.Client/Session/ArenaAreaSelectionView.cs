@@ -145,8 +145,8 @@ internal sealed class ArenaAreaSelectionView
                     && (row.Size < 0 ? participants.CanDecrease : participants.CanIncrease);
             SetText(_participantValue, participantChoice ? participants.ValueLabel : string.Empty);
             SetActive(_participantValue.gameObject, participantChoice);
-            SetText(_summary, participantChoice ? "PARTICIPANTS - you included" : available ? state.Summary : SelectMapPrompt);
-            SetText(_modeHint, participantChoice ? participants.RecommendationLabel : available ? state.ModeHint : string.Empty);
+            SetText(_summary, participantChoice ? _rows.Count > 1 ? "PARTICIPANTS" : "PARTICIPANTS - you included" : available ? state.Summary : SelectMapPrompt);
+            SetText(_modeHint, participantChoice ? participants.RecommendationLabel + (_rows.Count > 1 ? " - you included" : "") : available ? state.ModeHint : string.Empty);
             SetActive(_modeHint.gameObject, participantChoice || available && !string.IsNullOrEmpty(state.ModeHint));
             UpdateLayout(tacticalOnly);
             SetActive(_root, true);
@@ -359,7 +359,10 @@ internal sealed class ArenaAreaSelectionView
         _layoutParticipants = _participantRows.Count;
         float summaryTop = _rows.Count == 0 ? RowTop : RowTop + _rows.Count * RowStride + 6f + (_sizeRows.Count == 0 ? 0f : 34f);
         bool participantChoice = _participantRows.Count > 0;
-        float height = _rows.Count == 0 ? 100f : summaryTop + (participantChoice ? 80f : 48f);
+        // Customs has three choices even for Deathmatch's taller rules panel.
+        // Put its participant stepper beside the label, leaving READY clear.
+        bool compactParticipants = participantChoice && _rows.Count > 1;
+        float height = _rows.Count == 0 ? 100f : summaryTop + (participantChoice ? compactParticipants ? 50f : 80f : 48f);
         // Share the actual selected mode's footprint. Deathmatch has four
         // rules rows; a same-area mode change must invalidate this position.
         SetRect((RectTransform)_root.transform, 56f, top, PanelWidth, height);
@@ -373,6 +376,14 @@ internal sealed class ArenaAreaSelectionView
             SetRect((RectTransform)_participantRows[0].Button.transform, Inset, summaryTop + 24f, 46f, RowHeight);
             SetRect((RectTransform)_participantRows[1].Button.transform, PanelWidth - Inset - 46f, summaryTop + 24f, 46f, RowHeight);
             SetRect(_participantValue.rectTransform, Inset + 64f, summaryTop + 24f, PanelWidth - 2f * Inset - 128f, RowHeight);
+            if (compactParticipants)
+            {
+                SetRect(_summary.rectTransform, Inset, summaryTop, 148f, RowHeight);
+                SetRect((RectTransform)_participantRows[0].Button.transform, 178f, summaryTop, 46f, RowHeight);
+                SetRect(_participantValue.rectTransform, 228f, summaryTop, 58f, RowHeight);
+                SetRect((RectTransform)_participantRows[1].Button.transform, 294f, summaryTop, 46f, RowHeight);
+                SetRect(_modeHint.rectTransform, Inset, summaryTop + 30f, PanelWidth - 2f * Inset, 20f);
+            }
         }
     }
 

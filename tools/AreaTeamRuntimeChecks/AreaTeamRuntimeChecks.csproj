@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Remove="artifacts/**" />
     <Compile Include="$(RuntimeSource)" Link="Production/ArenaAreaTeamRuntime.cs" />
+    <Compile Include="../../ArenaMode.Client/Areas/ArenaAreaCompanionRuntime.cs" Link="Production/ArenaAreaCompanionRuntime.cs" />
     <Compile Include="$(InitialSource)" Link="Production/ArenaAreaInitialSpawnPatch.cs" />
     <Compile Include="$(PickSource)" Link="Production/PickRespawn.cs" />
     <Compile Include="$(PreparedSource)" Link="Production/ArenaAreaRespawn.cs" />

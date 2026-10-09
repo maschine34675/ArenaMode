@@ -13,7 +13,7 @@ public static class ArenaParticipantPolicy
     public static bool IsTeam(string mode)
         => string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase);
     public static bool IsSelectable(string mode, bool bounded, bool pitFireTeam)
-        => !bounded && !pitFireTeam && (IsSolo(mode) || IsTeam(mode));
+        => !pitFireTeam && (IsSolo(mode) || !bounded && IsTeam(mode));
     public static int MinimumTotal(string mode) => IsTeam(mode) ? 4 : 2;
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
     public static int DefaultTotal(string map, string mode)

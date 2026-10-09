@@ -25,6 +25,8 @@ internal sealed class ArenaController : MonoBehaviour
         Compat.ZombiePftFastPath.TickDiagnostics();
         ZombieVoiceBudget.Tick();
         Areas.ArenaAreaRuntime.Tick();
+        Session.ArenaSession.TickAreaStart();
+        Compat.PitFireTeamAreaSpawns.Tick();
         BurstSpawnService.Tick();
         BotLoadBoost.Tick();
         ArenaBotPatches.TickIndividualGroups();
@@ -78,7 +80,7 @@ internal sealed class ArenaController : MonoBehaviour
             _kitWarmupAt = Time.time + 1f;
         }
 
-        if (!Session.ArenaSession.IsActive)
+        if (!Session.ArenaSession.IsActive || Areas.ArenaAreaRuntime.IsPending)
         {
             _kitWarmupStarted = false;
             _kitWarmupAt = 0f;

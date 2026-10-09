@@ -37,13 +37,13 @@ try {
     $eastFaults = @(
         @{ Name='vertex-drift'; Target='catalog'; Old='new ArenaAreaVertex(656.139343f, -45.62339f)'; New='new ArenaAreaVertex(657.139343f, -45.62339f)'; Marker='EXACT-GEOMETRY' },
         @{ Name='height-clamp'; Target='catalog'; Old="new ArenaAreaVertex(671.3696f, -48.25674f),`n        }, 0f, 12f, limitsHeight: false)"; New="new ArenaAreaVertex(671.3696f, -48.25674f),`n        }, 0f, 12f, limitsHeight: true)"; Marker='UNLIMITED-HEIGHT' },
-        @{ Name='mode-bypass'; Target='catalog'; Old='if (pitFireTeam || !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))'; New='if (pitFireTeam)'; Marker='REJECT-MODES' },
+        @{ Name='mode-bypass'; Target='catalog'; Old='if (ArenaMapCatalog.RequiresModeFilteredView(map!)'; New='if (false && ArenaMapCatalog.RequiresModeFilteredView(map!)'; Marker='REJECT-MODES' },
         @{ Name='menu-missing'; Target='state'; Old='        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side"),'; New=''; Marker='MENU-AREA' },
         @{ Name='missing-native-start'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"00000000-0000-0000-0000-000000000001"'; Marker='START-BOT' },
         @{ Name='wrong-native-category'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"0327c5d1-cc7f-432f-92dc-f95fb4719f1b"'; Marker='START-BOT' },
         @{ Name='opposing-too-close'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"ae0c5e1d-71cc-44a2-86ae-4c45e224a1ff"'; Marker='START-OPPOSING' },
         @{ Name='retired-area-admitted'; Target='catalog'; Old='var candidate = id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams'; New='var candidate = id == FactorySouthId ? FactorySouth : id == CustomsFactoryCenterTeamsId ? CustomsFactoryCenterTeams'; Marker='RETIRED-AREA' },
-        @{ Name='team-picker-center-only'; Target='state'; Old='HasTeamSizeChoice = SelectedArea?.TeamStarts != null;'; New='HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;'; Marker='MENU-TEAM-SIZE' }
+        @{ Name='team-picker-center-only'; Target='state'; Old='HasTeamSizeChoice = SelectedArea?.TeamStarts != null && !pitFireTeam'; New='HasTeamSizeChoice = SelectedId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId && !pitFireTeam'; Marker='MENU-TEAM-SIZE' }
     )
     foreach ($eastFault in $eastFaults) {
         $eastSource = if ($eastFault.Target -eq 'catalog') { $eastCatalog } else { $eastState }

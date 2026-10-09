@@ -9,8 +9,8 @@ Grenzen der Spawn- und Arealverwaltung bleiben erhalten.
 | Factory Tag/Nacht, Labs, Labyrinth | Ja | Ja | Ja | Ja |
 | Bay5 | Ja | Ja | Ja | Ja |
 | Equator | Ja | Ja | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Ja |
-| Customs, ganze Karte | Ja | Ja | Ja | Ja |
-| Drei begrenzte Customs-Areale | Nein: Area-Anbindung fehlt | Ja, 2v2–5v5 | Nein: Area-Anbindung fehlt | Nein: Area-Anbindung fehlt |
+| Customs, ganze Karte | Nein | Nein | Nein | Nein |
+| Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, 1v5 / geschütztes 5v5 | Ja, solo / geschützter Fünfertrupp |
 
 PFT setzt weiterhin die unterstützte Version, vier eingeladene Begleiter und die
 geschützte Ausrüstung voraus. Portierte Karten brauchen ArenaMapPort auf Client
@@ -26,13 +26,27 @@ PFT-Spieler bleibt beim Rundenwechsel am Ort; deshalb wäre die nächste
 Fünferformation nicht zuverlässig möglich. Die Sperre wird nicht durch einen
 kleineren globalen Sicherheitsabstand oder erfundene Startpunkte umgangen.
 
-`ArenaAreaRuntime` aktiviert Wände, Navigation und reservierte Area-Respawns
-ausdrücklich nur für unabhängiges Team DM. Andere Modi für die Konturen zu öffnen
-würde diese Schutzmechanik auslassen. `ArenaParticipantPolicy` trennt weiterhin
-ganze Karten mit Teilnehmerzahl von Arealen mit Teamgröße. Auf Customs bleibt die
-gespeicherte gültige Kontur erhalten; „Whole map“ ist jetzt eine echte vierte Wahl.
+`ArenaAreaRuntime` aktiviert Wände, Navigation und reservierte Respawns in allen
+Arena-Modi. Erst nach der erfolgreichen Navigationsprüfung beginnen Match,
+Modus-Timer und Ausrüstungswechsel. PFT wartet ebenfalls und reserviert für seine
+vier Begleiter getrennte, überprüfte Punkte innerhalb der Kontur. Der native
+PFT-Ablauf und die authentifizierten Profile bleiben erhalten.
 
-Quellprüfung, Daten und Offline-Nachweise: `MAP-MODE-ACCESS-REVIEW.md`.
+Nur unabhängiges Team DM zeigt die Teamgröße 2v2–5v5; Deathmatch und Gun Game
+behalten ihre Teilnehmerzahl. Tactical und Zombies verwalten ihre Besetzung selbst.
+Auf Customs bleibt eine gültige gespeicherte Kontur erhalten. Eine alte
+Ganzkarten-Präferenz wird bei der Menüauswahl auf das erste Areal umgestellt;
+ein endgültiger Raid-Start ohne gültige Customs-Kontur wird abgelehnt. Normale
+PMC-Raids sind davon nicht betroffen.
+
+Bay5 und Equator besitzen gültige KI-Anker, aber keine nativen Deckungspunkte.
+Der optionale PFT-Adapter ermittelt deshalb in genau diesen geschützten Arena-Raids
+den nächstgelegenen vorhandenen Anker direkt. Er verändert weder PFT-Dateien noch
+Kartengeometrie und erfindet keine Deckungspunkte. Die separate Tactical-Sperre
+auf Equator bleibt bestehen.
+
+Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
+`PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.
 Native Abnahme ist separat im aktuellen GPU-Bericht/Handoff dokumentiert; die
 Freigabematrix behauptet keinen vollständigen Dauertest aller Kombinationen.
 

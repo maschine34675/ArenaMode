@@ -154,6 +154,8 @@ namespace ArenaMode.Areas
     internal static partial class ArenaAreaRuntime
     {
         private static ArenaAreaDefinition _area;
+        private static string _mode = "teamdeathmatch";
+        internal static string TestMode { get => _mode; set => _mode = value; }
         private static LocalGame _game;
         private static GameWorld _world;
         private static string _token;
@@ -188,6 +190,7 @@ namespace ArenaMode.Areas
         internal static SpawnSystem TestSetup(ArenaAreaDefinition area,EPlayerSide side,int size,IEnumerable<ISpawnPoint> points)
         {
             ResetTeamStarts(); _area=area; _token=Guid.NewGuid().ToString("N"); _teamSize=size;
+            _mode = "teamdeathmatch"; ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = false;
             _teamStarting=area?.TeamStarts!=null; Active=false;Loading=true;Ready=false;
             Sample=p=>true;Path=(a,b)=>true;Time.time=0;
             _world=new GameWorld();_game=new LocalGame {GameWorld=_world,Profile=new Profile {Id="local",Info=new ProfileInfo {Side=side}}};
@@ -220,3 +223,5 @@ namespace ArenaMode.Areas
         internal static void Abort(string problem) {Aborted=true;Active=false;}
     }
 }
+namespace ArenaMode.Modes { internal static class ArenaModeCatalog { internal const string TeamDeathmatchId = "teamdeathmatch", TacticalId = "tactical", ZombieId = "zombie"; } }
+namespace ArenaMode.Compat { internal static class PitFireTeamCompat { internal static bool HasFrozenTeamRoster; } }

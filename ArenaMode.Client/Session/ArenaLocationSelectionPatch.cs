@@ -180,8 +180,7 @@ internal static class ArenaLocationSelectionPatch
                         || !string.Equals(__instance.SelectedLocation?.Id, rendered.MapId, System.StringComparison.OrdinalIgnoreCase)
                         || !string.Equals(owner.RaidSettings.SelectedLocation?.Id, rendered.MapId, System.StringComparison.OrdinalIgnoreCase)
                         || Settings.SelectedGameModeId != rendered.ModeId
-                        || ArenaParticipantPolicy.IsTeam(rendered.ModeId)
-                            && Settings.TeamDeathmatchArea?.Value != rendered.AreaId) return false;
+                        || Settings.TeamDeathmatchArea?.Value != rendered.AreaId) return false;
                     var current = ArenaMenuSelection.AreaSelection(rendered.MapId);
                     var live = ArenaParticipantSelectionState.Create(current, ArenaMenuSelection.CurrentEligibility.IsTeam,
                         ArenaParticipantSettings.Get(current.MapId, current.ModeId));

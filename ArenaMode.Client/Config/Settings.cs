@@ -1101,13 +1101,13 @@ public static class Settings
             "ExperimentalArea",
             ArenaAreaCatalog.FullMapId,
             new ConfigDescription(
-                "Experimental bounded arena. Full-map preserves normal TDM settings. " +
-                "Customs offers the whole map or a surveyed area for independent TDM. " +
-                "Each Customs area has opposing faction starts and a selectable team size. " +
+                "Selected Arena area for every mode (the existing config key is retained). " +
+                "Customs requires one of its three surveyed areas; other maps use the whole map. " +
+                "Each Customs area has opposing faction starts; independent Team DM also selects its team size. " +
                 "All surveyed outlines have side walls only, with no height restriction. The old rectangle test areas are retired. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +
                 "Selected before loading; changes during a raid apply next match. " +
-                "Other modes ignore this setting. The area must pass its live navigation checks.",
+                "The area must pass its live navigation checks before any match starts.",
                 new AreaSelectionValues()));
 
         AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,

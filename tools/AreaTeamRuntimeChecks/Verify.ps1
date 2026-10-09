@@ -59,7 +59,7 @@ try {
         Test-Mutant 'expired-leases-accepted' '&& Time.time < Expires' '' 'reservation expires at exact deadline'
         Test-Mutant 'stale-token-accepted' '&& Token == _token' '' 'new exact raid token rejects old lease'
         Test-Mutant 'far-arrival-accepted' '&& (player.Position - Position).sqrMagnitude <= 4f' '' 'displaced arrival rejects reserved marker'
-        Test-Mutant 'wrong-side-arrival-accepted' '&& player.Profile?.Info?.Side == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear)' '' 'wrong-faction arrival rejects lease'
+        Test-Mutant 'wrong-side-arrival-accepted' '&& (!_requireFaction || player.Profile?.Info?.Side == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear))' '' 'wrong-faction arrival rejects lease'
         Test-Mutant 'bot-enemy-ranking-reversed' '.OrderByDescending(p => NearestEnemyDistance(p.Position, usec))' '.OrderBy(p => NearestEnemyDistance(p.Position, usec))' 'bot respawn maximizes nearest live enemy distance'
         Test-Mutant 'reservation-overlap-ignored' 'return !TeamReservations.Values.Any(' 'return true || !TeamReservations.Values.Any(' 'pending reservations excluded from preflight selection'
         Test-Mutant 'player-faction-reversed' '_game.Profile.Info.Side == EPlayerSide.Usec, avoid' '_game.Profile.Info.Side != EPlayerSide.Usec, avoid' 'player respawn maximizes live enemy distance before death distance' 'PickSource'

@@ -362,7 +362,9 @@ public sealed partial class ArenaAreaServerTests
         Assert.NotNull(location.BotLocationModifier);
         ArenaLocationMutator.ValidateParticipantPopulation(location, map, "gungame", total);
         Assert.False(ArenaParticipantPolicy.TryResolve(map, "gungame", false, true, total, out _, out _));
-        Assert.False(ArenaParticipantPolicy.TryResolve(map, "gungame", true, false, total, out _, out _));
+        Assert.True(ArenaParticipantPolicy.TryResolve(map, "gungame", true, false, total, out var bounded, out _));
+        Assert.Equal(total, bounded);
+        Assert.False(ArenaParticipantPolicy.TryResolve(map, "teamdeathmatch", true, false, total, out _, out _));
     }
 
     [Fact]
