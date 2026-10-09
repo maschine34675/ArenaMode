@@ -87,6 +87,8 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaProfilePreloadPatch.EnablePatch();
         Bots.ZombieNativeEventBridge.EnablePatch();
         Bots.ZombiePerformancePatches.EnablePatch();
+        ZombiePftFastPath.EnablePatch();
+        RaidLifecycle.OnRaidEnded += ZombiePftFastPath.Reset;
         Bots.ZombieMeleePatch.EnablePatch();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();

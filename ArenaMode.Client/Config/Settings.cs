@@ -185,6 +185,7 @@ public static class Settings
     public static ConfigEntry<int> ZombieShooterPercent { get; private set; }
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
+    public static ConfigEntry<bool> ZombiePftFastPathEnabled { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
@@ -1198,6 +1199,11 @@ public static class Settings
                 "Never easy (too slow to matter) or impossible (the native brain throws on construction). " +
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
+
+        ZombiePftFastPathEnabled = config.Bind("Zombie", "PftFastPathEnabled", true,
+            "Avoid redundant PitFireTeam layer inspection for verified native Arena infected. " +
+            "Standby wake-up, companions and custom brains retain the original path. " +
+            "Turn off for comparison or compatibility troubleshooting; applies immediately.");
 
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", false,
             "Bring your own protected equipment instead of a random Arena kit -- item 4 of the " +
