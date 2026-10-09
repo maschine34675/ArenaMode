@@ -39,6 +39,7 @@ internal static partial class Program
         foreach (JToken bad in new JToken[] { null, 4, "8", 8.0, true })
         {
             ConfigureAreaNegotiation(); Select(); Settings.GameMode.Value = "gungame";
+            Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
             ArenaParticipantSettings.Override = 8;
             RequestHandler.Post = (route, body) => {
                 if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
@@ -50,6 +51,7 @@ internal static partial class Program
         foreach (JToken bad in new JToken[] { null, "false", 0, true })
         {
             ConfigureAreaNegotiation(); Select(); Settings.GameMode.Value = "gungame";
+            Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
             RequestHandler.Post = (route, body) => {
                 if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
                 var result = ParticipantAck(body); result["participantBosses"] = bad; return result.ToString();
@@ -58,6 +60,7 @@ internal static partial class Program
                 "boss slot requires exact bool and is never accepted on Factory");
         }
         ConfigureAreaNegotiation(); Select(ArenaMapCatalog.LabyrinthId); Settings.GameMode.Value = "gungame";
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
         RequestHandler.Post = (route, body) => {
             if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
             var result = ParticipantAck(body); result["participantBosses"] = true; return result.ToString();
@@ -71,6 +74,7 @@ internal static partial class Program
             "invalid subsequent request cannot reuse prior boss acknowledgement");
         ArenaParticipantSettings.Override = null;
         ConfigureAreaNegotiation(); Select(); Settings.GameMode.Value = "gungame";
+        Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
         ArenaMode.Bots.ArenaBotSpawnPatches.SoloPopulationReady = false;
         int before = RequestHandler.StartCount;
         Assert(!Start(Request(), out var unavailable) && unavailable.IsFaulted && RequestHandler.StartCount == before,

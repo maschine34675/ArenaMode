@@ -48,8 +48,20 @@ foreach (string mode in modes)
 foreach (string map in maps)
 foreach (string mode in new[] { "tactical", "zombie" })
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out var area, out _)
-        == !(map == ArenaMapCatalog.CustomsId || ArenaMapCatalog.IsEquator(map) && mode == "tactical") && area == null,
+        == !(map == ArenaMapCatalog.CustomsId || ArenaMapCatalog.IsEquator(map)) && area == null,
         "PFT-FULL: authenticated squad observes exact full-map capacity " + map + "/" + mode);
+
+foreach (string map in new[] { "arena_equator", "ARENA_EQUATOR" })
+foreach (string mode in new[] { "zombie", "ZOMBIE" })
+foreach (string? id in new[] { null, "", "  ", ArenaAreaCatalog.FullMapId, "stale-area" })
+{
+    Need(!ArenaAreaCatalog.TryResolve(id, map, mode, true, out var blocked, out var reason)
+        && blocked == null && reason?.Contains("PitFireTeam squad") == true,
+        "EQUATOR-PFT-ZOMBIES: reject squad before any full-map or stale-area fallback");
+    if (id != "stale-area")
+        Need(ArenaAreaCatalog.TryResolve(id, map, mode, false, out _, out _),
+            "EQUATOR-SOLO-ZOMBIES: retain solo survival");
+}
 
 foreach (string id in areas)
 foreach (string mode in modes)

@@ -472,6 +472,16 @@ public class ArenaSessionService
                 return ArenaLocalRaidStartDisposition.RejectedArenaStart;
             }
 
+            // Recheck the immutable arm at native consumption as well as at
+            // preparation/replay. A formerly supported pair must not bypass the
+            // current map contract through an already published arm.
+            if (!ArenaAreaCatalog.TryResolve(entry.AreaId, entry.Map, entry.Mode,
+                    entry.ProtectPitFireTeam, out _, out var admissionFailure))
+            {
+                logger.Warning($"[ArenaMode] Rejected Arena local-start: {admissionFailure}");
+                return ArenaLocalRaidStartDisposition.RejectedArenaStart;
+            }
+
             entry.State = ArenaSessionState.InRaid;
             entry.InRaidAtUtc = DateTime.UtcNow;
             entry.ClientRaidStarted = false;

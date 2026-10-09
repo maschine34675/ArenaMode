@@ -667,6 +667,11 @@ public static class ArenaAreaCatalog
         if (ArenaMapCatalog.IsEquator(map!)
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
         { reason = "Equator has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
+        // Solo survival remains supported; the compact map does not have enough
+        // room for the protected five-player squad and its infected wave together.
+        if (pitFireTeam && ArenaMapCatalog.IsEquator(map!)
+            && string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
+        { reason = "Equator is too small for Zombies with a PitFireTeam squad; select Solo or another map."; return false; }
         if (id == FullMapId)
         {
             if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))

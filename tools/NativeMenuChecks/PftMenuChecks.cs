@@ -8,6 +8,7 @@ internal static partial class Program
     private static void CheckLivePftModeRepair()
     {
         ConfigureAreaNegotiation();
+        Settings.TeamDeathmatchArea.Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId;
         Select();
         Settings.GameMode.Value = "tactical";
         bool invalidRoster = false;

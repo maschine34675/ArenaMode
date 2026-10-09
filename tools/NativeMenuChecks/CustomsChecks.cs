@@ -16,7 +16,7 @@ internal static partial class Program
         Settings.GameMode.Value = "endless";
         Assert(ArenaMenuSelection.HasConfiguredMap(false) && ArenaMenuSelection.HasConfiguredMap(true),
             "Customs-only server permits solo and PFT entry into the picker");
-        Assert(ArenaMenuSelection.IsMapAvailable(map), "Deathmatch uses whole Customs regardless of the saved TDM contour");
+        Assert(ArenaMenuSelection.IsMapAvailable(map), "Deathmatch retains the valid surveyed Customs contour");
         Settings.GameMode.Value = "teamdeathmatch";
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
         Select(map);
@@ -33,7 +33,7 @@ internal static partial class Program
         Settings.GameMode.Value = "gungame"; // native sidebar and F12 share this saved entry
         Refresh();
         Assert(visible && selected && clears == 0 && changes == 0,
-            "Changing mode preserves Customs because Gun Game uses its whole map");
+            "Changing mode preserves Customs because Gun Game supports its surveyed contour");
         Refresh();
         Assert(changes == 0 && clears == 0, "Unchanged polling cannot toggle or clear the native row repeatedly");
         Settings.GameMode.Value = "teamdeathmatch";
@@ -60,8 +60,8 @@ internal static partial class Program
             Settings.GameMode.Value = mode;
             Settings.TeamDeathmatchArea.Value = area;
             int starts = RequestHandler.StartCount;
-            bool bounded = mode == "teamdeathmatch" && area == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
-            bool expected = mode != "teamdeathmatch" || bounded || ArenaAreaCatalog.NormalizeId(area) == ArenaAreaCatalog.FullMapId;
+            bool bounded = area == ArenaAreaCatalog.CustomsFactoryCenterTeamsId;
+            bool expected = bounded;
             Assert(ArenaMenuSelection.IsMapAvailable(map) == expected, "Customs menu admission follows exact mode/area contract");
             bool accepted = Start(Request(map: map), out var task);
             Assert(accepted == expected, "Actual final local-start prefix matches Customs admission");

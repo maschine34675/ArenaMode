@@ -166,11 +166,15 @@ internal static class ArenaMenuSelection
            && (!ArenaMapCatalog.IsOptionalMap(map)
                || BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId));
 
-    // Discovery must not depend on a previous saved mode. Every supported full
-    // map has a native spawn path for solo modes and the protected PFT formats;
-    // exact roster/mode eligibility remains the later selection/start guard.
+    // Discovery must not depend on a previous saved mode, but a configured map
+    // still needs at least one supported PFT format (Equator has neither).
+    // Actual roster/mode eligibility remains the later selection/start guard.
     public static bool HasConfiguredMap(bool pitFireTeam)
-        => ArenaMapCatalog.AnyMapAvailable(IsMapConfigured);
+        => ArenaMapCatalog.AnyMapAvailable(map => IsMapConfigured(map) && (!pitFireTeam
+            || ArenaAreaSelectionState.Create(map, Modes.ArenaModeCatalog.TacticalId, true,
+                ArenaAreaCatalog.FullMapId, 5).Available
+            || ArenaAreaSelectionState.Create(map, Modes.ArenaModeCatalog.ZombieId, true,
+                ArenaAreaCatalog.FullMapId, 5).Available));
 
     public static bool IsMapAvailable(string map) => IsMapAvailable(map, CurrentEligibility);
 

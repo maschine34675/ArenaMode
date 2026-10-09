@@ -8,7 +8,7 @@ Grenzen der Spawn- und Arealverwaltung bleiben erhalten.
 |---|---|---|---|---|
 | Factory Tag/Nacht, Labs, Labyrinth | Ja | Ja | Ja | Ja |
 | Bay5 | Ja | Ja | Ja | Ja |
-| Equator | Ja | Ja | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Ja |
+| Equator | Ja | Ja | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein |
 | Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, 1v5 / geschütztes 5v5 | Ja, solo / geschützter Fünfertrupp |
 
@@ -25,6 +25,12 @@ mindestens 25 m entfernte Botpunkte vom Atrium (0, 0.2, 2). Ein überlebender
 PFT-Spieler bleibt beim Rundenwechsel am Ort; deshalb wäre die nächste
 Fünferformation nicht zuverlässig möglich. Die Sperre wird nicht durch einen
 kleineren globalen Sicherheitsabstand oder erfundene Startpunkte umgangen.
+
+Zombies mit PFT sind auf Equator ebenfalls ausgeschlossen: Der kompakte Spielraum
+ist für den Fünfertrupp zusammen mit den Zombies zu eng. Solo-Zombies bleiben
+freigegeben. Diese gemeinsame Auswahlregel gilt auch für gespeicherte Auswahlen,
+wiederholte Arm-Anfragen und Server-Vorbereitung; eine Equator-only-Allowliste
+bietet folglich keinen PFT-Modus an. Normale PMC-Raids bleiben unverändert.
 
 `ArenaAreaRuntime` aktiviert Wände, Navigation und reservierte Respawns in allen
 Arena-Modi. Erst nach der erfolgreichen Navigationsprüfung beginnen Match,

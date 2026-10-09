@@ -116,11 +116,12 @@ internal static partial class Program
         foreach (string mode in new[] { "endless", "tactical", "gungame" })
         {
             ConfigureAreaNegotiation();
-            Select();
+            Select(ArenaMapCatalog.CustomsId);
             Settings.GameMode.Value = mode;
-            Assert(Start(Request(), out task), "stored TDM area does not prevent a different Arena mode");
-            Assert(JObject.Parse(RequestHandler.LastPostBody)["areaId"].Value<string>() == ArenaAreaCatalog.FullMapId
-                && ArenaAreaRuntime.ArmedArea == null, "other modes explicitly negotiate full-map only");
+            Assert(Start(Request(map: ArenaMapCatalog.CustomsId), out task), "surveyed Customs area supports other Arena modes");
+            Assert(JObject.Parse(RequestHandler.LastPostBody)["areaId"].Value<string>() == ArenaAreaCatalog.CustomsFactoryCenterTeamsId
+                && ArenaAreaRuntime.ArmedArea?.Id == ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
+                "other modes retain the exact surveyed Customs contour instead of downgrading to whole map");
         }
 
         foreach (string missingHook in new[] { "navigation", "load", "spawn" })

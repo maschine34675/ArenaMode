@@ -481,7 +481,7 @@ internal static class Program
             Assert(f.Screen.SelectedLocation?.Id == equator && ArenaMenuSelection.IsMapAvailable(equator),
                 "Equator selects full map through strict admission");
             Updater(f).Tick();
-            Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("Except Tactical"),
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("No Tactical or PFT Zombies"),
                 "Equator area hint names its actual modes");
             foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch", "zombie" })
             {
@@ -494,6 +494,20 @@ internal static class Program
                     : f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
                     "Equator Ready and selection respect the five-opponent Tactical blocker");
             }
+            f.Team = true;
+            Updater(f).Tick();
+            Assert(!row.gameObject.activeSelf && f.Screen.SelectedLocation == null
+                && !f.Screen._readyButton.gameObject.activeSelf,
+                "joining a squad invalidates an already selected solo Equator Zombie raid");
+            Assert(!ArenaMenuSelection.TryValidateAndFreezeRequest(new LocalRaidSettings {
+                location = equator, playerSide = ESideType.Pmc, transitionType = ELocationTransition.Common }, out _),
+                "stale solo Equator selection cannot freeze as a protected Zombie squad");
+            f.Team = false;
+            Updater(f).Tick();
+            f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+            Assert(row.gameObject.activeSelf && f.Screen._readyButton.gameObject.activeSelf
+                && f.Screen.SelectedLocation?.Id == equator,
+                "returning to solo restores Equator Zombies without rebuilding the screen");
             ArenaClientConfig.Enabled = map => map != equator;
             Updater(f).Tick();
             Assert(!row.gameObject.activeSelf && f.Screen.SelectedLocation == null,
@@ -501,13 +515,16 @@ internal static class Program
             f.Screen.Close();
             ArenaClientConfig.Enabled = map => true;
             Settings.Allowlist = equator;
-            Assert(ArenaMenuSelection.HasConfiguredMap(false) && ArenaMenuSelection.HasConfiguredMap(true),
-                "Equator-only configuration offers both solo and supported PFT formats");
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
+                "Equator-only configuration offers solo but no unsupported PFT format");
         }
         finally { plugins.Clear(); }
         using var ordinary = new Fixture(arena: false, mode: "tactical");
         Assert(ordinary.Screen.Buttons.Any(button => button.Location.Id == equator && button.gameObject.activeSelf),
             "ordinary native map rows stay unchanged outside Arena, even with no MapPort registry entry");
+        using var ordinaryZombie = new Fixture(arena: false, mode: "zombie", team: true);
+        Assert(ordinaryZombie.Screen.Buttons.Any(button => button.Location.Id == equator && button.gameObject.activeSelf),
+            "saved Zombie squad preference never hides ordinary Equator selection");
     }
 
     private static void Bay5AndEquatorHaveIndependentOwnedRows()
@@ -557,7 +574,7 @@ internal static class Program
                 Settings.GameMode.Value = squadMode;
                 Updater(f).Tick();
                 f.Screen.OnLocationSelected(f.Screen.Locations[squadMap]);
-                bool allowed = squadMode != "tactical" || squadMap != equator;
+                bool allowed = squadMap != equator;
                 Assert(allowed ? f.Screen.SelectedLocation?.Id == squadMap && f.Screen._readyButton.gameObject.activeSelf
                     : f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
                     "protected full-map selection respects exact capacity and exposes Ready: " + squadMap + "/" + squadMode);
@@ -565,6 +582,10 @@ internal static class Program
                     Assert(ArenaMenuSelection.MatchesRequest(new LocalRaidSettings { location = squadMap,
                         playerSide = ESideType.Pmc, transitionType = ELocationTransition.Common }),
                         "authenticated expanded map survives final PFT request validation");
+                else
+                    Assert(!ArenaMenuSelection.MatchesRequest(new LocalRaidSettings { location = squadMap,
+                        playerSide = ESideType.Pmc, transitionType = ELocationTransition.Common }),
+                        "blocked PFT Equator never reaches final request matching");
             }
             f.Team = false;
             Settings.GameMode.Value = "deathmatch";

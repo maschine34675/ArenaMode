@@ -36,7 +36,7 @@ internal static partial class Program
             ConfigureAreaTeams(size, selectedArea);
             var owner = Select(map);
             var state = ArenaMenuSelection.AreaSelection(map);
-            Assert(state.Options.Count == 4 && state.HasTeamSizeChoice && state.SelectedTeamSize == size
+            Assert(state.Options.Count == 3 && state.HasTeamSizeChoice && state.SelectedTeamSize == size
                 && state.TeamSizeOptions.SequenceEqual(new[] { 2,3,4,5 }), "new area exposes exact immutable 2..5 size choices");
             Settings.AreaTeamSize.Value = size == 5 ? 2 : 5;
             Assert(state.SelectedTeamSize == size, "existing proposal cannot change when F12 changes");
@@ -81,7 +81,7 @@ internal static partial class Program
         Assert(!ArenaMenuSelection.TrySelectAreaTeamSize(current,ArenaMapCatalog.FactoryDayId,teams,4), "stale map rejected");
         Settings.TeamDeathmatchArea.Value=ArenaAreaCatalog.CustomsFactoryCenterPolygonId;
         Assert(!ArenaMenuSelection.TrySelectAreaTeamSize(current,map,teams,4), "stale team-area row rejected");
-        Assert(ArenaMenuSelection.AreaSelection(map).SelectedId == ArenaAreaCatalog.FullMapId && Settings.TeamDeathmatchArea.Value == ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "retired area is only a menu proposal until explicitly saved");
+        Assert(ArenaMenuSelection.AreaSelection(map).SelectedId == teams && Settings.TeamDeathmatchArea.Value == ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "retired area is only a menu proposal until explicitly saved");
         Settings.TeamDeathmatchArea.Value=teams;
         Settings.RefuseAreaWrite=true;
         Assert(!ArenaMenuSelection.TrySelectAreaTeamSize(current,map,teams,4) && Settings.AreaTeamSize.Value==2, "failed setting write cannot paint accepted size");
