@@ -1,6 +1,75 @@
 # Factory day/night team-spawn exclusions
 
+## Courtyard follow-up 2026-10-09
+
+The user's marked screenshot (`../Screenshot 2026-10-09 111002.png`) identifies
+the enclosed courtyard beside Main Office / Woods transit. There are **five**
+Player markers there, not one: the previously excluded `c671337f...` and four
+more at the following coordinates. All five records are identical between the
+installed day and night databases, Player-only, with an empty bot-zone name.
+
+| Courtyard marker | X | Y | Z | Horizontal distance from user's X13.10/Z59.34 |
+| --- | ---: | ---: | ---: | ---: |
+| `4755c538-4ee5-4125-8cd3-885787da7ad5` | 12.6300011 | 1.797 | 60.15 | 0.94 m |
+| `c671337f-e58f-4de6-a387-307d877954a3` (already excluded) | 14.018 | 1.18999994 | 58.119 | 1.53 m |
+| `6d97a439-de10-42c5-99ef-6cf92e243aca` | 10.2300014 | 1.14 | 58.7600021 | 2.93 m |
+| `e60d8dce-ee35-4b30-9c3a-afddf4c5445e` | 13.76 | 1.1 | 54.64 | 4.75 m |
+| `bcae7a9f-8b2f-4a4c-9cb0-589d4a227c70` | 12.5600014 | 1.21 | 52.73 | 6.63 m |
+
+The screenshot is a rotated map, not a world X/Y plane. Installed DynamicMaps'
+`Factory_TarkovDev.jsonc` specifies `CoordinateRotation: 90`; its reference
+`MathUtils.ConvertToMapPosition` maps Unity `(x,y,z)` to map `(x,z,y)`, and
+`CursorPositionText` reads the unrotated map-local cursor coordinates. Thus the
+user's two numbers correspond to world **X/Z**, and the screenshot's ground
+floor rectangle includes all five markers. Its edges are only visual evidence,
+not an exact surveyed volume or a new runtime rectangle rule. The nearby Bot
+marker `ff9c3127-2acd-48fe-a635-b1ab99d0bfa7` at `(2.1,1.1,63.06)` lies below
+the marked courtyard in this view and remains available, as do all other
+non-excluded markers.
+
+The four newly identified exact IDs join the existing six-entry policy. The
+same policy now rejects ten IDs on both variants, retaining the other 135 of
+145 installed markers. No coordinates, categories or installed data are changed.
+
+A read-only live Factory scene inventory on GPU2 also found exactly these five
+markers in the broad inspection window X7..36 / Z43..67. Their scene names are
+`PMCspawn_exp_Area_01_C (1)` through `(5)`, all Player-only / All sides / Factory
+infiltration, without a bot zone. No additional runtime spawn marker appeared
+there. This inventory used the previously deployed `ecc22d5` client and proves
+the scene identities, not gameplay acceptance of this new filter. A positive
+NavMesh/room dry-run at the old marker proves local placement only, not an exit
+path from the pocket.
+
+There was also a separate Zombie-team gap: `ArenaTeamSpawnPointsPatch` admitted
+only Tactical. Protected Zombie teams use the same PFT leader placement, so
+the existing confirmed-roster guard now supports both Tactical and Zombie.
+Solo Zombie / solo Tactical / independent TDM player spawn views stay native;
+ordinary raids and foreign/stale worlds retain their exact original collection.
+This protects initial and newly selected respawn markers. PFT followers rebuilt
+at a living leader who manually entered the courtyard can still appear there;
+this change does not turn the screenshot into a movement barrier.
+
+Zombie infected use `ZombieSpawnService.TryRequest` ->
+`BurstSpawnService.SpawnInfected` -> `SpawnPair` ->
+`BurstSpawnPointSelector.PickPoints`, with the same final bot dispatch filter
+used by Tactical/TDM. PFT companions instead call the native PFT
+`SpawnGroupBots`, which captures `player.Position` and passes it to
+`ActivateBotAtPosition` (reviewed 0.10.3 reference lines 909 and 1135). Hence
+filtering only bot-zone markers could never protect the followers' courtyard
+entry. No whole BotZone or unrelated patrol route is excluded.
+
+Production-linked checks passed **1105 assertions** with both installed
+databases required. They exercise Tactical/Zombie leader views during loading
+and active play, all ten IDs at AI selection and owned Tactical/TDM/Zombie
+dispatch, and retention of every other installed marker and original object.
+The Factory regression script rejected **14 compiled mutants**, including omission
+of each new courtyard ID, omission of Zombie leader protection, and leakage into
+unprotected solo play, alongside the earlier eight controls. Native raid acceptance must
+be recorded separately; these stand-in checks do not prove navigation.
+
 ## Verified 2026-10-08
+
+Historical verification below predates the marked courtyard follow-up above.
 
 The suspected missing Factory night exclusions are already present. The installed
 day and night location databases both contain the same six unsafe marker IDs at

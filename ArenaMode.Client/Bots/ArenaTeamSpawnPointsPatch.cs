@@ -12,9 +12,9 @@ namespace ArenaMode.Bots;
 
 /// <summary>
 /// PFT creates followers at the local leader's position, bypassing AI marker
-/// selection. Its protected 5v5 leader must therefore avoid the Factory courtyard
-/// marker too. Filter only the returned collection, never destroy scene markers
-/// or change the shared player categories/SpawnBlocked flag.
+/// selection. Its protected Tactical/Zombie leader must therefore avoid the unsafe
+/// Factory player markers too. Filter only the returned collection, never destroy
+/// scene markers or change the shared player categories/SpawnBlocked flag.
 /// </summary>
 internal sealed class ArenaTeamSpawnPointsPatch : ModulePatch
 {
@@ -26,9 +26,10 @@ internal sealed class ArenaTeamSpawnPointsPatch : ModulePatch
     [HarmonyPriority(Priority.Last)]
     private static void Postfix(ref SpawnPointsCollection __result)
     {
+        string mode = ArenaSession.ArmedForNextRaid ? ArenaSession.ArmedMode : ArenaSession.ActiveMode;
         if (!ArenaBotSpawnFilter.IsPointRestrictedRaid
-            || !string.Equals(ArenaSession.ArmedForNextRaid ? ArenaSession.ArmedMode : ArenaSession.ActiveMode,
-                "tactical", StringComparison.OrdinalIgnoreCase)
+            || (!string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
             || !PitFireTeamCompat.TeamArenaActive
             || __result?._dictionary == null)
             return;
@@ -46,7 +47,7 @@ internal sealed class ArenaTeamSpawnPointsPatch : ModulePatch
             .ToDictionary(pair => pair.Key, pair => pair.Value);
         __result = new SpawnPointsCollection(allowed, __result._logger);
         Plugin.ModLogger.LogInfo(
-            $"Arena protected 5v5: excluded {original.Count - allowed.Count} unsafe Factory team spawn(s); "
+            $"Arena protected team: excluded {original.Count - allowed.Count} unsafe Factory team spawn(s); "
             + $"{allowed.Count}/{original.Count} markers retained.");
     }
 }

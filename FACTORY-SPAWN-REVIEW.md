@@ -1,5 +1,14 @@
 # Factory courtyard spawn exclusion
 
+**2026-10-09 follow-up:** the user's marked courtyard contains four additional
+Player markers beside the original one. All five courtyard IDs are now excluded,
+plus the previously excluded underground group. Protected Zombie PFT leaders now
+receive the same initial/respawn filtering as Tactical PFT leaders. See
+`FACTORY-SPAWNS-REVIEW.md` for exact coordinates, day/night installed-database
+evidence, scope and current checks. The original single-marker implementation
+record below is historical; its one-marker count and Tactical-only scope are
+superseded.
+
 User-reported vault-only spawn near the Main Gate / Woods transit:
 `c671337f-e58f-4de6-a387-307d877954a3`, at world
 `(14.018, 1.18999994, 58.119)`. The installed Factory day and night databases

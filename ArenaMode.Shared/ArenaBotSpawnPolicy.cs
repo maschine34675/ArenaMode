@@ -8,8 +8,8 @@ namespace ArenaMode.Shared;
 
 /// <summary>
 /// Bot exclusions for Arena raids. Callers establish the current Arena context;
-/// ordinary raids never consult this policy. Protected 5v5 also applies the
-/// individual point rule to its leader, where PFT places the allied bots.
+/// ordinary raids never consult this policy. Protected PFT teams also apply the
+/// individual point rule to their leader, where PFT places the allied bots.
 /// </summary>
 public static class ArenaBotSpawnPolicy
 {
@@ -27,11 +27,11 @@ public static class ArenaBotSpawnPolicy
 
     /// <summary>
     /// Factory player markers Arena refuses. PFT places followers at their
-    /// leader, so protected 5v5 must exclude them from the leader's choices as
-    /// well; the rest of Factory's BotZone is untouched.
+    /// leader, so protected Tactical/Zombie teams exclude them from the leader's
+    /// choices as well; the rest of Factory's BotZone is untouched.
     ///
-    /// Exact identities, never a height band or a zone: the first entry is the
-    /// courtyard marker near the Woods transit, and the remaining five are one
+    /// Exact identities, never a height band or a zone: the first five form the
+    /// courtyard group near the Woods transit, and the remaining five are one
     /// group on the y = -2.60 floor around x -6.7..-2.8 / z 14.3..18.5, reported
     /// from a playtest where the companions dropped there and stopped moving.
     /// They are excluded as a group because they are one place — the nearest two
@@ -43,6 +43,10 @@ public static class ArenaBotSpawnPolicy
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "c671337f-e58f-4de6-a387-307d877954a3",
+            "4755c538-4ee5-4125-8cd3-885787da7ad5",
+            "6d97a439-de10-42c5-99ef-6cf92e243aca",
+            "e60d8dce-ee35-4b30-9c3a-afddf4c5445e",
+            "bcae7a9f-8b2f-4a4c-9cb0-589d4a227c70",
             "c2d01ce0-e0e4-41af-8311-44dc5cf38a93",
             "97998a75-baa4-4b03-ac1f-f86dfbf48d79",
             "ea010f6f-4860-4339-b576-09439f8f4c3a",

@@ -53,9 +53,9 @@ temporary mutation/build evidence stays in the printed directory.
 ## Factory exact-point coverage
 
 `FactoryChecks.cs` links the production methods instead of copying their logic.
-The complete harness passed 533 assertions on 2026-10-08, including these cases:
+The complete harness passed 1105 assertions on 2026-10-09, including these cases:
 
-- Both Factory variants reject the six exact IDs documented in
+- Both Factory variants reject the ten exact IDs documented in
   `FACTORY-SPAWNS-REVIEW.md`, including a Player-only marker passed through bot
   dispatch. Neighboring, partial, null and
   unrelated-map IDs are retained. Shared `IsRestrictedMap` stays Labs-only because
@@ -66,26 +66,28 @@ The complete harness passed 533 assertions on 2026-10-08, including these cases:
 - Planning removes the unsafe point before position deduplication, still fills
   five safe slots across preferred/distant bands and does not count a unique unsafe
   position toward squad capacity. Other maps and ordinary raids remain unchanged.
-- The protected Tactical collection postfix removes the exact leader marker in
+- The protected Tactical/Zombie collection postfix removes the exact leader marker in
   armed/loading and active Factory, using a copied dictionary and the original
   logger/remaining marker references. Original collections and markers are intact.
-  Solo, TDM, other modes/maps, stale sessions, foreign worlds/games and mismatched
+  Solo (including Zombie), TDM, other modes/maps, stale sessions, foreign worlds/games and mismatched
   map IDs pass through. A newly armed mode takes precedence over stale active mode.
 - Installed `locations/factory4_day/base.json` and `factory4_night/base.json` each
-  contain 145 records. All six targets have matching IDs/coordinates in both
+  contain 145 records. All ten targets have matching IDs/coordinates in both
   variants, are Player-only and have no bot-zone name. Running the actual postfix
-  retains all 139 other physical objects and leaves both original 145-entry
-  collections unchanged in armed/loading and active protected Tactical. Every
-  actual unsafe point is also rejected by AI selection and owned TDM/Tactical
+  retains all 135 other physical objects and leaves both original 145-entry
+  collections unchanged in armed/loading and active protected Tactical/Zombie. Every
+  actual unsafe point is also rejected by AI selection and owned TDM/Tactical/Zombie
   dispatch; every other installed point passes these boundaries. Ordinary raids
   retain their original collections, choices and point state.
   Fixtures use `SPT_DATABASE` or the local SPT runtime database; an absent database
   is explicitly reported as skipped on other hosts. Both ran on this host.
 
-`Verify-FactoryRegression.ps1` rejects eight temporary production-source mutants:
+`Verify-FactoryRegression.ps1` rejects fourteen temporary production-source mutants:
 disabled point policy, missing Factory night classification, a night-only gap for
 one underground marker, disabled planner filter, unsafe capacity, leaked team
-view, stale-world admission and reversed armed-mode precedence. The night-only
+view, stale-world admission and reversed armed-mode precedence, omission of each
+of the four newly identified courtyard IDs, omission of Zombie leader protection
+and leakage into unprotected solo play. The night-only
 gap must fail the installed night collection assertion when the database is
 available; the optional database-free run detects it through the shared policy.
 Every mutant must fail

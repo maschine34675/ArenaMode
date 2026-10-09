@@ -21,6 +21,10 @@ internal static partial class Program
     private static readonly (string Id, float X, float Y, float Z)[] UnsafeFactoryPoints =
     {
         (UnsafeFactoryId, 14.018f, 1.18999994f, 58.119f),
+        ("4755c538-4ee5-4125-8cd3-885787da7ad5", 12.6300011f, 1.797f, 60.15f),
+        ("6d97a439-de10-42c5-99ef-6cf92e243aca", 10.2300014f, 1.14f, 58.7600021f),
+        ("e60d8dce-ee35-4b30-9c3a-afddf4c5445e", 13.76f, 1.1f, 54.64f),
+        ("bcae7a9f-8b2f-4a4c-9cb0-589d4a227c70", 12.5600014f, 1.21f, 52.73f),
         ("c2d01ce0-e0e4-41af-8311-44dc5cf38a93", -6.47099972f, -2.598f, 15.79f),
         ("97998a75-baa4-4b03-ac1f-f86dfbf48d79", -6.689f, -2.598f, 17.303f),
         ("ea010f6f-4860-4339-b576-09439f8f4c3a", -5.58f, -2.598f, 14.757f),
@@ -35,8 +39,11 @@ internal static partial class Program
             CheckFactoryBotBoundary(map, armed: true);
             CheckFactoryBotBoundary(map, armed: false);
             CheckFactoryPlanner(map);
-            CheckFactoryTeamView(map, armed: true);
-            CheckFactoryTeamView(map, armed: false);
+            foreach (string mode in new[] { "tactical", "zombie", "ZOMBIE" })
+            {
+                CheckFactoryTeamView(map, armed: true, mode);
+                CheckFactoryTeamView(map, armed: false, mode);
+            }
         }
         CheckFactoryTeamViewIsolation();
         CheckFactoryWorldIsolation();
@@ -133,15 +140,15 @@ internal static partial class Program
         return (SpawnPointsCollection)args[0];
     }
 
-    private static void CheckFactoryTeamView(string map, bool armed)
+    private static void CheckFactoryTeamView(string map, bool armed, string mode)
     {
         SetSession(map, armed, !armed);
         // Deliberately contradictory unused mode proves that the current phase's
         // mode is consulted, not a stale field left over from menu/previous raid.
-        ArenaSession.ArmedMode = armed ? "tactical" : "gungame";
-        ArenaSession.ActiveMode = armed ? "endless" : "tactical";
+        ArenaSession.ArmedMode = armed ? mode : "gungame";
+        ArenaSession.ActiveMode = armed ? "endless" : mode;
         PitFireTeamCompat.TeamArenaActive = true;
-        string context = $"{map} {(armed ? "armed" : "active")} team";
+        string context = $"{map} {(armed ? "armed" : "active")} {mode} team";
         var bad = FactoryPoint(UnsafeFactoryId, category: ESpawnCategoryMask.Player);
         var neighbor = FactoryPoint(NeighborFactoryId, 40, ESpawnCategoryMask.Player);
         var safe = FactoryPoint("safe-bot", 50);
@@ -168,7 +175,7 @@ internal static partial class Program
 
     private static void CheckFactoryTeamViewIsolation()
     {
-        foreach (string invalid in new[] { "normal", "stale", "solo", "tdm", "gungame", "armedwrongmode", "bothflagswrongarmedmode", "labs", "labyrinth", "nullmap" })
+        foreach (string invalid in new[] { "normal", "stale", "solo", "zombiesolo", "armedzombiesolo", "tdm", "gungame", "armedwrongmode", "bothflagswrongarmedmode", "labs", "labyrinth", "nullmap" })
         {
             SetSession("factory4_day", false, true);
             ArenaSession.ActiveMode = ArenaSession.ArmedMode = "tactical";
@@ -178,6 +185,8 @@ internal static partial class Program
                 case "normal": ArenaSession.ArmedMap = null; ArenaSession.IsActive = false; break;
                 case "stale": ArenaSession.IsActive = false; break;
                 case "solo": PitFireTeamCompat.TeamArenaActive = false; break;
+                case "zombiesolo": ArenaSession.ActiveMode = "zombie"; PitFireTeamCompat.TeamArenaActive = false; break;
+                case "armedzombiesolo": ArenaSession.IsActive = false; ArenaSession.ArmedForNextRaid = true; ArenaSession.ArmedMode = "zombie"; PitFireTeamCompat.TeamArenaActive = false; break;
                 case "tdm": ArenaSession.ActiveMode = "teamdeathmatch"; break;
                 case "gungame": ArenaSession.ActiveMode = "gungame"; break;
                 case "armedwrongmode": ArenaSession.IsActive = false; ArenaSession.ArmedForNextRaid = true; ArenaSession.ArmedMode = "endless"; break;
@@ -228,9 +237,9 @@ internal static partial class Program
                 foreach (string near in new[] { unsafePoint.Id + "0", unsafePoint.Id[..^1], " " + unsafePoint.Id })
                     Assert(!ArenaBotSpawnPolicy.IsExcludedPoint(map, near), map + ": near IDs are not excluded: " + near);
             }
-            Assert(UnsafeFactoryPoints.Length == 6
-                && UnsafeFactoryPoints.Select(point => point.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 6,
-                map + ": the excluded set is exactly the six distinct reported markers");
+            Assert(UnsafeFactoryPoints.Length == 10
+                && UnsafeFactoryPoints.Select(point => point.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 10,
+                map + ": the excluded set is exactly the ten distinct reported markers");
             foreach (string other in new[] { (string)null, "", NeighborFactoryId, UnsafeFactoryId + "0", UnsafeFactoryId[..^1] })
                 Assert(!ArenaBotSpawnPolicy.IsExcludedPoint(map, other), map + ": null empty near and partial IDs are not excluded");
             string csv = " BotZoneGate1, BotZoneFloor2 ";
@@ -336,9 +345,10 @@ internal static partial class Program
             var unsafePoints = points.Where(point => unsafeIds.Contains(point.Id)).ToArray();
             var safePoints = points.Where(point => !unsafeIds.Contains(point.Id)).ToList();
             foreach (bool armed in new[] { true, false })
+            foreach (string teamMode in new[] { "tactical", "zombie" })
             {
                 SetSession(map, armed, !armed);
-                ArenaSession.ArmedMode = ArenaSession.ActiveMode = "tactical";
+                ArenaSession.ArmedMode = ArenaSession.ActiveMode = teamMode;
                 PitFireTeamCompat.TeamArenaActive = true;
                 var view = RunTeamScenePostfix(original);
                 Assert(view.Count == safePoints.Count && view.All(point => !unsafeIds.Contains(point.Id))
@@ -351,7 +361,7 @@ internal static partial class Program
                 // Both sides of TDM and Tactical opponents use this AI boundary;
                 // the PFT leader uses the collection above. Exercise each actual
                 // installed marker, including all five underground alternatives.
-                foreach (string mode in new[] { "tactical", "teamdeathmatch" })
+                foreach (string mode in new[] { "tactical", "teamdeathmatch", "zombie" })
                 {
                     ArenaSession.ArmedMode = ArenaSession.ActiveMode = mode;
                     foreach (var point in unsafePoints)
@@ -384,8 +394,8 @@ internal static partial class Program
                 && RunDispatchPrefix(ordinaryPoints, Floor2),
                 map + ": ordinary installed raid retains all original scene and bot choices");
             AssertUnchanged(original.ToList(), before, map + ": installed fixture point state remains intact");
-            Console.WriteLine($"FACTORY_INSTALLED_FIXTURE_PASSED ({map}: {rawPoints.Length} original, {safePoints.Count} retained; armed/active Tactical + TDM and ordinary isolation)");
+            Console.WriteLine($"FACTORY_INSTALLED_FIXTURE_PASSED ({map}: {rawPoints.Length} original, {safePoints.Count} retained; armed/active Tactical + Zombie teams, Tactical/TDM/Zombie bots and ordinary isolation)");
         }
-        Console.WriteLine("FACTORY_DAY_NIGHT_SPAWN_PARITY_PASSED (six identical unsafe IDs/coordinates; all other installed markers retained)");
+        Console.WriteLine("FACTORY_DAY_NIGHT_SPAWN_PARITY_PASSED (ten identical unsafe IDs/coordinates; all other installed markers retained)");
     }
 }

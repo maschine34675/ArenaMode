@@ -53,6 +53,12 @@ $teamGuardDisabled = $texts.ProductionTeamPointsSource.Replace($teamAnchor, 'fal
 $modeAnchor = 'ArenaSession.ArmedForNextRaid ? ArenaSession.ArmedMode : ArenaSession.ActiveMode'
 if (!$texts.ProductionTeamPointsSource.Contains($modeAnchor)) { throw 'Armed mode precedence anchor missing.' }
 $modeReversed = $texts.ProductionTeamPointsSource.Replace($modeAnchor, 'ArenaSession.IsActive ? ArenaSession.ActiveMode : ArenaSession.ArmedMode')
+$zombieModeAnchor = '&& !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase)'
+if (!$texts.ProductionTeamPointsSource.Contains($zombieModeAnchor)) { throw 'Zombie team mode mutation anchor missing.' }
+$zombieModeDisabled = $texts.ProductionTeamPointsSource.Replace($zombieModeAnchor, '')
+$pftAnchor = '|| !PitFireTeamCompat.TeamArenaActive'
+if (!$texts.ProductionTeamPointsSource.Contains($pftAnchor)) { throw 'Protected team mutation anchor missing.' }
+$pftDisabled = $texts.ProductionTeamPointsSource.Replace($pftAnchor, '')
 
 $worldPattern = '(internal static bool IsPointRestrictedRaid)\s*=>[^;]+;'
 if ([regex]::Matches($texts.ProductionFilterSource, $worldPattern).Count -ne 1) { throw 'World ownership guard mutation anchor missing.' }
@@ -68,7 +74,19 @@ $mutants = @(
     @{ Name='LeakedTeamView'; Key='ProductionTeamPointsSource'; Text=$teamGuardDisabled; Failure='team scene view remains untouched: stale' },
     @{ Name='StaleWorld'; Key='ProductionFilterSource'; Text=$worldGuardDisabled; Failure='Factory stale or foreign world does not inherit point restrictions: wrongmap' },
     @{ Name='StaleActiveMode'; Key='ProductionTeamPointsSource'; Text=$modeReversed; Failure='team scene view remains untouched: bothflagswrongarmedmode' }
+    @{ Name='ZombieLeaderGap'; Key='ProductionTeamPointsSource'; Text=$zombieModeDisabled; Failure='factory4_day armed zombie team: protected team scene view excludes exact Player marker without removing its neighbor' },
+    @{ Name='UnprotectedLeaderLeak'; Key='ProductionTeamPointsSource'; Text=$pftDisabled; Failure='team scene view remains untouched: solo' }
 )
+foreach ($courtyardId in @('4755c538-4ee5-4125-8cd3-885787da7ad5', '6d97a439-de10-42c5-99ef-6cf92e243aca',
+    'e60d8dce-ee35-4b30-9c3a-afddf4c5445e', 'bcae7a9f-8b2f-4a4c-9cb0-589d4a227c70')) {
+    $quotedId = '"' + $courtyardId + '"'
+    if ([regex]::Matches($texts.ProductionPolicySource, [regex]::Escape($quotedId)).Count -ne 1) { throw "Courtyard marker mutation anchor missing: $courtyardId" }
+    $missingId = $texts.ProductionPolicySource.Replace($quotedId, '"removed-courtyard-marker"')
+    $failure = if ([IO.Directory]::Exists($database)) {
+        'factory4_day: installed scene view removes exactly the reported points and retains every other physical object'
+    } else { "factory4_day: every reported unsafe marker is excluded in either casing: $courtyardId" }
+    $mutants += @{ Name=('MissingCourtyard' + $courtyardId.Substring(0, 8)); Key='ProductionPolicySource'; Text=$missingId; Failure=$failure }
+}
 foreach ($mutant in $mutants) {
     $path = Join-Path $scratch ($mutant.Name + '.cs')
     [IO.File]::WriteAllText($path, $mutant.Text)
