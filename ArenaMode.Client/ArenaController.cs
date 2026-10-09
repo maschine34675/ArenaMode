@@ -23,6 +23,7 @@ internal sealed class ArenaController : MonoBehaviour
 
         Compat.PitFireTeamCompat.Tick();
         Compat.ZombiePftFastPath.TickDiagnostics();
+        ZombieVoiceBudget.Tick();
         Areas.ArenaAreaRuntime.Tick();
         BurstSpawnService.Tick();
         BotLoadBoost.Tick();

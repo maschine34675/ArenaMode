@@ -186,6 +186,7 @@ public static class Settings
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
     public static ConfigEntry<bool> ZombiePftFastPathEnabled { get; private set; }
+    public static ConfigEntry<bool> ZombieVoiceBudgetEnabled { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
@@ -1204,6 +1205,11 @@ public static class Settings
             "Avoid redundant PitFireTeam layer inspection for verified native Arena infected. " +
             "Standby wake-up, companions and custom brains retain the original path. " +
             "Turn off for comparison or compatibility troubleshooting; applies immediately.");
+
+        ZombieVoiceBudgetEnabled = config.Bind("Zombie", "VoiceBudgetEnabled", true,
+            "Limit overlapping repetitive infected voices in Arena Zombies. " +
+            "Nearby attack calls, critical sounds, AI hearing and companions keep native behavior. " +
+            "Turn off for comparison; applies immediately.");
 
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", false,
             "Bring your own protected equipment instead of a random Arena kit -- item 4 of the " +

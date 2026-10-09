@@ -89,6 +89,8 @@ public class Plugin : BaseUnityPlugin
         Bots.ZombiePerformancePatches.EnablePatch();
         ZombiePftFastPath.EnablePatch();
         RaidLifecycle.OnRaidEnded += ZombiePftFastPath.Reset;
+        Bots.ZombieVoiceBudget.EnablePatch();
+        RaidLifecycle.OnRaidEnded += Bots.ZombieVoiceBudget.Reset;
         Bots.ZombieMeleePatch.EnablePatch();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
