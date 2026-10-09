@@ -170,7 +170,7 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Modes
 {
-    internal static class ArenaMatchService { internal static Match Current = new(); }
+    internal static class ArenaMatchService { internal static Match Current = new(); internal static bool TeamStartAbortPending; }
     internal sealed class Match { internal Mode Mode = new(); }
     internal sealed class Mode { internal bool ControlsOwnSpawns; }
 }
@@ -236,6 +236,7 @@ internal static class Harness
         ArenaMode.Session.ArenaSession.Participants = participants;
         ArenaMode.Session.ArenaSession.ParticipantBosses = boss;
         ArenaMode.Modes.ArenaMatchService.Current = new();
+        ArenaMode.Modes.ArenaMatchService.TeamStartAbortPending = false;
         ArenaMode.Config.Settings.PmcFloor.Value = 4;
         DelayPreparation = DelayArrival = DelayRegistration = FailRetirement = ThrowNative = RejectPlacement = false;
         FailBossInitialization = false;

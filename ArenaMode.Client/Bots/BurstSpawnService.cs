@@ -84,6 +84,7 @@ internal static class BurstSpawnService
 
     public static void Tick()
     {
+        if (Modes.ArenaMatchService.TeamStartAbortPending) return;
         if (Areas.ArenaAreaRuntime.IsPending) return;
         if (ArenaSoloPopulation.IsSelected)
         {
@@ -630,6 +631,7 @@ internal static class BurstSpawnService
         raidEpoch = Respawn.ArenaRespawnDriver.CaptureRaidEpoch();
 
         if (operationGeneration != Volatile.Read(ref _operationGeneration)
+            || Modes.ArenaMatchService.TeamStartAbortPending
             || !ArenaSession.IsActive
             || !Singleton<AbstractGame>.Instantiated
             || Singleton<AbstractGame>.Instance is not LocalGame localGame
@@ -663,6 +665,7 @@ internal static class BurstSpawnService
         BotsController controller,
         BotSpawner spawner)
         => operationGeneration == Volatile.Read(ref _operationGeneration)
+           && !Modes.ArenaMatchService.TeamStartAbortPending
            && Respawn.ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
            && Singleton<AbstractGame>.Instantiated
            && ReferenceEquals(Singleton<AbstractGame>.Instance, game)

@@ -16,16 +16,10 @@ namespace ArenaMode.Modes;
 /// The local death/respawn signals come from ArenaEvents (raised by the
 /// respawn driver — they also cover deaths without an aggressor).
 /// </summary>
-internal static class ArenaMatchService
+internal static partial class ArenaMatchService
 {
     public static ArenaMatch Current { get; private set; }
-    public static bool TeamStartAbortPending
-        => _teamStartAbortPending || _teamStartAbortCommitted;
-
     private static bool _initialized;
-    private static bool _teamStartAbortPending;
-    private static bool _teamStartAbortCommitted;
-    private static string _teamStartAbortReason;
     private static float _nextScoreboardSyncAt;
     private static string _lastScoreboardProblem;
 
@@ -43,8 +37,11 @@ internal static class ArenaMatchService
 
     public static void Tick()
     {
-        if (_teamStartAbortPending)
-            TryAbortFailedTeamStart();
+        if (TeamStartAbortPending)
+        {
+            TickFailedStartAbort();
+            return;
+        }
 
         var match = Current;
         if (match == null)
@@ -179,9 +176,7 @@ internal static class ArenaMatchService
         var match = Current;
         Current = null;
         Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio detach");
-        _teamStartAbortPending = false;
-        _teamStartAbortCommitted = false;
-        _teamStartAbortReason = null;
+        ResetFailedStartAbort();
         _nextScoreboardSyncAt = 0f;
         _lastScoreboardProblem = null;
 
@@ -218,20 +213,6 @@ internal static class ArenaMatchService
         Plugin.ModLogger.LogWarning(
             "Stale Arena match/abort state cleared at the next exact raid start.");
         OnRaidEnded();
-    }
-
-    internal static void ScheduleFailedStartAbort(string reason)
-    {
-        _teamStartAbortReason = string.IsNullOrWhiteSpace(reason)
-            ? "Arena match initialization failed"
-            : reason;
-        if (!_teamStartAbortCommitted)
-            _teamStartAbortPending = true;
-        Respawn.ArenaRespawnDriver.StandDown = true;
-        Compat.PitFireTeamCompat.BeginFinalizing();
-        Plugin.ModLogger.LogError(
-            $"Arena start is invalid and will end without a playable match: {_teamStartAbortReason}");
-        TryAbortFailedTeamStart();
     }
 
     /// <summary>
@@ -273,78 +254,6 @@ internal static class ArenaMatchService
             teamEpoch = 0;
             reason = $"Protected team respawn authorization threw: {ex.GetBaseException().Message}";
             return false;
-        }
-    }
-
-    private static void TryAbortFailedTeamStart()
-    {
-        if (!_teamStartAbortPending)
-            return;
-
-        // Refresh this on every retry, including frames where GameWorld has not
-        // published MainPlayer yet. A slow/failed initialization must not let
-        // PFT's bounded cleanup guard expire while the abort still owns the raid.
-        Respawn.ArenaRespawnDriver.StandDown = true;
-        Compat.PitFireTeamCompat.BeginFinalizing();
-
-        LocalGame game = null;
-        try
-        {
-            if (!(Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame localGame))
-            {
-                return;
-            }
-
-            game = localGame;
-            if (localGame.Status != GameStatus.Started)
-                return;
-
-            var mainPlayer = Comfort.Common.Singleton<GameWorld>.Instantiated
-                ? Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer
-                : null;
-            // BaseLocalGame owns the immutable raid Profile even before
-            // GameWorld.MainPlayer is published. It is the authoritative Stop
-            // identity and prevents a failed Tactical bind from soft-locking.
-            var profileId = mainPlayer?.ProfileId?.Trim();
-            if (string.IsNullOrEmpty(profileId))
-                profileId = localGame.ProfileId?.Trim();
-            if (string.IsNullOrEmpty(profileId))
-                return;
-
-            var body = mainPlayer ?? localGame.LocalPlayer;
-            var exitStatus = body?.HealthController?.IsAlive == true
-                ? ExitStatus.MissingInAction
-                : ExitStatus.Killed;
-
-            game.Stop(profileId, exitStatus, "Arena", 0f);
-            _teamStartAbortPending = false;
-            _teamStartAbortCommitted = true;
-            Plugin.ModLogger.LogWarning(
-                $"Arena invalid start ended without a playable match ({exitStatus}): {_teamStartAbortReason}");
-        }
-        catch (Exception ex)
-        {
-            // Stop changes the native game status before optional teardown. A
-            // post-commit exception must not trigger a second Stop. Before that
-            // point, restore the live guards and retry on the next Tick.
-            var committed = game != null && game.Status != GameStatus.Started;
-            if (committed)
-            {
-                _teamStartAbortPending = false;
-                _teamStartAbortCommitted = true;
-            }
-            else
-            {
-                // Keep every guard active. The next Tick refreshes finalization
-                // and retries the same stable LocalGame profile identity.
-                Respawn.ArenaRespawnDriver.StandDown = true;
-                Compat.PitFireTeamCompat.BeginFinalizing();
-            }
-
-            Plugin.ModLogger.LogError(
-                committed
-                    ? $"Arena invalid-start stop failed after EFT committed teardown; protection remains active: {ex}"
-                    : $"Arena invalid-start stop failed before commit and will retry: {ex}");
         }
     }
 

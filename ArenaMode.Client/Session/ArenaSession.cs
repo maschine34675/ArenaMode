@@ -141,8 +141,12 @@ public static class ArenaSession
     /// GameEnd because a later LocalGame can occupy the same global singletons.
     /// </summary>
     internal static bool IsExactActiveRaid(AbstractGame game, GameWorld world)
-        => IsActive
-           && !ReferenceEquals(game, null)
+        => IsActive && IsExactStartedRaid(game, world);
+
+    // Also usable for a server-rejected start before IsActive can be published.
+    // Callers must independently require the Arena rejection/active state.
+    internal static bool IsExactStartedRaid(AbstractGame game, GameWorld world)
+        => !ReferenceEquals(game, null)
            && !ReferenceEquals(world, null)
            && ReferenceEquals(_startedGame, game)
            && ReferenceEquals(_startedWorld, world);

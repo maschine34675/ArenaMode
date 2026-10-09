@@ -520,7 +520,8 @@ internal static class Program
         var burstSpawn = Read(repo, "ArenaMode.Client/Bots/BurstSpawnService.cs");
         var combat = Read(repo, "ArenaMode.Client/Combat/CombatPatches.cs");
         var arenaMatch = Read(repo, "ArenaMode.Client/Modes/ArenaMatch.cs");
-        var matchService = Read(repo, "ArenaMode.Client/Modes/ArenaMatchService.cs");
+        var matchService = Read(repo, "ArenaMode.Client/Modes/ArenaMatchService.cs")
+            + Read(repo, "ArenaMode.Client/Modes/ArenaMatchService.Abort.cs");
         var modeInterface = Read(repo, "ArenaMode.Client/Modes/IArenaMode.cs");
         var respawn = Read(repo, "ArenaMode.Client/Respawn/ArenaRespawnDriver.cs");
         var liveRespawn = Read(repo, "ArenaMode.Client/Respawn/LiveKitRespawn.cs");

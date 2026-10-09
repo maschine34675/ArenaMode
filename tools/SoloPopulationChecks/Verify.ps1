@@ -39,6 +39,7 @@ if ($positive.Exit -ne 0 -or !$positive.Output.Contains('SOLO POPULATION RUNTIME
 Write-Output $positive.Output.Trim()
 if (!$BaselineOnly) {
     $faults = @(
+        @{ Name='failed-start-lease'; File='ArenaSoloPopulation.cs'; Find='&& !Modes.ArenaMatchService.TeamStartAbortPending'; Replace='&& true'; Failure='failed start rejects delayed preparation before native dispatch' },
         @{ Name='human-slot'; File='ArenaSoloPopulationPolicy.cs'; Find='Capacity = participants - 1;'; Replace='Capacity = participants;'; Failure='total includes reserved human and exact PreActive bot capacity' },
         @{ Name='native-timeout'; File='ArenaSoloPopulationPolicy.cs'; Find='!t.Dispatched && now >= t.Expires'; Replace='now >= t.Expires'; Failure='native uncertainty never expires into overshoot' },
         @{ Name='release-uncertain'; File='ArenaSoloPopulationPolicy.cs'; Find='if (!handedToNative) _tickets.Remove(ticket);'; Replace='_tickets.Remove(ticket);'; Failure='native uncertainty never expires into overshoot' },

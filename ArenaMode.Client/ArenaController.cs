@@ -80,7 +80,8 @@ internal sealed class ArenaController : MonoBehaviour
             _kitWarmupAt = Time.time + 1f;
         }
 
-        if (!Session.ArenaSession.IsActive || Areas.ArenaAreaRuntime.IsPending)
+        if (!Session.ArenaSession.IsActive || Areas.ArenaAreaRuntime.IsPending
+            || Modes.ArenaMatchService.TeamStartAbortPending)
         {
             _kitWarmupStarted = false;
             _kitWarmupAt = 0f;

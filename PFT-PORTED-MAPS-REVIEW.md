@@ -69,6 +69,49 @@ remain authoritative. No cancellation token is changed by this adapter.
 
 ## Four passes and evidence
 
+### Failed-start integration follow-up (native 54d9f7e candidate)
+
+Customs Factory Center Tactical exposed a distinct startup failure after PFT
+changed the requested initial spawn category to Coop. That correction belongs to
+the area runtime. Its fail-closed path then called native Stop synchronously from
+OnGameStarted; inspection found the exact game already Stopping but its results
+transition hung, while the cleared area and missing match allowed generic burst
+requests. Deferring Stop is a mitigation for this observed callback ordering,
+not a claim that the native fade implementation itself has been proven faulty.
+
+`ArenaMatchService.Abort.cs` keeps the existing service partial and binds the
+abort to the exact started game/world and its canonical LocalGame profile. The
+schedule immediately latches damage/respawn/PFT guards and invalidates detached
+burst requests; it never stops the game on that callback stack. The controller
+can attempt native Stop only on a later frame. An already Stopping/Stopped game
+is accepted once; a no-op or exception before that state retries at most once
+per second only while Started. Logs are paced; completion is never inferred
+from a normal Stop return or from unrelated statuses. A synchronous GameEnd
+cannot re-latch the cleared abort. A different game/world discards it rather
+than applying old guards or stopping the new raid.
+
+The pending-or-committed latch suppresses generic/solo burst Tick, new/detached
+burst leases and optional kit warmup even after the area is reset and Current
+is null. Existing raid-end and new-raid recovery clear the latch. This also
+covers the exact server-rejected start before IsActive becomes true, without
+authorizing ordinary raid exits from LastRaidWasArena alone.
+
+Managed Deathmatch/Gun Game has its own population generation, deliberately
+unaffected by ambient Burst.Reset during player respawns. Its IsLeaseCurrent
+therefore checks the abort latch directly as well. The solo runtime harness
+verifies both modes with delayed profile preparation and detached native arrival
+after an abort, while that generation remains unchanged: no new native dispatch,
+no published late body and no replacement top-up. The `failed-start-lease`
+negative control removes exactly that independent guard.
+
+`tools/FailedStartAbortChecks` compiles that production partial against native
+boundary doubles and exercises same-frame deferral, duplicate scheduling,
+canonical/missing/changed profile identity, no-op and throwing Stop, committed
+teardown, paced retries/logs, synchronous end, ordinary/stale worlds and the
+integration gates. Its mutation runner deliberately removes these protections.
+Native results-screen acceptance of a forced failure remains separate from
+these offline state-machine checks and the normal Customs startup retest.
+
 1. Installed-contract pass: followed native LocalGame loading through PFT
    SpawnFollowers, profile preparation, core resolution and detached activation.
 2. Implementation pass: minimum port fallback; separate bounded startup and

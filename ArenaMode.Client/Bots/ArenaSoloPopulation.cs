@@ -39,6 +39,7 @@ internal static class ArenaSoloPopulation
 
     internal static bool IsLeaseCurrent(int generation)
         => generation == Generation && IsSelected && _population != null
+            && !Modes.ArenaMatchService.TeamStartAbortPending
             && Singleton<AbstractGame>.Instantiated && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
             && _game.Status == GameStatus.Started
             && Singleton<GameWorld>.Instantiated && ReferenceEquals(Singleton<GameWorld>.Instance, _world)

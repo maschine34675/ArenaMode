@@ -112,6 +112,29 @@ internal static class Program
         Harness.Reset(2); Harness.DelayArrival = true; Harness.Tick(); BurstSpawnService.Reset();
         Harness.Arrivals[0].Callback(Harness.Arrivals[0].Body);
         Check(Harness.Observed == 1, "ambient reset during player respawn preserves native arrival");
+
+        foreach (string mode in new[] { "deathmatch", "gungame" })
+        {
+            Harness.Reset(2, mode: mode); Harness.DelayPreparation = true; Harness.Tick();
+            var abortData = Harness.Preparations.Peek().Data;
+            int abortGeneration = ArenaSoloPopulation.Generation;
+            ArenaMode.Modes.ArenaMatchService.TeamStartAbortPending = true;
+            BurstSpawnService.Reset(); // Failed-start schedule resets ambient work, not this generation.
+            Check(abortGeneration == ArenaSoloPopulation.Generation, "failed start preserves distinct solo generation while revoking leases");
+            Harness.CompleteOne(); Fill(3);
+            Check(Harness.NativeCalls == 0 && abortData.Stops == 1,
+                "failed start rejects delayed preparation before native dispatch");
+            Check(!ArenaSoloPopulation.IsLeaseCurrent(abortGeneration), "failed start invalidates the managed solo lease");
+
+            Harness.Reset(2, mode: mode); Harness.DelayArrival = true; Harness.Tick();
+            var abortArrival = Harness.Arrivals[0];
+            ArenaMode.Modes.ArenaMatchService.TeamStartAbortPending = true;
+            BurstSpawnService.Reset(); abortArrival.Callback(abortArrival.Body); Fill(3);
+            Check(!abortArrival.Body.HealthController.IsAlive && Harness.Observed == 0,
+                "failed start retires detached arrival before publishing it");
+            Check(Harness.NativeCalls == 1, "failed start never replaces the retired late arrival");
+        }
+
         Harness.Reset(2); Harness.DelayPreparation = true; Harness.Tick(); var stale = Harness.Preparations.Peek();
         ArenaSoloPopulation.Reset(); stale.Task.SetResult(stale.Data);
         Check(Harness.NativeCalls == 0 && stale.Data.Stops == 1, "true raid teardown cancels prepared work");
