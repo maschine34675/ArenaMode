@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="$(AdapterSource)" Link="Production/DynamicMapsCorpseMarkers.cs" />
     <Compile Include="$(CleanupSource)" Link="Production/CorpseCleanupService.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TacticalMode.Corpses.cs" Link="Production/TacticalMode.Corpses.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/CorpseDamageSources.cs" Link="Production/CorpseDamageSources.cs" />
     <Compile Include="../CorpseCleanupChecks/Stubs.cs" Link="NativeStubs.cs" />
   </ItemGroup>

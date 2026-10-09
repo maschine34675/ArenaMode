@@ -1243,6 +1243,14 @@ internal static class CorpseCleanupService
         if (player.HealthController?.IsAlive != false)
             return false;
 
+        // Protected Tactical's fixed opponent roster validates the original
+        // bodies even after death. Keep at most its five exact current bodies
+        // until the roster retires; hiding/stripping and all other modes are
+        // unchanged. Do not cache this in TrimState.Protected across rounds.
+        if (Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode tactical
+            && tactical.RetainsFrozenOpponentCorpse(player, world))
+            return false;
+
         // Nobody may still be owed a death by this body. See CorpseAggressors:
         // a released body that is somebody's pending aggressor makes that
         // somebody's OnDead throw, which abandons their whole death.

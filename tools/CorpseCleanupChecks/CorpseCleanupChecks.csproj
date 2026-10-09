@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(CleanupSource)" Link="Production/CorpseCleanupService.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TacticalMode.Corpses.cs" Link="Production/TacticalMode.Corpses.cs" />
     <Compile Include="$(DamageSourcesSource)" Link="Production/CorpseDamageSources.cs" />
     <Compile Include="../../ArenaMode.Client/Compat/DynamicMapsCorpseMarkers.cs" Link="Production/DynamicMapsCorpseMarkers.cs" />
     <Compile Include="../DynamicMapCorpseChecks/CompatStubs.cs" Link="CompatStubs.cs" />

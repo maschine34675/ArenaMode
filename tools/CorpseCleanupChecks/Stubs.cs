@@ -157,6 +157,9 @@ namespace EFT.InventoryLogic
 }
 namespace EFT
 {
+    public class AbstractGame { }
+    public class LocalGame : AbstractGame { }
+    public class BotOwner : UnityEngine.Object { public Player GetPlayer; }
     public class HealthController { public bool IsAlive = true; }
     public class Player : UnityEngine.Component, IPlayer
     {
@@ -409,8 +412,36 @@ namespace ArenaMode.Config
         public static Setting<bool> ReleaseTrimmedCorpses = new() { Value = true };
     }
 }
-namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive; public static string ActiveMode; } }
-namespace ArenaMode.Modes { public static class ArenaModeCatalog { public const string ZombieId = "zombie"; } }
+namespace ArenaMode.Session
+{
+    public static class ArenaSession
+    {
+        public static bool IsActive;
+        public static string ActiveMode;
+        public static EFT.AbstractGame StartedGame;
+        public static EFT.GameWorld StartedWorld;
+        public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world)
+            => IsActive && game != null && world != null
+               && ReferenceEquals(StartedGame, game) && ReferenceEquals(StartedWorld, world);
+    }
+}
+namespace ArenaMode.Modes
+{
+    public static class ArenaModeCatalog { public const string ZombieId = "zombie"; }
+    public class ArenaMatch { public object Mode; }
+    public static class ArenaMatchService { public static ArenaMatch Current; }
+    // Only the surrounding mode state is a double. The retention method is
+    // linked directly from production in both existing cleanup suites and the
+    // dedicated TacticalCorpseChecks integration/fault harness.
+    public sealed partial class TacticalMode
+    {
+        private const int TeamEnemyCount = 5;
+        public bool _teamArena = true;
+        public ArenaMatch _match;
+        public EFT.LocalGame _teamGame;
+        public EFT.BotOwner[] _boundTeamEnemies = Array.Empty<EFT.BotOwner>();
+    }
+}
 namespace ArenaMode.Loot
 {
     public static class OpenLootTracker
