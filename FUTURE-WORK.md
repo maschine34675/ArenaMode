@@ -5,6 +5,20 @@ work unless a section explicitly records implementation or test progress with
 a linked review. Recheck current source and saved configuration when resuming.
 Read `AGENTS.md` and `HANDOFF.md` first.
 
+## Zombie follow-ups from the 2026-10-09 performance test
+
+- Fix solo wave-clear admission while the last spawn is still pending. A
+  one-zombie native smoke enters intermission before that zombie arrives;
+  the corresponding runtime guard currently applies only to PFT. Preserve
+  pending ownership, failed-dispatch recovery and terminal death admission;
+  add a delayed-last-spawn regression and repeat a real cleared-wave refill.
+  See `GPU-ZOMBIE-PERFORMANCE-RESULTS-20261009.md`; this predates the optimization.
+- Investigate PFT's hostile-layer filter work on generic infected with no
+  companions (roughly 0.22–0.25 inclusive ms/frame at 56 bot calls/frame in this
+  capture). Do not remove PFT hooks globally or infer pure overhead from
+  BigBrain/Arena prefixes that execute native AI internally. Population limits
+  remain unchanged until representative repeated measurements justify more.
+
 ## Difficulty controls in the native game menu
 
 Goal: expose understandable, mode-specific settings without conflating bot AI,

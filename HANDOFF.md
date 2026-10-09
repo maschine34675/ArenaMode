@@ -7,6 +7,28 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bounded Zombie performance work (2026-10-09, latest):** `bc21205` removes
+  unused optional catalogue prewarming; `415c5aa` skips confirmed friendly
+  infected delayed footsteps and peaceful social searches. Native combat,
+  navigation, global pair registration and all population limits remain.
+  Final client `0.1.0+415c5aa6aadbd339b3dda646f4e44b76ef533332`, SHA256
+  `425A517EC295F90CE8BBCE5CD36D40942D9D0FA7A655AF959848D2E04CE15240`,
+  deployed locally/GPU2 and loaded 21/21 matched. Server remains exact `9c67ed7`
+  bytes below. Unit 909/two skips; hearing 192/17 compiled faults, warmup 90/10,
+  TDM 37, solo 85 and PFT 59 pass; staged build zero errors/four existing warnings;
+  independent review clear. GPU2: 56 approach/melee/solo-death end pass; first
+  minute 461 delayed steps +3097 social searches avoided; own gear no longer
+  preloads 20 unused kits/387 templates. Observed FPS modestly better but differing
+  convergence/AI work prevents a causal percentage or higher-cap claim.
+  Separate Enforcer smoke confirms one kit preload/use and refill execution,
+  but exposes an existing solo tiny-wave bug: intermission can begin while the
+  final dispatched infected is pending (the guard currently exists only for PFT).
+  Fix this before treating one-zombie wave transitions as accepted; director
+  source unchanged here. See `GPU-ZOMBIE-PERFORMANCE-RESULTS-20261009.md` for exact
+  limits, artifacts and timings. Configs restored byte-identically, profile only
+  two bookkeeping timestamps changed, all 12 PFT files unchanged. EFT closed,
+  server running, no push; unrelated untracked Molotov assets preserved.
+
 - **Unified rules and expanded maps (2026-10-09, latest):** `1649ccf` gives all
   five modes the same visible description/objective/respawn/equipment schema;
   `9c67ed7` opens Bay5 and whole Customs for all modes, Equator for all except
