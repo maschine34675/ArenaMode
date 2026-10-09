@@ -95,6 +95,13 @@ internal sealed class ArenaController : MonoBehaviour
             return;
         }
 
+        // Solo Zombies has one life. Its living wave refill re-applies the
+        // current kit, never draws another; own gear consumes no Arena kit.
+        // Use the frozen mode even before the match object exists. Required
+        // opening/refill Preload calls are independent of this optional work.
+        if (!Kits.ZombieKitWarmupPolicy.AllowsOptionalCatalogue(Session.ArenaSession.ActiveMode))
+            return;
+
         // Random kits need every bundle warm because any of them can come up on
         // the next life. So does a mode that hands out kits itself (Gun Game
         // walks the whole ladder), even with the random draw switched off.

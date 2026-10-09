@@ -110,6 +110,12 @@ public static partial class KitBundlePreloader
             return;
         }
 
+        // One-life Zombie survival can only consume the opening kit. Living
+        // refills keep that exact kit, and their required preload remains in
+        // LiveKitRespawn. Do not build unrelated pools even when the general
+        // setting requests the whole catalogue. Off stays off.
+        scope = ZombieKitWarmupPolicy.LoadingScope(scope, mode);
+
         var opening = KitPreloadPlan.OpeningKit(mode, false, KitCatalog.ReserveBaseKit, GunGameOpening,
             Modes.TacticalMode.SelectOpeningKit);
 

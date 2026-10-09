@@ -79,6 +79,14 @@ namespace ArenaMode.Bots
     public static class CorpseCleanupService { public static void Tick() { } }
 }
 namespace ArenaMode.Movement { public static class MovementRuntime { public static void Tick() { } } }
+// Host services called by the production controller, unrelated to this harness's warmup seam.
+namespace ArenaMode.Performance { public static class GcThresholdMonitor { public static void Tick() { } } }
+namespace ArenaMode.Pickups { public static class ArenaPickupRuntime { public static void Tick() { } } }
+namespace ArenaMode.Combat.Fire { public static class ArenaFireRuntime { public static void Tick() { } } }
+namespace ArenaMode.Session { public static class ArenaRaidExit { public static void Tick() { } } }
+namespace ArenaMode.Hud { public static class ArenaExtractionList { public static void Tick() { } } }
+namespace ArenaMode.Audio { public static class HitmarkerAudioService { public static void Tick() { } } }
+namespace ArenaMode.Bots { public static class ArenaBotPatches { public static void TickIndividualGroups() { } } }
 namespace ArenaMode.Combat
 {
     public static class ArenaSkills { public static void Tick() { } }
