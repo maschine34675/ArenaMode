@@ -7,6 +7,32 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Solo Zombie one-life rule and Factory courtyard (2026-10-09, later):**
+  `e4ba7c3` excludes the four additional courtyard points beside the known
+  `c671337f` marker on Factory day/night; ten exact exclusions including the five
+  existing underground records, with 135/145 original points retained. Protected
+  PFT leaders now receive this filter in Zombies as well as Tactical; ordinary
+  and solo player starts are unchanged. GPU scene inventory confirmed all five
+  courtyard markers, not final-build PFT pathfinding acceptance.
+  `92f3f4b` makes solo Zombies end on first death with either loadout, retaining
+  exact-owner terminal hold through optional replay; PFT cleared-wave restoration
+  remains separate. `2db0f4f` prevents the result panel covering the killcam.
+  Final client ProductVersion `0.1.0+2db0f4fe087509de475ae6416db95a3eddadf733`,
+  SHA256 `AD4AC28B9F29FD5E2268D183E09988AB463D71F2857EF876EE5C342FBE46D883`;
+  server `0.1.0+e4ba7c3cbf8adb7fe36d60bee18094d6b92ff09f`, SHA256
+  `FEF1AD1DDBB40DCD68F3389E0B796053472134EB0934F0CC361839A49B8AB93A`.
+  Both deployed locally/GPU2, server restarted and final client 21/21 loaded/disk
+  matches verified. GPU2 own-gear/replay-off death and kit/replay-on melee death
+  exit without respawn; final replay retest visibly clear. Full profile unchanged
+  except Health/Hideout bookkeeping timestamps; all twelve PFT files unchanged.
+  Config restored byte-identically, EFT closed, server running, no push. See
+  `GPU-SOLO-ZOMBIE-FACTORY-RESULTS-20261009.md` for exact native/offline boundaries,
+  hashes and known benign teardown warnings. Unit suite 885 passed/two skips;
+  Factory 1105/14 compiled faults; final Solo 85/13, PFT 59/11, burst 34/9;
+  related menu, killcam, TDM, Give up and announcer regressions pass. Independent
+  reviews clear. Final client build zero errors/four existing warnings, server
+  zero errors/two existing warnings; Core, BigBrain, PFT and assets unchanged.
+
 - **Zombie PFT map correction and native smoke (2026-10-09):** `ecc22d5` removes
   the leftover Tactical-only area-menu guard and describes the Zombie squad as
   five allies. Locally and on GPU2 deployed client ProductVersion
