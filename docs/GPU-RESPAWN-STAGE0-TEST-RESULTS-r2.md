@@ -10,7 +10,7 @@ Abschlussstand: Hauptmenü wieder erreicht, Einstellungen zurückgestellt, Profi
 
 Grundlage ist GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r2.md; AGENTS.md, aktueller HANDOFF und r1-Bericht wurden gegengelesen. Test-ID **respawn-stage0-r2**. Ausschließlich native Bedienung des Spiels und ergänzende lesende Auswertung. Die angeordneten Testwerte wurden über F12 gesetzt und anschließend zurückgestellt. Keine Produktionsdateien oder Profile wurden durch die Testwerkzeuge bearbeitet. Kein Build, Deployment, interner Arm-Aufruf, erzwungenes Matchereignis oder Laufzeitinstrumentierung.
 
-Private Evidenzwurzel: `artifacts/gpu-respawn-stage0/respawn-stage0-r2/2026-09-13T06-09-57-689Z/`. Vollständige Logs, Profile und Einstellungen verbleiben dort. Veröffentlichbare Belege liegen unter [test-evidence/respawn-stage0-r2](test-evidence/respawn-stage0-r2/README.md), private Kennungen in den gezielten Auszügen sind redigiert. r1 bleibt unverändert.
+Private Evidenzwurzel: `artifacts/gpu-respawn-stage0/respawn-stage0-r2/2026-09-13T06-09-57-689Z/`. Vollständige Logs, Profile und Einstellungen verbleiben dort. Veröffentlichbare Belege liegen unter [test-evidence/respawn-stage0-r2](../test-evidence/respawn-stage0-r2/README.md), private Kennungen in den gezielten Auszügen sind redigiert. r1 bleibt unverändert.
 
 | Merkmal | Beobachteter Stand |
 |---|---|
@@ -67,24 +67,24 @@ Factory Tag, gewöhnlicher PMC, nativ ausgerüstete Pistole. F12: MaxRespawnsPer
 
 | Unterfall | Status | Tatsächlicher Nachweis / Grenze |
 |---|---|---|
-| Natürlicher Tod, Fenster, nackter Ersatzkörper | PASS | [a-respawn-near-1-0.png](test-evidence/respawn-stage0-r2/screenshots/a-respawn-near-1-0.png) und [a-respawn-1-arrival-0.png](test-evidence/respawn-stage0-r2/screenshots/a-respawn-1-arrival-0.png); keine native KIA-Endseite statt Respawnfenster |
+| Natürlicher Tod, Fenster, nackter Ersatzkörper | PASS | [a-respawn-near-1-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-respawn-near-1-0.png) und [a-respawn-1-arrival-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-respawn-1-arrival-0.png); keine native KIA-Endseite statt Respawnfenster |
 | Korrigierte Markerfolge | PASS | Death intercepted 0/3 **08:17:41.054** → Schutz 30 s **08:18:05.312** → Respawn complete **08:18:05.691** → Schutzende **08:18:35.623**, jeweils einmal |
-| Bewegung und DynamicMaps folgen Ersatzkörper | PASS, nach Schutzende | Kartenposition (3.52, −37.56) → (3.16, −37.79); [a-map-after-movement-0.png](test-evidence/respawn-stage0-r2/screenshots/a-map-after-movement-0.png) / [a-map-position-second-0.png](test-evidence/respawn-stage0-r2/screenshots/a-map-position-second-0.png) |
+| Bewegung und DynamicMaps folgen Ersatzkörper | PASS, nach Schutzende | Kartenposition (3.52, −37.56) → (3.16, −37.79); [a-map-after-movement-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-map-after-movement-0.png) / [a-map-position-second-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-map-position-second-0.png) |
 | Alle Prüfungen innerhalb der 30 Schutzsekunden | OFFEN / Timingvorgabe nicht erfüllt | Positive Bewegungs-/Kartenbelege liegen später; kein rückwirkender Pass des vorgeschriebenen Schutzfensters |
 | Sprint und Sprung | OFFEN | Shift+W und Space gesendet, Originalbilder vorhanden; Einzelbilder beweisen keinen eindeutigen vollständigen Ablauf |
-| Escape/Resume, später Inventar/Karte und Exit | PASS für Bedienbarkeit | [a-respawn-escape-open-0.png](test-evidence/respawn-stage0-r2/screenshots/a-respawn-escape-open-0.png), [a-menu-safe-resume-0.png](test-evidence/respawn-stage0-r2/screenshots/a-menu-safe-resume-0.png), [a-disconnect-0.png](test-evidence/respawn-stage0-r2/screenshots/a-disconnect-0.png), [a-confirm-leave-0.png](test-evidence/respawn-stage0-r2/screenshots/a-confirm-leave-0.png) |
+| Escape/Resume, später Inventar/Karte und Exit | PASS für Bedienbarkeit | [a-respawn-escape-open-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-respawn-escape-open-0.png), [a-menu-safe-resume-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-menu-safe-resume-0.png), [a-disconnect-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-disconnect-0.png), [a-confirm-leave-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-confirm-leave-0.png) |
 | Fehlerfreier Menüwechsel | **FAIL** | Ein Unity-Error **08:18:46.434**, L13233: MenuScreen inaktiv; kein zugehöriger Exceptionstack |
-| Extraktionstimer | PASS | Native O-Eingabe, Timer **18:14** in [a-respawn-timer-0.png](test-evidence/respawn-stage0-r2/screenshots/a-respawn-timer-0.png); verbleibende Zeit, keine Uhrzeit |
+| Extraktionstimer | PASS | Native O-Eingabe, Timer **18:14** in [a-respawn-timer-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-respawn-timer-0.png); verbleibende Zeit, keine Uhrzeit |
 | Vollständige Exfil-Liste | OFFEN | Nicht sichtbar gesichert; Timer ersetzt Exfil-Liste nicht |
 | Eigene Leiche looten / eigene Waffe zurückholen | OFFEN | Kein nativer Loot-/Rückholbeleg; „corpse retains raid loadout“ ist kein Ersatz |
 | Zweiter Tod / Fenster 1/3 | OFFEN | Ein Tod, ein Respawn; zweiter Fall nicht ausgelöst |
 | AutoIFF-/Freecam-/Recorder-Rebind | PASS für beobachteten Übergang | Freecam aktiviert, Recorder 08:18:05.675 und AutoIFF .687 neu gebunden, keine dabei ausgelöste Exception |
 | Killcam durch Respawn abgebrochen | OFFEN | Replay endete schon **08:17:59.551** mit live tail complete, vor dem Respawn; kein durch Respawn ausgelöster Abbruch |
-| Regulärer LEFT, Hauptmenü, Stash/Charakter | PASS | [a-exit-result-0.png](test-evidence/respawn-stage0-r2/screenshots/a-exit-result-0.png) 05:14, [a-main-menu-confirmed-0.png](test-evidence/respawn-stage0-r2/screenshots/a-main-menu-confirmed-0.png), [a-stash-after-0.png](test-evidence/respawn-stage0-r2/screenshots/a-stash-after-0.png); Server LEFT 06:22:43.874 UTC |
+| Regulärer LEFT, Hauptmenü, Stash/Charakter | PASS | [a-exit-result-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-exit-result-0.png) 05:14, [a-main-menu-confirmed-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-main-menu-confirmed-0.png), [a-stash-after-0.png](../test-evidence/respawn-stage0-r2/screenshots/a-stash-after-0.png); Server LEFT 06:22:43.874 UTC |
 
 Der einzelne Error lautet vollständig: **Coroutine couldn't be started because the the game object 'MenuScreen' is inactive!** Kein zugehöriger Exceptionstack. Ein zunächst vorsichtiger Skriptstopp wurde nach Einordnung der r2-Regel und erfolgreichem Resume/Inventar/Karte/Exit aufgehoben: ein einzelner Error ist weder neue Exception noch belegte Fehlerflut oder anhaltender Softlock. Der Menü-Unterfall bleibt dennoch FAIL. Kein pauschaler Fehlerfreiheitspass für A.
 
-Der in r2 ausdrücklich entfallene Black-screen-Marker kommt 0-mal vor, kein Fehler. Details: [A-Audit](test-evidence/respawn-stage0-r2/audit/raid-A-end-audit.json) und [A-Logauszüge](test-evidence/respawn-stage0-r2/logs/raid-A-end-excerpts.txt). A ist gewöhnlicher PMC; kein Arena-Profilgleichheitsvergleich vorgeschrieben. Native angebotene Heilung für 0 RUB verwendet, keine Profilreparatur.
+Der in r2 ausdrücklich entfallene Black-screen-Marker kommt 0-mal vor, kein Fehler. Details: [A-Audit](../test-evidence/respawn-stage0-r2/audit/raid-A-end-audit.json) und [A-Logauszüge](../test-evidence/respawn-stage0-r2/logs/raid-A-end-excerpts.txt). A ist gewöhnlicher PMC; kein Arena-Profilgleichheitsvergleich vorgeschrieben. Native angebotene Heilung für 0 RUB verwendet, keine Profilreparatur.
 
 ## B — Cooldown-Race OFFEN; vorgesehener Fallback PASS
 
@@ -92,10 +92,10 @@ Cooldown **20 s**, sonst r2-Werte 3 Respawns / 30 s Schutz. Natürlicher Tod **0
 
 | Unterfall | Status | Tatsächlicher Nachweis / Grenze |
 |---|---|---|
-| Tatsächlicher Raidabbruch innerhalb Cooldown | **OFFEN** | [B-cooldown-escape-0.png](test-evidence/respawn-stage0-r2/screenshots/B-cooldown-escape-0.png) zeigt keinen erreichbaren Exit; kein nativer Abbruch im toten Zustand |
+| Tatsächlicher Raidabbruch innerhalb Cooldown | **OFFEN** | [B-cooldown-escape-0.png](../test-evidence/respawn-stage0-r2/screenshots/B-cooldown-escape-0.png) zeigt keinen erreichbaren Exit; kein nativer Abbruch im toten Zustand |
 | Erwartete Race-Abbruchmarker | OFFEN, jeweils 0 | External raid end while respawn pending / Respawn cancelled during cooldown nicht ausgelöst; keine erfolgreiche Race-Prüfung daraus ableiten |
 | Fallback abwarten / regulärer Respawn | PASS | Schutz aktiv **08:32:13.374**, Respawn complete **.733**, Schutzende **08:32:43.644**. Diese Marker sind beim angeordneten Fallback korrekt, kein B-FAIL wegen ihrer Anwesenheit |
-| Danach regulär verlassen, Hauptmenü, Stash | PASS | Escape **08:32:50.342**, Confirm Leave **08:33:22.651**, LEFT 02:17; Server 06:33:24.102 UTC, [B-postraid-0.png](test-evidence/respawn-stage0-r2/screenshots/B-postraid-0.png) / [B-stash-0.png](test-evidence/respawn-stage0-r2/screenshots/B-stash-0.png) |
+| Danach regulär verlassen, Hauptmenü, Stash | PASS | Escape **08:32:50.342**, Confirm Leave **08:33:22.651**, LEFT 02:17; Server 06:33:24.102 UTC, [B-postraid-0.png](../test-evidence/respawn-stage0-r2/screenshots/B-postraid-0.png) / [B-stash-0.png](../test-evidence/respawn-stage0-r2/screenshots/B-stash-0.png) |
 | Keine neuen Fehler im B-Abschnitt | PASS | 0 Errors/Exceptions, 0 verbotene Marker; Core eine Culling-Warnung, Unity eine Warnung |
 
 B wurde nicht durch erzwungene interne Ereignisse ersetzt. Die vollständige Cooldown-Race-Abnahme bleibt OFFEN, auch wenn der Fallback funktioniert.
@@ -106,10 +106,10 @@ B wurde nicht durch erzwungene interne Ereignisse ersetzt. Die vollständige Coo
 |---|---|---|
 | Weiterer gewöhnlicher PMC Factory Tag | PASS | Nativ READY → Spawn → Escape → Disconnect → Confirm Leave; eigener zusätzlicher Raid, kein bloßer Menüwechsel |
 | Reset an Raid-Grenze | PASS für beobachteten Fall | ordinary-confirm **06:37:42.039 UTC** einmal; 0 Respawn refused, 0 B-Abbruchmarker, 0 Death-/Schutz-/Respawnmarker, 0 Arena-Arm/Active |
-| Reguläres Ende / Hauptmenü / Stash | PASS | LEFT **00:49**, Server **06:38:31.508 UTC**; [R-postraid-0.png](test-evidence/respawn-stage0-r2/screenshots/R-postraid-0.png), [R-main-menu-0.png](test-evidence/respawn-stage0-r2/screenshots/R-main-menu-0.png), [R-stash-0.png](test-evidence/respawn-stage0-r2/screenshots/R-stash-0.png) |
+| Reguläres Ende / Hauptmenü / Stash | PASS | LEFT **00:49**, Server **06:38:31.508 UTC**; [R-postraid-0.png](../test-evidence/respawn-stage0-r2/screenshots/R-postraid-0.png), [R-main-menu-0.png](../test-evidence/respawn-stage0-r2/screenshots/R-main-menu-0.png), [R-stash-0.png](../test-evidence/respawn-stage0-r2/screenshots/R-stash-0.png) |
 | Fehlerfreiheit im Resetabschnitt | PASS | 0 Errors/Exceptions/Serverfehler; 16 Unity-Warnungen, Core/Redeploy/Arena jeweils 0 Warnungen/Errors |
 
-Der Reset bestätigt keinen vorher nicht ausgelösten Cooldown-Abbruch. Quelle [R-Audit](test-evidence/respawn-stage0-r2/audit/raid-R-end-audit.json); [zeitliche Zuordnung](test-evidence/respawn-stage0-r2/audit/timing.json).
+Der Reset bestätigt keinen vorher nicht ausgelösten Cooldown-Abbruch. Quelle [R-Audit](../test-evidence/respawn-stage0-r2/audit/raid-R-end-audit.json); [zeitliche Zuordnung](../test-evidence/respawn-stage0-r2/audit/timing.json).
 
 ## C — Arena: Kit-Swap und Give-up PASS, natürlicher Tod OFFEN, Stopübergang FAIL
 
@@ -129,11 +129,11 @@ Factory Tag / Deathmatch FFA / Endless / Kills Off / Time Off, normale native Au
 
 Scav.RepeatableQuests fehlt in beiden Profilkopien; die Gleichheit dieses Feldvergleichs bedeutet beidseitige Abwesenheit.
 
-Profilbelege: [vollständiger Vergleich](test-evidence/respawn-stage0-r2/audit/C-profile-audit.public.json) und [einzelne Abweichung](test-evidence/respawn-stage0-r2/audit/C-profile-diff-review.public.json). Vollständige JSON-Rekursion, Groß-/Kleinschreibung und Typen bleiben erhalten, Arrays positionsgetreu; fehlend unterscheidet sich von null. Serverseitig Restore **06:51:04.849 UTC**, Protected End mit persistiertem Snapshot **06:51:05.003 UTC**. Davor noch vorläufiges deferred raid-end **06:51:04.723 UTC**; dieses wurde durch den späteren Endpfad aufgelöst. Der vollständige Profilvergleich bleibt davon getrennt. Keine Profilkopie zurückgespielt oder manuell bearbeitet.
+Profilbelege: [vollständiger Vergleich](../test-evidence/respawn-stage0-r2/audit/C-profile-audit.public.json) und [einzelne Abweichung](../test-evidence/respawn-stage0-r2/audit/C-profile-diff-review.public.json). Vollständige JSON-Rekursion, Groß-/Kleinschreibung und Typen bleiben erhalten, Arrays positionsgetreu; fehlend unterscheidet sich von null. Serverseitig Restore **06:51:04.849 UTC**, Protected End mit persistiertem Snapshot **06:51:05.003 UTC**. Davor noch vorläufiges deferred raid-end **06:51:04.723 UTC**; dieses wurde durch den späteren Endpfad aufgelöst. Der vollständige Profilvergleich bleibt davon getrennt. Keine Profilkopie zurückgespielt oder manuell bearbeitet.
 
 ## Stopbefund: vollständiger relevanter Stack
 
-Quelle Unity Log, **08:51:03.441 MESZ / 06:51:03.441 UTC**, Client **L14052–14078**, vollständig gesichert in [raid-C-stop-full-stack.txt](test-evidence/respawn-stage0-r2/logs/raid-C-stop-full-stack.txt). Kein Stack aus BotDropDiag-Infozeilen als Ausnahmebeleg verwendet.
+Quelle Unity Log, **08:51:03.441 MESZ / 06:51:03.441 UTC**, Client **L14052–14078**, vollständig gesichert in [raid-C-stop-full-stack.txt](../test-evidence/respawn-stage0-r2/logs/raid-C-stop-full-stack.txt). Kein Stack aus BotDropDiag-Infozeilen als Ausnahmebeleg verwendet.
 
 ```text
 [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
@@ -190,7 +190,7 @@ BotDropDiag separat: **43 Infoeinträge** im frischen Gesamtclient, davon **32 i
 
 ## Rückstellung, verbleibende Grenzen und Übergabe
 
-Über die native Oberfläche wurden **MaxRespawnsPerRaid 2, Cooldown 5, Schutz 10** auf die persönlichen Ausgangswerte zurückgestellt. Redeploy.cfg anschließend bytegleich. Alle neun Dateien enthalten wieder die ursprünglichen Einstellungswerte; Kommentar-/Metadatenabweichungen bleiben ausdrücklich sichtbar: Arena.cfg nur acht Kommentar-Dezimaltrenner Punkt → Komma; client-settings.json nur UpdatedAt 08:04:11 → 08:16:53; sieben andere Dateien bytegleich. **64 Assets bytegleich**. Der separat festgestellte BotDropDiag-DLL-Hashwechsel bleibt bestehen. Die Rückstellung war um 08:54 MESZ abgeschlossen; die erneute Verifikation um 08:58 MESZ bestätigt die Werte. Alle drei ursprünglichen Prozesse reagieren weiterhin, Spiel und Server wurden während des Laufs nicht neu gestartet. Belege: [Rückstellung](test-evidence/respawn-stage0-r2/audit/cleanup-verification.json), [Prozesse](test-evidence/respawn-stage0-r2/audit/processes-final.json), [Dateivergleich](test-evidence/respawn-stage0-r2/audit/final-settings-assets.json).
+Über die native Oberfläche wurden **MaxRespawnsPerRaid 2, Cooldown 5, Schutz 10** auf die persönlichen Ausgangswerte zurückgestellt. Redeploy.cfg anschließend bytegleich. Alle neun Dateien enthalten wieder die ursprünglichen Einstellungswerte; Kommentar-/Metadatenabweichungen bleiben ausdrücklich sichtbar: Arena.cfg nur acht Kommentar-Dezimaltrenner Punkt → Komma; client-settings.json nur UpdatedAt 08:04:11 → 08:16:53; sieben andere Dateien bytegleich. **64 Assets bytegleich**. Der separat festgestellte BotDropDiag-DLL-Hashwechsel bleibt bestehen. Die Rückstellung war um 08:54 MESZ abgeschlossen; die erneute Verifikation um 08:58 MESZ bestätigt die Werte. Alle drei ursprünglichen Prozesse reagieren weiterhin, Spiel und Server wurden während des Laufs nicht neu gestartet. Belege: [Rückstellung](../test-evidence/respawn-stage0-r2/audit/cleanup-verification.json), [Prozesse](../test-evidence/respawn-stage0-r2/audit/processes-final.json), [Dateivergleich](../test-evidence/respawn-stage0-r2/audit/final-settings-assets.json).
 
 | Restfall | Status | Grund |
 |---|---|---|
@@ -219,6 +219,6 @@ Versionsressourcen bei der Abschlussprüfung; für die acht Pflichtdateien sind 
 | DynamicMaps | `1.2.1+99200c60f084d1f64491dee93ceb09351bb8a2cd` |
 | BotDropDiag | `0.1.0+04d579413cbfbadb7e4184341084ab956c577cb5` |
 
-[Alle Bindungsmessungen und Endstatus](test-evidence/respawn-stage0-r2/audit/hash-final.json), [finale Prozessdaten](test-evidence/respawn-stage0-r2/audit/processes-final.json), [Rückstellung](test-evidence/respawn-stage0-r2/audit/cleanup-verification.json), [Log-Endzählung](test-evidence/respawn-stage0-r2/audit/final-cleanup-audit.json).
+[Alle Bindungsmessungen und Endstatus](../test-evidence/respawn-stage0-r2/audit/hash-final.json), [finale Prozessdaten](../test-evidence/respawn-stage0-r2/audit/processes-final.json), [Rückstellung](../test-evidence/respawn-stage0-r2/audit/cleanup-verification.json), [Log-Endzählung](../test-evidence/respawn-stage0-r2/audit/final-cleanup-audit.json).
 
-Originalaufnahmen sind unverändert; Aufnahmezeiten und ursprüngliche Hashes stehen im [Bildindex](test-evidence/respawn-stage0-r2/screenshots/index.json). Alle veröffentlichten Belege sowie dieser Bericht sind im [SHA256-Manifest](test-evidence/respawn-stage0-r2/SHA256SUMS.txt) gebunden. Vollständige Rohlogs und Profile sind ausgeschlossen.
+Originalaufnahmen sind unverändert; Aufnahmezeiten und ursprüngliche Hashes stehen im [Bildindex](../test-evidence/respawn-stage0-r2/screenshots/index.json). Alle veröffentlichten Belege sowie dieser Bericht sind im [SHA256-Manifest](../test-evidence/respawn-stage0-r2/SHA256SUMS.txt) gebunden. Vollständige Rohlogs und Profile sind ausgeschlossen.

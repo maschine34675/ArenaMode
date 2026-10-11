@@ -1,6 +1,6 @@
 # Belege — area-map-preview-r1, 13.09.2026
 
-[Ergebnisbericht](../../GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r1.md): FAIL bei der Auswahl von Factory East; anschließend Stopp gemäß Testanweisung, 0 Raids.
+[Ergebnisbericht](../../docs/GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r1.md): FAIL bei der Auswahl von Factory East; anschließend Stopp gemäß Testanweisung, 0 Raids.
 
 - screenshots/: elf unveränderte vollständige JPEG-Aufnahmen des Spiels; keine Launcher-/Profilauswahlbilder.
 - audit/: Buildbindung, Vor-/Endhashes, Prozesszeiten, Eingaben, Bildindex, Einstellungsdelta, Logzählung und statischer Auswahlblocker.

@@ -1,11 +1,19 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-11. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-11. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Documentation layout (2026-10-11):** All 217 former root Markdown documents
+  and 43 historical JSON manifests now live in `docs/`. Root `AGENTS.md` stays
+  discoverable and points here; actual relative Markdown links have been rebased.
+  New documentation belongs here too. Commands/source paths in older reports
+  remain relative to the repository root, and absolute historical build paths
+  keep their original meaning. See `README.md` in this directory for navigation.
+  This move changes no gameplay source, build configuration, deployment or profile.
 
 - **Repository consolidation (2026-10-11):** All original feature/fix tips and
   the detached DoubleJump tip are now reachable from `master`. `1c34469` merges

@@ -19,7 +19,7 @@ Weapon cases cover active, PreActive, temporarily NonActive, explicitly dead,
 Disposed and manager-disposed owners; missing/foreign managers; ordinary raids;
 and replaced worlds/bodies despite a repeated profile ID. Each case checks both
 initial values of IsWeaponReady and preserves that value. Only admitted retired
-callbacks clear IsChanging. See [the weapon review](../../BOT-WEAPON-CALLBACK-REVIEW.md) for the
+callbacks clear IsChanging. See [the weapon review](../../docs/BOT-WEAPON-CALLBACK-REVIEW.md) for the
 diagnosis, exact ownership boundary and evidence limits.
 
 The current shared baseline has **118 assertions**. The separate scripts require

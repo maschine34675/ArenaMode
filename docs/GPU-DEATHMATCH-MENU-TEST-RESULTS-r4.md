@@ -78,11 +78,11 @@ Der zweite Vorher-/Nachher-Bildabstand beträgt rund 10,3 s; davon liegen rund 2
 
 Vor dem reproduzierenden Klick:
 
-![F9 offen, MP-153 4/4 plus 1](test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/a-f9-before-close-2-2026-09-12T14-14-15-462Z-0.jpg)
+![F9 offen, MP-153 4/4 plus 1](../test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/a-f9-before-close-2-2026-09-12T14-14-15-462Z-0.jpg)
 
 Unmittelbar danach:
 
-![Close geschlossen, MP-153 3/4 plus 1](test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/a-close-2-immediate-after-2026-09-12T14-14-25-740Z-0.jpg)
+![Close geschlossen, MP-153 3/4 plus 1](../test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/a-close-2-immediate-after-2026-09-12T14-14-25-740Z-0.jpg)
 
 ## Ausstieg, Logdelta und Schutzmeldungen
 
@@ -147,6 +147,6 @@ Die Grenze wurde vorsorglich als **20 Minuten verstrichene Zeit ab erster native
 
 Getrennte Ladebeobachtungen: Spielstart vor Testclock 14:06:02.896 bis Hauptmenü spätestens 14:09:57.549. Raid-Ready 14:11:54.203; noch Ladebild 14:12:26.651; erstes aufgenommenes Live-Bild 14:13:06.612. Rückweg: Confirm Leave 14:15:46.165, Endscreen spätestens 14:16:12.470; Main-Menu-Klick 14:16:21.828, noch Ladebild 14:16:37.226, vollständiges Menü spätestens 14:17:47.237. Diese Intervalle enthalten Beobachtungs-/Werkzeuglücken und sind **keine exakten Ladezeiten**; für die Unter-20-Minuten-Grenze wurde nichts davon abgezogen.
 
-Belege: **20 unveränderte Originalbilder** und gezielte Prüfdaten unter [test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z](test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/), mit SHA256-Manifest. Rohlogs, vollständige Profile und weitere Originalbilder ausschließlich unter dem ignorierten `artifacts/gpu-deathmatch-menu/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/`. Veröffentlichte Logauszüge sind gezielt ausgewählt und private Kennungen redigiert.
+Belege: **20 unveränderte Originalbilder** und gezielte Prüfdaten unter [test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z](../test-evidence/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z), mit SHA256-Manifest. Rohlogs, vollständige Profile und weitere Originalbilder ausschließlich unter dem ignorierten `artifacts/gpu-deathmatch-menu/deathmatch-menu-exit-r4/2026-09-12T14-00-41-576Z/`. Veröffentlichte Logauszüge sind gezielt ausgewählt und private Kennungen redigiert.
 
 Nur dieser Bericht und seine Belege gehören zum Abnahmecommit. r1/r2/r3-Berichte und deren Belege bleiben unverändert. Die schon vorher vorhandene fremde Datei `ArenaMode.Server/defaults/~syncthing~ladder.json.tmp` bleibt unangetastet.

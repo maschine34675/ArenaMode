@@ -1,26 +1,31 @@
 # ArenaMode — working notes for agents
 
+Documentation, reviews, handoffs and historical build/deployment manifests live
+in `docs/`; start with [docs/README.md](docs/README.md). Keep this `AGENTS.md` at
+the repository root for automatic discovery and the offline harness root checks.
+Place new documentation and evidence summaries in `docs/`, not beside this file.
+
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version
 PitFireTeam compatibility path supports protected Tactical 5v5 and five-player
-Zombie survival; read ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
+Zombie survival; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
 accepted builds are the exact set in `ArenaMode.Shared/PitFireTeamVersions.cs`
 (0.10.0 and 0.10.3), never a range — 0.10.1/0.10.2 were never diffed.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
-optional finite/unlimited scoring rounds. See DEATHMATCH-MENU-REVIEW.md and
-DEATHMATCH-MODE-REVIEW.md before changing score admission or terminal death holds.
+optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and
+docs/DEATHMATCH-MODE-REVIEW.md before changing score admission or terminal death holds.
 Deathmatch FFA group/relationship hooks also operate during a confirmed arm on
 its matching loading map, since native preactivation fixes group membership.
 They never apply to an ordinary/unarmed map; server rejection after that seam
 shares the documented preload exception's limits. Individual native groups must
 remain registered and must be retired only after membership ended (not merely
-AfterCreation, which is still PreActive). See DEATHMATCH-GROUPS-REVIEW.md.
+AfterCreation, which is still PreActive). See docs/DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
-it is separate from protected PitFireTeam Tactical. See TEAM-DEATHMATCH-REVIEW.md.
+it is separate from protected PitFireTeam Tactical. See docs/TEAM-DEATHMATCH-REVIEW.md.
 Team Friendly Fire is a raid-frozen mutator: Team DM and PFT Tactical default on,
-PFT Zombies off; solo is unavailable. Read FRIENDLY-FIRE-REVIEW.md before changing
+PFT Zombies off; solo is unavailable. Read docs/FRIENDLY-FIRE-REVIEW.md before changing
 damage admission, physical team identities or attributed grenade effects. Do not
 use historical tracer IDs as authority to grant immunity to replacement bodies.
 Equator remains unavailable for Tactical and is also excluded from PFT Zombies
@@ -28,14 +33,14 @@ because the five-person squad obstructs itself; solo Zombies stays supported.
 Independent Equator Team DM uses the original north USEC and south BEAR team
 boxes for initial placement and respawns (4–20 total participants). The exact
 raid clone adds twenty private versioned markers; never move or overwrite the
-common MapPort markers. Read EQUATOR-TEAM-SPAWNS-REVIEW.md before changing the
+common MapPort markers. Read docs/EQUATOR-TEAM-SPAWNS-REVIEW.md before changing the
 MapPort repair ordering, initial physics/live navigation gates, reservations or
 body-arrival validation. No map-wide fallback is allowed after box negotiation.
 Zombies offers solo or a protected four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any
 selected replay; only the PFT squad restores fallen members between cleared waves.
-See ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
+See docs/ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
 hooks, the wave policy or its stuck-wave watchdog.
 Map-screen participant totals include one reserved human slot. Negotiated
 Deathmatch/Gun Game owns its single-bot roster and optional Labyrinth boss slot;
@@ -43,38 +48,38 @@ native waves and unowned creator calls are suppressed only for the exact selecte
 Arena raid, including its confirmed matching-map loading phase. Never reset
 ArenaSoloPopulation during the player's respawn or expire dispatched reservations
 into free capacity. New full-map totals require exact quiet-clone validation on
-the server, not just the existing bounded-area check. See PARTICIPANTS-REVIEW.md
-and SOLO-POPULATION-REVIEW.md before changing this admission contract.
+the server, not just the existing bounded-area check. See docs/PARTICIPANTS-REVIEW.md
+and docs/SOLO-POPULATION-REVIEW.md before changing this admission contract.
 Independent TDM also has a ready/countdown/live/result lifecycle and client-owned
-kill/time limits, frozen per match. See TDM-MATCH-FLOW-REVIEW.md before changing
+kill/time limits, frozen per match. See docs/TDM-MATCH-FLOW-REVIEW.md before changing
 scoring or death handling: terminal death interception must remain armed until
 the native player owner is verified and the intentional protected exit starts.
 Damage assists add proportional base points without changing the killer reward,
-kill limits or Tactical money. Read ASSIST-SCORING-REVIEW.md before changing HP
+kill limits or Tactical money. Read docs/ASSIST-SCORING-REVIEW.md before changing HP
 capture, settlement or scoreboard compaction: actual HP deltas precede native
 kill callbacks, and assist identity must use immutable keys across archived rows.
 Arena-owned powerups and automatic weapon pickups are limited to live Deathmatch
-and independent TDM. Read PICKUPS-REVIEW.md before changing damage, scene or native
+and independent TDM. Read docs/PICKUPS-REVIEW.md before changing damage, scene or native
 inventory ownership: only confirmed transfers consume a pickup, ambiguous/pending
 failures never rearm it, and pooled weapon models must never be destroyed or parented
 by the marker view. Gun Game, Tactical/PFT and ordinary loot are excluded.
 Arena landing recovery, firearm draw/holster and deliberate airborne vault/hip
-fire are documented in AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
+fire are documented in docs/AIR-MOVEMENT-REVIEW.md. Preserve exact local-body guards,
 native geometry/firearm restrictions, temporary-state cleanup and double-jump
 precedence; offline checks cannot certify native animator transitions.
-Optional timed Bunnyhop is documented in BUNNYHOP-REVIEW.md. Preserve actual
+Optional timed Bunnyhop is documented in docs/BUNNYHOP-REVIEW.md. Preserve actual
 controller contact, one input owner, native landing/Jump entry, collision-reduced
 momentum and single-application displacement scaling; never grant hops from the
 ground-proximity ray alone or cancel every ordinary native Fall limit.
 Bot locomotion has independent Arena-only walk/sprint controls. Read
-BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN door
+docs/BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN door
 guard; preserve exact live body identity, native collision and finalizer cleanup.
 Normalized movement targets alone do not provide the displacement bonus.
 Customs offers three unified surveyed areas: Factory Center, Factory Side and
 Customs Yard, available in every Arena mode; whole Customs is rejected in Arena.
 Independent TDM retains 2v2–5v5 faction starts; DM/Gun Game negotiate total
 participants, Tactical and Zombies own their fixed/wave rosters. Read
-CUSTOMS-ALL-MODES-REVIEW.md and PFT-PORTED-MAPS-REVIEW.md for bounded PFT placement,
+docs/CUSTOMS-ALL-MODES-REVIEW.md and docs/PFT-PORTED-MAPS-REVIEW.md for bounded PFT placement,
 deferred native follower startup and exact-world area readiness before mode clocks.
 PFT changes the local entry category to Coop; only the exact frozen squad's
 Tactical/Zombie loading request may use that category for the bounded PMC start.
@@ -84,9 +89,9 @@ Bounded duplicate IDs and raw creation leases belong to the exact native raid
 creator; never clear old-creator tombstones while delayed creation can resume.
 Protected Tactical keeps its five frozen opponent bodies until roster retirement
 because identity validation still reads them after death. Read
-TACTICAL-CORPSE-REVIEW.md before changing physical release; normal hiding/stripping
+docs/TACTICAL-CORPSE-REVIEW.md before changing physical release; normal hiding/stripping
 and strict unexpected live-body loss checks remain active.
-Read PORTED-COVER-REVIEW.md for Bay5/Equator's empty-cover combat guards: retain
+Read docs/PORTED-COVER-REVIEW.md for Bay5/Equator's empty-cover combat guards: retain
 real native NavMesh results, never manufacture cover points or successful paths.
 Failed starts queue their native Stop after the startup frame and revoke both
 ambient burst work and the separate managed solo population leases.
@@ -96,26 +101,26 @@ only. Yard adds twenty private per-raid spawn records around two native ground
 anchors using NEW IDs (native FixParams does not change existing marker zones).
 Never repair extras during final response validation or mutate native donor rows.
 All areas retain unlimited height and fail-closed live navigation/occupancy checks.
-See CUSTOMS-AREAS-REVIEW.md and AREA-TEAM-SETUP-REVIEW.md; database candidate
+See docs/CUSTOMS-AREAS-REVIEW.md and docs/AREA-TEAM-SETUP-REVIEW.md; database candidate
 capacity and offline checks are not GPU acceptance of the new Yard offsets.
 
 Read this before changing anything. Most of it was learned the expensive way.
 
-Then read [HANDOFF.md](HANDOFF.md) for the dated working state, pending GPU tests,
+Then read [docs/HANDOFF.md](docs/HANDOFF.md) for the dated working state, pending GPU tests,
 and coordination between development/test machines. Verify its recorded commits
 against the current checkout; it is a handoff snapshot, not an automatic record
 of another running session. Update it when handing work over or changing the
 agreed responsibilities. Historical milestone/test counts below are not current
 acceptance evidence; use the dated handoff and the relevant review document.
 
-Read `DEPENDENCIES.md` for hard/conditional dependencies, exact optional-mod
+Read `docs/DEPENDENCIES.md` for hard/conditional dependencies, exact optional-mod
 contracts, absorbed own mods and release package boundaries. An installed mod
 is not automatically required or exhaustively certified compatible.
-Arena's local default full-auto rule is documented in `DEFAULT-FIRE-MODE-REVIEW.md`.
+Arena's local default full-auto rule is documented in `docs/DEFAULT-FIRE-MODE-REVIEW.md`.
 Preserve manual selection while held, native available modes and exact confirmed
 raid/body/hands ownership; the standalone DefaultAutoFireMode must be disabled
 when testing Arena's own rule in isolation.
-`HUD-MUTATORS-REVIEW.md` documents the scoped ARENA HUD switch: preserve individual
+`docs/HUD-MUTATORS-REVIEW.md` documents the scoped ARENA HUD switch: preserve individual
 HUD preferences, essential match notices and the separate audio controls.
 
 **UiBridge is allowed in every GPU run (user decision, 2026-09-18).**
@@ -236,12 +241,12 @@ test above was verified that way — reintroduce the comma and three tests go re
    (end of raid via `Dispose()`/`ArenaSession.OnRaidEnded`, or — if a previous
    raid's load aborted before either ran — by the very next raid's own
    `Activate()` call, which fires unconditionally for every raid); see
-   ZOMBIE-MODE-REVIEW.md for the full restore-path argument.
+   docs/ZOMBIE-MODE-REVIEW.md for the full restore-path argument.
    Post-raid UI runs after IsActive is cleared. ArenaPostRaidScreens captures the
    exact ended LocalRaidSettings/profile/epoch and binds one native result
    operation before changing its warning/XP presentation. This is a UI-only
    exception; native profile refresh and result completion must remain intact.
-   See POSTRAID-PAGES-REVIEW.md for both forward and health-back navigation.
+   See docs/POSTRAID-PAGES-REVIEW.md for both forward and health-back navigation.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with
@@ -258,12 +263,12 @@ explicitly export draft files in a normal local PMC raid when BOTH `Enabled` and
 `AllowInNormalPmc` are enabled. The user needs to walk beyond the existing Arena
 contour. This does not authorize ordinary-raid gameplay/profile changes, Arena
 activation, invulnerability, Scav/Hideout capture or weakening any Arena barrier.
-Both switches default off. See `POLYGON-AREA-REVIEW.md` for the exact boundary.
+Both switches default off. See `docs/POLYGON-AREA-REVIEW.md` for the exact boundary.
 The accepted pickup prototype extends this read-only exception to its separate
 `Development - Pickups / Enabled` capture tool plus the same explicit
 `AllowInNormalPmc` switch. It may preview coordinates and export new PickupDrafts;
 it must never spawn loot, grant effects or automatically install a layout there.
-See `PICKUPS-REVIEW.md` for per-map/area layout admission and capture shortcuts.
+See `docs/PICKUPS-REVIEW.md` for per-map/area layout admission and capture shortcuts.
 
 ## Traps this project has already fallen into
 
@@ -382,7 +387,7 @@ is the raid's total allocation — 7 MB/s in a Labyrinth deathmatch — and a gr
 not a leak. The only collections are forced and BLOCKING (raid end, menu): 0.5 to 0.9 s
 each on the GPU host. Never call `GC.Collect` or `GC.GetTotalMemory(true)` from Arena
 code, not even for diagnostics. `GcThresholdMonitor` switches the incremental collector
-back on past `GcHeapThresholdGB`; see `GC-THRESHOLD-REVIEW.md`.
+back on past `GcHeapThresholdGB`; see `docs/GC-THRESHOLD-REVIEW.md`.
 
 **A Harmony patch that asks for `__originalMethod` on a method declared on a generic
 type throws on every call, before the patch body ever runs — even for a closed
@@ -398,7 +403,7 @@ signature — use `object __instance` cast to whatever public interface the type
 and by-name pass-through parameters spelled EXACTLY as the concrete implementation spells
 them, not as an interface it implements may spell them (`IAssetPool.ExpandPool`
 misspells `objectsCount` as `objectsCoun`; Harmony binds by name against the method it
-actually patched). See `POOL-PREWARM-REVIEW.md`, "The Harmony recipe".
+actually patched). See `docs/POOL-PREWARM-REVIEW.md`, "The Harmony recipe".
 
 **SAIN's `RunToEnemyUpdate` prefix returns `false` for every bot SAIN does
 not own.** Its trailing, unconditional `return false;` skips Harmony's
@@ -409,7 +414,7 @@ Never patch SAIN or race its patch order; instead patch one call site up
 (`OneMeleeAttackNode.UpdateNodeByBrain`) and drive the real native body
 through a Harmony reverse patch (`Harmony.CreateReversePatcher`), which
 copies the original IL into a patch-chain-free `MethodInfo` SAIN's prefix
-never sees. See `ZombieMeleePatch` and ZOMBIE-MODE-REVIEW.md, "Native melee
+never sees. See `ZombieMeleePatch` and docs/ZOMBIE-MODE-REVIEW.md, "Native melee
 is suppressed by SAIN's global prefix".
 
 **A cached live-body reference goes stale, silently, for any body swap that
@@ -438,7 +443,7 @@ calls with the Magazine wrapper. The original scanner then threw
 `ArrayTypeMismatchException` before the postfix could check the runtime types,
 breaking the weapon HUD, internal reload and G. Patch non-generic consumers and
 replace only their exact Magazine calls instead. A desktop-CLR test of a postfix
-cannot certify Mono generic detours. See `BACKPACK-RELOAD-REVIEW.md`.
+cannot certify Mono generic detours. See `docs/BACKPACK-RELOAD-REVIEW.md`.
 
 ## Where the knowledge is
 
@@ -459,11 +464,11 @@ Tactical mode are in and lightly tested.
 Open:
 
 - **M8 polish** — optional per-mode KillcamReplay is implemented; see
-  `KILLCAM-MODES-REVIEW.md` for frozen menu selection, camera ownership and
+  `docs/KILLCAM-MODES-REVIEW.md` for frozen menu selection, camera ownership and
   pending native acceptance. README and release packaging remain separate.
   Never bundle ABPS/APBS/SAIN DLLs.
 - **Tactical** needs a longer playtest; only the first rounds have been played.
-- **Performance** is now measured, not guessed: see LONG-RAID-REVIEW-2026-09-16.md,
+- **Performance** is now measured, not guessed: see docs/LONG-RAID-REVIEW-2026-09-16.md,
   which supersedes the 2026-09-05 report. Over 27 minutes all mods together grow
   from ~2.1 to ~3.0 ms/frame, SAIN is five times our cost, and one SAIN postfix on
   `GameWorld.DoWorldTick` is 29% of measured mod time — too small to explain a
@@ -483,7 +488,7 @@ Open:
   2026-09-17: a trimmed corpse is now RELEASED a sweep later — the body leaves
   the scene instead of staying an active player object — because 446 hidden
   bodies were what made every whole-scene search grow (415 active LocalPlayer
-  objects, 303 ms to count them). Read CORPSE-CLEANUP-REVIEW.md, section
+  objects, 303 ms to count them). Read docs/CORPSE-CLEANUP-REVIEW.md, section
   "Releasing a trimmed corpse", before touching corpse lifetime: the step order
   is load-bearing, PitFireTeam bodies are never released, and a body is
   never destroyed while DynamicMaps still holds its marker or while anybody is
@@ -492,20 +497,20 @@ Open:
   and the live player-object count from 415 at 23 min to about 63 at 24 min.
   What was left there was dominated by the player's OWN corpses, which were
   exempt by design at the time. Since 2026-09-18 ("Own corpses release too",
-  CORPSE-CLEANUP-REVIEW.md) only the NEWEST own body keeps that exemption: an
+  docs/CORPSE-CLEANUP-REVIEW.md) only the NEWEST own body keeps that exemption: an
   older one releases like any other corpse, once nothing still needs it —
   including a refinement so the live player's own current combat cannot hold
   an older own body open forever just because it shares that body's profile
   id (`CorpseDamageSources.StillNamedInRegistry`, keyed on whether
   `GameWorld`'s own ever-existed registry still resolves to that exact body).
   The own-corpse-release path itself has NOT had its own GPU raid — see
-  CORPSE-CLEANUP-REVIEW.md's "What this does not claim". Do not read the GPU
+  docs/CORPSE-CLEANUP-REVIEW.md's "What this does not claim". Do not read the GPU
   acceptance below as covering it; it predates it.
   Zombie mode additionally sweeps at a 1 s cadence (`ZombieCadenceSeconds`)
   instead of 5 s and drains releases between sweeps at up to two per frame
   (`ZombieMaxReleasesPerFrame`/`DrainBetweenSweeps`) rather than waiting for
   the next sweep's eight-per-sweep cap (2026-10-07; see
-  ZOMBIE-MODE-REVIEW.md, "v3"); every other mode's cadence, release cap and
+  docs/ZOMBIE-MODE-REVIEW.md, "v3"); every other mode's cadence, release cap and
   `MayRelease` holds, and the ragdoll-settled gate that keeps a body visibly
   falling, are unchanged by this.
   The `Player.ApplyDamageInfo` / `ClientGameWorld.ShotDelegate`
@@ -525,7 +530,7 @@ Open:
   quiet period (SAIN's deferred `BotMemory.GetHit`). Note that `TripwireManager`
   drops a tripwire the moment it is TRIGGERED, i.e. while its grenade burns —
   read the sync-object processor's lists instead. Do NOT prune
-  `_allPlayersEverExisted` or its bridge twin; read CORPSE-CLEANUP-REVIEW.md,
+  `_allPlayersEverExisted` or its bridge twin; read docs/CORPSE-CLEANUP-REVIEW.md,
   "Settled (2026-09-17…)" and "What held that body", before touching corpse
   lifetime. `ArenaDamageExceptionLog` (Diagnostics/`LogDamageExceptions`,
   default on) stays as the regression alarm, and `ReleaseTrimmedCorpses` still
@@ -539,7 +544,7 @@ Open:
   for diagnostics. `Config.Settings.GcHeapThresholdGB` (default 4, 0 = never)
   switches Unity's own incremental collector back on past a heap threshold,
   timed to a death/round break/bounded wait so it costs nothing on a raid
-  that never crosses it; see `GC-THRESHOLD-REVIEW.md` and
+  that never crosses it; see `docs/GC-THRESHOLD-REVIEW.md` and
   `ArenaMode.Client/Performance/`.
   A second, separate cost in the same class: `ObjectsFactory.InitAndFillPools` sizes
   every asset pool (AFAKs, survival kits, weapon families, hands prefabs, ...) to the
@@ -558,7 +563,7 @@ Open:
   error; a non-arena control raid (Factory as Scav, 12 bots, 19.09.2026) logged no
   ArenaMode line at all. What remains is the number of pools itself (+6 per body: every never-seen
   loadout variant creates a pool with its `"initial"` fill), deliberately untouched.
-  See `POOL-PREWARM-REVIEW.md`.
+  See `docs/POOL-PREWARM-REVIEW.md`.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
 - **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded

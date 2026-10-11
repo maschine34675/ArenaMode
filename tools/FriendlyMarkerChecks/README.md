@@ -45,7 +45,7 @@ source copies must fail their intended assertions; production sources stay intac
   retains normal camera viewport offsets. An unknown active state hides markers.
   Output and viewport changes are read every callback; input RT dimensions and
   requested quality ratios are not used to place HUD graphics. See
-  [FRIENDLY-MARKERS-REVIEW.md](../../FRIENDLY-MARKERS-REVIEW.md).
+  [FRIENDLY-MARKERS-REVIEW.md](../../docs/FRIENDLY-MARKERS-REVIEW.md).
   A disabled scaler is a defensive fallback; third-party mods that disable only
   SSAAImpl while keeping direct postprocessing propagation alive are not simulated.
 

@@ -6,7 +6,7 @@
 
 Test-ID `deathmatch-menu-exit-r6`; Installation `C:\SPT41`, Repository `C:\SPT41\Development\ArenaMode`. AGENTS und aktueller HANDOFF gelesen. Vorgeschrieben sind Source-/Build-Commit `0b7f38d594b09644803f263a510543293b11ed63`, Branch `feature/arena-air-control` und Client ProductVersion `0.1.0+0b7f38d594b09644803f263a510543293b11ed63`.
 
-Der [Root-Preflight](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight.json) um **18:32:07.393 UTC / 20:32:07 MESZ** ergibt:
+Der [Root-Preflight](../test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight.json) um **18:32:07.393 UTC / 20:32:07 MESZ** ergibt:
 
 | Komponente | Soll-SHA256 | Beobachtete SHA256 | Bindung |
 |---|---|---|---|
@@ -18,7 +18,7 @@ Der [Root-Preflight](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-6
 
 Beim Root-Read hat der Client ProductVersion `0.1.0+bb82ce8c81960f501fcf1b8312e9b267fad0480a`, LastWriteTime **18:31:48.3099819 UTC**. Redeploy hat ProductVersion `0.9.0+c938f5c43cb311a8a9ba1f81b2eb10573b99b936`, LastWriteTime **18:27:14.9352113 UTC**. Dies sind zeitlich gebundene Beobachtungen, keine Behauptung einer anschließend stabilen Installation.
 
-Eine unabhängige Vorprüfung las zuvor Client `B40FD17FFC89229D7273A26D7194FD0C0FBF19A8FC850E99AA3419C1DF84629E` und um **18:31:42.168 UTC** `52A45F8E001F33AF2880B42EABE01CB0E56EA9CA1251AD1488E29BD6C7B3A5E4`. Alle drei beobachteten Clienthashes weichen vom Soll ab. [Abgegrenzte Beobachtungsfolge und Lieferbeleg](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight-context.json).
+Eine unabhängige Vorprüfung las zuvor Client `B40FD17FFC89229D7273A26D7194FD0C0FBF19A8FC850E99AA3419C1DF84629E` und um **18:31:42.168 UTC** `52A45F8E001F33AF2880B42EABE01CB0E56EA9CA1251AD1488E29BD6C7B3A5E4`. Alle drei beobachteten Clienthashes weichen vom Soll ab. [Abgegrenzte Beobachtungsfolge und Lieferbeleg](../test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight-context.json).
 
 Git stand anfangs auf `67d27cad87e9004c22e33df8e97a551b648d0fe0`, später auf `3a5123c70980a8074cf3c18d6c57dbac5385cc97`, jeweils Branch `feature/arena-air-control`. Die anfangs fremd geänderte `LiveKitRespawn.cs` wurde von diesem Auftrag nicht bearbeitet; ihr Status änderte sich ebenfalls während der Vorprüfung. Die fremde Syncthing-Datei bleibt unangetastet. Ursache und Urheber der parallel beobachteten Änderungen wurden nicht ermittelt.
 
@@ -26,7 +26,7 @@ Das referenzierte Build-Manifest und der Lieferbeleg sind vorhanden; die separat
 
 ### Abschließende Bindungsprüfung und aktualisiertes Handoff
 
-Der [Abschlussread um 18:37:28.417 UTC](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/final-binding-check.json) findet Client **`546EB7656D702C9B63A96C3408F34E871E5445108B9D9F69804C337DE4D0999C`**, Server **`04533957CB2618F2AEE3241CEB1157BC0CCD81FF5278C7DC39CC72E05434799A`** und weiterhin Redeploy **`520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48`**. Damit weichen nun **drei** gebundene Dateien ab. Die vorherige Server-PASS-Zeile gilt ausschließlich für den ausdrücklich datierten früheren Read. SAIN und DynamicMaps sind weiterhin hashgleich.
+Der [Abschlussread um 18:37:28.417 UTC](../test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/final-binding-check.json) findet Client **`546EB7656D702C9B63A96C3408F34E871E5445108B9D9F69804C337DE4D0999C`**, Server **`04533957CB2618F2AEE3241CEB1157BC0CCD81FF5278C7DC39CC72E05434799A`** und weiterhin Redeploy **`520BF61A0F6B52ACB8209B060B7739E88C3237712EABFBDE0DDB74E0E10ABF48`**. Damit weichen nun **drei** gebundene Dateien ab. Die vorherige Server-PASS-Zeile gilt ausschließlich für den ausdrücklich datierten früheren Read. SAIN und DynamicMaps sind weiterhin hashgleich.
 
 Das parallel aktualisierte Handoff beschreibt inzwischen Redeploy.Core stage 0 und Arena-Build `3a5123c70980a8074cf3c18d6c57dbac5385cc97` mit genau diesen drei neuen Hashes. Es fordert ausdrücklich die Neubindung der noch auf `2042C558…` bezogenen r6/r4-Anweisungen, bevor die Belege vergleichbar sind. Das ist ein dokumentierter neuer Entwicklungsstand; dessen Gameplay-Sicherheit wurde hier nicht geprüft. **Beide vom Nutzer genannten Anweisungsdateien sind beim Abschlussread bytegleich mit dem zuvor gelesenen alten Stand.** Sie wurden durch diesen Testauftrag nicht umgeschrieben. Das fremd geänderte HANDOFF wird ebenfalls nicht mitcommittet.
 
@@ -56,4 +56,4 @@ Die Stopregel nennt ausdrücklich jeden Hashwechsel; die Anweisung untersagt Bui
 
 ## Belege
 
-[Preflight](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight.json), [Kontext](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight-context.json), [SHA256-Manifest](test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/SHA256SUMS.txt). Keine Bilder/Clips, weil kein Spiel gestartet wurde. Private Anweisungssicherungen liegen ausschließlich unter ignoriertem `artifacts/gpu-preflight/`. Der [separate Refinements-r4-Bericht](GPU-ARENA-REFINEMENTS-TEST-RESULTS-r4.md) bleibt ebenfalls blockiert. Historische Berichte unverändert.
+[Preflight](../test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight.json), [Kontext](../test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/preflight-context.json), [SHA256-Manifest](../test-evidence/deathmatch-menu-exit-r6/2026-09-12T18-33-24-686Z/SHA256SUMS.txt). Keine Bilder/Clips, weil kein Spiel gestartet wurde. Private Anweisungssicherungen liegen ausschließlich unter ignoriertem `artifacts/gpu-preflight/`. Der [separate Refinements-r4-Bericht](GPU-ARENA-REFINEMENTS-TEST-RESULTS-r4.md) bleibt ebenfalls blockiert. Historische Berichte unverändert.

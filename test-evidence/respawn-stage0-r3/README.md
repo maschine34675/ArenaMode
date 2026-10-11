@@ -1,6 +1,6 @@
 # Belege: respawn-stage0-r3
 
-Native GPU-Prüfung vom 13.09.2026. Ergebnisbericht: [GPU-RESPAWN-STAGE0-TEST-RESULTS-r3.md](../../GPU-RESPAWN-STAGE0-TEST-RESULTS-r3.md). Keine vollständige Abnahme; drei Raids E, A und C, anschließend vorsorglicher Stopp wegen zweier SAIN-Initialisierungsfehler.
+Native GPU-Prüfung vom 13.09.2026. Ergebnisbericht: [GPU-RESPAWN-STAGE0-TEST-RESULTS-r3.md](../../docs/GPU-RESPAWN-STAGE0-TEST-RESULTS-r3.md). Keine vollständige Abnahme; drei Raids E, A und C, anschließend vorsorglicher Stopp wegen zweier SAIN-Initialisierungsfehler.
 
 - `screenshots/`: 28 unveränderte Originalbilder. Die Aufnahmefunktion hatte JPEG/JFIF-Inhalte zunächst privat mit `.png` benannt; öffentliche Erweiterungen wurden auf `.jpg` korrigiert, ohne die Bytes zu ändern.
 - `audit/screenshot-index.json`: Aufnahmeintervalle, Bildmaße und SHA256 der Originale.

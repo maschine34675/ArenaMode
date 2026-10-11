@@ -1,6 +1,6 @@
 # Respawn Stufe 0 r2 — Belege
 
-Frischer Lauf vom 13.09.2026 nach angefordertem Serverneustart. Vier native Raids; Pflichtstopp beim Ausstieg aus C. Bericht: [GPU-RESPAWN-STAGE0-TEST-RESULTS-r2.md](../../GPU-RESPAWN-STAGE0-TEST-RESULTS-r2.md).
+Frischer Lauf vom 13.09.2026 nach angefordertem Serverneustart. Vier native Raids; Pflichtstopp beim Ausstieg aus C. Bericht: [GPU-RESPAWN-STAGE0-TEST-RESULTS-r2.md](../../docs/GPU-RESPAWN-STAGE0-TEST-RESULTS-r2.md).
 
 - `screenshots/`: 42 unveränderte Originalbilder. `index.json` enthält Aufnahmezeit, Abmessungen und Original-SHA256. Launcher-/Codex-Aufnahmen wurden ausgeschlossen.
 - `logs/`: gezielte Auszüge mit Client-Zeilennummern und lokalen MESZ-Zeiten sowie Server-Zeilennummern und UTC. Private Kennungen sind als `[private-id]` redigiert. Der vollständige relevante BotFirstAid-Stack ist enthalten.

@@ -14,7 +14,7 @@ existing modes: 37 recordings can play; four alternate results and five CTF line
 remain unused. The 2026-09-17 supplement below adds four more, for 41. The loader
 reads the root plus an explicit reserve whitelist, never
 a recursive scan. Root custom overrides still win. See
-[ANNOUNCER-EXPANSION-REVIEW.md](../../../ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
+[ANNOUNCER-EXPANSION-REVIEW.md](../../../docs/ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
 
 Slicing uses pause midpoints cross-checked against the waveform and a local
 base.en Whisper transcript. The input was not uploaded for transcription.
