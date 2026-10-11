@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Repository consolidation (2026-10-11):** All original feature/fix tips and
+  the detached DoubleJump tip are now reachable from `master`. `1c34469` merges
+  the only outstanding commit, `ac5803d` (historical Molotov delivery evidence);
+  no gameplay code changed. Eight merged branches and four auxiliary worktrees
+  removed without force, after preserving and verifying every ignored file in
+  `D:\SPT41\Development\_archives\ArenaMode-worktrees-20261011-212002`.
+  Only the main checkout/master remain; 15 untracked Molotov WAVs stay untouched
+  and unpublished. User authorized pushing the consolidated history to private
+  `dev/master`; older “no push” notes remain historical. No new build/deployment
+  or GPU test in this cleanup. See `GIT-CLEANUP-20261011.md` for tips and recovery.
+
 - **HUD/utility mutators + helmet (2026-10-11, deployed/native checked):**
   `5eaeda3` adds the attributed Skoll Stahlhelm, `a51b34d` adds AUTO QUICKSLOTS,
   INSTANT SEARCH and scoped ARENA HUD. The latter controls combat feedback and
