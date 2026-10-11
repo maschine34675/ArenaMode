@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -55,14 +56,14 @@ public static class ArenaEquatorTeamSpawns
         new Point("arena-equator-tdm-v1-south-10", false, 4.974000f, 0.080000f, -39.087002f, -0.000002f),
     });
 
-    public static bool Applies(string map, string mode)
+    public static bool Applies(string? map, string? mode)
         => string.Equals(map, MapId, StringComparison.OrdinalIgnoreCase)
            && string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase);
 
-    public static bool Owns(string id)
+    public static bool Owns(string? id)
         => id != null && id.StartsWith(IdPrefix, StringComparison.Ordinal);
 
-    public static Point Find(string id)
+    public static Point? Find(string? id)
     {
         foreach (var point in Points) if (point.Id == id) return point;
         return null;
