@@ -117,6 +117,7 @@ public sealed partial class ArenaAreaServerTests
             ArenaContext.Config.Maps[mapId] = new ArenaModeConfig().Maps[mapId];
             var (router, saves, profile, cloner) = CustomsRouter();
             var request = new ArenaRaidStartRequest { Map = mapId, Mode = mode, RequestId = Token,
+                Participants = ArenaEquatorTeamSpawns.Applies(mapId, mode!) ? 4 : null,
                 DeathmatchHostility = mode == "deathmatch" ? DeathmatchSelection.FreeForAll : null };
             using var result = JsonDocument.Parse(await InvokeStart(router, request));
             Assert.Equal(expected, result.RootElement.GetProperty("armed").GetBoolean());

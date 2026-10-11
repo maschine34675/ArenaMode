@@ -127,12 +127,20 @@ internal static class Program
                 view.Refresh(candidate, false, selection);
                 Bounds();
                 bool expected = candidate.Available && mode != "tactical"
+                    && count <= (map == ArenaMapCatalog.EquatorId && mode == "teamdeathmatch" ? 20 : 24)
                     && (mode != "teamdeathmatch" || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),
                     "native controls reflect count and format admission");
             }
         }
+        var equatorTeam = Area(ArenaMapCatalog.EquatorId, "teamdeathmatch");
+        var twenty = ArenaParticipantSelectionState.Create(equatorTeam, false, 20);
+        Need(twenty.Available && !twenty.CanIncrease && twenty.CanDecrease, "Equator native box capacity disables plus at 10v10");
+        Need(!ArenaParticipantSelectionState.Create(equatorTeam, false, 24).Available,
+            "Equator rejects 12v12 rather than offering unavailable box positions");
+        Need(ArenaParticipantSelectionState.Create(Area(ArenaMapCatalog.EquatorId, "deathmatch"), false, 24).Available,
+            "Equator FFA keeps its independent 24 participant limit");
         Refresh(); Bounds();
         Need(Text("Team size").Contains("you included") && Text("Mode restriction") == "Recommended: 10", "participant labels explain total and default");
         var stable = Plus(); Refresh(); Need(ReferenceEquals(stable, Plus()), "periodic same-context refresh preserves button listeners");

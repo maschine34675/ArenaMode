@@ -10,6 +10,9 @@ function Slice([string]$start, [string]$end) {
 }
 $preload = Slice '// A final kill or time limit can land while kit bundles are loading.' 'var requestedSpawn = new ArenaSpawnSelector('
 $failure = Slice 'if (failure != null)' 'Plugin.ModLogger.LogError($"Arena respawn failed:'
+$boxFailure = Slice '// Box respawns retain their safe-exit owner' 'if (Areas.ArenaAreaRuntime.CurrentArea != null)'
+$boxArrival = Slice 'if (respawned == null || !respawned.IsYourPlayer' 'if (kit != null)'
+$identity = Slice 'internal static bool IsSameActiveRaid(LocalGame game, int raidEpoch)' 'internal static bool BeginPipelineUse('
 $methods = foreach ($name in @('ShouldBlockDeathScreen(LocalGame game)', 'ShouldBlockKilledStop(LocalGame game)', 'ShouldHoldBlackScreen()', 'ShouldSuppressKilledSessionResult()')) {
     $start = $source.IndexOf('public bool ' + $name, [StringComparison]::Ordinal)
     if ($start -lt 0) { throw "Missing production driver method: $name" }
@@ -45,7 +48,24 @@ internal sealed class RespawnGuardProbe
         }
         yield break;
     }
+    internal IEnumerator AfterBoxFailure(Exception failure)
+    {
+        BOXFAILURE
+        FallbackCalled = true;
+        yield break;
+    }
+    internal IEnumerator BeforeRespawnEvents(LocalGame game, Player respawned)
+    {
+        BOXARRIVAL
+        EnteredEngine = true; // observable continuation: kit/respawn events
+        yield break;
+    }
     METHODS
 }
+internal static class RespawnIdentityProbe
+{
+    internal static readonly ArenaRaidEpoch RaidEpoch = new ArenaRaidEpoch();
+    IDENTITY
+}
 '@
-[IO.File]::WriteAllText($OutputPath, $template.Replace('PRELOAD', $preload).Replace('FAILURE', $failure).Replace('METHODS', ($methods -join "`n")))
+[IO.File]::WriteAllText($OutputPath, $template.Replace('BOXFAILURE', $boxFailure).Replace('BOXARRIVAL', $boxArrival).Replace('PRELOAD', $preload).Replace('FAILURE', $failure).Replace('METHODS', ($methods -join "`n")).Replace('IDENTITY', $identity))

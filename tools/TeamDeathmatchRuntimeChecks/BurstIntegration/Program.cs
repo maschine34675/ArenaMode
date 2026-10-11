@@ -119,8 +119,56 @@ internal static class Program
             "duplicate callback for admitted exact body cannot kill the valid actor");
         CheckInfectedTerminalAdmission();
         CheckOwnedInfectedLifecycle();
+        CheckTeamBoxDispatch();
         Console.WriteLine($"PASS: {_checks} extracted production burst preparation integration checks.");
         Console.WriteLine("ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED");
+    }
+
+    private static void CheckTeamBoxDispatch()
+    {
+        foreach (int variant in Enumerable.Range(0, 7))
+        {
+            var attempt = new Attempt();
+            ArenaEquatorTeamSpawns.IsRequired = true;
+            ArenaMode.Areas.ArenaAreaRuntime.HasTeamStarts = false;
+            Harness.DelayArrival = true;
+            if (variant == 0) Harness.PlacementAvailable = false;
+            var started = attempt.Start();
+            Check(Harness.Events.Contains("box-preflight"), "Equator faction preflight uses team box");
+            if (variant == 0)
+            {
+                Check(started == 0 && !Harness.Events.Contains("create"), "unavailable team box never falls back before profile load");
+                continue;
+            }
+            if (variant == 1) Harness.PlacementAvailable = false;
+            if (variant == 2) attempt.RefuseBegin = true;
+            if (variant == 3) Harness.ThrowNative = true;
+            attempt.Complete();
+            Check(Harness.Events.Contains("box-plan"), "Equator replans its own box after profile await");
+            if (variant == 1 || variant == 2)
+            {
+                Check(Harness.NativeCalls == 0 && attempt.Data.Stops > 0
+                    && (variant == 1 || ArenaEquatorTeamSpawns.LastLease.Disposed),
+                    "unavailable or refused box dispatch stops only undispatched data and releases its lease");
+                continue;
+            }
+            Check(!ArenaEquatorTeamSpawns.LastLease.Disposed && attempt.Data.Stops == 0,
+                "native pending or uncertain team-box placement retains its reservation");
+            if (variant == 3) continue;
+            if (variant == 4) Harness.AcceptPlacement = false;
+            if (variant == 5) Harness.LeaseCurrent = false;
+            Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
+            Check(ArenaEquatorTeamSpawns.LastLease.Disposed, "team-box callback releases exact reservation");
+            Check(variant == 6 ? attempt.Observers == 1 && !Harness.Body.Retired
+                : attempt.Observers == 0 && Harness.Body.Retired,
+                "team-box arrival must pass live placement and raid checks before admission");
+            if (variant == 6)
+            {
+                Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
+                Check(attempt.Observers == 1 && !Harness.Body.Retired,
+                    "duplicate team-box callback cannot retire admitted body");
+            }
+        }
     }
 
     private static void CheckInfectedTerminalAdmission()

@@ -41,10 +41,15 @@ foreach (string mode in modes)
     Need(!ArenaAreaCatalog.TryResolveTeamSize(area, 5, out _, out _),
         "FULL-SIZE: stale bounded team size cannot become a full-map override");
     bool selectable = mode is "deathmatch" or "gungame" or "teamdeathmatch";
-    foreach (int total in new[] { 4, 8, 24 })
+    foreach (int total in new[] { 4, 8, 20, 24 })
+    {
+        bool expected = selectable && !(ArenaMapCatalog.IsEquator(map) && mode == "teamdeathmatch" && total > 20);
         Need(ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out int? selected, out _)
-            == selectable && (!selectable || selected == total), "PARTICIPANTS: exact frozen total " + mode);
+            == expected && (!expected || selected == total), "PARTICIPANTS: exact frozen total " + map + "/" + mode);
+    }
 }
+Need(!ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.EquatorId, "teamdeathmatch", false, false, 24, out _, out _),
+    "EQUATOR-TEAM-CAPACITY: twenty native places cannot promise 24 participants");
 foreach (string map in maps)
 foreach (string mode in new[] { "tactical", "zombie" })
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out var area, out _)
@@ -109,7 +114,7 @@ foreach (string map in maps)
     string file = map == ArenaMapCatalog.CustomsId
         ? Path.Combine(sptRoot, "SPT_Runtime", "SPT_Data", "database", "locations", "bigmap", "base.json")
         : Path.Combine(sptRoot, "SPT_Runtime", "user", "mods", "ArenaMapPort", "db",
-            map == ArenaMapCatalog.EquatorId ? "base.json" : "arena_bay5/base.json");
+            map, "base.json");
     using var document = JsonDocument.Parse(File.ReadAllText(file));
     Need(document.RootElement.GetProperty("Id").GetString() == map, "DATA-ID: inspect the exact installed map");
     var markers = document.RootElement.GetProperty("SpawnPointParams").EnumerateArray().ToArray();

@@ -74,7 +74,13 @@ namespace SPT.Common.Http
     }
 }
 namespace Redeploy.Core.Compat { public static class FikaCompatCheck { public static bool IsFikaLoaded; } }
-namespace ArenaMode.Bots { internal static class ArenaBotSpawnPatches { internal static bool SoloPopulationReady = true; } }
+namespace ArenaMode.Bots
+{
+    internal static class ArenaBotSpawnPatches { internal static bool SoloPopulationReady = true; }
+    // Native Harmony installation is an external dependency of this menu-only
+    // harness. The Equator runtime harness verifies the real spawn implementation.
+    internal static class ArenaEquatorTeamSpawns { internal static bool IsReady = true; }
+}
 namespace ArenaMode
 {
     public static class Plugin { public static TestLogger ModLogger = new(); }

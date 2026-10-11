@@ -95,6 +95,7 @@ public class Plugin : BaseUnityPlugin
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();
         Areas.ArenaAreaInitialSpawnPatch.EnablePatch();
+        Bots.ArenaEquatorTeamSpawns.Enable();
         Areas.ArenaAreaLoadPatch.Enable();
         Effects.ArenaTracerPatches.Enable();
         Effects.ArenaTeamLaserColors.Enable();
@@ -163,6 +164,7 @@ public class Plugin : BaseUnityPlugin
         Movement.ArenaAirVault.Shutdown();
         Kits.KitOpticPreloadGuard.Shutdown();
         Areas.ArenaAreaRuntime.Reset();
+        Bots.ArenaEquatorTeamSpawns.Shutdown();
         Areas.ArenaAreaInitialSpawnPatch.Shutdown();
         Areas.ArenaAreaNavigationPatches.Shutdown();
         Areas.ArenaAreaSpawnPointsPatch.Shutdown();

@@ -236,6 +236,7 @@ public static class ArenaSession
         ArenaReplaySelection.Clear();
         ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();
+        Bots.ArenaEquatorTeamSpawns.Reset();
         _pendingAreaStartGame = null;
         _pendingAreaStartWorld = null;
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
@@ -405,6 +406,16 @@ public static class ArenaSession
             Modes.ArenaMatchService.ScheduleFailedStartAbort("bounded Arena area initialization failed");
             return;
         }
+        try
+        {
+            Bots.ArenaEquatorTeamSpawns.Begin(world, currentGame as LocalGame);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError("Equator Team DM box initialization failed: " + ex.Message);
+            Modes.ArenaMatchService.ScheduleFailedStartAbort("Equator Team DM box initialization failed");
+            return;
+        }
         Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
         if (Areas.ArenaAreaRuntime.IsPending)
         {
@@ -537,6 +548,7 @@ public static class ArenaSession
         ArenaPostRaidScreens.CaptureEndedRaid(_startedGame, _startedWorld);
         ClearParticipants();
         Areas.ArenaAreaRuntime.Reset();
+        Bots.ArenaEquatorTeamSpawns.Reset();
         // Clear exact start identity before any early return. A later GameWorld
         // must never be mistaken for a duplicate of this completed raid.
         _startedWorld = null;

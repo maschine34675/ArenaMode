@@ -54,7 +54,7 @@ $arenaFaults = @(
     @('retired-show', 'ArenaMode.Client\Session\ArenaLocationSelectionPatch.cs', $arenaGenerationSite, $arenaGenerationFault,
         $arenaNative, 'ProductionLocationPatchSource', 'NATIVE-PARTICIPANT-GENERATION:'),
     @('changed-saved-area', 'ArenaMode.Client\Session\ArenaLocationSelectionPatch.cs',
-        '&& Settings.TeamDeathmatchArea?.Value != rendered.AreaId', '&& false',
+        '|| Settings.TeamDeathmatchArea?.Value != rendered.AreaId', '|| false',
         $arenaNative, 'ProductionLocationPatchSource', 'NATIVE-PARTICIPANT-AREA:'))
 try {
     foreach ($arenaFault in $arenaFaults) {

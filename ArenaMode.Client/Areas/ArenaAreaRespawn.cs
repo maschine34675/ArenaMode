@@ -15,6 +15,8 @@ internal static class ArenaAreaRespawn
     internal static bool TryPrepare(LocalGame game, ISpawnSelector original, out ISpawnSelector prepared)
     {
         prepared = original;
+        if (Bots.ArenaEquatorTeamSpawns.IsRequired)
+            return Bots.ArenaEquatorTeamSpawns.TryPrepareRespawn(game, original, out prepared);
         var area = ArenaAreaRuntime.CurrentArea;
         if (area == null) return true;
         try

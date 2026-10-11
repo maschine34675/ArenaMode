@@ -300,6 +300,13 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             Plugin.ModLogger.LogError($"Arena respawn failed: {failure}");
             StandDown = true;
             EndPipelineUse(raidEpoch);
+            // Box respawns retain their safe-exit owner after a failed handover.
+            if (Bots.ArenaEquatorTeamSpawns.IsRequired)
+            {
+                Modes.ArenaMatchService.ScheduleFailedStartAbort(
+                    "Equator team body replacement failed: " + failure.GetBaseException().Message);
+                yield break;
+            }
             if (Areas.ArenaAreaRuntime.CurrentArea != null)
             {
                 Areas.ArenaAreaRuntime.Abort("body replacement failed: " + failure.GetBaseException().Message);
@@ -326,8 +333,15 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         if (respawned == null || !respawned.IsYourPlayer || !ReferenceEquals(game.LocalPlayer, respawned))
         {
             Plugin.ModLogger.LogWarning("Arena respawn finished without the exact new local-player body — no respawn event published.");
+            if (Bots.ArenaEquatorTeamSpawns.IsRequired)
+                Modes.ArenaMatchService.ScheduleFailedStartAbort("Equator player replacement did not return the exact local body.");
             yield break;
         }
+
+        // Body creation is asynchronous. Revalidate the actual arrival before
+        // any kit/respawn subscriber can resume the match or release its hold.
+        if (!Bots.ArenaEquatorTeamSpawns.ReleasePlayerReservation(respawned))
+            yield break;
 
         if (kit != null)
             ArenaEvents.RaiseKitApplied(kit);
@@ -646,7 +660,12 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         => RaidEpoch.IsCurrent(
             raidEpoch,
             ArenaSession.IsActive,
-            game != null && game.Status == GameStatus.Started);
+            game != null && game.Status == GameStatus.Started
+                && Comfort.Common.Singleton<AbstractGame>.Instantiated
+                && ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, game)
+                && Comfort.Common.Singleton<GameWorld>.Instantiated
+                && ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance, game.GameWorld)
+                && ArenaSession.IsExactActiveRaid(game, game.GameWorld));
 
     internal static bool BeginPipelineUse(LocalGame game, int raidEpoch)
     {

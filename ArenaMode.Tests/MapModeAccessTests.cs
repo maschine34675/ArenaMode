@@ -30,6 +30,8 @@ public sealed class MapModeAccessTests
             NewSpawn = true,
             OfflineNewSpawn = true,
         };
+        if (ArenaEquatorTeamSpawns.Applies(mapId, mode))
+            original.SpawnPointParams = [EquatorTeamSpawnTests.Donor()];
         string before = JsonSerializer.Serialize(original);
         var clone = JsonSerializer.Deserialize<LocationBase>(before)!;
         var config = new ArenaModeConfig();

@@ -51,6 +51,8 @@ public static class ArenaLocationMutator
         // Validate the complete retained set before changing any raid data.
         // A missing area preserves the legacy path, including its original list.
         ApplyAreaSpawns(location, mode, areaId, areaTeamSize);
+        if (ArenaEquatorTeamSpawns.Applies(location.Id!, mode!))
+            ApplyOrValidateEquatorTeamSpawns(location, validateOnly: false);
 
         // This object is already the exact Arena raid's clone. Mirror the
         // client menu projection without globally enabling Labyrinth, touching
@@ -192,6 +194,8 @@ public static class ArenaLocationMutator
             throw new InvalidOperationException(reason);
         if (!string.Equals(location.Id, expectedMap, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("The participant-managed Arena clone belongs to another map.");
+        if (ArenaEquatorTeamSpawns.Applies(expectedMap, mode))
+            ApplyOrValidateEquatorTeamSpawns(location, validateOnly: true);
         int bots = participants - 1;
         if (location.BotMax != bots || location.BotMaxPvE != bots || location.MaxBotPerZone != bots)
             throw new InvalidOperationException("The participant-managed Arena bot caps changed after negotiation.");
@@ -207,6 +211,64 @@ public static class ArenaLocationMutator
             || location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayer != 0
             || location.BotLocationModifier.NonWaveSpawnBotsLimitPerPlayerPvE != 0)
             throw new InvalidOperationException("The participant-managed Arena non-wave spawn limits changed.");
+    }
+
+    /// <summary>
+    /// Native FixSpawns creates zone-owned markers only for NEW ids. Retain all
+    /// common MapPort records and their nested data; never modify the donor.
+    /// The final response check is deliberately read-only, including on failure.
+    /// </summary>
+    private static void ApplyOrValidateEquatorTeamSpawns(LocationBase location, bool validateOnly)
+    {
+        var points = (location.SpawnPointParams ?? []).ToList();
+        var donors = points.Where(p => p?.Id == ArenaEquatorTeamSpawns.DonorId).ToArray();
+        var anchor = donors.Length == 1 ? donors[0] : null;
+        if (anchor?.Position is not { } origin || origin.X != 0 || origin.Y != .2f || origin.Z != 2
+            || anchor.BotZoneName != ArenaEquatorTeamSpawns.Zone
+            || anchor.CorePointId != ArenaEquatorTeamSpawns.CorePointId || anchor.ColliderParams == null
+            || anchor.Categories == null || !new HashSet<string>(anchor.Categories).SetEquals(["Bot", "BotPmc"])
+            || anchor.DelayToCanSpawnSec != 4)
+            throw new InvalidOperationException("Equator Team DM native atrium anchor changed or disappeared.");
+        var owned = points.Where(p => p != null && ArenaEquatorTeamSpawns.Owns(p.Id)).ToArray();
+        if (owned.Any(p => ArenaEquatorTeamSpawns.Find(p.Id) == null)
+            || owned.Select(p => p.Id).Distinct(StringComparer.Ordinal).Count() != owned.Length)
+            throw new InvalidOperationException("Equator Team DM has an unknown or duplicated formation identity.");
+
+        var additions = new List<SpawnPointParam>();
+        foreach (var spec in ArenaEquatorTeamSpawns.Points)
+        {
+            // Parse through SPT's actual collider model. The compact radius is
+            // essential: MapPort's 25-30m general spawn spheres contain the
+            // friendly human throughout the box and reject every ally arrival.
+            var collider = System.Text.Json.JsonSerializer.Deserialize<SpawnPointParam>(
+                "{\"ColliderParams\":{\"_parent\":\"SpawnSphereParams\",\"_props\":{\"Center\":{\"x\":0,\"y\":0,\"z\":0},\"Radius\":0.8}}}")!.ColliderParams;
+            var expected = System.Text.Json.JsonSerializer.Deserialize<SpawnPointParam>(
+                System.Text.Json.JsonSerializer.Serialize(anchor))! with
+            {
+                Id = spec.Id,
+                Position = new Vector3(spec.X, spec.Y, spec.Z),
+                Rotation = spec.Yaw,
+                Categories = ["Player", "Bot", "BotPmc"],
+                Sides = [spec.Usec ? "Usec" : "Bear"],
+                Infiltration = ArenaEquatorTeamSpawns.Infiltration,
+                BotZoneName = ArenaEquatorTeamSpawns.Zone,
+                ColliderParams = collider,
+            };
+            var existing = owned.SingleOrDefault(p => p.Id == spec.Id);
+            if (existing != null)
+            {
+                if (System.Text.Json.JsonSerializer.Serialize(existing) != System.Text.Json.JsonSerializer.Serialize(expected))
+                    throw new InvalidOperationException("Equator Team DM formation point changed: " + spec.Id);
+            }
+            else if (validateOnly)
+                throw new InvalidOperationException("Equator Team DM formation point missing: " + spec.Id);
+            else additions.Add(expected);
+        }
+        if (!validateOnly)
+        {
+            points.AddRange(additions);
+            location.SpawnPointParams = points;
+        }
     }
 
     private static void ApplyAreaSpawns(LocationBase location, string? mode, string? areaId, int? areaTeamSize)

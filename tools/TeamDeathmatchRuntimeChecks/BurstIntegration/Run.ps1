@@ -55,6 +55,14 @@ if ($positive.Exit -ne 0 -or !$positive.Output.Contains('ARENA_TDM_BURST_PREPARA
 Write-Output $positive.Output.Trim()
 if (!$BaselineOnly) {
     $faults = @(
+        @{ Name = 'equator-unrestricted-preflight'; Find = 'bool available = ArenaEquatorTeamSpawns.IsRequired'; Replace = 'bool available = false';
+           Failure = 'Equator faction preflight uses team box' },
+        @{ Name = 'equator-unrestricted-async-placement'; Find = 'bool boxTeamSpawn = explicitFaction && ArenaEquatorTeamSpawns.IsRequired;'; Replace = 'bool boxTeamSpawn = false;';
+           Failure = 'Equator replans its own box after profile await' },
+        @{ Name = 'equator-invalid-arrival-admitted'; Find = 'bool accepted = boxSpawnLease.Accept(bot?.GetPlayer);'; Replace = 'bool accepted = true;';
+           Failure = 'team-box arrival must pass live placement and raid checks before admission' },
+        @{ Name = 'equator-pending-position-released'; Find = 'if (!handedToNative) boxSpawnLease?.Dispose();'; Replace = 'boxSpawnLease?.Dispose();';
+           Failure = 'native pending or uncertain team-box placement retains its reservation' },
         @{ Name = 'missing-transition'; Find = '|| !IsRequestStillCurrent(beginNativeDispatch, role)'; Replace = '|| false';
            Failure = 'one-shot transition runs after actual await and fresh area placement' },
         @{ Name = 'transition-before-preparation';

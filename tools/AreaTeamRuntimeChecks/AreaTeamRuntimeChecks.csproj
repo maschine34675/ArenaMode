@@ -8,6 +8,7 @@
     <PreparedSource Condition="'$(PreparedSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaRespawn.cs</PreparedSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../EquatorSpawnExternalFixture.cs" Link="EquatorSpawnExternalFixture.cs" />
     <Compile Remove="artifacts/**" />
     <Compile Include="$(RuntimeSource)" Link="Production/ArenaAreaTeamRuntime.cs" />
     <Compile Include="../../ArenaMode.Client/Areas/ArenaAreaCompanionRuntime.cs" Link="Production/ArenaAreaCompanionRuntime.cs" />

@@ -163,4 +163,54 @@ foreach (bool alive in new[] { true, false })
         && !probe.ShouldSuppressKilledSessionResult(), "ordinary raid is untouched by terminal guard methods");
     ArenaSession.IsActive = true;
 }
+foreach (bool required in new[] { true, false })
+{
+    var (g, _, _) = NewExit();
+    ArenaMode.Bots.ArenaEquatorTeamSpawns.IsRequired = required;
+    ArenaMatchService.AbortCalls = 0;
+    var probe = new RespawnGuardProbe();
+    var failure = probe.AfterBoxFailure(new Exception("box became occupied during body creation"));
+    Check(!failure.MoveNext() && probe.FallbackCalled == !required && ArenaMatchService.AbortCalls == (required ? 1 : 0),
+        "Equator body failure uses protected abort instead of generic death screen");
+    foreach (int invalid in new[] { 0, 1, 2 })
+    {
+        ArenaMatchService.AbortCalls = 0;
+        probe = new RespawnGuardProbe();
+        var body = invalid == 0 ? null : new Player { IsYourPlayer = invalid != 1 };
+        var continuation = probe.BeforeRespawnEvents(g, body);
+        Check(!continuation.MoveNext() && !probe.EnteredEngine && ArenaMatchService.AbortCalls == (required ? 1 : 0),
+            "Equator missing exact replacement aborts without publishing respawn");
+    }
+    foreach (bool valid in new[] { true, false })
+    {
+        ArenaMode.Bots.ArenaEquatorTeamSpawns.ArrivalValid = valid;
+        ArenaMode.Bots.ArenaEquatorTeamSpawns.ArrivalChecks = 0;
+        probe = new RespawnGuardProbe();
+        var continuation = probe.BeforeRespawnEvents(g, g.LocalPlayer);
+        Check(!continuation.MoveNext() && probe.EnteredEngine == (!required || valid)
+            && ArenaMode.Bots.ArenaEquatorTeamSpawns.ArrivalChecks == 1,
+            "Equator arrival is revalidated before kit and respawn subscribers");
+    }
+}
+for (int invalid = -1; invalid < 7; invalid++)
+{
+    var (g, w, _) = NewExit();
+    g.GameWorld = w;
+    Comfort.Common.Singleton<AbstractGame>.Instance = g;
+    Comfort.Common.Singleton<GameWorld>.Instance = w;
+    int epoch = RespawnIdentityProbe.RaidEpoch.Capture();
+    switch (invalid)
+    {
+        case 0: Comfort.Common.Singleton<AbstractGame>.Instance = new LocalGame(); break;
+        case 1: Comfort.Common.Singleton<GameWorld>.Instance = new GameWorld(); break;
+        case 2: ArenaSession.Exact = false; break;
+        case 3: ArenaSession.IsActive = false; break;
+        case 4: g.Status = GameStatus.Stopping; break;
+        case 5: RespawnIdentityProbe.RaidEpoch.Advance(); break;
+        case 6: g.GameWorld = null; break;
+    }
+    Check(RespawnIdentityProbe.IsSameActiveRaid(g, epoch) == (invalid == -1),
+        "detached respawn continuation requires the exact current game and world " + invalid);
+    ArenaSession.IsActive = true;
+}
 Console.WriteLine($"TDM_MATCH_POLICY_EXIT_PASSED ({checks} assertions)");

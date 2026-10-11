@@ -28,7 +28,7 @@ internal sealed class ArenaParticipantSelectionState
     internal int Minimum { get; }
     internal int Step { get; }
     internal bool CanDecrease => Available && Total > Minimum;
-    internal bool CanIncrease => Available && Total < ArenaParticipantPolicy.MaximumTotal;
+    internal bool CanIncrease => Available && Total < ArenaParticipantPolicy.MaximumFor(MapId, ModeId);
     internal string ValueLabel => Format(Total);
     internal string RecommendationLabel => "Recommended: " + Format(Recommended);
 

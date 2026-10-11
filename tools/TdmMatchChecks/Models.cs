@@ -6,11 +6,12 @@ namespace EFT
     public enum GameStatus { Started, Stopping, Stopped }
     public enum ExitStatus { Survived, Killed }
     public class AbstractGame { public GameStatus Status = GameStatus.Started; }
-    public class Player { public string ProfileId = "local"; public Health HealthController = new(); }
+    public class Player { public string ProfileId = "local"; public bool IsYourPlayer = true; public Health HealthController = new(); }
     public class Health { public bool IsAlive = true; }
     public class Owner { public Player Player; }
     public class LocalGame : AbstractGame
     {
+        public GameWorld GameWorld;
         public string ProfileId = "local";
         public Player LocalPlayer = new();
         public Owner Owner;
@@ -91,5 +92,22 @@ namespace ArenaMode.Modes
         public void ReportResultExitProblem(string problem) => ExitProblem = problem;
     }
     public class ArenaMatch { public IArenaMode Mode; }
-    public static class ArenaMatchService { public static ArenaMatch Current; }
+    public static class ArenaMatchService
+    {
+        public static ArenaMatch Current;
+        public static int AbortCalls;
+        public static void ScheduleFailedStartAbort(string reason) => AbortCalls++;
+    }
+}
+namespace ArenaMode.Bots
+{
+    // The actual box lease is tested separately; this fixture exposes its
+    // decision to the production driver's before-event/failure continuations.
+    internal static class ArenaEquatorTeamSpawns
+    {
+        internal static bool IsRequired, ArrivalValid = true;
+        internal static int ArrivalChecks;
+        internal static bool ReleasePlayerReservation(EFT.Player player)
+        { ArrivalChecks++; return !IsRequired || ArrivalValid; }
+    }
 }

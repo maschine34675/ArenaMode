@@ -1,11 +1,27 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-09. Read `AGENTS.md` first. This is a compact handoff, not the
+Snapshot: 2026-10-11. Read `AGENTS.md` first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Equator Team DM team boxes (2026-10-11, implementation ready):** the exact
+  per-raid clone adds twenty private original TeamFight markers (USEC north,
+  BEAR south) without changing common MapPort points. The client restores only
+  those records after MapPort's conservative booth repair; initial placement,
+  bot activations and player respawns use the corresponding box, with real
+  floor/clearance/path/occupancy checks and persistent native reservations.
+  Total participants are 4–20, default four. Tactical/PFT Zombies remain blocked;
+  other modes and ordinary raids retain their general starts. Delayed respawn
+  continuations now also require the exact current native game/world pair.
+  Offline: runtime 100/11 faults, burst93/17, TDM247/20, native menu640,
+  participant UI3730 + native195 + area29/6 faults, map admission540/9,
+  unit959/one existing APBS skip; independent source review clear. Installed
+  files unchanged during checks. **Full staged build, deployment and native
+  acceptance remain pending at this implementation commit.** See
+  `EQUATOR-TEAM-SPAWNS-REVIEW.md`; no MapPort/Core or Molotov changes.
 
 - **Equator PFT Zombies and Friendly Fire (2026-10-09, awaiting GPU release):**
   `d265b4a` excludes Equator only from PFT Zombies in addition to its existing

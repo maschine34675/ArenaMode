@@ -151,6 +151,30 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Bots
 {
+    // External placement seam: this fixture executes BurstSpawnService's actual
+    // dispatch/arrival lifecycle. The separate team-box suite owns geometry.
+    internal static class ArenaEquatorTeamSpawns
+    {
+        internal static bool IsRequired;
+        internal static Lease LastLease;
+        internal sealed class Lease : IDisposable
+        {
+            internal string PointId => "box-marker";
+            internal Vector3 Position = new();
+            internal bool Disposed;
+            internal bool Accept(Player player) => Harness.AcceptPlacement;
+            public void Dispose() => Disposed = true;
+        }
+        internal static bool TryPlanBot(IEnumerable<BotZone> zones, bool usec, bool reserve,
+            out BotZone zone, out ISpawnPoint point, out Lease lease)
+        {
+            Harness.Events.Add(reserve ? "box-plan" : "box-preflight");
+            zone = zones.First(); point = new SpawnPoint(); lease = null;
+            if (!Harness.PlacementAvailable) return false;
+            if (reserve) { Harness.RealPlans++; lease = LastLease = new Lease(); }
+            return true;
+        }
+    }
     internal static class BurstSpawnPointSelector
     {
         internal static int CountUsable(BotZone zone, Vector3? position) => 1;
@@ -211,6 +235,8 @@ internal static class Harness
         LeaseCurrent = PlacementAvailable = AcceptPlacement = true;
         DelayArrival = RejectNative = ThrowNative = NativeOwned = false;
         NativeCalls = RealPlans = ReservationReleases = AcceptedBodies = 0; LastLease = null;
+        ArenaEquatorTeamSpawns.IsRequired = false; ArenaEquatorTeamSpawns.LastLease = null;
+        ArenaMode.Areas.ArenaAreaRuntime.HasTeamStarts = true;
         BurstSpawnService.ResetTestLedgers();
         ArenaMode.Modes.ArenaMatchService.Current = null;
         Game = new LocalGame(); World = new GameWorld(); Body = new BotOwner();

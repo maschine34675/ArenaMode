@@ -6,6 +6,7 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../EquatorSpawnExternalFixture.cs" Link="EquatorSpawnExternalFixture.cs" />
     <Compile Include="../../../ArenaMode.Client/Areas/ArenaAreaRespawn.cs" Link="Production/ArenaAreaRespawn.cs" />
     <Compile Include="../../../ArenaMode.Client/Respawn/ArenaSpawnSelector.cs" Link="Production/ArenaSpawnSelector.cs" />
   </ItemGroup>

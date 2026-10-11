@@ -25,6 +25,12 @@ damage admission, physical team identities or attributed grenade effects. Do not
 use historical tracer IDs as authority to grant immunity to replacement bodies.
 Equator remains unavailable for Tactical and is also excluded from PFT Zombies
 because the five-person squad obstructs itself; solo Zombies stays supported.
+Independent Equator Team DM uses the original north USEC and south BEAR team
+boxes for initial placement and respawns (4–20 total participants). The exact
+raid clone adds twenty private versioned markers; never move or overwrite the
+common MapPort markers. Read EQUATOR-TEAM-SPAWNS-REVIEW.md before changing the
+MapPort repair ordering, initial physics/live navigation gates, reservations or
+body-arrival validation. No map-wide fallback is allowed after box negotiation.
 Zombies offers solo or a protected four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any
