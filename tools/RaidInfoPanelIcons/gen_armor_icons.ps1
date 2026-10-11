@@ -1,5 +1,5 @@
-# Generates the two armor-row glyphs for the status panel: a plate-carrier
-# silhouette (body armor) and a combat-helmet silhouette (head armor).
+# Generates the two armor-row glyphs for the status panel: Skoll's Kevlar vest
+# (CC BY 3.0; see Assets/ArenaMode/HUD-ICON-LICENSES.md) and the original combat helmet.
 # Deliberately a separate script, in the style of gen_grenades.ps1: rerunning
 # the four imported generators would re-encode all of the source-identical
 # icons and break their recorded hashes (tools/RaidInfoPanelChecks/SOURCE-IMPORT.json).
@@ -21,7 +21,10 @@
 # default Alternate FillMode never punches an unwanted hole; a shape that ever
 # needs to (e.g. a visor cutout) must set Winding explicitly.
 
+$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName PresentationCore
+Add-Type -AssemblyName WindowsBase
 
 $iconDir = Join-Path $PSScriptRoot "..\..\ArenaMode.Client\Hud\InfoPanels\Icons"
 # Previews stay out of the source tree (artifacts/ is ignored).
@@ -64,37 +67,31 @@ function New-Icon([string]$name, [scriptblock]$render) {
     return $path
 }
 
-# Body: a plate-carrier front view — main soft-armor panel, an inset chest
-# plate (brighter, so it reads as its own piece once tinted), a top drag
-# handle and shoulder straps, cummerbund tabs at the sides.
-$bodyPath = New-Icon "armor_body.png" {
-    param($canvas)
-    $panel = White 232
-    Fill-RoundedRect $canvas $panel 13 15 38 41 9
-    $panel.Dispose()
-
-    $strapBrush = White 232
-    Fill-RoundedRect $canvas $strapBrush 21 7 6 13 3
-    Fill-RoundedRect $canvas $strapBrush 37 7 6 13 3
-    Fill-RoundedRect $canvas $strapBrush 26 3 12 6 3
-    $strapBrush.Dispose()
-
-    $tabBrush = White 232
-    Fill-RoundedRect $canvas $tabBrush 8 28 7 11 3
-    Fill-RoundedRect $canvas $tabBrush 49 28 7 11 3
-    $tabBrush.Dispose()
-
-    $plate = White 255
-    Fill-RoundedRect $canvas $plate 20 22 24 24 5
-    $plate.Dispose()
-
-    $seam = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(120, 255, 255, 255)), 2
-    $canvas.DrawLine($seam, 32, 22, 32, 46)
-    $seam.Dispose()
-}
+# Body: rasterize the checked-in, unchanged Game-icons.net SVG. Its open neck,
+# separate shoulder straps and paired side fasteners remain readable at 20px.
+# WPF reads this SVG's one path (including arcs) without a third-party rasterizer;
+# it is an offline generator dependency only, never a game/runtime dependency.
+# Keep the old main silhouette's alpha (232), neutral white tint and 64px canvas.
+[xml]$vestSvg = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'kevlar-vest.svg') -Raw
+$vestGeometry = [System.Windows.Media.Geometry]::Parse($vestSvg.svg.path.d)
+$vestVisual = [System.Windows.Media.DrawingVisual]::new()
+$vestDrawing = $vestVisual.RenderOpen()
+$vestDrawing.PushTransform([System.Windows.Media.ScaleTransform]::new($S / 512.0, $S / 512.0))
+$vestBrush = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromArgb(232, 255, 255, 255))
+$vestDrawing.DrawGeometry($vestBrush, $null, $vestGeometry)
+$vestDrawing.Pop()
+$vestDrawing.Close()
+$vestBitmap = [System.Windows.Media.Imaging.RenderTargetBitmap]::new($S, $S, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
+$vestBitmap.Render($vestVisual)
+$vestEncoder = [System.Windows.Media.Imaging.PngBitmapEncoder]::new()
+$vestEncoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($vestBitmap))
+$bodyPath = Join-Path $iconDir 'armor_body.png'
+$vestStream = [System.IO.File]::Create($bodyPath)
+try { $vestEncoder.Save($vestStream) }
+finally { $vestStream.Dispose() }
 
 # Helmet: a combat-helmet dome with a brow band across the front (brighter,
-# same two-tone trick as the plate above) and two solid ear-pro pads built
+# with the original two-tone shading) and two solid ear-pro pads built
 # into its lower sides. Filled pads instead of thin strap strokes: a hairline
 # at 64px all but disappears once downscaled to ~20px and read as stray legs
 # rather than part of the helmet (first pass, see armor_preview.png history).
