@@ -1020,6 +1020,13 @@ current. User-facing communication is normally German.
   kein gegnerischer Feuerkill und kein PFT-/TDM-Test. Bericht:
   `GPU-MOLOTOV-RESULTS-20260930.md`. Finale zusätzliche Reset-Bereinigung besitzt
   57 Assertions/acht Fehlerkontrollen und unabhängige Review.
+  Endgültiger Build `f3183a2` lokal und Host 1 eingespielt, beide DLL-Hashes im
+  `MOLOTOV-DEPLOYMENT-20260930.json`. Host 1 danach beendet gelassen; der native
+  Test gilt für `bfdf327` vor der einzelnen Reset-Bereinigungszeile. Host 2 nicht
+  angefasst. Das beschreibt den damaligen Auslieferungsstand vom 30.09.; der
+  Code wurde danach bereits mit `de25153` in den Hauptbranch übernommen.
+  Der abschließende Bericht aus `ac5803d` wird bei der Bereinigung am 11.10.
+  ebenfalls übernommen. Keine erneute Codeübernahme oder neue Testzusage.
 
 - **Stacheldraht im Killfeed (2026-09-30):** Direkte native `Barbed`-Tode
   ohne Angreifer bekommen einen eigenen HUD-Eintrag mit Opfer/Teamfarbe,
