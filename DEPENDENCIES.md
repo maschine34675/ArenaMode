@@ -66,7 +66,7 @@ Komponente im Arena-Paket liegen.
 | CombatSlide | Übernommen und Arena-begrenzt; Standalone archiviert. | Kein separates Paket für Arena. |
 | AutoCorpseSearch | Arena-relevante corpse-open-Suche übernommen; Standalone mit größerem Umfang weiter vorhanden. | Für Arena nicht nötig, für normale Raids/weitere Suchfunktionen eigenständig sinnvoll. |
 | NotificationFilter | Nur Verhaltensreferenz; eigene engere Arena-Implementierung, kein fremder Code/DLL übernommen. | Eigenständige Mod behalten; keine Arena-Voraussetzung. |
-| DefaultAutoFireMode | Zum Zeitpunkt der Bestandsaufnahme noch nicht integriert; separate installierte Mod setzt den Feuermodus beim Ziehen. Arena-Übernahme wird separat umgesetzt. | Standalone bleibt für normale Raids ein eigenes Produkt. |
+| DefaultAutoFireMode | Arena besitzt nun die entsprechende lokale Zieh-Regel: echte Vollautomatik, wenn unterstützt. Keine Übernahme der Standalone-Burst-/Double-Action-Fallbacks. | Kein zusätzlicher Arena-Download nötig. Standalone bleibt für normale Raids eigenständig und wirkt bei gemeinsamer Installation weiterhin nach seinen eigenen Regeln. |
 | Redeploy.Core | Gemeinsame Bibliothek mit eigenem Versionsstand. | Passende, getestete Core-DLL direkt mit Arena ausliefern. |
 | Redeploy.Client/Server | Eigenständige Respawn-Mod für normale Raids; nicht absorbiert. | Separates Produkt, keine Arena-Pflichtinstallation. |
 | KillcamReplay | Eigenständiges optionales Plugin; Anbindung per Reflection. | Separates optionales Paket für Replays. |

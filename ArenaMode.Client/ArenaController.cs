@@ -37,6 +37,7 @@ internal sealed class ArenaController : MonoBehaviour
         Performance.GcThresholdMonitor.Tick();
         Combat.ArenaSkills.Tick();
         Combat.ArenaGiveUp.Tick();
+        Combat.ArenaDefaultFireMode.Tick();
         Kits.AutoQuickSlots.Tick();
         Kits.ArenaSecureContainer.Tick();
         Modes.ArenaMatchService.Tick();

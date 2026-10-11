@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Dependencies / default full-auto (2026-10-11):** `DEPENDENCIES.md` records
+  actual hard/conditional/optional dependencies, absorbed own mods and release
+  boundaries. DefaultAutoFireMode was previously separate only. Arena now owns
+  native full-auto selection for its exact living local player at each completed
+  draw, plus once per published initial/replacement controller. Manual switching
+  while held stays intact; unsupported modes, ordinary raids and bots are not
+  altered. Standalone remains independent for ordinary raids and retains its
+  broader fallback rules. See `DEFAULT-FIRE-MODE-REVIEW.md` and the production-
+  linked harness. Staged compile passed; native acceptance/deployment are still
+  pending because GPU2 is used by another session. Disable standalone during the
+  isolated native test, then restore settings and audit the protected profile.
+  No server/Core/standalone source or unrelated Molotov asset changes.
+
 - **Equator Team DM team boxes (2026-10-11, deployed and GPU-tested):** `381f784`
   and nullable-annotation follow-up `96ed83b`; the exact
   per-raid clone adds twenty private original TeamFight markers (USEC north,

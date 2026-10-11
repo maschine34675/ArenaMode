@@ -111,6 +111,10 @@ acceptance evidence; use the dated handoff and the relevant review document.
 Read `DEPENDENCIES.md` for hard/conditional dependencies, exact optional-mod
 contracts, absorbed own mods and release package boundaries. An installed mod
 is not automatically required or exhaustively certified compatible.
+Arena's local default full-auto rule is documented in `DEFAULT-FIRE-MODE-REVIEW.md`.
+Preserve manual selection while held, native available modes and exact confirmed
+raid/body/hands ownership; the standalone DefaultAutoFireMode must be disabled
+when testing Arena's own rule in isolation.
 
 **UiBridge is allowed in every GPU run (user decision, 2026-09-18).**
 `BepInEx\plugins\maschine-UiBridge.dll` (`com.maschine.UiBridge`, repo

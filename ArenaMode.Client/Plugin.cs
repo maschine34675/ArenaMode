@@ -64,6 +64,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.EnsurePatched();
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
+        Combat.ArenaDefaultFireMode.Enable();
         Pickups.ArenaPowerups.Enable();
         Combat.Fire.ArenaFireRuntime.Enable(Config);
         Combat.Akimbo.ArenaAkimbo.Enable();
@@ -147,6 +148,7 @@ public class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();
         Combat.ArenaSkills.Restore();
         Movement.VaultingTuning.Restore();
