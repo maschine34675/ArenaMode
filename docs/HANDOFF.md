@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Secret scan (2026-10-11):** Gitleaks 8.30.1 checked all reachable history
+  including merge diffs and the worktree including ignored artifacts. Historical
+  findings were false positives; ignored test backups/logs contain UiBridge and
+  CraftQueue credentials and EFT launch/session identifiers. Do not share those
+  raw artifacts without redaction. No tokens were changed or validity-tested;
+  no project allowlist or history rewrite. See `GITLEAKS-20261011.md` for scope,
+  counts, archive limitations and local redacted evidence. New report/navigation
+  files passed a separate final scan; this does not certify all possible secrets.
+
 - **Documentation layout (2026-10-11):** All 217 former root Markdown documents
   and 43 historical JSON manifests now live in `docs/`. Root `AGENTS.md` stays
   discoverable and points here; actual relative Markdown links have been rebased.
