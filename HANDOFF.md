@@ -7,7 +7,7 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Dependencies / default full-auto (2026-10-11):** `DEPENDENCIES.md` records
+- **Dependencies / default full-auto / vest HUD (2026-10-11, deployed/native passed):** `DEPENDENCIES.md` records
   actual hard/conditional/optional dependencies, absorbed own mods and release
   boundaries. DefaultAutoFireMode was previously separate only. Arena now owns
   native full-auto selection for its exact living local player at each completed
@@ -15,10 +15,23 @@ current. User-facing communication is normally German.
   while held stays intact; unsupported modes, ordinary raids and bots are not
   altered. Standalone remains independent for ordinary raids and retains its
   broader fallback rules. See `DEFAULT-FIRE-MODE-REVIEW.md` and the production-
-  linked harness. Staged compile passed; native acceptance/deployment are still
-  pending because GPU2 is used by another session. Disable standalone during the
-  isolated native test, then restore settings and audit the protected profile.
-  No server/Core/standalone source or unrelated Molotov asset changes.
+  linked harness. Implementation `436c51c`, Skoll CC BY 3.0 vest icon `9eaa904`,
+  replacing only armor_body.png with unchanged HUD layout/tint/helmet. Attribution
+  ships in ArenaMode/HUD-ICON-LICENSES.md. Client SHA256
+  `6BCA5C490564240F004E8B1C2176375DDC95A642D0C0907F4139B633927249A3`,
+  deployed locally/GPU2 and loaded in a fresh process; 43 plugins/five libraries
+  matched. Offline 46/11 faults and built sprite verification passed, no new
+  build warnings. Native Factory DM: M4 initial/manual-single/redraw/respawn,
+  automatic held-trigger fire, and SVDS single-only/redraw/held-trigger passed;
+  vest icon visually checked. Standalone disabled during test, then restored.
+  Protected exit, zero Client Error/Fatal; settings restored, twelve PFT files unchanged.
+  Whole-profile audit: only two bookkeeping timestamps plus eight exact missing
+  stack counts that SPT had repaired BEFORE Arena snapshot, proven in server log;
+  no inventory loss/gain. Raw audit and separate cause adjudication retained.
+  No server/Core/standalone source or unrelated Molotov asset changes. Ordinary
+  PMC/own-gear/PFT paths not separately native-tested here. GPU2 at MainMenu,
+  server running, no active hooks or push. Full evidence/limits in
+  `GPU-AUTO-FIRE-VEST-RESULTS-20261011.md`.
 
 - **Equator Team DM team boxes (2026-10-11, deployed and GPU-tested):** `381f784`
   and nullable-annotation follow-up `96ed83b`; the exact

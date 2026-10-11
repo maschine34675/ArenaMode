@@ -54,9 +54,13 @@ Installed client/server/Core stayed unchanged during staging. Independent
 read-only adversarial review found no P0-P2 issues in native lifecycle, scope,
 protected capture ordering, integration or dependency documentation.
 
-Native acceptance is pending. Required isolation: disable the standalone
-DefaultAutoFireMode plugin for the test, verify the exact new Arena client in
-the running process, then check initial automatic hands, manual single held,
-redraw, semiauto-only weapon and replacement hands. Restore settings and audit
-the protected profile. Neither the harness nor compilation proves Harmony or
-Unity animation in a raid. Do not interrupt another GPU session for this test.
+Native follow-up passed on GPU2, client `9eaa904`, with the standalone plugin
+disabled throughout the raid: M4 initial draw, manual single held, redraw and
+respawn; SVDS retained single even after redraw. Held-trigger ammunition counts
+confirmed actual automatic versus single fire. Settings restored, protected exit
+and whole-profile audit completed. Eight pre-existing missing stack fields were
+repaired by SPT before Arena armed, explicitly proven by server-log timestamps;
+no generalized profile exception or tester rollback was used. See
+`GPU-AUTO-FIRE-VEST-RESULTS-20261011.md` for exact build, evidence and limits.
+Own gear/PFT, every weapon and a separate ordinary PMC raid were not natively
+tested in this run. Future isolated tests must again disable the standalone mod.
