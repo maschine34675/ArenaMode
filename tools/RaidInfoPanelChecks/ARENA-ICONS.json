@@ -33,7 +33,16 @@
     {
       "target": "ArenaMode.Client/Hud/InfoPanels/Icons/armor_helmet.png",
       "generator": "tools/RaidInfoPanelIcons/gen_armor_icons.ps1",
-      "sha256": "507C5683C8BF88BB90AB488621A2DC391FC2F6B1FD3F8F7D560BAE02744F8197"
+      "sha256": "E332804C8B6F30B1808DD2417BD4E7CFDAD0B82BD097406882F23B7B092742F4",
+      "source": "tools/RaidInfoPanelIcons/stahlhelm.svg",
+      "sourceSha256": "34D685504AA5894DD1B0FE4BFECDFBBABB488D0F048C17A6489AA2F0B5C7D7D6",
+      "title": "Stahlhelm",
+      "author": "Skoll",
+      "sourceUrl": "https://game-icons.net/1x1/skoll/stahlhelm.html",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "attribution": "ArenaMode.Client/Assets/ArenaMode/HUD-ICON-LICENSES.md",
+      "changes": "Unchanged SVG shape rasterized to transparent 64x64 PNG; white silhouette alpha reduced to 232/255."
     }
   ]
 }

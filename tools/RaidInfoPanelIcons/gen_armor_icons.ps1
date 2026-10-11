@@ -1,5 +1,5 @@
 # Generates the two armor-row glyphs for the status panel: Skoll's Kevlar vest
-# (CC BY 3.0; see Assets/ArenaMode/HUD-ICON-LICENSES.md) and the original combat helmet.
+# and Stahlhelm (CC BY 3.0; see Assets/ArenaMode/HUD-ICON-LICENSES.md).
 # Deliberately a separate script, in the style of gen_grenades.ps1: rerunning
 # the four imported generators would re-encode all of the source-identical
 # icons and break their recorded hashes (tools/RaidInfoPanelChecks/SOURCE-IMPORT.json).
@@ -11,15 +11,8 @@
 # ever alpha-dimmed), these two are drawn white-on-transparent: StatRowView
 # tints whatever icon it is given with the row's live text color
 # (health/weight/warning), the same way the native HP and weight icons behave.
-# A colored glyph here would fight that tint. Alpha alone (not hue) gives each
-# shape its internal shading, so the tint still reads as one clean color.
-#
-# NOTE: scriptblock parameters below are named distinctly from every outer
-# variable they might otherwise capture (PowerShell dynamic scoping would
-# resolve a same-named parameter to the enclosing scope and recurse forever;
-# see gen_puppet.ps1). GraphicsPath shapes here never self-intersect, so the
-# default Alternate FillMode never punches an unwanted hole; a shape that ever
-# needs to (e.g. a visor cutout) must set Winding explicitly.
+# A colored glyph here would fight that tint. Both keep the previous main
+# silhouette's alpha (232), neutral white tint and 64px canvas.
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
@@ -33,86 +26,34 @@ New-Item -ItemType Directory -Force -Path $iconDir, $previewDir | Out-Null
 
 $S = 64
 
-function New-RoundedRectPath([float]$x, [float]$y, [float]$w, [float]$h, [float]$r) {
-    $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $d = 2 * $r
-    $p.AddArc($x, $y, $d, $d, 180, 90)
-    $p.AddArc($x + $w - $d, $y, $d, $d, 270, 90)
-    $p.AddArc($x + $w - $d, $y + $h - $d, $d, $d, 0, 90)
-    $p.AddArc($x, $y + $h - $d, $d, $d, 90, 90)
-    $p.CloseFigure()
-    return $p
-}
-
-function Fill-RoundedRect($gfx, $brush, [float]$x, [float]$y, [float]$w, [float]$h, [float]$r) {
-    $path = New-RoundedRectPath $x $y $w $h $r
-    $gfx.FillPath($brush, $path)
-    $path.Dispose()
-}
-
-function White([int]$alpha) {
-    return New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb($alpha, 255, 255, 255))
-}
-
-function New-Icon([string]$name, [scriptblock]$render) {
-    $bmp = New-Object System.Drawing.Bitmap $S, $S
-    $canvas = [System.Drawing.Graphics]::FromImage($bmp)
-    $canvas.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $canvas.Clear([System.Drawing.Color]::Transparent)
-    & $render $canvas
-    $canvas.Dispose()
-    $path = Join-Path $iconDir $name
-    $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
-    $bmp.Dispose()
-    return $path
-}
-
-# Body: rasterize the checked-in, unchanged Game-icons.net SVG. Its open neck,
-# separate shoulder straps and paired side fasteners remain readable at 20px.
-# WPF reads this SVG's one path (including arcs) without a third-party rasterizer;
+# Rasterize the two checked-in, unchanged Game-icons.net SVGs.
+# WPF reads each SVG's one path (including arcs) without a third-party rasterizer;
 # it is an offline generator dependency only, never a game/runtime dependency.
-# Keep the old main silhouette's alpha (232), neutral white tint and 64px canvas.
-[xml]$vestSvg = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'kevlar-vest.svg') -Raw
-$vestGeometry = [System.Windows.Media.Geometry]::Parse($vestSvg.svg.path.d)
-$vestVisual = [System.Windows.Media.DrawingVisual]::new()
-$vestDrawing = $vestVisual.RenderOpen()
-$vestDrawing.PushTransform([System.Windows.Media.ScaleTransform]::new($S / 512.0, $S / 512.0))
-$vestBrush = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromArgb(232, 255, 255, 255))
-$vestDrawing.DrawGeometry($vestBrush, $null, $vestGeometry)
-$vestDrawing.Pop()
-$vestDrawing.Close()
-$vestBitmap = [System.Windows.Media.Imaging.RenderTargetBitmap]::new($S, $S, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
-$vestBitmap.Render($vestVisual)
-$vestEncoder = [System.Windows.Media.Imaging.PngBitmapEncoder]::new()
-$vestEncoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($vestBitmap))
-$bodyPath = Join-Path $iconDir 'armor_body.png'
-$vestStream = [System.IO.File]::Create($bodyPath)
-try { $vestEncoder.Save($vestStream) }
-finally { $vestStream.Dispose() }
-
-# Helmet: a combat-helmet dome with a brow band across the front (brighter,
-# with the original two-tone shading) and two solid ear-pro pads built
-# into its lower sides. Filled pads instead of thin strap strokes: a hairline
-# at 64px all but disappears once downscaled to ~20px and read as stray legs
-# rather than part of the helmet (first pass, see armor_preview.png history).
-$helmetPath = New-Icon "armor_helmet.png" {
-    param($canvas)
-    $dome = White 232
-    $canvas.FillPie($dome, 12, 9, 40, 38, 180, 180)
-    Fill-RoundedRect $canvas $dome 12 27 40 9 4
-    $dome.Dispose()
-
-    $ear = White 220
-    Fill-RoundedRect $canvas $ear 9 29 9 16 4
-    Fill-RoundedRect $canvas $ear 46 29 9 16 4
-    $ear.Dispose()
-
-    $brow = White 255
-    Fill-RoundedRect $canvas $brow 16 29 32 6 3
-    $brow.Dispose()
+function New-ArmorIcon([string]$sourceName, [string]$outputName) {
+    [xml]$sourceSvg = Get-Content -LiteralPath (Join-Path $PSScriptRoot $sourceName) -Raw
+    $geometry = [System.Windows.Media.Geometry]::Parse($sourceSvg.svg.path.d)
+    $visual = [System.Windows.Media.DrawingVisual]::new()
+    $drawing = $visual.RenderOpen()
+    $drawing.PushTransform([System.Windows.Media.ScaleTransform]::new($S / 512.0, $S / 512.0))
+    $brush = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromArgb(232, 255, 255, 255))
+    $drawing.DrawGeometry($brush, $null, $geometry)
+    $drawing.Pop()
+    $drawing.Close()
+    $bitmap = [System.Windows.Media.Imaging.RenderTargetBitmap]::new($S, $S, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
+    $bitmap.Render($visual)
+    $encoder = [System.Windows.Media.Imaging.PngBitmapEncoder]::new()
+    $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+    $outputPath = Join-Path $iconDir $outputName
+    $stream = [System.IO.File]::Create($outputPath)
+    try { $encoder.Save($stream) }
+    finally { $stream.Dispose() }
+    return $outputPath
 }
 
-# --- Preview: 2x and true HUD size, on the panel's dark glass tone, each
+$bodyPath = New-ArmorIcon 'kevlar-vest.svg' 'armor_body.png'
+$helmetPath = New-ArmorIcon 'stahlhelm.svg' 'armor_helmet.png'
+
+# --- Preview: 72px and true HUD size, on the panel's dark glass tone, each
 # swatch also shown tinted the way StatRowView actually uses it (weight gray,
 # warning red) so a color clash would show up here before the game does. ---
 $sheet = New-Object System.Drawing.Bitmap 320, 170
@@ -143,7 +84,7 @@ foreach ($p in @($bodyPath, $helmetPath)) {
     $img.Dispose()
     Draw-TintedCopy $sg $p ($x + 4) 100 20 $weightGray
     Draw-TintedCopy $sg $p ($x + 32) 100 20 $warningRed
-    $sg.DrawString("20px @ weight / warning", $font, $fg, ($x - 4), 128)
+    $sg.DrawString("20px gray / red", $font, $fg, ($x - 4), 128)
     $x += 150
 }
 $sg.Dispose()
