@@ -1,0 +1,98 @@
+# Abhängigkeiten, Integrationen und Veröffentlichung
+
+Stand: 2026-10-11. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
+nicht die jeweils neueste Veröffentlichung anderer Mods. Versionsgebundene
+Adapter sind keine pauschale Freigabe späterer Versionen. Gemeinsames Laden
+beweist nicht die vollständige Kompatibilität jeder Funktion.
+
+## Harte Voraussetzungen
+
+| Bestandteil | Voraussetzung |
+|---|---|
+| SPT 4.1.x | Einschließlich der mit SPT gelieferten BepInEx-/Client-Komponenten. Aktuelle GPU-Prüfung mit SPT 4.1.6. |
+| ArenaMode Client und Server | Beide Hälften sowie die eigenen benötigten Daten/Assets gehören zum Paket. |
+| `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Aktuell verwendete Version 1.0.6. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
+
+Der Hauptclient deklariert SPT Core, PFT, SAIN und DynamicMaps als weiche
+Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
+Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
+zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
+keine zusätzlichen Mod-Downloads.
+
+Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj`,
+`ArenaMode.Server/ModMetadata.cs`, `../Redeploy/Redeploy.Core/CoreVersion.props`.
+
+## Optionale Funktionen und gezielte Adapter
+
+| Mod/Komponente | Geprüfter Vertrag | Zweck / Verhalten ohne sie |
+|---|---|---|
+| SAIN | 4.5.1 für die versionsgebundenen Arena-Adapter | Persönlichkeiten, Suchtempo, Bewegung und Lebenszyklusabsicherung. Ohne SAIN native KI. |
+| BigBrain + ArenaMode.BigBrainCompat | BigBrain exakt 1.5.0 | Gezielte Pickup-Suche, Verfolgung nach Spielertod und Feuerflucht. Ohne den Arena-Begleiter keine gezielte Pickup-Steuerung und keine Brandgranatenumwandlung; Pickups selbst bleiben nutzbar. BigBrain ist außerdem eigene Voraussetzung von SAIN/PFT. |
+| PitFireTeam, Client und Server | Exakt 0.10.0 oder 0.10.3; keine Freigabe von 0.10.1/0.10.2 | Vier Begleiter für Tactical 5v5 und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
+| APBS | Adapter für 2.4.1 | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei unbekanntem APBS bleibt dessen eigene Levelwahl und Arena warnt statt ungeprüft einzugreifen. |
+| ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein | Bay5 und Equator. Keine Pflicht für die gewöhnlichen SPT-Karten. |
+| KillcamReplay | Schnittstellenprüfung statt fester Versionsfreigabe; installiert 0.9.12 | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
+| DynamicMaps | Leichenmarker-Adapter für 1.2.1 | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
+| Waypoints | Keine direkte Arena-Abhängigkeit; Koexistenz mit 1.9.0 beobachtet | Eigenständige Navigations-/Spawnanzeigefunktionen; nicht allein wegen der üblichen KI-Modkombination als Arena-Pflicht aufführen. |
+
+Die optionalen Mods behalten ihre eigenen Voraussetzungen. Fremde
+SAIN/APBS/PFT/BigBrain-DLLs werden gemäß `AGENTS.md` nicht in Arena mitgeliefert.
+`ArenaMode.BigBrainCompat` ist dagegen eigener Arena-Code und kann als optionale
+Komponente im Arena-Paket liegen.
+
+## Weitere ausdrücklich berücksichtigte Kombinationen
+
+- **UIFixes:** alternativer R-Nachladeweg berücksichtigt; installiert 6.0.3.
+- **ABPS/BotPlacementSystem:** Pump-/Botlimit-Verhalten berücksichtigt;
+  Arena-eigene Besetzung verhindert zusätzliche fremde Ambient-Spawns.
+- **AutoCorpseSearch:** die Arena-Suche tritt bei geladener Standalone-Mod zurück.
+- **NotificationFilter:** Arena unterdrückt auch ersetzte Quest-Popups, ohne
+  dessen globale Konfiguration zu ändern.
+- **BrightLasers:** eigener Helligkeits-/Teamfarben-Code berücksichtigt den
+  geprüften 3.0.0-Vertrag und vermeidet doppelte Verstärkung. Keine umfassende
+  native Freigabe gemeinsamer Installation daraus ableiten.
+- **EnableLabyrinth:** Arena-Zugriff und Countdown sind unabhängig; zusätzliche
+  Scav-/Schlüssel-/Exit-Änderungen der anderen Mod werden nicht überschrieben.
+- **Terkoiz Freecam:** Kamerabesitz wird erkannt, um konkurrierende Steuerung
+  zu vermeiden; keine allgemeine Freigabe sämtlicher Kamerafunktionen.
+- **Fika:** ausdrücklich nicht unterstützt. Arena verweigert die Aktivierung;
+  das ist mehr als eine fehlende Testfreigabe.
+
+## Eigene Mods: übernommen oder weiterhin eigenständig?
+
+| Eigene Mod | Stand | Konsequenz |
+|---|---|---|
+| RaidInfoPanels | Vollständig übernommen; eigenständiges lokales Projekt/alte DLL archiviert. | Kein separates Paket für Arena. |
+| CombatSlide | Übernommen und Arena-begrenzt; Standalone archiviert. | Kein separates Paket für Arena. |
+| AutoCorpseSearch | Arena-relevante corpse-open-Suche übernommen; Standalone mit größerem Umfang weiter vorhanden. | Für Arena nicht nötig, für normale Raids/weitere Suchfunktionen eigenständig sinnvoll. |
+| NotificationFilter | Nur Verhaltensreferenz; eigene engere Arena-Implementierung, kein fremder Code/DLL übernommen. | Eigenständige Mod behalten; keine Arena-Voraussetzung. |
+| DefaultAutoFireMode | Zum Zeitpunkt der Bestandsaufnahme noch nicht integriert; separate installierte Mod setzt den Feuermodus beim Ziehen. Arena-Übernahme wird separat umgesetzt. | Standalone bleibt für normale Raids ein eigenes Produkt. |
+| Redeploy.Core | Gemeinsame Bibliothek mit eigenem Versionsstand. | Passende, getestete Core-DLL direkt mit Arena ausliefern. |
+| Redeploy.Client/Server | Eigenständige Respawn-Mod für normale Raids; nicht absorbiert. | Separates Produkt, keine Arena-Pflichtinstallation. |
+| KillcamReplay | Eigenständiges optionales Plugin; Anbindung per Reflection. | Separates optionales Paket für Replays. |
+| ArenaMapPort | Eigenständiges optionales Kartenprojekt. | Separates Kartenpaket. |
+| UiBridge / Diagnosehilfen | Entwicklung und Tests, keine Arena-Laufzeitvoraussetzung. | Nicht in das normale Spielerpaket aufnehmen. |
+
+UseItemsAnywhere, BrightLasers, ColoredTracers, EnableLabyrinth, SpeedLoader und
+EnemyMarkers sind keine zusätzlichen Voraussetzungen der entsprechenden
+Arena-Funktionen. Verhaltensreferenzen/eigene Umsetzungen nicht als vollständige
+Übernahme dieser fremden Mods bezeichnen. Angepasste MIT-Teile von DragonDen
+behalten ihre vorhandene Attribution; auch dessen Mod-DLL wird nicht benötigt.
+
+## Release-Grenzen
+
+Vorgesehen: Arena-Client, Server, eigene Daten/Assets und genau eine passende
+flache Redeploy.Core-DLL, bytegleich zur Bibliothek in einem gleichzeitigen
+Redeploy-Paket. Ein eigenes Pflicht-Downloadpaket für Core ist nicht nötig.
+Das ist der Paketierungsplan; die vorhandenen Staging-/Map-Preview-Prüfungen
+sind noch kein vollständiger allgemeiner Release-Packager.
+
+Die originalen EFT-Arena-UI-Grafiken sind laut
+`ArenaMode.Client/Assets/Ui/NOTICE.md` für die private Installation integriert;
+eine Weiterverteilungslizenz ist dort nicht nachgewiesen. Diese Frage bleibt
+vor einem öffentlichen Paket getrennt zu klären. Code-Lizenz, eigene generierte
+HUD-Icons und Audio-Lizenzen übertragen sich nicht auf diese Originalgrafiken.
+
+Vertiefung: `RAID-INFO-PANELS-REVIEW.md`, `APBS-COMPATIBILITY-REVIEW.md`,
+`FRIENDLY-FIRE-REVIEW.md`, `KILLCAM-MODES-REVIEW.md`,
+`tools/ArenaNotificationChecks/README.md`, `../Redeploy/docs/RESPAWN-API.md`.

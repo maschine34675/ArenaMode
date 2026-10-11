@@ -108,6 +108,10 @@ of another running session. Update it when handing work over or changing the
 agreed responsibilities. Historical milestone/test counts below are not current
 acceptance evidence; use the dated handoff and the relevant review document.
 
+Read `DEPENDENCIES.md` for hard/conditional dependencies, exact optional-mod
+contracts, absorbed own mods and release package boundaries. An installed mod
+is not automatically required or exhaustively certified compatible.
+
 **UiBridge is allowed in every GPU run (user decision, 2026-09-18).**
 `BepInEx\plugins\maschine-UiBridge.dll` (`com.maschine.UiBridge`, repo
 `../UiBridge`) is a permanent part of the GPU host installation: a test bridge
