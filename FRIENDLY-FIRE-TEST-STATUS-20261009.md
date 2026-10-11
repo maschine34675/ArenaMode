@@ -1,5 +1,12 @@
 # Equator PFT restriction and Friendly Fire — 2026-10-09
 
+**Superseded on 2026-10-11:** the user released GPU2. Deployment, native
+menu/freeze/damage checks and preservation results are recorded in
+`GPU-FRIENDLY-FIRE-RESULTS-20261011.md`, including the limitation of the ON
+sampled-HP comparison. The later deployed `96ed83b` also includes Equator Team DM
+box spawns; see `GPU-EQUATOR-TEAM-SPAWNS-RESULTS-20261011.md`. The waiting state
+below is the historical October 9 record, not an active host restriction.
+
 Implementation complete; deployment and native acceptance are **pending**.
 At 21:07 the deployment guard found another session had started GPU2. It refused
 before copying any DLL. The user explicitly requested waiting for that session.

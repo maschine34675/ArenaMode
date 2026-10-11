@@ -7,7 +7,8 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Equator Team DM team boxes (2026-10-11, implementation ready):** the exact
+- **Equator Team DM team boxes (2026-10-11, deployed and GPU-tested):** `381f784`
+  and nullable-annotation follow-up `96ed83b`; the exact
   per-raid clone adds twenty private original TeamFight markers (USEC north,
   BEAR south) without changing common MapPort points. The client restores only
   those records after MapPort's conservative booth repair; initial placement,
@@ -19,11 +20,22 @@ current. User-facing communication is normally German.
   Offline: runtime 100/11 faults, burst93/17, TDM247/20, native menu640,
   participant UI3730 + native195 + area29/6 faults, map admission540/9,
   unit959/one existing APBS skip; independent source review clear. Installed
-  files unchanged during checks. **Full staged build, deployment and native
-  acceptance remain pending at this implementation commit.** See
-  `EQUATOR-TEAM-SPAWNS-REVIEW.md`; no MapPort/Core or Molotov changes.
+  files unchanged during checks. Final client/server staged from `96ed83b`,
+  zero errors/four old client and two old server warnings; deployed locally and
+  to GPU2, restarted with all 43 plugins/five libraries identical to disk.
+  Native 3v3: both sides 10/10 safe connected points, local USEC starts north,
+  17 bot arrivals in their own boxes, one natural player death/box respawn,
+  both teams leave their boxes and fight; no Error/Fatal or Arena warnings.
+  Same-process Deathmatch control starts outside the boxes with three bots and
+  no team-spawn hooks; both raids exited protected. Full profile only two
+  bookkeeping timestamps changed; twelve PFT files and all pre-existing config
+  values unchanged, no foreign DLL changes. Actual 10v10, local BEAR entry and
+  crowded-box failure remain offline-covered only. See
+  `GPU-EQUATOR-TEAM-SPAWNS-RESULTS-20261011.md` for hashes and evidence,
+  `EQUATOR-TEAM-SPAWNS-REVIEW.md` for the contract. No MapPort/Core or Molotov
+  changes. GPU2 at MainMenu, server running; no push.
 
-- **Equator PFT Zombies and Friendly Fire (2026-10-09, awaiting GPU release):**
+- **Equator PFT Zombies and Friendly Fire (2026-10-11, deployed/native follow-up):**
   `d265b4a` excludes Equator only from PFT Zombies in addition to its existing
   Tactical block; solo Zombies remains available. `100c003` adds independent
   raid-frozen Friendly Fire preferences: Team DM/PFT Tactical ON, PFT Zombies OFF,
@@ -31,14 +43,20 @@ current. User-facing communication is normally German.
   team admission; self/enemy/environment damage and AI hostility remain native.
   Unit 940/two skips, FF154/34 compiled faults, menu1461/27, admission530/9,
   TDM332, Zombie62/11 plus solo85/pending49 passed; independent review clear.
-  Final client/server staged from 100c003, zero errors/four old client and two old
-  server warnings. **Not deployed or native-tested**: GPU2 was started by another
-  session at 21:07; deployment guard refused before copying anything. User asked
-  to wait. Do not interrupt that session. Renew profile/config/PFT baselines after
-  its release, then perform the prepared live OFF/ON comparison and protected-exit
-  audit. Exact artifact hashes, evidence and continuation instructions are in
-  `FRIENDLY-FIRE-TEST-STATUS-20261009.md`; runtime contract in
-  `FRIENDLY-FIRE-REVIEW.md`. Molotov assets untouched, no push.
+  User released GPU2 October 11. Fresh baseline, staged 100c003 deployment and
+  restart preceded native menu/default/per-mode/freeze checks. Equator solo
+  Zombies stays offered, PFT Zombies/Tactical excluded. OFF real knife hit was
+  vetoed with all seven HP values unchanged. ON hit produced exact local
+  attribution and native DidBodyDamage 21.0599976 (actual synchronous HP loss);
+  a later sampled HP read was already full, so a paired sampled-HP comparison
+  is not certified. PFT's post-combat full heal after >=12 seconds is a concrete
+  possible explanation, not observed execution. No damage/healing code was
+  changed for that observation. Protected exits preserved profile/PFT/config;
+  prior post-Stop physical-roster diagnostics only, no live Error/Fatal.
+  `GPU-FRIENDLY-FIRE-RESULTS-20261011.md` contains the exact evidence and limits.
+  That build was then superseded by the Equator build above, which includes the
+  unchanged FF implementation. Historical staging status remains in
+  `FRIENDLY-FIRE-TEST-STATUS-20261009.md`; contract in `FRIENDLY-FIRE-REVIEW.md`.
 
 - **PFT ported maps and unified Customs areas (2026-10-09, latest):** `54d9f7e`
   fixes the installed PFT empty-cover startup dereference using an existing real

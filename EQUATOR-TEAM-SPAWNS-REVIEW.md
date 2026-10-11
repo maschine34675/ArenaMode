@@ -102,7 +102,7 @@ matching load cancels the arm/compatibility state and clears references. A stale
 failure cannot cancel a newer token/epoch/game/world. Reset invalidates all old
 leases; plugin shutdown also removes the three hook owners.
 
-## Offline validation and remaining acceptance
+## Offline validation and native acceptance
 
 `tools/EquatorTeamSpawnChecks` links the production client runtime and shared
 formation. Engine physics/navigation and external lifecycle are explicit test
@@ -132,10 +132,17 @@ menu 29 with six mutants and a restored green baseline. Exact build/native
 results and final artifact paths belong to the dated handoff after the final
 source has been staged and retested.
 
-No production build, deployment or native GPU acceptance was performed by the
-formation implementation worker. Native acceptance must restart EFT with the
-staged DLL, demonstrate both faction starts, all twenty safe-capacity logs,
-friendly/enemy bot starts, successive player and bot respawns, movement through
-both doorways, crowded/no-safe-point protected failure and a nonteam/ordinary
-control. Offline success must not be described as proof that the exact twenty
-positions are navigable in the deployed scene.
+The formation worker did not build/deploy; the parent subsequently staged the
+final `96ed83b`, deployed both Arena DLLs and restarted EFT. See
+`GPU-EQUATOR-TEAM-SPAWNS-RESULTS-20261011.md` for exact hashes and the October 11
+native evidence. A 3v3 raid confirmed 10/10 physically safe connected candidates
+per box, both faction bot starts and subsequent replacements, local USEC entry
+and a natural death/respawn, plus both sides leaving their boxes and fighting.
+Same-process Deathmatch used its ordinary nonteam starts without team-box state.
+
+The native scope is deliberately narrower than exhaustive scene coverage:
+local BEAR entry, actually occupying all twenty candidates simultaneously,
+crowded/no-safe-point failure, each individual door leaf and ordinary PMC were
+not exercised in this run. Scope rejection, occupancy and failure behavior have
+production-linked offline checks. Neither those checks nor the capacity log
+certify a played 10v10 or a live actor placed on every candidate.
