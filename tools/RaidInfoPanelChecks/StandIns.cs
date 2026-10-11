@@ -331,7 +331,10 @@ namespace ArenaMode
 namespace ArenaMode.Config
 {
     internal static class Settings
-    { public static readonly BepInEx.Configuration.ConfigEntry<bool> HudEnabled = new(true); }
+    {
+        public static readonly BepInEx.Configuration.ConfigEntry<bool> HudEnabled = new(true);
+        public static readonly BepInEx.Configuration.ConfigEntry<bool> CombatHudEnabled = new(true);
+    }
 }
 namespace ArenaMode.Session
 {

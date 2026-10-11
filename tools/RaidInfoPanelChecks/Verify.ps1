@@ -27,6 +27,8 @@ function Invoke-PanelCheck([string]$Name, [string]$Property, [string]$Source, [s
 
 function Invoke-PanelFault([string]$Name, [string]$Property, [string]$Filename, [string]$Before, [string]$After, [string]$ExpectedFailure) {
     $arenaPanelOriginal = [IO.File]::ReadAllText((Join-Path $arenaPanelRepo "ArenaMode.Client\Hud\InfoPanels\$Filename"))
+    # Multi-line anchors use LF, regardless of the checkout's line endings.
+    $arenaPanelOriginal = $arenaPanelOriginal.Replace("`r`n", "`n")
     if (($arenaPanelOriginal.Split(@($Before), [StringSplitOptions]::None).Count - 1) -ne 1) {
         throw "Fault '$Name' production anchor must match exactly once."
     }
@@ -49,6 +51,9 @@ if (!$ProductionOnly) {
         'Active-hierarchy panel construction completes before the root is hidden'
     Invoke-PanelFault 'inactive-session-guard-omitted' 'ContextSource' 'RaidPlayerContext.cs' `
         '!Session.ArenaSession.IsActive || ' '' 'Inactive Arena guard avoids accessing exact-raid state'
+    Invoke-PanelFault 'combat-hud-guard-omitted' 'PanelSource' 'ArenaInfoPanels.cs' `
+        '|| !Config.Settings.CombatHudEnabled.Value ' '' `
+        'Combat HUD off hides before throttle deadline without reading new stats'
     Invoke-PanelFault 'foreign-world-leak' 'ContextSource' 'RaidPlayerContext.cs' `
         '|| !Session.ArenaSession.IsExactActiveRaid(game, gameWorld)' '' 'Foreign started game clears out player'
     Invoke-PanelFault 'stale-weapon-resurrection' 'PanelSource' 'ArenaInfoPanels.cs' `
@@ -144,7 +149,7 @@ if (!$ProductionOnly) {
         'Headwear and TacticalVest each contribute their own soft armor to separate groups releases scratch references'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 34 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 35 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

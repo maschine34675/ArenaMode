@@ -39,6 +39,8 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
 ArenaMode.Pickups.ArenaPickupSettings.Init(config);
+Need(Settings.AutoQuickSlots.Value && Settings.InstantSearch.Value && Settings.CombatHudEnabled.Value
+    && Settings.HudEnabled.Value, "new mutators preserve enabled defaults and the separate HUD master");
 Need(Settings.TeamDeathmatchFriendlyFire.Value && Settings.TacticalFriendlyFire.Value
     && !Settings.ZombieFriendlyFire.Value, "friendly fire defaults off only for PFT Zombies");
 foreach (string soloMode in new[] { "deathmatch", "gungame", "tactical", "zombie", "unknown" })
@@ -402,7 +404,7 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 17, "inline panel has seventeen switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 20, "inline panel has twenty switches, no backdrop or close buttons");
 // 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
 // now hides, and every description still fits the one-line description cell.
 Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
@@ -425,7 +427,7 @@ Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new
     && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
 // 2026-10-08 menu polish, item 2: no legend subtitle, no "saved with F12" footer.
 // The rows start 8 px under the title and the last description ends 8 px above
-// the panel bottom, in columns of nine and eight.
+// the panel bottom, in two columns of ten.
 Need(!MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Mutator legend" or "Mutators saved note"
         || t.text.Contains("Saved with F12") || t.text.Contains("Green: ON") || t.text.Contains("Killcam/tracers")),
     "mutator panel carries no legend or saved-with-F12 footer");
@@ -436,17 +438,23 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
-    float pitch = (472f - 52f - 8f) / 9f;
-    Need(mutatorIds.Length == 17 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
-        && Math.Abs(RowTop(mutatorIds[9]) - 52f) < .01f,
+    float pitch = (472f - 52f - 8f) / 10f;
+    Need(mutatorIds.Length == 20 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
+        && Math.Abs(RowTop(mutatorIds[10]) - 52f) < .01f,
         "both mutator columns start 8 px below the title");
     Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
         "mutator rows reflow without moving the panel");
     Need(mutatorIds.All(id => Detail(id).sizeDelta.y >= 18f), "all descriptions retain one readable line");
-    var lastDetail = Detail(mutatorIds[8]);
-    Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 464f) < .01f
-        && Math.Abs(lastDetail.sizeDelta.y - (pitch - 26f)) < .01f,
-        "last description ends 8 px above the panel bottom and fills the row pitch");
+    Need(mutatorIds.All(id => Math.Abs(((RectTransform)MutatorButton(id).transform).sizeDelta.y - 22f) < .01f
+        && Math.Abs(Detail(id).sizeDelta.y - 19.2f) < .01f),
+        "twenty mutators retain 22px buttons and 19.2px description cells");
+    foreach (var lastId in new[] { mutatorIds[9], mutatorIds[19] })
+    {
+        var lastDetail = Detail(lastId);
+        Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 464f) < .01f
+            && Math.Abs(lastDetail.sizeDelta.y - (pitch - 22f)) < .01f,
+            "last description ends 8 px above the panel bottom and fills the row pitch");
+    }
 }
 // 2026-10-08 menu polish, item 5: colored tracers are team-only, exactly like the
 // team laser colors. Settings.TracerEntry has an entry (the one Effects/
@@ -617,6 +625,9 @@ var preferencePairs = new[] {
     (ArenaMutator.Pickups, ArenaMode.Pickups.ArenaPickupSettings.Enabled),
     (ArenaMutator.Tracers, Settings.TeamTracers),
     (ArenaMutator.Lasers, Settings.TeamLasers),
+    (ArenaMutator.AutoQuickslots, Settings.AutoQuickSlots),
+    (ArenaMutator.InstantSearch, Settings.InstantSearch),
+    (ArenaMutator.ArenaHud, Settings.CombatHudEnabled),
     // Item 2 of the 2026-10-06 follow-up ("announcer mutator"): per-mode like
     // Tracers, toggled through the exact same generic Entry()/TryToggle()
     // path — view is synchronized to "teamdeathmatch" here, so its own entry
@@ -625,9 +636,12 @@ var preferencePairs = new[] {
 foreach (var (id, entry) in preferencePairs)
 {
     bool before = entry.Value;
+    var othersBefore = preferencePairs.Where(p => p.Item1 != id).Select(p => p.Item2.Value).ToArray();
     int mutatorSaves = config.Saves;
     MutatorButton(id).onClick.Invoke();
     Need(entry.Value != before && config.Saves > mutatorSaves, "mutator persists original F12 entry: " + id);
+    Need(othersBefore.SequenceEqual(preferencePairs.Where(p => p.Item1 != id).Select(p => p.Item2.Value)),
+        "mutator changes only its own saved preference: " + id);
     entry.Value = before; // Simulated F12 change while panel remains visible.
     view.Synchronize("teamdeathmatch", false);
     Need(MutatorStatus(id) == (before ? "ON" : "OFF"),
@@ -638,6 +652,28 @@ int manualSaves = config.Saves;
 MutatorButton(ArenaMutator.Backpack).onClick.Invoke();
 Need(config.Saves == manualSaves + 1, "mutators explicitly save when automatic saving is disabled");
 config.SaveOnConfigSet = true;
+var newMutatorPairs = preferencePairs.Where(p => p.Item1 is ArenaMutator.AutoQuickslots
+    or ArenaMutator.InstantSearch or ArenaMutator.ArenaHud).ToArray();
+config.SaveOnConfigSet = false;
+foreach (var (id, entry) in newMutatorPairs)
+{
+    bool before = entry.Value;
+    int beforeSaves = config.Saves;
+    MutatorButton(id).onClick.Invoke();
+    Need(entry.Value != before && config.Saves == beforeSaves + 1,
+        "new mutator saves exactly once when automatic saving is disabled: " + id);
+    MutatorButton(id).onClick.Invoke();
+    Need(entry.Value == before && config.Saves == beforeSaves + 2,
+        "new mutator restored preference is saved exactly once: " + id);
+}
+config.SaveOnConfigSet = true;
+Settings.ShowKillfeed.Value = false;
+Settings.ShowHitmarker.Value = true;
+Settings.ShowDamageNumbers.Value = false;
+Settings.ShowFriendlyMarkers.Value = false;
+var individualHudEntries = new[] { Settings.ShowKillfeed, Settings.ShowHitmarker, Settings.ShowDamageNumbers,
+    Settings.ShowFriendlyMarkers, Settings.AnnouncerEnabled };
+var individualHudBefore = individualHudEntries.Select(e => e.Value).ToArray();
 float pointBrightness = Settings.VisibleLaserBrightness.Value, beamBrightness = Settings.VisibleLaserBeamBrightness.Value;
 MutatorButton(ArenaMutator.Lasers).onClick.Invoke();
 Need(Settings.VisibleLaserBrightness.Value == pointBrightness && Settings.VisibleLaserBeamBrightness.Value == beamBrightness,
@@ -647,6 +683,20 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
     foreach (bool team in mode is "tactical" or "zombie" ? new[] { false, true } : new[] { false })
     {
         view.Synchronize(mode, team);
+        foreach (var (id, entry) in newMutatorPairs)
+        {
+            bool before = entry.Value;
+            Need(MutatorButton(id).interactable && MutatorStatus(id) == (before ? "ON" : "OFF"),
+                "new mutator available in every Arena mode: " + id + " / " + mode + " / " + team);
+            MutatorButton(id).onClick.Invoke();
+            Need(entry.Value != before && MutatorStatus(id) == (!before ? "ON" : "OFF"),
+                "new mutator callback changes its saved value in every mode: " + id);
+            Need(Settings.HudEnabled.Value && individualHudBefore.SequenceEqual(individualHudEntries.Select(e => e.Value)),
+                "new mutators preserve the HUD master and all individual HUD preferences");
+            MutatorButton(id).onClick.Invoke();
+            Need(entry.Value == before && individualHudBefore.SequenceEqual(individualHudEntries.Select(e => e.Value)),
+                "new mutator roundtrip restores only its own preference: " + id);
+        }
         bool pickupAllowed = mode == "deathmatch" || mode == "teamdeathmatch";
         bool laserAllowed = mode == "teamdeathmatch" || (mode is "tactical" or "zombie" && team);
         Need(MutatorButton(ArenaMutator.Pickups).interactable == pickupAllowed, "pickup availability matches runtime modes");
@@ -671,6 +721,27 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
     }
 }
 view.Synchronize("teamdeathmatch", false);
+foreach (bool combatBefore in new[] { false, true })
+{
+    Settings.CombatHudEnabled.Value = combatBefore;
+    Settings.HudEnabled.Value = false;
+    view.Synchronize("teamdeathmatch", false);
+    Need(MutatorStatus(ArenaMutator.ArenaHud) == "N/A" && !MutatorButton(ArenaMutator.ArenaHud).interactable
+        && MutatorDetail(ArenaMutator.ArenaHud) == "Disabled by HUD master in F12.",
+        "HUD master disables the combat mutator with an explicit reason");
+    int disabledSaves = config.Saves;
+    MutatorButton(ArenaMutator.ArenaHud).onClick.Invoke();
+    Need(!Settings.HudEnabled.Value && Settings.CombatHudEnabled.Value == combatBefore && config.Saves == disabledSaves,
+        "disabled HUD master blocks direct combat callbacks without overwriting either preference");
+    Need(MutatorButton(ArenaMutator.AutoQuickslots).interactable && MutatorButton(ArenaMutator.InstantSearch).interactable,
+        "HUD master does not gate quickslots or instant search");
+    Settings.HudEnabled.Value = true;
+    view.Synchronize("teamdeathmatch", false);
+    Need(MutatorButton(ArenaMutator.ArenaHud).interactable
+        && MutatorStatus(ArenaMutator.ArenaHud) == (combatBefore ? "ON" : "OFF")
+        && individualHudBefore.SequenceEqual(individualHudEntries.Select(e => e.Value)),
+        "HUD master recovery shows the preserved combat and individual preferences");
+}
 var movementAbilities = new[] { ArenaMutator.DoubleJump, ArenaMutator.Bunnyhop, ArenaMutator.AirControl,
     ArenaMutator.AirFire, ArenaMutator.AirVault, ArenaMutator.Slide, ArenaMutator.InfiniteStamina, ArenaMutator.NoFallDamage };
 var savedPreferences = preferencePairs.Skip(1).Select(p => p.Item2.Value).ToArray();
@@ -689,7 +760,8 @@ foreach (var (id, entry) in preferencePairs.Where(p => movementAbilities.Contain
         "movement master gates mutator without changing saved preference: " + id);
 }
 Need(MutatorButton(ArenaMutator.Backpack).interactable && MutatorButton(ArenaMutator.Pickups).interactable
-    && MutatorButton(ArenaMutator.Tracers).interactable && MutatorButton(ArenaMutator.Akimbo).interactable,
+    && MutatorButton(ArenaMutator.Tracers).interactable && MutatorButton(ArenaMutator.Akimbo).interactable
+    && newMutatorPairs.All(p => MutatorButton(p.Item1).interactable),
     "movement master leaves other mutators usable");
 MutatorButton(ArenaMutator.FastMovement).onClick.Invoke();
 Need(Settings.MovementEnabled.Value && MutatorStatus(ArenaMutator.FastMovement) == "ON",
@@ -776,9 +848,13 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
             var otherRect = (RectTransform)MutatorButton(other).transform;
             bool horizontalGap = detail.anchoredPosition.x >= otherRect.anchoredPosition.x + otherRect.sizeDelta.x
                 || detail.anchoredPosition.x + detail.sizeDelta.x <= otherRect.anchoredPosition.x;
-            bool verticalGap = -detail.anchoredPosition.y >= -otherRect.anchoredPosition.y + otherRect.sizeDelta.y
-                || -detail.anchoredPosition.y + detail.sizeDelta.y <= -otherRect.anchoredPosition.y;
-            Need(horizontalGap || verticalGap, "mutator descriptions never overlap another button");
+            // 41.2px row pitch has float roundoff at shared edges (340.40002 vs 340.4).
+            const float edgeTolerance = .001f;
+            bool verticalGap = -detail.anchoredPosition.y + edgeTolerance >= -otherRect.anchoredPosition.y + otherRect.sizeDelta.y
+                || -detail.anchoredPosition.y + detail.sizeDelta.y <= -otherRect.anchoredPosition.y + edgeTolerance;
+            Need(horizontalGap || verticalGap, "mutator descriptions never overlap another button: "
+                + id + " bottom=" + (-detail.anchoredPosition.y + detail.sizeDelta.y).ToString("R")
+                + " / " + other + " top=" + (-otherRect.anchoredPosition.y).ToString("R"));
         }
     }
 }
@@ -817,5 +893,25 @@ foreach (bool saved in new[] { false, true })
         ("gungame", false), ("gungame", true), ("tactical", false), ("zombie", false), ("unknown", false), (null, false) })
         Need(Settings.TracerEntry(mode, protectedTeam) == null,
             "solo modes have no tracer entry, orphaned solo keys enable nothing: " + (mode ?? "<null>") + (protectedTeam ? " (team flag)" : ""));
+}
+foreach (bool quickslots in new[] { false, true })
+foreach (bool search in new[] { false, true })
+foreach (bool combat in new[] { false, true })
+foreach (bool hudMaster in new[] { false, true })
+{
+    var savedConfig = new ConfigFile();
+    savedConfig.Stored["Kits/AutoQuickSlots"] = quickslots;
+    savedConfig.Stored["Loot/InstantSearch"] = search;
+    savedConfig.Stored["HUD/CombatElements"] = combat;
+    savedConfig.Stored["HUD/Enabled"] = hudMaster;
+    savedConfig.Stored["HUD/Killfeed"] = false;
+    savedConfig.Stored["HUD/Hitmarker"] = true;
+    savedConfig.Stored["HUD/DamageNumbers"] = false;
+    Settings.Init(savedConfig);
+    Need(Settings.AutoQuickSlots.Value == quickslots && Settings.InstantSearch.Value == search
+        && Settings.CombatHudEnabled.Value == combat && Settings.HudEnabled.Value == hudMaster,
+        "new mutator config keys reload independently of each other and the HUD master");
+    Need(!Settings.ShowKillfeed.Value && Settings.ShowHitmarker.Value && !Settings.ShowDamageNumbers.Value,
+        "combat HUD config reload preserves individual HUD choices");
 }
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

@@ -115,6 +115,8 @@ Arena's local default full-auto rule is documented in `DEFAULT-FIRE-MODE-REVIEW.
 Preserve manual selection while held, native available modes and exact confirmed
 raid/body/hands ownership; the standalone DefaultAutoFireMode must be disabled
 when testing Arena's own rule in isolation.
+`HUD-MUTATORS-REVIEW.md` documents the scoped ARENA HUD switch: preserve individual
+HUD preferences, essential match notices and the separate audio controls.
 
 **UiBridge is allowed in every GPU run (user decision, 2026-09-18).**
 `BepInEx\plugins\maschine-UiBridge.dll` (`com.maschine.UiBridge`, repo

@@ -59,7 +59,7 @@ internal sealed class ArenaInfoPanels : IDisposable
         try
         {
             if (!ReferenceEquals(_match, ArenaMatchService.Current)
-                || !Config.Settings.HudEnabled.Value || !InfoPanelSettings.Enabled.Value
+            || !Config.Settings.HudEnabled.Value || !Config.Settings.CombatHudEnabled.Value || !InfoPanelSettings.Enabled.Value
                 || !RaidPlayerContext.TryGetLocalPlayer(out var player))
             { Hide(); return; }
 

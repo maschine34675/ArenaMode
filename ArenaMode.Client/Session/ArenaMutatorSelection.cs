@@ -9,7 +9,8 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
-    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, FriendlyFire
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, FriendlyFire,
+    AutoQuickslots, InstantSearch, ArenaHud
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -49,6 +50,9 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Akimbo => "AKIMBO PISTOLS",
         ArenaMutator.Announcer => "ANNOUNCER",
         ArenaMutator.FriendlyFire => "FRIENDLY FIRE",
+        ArenaMutator.AutoQuickslots => "AUTO QUICKSLOTS",
+        ArenaMutator.InstantSearch => "INSTANT SEARCH",
+        ArenaMutator.ArenaHud => "ARENA HUD",
         _ => string.Empty
     };
 
@@ -77,6 +81,9 @@ internal sealed class ArenaMutatorSelection
         // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
         ArenaMutator.Announcer => "Stingers, cues and kill callouts.",
         ArenaMutator.FriendlyFire => "Allow damage between teammates.",
+        ArenaMutator.AutoQuickslots => "Bind kit meds to free quickslots.",
+        ArenaMutator.InstantSearch => "Search containers instantly.",
+        ArenaMutator.ArenaHud => "Killfeed, hits, health and weapons.",
         _ => string.Empty
     };
 
@@ -102,6 +109,9 @@ internal sealed class ArenaMutatorSelection
         // already used for Tracers/Lasers/Akimbo handles it as-is.
         ArenaMutator.Announcer => Settings.AnnouncerEntry(Mode),
         ArenaMutator.FriendlyFire => Settings.FriendlyFireEntry(Mode, _team),
+        ArenaMutator.AutoQuickslots => Settings.AutoQuickSlots,
+        ArenaMutator.InstantSearch => Settings.InstantSearch,
+        ArenaMutator.ArenaHud => Settings.CombatHudEnabled,
         _ => null
     };
 
@@ -117,6 +127,8 @@ internal sealed class ArenaMutatorSelection
         if ((id == ArenaMutator.Tracers || id == ArenaMutator.FriendlyFire)
             && Entry(id) == null) return TeamModesOnly;
         if (Entry(id) == null) return "Setting unavailable.";
+        if (id == ArenaMutator.ArenaHud && Settings.HudEnabled?.Value != true)
+            return "Disabled by HUD master in F12.";
         if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.Bunnyhop || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire
             || id == ArenaMutator.AirVault || id == ArenaMutator.Slide
             || id == ArenaMutator.InfiniteStamina || id == ArenaMutator.NoFallDamage)

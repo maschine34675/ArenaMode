@@ -117,6 +117,7 @@ internal static class Program
             Time.unscaledTime = 0;
             ArenaMode.Plugin.ModLogger.Warnings.Clear();
             ArenaMode.Config.Settings.HudEnabled.Value = true;
+            ArenaMode.Config.Settings.CombatHudEnabled.Value = true;
             EftScreenManager.Instance = new EftScreenManager();
             ArenaSession.IsActive = true;
             ArenaRespawnDriver.IsRespawnInProgress = false;
@@ -205,14 +206,33 @@ internal static class Program
         void HideAndRecover(Action change, Action restore, string reason)
         {
             int weapon = f.Weapon.Updates, status = f.Status.Updates;
+            bool showWeapon = InfoPanelSettings.ShowWeaponPanel.Value, showStatus = InfoPanelSettings.ShowStatusPanel.Value;
             change(); f.Tick();
             Check(!f.Root.activeSelf && f.Weapon.Updates == weapon && f.Status.Updates == status,
                 reason + " hides before throttle deadline without reading new stats");
+            Check(InfoPanelSettings.ShowWeaponPanel.Value == showWeapon && InfoPanelSettings.ShowStatusPanel.Value == showStatus,
+                reason + " preserves individual panel preferences while hidden");
             restore(); f.Tick();
-            Check(f.Root.activeSelf && f.Weapon.Updates == weapon + 1 && f.Status.Updates == status + 1,
+            Check(f.Root.activeSelf && f.Weapon.Updates == weapon + (showWeapon ? 1 : 0)
+                && f.Status.Updates == status + (showStatus ? 1 : 0),
                 reason + " recovery forces fresh stats even on same frame");
+            Check(InfoPanelSettings.ShowWeaponPanel.Value == showWeapon && InfoPanelSettings.ShowStatusPanel.Value == showStatus
+                && f.Weapon.Visible == showWeapon && f.Status.Visible == showStatus,
+                reason + " restores visibility from unchanged individual panel preferences");
         }
         HideAndRecover(() => ArenaMode.Config.Settings.HudEnabled.Value = false, () => ArenaMode.Config.Settings.HudEnabled.Value = true, "Arena HUD master off");
+        HideAndRecover(() => ArenaMode.Config.Settings.CombatHudEnabled.Value = false, () => ArenaMode.Config.Settings.CombatHudEnabled.Value = true, "Combat HUD off");
+        foreach (var (weapon, status) in new[] { (false, true), (true, false), (false, false) })
+        {
+            InfoPanelSettings.ShowWeaponPanel.Value = weapon;
+            InfoPanelSettings.ShowStatusPanel.Value = status;
+            f.Tick();
+            HideAndRecover(() => ArenaMode.Config.Settings.CombatHudEnabled.Value = false,
+                () => ArenaMode.Config.Settings.CombatHudEnabled.Value = true,
+                $"Combat HUD off with weapon={weapon}, status={status}");
+        }
+        InfoPanelSettings.ShowWeaponPanel.Value = InfoPanelSettings.ShowStatusPanel.Value = true;
+        f.Tick();
         HideAndRecover(() => InfoPanelSettings.Enabled.Value = false, () => InfoPanelSettings.Enabled.Value = true, "Info panels master off");
         HideAndRecover(() => f.Player.IsInventoryOpened = true, () => f.Player.IsInventoryOpened = false, "Inventory or loot opened");
         foreach (EEftScreenType? screen in new EEftScreenType?[] { EEftScreenType.Inventory, EEftScreenType.Menu, EEftScreenType.Settings, null })

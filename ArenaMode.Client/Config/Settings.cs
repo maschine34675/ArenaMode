@@ -86,6 +86,7 @@ public static class Settings
     public static ConfigEntry<bool> CorpseLightsOff { get; private set; }
     public static ConfigEntry<string> GameMode { get; private set; }
     public static ConfigEntry<bool> HudEnabled { get; private set; }
+    public static ConfigEntry<bool> CombatHudEnabled { get; private set; }
     public static ConfigEntry<float> ScorePanelOffsetX { get; private set; }
     public static ConfigEntry<float> ScorePanelOffsetY { get; private set; }
     public static ConfigEntry<bool> ShowFriendlyMarkers { get; private set; }
@@ -1491,6 +1492,12 @@ public static class Settings
             "Enabled",
             true,
             "Arena HUD (score panel, killfeed, callouts) during arena sessions.");
+
+        CombatHudEnabled = config.Bind(
+            "HUD", "CombatElements", true,
+            "Arena-HUD mutator: killfeed, hitmarkers (including kill skull/damage numbers), HP and weapon panels. " +
+            "Preserves individual preferences; score, round notices, team markers and audio stay independent. " +
+            "Requires the overall HUD/Enabled master.");
 
         ScorePanelOffsetX = config.Bind(
             "HUD", "ScorePanelOffsetX", 0f,

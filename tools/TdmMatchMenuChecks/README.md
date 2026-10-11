@@ -9,25 +9,35 @@ Checks cover the actual 50-kill/600-second defaults and F12 ranges, accepted and
 rejected persistence, independent zero limits, hidden non-TDM/PFT controls,
 live armed/active guards, exact custom F12 labels with no invented selection,
 same-mode refresh, real button callbacks, the unchanged 360x530 panel footprint
-(Deathmatch 360x596), and close/reopen listener ownership. Twenty-seven deliberate
+(Deathmatch 360x596), and close/reopen listener ownership. Thirty-two deliberate
 source faults must compile and fail their corresponding behavioral assertions.
 All compiler mutations and output evidence go to ignored repo `artifacts/`;
 production files are not rewritten. The final run restores production inputs.
 
 The mutators extension also links the real pickup settings and inline view/adapter.
-It covers all seventeen feature switches, shared F12 values, movement
+It covers all twenty feature switches, shared F12 values, movement
 master and mode/dependency restrictions, arm/active locks before UI refresh,
 manual saving, unchanged laser brightness, inline state colors, close and stale callbacks.
 Killcam lives in this always-visible right column and keeps its existing per-mode semantics.
 The panel reserves the same 320-pixel image slot in every mode; map/preview
 selection no longer controls its vertical position.
-It has no legend line and no footer note: nine rows in the first column and eight
-in the second run from top 52 to 8 px above the 472-pixel panel bottom. The added
+It has no legend line and no footer note: ten rows in each column run from top 52
+to 8 px above the 472-pixel panel bottom, with 22px buttons and 19.2px description
+cells. Shared row edges allow only 0.001px of floating-point rounding. The added
 Friendly Fire control uses independent Team DM/Tactical/Zombie preferences,
 defaults on/on/off, and is unavailable for solo modes. Tests cover defaults,
 real callback persistence, cross-mode isolation, armed/active locks, and stale
 callbacks. Three compiled faults specifically violate those admission/default
 rules. Runtime freeze and damage behavior belong to FriendlyFireRuntimeChecks.
+
+Auto Quickslots and Instant Search write the original `Kits/AutoQuickSlots` and
+`Loot/InstantSearch` preferences. Arena HUD writes the separate
+`HUD/CombatElements` preference; the existing `HUD/Enabled` master stays intact
+and makes the mutator unavailable when disabled. Checks exercise these controls
+in all five modes and solo/PFT variants, preserve individual HUD preferences,
+and cover manual saving, independent config reload, F12 refresh, active/armed
+locks and retired callbacks. Five new compiled faults target the three bindings,
+the HUD master restriction and accidental writes to an individual hitmarker choice.
 
 All five modes now display a two-line description, then the common OBJECTIVE,
 RESPAWN and EQUIPMENT facts. Deathmatch and Team DM no longer hide those facts;

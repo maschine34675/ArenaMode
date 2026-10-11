@@ -25,6 +25,7 @@ internal sealed class ArenaMutatorsView
     // ON/OFF/N/A states explain themselves and the "saved with F12" sentence
     // was both stale and redundant.
     private const float RowsTop = 52f, RowsBottomMargin = 8f;
+    private const float ButtonHeight = 22f;
     private readonly ArenaMutatorSelection _selection = new();
     private readonly List<Row> _rows = new();
     private GameObject _root, _owner;
@@ -61,7 +62,7 @@ internal sealed class ArenaMutatorsView
                 var navigation = button.navigation; navigation.mode = Navigation.Mode.None; button.navigation = navigation;
                 var marker = new GameObject("Mutator marker " + id, typeof(RectTransform), typeof(Image));
                 marker.transform.SetParent(go.transform, false);
-                Rect((RectTransform)marker.transform, 0f, 0f, 3f, 26f);
+                Rect((RectTransform)marker.transform, 0f, 0f, 3f, ButtonHeight);
                 marker.GetComponent<Image>().raycastTarget = false;
                 var chip = new GameObject("Mutator chip " + id, typeof(RectTransform), typeof(Image));
                 chip.transform.SetParent(go.transform, false);
@@ -92,11 +93,11 @@ internal sealed class ArenaMutatorsView
             int rowsPerColumn = (_rows.Count + 1) / 2;
             float pitch = (ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn;
             float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = RowsTop + (index % rowsPerColumn) * pitch;
-            Rect((RectTransform)row.Button.transform, left, top, cell, 26f);
-            Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, 26f);
-            Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, 26f);
-            Rect((RectTransform)row.Chip.transform, cell - 55f, 3f, 50f, 20f);
-            Rect(row.Description.rectTransform, left + 8f, top + 26f, cell - 16f, pitch - 26f);
+            Rect((RectTransform)row.Button.transform, left, top, cell, ButtonHeight);
+            Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, ButtonHeight);
+            Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, ButtonHeight);
+            Rect((RectTransform)row.Chip.transform, cell - 55f, 1f, 50f, 20f);
+            Rect(row.Description.rectTransform, left + 8f, top + ButtonHeight, cell - 16f, pitch - ButtonHeight);
         }
     }
 

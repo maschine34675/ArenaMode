@@ -18,6 +18,7 @@ internal static class ArenaHud
 {
     private static GameObject _canvasGo;
     private static Canvas _canvas;
+    private static CanvasGroup _combatGroup;
     private static ArenaMatch _match;
     private static ScorePanel _score;
     private static KillfeedView _killfeed;
@@ -74,6 +75,7 @@ internal static class ArenaHud
             _canvasGo = null;
         }
         _canvas = null;
+        _combatGroup = null;
 
         _score = null;
         _killfeed = null;
@@ -92,6 +94,7 @@ internal static class ArenaHud
         try
         {
             ArenaHudVisibility.Apply(_canvas);
+            _combatGroup.alpha = Settings.CombatHudEnabled.Value ? 1f : 0f;
             _score.Tick(_match);
             _killfeed.Tick();
             _callout.Tick();
@@ -129,27 +132,39 @@ internal static class ArenaHud
         // per match anyway.
 
         var root = (RectTransform)_canvasGo.transform;
+        // Keep TMP objects active/ticking so expired cues cannot accumulate
+        // while hidden. The separate group leaves essential match UI visible.
+        var combatGo = new GameObject("ArenaCombatHud", typeof(RectTransform), typeof(CanvasGroup));
+        var combatRoot = (RectTransform)combatGo.transform;
+        combatRoot.SetParent(root, false);
+        combatRoot.anchorMin = Vector2.zero;
+        combatRoot.anchorMax = Vector2.one;
+        combatRoot.offsetMin = combatRoot.offsetMax = Vector2.zero;
+        _combatGroup = combatGo.GetComponent<CanvasGroup>();
+        _combatGroup.interactable = _combatGroup.blocksRaycasts = false;
+        _combatGroup.alpha = Settings.CombatHudEnabled.Value ? 1f : 0f;
         _score = new ScorePanel();
         _score.Create(root);
         _killfeed = new KillfeedView();
-        _killfeed.Create(root);
+        _killfeed.Create(combatRoot);
         _callout = new CalloutElement();
         _callout.Create(root);
         _hitmarker = new HitmarkerElement();
-        _hitmarker.Create(root);
+        _hitmarker.Create(combatRoot);
         _numbers = new DamageNumbersElement();
-        _numbers.Create(root, canvas);
+        _numbers.Create(combatRoot, canvas);
         _assembly = new ArenaAssemblyBanner();
         _assembly.Create(root);
         _powerups = new ArenaPowerupPanel();
         _powerups.Create(root);
         _friendlyMarkers = new ArenaFriendlyMarkers();
         _friendlyMarkers.Create(root);
-        _infoPanels = new InfoPanels.ArenaInfoPanels(root, match);
+        _infoPanels = new InfoPanels.ArenaInfoPanels(combatRoot, match);
     }
 
     private static void OnKill(ArenaKill kill)
     {
+        if (!Settings.CombatHudEnabled.Value) return;
         // Independent of the killfeed toggle and its other-player filter.
         if (Settings.ShowHitmarker.Value)
             _hitmarker?.ShowKill(kill);
@@ -184,7 +199,7 @@ internal static class ArenaHud
 
     internal static void ShowUncreditedDeath(ArenaMatch match, ArenaUncreditedDeath death)
     {
-        if (!ReferenceEquals(_match, match) || _killfeed == null || !Settings.ShowKillfeed.Value
+        if (!Settings.CombatHudEnabled.Value || !ReferenceEquals(_match, match) || _killfeed == null || !Settings.ShowKillfeed.Value
             || (!death.LocalIsVictim && !Settings.KillfeedOtherKills.Value)) return;
         _killfeed.PushUncreditedDeath(death);
     }
@@ -196,6 +211,7 @@ internal static class ArenaHud
 
     private static void OnDamage(ArenaDamage damage)
     {
+        if (!Settings.CombatHudEnabled.Value) return;
         if (Settings.ShowHitmarker.Value)
             _hitmarker?.Show(damage);
         if (Settings.ShowDamageNumbers.Value && damage.BodyDamage + damage.ArmorDamage > 0.5f)

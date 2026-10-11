@@ -81,15 +81,19 @@ The net10 executable links these production files unchanged:
   production class has no call counter of its own).
 
 The suite includes fast repeated ticks, immediate hide/recovery before the next
-refresh deadline, replacement physical bodies, independent weapon/status faults,
+refresh deadline, and `Settings.CombatHudEnabled` hiding both panels while
+preserving every combination of the individual weapon/status preferences.
+Re-enabling refreshes only selected panels on the same frame. It also covers
+replacement physical bodies, independent weapon/status faults,
 invalid intervals, bounded warnings, partial construction and cleanup after a
 hide failure. Disposal also exercises the real magazine scratch reset (both
 buffers).
 
-Thirty-four controlled source faults must compile and fail at their intended
+Thirty-five controlled source faults must compile and fail at their intended
 behavioral assertion: omitted inventory-open flag, omitted native-screen check,
 a canvas kept drawing on native screens, panels built under an already hidden
-root (before TMP's Awake), omitted early inactive-session guard, removed
+root (before TMP's Awake), omitted early inactive-session guard, omitted
+`CombatHudEnabled` guard, removed
 exact-world check, stale weapon content, leaked theme handler, legacy config
 writes; for magazines: scratch retention, the backpack hook ignored, a nested
 backpack pouch counted, backpack magazines all forced to full regardless of
