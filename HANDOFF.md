@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **HUD/utility mutators + helmet (2026-10-11, deployed/native checked):**
+  `5eaeda3` adds the attributed Skoll Stahlhelm, `a51b34d` adds AUTO QUICKSLOTS,
+  INSTANT SEARCH and scoped ARENA HUD. The latter controls combat feedback and
+  HP/weapon panels through HUD/CombatElements, default on; individual preferences,
+  score/notices/team markers/audio stay independent. Existing global HUD/Enabled
+  still overrides it. See `HUD-MUTATORS-REVIEW.md` for boundaries. Twenty switches
+  fit the existing menu, now ten per column. Menu1960/32 faults, panels368/35,
+  announcer330, killfeed120; independent review clear, real client build clean
+  apart from four old warnings, embedded icons verified. Client SHA256
+  `915E398D468DA03C0F60287ABBEFDD28EDC5DB23A8372800B8351A8D6B13FA32`
+  deployed locally/GPU2, fresh process `5791b5fb`, all43 plugins/five libraries
+  matched. Native Factory: actual menu clicks/config mapping, combat HUD on/off,
+  five quickslot bindings and non-clearing OFF, real on/off kills, inventory
+  visibility and new helmet passed. No fresh native search timed; its existing
+  hook remains unchanged. Zero Error/Fatal; protected exit/profile unchanged
+  except two bookkeeping timestamps, twelve PFT files identical, all original
+  preferences restored; only new default HUD/CombatElements remains. GPU2 at
+  MainMenu, server running, hooks off. No server/Core/other DLL or Molotov changes,
+  no push. Full evidence/limits: `GPU-HUD-MUTATORS-RESULTS-20261011.md`.
+
 - **Dependencies / default full-auto / vest HUD (2026-10-11, deployed/native passed):** `DEPENDENCIES.md` records
   actual hard/conditional/optional dependencies, absorbed own mods and release
   boundaries. DefaultAutoFireMode was previously separate only. Arena now owns
