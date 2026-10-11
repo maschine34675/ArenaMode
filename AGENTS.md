@@ -132,6 +132,9 @@ unless a session sends a command. Record its ProductVersion/SHA256 with the othe
 unchanged mods; it is not part of the Arena binding, so its hash is not an Arena
 hash change. A run may use it instead of fixed coordinates and sleeps (see
 `../UiBridge/README.md`); any action it takes is in the BepInEx log as `action …`.
+Before the first game test of a session call `uibridge_help topic=overview` (proxy
+0.8.1+): its playbooks (start, raid, inventory, shooting, gpu-run, troubleshooting)
+hold the sequences and failure pictures; this file keeps only what is Arena-specific.
 
 ---
 
