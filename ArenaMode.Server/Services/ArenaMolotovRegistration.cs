@@ -5,6 +5,7 @@ using SPTarkov.Server.Core.DI;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Enums;
+using SPTarkov.Server.Core.Models.Spt.Config;
 using SPTarkov.Server.Core.Models.Spt.Mod;
 using SPTarkov.Server.Core.Models.Spt.Tables;
 using SPTarkov.Server.Core.Models.Utils;
@@ -21,14 +22,15 @@ namespace ArenaMode.Server.Services;
 // SPT 4.1.6 freezes the item database before SaveCallbacks loads profiles.
 // Adding an item in PostLoad is rejected; only the kit snapshot belongs there.
 [Injectable(TypePriority = OnLoadOrder.Preload)]
-public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItemService customItems,
+public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItemService customItems, RagfairConfig ragfairConfig,
     ISptLogger<ArenaMolotovRegistration> logger) : IOnLoad
 {
     internal static TemplateItem? RegisteredTemplate { get; private set; }
 
     public Task OnLoadAsync(CancellationToken cancellationToken = default)
     {
-        if (TryRegister(templates.Items, details => customItems.CreateItemFromClone(details), out var problem))
+        if (TryRegister(templates.Items, details => customItems.CreateItemFromClone(details),
+            ragfairConfig.Dynamic?.Blacklist?.Custom, out var problem))
             logger.Info("[ArenaMode] Private Molotov supply registered; native blast disabled, no trader/flea/loot entry.");
         else
             logger.Warning($"[ArenaMode] Molotov supply unavailable ({problem}); existing kit supplies retained.");
@@ -38,13 +40,15 @@ public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItem
     // The delegate is the single SPT boundary. Tests execute this same admission,
     // verification and rollback path using real SPT DTOs without starting a server.
     internal static bool TryRegister(IDictionary<MongoId, TemplateItem> items,
-        Func<NewItemFromCloneDetails, CreateItemResult> create, out string problem)
+        Func<NewItemFromCloneDetails, CreateItemResult> create, HashSet<MongoId>? customFleaBlacklist, out string problem)
     {
+        if (customFleaBlacklist == null)
+        { RegisteredTemplate = null; problem = "native custom flea blacklist is unavailable"; return false; }
         var id = new MongoId(ArenaMolotovItem.TemplateId);
         if (items.TryGetValue(id, out var occupied))
         {
             if (ReferenceEquals(occupied, RegisteredTemplate) && IsHarmless(occupied))
-            { problem = ""; return true; }
+                return CompleteRegistration(occupied, customFleaBlacklist, out problem);
             RegisteredTemplate = null;
             problem = "private template ID is already occupied or changed";
             return false; // Never overwrite another mod's item, even an inert lookalike.
@@ -66,9 +70,7 @@ public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItem
                 || registered.Properties!.Prefab?.Path != donor.Properties.Prefab.Path
                 || ReferenceEquals(registered, donor) || ReferenceEquals(registered.Properties, donor.Properties))
                 throw new InvalidOperationException("SPT did not publish the verified harmless clone");
-            RegisteredTemplate = registered;
-            problem = "";
-            return true;
+            return CompleteRegistration(registered, customFleaBlacklist, out problem);
         }
         catch (Exception ex)
         {
@@ -78,6 +80,17 @@ public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItem
             problem = ex.Message;
             return false;
         }
+    }
+
+    private static bool CompleteRegistration(TemplateItem registered, HashSet<MongoId> customFleaBlacklist, out string problem)
+    {
+        // Native PostDbLoadService makes every non-blacklisted item sellable when
+        // the BSG list is disabled (e.g. by SVM). Protect only our verified clone,
+        // in memory before that pass; never alter the user's broad flea settings.
+        customFleaBlacklist.Add(new MongoId(ArenaMolotovItem.TemplateId));
+        RegisteredTemplate = registered;
+        problem = "";
+        return true;
     }
 
     internal static NewItemFromCloneDetails Definition(TemplateItem donor) => new()

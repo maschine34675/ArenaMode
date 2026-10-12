@@ -24,6 +24,7 @@ internal sealed class ArenaKitSupplies
     private readonly Dictionary<string, ThrowWeapType?> _types;
     private readonly HashSet<string> _available;
     private readonly bool _molotovAvailable;
+    internal string MolotovAvailabilityReason { get; }
 
     internal ArenaKitSupplies(IEnumerable<TemplateItem> templates, TemplateItem? molotov = null)
     {
@@ -35,6 +36,12 @@ internal sealed class ArenaKitSupplies
             .Select(t => t.Id.ToString()).ToHashSet(StringComparer.Ordinal);
         _molotovAvailable = molotov != null && items.Any(t => ReferenceEquals(t, molotov))
             && ArenaMolotovRegistration.IsHarmless(molotov);
+        MolotovAvailabilityReason = _molotovAvailable ? "ready"
+            : molotov == null ? "unavailable: registration missing or rejected"
+            : !items.Any(t => ReferenceEquals(t, molotov)) ? "unavailable: registered template removed or replaced"
+            : $"unavailable: registered template changed (CanSellOnRagfair={molotov.Properties?.CanSellOnRagfair}, "
+                + $"CanRequireOnRagfair={molotov.Properties?.CanRequireOnRagfair}, ExaminedByDefault={molotov.Properties?.ExaminedByDefault}, "
+                + $"Strength={molotov.Properties?.Strength}, FragmentsCount={molotov.Properties?.FragmentsCount}); harmless validation rejected it";
     }
 
     internal string CreateCatalog(string source, out int added, bool includeMolotov = true)
@@ -88,7 +95,8 @@ public sealed class ArenaKitSuppliesPostLoad(TemplateTable templates, ISptLogger
         try
         {
             ArenaKitSupplies.Current = new ArenaKitSupplies(templates.Items.Values, ArenaMolotovRegistration.RegisteredTemplate);
-            logger.Info("[ArenaMode] Optional kit supplies ready: two RGD-5s and, when registered, one Molotov; rig/pocket space permitting; authored throwable choices preserved.");
+            logger.Info($"[ArenaMode] Optional kit supplies ready: two RGD-5s; Molotov {ArenaKitSupplies.Current.MolotovAvailabilityReason}. "
+                + "Rig/pocket space permitting; authored throwable choices preserved.");
         }
         catch (Exception ex)
         {

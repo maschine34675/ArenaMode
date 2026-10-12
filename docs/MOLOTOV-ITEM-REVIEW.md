@@ -20,6 +20,12 @@ base-class cache and localized labels. Handbook, flea-price and weapon-shelf
 insertion are explicitly disabled; SPT consequently also adds the ID to its PMC
 loot blacklist. Nothing adds trader stock, loot-generation entries or profile
 items. The item is examined by default, avoiding a persistent examination write.
+After successful ownership/safety verification, registration also adds only its
+private ID to SPT's in-memory `RagfairConfig.Dynamic.Blacklist.Custom`. Existing
+entries are preserved. This keeps SPT's later global flea-unlock pass from
+changing the item into merchandise; no user's config file or broad setting is
+changed. Missing blacklist state fails closed before cloning. Foreign-ID
+collisions and failed publication do not acquire this exclusion.
 
 Registration runs at Preload (100000), before SPT loads profiles and freezes its
 item database. The kit supply snapshot remains at PostLoad + 99001. Registration
@@ -111,3 +117,40 @@ The corrected diff received independent `molotov_asset_feasibility` review of
 the installed DI/start ordering, guard/override test and donor/isolation contract;
 no open P0-P2. Final leaf rerun passed 1,900/1,605 assertions and all eleven
 compiled mutations. Fresh GPU acceptance remains with the integration owner.
+
+## Native global flea-unlock correction
+
+The next fresh GPU1 server registered the template at 08:52:21.094 UTC, and the
+client could receive and hold that exact item. Its standard Spartan kit still
+contained only the two RGD-5s: the server requested forty frags, rather than sixty
+supplies, before client packing. The kit file matched the local catalog and did
+not author a throwable. This was not a quick-slot capacity failure.
+
+The installed SVM preset disables the BSG flea blacklist. The installed SPT
+4.1.6 `GameCallbacks`/`PostDbLoadService` path then runs
+`SetAllDbItemsAsSellableOnFlea`, setting `CanSellOnRagfair=true` on every eligible
+item not in its custom blacklist. The native client inspector confirmed that
+exact changed value on template `a12e00000000000000000001`, with native strength
+still zero. The late kit snapshot correctly refused the modified template under
+its unchanged strict validation. Registration now protects its own successful
+clone in the native custom blacklist before `GameCallbacks` runs. It does not
+weaken validation, edit the donor or modify a template after the profile snapshot.
+
+The production-linked harness invokes that installed bulk method on temporary
+native DTO tables: a positive control without the exclusion reproduces the
+mutation; production registration's exclusion then preserves the harmless
+Molotov and an existing third-party exclusion, while an ordinary initially
+unsellable item still becomes sellable. A compiled mutation removes only the
+private exclusion and must fail this native test. Registration tests also cover
+idempotence, preserving existing exclusions, foreign collisions, missing native
+blacklist state and failed publication. The startup snapshot now reports whether
+the Molotov is ready, missing/replaced or changed, including actual relevant
+property values once rather than producing per-raid spam.
+
+This diff received independent `molotov_asset_feasibility` review with no open
+P0-P2. Final verification passed 1,921 registered-item assertions, the unchanged
+1,605 historical packing assertions and all twelve compiled mutations (ten item,
+two packing). The production rerun returned `ARENA_MOLOTOV_ITEM_CHECKS_PASSED`.
+The test uses the real installed native service but does not start the
+server or touch profiles/config files; fresh-server kit delivery remains an
+integration/GPU gate.

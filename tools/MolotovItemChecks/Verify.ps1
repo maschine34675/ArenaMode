@@ -32,6 +32,7 @@ function Run-ItemCheck([string]$name, [string]$registration, [string]$supplies, 
 Run-ItemCheck 'production' $itemRegistration $itemSupplies
 $itemFaults = @(
     @{ name='late-registration'; source=$itemRegistration; find='TypePriority = OnLoadOrder.Preload'; replace='TypePriority = OnLoadOrder.PostLoad + 97999'; failure='native item registration precedes profile snapshot' },
+    @{ name='missing-private-flea-exclusion'; source=$itemRegistration; find='customFleaBlacklist.Add(new MongoId(ArenaMolotovItem.TemplateId));'; replace='// missing private flea exclusion'; failure='production private exclusion survives actual native bulk flea pass' },
     @{ name='global-handbook'; source=$itemRegistration; find='AddToHandbook = false'; replace='AddToHandbook = true'; failure='no global handbook/flea/shelf entry' },
     @{ name='unsafe-publication'; source=$itemRegistration; find='|| !IsHarmless(registered)'; replace=''; failure='failed registration does not authorize supply ignored-overrides' },
     @{ name='partial-rollback'; source=$itemRegistration; find='items.Remove(id);'; replace='// missing rollback'; failure='failed registration leaves no partial explosive clone throw-after' },

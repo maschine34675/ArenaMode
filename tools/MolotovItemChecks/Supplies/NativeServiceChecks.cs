@@ -73,6 +73,59 @@ internal static partial class Program
             var roundTrip=JsonSerializer.Deserialize<TemplateItem>(JsonSerializer.Serialize(nativeItem,itemType,options),SptOptions());
             Check(ArenaMolotovRegistration.IsHarmless(roundTrip),"actual installed SPT overrides produce harmless native DTO");
             Check(roundTrip.Properties.Prefab.Path==donor.Properties.Prefab.Path&&roundTrip.Parent==donor.Parent,"actual native override preserves donor rig and parent");
+
+            // Execute the installed bulk flea mutation against temporary native
+            // tables. First reproduce the regression without our exclusion, then
+            // use the list produced by real registration. No live config changes.
+            Check(ours<Priority(Required("Callbacks.GameCallbacks")),"registration protects flea ID before native post-database actions");
+            var bulkType=Required("Services.Server.PostDbLoadService");
+            var bulk=RuntimeHelpers.GetUninitializedObject(bulkType);
+            var tableType=Required("Models.Spt.Tables.TemplateTable");
+            var table=Activator.CreateInstance(tableType);
+            var nativeRows=(System.Collections.IDictionary)Activator.CreateInstance(tableType.GetProperty("Items").PropertyType);
+            tableType.GetProperty("Items").SetValue(table,nativeRows);
+            var configType=Required("Models.Spt.Config.RagfairConfig");
+            var config=Activator.CreateInstance(configType);
+            object NewChild(object parent,string name)
+            {
+                var member=parent.GetType().GetProperty(name);
+                var value=Activator.CreateInstance(member.PropertyType);member.SetValue(parent,value);return value;
+            }
+            var dynamic=NewChild(config,"Dynamic");
+            var nativeBlacklist=NewChild(dynamic,"Blacklist");
+            var custom=NewChild(nativeBlacklist,"Custom");
+            void AddExcluded(object id)=>custom.GetType().GetMethod("Add").Invoke(custom,[id]);
+            foreach(var pair in new[]{(tableType,table),(configType,config)})
+                bulkType.GetFields(BindingFlags.NonPublic|BindingFlags.Instance).Single(f=>f.FieldType==pair.Item1).SetValue(bulk,pair.Item2);
+            var bulkMethod=bulkType.GetMethod("SetAllDbItemsAsSellableOnFlea",BindingFlags.NonPublic|BindingFlags.Instance);
+            var nativeProperties=itemType.GetProperty("Properties").GetValue(nativeItem);
+            var sell=nativeProperties.GetType().GetProperty("CanSellOnRagfair");
+            nativeRows.Add(nativeId,nativeItem);
+            bulkMethod.Invoke(bulk,null);
+            Check((bool?)sell.GetValue(nativeProperties)==true,"actual native bulk flea pass reproduces missing-exclusion mutation");
+            sell.SetValue(nativeProperties,false);
+
+            var existingBlockedId=new SPTarkov.Server.Core.Models.Common.MongoId("a12e00000000000000000002");
+            var exclusions=new HashSet<SPTarkov.Server.Core.Models.Common.MongoId>{existingBlockedId};
+            var registeredRows=new Dictionary<SPTarkov.Server.Core.Models.Common.MongoId,TemplateItem>{{DonorId,Clone(donor)}};
+            Check(ArenaMolotovRegistration.TryRegister(registeredRows,request=>Publish(registeredRows,request),exclusions,out _),"registration before native flea pass succeeds");
+            foreach(var id in exclusions)AddExcluded(Activator.CreateInstance(nativeId.GetType(),id.ToString()));
+            object AddControl(string id)
+            {
+                var control=JsonSerializer.Deserialize(Json(donor),itemType,options);
+                var controlId=Activator.CreateInstance(nativeId.GetType(),id);
+                itemType.GetProperty("Id").SetValue(control,controlId);
+                var props=itemType.GetProperty("Properties").GetValue(control);
+                sell.SetValue(props,false);nativeRows.Add(controlId,control);return props;
+            }
+            var ordinary=AddControl(donor.Id.ToString());
+            var alreadyBlocked=AddControl(existingBlockedId.ToString());
+            bulkMethod.Invoke(bulk,null);
+            Check((bool?)sell.GetValue(nativeProperties)==false,"production private exclusion survives actual native bulk flea pass");
+            Check((bool?)sell.GetValue(ordinary)==true,"ordinary unsellable control still becomes sellable in native bulk pass");
+            Check((bool?)sell.GetValue(alreadyBlocked)==false,"existing third-party exclusion survives native bulk pass");
+            roundTrip=JsonSerializer.Deserialize<TemplateItem>(JsonSerializer.Serialize(nativeItem,itemType,options),SptOptions());
+            Check(ArenaMolotovRegistration.IsHarmless(roundTrip),"native bulk pass retains full harmless private template");
             Console.WriteLine($"Native item contract: Core {core.GetName().Version}; SHA256 {Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))}; registration {ours} before profile snapshot {profileSnapshot}.");
         }
         finally {context.Unload();}

@@ -46,13 +46,16 @@ internal static partial class Program
     {
         var donor=templates[ArenaMolotovItem.DonorTemplateId];string originalDonor=Json(donor);
         var definition=ArenaMolotovRegistration.Definition(donor);
-        NativeItemServiceContract(donor,definition);
         Check(!definition.AddToHandbook&&!definition.AddToFleaPriceDb&&!definition.AddToWeaponShelf,"no global handbook/flea/shelf entry");
+        NativeItemServiceContract(donor,definition);
         Dictionary<MongoId,TemplateItem> Fresh()=>new(){{DonorId,Clone(donor)}};
+        var otherBlockedId=new MongoId("a12e00000000000000000002");
+        var blacklist=new HashSet<MongoId>{otherBlockedId};
         bool Register(Dictionary<MongoId,TemplateItem> rows,Func<NewItemFromCloneDetails,CreateItemResult> boundary=null)
-            =>ArenaMolotovRegistration.TryRegister(rows,boundary??(request=>Publish(rows,request)),out _);
+            =>ArenaMolotovRegistration.TryRegister(rows,boundary??(request=>Publish(rows,request)),blacklist,out _);
 
         var rows=Fresh();Check(Register(rows),"real donor registers");
+        Check(blacklist.SetEquals(new[]{otherBlockedId,BottleId}),"successful registration protects only private flea ID and retains existing exclusions");
         var bottle=rows[BottleId];
         Check(ArenaMolotovRegistration.RegisteredTemplate==bottle,"only exact successful clone published");
         Check(Json(rows[DonorId])==originalDonor,"native donor unchanged");
@@ -63,8 +66,13 @@ internal static partial class Program
         Check(p.ExaminedByDefault==true&&p.CanSellOnRagfair==false&&p.CanRequireOnRagfair==false,"item is examined and not flea merchandise");
         Check(p.Prefab.Path==donor.Properties.Prefab.Path&&bottle.Parent==donor.Parent&&p.ThrowType==donor.Properties.ThrowType,"native rig and grenade inheritance retained");
         Check(Register(rows,_=>throw new Exception("must not duplicate")),"registration repeat is idempotent");
+        Check(blacklist.Count==2,"registration repeat does not duplicate or replace flea exclusions");
+        blacklist.Remove(BottleId);
+        Check(Register(rows,_=>throw new Exception("must not duplicate"))&&blacklist.Contains(BottleId),"verified repeated registration restores missing private flea exclusion");
+        blacklist.Remove(BottleId);
         var collision=Fresh();collision.Add(BottleId,Clone(bottle));string foreign=Json(collision[BottleId]);
         Check(!Register(collision,_=>throw new Exception("must not call"))&&Json(collision[BottleId])==foreign,"foreign ID collision stays untouched");
+        Check(blacklist.SetEquals(new[]{otherBlockedId}),"foreign collision does not blacklist unowned ID");
         Check(ArenaMolotovRegistration.RegisteredTemplate==null,"foreign clone cannot authorize supply");
         foreach(string kind in new[]{"false","throw-before","throw-after","ignored-overrides","wrong-id"})
         {
@@ -82,7 +90,11 @@ internal static partial class Program
             Check(!accepted&&ArenaMolotovRegistration.RegisteredTemplate==null,"failed registration does not authorize supply "+kind);
             Check(!rows.ContainsKey(BottleId),"failed registration leaves no partial explosive clone "+kind);
             Check(Json(rows[DonorId])==originalDonor,"failed registration leaves donor intact "+kind);
+            Check(blacklist.SetEquals(new[]{otherBlockedId}),"failed registration preserves native flea exclusions "+kind);
         }
+        rows=Fresh();
+        Check(!ArenaMolotovRegistration.TryRegister(rows,_=>throw new Exception("must reject before service"),null,out var missingBlacklist)
+            &&!rows.ContainsKey(BottleId)&&missingBlacklist.Contains("blacklist"),"missing blacklist fails closed before publication");
         foreach(string kind in new[]{"missing","impact","wrong-type","no-prefab","no-size"})
         {
             rows=Fresh();
@@ -130,6 +142,11 @@ internal static partial class Program
         Check(new ArenaKitSupplies(templates.Values,Clone(bottle)).CreateCatalog(source,out count).Contains(ArenaKitSupplies.Frag)&&count==2,"matching ID without exact registered reference cannot add Molotov");
         var unsafeBottle=Clone(bottle);unsafeBottle.Properties.Strength=1;
         Check(new ArenaKitSupplies(templates.Values.Where(t=>t.Id.ToString()!=ArenaMolotovItem.TemplateId).Append(unsafeBottle),unsafeBottle).CreateCatalog(source,out count).Contains(ArenaKitSupplies.Frag)&&count==2,"unsafe template cannot enter catalog");
+        var changedBottle=Clone(bottle);changedBottle.Properties.CanSellOnRagfair=true;
+        var changedSupplies=new ArenaKitSupplies(templates.Values.Where(t=>t.Id.ToString()!=ArenaMolotovItem.TemplateId).Append(changedBottle),changedBottle);
+        Check(changedSupplies.CreateCatalog(source,out count).Contains(ArenaKitSupplies.Frag)&&count==2,"post-registration flea mutation keeps supply fail-closed");
+        Check(changedSupplies.MolotovAvailabilityReason.Contains("CanSellOnRagfair=True")
+            &&changedSupplies.MolotovAvailabilityReason.Contains("changed"),"late snapshot reports actual rejected flea value");
         foreach(string grenade in templates.Values.Where(t=>t.Properties?.ThrowType!=null).Select(t=>t.Id.ToString()))
         foreach(bool raw in new[]{false,true})
         {
