@@ -25,12 +25,11 @@ bundle dependency. See `MOLOTOV-MODEL-REVIEW.md` for pool restoration and offset
 handling. Ordinary native prefab assets are referenced in the installed game,
 never copied into this repository or redistributed by this change.
 
-Ground fire uses a tapered, bilinearly filtered original 128px flame sprite,
-vertical tongues, sparse embers and one bounded light. Emission is 8.3 per cell
-per second, maximum 384 flame/32 ember particles per fire, at most four fires.
-Particle position is world-relative; the tongue pivot rests above the floor.
+Ground fire now uses the broader layered presentation described below: a soft
+camera-facing base, three original tongue shapes, sparse embers and one bounded
+light. Particle positions are world-relative; tongues grow above the floor.
 Expiry reduces opacity, height, lifetime and light during the final half second.
-No opaque smoke curtain, global brightness edit or shared material mutation.
+No opaque smoke curtain, global brightness edit or shared native material mutation.
 
 Three original synthesized mono sounds cover brittle impact/ignition, a looping
 burn and a short extinguish. `ArenaFireSound.cs` is their complete source; no
@@ -64,3 +63,41 @@ the scoped score gate, original PCM and Master routing. The review caught partia
 third-party material replacement retaining destroyed materials; per-slot restore
 and native setter retry were added and fault-tested. Root also corrected the
 flame pivot so the sprite's lower half does not remain below ground.
+
+## Broader fire presentation, 2026-10-12
+
+The user preferred the older, fuller fire. The first dedicated-item presentation
+had reduced emission from 12.5 to 8.3 particles per cell/second, mean lifetime
+from 0.60 to 0.41 seconds and width from 0.55-0.85 to 0.30-0.50 metres. Its upright
+tongues, transparent start and shrinking to 20 percent further reduced apparent
+coverage. These are source-backed explanations, not a matched visual A/B result.
+
+The new low layer restores the original soft circular texture principle using
+an original 64px texture and ordinary camera-facing billboards, visible from
+both shallow and downward angles. Each cell emits ten per second, width
+0.72-1.00m and lifetime 0.55-0.70s, with limited lateral jitter/drift. The upper
+layer uses three original 96px procedural silhouettes, vertical billboards,
+independent shape selection and varied size, lean, drift and rise. Its emission
+interval varies between 0.16 and 0.20s; particle lifetime is 0.48-0.65s. Shapes
+have separate owned materials rather than an atlas, preventing adjacent-frame
+sampling and unwanted animation. Basis and embers share one owned material.
+All particles taper less severely; no extra world light or shadow is added.
+The existing light now fluctuates smoothly with noise within a similar intensity
+range, rather than following two fixed sine waves.
+
+Hard budget is 384 base + 3*96 tongues + 32 embers = 704 particles/fire, at most
+2,816 across four fires, below the original prototype's 768/fire. Geometry has
+at most 49 cells. Four owned textures/materials and five renderers per fire add
+draw calls and translucent overdraw; a particle cap alone is not a performance
+measurement. No frame-hitch emission catch-up was added, lifetimes stay bounded
+by remaining fire duration, and all partially constructed textures/materials
+are registered for cleanup before configuration/upload can fail.
+
+Only ArenaFireView changes: damage, geometry, bot avoidance, attribution, item
+supply, bottle model and audio methods are unchanged. No code or asset from
+Sage's CC BY-NC-ND mod was incorporated. Its layered design was examined as a
+conceptual reference only. Independent adversarial review found no open P0-P2,
+including shared-resource lifetime and native Unity rotation-unit verification.
+The installed-API client build passes with the same four existing CS8632 warnings.
+The runtime harness does not render this view; native visual evidence belongs
+in GPU-MOLOTOV-VISUALS-RESULTS-20261012.md, separately from the earlier combat report.

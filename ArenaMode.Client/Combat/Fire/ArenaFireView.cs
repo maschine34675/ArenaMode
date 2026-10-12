@@ -12,18 +12,20 @@ namespace ArenaMode.Combat.Fire;
 internal sealed class ArenaFireView : IDisposable
 {
     private GameObject _root;
-    private Material _material;
-    private Texture2D _texture;
+    private readonly List<Material> _materials = new();
+    private readonly List<Texture2D> _textures = new();
     private readonly List<AudioClip> _clips = new();
     private AudioSource _loop, _transient;
     private AudioClip _end;
     private GUISounds _audioHost;
     private AudioMixerGroup _audioGroup;
-    private ParticleSystem _flames, _embers;
+    private enum Layer { Base, Flame, Ember }
+    private ParticleSystem _base, _embers;
+    private readonly ParticleSystem[] _flames = new ParticleSystem[3];
     private Light _light;
     private readonly IReadOnlyList<Vector3> _cells;
     private readonly System.Random _random = new();
-    private float _nextFlame, _nextEmber;
+    private float _nextBase, _nextFlame, _nextEmber, _lightPhase;
     private bool _ending;
 
     internal ArenaFireView(IReadOnlyList<Vector3> cells)
@@ -35,9 +37,14 @@ internal sealed class ArenaFireView : IDisposable
             _root = new GameObject("Arena ground fire"); _root.transform.position = cells[0];
             var shader = Shader.Find("Sprites/Default");
             if (shader == null) throw new InvalidOperationException("Fire sprite shader unavailable");
-            _texture = FlameTexture();
-            _material = new Material(shader) { name = "Arena original flame", mainTexture = _texture };
-            _flames = MakeSystem("Flames", 384, false); _embers = MakeSystem("Embers", 32, true);
+            var baseMaterial = MakeMaterial(shader, -1);
+            _base = MakeSystem("Fire base", 384, baseMaterial, Layer.Base);
+            // Separate original shapes avoid texture-atlas bleeding and animated frame jumps.
+            // 384 + 3*96 + 32 = 704 particles/fire, below the original prototype's 768.
+            for (int i = 0; i < _flames.Length; i++)
+                _flames[i] = MakeSystem("Flame tongue " + i, 96, MakeMaterial(shader, i), Layer.Flame);
+            _embers = MakeSystem("Embers", 32, baseMaterial, Layer.Ember);
+            _lightPhase = Between(0f, 100f);
             var lamp = new GameObject("Fire light"); lamp.transform.SetParent(_root.transform, false);
             lamp.transform.localPosition = Vector3.up * .45f;
             _light = lamp.AddComponent<Light>(); _light.color = new Color(1f, .35f, .07f);
@@ -49,26 +56,44 @@ internal sealed class ArenaFireView : IDisposable
         }
         catch { Dispose(); throw; }
     }
-    private Texture2D FlameTexture()
+    private Material MakeMaterial(Shader shader, int variant)
     {
-        const int size = 128;
-        _texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-        { name = "Arena original flame tongue", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-        var texture = _texture; // constructor cleanup owns it even if upload fails
+        bool softBase = variant < 0;
+        int size = softBase ? 64 : 96;
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        { name = softBase ? "Arena soft fire base" : "Arena original flame tongue " + variant,
+            wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+        _textures.Add(texture); // constructor cleanup owns every partial allocation
         var pixels = new Color[size * size];
         for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
         {
             float h = y / (float)(size - 1), u = x / (float)(size - 1) * 2 - 1;
-            float center = .13f * Mathf.Sin(h * 9f) * h;
-            float width = .72f * Mathf.Pow(1 - h, .65f) + .025f;
-            float side = Mathf.Clamp01(1 - Mathf.Abs(u - center) / width);
-            float alpha = side * side * Mathf.Clamp01(h * 14) * Mathf.Clamp01((1 - h) * 9);
+            float alpha;
+            if (softBase)
+            {
+                float v = h * 2 - 1;
+                float core = Mathf.Clamp01(1 - u * u - v * v);
+                alpha = core * core;
+            }
+            else
+            {
+                float center = (.12f + variant * .055f) * Mathf.Sin(h * (8f + variant * 2f) + variant) * h;
+                float width = (.72f - variant * .055f) * Mathf.Pow(1 - h, .6f + variant * .12f)
+                    + .025f + .07f * Mathf.Sin(h * 17f + variant * 2f) * h * (1 - h);
+                float side = Mathf.Clamp01(1 - Mathf.Abs(u - center) / width);
+                alpha = side * side * Mathf.Clamp01(h * 14) * Mathf.Clamp01((1 - h) * 9);
+            }
             pixels[y * size + x] = new Color(1, 1, 1, alpha);
         }
-        texture.SetPixels(pixels); texture.Apply(false, true); return texture;
+        texture.SetPixels(pixels); texture.Apply(false, true);
+        var material = new Material(shader);
+        _materials.Add(material);
+        material.name = texture.name; material.mainTexture = texture;
+        return material;
     }
-    private ParticleSystem MakeSystem(string name, int cap, bool ember)
+    private ParticleSystem MakeSystem(string name, int cap, Material material, Layer layer)
     {
+        bool softBase = layer == Layer.Base, ember = layer == Layer.Ember;
         var go = new GameObject(name); go.transform.SetParent(_root.transform, false);
         var particles = go.AddComponent<ParticleSystem>(); particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = particles.main; main.loop = true; main.playOnAwake = false;
@@ -78,16 +103,18 @@ internal sealed class ArenaFireView : IDisposable
         var shape = particles.shape; shape.enabled = false;
         var colors = particles.colorOverLifetime; colors.enabled = true;
         var gradient = new Gradient();
-        gradient.SetKeys(new[] { new GradientColorKey(new Color(1f, .76f, .2f), 0),
+        gradient.SetKeys(new[] { new GradientColorKey(new Color(1f, softBase ? .88f : .8f, .2f), 0),
             new GradientColorKey(new Color(1f, .28f, .03f), .45f), new GradientColorKey(new Color(.45f, .1f, .015f), 1) },
-            new[] { new GradientAlphaKey(0, 0), new GradientAlphaKey(ember ? .85f : .78f, .12f),
-                new GradientAlphaKey(.45f, .55f), new GradientAlphaKey(0, 1) });
+            new[] { new GradientAlphaKey(softBase ? .72f : .15f, 0),
+                new GradientAlphaKey(ember ? .85f : .9f, .12f),
+                new GradientAlphaKey(softBase ? .68f : .6f, .6f), new GradientAlphaKey(0, 1) });
         colors.color = gradient;
         var size = particles.sizeOverLifetime; size.enabled = true;
-        size.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.EaseInOut(0, 1, 1, .2f));
-        var renderer = go.GetComponent<ParticleSystemRenderer>(); renderer.sharedMaterial = _material;
-        renderer.renderMode = ember ? ParticleSystemRenderMode.Billboard : ParticleSystemRenderMode.VerticalBillboard;
-        if (!ember) renderer.pivot = new Vector3(0, -.5f, 0); // flame grows above its sampled floor
+        size.size = new ParticleSystem.MinMaxCurve(1, new AnimationCurve(
+            new Keyframe(0, .85f), new Keyframe(.2f, 1), new Keyframe(1, ember ? .2f : .65f)));
+        var renderer = go.GetComponent<ParticleSystemRenderer>(); renderer.sharedMaterial = material;
+        renderer.renderMode = layer == Layer.Flame ? ParticleSystemRenderMode.VerticalBillboard : ParticleSystemRenderMode.Billboard;
+        if (layer == Layer.Flame) renderer.pivot = new Vector3(0, -.5f, 0); // tongue grows above its sampled floor
         renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
         particles.Play(); return particles;
     }
@@ -96,18 +123,33 @@ internal sealed class ArenaFireView : IDisposable
     {
         if (_root == null) return;
         float fade = Mathf.Clamp01(remaining / .55f);
-        _light.intensity = (1.2f + .12f * Mathf.Sin(Time.time * 21f) + .08f * Mathf.Sin(Time.time * 13f)) * fade;
+        _light.intensity = Mathf.Lerp(1f, 1.45f, Mathf.PerlinNoise(_lightPhase, Time.time * 5.3f)) * fade;
         TickAudio(fade, remaining);
+        if (Time.time >= _nextBase)
+        {
+            _nextBase = Time.time + .1f; // no accumulated catch-up burst after a hitch
+            if (remaining > .1f) foreach (var cell in _cells)
+            {
+                _base.Emit(new ParticleSystem.EmitParams {
+                    position = cell + new Vector3(Between(-.13f, .13f), Between(.15f, .22f), Between(-.13f, .13f)),
+                    velocity = new Vector3(Between(-.14f, .14f), Between(.3f, .6f), Between(-.14f, .14f)),
+                    startSize3D = new Vector3(Between(.72f, 1f), Between(.42f, .65f), 1) * (.65f + .35f * fade),
+                    startLifetime = Mathf.Min(remaining, Between(.55f, .7f)),
+                    rotation = Between(-16f, 16f), startColor = new Color(1, 1, 1, fade)
+                }, 1);
+            }
+        }
         if (Time.time >= _nextFlame)
         {
-            _nextFlame = Time.time + .12f;
+            _nextFlame = Time.time + Between(.16f, .2f);
             if (remaining > .12f) foreach (var cell in _cells)
             {
-                _flames.Emit(new ParticleSystem.EmitParams {
-                    position = cell + new Vector3(Between(-.23f, .23f), .16f, Between(-.23f, .23f)),
-                    velocity = new Vector3(Between(-.08f, .08f), Between(.35f, .7f), Between(-.08f, .08f)),
-                    startSize3D = new Vector3(Between(.3f, .5f), Between(.65f, 1.05f), 1) * (.45f + .55f * fade),
-                    startLifetime = Mathf.Min(remaining, Between(.32f, .5f)), startColor = new Color(1, 1, 1, fade)
+                _flames[_random.Next(_flames.Length)].Emit(new ParticleSystem.EmitParams {
+                    position = cell + new Vector3(Between(-.18f, .18f), .13f, Between(-.18f, .18f)),
+                    velocity = new Vector3(Between(-.22f, .22f), Between(.65f, 1.15f), Between(-.22f, .22f)),
+                    startSize3D = new Vector3(Between(.38f, .65f), Between(.7f, 1.2f), 1) * (.45f + .55f * fade),
+                    startLifetime = Mathf.Min(remaining, Between(.48f, .65f)), rotation = Between(-12f, 12f),
+                    startColor = new Color(1, Between(.86f, 1f), Between(.85f, 1f), fade)
                 }, 1);
             }
         }
@@ -190,8 +232,10 @@ internal sealed class ArenaFireView : IDisposable
     {
         StopAudio();
         if (_root != null) UnityEngine.Object.Destroy(_root);
-        if (_material != null) UnityEngine.Object.Destroy(_material);
-        if (_texture != null) UnityEngine.Object.Destroy(_texture);
-        _root = null; _material = null; _texture = null;
+        foreach (var material in _materials) if (material != null) UnityEngine.Object.Destroy(material);
+        foreach (var texture in _textures) if (texture != null) UnityEngine.Object.Destroy(texture);
+        _materials.Clear(); _textures.Clear();
+        _root = null; _base = null; _embers = null;
+        Array.Clear(_flames, 0, _flames.Length);
     }
 }
