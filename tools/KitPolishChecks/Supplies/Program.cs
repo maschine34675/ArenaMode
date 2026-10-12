@@ -12,7 +12,7 @@ using TemplateItem = SPTarkov.Server.Core.Models.Eft.Common.Tables.TemplateItem;
 using SPTarkov.Server.Core.Utils.Json;
 using Grid = EFT.InventoryLogic.Grid;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static void Check(bool condition,string message)
@@ -27,19 +27,21 @@ internal static class Program
         string nativeTypes=Path.Combine(root,"../_decompiled/EFT.InventoryLogic/JsonTypes.cs");
         string raw=File.ReadAllText(database);
         var db=JObject.Parse(raw);
-        Boundary.Install(db,nativeTypes);
         var options=new JsonSerializerOptions{DefaultIgnoreCondition=JsonIgnoreCondition.WhenWritingNull};
         foreach(var converter in new SptJsonConverterRegistrator().GetJsonConverters())options.Converters.Add(converter);
         var templates=System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,TemplateItem>>(raw,options)!;
-        var supplies=new ArenaKitSupplies(templates.Values);
+        RegisterMolotov(templates,db);
+        Boundary.Install(db,nativeTypes);
+        bool hasMolotov=ArenaMolotovRegistration.RegisteredTemplate!=null;
+        var supplies=new ArenaKitSupplies(templates.Values,ArenaMolotovRegistration.RegisteredTemplate);
         foreach(string path in new[]{Path.Combine(root,"ArenaMode.Server/defaults/kits.json"),Path.GetFullPath(Path.Combine(Path.GetDirectoryName(database)!,"../../../user/mods/ArenaMode/config/kits.json"))})
         {
             Check(File.Exists(path),"required real catalog exists "+path);
             string source=File.ReadAllText(path),output=supplies.CreateCatalog(source,out int added);
             var before=JsonConvert.DeserializeObject<List<KitDefinition>>(source)!;
             var after=JsonConvert.DeserializeObject<List<KitDefinition>>(output)!;
-            Check(added==40,"real 20-kit catalog gets 40 optional requests");
-            int packed=0;
+            Check(added==(hasMolotov?60:40),"real 20-kit catalog gets expected optional requests");
+            int packed=0,molotovPacked=0;
             for(int k=0;k<before.Count;k++)
             {
                 var original=Build(before[k]);
@@ -50,20 +52,30 @@ internal static class Program
                 var quick=enhanced.GrenadeThrowingSlots.Select(s=>s.ContainedItem).OfType<CompoundItem>().SelectMany(c=>c.Grids).SelectMany(g=>g.Items).ToList();
                 int here=quick.Count(i=>i.TemplateId==ArenaKitSupplies.Frag);packed+=here;
                 Check(here==2,"real kit packs two RGD-5s in quick slots "+before[k].Id);
+                if(hasMolotov)
+                {
+                    int bottles=quick.Count(i=>i.TemplateId==ArenaMode.Shared.ArenaMolotovItem.TemplateId);
+                    molotovPacked+=bottles;
+                    Check(bottles<=1,"Molotov never duplicated in quick slots");
+                    Check(!enhanced.GetSlot(EquipmentSlot.Backpack).ContainedItem.Descendants().Any(i=>i.TemplateId==ArenaMode.Shared.ArenaMolotovItem.TemplateId),"Molotov never added to backpack");
+                }
                 Check(!enhanced.Descendants().Any(i=>i.TemplateId==Grenades[1]),"real kit has no added flashbang "+before[k].Id);
                 Check(!enhanced.GetSlot(EquipmentSlot.Backpack).ContainedItem.Descendants().Any(i=>Grenades.Contains(i.TemplateId)),"grenades never added to backpack");
                 Preload(after[k]);
                 Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(ArenaKitSupplies.Frag),"real production preload includes RGD-5");
                 Check(!Singleton<ObjectsFactory>.Instance.Loaded.Contains(Grenades[1]),"removed flashbang needs no preload");
+                if(hasMolotov)Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(ArenaMode.Shared.ArenaMolotovItem.TemplateId),"real production preload includes Molotov");
             }
             Console.WriteLine($"Supplies real catalog: {before.Count} kits, {added} requests, {packed} packed in native quick-use container layout: {path}");
             Check(source==File.ReadAllText(path),"authored catalog file untouched");
             Check(output==supplies.CreateCatalog(output,out added)&&added==0,"catalog idempotent");
+            if(hasMolotov)Check(molotovPacked>0,"real kits can actually pack the Molotov supply");
             GunGameChecks(after[0],JsonConvert.DeserializeObject<List<KitDefinition>>(File.ReadAllText(Path.Combine(root,"ArenaMode.Server/defaults/ladder.json")))!);
         }
         PlacementFixtures();
         Console.WriteLine($"KIT_SUPPLIES_ASSERTIONS_PASSED: {_checks}");
     }
+    static partial void RegisterMolotov(Dictionary<string,TemplateItem> templates,JObject database);
     private static InventoryEquipment Build(KitDefinition kit)
     {
         var equipment=new InventoryEquipment();
@@ -83,13 +95,13 @@ internal static class Program
         {
             var merged=KitMerge.WithPrimaryWeapon(baseKit,rung);
             Check(ReferenceEquals(merged.Fill.RigContents,baseKit.Fill.RigContents),"Gun Game retains exact base supplies");
-            Check(merged.Fill.RigContents.Count(x=>x.OptionalQuickUseOnly)==2,"Gun Game does not multiply requests");
+            Check(merged.Fill.RigContents.Count(x=>x.OptionalQuickUseOnly)==(ArenaMolotovRegistration.RegisteredTemplate!=null?3:2),"Gun Game does not multiply requests");
             Preload(merged);
             Check(Singleton<ObjectsFactory>.Instance.Loaded.Contains(ArenaKitSupplies.Frag),"merged kit RGD-5 preload");
             Check(!Singleton<ObjectsFactory>.Instance.Loaded.Contains(Grenades[1]),"merged kit does not restore flashbang");
             Singleton<ItemFactory>.Instance.Created.Clear();
             KitBuilder.BuildPrimaryWeapon(merged,merged.Fill.SpareMagazines,out _);
-            Check(!Singleton<ItemFactory>.Instance.Created.Any(t=>Grenades.Contains(t)),"live Gun Game promotion never replenishes grenades");
+            Check(!Singleton<ItemFactory>.Instance.Created.Any(t=>Grenades.Contains(t)||t==ArenaMode.Shared.ArenaMolotovItem.TemplateId),"live Gun Game promotion never replenishes grenades");
         }
         Check(JsonConvert.SerializeObject(baseKit)==original,"Gun Game merge never mutates base kit");
     }
@@ -170,5 +182,15 @@ internal static class Program
         rig=Grid(2,2,reject);eq=Equipment(rig,null,null);
         RunFill(eq,Request(Optional(Grenades[0]),Optional(Grenades[1])));
         Check(rig.Items.Count==1&&rig.Items[0].TemplateId==Grenades[1],"multiple native grid filter records require all matches");
+        if(ArenaMolotovRegistration.RegisteredTemplate!=null)
+        {
+            rig=Grid(1,1);pockets=Grid(1,1);backpack=Grid(4,4);eq=Equipment(rig,pockets,backpack);
+            RunFill(eq,Request(Optional(Grenades[0]),Optional(Grenades[0]),Optional(ArenaMode.Shared.ArenaMolotovItem.TemplateId)));
+            Check(rig.Items.Count==1&&pockets.Items.Count==1,"existing two frags keep priority over Molotov");
+            Check(backpack.Items.Count==0,"no-room Molotov does not spill to backpack");
+            rig=Grid(1,1);eq=Equipment(rig,null,backpack);
+            RunFill(eq,Request(Optional(ArenaMode.Shared.ArenaMolotovItem.TemplateId)));
+            Check(rig.Items.Single().TemplateId==ArenaMode.Shared.ArenaMolotovItem.TemplateId,"native ThrowWeap path packs Molotov");
+        }
     }
 }

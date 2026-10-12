@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using ArenaMode.Shared;
 using SPTarkov.Common.Models.Logging;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
@@ -22,8 +23,9 @@ internal sealed class ArenaKitSupplies
     internal static ArenaKitSupplies? Current { get; set; }
     private readonly Dictionary<string, ThrowWeapType?> _types;
     private readonly HashSet<string> _available;
+    private readonly bool _molotovAvailable;
 
-    internal ArenaKitSupplies(IEnumerable<TemplateItem> templates)
+    internal ArenaKitSupplies(IEnumerable<TemplateItem> templates, TemplateItem? molotov = null)
     {
         var items = templates.Where(t => t.Type == "Item").ToArray();
         _types = items.ToDictionary(t => t.Id.ToString(), t => t.Properties?.ThrowType, StringComparer.Ordinal);
@@ -31,9 +33,11 @@ internal sealed class ArenaKitSupplies
                                      && t.Properties.MinTimeToContactExplode < 0)
             .Where(t => t.Properties?.Width > 0 && t.Properties.Height > 0 && t.Properties.Prefab?.Path?.Length > 0)
             .Select(t => t.Id.ToString()).ToHashSet(StringComparer.Ordinal);
+        _molotovAvailable = molotov != null && items.Any(t => ReferenceEquals(t, molotov))
+            && ArenaMolotovRegistration.IsHarmless(molotov);
     }
 
-    internal string CreateCatalog(string source, out int added)
+    internal string CreateCatalog(string source, out int added, bool includeMolotov = true)
     {
         added = 0;
         JsonArray catalog;
@@ -44,7 +48,7 @@ internal sealed class ArenaKitSupplies
         {
             // Do not turn an intentionally missing/null fill into ammunition or
             // invent a packing layout for a malformed custom kit.
-            if (node is not JsonObject kit || kit["items"] is not JsonArray items
+            if (node is not JsonObject kit || kit["items"] is not JsonArray items || items.Count == 0
                 || kit["fill"] is not JsonObject fill
                 || (fill["rigContents"] is not null && fill["rigContents"] is not JsonArray)) continue;
             var contents = fill["rigContents"] as JsonArray;
@@ -60,6 +64,13 @@ internal sealed class ArenaKitSupplies
             for (int i = 0; i < 2; i++)
                 contents.Add(new JsonObject { ["tpl"] = Frag, ["count"] = 1, ["optionalQuickUseOnly"] = true });
             added += 2;
+            // Any authored throwable policy (including flash/smoke) opts out of
+            // the new supply. Keep the historical two-frag behavior unchanged.
+            if (_molotovAvailable && includeMolotov && !existing.Any(tpl => _types[tpl].HasValue))
+            {
+                contents.Add(new JsonObject { ["tpl"] = ArenaMolotovItem.TemplateId, ["count"] = 1, ["optionalQuickUseOnly"] = true });
+                added++;
+            }
         }
         return added == 0 ? source : catalog.ToJsonString();
     }
@@ -76,8 +87,8 @@ public sealed class ArenaKitSuppliesPostLoad(TemplateTable templates, ISptLogger
     {
         try
         {
-            ArenaKitSupplies.Current = new ArenaKitSupplies(templates.Items.Values);
-            logger.Info("[ArenaMode] Optional kit grenade supplies ready: two RGD-5s, rig/pocket space permitting; no added flashbang.");
+            ArenaKitSupplies.Current = new ArenaKitSupplies(templates.Items.Values, ArenaMolotovRegistration.RegisteredTemplate);
+            logger.Info("[ArenaMode] Optional kit supplies ready: two RGD-5s and, when registered, one Molotov; rig/pocket space permitting; authored throwable choices preserved.");
         }
         catch (Exception ex)
         {
