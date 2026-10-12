@@ -7,7 +7,7 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Broader Molotov fire (2026-10-12, feature branch):** `26b8ff8` changes only
+- **Broader Molotov fire (2026-10-12, feature branch):** `26b8ff8`/`19c8fb0` change only
   `ArenaFireView` plus its presentation review: the original soft camera-facing
   base returns under three varied upright tongue shapes, with fuller emission,
   less shrinking and irregular light. Damage, geometry, audio and supplies are
@@ -15,13 +15,18 @@ current. User-facing communication is normally German.
   particles/fire (2,816 for four), not a measured worst-case rendering cost.
   Installed-API client build passed with four existing warnings; 103 runtime
   regression assertions passed and independent review has no open P0-P2.
-  Only the client DLL was rebuilt/deployed, from clean `26b8ff8`; companion and
+  Only the client DLL was rebuilt/deployed, from clean `19c8fb0`; companion and
   server remain the pinned `4fd7981` binaries, Core unchanged. Details:
   [artifact binding](MOLOTOV-VISUALS-DEPLOYMENT-20261012.json) and
   [native visual check](GPU-MOLOTOV-VISUALS-RESULTS-20261012.md).
   The first native v2 image rejected its overly bright base; the follow-up keeps
-  coverage but lowers base opacity, brightness and vertical reach. A fresh
-  client build and native retest are required before claiming visual acceptance.
+  coverage but lowers base opacity, brightness and vertical reach. Fresh V3
+  Factory footage shows the broad orange base and separate varied tongues without
+  the V2 washout in the inspected hall view. A second intended downward view was
+  spoiled by the bottle bouncing back and native contact effects; it is not a
+  second visual pass. This is a bounded visual sample, not all-angle/FPS proof.
+  Whole-profile login-to-exit/logout comparison changes only the Hideout clock;
+  422 inventory IDs, 33 PFT files and restored settings remain intact.
   The earlier open fire-kill/assist/team/PMC combat matrix below is not resolved
   by this visual-only change. Work remains on `feature/molotov-item`.
 

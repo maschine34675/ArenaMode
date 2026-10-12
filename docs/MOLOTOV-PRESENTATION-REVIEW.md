@@ -109,3 +109,10 @@ retains its width, cell emission and lifetime, but lowers its alpha peak from
 0.18-0.30m, initial elevation to 0.08-0.12m and rise to 0.08-0.20m/s. Tongue
 shapes, particle budgets and all gameplay/audio remain unchanged. Final native
 evidence must identify the follow-up build, not treat the rejected v2 as accepted.
+
+The follow-up client `19c8fb0` was checked in a fresh native Factory raid. The
+inspected hall capture shows the broad warm base and individually readable
+tongues without the initial washout. This is one bounded visual sample, not a
+matched A/B or universal acceptance: the second intended downward view was
+spoiled by a bounced bottle and native contact effects. See the dated GPU report
+for the exact source/hash, cleanup and profile audit, and untested boundaries.

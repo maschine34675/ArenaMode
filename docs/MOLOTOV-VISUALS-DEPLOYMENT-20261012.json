@@ -1,19 +1,25 @@
 {
   "date": "2026-10-12",
   "branch": "feature/molotov-item",
-  "clientSourceCommit": "26b8ff8a5640ed1240a4241814b4e04fd313015c",
+  "clientSourceCommit": "19c8fb07303e306e3809ae3a7789344245d08ee8",
   "sourceChangesAtBuild": [],
-  "clientSha256": "682366C6A26A065207B324CE907C1336B5AD545879DA2C46EAB87B843E245319",
-  "buildManifest": "artifacts/double-jump-build/d24783d517bf4cdc80086f44296d2957/manifest.json",
-  "deploymentManifest": "artifacts/molotov-visual-v2/manifest.json",
+  "clientSha256": "65BED593E76F07161712554B18884EC87EEF239DD3CDB03F7E63B30A18F0BAA5",
+  "loadedClientMvid": "fd62569d-bc98-4864-8fab-9b979688183a",
+  "buildManifest": "artifacts/double-jump-build/e75f20cc157a4144a05febccb68550fc/manifest.json",
+  "deploymentManifest": "artifacts/molotov-visual-v3/manifest.json",
   "deployment": "Only the client DLL was replaced on stopped GPU1 and synchronized bidirectionally to local/GPU2. No server or companion deployment; idle GPU2 game restarted separately without a server restart or raid test.",
-  "loadedClientMvid": "1f7e5911-f6d2-4ce1-9b18-c010f64aa2df",
   "gpu2": {
-    "instance": "bce72b8e",
-    "startedLocal": "2026-10-12T12:11:26+02:00",
+    "instance": "5a0aae65",
+    "startedLocal": "2026-10-12T12:21:02+02:00",
     "state": "MainMenu",
     "pluginBinding": "19/19 local, disk and loaded plugin identities agree; Core unchanged",
     "raidTest": false
+  },
+  "rejectedV2": {
+    "source": "26b8ff8a5640ed1240a4241814b4e04fd313015c",
+    "clientSha256": "682366C6A26A065207B324CE907C1336B5AD545879DA2C46EAB87B843E245319",
+    "deploymentManifest": "artifacts/molotov-visual-v2/manifest.json",
+    "reason": "Native base too bright; broad coverage retained but lowered and made translucent in v3"
   },
   "unchanged": {
     "serverAndCompanionSource": "4fd79815d6a8dcd15f4d06d4cf5e0d1543d0b998",
@@ -30,5 +36,18 @@
   },
   "scope": "Only ArenaFireView presentation; damage, geometry, bot avoidance, item supply, model and audio methods unchanged",
   "nativeReport": "GPU-MOLOTOV-VISUALS-RESULTS-20261012.md",
-  "acceptance": "Initial v2 native image rejected: base too bright and obscures tongues. Visual follow-up requires a fresh pinned build and retest. No full combat or worst-case rendering acceptance implied"
+  "nativeVisual": {
+    "acceptedSample": "artifacts/molotov-visual-v3/open-preview.png; original frame 130 in open-shallow capture",
+    "finding": "Root inspected broad orange base and individually visible varied tongues without the V2 yellow washout or obvious quad edges in this view",
+    "limitation": "Second intended downward sample was obscured by close contact effects after a bounced bottle; not counted as another visual pass. No matched A/B or all-angle acceptance."
+  },
+  "postRaidAudit": {
+    "compared": "Complete profile after login versus protected exit and after logout",
+    "profileChange": "Hideout clock only; startup Health.UpdateTime change already present before raid",
+    "inventoryIdsBeforeAndAfter": 422,
+    "unchangedPftFiles": 33,
+    "configDifferencesAfterRestore": 0,
+    "evidence": "artifacts/molotov-visual-v3/post-login-diff.json and logout/audit.json"
+  },
+  "acceptance": "V3 bounded native visual sample accepted. No full combat or worst-case rendering acceptance implied"
 }
