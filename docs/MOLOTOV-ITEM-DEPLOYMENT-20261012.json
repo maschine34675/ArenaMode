@@ -12,6 +12,19 @@
   "unchangedCoreSha256": "A32326C85C7AD397DA3D2E23BFCB46ADA5375A06987ECCCF8CC804F554BD970D",
   "deployed": true,
   "deployment": "Three pinned Arena DLLs copied to stopped GPU1, then synchronized to the local installation and stopped GPU2. All twelve resulting Arena/Core disk hashes checked. Bidirectional Syncthing means this is not host-isolated deployment.",
+  "host1": {
+    "purpose": "Final kit, G selection and actual throw checks; complete scenario boundaries in the native report",
+    "instance": "1f8981d4",
+    "startedLocal": "2026-10-12 11:21:09 CEST",
+    "matchingMachinePlugins": "19/19; local=disk=loaded",
+    "clientLoadedMvid": "01ca1713-c3b3-49d0-9699-855f4491c194",
+    "compatLoadedMvid": "f37c870c-128e-485a-b0f6-1de59a731efe",
+    "serverMolotovReadyUtc": "2026-10-12 09:20:42.190",
+    "catalogOptionalRequests": 60,
+    "kitEvidence": "Normal Spartan inventory contains two RGD-5 and one Molotov without giveItem; G selects Molotov after ordinary grenades are used",
+    "profileAudit": "Complete login-to-protected-exit comparison: Hideout clock only; all 422 inventory IDs and 33 PFT files unchanged",
+    "ended": "Protected exit, test settings restored, game and server stopped cleanly"
+  },
   "host2": {
     "purpose": "Consistency restart only; no raid acceptance claimed",
     "instance": "679a486b",

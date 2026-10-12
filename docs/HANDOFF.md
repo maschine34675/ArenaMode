@@ -31,6 +31,13 @@ current. User-facing communication is normally German.
   actual raid tests; GPU2 receives a consistent restart, not additional raid proof.
   See the report for loaded identities, profile/config audit and explicit limits;
   offline tests and technical audio playback do not certify perceived sound quality.
+  Native proof includes normal kit delivery, G selection/throw, original bottle/icon,
+  ordinary RGD-5 reuse, fire self-damage/respawn, bot escape and Master playback.
+  Final login-to-protected-exit profile comparison changes only the Hideout clock;
+  all 422 inventory IDs and 33 PFT files survive, settings restored. Fire kills,
+  assists, isolated friendly-fire contact, PFT and ordinary-raid control still need
+  focused native tests. The full combat acceptance gate is a documented handoff,
+  not a blanket pass. Builds/tests and implementation are complete on this branch.
 
 - **Secret scan (2026-10-11):** Gitleaks 8.30.1 checked all reachable history
   including merge diffs and the worktree including ignored artifacts. Historical
