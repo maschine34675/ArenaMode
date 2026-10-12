@@ -6,8 +6,10 @@ namespace ArenaMode.Session;
 /// <summary>One right-column geometry for map details, area preview and mutators.</summary>
 internal static class ArenaMapPanelLayout
 {
-    internal const float InfoTop = 168f, InfoHeight = 320f, PreviewHeight = InfoHeight;
-    internal const float MutatorsHeight = 472f;
+    // Eleven mutators per column retain a full 18px description line. Borrow
+    // 28px from the fixed preview slot, never from native READY navigation.
+    internal const float InfoTop = 168f, InfoHeight = 292f, PreviewHeight = InfoHeight;
+    internal const float MutatorsHeight = 500f;
 
     internal static float Scale(Transform screen)
     {

@@ -2,7 +2,8 @@ using ArenaMode.Modes;
 using ArenaMode.Session;
 int checks = 0;
 void Check(bool b, string why) { if (!b) throw new Exception(why); checks++; }
-Check(ArenaModeCatalog.All.Count == 5 && ArenaModeCatalog.All[0].Id == "deathmatch", "one Deathmatch entry replaces both legacy entries");
+Check(ArenaModeCatalog.All.Count == 5 && ArenaModeCatalog.All[0].Id == "gungame"
+    && ArenaModeCatalog.All.Count(m => m.Id == "deathmatch") == 1, "Gun Game first, one Deathmatch entry replaces both legacy entries");
 foreach (var alias in new[] { "endless", "rounds", " ROUNDS ", " ENDLESS " }) {
  string saved = alias;
  var mode = new ArenaModeSelectionState(saved, false, x => { saved = x; return true; });

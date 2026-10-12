@@ -348,8 +348,9 @@ internal sealed class ArenaAreaSelectionView
 
     private void UpdateLayout(bool tacticalOnly)
     {
-        float top = ArenaModeCatalog.ModePanelTop + ArenaModeCatalog.ModePanelHeight(
-            tacticalOnly ? ArenaModeCatalog.TacticalId : _state?.ModeId) + 12f;
+        // PFT can select Zombies too; its three wave sliders need the same
+        // clearance as the solo Zombie panel, not Tactical's shorter footprint.
+        float top = ArenaModeCatalog.ModePanelTop + ArenaModeCatalog.ModePanelHeight(_state?.ModeId) + 12f;
         if (_layoutRows == _rows.Count && _layoutSizes == _sizeRows.Count && _layoutParticipants == _participantRows.Count
             && _layoutTactical == tacticalOnly && _layoutTop == top) return;
         _layoutTop = top;

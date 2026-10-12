@@ -23,6 +23,16 @@ Write-Output $arenaRun.Output
 # Mutants change isolated compiler inputs only. The test project imports no
 # deployment targets and links actual production Settings/state/view files.
 $arenaFaults = @(
+    @('zombie-state-raid-lock', 'ArenaMode.Client/Session/ArenaZombieRulesState.cs',
+      'Visible && !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid', 'Visible',
+      'ProductionZombieState', 'Zombie writes reject armed and active raids'),
+    @('zombie-state-range', 'ArenaMode.Client/Session/ArenaZombieRulesState.cs',
+      '|| value < range.MinValue || value > range.MaxValue', '',
+      'ProductionZombieState', 'Zombie callback rejects invalid value'),
+    @('zombie-retired-view', 'ArenaMode.Client/Session/ArenaZombieRulesView.cs',
+      "if (_dispatching || !ReferenceEquals(generation, _root) || _root == null`n            || !_root.activeInHierarchy || !_rows.Contains(row)) return;",
+      'if (_dispatching || _root == null || !_root.activeInHierarchy) return;',
+      'ProductionZombieView', 'retired Zombie slider cannot mutate reopened screen'),
     @('pft-scope', 'ArenaMode.Client\Session\ArenaTdmMatchRulesState.cs',
       'internal bool Visible => !_tacticalOnly', 'internal bool Visible => true',
       'ProductionRulesState', 'PFT cannot expose independent TDM rules'),

@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Combat.Fire;
 using ArenaMode.Modes;
 using ArenaMode.Pickups;
 using BepInEx.Configuration;
@@ -10,7 +11,7 @@ internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
     InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, FriendlyFire,
-    AutoQuickslots, InstantSearch, ArenaHud
+    AutoQuickslots, InstantSearch, ArenaHud, Molotov, FastBots
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -47,12 +48,14 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Pickups => "PICKUPS",
         ArenaMutator.Tracers => "COLORED TRACERS",
         ArenaMutator.Lasers => "TEAM LASER COLORS",
-        ArenaMutator.Akimbo => "AKIMBO PISTOLS",
+        ArenaMutator.Akimbo => "AKIMBO (WIP)",
         ArenaMutator.Announcer => "ANNOUNCER",
         ArenaMutator.FriendlyFire => "FRIENDLY FIRE",
         ArenaMutator.AutoQuickslots => "AUTO QUICKSLOTS",
         ArenaMutator.InstantSearch => "INSTANT SEARCH",
         ArenaMutator.ArenaHud => "ARENA HUD",
+        ArenaMutator.Molotov => "MOLOTOV (WIP)",
+        ArenaMutator.FastBots => "FAST BOTS",
         _ => string.Empty
     };
 
@@ -84,6 +87,8 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.AutoQuickslots => "Bind kit meds to free quickslots.",
         ArenaMutator.InstantSearch => "Search containers instantly.",
         ArenaMutator.ArenaHud => "Killfeed, hits, health and weapons.",
+        ArenaMutator.Molotov => "Your RGD-5 creates ground fire.",
+        ArenaMutator.FastBots => "Bot speed and movement bonuses.",
         _ => string.Empty
     };
 
@@ -112,6 +117,8 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.AutoQuickslots => Settings.AutoQuickSlots,
         ArenaMutator.InstantSearch => Settings.InstantSearch,
         ArenaMutator.ArenaHud => Settings.CombatHudEnabled,
+        ArenaMutator.Molotov => ArenaFireSettings.Enabled,
+        ArenaMutator.FastBots => Settings.BotMovementEnabled,
         _ => null
     };
 
@@ -127,6 +134,13 @@ internal sealed class ArenaMutatorSelection
         if ((id == ArenaMutator.Tracers || id == ArenaMutator.FriendlyFire)
             && Entry(id) == null) return TeamModesOnly;
         if (Entry(id) == null) return "Setting unavailable.";
+        if (id == ArenaMutator.FastBots && Mode == ArenaModeCatalog.ZombieId)
+            return "Unavailable in Zombies.";
+        if (id == ArenaMutator.Molotov)
+        {
+            if (Mode == ArenaModeCatalog.ZombieId) return "Unavailable in Zombies.";
+            if (!ArenaFireRuntime.BotEscapeAvailable) return "Requires Arena BigBrain companion.";
+        }
         if (id == ArenaMutator.ArenaHud && Settings.HudEnabled?.Value != true)
             return "Disabled by HUD master in F12.";
         if ((id == ArenaMutator.DoubleJump || id == ArenaMutator.Bunnyhop || id == ArenaMutator.AirControl || id == ArenaMutator.AirFire

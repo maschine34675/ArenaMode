@@ -20,16 +20,24 @@ internal static class Program
     }
     private static void Main()
     {
+        var savedOff = new BepInEx.Configuration.ConfigFile();
+        savedOff.Stored["Arena incendiary prototype/Enabled"] = false;
+        ArenaFireRuntime.Enable(savedOff);
+        Check(!ArenaFireRuntime.Enabled.Value, "saved Molotov opt-out survives default change");
         ArenaFireRuntime.Enable(new());
         Singleton<GlobalConfiguration>.Instance=new();
         var world=new GameWorld();Singleton<GameWorld>.Instance=world;Singleton<AbstractGame>.Instance=new LocalGame{GameWorld=world};
         var local=new Player{ProfileId="local",IsYourPlayer=true,Position=new(20,0,20)};
         var bot=new Player{ProfileId="bot",IsAI=true};world.MainPlayer=local;world.AllAlivePlayersList.AddRange(new[]{local,bot});
         var mode=new RoundsMode();ArenaMatchService.Current=new(){Mode=mode};
-        Check(!ArenaFireRuntime.Enabled.Value,"prototype opt-in");
+        Check(ArenaFireRuntime.Enabled.Value,"Molotov defaults on for fresh settings");
         ArenaFireRuntime.Enabled.Value=true;ArenaFireRuntime.BotEscapeAvailable=true;ArenaFireRuntime.Tick();
         Check(Explode(Throw(local)),"ordinary raid untouched");
         ArenaSession.IsActive=true;ArenaFireRuntime.Tick();
+        ArenaMatchService.Current.Mode=new ZombieMode();ArenaFireRuntime.Tick();
+        Check(Explode(Throw(local)),"Zombie grenades untouched even with default on");
+        Check(ArenaFireView.Alive==0,"Zombie mode cannot create fire");
+        ArenaMatchService.Current.Mode=mode;ArenaFireRuntime.Tick();
         Check(Explode(Throw(bot)),"bot grenades untouched");
         Check(Explode(Throw(local,"other")),"other template untouched");
         ArenaFireRuntime.BotEscapeAvailable=false;Check(Explode(Throw(local)),"companion required");ArenaFireRuntime.BotEscapeAvailable=true;

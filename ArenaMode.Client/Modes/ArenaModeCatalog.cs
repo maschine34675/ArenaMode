@@ -78,19 +78,19 @@ internal static class ArenaModeCatalog
     private static readonly IReadOnlyList<ArenaModeDefinition> Definitions =
         Array.AsReadOnly(new[]
         {
-            new ArenaModeDefinition(DeathmatchId, "DEATHMATCH",
-                "Everyone fights everyone. Set limits to end rounds.",
-                "Most kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(GunGameId, "GUN GAME",
                 "Each kill advances your weapon. The ladder repeats.",
                 "Kill to advance", "Instant", "Weapon ladder"),
-            new ArenaModeDefinition(TacticalId, "TACTICAL",
-                "Eliminate the enemy squad. 5v5 needs PitFireTeam + 4 allies.",
-                "Round elimination", "Next round", "Buy / retain kit"),
+            new ArenaModeDefinition(DeathmatchId, "DEATHMATCH",
+                "Everyone fights everyone. Set limits to end rounds.",
+                "Most kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
                 "USEC versus BEAR. The team with more kills wins.",
                 "Most team kills", "Instant", "Arena kits"),
-            new ArenaModeDefinition(ZombieId, "ZOMBIES",
+            new ArenaModeDefinition(TacticalId, "TACTICAL (WIP)",
+                "Eliminate the enemy squad. 5v5 needs PitFireTeam + 4 allies.",
+                "Round elimination", "Next round", "Buy / retain kit"),
+            new ArenaModeDefinition(ZombieId, "ZOMBIES (WIP)",
                 "Survive endless waves. Your first death ends the match.",
                 "Survive the waves", "None", "Arena kits"),
         });
@@ -98,7 +98,7 @@ internal static class ArenaModeCatalog
     internal const float ModePanelTop = 168f;
     // Keep the accepted footprint: the area/participant panel sits immediately
     // below this one, including all four Customs choices at a 1080-unit height.
-    internal static float ModePanelHeight(string mode) => NormalizeId(mode) == DeathmatchId ? 596f : 530f;
+    internal static float ModePanelHeight(string mode) => NormalizeId(mode) is DeathmatchId or ZombieId ? 596f : 530f;
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;
 

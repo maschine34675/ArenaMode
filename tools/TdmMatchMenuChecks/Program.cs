@@ -9,6 +9,7 @@ using UnityEngine.UI;
 int checks = 0;
 void Need(bool condition, string reason) { if (!condition) throw new Exception(reason); checks++; }
 var config = new ConfigFile();
+ArenaMode.Combat.Fire.ArenaFireSettings.Bind(config);
 // Presentation can add decoration, never consume input or replace callbacks.
 var themeRoot = new GameObject("theme fixture", typeof(RectTransform));
 ArenaMode.Hud.ArenaUiTheme.Fill((RectTransform)themeRoot.transform, "surface", ArenaMode.Hud.ArenaUiTheme.Surface);
@@ -243,10 +244,10 @@ Need(Label("OBJECTIVE value").text == "Round elimination" && Label("Mode descrip
 Need(Label("Mode description").text.Contains("5v5 needs PitFireTeam + 4 allies.", StringComparison.Ordinal),
     "solo Tactical visible description names the full PFT squad requirement");
 string TacticalRowLabel() => Buttons().Single(x => x.name == "Arena Mode tactical").GetComponentInChildren<TextMeshProUGUI>(true).text;
-Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value,
+Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)",
     "solo Tactical roster stays in the mode row label");
 view.Synchronize("tactical", true);
-Need(Label("OBJECTIVE value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 (PFT)",
+Need(Label("OBJECTIVE value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 PFT (WIP)",
     "PFT Tactical shows the same objective and the roster in the mode row label");
 Need(Label("Mode description").text.Contains("Fallen allies return next round.", StringComparison.Ordinal),
     "protected Tactical description explains round-delayed restoration");
@@ -318,7 +319,7 @@ foreach (bool ownGear in new[] { false, true })
         && Label("Mode description").text.Contains("Fallen allies return after cleared waves", StringComparison.Ordinal),
         "protected Zombie states elimination and cleared-wave restoration semantics");
     Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
-            == "ZOMBIES / SQUAD (PFT)",
+            == "ZOMBIES / PFT (WIP)",
         "Zombie row labels the protected companion variant");
     foreach (var callback in staleEquipmentCallbacks) callback();
     EquipmentChoiceButton(!ownGear).onClick.Invoke();
@@ -404,7 +405,7 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 20, "inline panel has twenty switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 22, "inline panel has twenty-two switches, no backdrop or close buttons");
 // 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
 // now hides, and every description still fits the one-line description cell.
 Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
@@ -423,8 +424,8 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
     MutatorButton(ArenaMutator.Akimbo).onClick.Invoke();
 }
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
-Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-508)
-    && mutatorRect.sizeDelta == new Vector2(600,472), "inline panel always reserves the full thumbnail or Customs preview slot");
+Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-480)
+    && mutatorRect.sizeDelta == new Vector2(600,500), "inline panel always reserves the full thumbnail or Customs preview slot");
 // 2026-10-08 menu polish, item 2: no legend subtitle, no "saved with F12" footer.
 // The rows start 8 px under the title and the last description ends 8 px above
 // the panel bottom, in two columns of ten.
@@ -438,20 +439,20 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
-    float pitch = (472f - 52f - 8f) / 10f;
-    Need(mutatorIds.Length == 20 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
-        && Math.Abs(RowTop(mutatorIds[10]) - 52f) < .01f,
+    float pitch = (500f - 52f - 8f) / 11f;
+    Need(mutatorIds.Length == 22 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
+        && Math.Abs(RowTop(mutatorIds[11]) - 52f) < .01f,
         "both mutator columns start 8 px below the title");
     Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
         "mutator rows reflow without moving the panel");
     Need(mutatorIds.All(id => Detail(id).sizeDelta.y >= 18f), "all descriptions retain one readable line");
     Need(mutatorIds.All(id => Math.Abs(((RectTransform)MutatorButton(id).transform).sizeDelta.y - 22f) < .01f
-        && Math.Abs(Detail(id).sizeDelta.y - 19.2f) < .01f),
-        "twenty mutators retain 22px buttons and 19.2px description cells");
-    foreach (var lastId in new[] { mutatorIds[9], mutatorIds[19] })
+        && Math.Abs(Detail(id).sizeDelta.y - 18f) < .01f),
+        "twenty-two mutators retain 22px buttons and 18px description cells");
+    foreach (var lastId in new[] { mutatorIds[10], mutatorIds[21] })
     {
         var lastDetail = Detail(lastId);
-        Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 464f) < .01f
+        Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 492f) < .01f
             && Math.Abs(lastDetail.sizeDelta.y - (pitch - 22f)) < .01f,
             "last description ends 8 px above the panel bottom and fills the row pitch");
     }
@@ -537,7 +538,7 @@ foreach (var (teamMode, team) in new[] { ("teamdeathmatch", false), ("tactical",
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
-    Need(mutatorRect.anchoredPosition == new Vector2(-56,-508), "mode changes never move the mutator panel");
+    Need(mutatorRect.anchoredPosition == new Vector2(-56,-480), "mode changes never move the mutator panel");
     bool wasEnabled = Settings.GetReplaySeconds(mode) > 0f;
     Need(KillcamButton().interactable && KillcamText() == (wasEnabled ? "KILLCAM: ON" : "KILLCAM: OFF"),
         "per-mode killcam label reflects saved state " + mode);
@@ -612,6 +613,8 @@ Need(Settings.TeamDeathmatchKillLimit.Value == 25, "retired row cannot modify re
 // Exercise actual config bindings through the visible controls, not a copied policy.
 var preferencePairs = new[] {
     (ArenaMutator.FastMovement, Settings.MovementEnabled),
+    (ArenaMutator.FastBots, Settings.BotMovementEnabled),
+    (ArenaMutator.Molotov, ArenaMode.Combat.Fire.ArenaFireSettings.Enabled),
     (ArenaMutator.Akimbo, Settings.AkimboEnabled),
     (ArenaMutator.Bunnyhop, Settings.BunnyhopEnabled),
     (ArenaMutator.DoubleJump, Settings.DoubleJumpEnabled),
@@ -837,10 +840,9 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
         bool separate = -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
-        // 2026-10-08: the legend line and the footer note are gone, so the rows
-        // run from 8 px below the 30-px title (top 52) to 8 px above the panel
-        // bottom (472 - 8 = 464).
-        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 464f + .01f,
+        // Eleven rows per column retain separate descriptions and an 8-px
+        // bottom margin in the 500-px panel.
+        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 492f + .01f,
             "all mutator descriptions fit outside their button and inside the panel");
         foreach (ArenaMutator other in Enum.GetValues(typeof(ArenaMutator)))
         {
@@ -857,6 +859,99 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
                 + " / " + other + " top=" + (-otherRect.anchoredPosition.y).ToString("R"));
         }
     }
+}
+// New menu controls must use the real config entries, not copied defaults or
+// independent state; direct retained callbacks must obey the same raid locks.
+{
+    Need(ArenaMutatorSelection.Title(ArenaMutator.Akimbo).EndsWith(" (WIP)")
+        && ArenaMutatorSelection.Title(ArenaMutator.Molotov).EndsWith(" (WIP)"), "unfinished mutators visibly end in WIP");
+    foreach (bool team in new[] { false, true })
+    {
+        view.Synchronize("zombie", team);
+        Need(MutatorStatus(ArenaMutator.Molotov) == "N/A" && MutatorStatus(ArenaMutator.FastBots) == "N/A",
+            "Zombie excludes the two unsupported runtime mutators");
+        bool saved = ArenaMode.Combat.Fire.ArenaFireSettings.Enabled.Value;
+        MutatorButton(ArenaMutator.Molotov).onClick.Invoke();
+        Need(ArenaMode.Combat.Fire.ArenaFireSettings.Enabled.Value == saved, "unsupported Molotov callback preserves preference");
+        foreach (string mode in new[] { "zombie", "tactical" })
+        {
+            view.Synchronize(mode, team);
+            Need(Buttons().Single(b => b.name == "Arena Mode " + mode).GetComponentInChildren<TMP_Text>(true).text.EndsWith(" (WIP)"),
+                "dynamic solo and PFT mode labels retain visible WIP suffix");
+        }
+    }
+    view.Synchronize("deathmatch", false);
+    ArenaMode.Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = false;
+    view.Synchronize("deathmatch", false);
+    Need(!MutatorButton(ArenaMutator.Molotov).interactable && MutatorStatus(ArenaMutator.Molotov) == "N/A",
+        "Molotov requires a registered companion before menu activation");
+    ArenaMode.Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = true;
+
+    Slider ZombieSlider(ArenaZombieRule rule) => view.Root.GetComponentsInChildren<Slider>(true).Single(s => s.name == "Arena Zombie " + rule);
+    GameObject ZombieRoot() => view.Root.transform.Children.Single(t => t.name == "Arena Zombie Rules").gameObject;
+    var zombieEntries = new[] { (ArenaZombieRule.MaxAlive, Settings.ZombieMaxAlive, 4, 56),
+        (ArenaZombieRule.WaveStartSize, Settings.ZombieWaveStartSize, 1, 200),
+        (ArenaZombieRule.WaveGrowth, Settings.ZombieWaveGrowth, 0, 100) };
+    var originalZombieValues = zombieEntries.Select(x => x.Item2.Value).ToArray();
+    var zombieState = new ArenaZombieRulesState();
+    zombieState.Synchronize("zombie");
+    foreach (bool team in new[] { false, true })
+    {
+        view.Synchronize("zombie", team);
+        Need(ZombieRoot().activeInHierarchy && ((RectTransform)view.Root.transform).sizeDelta.y == 596,
+            "Zombie sliders fit their mode panel in solo and PFT");
+        foreach (var (rule, entry, minimum, maximum) in zombieEntries)
+        {
+            var slider = ZombieSlider(rule);
+            Need(slider.wholeNumbers && slider.minValue == minimum && slider.maxValue == maximum,
+                "Zombie slider uses original integer F12 bounds: " + rule);
+            foreach (int requested in new[] { minimum, maximum, (minimum + maximum) / 2 })
+            {
+                slider.value = requested;
+                Need(entry.Value == requested && Label("Zombie value " + rule).text == requested.ToString(),
+                    "Zombie slider persists and shows exact config value: " + rule);
+            }
+            int before = entry.Value;
+            foreach (float invalid in new[] { float.NaN, float.PositiveInfinity, minimum - 1f, maximum + 1f, minimum + .5f })
+            {
+                slider.onValueChanged.Invoke(invalid);
+                Need(entry.Value == before, "Zombie callback rejects invalid value: " + rule);
+            }
+            Need(!zombieState.TrySelect(rule, minimum - 1) && !zombieState.TrySelect(rule, maximum + 1) && entry.Value == before,
+                "Zombie state rejects range violations rather than config clamping");
+            foreach (bool armed in new[] { false, true })
+            {
+                ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
+                slider.onValueChanged.Invoke(minimum);
+                Need(entry.Value == before && !zombieState.TrySelect(rule, minimum), "Zombie writes reject armed and active raids");
+                ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
+            }
+            entry.Value = minimum;
+            int beforeRefreshSaves = config.Saves;
+            view.Synchronize("zombie", team);
+            Need(slider.value == minimum && config.Saves == beforeRefreshSaves, "F12 synchronization does not write Zombie settings");
+        }
+    }
+    foreach (string mode in new[] { "gungame", "deathmatch", "teamdeathmatch", "tactical" })
+    {
+        view.Synchronize(mode, false);
+        int saved = Settings.ZombieMaxAlive.Value;
+        ZombieSlider(ArenaZombieRule.MaxAlive).onValueChanged.Invoke(56f);
+        Need(!ZombieRoot().activeInHierarchy && Settings.ZombieMaxAlive.Value == saved,
+            "non-Zombie mode hides and rejects stale Zombie controls: " + mode);
+    }
+    view.Synchronize("zombie", false);
+    var staleZombieCallbacks = ZombieSlider(ArenaZombieRule.MaxAlive).onValueChanged.Snapshot();
+    Show("zombie", false);
+    int beforeStaleZombie = Settings.ZombieMaxAlive.Value;
+    foreach (var callback in staleZombieCallbacks) callback(56f);
+    Need(Settings.ZombieMaxAlive.Value == beforeStaleZombie, "retired Zombie slider cannot mutate reopened screen");
+    config.SaveOnConfigSet = false;
+    int beforeManualSave = config.Saves;
+    ZombieSlider(ArenaZombieRule.MaxAlive).value = 56;
+    Need(Settings.ZombieMaxAlive.Value == 56 && config.Saves == beforeManualSave + 1, "Zombie slider explicitly saves when autosave is off");
+    config.SaveOnConfigSet = true;
+    for (int i = 0; i < zombieEntries.Length; i++) zombieEntries[i].Item2.Value = originalZombieValues[i];
 }
 view.Close();
 Need(view.Root == null && screen.transform.Children.Count == 0, "close destroys all owned view roots");

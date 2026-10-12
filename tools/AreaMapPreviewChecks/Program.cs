@@ -116,7 +116,8 @@ try
     var east=State(ArenaAreaCatalog.CustomsFactoryEastPolygonId);
     var center=State(ArenaAreaCatalog.CustomsFactoryCenterTeamsId);
     var whole=ArenaAreaSelectionState.Create("factory4_day","deathmatch",false,"full-map",4);
-    var unavailable=ArenaAreaSelectionState.Create("bigmap","tactical",false,east.SelectedId,4);
+    var tactical=ArenaAreaSelectionState.Create("bigmap","tactical",false,east.SelectedId,4);
+    var unavailable=ArenaAreaSelectionState.Create("unsupported-map","tactical",false,east.SelectedId,4);
     var screen=NewScreen(1920,1080);
     var native=Child(screen,"native map info",typeof(RectTransform),typeof(CanvasGroup));
     var nativeGroup=native.GetComponent<CanvasGroup>();nativeGroup.alpha=.37f;nativeGroup.interactable=false;nativeGroup.blocksRaycasts=true;
@@ -162,13 +163,15 @@ try
         "Detail view must not overlay neighboring area boundaries.");
     Need(firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="CUSTOMS — Factory Center"),"AREA-TITLE","Selected area title follows the offered selection.");
     var rootRect=(RectTransform)firstRoot.transform;var viewportRect=(RectTransform)viewport.transform;
-    Near(rootRect.rect.width,600,"RESIZE","1920-wide root width");Near(rootRect.rect.height,320,"RESIZE","Compact preview height");
+    Near(rootRect.rect.width,600,"RESIZE","1920-wide root width");Near(rootRect.rect.height,292,"RESIZE","Compact preview height");
     ((RectTransform)screen.transform).sizeDelta=new Vector2(1600,900);preview.Refresh(center);
-    Near(rootRect.rect.width,600,"RESIZE","Resized logical root width");Near(rootRect.rect.height,320,"RESIZE","Resized logical root height");
+    Near(rootRect.rect.width,600,"RESIZE","Resized logical root width");Near(rootRect.rect.height,292,"RESIZE","Resized logical root height");
     Near(rootRect.localScale.y,900f/1080f,"RESIZE","Smaller canvas scales complete right column");
-    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,176,"RESIZE","Resized viewport height");
+    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,148,"RESIZE","Resized viewport height");
     var resizedMesh=mapGraphic.SubmitMesh();Need(resizedMesh.Vertices.Count>4&&resizedMesh.Vertices.All(v=>float.IsFinite(v.Position.x)&&float.IsFinite(v.Position.y)),
         "RESIZE","Mesh must recompute against resized UI geometry.");
+    preview.Refresh(tactical);
+    Need(firstRoot.activeSelf&&nativeGroup.alpha==0,"TACTICAL-PREVIEW","Customs Tactical now supports the surveyed preview.");
     foreach(var fallback in new[]{whole,unavailable,null})
     {
         preview.Refresh(fallback);

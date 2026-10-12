@@ -1,5 +1,9 @@
 // External configuration/session surfaces. No actual game or config file is changed.
 public enum BotDifficulty { easy, normal, hard, impossible }
+namespace ArenaMode.Combat.Fire
+{
+    internal static class ArenaFireRuntime { internal static bool BotEscapeAvailable = true; }
+}
 namespace UnityEngine { public enum KeyCode { F6, F7, F8, F9, F10, LeftControl, LeftAlt, Backspace } }
 namespace ArenaMode.Pickups
 {

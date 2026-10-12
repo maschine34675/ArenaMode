@@ -18,7 +18,7 @@ namespace ArenaMode.Combat.Fire;
 
 internal static class ArenaFireRuntime
 {
-    internal static ConfigEntry<bool> Enabled;
+    internal static ConfigEntry<bool> Enabled => ArenaFireSettings.Enabled;
     internal static bool BotEscapeAvailable { get; set; }
     private static AccessTools.FieldRef<Player.ItemHandsController, Player> Owner;
     private static readonly Dictionary<Grenade, Throw> Throws = new();
@@ -60,8 +60,7 @@ internal static class ArenaFireRuntime
 
     internal static void Enable(ConfigFile config)
     {
-        Enabled = config.Bind("Arena incendiary prototype", "Enabled", false,
-            $"Prototype: your RGD-5 throws become 6-second ground fire in live Arena only. Existing grenade model; bot grenades and ordinary raids are unchanged. {ArenaFirePolicy.DamagePerSecond} base total HP/s; fire does not stack. Requires the matching BigBrain companion for bot escape. May be toggled between throws; disabling extinguishes owned fire and retires owned grenades safely.");
+        ArenaFireSettings.Bind(config);
         Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
         new ThrowPatch().Enable(); new CollisionPatch().Enable(); new ExplosionPatch().Enable();
     }

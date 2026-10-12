@@ -84,6 +84,29 @@ namespace UnityEngine.UI
             public void Invoke(){foreach(var action in Snapshot())action();}
         }
     }
+    public class Slider:Selectable
+    {
+        public enum Direction { LeftToRight }
+        public Direction direction;
+        public bool wholeNumbers, interactable;
+        public Navigation navigation;
+        public UnityEngine.RectTransform fillRect,handleRect;
+        public UnityEngine.Component targetGraphic;
+        public readonly SliderEvent onValueChanged=new();
+        private float _min, _max=1, _value;
+        public float minValue { get=>_min; set { _min=value; this.value=_value; } }
+        public float maxValue { get=>_max; set { _max=value; this.value=_value; } }
+        public float value { get=>_value; set { float old=_value; SetValueWithoutNotify(value); if(old!=_value)onValueChanged.Invoke(_value); } }
+        public void SetValueWithoutNotify(float requested) => _value=Math.Clamp(wholeNumbers?(float)Math.Round(requested):requested,_min,_max);
+        public class SliderEvent
+        {
+            readonly List<Action<float>> callbacks=new();
+            public void AddListener(Action<float> action)=>callbacks.Add(action);
+            public void RemoveAllListeners()=>callbacks.Clear();
+            public Action<float>[] Snapshot()=>callbacks.ToArray();
+            public void Invoke(float value){foreach(var action in Snapshot())action(value);}
+        }
+    }
 }
 namespace TMPro
 {

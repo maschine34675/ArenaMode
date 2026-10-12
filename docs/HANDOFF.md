@@ -1,11 +1,22 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-11. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-12. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Menu follow-up (2026-10-12):** Mode order is Gun Game, Deathmatch, Team DM,
+  Tactical, Zombies; Tactical/Zombies/Akimbo/Molotov display `(WIP)`. MOLOTOV
+  (fresh default on; existing saved false preserved) and FAST BOTS expose existing
+  settings, making 22 mutators. Both remain unavailable in Zombies; Molotov needs
+  the live matching BigBrain companion. Zombies gains three integer sliders for
+  existing MaxAlive/WaveStartSize/WaveGrowth preferences, locked after arming.
+  The right column retains READY clearance; PFT Zombies uses the taller mode
+  panel for area positioning. See `MENU-MUTATORS-ZOMBIE-REVIEW.md` for scope and
+  checks. Final committed build, deployment and native menu evidence follow in
+  `GPU-MENU-POLISH-RESULTS-20261012.md`; do not infer gameplay acceptance from UI.
 
 - **Secret scan (2026-10-11):** Gitleaks 8.30.1 checked all reachable history
   including merge diffs and the worktree including ignored artifacts. Historical

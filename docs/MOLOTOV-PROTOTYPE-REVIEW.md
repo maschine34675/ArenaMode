@@ -2,7 +2,10 @@
 
 ## Player-facing contract
 
-Opt in with F12, **Arena incendiary prototype / Enabled** (default false).
+Since 2026-10-12, use **MOLOTOV (WIP)** in the map-screen mutators or F12,
+**Arena incendiary prototype / Enabled** (default true for new settings;
+an existing saved false is preserved). It is unavailable in Zombies and without
+the matching BigBrain companion. See [menu follow-up](MENU-MUTATORS-ZOMBIE-REVIEW.md).
 The exact local player's RGD-5 becomes an incendiary only during live Arena
 combat, with the matching BigBrain companion loaded. The existing grenade
 model, inventory action and throw animation remain. No new template or server

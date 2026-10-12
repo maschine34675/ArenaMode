@@ -45,7 +45,7 @@ namespace Comfort.Common { public static class Singleton<T> where T:class { publ
 namespace BepInEx.Configuration
 {
     public class ConfigEntry<T> { public T Value; }
-    public class ConfigFile { public ConfigEntry<T> Bind<T>(string a,string b,T value,string c)=>new(){Value=value}; }
+    public class ConfigFile { public readonly Dictionary<string,object> Stored=new(); public ConfigEntry<T> Bind<T>(string a,string b,T value,string c)=>new(){Value=Stored.TryGetValue(a+"/"+b,out var saved)?(T)saved:value}; }
 }
 namespace HarmonyLib
 {
@@ -144,6 +144,7 @@ namespace ArenaMode.Modes
     public class TacticalMode:IArenaMode { public bool IsComplete=>false;public bool AssistScoringOpen=true;public int RoundNumber=1;public bool IsOpposingAwardKill(Player v,IPlayer p)=>v.IsAI; }
     public class TeamDeathmatchMode:IArenaMode { public bool IsComplete=>false;public bool AssistScoringOpen=true; }
     public class GunGameMode:IArenaMode { public bool IsComplete=>false;public bool AssistScoringOpen=true; }
+    public class ZombieMode:IArenaMode { public bool IsComplete=>false;public bool IsTeamArena;public bool IsOpposingAwardKill(Player v,IPlayer p)=>v.IsAI; }
 }
 namespace ArenaMode.Areas
 {

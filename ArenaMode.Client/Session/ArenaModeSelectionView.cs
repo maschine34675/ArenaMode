@@ -31,6 +31,7 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _description;
     private ArenaModeSelectionState _selection;
     private readonly ArenaMutatorsView _mutators = new();
+    private readonly ArenaZombieRulesView _zombieRules = new();
 
     internal GameObject Root => _root;
     internal string SelectedMode => _selection?.SelectedMode;
@@ -112,6 +113,7 @@ internal sealed class ArenaModeSelectionView
         Safe(_dmRulesView.Close);
         Safe(_tdmRulesView.Close);
         Safe(_equipmentChoiceView.Close);
+        Safe(_zombieRules.Close);
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
@@ -163,6 +165,7 @@ internal sealed class ArenaModeSelectionView
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
         _dmRulesView.Show(_root.transform, template, typography, _dmRules, Refresh);
         _equipmentChoiceView.Show(_root.transform, template, typography, _equipmentChoice);
+        _zombieRules.Show(_root.transform, typography);
     }
 
     private void CreateRow(Button template, TMP_Text typography, int index, float top)
@@ -260,10 +263,10 @@ internal sealed class ArenaModeSelectionView
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
-                    ? "TACTICAL / 5v5 (PFT)" : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value;
+                    ? "TACTICAL / 5v5 PFT (WIP)" : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)";
             else if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.ZombieId)
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
-                    ? "ZOMBIES / SQUAD (PFT)" : "ZOMBIES";
+                    ? "ZOMBIES / PFT (WIP)" : "ZOMBIES (WIP)";
         _respawn.text = zombieTeam ? "Next wave" : mode.Respawn;
         if (!_selection.TacticalOnly && mode.Respawn == "Instant" && Settings.GetReplaySeconds(mode.Id) > 0f
             && Spectator.KillcamReplayCompat.CanPlay(out _)) _respawn.text = "After killcam";
@@ -293,6 +296,7 @@ internal sealed class ArenaModeSelectionView
         _dmRulesView.Refresh();
         _tdmRulesView.Refresh();
         _equipmentChoiceView.Refresh();
+        _zombieRules.Synchronize(_selection.SelectedMode);
     }
 
     private float PanelHeight => ArenaModeCatalog.ModePanelHeight(_selection?.SelectedMode);

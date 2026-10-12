@@ -88,6 +88,15 @@ foreach(string mode in new[]{"zombie","tactical","zombie"})
     var summary=view.Root.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true).Single(label=>label.name=="Team size");
     Need(summary.text==(mode=="zombie"?"5-player squad":"5v5 - fixed teams"),
         "rendered protected squad summary follows cooperative or opposing-team mode");
+    Need(-((RectTransform)view.Root.transform).anchoredPosition.y == (mode == "zombie" ? 776 : 710),
+        "protected Zombie area choices clear all three wave sliders");
+}
+foreach(bool team in new[]{false,true})
+{
+    view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.CustomsId,"zombie",team,teams,5),team);
+    var zombieAreaRect=(RectTransform)view.Root.transform;
+    Need(-zombieAreaRect.anchoredPosition.y==776 && -zombieAreaRect.anchoredPosition.y+zombieAreaRect.sizeDelta.y<=980,
+        "solo and PFT Customs Zombie areas fit between wave sliders and READY");
 }
 view.Close();
 Console.WriteLine($"ARENA_TEAM_AREA_VIEW_CHECKS_PASSED ({checks} assertions)");
