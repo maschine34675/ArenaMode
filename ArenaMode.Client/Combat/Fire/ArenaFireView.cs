@@ -103,11 +103,14 @@ internal sealed class ArenaFireView : IDisposable
         var shape = particles.shape; shape.enabled = false;
         var colors = particles.colorOverLifetime; colors.enabled = true;
         var gradient = new Gradient();
-        gradient.SetKeys(new[] { new GradientColorKey(new Color(1f, softBase ? .88f : .8f, .2f), 0),
-            new GradientColorKey(new Color(1f, .28f, .03f), .45f), new GradientColorKey(new Color(.45f, .1f, .015f), 1) },
-            new[] { new GradientAlphaKey(softBase ? .72f : .15f, 0),
-                new GradientAlphaKey(ember ? .85f : .9f, .12f),
-                new GradientAlphaKey(softBase ? .68f : .6f, .6f), new GradientAlphaKey(0, 1) });
+        // The broad overlapping layer supports the tongues; a yellow/opaque base
+        // blooms into a solid sheet in EFT's native post-processing.
+        gradient.SetKeys(new[] { new GradientColorKey(softBase ? new Color(.8f, .24f, .02f) : new Color(1f, .8f, .2f), 0),
+            new GradientColorKey(softBase ? new Color(.65f, .12f, .01f) : new Color(1f, .28f, .03f), .45f),
+            new GradientColorKey(softBase ? new Color(.25f, .035f, .005f) : new Color(.45f, .1f, .015f), 1) },
+            new[] { new GradientAlphaKey(softBase ? .12f : .15f, 0),
+                new GradientAlphaKey(softBase ? .3f : ember ? .85f : .9f, .12f),
+                new GradientAlphaKey(softBase ? .18f : .6f, .6f), new GradientAlphaKey(0, 1) });
         colors.color = gradient;
         var size = particles.sizeOverLifetime; size.enabled = true;
         size.size = new ParticleSystem.MinMaxCurve(1, new AnimationCurve(
@@ -131,9 +134,9 @@ internal sealed class ArenaFireView : IDisposable
             if (remaining > .1f) foreach (var cell in _cells)
             {
                 _base.Emit(new ParticleSystem.EmitParams {
-                    position = cell + new Vector3(Between(-.13f, .13f), Between(.15f, .22f), Between(-.13f, .13f)),
-                    velocity = new Vector3(Between(-.14f, .14f), Between(.3f, .6f), Between(-.14f, .14f)),
-                    startSize3D = new Vector3(Between(.72f, 1f), Between(.42f, .65f), 1) * (.65f + .35f * fade),
+                    position = cell + new Vector3(Between(-.13f, .13f), Between(.08f, .12f), Between(-.13f, .13f)),
+                    velocity = new Vector3(Between(-.14f, .14f), Between(.08f, .2f), Between(-.14f, .14f)),
+                    startSize3D = new Vector3(Between(.72f, 1f), Between(.18f, .3f), 1) * (.65f + .35f * fade),
                     startLifetime = Mathf.Min(remaining, Between(.55f, .7f)),
                     rotation = Between(-16f, 16f), startColor = new Color(1, 1, 1, fade)
                 }, 1);

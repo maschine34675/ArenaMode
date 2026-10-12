@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Broader Molotov fire (2026-10-12, feature branch):** `26b8ff8` changes only
+  `ArenaFireView` plus its presentation review: the original soft camera-facing
+  base returns under three varied upright tongue shapes, with fuller emission,
+  less shrinking and irregular light. Damage, geometry, audio and supplies are
+  unchanged. No third-party code or asset was incorporated. Hard cap is 704
+  particles/fire (2,816 for four), not a measured worst-case rendering cost.
+  Installed-API client build passed with four existing warnings; 103 runtime
+  regression assertions passed and independent review has no open P0-P2.
+  Only the client DLL was rebuilt/deployed, from clean `26b8ff8`; companion and
+  server remain the pinned `4fd7981` binaries, Core unchanged. Details:
+  [artifact binding](MOLOTOV-VISUALS-DEPLOYMENT-20261012.json) and
+  [native visual check](GPU-MOLOTOV-VISUALS-RESULTS-20261012.md).
+  The first native v2 image rejected its overly bright base; the follow-up keeps
+  coverage but lowers base opacity, brightness and vertical reach. A fresh
+  client build and native retest are required before claiming visual acceptance.
+  The earlier open fire-kill/assist/team/PMC combat matrix below is not resolved
+  by this visual-only change. Work remains on `feature/molotov-item`.
+
 - **Dedicated Molotov (2026-10-12, feature branch):** Work continues in the separate
   `D:\SPT41\Development\ArenaMode-molotov-item` checkout on `feature/molotov-item`,
   based on `239f352`; the main checkout is not merged or modified by this work.

@@ -101,3 +101,11 @@ including shared-resource lifetime and native Unity rotation-unit verification.
 The installed-API client build passes with the same four existing CS8632 warnings.
 The runtime harness does not render this view; native visual evidence belongs
 in GPU-MOLOTOV-VISUALS-RESULTS-20261012.md, separately from the earlier combat report.
+
+The first native v2 capture rejected the initially bright yellow base: overlapping
+sprites became glowing blobs which hid the tongue detail. The visual follow-up
+retains its width, cell emission and lifetime, but lowers its alpha peak from
+0.90 to 0.30, uses subdued orange instead of yellow, and reduces height to
+0.18-0.30m, initial elevation to 0.08-0.12m and rise to 0.08-0.20m/s. Tongue
+shapes, particle budgets and all gameplay/audio remain unchanged. Final native
+evidence must identify the follow-up build, not treat the rejected v2 as accepted.
