@@ -18,7 +18,9 @@ namespace ArenaMode.Server.Services;
 /// animation and physics, not its damage. No trader, profile or loot pool is edited.
 /// Only a verified object created by this registration may enter the kit snapshot.
 /// </summary>
-[Injectable(TypePriority = OnLoadOrder.PostLoad + 97999)]
+// SPT 4.1.6 freezes the item database before SaveCallbacks loads profiles.
+// Adding an item in PostLoad is rejected; only the kit snapshot belongs there.
+[Injectable(TypePriority = OnLoadOrder.Preload)]
 public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItemService customItems,
     ISptLogger<ArenaMolotovRegistration> logger) : IOnLoad
 {

@@ -21,8 +21,9 @@ insertion are explicitly disabled; SPT consequently also adds the ID to its PMC
 loot blacklist. Nothing adds trader stock, loot-generation entries or profile
 items. The item is examined by default, avoiding a persistent examination write.
 
-Registration runs at PostLoad + 97999, before pricing and the existing kit supply
-snapshot. It accepts only a compatible timed native donor and reads back every
+Registration runs at Preload (100000), before SPT loads profiles and freezes its
+item database. The kit supply snapshot remains at PostLoad + 99001. Registration
+accepts only a compatible timed native donor and reads back every
 safety property after SPT publishes the clone. Only that exact successful object
 may enter the supply snapshot. A foreign occupied ID is left untouched. Repeated
 registration of the same verified object is idempotent. A rejected, throwing or
@@ -71,8 +72,8 @@ actual SPT DTO/API contract and native implementation were independently read.
 These checks do not claim a running SPT server, actual grenade hands/model or
 in-raid acceptance. No test script builds the mod project or deploys a DLL.
 
-Measured leaf result: 1,893 assertions in the registered-item path and 1,605 in
-the unchanged historical supply path; eight item mutations and both historical
+Measured leaf result: 1,900 assertions in the registered-item path and 1,605 in
+the unchanged historical supply path; nine item mutations and both historical
 placement mutations compiled and failed at their intended assertions. The final
 production rerun passed with `ARENA_MOLOTOV_ITEM_CHECKS_PASSED`.
 
@@ -80,3 +81,33 @@ Independent review: `molotov_bot_design` checked production registration/supplie
 native CustomItemService publication/override/blacklist behavior and the linked
 tests; no new P0-P2 findings. Root integration still verifies session exclusion,
 server build, native item usability and final profile restoration.
+
+## Native load-order correction
+
+The first GPU1 run on SPT 4.1.6 rejected the original late registration at
+08:36:29.361 UTC: custom items must be added before profiles load. No Molotov
+template reached the client, and the existing forty RGD-5 requests remained.
+The old reference checkout and the compile-time 4.1.0 package did not include the
+new `CustomItemService.ProfilesLoaded` guard. This was an evidence gap in the
+initial delegate-only registration checks, not a client pickup/model failure.
+
+The installed Core DLL was decompiled directly and compared with GPU1's copy;
+both have SHA256 `490409F7C67480A8BF647DA67ADA8B91361330C2A9324D9E9787CD1EBAF5BF27`.
+Its `SaveCallbacks` at priority 600000 sets `ProfilesLoaded`, takes the database
+integrity snapshot and only then loads profiles. `CreateItemFromClone` rejects
+late calls before any publication. Registration now uses the supported Preload
+phase; neither the guard nor the snapshot is bypassed.
+
+The harness additionally loads the actual installed Core in an isolated assembly
+context. It executes the native late-call guard (both directly and through
+`CreateItemFromClone`), compares production registration priority with native
+SaveCallbacks metadata, and executes the real native override method using its
+own DTOs/converters. Zero, false and empty safety overrides must still produce
+the harmless template. A compiled mutation restores the old late priority and
+must fail that native lifecycle check. No SPT server or profile service is started;
+this does not replace the subsequent fresh-server/client GPU retest.
+
+The corrected diff received independent `molotov_asset_feasibility` review of
+the installed DI/start ordering, guard/override test and donor/isolation contract;
+no open P0-P2. Final leaf rerun passed 1,900/1,605 assertions and all eleven
+compiled mutations. Fresh GPU acceptance remains with the integration owner.

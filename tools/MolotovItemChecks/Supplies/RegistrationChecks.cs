@@ -46,6 +46,7 @@ internal static partial class Program
     {
         var donor=templates[ArenaMolotovItem.DonorTemplateId];string originalDonor=Json(donor);
         var definition=ArenaMolotovRegistration.Definition(donor);
+        NativeItemServiceContract(donor,definition);
         Check(!definition.AddToHandbook&&!definition.AddToFleaPriceDb&&!definition.AddToWeaponShelf,"no global handbook/flea/shelf entry");
         Dictionary<MongoId,TemplateItem> Fresh()=>new(){{DonorId,Clone(donor)}};
         bool Register(Dictionary<MongoId,TemplateItem> rows,Func<NewItemFromCloneDetails,CreateItemResult> boundary=null)
