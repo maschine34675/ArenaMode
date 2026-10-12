@@ -14,9 +14,16 @@ current. User-facing communication is normally German.
   the live matching BigBrain companion. Zombies gains three integer sliders for
   existing MaxAlive/WaveStartSize/WaveGrowth preferences, locked after arming.
   The right column retains READY clearance; PFT Zombies uses the taller mode
-  panel for area positioning. See `MENU-MUTATORS-ZOMBIE-REVIEW.md` for scope and
-  checks. Final committed build, deployment and native menu evidence follow in
-  `GPU-MENU-POLISH-RESULTS-20261012.md`; do not infer gameplay acceptance from UI.
+  panel for area positioning. Source `a4ebe18`, client SHA256
+  `EB3939749E4701264090BEDF67B85163A84D7643E112693B757E1988BA2AB4DB` deployed locally
+  and loaded on GPU1 (fresh process `b00cd7e2`). Menu2320/35 faults, selection158,
+  Molotov60/8 faults and related suites passed; client/server staged successfully.
+  Native 1920x1080 menu clicks, slider endpoints, save/reopen and repeated mode
+  switches passed. The reported missing letters were image-preview artifacts:
+  unchanged original PNG crops are correct, so no rendering fix was made.
+  See `MENU-MUTATORS-ZOMBIE-REVIEW.md` and `GPU-MENU-POLISH-RESULTS-20261012.md`.
+  No raid/PFT-party/other-resolution acceptance claimed. Server/Core/companion
+  unchanged; GPU2 not controlled. Original test preferences are restored on GPU1.
 
 - **Secret scan (2026-10-11):** Gitleaks 8.30.1 checked all reachable history
   including merge diffs and the worktree including ignored artifacts. Historical

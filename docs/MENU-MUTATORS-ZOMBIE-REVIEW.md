@@ -40,15 +40,27 @@ hit target accepts clicks/drags. New listeners and objects are released on Close
 The production-linked menu suite passes 2,320 assertions and 35 compiled negative
 controls for all mappings, 22 controls, suffixes, order, limits, callbacks,
 persistence and armed/live locks. Mode selection passes 158 checks; related
-suites cover aliases (35), area layout (34), participants (3,730) and previews.
+suites cover aliases (35), area layout (34), participants (3,730) and previews (4,422).
 Molotov passes 60 assertions and eight compiled negative controls, preserving
 runtime ownership/cleanup and verifying fresh-on, saved-off and Zombie exclusion.
 The client and server staged successfully without altering installed binaries or
 configs. Independent review found the PFT area overlap described
 above; it was corrected and given a regression assertion.
 
-Native font widths, raycasts, actual slider drags and rendered overlap require
-the separate GPU menu report. A menu test does not recertify Molotov combat or
-Zombie performance at the maximum 56 active bots. No raid is needed or claimed
-for this menu-only follow-up. Build/deployment hashes and native results are
-recorded separately after the committed client is staged and delivered.
+The clean source commit is `a4ebe18c31386bd6da46f6c60e73326e3aa71cf2`.
+Staged client evidence: `artifacts/double-jump-build/41442346e5924a3aaa810faa62f77d1d/manifest.json`;
+client SHA256 `EB3939749E4701264090BEDF67B85163A84D7643E112693B757E1988BA2AB4DB`.
+Only this client DLL was deployed locally; GPU1's disk and fresh loaded process
+were verified identical. Server, Core and companion were not rebuilt/deployed
+as part of delivery. The server was only compiled in the earlier isolated stage.
+
+Native menu testing at 1920x1080 is recorded in
+[GPU results](GPU-MENU-POLISH-RESULTS-20261012.md): real clicks, all slider endpoints,
+save/reopen and repeated mode changes. A suspected missing-glyph defect was
+withdrawn after inspecting lossless crops of the unchanged source screenshots;
+the full-frame image preview was misleading. No speculative material/mesh fix
+was added. Native PFT-party layout and other resolutions remain outside this run;
+the PFT geometry/selection regression is covered offline.
+
+A menu test does not recertify Molotov combat or Zombie performance at the maximum
+56 active bots. No raid was entered or claimed for this menu-only follow-up.
