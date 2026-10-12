@@ -28,6 +28,15 @@ Team Friendly Fire is a raid-frozen mutator: Team DM and PFT Tactical default on
 PFT Zombies off; solo is unavailable. Read docs/FRIENDLY-FIRE-REVIEW.md before changing
 damage admission, physical team identities or attributed grenade effects. Do not
 use historical tracer IDs as authority to grant immunity to replacement bodies.
+The dedicated Arena Molotov is a private, natively harmless item; ordinary RGD-5s
+are never converted. Read docs/MOLOTOV-ITEM-REVIEW.md and
+docs/MOLOTOV-PRESENTATION-REVIEW.md before changing its early database registration,
+optional quick-use kit supply, native custom flea exclusion, bottle pool ownership
+or local-only attributed fire. Registration must precede SPT's profile snapshot;
+never weaken the harmless read-back to accommodate another mod's database changes.
+No downloaded reference sound is licensed for this feature; the shipped effects
+are synthesized by ArenaFireSound. Native test boundaries are recorded separately
+in docs/GPU-MOLOTOV-ITEM-RESULTS-20261012.md.
 Equator remains unavailable for Tactical and is also excluded from PFT Zombies
 because the five-person squad obstructs itself; solo Zombies stays supported.
 Independent Equator Team DM uses the original north USEC and south BEAR team
@@ -247,6 +256,13 @@ test above was verified that way — reintroduce the comma and three tests go re
    operation before changing its warning/XP presentation. This is a UI-only
    exception; native profile refresh and result completion must remain intact.
    See docs/POSTRAID-PAGES-REVIEW.md for both forward and health-back navigation.
+   Dedicated-item metadata is registered before the native database/profile
+   snapshot: the private Molotov template, locales/cache and private loot/flea
+   exclusions exist at server startup. This adds no normal loot, trader stock or
+   profile item and never edits the RGD-5 donor. Exact-template model/icon/pool
+   restoration and native harmless cleanup likewise do not require an active
+   raid; fire and supplies retain their separate strict Arena admission gates.
+   See docs/MOLOTOV-ITEM-REVIEW.md for this static item-registration boundary.
 3. **Licences.** ABPS, APBS, SAIN, RaidOverhaul, MoreBotsAPI, SVM, PitFireTeam, BigBrain:
    technique only — read them, never copy code, never bundle their DLLs. MIT/Apache
    sources (ORBIT, DragonDen, FieldKit, traumacore, bullettime) may be adapted with

@@ -1,11 +1,36 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-11. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-12. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Dedicated Molotov (2026-10-12, feature branch):** Work continues in the separate
+  `D:\SPT41\Development\ArenaMode-molotov-item` checkout on `feature/molotov-item`,
+  based on `239f352`; the main checkout is not merged or modified by this work.
+  `879d18d`/`874fcf7`/`d64ce28`/`7d97b85` add the private harmless template, original
+  bottle/icon, attributed fire, improved flame presentation and original synthesized
+  spatial sound. The user's Downloads/molotov recordings are inspiration only and
+  are neither copied nor packaged. Standard generated Arena kits retain two RGD-5s
+  and request one extra Molotov when quick-use space permits; Tactical gets it with
+  a purchased kit, not a free initial kit. Own gear/PFT, Zombies and authored grenade
+  choices remain unchanged. Native fire requires the exact BigBrain companion and
+  a supported live Arena match; ordinary RGD-5s remain explosive.
+  Native testing exposed two installed-SPT integration gaps: `394e920` moves item
+  registration before SPT 4.1.6 freezes the database; `4fd7981` excludes only the
+  verified private template from SVM-triggered native flea unlock without changing
+  the user's broad flea settings or weakening the safety checks. Installed-native
+  regression tests cover both. Final DLLs are pinned to clean source `4fd7981`;
+  subsequent report commits do not rebuild them. See
+  [native evidence and remaining checks](GPU-MOLOTOV-ITEM-RESULTS-20261012.md) and
+  [final artifact hashes](MOLOTOV-ITEM-DEPLOYMENT-20261012.json).
+  Syncthing propagates the three Arena DLLs between local/GPU1/GPU2; deployment is
+  not isolated to the test host. Redeploy Core remains unchanged. GPU1 owns the
+  actual raid tests; GPU2 receives a consistent restart, not additional raid proof.
+  See the report for loaded identities, profile/config audit and explicit limits;
+  offline tests and technical audio playback do not certify perceived sound quality.
 
 - **Secret scan (2026-10-11):** Gitleaks 8.30.1 checked all reachable history
   including merge diffs and the worktree including ignored artifacts. Historical
