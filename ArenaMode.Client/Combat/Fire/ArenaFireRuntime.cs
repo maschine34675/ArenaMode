@@ -55,13 +55,17 @@ internal static class ArenaFireRuntime
         internal float Until;
         internal ArenaFireView View;
         internal readonly HashSet<Player> Touched = new();
-        public void Dispose() { View?.Dispose(); View = null; }
+        public void Dispose()
+        {
+            var view = View; View = null;
+            try { view?.Dispose(); } catch (Exception ex) { Warn(ex); }
+        }
     }
 
     internal static void Enable(ConfigFile config)
     {
-        Enabled = config.Bind("Arena incendiary prototype", "Enabled", false,
-            $"Prototype: your RGD-5 throws become 6-second ground fire in live Arena only. Existing grenade model; bot grenades and ordinary raids are unchanged. {ArenaFirePolicy.DamagePerSecond} base total HP/s; fire does not stack. Requires the matching BigBrain companion for bot escape. May be toggled between throws; disabling extinguishes owned fire and retires owned grenades safely.");
+        Enabled = config.Bind("Arena incendiary", "Enabled", true,
+            $"Your Arena Molotov creates 6-second ground fire in live Arena only. Normal grenades remain unchanged. {ArenaFirePolicy.DamagePerSecond} base total HP/s; fire does not stack. Requires the matching BigBrain companion for bot escape. Disabling extinguishes fire and retires owned grenades safely; unavailable or inactive Molotovs expire harmlessly.");
         Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
         new ThrowPatch().Enable(); new CollisionPatch().Enable(); new ExplosionPatch().Enable();
     }
@@ -102,14 +106,16 @@ internal static class ArenaFireRuntime
             || !ReferenceEquals(grenade.WeaponSource, controller.Item) || !ReferenceEquals(grenade.Player?.iPlayer, owner)) return;
         Throws.Add(grenade, new Throw { Owner = owner, Bridge = grenade.Player, Weapon = controller.Item, Born = Time.time });
         Hold(owner, Time.time + 12f);
-        Plugin.ModLogger.LogInfo($"Arena incendiary throw: {grenade.Id}; exact local RGD-5; bot escape={BotEscapeAvailable}.");
+        Plugin.ModLogger.LogInfo($"Arena incendiary throw: {grenade.Id}; exact local Arena Molotov; bot escape={BotEscapeAvailable}.");
     }
 
-    // All owned explosions remain suppressed, including when disabled or leaving.
+    // The dedicated item is never an explosive, even when it cannot register a
+    // fire (disabled, staging, missing companion, foreign owner or ordinary raid).
+    // The server also registers a harmless template. Never change the donor.
     // Native InvokeBlowUpEvent still owns OnExplosion and world unregistration.
     private static bool Explosion(Grenade grenade)
     {
-        if (!Throws.TryGetValue(grenade, out var source)) return true;
+        if (!Throws.TryGetValue(grenade, out var source)) return !ArenaFirePolicy.IsMolotov(grenade.WeaponSource?.TemplateId);
         try
         {
             if (!source.Cancelled && Current() && source.Owner != null && Fires.Count < ArenaFirePolicy.MaxFires)
@@ -118,8 +124,9 @@ internal static class ArenaFireRuntime
                 if (cells.Count != 0)
                 {
                     var fire = new Burn { Source = source, Cells = cells, Until = Time.time + ArenaFirePolicy.Lifetime };
-                    fire.View = new ArenaFireView(cells);
                     Fires.Add(fire); Hold(source.Owner, fire.Until + 2f);
+                    // Rendering/audio failures must not delete a valid hazard.
+                    try { fire.View = new ArenaFireView(cells); } catch (Exception ex) { Warn(ex); }
                     Plugin.ModLogger.LogInfo($"Arena incendiary ignited: {cells.Count} floor cells at {cells[0]}; 6s, {ArenaFirePolicy.DamagePerSecond} base HP/s.");
                 }
                 else Plugin.ModLogger.LogInfo("Arena incendiary expired without a safe nearby floor; no blast or fire.");
@@ -169,13 +176,12 @@ internal static class ArenaFireRuntime
                 var fire = Fires[i];
                 if (Time.time >= fire.Until || fire.Source.Owner == null)
                 { fire.Dispose(); Fires.RemoveAt(i); continue; }
-                fire.View.Tick(fire.Until - Time.time);
+                try { fire.View?.Tick(fire.Until - Time.time); }
+                catch (Exception ex) { Warn(ex); fire.Dispose(); }
                 if (!damageTick) continue;
                 foreach (var victim in Victims)
                 {
                     if (!LiveActor(victim) || Ticked.Contains(victim) || !ArenaFireGeometry.Contains(fire.Cells, victim.Position)) continue;
-                    // Respawned thrower is the same participant, never an enemy of their old life.
-                    if (victim.ProfileId == fire.Source.Owner.ProfileId && !ReferenceEquals(victim, fire.Source.Owner)) continue;
                     Ticked.Add(victim);
                     if (fire.Touched.Add(victim)) Plugin.ModLogger.LogInfo($"Arena incendiary contact: {victim.ProfileId}; bot={victim.IsAI}.");
                     Damage(fire, victim);
@@ -187,10 +193,8 @@ internal static class ArenaFireRuntime
 
     private static void Damage(Burn fire, Player victim)
     {
-        if (!ReferenceEquals(fire.Source.Owner, victim) && _match.Mode is TacticalMode tactical
-            && !tactical.IsOpposingAwardKill(victim, fire.Source.Owner)) return;
-        if (!ReferenceEquals(fire.Source.Owner, victim) && _match.Mode is ZombieMode zombie && zombie.IsTeamArena
-            && !zombie.IsOpposingAwardKill(victim, fire.Source.Owner)) return;
+        // Native ApplyDamageInfo owns immunity, respawn protection and the common
+        // Arena friendly-fire mutator. Award eligibility is not damage permission.
         var health = victim.ActiveHealthController;
         if (health == null) return;
         float total = 0;
@@ -279,7 +283,7 @@ internal static class ArenaFireRuntime
         ExpiredSources.Clear();
     }
     private static void Warn(Exception ex)
-    { if (_warned) return; _warned = true; Plugin.ModLogger.LogWarning("Arena incendiary prototype failed safely: " + ex); }
+    { if (_warned) return; _warned = true; Plugin.ModLogger.LogWarning("Arena incendiary failed safely: " + ex); }
 
     private sealed class ThrowPatch : ModulePatch
     {

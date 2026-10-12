@@ -34,7 +34,17 @@ $faults = @(
     @{name='floor'; file=$policy; find='Math.Abs(dy) <= .6f'; replacement='true'; fail='upper floor safe'},
     @{name='environment-multiplier'; file=$policy; find='amount * maximum / total / environmentMultiplier'; replacement='amount * maximum / total'; fail='normalized first damage tick'},
     @{name='cancelled-retry'; file=$runtime; find='!source.Cancelled && Current()'; replacement='Current()'; fail='cancelled projectile cannot ignite in new round'},
-    @{name='victim-retention'; file=$runtime; find='Victims.Clear(); Ticked.Clear();'; replacement='Victims.Clear();'; fail='disable clears transient victim references'}
+    @{name='victim-retention'; file=$runtime; find='Victims.Clear(); Ticked.Clear();'; replacement='Victims.Clear();'; fail='disable clears transient victim references'},
+    @{name='donor-conversion'; file=$policy; find='template == ArenaMolotovItem.TemplateId'; replacement='template == ArenaMolotovItem.DonorTemplateId'; fail='ordinary donor untouched'},
+    @{name='explosive-fallback'; file=$runtime; find='return !ArenaFirePolicy.IsMolotov(grenade.WeaponSource?.TemplateId);'; replacement='return true;'; fail='ordinary custom cannot explode'},
+    @{name='tactical-award-veto'; file=$runtime; find='var health = victim.ActiveHealthController;'; replacement='if (_match.Mode is TacticalMode tactical && !tactical.IsOpposingAwardKill(victim, fire.Source.Owner)) return; var health = victim.ActiveHealthController;'; fail='friendly damage reaches common mutator'},
+    @{name='respawn-immunity'; file=$runtime; find='Ticked.Add(victim);'; replacement='if (victim.ProfileId == fire.Source.Owner.ProfileId && !ReferenceEquals(victim, fire.Source.Owner)) continue; Ticked.Add(victim);'; fail='respawn protection receives old fire'},
+    @{name='view-constructor-resets-damage'; file=$runtime; find='try { fire.View = new ArenaFireView(cells); } catch (Exception ex) { Warn(ex); }'; replacement='try { fire.View = new ArenaFireView(cells); } catch (Exception ex) { Warn(ex); Reset(); }'; fail='view constructor failure preserves damage'},
+    @{name='view-tick-resets-damage'; file=$runtime; find='catch (Exception ex) { Warn(ex); fire.Dispose(); }'; replacement='catch (Exception ex) { Warn(ex); Reset(); }'; fail='view tick failure preserves damage'},
+    @{name='damage-after-death'; file=$runtime; find='if (!LiveActor(victim)) break;'; replacement='if (false) break;'; fail='dead actor receives no later part dispatch'},
+    @{name='cross-round-ignition'; file=$runtime; find='&& _round == Round(match)'; replacement=''; fail='previous round projectile cannot create fire before tick'},
+    @{name='foreign-physical-source'; file=$runtime; find=' || !ReferenceEquals(grenade.Player?.iPlayer, owner)'; replacement=''; fail='foreign physical bridge cannot own fire'},
+    @{name='substitute-source-weapon'; file=$runtime; find='!ReferenceEquals(grenade.WeaponSource, controller.Item) || '; replacement=''; fail='substitute weapon instance cannot own fire'}
 )
 foreach ($fault in $faults) {
     $source = [IO.File]::ReadAllText($fault.file)
@@ -45,4 +55,4 @@ foreach ($fault in $faults) {
     else { Run-Check $fault.name $runtime $copy $fault.fail }
 }
 Run-Check 'production-final' $runtime $policy
-Write-Output "ARENA_MOLOTOV_CHECKS_PASSED; eight compiled negative controls; evidence $stage"
+Write-Output "ARENA_MOLOTOV_CHECKS_PASSED; $($faults.Count) compiled negative controls; evidence $stage"

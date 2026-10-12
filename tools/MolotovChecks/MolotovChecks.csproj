@@ -9,6 +9,8 @@
     <Compile Include="Program.cs" /><Compile Include="Stubs.cs" />
     <Compile Include="$(PolicySource)" Link="Production/Policy.cs" />
     <Compile Include="$(RuntimeSource)" Link="Production/Runtime.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMolotovItem.cs" Link="Production/Item.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaFriendlyFire.cs" Link="Production/FriendlyFire.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/Fire/ArenaFireGeometry.cs" Link="Production/Geometry.cs" />
     <Compile Include="../../ArenaMode.BigBrainCompat/ArenaFireEscape.cs" Link="Production/Escape.cs" />
   </ItemGroup>
