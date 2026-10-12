@@ -1673,7 +1673,8 @@ public class ArenaSessionService
         {
             try
             {
-                entry.KitsJson = supplies.CreateCatalog(entry.KitsJson, out int added);
+                entry.KitsJson = supplies.CreateCatalog(entry.KitsJson, out int added,
+                    includeMolotov: entry.Mode != "zombie"); // no incendiary runtime in wave survival yet
                 logger.Info($"[ArenaMode] Kit supplies: {added} optional grenade requests; native rig/pocket space decides at kit build.");
             }
             catch (Exception ex)

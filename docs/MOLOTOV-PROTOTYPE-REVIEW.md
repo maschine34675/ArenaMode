@@ -1,5 +1,9 @@
 # Arena incendiary prototype — 2026-09-30
 
+Historical prototype contract. The dedicated item implemented on 2026-10-12 is
+documented in [MOLOTOV-PRESENTATION-REVIEW.md](MOLOTOV-PRESENTATION-REVIEW.md);
+ordinary RGD-5 conversion and the old default-off setting no longer apply there.
+
 ## Player-facing contract
 
 Opt in with F12, **Arena incendiary prototype / Enabled** (default false).

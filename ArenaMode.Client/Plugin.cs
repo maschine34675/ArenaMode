@@ -67,6 +67,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaDefaultFireMode.Enable();
         Pickups.ArenaPowerups.Enable();
         Combat.Fire.ArenaFireRuntime.Enable(Config);
+        Combat.Fire.ArenaMolotovModel.Enable();
         Combat.Akimbo.ArenaAkimbo.Enable();
         Pickups.ArenaInfiniteAmmo.Enable();
         Pickups.ArenaPickupExaminationPatch.EnablePatch();
