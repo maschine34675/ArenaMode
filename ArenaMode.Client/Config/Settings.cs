@@ -1152,13 +1152,11 @@ public static class Settings
                 "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
                 new AcceptableValueRange<int>(0, 7200)));
 
-        ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 20,
+        ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 32,
             new ConfigDescription(
                 "Infected allowed alive at once, across the whole raid. Also raises the native bot " +
-                "cap to at least this + 2 (ArenaBotCapPatch). The ceiling is 56, not 60: the server " +
-                "clone's own BotMax/MaxBotPerZone floor (ZombieLocationSettings.MinimumBotCap) is a " +
-                "fixed 60, and the client cap must stay under that or the engine's own per-zone point " +
-                "throttling would start silently dropping spawns below what this value asks for. " +
+                "cap with reserve for activation and any authenticated PitFireTeam companions. " +
+                "The ceiling of 56 stays below the server clone's 64-bot capacity floor. " +
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(4, 56)));
 
@@ -1181,19 +1179,17 @@ public static class Settings
                 "naturally, with no recovery if one cannot reach the player). Frozen at match start.",
                 new AcceptableValueRange<float>(0f, 600f)));
 
-        ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 30,
+        ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 50,
             new ConfigDescription(
-                "Infected in wave 1. Raised from the v0 default of 8 (2026-10-06): within a wave, many " +
-                "more infected spawn — not necessarily all at once, but without any pause, bounded by " +
-                "MaxAlive — so the raid stays busy rather than trickling in a handful at a time. Frozen " +
+                "Total infected in wave 1. Spawns and replacements are bounded by MaxAlive, " +
+                "so a wave may contain more infected than can be alive simultaneously. Frozen " +
                 "at match start.",
                 new AcceptableValueRange<int>(1, 200)));
 
-        ZombieWaveGrowth = config.Bind("Zombie", "WaveGrowth", 10,
+        ZombieWaveGrowth = config.Bind("Zombie", "WaveGrowth", 20,
             new ConfigDescription(
                 "Extra infected each wave adds over the last: wave n = WaveStartSize + WaveGrowth * (n - 1). " +
-                "Raised from the v0 default of 4 (2026-10-06) to match the larger WaveStartSize. Frozen at " +
-                "match start.",
+                "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
 
         ZombieIntermissionSeconds = config.Bind("Zombie", "IntermissionSeconds", 10,
@@ -1228,19 +1224,12 @@ public static class Settings
             "Nearby attack calls, critical sounds, AI hearing and companions keep native behavior. " +
             "Turn off for comparison; applies immediately.");
 
-        ZombieOwnGear = config.Bind("Zombie", "OwnGear", false,
-            "Bring your own protected equipment instead of a random Arena kit -- item 4 of the " +
-            "2026-10-06 follow-up, mirroring how protected 5v5 (PitFireTeam) protects a PMC's entry " +
-            "loadout for solo Zombie play: the raid-start kit swap and the loading-screen kit preload " +
-            "are both skipped, every death respawns with the entry loadout restored instead of a fresh " +
-            "kit, the wave-intermission ammo/consumable refill restores that same entry loadout, and " +
-            "the secure container is left alone (not emptied) exactly like EmptySecureContainer already " +
-            "skips for a frozen PitFireTeam roster. Also shown as the ZOMBIES row's EQUIPMENT fact " +
-            "('Own gear' instead of 'Arena kits') and, since item 1 of the 2026-10-06 follow-up ('own " +
-            "gear to the left'), as the LEFT mode panel's own EQUIPMENT choice row (moved out of the " +
-            "right-hand mutators panel, which never grows a per-mode choice row again -- see " +
-            "EquipmentChoiceEntry/TrySelectEquipmentChoice and Modes.ArenaEquipmentChoice). Frozen at " +
-            "match start, like the other Zombie mode choices.");
+        ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
+            "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +
+            "your entry loadout, including ammunition, after each cleared wave; your first death ends " +
+            "the match. With PitFireTeam, own gear is required: companions refill each wave, but a " +
+            "surviving PMC keeps their current ammunition and condition. Fallen squad members return " +
+            "after a cleared wave; a team wipe ends the match. Frozen at match start.");
 
         RoundKillTarget = config.Bind(
             "Match",

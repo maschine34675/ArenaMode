@@ -15,9 +15,11 @@ internal sealed class Fixture
     internal BotOwner[] Followers,Enemies;
     internal TacticalMode Tactical;
     internal ZombieTeamRuntime Zombies;
+    internal readonly int CompanionCount;
     private int _round;
-    internal Fixture(string mode="tactical")
+    internal Fixture(string mode="tactical",int companionCount=4)
     {
+        CompanionCount=companionCount;
         Singleton<GameWorld>.Instance=World; Singleton<AbstractGame>.Instance=Game;
         ArenaSession.World=World;ArenaSession.Game=Game;ArenaSession.IsActive=true;
         ArenaSession.FriendlyFireEnabledSelection=false;PitFireTeamCompat.TeamArenaActive=true;
@@ -39,7 +41,7 @@ internal sealed class Fixture
     {
         ++_round;
         if(replaceLeader){Local=Body("local");World.MainPlayer=Local;}
-        Followers=Enumerable.Range(0,4).Select(i=>Bot($"friend-{_round}-{i}",1,$"account{i}")).ToArray();
+        Followers=Enumerable.Range(0,CompanionCount).Select(i=>Bot($"friend-{_round}-{i}",1,$"account{i}")).ToArray();
         Enemies=Enumerable.Range(0,5).Select(i=>Bot($"enemy-{_round}-{i}",2,$"enemy{i}")).ToArray();
         Tactical?.BindForTest(this);Zombies?.BindForTest(this);
     }
@@ -113,7 +115,7 @@ internal static class Program
     private static void RosterAdmission()
     {
         bool Bind(ArenaFriendlyFireRoster ledger,Fixture f,string[] ids=null)
-            => ledger.Bind(f.Match,f.World,f.Local,f.Local.ProfileId,f.Followers,
+            => ledger.Bind(f.Match,f.CompanionCount,f.World,f.Local,f.Local.ProfileId,f.Followers,
                 ids??f.Followers.Select(x=>x.ProfileId).ToArray(),f.Enemies,f.Enemies.Select(x=>x.ProfileId).ToArray());
         void Reject(string name,Action<Fixture> mutate)
         {
@@ -139,6 +141,36 @@ internal static class Program
         Check(!roster.AreTeammates(a.Match,copiedWorld,a.Local,a.Followers[0].GetPlayer),"direct ledger foreign world");
         Check(roster.AreTeammates(a.Match,a.World,a.Local,a.Followers[0]),"exact native owner bridge");
         Check(!roster.AreTeammates(a.Match,a.World,a.Followers[0].GetPlayer,a.Followers[0]),"native owner self bridge");
+        for(int count=1;count<=4;count++)
+        foreach(string mode in new[]{"tactical","zombie"})
+        {
+            var f=new Fixture(mode,count);var ledger=new ArenaFriendlyFireRoster();
+            var enemies=mode=="tactical"?f.Enemies:Array.Empty<BotOwner>();
+            bool Freeze(int expected,BotOwner[] followers) => ledger.Bind(f.Match,expected,f.World,f.Local,f.Local.ProfileId,
+                followers,followers.Select(x=>x.ProfileId).ToArray(),enemies,enemies.Select(x=>x.ProfileId).ToArray());
+            Check(Block(f.Local,f.Followers[0].GetPlayer),$"{mode} mode admits {count} companions");
+            Check(Freeze(count,f.Followers),$"physical ledger admits {count} {mode} companions");
+            Check(!Freeze(count,f.Followers.Skip(1).ToArray()),"variable ledger rejects missing follower");
+            Check(!ledger.AreTeammates(f.Match,f.World,f.Local,f.Followers[0].GetPlayer),"variable invalid freeze revokes immunity");
+            Check(!Freeze(count,f.Followers.Append(f.Bot("extra",1,"extra-account")).ToArray()),"variable ledger rejects extra follower");
+            int changed=count==1?2:count-1;
+            var wrong=Enumerable.Range(0,changed).Select(i=>f.Bot("drift"+i,1,"drift-account"+i)).ToArray();
+            Check(!Freeze(changed,wrong),"variable ledger frozen count cannot drift");
+            var historical=f.Followers[0].GetPlayer;
+            f.NextRound();
+            enemies=mode=="tactical"?f.Enemies:Array.Empty<BotOwner>();
+            Check(Freeze(count,f.Followers),"variable ledger exact replacement accepted");
+            Check(ledger.AreTeammates(f.Match,f.World,f.Local,historical),"variable ledger historical follower remains attributable");
+            Check(!ledger.AreTeammates(f.Match,f.World,f.Followers[0].GetPlayer,historical),"variable ledger own replacement remains self damage");
+        }
+        foreach(int invalid in new[]{-1,0,5})
+        {
+            var f=new Fixture();var ledger=new ArenaFriendlyFireRoster();
+            var followers=Enumerable.Range(0,Math.Max(0,invalid)).Select(i=>f.Bot("invalid"+i,1,"invalid-account"+i)).ToArray();
+            Check(!ledger.Bind(f.Match,invalid,f.World,f.Local,f.Local.ProfileId,followers,
+                followers.Select(x=>x.ProfileId).ToArray(),f.Enemies,f.Enemies.Select(x=>x.ProfileId).ToArray()),
+                "physical ledger rejects invalid frozen count "+invalid);
+        }
     }
     private static void Diagnostics()
     {

@@ -86,10 +86,34 @@ foreach(string mode in new[]{"zombie","tactical","zombie"})
         ArenaAreaCatalog.FullMapId,5),true);
     Need(Buttons().Length==1,"protected squad keeps one clickable whole-map choice");
     var summary=view.Root.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true).Single(label=>label.name=="Team size");
-    Need(summary.text==(mode=="zombie"?"5-player squad":"5v5 - fixed teams"),
+    Need(summary.text==(mode=="zombie"?"5-player squad":"5v5 - PitFireTeam"),
         "rendered protected squad summary follows cooperative or opposing-team mode");
     Need(-((RectTransform)view.Root.transform).anchoredPosition.y == (mode == "zombie" ? 776 : 710),
         "protected Zombie area choices clear all three wave sliders");
+}
+for(int companions=1;companions<=4;companions++)
+foreach(string mode in new[]{"zombie","tactical"})
+{
+    ArenaMode.Compat.PitFireTeamCompat.SelectedCompanionCount=companions;
+    view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId,mode,true,
+        ArenaAreaCatalog.FullMapId,5),true);
+    var summary=view.Root.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true).Single(label=>label.name=="Team size");
+    Need(summary.text==(mode=="zombie"?$"{companions+1}-player squad":$"{companions+1}v5 - PitFireTeam"),
+        "protected area summary follows the exact selected companion count");
+}
+ArenaMode.Compat.PitFireTeamCompat.SelectedCompanionCount=4;
+foreach(string mode in new[]{"zombie","tactical","deathmatch","gungame"})
+foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.CustomsId})
+{
+    var generic=ArenaAreaSelectionState.Create(map,mode,false,map==ArenaMapCatalog.CustomsId?teams:ArenaAreaCatalog.FullMapId,5);
+    Need(generic.Summary==string.Empty&&generic.ModeHint==string.Empty,
+        "generic whole-map/surveyed-area summaries and availability hints are removed");
+    view.Refresh(generic,false);
+    Need(view.Root.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true)
+        .Where(label=>label.name is "Team size" or "Mode restriction").All(label=>!label.gameObject.activeSelf),
+        "removed generic information leaves no visible empty summary rows");
+    Need(((RectTransform)view.Root.transform).sizeDelta.y==(map==ArenaMapCatalog.CustomsId?140f:80f),
+        "generic area panel closes the empty description space");
 }
 foreach(bool team in new[]{false,true})
 {

@@ -13,7 +13,7 @@ public sealed partial class TacticalMode
             heading = _teamEnemiesRequested ? "ASSEMBLING OPPONENTS" : "ASSEMBLING TEAMMATES";
             detail = _teamEnemiesRequested
                 ? $"ROUND {RoundNumber}  |  {_squad.Count}/{TeamEnemyCount} opponents arrived — waiting for combat readiness"
-                : $"ROUND {RoundNumber}  |  Waiting for all four teammates";
+                : $"ROUND {RoundNumber}  |  Waiting for {TeamCompanionCount} teammates";
             return true;
         }
         if (_teamArena && _phase == Phase.Rebinding)

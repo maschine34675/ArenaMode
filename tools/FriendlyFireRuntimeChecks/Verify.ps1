@@ -12,6 +12,10 @@ $sources = @{
     ZombieSource = Get-Content (Join-Path $repo 'ArenaMode.Client/Modes/ZombieTeamRuntime.FriendlyFire.cs') -Raw
 }
 $faults = @(
+    @('four-only-squad', 'RosterSource', 'expectedCompanionCount is < 1 or > 4', 'expectedCompanionCount != 4', 'tactical mode admits 1 companions'),
+    @('squad-count-drift', 'RosterSource', '(_expectedCompanionCount != 0 && expectedCompanionCount != _expectedCompanionCount)', 'false', 'variable ledger frozen count cannot drift'),
+    @('missing-squad-admitted', 'RosterSource', @('followers.Length != expectedCompanionCount', 'followerIds.Length != expectedCompanionCount'), @('false', 'false'), 'admission rejects partial followers'),
+    @('invalid-frozen-count', 'RosterSource', 'expectedCompanionCount is < 1 or > 4', 'false', 'physical ledger rejects invalid frozen count 0'),
     @('ignore-frozen-switch', 'PolicySource', 'ArenaSession.FriendlyFireEnabledSelection', 'false', 'tactical ON preserves native'),
     @('ordinary-raid-and-session-scope-lost', 'PolicySource', @('!ArenaSession.IsActive', '!ArenaSession.IsExactActiveRaid(game, world)'), @('false', 'false'), 'tdm ordinary inactive'),
     @('stopping-raid-leak', 'PolicySource', 'game.Status != GameStatus.Started', 'false', 'tdm stopping'),

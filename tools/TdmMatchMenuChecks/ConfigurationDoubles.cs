@@ -1,5 +1,9 @@
 // External configuration/session surfaces. No actual game or config file is changed.
 public enum BotDifficulty { easy, normal, hard, impossible }
+namespace ArenaMode.Compat
+{
+    internal static class PitFireTeamCompat { internal static int SelectedCompanionCount = 4; }
+}
 namespace ArenaMode.Combat.Fire
 {
     internal static class ArenaFireRuntime { internal static bool BotEscapeAvailable = true; }

@@ -16,6 +16,12 @@ var root = GameObject.All["ArenaAssemblyBanner"];
 Check(!root.activeSelf, "new banner starts hidden");
 banner.Tick(match);
 Check(root.activeSelf && HudStyle.Texts["AssemblyHeading"].text.Contains("TEAMMATES"), "staging teammates prominently shown");
+foreach (int companions in new[] { 1, 2, 3, 4 })
+{
+    team.TeamCompanionCount = companions;
+    team.TryGetAssemblyNotice(out _, out string detail);
+    Check(detail.Contains($"Waiting for {companions} teammates"), "assembly displays frozen companion count");
+}
 team._teamEnemiesRequested = true;
 for (int i = 0; i <= 5; i++)
 {

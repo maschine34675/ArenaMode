@@ -202,7 +202,7 @@ internal static class ArenaSpectatorService
     }
 
     /// <summary>
-    /// Arms one death-specific lease. The nine allowed ids are copied now, so a
+    /// Arms one death-specific lease. The allowed ids are copied now, so a
     /// mutable provider cannot silently recruit ambient or replacement bots.
     /// </summary>
     internal static bool RequestStart(ArenaSpectatorRequest request, out string problem)
@@ -234,8 +234,15 @@ internal static class ArenaSpectatorService
             return false;
         }
 
+        if (request.ExpectedCompanionCount != PitFireTeamCompat.FrozenCompanionCount)
+        {
+            problem = "the spectator companion count does not match the frozen squad";
+            return false;
+        }
+
         if (!SpectatorPolicy.TryFreezeAllowedProfileIds(
                 request.AllowedProfileIds,
+                request.ExpectedCompanionCount,
                 out string[] profileIds,
                 out problem,
                 request.Cooperative))
@@ -595,6 +602,14 @@ internal static class ArenaSpectatorService
             return false;
         }
 
+        if (request.ExpectedCompanionCount != PitFireTeamCompat.FrozenCompanionCount
+            || SpectatorPolicy.RequiredNonLocalActors(request.Cooperative, request.ExpectedCompanionCount) == 0
+            || request.Cooperative != (ArenaSession.ActiveMode == Shared.ArenaPopulationPolicy.Zombie))
+        {
+            problem = "the spectator frozen squad or mode changed";
+            return false;
+        }
+
         try
         {
             if (request.ReadEpoch() != request.Epoch)
@@ -650,7 +665,7 @@ internal static class ArenaSpectatorService
             return false;
         }
 
-        int required = SpectatorPolicy.RequiredNonLocalActors(_request.Cooperative);
+        int required = SpectatorPolicy.RequiredNonLocalActors(_request.Cooperative, _request.ExpectedCompanionCount);
         if (supplied.Count != required)
         {
             problem = $"the spectator target provider returned {supplied.Count}/{required} fixed participants";
@@ -708,7 +723,7 @@ internal static class ArenaSpectatorService
 
         if (!SeenProfiles.SetEquals(AllowedProfileIds))
         {
-            problem = "the spectator target provider did not return the exact frozen 5v5 identity set";
+            problem = "the spectator target provider did not return the exact frozen team identity set";
             return false;
         }
 

@@ -98,8 +98,10 @@ internal readonly struct SpectatorEscapeGate
 /// </summary>
 internal static class SpectatorPolicy
 {
-    internal const int RequiredNonLocalTeamActors = 9;
-    internal static int RequiredNonLocalActors(bool cooperative) => cooperative ? 4 : RequiredNonLocalTeamActors;
+    internal static int RequiredNonLocalActors(bool cooperative, int expectedCompanionCount)
+        => expectedCompanionCount is >= 1 and <= 4
+            ? expectedCompanionCount + (cooperative ? 0 : 5)
+            : 0;
 
     public static SpectatorStartDecision DecideStart(SpectatorStartGate gate)
     {
@@ -139,6 +141,7 @@ internal static class SpectatorPolicy
 
     public static bool TryFreezeAllowedProfileIds(
         IEnumerable<string> source,
+        int expectedCompanionCount,
         out string[] profileIds,
         out string problem,
         bool cooperative = false)
@@ -151,8 +154,14 @@ internal static class SpectatorPolicy
             return false;
         }
 
+        int required = RequiredNonLocalActors(cooperative, expectedCompanionCount);
+        if (required == 0)
+        {
+            problem = "the spectator request had no valid frozen companion count";
+            return false;
+        }
+
         HashSet<string> unique = new(StringComparer.Ordinal);
-        int required = RequiredNonLocalActors(cooperative);
         List<string> frozen = new(required);
         foreach (string value in source)
         {

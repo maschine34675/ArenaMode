@@ -10,7 +10,7 @@ internal sealed partial class ZombieTeamRuntime
 
     private void BindFriendlyFireRoster()
     {
-        if (!_friendlyFireRoster.Bind(_match, _world, _boundLocalPlayer, _boundLocalProfileId,
+        if (!_friendlyFireRoster.Bind(_match, TeamCompanionCount, _world, _boundLocalPlayer, _boundLocalProfileId,
             _boundTeamFollowers, _boundTeamFollowerProfileIds, Array.Empty<BotOwner>(), Array.Empty<string>()))
             Plugin.ModLogger.LogWarning("Arena friendly-fire roster unavailable; unknown actors retain native damage.");
     }

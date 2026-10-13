@@ -15,8 +15,8 @@ using UnityEngine;
 namespace ArenaMode.Modes;
 
 /// <summary>
-/// Protected five-player survival. ZombieMode alone owns infected/waves; this
-/// coordinator admits exactly four authenticated followers before allowing a
+/// Protected squad survival. ZombieMode alone owns infected/waves; this
+/// coordinator admits the exact frozen authenticated followers before allowing a
 /// wave, keeps the dead leader held, and rebuilds PFT only between cleared waves.
 /// Surviving PMC bodies never take the solo Zombie refill/body-swap path.
 /// </summary>
@@ -35,7 +35,7 @@ internal sealed partial class ZombieTeamRuntime
         public int GetHashCode(T value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 
-    private const int TeamCompanionCount = 4;
+    private readonly int TeamCompanionCount;
     private const float TeamAssemblySeconds = 45f;
     private const float TeamTransitionSeconds = 45f;
     private static readonly TimeSpan TeamLifecycleTimeout = TimeSpan.FromSeconds(30);
@@ -74,7 +74,7 @@ internal sealed partial class ZombieTeamRuntime
     internal int Epoch => _teamRoundEpoch;
     internal string Status => _phase switch
     {
-        TeamPhase.Staging => "ASSEMBLING TEAM — 4 COMPANIONS",
+        TeamPhase.Staging => $"ASSEMBLING TEAM — {TeamCompanionCount} COMPANIONS",
         TeamPhase.Rebinding => "NEXT WAVE — RESTORING TEAM",
         TeamPhase.Ended => _noContest ? "TEAM SURVIVAL — NO CONTEST" : "TEAM ELIMINATED",
         _ => null,
@@ -84,7 +84,7 @@ internal sealed partial class ZombieTeamRuntime
     {
         get
         {
-            var result = new List<Player>(5);
+            var result = new List<Player>(TeamCompanionCount + 1);
             if (!HasFriendlyRoster) return result;
             if (TryReadBoundLocalPlayer(out bool alive, out _) && alive)
                 result.Add(_boundLocalPlayer);
@@ -101,6 +101,9 @@ internal sealed partial class ZombieTeamRuntime
         _world = world;
         _boundLocalPlayer = local;
         _boundLocalProfileId = local?.ProfileId?.Trim();
+        TeamCompanionCount = PitFireTeamCompat.FrozenCompanionCount;
+        if (TeamCompanionCount < 1 || TeamCompanionCount > 4)
+            throw new InvalidOperationException("Zombie team has no valid frozen companion count.");
         if (!IsCurrentRaid() || !PitFireTeamCompat.TeamArenaActive
             || !PitFireTeamCompat.PersistenceSuppressionActive
             || !TryValidateCurrentTeamLeaderBody(local, out _))
@@ -112,7 +115,7 @@ internal sealed partial class ZombieTeamRuntime
         KitCatalog.KitProvider = null;
         _phase = TeamPhase.Staging;
         _teamRebindDeadlineAt = Time.time + TeamAssemblySeconds;
-        Plugin.ModLogger.LogInfo("Zombie team: waiting for four exact PitFireTeam companions; own gear and team persistence protected.");
+        Plugin.ModLogger.LogInfo($"Zombie team: waiting for {TeamCompanionCount} exact PitFireTeam companions; own gear and team persistence protected.");
     }
 
     // Called before ZombieWavePolicy. A false result must neither dispatch
@@ -127,7 +130,8 @@ internal sealed partial class ZombieTeamRuntime
                 if (Time.time >= _stopAt) EndTeamRaid();
                 return false;
             }
-            if (!PitFireTeamCompat.TeamArenaActive || !PitFireTeamCompat.PersistenceSuppressionActive)
+            if (!PitFireTeamCompat.TeamArenaActive || !PitFireTeamCompat.PersistenceSuppressionActive
+                || PitFireTeamCompat.FrozenCompanionCount != TeamCompanionCount)
             {
                 FailTeamTransition("the protected PitFireTeam lease was lost");
                 return false;
@@ -138,7 +142,7 @@ internal sealed partial class ZombieTeamRuntime
                 && _boundTeamFollowers.Length == TeamCompanionCount
                 && _boundTeamFollowers.All(bot => bot != null && bot.GetPlayer != null
                     && bot.HealthController?.IsAlive == false))
-            { EndSurvival(false, "all five team members were eliminated"); return false; }
+            { EndSurvival(false, "all team members were eliminated"); return false; }
             if (Time.time < _nextObservationAt) return _phase == TeamPhase.Live;
             _nextObservationAt = Time.time + (_phase == TeamPhase.Live ? 0.25f : 0.1f);
             if (_phase == TeamPhase.Rebinding)
@@ -162,25 +166,25 @@ internal sealed partial class ZombieTeamRuntime
                 if (followers.Count != TeamCompanionCount)
                 {
                     if (Time.time >= _teamRebindDeadlineAt)
-                        FailTeamTransition($"team readiness timed out ({followers.Count}/4 companions)");
+                        FailTeamTransition($"team readiness timed out ({followers.Count}/{TeamCompanionCount} companions)");
                     return false;
                 }
                 if (!TryFreezeTeamFollowers(followers, out string freezeProblem))
                 { FailTeamTransition(freezeProblem); return false; }
-                if (!Effects.ArenaTracerTeams.TryBindCooperativeWave(_teamRoundEpoch,
+                if (!Effects.ArenaTracerTeams.TryBindCooperativeWave(_teamRoundEpoch, TeamCompanionCount,
                         _boundLocalProfileId, _boundTeamFollowerProfileIds, out string tracerProblem))
                 { FailTeamTransition("team identities could not bind presentation: " + tracerProblem); return false; }
                 BindFriendlyFireRoster();
                 _phase = TeamPhase.Live;
-                Plugin.ModLogger.LogInfo($"Zombie team wave {_teamRoundEpoch}: exact five-player team ready.");
+                Plugin.ModLogger.LogInfo($"Zombie team wave {_teamRoundEpoch}: exact {TeamCompanionCount + 1}-player team ready.");
             }
             if (_boundTeamFollowers.Length != TeamCompanionCount
                 || _boundTeamFollowers.Any(bot => bot == null || bot.GetPlayer == null || bot.HealthController == null)
                 || followers.Any(bot => !_boundTeamFollowers.Any(bound => ReferenceEquals(bound, bot))))
-            { FailTeamTransition("the authenticated four-follower body roster drifted"); return false; }
+            { FailTeamTransition("the authenticated frozen follower body roster drifted"); return false; }
             if (!localAlive && followers.Count == 0)
             {
-                EndSurvival(false, "all five team members were eliminated");
+                EndSurvival(false, "all team members were eliminated");
                 return false;
             }
             var enemies = CurrentInfected();
@@ -212,7 +216,7 @@ internal sealed partial class ZombieTeamRuntime
         _authorizedDeadTeamPlayer = null;
         _teamRespawnAuthorizationAvailable = _teamRespawnAuthorizationConsumed = false;
         _nextObservationAt = 0f;
-        Plugin.ModLogger.LogInfo($"Zombie team: wave {_teamRoundEpoch - 1} survived; restoring the four companions before wave {_teamRoundEpoch}.");
+        Plugin.ModLogger.LogInfo($"Zombie team: wave {_teamRoundEpoch - 1} survived; restoring the {TeamCompanionCount} companions before wave {_teamRoundEpoch}.");
     }
 
     private void TickTeamRebinding()
@@ -304,7 +308,7 @@ internal sealed partial class ZombieTeamRuntime
         string[] profiles = _boundTeamFollowerProfileIds.ToArray();
         Player deadBody = _boundLocalPlayer;
         int epoch = _teamRoundEpoch;
-        var request = new ArenaSpectatorRequest(epoch, () => _teamRoundEpoch,
+        var request = new ArenaSpectatorRequest(epoch, TeamCompanionCount, () => _teamRoundEpoch,
             () => IsLive && _playerDown && epoch == _teamRoundEpoch && ReferenceEquals(deadBody, _boundLocalPlayer),
             deadBody, profiles,
             () => bodies.Select((bot, index) => new ArenaSpectatorTarget(

@@ -35,6 +35,7 @@ internal sealed class ArenaSpectatorRequest
 {
     public ArenaSpectatorRequest(
         int epoch,
+        int expectedCompanionCount,
         Func<int> readEpoch,
         Func<bool> isEligible,
         Player deadPlayer,
@@ -44,6 +45,7 @@ internal sealed class ArenaSpectatorRequest
         bool cooperative = false)
     {
         Epoch = epoch;
+        ExpectedCompanionCount = expectedCompanionCount;
         ReadEpoch = readEpoch;
         IsEligible = isEligible;
         DeadPlayer = deadPlayer;
@@ -54,6 +56,7 @@ internal sealed class ArenaSpectatorRequest
     }
 
     public int Epoch { get; }
+    public int ExpectedCompanionCount { get; }
     public bool Cooperative { get; }
     public Func<int> ReadEpoch { get; }
     public Func<bool> IsEligible { get; }

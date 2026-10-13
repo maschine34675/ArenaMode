@@ -331,8 +331,11 @@ internal static class PitFireTeamFollowerDetachPolicy
 /// </summary>
 internal static class PitFireTeamRoundLifecyclePolicy
 {
-    public const int RequiredCompanionCount = 4;
+    public const int MaximumCompanionCount = 4;
     public const int RequiredStablePasses = 2;
+
+    public static bool IsSupportedCompanionCount(int count)
+        => count >= 1 && count <= MaximumCompanionCount;
 
     public static PitFireTeamLeaderBindingPolicyDecision EvaluateLeaderBinding(
         PitFireTeamLeaderBindingObservation observation)
@@ -416,9 +419,9 @@ internal static class PitFireTeamRoundLifecyclePolicy
             return false;
         }
 
-        if (profilesByAccountId.Count != RequiredCompanionCount)
+        if (!IsSupportedCompanionCount(profilesByAccountId.Count))
         {
-            reason = $"expected exactly {RequiredCompanionCount} authenticated companions, found {profilesByAccountId.Count}";
+            reason = $"expected 1..{MaximumCompanionCount} authenticated companions, found {profilesByAccountId.Count}";
             return false;
         }
 
@@ -442,6 +445,22 @@ internal static class PitFireTeamRoundLifecyclePolicy
         }
 
         return true;
+    }
+
+    /// <summary>The roster may vary between matches, never between rounds of one match.</summary>
+    public static bool HasSameCanonicalRoster(
+        IReadOnlyDictionary<string, string> frozen,
+        IReadOnlyDictionary<string, string> observed)
+    {
+        if (!TryValidateCanonicalRoster(frozen, out _)
+            || !TryValidateCanonicalRoster(observed, out _)
+            || frozen.Count != observed.Count)
+            return false;
+
+        var normalized = observed.ToDictionary(pair => pair.Key.Trim(), pair => pair.Value.Trim(),
+            StringComparer.Ordinal);
+        return frozen.All(pair => normalized.TryGetValue(pair.Key.Trim(), out string profile)
+            && string.Equals(pair.Value.Trim(), profile, StringComparison.OrdinalIgnoreCase));
     }
 
     public static PitFireTeamRoundPolicyDecision EvaluateRetirement(
@@ -486,8 +505,8 @@ internal static class PitFireTeamRoundLifecyclePolicy
         if (observation == null)
             return PitFireTeamRoundPolicyDecision.Failed("follower state is missing");
 
-        if (observation.ExpectedCount != RequiredCompanionCount)
-            return PitFireTeamRoundPolicyDecision.Failed("the expected follower count is not the protected four-companion contract");
+        if (!IsSupportedCompanionCount(observation.ExpectedCount))
+            return PitFireTeamRoundPolicyDecision.Failed("the expected follower count is outside the protected 1..4 companion contract");
 
         if (observation.SpawnFaulted)
         {
@@ -512,7 +531,7 @@ internal static class PitFireTeamRoundLifecyclePolicy
             || observation.DistinctAccountCount > expected
             || observation.DistinctProfileCount > expected)
         {
-            return PitFireTeamRoundPolicyDecision.Failed("PitFireTeam produced more than four current-round followers");
+            return PitFireTeamRoundPolicyDecision.Failed($"PitFireTeam produced more than {expected} authenticated current-round followers");
         }
 
         bool complete = observation.ActivationLeaseComplete
@@ -534,7 +553,7 @@ internal static class PitFireTeamRoundLifecyclePolicy
             }
 
             return PitFireTeamRoundPolicyDecision.Pending(
-                $"waiting for four followers (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount}){incomplete}");
+                $"waiting for {expected} followers (activations={observation.ActivationLeaseComplete}, ownership={observation.PhysicalOwnershipComplete}, wrappers={observation.WrapperCount}, active={observation.ActiveBodyCount}, registered={observation.RegisteredBodyCount}){incomplete}");
         }
 
         if (observation.StablePasses < RequiredStablePasses)
@@ -576,9 +595,10 @@ internal static class PitFireTeamRoundLifecyclePolicy
         List<string> expectedValues = expectedProfileIds.ToList();
         List<string> startedValues = startedProfileIds.ToList();
         List<string> invocationValues = invocationProfileIds.ToList();
-        if (expectedValues.Count != RequiredCompanionCount
-            || startedValues.Count != RequiredCompanionCount
-            || invocationValues.Count != RequiredCompanionCount
+        int expectedCount = expectedValues.Count;
+        if (!IsSupportedCompanionCount(expectedCount)
+            || startedValues.Count != expectedCount
+            || invocationValues.Count != expectedCount
             || expectedValues.Any(string.IsNullOrWhiteSpace)
             || startedValues.Any(string.IsNullOrWhiteSpace)
             || invocationValues.Any(string.IsNullOrWhiteSpace))
@@ -590,9 +610,9 @@ internal static class PitFireTeamRoundLifecyclePolicy
         var started = new HashSet<string>(startedValues, StringComparer.OrdinalIgnoreCase);
         var invocations = new HashSet<string>(invocationValues, StringComparer.OrdinalIgnoreCase);
 
-        return expected.Count == RequiredCompanionCount
-               && started.Count == RequiredCompanionCount
-               && invocations.Count == RequiredCompanionCount
+        return expected.Count == expectedCount
+               && started.Count == expectedCount
+               && invocations.Count == expectedCount
                && expected.SetEquals(started)
                && expected.SetEquals(invocations);
     }

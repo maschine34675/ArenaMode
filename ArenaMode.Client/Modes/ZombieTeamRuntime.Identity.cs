@@ -123,7 +123,7 @@ internal sealed partial class ZombieTeamRuntime
             var expectedProfiles = PitFireTeamCompat.CurrentCompanionProfilesByAccountId;
             if (expectedProfiles.Count != TeamCompanionCount)
             {
-                problem = "PitFireTeam's current four-account profile map is incomplete";
+                problem = "PitFireTeam's current frozen-account profile map is incomplete";
                 return false;
             }
 
@@ -210,7 +210,7 @@ internal sealed partial class ZombieTeamRuntime
         }
         catch (Exception ex)
         {
-            problem = "the four PitFireTeam follower bodies could not be frozen: "
+            problem = "the frozen PitFireTeam follower bodies could not be frozen: "
                       + ex.GetBaseException().Message;
             return false;
         }
@@ -569,7 +569,7 @@ internal sealed partial class ZombieTeamRuntime
         {
             _teamRebindStep = TeamRebindStep.StartFollowers;
             Plugin.ModLogger.LogInfo(
-                $"Zombie team wave {_teamRoundEpoch}: four fresh PitFireTeam follower profiles are ready.");
+                $"Zombie team wave {_teamRoundEpoch}: {TeamCompanionCount} fresh PitFireTeam follower profiles are ready.");
         }
     }
 
@@ -616,7 +616,7 @@ internal sealed partial class ZombieTeamRuntime
         {
             _teamRebindStep = TeamRebindStep.AdoptFollowers;
             Plugin.ModLogger.LogInfo(
-                $"Zombie team wave {_teamRoundEpoch}: four fresh follower bodies passed the stable registry barrier.");
+                $"Zombie team wave {_teamRoundEpoch}: {TeamCompanionCount} fresh follower bodies passed the stable registry barrier.");
         }
     }
 }

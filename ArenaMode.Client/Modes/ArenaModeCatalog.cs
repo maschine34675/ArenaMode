@@ -88,10 +88,10 @@ internal static class ArenaModeCatalog
                 "USEC versus BEAR. The team with more kills wins.",
                 "Most team kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(TacticalId, "TACTICAL (WIP)",
-                "Eliminate the enemy squad. 5v5 needs PitFireTeam + 4 allies.",
+                "Eliminate the enemy squad. PitFireTeam supports 1-4 companions.",
                 "Round elimination", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(ZombieId, "ZOMBIES (WIP)",
-                "Survive endless waves. Your first death ends the match.",
+                "Ammo refills each wave. Optional PitFireTeam support (1-4 companions).",
                 "Survive the waves", "None", "Arena kits"),
         });
 

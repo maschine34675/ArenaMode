@@ -21,8 +21,9 @@ internal sealed class ArenaFriendlyFireRoster
     private object _match;
     private GameWorld _world;
     private int _generation;
+    private int _expectedCompanionCount;
 
-    internal bool Bind(object match, GameWorld world, Player leader, string leaderId,
+    internal bool Bind(object match, int expectedCompanionCount, GameWorld world, Player leader, string leaderId,
         BotOwner[] followers, string[] followerIds, BotOwner[] enemies, string[] enemyIds)
     {
         if (!ReferenceEquals(_match, match) || !ReferenceEquals(_world, world))
@@ -31,11 +32,15 @@ internal sealed class ArenaFriendlyFireRoster
             _match = match;
             _world = world;
             _generation = 0;
+            _expectedCompanionCount = 0;
         }
         // A failed new freeze must not leave previous-round victim immunity.
         ++_generation;
         if (match == null || world == null || followers == null || followerIds == null
-            || enemies == null || enemyIds == null || followers.Length != 4 || followerIds.Length != 4
+            || expectedCompanionCount is < 1 or > 4
+            || (_expectedCompanionCount != 0 && expectedCompanionCount != _expectedCompanionCount)
+            || enemies == null || enemyIds == null
+            || followers.Length != expectedCompanionCount || followerIds.Length != expectedCompanionCount
             || enemies.Length != enemyIds.Length || (enemies.Length != 0 && enemies.Length != 5)) return false;
         var pending = new List<(Player body, Entry entry)>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -73,6 +78,7 @@ internal sealed class ArenaFriendlyFireRoster
             item.entry.Generation = _generation;
             _bodies.Add(item.body, item.entry);
         }
+        _expectedCompanionCount = expectedCompanionCount;
         return true;
     }
 

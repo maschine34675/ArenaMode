@@ -92,7 +92,7 @@ if ([regex]::Matches($settings, [regex]::Escape($teamEntry)).Count -ne 1) {
     throw 'Expected exactly one Team DM tracer entry mapping; refusing an ambiguous mutation.'
 }
 Invoke-NegativeCase 'tracer-entry-solo-leak' $color $teams $patch $matchService $tactical `
-    'TracerEntry maps only Team DM and protected Tactical 5v5 to TeamTracers' `
+    'TracerEntry maps only Team DM and protected Tactical/Zombie to TeamTracers' `
     ($settings.Replace($teamEntry, 'ArenaModeCatalog.DeathmatchId or ArenaModeCatalog.TeamDeathmatchId => TeamTracers,'))
 
 $protectedPolicy = 'if (!verifiedPlayerIdentity'
@@ -149,8 +149,25 @@ if (-not $teams.Contains($factionSwitch)) { throw 'Faction history guard not fou
 Invoke-NegativeCase 'faction-history-switch' $color ($teams.Replace($factionSwitch, 'if (false) return false;')) $patch $matchService $tactical `
     'dead or live faction identities cannot change sides'
 
+$squadRange = 'expectedCompanionCount is >= 1 and <= 4'
+$squadCount = 'followers?.Count == expectedCompanionCount'
+$squadStable = '(_expectedCompanionCount == 0 || _expectedCompanionCount == expectedCompanionCount)'
+foreach ($anchor in @($squadRange, $squadCount, $squadStable)) {
+    if ([regex]::Matches($teams, [regex]::Escape($anchor)).Count -ne 1) {
+        throw "Expected exactly one variable-squad guard: $anchor"
+    }
+}
+Invoke-NegativeCase 'four-only-squad' $color ($teams.Replace($squadRange, 'expectedCompanionCount == 4')) $patch $matchService $tactical `
+    '1 allies bind for cooperative=False'
+Invoke-NegativeCase 'partial-squad-admitted' $color ($teams.Replace($squadCount, 'true')) $patch $matchService $tactical `
+    'variable squad missing follower rejected'
+Invoke-NegativeCase 'squad-count-drift' $color ($teams.Replace($squadStable, 'true')) $patch $matchService $tactical `
+    'variable squad count cannot drift after freeze'
+Invoke-NegativeCase 'invalid-squad-count' $color ($teams.Replace($squadRange, 'true')) $patch $matchService $tactical `
+    'cooperative rejects invalid frozen count 0'
+
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) {
     throw 'The unchanged production Arena tracer checks failed after mutation testing.'
 }
-Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (11 mutants rejected: Arena gate, frozen team selection, null-entry renderer, solo TracerEntry leak, identity, non-tracer, three lifecycle resets and two faction policies; evidence: $scratch)"
+Write-Output "ARENA_TRACER_REGRESSION_VERIFIED (15 mutants rejected: Arena gate, frozen team selection, null-entry renderer, solo TracerEntry leak, identity, non-tracer, three lifecycle resets, two faction policies and four variable-squad guards; evidence: $scratch)"

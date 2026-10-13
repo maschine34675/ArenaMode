@@ -41,15 +41,18 @@ try
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
             bool allowed=(mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId)
-                && !(ArenaMapCatalog.IsEquator(map) && mode.Id == ArenaModeCatalog.TacticalId);
+                && !ArenaMapCatalog.IsEquator(map);
             Need(team.Available==allowed,"PFT-MAP-ADMISSION",
                 $"{map}/{mode.Id}: protected squad map choices must agree with the supported team modes.");
             if(!allowed)continue;
-            Need(team.Options.Count==1&&team.SelectedId==ArenaAreaCatalog.FullMapId
-                &&Settings.TrySelectArea(team.SelectedId),"PFT-MAP-CONFIG",
-                "Protected squads must offer and persist exactly the whole map through real Settings.");
-            Need(team.Summary==(mode.Id==ArenaModeCatalog.ZombieId?"5-player squad":"5v5 - fixed teams"),
-                "PFT-MAP-SUMMARY","Zombie squad must not claim an opposing five-player team.");
+            string[] expectedAreas = map == ArenaMapCatalog.CustomsId
+                ? new[]{ArenaAreaCatalog.CustomsFactoryCenterTeamsId,ArenaAreaCatalog.CustomsFactoryEastPolygonId,ArenaAreaCatalog.CustomsYardId}
+                : new[]{ArenaAreaCatalog.FullMapId};
+            Need(team.Options.Select(option=>option.Id).SequenceEqual(expectedAreas)
+                &&team.SelectedId==expectedAreas[0]&&Settings.TrySelectArea(team.SelectedId),"PFT-MAP-CONFIG",
+                "Protected squads preserve the three Customs areas and whole-map choice elsewhere through real Settings.");
+            Need(team.Summary==(mode.Id==ArenaModeCatalog.ZombieId?"PitFireTeam squad":"PFT squad vs 5"),
+                "PFT-MAP-SUMMARY","Zombie squad has no fixed opposing team; live view supplies exact allied count.");
         }
 
     var offered=new HashSet<string>(StringComparer.Ordinal);
@@ -136,7 +139,9 @@ try
         Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-BIND","Actual BepInEx binding clamps obsolete saved IDs to full map.");
         var migrated=ArenaAreaSelectionState.Create(ArenaMapCatalog.CustomsId,"teamdeathmatch",false,
             Settings.TeamDeathmatchArea.Value,4,4);
-        Need(migrated.SelectedId==ArenaAreaCatalog.FullMapId,"RETIRED-MENU","Customs menu retains the valid full-map preference after old config migration.");
+        Need(migrated.SelectedId==ArenaAreaCatalog.CustomsFactoryCenterTeamsId
+            &&Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-MENU",
+            "Customs proposes its first supported contour without persisting over the migrated preference.");
         Need(!ArenaAreaCatalog.TryResolve(retired,ArenaMapCatalog.CustomsId,"teamdeathmatch",false,out _,out _)
             &&!ArenaAreaCatalog.TryResolve(retired,ArenaMapCatalog.FactoryDayId,"teamdeathmatch",false,out _,out _),
             "RETIRED-PROTOCOL","Migration does not make an explicit retired arm ID valid.");

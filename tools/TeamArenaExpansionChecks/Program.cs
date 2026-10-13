@@ -41,33 +41,53 @@ internal static class Program
 
     private static void CheckFrozenRosterPolicy()
     {
+        for (int count = 1; count <= 4; count++)
+        {
+            foreach (bool cooperative in new[] { true, false })
+            {
+                var roster = Enumerable.Range(0, count + (cooperative ? 0 : 5))
+                    .Select(i => $"participant-{i}").ToArray();
+                Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(roster, count, out var exact, out _, cooperative)
+                       && exact.SequenceEqual(roster), $"{count} companions freeze exact {cooperative} spectator roster");
+                Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(roster.Skip(1), count, out _, out _, cooperative),
+                    $"{count} companions reject missing spectator body");
+                Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(roster.Append("extra"), count, out _, out _, cooperative),
+                    $"{count} companions reject extra spectator body");
+                Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(roster, count == 1 ? 2 : count - 1, out _, out _, cooperative),
+                    $"{count} companions reject a different independently frozen count");
+            }
+        }
+        foreach (int invalid in new[] { -1, 0, 5 })
+            Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(new[] { "ally" }, invalid, out _, out _, true),
+                "spectator rejects invalid frozen count " + invalid);
+
         string[] four = { "ally1", "ally2", "ally3", "ally4" };
-        Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(four, out _, out _, cooperative: true),
+        Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(four, 4, out _, out _, cooperative: true),
             "cooperative survival freezes exactly four companions");
-        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four, out _, out _),
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four, 4, out _, out _),
             "four companions cannot weaken the default Tactical nine-actor contract");
-        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four.Take(3), out _, out _, cooperative: true),
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four.Take(3), 4, out _, out _, cooperative: true),
             "cooperative observation rejects incomplete roster");
-        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four.Append("enemy"), out _, out _, cooperative: true),
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(four.Append("enemy"), 4, out _, out _, cooperative: true),
             "cooperative observation rejects extra enemy");
-        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(new[] { "a", "b", "a", "d" }, out _, out _, cooperative: true),
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(new[] { "a", "b", "a", "d" }, 4, out _, out _, cooperative: true),
             "cooperative observation rejects duplicate companions");
         string[] nine = Enumerable.Range(1, 9).Select(index => $"profile-{index}").ToArray();
-        Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(nine, out string[] frozen, out string problem),
+        Assert(SpectatorPolicy.TryFreezeAllowedProfileIds(nine, 4, out string[] frozen, out string problem),
             "exactly nine distinct non-local actors form a valid frozen spectator roster");
         Assert(problem == null && frozen.SequenceEqual(nine),
             "freezing keeps the exact identity order and reports no failure");
 
-        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(nine.Take(8), out _, out _),
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(nine.Take(8), 4, out _, out _),
             "an incomplete 5v5 roster is rejected");
-        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(nine.Append("profile-10"), out _, out _),
+        Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(nine.Append("profile-10"), 4, out _, out _),
             "an oversized roster is rejected");
         Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(
-                nine.Take(8).Append("profile-1"), out _, out problem)
+                nine.Take(8).Append("profile-1"), 4, out _, out problem)
                && problem.Contains("duplicate", StringComparison.OrdinalIgnoreCase),
             "duplicate profile identities are rejected explicitly");
         Assert(!SpectatorPolicy.TryFreezeAllowedProfileIds(
-                nine.Take(8).Append(" "), out _, out problem)
+                nine.Take(8).Append(" "), 4, out _, out problem)
                && problem.Contains("empty", StringComparison.OrdinalIgnoreCase),
             "empty profile identities are rejected explicitly");
     }
@@ -1306,9 +1326,11 @@ internal static class Program
             "FrozenBodiesByProfileId.TryGetValue",
             "!ReferenceEquals(frozenBody, player)",
             "SeenProfiles.SetEquals(AllowedProfileIds)",
-            "int required = SpectatorPolicy.RequiredNonLocalActors(_request.Cooperative)",
+            "int required = SpectatorPolicy.RequiredNonLocalActors(_request.Cooperative, _request.ExpectedCompanionCount)",
             "supplied.Count != required",
             "request.Cooperative != (ArenaSession.ActiveMode == Shared.ArenaPopulationPolicy.Zombie)");
+        Assert(service.Split("request.ExpectedCompanionCount != PitFireTeamCompat.FrozenCompanionCount").Length == 3,
+            "spectator admission and live lease independently check the frozen companion count");
         Assert(service.IndexOf("_ownsCamera = false", StringComparison.Ordinal)
                < service.IndexOf("Application.onBeforeRender -= ApplyRenderPose", StringComparison.Ordinal),
             "synchronous teardown drops patch ownership before releasing callbacks");

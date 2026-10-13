@@ -8,8 +8,8 @@ Place new documentation and evidence summaries in `docs/`, not beside this file.
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version
-PitFireTeam compatibility path supports protected Tactical 5v5 and five-player
-Zombie survival; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
+PitFireTeam compatibility path supports protected Tactical (PMC + 1-4 companions versus five enemies) and
+Zombie squad survival; read docs/PFT-SQUAD-SIZE-REVIEW.md for the frozen roster contract; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
 accepted builds are the exact set in `ArenaMode.Shared/PitFireTeamVersions.cs`
 (0.10.0 and 0.10.3), never a range — 0.10.1/0.10.2 were never diffed.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
@@ -36,7 +36,7 @@ raid clone adds twenty private versioned markers; never move or overwrite the
 common MapPort markers. Read docs/EQUATOR-TEAM-SPAWNS-REVIEW.md before changing the
 MapPort repair ordering, initial physics/live navigation gates, reservations or
 body-arrival validation. No map-wide fallback is allowed after box negotiation.
-Zombies offers solo or a protected four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
+Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any
 selected replay; only the PFT squad restores fallen members between cleared waves.

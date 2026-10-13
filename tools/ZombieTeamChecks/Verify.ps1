@@ -39,7 +39,7 @@ Run-Case (New-Case 'production') $true
 $mutants = @(
     @{ Name='empty-hostility-aborts-wave'; File='ZombieTeamRuntime.cs'; Old='enemies.Count > 0 && !PitFireTeamCompat.EnsureHostility'; New='!PitFireTeamCompat.EnsureHostility' },
     @{ Name='death-respawns-midwave'; File='ZombieTeamRuntime.cs'; Old='internal bool HoldRespawn => _phase == TeamPhase.Ended || _playerDown;'; New='internal bool HoldRespawn => false;' },
-    @{ Name='three-companions-admitted'; File='ZombieTeamRuntime.cs'; Old='private const int TeamCompanionCount = 4;'; New='private const int TeamCompanionCount = 3;' },
+    @{ Name='wrong-frozen-companion-count'; File='ZombieTeamRuntime.cs'; Old='TeamCompanionCount = PitFireTeamCompat.FrozenCompanionCount;'; New='TeamCompanionCount = 3;' },
     @{ Name='solo-refill-enters-team'; File='ZombieMode.cs'; Old='playerEligible && _team == null'; New='playerEligible' },
     @{ Name='pending-final-infected-ignored'; File='ZombieWavePolicy.cs'; Old='remainingToSpawn == 0 && alive <= 0 && pending == 0'; New='remainingToSpawn == 0 && alive <= 0' },
     @{ Name='lifecycle-epoch-ignored'; File='ZombieTeamRuntime.Identity.cs'; Old='|| status.Epoch != _expectedPitLifecycleEpoch'; New='|| false' },

@@ -383,7 +383,7 @@ internal static class PitFireTeamRoundLifecycle
     /// <summary>
     /// Detach the old PFT ownership synchronously, then request ordinary EFT
     /// deaths for any surviving old follower body. PollRetirement owns the later
-    /// registry barrier. The caller must provide the four bodies frozen by the
+    /// registry barrier. The caller must provide every body frozen by the
     /// completed round; missing wrappers are not allowed to erase body identity.
     /// </summary>
     public static bool BeginTeardown(
@@ -401,6 +401,21 @@ internal static class PitFireTeamRoundLifecycle
                 || !RequireCapabilityUnsafe(out reason)
                 || !RequirePersistenceSuppressionUnsafe(persistenceSuppressionActive, out reason))
             {
+                FailUnsafe(reason);
+                return false;
+            }
+
+            if (!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(
+                    canonicalProfilesByAccountId, out reason))
+            {
+                FailUnsafe(reason);
+                return false;
+            }
+            if (_stage != PitFireTeamRoundLifecycleStage.ContractReady
+                && !PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(
+                    _canonicalProfilesByAccountId, canonicalProfilesByAccountId))
+            {
+                reason = "the authenticated companion roster changed between protected rounds";
                 FailUnsafe(reason);
                 return false;
             }
@@ -424,14 +439,6 @@ internal static class PitFireTeamRoundLifecycle
                 || string.IsNullOrWhiteSpace(oldLeader.ProfileId))
             {
                 reason = "the old local leader body or profile identity is missing";
-                FailUnsafe(reason);
-                return false;
-            }
-
-            if (!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(
-                    canonicalProfilesByAccountId,
-                    out reason))
-            {
                 FailUnsafe(reason);
                 return false;
             }
@@ -468,7 +475,7 @@ internal static class PitFireTeamRoundLifecycle
                 return false;
             }
 
-            // A ready lease has observed all four private task returns, all four
+            // A ready lease has observed all selected private task returns, all
             // detached callbacks and both physical registry passes. Revoke its
             // IDs before advancing the lifecycle epoch, but let the ordinary
             // teardown below retire the already frozen bodies.
@@ -520,7 +527,7 @@ internal static class PitFireTeamRoundLifecycle
                         || !oldBodies.Any(expected => ReferenceEquals(expected, bossFollower)))
                     {
                         throw new InvalidOperationException(
-                            "PFT's old boss owns a physical follower outside the frozen four-body roster");
+                            "PFT's old boss owns a physical follower outside the frozen body roster");
                     }
                 }
 
@@ -534,7 +541,7 @@ internal static class PitFireTeamRoundLifecycle
                 if (wrappers.Count != oldBodies.Count)
                 {
                     throw new InvalidOperationException(
-                        $"PFT exposed {wrappers.Count}/4 wrappers for the frozen old follower roster");
+                        $"PFT exposed {wrappers.Count}/{_canonicalProfilesByAccountId.Count} wrappers for the frozen old follower roster");
                 }
 
                 HashSet<BotOwner> wrappedBodies =
@@ -636,7 +643,7 @@ internal static class PitFireTeamRoundLifecycle
                 }
 
                 _stage = PitFireTeamRoundLifecycleStage.AwaitingRetirement;
-                _diagnostic = $"PitFireTeam round epoch {_epoch}: waiting for four old bodies to leave active registries.";
+                _diagnostic = $"PitFireTeam round epoch {_epoch}: waiting for {_canonicalProfilesByAccountId.Count} old bodies to leave active registries.";
                 return true;
             }
             catch (Exception ex)
@@ -1008,7 +1015,7 @@ internal static class PitFireTeamRoundLifecycle
                 _stage = PitFireTeamRoundLifecycleStage.PreparingProfiles;
                 _diagnostic = adoptedAutoPrefetch
                     ? $"PitFireTeam round epoch {_epoch}: waiting for PFT's exact respawn-prefetched follower profiles."
-                    : $"PitFireTeam round epoch {_epoch}: waiting for four canonical follower profiles.";
+                    : $"PitFireTeam round epoch {_epoch}: waiting for {_canonicalProfilesByAccountId.Count} canonical follower profiles.";
                 return true;
             }
             catch (Exception ex)
@@ -1091,7 +1098,7 @@ internal static class PitFireTeamRoundLifecycle
 
                 _preparedProfileDictionary = profiles;
                 _stage = PitFireTeamRoundLifecycleStage.ProfilesReady;
-                _diagnostic = $"PitFireTeam round epoch {_epoch}: four fresh runtime profiles are ready before activation.";
+                _diagnostic = $"PitFireTeam round epoch {_epoch}: {_canonicalProfilesByAccountId.Count} fresh runtime profiles are ready before activation.";
                 return PitFireTeamRoundPolicyDecision.Ready();
             }
             catch (Exception ex)
@@ -1198,10 +1205,11 @@ internal static class PitFireTeamRoundLifecycle
                 Dictionary<string, Profile> profilesById = _preparedProfilesByAccountId.Values
                     .ToDictionary(profile => profile.ProfileId, profile => profile,
                         StringComparer.OrdinalIgnoreCase);
-                if (profilesById.Count != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+                if (!PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(_canonicalProfilesByAccountId.Count)
+                    || profilesById.Count != _canonicalProfilesByAccountId.Count)
                 {
                     throw new InvalidOperationException(
-                        "the follower spawn lease does not cover exactly four remapped runtime profiles");
+                        "the follower spawn lease does not cover every authenticated remapped runtime profile");
                 }
 
                 var lease = new FollowerSpawnLease
@@ -1262,7 +1270,7 @@ internal static class PitFireTeamRoundLifecycle
                 }
 
                 _spawnTask = spawnTask;
-                _diagnostic = $"PitFireTeam round epoch {_epoch}: leased four individual follower activations; polling physical wrappers.";
+                _diagnostic = $"PitFireTeam round epoch {_epoch}: leased {_canonicalProfilesByAccountId.Count} individual follower activations; polling physical wrappers.";
                 return true;
             }
             catch (Exception ex)
@@ -1299,6 +1307,12 @@ internal static class PitFireTeamRoundLifecycle
             if (!wasReady && _stage != PitFireTeamRoundLifecycleStage.SpawnRequested)
                 return FailDecisionUnsafe($"follower polling is invalid while lifecycle stage is {_stage}");
 
+            // The canonical snapshot owns cardinality; a partial physical roster
+            // must never redefine what "complete" means after a follower loss.
+            int expected = _canonicalProfilesByAccountId.Count;
+            if (!PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(expected))
+                return FailDecisionUnsafe("the frozen authenticated companion roster is unavailable");
+
             bool spawnFaulted = _spawnTask == null || _spawnTask.IsCanceled || _spawnTask.IsFaulted;
             string spawnProblem = _spawnTask?.Exception?.GetBaseException().Message;
 
@@ -1317,21 +1331,21 @@ internal static class PitFireTeamRoundLifecycle
                     if (lease == null
                         || lease.Revoked
                         || lease.Epoch != _epoch
-                        || !ReferenceEquals(lease.World, world))
+                        || !ReferenceEquals(lease.World, world)
+                        || !HasExactLeaseRosterUnsafe(lease))
                     {
                         invalid = true;
                         invalidProblem = "the exact Arena follower spawn lease disappeared before binding";
                     }
                     else
                     {
-                        int expected = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
                         if (lease.StartedProfileIds.Count > expected
                             || lease.ActivatedProfileIds.Count > expected
                             || lease.SettledProfileIds.Count > expected
                             || lease.InvocationsByProfileId.Count > expected)
                         {
                             invalid = true;
-                            invalidProblem = "the Arena follower spawn lease observed more than four activations";
+                            invalidProblem = $"the Arena follower spawn lease observed more than {expected} activations";
                         }
                         else
                         {
@@ -1415,7 +1429,7 @@ internal static class PitFireTeamRoundLifecycle
                         List<BotOwner> ownedBodies = bossFollowers.Cast<object>()
                             .Select(item => item as BotOwner)
                             .ToList();
-                        if (ownedBodies.Count > PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                        if (ownedBodies.Count > expected
                             || ownedBodies.Any(item => ReferenceEquals(item, null))
                             || PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(ownedBodies)
                             || ownedBodies.Any(item => !candidates.Any(candidate => ReferenceEquals(candidate, item)))
@@ -1451,8 +1465,8 @@ internal static class PitFireTeamRoundLifecycle
 
                             pftOwnershipComplete = !invalid
                                                    && leasedActivationsComplete
-                                                   && ownedBodies.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
-                                                   && candidates.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
+                                                   && ownedBodies.Count == expected
+                                                   && candidates.Count == expected
                                                    && bossGroup != null;
                         }
                     }
@@ -1483,9 +1497,9 @@ internal static class PitFireTeamRoundLifecycle
                 bool physicallyComplete = !invalid
                                           && leasedActivationsComplete
                                           && pftOwnershipComplete
-                                          && candidates.Count == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
-                                          && activeCount == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
-                                          && registeredCount == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
+                                          && candidates.Count == expected
+                                          && activeCount == expected
+                                          && registeredCount == expected;
                 if (physicallyComplete)
                 {
                     List<BotOwner> ordered = candidates
@@ -1534,7 +1548,7 @@ internal static class PitFireTeamRoundLifecycle
                     PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(
                         new PitFireTeamFollowerObservation
                         {
-                            ExpectedCount = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount,
+                            ExpectedCount = expected,
                             ActivationLeaseComplete = leasedActivationsComplete,
                             PhysicalOwnershipComplete = pftOwnershipComplete,
                             WrapperCount = candidates.Count,
@@ -1558,12 +1572,10 @@ internal static class PitFireTeamRoundLifecycle
                     if (_spawnLease == null
                         || _spawnLease.Revoked
                         || _spawnLease.Epoch != _epoch
-                        || _spawnLease.StartedProfileIds.Count
-                            != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
-                        || _spawnLease.ActivatedProfileIds.Count
-                            != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount
-                        || _spawnLease.SettledProfileIds.Count
-                            != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+                        || !HasExactLeaseRosterUnsafe(_spawnLease)
+                        || _spawnLease.StartedProfileIds.Count != expected
+                        || _spawnLease.ActivatedProfileIds.Count != expected
+                        || _spawnLease.SettledProfileIds.Count != expected)
                     {
                         return FailDecisionUnsafe(
                             "the physical follower barrier passed without one complete exact activation lease");
@@ -1571,7 +1583,7 @@ internal static class PitFireTeamRoundLifecycle
 
                     _spawnLease.Completed = true;
                     _stage = PitFireTeamRoundLifecycleStage.FollowersReady;
-                    _diagnostic = $"PitFireTeam round epoch {_epoch}: four fresh followers are stable and registered.";
+                    _diagnostic = $"PitFireTeam round epoch {_epoch}: {expected} fresh followers are stable and registered.";
                 }
                 else if (wasReady)
                 {
@@ -2267,7 +2279,7 @@ internal static class PitFireTeamRoundLifecycle
         // Keep synchronous Task continuations enabled. The observer yields once
         // before releasing a potentially already-completed count-zero result,
         // so Harmony can first return this still-open replacement task to PFT.
-        // Its registered continuation then enters all four activation prefixes
+        // Its registered continuation then enters all selected activation prefixes
         // under StateLock before the successful release finishes.
         state.CancellationRegistration = state.Lease.Cancellation.Token.Register(
             () => CancelLeasedBotCreationTask(state));
@@ -2360,7 +2372,7 @@ internal static class PitFireTeamRoundLifecycle
                     && !state.Lease.Revoked)
                 {
                     FailUnsafe(
-                        "PFT did not enter the four exact follower activation seams "
+                        "PFT did not enter every exact follower activation seam "
                         + "during the deferred BotCreationData task release");
                 }
             }
@@ -2450,7 +2462,7 @@ internal static class PitFireTeamRoundLifecycle
                 ? WildSpawnType.pmcUSEC
                 : WildSpawnType.assault;
         ShallBeGroupParams group = parameters.SpawnParams?.ShallBeGroup;
-        int expectedGroupCount = PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount + 1;
+        int expectedGroupCount = lease.ProfilesById.Count + 1;
         if (parameters.Side != lease.Leader.Side
             || parameters.Role != expectedRole
             || parameters.BotDifficulty != BotDifficulty.hard
@@ -2501,6 +2513,11 @@ internal static class PitFireTeamRoundLifecycle
             reason = lease?.RevocationReason ?? "the follower spawn lease is missing";
             return false;
         }
+        if (!HasExactLeaseRosterUnsafe(lease))
+        {
+            reason = "the follower creation lease no longer covers the frozen canonical roster";
+            return false;
+        }
         if (Thread.CurrentThread.ManagedThreadId != _ownerThreadId
             || SynchronizationContext.Current == null
             || _stage != PitFireTeamRoundLifecycleStage.SpawnRequested
@@ -2542,6 +2559,31 @@ internal static class PitFireTeamRoundLifecycle
         if (!TryGetExactBotCreatorBindingUnsafe(lease, out _, out reason))
             return false;
 
+        return true;
+    }
+
+    // No arriving body, mutable PFT selection or reduced native collection may
+    // change the count. This exact profile-object lease derives from the frozen
+    // canonical account set and the already validated per-round identity remap.
+    private static bool HasExactLeaseRosterUnsafe(FollowerSpawnLease lease)
+    {
+        int expected = _canonicalProfilesByAccountId.Count;
+        if (!PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(expected)
+            || lease?.ProfilesById == null || lease.ProfilesById.Count != expected
+            || _runtimeProfilesByAccountId.Count != expected
+            || _preparedProfilesByAccountId.Count != expected)
+            return false;
+        foreach (string account in _canonicalProfilesByAccountId.Keys)
+        {
+            if (!_runtimeProfilesByAccountId.TryGetValue(account, out string runtimeId)
+                || !_preparedProfilesByAccountId.TryGetValue(account, out Profile prepared)
+                || ReferenceEquals(prepared, null)
+                || !string.Equals(prepared.AccountId?.Trim(), account, StringComparison.Ordinal)
+                || !string.Equals(prepared.ProfileId, runtimeId, StringComparison.Ordinal)
+                || !lease.ProfilesById.TryGetValue(runtimeId, out Profile leased)
+                || !ReferenceEquals(prepared, leased))
+                return false;
+        }
         return true;
     }
 
@@ -3305,6 +3347,11 @@ internal static class PitFireTeamRoundLifecycle
             reason = lease?.RevocationReason ?? "the follower spawn lease is missing";
             return false;
         }
+        if (!HasExactLeaseRosterUnsafe(lease))
+        {
+            reason = "the follower activation lease no longer covers the frozen canonical roster";
+            return false;
+        }
         if (_stage != PitFireTeamRoundLifecycleStage.SpawnRequested
             || lease.Epoch != _epoch
             || !ReferenceEquals(lease.PatchInstance, patchInstance)
@@ -3430,7 +3477,7 @@ internal static class PitFireTeamRoundLifecycle
     /// <summary>
     /// <paramref name="anySettledUnarmed"/> separates a normal mid-flight assembly
     /// from one worth a warning. A healthy round is caught here about eighty
-    /// milliseconds after the spawn request, when all four bodies are legitimately
+    /// milliseconds after the spawn request, when all selected bodies are legitimately
     /// PreActive with their weapon takes still open, and warning about that in
     /// every won round trains the reader to skip the one line that ever mattered.
     /// The suspicious shape is a take that has SETTLED without arming the body:
@@ -3963,10 +4010,12 @@ internal static class PitFireTeamRoundLifecycle
     {
         bodies = new List<BotOwner>();
         reason = string.Empty;
-        if (boundFollowers == null
-            || boundFollowers.Count != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+        if (!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(canonicalProfilesByAccountId, out reason))
+            return false;
+        int expected = canonicalProfilesByAccountId.Count;
+        if (boundFollowers == null || boundFollowers.Count != expected)
         {
-            reason = "the completed round did not provide exactly four bound follower bodies";
+            reason = $"the completed round did not provide exactly {expected} bound follower bodies";
             return false;
         }
 
@@ -4011,9 +4060,9 @@ internal static class PitFireTeamRoundLifecycle
             bodies.Add(bot);
         }
 
-        if (accounts.Count != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+        if (accounts.Count != expected)
         {
-            reason = "the completed round does not cover all four authenticated accounts";
+            reason = "the completed round does not cover every authenticated account";
             return false;
         }
 
@@ -4023,10 +4072,11 @@ internal static class PitFireTeamRoundLifecycle
     private static bool TryRemapProfilesUnsafe(IDictionary profiles, out string reason)
     {
         reason = string.Empty;
-        if (profiles == null
-            || profiles.Count != PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount)
+        int expected = _canonicalProfilesByAccountId.Count;
+        if (!PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(expected)
+            || profiles == null || profiles.Count != expected)
         {
-            reason = $"PFT prefetched {profiles?.Count ?? 0}/4 follower profiles";
+            reason = $"PFT prefetched {profiles?.Count ?? 0}/{expected} follower profiles";
             return false;
         }
 
@@ -4142,7 +4192,7 @@ internal static class PitFireTeamRoundLifecycle
         if (runtimeProfiles.Count != _canonicalProfilesByAccountId.Count
             || _canonicalProfilesByAccountId.Keys.Any(account => !runtimeProfiles.ContainsKey(account)))
         {
-            reason = "PFT's prefetched profiles do not exactly cover the authenticated four accounts";
+            reason = "PFT's prefetched profiles do not exactly cover the authenticated accounts";
             return false;
         }
 

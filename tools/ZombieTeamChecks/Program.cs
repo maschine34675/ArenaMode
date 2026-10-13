@@ -23,20 +23,20 @@ internal static class Program
         internal readonly BotGame Bots = new();
         internal readonly ArenaMatch Match = new();
         internal LocalPlayer Local => Game.LocalPlayer;
-        internal Fixture(int count = 4, bool team = true)
+        internal Fixture(int count = 4, bool team = true, int expectedCount = 4)
         {
             Time.time=0;
             Singleton<AbstractGame>.Instance=Game; Singleton<GameWorld>.Instance=World; Singleton<IBotGame>.Instance=Bots;
             ArenaSession.Active=true; ArenaSession.ZombieOwnGearActive=true; ArenaSession.ReplaySeconds=0;
             ArenaMatchService.Current=Match;
             ArenaRespawnDriver.IsRespawnInProgress=false; ArenaRespawnDriver.StandDown=false;
-            PitFireTeamCompat.TeamArenaActive=team; PitFireTeamCompat.PersistenceSuppressionActive=true;
+            PitFireTeamCompat.FrozenCompanionCount=team?expectedCount:0; PitFireTeamCompat.TeamArenaActive=team; PitFireTeamCompat.PersistenceSuppressionActive=true;
             PitFireTeamCompat.RoundTransitionActive=false; PitFireTeamCompat.BindOkay=true; PitFireTeamCompat.GetOkay=true;
             PitFireTeamCompat.HostilityOkay=true; PitFireTeamCompat.BeginOkay=true; PitFireTeamCompat.HostilityCalls=0;
             PitFireTeamCompat.Followers=new();
             PitFireTeamRoundLifecycle.Status=new(); PitFireTeamRoundLifecycle.Rebuilt=0; PitFireTeamRoundLifecycle.Teardowns=0;
             PitFireTeamRoundLifecycle.RetireReady=PitFireTeamRoundLifecycle.ProfilesReady=PitFireTeamRoundLifecycle.FollowersReady=true;
-            PitFireTeamRoundLifecycle.Spawn=()=> AddFollowers(4,2);
+            PitFireTeamRoundLifecycle.Spawn=()=> AddFollowers(expectedCount,2);
             TeamArenaLoadoutSnapshot.CaptureOkay=TeamArenaLoadoutSnapshot.ArmOkay=TeamArenaLoadoutSnapshot.PrepareOkay=true;
             TeamArenaLoadoutSnapshot.Captures=TeamArenaLoadoutSnapshot.Arms=TeamArenaLoadoutSnapshot.Prepares=0;
             KillcamReplayCompat.CameraReleased=true; ArenaSpectatorService.Request=null;
@@ -85,8 +85,46 @@ internal static class Program
     private static void Tick(ZombieMode mode,float seconds=.3f)
     { Time.time+=seconds;mode.Tick(seconds); }
 
+    private static void CheckVariableSquads()
+    {
+        foreach (int invalid in new[] {0,5})
+        {
+            var f=new Fixture(0,expectedCount:invalid);
+            bool rejected=false;
+            try { f.Runtime(); } catch (InvalidOperationException) { rejected=true; }
+            Check(rejected && TeamArenaLoadoutSnapshot.Captures==0,"invalid frozen count rejects before inventory capture");
+        }
+        foreach (int n in new[] {1,2,3,4})
+        {
+            var f=new Fixture(n,expectedCount:n);var runtime=f.Runtime();
+            Check(Step(runtime) && runtime.LiveTeamMembers.Count==n+1,$"{n} followers start exact squad");
+            Check(runtime.ShouldBlockFriendlyDamage(f.Local,PitFireTeamCompat.Followers[0].GetPlayer),"variable squad admits friendly protection");
+            runtime.WaveCleared();Steps(runtime);
+            Check(runtime.IsLive && runtime.LiveTeamMembers.Count==n+1 && runtime.Epoch==2,"surviving leader rebuild retains frozen count");
+            f.Die();runtime.OnLocalDeath();Step(runtime);
+            Check(ArenaSpectatorService.Request?.ExpectedCompanionCount==n && ArenaSpectatorService.Request.Targets().Count==n,"spectator freezes independent expected count");
+            runtime.WaveCleared();Step(runtime);Step(runtime);
+            Check(runtime.TryTakeTeamRespawnAuthorization(f.Game,f.Local,out _,out _,out _),"dead leader receives one prepared authorization");
+            f.ReplaceLocal();Check(runtime.OnLocalRespawn(f.Local),"replacement body binds");
+            ArenaRespawnDriver.IsRespawnInProgress=false;Steps(runtime);
+            Check(runtime.IsLive && runtime.LiveTeamMembers.Count==n+1,"dead leader rebuild retains frozen count");
+            f.Die();runtime.OnLocalDeath();foreach(var b in PitFireTeamCompat.Followers)b.HealthController.IsAlive=false;
+            Check(!Step(runtime,.001f) && runtime.IsComplete,"all frozen members dead ends survival");
+            f=new Fixture(n,expectedCount:n);runtime=f.Runtime();Step(runtime);
+            PitFireTeamCompat.FrozenCompanionCount=n==4?3:n+1;
+            Check(!Step(runtime) && runtime.IsComplete,"mid-match frozen count drift ends no contest");
+            f=new Fixture(n,expectedCount:n);runtime=f.Runtime();Step(runtime);runtime.WaveCleared();
+            PitFireTeamCompat.FrozenCompanionCount=n==4?3:n+1;
+            Check(!Step(runtime) && runtime.IsComplete && PitFireTeamRoundLifecycle.Teardowns==0,"rebind count drift fails before teardown");
+            f=new Fixture(n-1,expectedCount:n);runtime=f.Runtime();
+            Check(!Step(runtime) && !runtime.IsComplete,"missing member cannot redefine complete roster");
+            Step(runtime,46);Check(runtime.IsComplete,"incomplete squad times out");
+        }
+    }
+
     public static void Main()
     {
+        CheckVariableSquads();
         var f=new Fixture(3);var runtime=f.Runtime();
         Check(!Step(runtime),"three companions must hold initial wave");
         Check(!runtime.IsComplete && runtime.ShouldBlockStagingDamage(f.Local),"assembly is protected, not defeat");

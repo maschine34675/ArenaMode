@@ -20,6 +20,7 @@ internal static class Program
         {
             CheckSoloPolicy();
             CheckAuthenticatedTeamPolicy();
+            CheckVariableTeamPolicy();
             CheckAuthoritativeIdentityPolicy();
             CheckInvalidRosterPolicy();
             CheckLiveRevalidationPolicy();
@@ -161,6 +162,31 @@ internal static class Program
         }
     }
 
+    private static void CheckVariableTeamPolicy()
+    {
+        foreach (string mode in new[] { "tactical", "zombie" })
+        foreach (int count in new[] { 1, 2, 3, 4 })
+        {
+            string[] selected = Four.Take(count).ToArray();
+            var decision = Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(selected.Reverse()), selected: selected, mode: mode);
+            Assert(decision.Allowed && decision.IsTeam && decision.CompanionAccountIds.Count == count,
+                $"{mode} accepts exact authenticated count {count}");
+            Assert(decision.CompanionProfilesByAccountId.Count == count
+                   && selected.All(id => decision.CompanionProfilesByAccountId[id] == "profile-" + id),
+                $"{mode} preserves all {count} identity pairs");
+            AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(selected.Append("foreign")), selected: selected, mode: mode),
+                "extra native member cannot silently enlarge roster");
+            AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
+                native: Native(selected), selected: selected.Skip(1).ToArray(), mode: mode),
+                "missing selected member cannot silently shrink roster");
+        }
+        Assert(!PitFireTeamSelectionPolicy.IsSupportedCompanionCount(0)
+               && !PitFireTeamSelectionPolicy.IsSupportedCompanionCount(5),
+            "zero is solo and five is unsupported");
+    }
+
     private static void CheckAuthenticatedTeamPolicy()
     {
         var decision = Evaluate(PitFireTeamContractState.Compatible,
@@ -174,8 +200,8 @@ internal static class Program
         Assert(decision.CompanionProfilesByAccountId.Count == 4
                && Four.All(account => decision.CompanionProfilesByAccountId[account] == "profile-" + account),
             "authenticated roster preserves each selected account-to-profile pairing");
-        Assert(PitFireTeamSelectionPolicy.RequiredCompanionCount == 4,
-            "production policy requires exactly four companions");
+        Assert(PitFireTeamSelectionPolicy.MaximumCompanionCount == 4,
+            "production policy caps companions at four");
     }
 
     private static void CheckAuthoritativeIdentityPolicy()
@@ -215,7 +241,7 @@ internal static class Program
         {
             var partial = Four.Take(count).ToArray();
             AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
-                    native: Native(partial), selected: partial),
+                    native: Native(Four), selected: partial),
                 $"partial roster with {count} companion(s) is rejected");
         }
 
@@ -356,7 +382,7 @@ internal static class Program
         foreach (var contract in new[] { PitFireTeamContractState.Absent, PitFireTeamContractState.Incompatible })
             AssertRejected(Evaluate(contract, native: Native(Four), selected: Four, mode: "zombie"),
                 "Zombie must not bypass optional-adapter authentication: " + contract);
-        foreach (int count in new[] { 1, 2, 3, 5 })
+        foreach (int count in new[] { 5, 6 })
         {
             var companions = Enumerable.Range(1, count).Select(i => "pit-" + i).ToArray();
             AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
@@ -398,7 +424,7 @@ internal static class Program
         }
 
         AssertRejected(Evaluate(PitFireTeamContractState.Compatible,
-                native: Native(Four.Take(3).ToArray()),
+                native: Native(Four),
                 selected: Four.Take(3).ToArray(),
                 mode: "endless",
                 allowPendingModeSelection: true),
@@ -846,7 +872,7 @@ internal static class Program
                && compat.Contains("GetBossMethodName", StringComparison.Ordinal)
                && compat.Contains("BossRealPlayerFieldName", StringComparison.Ordinal)
                && compat.Contains("ReferenceEquals(leaderPlayer, currentLocalPlayer)", StringComparison.Ordinal)
-               && compat.Contains("split the four Arena followers", StringComparison.Ordinal)
+               && compat.Contains("split the Arena followers", StringComparison.Ordinal)
                && tactical.Contains("TryBindLocalPlayerBody(_boundLocalPlayer", StringComparison.Ordinal)
                && tactical.Contains("EndTeamRound(null, rosterProblem)", StringComparison.Ordinal),
             "each current-round physical roster rejects replacement bodies and stale, split or wrong PFT leader wrappers as no-contest");

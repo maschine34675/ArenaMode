@@ -46,7 +46,7 @@ internal sealed class ArenaAreaSelectionView
     private Func<string, bool> _onSelected;
     private Func<string, int, bool> _onTeamSizeSelected;
     private Func<ArenaParticipantSelectionState, int, bool> _onParticipantsSelected;
-    private bool _dispatching, _layoutTactical;
+    private bool _dispatching, _layoutTactical, _layoutSummary, _layoutHint;
     private int _layoutRows = -1, _layoutSizes = -1, _layoutParticipants = -1;
     private float _layoutTop = -1f;
 
@@ -145,7 +145,14 @@ internal sealed class ArenaAreaSelectionView
                     && (row.Size < 0 ? participants.CanDecrease : participants.CanIncrease);
             SetText(_participantValue, participantChoice ? participants.ValueLabel : string.Empty);
             SetActive(_participantValue.gameObject, participantChoice);
-            SetText(_summary, participantChoice ? _rows.Count > 1 ? "PARTICIPANTS" : "PARTICIPANTS - you included" : available ? state.Summary : SelectMapPrompt);
+            string summary = available ? state.Summary : SelectMapPrompt;
+            if (available && tacticalOnly && Compat.PitFireTeamCompat.SelectedCompanionCount > 0)
+            {
+                int squadSize = Compat.PitFireTeamCompat.SelectedCompanionCount + 1;
+                summary = state.ModeId == ArenaModeCatalog.ZombieId ? $"{squadSize}-player squad" : $"{squadSize}v5 - PitFireTeam";
+            }
+            SetText(_summary, participantChoice ? _rows.Count > 1 ? "PARTICIPANTS" : "PARTICIPANTS - you included" : summary);
+            SetActive(_summary.gameObject, participantChoice || !string.IsNullOrEmpty(summary));
             SetText(_modeHint, participantChoice ? participants.RecommendationLabel + (_rows.Count > 1 ? " - you included" : "") : available ? state.ModeHint : string.Empty);
             SetActive(_modeHint.gameObject, participantChoice || available && !string.IsNullOrEmpty(state.ModeHint));
             UpdateLayout(tacticalOnly);
@@ -351,19 +358,24 @@ internal sealed class ArenaAreaSelectionView
         // PFT can select Zombies too; its three wave sliders need the same
         // clearance as the solo Zombie panel, not Tactical's shorter footprint.
         float top = ArenaModeCatalog.ModePanelTop + ArenaModeCatalog.ModePanelHeight(_state?.ModeId) + 12f;
+        bool showSummary = _summary.gameObject.activeSelf, showHint = _modeHint.gameObject.activeSelf;
         if (_layoutRows == _rows.Count && _layoutSizes == _sizeRows.Count && _layoutParticipants == _participantRows.Count
-            && _layoutTactical == tacticalOnly && _layoutTop == top) return;
+            && _layoutTactical == tacticalOnly && _layoutTop == top
+            && _layoutSummary == showSummary && _layoutHint == showHint) return;
         _layoutTop = top;
         _layoutRows = _rows.Count;
         _layoutTactical = tacticalOnly;
         _layoutSizes = _sizeRows.Count;
         _layoutParticipants = _participantRows.Count;
+        _layoutSummary = showSummary;
+        _layoutHint = showHint;
         float summaryTop = _rows.Count == 0 ? RowTop : RowTop + _rows.Count * RowStride + 6f + (_sizeRows.Count == 0 ? 0f : 34f);
         bool participantChoice = _participantRows.Count > 0;
         // Customs has three choices even for Deathmatch's taller rules panel.
         // Put its participant stepper beside the label, leaving READY clear.
         bool compactParticipants = participantChoice && _rows.Count > 1;
-        float height = _rows.Count == 0 ? 100f : summaryTop + (participantChoice ? compactParticipants ? 50f : 80f : 48f);
+        float height = _rows.Count == 0 ? 100f : summaryTop + (participantChoice ? compactParticipants ? 50f : 80f
+            : (showSummary ? 24f : 0f) + (showHint ? 20f : 0f) + 8f);
         // Share the actual selected mode's footprint. Deathmatch has four
         // rules rows; a same-area mode change must invalidate this position.
         SetRect((RectTransform)_root.transform, 56f, top, PanelWidth, height);
@@ -371,7 +383,7 @@ internal sealed class ArenaAreaSelectionView
             _rows.Count == 0 ? 40f : 22f);
         _summary.enableWordWrapping = _rows.Count == 0;
         _summary.fontSize = participantChoice ? 15f : 17f;
-        SetRect(_modeHint.rectTransform, Inset, summaryTop + (participantChoice ? 56f : 24f), PanelWidth - 2f * Inset, 20f);
+        SetRect(_modeHint.rectTransform, Inset, summaryTop + (participantChoice ? 56f : showSummary ? 24f : 0f), PanelWidth - 2f * Inset, 20f);
         if (participantChoice)
         {
             SetRect((RectTransform)_participantRows[0].Button.transform, Inset, summaryTop + 24f, 46f, RowHeight);

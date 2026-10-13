@@ -32,13 +32,40 @@ internal static class Program
 
     private static void CheckCanonicalRoster()
     {
-        var valid = Roster(4);
-        Assert(PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(valid, out _),
-            "four unique account/canonical-profile pairs are accepted");
-
-        Assert(!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(Roster(3), out var countProblem)
-               && countProblem.Contains("exactly 4", StringComparison.Ordinal),
-            "a partial roster fails closed");
+        for (int count = 1; count <= 4; count++)
+        {
+            var valid = Roster(count);
+            Assert(PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(valid, out _),
+                $"{count} unique account/canonical-profile pairs are accepted");
+            Assert(PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(valid,
+                    valid.Reverse().ToDictionary(pair => pair.Key, pair => pair.Value)),
+                $"{count}: dictionary order cannot alter the frozen roster");
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(valid, Roster(count - 1)),
+                $"{count}: losing a companion cannot shrink the frozen roster");
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(valid, Roster(count + 1)),
+                $"{count}: adding a companion cannot grow the frozen roster");
+            var changedProfile = Roster(count);
+            changedProfile["account-1"] = Mongo(90);
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(valid, changedProfile),
+                $"{count}: a changed stored profile cannot keep the frozen account");
+            var changedAccount = Roster(count);
+            changedAccount.Remove("account-1");
+            changedAccount.Add("foreign-account", valid["account-1"]);
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(valid, changedAccount),
+                $"{count}: same-count account substitution cannot rebind a protected roster");
+        }
+        Assert(!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(Roster(0), out _),
+            "zero followers cannot open a protected lifecycle");
+        Assert(!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(Roster(5), out var countProblem)
+               && countProblem.Contains("1..4", StringComparison.Ordinal),
+            "five followers cannot open a protected lifecycle");
+        Assert(!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(null, out _)
+               && !PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(null, Roster(1)),
+            "missing canonical authority cannot be treated as an empty roster");
+        Assert(!PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(-1)
+               && !PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(0)
+               && !PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(5),
+            "only positive bounded companion counts enter the protected policy");
 
         var duplicateProfiles = Roster(4);
         duplicateProfiles["account-4"] = duplicateProfiles["account-1"];
@@ -256,6 +283,54 @@ internal static class Program
 
     private static void CheckFollowerBarrier()
     {
+        for (int count = 1; count <= 4; count++)
+        {
+            Assert(EvaluateFollowers(count, count, count, 2, expected: count).Decision
+                       == PitFireTeamRoundPollDecision.Ready,
+                $"{count}: two exact physical registry passes release this frozen roster");
+            Assert(EvaluateFollowers(count, count, count, 1, expected: count).Decision
+                       == PitFireTeamRoundPollDecision.Pending,
+                $"{count}: small rosters still require both stable passes");
+            Assert(EvaluateFollowers(count - 1, count - 1, count - 1, 2, expected: count).Decision
+                       == PitFireTeamRoundPollDecision.Pending,
+                $"{count}: the missing selected body is not a smaller valid roster");
+            Assert(EvaluateFollowers(count - 1, count - 1, count - 1, 2, expected: count, timedOut: true).Decision
+                       == PitFireTeamRoundPollDecision.Failed,
+                $"{count}: missing selected body fails at deadline");
+            Assert(EvaluateFollowers(count + 1, count + 1, count + 1, 2, expected: count).Decision
+                       == PitFireTeamRoundPollDecision.Failed,
+                $"{count}: an extra physical follower fails even below maximum capacity");
+            Assert(EvaluateFollowers(count, count, count, 2, expected: count,
+                       activationLeaseComplete: false).Decision == PitFireTeamRoundPollDecision.Pending,
+                $"{count}: physical bodies do not replace activation lease proof");
+            Assert(EvaluateFollowers(count, count, count, 2, expected: count,
+                       physicalOwnershipComplete: false).Decision == PitFireTeamRoundPollDecision.Pending,
+                $"{count}: physical bodies do not replace exact PFT ownership");
+
+            string[] selected = Enumerable.Range(1, count).Select(Mongo).ToArray();
+            Assert(PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(selected, selected.Reverse(), selected),
+                $"{count}: selected activation and invocation IDs match independently of order");
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(selected, selected.Take(count - 1), selected),
+                $"{count}: a missing activation cannot shrink a leased expected set");
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(selected, selected, selected.Take(count - 1)),
+                $"{count}: a missing invocation cannot shrink a leased expected set");
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(selected, selected.Append(Mongo(91)), selected),
+                $"{count}: extra activations remain foreign even within range 1..4");
+            string[] substituted = selected.ToArray();
+            substituted[0] = Mongo(91);
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(selected, substituted, selected)
+                   && !PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(selected, selected, substituted),
+                $"{count}: same-count foreign activation and invocation IDs cannot satisfy the lease");
+        }
+        foreach (int invalidCount in new[] { 0, 5 })
+        {
+            Assert(EvaluateFollowers(invalidCount, invalidCount, invalidCount, 2, expected: invalidCount).Decision
+                       == PitFireTeamRoundPollDecision.Failed,
+                $"unsupported expected count {invalidCount} cannot become ready");
+            string[] invalidProfiles = Enumerable.Range(1, invalidCount).Select(Mongo).ToArray();
+            Assert(!PitFireTeamRoundLifecyclePolicy.HasExactActivationSeams(invalidProfiles, invalidProfiles, invalidProfiles),
+                $"unsupported activation lease count {invalidCount} fails even with matching sets");
+        }
         Assert(EvaluateFollowers(
                        wrappers: 0,
                        active: 0,
@@ -495,19 +570,23 @@ internal static class Program
         SynchronizationContext.SetSynchronizationContext(context);
         try
         {
-            int started = 0;
-            int startedAtReplacementRelease = -1;
-            Task spawnTask = SimulatePatchedPftCountZeroSpawn(
-                () => startedAtReplacementRelease = started,
-                () => started++);
+            for (int count = 1; count <= 4; count++)
+            {
+                int started = 0;
+                int startedAtReplacementRelease = -1;
+                Task spawnTask = SimulatePatchedPftCountZeroSpawn(
+                    count,
+                    () => startedAtReplacementRelease = started,
+                    () => started++);
 
-            Assert(!spawnTask.IsCompleted && started == 0 && context.PendingCount == 1,
-                "an already-completed count-zero result stays behind one yield until PFT has received its replacement task");
-            context.RunOne();
-            Assert(spawnTask.IsCompletedSuccessfully,
-                "the deferred PFT-like caller completes when the replacement result is released");
-            Assert(startedAtReplacementRelease == PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount,
-                "all four activation seams run synchronously inside the guarded replacement release");
+                Assert(!spawnTask.IsCompleted && started == 0 && context.PendingCount == 1,
+                    $"{count}: completed count-zero result waits until PFT has received its replacement task");
+                context.RunOne();
+                Assert(spawnTask.IsCompletedSuccessfully,
+                    $"{count}: deferred PFT-like caller completes when the replacement result is released");
+                Assert(startedAtReplacementRelease == count,
+                    $"{count}: every selected activation seam runs synchronously inside the guarded replacement release");
+            }
 
             object publishedBody = null;
             object bodyAtReplacementRelease = null;
@@ -531,12 +610,13 @@ internal static class Program
     }
 
     private static async Task SimulatePatchedPftCountZeroSpawn(
+        int companionCount,
         Action onReplacementReleased,
         Action onActivationStarted)
     {
         _ = await ReplaceCompletedCountZeroTask(onReplacementReleased);
         for (int index = 0;
-             index < PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount;
+             index < companionCount;
              index++)
         {
             onActivationStarted();
@@ -1103,9 +1183,16 @@ internal static class Program
             source,
             "public static bool BeginTeardown(",
             "public static PitFireTeamRoundPolicyDecision PollRetirement(");
+        RequireOrder(beginTeardown,
+            "the frozen canonical roster is revalidated before idempotent retirement or another round can proceed",
+            "PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(",
+            "PitFireTeamRoundLifecyclePolicy.HasSameCanonicalRoster(",
+            "_stage == PitFireTeamRoundLifecycleStage.AwaitingRetirement",
+            "TryValidateBoundFollowersUnsafe(",
+            "RevokeFollowerSpawnLeaseUnsafe(");
         Assert(beginTeardown.IndexOf("TryValidateBoundFollowersUnsafe(", StringComparison.Ordinal)
                < beginTeardown.IndexOf("RevokeFollowerSpawnLeaseUnsafe(", StringComparison.Ordinal),
-            "round teardown validates the frozen four-body roster before advancing lifecycle state");
+            "round teardown validates the complete frozen body roster before advancing lifecycle state");
         RequireOrder(
             beginTeardown,
             "round teardown proves an empty old profile-task cache before opening respawn task provenance",
@@ -1275,18 +1362,49 @@ internal static class Program
                && followerSpawnStart.IndexOf("_stage != PitFireTeamRoundLifecycleStage.SpawnRequested", StringComparison.Ordinal)
                < followerSpawnStart.IndexOf("_spawnTask = spawnTask", StringComparison.Ordinal)
                && followerSpawnStart.IndexOf("_spawnTask = spawnTask", StringComparison.Ordinal)
-               < followerSpawnStart.IndexOf("leased four individual follower activations", StringComparison.Ordinal),
+               < followerSpawnStart.IndexOf("individual follower activations", StringComparison.Ordinal),
             "the returned PFT call is revalidated before Arena publishes success or overwrites a failure diagnostic");
 
         string followerPolling = Slice(
             source,
             "internal static PitFireTeamRoundPolicyDecision PollFollowers(",
             "public static IReadOnlyList<BotOwner> GetCurrentFollowers()");
+        Assert(followerPolling.Contains("int expected = _canonicalProfilesByAccountId.Count;", StringComparison.Ordinal)
+               && followerPolling.Contains("IsSupportedCompanionCount(expected)", StringComparison.Ordinal)
+               && followerPolling.Contains("ExpectedCount = expected", StringComparison.Ordinal)
+               && followerPolling.Contains("!HasExactLeaseRosterUnsafe(lease)", StringComparison.Ordinal)
+               && followerPolling.Contains("!HasExactLeaseRosterUnsafe(_spawnLease)", StringComparison.Ordinal),
+            "both pending and completed physical barriers retain the validated frozen canonical count and exact profile lease");
+        string creationCall = Slice(source,
+            "private static bool TryValidateExactBotCreationCallUnsafe(",
+            "private static bool TryValidateBotCreationResultUnsafe(");
+        Assert(creationCall.Contains("int expectedGroupCount = lease.ProfilesById.Count + 1;", StringComparison.Ordinal)
+               && creationCall.Contains("group.StartCount != expectedGroupCount", StringComparison.Ordinal)
+               && creationCall.Contains("group.RemainCount != expectedGroupCount", StringComparison.Ordinal),
+            "native group cardinality follows the exact frozen lease plus its local leader");
+        string leaseRoster = Slice(source,
+            "private static bool HasExactLeaseRosterUnsafe(",
+            "private static void LocalGameCreateBotByProfilePostfix(");
+        foreach (string guard in new[] {
+            "int expected = _canonicalProfilesByAccountId.Count;",
+            "IsSupportedCompanionCount(expected)",
+            "lease.ProfilesById.Count != expected",
+            "_runtimeProfilesByAccountId.Count != expected",
+            "_preparedProfilesByAccountId.Count != expected",
+            "foreach (string account in _canonicalProfilesByAccountId.Keys)",
+            "_runtimeProfilesByAccountId.TryGetValue(account",
+            "_preparedProfilesByAccountId.TryGetValue(account",
+            "prepared.AccountId?.Trim(), account, StringComparison.Ordinal",
+            "prepared.ProfileId, runtimeId, StringComparison.Ordinal",
+            "lease.ProfilesById.TryGetValue(runtimeId",
+            "ReferenceEquals(prepared, leased)" })
+            Assert(leaseRoster.Contains(guard, StringComparison.Ordinal),
+                "exact frozen profile lease retains guard: " + guard);
         Assert(!followerPolling.Contains("if (!invalid && leasedActivationsComplete)", StringComparison.Ordinal)
                && followerPolling.IndexOf("bool pftOwnershipComplete = false", StringComparison.Ordinal)
                < followerPolling.IndexOf("_bossFollowersProperty.GetValue(_currentBoss)", StringComparison.Ordinal)
                && followerPolling.Contains(
-                   "ownedBodies.Count > PitFireTeamRoundLifecyclePolicy.RequiredCompanionCount",
+                   "ownedBodies.Count > expected",
                    StringComparison.Ordinal)
                && followerPolling.Contains(
                    "PitFireTeamRoundLifecyclePolicy.HasDuplicateReferences(ownedBodies)",
@@ -1442,11 +1560,12 @@ internal static class Program
         int stable,
         bool activationLeaseComplete = true,
         bool physicalOwnershipComplete = true,
-        bool timedOut = false)
+        bool timedOut = false,
+        int expected = 4)
         => PitFireTeamRoundLifecyclePolicy.EvaluateFollowers(
             new PitFireTeamFollowerObservation
             {
-                ExpectedCount = 4,
+                ExpectedCount = expected,
                 ActivationLeaseComplete = activationLeaseComplete,
                 PhysicalOwnershipComplete = physicalOwnershipComplete,
                 WrapperCount = wrappers,

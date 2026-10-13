@@ -113,7 +113,8 @@ public sealed partial class TacticalMode : IArenaMode
     /// </summary>
     private static readonly TimeSpan TeamFollowerAssemblyTimeout = TimeSpan.FromSeconds(20);
 
-    private const int TeamCompanionCount = 4;
+    private int TeamCompanionCount;
+    private string TeamMatchLabel => $"{TeamCompanionCount + 1}v{TeamEnemyCount}";
     private const int TeamEnemyCount = 5;
 
     private ArenaMatch _match;
@@ -327,25 +328,25 @@ public sealed partial class TacticalMode : IArenaMode
                 switch (_phase)
                 {
                     case Phase.Staging:
-                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                        return $"{TeamMatchLabel}   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
                             + (_teamEnemiesRequested
                                 ? $"assembling opponents {_squad.Count}/{TeamEnemyCount}"
                                 : $"assembling teammates {PitFireTeamCompat.GetLiveFollowers().Count}/{TeamCompanionCount}");
 
                     case Phase.Live:
-                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
-                            + $"Allies {AlliesAlive}/5   Enemies {SquadAlive}/5"
+                        return $"{TeamMatchLabel}   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                            + $"Allies {AlliesAlive}/{TeamCompanionCount + 1}   Enemies {SquadAlive}/5"
                             + (_playerDown ? "   YOU ARE DOWN" : string.Empty);
 
                     case Phase.Aftermath:
-                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                        return $"{TeamMatchLabel}   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
                             + $"{DescribeTeamRoundResult(_teamRoundResult)}   "
                             + (_teamContinuation == TeamArenaRoundContinuation.RebindNextRound
                                 ? $"next round in {PhaseRemaining:0}s"
                                 : $"raid ending in {PhaseRemaining:0}s");
 
                     case Phase.Rebinding:
-                        return $"5v5   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
+                        return $"{TeamMatchLabel}   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
                             + $"rebuilding teams ({DescribeTeamRebindStep()})";
                 }
             }
@@ -391,6 +392,9 @@ public sealed partial class TacticalMode : IArenaMode
     {
         _match = match;
         _teamArena = PitFireTeamCompat.TeamArenaActive;
+        TeamCompanionCount = _teamArena ? PitFireTeamCompat.FrozenCompanionCount : 0;
+        if (_teamArena && (TeamCompanionCount < 1 || TeamCompanionCount > 4))
+            throw new InvalidOperationException("protected Tactical has no valid frozen companion count");
 
         Money = Settings.TacticalStartMoney.Value;
         RoundNumber = 1;
@@ -484,9 +488,9 @@ public sealed partial class TacticalMode : IArenaMode
             _phase = Phase.Staging;
             _phaseEndsAt = Time.time + TeamAssemblySeconds;
 
-            ArenaToasts.Show("5v5 — assembling four teammates");
+            ArenaToasts.Show($"{TeamMatchLabel} — assembling {TeamCompanionCount} teammates");
             Plugin.ModLogger.LogInfo(
-                $"Tactical team Arena: first to {_teamRoundsToWin}; waiting for four PitFireTeam companions; "
+                $"Tactical team Arena: first to {_teamRoundsToWin}; waiting for {TeamCompanionCount} PitFireTeam companions; "
                 + "the PMC entry loadout is protected in process memory.");
             return;
         }
@@ -1000,7 +1004,7 @@ public sealed partial class TacticalMode : IArenaMode
     }
 
     /// <summary>
-    /// Waits for four authenticated followers before requesting opponents, then
+    /// Waits for all authenticated followers before requesting opponents, then
     /// waits for all five opponents and the complete hostility matrix. Damage to
     /// either assembling side is suppressed by CombatPatches during this phase.
     /// </summary>
@@ -1009,7 +1013,8 @@ public sealed partial class TacticalMode : IArenaMode
         if (!_teamArena)
             return;
 
-        if (!PitFireTeamCompat.TeamArenaActive)
+        if (!PitFireTeamCompat.TeamArenaActive
+            || PitFireTeamCompat.FrozenCompanionCount != TeamCompanionCount)
         {
             EndTeamRound(null, "PitFireTeam's authenticated Arena roster was lost");
             return;
@@ -1085,7 +1090,7 @@ public sealed partial class TacticalMode : IArenaMode
                 }
 
                 if (!Effects.ArenaTracerTeams.TryBindTeamRound(
-                        _teamRoundEpoch,
+                        _teamRoundEpoch, TeamCompanionCount,
                         _boundLocalProfileId,
                         _boundTeamFollowerProfileIds,
                         _boundTeamEnemyProfileIds,
@@ -1107,9 +1112,9 @@ public sealed partial class TacticalMode : IArenaMode
                 Bots.CorpseCleanupService.ClearAllSoon($"team round {RoundNumber} start");
                 TeamArenaPursuit.BeginRound(_teamRoundEpoch);
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
-                ArenaToasts.Show("5v5 — fight!");
+                ArenaToasts.Show($"{TeamMatchLabel} — fight!");
                 Plugin.ModLogger.LogInfo(
-                    $"Tactical team Arena round {RoundNumber} live: five allies versus five opponents.");
+                    $"Tactical team Arena round {RoundNumber} live: {TeamCompanionCount + 1} allies versus five opponents.");
                 return;
             }
             else
@@ -1125,7 +1130,7 @@ public sealed partial class TacticalMode : IArenaMode
                 : $"; last check: {_lastTeamReadinessDiagnostic}";
             EndTeamRound(
                 null,
-                $"team readiness timed out (allies {followers.Count}/4, opponents {SquadAlive}/5, registered {_squad.Count}/5){diagnostic}");
+                $"team readiness timed out (allies {followers.Count}/{TeamCompanionCount}, opponents {SquadAlive}/5, registered {_squad.Count}/5){diagnostic}");
         }
     }
 
@@ -1182,11 +1187,17 @@ public sealed partial class TacticalMode : IArenaMode
             return;
         }
 
-        ArenaToasts.Show("5v5 — assembling five opponents");
+        ArenaToasts.Show($"{TeamMatchLabel} — assembling five opponents");
     }
 
     private void TickTeamLive()
     {
+        if (!PitFireTeamCompat.TeamArenaActive
+            || PitFireTeamCompat.FrozenCompanionCount != TeamCompanionCount)
+        {
+            EndTeamRound(null, "the frozen PitFireTeam companion count was lost");
+            return;
+        }
         if (!PitFireTeamCompat.TryGetLiveFollowers(out var followers, out var rosterProblem))
         {
             EndTeamRound(null, rosterProblem);
@@ -1197,7 +1208,7 @@ public sealed partial class TacticalMode : IArenaMode
             || _boundTeamFollowerProfileIds.Length != TeamCompanionCount
             || followers.Any(follower => !_boundTeamFollowers.Any(bound => ReferenceEquals(bound, follower))))
         {
-            EndTeamRound(null, "the frozen four-follower round roster was lost");
+            EndTeamRound(null, "the frozen follower round roster was lost");
             return;
         }
 
@@ -1214,7 +1225,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
 
         // A simultaneous wipe is a loss: Arena never awards a win without a
-        // surviving member of the authenticated five-player team.
+        // surviving member of the authenticated team.
         int alliesAlive = followers.Count + (localAlive ? 1 : 0);
         // Observe the final physical survivor state before deciding the result.
         // In particular, a simultaneous local death cannot inherit a stale clutch.
@@ -1283,7 +1294,7 @@ public sealed partial class TacticalMode : IArenaMode
         Player deadPlayer = _boundLocalPlayer;
 
         var request = new ArenaSpectatorRequest(
-            epoch,
+            epoch, TeamCompanionCount,
             () => _teamRoundEpoch,
             () => _teamArena
                   && _phase == Phase.Live
@@ -1306,7 +1317,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
     }
 
-    private static IReadOnlyList<ArenaSpectatorTarget> BuildTeamSpectatorTargets(
+    private IReadOnlyList<ArenaSpectatorTarget> BuildTeamSpectatorTargets(
         IReadOnlyList<BotOwner> followers,
         IReadOnlyList<string> followerProfiles,
         IReadOnlyList<BotOwner> enemies,
@@ -1452,7 +1463,7 @@ public sealed partial class TacticalMode : IArenaMode
             var expectedProfiles = PitFireTeamCompat.CurrentCompanionProfilesByAccountId;
             if (expectedProfiles.Count != TeamCompanionCount)
             {
-                problem = "PitFireTeam's current four-account profile map is incomplete";
+                problem = "PitFireTeam's current frozen-account profile map is incomplete";
                 return false;
             }
 
@@ -1539,7 +1550,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
         catch (Exception ex)
         {
-            problem = "the four PitFireTeam follower bodies could not be frozen: "
+            problem = "the frozen PitFireTeam follower bodies could not be frozen: "
                       + ex.GetBaseException().Message;
             return false;
         }
@@ -1909,7 +1920,7 @@ public sealed partial class TacticalMode : IArenaMode
         string continuation = decision.Continuation == TeamArenaRoundContinuation.RebindNextRound
             ? "next round incoming"
             : "raid ending";
-        ArenaToasts.Show($"5v5 {outcome} — {RoundsWon}-{RoundsLost}, {continuation}");
+        ArenaToasts.Show($"{TeamMatchLabel} {outcome} — {RoundsWon}-{RoundsLost}, {continuation}");
 
         string roundResult = $"Tactical team Arena round {RoundNumber}: {outcome} — {reason}; "
             + $"score {RoundsWon}-{RoundsLost}, continuation {decision.Continuation}.";
@@ -1960,6 +1971,7 @@ public sealed partial class TacticalMode : IArenaMode
             return;
 
         if (!PitFireTeamCompat.TeamArenaActive
+            || PitFireTeamCompat.FrozenCompanionCount != TeamCompanionCount
             || !PitFireTeamCompat.PersistenceSuppressionActive
             || !ReferenceEquals(
                 Comfort.Common.Singleton<AbstractGame>.Instantiated
@@ -2324,7 +2336,7 @@ public sealed partial class TacticalMode : IArenaMode
         {
             _teamRebindStep = TeamRebindStep.StartFollowers;
             Plugin.ModLogger.LogInfo(
-                $"Tactical team Arena round {RoundNumber}: four fresh PitFireTeam follower profiles are ready.");
+                $"Tactical team Arena round {RoundNumber}: {TeamCompanionCount} fresh PitFireTeam follower profiles are ready.");
         }
     }
 
@@ -2370,7 +2382,7 @@ public sealed partial class TacticalMode : IArenaMode
         {
             _teamRebindStep = TeamRebindStep.AdoptFollowers;
             Plugin.ModLogger.LogInfo(
-                $"Tactical team Arena round {RoundNumber}: four fresh follower bodies passed the stable registry barrier.");
+                $"Tactical team Arena round {RoundNumber}: {TeamCompanionCount} fresh follower bodies passed the stable registry barrier.");
         }
     }
 
@@ -2419,7 +2431,7 @@ public sealed partial class TacticalMode : IArenaMode
         _phaseEndsAt = Time.time + TeamAssemblySeconds;
         ArenaToasts.Show($"Round {RoundNumber} — assembling five opponents");
         Plugin.ModLogger.LogInfo(
-            $"Tactical team Arena round {RoundNumber}: four fresh PitFireTeam followers adopted; requesting opponents next.");
+            $"Tactical team Arena round {RoundNumber}: {TeamCompanionCount} fresh PitFireTeam followers adopted; requesting opponents next.");
     }
 
     private bool TryValidateDeadTeamLeaderBody(
@@ -2610,7 +2622,7 @@ public sealed partial class TacticalMode : IArenaMode
         _phaseEndsAt = Time.time + AftermathSeconds;
         _squadEpoch++;
         RetireSquad();
-        ArenaToasts.Show("5v5 no contest — protected round rebuild failed");
+        ArenaToasts.Show($"{TeamMatchLabel} no contest — protected round rebuild failed");
         _match.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
         Plugin.ModLogger.LogError(
             $"Tactical team Arena ended no contest during round {RoundNumber} rebind: {reason}.");

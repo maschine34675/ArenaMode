@@ -1,5 +1,16 @@
 # Protected Zombie survival with PitFireTeam — 2026-10-08
 
+## Current roster extension — 2026-10-13
+
+[PFT-SQUAD-SIZE-REVIEW.md](PFT-SQUAD-SIZE-REVIEW.md) supersedes the historical
+exact-four cardinality below: one to four invited companions are supported, with
+that exact count and account/profile mapping frozen before arming. Tactical still
+has five opponents. Wipe, reconstruction and spectator checks require every
+frozen member; a missing member never reduces the expected roster. Solo defaults
+are 32 alive / 50 first wave / growth 20 / own gear, preserving saved preferences.
+The surviving-PMC refill limitation below remains unchanged and is now explicit
+in the menu.
+
 ## Map admission correction — 2026-10-09
 
 The area-menu proposal retained a Tactical-only PFT guard after the first

@@ -285,9 +285,9 @@ internal static class Program
         Updater(f).Tick();
         Assert(f.Screen.SelectedLocation?.Id == Day && Settings.TeamDeathmatchArea.Value == Full,
             "repaired PFT mode can select existing whole-map Factory");
-        Assert(ArenaAreaSelectionView.Last.State.Summary.Contains("5v5")
+        Assert(ArenaAreaSelectionView.Last.State.Summary == "PFT squad vs 5"
             && ArenaAreaSelectionView.Last.State.ModeHint.Contains("PitFireTeam squad"),
-            "PFT area renderer receives actual fixed team size and protected squad hint");
+            "PFT area state preserves five opponents and the protected squad hint");
         Assert(f.Screen.ShowCalls == 1 && f.Screen.SubscriptionCount == 2,
             "PFT repair does not rebuild native map rows or subscriptions");
     }
@@ -339,9 +339,9 @@ internal static class Program
             var request = new LocalRaidSettings { location = map, playerSide = ESideType.Pmc,
                 transitionType = ELocationTransition.Common };
             Assert(ArenaMenuSelection.MatchesRequest(request), "protected Zombie selection passes strict map request: " + map);
-            Assert(ArenaAreaSelectionView.Last.State.Summary == "5-player squad"
+            Assert(ArenaAreaSelectionView.Last.State.Summary == "PitFireTeam squad"
                 && !ArenaAreaSelectionView.Last.Participants.Available,
-                "protected Zombie area describes five allies without opposing team or editable population: " + map);
+                "protected Zombie area describes its squad without opposing team or editable population: " + map);
         }
         f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
         foreach (EDateTime time in new[] { EDateTime.PAST, EDateTime.CURR })
@@ -358,7 +358,7 @@ internal static class Program
             Assert(f.Screen.SelectedLocation?.Id == Day && f.Screen._readyButton.gameObject.activeSelf,
                 "protected Tactical/Zombie mode switch retains valid map selection");
             Assert(ArenaAreaSelectionView.Last.State.Summary == (mode == ArenaModeCatalog.ZombieId
-                ? "5-player squad" : "5v5 - fixed teams"), "protected mode switch updates roster description");
+                ? "PitFireTeam squad" : "PFT squad vs 5"), "protected mode switch updates roster description");
         }
         foreach (string mode in new[] { ArenaModeCatalog.DeathmatchId, ArenaModeCatalog.GunGameId,
             ArenaModeCatalog.TeamDeathmatchId })
@@ -554,8 +554,8 @@ internal static class Program
             Updater(f).Tick();
             Assert(row.gameObject.activeSelf && !equatorRow.gameObject.activeSelf && f.Screen.SelectedLocation?.Id == bay5,
                 "unavailable Equator cannot hide or deselect selected Bay5");
-            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Available in all Arena modes",
-                "Bay5 area hint names its admitted modes");
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint == string.Empty,
+                "Bay5 area omits the redundant all-modes availability hint");
             ArenaClientConfig.Enabled = map => true;
             foreach (string mode in new[] { "tactical", "gungame", "teamdeathmatch", "deathmatch", "zombie" })
             {

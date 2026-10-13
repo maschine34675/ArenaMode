@@ -195,7 +195,7 @@ namespace ArenaMode.Effects
     public static class ArenaTracerTeams
     {
         public static int Binds; public static bool BindOkay=true;
-        public static bool TryBindCooperativeWave(int n,string local,IReadOnlyList<string> friends,out string problem)
+        public static bool TryBindCooperativeWave(int n,int expectedCompanionCount,string local,IReadOnlyList<string> friends,out string problem)
         { Binds++; problem="test tracer failure"; return BindOkay; }
         public static bool RegisterCooperativeInfected(string id) => true;
     }
@@ -215,9 +215,9 @@ namespace ArenaMode.Spectator
     public class ArenaSpectatorTarget { public Player Player; public ArenaSpectatorTarget(Player p,string id,string name,ArenaSpectatorSide s) => Player=p; }
     public class ArenaSpectatorRequest
     {
-        public int Epoch; public Func<bool> Eligible; public Func<IReadOnlyList<ArenaSpectatorTarget>> Targets;
-        public ArenaSpectatorRequest(int e,Func<int> read,Func<bool> eligible,Player dead,IReadOnlyList<string> ids,Func<IReadOnlyList<ArenaSpectatorTarget>> targets,string preferred,bool cooperative=false)
-        { Epoch=e; Eligible=eligible; Targets=targets; }
+        public int ExpectedCompanionCount; public int Epoch; public Func<bool> Eligible; public Func<IReadOnlyList<ArenaSpectatorTarget>> Targets;
+        public ArenaSpectatorRequest(int e,int expectedCompanionCount,Func<int> read,Func<bool> eligible,Player dead,IReadOnlyList<string> ids,Func<IReadOnlyList<ArenaSpectatorTarget>> targets,string preferred,bool cooperative=false)
+        { Epoch=e; ExpectedCompanionCount=expectedCompanionCount; Eligible=eligible; Targets=targets; }
     }
     public static class ArenaSpectatorService
     {
@@ -237,7 +237,7 @@ namespace ArenaMode.Compat
     public static class PitFireTeamCompat
     {
         public static bool TeamArenaActive=true, PersistenceSuppressionActive=true, RoundTransitionActive, BindOkay=true, GetOkay=true, HostilityOkay=true, BeginOkay=true;
-        public static int HostilityCalls; public static Player Leader; public static List<BotOwner> Followers=new();
+        public static int FrozenCompanionCount=4; public static int HostilityCalls; public static Player Leader; public static List<BotOwner> Followers=new();
         public static IReadOnlyDictionary<string,string> CurrentCompanionProfilesByAccountId => Followers.ToDictionary(b=>b.Profile.AccountId,b=>b.ProfileId);
         public static IReadOnlyDictionary<string,string> CanonicalCompanionProfilesByAccountId => CurrentCompanionProfilesByAccountId;
         public static bool TryBindLocalPlayerBody(Player p,out string problem) { Leader=p;problem="bind test failure";return BindOkay; }

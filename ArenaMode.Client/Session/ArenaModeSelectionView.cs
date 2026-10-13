@@ -253,7 +253,7 @@ internal sealed class ArenaModeSelectionView
         _rules.text = mode.Rules;
         bool zombieTeam = _selection.TacticalOnly && mode.Id == ArenaModeCatalog.ZombieId;
         _description.text = zombieTeam
-            ? "Fallen allies return after cleared waves. A team wipe ends the match."
+            ? "Fallen allies return; team wipe ends play. Only companions refill each wave."
             : mode.Id == ArenaModeCatalog.TacticalId && _selection.TacticalOnly
                 ? "Eliminate the enemy squad. Fallen allies return next round."
             : mode.Id == ArenaModeCatalog.DeathmatchId && !Settings.DeathmatchFreeForAll.Value
@@ -263,7 +263,8 @@ internal sealed class ArenaModeSelectionView
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
-                    ? "TACTICAL / 5v5 PFT (WIP)" : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)";
+                    ? "TACTICAL / " + (Compat.PitFireTeamCompat.SelectedCompanionCount + 1) + "v5 PFT (WIP)"
+                    : "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)";
             else if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.ZombieId)
                 _buttons[i].GetComponentInChildren<TextMeshProUGUI>(true).text = _selection.TacticalOnly
                     ? "ZOMBIES / PFT (WIP)" : "ZOMBIES (WIP)";

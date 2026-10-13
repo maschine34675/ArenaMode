@@ -134,6 +134,11 @@ try
     Need(Convert.ToHexString(SHA256.HashData(Texture2D.LastLoadedBytes))=="E1F75BA5D0101850C58509D3CFBF67847047966E38FD7C6567CE7E26B53F3BFE",
         "EMBEDDED-PNG","Embedded bytes must be the actual reviewed map asset.");
     var viewport=firstRoot.GetComponentsInChildren<RectMask2D>().Single();
+    Need(!firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.gameObject.name=="Area map caption"),
+        "NO-LEGEND","Self-evident blue-boundary and overview captions are absent.");
+    Need(firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.gameObject.name=="Area map attribution"
+        &&t.text.Contains("Shebuka")&&t.text.Contains("CC BY-NC-SA 4.0")),
+        "ATTRIBUTION","Removing the visual legend preserves map attribution and license.");
     var boundaryGraphic=firstRoot.GetComponentsInChildren<ArenaAreaBoundaryGraphic>().Single();
     Need(ReferenceEquals(mapGraphic.transform.parent,viewport.transform)&&ReferenceEquals(boundaryGraphic.transform.parent,viewport.transform),
         "CLIPPED-LAYERS","Both zoomed layers must share the clipping parent.");
@@ -167,7 +172,7 @@ try
     ((RectTransform)screen.transform).sizeDelta=new Vector2(1600,900);preview.Refresh(center);
     Near(rootRect.rect.width,600,"RESIZE","Resized logical root width");Near(rootRect.rect.height,292,"RESIZE","Resized logical root height");
     Near(rootRect.localScale.y,900f/1080f,"RESIZE","Smaller canvas scales complete right column");
-    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,148,"RESIZE","Resized viewport height");
+    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,170,"RESIZE","Resized viewport uses removed legend space");
     var resizedMesh=mapGraphic.SubmitMesh();Need(resizedMesh.Vertices.Count>4&&resizedMesh.Vertices.All(v=>float.IsFinite(v.Position.x)&&float.IsFinite(v.Position.y)),
         "RESIZE","Mesh must recompute against resized UI geometry.");
     preview.Refresh(tactical);

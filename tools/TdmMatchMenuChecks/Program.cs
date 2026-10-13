@@ -39,6 +39,19 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
     Need((Luminance(foreground) + .05f) / (Luminance(ArenaMode.Hud.ArenaUiTheme.Raised) + .05f) >= 4.5f,
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
+Need(Settings.ZombieMaxAlive.Value == 32 && Settings.ZombieWaveStartSize.Value == 50
+    && Settings.ZombieWaveGrowth.Value == 20 && Settings.ZombieOwnGear.Value,
+    "fresh Zombie preferences use tested 32/50/20 own-gear defaults");
+var savedZombieConfig = new ConfigFile();
+savedZombieConfig.Stored["Zombie/MaxAlive"] = 24;
+savedZombieConfig.Stored["Zombie/WaveStartSize"] = 35;
+savedZombieConfig.Stored["Zombie/WaveGrowth"] = 7;
+savedZombieConfig.Stored["Zombie/OwnGear"] = false;
+Settings.Init(savedZombieConfig);
+Need(Settings.ZombieMaxAlive.Value == 24 && Settings.ZombieWaveStartSize.Value == 35
+    && Settings.ZombieWaveGrowth.Value == 7 && !Settings.ZombieOwnGear.Value,
+    "new Zombie defaults preserve every existing saved preference");
+Settings.Init(config);
 ArenaMode.Pickups.ArenaPickupSettings.Init(config);
 Need(Settings.AutoQuickSlots.Value && Settings.InstantSearch.Value && Settings.CombatHudEnabled.Value
     && Settings.HudEnabled.Value, "new mutators preserve enabled defaults and the separate HUD master");
@@ -241,8 +254,8 @@ view.Synchronize("tactical", false);
 // label and the PFT requirement in the 5v5 note.
 Need(Label("OBJECTIVE value").text == "Round elimination" && Label("Mode description").gameObject.activeSelf,
     "solo Tactical RULES shows the objective, not the roster, and keeps the PFT requirement note");
-Need(Label("Mode description").text.Contains("5v5 needs PitFireTeam + 4 allies.", StringComparison.Ordinal),
-    "solo Tactical visible description names the full PFT squad requirement");
+Need(Label("Mode description").text.Contains("PitFireTeam supports 1-4 companions.", StringComparison.Ordinal),
+    "solo Tactical visible description names the flexible PFT squad support");
 string TacticalRowLabel() => Buttons().Single(x => x.name == "Arena Mode tactical").GetComponentInChildren<TextMeshProUGUI>(true).text;
 Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)",
     "solo Tactical roster stays in the mode row label");
@@ -251,6 +264,22 @@ Need(Label("OBJECTIVE value").text == "Round elimination" && TacticalRowLabel() 
     "PFT Tactical shows the same objective and the roster in the mode row label");
 Need(Label("Mode description").text.Contains("Fallen allies return next round.", StringComparison.Ordinal),
     "protected Tactical description explains round-delayed restoration");
+for (int companions = 1; companions <= 4; companions++)
+{
+    ArenaMode.Compat.PitFireTeamCompat.SelectedCompanionCount = companions;
+    view.Synchronize("tactical", true);
+    Need(TacticalRowLabel() == $"TACTICAL / {companions + 1}v5 PFT (WIP)",
+        "Tactical label reflects selected allies without reducing the opposing five");
+}
+ArenaMode.Compat.PitFireTeamCompat.SelectedCompanionCount = 4;
+view.Synchronize("zombie", false);
+Need(Label("Mode description").text.Contains("Ammo refills each wave.", StringComparison.Ordinal)
+    && Label("Mode description").text.Contains("PitFireTeam", StringComparison.Ordinal)
+    && Label("RESPAWN value").text == "None", "solo Zombie explains resupply and optional PFT without promising a respawn");
+view.Synchronize("zombie", true);
+Need(Label("Mode description").text.Contains("Only companions refill each wave.", StringComparison.Ordinal)
+    && Label("Mode description").text.Contains("team wipe", StringComparison.Ordinal),
+    "PFT Zombie resupply note excludes the surviving PMC and explains defeat");
 view.Synchronize("tactical", false);
 var dmRetired = Dm(0,5).onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);
@@ -315,8 +344,9 @@ foreach (bool ownGear in new[] { false, true })
     Need(Label("RESPAWN value").text == "Next wave" && Label("OBJECTIVE value").text == "Survive the waves",
         "protected Zombie explains the cleared-wave return instead of solo terminal death");
     Need(Label("Mode description").gameObject.activeSelf
-        && Label("Mode description").text.Contains("team wipe ends the match", StringComparison.Ordinal)
-        && Label("Mode description").text.Contains("Fallen allies return after cleared waves", StringComparison.Ordinal),
+        && Label("Mode description").text.Contains("team wipe ends play", StringComparison.Ordinal)
+        && Label("Mode description").text.Contains("Fallen allies return", StringComparison.Ordinal)
+        && Label("Mode description").text.Contains("Only companions refill each wave", StringComparison.Ordinal),
         "protected Zombie states elimination and cleared-wave restoration semantics");
     Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
             == "ZOMBIES / PFT (WIP)",
@@ -396,8 +426,8 @@ Settings.ZombieOwnGear.Value = false;
 view.Synchronize("zombie", false);
 Need(Label("OBJECTIVE value").text == "Survive the waves" && Label("RESPAWN value").text == "None"
     && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, None, Arena kits");
-Need(Label("Mode description").text.Contains("Your first death ends the match.", StringComparison.Ordinal),
-    "solo Zombie description exposes the terminal first-death rule");
+Need(Label("RESPAWN value").text == "None" && Label("Mode description").text.Contains("Ammo refills each wave.", StringComparison.Ordinal),
+    "solo Zombie retains terminal death and describes the between-wave refill");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
 GameObject MutatorsRoot() => screen.transform.Children.Single(x => x.name == "Arena Mutators").gameObject;

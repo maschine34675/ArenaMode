@@ -28,7 +28,6 @@ internal enum ArenaTracerSide
 /// </summary>
 internal static class ArenaTracerTeams
 {
-    internal const int TeamFollowerCount = 4;
     internal const int TeamOpponentCount = 5;
 
     private static readonly HashSet<string> FriendlyProfileIds =
@@ -45,6 +44,7 @@ internal static class ArenaTracerTeams
     private static bool _protectedRosterValid;
     private static bool _cooperativeTeamMatch;
     private static int _latestTeamEpoch;
+    private static int _expectedCompanionCount;
 
     internal static bool ProtectedTeamMatch => _matchBound && _protectedTeamMatch;
 
@@ -64,6 +64,7 @@ internal static class ArenaTracerTeams
 
     internal static bool TryBindTeamRound(
         int epoch,
+        int expectedCompanionCount,
         string localProfileId,
         IReadOnlyList<string> followerProfileIds,
         IReadOnlyList<string> opponentProfileIds,
@@ -95,10 +96,10 @@ internal static class ArenaTracerTeams
             return false;
         }
 
-        if (followerProfileIds?.Count != TeamFollowerCount
+        if (!MatchesCompanionCount(expectedCompanionCount, followerProfileIds)
             || opponentProfileIds?.Count != TeamOpponentCount)
         {
-            problem = "the tracer roster is not exactly one plus four versus five";
+            problem = "the tracer roster does not match the frozen squad versus five";
             return false;
         }
 
@@ -132,6 +133,7 @@ internal static class ArenaTracerTeams
         FriendlyProfileIds.UnionWith(nextFriendly);
         OpponentProfileIds.UnionWith(nextOpponents);
         _latestTeamEpoch = epoch;
+        _expectedCompanionCount = expectedCompanionCount;
         _protectedRosterValid = true;
         return true;
     }
@@ -143,21 +145,22 @@ internal static class ArenaTracerTeams
         return true;
     }
 
-    // A horde has four authenticated allies but no fixed opposing roster. Its
+    // A horde has the frozen authenticated allies but no fixed opposing roster. Its
     // runtime admits only actual infected bodies, separately from this binding.
-    internal static bool TryBindCooperativeWave(int epoch, string localProfileId,
+    internal static bool TryBindCooperativeWave(int epoch, int expectedCompanionCount, string localProfileId,
         IReadOnlyList<string> followerProfileIds, out string problem)
     {
         problem = null;
         if (!_matchBound || !_protectedTeamMatch) { problem = "no protected match"; return false; }
         _protectedRosterValid = false;
         if (epoch <= _latestTeamEpoch || Normalize(localProfileId) != _localProfileId
-            || followerProfileIds?.Count != TeamFollowerCount)
+            || !MatchesCompanionCount(expectedCompanionCount, followerProfileIds))
         { problem = "invalid cooperative wave identity"; return false; }
         var next = new HashSet<string>(StringComparer.Ordinal) { _localProfileId };
         if (!TryCollect(followerProfileIds, next, OpponentProfileIds, "friendly", out problem)) return false;
         FriendlyProfileIds.UnionWith(next);
         _latestTeamEpoch = epoch;
+        _expectedCompanionCount = expectedCompanionCount;
         _cooperativeTeamMatch = true;
         _protectedRosterValid = true;
         return true;
@@ -239,8 +242,14 @@ internal static class ArenaTracerTeams
         _protectedRosterValid = false;
         _cooperativeTeamMatch = false;
         _latestTeamEpoch = 0;
+        _expectedCompanionCount = 0;
         ArenaTracerPatches.ResetDiagnostics();
     }
+
+    private static bool MatchesCompanionCount(int expectedCompanionCount, IReadOnlyList<string> followers)
+        => expectedCompanionCount is >= 1 and <= 4
+           && (_expectedCompanionCount == 0 || _expectedCompanionCount == expectedCompanionCount)
+           && followers?.Count == expectedCompanionCount;
 
     private static bool TryCollect(
         IReadOnlyList<string> source,

@@ -23,6 +23,7 @@ internal static class Program
             CheckFactionPolicy();
             CheckProtectedTeamPolicy();
             CheckCooperativeWavePolicy();
+            CheckVariableSquads();
             CheckRosterRejections();
             CheckPatchRegistration();
             CheckPatchRenderingAndGates();
@@ -76,12 +77,12 @@ internal static class Program
     {
         Reset();
         var allies = new[] { "a", "b", "c", "d" };
-        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "horde binding needs a match");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, 4, "local", allies, out _), "horde binding needs a match");
         ArenaTracerTeams.BeginMatch("local", false);
-        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "solo cannot bind a horde roster");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, 4, "local", allies, out _), "solo cannot bind a horde roster");
         ArenaTracerTeams.BeginMatch("local", true);
         Assert(!ArenaTracerTeams.RegisterCooperativeInfected("z1"), "infected admission waits for authenticated allies");
-        Assert(ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "four allies bind without a fixed enemy count");
+        Assert(ArenaTracerTeams.TryBindCooperativeWave(1, 4, "local", allies, out _), "four allies bind without a fixed enemy count");
         Assert(ArenaTracerTeams.Classify("a", true) == ArenaTracerSide.Friendly, "horde ally is friendly");
         Assert(!ArenaTracerTeams.RegisterCooperativeInfected("a"), "an ally cannot become infected by registration");
         Assert(!ArenaTracerTeams.RegisterCooperativeInfected(" "), "blank infected identity rejected");
@@ -90,12 +91,12 @@ internal static class Program
         Assert(ArenaTracerTeams.Classify("z55", true) == ArenaTracerSide.Opponent, "last admitted infected is opponent");
         Assert(ArenaTracerTeams.Classify("stranger", true) == ArenaTracerSide.Unknown, "unowned actor stays unknown");
         Assert(ArenaTracerTeams.Classify("a", false) == ArenaTracerSide.Unknown, "identity still needs verified source");
-        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, "local", allies, out _), "old wave cannot be reused");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, 4, "local", allies, out _), "old wave cannot be reused");
         Assert(ArenaTracerTeams.Classify("a", true) == ArenaTracerSide.Unknown, "bad rebind closes classification");
-        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, "foreign", allies, out _), "foreign leader rejected");
-        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, "local", new[] { "a", "a", "c", "d" }, out _), "duplicate ally rejected");
-        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, "local", new[] { "z1", "b", "c", "d" }, out _), "historical infected cannot become ally");
-        Assert(ArenaTracerTeams.TryBindCooperativeWave(2, "local", new[] { "e", "f", "g", "h" }, out _), "fresh wave allies bind");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, 4, "foreign", allies, out _), "foreign leader rejected");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, 4, "local", new[] { "a", "a", "c", "d" }, out _), "duplicate ally rejected");
+        Assert(!ArenaTracerTeams.TryBindCooperativeWave(2, 4, "local", new[] { "z1", "b", "c", "d" }, out _), "historical infected cannot become ally");
+        Assert(ArenaTracerTeams.TryBindCooperativeWave(2, 4, "local", new[] { "e", "f", "g", "h" }, out _), "fresh wave allies bind");
         Assert(ArenaTracerTeams.Classify("a", true) == ArenaTracerSide.Friendly, "old projectile retains friendly identity");
         ArenaTracerTeams.Reset();
         Assert(!ArenaTracerTeams.RegisterCooperativeInfected("z"), "teardown closes horde registration");
@@ -123,6 +124,43 @@ internal static class Program
         Assert(!ArenaTracerTeams.RegisterFactionActor("friend", true), "faction API cannot alter protected Tactical roster");
     }
 
+    private static void CheckVariableSquads()
+    {
+        for (int count = 1; count <= 4; count++)
+        foreach (bool cooperative in new[] { false, true })
+        {
+            Reset();
+            ArenaTracerTeams.BeginMatch("local", true);
+            var allies = Enumerable.Range(0, count).Select(i => "ally" + i).ToArray();
+            var enemies = Enumerable.Range(0, 5).Select(i => "enemy" + i).ToArray();
+            bool Bind(int epoch, int expected, string[] current) => cooperative
+                ? ArenaTracerTeams.TryBindCooperativeWave(epoch, expected, "local", current, out _)
+                : ArenaTracerTeams.TryBindTeamRound(epoch, expected, "local", current, enemies, out _);
+            Assert(Bind(1, count, allies), $"{count} allies bind for cooperative={cooperative}");
+            Assert(ArenaTracerTeams.Classify(allies[0], true) == ArenaTracerSide.Friendly, "variable squad ally classified");
+            Assert(!Bind(2, count, allies.Skip(1).ToArray()), "variable squad missing follower rejected");
+            Assert(ArenaTracerTeams.Classify(allies[0], true) == ArenaTracerSide.Unknown, "incomplete variable squad revokes colors");
+            Assert(!Bind(2, count, allies.Append("extra").ToArray()), "variable squad extra follower rejected");
+            int different = count == 1 ? 2 : count - 1;
+            Assert(!Bind(2, different, Enumerable.Range(0, different).Select(i => "replacement" + i).ToArray()),
+                "variable squad count cannot drift after freeze");
+            Assert(Bind(2, count, Enumerable.Range(0, count).Select(i => "newally" + i).ToArray()),
+                "variable squad exact replacements bind");
+            Assert(ArenaTracerTeams.Classify(allies[0], true) == ArenaTracerSide.Friendly,
+                "variable squad historical source remains friendly");
+        }
+        foreach (int invalid in new[] { -1, 0, 5 })
+        {
+            Reset();
+            ArenaTracerTeams.BeginMatch("local", true);
+            var allies = Enumerable.Range(0, Math.Max(0, invalid)).Select(i => "invalid-ally" + i).ToArray();
+            Assert(!ArenaTracerTeams.TryBindCooperativeWave(1, invalid, "local", allies, out _),
+                "cooperative rejects invalid frozen count " + invalid);
+            Assert(!ArenaTracerTeams.TryBindTeamRound(1, invalid, "local", allies,
+                new[] { "e1", "e2", "e3", "e4", "e5" }, out _), "Tactical rejects invalid frozen count " + invalid);
+        }
+    }
+
     private static void CheckProtectedTeamPolicy()
     {
         Reset();
@@ -135,7 +173,7 @@ internal static class Program
         string[] followers = { "f1", "f2", "f3", "f4" };
         string[] opponents = { "e1", "e2", "e3", "e4", "e5" };
         Assert(ArenaTracerTeams.TryBindTeamRound(
-                1, "local", followers, opponents, out string problem),
+                1, 4, "local", followers, opponents, out string problem),
             "exact first-round rosters bind: " + problem);
         foreach (string friendly in followers.Append("local"))
             Assert(ArenaTracerTeams.Classify(friendly, verifiedPlayerIdentity: true)
@@ -149,7 +187,7 @@ internal static class Program
         string[] nextFollowers = { "f6", "f7", "f8", "f9" };
         string[] nextOpponents = { "e6", "e7", "e8", "e9", "e10" };
         Assert(ArenaTracerTeams.TryBindTeamRound(
-                2, "local", nextFollowers, nextOpponents, out problem),
+                2, 4, "local", nextFollowers, nextOpponents, out problem),
             "second-round rosters bind: " + problem);
         Assert(ArenaTracerTeams.Classify("f1", verifiedPlayerIdentity: true)
                == ArenaTracerSide.Friendly,
@@ -182,25 +220,25 @@ internal static class Program
         string[] goodOpponents = { "e1", "e2", "e3", "e4", "e5" };
 
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                1, "other", goodFollowers, goodOpponents, out _),
+                1, 4, "other", goodFollowers, goodOpponents, out _),
             "mismatched local profile is rejected");
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                1, "local", new[] { "f1", "f2", "f3" }, goodOpponents, out _),
+                1, 4, "local", new[] { "f1", "f2", "f3" }, goodOpponents, out _),
             "incomplete follower roster is rejected");
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                1, "local", new[] { "f1", "f1", "f3", "f4" }, goodOpponents, out _),
+                1, 4, "local", new[] { "f1", "f1", "f3", "f4" }, goodOpponents, out _),
             "duplicate follower identity is rejected");
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                1, "local", goodFollowers, new[] { "e1", "e2", "e3", "e4", "f1" }, out _),
+                1, 4, "local", goodFollowers, new[] { "e1", "e2", "e3", "e4", "f1" }, out _),
             "same profile on both teams is rejected");
         Assert(ArenaTracerTeams.TryBindTeamRound(
-                1, "local", goodFollowers, goodOpponents, out _),
+                1, 4, "local", goodFollowers, goodOpponents, out _),
             "valid roster still binds after rejected candidates");
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                1, "local", goodFollowers, goodOpponents, out _),
+                1, 4, "local", goodFollowers, goodOpponents, out _),
             "same or older round epoch is rejected");
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                2,
+                2, 4,
                 "local",
                 new[] { "e1", "nf2", "nf3", "nf4" },
                 new[] { "ne1", "ne2", "ne3", "ne4", "ne5" },
@@ -210,7 +248,7 @@ internal static class Program
                == ArenaTracerSide.Unknown,
             "ambiguous protected rebind disables stale team colors");
         Assert(!ArenaTracerTeams.TryBindTeamRound(
-                2,
+                2, 4,
                 "local",
                 new[] { "nf1", "nf2", "nf3", "nf4" },
                 new[] { "f1", "ne2", "ne3", "ne4", "ne5" },
@@ -303,7 +341,7 @@ internal static class Program
         Settings.OpponentTracerColor.Value = ArenaTracerColor.Orange;
         ArenaTracerTeams.BeginMatch("local", protectedTeamMatch: true);
         Assert(ArenaTracerTeams.TryBindTeamRound(
-                1,
+                1, 4,
                 "local",
                 new[] { "f1", "f2", "f3", "f4" },
                 new[] { "e1", "e2", "e3", "e4", "e5" },

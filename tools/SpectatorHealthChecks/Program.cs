@@ -168,7 +168,7 @@ internal static class Program
         Assert(fixture.Read() == null, "respawn during read cannot retain observer HP");
         fixture.LocalHealth.IsAlive = false;
         fixture.Health.AfterRead = null;
-        fixture.Request = new ArenaSpectatorRequest(1, () => throw new InvalidOperationException("disposed mode"),
+        fixture.Request = new ArenaSpectatorRequest(1, 4, () => throw new InvalidOperationException("disposed mode"),
             () => true, fixture.Local, Array.Empty<string>(), () => Array.Empty<ArenaSpectatorTarget>());
         Assert(fixture.Read() == null, "disposed epoch provider fails closed without breaking GUI");
     }
@@ -200,7 +200,7 @@ internal static class Program
             Bot = new Player { ProfileId = "ally", HealthController = Health };
             Target = new ArenaSpectatorTarget(Bot, "ally", "Ally", ArenaSpectatorSide.Ally);
             Frozen = Bot;
-            Request = new ArenaSpectatorRequest(1, () => Epoch, () => Eligible, Local,
+            Request = new ArenaSpectatorRequest(1, 4, () => Epoch, () => Eligible, Local,
                 new[] { "ally" }, () => new[] { Target });
         }
 

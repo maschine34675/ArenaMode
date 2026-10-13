@@ -51,14 +51,14 @@ internal sealed class ArenaAreaSelectionState
         Summary = selected == null ? "Select a map to choose its area."
             : HasTeamSizeChoice ? SelectedTeamSize > 0 ? $"{SelectedTeamSize}v{SelectedTeamSize} - opposing team starts" : "Select a supported team size."
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"
-            : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "5-player squad" : "5v5 - fixed teams"
+            : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "PitFireTeam squad" : "PFT squad vs 5"
             : mode == ArenaModeCatalog.TeamDeathmatchId ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
-            : SelectedArea != null ? "Surveyed area - bounded spawns" : "Whole map";
+            : string.Empty;
         ModeHint = selected == null ? string.Empty
             : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Opposing faction starts"
             : pitFireTeam ? "PitFireTeam squad - own equipment"
             : ArenaMapCatalog.IsEquator(map) ? "No Tactical or PFT Zombies: limited space"
-            : "Available in all Arena modes";
+            : string.Empty;
     }
 
     public IReadOnlyList<ArenaAreaOption> Options { get; }

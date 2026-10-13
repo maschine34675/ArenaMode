@@ -71,10 +71,13 @@ internal sealed class PitFireTeamSelectionDecision
 /// </summary>
 internal static class PitFireTeamSelectionPolicy
 {
-    public const int RequiredCompanionCount = 4;
+    public const int MaximumCompanionCount = 4;
+
+    public static bool IsSupportedCompanionCount(int count)
+        => count >= 1 && count <= MaximumCompanionCount;
 
     // PitFireTeam 0.10.0 routes these synthetic RaidPlayer profiles through its
-    // separate boss-spawn list. Mixing one into the ordinary four-member list
+    // separate boss-spawn list. Mixing one into the ordinary companion list
     // can make PFT inject both boss and companion bodies, so team Arena accepts
     // only stored teammate profiles.
     private static readonly HashSet<string> UnsupportedSpecialProfileIds = new(StringComparer.OrdinalIgnoreCase)
@@ -150,7 +153,7 @@ internal static class PitFireTeamSelectionPolicy
                 input.Contract == PitFireTeamContractState.Incompatible
                     ? "PitFireTeam team Arena requires PitFireTeam "
                       + PitFireTeamVersions.Describe + " and its supported runtime layout."
-                    : "Arena supports only solo play or exactly four authenticated PitFireTeam companions.");
+                    : "Arena supports only solo play or one to four authenticated PitFireTeam companions.");
         }
 
         if (!TryReadIdentitySet(input.SelectedPitAccountIds, out var selected, out var selectedProblem))
@@ -190,21 +193,21 @@ internal static class PitFireTeamSelectionPolicy
                 "PitFireTeam's Knight, Big Pipe and Birdeye special companions are unavailable in Arena.");
         }
 
-        if (selected.Count != RequiredCompanionCount)
+        if (!IsSupportedCompanionCount(selected.Count))
         {
             return PitFireTeamSelectionDecision.Reject(
-                $"Team Arena requires exactly four selected PitFireTeam companions (found {selected.Count}).");
+                $"Team Arena requires one to four selected PitFireTeam companions (found {selected.Count}).");
         }
 
         if (!allowPendingModeSelection && !SupportsMode(input.GameMode))
             return PitFireTeamSelectionDecision.Reject(
                 "PitFireTeam companions require Tactical or Zombies Arena.");
 
-        if (nativeCompanions.Length != RequiredCompanionCount
+        if (nativeCompanions.Length != selected.Count
             || !selected.SetEquals(nativeCompanions))
         {
             return PitFireTeamSelectionDecision.Reject(
-                "The native raid group does not exactly match the four selected PitFireTeam companions.");
+                "The native raid group does not exactly match the selected PitFireTeam companions.");
         }
 
         // Preserve the account-to-profile pairing from each selected RaidPlayer.

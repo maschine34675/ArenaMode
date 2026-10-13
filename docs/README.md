@@ -9,6 +9,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Current handoff and test status](HANDOFF.md)
 - [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
 - [Future work](FUTURE-WORK.md)
+- [Variable protected PitFireTeam squads](PFT-SQUAD-SIZE-REVIEW.md)
 - [Map/mode compatibility](MAP-MODE-COMPATIBILITY.md)
 - [Repository cleanup and recovery archive](GIT-CLEANUP-20261011.md)
 - [Gitleaks findings and local-backup precautions](GITLEAKS-20261011.md)

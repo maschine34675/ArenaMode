@@ -103,6 +103,7 @@ namespace ArenaMode.Modes
     }
     public sealed partial class TacticalMode
     {
+        private int TeamCompanionCount;
         private enum Phase { Live, Staging }
         private bool _teamArena=true; private Phase _phase=Phase.Live; private int _teamRoundEpoch=1;
         private ArenaMatch _match; private LocalGame _teamGame;
@@ -112,6 +113,7 @@ namespace ArenaMode.Modes
         public bool IsComplete;
         internal void BindForTest(Fixture f)
         {
+            TeamCompanionCount=f.CompanionCount;
             _match=f.Match;_teamGame=f.Game;_boundLocalPlayer=f.Local;_boundLocalProfileId=f.Local.ProfileId;
             _boundTeamFollowers=f.Followers;_boundTeamEnemies=f.Enemies;
             _boundTeamFollowerProfileIds=f.Followers.Select(x=>x.ProfileId).ToArray();
@@ -121,6 +123,7 @@ namespace ArenaMode.Modes
     }
     internal sealed partial class ZombieTeamRuntime
     {
+        private int TeamCompanionCount;
         private ArenaMatch _match; private LocalGame _game; private GameWorld _world;
         private Player _boundLocalPlayer; private string _boundLocalProfileId;
         private BotOwner[] _boundTeamFollowers; private string[] _boundTeamFollowerProfileIds;
@@ -130,6 +133,7 @@ namespace ArenaMode.Modes
             && ArenaMode.Session.ArenaSession.IsExactActiveRaid(_game,_world)&&_game.Status==GameStatus.Started;
         internal void BindForTest(Fixture f)
         {
+            TeamCompanionCount=f.CompanionCount;
             _match=f.Match;_game=f.Game;_world=f.World;_boundLocalPlayer=f.Local;_boundLocalProfileId=f.Local.ProfileId;
             _boundTeamFollowers=f.Followers;_boundTeamFollowerProfileIds=f.Followers.Select(x=>x.ProfileId).ToArray();BindFriendlyFireRoster();
         }

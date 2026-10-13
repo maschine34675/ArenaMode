@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Variable PFT squads and Zombie menu (2026-10-13):** One to four authenticated
+  companions are allowed in Tactical and Zombies; Tactical still has five
+  opponents. The exact count is frozen before arming and retained through body
+  readiness, lifecycle, spectator, tracers and friendly-fire bindings. Existing
+  Equator restrictions and protected persistence remain unchanged. Zombie fresh
+  defaults are **32 / 50 / 20 / own gear**, explicitly chosen by the user despite
+  the stricter 60-FPS recommendation below. Saved preferences are preserved.
+  Solo/PFT menu text distinguishes ammo refill: only companions refresh in the
+  PFT path when the PMC survives. Redundant Play Area summaries/availability and
+  Customs blue-boundary caption removed; attribution remains. See
+  `PFT-SQUAD-SIZE-REVIEW.md` for offline checks and review. GPU2 currently
+  unreachable; GPU1 has no configured test companions, so native smaller-party
+  round/wave reconstruction remains pending. Delivery/menu evidence follows.
+
 - **Zombie performance on GPU2 (2026-10-13):** Seven complete solo runs on
   Factory/Labs: 35 minutes, 497 kills, native walking/teleports and gunfire,
   godmode/infinite ammo, unchanged 1080p graphics/mod stack. Recommend MaxAlive

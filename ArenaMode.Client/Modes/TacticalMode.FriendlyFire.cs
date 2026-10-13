@@ -13,7 +13,7 @@ public sealed partial class TacticalMode
 
     private void BindFriendlyFireRoster()
     {
-        if (!_friendlyFireRoster.Bind(_match, Singleton<GameWorld>.Instance,
+        if (!_friendlyFireRoster.Bind(_match, TeamCompanionCount, Singleton<GameWorld>.Instance,
             _boundLocalPlayer, _boundLocalProfileId, _boundTeamFollowers,
             _boundTeamFollowerProfileIds, _boundTeamEnemies, _boundTeamEnemyProfileIds))
             Plugin.ModLogger.LogWarning("Arena friendly-fire roster unavailable; unknown actors retain native damage.");

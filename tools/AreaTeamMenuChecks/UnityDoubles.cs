@@ -129,3 +129,7 @@ namespace ArenaMode
     public static class Plugin { public static Logger ModLogger=new(); }
     public class Logger { public void LogWarning(string text){} }
 }
+namespace ArenaMode.Compat
+{
+    internal static class PitFireTeamCompat { internal static int SelectedCompanionCount = 4; }
+}

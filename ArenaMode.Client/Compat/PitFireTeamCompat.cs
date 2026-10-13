@@ -63,12 +63,13 @@ internal static partial class PitFireTeamCompat
     private static readonly Dictionary<string, BotOwner> CurrentBodiesByAccountId =
         new(StringComparer.Ordinal);
     // Corpse cleanup must recognize bodies from every completed round. This is
-    // intentionally a history, so it must not participate in the four-member
+    // intentionally a history, so it must not participate in the frozen companion
     // TeamArenaActive invariant.
     private static readonly HashSet<string> KnownProfileIds = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Harmony Harmony = new(Plugin.PluginGuid + ".pitfireteam");
     private static readonly Harmony UiHarmony = new(Plugin.PluginGuid + ".pitfireteam-ui");
 
+    private static int _frozenCompanionCount;
     private static bool _initialized;
     private static bool _deathSuppressionLogged;
     private static bool _progressSuppressionLogged;
@@ -176,6 +177,25 @@ internal static partial class PitFireTeamCompat
         }
     }
 
+    /// <summary>Display-only selection count. Admission still authenticates the full mapping.</summary>
+    public static int SelectedCompanionCount
+    {
+        get
+        {
+            EnsureInitialized();
+            return _contractState == PitFireTeamContractState.Compatible
+                && TryReadSelectedMembers(out var accounts, out _, out _)
+                && PitFireTeamSelectionPolicy.IsSupportedCompanionCount(accounts.Count)
+                ? accounts.Count : 0;
+        }
+    }
+
+    /// <summary>The immutable expected count, never inferred from arrived bodies.</summary>
+    public static int FrozenCompanionCount
+    {
+        get { lock (StateLock) return HasCompleteCanonicalRosterUnsafe() ? _frozenCompanionCount : 0; }
+    }
+
     /// <summary>The authenticated roster is frozen before the server is armed.</summary>
     public static bool HasFrozenTeamRoster
     {
@@ -187,7 +207,7 @@ internal static partial class PitFireTeamCompat
     }
 
     /// <summary>
-    /// True after final raid-start authentication froze exactly four companions
+    /// True after final raid-start authentication froze the selected companions
     /// and until protected finalization begins. It intentionally becomes true
     /// before server arming so the server can require external-profile protection
     /// for this request. Gameplay helpers additionally require ArenaSession.IsActive.
@@ -382,6 +402,7 @@ internal static partial class PitFireTeamCompat
 
         lock (StateLock)
         {
+            _frozenCompanionCount = 0;
             CanonicalAccountIds.Clear();
             CanonicalProfilesByAccountId.Clear();
             CurrentProfilesByAccountId.Clear();
@@ -405,14 +426,14 @@ internal static partial class PitFireTeamCompat
                 return true;
 
             if (_contractState != PitFireTeamContractState.Compatible
-                || decision.CompanionAccountIds.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
-                || decision.CompanionProfilesByAccountId.Count !=
-                    PitFireTeamSelectionPolicy.RequiredCompanionCount)
+                || !PitFireTeamSelectionPolicy.IsSupportedCompanionCount(decision.CompanionAccountIds.Count)
+                || decision.CompanionProfilesByAccountId.Count != decision.CompanionAccountIds.Count)
             {
                 reason = "The PitFireTeam runtime or companion roster changed before Arena could arm.";
                 return false;
             }
 
+            _frozenCompanionCount = decision.CompanionAccountIds.Count;
             foreach (var accountId in decision.CompanionAccountIds)
             {
                 var normalizedAccount = accountId?.Trim();
@@ -424,6 +445,7 @@ internal static partial class PitFireTeamCompat
                     || !CurrentProfilesByAccountId.TryAdd(normalizedAccount, profileId.Trim())
                     || !KnownProfileIds.Add(profileId.Trim()))
                 {
+                    _frozenCompanionCount = 0;
                     CanonicalAccountIds.Clear();
                     CanonicalProfilesByAccountId.Clear();
                     CurrentProfilesByAccountId.Clear();
@@ -443,7 +465,7 @@ internal static partial class PitFireTeamCompat
     /// Bind the exact local PMC body for the current round. A replacement is
     /// accepted only as a pending leader during an explicit round transition;
     /// TryAdoptRoundRoster promotes it only after the lifecycle proves the new
-    /// PFT boss and all four followers.
+    /// PFT boss and all selected followers.
     /// </summary>
     public static bool TryBindLocalPlayerBody(Player player, out string reason)
     {
@@ -510,7 +532,7 @@ internal static partial class PitFireTeamCompat
 
     /// <summary>
     /// Opens the only window in which the current PFT leader/follower bodies may
-    /// be replaced. The returned four-body snapshot includes corpses and is the
+    /// be replaced. The returned frozen-body snapshot includes corpses and is the
     /// exact roster the lifecycle adapter must retire. Canonical identities and
     /// persistence guards remain armed throughout the transition.
     /// </summary>
@@ -575,8 +597,8 @@ internal static partial class PitFireTeamCompat
                     _currentLocalPlayer.ProfileId?.Trim(),
                     _currentLocalProfileId,
                     StringComparison.Ordinal)
-                || CurrentProfilesByAccountId.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
-                || CurrentBodiesByAccountId.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                || CurrentProfilesByAccountId.Count != _frozenCompanionCount
+                || CurrentBodiesByAccountId.Count != _frozenCompanionCount
                 || !CanonicalAccountIds.SetEquals(CurrentProfilesByAccountId.Keys)
                 || !CanonicalAccountIds.SetEquals(CurrentBodiesByAccountId.Keys))
             {
@@ -595,7 +617,7 @@ internal static partial class PitFireTeamCompat
                     || !string.Equals(body.ProfileId?.Trim(), expectedProfileId, StringComparison.Ordinal)
                     || !distinctBodies.Add(body))
                 {
-                    reason = "Arena cannot prove four distinct current PitFireTeam bodies before teardown.";
+                    reason = "Arena cannot prove the complete set of distinct current PitFireTeam bodies before teardown.";
                     return false;
                 }
             }
@@ -617,7 +639,7 @@ internal static partial class PitFireTeamCompat
 
     /// <summary>
     /// Atomically adopts a new current round only after the reflection lifecycle
-    /// reached FollowersReady. It independently rechecks the four account,
+    /// reached FollowersReady. It independently rechecks the frozen account,
     /// runtime-profile, body, world-registry and exact leader-wrapper bindings;
     /// any mismatch leaves the transition closed to combat.
     /// </summary>
@@ -700,13 +722,13 @@ internal static partial class PitFireTeamCompat
                 IReadOnlyDictionary<string, string> runtimeProfiles =
                     lifecycle.RuntimeProfilesByAccountId;
                 if (runtimeProfiles == null
-                    || runtimeProfiles.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                    || runtimeProfiles.Count != _frozenCompanionCount
                     || !CanonicalAccountIds.SetEquals(runtimeProfiles.Keys)
                     || lifecycleFollowers == null
-                    || lifecycleFollowers.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount)
+                    || lifecycleFollowers.Count != _frozenCompanionCount)
                 {
                     return LatchRoundTransitionProblemUnsafe(
-                        "the lifecycle did not prove exactly four runtime identities and follower bodies",
+                        "the lifecycle did not prove the exact frozen runtime identities and follower bodies",
                         out followers,
                         out reason);
                 }
@@ -785,7 +807,7 @@ internal static partial class PitFireTeamCompat
                     }
                 }
 
-                if (wrappersByBody.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount)
+                if (wrappersByBody.Count != _frozenCompanionCount)
                 {
                     return LatchRoundTransitionProblemUnsafe(
                         "PitFireTeam did not retain exactly one wrapper for every ready follower body",
@@ -854,11 +876,11 @@ internal static partial class PitFireTeamCompat
                     commonLeaderWrapper ??= leaderWrapper;
                 }
 
-                if (bodiesByAccount.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+                if (bodiesByAccount.Count != _frozenCompanionCount
                     || !CanonicalAccountIds.SetEquals(bodiesByAccount.Keys))
                 {
                     return LatchRoundTransitionProblemUnsafe(
-                        "the new follower bodies do not cover the authenticated four-account roster",
+                        "the new follower bodies do not cover the authenticated frozen-account roster",
                         out followers,
                         out reason);
                 }
@@ -884,7 +906,7 @@ internal static partial class PitFireTeamCompat
                     .Select(pair => pair.Value)
                     .ToArray();
                 Plugin.ModLogger.LogInfo(
-                    $"Arena adopted PitFireTeam round epoch {lifecycle.Epoch}: four fresh runtime followers are active.");
+                    $"Arena adopted PitFireTeam round epoch {lifecycle.Epoch}: the fresh runtime followers are active.");
                 return true;
             }
         }
@@ -964,7 +986,7 @@ internal static partial class PitFireTeamCompat
             lock (StateLock)
             {
                 rosterFullyBound = CurrentBodiesByAccountId.Count
-                    == PitFireTeamSelectionPolicy.RequiredCompanionCount;
+                    == _frozenCompanionCount;
                 boundBodies = new Dictionary<string, BotOwner>(
                     CurrentBodiesByAccountId,
                     StringComparer.Ordinal);
@@ -1003,7 +1025,7 @@ internal static partial class PitFireTeamCompat
             HashSet<string> seenProfiles = new(StringComparer.Ordinal);
             List<BotOwner> seenBodies = new();
             HashSet<string> seenBoundBodies = new(StringComparer.Ordinal);
-            List<BotOwner> live = new(PitFireTeamSelectionPolicy.RequiredCompanionCount);
+            List<BotOwner> live = new(_frozenCompanionCount);
             foreach (var follower in reflectedFollowers)
             {
                 if (follower == null || _getFollowerBotMethod.Invoke(follower, null) is not BotOwner bot)
@@ -1096,7 +1118,7 @@ internal static partial class PitFireTeamCompat
                     if (splitLeader)
                     {
                         return LatchRuntimeRosterProblem(
-                            "PitFireTeam split the four Arena followers across different leader wrappers",
+                            "PitFireTeam split the Arena followers across different leader wrappers",
                             out followers,
                             out problem);
                     }
@@ -1317,7 +1339,7 @@ internal static partial class PitFireTeamCompat
             // keep reasserting hostility for whoever survives: losing the local
             // player or one follower must not prevent the remaining followers
             // from retaining every Arena opponent as an enemy.
-            var team = new List<IPlayer>(PitFireTeamSelectionPolicy.RequiredCompanionCount + 1);
+            var team = new List<IPlayer>(_frozenCompanionCount + 1);
             if (boundLocalPlayer.HealthController?.IsAlive == true)
                 team.Add(boundLocalPlayer);
             team.AddRange(followers.Cast<IPlayer>());
@@ -1439,6 +1461,7 @@ internal static partial class PitFireTeamCompat
                 || CurrentProfilesByAccountId.Count > 0 || CurrentBodiesByAccountId.Count > 0
                 || KnownProfileIds.Count > 0 || _roundTransitionActive
                 || _finalizingUntilUtc != DateTime.MinValue;
+            _frozenCompanionCount = 0;
             CanonicalAccountIds.Clear();
             CanonicalProfilesByAccountId.Clear();
             CurrentProfilesByAccountId.Clear();
@@ -1648,7 +1671,7 @@ internal static partial class PitFireTeamCompat
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
             Plugin.ModLogger.LogInfo(
-                $"Arena found compatible PitFireTeam {pluginVersion}; optional 5v5 Tactical integration is available.");
+                $"Arena found compatible PitFireTeam {pluginVersion}; optional Tactical/Zombie squad integration is available.");
         }
         catch (Exception ex)
         {
@@ -2149,12 +2172,12 @@ internal static partial class PitFireTeamCompat
         out string reason)
     {
         reason = string.Empty;
-        if (decision.CompanionAccountIds.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
-            || decision.CompanionProfilesByAccountId.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount
+        if (!PitFireTeamSelectionPolicy.IsSupportedCompanionCount(decision.CompanionAccountIds.Count)
+            || decision.CompanionProfilesByAccountId.Count != decision.CompanionAccountIds.Count
             || liveAccountIds == null
             || liveProfileIds == null
             || liveAccountIds.Count != liveProfileIds.Count
-            || liveAccountIds.Count != PitFireTeamSelectionPolicy.RequiredCompanionCount)
+            || liveAccountIds.Count != decision.CompanionAccountIds.Count)
         {
             reason = "the PitFireTeam roster changed between map display and raid start.";
             return false;
@@ -2213,7 +2236,8 @@ internal static partial class PitFireTeamCompat
            && string.Equals(expectedProfileId, profileId.Trim(), StringComparison.Ordinal);
 
     private static bool HasCompleteCanonicalRosterUnsafe()
-        => CanonicalAccountIds.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount
-           && CanonicalProfilesByAccountId.Count == PitFireTeamSelectionPolicy.RequiredCompanionCount
+        => PitFireTeamSelectionPolicy.IsSupportedCompanionCount(_frozenCompanionCount)
+           && CanonicalAccountIds.Count == _frozenCompanionCount
+           && CanonicalProfilesByAccountId.Count == _frozenCompanionCount
            && CanonicalAccountIds.SetEquals(CanonicalProfilesByAccountId.Keys);
 }

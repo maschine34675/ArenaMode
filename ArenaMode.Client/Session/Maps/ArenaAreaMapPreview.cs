@@ -19,7 +19,7 @@ internal sealed class ArenaAreaMapPreview
     private Transform _screen;
     private GameObject _nativeInfo, _root;
     private TMP_Text _typography;
-    private TextMeshProUGUI _title, _caption, _credit;
+    private TextMeshProUGUI _title, _credit;
     private Button _detailButton, _overviewButton;
     private ArenaAreaMapGraphic _map;
     private ArenaAreaBoundaryGraphic _boundary;
@@ -97,7 +97,7 @@ internal sealed class ArenaAreaMapPreview
         _detailButton = _overviewButton = null;
         _screen = null; _nativeInfo = null; _typography = null;
         _map = null; _boundary = null; _viewport = null;
-        _title = _caption = _credit = null; _outlines.Clear();
+        _title = _credit = null; _outlines.Clear();
         _width = _height = -1f;
         if (root != null) { root.SetActive(false); UnityEngine.Object.Destroy(root); }
         if (texture != null) UnityEngine.Object.Destroy(texture);
@@ -134,7 +134,6 @@ internal sealed class ArenaAreaMapPreview
         background.color = Hud.ArenaUiTheme.WithAlpha(Hud.ArenaUiTheme.Surface, .96f); background.raycastTarget = false;
         Hud.ArenaUiTheme.Decorate((RectTransform)_root.transform);
         _title = Text("Area map title", "CUSTOMS", 21f);
-        _caption = Text("Area map caption", "", 14f);
         _credit = Text("Area map attribution", "Map: Shebuka / Tarkov.dev, modified by acidphantasm\nArena adaptation: CC BY-NC-SA 4.0 · Ground floor", 11f);
         _credit.enableWordWrapping = true;
         var viewport = new GameObject("Area map viewport", typeof(RectTransform), typeof(RectMask2D));
@@ -158,7 +157,6 @@ internal sealed class ArenaAreaMapPreview
     {
         _map.Set(_texture, _area.Bounds, _overview);
         _boundary.Set(_area.Bounds, _outlines, _overview);
-        _caption.text = _overview ? "Selected area in blue · Other available areas in grey" : "Blue boundary: playable area · Outside area dimmed";
         _detailButton.interactable = _overview;
         _overviewButton.interactable = !_overview;
     }
@@ -173,9 +171,7 @@ internal sealed class ArenaAreaMapPreview
         Place(_title.rectTransform, 20f, 12f, width - 40f, 28f);
         Place((RectTransform)_detailButton.transform, 20f, 44f, 104f, 26f);
         Place((RectTransform)_overviewButton.transform, 132f, 44f, 140f, 26f);
-        Place(_viewport, 16f, 80f, width - 32f, height - 144f);
-        Place(_caption.rectTransform, 20f, height - 58f, width - 40f, 20f);
-        _caption.fontSize = 12f;
+        Place(_viewport, 16f, 80f, width - 32f, height - 122f);
         Place(_credit.rectTransform, 20f, height - 36f, width - 40f, 30f);
     }
 
