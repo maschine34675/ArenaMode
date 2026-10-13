@@ -234,10 +234,10 @@ public class LocationMutatorTests
 
         // Maximum configured infected + four PFT companions + two release
         // reserve slots must fit even when the native map cap is much smaller.
-        Assert.True(ZombieLocationSettings.MinimumBotCap >= 56 + 4 + 2);
-        Assert.Equal(Math.Max(mapBotMax, 64), location.BotMax);
-        Assert.Equal(Math.Max(mapBotMax, 64), location.BotMaxPvE);
-        Assert.Equal(Math.Max(mapMaxBotPerZone, 64), location.MaxBotPerZone);
+        Assert.True(ZombieLocationSettings.MinimumBotCap >= 96 + 4 + 2);
+        Assert.Equal(Math.Max(mapBotMax, ZombieLocationSettings.MinimumBotCap), location.BotMax);
+        Assert.Equal(Math.Max(mapBotMax, ZombieLocationSettings.MinimumBotCap), location.BotMaxPvE);
+        Assert.Equal(Math.Max(mapMaxBotPerZone, ZombieLocationSettings.MinimumBotCap), location.MaxBotPerZone);
     }
 
     [Fact]

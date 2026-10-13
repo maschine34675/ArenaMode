@@ -919,7 +919,7 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
 
     Slider ZombieSlider(ArenaZombieRule rule) => view.Root.GetComponentsInChildren<Slider>(true).Single(s => s.name == "Arena Zombie " + rule);
     GameObject ZombieRoot() => view.Root.transform.Children.Single(t => t.name == "Arena Zombie Rules").gameObject;
-    var zombieEntries = new[] { (ArenaZombieRule.MaxAlive, Settings.ZombieMaxAlive, 4, 56),
+    var zombieEntries = new[] { (ArenaZombieRule.MaxAlive, Settings.ZombieMaxAlive, 4, 96),
         (ArenaZombieRule.WaveStartSize, Settings.ZombieWaveStartSize, 1, 200),
         (ArenaZombieRule.WaveGrowth, Settings.ZombieWaveGrowth, 0, 100) };
     var originalZombieValues = zombieEntries.Select(x => x.Item2.Value).ToArray();

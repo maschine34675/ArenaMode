@@ -204,6 +204,7 @@ public static class Settings
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
     public static ConfigEntry<bool> ZombiePftFastPathEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieVoiceBudgetEnabled { get; private set; }
+    public static ConfigEntry<bool> ZombieCrowdEnabled { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
@@ -1156,9 +1157,9 @@ public static class Settings
             new ConfigDescription(
                 "Infected allowed alive at once, across the whole raid. Also raises the native bot " +
                 "cap with reserve for activation and any authenticated PitFireTeam companions. " +
-                "The ceiling of 56 stays below the server clone's 64-bot capacity floor. " +
+                "The ceiling of 96 stays below the server clone's 104-bot capacity floor. " +
                 "Frozen at match start.",
-                new AcceptableValueRange<int>(4, 56)));
+                new AcceptableValueRange<int>(4, 96)));
 
         ZombieStuckWaveTimeoutSeconds = config.Bind("Zombie", "StuckWaveTimeoutSeconds", 100f,
             new ConfigDescription(
@@ -1223,6 +1224,14 @@ public static class Settings
             "Limit overlapping repetitive infected voices in Arena Zombies. " +
             "Nearby attack calls, critical sounds, AI hearing and companions keep native behavior. " +
             "Turn off for comparison; applies immediately.");
+
+        ZombieCrowdEnabled = config.Bind("Zombie", "CrowdEnabled", true,
+            "Keep generic infected near the local player and skip melee line-of-sight casts. " +
+            "Bodies farther than 26 m are moved onto a 16 m ring behind the current look direction, " +
+            "only where the active area already allows a teleport. Melee infected within 80 m treat " +
+            "the player as seen without a HighPoly cast. Shooters keep native vision. Infected skins " +
+            "use two bones and cast no shadows. Turn off for comparison; applies immediately, except " +
+            "a body already cheapened keeps that rendering until it is gone.");
 
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
             "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +

@@ -308,6 +308,10 @@ public sealed class ZombieMode : IArenaMode
             return;
         }
 
+        // Pull stragglers back into view and cheapen newly arrived bodies.
+        // Sight casts are skipped on their own hook; this tick only moves and renders.
+        ZombieCrowdRuntime.Tick();
+
         float now = Time.time;
 
         if (_team != null && !_team.Tick())
