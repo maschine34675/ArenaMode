@@ -67,4 +67,17 @@ public sealed class ZombieCrowdPolicyTests
         ZombieCrowdPolicy.RingOffset(0f, 1f, 0f, 12f, out float innerX, out float innerZ);
         Assert.Equal(12f, MathF.Sqrt(innerX * innerX + innerZ * innerZ), 3);
     }
+
+    [Fact]
+    public void PresentationHidesWhatIsBehindAndSimplifiesWhatIsFar()
+    {
+        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Detail, ZombieCrowdPolicy.Presentation(2f, 1f));
+        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Detail, ZombieCrowdPolicy.Presentation(2f, -1f));
+        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Simple, ZombieCrowdPolicy.Presentation(12f, 1f));
+        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Hidden,
+            ZombieCrowdPolicy.Presentation(12f, ZombieCrowdPolicy.HideLookDot - 0.01f));
+        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Detail, ZombieCrowdPolicy.Presentation(float.NaN, 1f));
+        Assert.True(ZombieCrowdPolicy.ShouldSkipAvoidance(true));
+        Assert.False(ZombieCrowdPolicy.ShouldSkipAvoidance(false));
+    }
 }

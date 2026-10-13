@@ -25,32 +25,32 @@ namespace ArenaMode.Bots;
 /// </summary>
 internal static class ZombieCrowdRuntime
 {
-    private static bool _sightEnabled, _warned;
+    private static bool _sightEnabled, _avoidEnabled, _warned;
     private static readonly Dictionary<int, float> RecallAt = new Dictionary<int, float>();
-    private static readonly HashSet<int> Cheapened = new HashSet<int>();
+    private static readonly Dictionary<int, BodyView> Views = new Dictionary<int, BodyView>();
     private static readonly NavMeshPath ScratchPath = new NavMeshPath();
-    private static int _recalled, _sightSkips, _cheapened;
+    private static int _recalled, _sightSkips, _cheapened, _hidden, _simple, _detail;
     private static float _nextReport = float.PositiveInfinity;
 
     internal static void EnablePatch()
     {
-        if (_sightEnabled) return;
-        try
+        if (!_sightEnabled)
         {
-            new SightPatch().Enable();
-            _sightEnabled = true;
+            try { new SightPatch().Enable(); _sightEnabled = true; }
+            catch (Exception ex) { Warn(ex); }
         }
-        catch (Exception ex)
+        if (!_avoidEnabled)
         {
-            Warn(ex);
+            try { new AvoidancePatch().Enable(); _avoidEnabled = true; }
+            catch (Exception ex) { Warn(ex); }
         }
     }
 
     internal static void Reset()
     {
         RecallAt.Clear();
-        Cheapened.Clear();
-        _recalled = _sightSkips = _cheapened = 0;
+        Views.Clear();
+        _recalled = _sightSkips = _cheapened = _hidden = _simple = _detail = 0;
         _nextReport = float.PositiveInfinity;
     }
 
@@ -72,17 +72,16 @@ internal static class ZombieCrowdRuntime
             float now = Time.time;
             BotOwner farthest = null;
             float farthestDistance = ZombieCrowdPolicy.RecallDistance * ZombieCrowdPolicy.RecallDistance;
-            bool cheapenedOne = false;
+            bool preparedOne = false;
+            Vector3 look = player.MovementContext.LookDirection;
+            look.y = 0f;
+            if (look.sqrMagnitude < 0.0001f) look = Vector3.forward;
+            else look.Normalize();
             foreach (var bot in owners)
             {
                 if (!TryEligible(bot, world, out var body)) continue;
                 int id = body.GetInstanceID();
-                if (!cheapenedOne && Cheapened.Add(id))
-                {
-                    Cheapen(body);
-                    _cheapened++;
-                    cheapenedOne = true;
-                }
+                ApplyPresentation(id, body, player.Position, look, ref preparedOne);
                 float distance = (bot.Position - player.Position).sqrMagnitude;
                 float since = RecallAt.TryGetValue(id, out float at) ? now - at : float.PositiveInfinity;
                 if (!ZombieCrowdPolicy.ShouldRecall(true, distance, since)) continue;
@@ -200,19 +199,87 @@ internal static class ZombieCrowdRuntime
         return false;
     }
 
-    private static void Cheapen(Player body)
+    private sealed class BodyView
+    {
+        internal Renderer[] Renderers;
+        internal bool Applied;
+        internal ZombieCrowdPolicy.BodyPresentation Shown;
+    }
+
+    private static void ApplyPresentation(int id, Player body, Vector3 playerPosition, Vector3 look, ref bool preparedOne)
+    {
+        if (!Views.TryGetValue(id, out var view))
+        {
+            if (preparedOne) return;
+            view = Capture(body);
+            Views[id] = view;
+            preparedOne = true;
+            _cheapened++;
+        }
+        Vector3 to = body.Position - playerPosition;
+        float distance = to.magnitude;
+        to.y = 0f;
+        float dot = to.sqrMagnitude > 0.04f ? Vector3.Dot(look, to.normalized) : 1f;
+        var presentation = ZombieCrowdPolicy.Presentation(distance, dot);
+        if (presentation == ZombieCrowdPolicy.BodyPresentation.Hidden) _hidden++;
+        else if (presentation == ZombieCrowdPolicy.BodyPresentation.Simple) _simple++;
+        else _detail++;
+        if (view.Applied && view.Shown == presentation) return;
+        view.Applied = true;
+        view.Shown = presentation;
+        bool hidden = presentation == ZombieCrowdPolicy.BodyPresentation.Hidden;
+        var quality = presentation == ZombieCrowdPolicy.BodyPresentation.Detail ? SkinQuality.Bone2 : SkinQuality.Bone1;
+        var renderers = view.Renderers;
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            var renderer = renderers[i];
+            if (renderer == null) continue;
+            renderer.forceRenderingOff = hidden;
+            if (renderer is SkinnedMeshRenderer skin) skin.quality = quality;
+        }
+    }
+
+    private static BodyView Capture(Player body)
     {
         var renderers = body.GetComponentsInChildren<Renderer>(true);
+        var animators = body.GetComponentsInChildren<Animator>(true);
         for (int i = 0; i < renderers.Length; i++)
         {
             var renderer = renderers[i];
             if (renderer == null) continue;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
-            if (renderer is SkinnedMeshRenderer skin)
-            {
-                skin.quality = SkinQuality.Bone2;
-                skin.updateWhenOffscreen = false;
-            }
+            if (renderer is SkinnedMeshRenderer skin) skin.updateWhenOffscreen = false;
+        }
+        for (int i = 0; i < animators.Length; i++)
+        {
+            var animator = animators[i];
+            if (animator == null) continue;
+            animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+        }
+        return new BodyView { Renderers = renderers };
+    }
+
+    private static bool ShouldRunAvoidance(BotLocalAvoidance avoidance)
+    {
+        try
+        {
+            if (!Enabled() || !ZombieNativeEventBridge.IsActiveZombieRaid()) return true;
+            var owner = avoidance?._owner;
+            if (owner == null || owner.IsDead || owner.BotState != EBotState.Active) return true;
+            var settings = owner.Profile?.Info?.Settings;
+            if (settings == null) return true;
+            bool generic = settings.Role == WildSpawnType.infectedAssault
+                || settings.Role == WildSpawnType.infectedCivil
+                || settings.Role == WildSpawnType.infectedLaborant
+                || settings.Role == WildSpawnType.infectedPmc;
+            bool follower = owner.IsFollower() || owner.BotFollower?.HaveBoss == true;
+            return !ZombieCrowdPolicy.ShouldSkipAvoidance(
+                ZombieCrowdPolicy.IsEligible(true, true, generic, true, true, follower));
+        }
+        catch (Exception ex)
+        {
+            Warn(ex);
+            return true;
         }
     }
 
@@ -248,14 +315,15 @@ internal static class ZombieCrowdRuntime
                 + " m onto a " + ZombieCrowdPolicy.RingDistance.ToString("0")
                 + " m ring, melee sight within "
                 + ZombieCrowdPolicy.SenseDistance.ToString("0")
-                + " m without a linecast, Bone2 skins and no caster shadows.");
+                + " m without a linecast. Close bodies keep two bones, farther ones one, "
+                + "and bodies behind the player are not drawn. Infected skip local avoidance.");
             return;
         }
         if (now < _nextReport) return;
         _nextReport = now + 30f;
         Plugin.ModLogger.LogInfo(
-            $"Arena zombie crowd (last interval): recalled={_recalled}, sightSkips={_sightSkips}, cheapenedBodies={_cheapened}.");
-        _recalled = _sightSkips = _cheapened = 0;
+            $"Arena zombie crowd (last interval): recalled={_recalled}, sightSkips={_sightSkips}, cheapenedBodies={_cheapened}, detail={_detail}, simple={_simple}, hidden={_hidden}.");
+        _recalled = _sightSkips = _cheapened = _hidden = _simple = _detail = 0;
     }
 
     private static void Warn(Exception ex)
@@ -275,5 +343,15 @@ internal static class ZombieCrowdRuntime
         [PatchPrefix]
         private static bool Prefix(EnemyPartVision __instance, BotOwner owner, EnemyPart part)
             => ShouldRunSight(__instance, owner, part);
+    }
+
+    private sealed class AvoidancePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(BotLocalAvoidance), nameof(BotLocalAvoidance.ManualUpdate));
+
+        [PatchPrefix]
+        private static bool Prefix(BotLocalAvoidance __instance)
+            => ShouldRunAvoidance(__instance);
     }
 }

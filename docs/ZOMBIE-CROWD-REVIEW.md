@@ -20,9 +20,13 @@ result yet:
   is not active, the same recall instead requires a NavMesh sample within 2 m
   and a complete path to the player. A player standing in a pocket the bots
   cannot enter still produces no move.
-- The same tick cheapens one not-yet-seen body: child renderers cast no
-  shadows, skinned meshes use `SkinQuality.Bone2` and do not update off
-  screen. Turning the setting off does not restore a body already cheapened.
+- The same tick prepares one new body, then every prepared body: no caster
+  shadows, animator culling while off screen, two bones inside 6 m in front,
+  one bone farther away, and no draw when the body is behind the player and
+  farther than 3 m. Turning the setting off does not restore a body already
+  changed.
+- Generic infected skip `BotLocalAvoidance` for the raid. Followers and every
+  other bot keep it.
 
 `EnemyPartVision.CheckLineOfSight` prefix, melee difficulties only (`easy`
 and `normal`; `hard` shooters keep the native HighPoly cast):

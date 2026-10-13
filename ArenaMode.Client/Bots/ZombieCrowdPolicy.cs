@@ -49,6 +49,35 @@ internal static class ZombieCrowdPolicy
         return slot * (360f / RingSlots);
     }
 
+    /// <summary>Bodies farther than this, or behind the player, use one bone.</summary>
+    internal const float DetailDistance = 6f;
+
+    /// <summary>Behind the look direction and farther than this, the mesh is not drawn.</summary>
+    internal const float HideDistance = 3f;
+
+    /// <summary>Look-direction dot below this is behind the player.</summary>
+    internal const float HideLookDot = -0.2f;
+
+    internal enum BodyPresentation { Detail, Simple, Hidden }
+
+    /// <summary>
+    /// Detail keeps two bones in front and close. Simple is one bone.
+    /// Hidden is not drawn. A bad distance stays detailed so a glitch does not blank the horde.
+    /// </summary>
+    internal static BodyPresentation Presentation(float distance, float lookDot)
+    {
+        if (float.IsNaN(distance) || float.IsInfinity(distance) || distance < 0f
+            || float.IsNaN(lookDot))
+            return BodyPresentation.Detail;
+        if (distance > HideDistance && lookDot < HideLookDot)
+            return BodyPresentation.Hidden;
+        if (distance > DetailDistance)
+            return BodyPresentation.Simple;
+        return BodyPresentation.Detail;
+    }
+
+    internal static bool ShouldSkipAvoidance(bool eligible) => eligible;
+
     internal static bool IsEligible(bool enabled, bool zombieRaid, bool genericInfected,
         bool alive, bool active, bool follower)
         => enabled && zombieRaid && genericInfected && alive && active && !follower;
