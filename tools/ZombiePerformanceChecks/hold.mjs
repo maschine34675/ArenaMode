@@ -4,6 +4,7 @@ import { connect } from './bridge.mjs';
 // Keeps godmode on across the raid-start body swap, then records a short
 // contact window. Does not walk, shoot, or change settings.
 const outPath = process.argv[2] || 'hold.json';
+const stay = process.argv.includes('--stay');
 const anchor = { x: 61.5, y: -2.6, z: 6.4 };
 const pocket = p => p && ((p.x > 8 && p.x < 16 && p.z > 50 && p.z < 62) || p.z < -60);
 const bridge = await connect('zombie-cap56');
@@ -31,7 +32,7 @@ try {
   }
   let player = await bridge.call('player');
   note('player', { position: player.position, botsAlive: player.bots?.alive, nearest: dist(player) });
-  if (pocket(player.position) || (dist(player) ?? 99) > 12) {
+  if (!stay && (pocket(player.position) || (dist(player) ?? 99) > 12)) {
     const moved = await bridge.act('teleport', { ...anchor, reachable: false });
     note('anchor', { ok: moved != null });
     await bridge.call('wait', { seconds: 8 });
