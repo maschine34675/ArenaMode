@@ -1,11 +1,27 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-12. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-13. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Zombie performance on GPU2 (2026-10-13):** Seven complete solo runs on
+  Factory/Labs: 35 minutes, 497 kills, native walking/teleports and gunfire,
+  godmode/infinite ammo, unchanged 1080p graphics/mod stack. Recommend MaxAlive
+  **24** as the highest jointly passing tested cap for p95 frame time <=16.667ms:
+  Factory 14.00ms; Labs 15.12/15.39ms. 28 passes Factory aggregate but fails Labs
+  (20.47ms); 32 fails Factory. Individual minutes still fall below 60 FPS at 24;
+  no all-map/PFT/late-wave guarantee or exact optimum claim (25–27 untested).
+  All temporary preferences restored, so saved MaxAlive remains original **56**;
+  hooks off, GPU2 in MainMenu and control free. Final profile differs only by its
+  normal hideout update timestamp. Client/server DLLs unchanged, no build/deploy.
+  External measurement harness `65169f3`; 17/17 controls plus independent native
+  data review. See `GPU-ZOMBIE-PERFORMANCE-20261013.md` for samples, excluded runs
+  and full limits. Follow-ups: rare damage NREs in native BotMemory callbacks,
+  occasional exhausted zombie profile requests and long frame spikes. UiBridge
+  0.9.1's godmode must be rebound after wave-kit body replacement in long tests.
 
 - **Menu follow-up (2026-10-12):** Mode order is Gun Game, Deathmatch, Team DM,
   Tactical, Zombies; Tactical/Zombies/Akimbo/Molotov display `(WIP)`. MOLOTOV
