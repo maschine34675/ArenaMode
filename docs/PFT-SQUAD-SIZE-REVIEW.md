@@ -52,3 +52,17 @@ mutants; friendly fire 229 plus 38 mutants; team expansion 892; spectator health
 assembly notice 50 plus regression controls; solo Zombies 85 plus 13 mutants. Pure policies and native test doubles
 cannot establish actual reflected PFT activation or in-game animation behavior.
 Native results and the final delivered build identity are recorded separately.
+
+## Delivered identity
+
+Implementation commit `8b5c772`, rebuilt from a clean worktree. Client SHA-256:
+`786C6643A53C0CB4830F54598E71C33BA1EAE7D3AF808ABAEBEE4AD5B3824377`.
+Delivered to the local installation; server and Core hashes remain unchanged.
+The full unit suite passed 958 tests with two skips (960 total), with server build
+output redirected into artifacts and the installed server hash verified unchanged.
+Client build has four existing nullable-annotation warnings; server build has the
+existing nullable UnionWith and MudTabs PanelClass warnings, no errors.
+
+See [native squad test instructions](GPU-PFT-SQUAD-TEST-INSTRUCTIONS-20261013.md)
+for pending real PFT gameplay acceptance. GPU1 can verify menus but its designated
+profile has no configured PFT companions; no other profile/store was copied.

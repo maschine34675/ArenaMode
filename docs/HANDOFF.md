@@ -19,7 +19,12 @@ current. User-facing communication is normally German.
   Customs blue-boundary caption removed; attribution remains. See
   `PFT-SQUAD-SIZE-REVIEW.md` for offline checks and review. GPU2 currently
   unreachable; GPU1 has no configured test companions, so native smaller-party
-  round/wave reconstruction remains pending. Delivery/menu evidence follows.
+  round/wave reconstruction remains pending. Implementation `8b5c772`; client
+  SHA256 `786C6643A53C0CB4830F54598E71C33BA1EAE7D3AF808ABAEBEE4AD5B3824377`
+  delivered locally and loaded on GPU1, process `7c46308b`. Server/Core unchanged.
+  Full unit suite 958 passed, two skipped; client/server staged builds passed.
+  See `GPU-PFT-SQUAD-MENU-RESULTS-20261013.md` for the menu-only native check and
+  `GPU-PFT-SQUAD-TEST-INSTRUCTIONS-20261013.md` for pending smaller-party raids.
 
 - **Zombie performance on GPU2 (2026-10-13):** Seven complete solo runs on
   Factory/Labs: 35 minutes, 497 kills, native walking/teleports and gunfire,
