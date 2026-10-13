@@ -21,7 +21,7 @@ const dist = player => {
 };
 try {
   for (let i = 0; i < 6; i++) {
-    const hooked = await bridge.act('hook', { action: 'godmode', enabled: true });
+    const hooked = await bridge.act('hook', { action: 'godmode', enabled: true, force: true });
     note('godmode', { i, ok: hooked != null });
     await bridge.call('wait', { seconds: 1 });
     const status = await bridge.call('status', { plugins: 'none', harmony: 'none' });
@@ -33,13 +33,13 @@ try {
   let player = await bridge.call('player');
   note('player', { position: player.position, botsAlive: player.bots?.alive, nearest: dist(player) });
   if (!stay && (pocket(player.position) || (dist(player) ?? 99) > 12)) {
-    const moved = await bridge.act('teleport', { ...anchor, reachable: false });
+    const moved = await bridge.act('teleport', { ...anchor, reachable: false, force: true });
     note('anchor', { ok: moved != null });
     await bridge.call('wait', { seconds: 8 });
-    for (let i = 0; i < 3; i++) await bridge.act('hook', { action: 'godmode', enabled: true });
+    for (let i = 0; i < 3; i++) await bridge.act('hook', { action: 'godmode', enabled: true, force: true });
   }
   for (let sample = 0; sample < 4; sample++) {
-    await bridge.act('hook', { action: 'godmode', enabled: true });
+    await bridge.act('hook', { action: 'godmode', enabled: true, force: true });
     const status = await bridge.call('status', { plugins: 'none', harmony: 'none' });
     player = await bridge.call('player');
     const bots = await bridge.call('bots', { aliveOnly: true, max: 120 });
