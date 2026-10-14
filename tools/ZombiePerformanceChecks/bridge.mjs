@@ -3,7 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // Reuse gpu-run's configured MCP proxy and SDK; never store credentials in evidence.
-export async function connect(lane = 'zombiebench-20261013') {
+export async function connect(lane = process.env.ZOMBIE_BENCH_LANE || 'zombiebench-20261013') {
   const base = process.env.UIBRIDGE_GPU_RUN || path.resolve('../UiBridge/tools/gpu-run');
   const mod = name => import(pathToFileURL(path.join(base, 'lib', name)).href);
   const { resolveUiBridgeConfig, ownLabelFor } = await mod('config.mjs');

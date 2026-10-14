@@ -10,7 +10,9 @@ Credentials stay in the existing private `.claude.json`/token files.
 2. Record loaded binaries, hardware, graphics, original configuration and profile
    in an **ignored** artifact folder. Check that no other user owns the host.
 3. Use official `gpu-run config-pin` ledgers and the same explicit
-   `--host host2 --lane zombiebench-20261013` for settings/start/leave/restore.
+   `--host host2 --lane <your-lane>` for settings/start/leave/restore. Set
+   `$env:ZOMBIE_BENCH_LANE = '<your-lane>'` to the same label for this harness
+   (default remains `zombiebench-20261013` for older invocations).
    Each MaxAlive needs a fresh raid. Keep kit, graphics, shooter percentage and
    spawn interval fixed. For a sustained population, use a wave larger than the cap.
 4. Immediately after official `gpu-run raid`, run `prepare.mjs output.json` to
